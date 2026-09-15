@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.ephemeris.Rgba
@@ -13,7 +14,6 @@ import net.minecraft.client.player.LocalPlayer
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundSource
-import net.minecraft.world.level.LightLayer
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
 
@@ -41,24 +41,14 @@ object Storms {
     }
 
     /**
-     * How much of the storm is actually on [player], from none of it to all of it.
-     *
-     * **The same arithmetic the cold uses**, written out here only because `Blizzard.exposureAt` takes a
-     * `ServerLevel` and this side has a `ClientLevel`. It is sky light over fifteen and nothing else, and
-     * if one of the two ever moves the other must move with it — the wind saying you are out in it while
-     * the freezing has stopped is the mismatch this whole shape exists to prevent.
+     * How much of the storm is actually on [player], from none of it to all of it — [Blizzard.exposureAt],
+     * the same definition the cold uses.
      *
      * **Cover only, deliberately.** A fire warms you without sheltering you, so it takes the edge off the
      * cold and changes nothing here: you are still standing in the wind, and the sound should say so.
      */
     fun exposure(level: ClientLevel, player: LocalPlayer): Float =
-        exposureAt(level, player.blockPosition())
-
-    /** The same, of a place rather than of the player — which is what a positional layer is sampled at. */
-    fun exposureAt(level: ClientLevel, at: BlockPos): Float {
-        val open = level.getBrightness(LightLayer.SKY, at).toFloat()
-        return (open / OPEN_TO_THE_SKY).coerceIn(NONE, ALL_OF_IT)
-    }
+        Blizzard.exposureAt(level, player.blockPosition())
 
     /**
      * The fog closing in while a blizzard blows, laid over whatever the Age already paints.
@@ -110,14 +100,14 @@ object Storms {
         // no — so the whiteout switched off at a doorway while the sound it is supposed to agree with
         // faded over a dozen blocks, and stepping under a lip went from a blizzard to a clear day in one
         // step (Jonah, 2026-09-09, walked). Sky light is the one definition; there is no second one now.
-        val exposed = exposureAt(level, BlockPos.containing(at))
+        val exposed = Blizzard.exposureAt(level, BlockPos.containing(at))
         if (exposed <= NONE) return null
         return blowing.severity * exposed
     }
 
     /** How far toward a whiteout this sample is — the colour follows the distances rather than snapping. */
     private fun whitenedBy(level: ClientLevel, at: Vec3, was: Int): Int {
-        val exposed = exposureAt(level, BlockPos.containing(at))
+        val exposed = Blizzard.exposureAt(level, BlockPos.containing(at))
         return ARGB.srgbLerp(exposed, was, DRIVEN_SNOW.packed())
     }
 
@@ -272,9 +262,6 @@ object Storms {
         val over = ((hard - HARDEST_EARNED) / (HARDEST_FORCED - HARDEST_EARNED)).coerceIn(0.0, 1.0)
         return (EARNED_WHITEOUT + (FORCED_WHITEOUT - EARNED_WHITEOUT) * over).toFloat()
     }
-
-    /** The sky light of open ground, so the first block of cover is already worth something. */
-    private const val OPEN_TO_THE_SKY = 15.0f
 
     private const val NONE = 0.0f
     private const val ALL_OF_IT = 1.0f

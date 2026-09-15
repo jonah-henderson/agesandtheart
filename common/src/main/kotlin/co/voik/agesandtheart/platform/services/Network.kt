@@ -6,8 +6,8 @@ import net.minecraft.server.level.ServerPlayer
 /**
  * Sending a payload to one player, which each loader does its own way.
  *
- * A **second service** rather than a method on [Platform], following [AgeBackend]: `Platform` reports
- * information about the loader where sending a packet is a capability. Generic in [CustomPacketPayload]
+ * A **service of its own** rather than a method on [Platform]: `Platform` reports information about the
+ * loader where sending a packet is a capability. Generic in [CustomPacketPayload]
  * rather than named after skies, because books and symbols will want the same door.
  *
  * **NeoForge throws when a channel was never negotiated** (`NetworkRegistry.checkPacket`) where Fabric

@@ -32,7 +32,6 @@ class SkyParametersCheck : FunSpec({
         // a path that never sets has a lowest above the horizon.
         val report = server.run("age sky $age sky=plain path=polar")
         val lowest = Regex("""reaching\s+([+-][\d.]+)°""").find(report)?.groupValues?.get(1)?.toFloatOrNull()
-            ?: Regex("""tilt\s+([+-][\d.]+)°""").find(report)?.let { null }
         // A polar path is an Orbit, so it reports in angles rather than in a range; either way it must not
         // read as vanilla's untilted circle.
         check("tilt  +0°" !in report || lowest != null) {

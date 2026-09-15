@@ -4,8 +4,6 @@ import co.voik.agesandtheart.age.word.Acquaintance
 import co.voik.agesandtheart.age.word.Acquainted
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
-import net.minecraft.core.particles.ParticleTypes
-import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
@@ -66,7 +64,9 @@ class SurveyingDeviceBlock(properties: Properties) : Block(properties) {
         val serverLevel = level as? ServerLevel ?: return InteractionResult.FAIL
         when (state.getValue(DeviceStage.PROPERTY)) {
             DeviceStage.IDLE -> begin(serverLevel, pos, state, surveyor)
-            DeviceStage.WORKING -> stillRunning(serverLevel, pos, surveyor)
+            DeviceStage.WORKING -> DeviceWork.keepWorking(
+                serverLevel, pos, this, surveyor, "device.agesandtheart.surveying_device.working",
+            )
             DeviceStage.READY -> hand(serverLevel, pos, state, surveyor)
         }
         return InteractionResult.SUCCESS
@@ -75,28 +75,13 @@ class SurveyingDeviceBlock(properties: Properties) : Block(properties) {
     private fun begin(level: ServerLevel, pos: BlockPos, state: BlockState, surveyor: ServerPlayer) {
         level.setBlock(pos, state.setValue(DeviceStage.PROPERTY, DeviceStage.WORKING), UPDATE_ALL)
         level.scheduleTick(pos, this, DeviceStage.WORK_TICKS)
-        level.playSound(null, pos, SoundEvents.SPYGLASS_USE, SoundSource.BLOCKS, VOLUME, PITCH)
-        say(surveyor, "device.agesandtheart.surveying_device.started")
-    }
-
-    /**
-     * Says it is still working — and sets it going again if nothing is coming for it.
-     *
-     * The stage is a block state and the wait is a scheduled tick, so anything that writes the one without
-     * the other leaves a device running with nothing to finish it: `/setblock`, or a structure carrying one
-     * mid-reading. Breaking it is *not* such a case — vanilla checks the block still matches before it ticks
-     * — and neither is a piston, which cannot move this at all.
-     */
-    private fun stillRunning(level: ServerLevel, pos: BlockPos, surveyor: ServerPlayer) {
-        if (!level.blockTicks.hasScheduledTick(pos, this)) level.scheduleTick(pos, this, DeviceStage.WORK_TICKS)
-        say(surveyor, "device.agesandtheart.surveying_device.working")
+        level.playSound(null, pos, SoundEvents.SPYGLASS_USE, SoundSource.BLOCKS, DeviceWork.VOLUME, DeviceWork.PITCH)
+        DeviceWork.say(surveyor, "device.agesandtheart.surveying_device.started")
     }
 
     /** The reading is done. Nothing is recorded, because the place will still be there to be read. */
     override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
-        if (state.getValue(DeviceStage.PROPERTY) != DeviceStage.WORKING) return
-        level.setBlock(pos, state.setValue(DeviceStage.PROPERTY, DeviceStage.READY), UPDATE_ALL)
-        level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, VOLUME, PITCH)
+        DeviceWork.finishWork(level, pos, state)
     }
 
     /**
@@ -107,35 +92,19 @@ class SurveyingDeviceBlock(properties: Properties) : Block(properties) {
         val outcome = Acquaintance.withPlace(surveyor, level, pos)
         Acquaintance.tell(surveyor, outcome)
         if (outcome is Acquainted.Learned) {
-            level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, VOLUME, PITCH)
+            level.playSound(
+                null, pos, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, DeviceWork.VOLUME, DeviceWork.PITCH,
+            )
         }
         level.setBlock(pos, state.setValue(DeviceStage.PROPERTY, DeviceStage.IDLE), UPDATE_ALL)
     }
 
-    private fun say(surveyor: ServerPlayer, key: String) {
-        surveyor.sendSystemMessage(Component.translatable(key), true)
-    }
-
     /** A running device is visibly running, which is the only thing the wait has to say for itself. */
     override fun animateTick(state: BlockState, level: Level, pos: BlockPos, random: RandomSource) {
-        if (state.getValue(DeviceStage.PROPERTY) != DeviceStage.WORKING) return
-        level.addParticle(
-            ParticleTypes.ENCHANT,
-            pos.x + random.nextDouble(),
-            pos.y + ABOVE_THE_DEVICE,
-            pos.z + random.nextDouble(),
-            0.0,
-            DRIFTING_UP,
-            0.0,
-        )
+        DeviceWork.workingParticles(level, pos, random, state)
     }
 
     companion object {
         val CODEC: MapCodec<SurveyingDeviceBlock> = simpleCodec(::SurveyingDeviceBlock)
-
-        private const val ABOVE_THE_DEVICE = 1.1
-        private const val DRIFTING_UP = 0.04
-        private const val VOLUME = 1.0f
-        private const val PITCH = 1.0f
     }
 }

@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.math.mix64
+import co.voik.agesandtheart.math.unitDouble
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
@@ -294,13 +296,8 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
      * so that neighbouring columns can be asked in any order and a re-generated chunk agrees with itself.
      * Drawing it would make the ragged edge depend on which column happened to be visited first.
      */
-    private fun hashedAt(awayX: Int, awayZ: Int, grain: Long): Double {
-        var value = awayX * PRIME_ONE + awayZ * PRIME_TWO + grain
-        value = value xor (value ushr 33)
-        value *= PRIME_THREE
-        value = value xor (value ushr 29)
-        return (value ushr SPARE_BITS).toDouble() / KEPT
-    }
+    private fun hashedAt(awayX: Int, awayZ: Int, grain: Long): Double =
+        unitDouble(mix64(mix64(mix64(grain) + awayX) + awayZ))
 
     /**
      * How far this column's own ground wanders off the arithmetic, in blocks.
@@ -543,10 +540,10 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
     /** How far debris carries past the outermost skirt, as a multiple of the crater's own extent. */
     private const val EJECTA_CARRIES = 1.45
 
-    /** Where shards may stand, as a share of the reach — well inside, where the carve reached rock. */
     /** A bound on the walk up a flooded column, so a crater under an abyss does not climb the whole sea. */
     private const val DEEPEST_SEA_CUT = 64
 
+    /** Where shards may stand, as a share of the reach — well inside, where the carve reached rock. */
     private const val SHARDS_WITHIN = 0.45
     private const val TOGETHER = 3
 
@@ -583,12 +580,6 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
     private const val NOTHING = 0.0
     private const val ALL_OF_IT = 1.0
     private const val FULL_TURN = 2.0 * PI
-
-    private const val SPARE_BITS = 11
-    private const val KEPT = (1L shl 53).toDouble()
-    private val PRIME_ONE = 0x9E3779B97F4A7C15uL.toLong()
-    private val PRIME_TWO = 0xBF58476D1CE4E5B9uL.toLong()
-    private val PRIME_THREE = 0xFF51AFD7ED558CCDuL.toLong()
 }
 
 /**

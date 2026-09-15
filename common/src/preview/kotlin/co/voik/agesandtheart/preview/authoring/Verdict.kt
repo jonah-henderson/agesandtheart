@@ -93,7 +93,7 @@ object Verdict {
             add(Finding(Standing.ERROR, "a word needs a name"))
             return@buildList
         }
-        if (!name.matches(LEGAL_NAME)) {
+        if (!WordFile.couldBeAName(name)) {
             add(
                 Finding(
                     Standing.ERROR,
@@ -103,7 +103,7 @@ object Verdict {
                 ),
             )
         }
-        Aspect.entries.firstOrNull { it.page == name }?.let { aspect ->
+        Aspect.byPage(name)?.let { aspect ->
             add(
                 Finding(
                     Standing.ERROR,
@@ -550,8 +550,6 @@ object Verdict {
             ),
         )
     }
-
-    private val LEGAL_NAME = Regex("[a-z0-9/._-]+")
 
     /** A band this wide over a natural axis of -1..1 leaves nothing out, so it demands nothing. */
     private const val WHOLE_AXIS = 2.0

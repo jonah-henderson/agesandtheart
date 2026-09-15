@@ -89,14 +89,13 @@ data class Sea(override val id: Identifier) : RegistryReference {
          */
         fun pour(seas: List<Sea>, waterline: Int?, options: Options, map: RegionMap, seed: Long): SeaFill {
             if (waterline == null || seas.all { it.isEmpty }) return SeaFill.NONE
-            return SeaFill.divided(
+            return SeaFill(
                 seas.map { it.substance() },
                 waterline + depthShift(options, seed),
                 map,
             )
         }
 
-        /** How far under or over its ordinary level this sea stands — see [DEEPEST_SHIFT]. */
         /**
          * How far the sea stands above or below the level the terrain left it.
          *

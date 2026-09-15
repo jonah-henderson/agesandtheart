@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.age.word.grammar
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Rung

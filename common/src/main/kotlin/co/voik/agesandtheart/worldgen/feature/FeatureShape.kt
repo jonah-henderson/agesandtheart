@@ -42,10 +42,6 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.BlockMatchTes
  */
 object FeatureShape {
 
-    /** Whether any of these were turned at all, so an Age nobody steered rebuilds nothing. */
-    fun asksForNothing(size: Double?, thickness: Double?, height: Double?): Boolean =
-        size == null && thickness == null && height == null
-
     /**
      * Whether vanilla's ores can reach an Age made of [rock] at all.
      *

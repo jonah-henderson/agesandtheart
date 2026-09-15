@@ -242,8 +242,6 @@ data class GenerationGrammars(private val byName: Map<String, GenerationGrammar>
 
         private const val JSON_SUFFIX = ".json"
 
-        val NONE = GenerationGrammars(emptyMap())
-
         fun load(
             resources: ResourceManager,
             isAWord: (String) -> Boolean,

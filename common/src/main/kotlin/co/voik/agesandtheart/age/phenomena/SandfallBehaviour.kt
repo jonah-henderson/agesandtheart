@@ -1,17 +1,12 @@
 package co.voik.agesandtheart.age.phenomena
 
-import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.location
-import com.google.gson.JsonParser
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import com.mojang.serialization.Codec
-import com.mojang.serialization.JsonOps
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.packs.resources.ResourceManager
 import co.voik.agesandtheart.age.aspect.Rung
 import net.minecraft.util.RandomSource
 import kotlin.math.ceil
-import kotlin.math.roundToInt
 import kotlin.math.roundToInt
 
 /**
@@ -412,27 +407,9 @@ data class SandfallBehaviour(
             ).apply(instance, ::SandfallBehaviour)
         }
 
-        private const val FILE = "art/phenomenon/sandfall.json"
+        private val FILE = PhenomenonFile(Phenomenon.SANDFALL, CODEC, ORDINARY)
 
-        /** What this server currently says a sandfall does, cached on the resource manager as the corpus is. */
-        fun of(server: MinecraftServer): SandfallBehaviour {
-            val resources = server.resourceManager
-            loaded?.let { (from, known) -> if (from === resources) return known }
-            return read(resources).also { loaded = resources to it }
-        }
-
-        private var loaded: Pair<ResourceManager, SandfallBehaviour>? = null
-
-        private fun read(resources: ResourceManager): SandfallBehaviour {
-            val file = FILE.location()
-            val resource = resources.getResource(file).orElse(null) ?: return ORDINARY
-            val read = runCatching {
-                resource.open().use { CODEC.parse(JsonOps.INSTANCE, JsonParser.parseReader(it.reader())).getOrThrow() }
-            }
-            // A pack that writes nonsense gets the ordinary column and a line in the log, rather than a
-            // server that will not start over a number.
-            read.onFailure { Constants.LOG.warn("Could not read '{}': {}", file, it.message) }
-            return read.getOrNull() ?: ORDINARY
-        }
+        /** What this server currently says a sandfall does. */
+        fun of(server: MinecraftServer): SandfallBehaviour = FILE.of(server)
     }
 }

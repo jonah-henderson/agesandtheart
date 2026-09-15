@@ -10,7 +10,7 @@ import kotlin.math.roundToInt
  * [base], displaced vertically per territory — a region seam made visible as a scarp (design §3.4). It
  * asks which territory a column falls in and moves that column's rock by that territory's [throws].
  *
- * **A node of its own rather than a [Raised] inside each member**, because erosion is tied to absolute
+ * **A node of its own rather than a lift ([Spans.shifted]) inside each member**, because erosion is tied to absolute
  * heights: [Weathered]'s keel and band are world Y values, so a territory lifted before the wind reaches
  * it is weathered by a profile aimed at where it used to be. So this wraps the *finished* shape,
  * weathering included, and `AgeGeneration.assemble` builds it last — which is also the geologically
@@ -37,7 +37,7 @@ data class Fault(
 ) : TerrainField {
     override val kind = FieldKind.FAULT
 
-    // Moving rock vertically changes nothing horizontally — the same reasoning as [Raised].
+    // Moving rock vertically changes nothing horizontally.
     override val horizontalReach = base.horizontalReach
 
     override val samplesPerColumn = base.samplesPerColumn + map.members

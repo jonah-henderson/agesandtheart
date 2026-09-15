@@ -24,27 +24,6 @@ class Spans private constructor(val ranges: List<IntRange>) {
     fun roofOver(y: Int): Int? = ranges.firstOrNull { it.last >= y }?.last
 
     /**
-     * The **underside** of the next rock above [y] — the ceiling of the space [y] is in, or null where
-     * nothing is over it.
-     *
-     * [roofOver]'s opposite number and easily confused with it: that one answers the *top* of the rock
-     * above, which is how deeply buried a point is, where this answers the bottom of it, which is how much
-     * headroom the point has. A pool of water in a cave is bounded by this one — capping it by anything
-     * higher fills the cave to its roof and then pours out of it.
-     */
-    fun ceilingAbove(y: Int): Int? = ranges.firstOrNull { it.first > y }?.first
-
-    /**
-     * The **top** of the nearest rock below [y] — the floor of the space [y] is in, or null where nothing
-     * is under it.
-     *
-     * [ceilingAbove]'s mirror, and together they bound the room a point stands in. That room is the unit a
-     * pool of groundwater belongs to: every block of one cave must agree about how high its water stands,
-     * or the surface comes out as a staircase.
-     */
-    fun floorUnder(y: Int): Int? = ranges.lastOrNull { it.last < y }?.last
-
-    /**
      * This column moved [blocks] up, or down when negative. Exact and cheap — translating an interval is
      * adding to both ends, so nothing is resampled. That is why an instance's *lift* can be drawn per copy
      * where its *size* cannot, and why [TerrainField.resized] pre-builds sizes instead.

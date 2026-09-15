@@ -1,12 +1,12 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.resolved
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Spawns
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -28,16 +28,9 @@ import io.kotest.core.spec.style.FunSpec
 @Tags(NEEDS_REGISTRIES)
 class DescribingCheck : FunSpec({
 
-    val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
-            check(it.problems.isEmpty()) { "vocabulary problems: ${it.problems}" }
-        }
-    }
-
     /** Every member a book left in one population, as spelled. */
     fun membersOf(aspect: Aspect, parameter: String, vararg pages: String): List<String> {
-        val sentence = Grammar.read(vocabulary, listOf("age", *pages)) ?: error("not a book: ${pages.toList()}")
-        val composition = Resolver.resolve(vocabulary, sentence, SAMPLE_SEED).composition
+        val composition = resolved(SAMPLE_SEED, *pages).composition
         return composition.optionsFor(aspect, 0).allSpelled(parameter).toList()
     }
 

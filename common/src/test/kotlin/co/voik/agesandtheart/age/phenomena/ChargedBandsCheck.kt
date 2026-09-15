@@ -16,7 +16,7 @@ import io.kotest.core.spec.style.FunSpec
 class ChargedBandsCheck : FunSpec({
 
     test("a body in the top band is not forgotten by a player standing under it") {
-        val fromTheGround = ChargedBands.HIGHEST - ChargedBands.SEA_LEVEL
+        val fromTheGround = ChargedBands.HIGHEST - SEA_LEVEL
         check(ChargedBands.FORGOTTEN_BEYOND >= fromTheGround) {
             "the top band is $fromTheGround above sea level and a body is forgotten past " +
                 "${ChargedBands.FORGOTTEN_BEYOND}, so the richest tier deletes itself on the first look"
@@ -28,7 +28,7 @@ class ChargedBandsCheck : FunSpec({
      * without it vanishing, or the top band exists only for somebody standing perfectly still under it.
      */
     test("and there is room to move about under it") {
-        val fromTheGround = ChargedBands.HIGHEST - ChargedBands.SEA_LEVEL
+        val fromTheGround = ChargedBands.HIGHEST - SEA_LEVEL
         val sideways = ChargedBands.FORGOTTEN_BEYOND * ChargedBands.FORGOTTEN_BEYOND - fromTheGround * fromTheGround
         check(sideways >= ROOM_TO_WALK * ROOM_TO_WALK) {
             "a player may stray only ${Math.sqrt(sideways)} blocks from under the top band before a body " +
@@ -37,6 +37,9 @@ class ChargedBandsCheck : FunSpec({
     }
 }) {
     private companion object {
+        /** Vanilla's, and what "seen from the ground" is measured against. */
+        private const val SEA_LEVEL = 64.0
+
         /** Far enough that looking up, walking over and looking again is the same body. */
         private const val ROOM_TO_WALK = 64.0
     }

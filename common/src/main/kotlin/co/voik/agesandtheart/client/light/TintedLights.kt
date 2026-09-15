@@ -86,15 +86,11 @@ object TintedLights {
      */
     private val MESHER_REPLACEMENTS = listOf("iris", "oculus", "sodium", "embeddium", "rubidium", "nvidium")
 
-    fun castsAnything(): Boolean = casts.isNotEmpty()
-
     /**
-     * Whether any block that casts a tint is **standing in a world** — the early-out that actually fires.
+     * Whether any block that casts a tint is **standing in a world** — the painter's early-out.
      *
-     * [castsAnything] asks whether any block *kind* is registered, and once the crystals register at
-     * startup the answer is yes for ever; on its own it never saves a thing, and every quad of every block
-     * in the game went on to the nine-chunk scan in [reaching]. This is the question that is false almost
-     * always, and it is a remembered flag rather than a walk of the index so that asking it stays free.
+     * False almost always, and a remembered flag rather than a walk of the index so that asking it stays
+     * free.
      */
     fun anythingIsPlaced(): Boolean = anythingPlaced
 
@@ -129,14 +125,9 @@ object TintedLights {
     fun colourOf(state: BlockState): Int? = casts[state.block]?.invoke(state)
 
     /**
-     * Where they are, by chunk — **the index `Wounds` built and for the same reason**.
+     * Where they are, by chunk, because the mesher runs on worker threads against a snapshot of the world
+     * and cannot go asking the level.
      *
-     * The mesher runs on worker threads against an immutable snapshot of the world, so it cannot go asking
-     * the level; and searching the snapshot per block would be tens of thousands of reads per section. An
-     * index answers in one map lookup, is filled off the palette as chunks arrive, and is the pattern this
-     * pack already trusts.
-     */
-    /**
      * **A concurrent map rather than a weak one, and that is a correctness fix rather than a preference.**
      * It is written from the client thread as chunks arrive and blocks change, and read from **every
      * mesher worker** through `TintedLightPainter`. A `WeakHashMap` read while another thread is writing

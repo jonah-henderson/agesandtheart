@@ -41,10 +41,6 @@ class DimensionTypeCheck : FunSpec({
     val sealed = Options(mapOf(Sky.SEALED.name to listOf(Parameter.TRUE)))
     val unlit = Options(mapOf(Sky.ABSENT.name to listOf(Parameter.TRUE)))
 
-    /**
-     * **Every set of facts an Age can have, and the type each earns.** Three rather than four: roofed and
-     * lit is a combination the world cannot be in, so no file ships for it.
-     */
     /** Each of vanilla's three worlds and the type of ours that restates it. */
     val ourEquivalent = mapOf(
         BuiltinDimensionTypes.OVERWORLD to AgeGeneration.AGE_DIMENSION_TYPE,
@@ -52,6 +48,10 @@ class DimensionTypeCheck : FunSpec({
         BuiltinDimensionTypes.END to AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE,
     )
 
+    /**
+     * **Every set of facts an Age can have, and the type each earns.** Three rather than four: roofed and
+     * lit is a combination the world cannot be in, so no file ships for it.
+     */
     val everyCombination = listOf(
         Triple(Options(), Options(), AgeGeneration.AGE_DIMENSION_TYPE),
         Triple(Options(), unlit, AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE),
@@ -177,19 +177,6 @@ class DimensionTypeCheck : FunSpec({
         }
     }
 
-    /**
-     * **The light a type of ours lets through, against the light of the world it restates.**
-     *
-     * `ambient_light_color` is the floor the lightmap is built on, and the attribute's registered default
-     * is `#000000` — so a type that says nothing about it is darker than every world in the game, and an
-     * Age wearing it is pitch black away from a torch (Jonah, 2026-08-25, walked). It was taken out of all
-     * three on the reading that vanilla's default is white; white is `sky_light_color`'s default, and
-     * `#0a0a0a` was never an invention of ours but the overworld's own value.
-     *
-     * The `ambient_light` float beside it is a different system and cannot stand in: its only reader is
-     * `LevelReader.getBrightness`, while the lightmap is extracted from this attribute,
-     * `sky_light_color` and `sky_light_factor`.
-     */
     /**
      * **Every colour the world it restates states, ours states too.**
      *

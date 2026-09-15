@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "**Named in a recipe, which is what puts deep magma under an Age.** `MagmaChambers.askedFor` reads the",
+    "**Named in a recipe, which is what puts deep magma under an Age.** `MagmaChambers.amountIn` reads the",
     "same claim and the terrain cuts the hollows from it. It needs no volcano above it: what is down here",
     "is found by digging rather than by looking.",
     "One pass per chunk and no modifier that moves it, for the reason `volcano` has none."

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.server
 
+import java.io.File
 import java.net.ConnectException
 import java.net.ServerSocket
 import java.util.concurrent.TimeUnit
@@ -51,6 +52,41 @@ object ServerLaunch {
 
     /** A port nobody is on. Racy in principle; in practice this is one process on a developer's machine. */
     fun freePort(): Int = ServerSocket(0).use { it.localPort }
+
+    /** A server [start] brought up, and the `server.properties` text the caller must put back. */
+    data class Started(val process: Process, val rcon: Rcon, val properties: File, val originalProperties: String)
+
+    /**
+     * A server started from [launch] with [settings] laid over its `server.properties`, once RCON on
+     * [rconPort] answers.
+     *
+     * Stopping it and putting the file back are the caller's. A start that fails here puts the file back
+     * itself, and kills the process if there is one.
+     */
+    fun start(
+        launch: LaunchSpec,
+        settings: Map<String, String>,
+        rconPort: Int,
+        password: String,
+        startupSeconds: Long,
+    ): Started {
+        val properties = launch.workingDirectory.resolve("server.properties")
+        check(properties.isFile) {
+            "no ${properties.path} yet — run ./gradlew :${LaunchSpec.loader()}:runServer once to accept the EULA " +
+                "and let the server write its defaults"
+        }
+        val original = properties.readText()
+        properties.writeText(overlaid(original, settings))
+        val process = runCatching { launch.start() }
+            .getOrElse { failure -> properties.writeText(original); throw failure }
+        val rcon = runCatching { awaitRcon(process, rconPort, startupSeconds, password) }
+            .getOrElse { failure ->
+                process.destroyForcibly()
+                properties.writeText(original)
+                throw failure
+            }
+        return Started(process, rcon, properties, original)
+    }
 
     /**
      * Waits for RCON to answer, and **gives up the moment the server dies** rather than at the timeout: a

@@ -1,11 +1,11 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.carver.Weathering
+import co.voik.agesandtheart.worldgen.field.FieldYield
 import co.voik.agesandtheart.worldgen.field.Glaciation
 import co.voik.agesandtheart.worldgen.field.MountainRange
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.RangeProfile
-import co.voik.agesandtheart.worldgen.field.RangeYield
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
@@ -59,7 +59,7 @@ object AlpsField {
      * a river country's is. A single waterline cannot pour an alpine drainage: its trunks run at y≈70 in
      * the core and reach the foreland at y≈40, so a plane meets it only where it happens to cross.
      */
-    fun water(salt: Long = 0L): TerrainField = bareWorld(salt).copy(describes = RangeYield.WATER)
+    fun water(salt: Long = 0L): TerrainField = bareWorld(salt).copy(describes = FieldYield.WATER)
 
     /**
      * Where the ranges lie and how they climb.

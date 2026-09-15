@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.preview.authoring
 
+import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.age.word.InkTier
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
@@ -19,23 +21,18 @@ object WordFile {
     /** Two-space, unescaped — measured against the corpus, where 121 of 127 files already read like this. */
     private val GSON = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create()
 
-    private const val NAMESPACE = "agesandtheart"
-
     private const val JSON_SUFFIX = ".json"
 
-    /**
-     * The pack's data directory, found from wherever the tool was started.
-     *
-     * Two candidates for the same reason `MinecraftRegistries.shippedData()` has two: the repository root
-     * is what a person types, and the module directory is what Gradle would hand a task.
-     */
+    /** The pack's resources in the source tree, as [MinecraftRegistries.resourceRoot] finds them. */
     val resources: File by lazy {
-        listOf(File("common/src/main/resources"), File("src/main/resources"))
-            .firstOrNull { it.resolve("data/$NAMESPACE/art").isDirectory }
-            ?: error("Cannot find the mod's resources from ${File("").absolutePath}")
+        MinecraftRegistries.resourceRoot().toFile().also { root ->
+            check(root.resolve("data/${Constants.MOD_ID}/art").isDirectory) {
+                "no data/${Constants.MOD_ID}/art under ${root.absolutePath}"
+            }
+        }
     }
 
-    val art: File get() = resources.resolve("data/$NAMESPACE/art")
+    val art: File get() = resources.resolve("data/${Constants.MOD_ID}/art")
 
     private val words: File get() = art.resolve("word")
 
@@ -108,10 +105,10 @@ object WordFile {
      * **So the display name is not a field on the word**, and should not become one: a second copy in the
      * datapack could not be translated, and would have to win or lose against this one.
      */
-    private val language: File get() = resources.resolve("assets/$NAMESPACE/lang/en_us.json")
+    private val language: File get() = resources.resolve("assets/${Constants.MOD_ID}/lang/en_us.json")
 
     private fun keyFor(id: String): String {
-        val namespace = id.substringBefore(':', NAMESPACE)
+        val namespace = id.substringBefore(':', Constants.MOD_ID)
         val path = id.substringAfter(':')
         return "word.$namespace.$path"
     }

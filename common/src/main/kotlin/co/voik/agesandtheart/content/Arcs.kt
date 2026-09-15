@@ -136,20 +136,15 @@ object Arcs {
      * of copper apart is two machines' worth of metal, force is per mass so each half is diluted to match,
      * and the alternative is an uncapped flood fill run from a block change.
      */
-    fun massDrivenFrom(
-        level: BlockGetter,
-        at: BlockPos,
-        live: (BlockPos) -> Boolean = ANY,
-        worth: (BlockState) -> Int = WORTH,
-    ): Run? {
+    fun massDrivenFrom(level: BlockGetter, at: BlockPos, live: (BlockPos) -> Boolean): Run? {
         val mass = copperAround(level, at)
         if (mass.isEmpty()) return null
         // Touching elects, the pile pays — see [runsDrivenFrom], which explains what electing over the
         // pile costs.
-        val touching = crystalsAround(level, mass, worth).filter(live)
+        val touching = crystalsAround(level, mass, WORTH).filter(live)
         if (touching.minWithOrNull(POSITION_ORDER) != at) return null
-        val feeding = supplyingCrystal(level, mass, worth).filter(live)
-        return Run(along = null, blocks = mass.toList(), crystal = supplyOf(level, feeding, worth))
+        val feeding = supplyingCrystal(level, mass, WORTH).filter(live)
+        return Run(along = null, blocks = mass.toList(), crystal = supplyOf(level, feeding, WORTH))
     }
 
     /**

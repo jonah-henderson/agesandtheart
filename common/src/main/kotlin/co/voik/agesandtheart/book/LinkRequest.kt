@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.ephemeris.sky.LevelAppearance
@@ -78,7 +77,6 @@ object Linking {
     }
 
     private fun goToTheAge(player: ServerPlayer, level: ServerLevel, stack: ItemStack): Boolean {
-        if (!Ages.isSupported()) return refuse(player, "unsupported")
         // **A book is a door to somewhere else.** Carry one into the Age it describes — through a linking
         // book, say — and using it would spend the book on the room you are already standing in, which is
         // the same claim `goToThePlace` refuses and for the same reason.
@@ -131,13 +129,6 @@ object Linking {
         Constants.LOG.info("Restoring '{}' from a linking book that outlived it", target.dimension.identifier())
         return Ages.ensure(server, target.dimension.identifier(), recipe)
     }
-
-    /** The same chain `/age compose` uses, so a written book and a typed command are one act. */
-    private fun recipeFor(
-        stack: ItemStack,
-        server: net.minecraft.server.MinecraftServer,
-        ageId: Identifier,
-    ): AgeRecipe = DescriptiveBookRecipe.of(stack, server, ageId)
 
     private fun refuse(player: ServerPlayer, reason: String): Boolean {
         player.sendSystemMessage(Component.translatable("book.agesandtheart.$reason"), true)

@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Facets
 import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.word.Word.Companion.TAG_MARK
 import co.voik.agesandtheart.age.word.grammar.Grammar
 
 /**
@@ -131,7 +132,7 @@ class Suggestions(private val vocabulary: Vocabulary) {
         val closers = closersAfter(laid)
         // The nucleus is about the whole Age, so while it can still close, nothing is aimed anywhere.
         if (closers.any { vocabulary.word(it) == null }) return null
-        val aimed = closers.mapNotNull { closer -> Aspect.entries.firstOrNull { it.page == closer } }.toSet()
+        val aimed = closers.mapNotNull(Aspect::byPage).toSet()
         return aimed.ifEmpty { null }
     }
 
@@ -350,9 +351,6 @@ class Suggestions(private val vocabulary: Vocabulary) {
     }
 
     private companion object {
-        /** What marks a tag, the same mark the word screens use. */
-        const val TAG_MARK = "#"
-
         /**
          * How many stand-ins the two-page tail tries.
          *

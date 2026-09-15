@@ -18,8 +18,6 @@ class DecoratedBox(
     private val padding: Insets = Insets.NONE,
 ) : AbstractLayout(0, 0, 0, 0) {
 
-    constructor(decoration: Decoration, padding: Int) : this(decoration, Insets.all(padding))
-
     private val surface = DecorationWidget(decoration)
     private var child: LayoutElement? = null
     private var sizedToChild = true

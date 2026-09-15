@@ -17,8 +17,6 @@ class LearnedWords {
 
     val words: Set<Identifier> get() = known
 
-    val size: Int get() = known.size
-
     fun knows(word: Identifier): Boolean = word in known
 
     /** @return whether this word was new, which is what decides if the player is told. */
@@ -41,17 +39,13 @@ class LearnedWords {
      * Restores from [packed] **without validating**, unlike vanilla's `loadUntrusted`.
      *
      * Recipes are code and can only vanish permanently; words are datapack content, so a pack removed for
-     * an evening would otherwise erase what a player had found. Unknown ids are filtered where they are
-     * used instead — see [knownIn].
+     * an evening would otherwise erase what a player had found. An id the vocabulary no longer has is kept,
+     * and means nothing until a pack supplies it again.
      */
     fun load(packed: Packed) {
         known.clear()
         known += packed.words
     }
-
-    /** The words this player knows that [vocabulary] still has, which is what may be written or shown. */
-    fun knownIn(vocabulary: Vocabulary): List<Word> =
-        known.mapNotNull { id -> vocabulary.word(id.toString()) ?: vocabulary.word(id.path) }
 
     /** The saved form. A list, not a set: the order is part of the record. */
     data class Packed(val words: List<Identifier>) {

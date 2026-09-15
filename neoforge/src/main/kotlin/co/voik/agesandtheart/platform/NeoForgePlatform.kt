@@ -5,7 +5,6 @@ import net.neoforged.fml.ModList
 import net.neoforged.fml.loading.FMLLoader
 
 class NeoForgePlatform : Platform {
-    override val name: String = "NeoForge"
     /**
      * `isProduction` is an instance method on the running loader now, not a static. Read through
      * `getCurrentOrNull` rather than `getCurrent`, which throws: anything asking before the loader exists

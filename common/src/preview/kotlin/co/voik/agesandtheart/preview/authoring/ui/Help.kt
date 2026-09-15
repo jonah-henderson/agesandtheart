@@ -43,7 +43,7 @@ class Help(
                 val last = (contentOf(page).size - window).coerceAtLeast(0)
                 fun scroll(by: Int) { offset = (offset + by).coerceIn(0, last) }
                 when {
-                    key.ctrl && (key.key == "q" || key.key == "c") -> return
+                    key.ctrl && key.key == "q" -> return
                     key.key == "?" -> return
                     key.key == "ArrowLeft" || key.key == "Escape" -> if (inside) inside = false else return
                     key.key == "ArrowRight" || key.key == "Enter" -> inside = true

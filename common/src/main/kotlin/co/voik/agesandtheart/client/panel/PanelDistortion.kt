@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.client.panel
 
+import co.voik.agesandtheart.math.mix64
+import co.voik.agesandtheart.math.unitFloat
 import net.minecraft.util.ARGB
 import net.minecraft.util.Mth
 
@@ -86,12 +88,8 @@ object PanelDistortion {
     }
 
     /** `0..1` from [frame], [band] and [salt]. */
-    private fun rolled(frame: Int, band: Int, salt: Long): Float {
-        var bits = salt xor (frame.toLong() * FRAME_STRIDE) xor (band.toLong() * BAND_STRIDE)
-        bits = (bits xor (bits ushr 33)) * FIRST_MIX
-        bits = (bits xor (bits ushr 29)) * SECOND_MIX
-        return (bits ushr 40).toFloat() / TWENTY_FOUR_BITS
-    }
+    private fun rolled(frame: Int, band: Int, salt: Long): Float =
+        unitFloat(mix64(salt xor (frame.toLong() * FRAME_STRIDE) xor (band.toLong() * BAND_STRIDE)))
 
     /**
      * The index at which the panel is as bad as it gets.
@@ -138,10 +136,6 @@ object PanelDistortion {
 
     private const val FRAME_STRIDE = -0x61C8_8646_80B5_83EBL
     private const val BAND_STRIDE = 0x2545_F491_4F6C_DD1DL
-    private const val FIRST_MIX = -0x00AE_5028_1AAA_7333L
-    private const val SECOND_MIX = -0x3B31_4601_E57A_13ADL
     private const val STRAY_SALT = 0x1B87_3C05L
     private const val EDGE_SALT = 0x6E14_A9F3L
-
-    private const val TWENTY_FOUR_BITS = 16_777_215.0f
 }

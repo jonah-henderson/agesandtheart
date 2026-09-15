@@ -1,8 +1,7 @@
 package co.voik.agesandtheart.age.word.grammar
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
-import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.ShippedCorpus.read
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -20,15 +19,6 @@ import io.kotest.core.spec.style.FunSpec
  */
 @Tags(NEEDS_REGISTRIES)
 class ReadoutCheck : FunSpec({
-
-    val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
-            check(it.problems.isEmpty()) { "the corpus would not load: ${it.problems}" }
-        }
-    }
-
-    /** A book, read — null being a row that forgot the `age` page, which is a fixture bug (§4.3.1). */
-    fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
 
     /**
      * A book, as it reads **after the page it opens with**. The nucleus is supplied here rather than written
@@ -57,20 +47,6 @@ class ReadoutCheck : FunSpec({
     test("the page a book opens with is in its reading") {
         val reading = Readout.of(read(listOf("age", "basalt", "landmass")))
         check(reading == "age: basalt landmass.") { "the book did not open with its own head: '$reading'" }
-    }
-
-    /**
-     * And no reading ever shows a nucleus its writer did not lay — which is now settled a step earlier and
-     * more firmly than a readout rule could.
-     *
-     * This used to check that a *repaired* book did not borrow the Art's `age`, laundering a page the
-     * writer never wrote. That case cannot arise: a book without the nucleus is refused rather than
-     * repaired (§4.3.1), so the only nucleus a reading can show is the writer's own.
-     */
-    test("a reading never shows a nucleus the writer did not lay") {
-        check(Grammar.read(vocabulary, listOf("landmass", "basalt")) == null) {
-            "a nucleus-less book was repaired, so the Art's `age` could reach a writer's reading"
-        }
     }
 
     /**

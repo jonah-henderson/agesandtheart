@@ -44,7 +44,7 @@ class WaterTableCheck : FunSpec({
 
     /** Whether the aquifer floods a block the carver just opened at this position. */
     fun floodsAt(table: WaterTable, shape: TerrainField, worldX: Int, worldY: Int, worldZ: Int): Boolean {
-        val aquifer = table.aquiferFor(shape)
+        val aquifer = table.aquiferOver(shape)
         val opened = aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
         return opened != null && !opened.fluidState.isEmpty
     }
@@ -74,8 +74,8 @@ class WaterTableCheck : FunSpec({
      *
      * What removes it in vanilla, and here, is a **barrier of rock**: where two neighbours disagree, the dry
      * one keeps its rock, so a walk never sees water meeting air at a face — it sees stone. That is the test
-     * below this one. This reads the wet verdict, which the barrier leaves alone, so it asserts only that no
-     * curtain runs the *whole height* of a room, and prints the rest.
+     * below this one. This reads the wet verdict, which the barrier leaves alone, so it prints and asserts
+     * nothing.
      */
     test("water in one room has no sheer faces across it") {
         val roof = 40
@@ -123,7 +123,7 @@ class WaterTableCheck : FunSpec({
         val floor = 10
         val room = Box(minX = -300, minY = floor, minZ = -300, maxX = 300, maxY = roof, maxZ = 300)
         val shape = Subtract(Box(minX = -300, minY = -64, minZ = -300, maxX = 300, maxY = 90, maxZ = 300), room)
-        val aquifer = tableOver(shape).aquiferFor(shape)
+        val aquifer = tableOver(shape).aquiferOver(shape)
 
         var barriers = 0
         var faces = 0
@@ -164,7 +164,7 @@ class WaterTableCheck : FunSpec({
         val floor = -40
         val room = Box(minX = -300, minY = floor, minZ = -300, maxX = 300, maxY = roof, maxZ = 300)
         val shape = Subtract(Box(minX = -300, minY = -64, minZ = -300, maxX = 300, maxY = seabed, maxZ = 300), room)
-        val aquifer = tableOver(shape).aquiferFor(shape)
+        val aquifer = tableOver(shape).aquiferOver(shape)
 
         fun answerAt(worldX: Int, worldY: Int, worldZ: Int) =
             aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
@@ -203,7 +203,7 @@ class WaterTableCheck : FunSpec({
         val surfaceY = seaLevel - 20
         val seabed = Slab(lowY = -64, highY = surfaceY)
         val table = tableOver(seabed)
-        val aquifer = table.aquiferFor(seabed)
+        val aquifer = table.aquiferOver(seabed)
         val columns = (0..2000 step 53).flatMap { worldX -> (0..2000 step 71).map { worldX to it } }
         for (under in 0..3) {
             val opened = columns.count { (worldX, worldZ) ->

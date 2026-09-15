@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import kotlin.system.measureTimeMillis
 
@@ -28,7 +29,10 @@ import kotlin.system.measureTimeMillis
  * microseconds a column over a chunk's 256 columns is about a millisecond, against the hundred-odd
  * milliseconds `/age bench` reports for a chunk. Whatever makes a volcanic Age slow to generate, it is not
  * the field being asked what shape it is.
+ *
+ * Tagged with the landforms so it runs under `:common:landformTest` and stays out of the everyday suite.
  */
+@Tags(NEEDS_LANDFORMS)
 class FieldCostCheck : FunSpec({
 
     /**

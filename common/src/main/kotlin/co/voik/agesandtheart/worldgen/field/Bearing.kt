@@ -36,11 +36,9 @@ fun bearingAt(axis: Double?): Double =
     (axis?.let(Span.NATURAL::fractionOf) ?: Span.NATURAL.fractionOf(NORTH_SOUTH)) * HALF_TURN
 
 /**
- * The three bearings worth naming in code — what a pinned preset asks for and what a check walks. They are
- * points on the axis rather than values of their own: a writer says a word, and the word bounds the axis.
+ * The bearing an unbounded axis runs along. A point on the axis rather than a value of its own: a writer
+ * says a word, and the word bounds the axis.
  */
 const val NORTH_SOUTH = Span.NATURAL_LEAST
-const val DIAGONAL = -0.5
-const val EAST_WEST = 0.0
 
 private const val HALF_TURN = Math.PI

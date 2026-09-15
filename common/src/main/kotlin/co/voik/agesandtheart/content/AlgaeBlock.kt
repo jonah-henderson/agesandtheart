@@ -251,9 +251,6 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         private const val WAKES_WITHIN = 2
         private const val WAKES_BELOW = 1
 
-        /** Told to clients, not to neighbours: a rung is a look, and nothing is listening for it. */
-        private const val UPDATE_CLIENTS = 2
-
         /** How thin it lies in its block — enough to read as a growth on the water and not as a lid. */
         private val MAT: VoxelShape = box(0.0, 0.0, 0.0, 16.0, 1.0, 16.0)
 

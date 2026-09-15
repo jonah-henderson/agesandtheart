@@ -3,6 +3,8 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.read
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeGeneration
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
@@ -35,7 +37,6 @@ import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Surface
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Spawns
 
@@ -49,15 +50,6 @@ import co.voik.agesandtheart.age.aspect.Spawns
  */
 @Tags(NEEDS_REGISTRIES)
 class ResolverCheck : FunSpec({
-
-    val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
-            check(it.problems.isEmpty()) { "vocabulary problems: ${it.problems}" }
-        }
-    }
-
-    /** A book, read — null being a row that forgot the `age` page, which is a fixture bug (§4.3.1). */
-    fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
 
     /** What a sentence claims on one pool, which is the shape every mention-rule question takes. */
     fun claimsOn(aspect: Aspect, pool: Pool, sentence: String): List<Claim> =
@@ -103,18 +95,6 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * **A ramp keeps the order it was written in, and a wall of two rocks does not.**
-     *
-     * This is the one place written order means anything beyond which template a book starts from, and it
-     * is bought by a single flag on the parameter ([co.voik.agesandtheart.age.aspect.Parameter.keepsWrittenOrder])
-     * read in one place. Both halves matter: an aurora's colours run from its crown to its hem and the
-     * writer said which was which, where two rocks in one wall are a set and ranking them by tier and seed
-     * is what spreads two Ages written alike.
-     *
-     * Driven through a real sentence rather than hand-built options, because the ordering happens in the
-     * resolver and everything downstream would pass a reversed ramp without complaint.
-     */
-    /**
      * **A clause sited in a biome does not compete with one that is not.**
      *
      * A confined dial is a second value that wins in one corner ([Options.of]) rather than a second opinion
@@ -147,6 +127,18 @@ class ResolverCheck : FunSpec({
         }
     }
 
+    /**
+     * **A ramp keeps the order it was written in, and a wall of two rocks does not.**
+     *
+     * This is the one place written order means anything beyond which template a book starts from, and it
+     * is bought by a single flag on the parameter ([co.voik.agesandtheart.age.aspect.Parameter.keepsWrittenOrder])
+     * read in one place. Both halves matter: an aurora's colours run from its crown to its hem and the
+     * writer said which was which, where two rocks in one wall are a set and ranking them by tier and seed
+     * is what spreads two Ages written alike.
+     *
+     * Driven through a real sentence rather than hand-built options, because the ordering happens in the
+     * resolver and everything downstream would pass a reversed ramp without complaint.
+     */
     test("an aurora's colours keep the order the writer wrote them in") {
         fun ramp(vararg colours: String): List<String> {
             val pages = listOf("age") + colours.toList().flatMap { listOf(it, "and") }.dropLast(1) + "aurora"
@@ -233,7 +225,7 @@ class ResolverCheck : FunSpec({
         // enough draws to find the case.
         val needsTwoWords = Register.entries.filter { it != Register.UNBACKED }
         for (word in vocabulary.words) {
-            val resolution = Resolver.resolve(vocabulary, Sentence.flat(listOf(word)), SAMPLE_SEED)
+            val resolution = Resolver.resolve(vocabulary, flatSentence(listOf(word)), SAMPLE_SEED)
             val invented = resolution.instability.flaws.filter { it.register in needsTwoWords }
             check(invented.isEmpty()) {
                 "'${word.name}' alone was charged for disagreeing with nothing: $invented"
@@ -294,10 +286,8 @@ class ResolverCheck : FunSpec({
         val resolution = resolve(vocabulary, "verdant lifeless")
         val climates = resolution.composition.climates
         check(climates.size == 2) { "\"verdant lifeless\" gave ${climates.size} climate(s): $climates" }
-        // Each fragment carries a whole climate of its own, and they must not be the same one. Read off the
-        // fragments themselves: a climate's answer *is* its spans, so there is nothing in options to read.
-        val bounds = climates.map { it.spelled() }
-        check(bounds[0] != bounds[1]) { "both climate fragments came out identical: $bounds" }
+        // Each fragment carries a whole climate of its own, and they must not be the same one.
+        check(climates[0] != climates[1]) { "both climate fragments came out identical: $climates" }
 
         val division = resolution.instability.flaws.firstOrNull { it.register == Register.FRACTURE }
         checkNotNull(division) {
@@ -361,7 +351,7 @@ class ResolverCheck : FunSpec({
             setOf(Aspect.SKY),
             restricts = mapOf(Aspect.SKY to mapOf("moonless" to 1.0)),
         )
-        val resolution = Resolver.resolve(vocabulary, Sentence.flat(listOf(moonless)), SAMPLE_SEED)
+        val resolution = Resolver.resolve(vocabulary, flatSentence(listOf(moonless)), SAMPLE_SEED)
         val unbacked = resolution.instability.flaws.firstOrNull { it.register == Register.UNBACKED }
         checkNotNull(unbacked) { "an impossible word passed in silence, which is the one thing forbidden" }
         check(unbacked.words == listOf("moonless")) { "the report does not name the word: ${unbacked.words}" }
@@ -771,15 +761,15 @@ class ResolverCheck : FunSpec({
         // What a claim ratio means, checked apart from any sentence: whether a given Age divides unevenly
         // depends on which presets were drawn, but a third of the strongest claim must be a third of the
         // ground however that Age came out.
-        check(Share.legible(0.9 / 0.9) == Share.EVEN) { "two strong claims should divide evenly" }
-        check(Share.legible(0.3 / 0.9) == A_THIRD) { "a third of a claim should take a third of the ground" }
-        check(Share.legible(0.06 / 0.9) < A_THIRD) { "a fifteenth of a claim should take far less than a third" }
+        check(Rung.legible(0.9 / 0.9) == Share.EVEN) { "two strong claims should divide evenly" }
+        check(Rung.legible(0.3 / 0.9) == A_THIRD) { "a third of a claim should take a third of the ground" }
+        check(Rung.legible(0.06 / 0.9) < A_THIRD) { "a fifteenth of a claim should take far less than a third" }
 
         // And no vector of shares may leave a word effectively absent — Jonah's floor, however many
         // territories divide the ground, since raising one faint share raises the whole the next is
         // measured against. Checked past where it is used for exactly that reason.
         for (territories in 2..MOST_TERRITORIES) {
-            val faintest = List(territories - 1) { Share.EVEN } + Share.legible(A_CLAIM_BARELY_MADE)
+            val faintest = List(territories - 1) { Share.EVEN } + Rung.legible(A_CLAIM_BARELY_MADE)
             val floored = Share.findable(faintest)
             val smallest = floored.min() / floored.sum()
             check(smallest >= Share.LEAST_SHARE_OF_A_WORLD - SLACK) {
@@ -955,7 +945,7 @@ class ResolverCheck : FunSpec({
         val land = Constraint(hollow, setOf(Aspect.TERRAIN))
         val first = material("firststone", "minecraft:blackstone")
         val second = material("secondstone", "minecraft:tuff")
-        fun sentence(group: Group?) = Sentence.of(
+        fun sentence(group: Group?) = sentenceOf(
             listOf(
                 land,
                 Constraint(first, setOf(Aspect.TERRAIN), group = group),
@@ -1004,7 +994,7 @@ class ResolverCheck : FunSpec({
             val constraints = said.map { (path, polarity) ->
                 Constraint(structureSet(path), setOf(Aspect.STRUCTURES), polarity)
             }
-            val resolved = Resolver.resolve(vocabulary, Sentence.of(constraints), SAMPLE_SEED)
+            val resolved = Resolver.resolve(vocabulary, sentenceOf(constraints), SAMPLE_SEED)
             return Skew.of(resolved.composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT))
         }
 
@@ -1044,7 +1034,7 @@ class ResolverCheck : FunSpec({
             setOf(Aspect.SKY),
             rehomed = true,
         )
-        val resolved = Resolver.resolve(vocabulary, Sentence.of(listOf(moved)), SAMPLE_SEED)
+        val resolved = Resolver.resolve(vocabulary, sentenceOf(listOf(moved)), SAMPLE_SEED)
         val charged = resolved.instability.flaws.filter { it.register == Register.REHOMED }
         check(charged.size == 1) { "a re-homed word gave ${charged.size} flaws: ${resolved.instability.flaws}" }
         check(charged.single().words == listOf("starless")) { "the flaw named ${charged.single().words}" }
@@ -1091,7 +1081,7 @@ class ResolverCheck : FunSpec({
     test("a population hears every step a word takes") {
         val zombie = "minecraft:zombie"
         fun living(word: Word): List<String> = Resolver
-            .resolve(vocabulary, Sentence.flat(listOf(word)), SAMPLE_SEED)
+            .resolve(vocabulary, flatSentence(listOf(word)), SAMPLE_SEED)
             .composition.optionsFor(Aspect.SPAWNS, 0).allOf(Spawns.LIVES)
 
         val leaning = Word(
@@ -1126,7 +1116,7 @@ class ResolverCheck : FunSpec({
                 setOf(Aspect.STRUCTURES),
                 density = rung,
             )
-            val resolved = Resolver.resolve(vocabulary, Sentence.of(listOf(said)), SAMPLE_SEED)
+            val resolved = Resolver.resolve(vocabulary, sentenceOf(listOf(said)), SAMPLE_SEED)
             val population = Skew.of(
                 resolved.composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT),
             )
@@ -1146,14 +1136,6 @@ class ResolverCheck : FunSpec({
         }
     }
 
-    /**
-     * The three guards on a fracture, each asserted rather than trusted:
-     *
-     * - **one claim never fractures** — nothing to reconcile, so the aspect stays whole;
-     * - **word order still decides nothing** (§3.5), including which fragment got which material;
-     * - **an aspect that already divided on presets contends instead**, two divisions in one aspect
-     *   multiplying, and *which* fragment a word was aimed at being a question the grammar cannot answer.
-     */
     /**
      * **A word that turns a numeric parameter has to land where it means**, end to end: the word bounds an
      * axis, a value is drawn inside it, and the sky is built from that. Nothing else checks the middle
@@ -1245,7 +1227,7 @@ class ResolverCheck : FunSpec({
         val lush = vocabulary.word("verdant") ?: error("the shipped vocabulary lost 'verdant'")
         fun said(polarity: Polarity) = Resolver.resolve(
             vocabulary,
-            Sentence.of(listOf(Constraint(lush, setOf(Aspect.BIOMES), polarity))),
+            sentenceOf(listOf(Constraint(lush, setOf(Aspect.BIOMES), polarity))),
             SAMPLE_SEED,
         ).composition
 
@@ -1266,7 +1248,7 @@ class ResolverCheck : FunSpec({
     /** Naming a biome means *more of it*, every biome being present already — see `Biomes.GROWN`. */
     test("naming a biome asks for more of it than an ordinary Age has") {
         val said = Constraint(biomeWord("cherry_grove"), setOf(Aspect.BIOMES))
-        val composition = Resolver.resolve(vocabulary, Sentence.of(listOf(said)), SAMPLE_SEED).composition
+        val composition = Resolver.resolve(vocabulary, sentenceOf(listOf(said)), SAMPLE_SEED).composition
         val named = preferences(composition).firstOrNull { it.biome.path == "cherry_grove" }
             ?: error("naming the cherry groves said nothing about them")
         // **Worth more than ordinary, without the pool naming a number.** A mention used to be scaled by a
@@ -1315,7 +1297,7 @@ class ResolverCheck : FunSpec({
             val constraints = said.map { (path, polarity) ->
                 Constraint(featureWord(path), setOf(Aspect.FEATURES), polarity)
             }
-            val resolved = Resolver.resolve(vocabulary, Sentence.of(constraints), SAMPLE_SEED)
+            val resolved = Resolver.resolve(vocabulary, sentenceOf(constraints), SAMPLE_SEED)
             return Skew.of(resolved.composition.optionsFor(Aspect.FEATURES, 0).claimsOn(Features.PLACES))
         }
 
@@ -1349,7 +1331,7 @@ class ResolverCheck : FunSpec({
                 Constraint(spawnWord("slime"), setOf(Aspect.SPAWNS), Polarity.ONLY, group),
                 Constraint(spawnWord("cow"), setOf(Aspect.SPAWNS), Polarity.ASSERTED, group),
             )
-            return Resolver.resolve(vocabulary, Sentence.of(said), SAMPLE_SEED)
+            return Resolver.resolve(vocabulary, sentenceOf(said), SAMPLE_SEED)
         }
 
         val together = spoken(joined = true)
@@ -1369,6 +1351,14 @@ class ResolverCheck : FunSpec({
         }
     }
 
+    /**
+     * The three guards on a fracture, each asserted rather than trusted:
+     *
+     * - **one claim never fractures** — nothing to reconcile, so the aspect stays whole;
+     * - **word order still decides nothing** (§3.5), including which fragment got which material;
+     * - **an aspect that already divided on presets contends instead**, two divisions in one aspect
+     *   multiplying, and *which* fragment a word was aimed at being a question the grammar cannot answer.
+     */
     test("a fracture obeys its guards") {
         fun aimedAtTheLand(word: Word) = Constraint(word, setOf(Aspect.TERRAIN))
         val hollow = aimedAtTheLand(vocabulary.word("hollow") ?: error("the shipped vocabulary lost 'hollow'"))
@@ -1380,7 +1370,7 @@ class ResolverCheck : FunSpec({
         val copper = aimedAtTheLand(material("firststone", "minecraft:copper_block"))
         val andesite = aimedAtTheLand(material("secondstone", "minecraft:andesite"))
 
-        val alone = Resolver.resolve(vocabulary, Sentence.of(listOf(hollow, copper)), SAMPLE_SEED)
+        val alone = Resolver.resolve(vocabulary, sentenceOf(listOf(hollow, copper)), SAMPLE_SEED)
         check(alone.composition.terrains.size == 1) {
             "one material fractured the terrain: ${alone.composition.terrains}"
         }
@@ -1388,8 +1378,8 @@ class ResolverCheck : FunSpec({
             "one material was charged for a fracture: ${alone.instability.flaws}"
         }
 
-        val forwards = Resolver.resolve(vocabulary, Sentence.of(listOf(hollow, copper, andesite)), SAMPLE_SEED)
-        val backwards = Resolver.resolve(vocabulary, Sentence.of(listOf(andesite, copper, hollow)), SAMPLE_SEED)
+        val forwards = Resolver.resolve(vocabulary, sentenceOf(listOf(hollow, copper, andesite)), SAMPLE_SEED)
+        val backwards = Resolver.resolve(vocabulary, sentenceOf(listOf(andesite, copper, hollow)), SAMPLE_SEED)
         check(forwards.composition == backwards.composition) {
             "reversing a fractured sentence moved the fragments: " +
                 "${forwards.composition} then ${backwards.composition}"
@@ -1404,7 +1394,7 @@ class ResolverCheck : FunSpec({
 
         // `flat towering` already splits the terrain in two, so the materials have nowhere of their own to go.
         val alreadyDivided =
-            Resolver.resolve(vocabulary, Sentence.of(listOf(flat, towering, copper, andesite)), SAMPLE_SEED)
+            Resolver.resolve(vocabulary, sentenceOf(listOf(flat, towering, copper, andesite)), SAMPLE_SEED)
         check(alreadyDivided.composition.terrains.size == 2) {
             "the preset division was lost: ${alreadyDivided.composition.terrains}"
         }
@@ -1415,10 +1405,15 @@ class ResolverCheck : FunSpec({
     }
 })
 
-/** The sentence spelled the way a writer would say it, resolved. */
 /** Every span an Age's one climate bounds, for the properties about bounding and bending. */
-private fun climateOf(resolution: Resolution): List<Span> =
-    resolution.composition.climates.single().spelled().mapNotNull { Span.read(it.substringAfter('=')) }
+private fun climateOf(resolution: Resolution): List<Span> {
+    val composition = resolution.composition
+    check(composition.membersIn(Aspect.CLIMATE) == 1) { "expected one climate, got ${composition.climates}" }
+    val options = composition.optionsFor(Aspect.CLIMATE, 0)
+    return ClimateAxis.entries
+        .mapNotNull { axis -> Span.read(options.of(axis.parameter)) }
+        .filter { it != Span.NATURAL }
+}
 
 /** The amounts `art/grammar/`'s quantifier pages ask for, plus the one that asks for nothing. */
 private val RUNGS = listOf(Rung.ORDINARY, 0.25, 2.25, 4.0)
@@ -1429,7 +1424,7 @@ private fun resolve(vocabulary: Vocabulary, sentence: String, seed: Long = SAMPL
     }
     // Flat, so every property below still asks what it always asked: these are sentences without
     // structure, which is what a book was before the grammar existed. Structure has its own check.
-    return Resolver.resolve(vocabulary, Sentence.flat(words), seed)
+    return Resolver.resolve(vocabulary, flatSentence(words), seed)
 }
 
 /**
@@ -1502,13 +1497,6 @@ private const val PERCENT = 100.0
 // actually gives. The point of the bound is to catch readiness being ignored, not to pin a number.
 private const val MOST_UNASKED_LAVA = 5
 
-// Structures carry a readiness of a quarter, so a fifth of unasked draws is the arithmetic and a third is
-// the bound — loose for the same reason as the lava one, which is to catch the prior being ignored rather
-// than to freeze a tuning number. **The number itself wants Jonah's eyes**: it decides how often an Age
-// nobody asked to be inhabited turns out to be.
-private const val MOST_UNASKED_STRUCTURES = 3
-
-/** The biomes a composition was told to grow, as the world will read them. */
 /** What a composition says about building, as a recipe holds it. */
 private fun builtIn(composition: AgeComposition) =
     composition.optionsFor(Aspect.STRUCTURES, 0).allOf(Structures.BUILT)
@@ -1519,7 +1507,7 @@ private fun preferences(composition: AgeComposition) =
 /** As much of the world as one member may be talked into taking — `Resolver.MOST_OF_A_WORLD`. */
 private const val MOST_OF_A_WORLD = 4.0
 
-/** What `twinned` asks for, and the one number in this file that is a count rather than a weight. */
+/** What two `sun` clauses mint, and the one number in this file that is a count rather than a weight. */
 private const val TWO_SUNS = 2
 
 /** A third of the strongest claim, as a share spells it. */

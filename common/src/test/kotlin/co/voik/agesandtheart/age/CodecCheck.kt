@@ -11,7 +11,6 @@ import co.voik.agesandtheart.worldgen.AgeRock
 import net.minecraft.core.registries.Registries
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
-import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.field.Chance
 import co.voik.agesandtheart.worldgen.field.Choose
@@ -46,7 +45,6 @@ class CodecCheck : FunSpec({
         MinecraftRegistries.ensureStoodUp()
         val codecs = listOf(
             "chunk generator (field)" to AgeChunkGenerator.CODEC,
-            "chunk generator (spire)" to SpireChunkGenerator.CODEC,
             "biome source (age)" to AgeBiomeSource.CODEC,
             "surface rule (regions)" to RegionRule.CODEC,
             "field tree" to TerrainField.CODEC,
@@ -56,7 +54,7 @@ class CodecCheck : FunSpec({
             "word" to Word.mapCodec("floating".location()).codec(),
             "preset tags" to PresetTags.CODEC,
             "antonym" to Antonym.CODEC,
-            "region map" to RegionMap.CODEC,
+            "region map" to RegionMap.MAP_CODEC.codec(),
             "placement (dispatch)" to Placement.CODEC,
             // Every kind by name, so adding one to the enum brings it under this check for free — the
             // dispatch codec above builds its branches lazily and would not have touched them.
@@ -76,7 +74,7 @@ class CodecCheck : FunSpec({
         MinecraftRegistries.ensureStoodUp()
         val cases = listOf<Placement>(
             Grid(spacing = 250.0, jitter = 20.0, density = Density.uniform(0.85)),
-            Radial(ringSpacing = 300.0, arcSpacing = 200.0, jitter = 40.0, density = Density.radial(1.0, 0.2, 900.0)),
+            Radial(ringSpacing = 300.0, arcSpacing = 200.0, jitter = 40.0, density = Density(atOrigin = 1.0, atEdge = 0.2, falloffRadius = 900.0)),
             Scatter(cellSize = 160.0, leastPerCell = 0, mostPerCell = 3, density = Density.uniform(0.8)),
         )
         check(cases.map { it.kind }.toSet() == PlacementKind.entries.toSet()) {

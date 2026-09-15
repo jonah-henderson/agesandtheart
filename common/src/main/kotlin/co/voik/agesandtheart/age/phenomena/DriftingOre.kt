@@ -264,7 +264,7 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
      */
     private fun discardIfNobodyIsAround() {
         if (level().gameTime % LOOKED_FOR_EVERY != 0L) return
-        if (level().getNearestPlayer(this, FORGOTTEN_BEYOND) == null) discard()
+        if (level().getNearestPlayer(this, ChargedBands.FORGOTTEN_BEYOND) == null) discard()
     }
 
     /**
@@ -466,9 +466,6 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
         /** How often the emptiness around it is checked, and how far away is far enough to forget it. */
         private const val LOOKED_FOR_EVERY = 40L
-
-        /** A fact about the bands rather than about this entity — see [ChargedBands.FORGOTTEN_BEYOND]. */
-        private const val FORGOTTEN_BEYOND = ChargedBands.FORGOTTEN_BEYOND
 
         private const val SMALLEST_TOUGHNESS = 6.0f
         private const val TOUGHNESS_A_TIER = 6.0f

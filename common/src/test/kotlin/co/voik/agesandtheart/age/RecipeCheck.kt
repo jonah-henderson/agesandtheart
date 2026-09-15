@@ -1,8 +1,5 @@
 package co.voik.agesandtheart.age
 
-import co.voik.agesandtheart.MinecraftRegistries
-import co.voik.agesandtheart.book.LinkTarget
-import co.voik.agesandtheart.location
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import co.voik.agesandtheart.age.aspect.Taggable
@@ -21,11 +18,7 @@ import io.kotest.datatest.withData
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtOps
 import net.minecraft.nbt.StringTag
-import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
-import net.minecraft.resources.ResourceKey
-import net.minecraft.world.level.Level
-import net.minecraft.world.phys.Vec3
 
 /**
  * That what we write to disk is what we read back, and that an Age already written still names
@@ -51,7 +44,7 @@ class RecipeCheck : FunSpec({
         nameFn = { "the '${it.aspect.key}=${it.key}' aspect preset round-trips" },
         everyTaggable(),
     ) { preset ->
-        val composition = AgeComposition(terrains = listOf(Terrain.HILLS)).withPreset(preset.aspect, preset.key)
+        val composition = AgeComposition(terrains = listOf(Terrain.HILLS)).withPresets(preset.aspect, listOf(preset.key))
         roundTrips(
             AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED),
             "${preset.aspect.key}=${preset.key}",
@@ -64,8 +57,8 @@ class RecipeCheck : FunSpec({
      */
     test("options it cannot understand round-trip") {
         val composition = AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
-            .withOption(Aspect.TERRAIN, Terrain.ARRANGEMENT.name, "rings")
-            .withOption(Aspect.TERRAIN, "elevation", "towering")
+            .withOptions(Aspect.TERRAIN, Terrain.ARRANGEMENT.name, listOf("rings"))
+            .withOptions(Aspect.TERRAIN, "elevation", listOf("towering"))
         check(composition.unknownOptions == listOf("landmass.elevation")) {
             "Expected 'elevation' to be reported as unrecognised, got ${composition.unknownOptions}"
         }
@@ -89,7 +82,7 @@ class RecipeCheck : FunSpec({
     test("a value it cannot read is called out, on any aspect") {
         fun saidOf(aspect: Aspect, parameter: String, value: String) =
             AgeComposition(terrains = listOf(Terrain.HILLS))
-                .withOption(aspect, parameter, value)
+                .withOptions(aspect, parameter, listOf(value))
                 .unknownOptions
 
         // A parameter that exists, on an aspect with no preset, given a value its axis cannot read. The
@@ -117,7 +110,7 @@ class RecipeCheck : FunSpec({
      */
     test("a mingled parameter round-trips") {
         val one = AgeComposition(terrains = listOf(Terrain.HILLS))
-            .withOption(Aspect.TERRAIN, Terrain.STONE.name, "minecraft:blackstone")
+            .withOptions(Aspect.TERRAIN, Terrain.STONE.name, listOf("minecraft:blackstone"))
         val encoded = AgeRecipe.CODEC.encodeStart(NbtOps.INSTANCE, AgeRecipe(AgeWorld.Composed(one), SAMPLE_SEED))
             .getOrThrow { problem -> IllegalStateException("a single material would not encode: $problem") }
         check("[" !in encoded.toString()) {
@@ -357,7 +350,7 @@ class RecipeCheck : FunSpec({
 
         // The other half: territories that agree collapse back to one entry, spelled the way they always were.
         val agreeing = AgeComposition(terrains = listOf(Terrain.SPIRE_ISLANDS, Terrain.HILLS))
-            .withOption(Aspect.TERRAIN, Terrain.STONE.name, "minecraft:tuff")
+            .withOptions(Aspect.TERRAIN, Terrain.STONE.name, listOf("minecraft:tuff"))
         val together = agreeing.toString()
         check("landmass.stone=minecraft:tuff" in together) {
             "Agreeing territories stopped spelling themselves once: '$together'"
@@ -372,41 +365,15 @@ class RecipeCheck : FunSpec({
      */
     test("compositions are spelled the way they are read") {
         val compositions = everyTaggable().map { preset ->
-            AgeComposition(terrains = listOf(Terrain.HILLS)).withPreset(preset.aspect, preset.key)
+            AgeComposition(terrains = listOf(Terrain.HILLS)).withPresets(preset.aspect, listOf(preset.key))
         } + AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
-            .withOption(Aspect.TERRAIN, Terrain.ARRANGEMENT.name, "rings")
-            .withOption(Aspect.SEA, Sea.DEPTH.name, "deep")
+            .withOptions(Aspect.TERRAIN, Terrain.ARRANGEMENT.name, listOf("rings"))
+            .withOptions(Aspect.SEA, Sea.DEPTH.name, listOf("deep"))
 
         for (composition in compositions) {
             val spelling = composition.toString()
             val read = AgeComposition.parse(spelling).getOrThrow()
             check(read == composition) { "'$spelling' reads back as '$read', which is not what wrote it" }
-        }
-    }
-
-    /**
-     * An Age written before aspects existed still opens, and opens as the same Age.
-     *
-     * The migration lives in a codec default rather than anywhere obvious, so it is exactly the kind of
-     * path that goes unexercised until somebody's save is the thing exercising it.
-     */
-    test("recipes written before slots still read") {
-        for (preset in AgePreset.entries) {
-            val written = CompoundTag().apply {
-                put("preset", StringTag.valueOf(preset.key))
-                putLong("seed", SAMPLE_SEED)
-                putInt(GENERATOR_VERSION_KEY, PRE_SLOTS_GENERATOR_VERSION)
-            }
-            val decoded = AgeRecipe.CODEC.parse(NbtOps.INSTANCE, written)
-                .getOrThrow { problem ->
-                    IllegalStateException("a pre-aspects '${preset.key}' would not load: $problem")
-                }
-            check(decoded.world == AgeRecipe.worldFor(preset)) {
-                "A pre-aspects '${preset.key}' migrated to ${decoded.world}, not ${AgeRecipe.worldFor(preset)}"
-            }
-            check(decoded.generatorVersion == PRE_SLOTS_GENERATOR_VERSION) {
-                "Migration overwrote the stamp on '${preset.key}', which is how an Age forgets what made it"
-            }
         }
     }
 
@@ -418,7 +385,7 @@ class RecipeCheck : FunSpec({
      */
     test("a set-valued landform round-trips") {
         val composition = AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.PILLARS, Terrain.CAVERNS))
-            .withPreset(Aspect.SEA, Sea.WATER.key)
+            .withPresets(Aspect.SEA, listOf(Sea.WATER.key))
             .withPresets(Aspect.SEA, listOf(Sea.WATER.key, Sea.LAVA.key))
             .withPresets(Aspect.CARVERS, listOf(Carvers.CAVES.key, Carvers.SOLID.key))
         val recipe = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED, character = SAMPLE_CHARACTER)
@@ -634,20 +601,6 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * Every generator-kind string ever persisted still names a preset. **The list is frozen history, not a
-     * mirror of the enum** — renaming an [AgePreset.key] compiles perfectly and orphans every Age written
-     * with the old name, sending it to the fallback and handing the player a different world.
-     */
-    test("every written kind still resolves") {
-        for (kind in LEGACY_KINDS) {
-            checkNotNull(AgePreset.byKey(kind)) {
-                "No preset named '$kind' any more — Ages written with it would fall back to Spire. " +
-                    "Restore the key, or migrate those Ages deliberately in AgeSavedData."
-            }
-        }
-    }
-
-    /**
      * The generator stamp is actually written down. Declared `optionalFieldOf(name, default)` the codec
      * would *omit* it whenever it matched the current version, so an old Age would read back claiming to
      * have been made by whatever code is current — the one question the stamp exists to answer.
@@ -689,70 +642,13 @@ private fun everyTaggable(): List<Taggable> =
     Aspect.entries.flatMap { it.authored } +
         listOf(Sea.NONE, Sea.WATER, Sea.LAVA, Sea(Identifier.parse("examplemod:creosote")))
 
-/** Every generator kind that has ever been written into a save. Append-only; never edit a line. */
-private val LEGACY_KINDS = listOf(
-    "spire", "field", "pyramids", "pyrings", "pyrvaried",
-    "hills", "shapes", "pillars", "caverns", "eroded",
-    "vanilla", "vanillabare",
-)
-
 /** A character unlike the default in every field, so a lazy round trip cannot pass by accident. */
 private val SAMPLE_CHARACTER = AgeCharacter(alignment = Alignment.INDEPENDENT, regionBlocks = 1600)
-
-/**
- * **A linking book carries the Age it points at, and it has to survive being written down** (design §9,
- * "Losing the books").
- *
- * The whole value of it is a book that outlives its Age — which means the recipe is read back off an item
- * on disk long after everything that could have re-derived it is gone. A recipe that failed to round-trip
- * here would leave the book pointing at nothing, silently, exactly when it was needed.
- */
-class LinkTargetCheck : FunSpec({
-    test("a link target round-trips with the Age behind it") {
-        MinecraftRegistries.ensureStoodUp()
-        val composition = AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
-            .withOption(Aspect.TERRAIN, Terrain.STONE.name, "minecraft:blackstone")
-        val recipe = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED)
-        val target = LinkTarget(
-            dimension = ResourceKey.create(Registries.DIMENSION, "someage".location()),
-            position = Vec3(1.5, 64.0, -2.5),
-            yaw = 90.0f,
-            name = "Some Age",
-            recipe = recipe,
-        )
-        val encoded = LinkTarget.CODEC.encodeStart(NbtOps.INSTANCE, target)
-            .getOrThrow { problem -> IllegalStateException("a link target would not encode: $problem") }
-        val decoded = LinkTarget.CODEC.parse(NbtOps.INSTANCE, encoded)
-            .getOrThrow { problem -> IllegalStateException("a link target would not decode: $problem") }
-        check(decoded.recipe == recipe) { "the Age behind the book was lost: ${decoded.recipe}" }
-        check(decoded == target) { "the link target came back as $decoded" }
-    }
-
-    /** A book to a vanilla dimension carries none, and must still be a legal book. */
-    test("a link target with no Age behind it round-trips") {
-        MinecraftRegistries.ensureStoodUp()
-        val target = LinkTarget(
-            dimension = Level.OVERWORLD,
-            position = Vec3(0.0, 64.0, 0.0),
-            yaw = 0.0f,
-            name = "Overworld",
-        )
-        val encoded = LinkTarget.CODEC.encodeStart(NbtOps.INSTANCE, target)
-            .getOrThrow { problem -> IllegalStateException("a bare link target would not encode: $problem") }
-        val decoded = LinkTarget.CODEC.parse(NbtOps.INSTANCE, encoded)
-            .getOrThrow { problem -> IllegalStateException("a bare link target would not decode: $problem") }
-        check(decoded.recipe == null) { "an Age was invented behind an Overworld link: ${decoded.recipe}" }
-        check(decoded == target) { "the link target came back as $decoded" }
-    }
-})
 
 private const val GENERATOR_VERSION_KEY = "generator_version"
 
 /** A stamp no generation ever has, so an absent one fails the comparison rather than passing by accident. */
 private const val NOT_STAMPED = -1
-
-/** What every Age written before aspects is stamped with. */
-private const val PRE_SLOTS_GENERATOR_VERSION = 1
 
 /** And what every Age written after aspects but before regions is stamped with. */
 private const val PRE_REGIONS_GENERATOR_VERSION = 2

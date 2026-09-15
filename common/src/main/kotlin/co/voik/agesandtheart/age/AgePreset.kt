@@ -5,17 +5,13 @@ import net.minecraft.util.StringRepresentable
 
 /**
  * The name each classic demo Age goes by. [AgeRecipe.worldFor] turns most of them into the composition
- * they describe; only [SPIRE], [VANILLA] and [VANILLA_BARE] are still whole generators (see [AgeWorld]).
+ * they describe; only [VANILLA] and [VANILLA_BARE] are whole generators (see [AgeWorld]).
  *
- * [key] is the save format, so renaming one orphans every Age already written with it — `RecipeCheck`
- * guards this.
+ * [key] is the save format, so renaming one orphans every Age already written with it.
  */
 enum class AgePreset(val key: String) : StringRepresentable {
-    /** The bespoke floating-island generator, kept as an easter egg rather than a field tree. */
+    /** Floating islands over a green sea, under the Spire's own sky — the toolkit's first world. */
     SPIRE("spire"),
-
-    /** The same islands rebuilt as a field tree — the toolkit's first world. */
-    FIELD("field"),
 
     /** Instanced pyramids on a plain: a density-gradient grid, its rings, and posed variants. */
     PYRAMIDS("pyramids"),
@@ -37,7 +33,7 @@ enum class AgePreset(val key: String) : StringRepresentable {
     /** Ridged 3D noise riddled with caverns; its caves are the field itself, not carvers. */
     CAVERNS("caverns"),
 
-    /** Billowy 3D noise, weathered into mesa-like relief. */
+    /** Plain 3D noise, weathered into mesa-like relief. */
     ERODED("eroded"),
 
     /** Solid rock to the height limit, with one canyon cut through the origin and a river in it. */
@@ -88,8 +84,5 @@ enum class AgePreset(val key: String) : StringRepresentable {
 
     companion object {
         val CODEC: Codec<AgePreset> = StringRepresentable.fromEnum { entries.toTypedArray() }
-
-        /** The preset [key] names, or null for an Age written against a preset we no longer have. */
-        fun byKey(key: String): AgePreset? = entries.firstOrNull { it.key == key }
     }
 }

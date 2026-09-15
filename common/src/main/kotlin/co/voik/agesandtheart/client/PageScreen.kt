@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.word.WordNames
+import co.voik.agesandtheart.client.ui.ParchmentSurface
+import co.voik.agesandtheart.client.ui.Rect
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
@@ -23,8 +25,7 @@ class PageScreen(private val word: Identifier) : Screen(titleFor(word)) {
 
         val left = (width - PAGE_WIDTH) / 2
         val top = (height - PAGE_HEIGHT) / 2
-        graphics.fill(left, top, left + PAGE_WIDTH, top + PAGE_HEIGHT, EDGE)
-        graphics.fill(left + 1, top + 1, left + PAGE_WIDTH - 1, top + PAGE_HEIGHT - 1, PARCHMENT)
+        ParchmentSurface.draw(graphics, Rect(left, top, PAGE_WIDTH, PAGE_HEIGHT))
 
         val middle = width / 2
         // Drawn at the origin and moved by the transform: `centeredText` centres on the coordinate it is
@@ -33,10 +34,10 @@ class PageScreen(private val word: Identifier) : Screen(titleFor(word)) {
         graphics.pose().pushMatrix()
         graphics.pose().translate(middle.toFloat(), (top + SCRIPT_BASELINE).toFloat())
         graphics.pose().scale(scriptScale(script), scriptScale(script))
-        centeredNoShadow(graphics, script, 0, 0, INK)
+        centeredNoShadow(graphics, script, 0, 0, ParchmentSurface.INK)
         graphics.pose().popMatrix()
 
-        centeredNoShadow(graphics, WordNames.readable(word), middle, top + NAME_BASELINE, FAINT_INK)
+        centeredNoShadow(graphics, WordNames.readable(word), middle, top + NAME_BASELINE, ParchmentSurface.FAINT_INK)
     }
 
     /**
@@ -77,11 +78,6 @@ class PageScreen(private val word: Identifier) : Screen(titleFor(word)) {
 
         /** Clear space either side of the script, so it never touches the border. */
         private const val WRITING_MARGIN = 24f
-
-        private val PARCHMENT = 0xFFE9DFC3.toInt()
-        private val EDGE = 0xFF8B7B55.toInt()
-        private val INK = 0xFF2B2118.toInt()
-        private val FAINT_INK = 0xFF6B5C46.toInt()
 
         /** Opens the page in [stack], or does nothing if it is blank. Client-side only. */
         fun open(stack: ItemStack) {

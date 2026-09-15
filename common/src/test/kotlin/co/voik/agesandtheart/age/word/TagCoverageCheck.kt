@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.aspect.Aspect
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -21,11 +21,6 @@ import io.kotest.core.spec.style.FunSpec
  */
 @Tags(NEEDS_REGISTRIES)
 class TagCoverageCheck : FunSpec({
-
-    val vocabulary by lazy {
-        MinecraftRegistries.ensureStoodUp()
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen)
-    }
 
     /**
      * **A query must do one of its two jobs.** It chooses carriers — and, separately, it says what the word

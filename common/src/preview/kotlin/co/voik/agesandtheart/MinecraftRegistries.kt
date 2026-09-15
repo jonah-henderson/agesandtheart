@@ -43,12 +43,6 @@ object MinecraftRegistries {
     /** Call before touching anything that reads a registry. */
     fun ensureStoodUp() = bootstrapped
 
-    /** The shipped `art/spawning.json`, for the checks about what a written creature arrives as. */
-    val spawning: co.voik.agesandtheart.age.aspect.Spawning by lazy {
-        ensureStoodUp()
-        co.voik.agesandtheart.age.word.Vocabulary.load(shippedData()).spawning
-    }
-
     /**
      * Vanilla's **worldgen** registries — biomes, placed features, structure sets — built offline.
      *
@@ -77,9 +71,7 @@ object MinecraftRegistries {
      */
     fun shippedData(): ResourceManager {
         ensureStoodUp()
-        val root = listOf(Path.of("src/main/resources"), Path.of("common/src/main/resources"))
-            .firstOrNull { it.isDirectory() }
-            ?: error("Cannot find the mod's resources from ${Path.of("").toAbsolutePath()}")
+        val root = resourceRoot()
         val where = PackLocationInfo(
             "agesandtheart",
             Component.literal("Ages and the Art"),
@@ -88,4 +80,13 @@ object MinecraftRegistries {
         )
         return MultiPackResourceManager(PackType.SERVER_DATA, listOf(PathPackResources(where, root)))
     }
+
+    /**
+     * The mod's resources in the source tree, found from the module directory or the repository root —
+     * the first is what Gradle hands a task, the second what a person types.
+     */
+    fun resourceRoot(): Path =
+        listOf(Path.of("src/main/resources"), Path.of("common/src/main/resources"))
+            .firstOrNull { it.isDirectory() }
+            ?: error("Cannot find the mod's resources from ${Path.of("").toAbsolutePath()}")
 }

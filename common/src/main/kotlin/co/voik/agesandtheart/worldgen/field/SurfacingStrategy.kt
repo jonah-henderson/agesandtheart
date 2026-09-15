@@ -42,33 +42,11 @@ object SurfacingStrategy {
     private fun where(condition: SurfaceRules.ConditionSource, block: BlockState): SurfaceRules.RuleSource =
         SurfaceRules.ifTrue(condition, solid(block))
 
-    /** [block] where *both* conditions hold — an `and`, which the language spells as nesting. */
-    private fun where(first: SurfaceRules.ConditionSource, second: SurfaceRules.ConditionSource, block: BlockState): SurfaceRules.RuleSource =
-        SurfaceRules.ifTrue(first, where(second, block))
-
     // --- Conditions ---
 
     /** Within [blocks] of the surface: the soil layer beneath the skin. */
     private fun withinDepth(blocks: Int): SurfaceRules.ConditionSource =
         SurfaceRules.stoneDepthCheck(blocks, false, CaveSurface.FLOOR)
-
-    /**
-     * A *soft* stratum boundary: certainly true at [solidBelowY] and below, certainly false at
-     * [absentAboveY] and above, dissolving randomly in between. This is what makes deepslate fade into
-     * stone instead of stopping at a flat seam, and it is the most useful condition here by some way.
-     * [name] seeds the randomness, so two bands with different names interleave independently.
-     */
-    private fun fadingBelowY(name: String, solidBelowY: Int, absentAboveY: Int): SurfaceRules.ConditionSource =
-        SurfaceRules.verticalGradient(name, VerticalAnchor.absolute(solidBelowY), VerticalAnchor.absolute(absentAboveY))
-
-    /** Scatter driven by a registered noise, for mottling one material through another. */
-    private fun mottled(
-        noise: ResourceKey<NormalNoise.NoiseParameters>,
-        min: Double,
-        max: Double,
-    ): SurfaceRules.ConditionSource = SurfaceRules.noiseCondition(noise, min, max)
-
-    private fun not(condition: SurfaceRules.ConditionSource): SurfaceRules.ConditionSource = SurfaceRules.not(condition)
 
     /**
      * The floor of the world — bedrock, fading out just above the bottom, as vanilla closes its own.
@@ -97,7 +75,7 @@ object SurfacingStrategy {
         // **Negated, unlike the floor.** A vertical gradient is certainly true at its lower anchor and
         // certainly false at its upper one, so read straight it says "not the roof"; vanilla's own nether
         // roof inverts it for exactly this reason.
-        not(
+        SurfaceRules.not(
             SurfaceRules.verticalGradient(
                 "bedrock_roof",
                 VerticalAnchor.belowTop(BEDROCK_FADE),
@@ -121,7 +99,7 @@ object SurfacingStrategy {
      * grass over dirt. Nothing matching leaves the block as the generator laid it, which is the Age's rock.
      */
     fun shutOverhead(rule: SurfaceRules.RuleSource): SurfaceRules.RuleSource =
-        layers(worldRoof(), SurfaceRules.ifTrue(not(withinTheRoof()), rule))
+        layers(worldRoof(), SurfaceRules.ifTrue(SurfaceRules.not(withinTheRoof()), rule))
 
     /** The band [worldRoof] fades its bedrock through — where the palette has no business. */
     private fun withinTheRoof(): SurfaceRules.ConditionSource =
@@ -240,7 +218,7 @@ object SurfacingStrategy {
      * Several blocks mottled through one another, the last standing as the ground the rest scatter over.
      *
      * Bands of **one** noise rather than a noise each, so the proportions are exact and no two materials
-     * can want the same block — nested `mottled` conditions would leave the second material's share
+     * can want the same block — nested noise conditions would leave the second material's share
      * depending on where the first fell. Divided evenly, which is what an unqualified list should mean.
      */
     private fun mingled(blocks: List<BlockState>): SurfaceRules.RuleSource {
@@ -252,7 +230,7 @@ object SurfacingStrategy {
         return layers(
             *scattered.mapIndexed { band, block ->
                 val from = MOTTLE_RANGE.first + band * bandWidth
-                where(mottled(MINGLE_NOISE, from, from + bandWidth), block)
+                where(SurfaceRules.noiseCondition(MINGLE_NOISE, from, from + bandWidth), block)
             }.toTypedArray(),
             solid(ground),
         )
@@ -270,7 +248,13 @@ object SurfacingStrategy {
 
     private fun deepslateFloor(): SurfaceRules.RuleSource =
         where(
-            fadingBelowY("deepslate", DEEPSLATE_SOLID_BELOW, DEEPSLATE_ABSENT_ABOVE),
+            // A soft stratum boundary: certainly deepslate at the lower anchor and below, certainly not at
+            // the upper one and above, dissolving randomly in between, so it fades into stone without a seam.
+            SurfaceRules.verticalGradient(
+                "deepslate",
+                VerticalAnchor.absolute(DEEPSLATE_SOLID_BELOW),
+                VerticalAnchor.absolute(DEEPSLATE_ABSENT_ABOVE),
+            ),
             Blocks.DEEPSLATE.defaultBlockState(),
         )
 

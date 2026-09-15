@@ -50,17 +50,17 @@ class DangerTableCheck : FunSpec({
      * it, and worth nothing is indistinguishable from *decided to be worth nothing*.
      */
     test("every phenomenon has been given a rating, even the ones worth nothing") {
-        val unrated = Phenomenon.entries.map { it.key } - table.ratedPhenomena
+        val unrated = Phenomenon.entries.map { it.key } - table.phenomena.keys
         check(unrated.isEmpty()) { "art/danger.json says nothing about $unrated" }
     }
 
     test("every material and creature it rates is one this pack has") {
-        val absentBlocks = table.ratedMaterials.filterNot { named ->
+        val absentBlocks = table.materials.keys.filterNot { named ->
             Identifier.tryParse(named)?.let { BuiltInRegistries.BLOCK.getOptional(it).isPresent } == true
         }
         check(absentBlocks.isEmpty()) { "art/danger.json rates blocks that do not exist: $absentBlocks" }
 
-        val absentCreatures = (table.ratedSpawns - MONSTERS).filterNot { named ->
+        val absentCreatures = (table.spawns.keys - MONSTERS).filterNot { named ->
             Identifier.tryParse(named)?.let { BuiltInRegistries.ENTITY_TYPE.getOptional(it).isPresent } == true
         }
         check(absentCreatures.isEmpty()) { "art/danger.json rates creatures that do not exist: $absentCreatures" }
@@ -104,7 +104,7 @@ class DangerTableCheck : FunSpec({
     test("scoring a recipe is scoring the composition in it") {
         val composition = AgeTemplate.INFERNAL.world()
         val throughTheRecipe = scoreOver(AgeTemplate.INFERNAL)
-        val direct = Danger.of(composition, Instability.NONE, SEED, authored = true, table, prices)
+        val direct = Danger.of(composition, Instability.NONE, authored = true, table, prices)
         check(throughTheRecipe == direct) { "a recipe scored $throughTheRecipe where its composition scored $direct" }
     }
 }) {

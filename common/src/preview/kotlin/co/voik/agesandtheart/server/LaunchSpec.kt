@@ -99,7 +99,7 @@ class LaunchSpec(
          * and a check that passed on one loader and not the other would be saying something worth hearing
          * rather than something worth special-casing.
          */
-        private fun loader(): String = System.getProperty(LOADER_PROPERTY, "fabric")
+        fun loader(): String = System.getProperty(LOADER_PROPERTY, "fabric")
 
         const val LOADER_PROPERTY = "agesandtheart.checks.loader"
 

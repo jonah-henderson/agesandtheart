@@ -8,7 +8,6 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.util.StringRepresentable
-import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -199,7 +198,7 @@ data class Price(
 /**
  * What an Age's instability actually bought (design §5.0).
  *
- * **Derived, never stored.** A pure function of the instability and the seed, so it comes out the same on
+ * **Derived, never stored.** A pure function of the instability and the prices, so it comes out the same on
  * every open and needs no room in the recipe — which keeps generation a pure function of the recipe, and
  * keeps the recipe a record of what was *written* rather than of what can be inferred from it.
  *
@@ -207,7 +206,7 @@ data class Price(
  * can afford to collapse also has torn seams, because it paid for those on the way. Consequence reads as
  * accumulation rather than as a threshold crossed into a different world.
  */
-data class Spending(private val steps: Map<Manifestation, Int>, val unspent: Int) {
+data class Spending(private val steps: Map<Manifestation, Int>) {
 
     /** How many steps of [manifestation] were bought — zero where the budget never reached it. */
     fun bought(manifestation: Manifestation): Int = steps[manifestation] ?: 0
@@ -227,18 +226,15 @@ data class Spending(private val steps: Map<Manifestation, Int>, val unspent: Int
 
     companion object {
         /** A coherent Age, which buys nothing. */
-        val NOTHING = Spending(emptyMap(), unspent = 0)
+        val NOTHING = Spending(emptyMap())
 
         /**
          * What [budget] buys at these [prices].
          *
          * The order is the price list's own, cheapest first and ties broken by declaration, so the
          * allocation is a pure function of its inputs and does not depend on a map's iteration order.
-         * [seed] is taken for the choices that will need it once a manifestation has somewhere to go
-         * rather than only a size — a wound has to land *somewhere* (§5.1) — and is deliberately unused
-         * while the only manifestation is a magnitude.
          */
-        fun of(budget: Int, prices: Map<Manifestation, Price>, @Suppress("UNUSED_PARAMETER") seed: Long): Spending {
+        fun of(budget: Int, prices: Map<Manifestation, Price>): Spending {
             if (budget <= 0) return NOTHING
             var remaining = budget
             val steps = mutableMapOf<Manifestation, Int>()
@@ -253,16 +249,11 @@ data class Spending(private val steps: Map<Manifestation, Int>, val unspent: Int
                 steps[manifestation] = affordable
                 remaining -= affordable * price.costs
             }
-            return Spending(steps, unspent = remaining)
+            return Spending(steps)
         }
 
         /** The same, for a recipe — which is where every caller actually starts. */
         fun of(server: MinecraftServer, recipe: AgeRecipe): Spending =
-            of(recipe.instability.index, Price.list(server), recipe.seed)
-
-        /** Kept for the choices a sited manifestation will need, so the salt is decided once. */
-        fun randomFor(seed: Long): XoroshiroRandomSource = XoroshiroRandomSource(seed xor SPENDING_SALT)
-
-        private const val SPENDING_SALT = 0x7EA5_1B1EL
+            of(recipe.instability.index, Price.list(server))
     }
 }

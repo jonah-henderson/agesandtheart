@@ -6,8 +6,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import kotlin.math.roundToInt
 
 /**
- * [base], moved up or down by a noise **per column** — [Raised] with a lift that wanders instead of a
- * lift that is one number.
+ * [base], moved up or down by a noise **per column** — [Spans.shifted] by a lift that wanders instead of
+ * a lift that is one number.
  *
  * **This is the only thing here that can rough up a surface whatever its slope**, and that is the whole
  * reason it exists. Every other way of perturbing a shape in this toolkit works at a *level*: a hanging
@@ -46,7 +46,7 @@ data class Undulated(
 ) : TerrainField {
     override val kind = FieldKind.UNDULATED
 
-    // Moving vertically changes nothing horizontally — the same reasoning as [Raised].
+    // Moving vertically changes nothing horizontally.
     override val horizontalReach = base.horizontalReach
 
     override val samplesPerColumn = base.samplesPerColumn + 1

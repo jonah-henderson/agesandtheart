@@ -23,8 +23,7 @@ class WritersDeskCheck : FunSpec({
      */
     test("every tier is reachable with the implements we ship") {
         val shipped = desk.let { it.survey(EmptyRoom, net.minecraft.core.BlockPos.ZERO) }
-        // Survey of an empty room finds nothing, so count the declared implements directly.
-        check(shipped.present.isEmpty()) { "An empty room should furnish nothing, found ${shipped.present}" }
+        check(shipped.capabilities.isEmpty()) { "An empty room should furnish nothing, found ${shipped.capabilities}" }
 
         val highest = (0..MANY).mapNotNull { count -> desk.pageLimitFor(count) }
         check(highest.isNotEmpty()) { "No tier declares a page limit at all" }

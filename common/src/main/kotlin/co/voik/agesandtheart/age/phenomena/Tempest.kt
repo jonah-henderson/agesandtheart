@@ -40,7 +40,7 @@ object Tempest {
 
         val random = level.random
         // Read once per pass rather than per roll: this runs hundreds of times a tick.
-        val behaviour = PhenomenonBehaviour.of(level.server, Phenomenon.TEMPEST)
+        val behaviour = PhenomenonBehaviour.of(level.server)
         val reach = behaviour.reach
         repeat(Happenings.timesFor(density, behaviour.rolls)) {
             val near = watching[random.nextInt(watching.size)].chunkPosition()
@@ -102,7 +102,7 @@ object Tempest {
             bolt.x,
             bolt.y,
             bolt.z,
-            PhenomenonBehaviour.of(level.server, Phenomenon.TEMPEST).blast,
+            PhenomenonBehaviour.of(level.server).blast,
             true,
             // Not `MOB`, which is a creeper's and which `mobGriefing` switches off. An Age is written on
             // purpose and a tempest in it was asked for, so it is not a setting.
@@ -121,7 +121,7 @@ object Tempest {
      */
     private fun setFiresAround(level: ServerLevel, around: BlockPos, random: RandomSource) {
         if (!level.canSpreadFireAround(around)) return
-        val behaviour = PhenomenonBehaviour.of(level.server, Phenomenon.TEMPEST)
+        val behaviour = PhenomenonBehaviour.of(level.server)
         repeat(behaviour.fireAttempts) {
             val at = around.offset(
                 scatter(random, behaviour.fireReach),

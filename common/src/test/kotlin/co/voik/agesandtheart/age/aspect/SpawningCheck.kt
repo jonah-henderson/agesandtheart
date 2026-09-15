@@ -2,14 +2,13 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.age.word.Vocabulary
 import io.kotest.core.annotation.Tags
 import co.voik.agesandtheart.age.aspect.Ground
 import co.voik.agesandtheart.age.aspect.Lit
 import net.minecraft.resources.Identifier
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.BlockPos
-import net.minecraft.util.random.Weighted
-import net.minecraft.util.random.WeightedList
 import net.minecraft.world.entity.SpawnPlacements
 import net.minecraft.world.entity.SpawnPlacementTypes
 import net.minecraft.world.entity.EntityType
@@ -68,16 +67,11 @@ class SpawningCheck : FunSpec({
         }
         // **Offline there is no mixin**, since nothing transforms classes outside a launched game — so what
         // this can hold is the half that matters most: the entry is dropped rather than offered as the pig
-        // vanilla made of it. `SpawningOnServerCheck` holds the other half, where the golem does arrive.
+        // vanilla made of it.
         val arrived = livingWith("minecraft:snow_golem", MobCategory.CREATURE, skyIsOpen = true)
         check("pig" !in arrived) { "a golem was written and a pig arrived: $arrived" }
     }
 
-    /**
-     * **A creature vanilla never spawns has no placement rules**, so `SpawnPlacements` answers
-     * `NO_RESTRICTIONS` and a dragon would be tried inside a mountain. `art/spawning.json` says which need
-     * the sky, and this is the gate.
-     */
     /**
      * **Where a creature belongs, and it cuts both ways.** A dragon in a cave is not a surprise, it is a
      * bug with wings; a warden out on a hillside is the same mistake facing the other direction. Both are
@@ -112,7 +106,7 @@ class SpawningCheck : FunSpec({
      * nothing to do with the rule it is checking.
      */
     test("the grounds are actually read, or nothing above means anything") {
-        val spawning = MinecraftRegistries.spawning
+        val spawning = shippedSpawning
         fun groundOf(path: String) = spawning.groundOf(Identifier.withDefaultNamespace(path))
         check(groundOf("illusioner") == Ground.SURFACE) { "the surface list did not load" }
         check(groundOf("ender_dragon") == Ground.IN_THE_AIR) { "the air list did not load" }
@@ -129,7 +123,7 @@ class SpawningCheck : FunSpec({
     test("a rung scales what arrives") {
         fun weightOf(claim: String) = Spawns.livingIn(
             Options(mapOf(Spawns.LIVES.name to listOf(claim))),
-            MinecraftRegistries.spawning,
+            shippedSpawning,
         ).at(null, MobCategory.MONSTER, Spawns.Situation(BlockPos.ZERO, true, DARK), aMeadow()).unwrap()
             .firstOrNull { it.value().type() == EntityType.ILLUSIONER }?.weight()
 
@@ -149,7 +143,7 @@ class SpawningCheck : FunSpec({
      * plain one came out identical — both at the ceiling — until this (Jonah, 2026-08-26).
      */
     test("a rung on a creature held apart brings its windows closer instead") {
-        fun spacingOf(density: Double) = MinecraftRegistries.spawning.of(DRAGON).spacedAt(density)
+        fun spacingOf(density: Double) = shippedSpawning.of(DRAGON).spacedAt(density)
 
         val plain = spacingOf(1.0)
         val teeming = spacingOf(4.0)
@@ -171,7 +165,7 @@ class SpawningCheck : FunSpec({
      * counts what is already nearby, and the two together describe one arrangement.
      */
     test("a creature the Age places is tried in one window of each cell") {
-        val dragon = MinecraftRegistries.spawning.of(Identifier.withDefaultNamespace("ender_dragon"))
+        val dragon = shippedSpawning.of(Identifier.withDefaultNamespace("ender_dragon"))
         val spacing = dragon.spacedAt(1.0)
         fun triedAt(x: Int, z: Int) = dragon.mayBeTriedAt(x, z, spacing)
 
@@ -186,7 +180,7 @@ class SpawningCheck : FunSpec({
     /** And a creature that arrives by the ordinary spawner is held apart from nothing — weight scatters it. */
     test("a creature vanilla spawns is thinned by its weight alone") {
         for (natural in listOf("warden", "illusioner", "giant")) {
-            val arrival = MinecraftRegistries.spawning.of(Identifier.withDefaultNamespace(natural))
+            val arrival = shippedSpawning.of(Identifier.withDefaultNamespace(natural))
             check(arrival.spacedAt(1.0) == 0) { "$natural is held apart, and nothing counts what arrives" }
         }
     }
@@ -211,7 +205,7 @@ class SpawningCheck : FunSpec({
     test("and is picked up by the Age's own spawner") {
         val placing = AgeSpawner.placing(
             Options(mapOf(Spawns.LIVES.name to listOf("minecraft:ender_dragon", "minecraft:iron_golem"))),
-            MinecraftRegistries.spawning,
+            shippedSpawning,
         )
         checkNotNull(placing) { "an Age that wrote a dragon and a golem places neither" }
 
@@ -239,7 +233,7 @@ class SpawningCheck : FunSpec({
     test("a creature is looked for on the heightmap vanilla registered it against") {
         val placing = AgeSpawner.placing(
             Options(mapOf(Spawns.LIVES.name to listOf("minecraft:iron_golem", "minecraft:ender_dragon"))),
-            MinecraftRegistries.spawning,
+            shippedSpawning,
         )
         checkNotNull(placing) { "an Age that wrote a golem and a dragon places neither" }
 
@@ -289,7 +283,7 @@ class SpawningCheck : FunSpec({
 
     /** The control: the light is read off the corpus, or the test above proves nothing. */
     test("the light is actually read") {
-        val spawning = MinecraftRegistries.spawning
+        val spawning = shippedSpawning
         fun lightOf(path: String) = spawning.lightOf(Identifier.withDefaultNamespace(path))
         check(lightOf("warden") == Lit.IN_THE_DARK) { "the dark list did not load" }
         check(lightOf("zombie") == Lit.ANY) { "a creature nobody judged was pinned to a light" }
@@ -299,7 +293,7 @@ class SpawningCheck : FunSpec({
     test("an Age that asked for none of them carries no spawner") {
         val ordinary = AgeSpawner.placing(
             Options(mapOf(Spawns.LIVES.name to listOf("minecraft:zombie"))),
-            MinecraftRegistries.spawning,
+            shippedSpawning,
         )
         check(ordinary == null) { "an Age that wrote only a zombie was given a spawner of its own" }
     }
@@ -313,21 +307,14 @@ private fun livingWith(
     brightness: Int = DARK,
 ): List<String> {
     val options = Options(mapOf(Spawns.LIVES.name to listOf(claim)))
-    return Spawns.livingIn(options, MinecraftRegistries.spawning)
+    return Spawns.livingIn(options, shippedSpawning)
         .at(null, category, Spawns.Situation(BlockPos.ZERO, skyIsOpen, brightness), aMeadow())
         .unwrap()
         .map { it.value().type().builtInRegistryHolder().key().identifier().path }
 }
 
-/** What a biome offers before anybody writes anything: two creatures and two monsters. */
-private fun aMeadow(): WeightedList<MobSpawnSettings.SpawnerData> {
-    MinecraftRegistries.ensureStoodUp()
-    return WeightedList.of(
-        Weighted(MobSpawnSettings.SpawnerData(EntityType.COW, 4, 4), 8),
-        Weighted(MobSpawnSettings.SpawnerData(EntityType.SHEEP, 4, 4), 12),
-        Weighted(MobSpawnSettings.SpawnerData(EntityType.ZOMBIE, 4, 4), 95),
-    )
-}
+/** The shipped `art/spawning.json`. */
+private val shippedSpawning: Spawning by lazy { Vocabulary.load(MinecraftRegistries.shippedData()).spawning }
 
 /** The dragon's own id, for the arrival read straight out of `art/spawning.json`. */
 private val DRAGON: Identifier = Identifier.withDefaultNamespace("ender_dragon")

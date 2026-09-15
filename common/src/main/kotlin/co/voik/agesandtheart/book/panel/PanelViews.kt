@@ -46,10 +46,7 @@ object PanelViews {
         val centre: ChunkPos,
         /** The lectern the book lies open on, or null for a book in a hand — whose screen closes it. */
         val lectern: GlobalPos?,
-    ) {
-        /** Which of the ring's chunks have gone out, so a re-request can tell them from what has not. */
-        val sent = mutableSetOf<Long>()
-    }
+    )
 
     /** What a panel looks at: the world a book leads to, and the point in it a visitor would arrive at. */
     private class Destination(val level: ServerLevel, val around: BlockPos)
@@ -289,8 +286,8 @@ object PanelViews {
                 // sharing a centre chunk is ordinary, and a stale future would stream one Age's terrain
                 // into the other's panel — the payload carries only x and z.
                 val watch = watching[player.uuid]
-                    ?.takeIf { it.centre == centre && it.dimension == level.dimension() }
-                    ?: return@thenAcceptAsync
+                val stillWatchingThisRing = watch != null && watch.centre == centre && watch.dimension == level.dimension()
+                if (!stillWatchingThisRing) return@thenAcceptAsync
                 Services.NETWORK.sendToPlayer(
                     player,
                     PanelChunkPayload(
@@ -300,7 +297,6 @@ object PanelViews {
                         light = ClientboundLightUpdatePacketData(position, level.lightEngine, null, null),
                     ),
                 )
-                watch.sent.add(ChunkPos.pack(position.x, position.z))
             }, server)
     }
 }

@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.client.panel
 
+import co.voik.agesandtheart.client.ui.ParchmentSurface
+
 /** A rectangle of a panel in page-pixels, measured from the picture's top-left corner. */
 data class PanelRect(val left: Int, val top: Int, val right: Int, val bottom: Int)
 
@@ -63,7 +65,7 @@ object PanelPicture {
     private val FRAMED = PanelRect(-FRAME_WIDTH, -FRAME_WIDTH, WIDTH + FRAME_WIDTH, HEIGHT + FRAME_WIDTH)
 
     /** The page's edge ink, which the frame is drawn in. */
-    private val FRAME = 0xFF8B7B55.toInt()
+    private val FRAME = ParchmentSurface.EDGE
 
     /** Black until it can show the Age. */
     private val BLACK = 0xFF07070C.toInt()

@@ -206,7 +206,7 @@ object ChargedMetal {
         val force = run.force.coerceAtMost(MOST_FORCE)
         if (level.gameTime % bitesEvery(force) != 0L) return
         val hurt = bitesFor(force)
-        val source = biting(level)
+        val source = DamageSource(level.registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(ARC_CURRENT))
         // **A mast adds range; it does not replace the contact.** A rod turns a fence into a turret, so
         // the fence has to go on being a fence — leaning on the metal itself was still a way to be hurt
         // before anybody stood a rod on it and stays one afterwards.
@@ -381,7 +381,6 @@ object ChargedMetal {
     fun bitesFor(force: Double): Float =
         (ANCHOR_BITE * force).coerceIn(LIGHTEST_BITE, HEAVIEST_BITE).toFloat()
 
-    /** How far out a run's field is worth asking about: the metal itself, and its own length past it. */
     /**
      * The column a run throws into: **out of its far end, along its own heading, its own length**.
      *
@@ -442,20 +441,6 @@ object ChargedMetal {
         }
     }
 
-    /**
-     * The source, remembered against the registries it came out of — `AstriteShardBlock`'s reasoning, for
-     * the same reason: a `DamageSource` holds a `Holder` from that set, so a reload replaces it.
-     */
-    private var biting: Pair<Any, DamageSource>? = null
-
-    private fun biting(level: ServerLevel): DamageSource {
-        val registries = level.registryAccess()
-        biting?.let { (from, made) -> if (from === registries) return made }
-        val made = DamageSource(registries.lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(ARC_CURRENT))
-        biting = registries to made
-        return made
-    }
-
     val ARC_CURRENT: ResourceKey<DamageType> =
         ResourceKey.create(Registries.DAMAGE_TYPE, "arc_current".location())
 
@@ -502,24 +487,17 @@ object ChargedMetal {
     private const val HEAVIEST_BITE = 12.0
 
     /** Brilliant electric green — the set's key colour, as violet is the meteors'. */
-    private val ARC_GREEN = DustParticleOptions(0x3C_FF_6A, 1.0f)
+    internal val ARC_GREEN = DustParticleOptions(0x3C_FF_6A, 1.0f)
 
     /** How many sparks a beam shows a turn. Enough to read its length at a glance, no more. */
     private const val SPARKS_ALONG_A_BEAM = 2
     private const val ONE_BLOCK_OUT = 1.0
-    private const val ALL_OF_IT = 1.0
 
     /** How often one block of a live assembly twinkles. Sparse: a fence should not read as a light. */
     private const val A_BLOCK_SPARKS_ONE_TURN_IN = 22
     private const val ONE_SPARK = 1
     private const val ANY_FACE = 0.35
     private const val AT_THE_POINT = 0.08
-
-    /** How a drawn bolt is walked: a particle every half block, and how far it wanders at its middle. */
-    private const val A_STEP = 0.5
-    private const val FEWEST_STEPS = 3
-    private const val MOST_STEPS = 48
-    private const val ARC_WANDER = 0.7
     private const val SPARKS_AT_A_TIME = 2
 
     /** And what a bolt landing on a pile throws, which should be seen from wherever you were sheltering. */

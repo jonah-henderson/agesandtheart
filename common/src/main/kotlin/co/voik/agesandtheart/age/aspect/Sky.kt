@@ -260,13 +260,6 @@ enum class Sky(override val key: String) : AuthoredPreset {
 
     companion object {
         /**
-         * Whether this world goes round anything at all — **the one thing minting cannot say.**
-         *
-         * Every other fact about the suns is written by describing one, and the number of them is the
-         * number of clauses. Nought is the exception: there is no clause that mints no body, so an empty
-         * sky needs a word of its own, and `sunless` is it.
-         */
-        /**
          * Whether the body a clause is about is **not there** — one parameter on the sun and on the moon.
          *
          * It was two, `shining` and `orbiting`, kept apart by a rule that no longer exists and named for

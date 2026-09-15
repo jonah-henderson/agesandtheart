@@ -1,11 +1,7 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.age.aspect.Biomes
-import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.Taggable
-import co.voik.agesandtheart.age.aspect.Features
-import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Surface
@@ -201,7 +197,7 @@ object DerivedWords {
      * but their own name before this, and a preset added without one was reachable only by chance.
      *
      * These *are* named rather than being their own id — `spires` means `spire_islands` — so they carry
-     * [Word.meansExactly] where a block carries [Word.entryOf].
+     * [Word.chooses] where a block carries [Word.entryOf].
      */
     fun designs(): List<Word> = Aspect.entries.flatMap { aspect ->
         aspect.authored.mapNotNull { preset ->

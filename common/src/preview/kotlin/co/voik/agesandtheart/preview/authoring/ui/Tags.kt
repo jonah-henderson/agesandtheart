@@ -75,7 +75,9 @@ class Tags(
      */
     private fun makeATag(searched: String?) {
         val standing = layer.facts().map { it.tag }.toSet()
-        val named = searched?.takeUnless { it in standing } ?: ask(
+        val named = searched?.takeUnless { it in standing } ?: Dialogs.ask(
+            terminal,
+            canvas,
             title = "a new set",
             hint = "what the world is like — `wooded`, `molten`, `ruined` ${Glyph.BULLET} " +
                 "${standing.size} so far",
@@ -123,34 +125,19 @@ class Tags(
                 rules.forEach { add(Line("    $it", Palette.faint)) }
             }
         }
-        if (!confirmed("delete '$tag'?", says)) return false
+        if (!Dialogs.confirmDeletion(terminal, canvas, "delete '$tag'?", says)) return false
         val touched = canvas.whileBusy("Deleting") { TagFile.deleteTag(tag) }
         layer.reread()
-        show(
-            "'$tag' is gone",
-            listOf(Line("changed ${touched.size} files", Palette.settled)) +
-                touched.map { Line("  $it", Palette.faint) },
+        Dialogs.read(
+            terminal,
+            canvas,
+            Reader(
+                "'$tag' is gone",
+                listOf(Line("changed ${touched.size} files", Palette.settled)) +
+                    touched.map { Line("  $it", Palette.faint) },
+            ),
         )
         return true
-    }
-
-    /** A dangerous thing asked about, and answered only by the key that says the word. */
-    private fun confirmed(title: String, says: List<Line>): Boolean {
-        terminal.enterRawMode(MouseTracking.Off).use { scope ->
-            while (true) {
-                canvas.show(
-                    listOf(Line("  $title", Palette.refused), Line.BLANK) +
-                        says.flatMap { (Line("  ") + it).wrapped(canvas.width) } +
-                        listOf(
-                            Frame.rule(canvas.width),
-                            hints("y" to "delete it", "anything else" to "keep it"),
-                        ),
-                )
-                val key = scope.readKey() ?: return false
-                if (key.ctrl && key.key == "c") throw Leaving()
-                return key.key == "y" && !key.ctrl
-            }
-        }
     }
 
     /** One tag, opened straight — what the word editor does when the cursor is on a query row. */
@@ -205,28 +192,21 @@ class Tags(
                     if (member.source == TagLayer.Source.DROPPED) {
                         TagFile.setDropped(member.aspect.page, member.preset, named, dropped = false)
                     } else {
-                        carry(member, named, null)
+                        TagFile.setWeight(member.aspect.page, member.preset, named, null)
                     }
                     rebuild()
                 }
 
                 when {
-                    key.ctrl && (key.key == "q" || key.key == "c") -> return
+                    key.ctrl && key.key == "q" -> return
                     key.key == "Escape" -> if (table.isFiltered) table.clearFilter() else return
                     key.key == "ArrowLeft" -> if (table.column == 0) return else table.across(-1)
                     key.key == "ArrowRight" -> table.across(1)
-                    key.key == "ArrowUp" -> table.move(-1)
-                    key.key == "ArrowDown" -> table.move(1)
-                    key.key == "Home" -> table.home()
-                    key.key == "End" -> table.end()
-                    key.key == "PageUp" -> table.page(-1)
-                    key.key == "PageDown" -> table.page(1)
                     key.key == "Tab" -> { grouped = !grouped; table.withRows(rowsOf()) }
                     key.key == "Enter" -> if (row?.key == ADD) {
                         addAMember(named)
                         rebuild()
                     }
-                    key.key == "Backspace" -> table.backspace()
                     // **`^o` for the original value**, which is the column's own word. Backspace was the
                     // obvious key and is the search's: taking it meant finding a row by typing and then
                     // clearing the search before the row could be reset.
@@ -243,7 +223,7 @@ class Tags(
                     }
                     key.ctrl && key.key == "w" -> showWhatAsks(named)
                     key.ctrl && key.key == "x" -> if (deleted(named)) return
-                    key.key.length == 1 && !key.ctrl && !key.alt -> table.type(key.key)
+                    else -> table.tookTheKey(key)
                 }
             }
         }
@@ -281,7 +261,7 @@ class Tags(
                 note = "${here.size} without it" + if (bare == 0) "" else "  ${Glyph.BULLET}  $bare untagged",
             )
         }) ?: return
-        val where = Aspect.entries.firstOrNull { it.page == aspect } ?: return
+        val where = Aspect.byPage(aspect) ?: return
         // **Marked where nothing has ever described it** — no rule, no line. Those are the members the
         // Art cannot reach by any vague word, and for an open aspect a first tag is also what enrols one
         // in the pool a vague word draws from (world model §8.2).
@@ -318,18 +298,11 @@ class Tags(
                 val key = scope.readKey() ?: return null
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
-                    key.ctrl && (key.key == "q" || key.key == "c") -> return null
+                    key.ctrl && key.key == "q" -> return null
                     key.key == "Escape" -> if (table.isFiltered) table.clearFilter() else return null
                     key.key == "ArrowLeft" -> return null
-                    key.key == "ArrowUp" -> table.move(-1)
-                    key.key == "ArrowDown" -> table.move(1)
-                    key.key == "Home" -> table.home()
-                    key.key == "End" -> table.end()
-                    key.key == "PageUp" -> table.page(-1)
-                    key.key == "PageDown" -> table.page(1)
-                    key.key == "Backspace" -> table.backspace()
                     key.key == "Enter" -> { picked = table.focused?.key; return picked }
-                    key.key.length == 1 && !key.ctrl && !key.alt -> table.type(key.key)
+                    else -> table.tookTheKey(key)
                 }
             }
         }
@@ -350,17 +323,7 @@ class Tags(
             return
         }
         val wanted = member.weight + by * STEP
-        carry(member, tag, wanted.coerceAtMost(1.0).takeIf { wanted >= STEP / 2 })
-    }
-
-    /**
-     * A weight written for this member, or taken off where [weight] is null.
-     *
-     * Taking one off is not deleting the tag: where a rule granted it too, the rule's weight comes back —
-     * which is what the row's last column says, and why `overridden` is its own word.
-     */
-    private fun carry(member: TagLayer.Member, tag: String, weight: Double?) {
-        TagFile.setWeight(member.aspect.page, member.preset, tag, weight)
+        TagFile.setWeight(member.aspect.page, member.preset, tag, wanted.coerceAtMost(1.0).takeIf { wanted >= STEP / 2 })
     }
 
     /** One member taken out of a set a rule put it in, or put back — `drop`, never deletion. */
@@ -388,7 +351,9 @@ class Tags(
     private fun renamed(tag: String): String? {
         val asked = layer.askedBy(tag)
         val members = layer.membersTagged(tag).size
-        val typed = ask(
+        val typed = Dialogs.ask(
+            terminal,
+            canvas,
             title = "rename '$tag'",
             hint = "$members members ${Glyph.BULLET} ${asked.size} words ask for it" +
                 if (asked.isEmpty()) "" else " (${asked.joinToString(" ")})",
@@ -402,30 +367,38 @@ class Tags(
         } ?: return null
         val touched = canvas.whileBusy("Renaming") { TagFile.renameTag(tag, typed) }
         layer.reread()
-        show(
-            "'$tag' is now '$typed'",
-            listOf(Line("changed ${touched.size} files", Palette.settled)) +
-                touched.map { Line("  $it", Palette.faint) },
+        Dialogs.read(
+            terminal,
+            canvas,
+            Reader(
+                "'$tag' is now '$typed'",
+                listOf(Line("changed ${touched.size} files", Palette.settled)) +
+                    touched.map { Line("  $it", Palette.faint) },
+            ),
         )
         return typed
     }
 
     private fun showWhatAsks(tag: String) {
         val asked = layer.askedBy(tag)
-        show(
-            "words that ask for '$tag'",
-            if (asked.isEmpty()) {
-                listOf(
-                    Line("nothing asks for it", Palette.warned),
-                    Line("a tag nothing asks for is a distinction the world makes and the language cannot", Palette.faint),
-                )
-            } else {
-                asked.map { name ->
-                    val word = corpus.vocabulary.word(name)
-                    Line(name.padEnd(24), Palette.value) +
-                        Line(word?.let { "${it.tier.key}  ${it.aspects.joinToString(" ") { on -> on.page }}" }.orEmpty(), Palette.faint)
-                }
-            },
+        Dialogs.read(
+            terminal,
+            canvas,
+            Reader(
+                "words that ask for '$tag'",
+                if (asked.isEmpty()) {
+                    listOf(
+                        Line("nothing asks for it", Palette.warned),
+                        Line("a tag nothing asks for is a distinction the world makes and the language cannot", Palette.faint),
+                    )
+                } else {
+                    asked.map { name ->
+                        val word = corpus.vocabulary.word(name)
+                        Line(name.padEnd(24), Palette.value) +
+                            Line(word?.let { "${it.tier.key}  ${it.aspects.joinToString(" ") { on -> on.page }}" }.orEmpty(), Palette.faint)
+                    }
+                },
+            ),
         )
     }
 
@@ -503,24 +476,16 @@ class Tags(
                 val key = scope.readKey() ?: return null
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
-                    key.ctrl && (key.key == "q" || key.key == "c") -> return null
+                    key.ctrl && key.key == "q" -> return null
                     key.key == "Escape" -> if (table.isFiltered) table.clearFilter() else return null
                     key.key == "ArrowLeft" -> if (table.column == 0) return null else table.across(-1)
                     key.key == "ArrowRight" -> table.across(1)
-                    key.key == "ArrowUp" -> table.move(-1)
-                    key.key == "ArrowDown" -> table.move(1)
-                    key.key == "Home" -> table.home()
-                    key.key == "End" -> table.end()
-                    key.key == "PageUp" -> table.page(-1)
-                    key.key == "PageDown" -> table.page(1)
-                    key.key == "Tab" -> table.sortByTheColumnInHand()
-                    key.key == "Backspace" -> table.backspace()
                     // A search that found nothing is a name already typed, so enter takes it as one.
                     key.key == "Enter" -> return when {
                         table.shown.isEmpty() && couldBeATag(table.filter) -> MAKE
                         else -> table.focused?.key ?: continue
                     }
-                    key.key.length == 1 && !key.ctrl && !key.alt -> table.type(key.key)
+                    else -> table.tookTheKey(key)
                 }
             }
         }
@@ -560,56 +525,6 @@ class Tags(
         )
     }
 
-    /** One line, typed, with a live complaint — the editor's prompt, in a screen that has no editor. */
-    private fun ask(title: String, hint: String, complaint: (String) -> String?): String? {
-        var typed = ""
-        terminal.enterRawMode(MouseTracking.Off).use { scope ->
-            while (true) {
-                val says = complaint(typed)
-                canvas.show(
-                    listOf(
-                        Line("  $title", Palette.heading),
-                        Line("  $hint", Palette.faint),
-                        Line.BLANK,
-                        Line("  ${Glyph.FOCUS} ", Palette.focused) + Line(typed, Palette.value) + Line("_", Palette.faint),
-                        Line.BLANK,
-                        Line("  ${says.orEmpty()}", Palette.refused),
-                        Frame.rule(canvas.width),
-                        hints("enter" to "do it", "escape" to "leave it alone"),
-                    ),
-                )
-                val key = scope.readKey() ?: return null
-                if (key.ctrl && key.key == "c") throw Leaving()
-                when {
-                    key.ctrl && (key.key == "q" || key.key == "c") -> return null
-                    key.key == "Escape" -> return null
-                    key.key == "Enter" -> if (says == null) return typed
-                    key.key == "Backspace" -> typed = typed.dropLast(1)
-                    key.key.length == 1 && !key.ctrl && !key.alt -> typed += key.key
-                }
-            }
-        }
-    }
-
-    private fun show(title: String, lines: List<Line>) {
-        terminal.enterRawMode(MouseTracking.Off).use { scope ->
-            while (true) {
-                canvas.show(
-                    listOf(Line("  $title", Palette.heading), Line.BLANK) +
-                        lines.flatMap { (Line("  ") + it).wrapped(canvas.width) } +
-                        listOf(Frame.rule(canvas.width), hints("←" to "back")),
-                )
-                val key = scope.readKey() ?: return
-                if (key.ctrl && key.key == "c") throw Leaving()
-                if (key.key == "Escape" || key.key == "ArrowLeft" || key.key == "Enter" ||
-                    (key.ctrl && (key.key == "q" || key.key == "c"))
-                ) {
-                    return
-                }
-            }
-        }
-    }
-
     private companion object {
         const val TAG_WIDTH = 18
         const val COUNT_WIDTH = 10
@@ -621,7 +536,6 @@ class Tags(
         const val SOURCE_WIDTH = 10
         const val WEIGHT = "weight"
 
-        /** What one press moves a weight — the corpus is written in tenths and reads as a scale of ten. */
         /** The row that adds one, told from a member's `aspect/preset` key by having no slash in it. */
         const val ADD = "+"
 
@@ -631,8 +545,8 @@ class Tags(
         /** What a new entry lands at: an exception is written because something is very one thing. */
         const val WHOLLY = 1.0
 
+        /** What one press moves a weight — the corpus is written in tenths and reads as a scale of ten. */
         const val STEP = 0.1
-
 
         val LEGAL_TAG = Regex("[a-z0-9_]+")
     }

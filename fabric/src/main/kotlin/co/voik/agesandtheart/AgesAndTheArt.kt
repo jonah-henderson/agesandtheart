@@ -42,7 +42,6 @@ import co.voik.agesandtheart.platform.FabricInkFluids
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.fabric.api.loot.v3.LootTableEvents
-// `object` is a Kotlin keyword, and Fabric's package is spelled with one.
 import net.fabricmc.fabric.api.`object`.builder.v1.world.poi.PoiHelper
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking

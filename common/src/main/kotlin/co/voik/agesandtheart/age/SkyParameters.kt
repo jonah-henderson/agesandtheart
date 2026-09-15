@@ -210,14 +210,6 @@ object SkyParameters {
     }
 
     /**
-     * The curtains a preview can hang overhead — **every night, so there is something to look at**.
-     *
-     * The Art's own aurorae come on a share of nights and only where the ground is cold, which is right in
-     * play and useless for tuning one: an instrument you have to wait three nights and walk to a glacier for
-     * is an instrument nobody uses. So every one of these is `frequency = 1`, and the ground rule is what a
-     * walk of the *Art's* words is for.
-     */
-    /**
      * Bows to stand a walk under.
      *
      * **Every one comes on every day and asks nothing of the weather**, which is the whole reason they
@@ -282,6 +274,14 @@ object SkyParameters {
         }
     }
 
+    /**
+     * The curtains a preview can hang overhead — **every night, so there is something to look at**.
+     *
+     * The Art's own aurorae come on a share of nights and only where the ground is cold, which is right in
+     * play and useless for tuning one: an instrument you have to wait three nights and walk to a glacier for
+     * is an instrument nobody uses. So every one of these is `frequency = 1`, and the ground rule is what a
+     * walk of the *Art's* words is for.
+     */
     private enum class Curtain(val key: String) {
         NONE("none") {
             override fun aurora(): Aurora? = null

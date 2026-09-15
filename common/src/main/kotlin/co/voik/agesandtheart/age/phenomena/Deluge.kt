@@ -67,9 +67,6 @@ object Deluge {
     fun shortnessAt(ticks: Long): Int =
         (FALLS_BY - (ticks / TICKS_PER_BLOCK)).coerceIn(0L, FALLS_BY.toLong()).toInt()
 
-    /** Whether the sea here has finished climbing — which is what "the phenomenon has resolved" means. */
-    fun hasResolved(ticks: Long): Boolean = shortnessAt(ticks) == 0
-
     /**
      * Tell [level]'s generator where its sea stands.
      *
@@ -113,8 +110,9 @@ object Deluge {
      * heals visibly rather than snapping, and the passes are frequent enough that it is healed before you
      * have walked to it.
      */
-    fun raise(level: ServerLevel, standing: Int) {
+    fun raise(level: ServerLevel) {
         val sea = level.seaBlock() ?: return
+        val standing = level.seaSurfaceY() ?: return
         val inView = inViewNearestFirst(level)
         if (inView.isEmpty()) return
         // **Where a pass starts is derived from the clock rather than remembered**, so nothing has to hold a
@@ -239,7 +237,7 @@ object Deluge {
     }
 
     /** Where this Age's sea currently stands, or null where it has none. */
-    fun ServerLevel.seaSurfaceY(): Int? =
+    private fun ServerLevel.seaSurfaceY(): Int? =
         (chunkSource.generator as? AgeChunkGenerator)?.seaFill?.surfaceY
 
     /** An Age with nothing drowning it stands at what it was written with. */

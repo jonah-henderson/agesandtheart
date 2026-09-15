@@ -1,11 +1,11 @@
 package co.voik.agesandtheart.age.word.grammar
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.read
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Polarity
-import co.voik.agesandtheart.age.word.Vocabulary
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import java.nio.file.Path
@@ -21,18 +21,6 @@ import kotlin.io.path.walk
  */
 @Tags(NEEDS_REGISTRIES)
 class GrammarCheck : FunSpec({
-
-    val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
-            check(it.problems.isEmpty()) { "the corpus would not load: ${it.problems}" }
-        }
-    }
-
-    /**
-     * A book, read. **Null is the fixture's mistake, not the parser's**: every row here opens with `age`,
-     * and one that does not is not a book at all (§4.3.1) rather than a book that reads badly.
-     */
-    fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
 
     /**
      * **Nothing anywhere may import `org.antlr`.**
@@ -290,7 +278,7 @@ class GrammarCheck : FunSpec({
     /**
      * §4.3's first failure channel: what the Art cannot read is **dropped and reported**, costing vagueness
      * rather than instability. Note what is *not* asserted — that the rest of the book survives. Recovery
-     * is ANTLR's own strategy, so pinning it would describe the parser rather than the design.
+     * is [ArtReading]'s own strategy, so pinning it would describe the parser rather than the design.
      */
     test("an unreadable page becomes vagueness, not an error") {
         val read = read(listOf("floating", "zzzznotaword", "basalt", "age"))

@@ -166,29 +166,25 @@ class Workshop(
                     key.key == "Escape" -> if (drafts.isFiltered) drafts.clearFilter() else return
                     key.key == "ArrowLeft" -> if (drafts.column == 0) return else drafts.across(-1)
                     key.key == "ArrowRight" -> drafts.across(1)
-                    key.key == "ArrowUp" -> drafts.move(-1)
-                    key.key == "ArrowDown" -> drafts.move(1)
-                    key.key == "Home" -> drafts.home()
-                    key.key == "End" -> drafts.end()
-                    key.key == "PageUp" -> drafts.page(-1)
-                    key.key == "PageDown" -> drafts.page(1)
-                    key.key == "Tab" -> drafts.sortByTheColumnInHand()
-                    key.key == "Backspace" -> drafts.backspace()
                     key.key == "a" && drafts.filter.isEmpty() -> {
                         write(null)
                         drafts.withRows(rowsOf())
                     }
                     key.key == "d" && drafts.filter.isEmpty() && standing != null -> {
-                        if (sure("Delete '${standing.name}'?", "the book, not any Age already written from it")) {
-                            AgeDraft.delete(standing.name)
-                        }
+                        val deleting = Dialogs.confirmDeletion(
+                            terminal,
+                            canvas,
+                            "Delete '${standing.name}'?",
+                            listOf(Line("the book, not any Age already written from it", Palette.faint)),
+                        )
+                        if (deleting) AgeDraft.delete(standing.name)
                         drafts.withRows(rowsOf())
                     }
                     key.key == "Enter" -> {
                         standing?.let(::write)
                         drafts.withRows(rowsOf())
                     }
-                    key.key.length == 1 && !key.ctrl && !key.alt -> drafts.type(key.key)
+                    else -> drafts.tookTheKey(key)
                 }
             }
         }
@@ -319,8 +315,6 @@ class Workshop(
         closers = suggesting.closersAfter(before)
         rebuildTheTable("")
     }
-
-    /** What the table was built for, so a resized terminal rebuilds it rather than keeping old widths. */
 
     /** The narrowest the list can be drawn and still say something in every column. */
     private val listPaneLeast: Int get() = COLUMNS_SPENT + MINIMUM_SAYS
@@ -526,13 +520,10 @@ class Workshop(
     ): List<Line> {
         if (claims.isEmpty()) return emptyList()
         val gutter = " ".repeat(label.length + 2)
-        val room = (width - INDENT - gutter.length).coerceAtLeast(MINIMUM_SAYS)
         return buildList {
             for ((at, claim) in claims.withIndex()) {
-                for ((line, said) in wrapped(claim.said, room).withIndex()) {
-                    val head = if (at == 0 && line == 0) "$label  " else gutter
-                    add(Line("    ") + Line(head, tone) + Line(said, Palette.faint))
-                }
+                val head = if (at == 0) "$label  " else gutter
+                addAll((Line("    ") + Line(head, tone) + Line(claim.said, Palette.faint)).wrapped(width, "    $gutter"))
                 for (member in claim.drawnFrom) {
                     add(
                         Line("    ") + Line(gutter, tone) + Line("${Glyph.BAR} ", Palette.rule) +
@@ -541,23 +532,6 @@ class Workshop(
                 }
             }
         }
-    }
-
-    /** [said] broken on spaces to fit [width], because a long query is one line of nothing legible. */
-    private fun wrapped(said: String, width: Int): List<String> {
-        if (said.length <= width) return listOf(said)
-        val lines = mutableListOf<String>()
-        var standing = StringBuilder()
-        for (word in said.split(' ')) {
-            if (standing.isNotEmpty() && standing.length + 1 + word.length > width) {
-                lines += standing.toString()
-                standing = StringBuilder()
-            }
-            if (standing.isNotEmpty()) standing.append(' ')
-            standing.append(word)
-        }
-        if (standing.isNotEmpty()) lines += standing.toString()
-        return lines
     }
 
     /**
@@ -690,10 +664,16 @@ class Workshop(
      * shown while it is being typed.
      */
     private fun askForTheName() {
-        val said = ask(
+        val said = Dialogs.ask(
+            terminal,
+            canvas,
             "What is this Age called?",
             "anything you like — it is written down as an id",
-            name,
+            standing = name,
+            aside = { typedName ->
+                val willBe = AgeDraft.asAName(typedName)
+                if (willBe == typedName) "" else "written down as  $willBe"
+            },
         ) { typedName ->
             if (AgeDraft.asAName(typedName).isEmpty()) "it needs some letters or digits in it" else null
         } ?: return
@@ -717,7 +697,13 @@ class Workshop(
         ) ?: return
         val wanted = Seeding.valueOf(chosen)
         if (wanted == Seeding.CHOSEN) {
-            val said = ask("What seed?", "the same book at the same seed makes the same Age", seed.toString()) {
+            val said = Dialogs.ask(
+                terminal,
+                canvas,
+                "What seed?",
+                "the same book at the same seed makes the same Age",
+                standing = seed.toString(),
+            ) {
                 if (it.toLongOrNull() == null) "a whole number" else null
             } ?: return
             seed = said.toLong()
@@ -835,42 +821,6 @@ class Workshop(
 
     // -- dialogues -------------------------------------------------------------------------------------
 
-    private fun ask(title: String, hint: String, standing: String, complaint: (String) -> String?): String? {
-        var said = standing
-        terminal.enterRawMode(MouseTracking.Off).use { scope ->
-            while (true) {
-                val wrong = complaint(said)
-                val willBe = AgeDraft.asAName(said)
-                canvas.show(
-                    listOf(
-                        Line("  $title", Palette.heading),
-                        Line("  $hint", Palette.faint),
-                        Line.BLANK,
-                        Line("  ${Glyph.FOCUS} ", Palette.focused) + Line(said, Palette.value) +
-                            Line(CURSOR, Palette.faint),
-                        Line.BLANK,
-                        Line(
-                            if (wrong != null || willBe == said) "" else "  written down as  $willBe",
-                            Palette.faint,
-                        ),
-                        Line("  ${wrong.orEmpty()}", Palette.refused),
-                        Frame.rule(canvas.width),
-                        hints("enter" to "accept", "escape" to "leave it alone"),
-                    ),
-                )
-                val key = scope.readKey() ?: return null
-                if (key.ctrl && key.key == "c") throw Leaving()
-                when {
-                    key.ctrl && key.key == "q" -> return null
-                    key.key == "Escape" -> return null
-                    key.key == "Enter" -> if (wrong == null) return said
-                    key.key == "Backspace" -> said = said.dropLast(1)
-                    key.key.length == 1 && !key.ctrl && !key.alt -> said += key.key
-                }
-            }
-        }
-    }
-
     /** One of a few, picked - small enough that it needs no filtering and no scrolling. */
     private fun choose(title: String, options: List<Triple<String, String, String>>): String? {
         var at = 0
@@ -898,37 +848,6 @@ class Workshop(
                     key.key == "ArrowUp" -> at = (at - 1 + options.size) % options.size
                     key.key == "ArrowDown" -> at = (at + 1) % options.size
                     key.key == "Enter" || key.key == "ArrowRight" -> return options[at].first
-                }
-            }
-        }
-    }
-
-    /** Yes or no, defaulting to no - for the one thing on this screen that cannot be undone. */
-    private fun sure(title: String, about: String): Boolean {
-        var yes = false
-        terminal.enterRawMode(MouseTracking.Off).use { scope ->
-            while (true) {
-                canvas.show(
-                    listOf(
-                        Line("  ${Glyph.WARN} $title", Palette.refused),
-                        Line("  $about", Palette.faint),
-                        Line.BLANK,
-                        Line("  ${if (yes) Glyph.FOCUS else " "} ", Palette.focused) +
-                            Line("delete it", if (yes) Palette.refused else Palette.faint),
-                        Line("  ${if (yes) " " else Glyph.FOCUS} ", Palette.focused) +
-                            Line("keep it", if (yes) Palette.faint else Palette.value),
-                        Line.BLANK,
-                        Frame.rule(canvas.width),
-                        hints("↑↓" to "move", "enter" to "do it", "escape" to "keep it"),
-                    ),
-                )
-                val key = scope.readKey() ?: return false
-                if (key.ctrl && key.key == "c") throw Leaving()
-                when {
-                    key.ctrl && key.key == "q" -> return false
-                    key.key == "Escape" || key.key == "ArrowLeft" -> return false
-                    key.key == "ArrowUp" || key.key == "ArrowDown" -> yes = !yes
-                    key.key == "Enter" -> return yes
                 }
             }
         }

@@ -26,7 +26,7 @@ private val AIR: BlockState by lazy { Blocks.AIR.defaultBlockState() }
  * is raised, this rock is taken, these fluids stand in what is left — and the two paths honour it
  * differently: a landform of ours folds it into its own field tree, where it is analytic and free, and a
  * vanilla-rock Age has it written into the chunk after vanilla's own fill. Both read the same object, so
- * they cannot come to disagree about what a volcano is. That is the rule `VolcanoField.layerOf` already
+ * they cannot come to disagree about what a volcano is. That is the rule `VolcanoField.over` already
  * records for its own two layers, one level up.
  *
  * **Written at the noise stage, not as a feature**, which is what makes the vanilla path worth having: a
@@ -139,23 +139,8 @@ data class Overlay(
         return if (hollows == null) raised else Subtract(raised, hollows)
     }
 
-    /** Everything both overlays ask for. The order is kept, so what is raised first is cut first. */
-    operator fun plus(other: Overlay): Overlay = Overlay(
-        raises = bothOf(raises, other.raises),
-        hollows = bothOf(hollows, other.hollows),
-        pours = pours + other.pours,
-    )
-
-    private fun bothOf(one: TerrainField?, two: TerrainField?): TerrainField? = when {
-        one == null -> two
-        two == null -> one
-        else -> Union(listOf(one, two))
-    }
-
     companion object {
         val NONE = Overlay()
-
-        fun all(parts: List<Overlay>): Overlay = parts.fold(NONE, Overlay::plus)
 
         /** Takes the recursive field codec directly, as `SeaFill` does — it owns no shape of its own. */
         val CODEC: MapCodec<Overlay> = RecordCodecBuilder.mapCodec { instance ->

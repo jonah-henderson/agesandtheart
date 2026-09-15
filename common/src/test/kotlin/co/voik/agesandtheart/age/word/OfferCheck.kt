@@ -1,13 +1,13 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.read
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Sky
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -25,14 +25,6 @@ import io.kotest.core.spec.style.FunSpec
  */
 @Tags(NEEDS_REGISTRIES)
 class OfferCheck : FunSpec({
-
-    val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
-            check(it.problems.isEmpty()) { "vocabulary problems: ${it.problems}" }
-        }
-    }
-
-    fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
 
     /**
      * A book, resolved. **The nucleus leads** — every clause closes on the page it is about, so `age` ends

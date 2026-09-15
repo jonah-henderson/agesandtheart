@@ -25,7 +25,7 @@
 #
 #   pbare 2 · pmaterial 5 · pdivided 8 · pvoid 10 · pvanilla 11 · pspire 0
 #
-# `pspire` is the only true zero left, being a bespoke Tier-B generator on its own biome. So "5 of 6 identical" is
+# `pspire` is the only true zero left, its one biome being empty so nothing decorates it. So "5 of 6 identical" is
 # gone as a pass condition: read each Age against its own control number and look for a figure outside that band.
 #
 # Each Age below covers a different path.

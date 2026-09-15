@@ -55,23 +55,9 @@ data class Caved(
     override val samplesPerColumn =
         base.samplesPerColumn + (toY - fromY + 1).coerceAtLeast(0) * NOISES_PER_VOXEL
 
-    private class ColumnCache {
-        val keys = LongArray(SLOTS) { EMPTY_KEY }
-        val spans = arrayOfNulls<Spans>(SLOTS)
-    }
+    private val memo = ColumnMemo(::hollow)
 
-    private val remembered = ThreadLocal.withInitial { ColumnCache() }
-
-    override fun columnSpans(worldX: Int, worldZ: Int): Spans {
-        val cache = remembered.get()
-        val key = (worldX.toLong() shl Int.SIZE_BITS) or (worldZ.toLong() and UNSIGNED_INT)
-        val slot = ((worldX and SLOT_MASK) shl SLOT_BITS) or (worldZ and SLOT_MASK)
-        if (cache.keys[slot] == key) cache.spans[slot]?.let { return it }
-        val derived = hollow(worldX, worldZ)
-        cache.keys[slot] = key
-        cache.spans[slot] = derived
-        return derived
-    }
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans = memo.spansAt(worldX, worldZ)
 
     /**
      * The rock with its caves taken out — **walked only where there is rock to walk**, which is the whole of
@@ -404,13 +390,6 @@ data class Caved(
         private const val PILLAR_RARENESS_TO = -2.0
         private const val PILLAR_THICKNESS_FROM = 0.0
         private const val PILLAR_THICKNESS_TO = 1.1
-
-        /** A 32×32 block square: a chunk, and the ring its carvers and probes reach into. */
-        private const val SLOT_BITS = 5
-        private const val SLOTS = 1 shl (SLOT_BITS * 2)
-        private const val SLOT_MASK = (1 shl SLOT_BITS) - 1
-        private const val UNSIGNED_INT = 0xFFFF_FFFFL
-        private const val EMPTY_KEY = Long.MIN_VALUE
 
         /** A unit reading moved onto [from]..[to] — vanilla's `mapFromUnitTo`. */
         private fun mapped(unit: Double, from: Double, to: Double): Double =

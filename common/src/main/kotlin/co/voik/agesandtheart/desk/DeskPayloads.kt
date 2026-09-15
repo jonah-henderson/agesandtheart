@@ -9,13 +9,6 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.Identifier
 
 /**
- * Everything the open desk screen needs, sent whenever it changes.
- *
- * The screen is driven from this rather than from the menu's slots, because most of what it shows —
- * an unbounded archive, three tanks, a set of capabilities — has no slot to live in. Word *search* is
- * absent on purpose: the client already holds the learned set, so filtering never leaves the machine.
- */
-/**
  * One page disagreeing with another, as the work surface needs it.
  *
  * **A pair, never a loser** (design §7.3). Which of two tied words is displaced is a function of the seed,
@@ -27,6 +20,13 @@ import net.minecraft.resources.Identifier
  */
 data class Quarrel(val word: Identifier, val against: Identifier, val register: String)
 
+/**
+ * Everything the open desk screen needs, sent whenever it changes.
+ *
+ * The screen is driven from this rather than from the menu's slots, because most of what it shows —
+ * an unbounded archive, three tanks, a set of capabilities — has no slot to live in. Word *search* is
+ * absent on purpose: the client already holds the learned set, so filtering never leaves the machine.
+ */
 data class DeskSyncPayload(
     val archive: Map<Identifier, Int>,
     val ink: Map<InkTier, Long>,
@@ -132,13 +132,6 @@ data class DeskSyncPayload(
 }
 
 /**
- * What one word would cost on each of the three papers.
- *
- * Priced by the server because the client has no vocabulary: the required tier comes from datapack tags
- * on the referent and the amount from the resolver's cost number, and neither is on this side. One small
- * round trip when a word is selected is cheaper than syncing a price table for a corpus of eleven hundred.
- */
-/**
  * Why the desk refused.
  *
  * A screen covers the action bar, so a refusal sent there is invisible exactly when the player is looking
@@ -160,6 +153,13 @@ data class DeskNoticePayload(val reason: String) : CustomPacketPayload {
     }
 }
 
+/**
+ * What one word would cost on each of the three papers.
+ *
+ * Priced by the server because the client has no vocabulary: the required tier comes from datapack tags
+ * on the referent and the amount from the resolver's cost number, and neither is on this side. One small
+ * round trip when a word is selected is cheaper than syncing a price table for a corpus of eleven hundred.
+ */
 data class DeskPricePayload(
     val word: Identifier,
     /** Per paper tier: which ink it demands, and how much. */

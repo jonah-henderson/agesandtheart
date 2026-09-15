@@ -143,8 +143,5 @@ data class Span(val least: Double, val most: Double, val bend: Double = EVEN) {
             if (least > most) return null
             return Span(least, most, bend)
         }
-
-        /** Whether [option] is a well-formed span, which is what a ranged parameter accepts. */
-        fun describes(option: String): Boolean = read(option) != null
     }
 }

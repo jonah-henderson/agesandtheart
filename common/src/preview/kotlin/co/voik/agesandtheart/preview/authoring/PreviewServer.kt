@@ -18,23 +18,16 @@ import java.util.concurrent.TimeUnit
  * makes it safe to write a hundred half-finished Ages into: nothing accumulates, and there is no save
  * anybody could come to care about. The overworld is generated **flat** for the same reason - it is a
  * lobby you link out of, and generating a real one is most of the startup.
- *
- * It can also [attach] to a server already running, in which case it owns nothing: no world is removed,
- * the process is left alone, and only the Age it wrote is taken back out.
  */
 class PreviewServer private constructor(
     private val rcon: Rcon,
     /** The port a person types into Minecraft. */
     val port: Int,
-    /** Null where we attached to somebody else's server, which we may not stop. */
-    private val process: Process?,
-    private val properties: File?,
-    private val originalProperties: String?,
-    private val world: File?,
+    private val process: Process,
+    private val properties: File,
+    private val originalProperties: String,
+    private val world: File,
 ) : AutoCloseable {
-
-    /** Ages this session wrote, so leaving takes them out of a server we did not make. */
-    private val written = mutableSetOf<String>()
 
     /**
      * The server killed if the tool is, rather than left running with a world nobody will clear up.
@@ -43,24 +36,15 @@ class PreviewServer private constructor(
      * shutdown hook that waits a minute for a clean save is a shutdown hook somebody kills again.
      */
     private val stopIfWeAreKilled = Thread {
-        process?.destroyForcibly()?.waitFor()
-        properties?.writeText(originalProperties.orEmpty())
-        world?.let { if (isOursToRemove(it)) it.deleteRecursively() }
+        process.destroyForcibly().waitFor()
+        properties.writeText(originalProperties)
+        if (isOursToRemove(world)) world.deleteRecursively()
     }
 
     init {
         Runtime.getRuntime().addShutdownHook(stopIfWeAreKilled)
     }
 
-    val isOurs: Boolean get() = process != null
-
-    /**
-     * [draft] written into the server, replacing whatever stood under that name.
-     *
-     * Deleted first rather than written under a new name each time: an Age cannot be written twice, and a
-     * workshop whose whole point is trying the same book again with one page changed would otherwise leave
-     * a trail of `foo-1`, `foo-2` for somebody to sort out.
-     */
     /**
      * The corpus re-read, on a server that is already running.
      *
@@ -70,11 +54,16 @@ class PreviewServer private constructor(
      */
     fun rereadTheCorpus(): String = rcon.run("reload")
 
+    /**
+     * [draft] written into the server, replacing whatever stood under that name.
+     *
+     * Deleted first rather than written under a new name each time: an Age cannot be written twice, and a
+     * workshop whose whole point is trying the same book again with one page changed would otherwise leave
+     * a trail of `foo-1`, `foo-2` for somebody to sort out.
+     */
     fun write(draft: AgeDraft): String {
         rcon.run("age delete ${draft.name}")
-        val said = rcon.run("age write ${draft.name} ${draft.seed} ${draft.sentence}")
-        written += draft.name
-        return said
+        return rcon.run("age write ${draft.name} ${draft.seed} ${draft.sentence}")
     }
 
     /** Who is logged in, read off vanilla's own `list`. */
@@ -103,27 +92,20 @@ class PreviewServer private constructor(
     fun run(command: String): String = rcon.run(command)
 
     /**
-     * Stops what we started and leaves alone what we did not.
+     * Stops the server, puts `server.properties` back, and removes the world.
      *
-     * The world is removed **only** when this session made it, and only when it is still where we put it,
-     * still carries the name we generated, and is a real directory rather than a link. The deletion comes
-     * after the process has exited, because a running server holds its region files open and would write
-     * them straight back out.
+     * The world is removed **only** when it is still where we put it, still carries the name we generated,
+     * and is a real directory rather than a link. The deletion comes after the process has exited, because
+     * a running server holds its region files open and would write them straight back out.
      */
     override fun close() {
         runCatching { Runtime.getRuntime().removeShutdownHook(stopIfWeAreKilled) }
-        if (process == null) {
-            // Somebody else's server: take back the Ages we wrote and nothing else.
-            written.forEach { runCatching { rcon.run("age delete $it") } }
-            rcon.close()
-            return
-        }
         runCatching { rcon.run("stop") }
         rcon.close()
         if (!process.waitFor(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) process.destroy()
         if (!process.waitFor(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) process.destroyForcibly()
-        properties?.writeText(originalProperties.orEmpty())
-        world?.let(::discard)
+        properties.writeText(originalProperties)
+        discard(world)
     }
 
     companion object {
@@ -150,54 +132,34 @@ class PreviewServer private constructor(
          * The settings are the check harness's plus what a person needs to walk in: no authentication,
          * because a development client is not signed in against a local server; creative and flight,
          * because previewing an Age is looking at it; and a flat overworld, because it is a lobby.
-         *
-         * **A port of its own rather than 25565.** It used to prefer the usual one so that "localhost"
-         * was the whole address, which stopped being worth anything once the client is launched pointed
-         * straight at it — and cost a collision with any other Minecraft the machine was running,
-         * the check harness included.
          */
         fun boot(say: (String) -> Unit): PreviewServer {
             val launch = LaunchSpec.read()
-            val loader = System.getProperty(LaunchSpec.LOADER_PROPERTY, "fabric")
-            val properties = launch.workingDirectory.resolve("server.properties")
-            check(properties.isFile) {
-                "no ${properties.path} yet - run ./gradlew :$loader:runServer once to accept the EULA and " +
-                    "let the server write its defaults"
-            }
-            val original = properties.readText()
             val world = "$WORKSHOP_WORLD_PREFIX${System.nanoTime().toString(RADIX)}"
             val rconPort = ServerLaunch.freePort()
             val gamePort = freeOrUsualPort()
-            properties.writeText(
-                ServerLaunch.overlaid(
-                    original,
-                    ServerLaunch.settingsFor(world, rconPort, RCON_PASSWORD) + mapOf(
-                        "server-port" to gamePort.toString(),
-                        "online-mode" to "false",
-                        "gamemode" to "creative",
-                        "allow-flight" to "true",
-                        "spawn-protection" to "0",
-                        "level-type" to "minecraft:flat",
-                        "motd" to "the age workshop",
-                    ),
+            say("starting a ${LaunchSpec.loader()} server on :$gamePort - a minute or so the first time")
+            val started = ServerLaunch.start(
+                launch,
+                ServerLaunch.settingsFor(world, rconPort, RCON_PASSWORD) + mapOf(
+                    "server-port" to gamePort.toString(),
+                    "online-mode" to "false",
+                    "gamemode" to "creative",
+                    "allow-flight" to "true",
+                    "spawn-protection" to "0",
+                    "level-type" to "minecraft:flat",
+                    "motd" to "the age workshop",
                 ),
+                rconPort,
+                RCON_PASSWORD,
+                STARTUP_SECONDS,
             )
-            say("starting a $loader server on :$gamePort - a minute or so the first time")
-            val process = runCatching { launch.start() }
-                .getOrElse { failure -> properties.writeText(original); throw failure }
-            val rcon = runCatching {
-                ServerLaunch.awaitRcon(process, rconPort, STARTUP_SECONDS, RCON_PASSWORD)
-            }.getOrElse { failure ->
-                process.destroyForcibly()
-                properties.writeText(original)
-                throw failure
-            }
             return PreviewServer(
-                rcon = rcon,
+                rcon = started.rcon,
                 port = gamePort,
-                process = process,
-                properties = properties,
-                originalProperties = original,
+                process = started.process,
+                properties = started.properties,
+                originalProperties = started.originalProperties,
                 world = launch.workingDirectory.resolve(world),
             )
         }
@@ -215,7 +177,7 @@ class PreviewServer private constructor(
          * templates and all, and a second answer to that question is a second thing to keep in step.
          */
         fun stageTheCorpus(say: (String) -> Unit): Boolean {
-            val loader = System.getProperty(LaunchSpec.LOADER_PROPERTY, "fabric")
+            val loader = LaunchSpec.loader()
             say("staging the corpus for $loader")
             val ran = runCatching {
                 ProcessBuilder("./gradlew", "--console=plain", "-q", ":$loader:processResources")
@@ -234,20 +196,6 @@ class PreviewServer private constructor(
                     say("could not stage the corpus (${failure.message}) — the game keeps the one it has")
                     false
                 },
-            )
-        }
-
-        /** A server somebody already has running, spelled `host:port:password` as `--attach` spells it. */
-        fun attach(where: String): PreviewServer {
-            val parts = where.split(':')
-            require(parts.size == 3) { "attaching wants host:port:password, not '$where'" }
-            return PreviewServer(
-                rcon = Rcon(parts[0], parts[1].toInt(), parts[2]),
-                port = USUAL_PORT,
-                process = null,
-                properties = null,
-                originalProperties = null,
-                world = null,
             )
         }
 

@@ -4,13 +4,10 @@ import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterial
 import co.voik.agesandtheart.age.reward.Survey
 import co.voik.agesandtheart.age.reward.Yield
-import co.voik.agesandtheart.age.word.Resolver
-import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
+import co.voik.agesandtheart.age.word.Resolution
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
-import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.MenuProvider
 import net.minecraft.world.SimpleMenuProvider
@@ -78,7 +75,7 @@ class GeologistsToolsMenu(
      * A sentence that would hold nothing and a world that holds nothing say different things, and so does
      * an instrument with no desk and no Age to report on.
      */
-    val source: Int get() = survey.get(SOURCE)
+    val source: ReadingSource get() = ReadingSource.ofOrdinal(survey.get(SOURCE))
 
     /** No slots at all, so nothing can be moved into or out of this. */
     override fun quickMoveStack(player: Player, index: Int): ItemStack = ItemStack.EMPTY
@@ -91,43 +88,19 @@ class GeologistsToolsMenu(
         const val MATERIALS = 1
         const val SOURCE = 2
         const val READINGS = 3
-
-        /** Pages laid out at a desk in the room, which is what the instrument is really for. */
-        const val A_SENTENCE = 0
-
-        /** A desk in the room with nothing on it, or nothing on it that reads as a book yet. */
-        const val AN_IDLE_DESK = 1
-
-        /** No desk in the room, and the world it stands in was never written. */
-        const val A_PLAIN_WORLD = 2
-
-        /** No desk in the room, and the world it stands in is an Age — so it reports on that. */
-        const val AN_AGE = 3
     }
 }
 
 /**
- * What the tools currently say, worked out on the server and pushed down the data slots.
+ * What the tools currently say — see [InstrumentReading] for when it is worked out and what from.
  *
- * **It always reads something**, which is the rule the seismograph set: with a sentence laid out at a desk
- * in the room it surveys that; with no desk it surveys **the Age it is standing in**, so a set of tools
- * carried into a world tells you what that world holds. There is no state in which the screen is a
- * complaint about where it was put.
- *
- * **Read rather than remembered**, because there is no event that says "somebody laid a page at a desk five
- * blocks away" — asking is both simpler than invalidating and always right. But not on every ask: vanilla
- * polls each data slot on every broadcast, and one survey is a room scan, a parse and a resolve against the
- * corpus. The fields are the exception to no-mutable-state and a narrow one, belonging to one open screen.
+ * With no desk in the room they survey **the Age they are standing in**, so a set of tools carried into a
+ * world tells you what that world holds.
  */
-private class LiveSurvey(private val player: ServerPlayer?, pos: BlockPos) : ContainerData {
+private class LiveSurvey(player: ServerPlayer?, pos: BlockPos) : InstrumentReading<Survey?>(player, pos) {
 
-    private var settledAt = NOT_YET_SETTLED
     private var deposit = Yield.NONE.ordinal
     private var materials = NOTHING_FOUND
-    private var source = GeologistsToolsMenu.A_PLAIN_WORLD
-
-    /** Which desk it is reading, and the remembering of it — see [NearbyDesk]. */
-    private val desk = NearbyDesk(pos)
 
     override fun getCount(): Int = GeologistsToolsMenu.READINGS
 
@@ -136,36 +109,14 @@ private class LiveSurvey(private val player: ServerPlayer?, pos: BlockPos) : Con
         return when (index) {
             GeologistsToolsMenu.DEPOSIT -> deposit
             GeologistsToolsMenu.MATERIALS -> materials
-            else -> source
+            else -> source.ordinal
         }
     }
 
-    /** Nothing to set: this is an instrument, and a client that tried would be told otherwise next tick. */
-    override fun set(index: Int, value: Int) = Unit
+    override fun ofTheSentence(writer: ServerPlayer, resolved: Resolution): Survey? =
+        Survey.of(writer.level().server, resolved.composition, resolved.instability, writer.writingSeed)
 
-    private fun settle() {
-        val writer = player ?: return
-        val now = writer.level().gameTime
-        if (now - settledAt < SETTLES_EVERY) return
-        settledAt = now
-        val laid = desk.laidOutBy(writer)
-        val said = laid?.let { surveyOf(writer, it) }
-        when {
-            said != null -> report(said, GeologistsToolsMenu.A_SENTENCE)
-            laid != null -> report(null, GeologistsToolsMenu.AN_IDLE_DESK)
-            else -> report(worldsOwn(writer), whereItStands(writer))
-        }
-    }
-
-    /** What a desk in the room has laid out, surveyed — or null where it holds nothing that reads as a book. */
-    private fun surveyOf(writer: ServerPlayer, laid: List<Identifier>): Survey? {
-        if (laid.isEmpty()) return null
-        val server = writer.level().server
-        val vocabulary = Vocabulary.of(server)
-        val said = Grammar.read(vocabulary, laid.map(Identifier::getPath)) ?: return null
-        val resolved = Resolver.resolve(vocabulary, said, writer.writingSeed)
-        return Survey.of(server, resolved.composition, resolved.instability, writer.writingSeed)
-    }
+    override fun ofAnIdleDesk(writer: ServerPlayer): Survey? = null
 
     /**
      * What the Age the tools are standing in holds.
@@ -174,7 +125,7 @@ private class LiveSurvey(private val player: ServerPlayer?, pos: BlockPos) : Con
      * rather than a second opinion about it. A world that was never written has no recipe and so no survey,
      * which is exactly what a plain world should report.
      */
-    private fun worldsOwn(writer: ServerPlayer): Survey? {
+    override fun ofTheWorld(writer: ServerPlayer): Survey? {
         val level = writer.level()
         val here = level.dimension().identifier()
         val saved = AgeSavedData.get(level.server)
@@ -184,27 +135,13 @@ private class LiveSurvey(private val player: ServerPlayer?, pos: BlockPos) : Con
         return Survey.of(level.server, composition, recipe.instability, recipe.seed)
     }
 
-    /** Whether the world it stands in was written, which is the difference between a world and an Age. */
-    private fun whereItStands(writer: ServerPlayer): Int {
-        val level = writer.level()
-        val here = level.dimension().identifier()
-        return if (here in AgeSavedData.get(level.server).ages) GeologistsToolsMenu.AN_AGE
-        else GeologistsToolsMenu.A_PLAIN_WORLD
-    }
-
-    private fun report(survey: Survey?, source: Int) {
-        deposit = (survey?.deposit ?: Yield.NONE).ordinal
-        materials = survey?.earlyMaterials.orEmpty()
+    override fun record(reading: Survey?) {
+        deposit = (reading?.deposit ?: Yield.NONE).ordinal
+        materials = reading?.earlyMaterials.orEmpty()
             .fold(NOTHING_FOUND) { mask, it -> mask or (1 shl it.ordinal) }
-        this.source = source
     }
 
     private companion object {
-        /** How often the instrument settles, in ticks. Five a second is far more than a readout needs. */
-        const val SETTLES_EVERY = 4L
-
-        /** Before the first reading. Any negative would do; this one cannot overflow a subtraction. */
-        const val NOT_YET_SETTLED = -1L
         const val NOTHING_FOUND = 0
     }
 }

@@ -39,10 +39,6 @@ enum class Aspect(
      *
      * A preset and a referent were never two things: one is a closed catalogue and the other an open one,
      * which [open] answers on its own, so both are [Holds.CATALOGUE].
-     *
-     * Structures is a weighted set that is still *shaped* as a preset pair, `none` against `vanilla`, whose
-     * readiness prior is what makes habitation opt-in. It loses the pair when it is converted, not before —
-     * declaring it early would skip the draw and build in every Age.
      */
     val holds: Holds = Holds.NOTHING,
     /**
@@ -229,10 +225,6 @@ enum class Aspect(
 
     /**
      * What *happens* here: storms, meteors, a rising sea (design §3.1, §5.2).
-     *
-     * **Scaffolding — it names nothing and does nothing yet**, deliberately. The shape is here so the
-     * aspect is addressable and so every exhaustive `when` already answers for it; the processes themselves
-     * are §5's, and the design says plainly this is the aspect most likely to change shape when they land.
      *
      * The one aspect a sentence fills *and* consequences arrive at: a meteor storm you wrote is a hazard
      * you prepared for, and one you did not write is the Age telling you something is wrong (§7.7).
@@ -453,13 +445,16 @@ enum class Aspect(
 
     override fun getSerializedName(): String = key
 
-    private companion object {
+    companion object {
+        /** The aspect whose page is [page] — `landmass`, `rock` — or null where there is none. */
+        fun byPage(page: String): Aspect? = Aspect.entries.firstOrNull { it.page == page }
+
         /**
          * A well-formed id belonging to no registry in particular, for asking an aspect what *kind* of
          * thing it holds without having a thing in hand. An open aspect parses any id into its own preset,
          * which is exactly the property being used here; a closed one has never heard of it and says so.
          */
-        const val ANY_REGISTRY_ENTRY = "minecraft:any"
+        private const val ANY_REGISTRY_ENTRY = "minecraft:any"
     }
 }
 
@@ -551,8 +546,6 @@ data class Parameter(
     fun perBiome(): Parameter = copy(confinable = true)
 
     val default: String get() = options.first()
-
-    constructor(name: String, vararg options: String) : this(name, options.toList())
 
     /**
      * Whether this parameter would understand [option]. An open one takes any well-formed id, including
@@ -653,7 +646,6 @@ data class Parameter(
     }
 }
 
-/** A preset that fills an [aspect], possibly offering a few [parameters] to steer it. */
 /**
  * Something an aspect can hold — **and therefore something the tag layer can describe.**
  *
@@ -685,8 +677,7 @@ interface Taggable : StringRepresentable {
 
     /**
      * Whether this preset would actually *do* anything with [parameter], as opposed to recognising the
-     * name. Every dressing declares `stone` and `biomes` so naming one is not reported as a typo, but
-     * `overworld` cannot wear a material and `bare_rock` has no biome table to enrich.
+     * name.
      *
      * The resolver reads this to prefer a preset that can honour what the sentence asked for. Where
      * nothing in the aspect can, the word is charged rather than dropped (§3.3).
@@ -698,10 +689,7 @@ interface Taggable : StringRepresentable {
      * so "does not offer it" and "offers it but ignores it" answer alike — telling those apart is
      * [Options.unknownTo]'s job.
      */
-    fun honoursParameterNamed(name: String): Boolean {
-        val declared = ownParameters.firstOrNull { it.name == name } ?: return false
-        return honours(declared)
-    }
+    fun honoursParameterNamed(name: String): Boolean = ownParameters.any { it.name == name }
 
     override fun getSerializedName(): String
 }

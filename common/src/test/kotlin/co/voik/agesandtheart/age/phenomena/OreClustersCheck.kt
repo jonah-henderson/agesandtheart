@@ -132,44 +132,6 @@ class OreClustersCheck : FunSpec({
         }
     }
 
-    /**
-     * **What a body actually looks like**, sliced and printed — the instrument the shape is tuned with.
-     *
-     * A cluster's silhouette is the one thing about it that matters and the one thing no assertion can
-     * judge, and reading it off a screenshot means a walk per turn of a dial. Layer by layer in ASCII is
-     * enough to see whether a cube has stopped being a cube.
-     */
-    test("a body sliced, for reading") {
-        for (shape in listOf(0, 17)) {
-            val cells = OreClusters.of(shape, TALLEST_TIER).map { it.at }.toSet()
-            val side = OreClusters.sideOf(TALLEST_TIER)
-            val from = -(side / 2)
-            val across = from..<(from + side)
-            println("  shape $shape at tier $TALLEST_TIER — ${cells.size} cells, layers bottom to top:")
-            for (y in across) {
-                val rows = across.map { z -> across.joinToString("") { x -> if (BlockPos(x, y, z) in cells) "#" else "·" } }
-                println("    y=$y  " + rows.joinToString("   "))
-            }
-        }
-    }
-
-    /**
-     * **What the generator actually produces**, printed rather than asserted — the sizes and spans a
-     * renderer, a collider and a bounding box are all sized from, where a wrong one is invisible in a
-     * screenshot and obvious in a number.
-     */
-    test("the shapes it makes, for reading") {
-        for (tier in 0..<DriftingOre.MOST_TIERS) {
-            val cells = OreClusters.of(0, tier).size
-            val distinct = (0..<OreClusters.SHAPES).map { OreClusters.of(it, tier).map { c -> c.at }.toSet() }.toSet()
-            val drawn = OreClusters.facesOf(0, tier).size
-            println(
-                "  tier $tier: ${OreClusters.sideOf(tier)}-cube, $cells cells of which $drawn are drawn, " +
-                    "span ${OreClusters.spanOf(tier)}, ${distinct.size} distinct shapes",
-            )
-        }
-    }
-
     /** Bounded, because a renderer caches by shape and unbounded shapes would rebuild every mesh a frame. */
     test("the shapes are bounded and what is drawn is few enough to draw") {
         val largest = OreClusters.facesOf(0, DriftingOre.MOST_TIERS - 1).size
@@ -185,9 +147,6 @@ class OreClustersCheck : FunSpec({
          * a number to watch in a bench rather than a limit anybody chose.
          */
         const val MOST_CELLS_WORTH_DRAWING = 140
-
-        /** The one worth looking at: the smaller tiers have too few cells to have a silhouette. */
-        const val TALLEST_TIER = 2
 
         /** The middle of a cell, which is what a shape is asked about. */
         const val HALF = 0.5

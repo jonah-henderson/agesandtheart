@@ -98,10 +98,7 @@ class FormationOnServerCheck : FunSpec({
         fun saidSince() = server.saidSoFar().drop(before)
         // Long enough for the forceloaded chunks to have been decorated, which is when the pool is drawn
         // from; the assertion below would pass on an empty log, so the log is checked for being one.
-        repeat(DRAW_ATTEMPTS) {
-            Thread.sleep(DECORATION_WAIT_MILLIS)
-            if (saidSince().isNotEmpty()) return@repeat
-        }
+        Thread.sleep(DRAW_ATTEMPTS * DECORATION_WAIT_MILLIS)
         check(saidSince().isNotEmpty()) { "the server said nothing at all, so this is watching nothing" }
 
         val complained = saidSince().lineSequence().filter { "made of nothing in particular" in it }.toList()

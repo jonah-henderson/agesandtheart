@@ -10,7 +10,6 @@ import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.WaterTable
 import com.mojang.serialization.Codec
-import com.mojang.datafixers.util.Either
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
@@ -230,9 +229,6 @@ class AgeChunkGenerator(
      * flood to the same line as the one you are standing in, and no sampler could promise that.
      */
     val seaFill: SeaFill get() = standingSea
-
-    /** What the Age was written with, which is where the sea is going. */
-    val writtenSeaFill: SeaFill get() = writtenSea
 
     /**
      * Stand the sea [blocks] under what was written.
@@ -1234,27 +1230,6 @@ class AgeChunkGenerator(
         /** A coherent Age, which tears nowhere. */
         const val NO_WOUNDS = 0.0
 
-        /** So wounds are decorrelated from everything else the world seed drives. */
-        private const val WOUND_SALT = 0x0D_15_EA5EL
-
-        private const val SECTION = 16
-
-        /**
-         * How often a wound opens above the ground rather than under it.
-         *
-         * **Three in five**, so the common case is the one worth having: a tear hanging in the open where
-         * somebody walks. The rest wait in the rock and the caves to be mined into.
-         */
-        private const val ABOVE_GROUND = 0.6
-
-        /**
-         * How high above the ground one may hang.
-         *
-         * Small on purpose: eye level and a little over. A wound floating dozens of blocks above a field
-         * reads as something somebody placed, where one at head height reads as the world having failed.
-         */
-        private const val OVERHEAD = 6
-
         val CODEC: MapCodec<AgeChunkGenerator> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 BiomeSource.CODEC.fieldOf("biome_source").forGetter { it.biomes },
@@ -1263,24 +1238,14 @@ class AgeChunkGenerator(
                 // Optional so field Ages serialised before palettes existed still load.
                 SurfaceRules.RuleSource.CODEC.optionalFieldOf("surface_rule", SurfacingStrategy.SUPPRESSED)
                     .forGetter { it.surfaceRule },
-                // A list now that carving is set-valued, and still readable as the single map it
-                // was: one carver set is exactly what an Age with one carving has.
-                Codec.either(CARVER_SETS.listOf(), CARVER_SETS)
-                    .xmap(
-                        { either -> either.map({ many -> many }, ::listOf) },
-                        { many -> if (many.size == 1) Either.right(many.first()) else Either.left(many) },
-                    )
+                // One carver set per carving, since carving is set-valued.
+                CARVER_SETS.listOf()
                     .optionalFieldOf("carvers", listOf(HolderSet.direct())).forGetter { it.carvers },
                 RegionMap.MAP_CODEC.codec().optionalFieldOf("underground", RegionMap.whole())
                     .forGetter { it.underground },
                 // Absent means "a flat table at the sea's own level", derived at construction. A list, since
-                // hydrology divides with the carving it belongs to, and still readable as the single table
-                // it was — one table is exactly what an Age with one carving has.
-                Codec.either(WaterTable.CODEC.codec().listOf(), WaterTable.CODEC.codec())
-                    .xmap(
-                        { either -> either.map({ many -> many }, ::listOf) },
-                        { many -> if (many.size == 1) Either.right(many.first()) else Either.left(many) },
-                    )
+                // hydrology divides with the carving it belongs to.
+                WaterTable.CODEC.codec().listOf()
                     .optionalFieldOf("water_table", emptyList()).forGetter { it.waterTables },
                 // `StructureSet.CODEC` rather than a homogeneous list: this writes a key for one of
                 // vanilla's and the whole set inline for one of ours, which a registry list cannot do.
@@ -1417,7 +1382,6 @@ class AgeChunkGenerator(
         private const val HOLLOW = -1.0
 
         // What the field lays down before the palette repaints it.
-        private val SOLID: BlockState = Blocks.STONE.defaultBlockState()
         private val AIR: BlockState = Blocks.AIR.defaultBlockState()
     }
 }

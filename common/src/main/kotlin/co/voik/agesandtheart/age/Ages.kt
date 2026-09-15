@@ -3,8 +3,9 @@ package co.voik.agesandtheart.age
 import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.book.panel.PanelWarming
-import co.voik.agesandtheart.platform.Services
+import co.voik.ephemeris.RuntimeLevelConfig
 import co.voik.ephemeris.RuntimeLevelEvents
+import co.voik.ephemeris.RuntimeLevels
 import co.voik.ephemeris.sky.LevelAppearance
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.Registries
@@ -21,16 +22,14 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
 
 /**
- * Loader-agnostic lifecycle for Ages. Dimension creation is delegated to the platform
- * [co.voik.agesandtheart.platform.services.AgeBackend]; this layer owns the bookkeeping and the
+ * Loader-agnostic lifecycle for Ages. Opening and discarding a level is Ephemeris' [RuntimeLevels]; this
+ * layer owns the bookkeeping, which recipe and dimension type a level is opened with, and the
  * persistence-replay policy.
  *
- * No backend auto-restores dimensions on restart, so Age ids are tracked in [AgeSavedData] and
- * re-opened via [reloadSaved] from each loader's "server started" event.
+ * Ephemeris does not restore levels on restart, so Age ids are tracked in [AgeSavedData] and re-opened via
+ * [reloadSaved] from each loader's "server started" event.
  */
 object Ages {
-    fun isSupported(): Boolean = Services.AGE_BACKEND.isSupported
-
     /**
      * Settle every Age's air as it opens, however it came to be open.
      *
@@ -76,26 +75,36 @@ object Ages {
         level.setDragonFight(fight)
     }
 
-    /** Creates a brand-new Age and records it for persistence. Null if it exists or is unsupported. */
+    /** Creates a brand-new Age and records it for persistence. Null if a level of that id is already loaded. */
     fun create(server: MinecraftServer, id: Identifier, recipe: AgeRecipe): ServerLevel? {
-        val backend = Services.AGE_BACKEND
-        if (!backend.isSupported) return null
         val dimensionKey = ResourceKey.create(Registries.DIMENSION, id)
         if (server.getLevel(dimensionKey) != null) return null // already loaded
-        val saved = AgeSavedData.get(server)
-        // Record the recipe *before* opening: the backend builds the world from what is recorded.
-        saved.add(id, recipe)
-        val level = backend.openAge(server, id)
-        if (level == null) {
-            saved.remove(id)
-            return null
-        }
+        // Record the recipe *before* opening: [open] builds the world from what is recorded.
+        AgeSavedData.get(server).add(id, recipe)
+        val level = open(server, id)
         Constants.LOG.info("Created Age {} [{}]", id, recipe)
         return level
     }
 
-    /** Opens an existing Age (get-or-open). Used for travel and restart-replay. */
-    fun open(server: MinecraftServer, id: Identifier): ServerLevel? = Services.AGE_BACKEND.openAge(server, id)
+    /**
+     * Opens the Age [id] from its recorded recipe, or returns it if it is open already. Opening an existing
+     * Age reuses its saved chunks. Used for travel and restart-replay; must be called on the server thread.
+     */
+    fun open(server: MinecraftServer, id: Identifier): ServerLevel {
+        val recipe = AgeSavedData.get(server).recipe(id)
+        return RuntimeLevels.open(
+            server,
+            id,
+            RuntimeLevelConfig(
+                dimensionType = server.registryAccess()
+                    .lookupOrThrow(Registries.DIMENSION_TYPE)
+                    .getOrThrow(ResourceKey.create(Registries.DIMENSION_TYPE, AgeGeneration.dimensionType(recipe))),
+                generator = AgeGeneration.chunkGenerator(server, recipe),
+                seed = recipe.seed,
+                customSpawners = AgeGeneration.spawnersFor(server, recipe),
+            ),
+        )
+    }
 
     /**
      * The Age's own layer over the environment vanilla built for the level (§3.1's Atmosphere).
@@ -110,7 +119,6 @@ object Ages {
         Atmosphere.settle(level, recipe.seed, composition, recipe.template)
     }
 
-    /** Mints a fresh, distinct Age id (`agesandtheart:age_<n>`) from the persistent counter. */
     /**
      * An id for a new Age, taken from what its writer [called] it where that can be made into one.
      *
@@ -142,7 +150,7 @@ object Ages {
             .trim('_')
 
     /**
-     * The Age [id], written from [recipe] if it does not exist yet. Null if unsupported or it failed.
+     * The Age [id], written from [recipe] if it does not exist yet. Null if it could not be written.
      * An Age that already exists keeps the recipe it was written from — [recipe] says what to write,
      * not what to become.
      */
@@ -381,7 +389,7 @@ object Ages {
         // remembered as ready would have the next reader wait out its generation with nothing said.
         arrivals.remove(id)
         PanelWarming.forget(id)
-        if (!Services.AGE_BACKEND.deleteAge(server, id)) return false
+        if (!RuntimeLevels.delete(server, id)) return false
         saved.remove(id)
         LevelAppearance.forget(ResourceKey.create(Registries.DIMENSION, id))
         Constants.LOG.info("Deleted Age {}", id)
@@ -409,11 +417,9 @@ object Ages {
 
     /** Re-opens every persisted Age. Call once per server start (from a loader lifecycle hook). */
     fun reloadSaved(server: MinecraftServer) {
-        val backend = Services.AGE_BACKEND
-        if (!backend.isSupported) return
         val ages = AgeSavedData.get(server).ages
         if (ages.isEmpty()) return
         Constants.LOG.info("Re-opening {} saved Age(s)", ages.size)
-        for (id in ages) backend.openAge(server, id)
+        for (id in ages) open(server, id)
     }
 }

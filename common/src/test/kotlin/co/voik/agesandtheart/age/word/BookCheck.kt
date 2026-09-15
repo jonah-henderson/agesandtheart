@@ -1,9 +1,9 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.read
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.word.generation.GenerationGrammar
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Production
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -33,18 +33,6 @@ import kotlin.random.Random
  */
 @Tags(NEEDS_REGISTRIES)
 class BookCheck : FunSpec({
-
-    val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
-            check(it.problems.isEmpty()) { "the corpus would not load: ${it.problems}" }
-        }
-    }
-
-    /**
-     * A book, read. **Null is the fixture's mistake, not the parser's**: a book without the `age` page is
-     * not a book at all (§4.3.1), and everything read here is given one.
-     */
-    fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
 
     val bookGrammar: GenerationGrammar by lazy {
         vocabulary.generation.grammar(BOOK_GRAMMAR) ?: error("the pack ships no '$BOOK_GRAMMAR' grammar")

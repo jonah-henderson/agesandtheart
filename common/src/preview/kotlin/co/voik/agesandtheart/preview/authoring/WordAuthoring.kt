@@ -104,12 +104,6 @@ private fun open(terminal: Terminal, canvas: Canvas, corpus: Corpus, name: Strin
 }
 
 /**
- * A full-screen run, with the terminal given back however it ends.
- *
- * The alternate screen and the hidden cursor are the two things that outlive a crash if nobody puts them
- * back, and a terminal left with no cursor is a terminal somebody has to reset by hand.
- */
-/**
  * The full-screen half of the tool, with the terminal given back however it ends.
  *
  * [Leaving] is `^C`, thrown from whichever screen saw it so it unwinds through all of them at once. By

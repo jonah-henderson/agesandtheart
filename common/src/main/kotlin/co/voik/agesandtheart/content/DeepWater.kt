@@ -552,7 +552,8 @@ object DeepWater {
             ProtectiveSuit.wearOut(body)
             return
         }
-        body.hurtServer(level, crushed(level), crushing(body))
+        val crushed = DamageSource(level.registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(PRESSURE))
+        body.hurtServer(level, crushed, crushing(body))
     }
 
     /**
@@ -573,12 +574,6 @@ object DeepWater {
      * before the place registered. Two gives ten seconds, and twenty with a turtle helmet: still lethal
      * quickly, but long enough for a peek around, which is what the descent-under-a-budget method wants to
      * be about (design §7.1.2).
-     *
-     * **OPEN: it may want to be a status effect instead.** Damage with no telegraph is a health bar
-     * draining for a reason a player has to infer; a `MobEffect` would put an icon and a timer on the HUD,
-     * say *this place is doing something to you* in vanilla's own vocabulary, and give the deretheni suit
-     * something visible to be preventing. It would also carry out of the water with you if we wanted a
-     * few seconds of grace, which is a design question rather than an implementation one.
      */
     private const val CRUSHES_BY = 2.0f
 
@@ -606,20 +601,4 @@ object DeepWater {
     /** What the abyss does not crush — see `tags/entity_type/immune_to_pressure.json`. */
     val IMMUNE_TO_PRESSURE: TagKey<EntityType<*>> =
         TagKey.create(Registries.ENTITY_TYPE, "immune_to_pressure".location())
-
-    /**
-     * The source, remembered against the registries it came out of.
-     *
-     * `ChargedMetal.biting`'s reasoning and `AstriteShardBlock`'s before it: a `DamageSource` holds a
-     * `Holder` from that set, so a reload replaces it and a cached one would point at the old table.
-     */
-    private var crushingBy: Pair<Any, DamageSource>? = null
-
-    private fun crushed(level: ServerLevel): DamageSource {
-        val registries = level.registryAccess()
-        crushingBy?.let { (from, made) -> if (from === registries) return made }
-        val made = DamageSource(registries.lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(PRESSURE))
-        crushingBy = registries to made
-        return made
-    }
 }

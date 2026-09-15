@@ -258,7 +258,6 @@ class DangerCheck : FunSpec({
     }
 }) {
     companion object {
-        private const val SEED = 42L
         private const val MAGMA = "minecraft:magma_block"
         private const val ORDINARY_STONE = "minecraft:stone"
         private const val GHASTS = "minecraft:ghast"
@@ -347,7 +346,7 @@ class DangerCheck : FunSpec({
             oneTerritory().withOptionsFor(Aspect.FEATURES, 0, Features.PLACES.name, placed.toList())
 
         private fun groundScore(composition: AgeComposition): Danger =
-            Danger.of(composition, Instability.NONE, SEED, true, GROUND_ONLY, PRICES)
+            Danger.of(composition, Instability.NONE, true, GROUND_ONLY, PRICES)
 
         /** One landform covering the whole Age, made of nothing in particular. */
         private fun oneTerritory(): AgeComposition = AgeComposition(terrains = listOf(Terrain.HILLS))
@@ -370,7 +369,7 @@ class DangerCheck : FunSpec({
             composition: AgeComposition,
             authored: Boolean = true,
             index: Int = NOTHING_WRONG,
-        ): Danger = Danger.of(composition, instabilityAt(index), SEED, authored, TABLE, PRICES)
+        ): Danger = Danger.of(composition, instabilityAt(index), authored, TABLE, PRICES)
 
         /**
          * An instability worth exactly [index], as one flaw.

@@ -31,11 +31,6 @@ import net.minecraft.world.level.levelgen.structure.StructureSet as VanillaStruc
  */
 object Structures {
 
-    /**
-     * The sets vanilla may consider here, steered by whatever the sentence said. Three steps, ordered so
-     * the outcome is independent of the writer's word order (§3.5): `only` (or [NOTHING]) drops the base,
-     * everything named joins at its density, then `except` strikes out.
-     */
     /** Every Age has these, whatever its sentence said — see [escapeHatch]. */
     private val STAR_FISSURE: Identifier = "star_fissure".location()
 
@@ -60,6 +55,11 @@ object Structures {
     private const val FISSURES_NO_CLOSER = 20
     private const val FISSURE_SALT = 90210
 
+    /**
+     * The sets vanilla may consider here, steered by whatever the sentence said. Three steps, ordered so
+     * the outcome is independent of the writer's word order (§3.5): `only` (or [NOTHING]) drops the base,
+     * everything named joins at its density, then `except` strikes out.
+     */
     fun structureSets(
         server: MinecraftServer,
         options: Options,
@@ -129,10 +129,6 @@ object Structures {
         return listOf(Holder.direct(VanillaStructureSet(tear, FISSURE_PLACEMENT)))
     }
 
-    /** Whether an Age asked for nothing to be built at all — see [NOTHING]. */
-    fun buildsNothing(options: Options): Boolean =
-        Skew.of(options.claimsOn(BUILT)).wanted.any { it.value == NOTHING }
-
     /**
      * What is built here — populative, with `only`/`except` to narrow and a rung to say how many
      * (§3.2, [Claim]). Its values are structure *sets*. Named `built` to avoid `structures.structures`.
@@ -182,19 +178,4 @@ object Structures {
         BuiltinStructureSets.TRAIL_RUINS,
         BuiltinStructureSets.TRIAL_CHAMBERS,
     )
-
-    /**
-     * Our own halves of `minecraft:nether_complexes`, so a fortress can be asked for without a bastion.
-     *
-     * Their spacings are arithmetic, and the working lives here because JSON cannot hold it. Vanilla puts
-     * both on one grid of `spacing 27, separation 4`, picking by weight fortress 2 : bastion 3. Two
-     * independent grids would place both at every site, so each is spaced to carry only its old share —
-     * fortress `27/sqrt(0.4)` ≈ 43 sep 6, bastion `27/sqrt(0.6)` ≈ 35 sep 5. The salts must differ from
-     * each other *and* from `nether_complexes`, or the grids coincide.
-     */
-    val FORTRESSES: ResourceKey<VanillaStructureSet> = ours("fortresses")
-    val BASTIONS: ResourceKey<VanillaStructureSet> = ours("bastions")
-
-    private fun ours(path: String): ResourceKey<VanillaStructureSet> =
-        ResourceKey.create(Registries.STRUCTURE_SET, path.location())
 }

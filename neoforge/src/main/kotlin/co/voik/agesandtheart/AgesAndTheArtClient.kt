@@ -9,7 +9,6 @@ import co.voik.agesandtheart.client.ArcBoltRenderer
 import co.voik.agesandtheart.client.DriftingOreRenderer
 import co.voik.agesandtheart.client.MoltenLumpRenderer
 import net.minecraft.client.renderer.entity.NoopRenderer
-import co.voik.agesandtheart.client.ClientDeskNetwork
 import co.voik.agesandtheart.client.StarFissureRenderer
 import co.voik.agesandtheart.client.LecternBookRenderer
 import net.minecraft.world.level.block.entity.BlockEntityType
@@ -43,7 +42,6 @@ import net.minecraft.client.resources.model.sprite.Material
 import net.minecraft.resources.Identifier
 import net.neoforged.neoforge.client.event.RegisterFluidModelsEvent
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
-import net.neoforged.neoforge.client.network.ClientPacketDistributor
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.common.Mod
@@ -53,13 +51,6 @@ import net.neoforged.neoforge.common.NeoForge
 /**
  * NeoForge's client entrypoint: a second `@Mod` with the same id and `dist = [Dist.CLIENT]`, so nothing
  * here loads on a dedicated server.
- *
- * **The sky needs no registration on either loader now.** It is drawn by the Mixin on
- * `SkyRenderer.renderSunMoonAndStars`, which lives in `common` and is listed in both loaders' Mixin
- * configs — so what used to be this loader's startup-only `DimensionSpecialEffects` problem has simply
- * stopped existing.
- *
- * Both loaders open Ages now, so nothing here is Fabric's alone.
  */
 @Mod(value = Constants.MOD_ID, dist = [Dist.CLIENT])
 class AgesAndTheArtClient(eventBus: IEventBus) {
@@ -74,7 +65,6 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         eventBus.addListener(::onRegisterBlockTints)
         eventBus.addListener(::onRegisterFluidModels)
         eventBus.addListener(::onRegisterRenderers)
-        ClientDeskNetwork.sender = { payload -> ClientPacketDistributor.sendToServer(payload) }
         // Which of the two winds is playing has to be re-asked as a player walks in and out of shelter, so
         // it rides the client tick rather than the payload.
         NeoForge.EVENT_BUS.addListener(::onClientTick)
@@ -128,10 +118,6 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         AgeTints.register { sources, block -> event.register(sources, block) }
     }
 
-    /**
-     * What ink looks like in the world: water's textures, tinted per ink. Without it a pool draws as the
-     * missing texture, since 26.1 renders fluids from a model rather than from a handler.
-     */
     private fun onRegisterRenderers(event: EntityRenderersEvent.RegisterRenderers) {
         event.registerEntityRenderer(AgeContent.BOOK_ENTITY, ::BookEntityRenderer)
         event.registerEntityRenderer(AgeContent.SAND_COLUMN, ::SandColumnRenderer)
@@ -147,13 +133,17 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         event.registerEntityRenderer(AgeContent.ASTRITE_GOLEM) { AstriteGolemRenderer(it) }
         event.registerEntityRenderer(AgeContent.METEOR_STORM) { NoopRenderer(it) }
         event.registerEntityRenderer(AgeContent.CAVE_IN) { NoopRenderer(it) }
-        // The wound's flicker and the fissure's shaft, both block entities drawn by shader rather than by
-        // a baked model — the same event on this loader, where Fabric has a registry of its own.
+        // The fissure's shaft, a block entity drawn by shader rather than by a baked model — the same event
+        // on this loader, where Fabric has a registry of its own.
         event.registerBlockEntityRenderer(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() }
         // In vanilla's place, for the books of ours a lectern can hold; vanilla's own it still draws as before.
         event.registerBlockEntityRenderer(BlockEntityType.LECTERN) { LecternBookRenderer(it) }
     }
 
+    /**
+     * What ink looks like in the world: water's textures, tinted per ink. Without it a pool draws as the
+     * missing texture, since 26.1 renders fluids from a model rather than from a handler.
+     */
     private fun onRegisterFluidModels(event: RegisterFluidModelsEvent) {
         for ((tier, identity) in AgeFluids.INKS) {
             val model = FluidModel.Unbaked(

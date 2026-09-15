@@ -46,7 +46,6 @@ dependencies {
     implementation(libs.ephemeris.neoforge)
 
     implementation(libs.kff)
-    // No runtime-dimension backend on NeoForge yet — see NeoForgeAgeBackend (unsupported stub).
 }
 /**
  * Let the console be driven from a pipe.

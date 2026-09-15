@@ -10,10 +10,4 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
  */
 fun interface Decoration {
     fun draw(graphics: GuiGraphicsExtractor, at: Rect)
-
-    /** This decoration, then [next] drawn over it. */
-    fun then(next: Decoration): Decoration = Decoration { graphics, at ->
-        this.draw(graphics, at)
-        next.draw(graphics, at)
-    }
 }

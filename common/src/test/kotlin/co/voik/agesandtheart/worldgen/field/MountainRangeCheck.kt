@@ -329,13 +329,5 @@ class MountainRangeCheck : FunSpec({
         /** How rare. Measured well under one in a hundred; five leaves room without letting a flood pass. */
         const val A_FEW_PER_CENT = 5
         const val PER_CENT = 100
-
-        /**
-         * How deep the deepest water may stand over its own floor. Two things reach for it: a trunk river,
-         * at `waterDepth * (1 + tributaries * incisionPerOrder)` — under ten here — and a **tarn**, which
-         * stands a cirque's overdeepening deeper again because the bowl was scooped below its own outlet.
-         * Twenty covers both with room, and is nowhere near a sheet of water standing up a hillside.
-         */
-        const val THE_DEEPEST_WATER = 20
     }
 }

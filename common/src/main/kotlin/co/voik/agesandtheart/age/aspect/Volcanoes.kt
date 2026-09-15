@@ -35,7 +35,4 @@ object Volcanoes {
      * [co.voik.agesandtheart.worldgen.VolcanoField.cellFor].
      */
     fun amountIn(composition: AgeComposition): Double? = Features.claimNaming(composition, ID)?.density
-
-    /** Whether this composition asks for volcanoes at all — [amountIn] is what the terrain wants. */
-    fun askedFor(composition: AgeComposition): Boolean = amountIn(composition) != null
 }

@@ -39,7 +39,6 @@
   "book.agesandtheart.linked": "Linked to %s",
   "book.agesandtheart.no_destination": "That place cannot be reached",
   "book.agesandtheart.same_world": "A linking book leads between worlds, not within one",
-  "book.agesandtheart.unsupported": "Ages aren't supported on this loader yet",
   "commands.agesandtheart.weather.not_an_age": "This world has no weather of its own — /weather is the one you want.",
   "commands.agesandtheart.weather.set": "The Age's sky turns to %s.",
   "config.agesandtheart.aurora_curtains": "Curtains an aurora may hang (0 to turn them off)",

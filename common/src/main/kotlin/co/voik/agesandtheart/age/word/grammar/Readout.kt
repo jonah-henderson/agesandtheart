@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.age.word.grammar
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.word.Word
@@ -14,22 +13,6 @@ import net.minecraft.network.chat.ComponentSerialization
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
 
-/**
- * The parse, said back as a sentence (design §4.3.1).
- *
- * The grammar has no punctuation and no bracket — a writer lays out a flat row of pages and the sections
- * exist only in the parser — so the reading is invisible until something shows it. This inserts the
- * particles a writer was spared for being inferable from position (`of`, `over`, `with`) and the
- * punctuation the sections never had, which is the neatest symmetry in the language: the particle dropped
- * from the input because position implied it is exactly the particle that best *shows* the position.
- *
- * Two rules govern every choice here, and both are the discipline the parser already keeps:
- *
- * - **It prettifies; it never launders.** The prose renders what parsed. Pages that reached no clause are
- *   **not** in it, so [Sentence.unreadable] and [Sentence.impossible] must be shown beside it — struck,
- *   marked, left untranslated — or the reading claims a book worked when it did not.
- * - **It shows what you said, never what it will make** (§7.5). This renders the sentence, not the Age.
- */
 /**
  * One column of a reading: **a word as the Art writes it, and what it says**.
  *
@@ -62,6 +45,22 @@ data class Said(val written: String, val read: Component) {
     }
 }
 
+/**
+ * The parse, said back as a sentence (design §4.3.1).
+ *
+ * The grammar has no punctuation and no bracket — a writer lays out a flat row of pages and the sections
+ * exist only in the parser — so the reading is invisible until something shows it. This inserts the
+ * particles a writer was spared for being inferable from position (`of`, `over`, `with`) and the
+ * punctuation the sections never had, which is the neatest symmetry in the language: the particle dropped
+ * from the input because position implied it is exactly the particle that best *shows* the position.
+ *
+ * Two rules govern every choice here, and both are the discipline the parser already keeps:
+ *
+ * - **It prettifies; it never launders.** The prose renders what parsed. Pages that reached no clause are
+ *   **not** in it, so [Sentence.unreadable] and [Sentence.impossible] must be shown beside it — struck,
+ *   marked, left untranslated — or the reading claims a book worked when it did not.
+ * - **It shows what you said, never what it will make** (§7.5). This renders the sentence, not the Age.
+ */
 object Readout {
     /**
      * [sentence] as prose, in the words a writer says — what `/age write` prints. Empty where nothing
@@ -112,7 +111,7 @@ object Readout {
      * set from these columns and not from the row of pages, the glyph for the page every book must open with
      * was drawn nowhere in the game — so a player learning the language by reading found books never met it.
      *
-     * Read off [Sentence.structural], which `ArtGrammar` fills from the writer's pages alone: a repaired
+     * Read off [Sentence.structural], which the parser fills from the writer's pages alone: a repaired
      * book's nucleus is the Art's, and claiming one that was never written is the laundering §4.3.1 forbids.
      */
     private fun headOf(sentence: Sentence): MutableList<Said> =
@@ -176,8 +175,7 @@ object Readout {
      */
     private fun clauseOf(phrase: Phrase, opensTheSentence: Boolean): List<Said> {
         val said = mutableListOf<Said>()
-        // The clause's own ground, said before the claims it governs — which is the order the writer laid
-        // the pages in, and the whole reason `in` sits at the head rather than after a term.
+        // The clause's own ground, said at the head, before the claims it governs.
         phrase.confinedTo?.let { biome ->
             said += particleFor(CONFINED)
             said += Said(biome.path, WordNames.readable(biome))
@@ -215,11 +213,8 @@ object Readout {
     }
 
     /**
-     * One term, carrying the rung the writer quantified it with and the biome they confined it to.
-     *
-     * Both are pages the writer laid, so both are said back: a reading that dropped the `in` would show a
-     * claim about the whole Age where the book says one about a corner of it, which is the attachment this
-     * whole readout exists to make visible (§4.3.1).
+     * One term, carrying the rung the writer quantified it with. The biome a clause is confined to is said
+     * once, by [clauseOf].
      */
     private fun termOf(term: Constraint): List<Said> {
         val quantified = term.quantifier?.takeUnless { Rung.isOrdinary(term.density) }

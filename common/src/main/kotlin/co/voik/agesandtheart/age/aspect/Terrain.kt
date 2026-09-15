@@ -66,7 +66,7 @@ enum class Terrain(
     /** Rock riddled by ridged 3D noise: this Age's caves *are* its shape, not something cut from it. */
     CAVERNS("caverns", waterline = 63, build = { _, salt -> CavernField.world(salt) }),
 
-    /** Billowy noise weathered into mesa-like relief, hanging clear above the water. */
+    /** Plain 3D noise weathered into mesa-like relief, hanging clear above the water. */
     ERODED("eroded", waterline = 63, build = { _, salt -> ErodedField.world(salt) }),
 
     /** Colossal rectangular monoliths on a jittered grid, standing a hundred blocks out of the sea. */
@@ -545,16 +545,6 @@ enum class Terrain(
             ),
         )
 
-        /**
-         * Where on [parameter]'s axis this Age sits, or **null where no word bounded it** — which means
-         * the landform's own tuning rather than a draw across everything.
-         *
-         * That distinction is the whole of why this is not just `Span.read`. An unbounded axis is
-         * `Span.NATURAL`, and drawing uniformly from it would make every unsteered Age a lottery and
-         * retune all of them at once; leaving it null keeps "an Age told nothing gets what it always got".
-         * A *bounded* axis still draws, so two Ages written with the same word differ within the band it
-         * asked for — the word says where, the seed says exactly where.
-         */
         val ARRANGEMENT = Parameter(
             "arrangement",
             listOf("grid", "rings", "varied"),

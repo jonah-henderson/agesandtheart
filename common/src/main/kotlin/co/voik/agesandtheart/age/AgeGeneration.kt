@@ -12,7 +12,6 @@ import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.ephemeris.sky.Look
 import co.voik.ephemeris.sky.SkySpec
-import co.voik.agesandtheart.sky.SpireSky
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.biome.RegionalClimate
@@ -38,7 +37,6 @@ import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.CeilingField
 import co.voik.agesandtheart.worldgen.Overlay
 import co.voik.agesandtheart.worldgen.VolcanoField
-import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.VanillaDelegate
 import net.minecraft.core.Holder
@@ -47,7 +45,6 @@ import net.minecraft.world.level.biome.Biome
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
-import net.minecraft.world.level.biome.FixedBiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
@@ -92,7 +89,7 @@ object AgeGeneration {
 
     fun chunkGenerator(server: MinecraftServer, recipe: AgeRecipe): ChunkGenerator = when (val world = recipe.world) {
         is AgeWorld.Composed -> assemble(server, world.composition, recipe)
-        is AgeWorld.Bespoke -> bespoke(server, world.preset, recipe.seed)
+        is AgeWorld.Bespoke -> bespoke(server, world.preset)
     }
 
     /**
@@ -429,13 +426,6 @@ object AgeGeneration {
         else Rift(ground, Rift.DEFAULT_HALF_WIDTH, Seam.riftFloor(torn), Seam.RIFT_RIM)
 
     /**
-     * [chasm] and every territory's own dry underground, as one volume the sea is kept out of.
-     *
-     * Divided on the terrain's map like the rock itself, so a territory that has halls keeps its own dry
-     * and a neighbour that does not is unaffected — an Age is allowed to be wet next door to dry, so long
-     * as the boundary is a wall of rock rather than of water.
-     */
-    /**
      * [carried] with whatever water the **underground** holds added to it — the lakes standing in a
      * chambered Age's vaults, which answer to their own level rather than to the Age's waterline.
      *
@@ -452,6 +442,13 @@ object AgeGeneration {
         return if (carried == null) perTerritory else Union(listOf(carried, perTerritory))
     }
 
+    /**
+     * [chasm] and every territory's own dry underground, as one volume the sea is kept out of.
+     *
+     * Divided on the terrain's map like the rock itself, so a territory that has halls keeps its own dry
+     * and a neighbour that does not is unaffected — an Age is allowed to be wet next door to dry, so long
+     * as the boundary is a wall of rock rather than of water.
+     */
     private fun keptDry(
         chasm: TerrainField?,
         grounds: List<Terrain.Ground>,
@@ -487,7 +484,6 @@ object AgeGeneration {
         return claimed[contenders[XoroshiroRandomSource(seed xor WATERLINE_SALT).nextInt(contenders.size)]]
     }
 
-    // So which sea wins is decorrelated from everything else this seed decides.
     /**
      * The terrain half of an Age whose shape is the field tree's — everything the rock decides, gathered so
      * that the rest of [assemble] has one nullable to ask rather than a flag to carry.
@@ -498,8 +494,6 @@ object AgeGeneration {
         val chasm: TerrainField?,
         /** Water a landform carries above the waterline, which is the shape's rather than the sea's. */
         val standing: TerrainField?,
-        /** And bodies made of something else entirely — a caldera's lava. See [StandingFluid]. */
-        val lakes: List<StandingFluid> = emptyList(),
     ) {
         /** The land, without whatever shuts it overhead — see [AgeRock.Ours.ground]. */
         val landform: TerrainField get() = rock.landform
@@ -575,28 +569,23 @@ object AgeGeneration {
             ),
             chasm = keptDry(riftCut, grounds, ground),
             standing = withLakes(carriedWater(composition, landmass.seam, ground, seed, torn), grounds, ground),
-            // A caldera arrives flooded, and the shape is what floods it. Nothing at runtime can lay a
-            // level lake — where fluid may stand is vanilla's fluid to know, and it only knows one block
-            // at a time — where the field already knows the crater's floor, its walls and its rim.
-            // **Named, because both are lava and a feature has to find its own.** See [StandingFluid.named].
-            lakes = volcanic.pours,
         )
     }
 
     private val LAVA = Blocks.LAVA.defaultBlockState()
 
+    /** So which sea wins is decorrelated from everything else this seed decides. */
     private const val WATERLINE_SALT = 0x5EA_1E7EL
 
     /**
      * The few Ages that are a whole generator rather than an assembly of parts. Exhaustive, so a new
-     * bespoke preset cannot quietly fall through to Spire's world — it fails to compile instead.
+     * bespoke preset fails to compile rather than quietly falling through to another's world.
      */
-    private fun bespoke(server: MinecraftServer, preset: AgePreset, seed: Long): ChunkGenerator = when (preset) {
+    private fun bespoke(server: MinecraftServer, preset: AgePreset): ChunkGenerator = when (preset) {
         AgePreset.VANILLA -> VanillaDelegate.overworld(server)
         AgePreset.VANILLA_BARE -> VanillaDelegate.bareOverworld(server)
-        AgePreset.SPIRE -> SpireChunkGenerator(plasmaBiome(server), seed)
 
-        AgePreset.FIELD, AgePreset.PYRAMIDS, AgePreset.PYRINGS, AgePreset.PYRVARIED, AgePreset.HILLS,
+        AgePreset.SPIRE, AgePreset.PYRAMIDS, AgePreset.PYRINGS, AgePreset.PYRVARIED, AgePreset.HILLS,
         AgePreset.SHAPES, AgePreset.PILLARS, AgePreset.CAVERNS, AgePreset.ERODED, AgePreset.CANYON,
         AgePreset.CLIFFS, AgePreset.CANYONLANDS, AgePreset.SHATTERED, AgePreset.RIVERLANDS,
         AgePreset.ISLANDS, AgePreset.ISLE, AgePreset.ALPS, AgePreset.CRATERLANDS, AgePreset.INVERSE_CAVES,
@@ -604,16 +593,6 @@ object AgeGeneration {
         -> error("'${preset.key}' names a composition, so AgeRecipe.worldFor should never have sent it here")
     }
 
-    /**
-     * The rock as it stood **before** its underground was cut, or null where no territory has one.
-     *
-     * Each terrain declares its own (`Terrain.Ground.hollows`) rather than being inspected for one. Asking
-     * the node what kind it is only ever answered for caves — a hall is a plain `Subtract` and would have
-     * read as "no underground here", which is the waterline flooding every storey.
-     *
-     * The declared volume is the very instance the shape is built on, not a rebuilt copy, so it answers
-     * from the same cache; building a second would pay for the whole landform twice.
-     */
     /**
      * [rock] with the chasm taken back out of it — **the rift has to be cut from the hollow as well as
      * from the shape**, and forgetting it flooded every rift in the mod.
@@ -630,15 +609,20 @@ object AgeGeneration {
     private fun openedBy(rock: TerrainField?, chasm: TerrainField?): TerrainField? =
         if (rock == null || chasm == null) rock else Subtract(rock, chasm)
 
+    /**
+     * The rock as it stood **before** its underground was cut, or null where no territory has one.
+     *
+     * Each terrain declares its own (`Terrain.Ground.hollows`) rather than being inspected for one. Asking
+     * the node what kind it is only ever answered for caves — a hall is a plain `Subtract` and would have
+     * read as "no underground here", which is the waterline flooding every storey.
+     *
+     * The declared volume is the very instance the shape is built on, not a rebuilt copy, so it answers
+     * from the same cache; building a second would pay for the whole landform twice.
+     */
     private fun hollowedRock(grounds: List<Terrain.Ground>, ground: RegionMap): TerrainField? {
         if (grounds.none { it.hollows != null }) return null
         return Regions.of(grounds.map { it.hollows ?: Union(emptyList()) }, ground)
     }
-
-    private fun plasmaBiome(server: MinecraftServer) = FixedBiomeSource(
-        server.registryAccess().lookupOrThrow(Registries.BIOME)
-            .getOrThrow(ResourceKey.create(Registries.BIOME, PLASMA_BIOME)),
-    )
 
     /**
      * The mountains, the chambers and the lava in both, as one statement (design §7.1.2).
@@ -726,17 +710,6 @@ object AgeGeneration {
     private val TERRITORY_SALT_STRIDE = 0x9E37_79B9_7F4A_7C15uL.toLong()
 
     /**
-     * The dimension type an Age wears — **whether the sky reaches it, and whether there is rock overhead**.
-     *
-     * It used to be the colour of the air, which is why the Spire had a type of its own; `Atmosphere` says
-     * every one of those colours better, so the palette moved to a [co.voik.agesandtheart.sky.Look] and
-     * what is left here is the two things only a pre-authored file can carry.
-     *
-     * The band of world is deliberately *not* here. All four types declare [VerticalWindow.DEFAULT], so a
-     * sky cannot move an Age's floor — which is exactly what it used to do, to any landform reaching below
-     * y=0 that drew the Spire's sky by chance.
-     */
-    /**
      * **The spawners this Age carries of its own**, for the creatures vanilla's own will not place.
      *
      * Here rather than in either backend, which are otherwise the same file twice: what a level is made of
@@ -760,6 +733,17 @@ object AgeGeneration {
         return listOfNotNull(placing, DriftingOreSpawner().takeIf { charged })
     }
 
+    /**
+     * The dimension type an Age wears — **whether the sky reaches it, and whether there is rock overhead**.
+     *
+     * It used to be the colour of the air, which is why the Spire had a type of its own; `Atmosphere` says
+     * every one of those colours better, so the palette moved to a [co.voik.agesandtheart.sky.Look] and
+     * what is left here is the two things only a pre-authored file can carry.
+     *
+     * The band of world is deliberately *not* here. All four types declare [VerticalWindow.DEFAULT], so a
+     * sky cannot move an Age's floor — which is exactly what it used to do, to any landform reaching below
+     * y=0 that drew the Spire's sky by chance.
+     */
     fun dimensionType(recipe: AgeRecipe): Identifier = when (val world = recipe.world) {
         is AgeWorld.Composed -> typeFor(world.composition, recipe.template)
         is AgeWorld.Bespoke -> AGE_DIMENSION_TYPE
@@ -787,23 +771,15 @@ object AgeGeneration {
         return if (ours == theirs) template.dimensionType.identifier() else ours
     }
 
-    /**
-     * The sky an Age has, as data the client can be told. A pure function of the recipe.
-     *
-     * The Spire is reached here as well as through [Sky.SPIRE], because the handcrafted Age is bespoke and
-     * never passes through a composition. Both answer with the same [SpireSky.SPEC].
-     */
+    /** The sky an Age has, as data the client can be told. A pure function of the recipe. */
     fun skySpec(recipe: AgeRecipe): SkySpec = when (val world = recipe.world) {
         is AgeWorld.Composed -> world.composition.sky.specFor(world.composition, recipe.seed)
-        is AgeWorld.Bespoke -> if (world.preset == AgePreset.SPIRE) SpireSky.SPEC else SkySpec.VANILLA
+        is AgeWorld.Bespoke -> SkySpec.VANILLA
     }
 
-    /**
-     * The look an Age's sky preset paints under whatever its sentence asked for. Reached the same two ways
-     * [skySpec] is, and for the same reason: the handcrafted Age never passes through a composition.
-     */
+    /** The look an Age's sky preset paints under whatever its sentence asked for. */
     fun presetLook(recipe: AgeRecipe): Look = when (val world = recipe.world) {
         is AgeWorld.Composed -> world.composition.sky.look()
-        is AgeWorld.Bespoke -> if (world.preset == AgePreset.SPIRE) SpireSky.LOOK else Look.NOTHING
+        is AgeWorld.Bespoke -> Look.NOTHING
     }
 }

@@ -1,16 +1,12 @@
 package co.voik.agesandtheart.age.phenomena
 
-import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Phenomenon
-import com.google.gson.JsonParser
 import com.mojang.serialization.Codec
-import com.mojang.serialization.JsonOps
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.packs.resources.ResourceManager
 
 /**
- * How hard a phenomenon comes — **datapack content** (`art/phenomenon/<key>.json`).
+ * How hard an inferno comes — **datapack content** (`art/phenomenon/inferno.json`).
  *
  * Content rather than config (`notes/config-research.md`): a pack where an inferno burns a forest down in a
  * minute is a different mod rather than the same one run differently. It is also the surface another mod
@@ -31,14 +27,13 @@ data class Intensity(
     val betweenHarms: Int = DEFAULT_BETWEEN_HARMS,
 ) {
     /** How many times a chunk is offered up per sweep — at least once, or a small reach would never act. */
-    val sweeps: Int get() = (reach * ORDINARY_SWEEPS).toInt().coerceAtLeast(1)
+    val sweeps: Int get() = reach.toInt().coerceAtLeast(1)
 
     companion object {
         private const val DEFAULT_REACH = 1.0
         private const val DEFAULT_CHANCE = 0.35
         private const val DEFAULT_HARM = 1.0
         private const val DEFAULT_BETWEEN_HARMS = 20
-        private const val ORDINARY_SWEEPS = 1.0
 
         /** What a phenomenon nobody tuned comes at — so an absent file is a default, never a dead one. */
         val ORDINARY = Intensity()
@@ -52,37 +47,9 @@ data class Intensity(
             ).apply(instance, ::Intensity)
         }
 
-        const val DIRECTORY = "art/phenomenon"
+        private val FILE = PhenomenonFile(Phenomenon.INFERNO, CODEC, ORDINARY)
 
-        /** What [phenomenon] comes at on this server, cached on the resource manager exactly as the corpus is. */
-        fun of(server: MinecraftServer, phenomenon: Phenomenon): Intensity =
-            list(server)[phenomenon] ?: ORDINARY
-
-        fun list(server: MinecraftServer): Map<Phenomenon, Intensity> {
-            val resources = server.resourceManager
-            loaded?.let { (from, known) -> if (from === resources) return known }
-            return read(resources).also { loaded = resources to it }
-        }
-
-        private var loaded: Pair<ResourceManager, Map<Phenomenon, Intensity>>? = null
-
-        private fun read(resources: ResourceManager): Map<Phenomenon, Intensity> = buildMap {
-            for (phenomenon in Phenomenon.entries) put(phenomenon, ORDINARY)
-            for ((file, resource) in resources.listResources(DIRECTORY) { it.path.endsWith(SUFFIX) }) {
-                val key = file.path.removePrefix("$DIRECTORY/").removeSuffix(SUFFIX)
-                val named = Phenomenon.named(key)
-                if (named == null) {
-                    Constants.LOG.warn("'{}' names no phenomenon, so nothing reads it", file)
-                    continue
-                }
-                val read = runCatching {
-                    resource.open().use { CODEC.parse(JsonOps.INSTANCE, JsonParser.parseReader(it.reader())).getOrThrow() }
-                }
-                read.onFailure { Constants.LOG.warn("Could not read '{}': {}", file, it.message) }
-                read.getOrNull()?.let { put(named, it) }
-            }
-        }
-
-        private const val SUFFIX = ".json"
+        /** What an inferno comes at on this server. */
+        fun of(server: MinecraftServer): Intensity = FILE.of(server)
     }
 }

@@ -22,9 +22,6 @@ import net.minecraft.network.chat.Component
  */
 class Report private constructor(private val source: CommandSourceStack, private val document: JsonObject?) {
 
-    /** Whether anything is listening for structure — for the rare caller that must skip work to build it. */
-    val isStructured: Boolean get() = document != null
-
     /**
      * Say something to a person: a heading, a hint, an aside. **Silent under [structured]**, because a
      * machine has no use for "Travel with /age tp" and every line of it would have to be filtered back out.

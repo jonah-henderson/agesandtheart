@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.RegistryAccess
@@ -24,8 +25,6 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
  */
 @Tags(NEEDS_REGISTRIES)
 class StockedItemsCheck : FunSpec({
-
-    val vocabulary by lazy { Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen) }
 
     /** Blocks are built in, which is the master stock's derived half; biomes simply find nothing offline. */
     val registries: RegistryAccess by lazy {

@@ -7,10 +7,6 @@ import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.pow
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
-
-/** Whether a [MountainRange] is describing its rock, or the water standing in its valleys. */
-enum class RangeYield { GROUND, WATER }
 
 /**
  * An alpine range: foothills climbing to a crest, cut into ridges and peaks by its own drainage.
@@ -99,7 +95,7 @@ data class MountainRange(
      */
     val reachBow: Double = DEFAULT_REACH_BOW,
     /** Whether this is the rock or the water in it — the same network asked twice, as [Drainage] is. */
-    val describes: RangeYield = RangeYield.GROUND,
+    val describes: FieldYield = FieldYield.GROUND,
 ) : TerrainField {
     override val kind = FieldKind.MOUNTAIN_RANGE
 
@@ -148,23 +144,9 @@ data class MountainRange(
      * field is shared across every chunk worker; the same shape [Grounding] and `ClimateDepth.BelowTerrain`
      * already use, one size up.
      */
-    private class ColumnCache {
-        val keys = LongArray(SLOTS) { EMPTY_KEY }
-        val spans = arrayOfNulls<Spans>(SLOTS)
-    }
+    private val memo = ColumnMemo(::derive)
 
-    private val remembered = ThreadLocal.withInitial { ColumnCache() }
-
-    override fun columnSpans(worldX: Int, worldZ: Int): Spans {
-        val cache = remembered.get()
-        val key = (worldX.toLong() shl Int.SIZE_BITS) or (worldZ.toLong() and UNSIGNED_INT)
-        val slot = ((worldX and SLOT_MASK) shl SLOT_BITS) or (worldZ and SLOT_MASK)
-        if (cache.keys[slot] == key) cache.spans[slot]?.let { return it }
-        val derived = derive(worldX, worldZ)
-        cache.keys[slot] = key
-        cache.spans[slot] = derived
-        return derived
-    }
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans = memo.spansAt(worldX, worldZ)
 
     private fun derive(worldX: Int, worldZ: Int): Spans {
         // Everything below works in the warped frame, the wedge included, so the range front frays and the
@@ -273,11 +255,11 @@ data class MountainRange(
         // Nothing in the neighbourhood drains, which the lattice makes vanishingly rare and the land itself
         // answers perfectly well.
         if (hillslopes == Double.POSITIVE_INFINITY) {
-            return if (describes == RangeYield.WATER) Spans.EMPTY
+            return if (describes == FieldYield.WATER) Spans.EMPTY
             else Spans.of(floorY, landHere.roundToInt())
         }
 
-        if (describes == RangeYield.WATER) {
+        if (describes == FieldYield.WATER) {
             if (channelY == NO_WATER) return Spans.EMPTY
             // **Water exists only inside a channel**, and that is what makes containment a property rather
             // than a hope: the ground at the channel's rim stands [CHANNEL_FREEBOARD] over the water in it,
@@ -375,7 +357,6 @@ data class MountainRange(
         around.bendDistance = nearest
     }
 
-    /** How far below the land a channel carrying this much runs, where it runs. */
     /**
      * How far below the land a channel carrying this much runs.
      *
@@ -434,26 +415,10 @@ data class MountainRange(
         // Only where a node's own eight neighbours are inside the scan can its flow be known at all.
         for (row in 1..<SCAN - 1) {
             for (column in 1..<SCAN - 1) {
-                around.flowsTo[row * SCAN + column] = lowestNeighbourOf(row, column, around.height)
+                around.flowsTo[row * SCAN + column] = lowestNeighbourOf(row, column, around.height, SCAN)
             }
         }
         return around
-    }
-
-    /** Which of a node's eight neighbours it flows to, or [NOWHERE] where it is lower than all of them. */
-    private fun lowestNeighbourOf(row: Int, column: Int, height: DoubleArray): Int {
-        var lowest = NOWHERE
-        var lowestHeight = height[row * SCAN + column]
-        for (downRow in -1..1) {
-            for (downColumn in -1..1) {
-                if (downRow == 0 && downColumn == 0) continue
-                val neighbour = (row + downRow) * SCAN + (column + downColumn)
-                if (height[neighbour] >= lowestHeight) continue
-                lowestHeight = height[neighbour]
-                lowest = neighbour
-            }
-        }
-        return lowest
     }
 
     /**
@@ -529,25 +494,10 @@ data class MountainRange(
          */
         internal const val MOST_TRIBUTARIES = 4
 
-        /** A node lower than all eight of its neighbours. Nothing flows out of it, so it draws no reach. */
-        private const val NOWHERE = -1
-
         /** No reach wets this column. */
         private const val NO_WATER = Double.NEGATIVE_INFINITY
 
         private const val HALF = 0.5
-
-        /**
-         * How many columns are remembered — a 32×32 block square, so a chunk and the ring of neighbours its
-         * biome probes and carvers reach into all sit in distinct slots.
-         */
-        private const val SLOT_BITS = 5
-        private const val SLOTS = 1 shl (SLOT_BITS * 2)
-        private const val SLOT_MASK = (1 shl SLOT_BITS) - 1
-        private const val UNSIGNED_INT = 0xFFFF_FFFFL
-
-        /** A packed position no world reaches, since the border stops well short of `Int.MIN_VALUE`. */
-        private const val EMPTY_KEY = Long.MIN_VALUE
 
         /**
          * Thirty degrees, as a gradient. Bedrock stands nearer thirty-five and soil-mantled ground nearer
@@ -620,32 +570,6 @@ data class MountainRange(
         private const val ALONG_SALT = 0x1_A106
         private const val ACROSS_SALT = 0x2_AC05
 
-        /** How far along a segment its nearest point to ([atAlong], [atAcross]) lies, clamped to the segment. */
-        private fun alongSegment(
-            atAlong: Double,
-            atAcross: Double,
-            fromAlong: Double,
-            fromAcross: Double,
-            toAlong: Double,
-            toAcross: Double,
-        ): Double {
-            val runAlong = toAlong - fromAlong
-            val runAcross = toAcross - fromAcross
-            val lengthSquared = runAlong * runAlong + runAcross * runAcross
-            if (lengthSquared <= 0.0) return 0.0
-            val projected = (atAlong - fromAlong) * runAlong + (atAcross - fromAcross) * runAcross
-            return (projected / lengthSquared).coerceIn(0.0, 1.0)
-        }
-
-        private fun distance(fromAlong: Double, fromAcross: Double, toAlong: Double, toAcross: Double): Double {
-            val runAlong = toAlong - fromAlong
-            val runAcross = toAcross - fromAcross
-            return sqrt(runAlong * runAlong + runAcross * runAcross)
-        }
-
-        private val YIELD_CODEC: Codec<RangeYield> =
-            Codec.STRING.xmap({ name -> RangeYield.valueOf(name.uppercase()) }, { it.name.lowercase() })
-
         val CODEC: MapCodec<MountainRange> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Codec.INT.fieldOf("floor_y").forGetter(MountainRange::floorY),
@@ -670,7 +594,7 @@ data class MountainRange(
                     .forGetter(MountainRange::channelPerOrder),
                 Codec.DOUBLE.optionalFieldOf("reach_bow", DEFAULT_REACH_BOW)
                     .forGetter(MountainRange::reachBow),
-                YIELD_CODEC.optionalFieldOf("describes", RangeYield.GROUND).forGetter(MountainRange::describes),
+                FieldYield.CODEC.optionalFieldOf("describes", FieldYield.GROUND).forGetter(MountainRange::describes),
             ).apply(instance, ::MountainRange)
         }
     }
@@ -835,8 +759,6 @@ data class RangeProfile(
         private const val GRAIN_OCTAVE = -6
         private val GRAIN_AMPLITUDES = listOf(1.0, 0.5)
 
-        // A wavelength of a fraction of a reach; the two components read on different planes, or the warp
-        // is a diagonal shear rather than a bend.
         /**
          * Three octaves, so the frame bends at a reach's own scale *and* below it: one sweep carries a whole
          * valley round, the next puts a kink in it, the finest frays its walls. One octave gives an arc, and

@@ -23,17 +23,13 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
  * streamlined along it; the resistance threshold is generic to all weathering; the vertical profile is
  * frankly unphysical, since real abrasion is monotonic and yields slopes, where this spares a keel and
  * attacks both extremes to make crowns above and hanging needles below. [needleBonus] likewise.
- *
- * **If a cut ever runs through a carver rather than the shape, check the `replaceable` tag before touching
- * a number here** — a block outside it is never removed however hard the wind blows, which once made the
- * preview and the game disagree completely.
  */
 class Weathering(
     /** What a recipe names this profile by — see [named]. */
     val key: String,
     /** The band the wind reaches; rock outside it is untouched. */
-    override val fromY: Int,
-    override val toY: Int,
+    val fromY: Int,
+    val toY: Int,
     /**
      * How much resistance the rock must beat to stand. The most important dial by some way: raise it and
      * a mass thins toward isolated towers, lower it and it fills back in solid.
@@ -91,47 +87,24 @@ class Weathering(
     val seed: Long,
     val firstOctave: Int,
     val amplitudes: DoubleArray,
-) : CarvingRule {
+) {
     // Shared and immutable: resistance is a property of the rock in a place, not of a chunk.
     private val resistance = NormalNoise.create(XoroshiroRandomSource(seed), firstOctave, *amplitudes)
 
     // A separate, finer pattern picking out the few places that survive whatever the wind does.
     private val needles = NormalNoise.create(XoroshiroRandomSource(seed * 31 + 17), firstOctave, *amplitudes)
 
-    override fun cuts(worldX: Int, worldY: Int, worldZ: Int): Boolean = erodes(worldX, worldY, worldZ)
-
-    /** Whether the wind takes the block at this position. */
-    fun erodes(worldX: Int, worldY: Int, worldZ: Int): Boolean =
-        erodesGiven(worldX, worldY, worldZ, favour = 0.0)
-
     /**
-     * The same question, with an extra [favour] the caller worked out for itself — because **this rule
-     * cannot see where an island is, and something has to.** `Weathered` measures how thick a column's rock
-     * stands and hands the answer back, so a column deep in an island survives where a thin one on the rim
-     * does not. An argument rather than a field, since this rule is deliberately ignorant of shapes.
+     * Whether the wind takes the block at this position, given an extra [favour] the caller worked out for
+     * itself — because **this rule cannot see where an island is, and something has to.** `Weathered`
+     * measures how thick a column's rock stands and hands the answer back, so a column deep in an island
+     * survives where a thin one on the rim does not. An argument rather than a field, since this rule is
+     * deliberately ignorant of shapes.
      */
     fun erodesGiven(worldX: Int, worldY: Int, worldZ: Int, favour: Double): Boolean {
         if (worldY !in fromY..toY) return false
         val standing = profile(worldY) + favour + if (isNeedle(worldX, worldZ)) needleBonus else 0.0
         return resistanceAt(worldX, worldY, worldZ) + standing <= bite
-    }
-
-    /**
-     * The same wind, blowing [lift] blocks higher — the companion to
-     * [co.voik.agesandtheart.worldgen.field.Raised]. Only the three absolute heights move; the scales, the
-     * bite and the profile are relative, so raising them would change *how* the rock erodes.
-     */
-    fun raisedBy(lift: Int): Weathering {
-        if (lift == 0) return this
-        return Weathering(
-            key = key,
-            fromY = fromY + lift, toY = toY + lift, bite = bite, keelY = keelY + lift,
-            atTheKeel = atTheKeel, atTheTip = atTheTip, atTheRoot = atTheRoot, taper = taper,
-            taperReachAbove = taperReachAbove, taperReachBelow = taperReachBelow,
-            scale = scale, verticalScale = verticalScale, windStretch = windStretch,
-            needleScale = needleScale, needleThreshold = needleThreshold, needleBonus = needleBonus,
-            seed = seed, firstOctave = firstOctave, amplitudes = amplitudes,
-        )
     }
 
     /**
@@ -172,17 +145,6 @@ class Weathering(
     }
 
     companion object {
-        /** Nothing erodes — for previewing a field's own shape with the wind switched off. */
-        val NONE = Weathering(
-            key = "none",
-            fromY = 0, toY = 1, bite = -Double.MAX_VALUE,
-            keelY = 0, atTheKeel = 0.0, atTheTip = 0.0, atTheRoot = 0.0, taper = 1.0,
-            taperReachAbove = 1, taperReachBelow = 1,
-            scale = 1.0, windStretch = 1.0, verticalScale = 1.0,
-            needleScale = 1.5, needleThreshold = Double.MAX_VALUE, needleBonus = 0.0,
-            seed = 0L, firstOctave = -1, amplitudes = doubleArrayOf(1.0),
-        )
-
         // A margin below the floor is harmless; a band stopping short of the ceiling is not.
         private const val BAND_MARGIN = 4
 
@@ -326,8 +288,8 @@ class Weathering(
          * And the same shape over a mesa country — [CLIFFS]' profile against a shorter face, since a
          * canyonlands wall is a hundred and forty blocks rather than a hundred and seventy.
          *
-         * Not [CLIFFS] shifted with [raisedBy]: the two spans differ, so a shift would put the keel and
-         * the reaches in the wrong places and tie two presets' heights together for good.
+         * Not [CLIFFS] shifted up or down: the two spans differ, so a shift would put the keel and the
+         * reaches in the wrong places and tie two presets' heights together for good.
          */
         val CANYONLANDS = Weathering(
             key = "canyonlands",
@@ -505,7 +467,7 @@ class Weathering(
         private const val ALPINE_VALLEY_FLOOR = 70
 
         /** The profiles a recipe may name, which is what makes [Weathered] serialisable. */
-        private val BY_KEY = listOf(NONE, SPIRE, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, ALPS, CRATERLANDS)
+        private val BY_KEY = listOf(SPIRE, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, ALPS, CRATERLANDS)
             .associateBy(Weathering::key)
 
         /** The profile [key] names, or null for one this version does not have. */

@@ -38,8 +38,6 @@ object WriterProfession {
 
     val POI: ResourceKey<PoiType> = ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, ID)
 
-    val KEY: ResourceKey<VillagerProfession> = ResourceKey.create(Registries.VILLAGER_PROFESSION, ID)
-
     /** One writer to a desk, and it must be beside it to be at work — vanilla's numbers for a workstation. */
     private const val MAX_TICKETS = 1
 

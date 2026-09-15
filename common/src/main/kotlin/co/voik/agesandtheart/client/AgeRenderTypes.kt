@@ -28,7 +28,7 @@ object AgeRenderTypes {
      * private. Two lines here beat widening vanilla's access in the two files that would have to be kept in
      * step for them.
      */
-    private val MATRICES_AND_PROJECTION: RenderPipeline.Snippet = RenderPipeline.builder()
+    internal val MATRICES_AND_PROJECTION: RenderPipeline.Snippet = RenderPipeline.builder()
         .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
         .withUniform("Projection", UniformType.UNIFORM_BUFFER)
         .buildSnippet()

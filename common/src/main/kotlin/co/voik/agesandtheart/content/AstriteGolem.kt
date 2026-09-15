@@ -122,11 +122,6 @@ class AstriteGolem(type: EntityType<out AstriteGolem>, level: Level) : TamableAn
 
     override fun isFood(stack: ItemStack): Boolean = false
 
-    /** Whoever stood it up owns it, which is the one thing assembling it has to record. */
-    fun answerTo(owner: Player) {
-        tame(owner)
-    }
-
     companion object {
 
         /**

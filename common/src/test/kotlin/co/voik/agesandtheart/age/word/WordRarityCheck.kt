@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.util.RandomSource
@@ -16,10 +16,6 @@ import net.minecraft.util.RandomSource
  */
 @Tags(NEEDS_REGISTRIES)
 class WordRarityCheck : FunSpec({
-
-    val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen)
-    }
 
     /** A derived word is reachable by its full id, which is how the authoring tool names one. */
     test("a derived word can be named by its id") {

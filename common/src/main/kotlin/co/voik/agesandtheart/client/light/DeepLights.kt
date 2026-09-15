@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client.light
 
+import co.voik.agesandtheart.ChunkBlockIndex
 import co.voik.agesandtheart.client.AddedLight
 import co.voik.agesandtheart.client.AgeRenderTypes
 import co.voik.agesandtheart.client.DeepWaterFog
@@ -17,7 +18,6 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.phys.Vec3
-import java.util.WeakHashMap
 
 /**
  * Lights you can see from across an abyss, and where they are.
@@ -33,11 +33,11 @@ import java.util.WeakHashMap
  * the size and how far it carries — so "the same" is true by construction and not by two files agreeing;
  * `HadalfishRenderer` asks it the same questions the blocks do.
  *
- * **The index is `Wounds`', for `Wounds`' reasons.** A section's palette dismisses nearly all of it before
- * a block is read, chunks fill it as they arrive, and `setBlocksDirty` keeps it true for anything placed
- * afterwards. It is a sibling of that and of [TintedLights] rather than a sharing of either: this needs no
- * mesher — so it must work where `TintedLights` deliberately switches itself off — and it is keyed on a
- * tag rather than on registered blocks.
+ * **The index is a [ChunkBlockIndex], as `Wounds`' is.** A section's palette dismisses nearly all of it
+ * before a block is read, chunks fill it as they arrive, and `setBlocksDirty` keeps it true for anything
+ * placed afterwards. It is a sibling of [TintedLights] rather than a sharing of it: this needs no mesher —
+ * so it must work where `TintedLights` deliberately switches itself off — and it is keyed on a tag rather
+ * than on registered blocks.
  */
 object DeepLights {
 
@@ -164,12 +164,10 @@ object DeepLights {
         // hundred and twenty blocks of unfogged bloom over somebody's overworld base is not a feature. It
         // is the same test the water fog is switched on by, asked of the same block.
         if (!DeepWaterFog.deepAt(level, camera)) return
-        val chunks = byLevel[level] ?: return
-        if (chunks.isEmpty()) return
         // Gathered before submitting: the lambda below runs inside the buffer's own bookkeeping, and
         // walking the index there would hold it open for the length of the walk.
         val inSight = mutableListOf<BlockPos>()
-        eachNear(chunks, camera) { inSight.add(it) }
+        lights.eachWithin(level, camera, SEEN_UNTIL) { light, _ -> inSight.add(light) }
         if (inSight.isEmpty()) return
         for (light in inSight) {
             val middle = Vec3(light.x + HALF, light.y + HALF, light.z + HALF)
@@ -186,78 +184,27 @@ object DeepLights {
     }
 
     /** Every light a chunk holds, read as it arrives — the index's whole supply. */
-    fun stocked(level: Level, chunk: ChunkAccess) {
-        val here = chunk.pos
-        val cursor = BlockPos.MutableBlockPos()
-        for ((index, section) in chunk.sections.withIndex()) {
-            if (section.hasOnlyAir() || !section.maybeHas(::shines)) continue
-            val bottom = (chunk.minSectionY + index) shl SECTION_BITS
-            for (x in 0..<SECTION) for (y in 0..<SECTION) for (z in 0..<SECTION) {
-                if (!shines(section.getBlockState(x, y, z))) continue
-                cursor.set(here.minBlockX + x, bottom + y, here.minBlockZ + z)
-                arrived(level, cursor.immutable())
-            }
-        }
-    }
+    fun stocked(level: Level, chunk: ChunkAccess) = lights.stocked(level, chunk)
 
     /** And as it goes, so an unloaded chunk's lights stop being drawn where nobody is. */
-    fun emptied(level: Level, at: ChunkPos) {
-        val chunks = byLevel[level] ?: return
-        chunks.remove(ChunkPos.pack(at.x, at.z))
-        if (chunks.isEmpty()) byLevel.remove(level)
-    }
+    fun emptied(level: Level, at: ChunkPos) = lights.emptied(level, at)
 
     /** A block changing where a client can see it — how a light placed after its chunk arrived is heard of. */
     fun noticed(level: Level, at: BlockPos, was: BlockState, now: BlockState) {
         val wasOne = shines(was)
         val isOne = shines(now)
         if (wasOne == isOne) return
-        if (isOne) arrived(level, at.immutable()) else gone(level, at)
+        if (isOne) lights.arrived(level, at) else lights.gone(level, at)
     }
 
     /** Leaving a world. The index is the client's alone, so nothing else needs telling. */
-    fun forget() = byLevel.clear()
+    fun forget() = lights.forget()
 
     private fun shines(state: BlockState): Boolean = state.`is`(SHINES_THROUGH_THE_DEEP)
 
-    private fun arrived(level: Level, at: BlockPos) {
-        val chunks = byLevel.getOrPut(level) { mutableMapOf() }
-        val key = ChunkPos.pack(at.x shr SECTION_BITS, at.z shr SECTION_BITS)
-        chunks.getOrPut(key) { mutableSetOf() }.add(at)
-    }
-
-    private fun gone(level: Level, at: BlockPos) {
-        val chunks = byLevel[level] ?: return
-        val key = ChunkPos.pack(at.x shr SECTION_BITS, at.z shr SECTION_BITS)
-        val here = chunks[key] ?: return
-        here.remove(at)
-        if (here.isEmpty()) chunks.remove(key)
-    }
-
-    private inline fun eachNear(
-        chunks: Map<Long, Set<BlockPos>>,
-        at: Vec3,
-        visit: (BlockPos) -> Unit,
-    ) {
-        val chunkX = at.x.toInt() shr SECTION_BITS
-        val chunkZ = at.z.toInt() shr SECTION_BITS
-        val about = (SEEN_UNTIL.toInt() shr SECTION_BITS) + 1
-        for (x in chunkX - about..chunkX + about) {
-            for (z in chunkZ - about..chunkZ + about) {
-                for (light in chunks[ChunkPos.pack(x, z)] ?: continue) {
-                    if (at.distanceToSqr(light.x + HALF, light.y + HALF, light.z + HALF) < SEEN_UNTIL * SEEN_UNTIL) {
-                        visit(light)
-                    }
-                }
-            }
-        }
-    }
-
     /** Read on the client thread only — chunks arriving, blocks changing, and the render, are all it. */
-    private val byLevel = WeakHashMap<Level, MutableMap<Long, MutableSet<BlockPos>>>()
+    private val lights = ChunkBlockIndex(::shines)
 
-    private const val SECTION_BITS = 4
-    private const val SECTION = 16
     /** From a block's corner to its middle, which is where its light is drawn. */
     private const val HALF = 0.5
 }

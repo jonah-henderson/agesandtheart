@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "**Named in a recipe, which is what turns the mountains on for an Age.** `Volcanoes.askedFor` reads the",
+    "**Named in a recipe, which is what turns the mountains on for an Age.** `Volcanoes.amountIn` reads the",
     "same claim and the terrain raises its cones from it -- one fact, three readers.",
     "One pass per chunk and no modifier that moves it: the feature scans the chunk for the lake's middle, so",
     "a scattered position would only ask it to look from somewhere arbitrary.",

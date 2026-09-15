@@ -20,11 +20,7 @@ object KnownWords {
     private var known: Script = Script.NONE
     private val learned = LinkedHashSet<Identifier>()
 
-    val script: Script get() = known
-
     val words: Set<Identifier> get() = learned
-
-    fun knows(word: Identifier): Boolean = word in learned
 
     fun remember(payload: LexiconPayload) {
         known = payload.script
@@ -70,10 +66,6 @@ object KnownWords {
      */
     fun scriptText(word: Identifier): Component =
         Component.literal(known.spell(word.path)).setStyle(scriptStyle())
-
-    /** A whole sentence as the script writes it, for setting as running text. */
-    fun scriptText(words: List<Identifier>): Component =
-        Component.literal(words.joinToString(" ") { known.spell(it.path) }).setStyle(scriptStyle())
 
     /**
      * A line of prose as the script writes it — a reading, particles and all.

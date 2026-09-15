@@ -73,8 +73,8 @@ data class Page(
 
 /**
  * Pages in, a [Sentence] out — **the whole of the port** (design §4.3.1). Everything on this side is ours,
- * and `GrammarCheck` fails the build if any file but [ArtGrammar] imports the parser, so replacing the
- * parser means rewriting one file.
+ * and `GrammarCheck` forbids importing `org.antlr` anywhere, so replacing the parser means rewriting one
+ * file.
  */
 object Grammar {
     /**

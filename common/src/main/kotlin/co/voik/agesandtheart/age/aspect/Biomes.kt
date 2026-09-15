@@ -56,15 +56,6 @@ object Biomes {
         )
 
         /**
-         * Whether this Age's biomes agree with its shape — see
-         * [co.voik.agesandtheart.worldgen.biome.Grounding].
-         *
-         * **`free` is the default, and it is a lever rather than a bug.** An ocean biome on a hilltop and a
-         * pool in a desert are things an Age is allowed to be, and reading one as an oasis is the recorded
-         * call (`notes/terrain-architecture.md`). `grounded` buys the other kind of Age — the one that means
-         * to look like somewhere — and a preset that wants it pins it.
-         */
-        /**
          * Whether the biomes agree with the shape — **grounded unless a writer says otherwise** (Jonah,
          * 2026-08-05), the first option being the one an unsaid parameter takes.
          *

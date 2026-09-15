@@ -33,15 +33,7 @@ import kotlin.math.roundToInt
 object Craters {
 
     /**
-     * Whether this composition asks for the storms that leave craters.
-     *
-     * Read off the claim like [co.voik.agesandtheart.age.aspect.Volcanoes.askedFor], so a recipe can be
-     * asked before it has ever been built.
-     */
-    fun askedFor(composition: AgeComposition): Boolean = claimIn(composition) != null
-
-    /**
-     * [base]'s settings with old craters laid through them, or [base] itself for an Age that has none.
+     * Old craters as a decoration layer, or null for an Age that has none.
      *
      * One `PlacedFeature` for the whole Age and the settings remembered per biome, for the reason
      * [Deposits] spells out: the sorted feature list is indexed by identity, and an equal-but-new object

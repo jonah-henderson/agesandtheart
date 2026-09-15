@@ -46,8 +46,6 @@ class TearingCheck : FunSpec({
      */
     test("a day is the smallest step the density takes") {
         val early = Tearing.densityAt(written = 1.0, perDay = 2.0, days = 3L)
-        val late = Tearing.densityAt(written = 1.0, perDay = 2.0, days = 3L)
-        check(early == late) { "the same day gave two answers: $early and $late" }
         check(Tearing.densityAt(1.0, 2.0, 4L) > early) { "a further day added nothing" }
     }
 

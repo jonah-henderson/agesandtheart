@@ -7,9 +7,7 @@ import co.voik.agesandtheart.book.panel.PanelChunksWanted
 import co.voik.agesandtheart.book.panel.PanelCloseRequest
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
 import co.voik.agesandtheart.book.panel.PanelOpenRequest
-import net.minecraft.client.Minecraft
-import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import co.voik.agesandtheart.client.sendToServer
 
 /**
  * The one panel a client is looking at, if any: its lifetime and its half of the conversation.
@@ -60,7 +58,7 @@ object LinkingPanel {
         askedFor = book
         askedAt = System.nanoTime()
         asksSoFar = 0
-        send(PanelOpenRequest(book))
+        sendToServer(PanelOpenRequest(book))
     }
 
     /**
@@ -91,14 +89,14 @@ object LinkingPanel {
         askedAt = now
         asksSoFar++
         Constants.LOG.info("Panel: no answer to the last request, asking again ({} of {})", asksSoFar, MOST_ASKS)
-        send(PanelOpenRequest(askedFor ?: return))
+        sendToServer(PanelOpenRequest(askedFor ?: return))
     }
 
     /** Called when the level payload arrives, which is the server agreeing to show it. */
     fun accept(payload: PanelLevelPayload) {
         if (!asked) {
             // A panel we stopped waiting for. Tell the server so its ring does not outlive our interest.
-            send(PanelCloseRequest)
+            sendToServer(PanelCloseRequest)
             return
         }
         showing?.close()
@@ -109,7 +107,7 @@ object LinkingPanel {
                 "Panel: the level payload for {} arrived and no preview could be built",
                 payload.dimension.identifier(),
             )
-            send(PanelCloseRequest)
+            sendToServer(PanelCloseRequest)
         }
     }
 
@@ -130,7 +128,7 @@ object LinkingPanel {
             "Panel: {} of the ring's chunks have not arrived, asking again ({} of {})",
             missing.size, load.asksSoFar, RingLoad.MOST_CHASES,
         )
-        send(PanelChunksWanted(missing))
+        sendToServer(PanelChunksWanted(missing))
     }
 
     /**
@@ -140,7 +138,7 @@ object LinkingPanel {
      * hold a server-side ring for as long as the client ran.
      */
     fun release() {
-        if (drop()) send(PanelCloseRequest)
+        if (drop()) sendToServer(PanelCloseRequest)
     }
 
     /** Dropped without telling the server, for a disconnect — where there is nobody left to tell. */
@@ -168,13 +166,4 @@ object LinkingPanel {
     private const val BEFORE_ASKING_AGAIN_NANOS = 20_000_000_000L
 
     private const val MOST_ASKS = 3
-
-    private fun send(payload: CustomPacketPayload) {
-        val connection = Minecraft.getInstance().connection
-        if (connection == null) {
-            Constants.LOG.debug("A panel wanted to say something with no connection to say it on")
-            return
-        }
-        connection.send(ServerboundCustomPayloadPacket(payload))
-    }
 }

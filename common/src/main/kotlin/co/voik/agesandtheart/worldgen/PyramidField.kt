@@ -23,7 +23,7 @@ object PyramidField {
     private fun gradientGrid() = Grid(
         spacing = GRID_SPACING,
         jitter = GRID_JITTER,
-        density = Density.radial(
+        density = Density(
             atOrigin = DENSITY_AT_ORIGIN,
             atEdge = DENSITY_AT_EDGE,
             falloffRadius = DENSITY_FALLOFF_RADIUS,

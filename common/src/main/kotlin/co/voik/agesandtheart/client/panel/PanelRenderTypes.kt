@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client.panel
 
+import co.voik.agesandtheart.client.AgeRenderTypes.MATRICES_AND_PROJECTION
 import co.voik.agesandtheart.location
 import com.mojang.blaze3d.pipeline.BlendFunction
 import com.mojang.blaze3d.pipeline.ColorTargetState
@@ -20,12 +21,6 @@ import java.util.Optional
  * stands in are not what it shows.
  */
 object PanelRenderTypes {
-
-    /** The two uniform buffers every shader here reads. Restated, as `AgeRenderTypes` does, since vanilla's is private. */
-    private val MATRICES_AND_PROJECTION: RenderPipeline.Snippet = RenderPipeline.builder()
-        .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-        .withUniform("Projection", UniformType.UNIFORM_BUFFER)
-        .buildSnippet()
 
     /**
      * Laying a picture down: blended as the GUI blends, and never depth-tested, since the strokes land in the

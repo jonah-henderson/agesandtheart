@@ -66,9 +66,9 @@ data class DangerTable(
      * by a second route.
      */
     val woundHostility: Double,
-    private val materials: Map<String, Double>,
-    private val spawns: Map<String, Double>,
-    private val phenomena: Map<String, Double>,
+    internal val materials: Map<String, Double>,
+    internal val spawns: Map<String, Double>,
+    internal val phenomena: Map<String, Double>,
     private val lighting: Map<String, Double>,
     private val features: Map<String, Double>,
 ) {
@@ -103,17 +103,6 @@ data class DangerTable(
     /** What being shut overhead is worth, and what merely having nothing shine on you is. */
     val sealed: Double get() = lighting[SEALED] ?: NOTHING
     val lightless: Double get() = lighting[LIGHTLESS] ?: NOTHING
-
-    /**
-     * Everything a rating is written for, so a check can hold the file honest.
-     *
-     * A missing entry is worth nothing and reads exactly like an entry of nought, which is fine at a call
-     * site and not fine in a content check: the question worth asking of the shipped file is whether every
-     * phenomenon was *considered*, and only the keys can answer it.
-     */
-    val ratedMaterials: Set<String> get() = materials.keys
-    val ratedSpawns: Set<String> get() = spawns.keys
-    val ratedPhenomena: Set<String> get() = phenomena.keys
 
     private fun isAMonster(named: String): Boolean {
         val id = Identifier.tryParse(named) ?: return false

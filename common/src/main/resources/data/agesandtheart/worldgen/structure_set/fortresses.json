@@ -1,4 +1,11 @@
 {
+  "_comment": [
+    "Our own half of `minecraft:nether_complexes`, so a fortress can be asked for without a bastion.",
+    "Vanilla puts both on one grid of spacing 27, separation 4, picking by weight fortress 2 : bastion 3. Two",
+    "independent grids would place both at every site, so each is spaced to carry only its old share:",
+    "fortress 27/sqrt(0.4) = 43 sep 6, bastion 27/sqrt(0.6) = 35 sep 5. The salts must differ from each other",
+    "and from `nether_complexes`, or the grids coincide."
+  ],
   "structures": [
     {
       "structure": "minecraft:fortress",

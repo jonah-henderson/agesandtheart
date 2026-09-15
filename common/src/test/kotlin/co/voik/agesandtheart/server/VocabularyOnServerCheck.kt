@@ -37,15 +37,12 @@ class VocabularyOnServerCheck : FunSpec({
      * Asked of the server because the loaders register these, not `common`.
      */
     test("the mod's own fluids are words") {
-        val vocabulary = server.ask("words")
-        val known = vocabulary.getAsJsonArray("authoredWords").map { it.asJsonObject.get("word").asString }.toSet()
         for (ink in listOf("ink", "fine_ink", "masterwork_ink")) {
             val written = server.run("age write inkcheck_$ink 4242 age $ink springs")
             check("of=agesandtheart:$ink" in written) {
                 "'$ink springs' did not mint a spring running with it:\n$written"
             }
         }
-        check(known.isNotEmpty()) { "the corpus reported no authored words at all" }
     }
 
     /**

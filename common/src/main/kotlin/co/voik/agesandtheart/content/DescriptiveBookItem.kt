@@ -22,14 +22,7 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 
-/**
- * A Mystcraft-style Descriptive Book. On use it authors (or re-enters) the Age it's bound to
- * and teleports the holder there.
- *
- * The bound Age is stored in the stack's [AgeContent.AGE_ID] component and assigned lazily on
- * first use from a persistent counter — so every fresh book writes a distinct new Age, while
- * the same book always links back to its own.
- */
+/** A Mystcraft-style Descriptive Book, bound to the Age named by its [AgeContent.AGE_ID] component. */
 class DescriptiveBookItem(properties: Properties) : Item(properties) {
 
     /**

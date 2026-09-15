@@ -2,7 +2,6 @@ package co.voik.agesandtheart.content
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
@@ -65,7 +64,7 @@ class MidairBlockItem(block: Block, properties: Properties) : BlockItem(block, p
     /** A green flare where it appeared, since nothing else about a block arriving out of nowhere says so. */
     private fun settled(level: ServerLevel, at: BlockPos) {
         level.sendParticles(
-            ARC_GREEN,
+            ChargedMetal.ARC_GREEN,
             at.x + HALF,
             at.y + HALF,
             at.z + HALF,
@@ -87,7 +86,6 @@ class MidairBlockItem(block: Block, properties: Properties) : BlockItem(block, p
          */
         private const val SET_DOWN_AT = 3.0
 
-        private val ARC_GREEN = DustParticleOptions(0x3C_FF_6A, 1.0f)
         private const val SPARKS = 12
         private const val SPREAD = 0.3
         private const val DRIFT = 0.01

@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.client.panel
 
+import co.voik.agesandtheart.math.mix64
+import co.voik.agesandtheart.math.unitFloat
 import net.minecraft.util.Mth
 
 /** Where the panel's camera stands for one shot, each value `0..1` over a range [PanelCamera] owns. */
@@ -95,12 +97,8 @@ class PanelShots(private val seed: Long, unsettled: Float) {
     private fun sinceOpened(): Long = System.nanoTime() - openedAt
 
     /** `0..1` from [shot] and [salt], mixed with the Age's seed. */
-    private fun rolled(shot: Int, salt: Long): Float {
-        var bits = seed xor salt xor (shot.toLong() * SHOT_STRIDE)
-        bits = (bits xor (bits ushr 33)) * FIRST_MIX
-        bits = (bits xor (bits ushr 29)) * SECOND_MIX
-        return (bits ushr 40).toFloat() / TWENTY_FOUR_BITS
-    }
+    private fun rolled(shot: Int, salt: Long): Float =
+        unitFloat(mix64(seed xor salt xor (shot.toLong() * SHOT_STRIDE)))
 
     companion object {
         /** Either side of the tenth of a second Riven's panel ran at, which is the shape of the ramp. */
@@ -117,13 +115,9 @@ class PanelShots(private val seed: Long, unsettled: Float) {
 
         /** Splitmix64's, written signed because Kotlin has no unsigned literal that is a `const val`. */
         private const val SHOT_STRIDE = -0x61C8_8646_80B5_83EBL
-        private const val FIRST_MIX = -0x00AE_5028_1AAA_7333L
-        private const val SECOND_MIX = -0x3B31_4601_E57A_13ADL
 
         private const val TURN_SALT = 0x51ED_2701L
         private const val CLOSENESS_SALT = 0x2D3F_6A19L
         private const val LOFT_SALT = 0x7A41_C0DDL
-
-        private const val TWENTY_FOUR_BITS = 16_777_215.0f
     }
 }

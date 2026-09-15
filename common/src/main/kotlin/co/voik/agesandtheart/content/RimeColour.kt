@@ -1,5 +1,8 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.math.mix64
+import co.voik.agesandtheart.math.unitDouble
+
 /**
  * The eight colours a rime crystal grows in (design §7.1.2).
  *
@@ -38,19 +41,11 @@ enum class RimeColour(val key: String, val tint: Int, val signal: Int) {
          * Salted with the seed, so two Ages do not lay their colours in the same places.
          */
         fun around(seed: Long, x: Int, z: Int): RimeColour {
-            var mixed = (x.toLong() / CELL) * PRIME_ONE + (z.toLong() / CELL) * PRIME_TWO + seed
-            mixed = mixed xor (mixed ushr 33)
-            mixed *= PRIME_THREE
-            mixed = mixed xor (mixed ushr 29)
-            return entries[((mixed ushr SPARE_BITS) % entries.size).toInt()]
+            val cell = mix64(mix64(mix64(seed) + x.toLong() / CELL) + z.toLong() / CELL)
+            return entries[(unitDouble(cell) * entries.size).toInt()]
         }
 
         /** How wide a patch of one colour is, in blocks. */
         private const val CELL = 24L
-
-        private const val SPARE_BITS = 11
-        private val PRIME_ONE = 0x9E3779B97F4A7C15uL.toLong()
-        private val PRIME_TWO = 0xBF58476D1CE4E5B9uL.toLong()
-        private val PRIME_THREE = 0xFF51AFD7ED558CCDuL.toLong()
     }
 }

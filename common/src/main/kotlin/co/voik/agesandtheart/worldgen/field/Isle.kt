@@ -121,7 +121,7 @@ data class Isle(
      * flattens again at the coast, which is what leaves a beach rather than a cone dipping into the water.
      */
     private fun islandAt(cellX: Int, cellZ: Int, worldX: Int, worldZ: Int, wandered: Double): Double {
-        val holdsTheOrigin = layout != Layout.SCATTERED && cellX == 0 && cellZ == 0
+        val holdsTheOrigin = cellX == 0 && cellZ == 0
         val centreX = if (holdsTheOrigin) 0.0 else (cellX + HALF + cellHash(cellX, cellZ, X_SALT) * jitter) * spacing
         val centreZ = if (holdsTheOrigin) 0.0 else (cellZ + HALF + cellHash(cellX, cellZ, Z_SALT) * jitter) * spacing
         val radius = shoreRadius * (1.0 + cellHash(cellX, cellZ, SIZE_SALT) * 2.0 * radiusVariation)
@@ -188,11 +188,9 @@ data class Isle(
      * with no land you can reach.
      */
     enum class Layout : StringRepresentable {
-        /** A lattice of them, every cell jittered off its own point — including the one holding the origin. */
-        SCATTERED,
-
         /**
-         * The same lattice with the origin cell centred on the world origin.
+         * A lattice of them, every cell jittered off its own point but the one holding the origin, which is
+         * centred on the world origin.
          *
          * **Not a tidiness.** `Ages.findFooting` walks out 288 blocks looking for somewhere over the
          * waterline and then gives up; islands lie thousands apart, so a jittered origin cell puts the

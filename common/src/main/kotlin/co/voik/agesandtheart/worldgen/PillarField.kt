@@ -46,6 +46,5 @@ object PillarField {
     private const val JITTER = 8.0
 
     private const val SEABED_TOP = 43
-    private const val SEA_LEVEL = 63
     private const val PILLAR_SEED = 0xC01_1055L
 }

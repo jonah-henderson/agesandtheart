@@ -97,71 +97,6 @@ class VolcanoLakesCheck : FunSpec({
             }
         }
     }
-
-    /**
-     * **How pocked a stretch of volcanic country actually is**, printed rather than asserted — small
-     * craters are meant to be met on a walk rather than sought, and that is a density nobody can judge
-     * from a rule about cell sizes.
-     */
-    test("how much of a country holds lava, for reading") {
-        val bodies = HashMap<Int, Int>()
-        var wet = 0
-        var looked = 0
-        for (x in -COUNTRY..COUNTRY step STRIDE) {
-            for (z in -COUNTRY..COUNTRY step STRIDE) {
-                looked++
-                val standing = surfaceAt(x, z).lakeTop ?: continue
-                wet++
-                bodies[standing] = (bodies[standing] ?: 0) + 1
-            }
-        }
-        val across = COUNTRY * 2
-        println("  over ${across}x$across blocks: $wet of $looked columns hold lava, in ${bodies.size} bodies")
-        println("  the largest: " + bodies.entries.sortedByDescending { it.value }.take(SOME).joinToString {
-            "y=${it.key} (${it.value} columns)"
-        })
-    }
-
-    /**
-     * **Where one crater actually overflows**, read column by column rather than off the lattice.
-     *
-     * The channel through a rim is five blocks wide, so a scan every fourth column steps over most of it
-     * and reports a crater as sealed when it is not. This is the reading that settles whether the spill
-     * exists at all, and it is worth its cost once.
-     */
-    test("where a crater overflows, for reading") {
-        val (atX, atZ) = someVolcanoes().first()
-        var lava = 0
-        var open = 0
-        var lowest = Int.MAX_VALUE
-        for (offsetX in -DOWN_THE_FLANK..DOWN_THE_FLANK) {
-            for (offsetZ in -DOWN_THE_FLANK..DOWN_THE_FLANK) {
-                val column = surfaceAt(atX + offsetX, atZ + offsetZ)
-                for (range in column.lava.ranges) {
-                    for (y in range) {
-                        lava++
-                        if (touching(column).any { !it.lava.contains(y) && !it.rock.contains(y) }) {
-                            open++
-                            lowest = minOf(lowest, y)
-                        }
-                    }
-                }
-            }
-        }
-        println("  the cone near ($atX, $atZ), every column: $lava blocks of lava, $open facing open air")
-        if (open > 0) println("  the lowest of them stands at y=$lowest")
-    }
-
-    /** What one volcano actually came out as, printed rather than asserted — the instrument, as ever. */
-    test("a crater in cross-section, for reading") {
-        val (atX, atZ) = someVolcanoes().first()
-        println("  the cone near ($atX, $atZ), west to east through its middle:")
-        for (offset in -ACROSS..ACROSS step STRIDE) {
-            val column = surfaceAt(atX + offset, atZ)
-            val lake = column.lakeTop?.let { "lava to y=$it" } ?: "dry"
-            println("    x${offset.toString().padStart(4)}  rock to y=${column.rockTop.toString().padStart(4)}  $lake")
-        }
-    }
 }) {
     private companion object {
         private const val SEED = 11L
@@ -182,13 +117,6 @@ class VolcanoLakesCheck : FunSpec({
         /** How far out to look for cones to test, and how many is enough to have tested the four shapes. */
         private const val SEARCH = 3000.0
         private const val ENOUGH_CONES = 6
-
-        /** Half a kilometre each way — about one mountain cell, so the reading is one stretch of country. */
-        private const val COUNTRY = 512
-        private const val SOME = 6
-
-        /** Past a crater at its largest pose and well down the flank, where an overflow channel runs. */
-        private const val DOWN_THE_FLANK = 110
 
         /**
          * How much of a lake's own surface may face open air.
@@ -211,12 +139,8 @@ class VolcanoLakesCheck : FunSpec({
         private val VOLCANOES = VolcanoField.over(SEED)
 
         private data class Column(val x: Int, val z: Int, val rock: Spans, val lava: Spans) {
-            val rockTop: Int get() = rock.highestSolidY ?: NOWHERE
             val lakeTop: Int? get() = lava.highestSolidY
         }
-
-        /** Below any world, so a column with no rock in it never reads as ground. */
-        private const val NOWHERE = Int.MIN_VALUE / 2
 
         private fun surfaceAt(x: Int, z: Int) = Column(
             x = x,

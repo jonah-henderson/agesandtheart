@@ -16,10 +16,9 @@ import java.io.File
  * first place and how a grammar edited by hand in JSON can be brought back.
  *
  * **Not hung off `processResources`, deliberately.** The generated JSON lands in `src/main/resources`,
- * which `processResources` reads, and a task writing into another task's input directory is the undeclared
- * dependency this build has been bitten by before (see the note above `compilePreviewKotlin` in
- * `common/build.gradle.kts`). It is a task you run when you edit a grammar, and `GrammarSourceCheck` fails
- * the build if you forget.
+ * which `processResources` reads, and a task writing into another task's input directory is an undeclared
+ * dependency. It is a task you run when you edit a grammar, and `GrammarSourceCheck` fails the build if you
+ * forget.
  */
 fun main(arguments: Array<String>) {
     val importing = arguments.firstOrNull() == IMPORT

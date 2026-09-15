@@ -129,7 +129,7 @@ val SPECS_BY_FEATURE: Map<String, List<String>> = mapOf(
     "sky" to listOf(
         "co.voik.agesandtheart.sky.*",
         "co.voik.agesandtheart.server.SkyClockCheck",
-        "co.voik.agesandtheart.server.SkyKnobsCheck",
+        "co.voik.agesandtheart.server.SkyParametersCheck",
         "co.voik.agesandtheart.server.RainbowCommandCheck",
         "co.voik.agesandtheart.server.AppearanceCheck",
     ),
@@ -425,18 +425,8 @@ instrument(
 )
 
 instrument(
-    "waterlogging", "documentation", "co.voik.agesandtheart.preview.WaterloggingSurveyKt",
-    "Prices a second waterlogging property: how many block states it doubles, and whether one interface finds them all.",
-)
-
-instrument(
     "noiseprofile", "documentation", "co.voik.agesandtheart.preview.NoiseProfileKt",
     "Reports what fraction each noise character leaves solid, per threshold.",
-)
-
-instrument(
-    "noisebench", "documentation", "co.voik.agesandtheart.preview.NoiseBenchmarkKt",
-    "Times NormalNoise offline, to price a 3D-noise field before building one.",
 )
 
 instrument(
@@ -445,28 +435,9 @@ instrument(
 )
 
 instrument(
-    "resolverspike", "documentation", "co.voik.agesandtheart.preview.ResolverSpikeKt",
-    "THROWAWAY: does constraint satisfaction over weighted tags work? Read it, don't build on it.",
-)
-
-instrument(
-    "aspectspike", "documentation", "co.voik.agesandtheart.preview.AspectKindsSpikeKt",
-    "THROWAWAY: what survives of Aspect.kt if an aspect's value is typed by what it is? Read it, don't build on it.",
-)
-
-instrument(
     "tagreachspike", "documentation", "co.voik.agesandtheart.preview.TagReachSpikeKt",
     "THROWAWAY: when a vague word reaches a weighted set, how many members does it lift? Read it, don't build on it.",
 )
-
-
-
-
-
-
-
-
-
 
 instrument(
     "terraindiff", "verification", "co.voik.agesandtheart.preview.TerrainDiffKt",
@@ -478,7 +449,6 @@ instrument(
     "claimprofile", "documentation", "co.voik.agesandtheart.preview.ClaimProfileKt",
     "Reports the claim-value distribution and reprints ClaimTilt's table, ready to paste.",
 )
-
 
 instrument(
     "oceandepth", "documentation", "co.voik.agesandtheart.preview.OceanDepthSurveyKt",

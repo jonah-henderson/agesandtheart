@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.learnedWords
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.book.panel.PanelWarming
@@ -115,7 +116,6 @@ object DeskCommands {
         Services.NETWORK.sendToPlayer(player, DeskPricePayload(wordId, prices))
     }
 
-    /** Pushes the current state to whoever has the desk open. */
     /**
      * The stores alone, for a wing — which shows no archive and no composer, so it sends neither.
      *
@@ -163,7 +163,7 @@ object DeskCommands {
         toBook: Boolean,
     ) {
         val wordId = payload.word ?: return
-        if (!menu.knows(player, wordId)) return complain(player, "unknown_word")
+        if (!player.learnedWords.knows(wordId)) return complain(player, "unknown_word")
         val vocabulary = Vocabulary.of(player.level().server)
         val word = vocabulary.word(wordId.toString()) ?: vocabulary.word(wordId.path) ?: return
         if (toBook && !roomInBook(player, menu, desk)) return

@@ -20,7 +20,6 @@ import co.voik.agesandtheart.age.word.DerivedTags
  */
 class TagLayer(private val corpus: Corpus) {
 
-    /** Where a carrier's weight came from, which decides what changing it writes. */
     /**
      * Where a weight came from — **and so what changing it will do.**
      *
@@ -235,7 +234,6 @@ class TagLayer(private val corpus: Corpus) {
         }
     }
 
-    /** Everything carrying [tag], strongest first, with the dropped rows last where they belong. */
     /**
      * What is in [tag] — **grouped by where the membership came from**, or in one flat alphabetical run.
      *

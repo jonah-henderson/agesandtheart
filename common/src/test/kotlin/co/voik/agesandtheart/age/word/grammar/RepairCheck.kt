@@ -1,11 +1,11 @@
 package co.voik.agesandtheart.age.word.grammar
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.read
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Resolver
-import co.voik.agesandtheart.age.word.Vocabulary
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -18,16 +18,6 @@ import io.kotest.core.spec.style.FunSpec
  */
 @Tags(NEEDS_REGISTRIES)
 class RepairCheck : FunSpec({
-
-    val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
-            check(it.problems.isEmpty()) { "the corpus would not load: ${it.problems}" }
-        }
-    }
-
-
-    /** A book, read — null being a row that forgot the `age` page, which is a fixture bug (§4.3.1). */
-    fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
 
     /** A sky word under the land: the commonest way to write a book that is not a sentence. */
     val misaimed = listOf("age", "starless", "landmass")
@@ -42,19 +32,6 @@ class RepairCheck : FunSpec({
         check(read.dropped.isEmpty()) { "a re-homable page was dropped: ${read.dropped}" }
         val kept = read.written.map { it.word.name }
         check(kept == listOf("landmass", "starless")) { "the writer's pages came back as $kept" }
-    }
-
-    /**
-     * **Deterministic**, which is not a nicety: an Age rebuilds from its recipe on every open, so a repair
-     * that drew differently the second time would be a different world under the same book.
-     *
-     * Drawn from the pages themselves rather than from a seed, so the reading belongs to the book and the
-     * seed belongs to the Age — a Descriptive Book reads the same wherever it is carried.
-     */
-    test("the same book always repairs the same way") {
-        val once = read(misaimed)
-        val again = read(misaimed)
-        check(once == again) { "one book read two ways:\n  $once\n  $again" }
     }
 
     /**

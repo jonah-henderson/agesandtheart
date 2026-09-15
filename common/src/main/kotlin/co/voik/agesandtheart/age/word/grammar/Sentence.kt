@@ -36,7 +36,7 @@ data class Constraint(
     /** Which `and`-group this joined, or null where it stood alone. */
     val group: Group? = null,
     /**
-     * How much of it the writer asked for — [Density.ORDINARY] where they said nothing, which is the rung
+     * How much of it the writer asked for — [Rung.ORDINARY] where they said nothing, which is the rung
      * that asks for nothing and rebuilds nothing.
      */
     val density: Double = Rung.ORDINARY,
@@ -90,8 +90,7 @@ data class Constraint(
  * language itself is described in, and any replacement parser would owe the same. What it deliberately does
  * not carry is a tree — there is no nesting here, only a flat run of clauses.
  *
- * The three lists are in written order and are the whole of it: evocative words precede their subject,
- * everything steering it follows (design §4.3.1).
+ * [modifiers] is in written order and leads the subject, which closes the clause (design §4.3.1).
  */
 data class Phrase(
     /**
@@ -159,25 +158,6 @@ data class Sentence(
 
     /** Every page that reached no clause, whichever way it failed — for saying so beside the readout. */
     val dropped: List<String> get() = unreadable + impossible
-
-    companion object {
-        /**
-         * A book already broken into constraints, with no clause structure to render — what a check means
-         * when it builds a sentence by hand to exercise the resolver.
-         */
-        fun of(constraints: List<Constraint>, unreadable: List<String> = emptyList()): Sentence =
-            Sentence(constraints.map { Phrase(modifiers = listOf(it)) }, unreadable)
-
-        /**
-         * A book with no structure — every word standing alone, unaimed. What a check means when it wants
-         * to exercise the resolver without a parser.
-         */
-        fun flat(words: List<Word>): Sentence = of(
-            words.map { word ->
-                Constraint(word, if (word.tier.narrows) word.aspects else emptySet())
-            },
-        )
-    }
 
     /**
      * Whether the *writer* said anything that stuck. Asked of what they wrote rather than of the whole

@@ -255,15 +255,6 @@ data class Canyon(
     )
 
     companion object {
-        /** Enough to read as strata; more than about six and each tread is too narrow to stand on. */
-        const val DEFAULT_BENCHES = 5
-
-        /** The riser's share of a bench. Small, or the wall becomes a ramp with ripples in it. */
-        const val DEFAULT_RISER_SHARE = 0.3
-
-        /** The river bed's share of the width — a valley floor about a tenth of the way out. */
-        const val DEFAULT_FLOOR_SHARE = 0.09
-
         /**
          * How far the bed rises and falls. Read against the river's own depth: past it and the bed breaks
          * the surface as a bar, well under it and the water runs deep.
@@ -279,10 +270,6 @@ data class Canyon(
         private const val BED_OCTAVE = -4
         private val BED_AMPLITUDES = listOf(1.0, 0.5)
         private const val BED_SALT = 0x8ED_B0DL
-
-        /** The gorge's share of the width, and of the depth. Steep against the benched wall above it. */
-        const val DEFAULT_GORGE_SHARE = 0.3
-        const val DEFAULT_GORGE_RISE = 0.25
 
         /** How far the axis wanders, and how long a bend runs. Both scale with a resized canyon. */
         const val DEFAULT_MEANDER_REACH = 60.0

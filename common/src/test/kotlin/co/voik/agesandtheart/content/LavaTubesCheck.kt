@@ -15,7 +15,7 @@ class LavaTubesCheck : FunSpec({
 
     /** Jonah's figure, and the anchor everything else on the curve is read against. */
     test("a tube on its own throws about every two minutes") {
-        val apart = LavaTubes.TICKS_BETWEEN_VISITS / LavaTubes.eagernessAmong(ALONE)
+        val apart = TICKS_BETWEEN_VISITS / LavaTubes.eagernessAmong(ALONE)
         check(apart in NEARLY_TWO_MINUTES..OVER_TWO_MINUTES) {
             "a lone tube throws every ${apart.toInt()} ticks, where two minutes is $TWO_MINUTES"
         }
@@ -73,6 +73,9 @@ class LavaTubesCheck : FunSpec({
     }
 }) {
     private companion object {
+        /** How often vanilla visits a given block, at the default random tick rate — the ceiling on all of this. */
+        private const val TICKS_BETWEEN_VISITS = 4096.0 / 3.0
+
         private const val ALONE = 0
         private const val HALF_SURROUNDED = 13
         private const val SURROUNDED = 26
@@ -96,7 +99,7 @@ class LavaTubesCheck : FunSpec({
 
         /** Visits arrive per block, so a mass of [tubes] is visited that many times as often. */
         private fun waitFor(tubes: Int, crowd: Int): Double =
-            LavaTubes.TICKS_BETWEEN_VISITS / (tubes * LavaTubes.eagernessAmong(crowd))
+            TICKS_BETWEEN_VISITS / (tubes * LavaTubes.eagernessAmong(crowd))
 
         private fun massOf(size: Int): Set<BlockPos> = (0..<size).map { BlockPos(it, 0, 0) }.toSet()
     }

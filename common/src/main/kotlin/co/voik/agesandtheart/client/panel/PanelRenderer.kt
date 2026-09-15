@@ -45,20 +45,18 @@ object PanelRenderer {
     var haze: Int = BEHIND_THE_AGE
         private set
 
-    /**
-     * Renders one frame of [preview], answering whether anything was drawn.
-     *
-     * False until a chunk has arrived, which is the ordinary case for the first moments of a book.
-     */
-    fun draw(preview: PreviewLevel, delta: DeltaTracker): Boolean = drawOnce(preview, delta)
-
     /** Forgets what has been drawn, so one book's panel never interlaces with the last one's Age. */
     fun startOver() {
         drawn = NO_SHOT
         PanelTarget.startOver()
     }
 
-    private fun drawOnce(preview: PreviewLevel, delta: DeltaTracker): Boolean {
+    /**
+     * Renders one frame of [preview], answering whether anything was drawn.
+     *
+     * False until a chunk has arrived, which is the ordinary case for the first moments of a book.
+     */
+    fun draw(preview: PreviewLevel, delta: DeltaTracker): Boolean {
         if (!preview.load.hasAnything) return false
 
         // Before the target is asked for: turning over is what decides which field the frame lands in.

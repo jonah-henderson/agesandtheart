@@ -31,12 +31,6 @@ import net.minecraft.world.item.ItemStack
  */
 object Acquaintance {
 
-    /** What a sample the analyser was fed turned out to be worth. */
-    fun withSubstance(player: ServerPlayer, sample: ItemStack): Acquainted {
-        val substance = substanceIn(sample) ?: return Acquainted.Unnameable
-        return teach(player, substance)
-    }
-
     /**
      * Why [referent] would teach nothing, or null where it would — **asked without granting anything**.
      *

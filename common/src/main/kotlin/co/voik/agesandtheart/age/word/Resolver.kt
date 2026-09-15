@@ -54,6 +54,16 @@ data class Resolution(
 }
 
 /**
+ * Where one member of a part of the world stands after one word has spoken — how strongly it is claimed,
+ * and whether the word leaves it in at all.
+ *
+ * A catalogue's [strength] is what decides which single preset is seated; a population's is the share of
+ * the world that member keeps. The two scales are not comparable across aspects and never need to be:
+ * every reader of this is ranking one aspect's members against each other.
+ */
+data class Standing(val strength: Double, val kept: Boolean)
+
+/**
  * Words in, a world out. Every word scores every preset in the aspects it may fill; precise words
  * *narrow* the candidates, vague words *tilt* the draw between whatever survived, and the seed picks.
  * There is no per-tier code path and no geometry anywhere.
@@ -71,16 +81,6 @@ data class Resolution(
  *
  * A pure function of (vocabulary, words, seed): an Age is rebuilt from its recipe on every open.
  */
-/**
- * Where one member of a part of the world stands after one word has spoken — how strongly it is claimed,
- * and whether the word leaves it in at all.
- *
- * A catalogue's [strength] is what decides which single preset is seated; a population's is the share of
- * the world that member keeps. The two scales are not comparable across aspects and never need to be:
- * every reader of this is ranking one aspect's members against each other.
- */
-data class Standing(val strength: Double, val kept: Boolean)
-
 object Resolver {
     /**
      * How many ways one aspect may divide. A limit on legibility rather than machinery — region maps
@@ -316,17 +316,6 @@ object Resolver {
         said.firstNotNullOfOrNull { it.word.template?.let(AgeTemplate::named) } ?: AgeTemplate.ORDINARY
 
     /**
-     * [composition] with every feature the sentence **minted** added to what the Age places — `ink springs`,
-     * `gold block veins` (world model §2).
-     *
-     * **Read off the clauses rather than off the flat claims**, and that is the one place in the resolver
-     * that is: minting is a fact about a clause, being a pattern and a substance said together, and the
-     * flattening that every other rule works from has thrown the pairing away by the time it gets here.
-     *
-     * The claim names the pattern and carries the substance, so nothing downstream has to know there were
-     * ever two pages — `Features` looks the pattern up and swaps what it is made of.
-     */
-    /**
      * What [phrase] would mint out of, or null where it mints nothing.
      *
      * **One answer, asked in two places**, because they disagreed and that was the bug: `resolve` charged a
@@ -347,6 +336,17 @@ object Resolver {
         return phrase.modifiers.firstNotNullOfOrNull { it.drawnAt(draw).word.material } ?: subject.word.unstated
     }
 
+    /**
+     * [composition] with every feature the sentence **minted** added to what the Age places — `ink springs`,
+     * `gold block veins` (world model §2).
+     *
+     * **Read off the clauses rather than off the flat claims**, and that is the one place in the resolver
+     * that is: minting is a fact about a clause, being a pattern and a substance said together, and the
+     * flattening that every other rule works from has thrown the pairing away by the time it gets here.
+     *
+     * The claim names the pattern and carries the substance, so nothing downstream has to know there were
+     * ever two pages — `Features` looks the pattern up and swaps what it is made of.
+     */
     private fun mintedFeatures(composition: AgeComposition, sentence: Sentence, draw: Long): AgeComposition {
         val minted = sentence.phrases.mapNotNull { phrase ->
             val subject = phrase.subject ?: return@mapNotNull null
@@ -551,19 +551,7 @@ object Resolver {
         flaws: MutableList<Flaw>,
     ) {
         val leading = kept.firstOrNull()?.words?.firstOrNull() ?: return
-        for (territory in kept.drop(1)) {
-            val contender = territory.words.first()
-            // A division the writer asked for costs nothing: `and` means "keep both, and keep them apart".
-            if (wereJoined(contender, leading)) continue
-            flaws += flaw(
-                vocabulary,
-                Register.FRACTURE,
-                listOf(contender, leading),
-                aspect,
-                opposedTags(vocabulary, contender, leading),
-                maxOf(contender.word.tier, leading.word.tier),
-            )
-        }
+        flaws += fracturesAgainst(vocabulary, aspect, leading, kept.drop(1).map { it.words.first() })
         for (said in lost.flatMap { it.words }) {
             flaws += flaw(
                 vocabulary,
@@ -582,6 +570,26 @@ object Resolver {
      */
     private fun wereJoined(one: Constraint, other: Constraint): Boolean =
         one.group != null && one.group == other.group
+
+    /**
+     * A [Register.FRACTURE] for each of [contenders] dividing [aspect] against [leading]. A division the
+     * writer asked for costs nothing: `and` means "keep both, and keep them apart".
+     */
+    private fun fracturesAgainst(
+        vocabulary: Vocabulary,
+        aspect: Aspect,
+        leading: Constraint,
+        contenders: List<Constraint>,
+    ): List<Flaw> = contenders.filterNot { wereJoined(it, leading) }.map { contender ->
+        flaw(
+            vocabulary,
+            Register.FRACTURE,
+            listOf(contender, leading),
+            aspect,
+            opposedTags(vocabulary, contender, leading),
+            maxOf(contender.word.tier, leading.word.tier),
+        )
+    }
 
     /**
      * The presets an aspect takes on because the sentence liked several of them, rather than because it
@@ -650,7 +658,7 @@ object Resolver {
         val strongest = claims.max()
         // The sentence said nothing about this aspect, so nothing justifies favouring one answer.
         if (strongest <= FAINTEST_CHANCE) return chosen.map { Filling(it, Share.EVEN) }
-        val shares = Share.findable(claims.map { Share.legible(it / strongest) })
+        val shares = Share.findable(claims.map { Rung.legible(it / strongest) })
         // Widest first, so a recipe reads as the sentence would be spoken, and so the terrain whose sea
         // prevails is the one named first.
         return chosen.mapIndexed { index, preset -> Filling(preset, shares[index]) }
@@ -1176,20 +1184,7 @@ object Resolver {
         }
 
         val leading = groups.first().first()
-        for (group in groups.drop(1)) {
-            val contender = group.first()
-            // A division the writer asked for costs nothing — `and` means "keep both, and keep them
-            // apart", and a clause per member says it another way and returned above.
-            if (wereJoined(contender, leading)) continue
-            flaws += flaw(
-                vocabulary,
-                Register.FRACTURE,
-                listOf(contender, leading),
-                aspect,
-                opposedTags(vocabulary, contender, leading),
-                maxOf(contender.word.tier, leading.word.tier),
-            )
-        }
+        flaws += fracturesAgainst(vocabulary, aspect, leading, groups.drop(1).map { it.first() })
         var fractured = withMembers(aspect, groups.size)
         for ((member, bounds) in climates.withIndex()) fractured = written(fractured, member, settledWith(bentTo(bounds)))
         return fractured
@@ -1247,19 +1242,6 @@ object Resolver {
     }
 
     /**
-     * How much of the world one member of a population should have, against what it would have had anyway
-     * — or null where the sentence said nothing that reaches it.
-     *
-     * Three tiers, three readings, and the difference between them is the design's own (§3.3): an
-     * **evocative** word tilts by how well the member answers it, signed, so "beautiful" thins the ash
-     * flats as surely as it thickens the flower meadows; a **restrictive** word bears down on the members
-     * that qualify at its threshold; and a member is never *removed* by either, since a word that merely
-     * likes something is not an instruction to delete anything ([BiomePreference.LEAST_KEPT]).
-     *
-     * `only` and `except` are the exception, and deliberately so: those are the writer saying outright
-     * what to keep and what to strike, rather than what to prefer.
-     */
-    /**
      * **How one [word] alone stands towards one member of [aspect]** — a sentence of one page, resolved.
      *
      * Both kinds of draw answer here, because both are a draw from a set and a tool has no business
@@ -1278,6 +1260,19 @@ object Resolver {
         return Standing(claim.density, kept = claim.polarity != Polarity.EXCEPT)
     }
 
+    /**
+     * How much of the world one member of a population should have, against what it would have had anyway
+     * — or null where the sentence said nothing that reaches it.
+     *
+     * Three tiers, three readings, and the difference between them is the design's own (§3.3): an
+     * **evocative** word tilts by how well the member answers it, signed, so "beautiful" thins the ash
+     * flats as surely as it thickens the flower meadows; a **restrictive** word bears down on the members
+     * that qualify at its threshold; and a member is never *removed* by either, since a word that merely
+     * likes something is not an instruction to delete anything ([BiomePreference.LEAST_KEPT]).
+     *
+     * `only` and `except` are the exception, and deliberately so: those are the writer saying outright
+     * what to keep and what to strike, rather than what to prefer.
+     */
     private fun claimForMember(
         vocabulary: Vocabulary,
         member: Taggable,
@@ -1475,19 +1470,7 @@ object Resolver {
         val groups = groupsOf(aspect, parameter, contenders)
         val seated = presets.first { it.aspect == aspect }
         val leading = groups.first().first()
-        for (group in groups.drop(1)) {
-            val contender = group.first()
-            // The same exemption [chargeForContention] makes: a writer who joined them asked for both.
-            if (wereJoined(contender, leading)) continue
-            flaws += flaw(
-                vocabulary,
-                Register.FRACTURE,
-                listOf(contender, leading),
-                aspect,
-                opposedTags(vocabulary, contender, leading),
-                maxOf(contender.word.tier, leading.word.tier),
-            )
-        }
+        flaws += fracturesAgainst(vocabulary, aspect, leading, groups.drop(1).map { it.first() })
         var fractured = withPresets(aspect, List(groups.size) { seated.key })
         for ((member, group) in groups.withIndex()) {
             val asked = group.map { it.word.setsIn(aspect).getValue(parameter) }.distinct()
@@ -1604,14 +1587,6 @@ object Resolver {
      */
     private fun holds(composition: AgeComposition, aspect: Aspect, parameter: String): Boolean =
         parametersOf(composition, aspect).any { it.name == parameter }
-
-    /**
-     * Whether [parameter] accumulates rather than contends, asked of the presets seated in [aspect] (§3.2).
-     * Unknown to all of them counts as predicative: accumulating values for a parameter that does not exist
-     * would make a typo look deliberate.
-     */
-    private fun isPopulative(composition: AgeComposition, aspect: Aspect, parameter: String): Boolean =
-        parameterNamed(composition, aspect, parameter)?.holds == Holds.WEIGHTED_SET
 
     /** The parameter [aspect] calls [parameter], from wherever it is owned — see [parametersOf]. */
     private fun parameterNamed(composition: AgeComposition, aspect: Aspect, parameter: String): Parameter? =

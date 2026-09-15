@@ -46,13 +46,12 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
     /** Everything written for [parameter], brackets and all — what a second ground is appended to. */
     fun allSpelled(parameter: String): Set<String> = chosen[parameter].orEmpty().toSet()
 
-    /** Whether anything said about [parameter] was confined to a biome — see [of]. */
-    fun confinesAnywhere(parameter: Parameter): Boolean =
-        chosen[parameter.name].orEmpty().any { Claim.read(it).confinedTo != null }
-
-    /** Every biome a value of [parameter] was confined to, in the order they were written. */
-    fun confinedIn(parameter: Parameter): List<Identifier> =
-        chosen[parameter.name].orEmpty().mapNotNull { Claim.read(it).confinedTo }.distinct()
+    /**
+     * Every biome anything written under [name] was confined to, in the order they were written — a
+     * parameter's values and a pool's members alike, since both are stored under a name.
+     */
+    fun confinedIn(name: String): List<Identifier> =
+        chosen[name].orEmpty().mapNotNull { Claim.read(it).confinedTo }.distinct()
 
     /**
      * Every option chosen for [parameter], which for a material means mingled rather than divided (§3.2).
@@ -63,28 +62,19 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
     fun allOf(parameter: Parameter): List<String> =
         chosen[parameter.name].orEmpty().map { Claim.read(it).value }.filter(parameter::accepts)
 
-    /**
-     * Every value chosen for [parameter] with what the writer asked of it — what a populative parameter
-     * reads instead of [allOf] (§4.3.1, [Claim]). The mark is stripped before the value is validated, or
-     * a struck-out value would fail `Identifier.tryParse` and the exclusion would not happen.
-     */
-    fun claimsOn(parameter: Parameter): List<Claim> =
-        chosen[parameter.name].orEmpty().map(Claim::read).filter { parameter.accepts(it.value) }
-
-    // -- the same three, asked of a pool ---------------------------------------------------------------
+    // -- asked of a pool -------------------------------------------------------------------------------
     //
     // A pool holds members where a parameter holds a value, and both are stored under a name, so what
     // differs is only what counts as a legal entry. `accepts` is the whole of the difference.
 
-    fun confinedIn(pool: Pool): List<Identifier> =
-        chosen[pool.name].orEmpty().mapNotNull { Claim.read(it).confinedTo }.distinct()
-
-    fun confinesAnywhere(pool: Pool): Boolean =
-        chosen[pool.name].orEmpty().any { Claim.read(it).confinedTo != null }
-
     fun allOf(pool: Pool): List<String> =
         chosen[pool.name].orEmpty().map { Claim.read(it).value }.filter(pool::accepts)
 
+    /**
+     * Every member written for [pool] with what the writer asked of it (§4.3.1, [Claim]). The mark is
+     * stripped before the value is validated, or a struck-out value would fail `Identifier.tryParse` and
+     * the exclusion would not happen.
+     */
     fun claimsOn(pool: Pool): List<Claim> =
         chosen[pool.name].orEmpty().map(Claim::read).filter { pool.accepts(it.value) }
 

@@ -2,10 +2,11 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.resolved
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.word.Resolver
-import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
@@ -39,23 +40,15 @@ import java.io.File
 @Tags(NEEDS_REGISTRIES)
 class MintingCheck : FunSpec({
 
-    val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
-            check(it.problems.isEmpty()) { "vocabulary problems: ${it.problems}" }
-        }
-    }
-
     /** What a book asking for one minted feature leaves in [Features.PLACES]. */
     fun placed(vararg pages: String): Set<String> {
-        val sentence = Grammar.read(vocabulary, listOf("age", *pages)) ?: error("not a book: ${pages.toList()}")
-        val composition = Resolver.resolve(vocabulary, sentence, SAMPLE_SEED).composition
+        val composition = resolved(SAMPLE_SEED, *pages).composition
         return composition.optionsFor(Aspect.FEATURES, 0).allSpelled(Features.PLACES.name)
     }
 
     /** Where a book left the features aspect's own size dial. */
     fun sizeOf(vararg pages: String): String {
-        val sentence = Grammar.read(vocabulary, listOf("age", *pages)) ?: error("not a book: ${pages.toList()}")
-        val composition = Resolver.resolve(vocabulary, sentence, SAMPLE_SEED).composition
+        val composition = resolved(SAMPLE_SEED, *pages).composition
         return composition.optionsFor(Aspect.FEATURES, 0).of(Features.SIZE)
     }
 
@@ -67,10 +60,7 @@ class MintingCheck : FunSpec({
     }
 
     /** What a book resolved to as instability, so a charge can be checked rather than only a claim. */
-    fun flawsOf(vararg pages: String): List<Flaw> {
-        val sentence = Grammar.read(vocabulary, listOf("age", *pages)) ?: error("not a book: ${pages.toList()}")
-        return Resolver.resolve(vocabulary, sentence, SAMPLE_SEED).instability.flaws
-    }
+    fun flawsOf(vararg pages: String): List<Flaw> = resolved(SAMPLE_SEED, *pages).instability.flaws
 
     /**
      * **A spring cannot run with a solid, and the writer is told what it cost.**

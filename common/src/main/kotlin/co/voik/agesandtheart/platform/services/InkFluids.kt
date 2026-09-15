@@ -7,8 +7,8 @@ import net.minecraft.world.level.material.Fluid
 /**
  * The registered ink fluids, which only a loader can build.
  *
- * A service for the same reason [AgeBackend] is: the *objects* are loader-specific even though everything
- * about them that matters — ids, colours, capacity — is not. See [co.voik.agesandtheart.content.AgeFluids]
+ * A service because the *objects* are loader-specific even though everything about them that matters —
+ * ids, colours, capacity — is not. See [co.voik.agesandtheart.content.AgeFluids]
  * for why common cannot hold a `Fluid` subclass.
  */
 interface InkFluids {

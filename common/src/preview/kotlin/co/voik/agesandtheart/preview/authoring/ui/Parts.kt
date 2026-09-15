@@ -528,7 +528,7 @@ class Parts(private val corpus: Corpus) {
      * name and the count out of the whole is the honest answer instead.
      */
     private fun poolHeading(insistence: Insistence, at: Int, pool: Facets): List<Ink> {
-        val subject = Aspect.entries.firstOrNull { it.page == pool.said }
+        val subject = Aspect.byPage(pool.said)
         val head = Ink(
             "${insistence.title} ${poolNamed(at)} ${Glyph.BULLET} draws ${pool.draws} ",
             Palette.chosen,
@@ -920,16 +920,6 @@ class Parts(private val corpus: Corpus) {
         }.joinToString("\n")
     }
 
-    /** How many aspects the parameter on [row] lands on, which is what tab has to cycle through. */
-    fun targetsOf(row: Row, candidate: Candidate, word: Word?): Int {
-        val parameter = row.handle.substringAfter('/', "").ifEmpty { return 0 }
-        val bare = parameter.substringAfterLast('.')
-        val meant = parameter.substringBefore('.').takeIf { it != parameter }
-        return word?.aspects.orEmpty()
-            .filter { meant == null || it.page == meant }
-            .count { corpus.vocabulary.turnsAParameter(it, bare) }
-    }
-
     /**
      * What the parameter takes, a value to a line and capped.
      *
@@ -953,7 +943,7 @@ class Parts(private val corpus: Corpus) {
             Picker.Option("<0.2", "a ceiling", "at most this"),
             Picker.Option("+0.3", "a nudge", "more than it would have been; nudges add up"),
             Picker.Option("~0.2", "a spread", "wider, or narrower, about the middle of the band"),
-        ) + bandsFor(parameter)
+        ) + wordsSaying(parameter)
         // **A material takes a block, so it offers the blocks.** It used to offer `unchanged` and the
         // words "or any registry id", which is a list of one and an instruction to go and find the rest —
         // with eleven hundred of them a keystroke away in the corpus this screen already holds.
@@ -981,32 +971,13 @@ class Parts(private val corpus: Corpus) {
     }
 
     /**
-     * Every block a material parameter could take, out of the corpus rather than a registry.
-     *
-     * `holdsYouUp` narrows it to what can be a world: `Materials.makesAWorld` is what keeps a sign from
-     * being the rock an Age is built of, and offering one here would be offering a value the corpus
-     * refuses two screens later.
-     */
-    /**
-     * **Where the words already written put themselves on this axis.**
-     *
-     * An axis runs ${Span.NATURAL_LEAST} to ${Span.NATURAL_MOST} and nothing about the number says what
-     * it means — it is not vanilla's temperature, and a writer with no landmarks is guessing. The corpus
-     * *is* the landmarks: `icy` says where cold is and `scorching` says where hot is, and neither has to
-     * be written down twice to be read here.
-     *
-     * They are pickable as well as readable, because "the same band as `arid`" is a thing a writer means.
-     */
-    /**
      * How the words already written say this axis — the corpus as its own set of landmarks.
      *
      * Public because the band screen offers them beside the axis rather than among the shapes a value can
      * take: "the same band as `arid`" is a thing a writer means, and it is a different errand from moving
      * an end.
      */
-    fun wordsSaying(parameter: Parameter): List<Picker.Option> = bandsFor(parameter)
-
-    private fun bandsFor(parameter: Parameter): List<Picker.Option> =
+    fun wordsSaying(parameter: Parameter): List<Picker.Option> =
         corpus.vocabulary.authoredWords
             .mapNotNull { word -> word.everySet[parameter.name]?.let { said -> said to word.name } }
             .filter { (said, _) -> Setting.describes(said) }
@@ -1040,6 +1011,13 @@ class Parts(private val corpus: Corpus) {
             .map { id -> Picker.Option(id, id, "") }
     }
 
+    /**
+     * Every block a material parameter could take, out of the corpus rather than a registry.
+     *
+     * `holdsYouUp` narrows it to what can be a world: `Materials.makesAWorld` is what keeps a sign from
+     * being the rock an Age is built of, and offering one here would be offering a value the corpus
+     * refuses two screens later.
+     */
     private fun blocksFor(parameter: Parameter): List<Picker.Option> =
         corpus.vocabulary.derivedWords
             .mapNotNull { it.material }
@@ -1277,10 +1255,6 @@ class Parts(private val corpus: Corpus) {
     }
 
     /**
-     * What a requested tag leans on. Not [tagNote], which counts what a *narrowing* word keeps — a
-     * request narrows nothing, so that number is zero for every one of them.
-     */
-    /**
      * What a lean actually falls on — a member by name, or everything carrying a tag.
      *
      * A null [aspect] is the `all` lean an evocative word makes, which falls wherever the tag is carried.
@@ -1300,22 +1274,6 @@ class Parts(private val corpus: Corpus) {
     }
 
     // -- the rest ------------------------------------------------------------------------------------
-
-    private fun weightRows(candidate: Candidate) =
-        candidate.weights.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, byPreset) ->
-            byPreset.entries.sortedByDescending { it.value }.map { (preset, weight) ->
-                Row(
-                    handle = "weight/${aspect.page}/$preset",
-                    shown = listOf(
-                        Ink("    "),
-                        Ink(LEANS.padEnd(KIND_COLUMN), Palette.faint),
-                        Ink(preset.padEnd(PARAMETER_COLUMN), Palette.value),
-                        Ink("%+.2f".format(weight).padEnd(8), Palette.value),
-                        Ink("in ${aspect.page}", Palette.faint),
-                    ),
-                )
-            }
-        }
 
     /**
      * A labelled value, lined up on a column [wide] enough for every label beside it.
@@ -1430,9 +1388,6 @@ class Parts(private val corpus: Corpus) {
         const val REVIEW_INDENT = 4
         const val REVIEW_GAP = 2
 
-        /** Where a review row's second column starts. */
-        const val MARK_COLUMN = 14
-
         /**
          * The cost section's two groups of columns, each measured against its own rows: a name, its ink
          * and what it means; then a field, its value and what it does.
@@ -1443,8 +1398,6 @@ class Parts(private val corpus: Corpus) {
         /** The `● ` a chosen row wears, which every row in that group is indented by. */
         const val MARKER_ROOM = 2
 
-        /** Where the worked sum goes: under the multiplier, which is the one nobody can read off. */
-
         /** The gap between a label and the value it labels, wherever the two share a row. */
         const val LABEL_GUTTER = 2
 
@@ -1453,31 +1406,9 @@ class Parts(private val corpus: Corpus) {
 
         /** How many carriers a lean's note names before it stops. */
         const val CARRIERS_SHOWN = 6
-
-        /**
-         * What each kind of claim actually does — **named for its force, not for how it is spelled.**
-         *
-         * `outright` and `by name` said how you wrote it and looked like two ways of writing one thing.
-         * They are not: measured over twenty seeds, a word that only *means* a landform seats it twenty
-         * times and one that only *weighs* it seats it seven. A weight never narrows at all
-         * (`Word.constrainsPresetsIn` is false for one) — it admits the preset to the draw and makes it
-         * likelier, where a meaning is the answer and no search happens.
-         */
-        const val SETTLES = "settles"
-        const val KEEPS = "keeps"
-        const val LEANS = "leans"
-        const val OFFERS = "offers"
-
     }
 }
 
-/**
- * Where a facet is going: a insistence's always-half, or one of that insistence's pools.
- *
- * One value because every flow that collects a facet — pick a parameter, qualify it, type a value — has
- * to carry the destination through unchanged, and a insistence and an optional index threaded separately went
- * out of step the first time a pool was added mid-flow.
- */
 /**
  * Where a setting is going: which half of the word, which pool, and which of that pool's offers.
  *

@@ -134,8 +134,6 @@ data class WordRarity(val buckets: List<RarityBucket>) {
 
         private const val JSON_SUFFIX = ".json"
 
-        val NONE = WordRarity(emptyList())
-
         /** The buckets in [resources], stacked so a pack may retune a weight without reprinting the file. */
         fun load(resources: ResourceManager, problems: MutableList<String>): WordRarity {
             val merged = mutableMapOf<String, RarityBucket>()

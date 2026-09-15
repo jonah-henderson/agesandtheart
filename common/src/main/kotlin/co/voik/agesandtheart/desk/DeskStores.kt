@@ -14,11 +14,7 @@ import net.minecraft.resources.Identifier
 data class PageArchive(private val counts: Map<Identifier, Int>) {
     val words: Set<Identifier> get() = counts.keys
 
-    val total: Int get() = counts.values.sum()
-
     fun count(word: Identifier): Int = counts[word] ?: 0
-
-    fun has(word: Identifier): Boolean = count(word) > 0
 
     fun with(word: Identifier, added: Int): PageArchive =
         PageArchive(counts + (word to (count(word) + added).coerceAtLeast(0)))

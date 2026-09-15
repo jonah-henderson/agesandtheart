@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.client.ui.CapsuleGauge
 import co.voik.agesandtheart.client.ui.CountedItem
 import co.voik.agesandtheart.client.ui.DecorationWidget
+import co.voik.agesandtheart.client.ui.Palette
 import co.voik.agesandtheart.client.ui.PanelSurface
 import co.voik.agesandtheart.client.ui.PlayerInventoryView
 import co.voik.agesandtheart.client.ui.Rect
@@ -101,14 +102,7 @@ class InkCaseScreen(menu: InkCaseMenu, inventory: Inventory, title: Component) :
 
     override fun contents(): LinearLayout = LinearLayout.horizontal().spacing(GAUGE_GAP).apply {
         InkTier.entries.forEach { tier ->
-            addChild(
-                CapsuleGauge(
-                    GAUGE_WIDTH, GAUGE_HEIGHT,
-                    reading = { DeskModel.ink(tier).toFloat() / DeskModel.inkCapacity().coerceAtLeast(1) },
-                    colour = { AgeFluids.INKS[tier]?.tint ?: co.voik.agesandtheart.client.ui.Palette.TEXT },
-                    tooltip = { inkTooltip(tier) },
-                ),
-            )
+            addChild(DeskStockDisplay.inkGauge(tier, GAUGE_WIDTH, GAUGE_HEIGHT) { inkTooltip(tier) })
         }
     }
 
@@ -126,18 +120,37 @@ class SupplyBinScreen(menu: SupplyBinMenu, inventory: Inventory, title: Componen
 
     override fun contents(): LinearLayout = LinearLayout.vertical().apply {
         InkTier.entries.forEach { tier ->
-            addChild(CountedItem(STOCK_WIDTH, STOCK_LINE, icon = { paperFor(tier) }, count = { DeskModel.paper(tier) }))
+            addChild(
+                CountedItem(
+                    STOCK_WIDTH, STOCK_LINE,
+                    icon = { DeskStockDisplay.paperIcon(tier) },
+                    count = { DeskModel.paper(tier) },
+                ),
+            )
         }
-        addChild(CountedItem(STOCK_WIDTH, STOCK_LINE, icon = { BINDING }, count = { DeskModel.binding() }))
+        addChild(
+            CountedItem(STOCK_WIDTH, STOCK_LINE, icon = { DeskStockDisplay.BINDING }, count = { DeskModel.binding() }),
+        )
     }
+}
 
-    private fun paperFor(tier: InkTier): ItemStack = when (tier) {
+/** How the desk's stock is shown, the same on the desk's own wing and on the wing screens. */
+object DeskStockDisplay {
+    /** What a binding looks like in a stock column. */
+    val BINDING: ItemStack = ItemStack(Items.LEATHER)
+
+    fun paperIcon(tier: InkTier): ItemStack = when (tier) {
         InkTier.COMMON -> ItemStack(Items.PAPER)
         InkTier.FINE -> ItemStack(AgeContent.FINE_PAPER)
         InkTier.MASTERWORK -> ItemStack(AgeContent.MASTERWORK_PAPER)
     }
 
-    private companion object {
-        val BINDING = ItemStack(Items.LEATHER)
-    }
+    /** The desk's tank of [tier] ink, as a gauge in its own colour. */
+    fun inkGauge(tier: InkTier, width: Int, height: Int, tooltip: () -> Component): CapsuleGauge =
+        CapsuleGauge(
+            width, height,
+            reading = { DeskModel.ink(tier).toFloat() / DeskModel.inkCapacity().coerceAtLeast(1) },
+            colour = { AgeFluids.INKS[tier]?.tint ?: Palette.TEXT },
+            tooltip = tooltip,
+        )
 }

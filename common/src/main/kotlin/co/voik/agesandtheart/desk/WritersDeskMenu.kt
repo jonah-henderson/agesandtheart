@@ -7,9 +7,7 @@ import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.learnedWords
 import co.voik.agesandtheart.content.AgeContent
-import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerPlayer
@@ -39,12 +37,6 @@ class WritersDeskMenu(
     playerInventory: Inventory,
     private val access: ContainerLevelAccess,
 ) : AbstractContainerMenu(AgeContent.WRITERS_DESK_MENU, containerId) {
-
-    /** Whoever has this open. Taken from the inventory, so it is never unset. */
-    private val owner: Player = playerInventory.player
-
-    /** Anything the desk understands, routed by [DeskIntake] the moment it lands. */
-    private val intake: Container = SimpleContainer(1)
 
     /** Where a finished book lands, so binding produces something you take rather than something you find. */
     private val output: Container = SimpleContainer(1)
@@ -94,38 +86,6 @@ class WritersDeskMenu(
         }
     }
 
-    /** @return whether anything was taken, so the caller only re-syncs when there is news. */
-    fun drainIntake(player: ServerPlayer): Boolean {
-        val desk = deskOf(player) ?: return false
-        val offered = intake.getItem(0)
-        if (offered.isEmpty) return false
-        val result = DeskIntake.offer(desk, offered)
-        if (!result.took) return false
-        intake.setItem(0, result.remainder)
-        if (!result.returned.isEmpty && !player.inventory.add(result.returned)) {
-            player.drop(result.returned, false)
-        }
-        return true
-    }
-
-    /**
-     * Anything in the intake slot is swallowed here.
-     *
-     * **Not `slotsChanged`**, which never fires for this: `SimpleContainer.setChanged()` is empty, and a
-     * menu only hears about a container it was explicitly wired into — vanilla's crafting container holds
-     * its menu and calls `slotsChanged` by hand. `broadcastChanges` runs every tick for the open menu, so
-     * the doorway empties within a tick of something landing in it.
-     */
-    override fun broadcastChanges() {
-        val player = owner as? ServerPlayer
-        if (player != null && !intake.getItem(0).isEmpty) {
-            if (drainIntake(player)) {
-                deskOf(player)?.let { DeskCommands.sync(player, this, it) }
-            }
-        }
-        super.broadcastChanges()
-    }
-
     override fun quickMoveStack(player: Player, index: Int): ItemStack {
         val slot = slots.getOrNull(index) ?: return ItemStack.EMPTY
         if (!slot.hasItem()) return ItemStack.EMPTY
@@ -134,9 +94,7 @@ class WritersDeskMenu(
         val playerSlots = FIRST_PLAYER_SLOT until slots.size
         val ours = 0 until FIRST_PLAYER_SLOT
 
-        // On a tab with no intake slot, the desk itself is the destination — otherwise shift-clicking a
-        // page on the archive tab has nowhere to go and silently does nothing.
-        if (index in playerSlots && !hasOpenIntake()) {
+        if (index in playerSlots) {
             val handed = handToDesk(player, slot, moved) ?: return ItemStack.EMPTY
             return handed
         }
@@ -149,11 +107,8 @@ class WritersDeskMenu(
         return original
     }
 
-    /** There is none any more, so every shift-click at the centre is handed to the desk itself. */
-    private fun hasOpenIntake(): Boolean = false
-
     /**
-     * Hands [moved] straight to the desk's stores, the way the intake slot would have.
+     * Hands [moved] straight to the desk's stores.
      *
      * @return what was taken, or null if the desk wanted none of it.
      */
@@ -187,10 +142,8 @@ class WritersDeskMenu(
             val serverPlayer = player as? ServerPlayer ?: return@execute
             deskOf(serverPlayer)?.setComposition(serverPlayer.uuid, composing)
             composing.clear()
-            for (container in listOf(intake, output)) {
-                val held = container.removeItemNoUpdate(0)
-                if (!held.isEmpty && !player.inventory.add(held)) player.drop(held, false)
-            }
+            val held = output.removeItemNoUpdate(0)
+            if (!held.isEmpty && !player.inventory.add(held)) player.drop(held, false)
         }
     }
 
@@ -237,12 +190,6 @@ class WritersDeskMenu(
         DeskCapability.REVEAL_CONFLICTS in capabilities.capabilities
 
     /**
-     * What the pages currently say, as prose — the half that makes attachment visible (§4.3.1).
-     *
-     * Read by **the same expression a bound book is read by**, so the desk and the book can never disagree
-     * about what a row of pages means.
-     */
-    /**
      * The sentence said back as prose — **empty without the implement that reads it**, exactly as the
      * conflicts are (design §7.3): visibility is a property of the workspace, so a bare desk tells a writer
      * nothing about what they have written and a furnished one tells them everything.
@@ -288,20 +235,13 @@ class WritersDeskMenu(
         }
     }
 
-
-    /** Whether the player may write [word] at all — knowing it is the first gate (design §7.1.1). */
-    fun knows(player: ServerPlayer, word: Identifier): Boolean = player.learnedWords.knows(word)
-
     companion object {
         /** Tab ordinals, shared with the screen's `DeskTab` — the menu only needs to compare them. */
         const val ARCHIVE_TAB = 0
-        const val BOOK_TAB = 1
         const val BIND_TAB = 2
 
         // Positions live in `DeskSlots`, because the screen draws a recess behind every one of them and the
         // two must agree. Aliased here only so the slot declarations above stay readable.
-        private const val INTAKE_X = DeskSlots.INTAKE_X
-        private const val INTAKE_Y = DeskSlots.INTAKE_Y
         private const val OUTPUT_X = DeskSlots.OUTPUT_X
         private const val OUTPUT_Y = DeskSlots.OUTPUT_Y
         private const val INVENTORY_X = DeskSlots.INVENTORY_X
@@ -312,8 +252,6 @@ class WritersDeskMenu(
         private const val FIRST_PLAYER_SLOT = 1
 
         fun vocabularyFor(player: ServerPlayer): Vocabulary = Vocabulary.of(player.level().server)
-
-        fun unitsPerBucket(): Long = Services.INK_FLUIDS.unitsPerBucket
 
         fun open(player: ServerPlayer, pos: BlockPos) {
             player.openMenu(DeskMenuProvider(pos))

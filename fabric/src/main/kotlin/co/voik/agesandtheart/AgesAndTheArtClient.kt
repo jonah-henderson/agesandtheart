@@ -11,7 +11,6 @@ import co.voik.agesandtheart.client.ArcBoltRenderer
 import co.voik.agesandtheart.client.DriftingOreRenderer
 import co.voik.agesandtheart.client.MoltenLumpRenderer
 import net.minecraft.client.renderer.entity.NoopRenderer
-import co.voik.agesandtheart.client.ClientDeskNetwork
 import net.fabricmc.fabric.api.client.rendering.v1.BlockColorRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import co.voik.agesandtheart.client.AgeLooks
@@ -47,14 +46,7 @@ import co.voik.agesandtheart.client.panel.LecternPanels
 import co.voik.agesandtheart.client.panel.LinkingPanel
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 
-/**
- * Fabric client entrypoint.
- *
- * **Nothing registers a renderer any more.** An Age's sky is drawn by the Mixin on
- * `SkyRenderer.renderSunMoonAndStars`, which reads the level itself — so there is no per-dimension
- * registration to do, and none of the lazy attaching that a runtime dimension used to force. All that is
- * left on this side is learning what each Age's sky *is*.
- */
+/** Fabric client entrypoint. */
 fun initClient() {
     Constants.LOG.info("Ages client init")
 
@@ -92,7 +84,6 @@ fun initClient() {
     // the fence lives in the menu rather than in the drawing.
     MenuScreens.register(AgeContent.TOOLBOX_MENU, ::ContainerScreen)
     AgeTints.register { sources, block -> BlockColorRegistry.register(sources, block) }
-    ClientDeskNetwork.sender = { payload -> ClientPlayNetworking.send(payload) }
     ClientPlayNetworking.registerGlobalReceiver(DeskSyncPayload.TYPE) { payload, _ ->
         DeskModel.remember(payload)
     }

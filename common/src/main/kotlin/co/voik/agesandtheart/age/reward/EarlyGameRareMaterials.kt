@@ -178,7 +178,7 @@ object EarlyGameRareMaterials {
     }
 
     /**
-     * [base]'s settings with rime added where an Age grows it, or [base] itself where it does not.
+     * The early materials [grown] names as a decoration layer, or null where it names none.
      *
      * One `PlacedFeature` for the whole Age and the settings remembered per biome, for the reason
      * [Deposits] spells out: the sorted feature list is indexed by identity, and an equal-but-new object is

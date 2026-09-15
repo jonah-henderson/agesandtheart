@@ -5,7 +5,6 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import kotlin.math.floor
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
 
 /**
  * Rolling land with a **river system** cut into it: valleys that branch, join, and grow as they descend.
@@ -32,9 +31,6 @@ import kotlin.math.sqrt
  * **The one constraint a caller must keep**: the widest [halfWidth] plus the [jitter] must stay inside
  * [spacing], or a valley reaches past the neighbourhood this scans and is clipped where the scan ends.
  */
-/** Whether a [Drainage] is describing the ground its rivers cut, or the water standing in them. */
-enum class DrainageYield { GROUND, WATER }
-
 data class Drainage(
     /** The bedrock this stands on. */
     val floorY: Int,
@@ -81,13 +77,12 @@ data class Drainage(
      * Whether this is the ground or the water in it. The same network answered twice: the ground goes to
      * the terrain, and the water to `SeaFill.wet`, which pours it wherever the shape left room.
      */
-    val describes: DrainageYield = DrainageYield.GROUND,
+    val describes: FieldYield = FieldYield.GROUND,
 ) : TerrainField {
     override val kind = FieldKind.DRAINAGE
 
     override val horizontalReach = Double.POSITIVE_INFINITY
 
-    // One for this column's own land, and one for each node of the scan.
     // The scan, this column's own land, and the two the warp costs.
     override val samplesPerColumn = SCAN * SCAN + 3
 
@@ -151,7 +146,7 @@ data class Drainage(
                 carried = inflows
             }
         }
-        if (describes == DrainageYield.GROUND) return Spans.of(floorY, ground.roundToInt())
+        if (describes == FieldYield.GROUND) return Spans.of(floorY, ground.roundToInt())
         if (channelY == NO_WATER) return Spans.EMPTY
         // Never over the land the valley was cut into: a river cannot stand higher than its own banks, and
         // capping here is what stops one reading as a sheet of water in mid-air if anything above drifts.
@@ -177,26 +172,10 @@ data class Drainage(
         // Only where a node's own eight neighbours are inside the scan can its flow be known at all.
         for (row in 1..<SCAN - 1) {
             for (column in 1..<SCAN - 1) {
-                around.flowsTo[row * SCAN + column] = lowestNeighbourOf(row, column, around.height)
+                around.flowsTo[row * SCAN + column] = lowestNeighbourOf(row, column, around.height, SCAN)
             }
         }
         return around
-    }
-
-    /** Which of a node's eight neighbours it flows to, or [NOWHERE] where it is lower than all of them. */
-    private fun lowestNeighbourOf(row: Int, column: Int, height: DoubleArray): Int {
-        var lowest = NOWHERE
-        var lowestHeight = height[row * SCAN + column]
-        for (downRow in -1..1) {
-            for (downColumn in -1..1) {
-                if (downRow == 0 && downColumn == 0) continue
-                val neighbour = (row + downRow) * SCAN + (column + downColumn)
-                if (height[neighbour] >= lowestHeight) continue
-                lowestHeight = height[neighbour]
-                lowest = neighbour
-            }
-        }
-        return lowest
     }
 
     /**
@@ -252,9 +231,6 @@ data class Drainage(
         private const val SCAN = 7
         private const val RING = 3
 
-        /** A node lower than all eight of its neighbours. Its valley ends there, in a basin. */
-        private const val NOWHERE = -1
-
         /** No reach wets this column, and nothing is lower than it. */
         private const val NO_WATER = Double.NEGATIVE_INFINITY
 
@@ -290,31 +266,6 @@ data class Drainage(
         private const val X_SALT = 0x1_D15E
         private const val Z_SALT = 0x2_D15E
 
-        /** How far along a segment its nearest point to ([atX], [atZ]) lies, clamped to the segment. */
-        private fun alongSegment(
-            atX: Double,
-            atZ: Double,
-            fromX: Double,
-            fromZ: Double,
-            toX: Double,
-            toZ: Double,
-        ): Double {
-            val runX = toX - fromX
-            val runZ = toZ - fromZ
-            val lengthSquared = runX * runX + runZ * runZ
-            if (lengthSquared <= 0.0) return 0.0
-            return (((atX - fromX) * runX + (atZ - fromZ) * runZ) / lengthSquared).coerceIn(0.0, 1.0)
-        }
-
-        private fun distance(fromX: Double, fromZ: Double, toX: Double, toZ: Double): Double {
-            val runX = toX - fromX
-            val runZ = toZ - fromZ
-            return sqrt(runX * runX + runZ * runZ)
-        }
-
-        private val YIELD_CODEC: Codec<DrainageYield> =
-            Codec.STRING.xmap({ name -> DrainageYield.valueOf(name.uppercase()) }, { it.name.lowercase() })
-
         val CODEC: MapCodec<Drainage> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Codec.INT.fieldOf("floor_y").forGetter(Drainage::floorY),
@@ -333,7 +284,7 @@ data class Drainage(
                     .forGetter(Drainage::widthPerOrder),
                 Codec.DOUBLE.optionalFieldOf("meander", DEFAULT_MEANDER).forGetter(Drainage::meander),
                 Codec.DOUBLE.optionalFieldOf("water_depth", DEFAULT_WATER_DEPTH).forGetter(Drainage::waterDepth),
-                YIELD_CODEC.optionalFieldOf("describes", DrainageYield.GROUND).forGetter(Drainage::describes),
+                FieldYield.CODEC.optionalFieldOf("describes", FieldYield.GROUND).forGetter(Drainage::describes),
             ).apply(instance, ::Drainage)
         }
     }

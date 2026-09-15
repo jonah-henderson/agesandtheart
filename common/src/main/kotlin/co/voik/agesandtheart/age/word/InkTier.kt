@@ -3,16 +3,9 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.location
 import com.mojang.serialization.Codec
 import net.minecraft.core.RegistryAccess
-import net.minecraft.core.Registry
-import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
-import net.minecraft.resources.ResourceKey
 import net.minecraft.server.packs.resources.ResourceManager
-import net.minecraft.tags.TagKey
 import net.minecraft.util.StringRepresentable
-import net.minecraft.world.level.biome.Biome
-import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.levelgen.structure.StructureSet
 
 /**
  * How potent an ink has to be to write a word at all (design §7.1.1).
@@ -60,29 +53,11 @@ class InkRequirement(private val authored: Map<String, InkTier>) {
         fromTags(word.id, registries) ?: authored[word.name] ?: InkTier.DEFAULT
 
     /**
-     * The tag answer, or null if nothing carries one. Every registry a derived word can come from is
-     * asked, since the id alone does not say which it was read off — and an id in two registries wanting
-     * different inks should get the dearer.
+     * The tag answer, or null if nothing carries one. Asked dearest first, so a thing carrying both tags,
+     * or an id in two registries wanting different inks, gets the better ink.
      */
-    private fun fromTags(id: Identifier, registries: RegistryAccess): InkTier? {
-        val found = listOfNotNull(
-            tierIn(registries, Registries.BLOCK, id, BLOCK_TAGS),
-            tierIn(registries, Registries.BIOME, id, BIOME_TAGS),
-            tierIn(registries, Registries.STRUCTURE_SET, id, STRUCTURE_TAGS),
-        )
-        return found.maxByOrNull { it.ordinal }
-    }
-
-    private fun <T : Any> tierIn(
-        registries: RegistryAccess,
-        registry: ResourceKey<out Registry<T>>,
-        id: Identifier,
-        tags: Map<InkTier, TagKey<T>>,
-    ): InkTier? {
-        val holder = registries.lookup(registry).orElse(null)?.get(id)?.orElse(null) ?: return null
-        // Dearest first: a thing in both tags is worth the better ink.
-        return tags.entries.sortedByDescending { it.key.ordinal }.firstOrNull { holder.`is`(it.value) }?.key
-    }
+    private fun fromTags(id: Identifier, registries: RegistryAccess): InkTier? =
+        TAG_NAMES.entries.firstOrNull { (_, tag) -> registries.carriesTagNamed(id, tag) }?.key
 
     companion object {
         /** Where a pack lists authored words by ink tier, one file per tier. */
@@ -90,22 +65,12 @@ class InkRequirement(private val authored: Map<String, InkTier>) {
 
         private const val JSON_SUFFIX = ".json"
 
-        val NONE = InkRequirement(emptyMap())
-
-        /** `agesandtheart:requires_fine_ink` and `..._masterwork_ink`, on each registry a word can name. */
-        private fun tagName(tier: InkTier): Identifier = "requires_${tier.key}_ink".location()
-
-        private val GATED = listOf(InkTier.FINE, InkTier.MASTERWORK)
-
-        val BLOCK_TAGS: Map<InkTier, TagKey<Block>> =
-            GATED.associateWith { TagKey.create(Registries.BLOCK, tagName(it)) }
-
-        val BIOME_TAGS: Map<InkTier, TagKey<Biome>> =
-            GATED.associateWith { TagKey.create(Registries.BIOME, tagName(it)) }
-
-        /** Structure *sets*, which is where derived structure words are read from. */
-        val STRUCTURE_TAGS: Map<InkTier, TagKey<StructureSet>> =
-            GATED.associateWith { TagKey.create(Registries.STRUCTURE_SET, tagName(it)) }
+        /**
+         * `agesandtheart:requires_masterwork_ink` and `..._fine_ink`, dearest first, on each registry a word
+         * can name.
+         */
+        private val TAG_NAMES: Map<InkTier, Identifier> =
+            listOf(InkTier.MASTERWORK, InkTier.FINE).associateWith { "requires_${it.key}_ink".location() }
 
         /** The authored half, stacked so a pack may add words without reprinting ours. */
         fun load(resources: ResourceManager, problems: MutableList<String>): InkRequirement {

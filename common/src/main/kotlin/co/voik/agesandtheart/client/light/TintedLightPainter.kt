@@ -27,15 +27,8 @@ import kotlin.math.sqrt
  */
 object TintedLightPainter {
 
-    /**
-     * Whether there is nothing to paint — the free question, asked before a quad is even wrapped.
-     *
-     * **Two of them, and the second is the one that matters.** `castsAnything` asks whether any block
-     * *kind* is registered, and the answer is always yes: the crystals register at startup and never
-     * unregister. `anythingIsPlaced` asks whether any such block actually stands in a world, which is the
-     * question that is false almost always.
-     */
-    fun isIdle(): Boolean = !TintedLights.castsAnything() || !TintedLights.anythingIsPlaced()
+    /** Whether there is nothing to paint — the free question, asked before a quad is even wrapped. */
+    fun isIdle(): Boolean = !TintedLights.anythingIsPlaced()
 
     /**
      * Paints [instance] for the face of the block at [pos], or leaves it alone — vanilla's chunk mesher,

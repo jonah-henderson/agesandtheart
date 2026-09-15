@@ -122,7 +122,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      * else; what it is now is the place turning violet while the storm is over it, which is a warning you
      * cannot miss and cannot mistake for anything.
      *
-     * A pure function of the entity's own clock, so neither side has to be told: [tickCount] ticks on both.
+     * A pure function of [age], which both sides read off the synced [gatheredAt], so neither has to be told.
      */
     fun castStrength(): Float {
         val age = age
@@ -429,7 +429,6 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         private const val DROPPED_KEY = "dropped_to"
         private const val REACH_KEY = "reach"
 
-        /** A storm nobody has stood up yet, which is as old as it is going to get until somebody does. */
         /**
          * **Minus one, because zero is a time.** A storm that gathered on tick zero — a fresh world, or a
          * level whose clock reads zero — matched the sentinel, so its age stayed [JUST_GATHERED] for ever:

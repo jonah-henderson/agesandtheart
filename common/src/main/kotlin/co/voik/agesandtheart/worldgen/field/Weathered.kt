@@ -84,23 +84,9 @@ data class Weathered(
      * Cheap for the presets whose base is a single noise sample, and the difference between a playable Age
      * and an unplayable one where it is not.
      */
-    private class ColumnCache {
-        val keys = LongArray(SLOTS) { EMPTY_KEY }
-        val spans = arrayOfNulls<Spans>(SLOTS)
-    }
+    private val memo = ColumnMemo(::weather)
 
-    private val remembered = ThreadLocal.withInitial { ColumnCache() }
-
-    override fun columnSpans(worldX: Int, worldZ: Int): Spans {
-        val cache = remembered.get()
-        val key = (worldX.toLong() shl Int.SIZE_BITS) or (worldZ.toLong() and UNSIGNED_INT)
-        val slot = ((worldX and SLOT_MASK) shl SLOT_BITS) or (worldZ and SLOT_MASK)
-        if (cache.keys[slot] == key) cache.spans[slot]?.let { return it }
-        val derived = weather(worldX, worldZ)
-        cache.keys[slot] = key
-        cache.spans[slot] = derived
-        return derived
-    }
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans = memo.spansAt(worldX, worldZ)
 
     private fun weather(worldX: Int, worldZ: Int): Spans {
         val rock = base.columnSpans(worldX, worldZ)
@@ -170,21 +156,12 @@ data class Weathered(
     companion object {
         private const val EXPECTED_RUNS = 8
 
-        /** A 32×32 block square: a chunk, and the ring its biome probes and carvers reach into. */
-        private const val SLOT_BITS = 5
-        private const val SLOTS = 1 shl (SLOT_BITS * 2)
-        private const val SLOT_MASK = (1 shl SLOT_BITS) - 1
-        private const val UNSIGNED_INT = 0xFFFF_FFFFL
-
-        /** A packed position no world reaches, since the border stops well short of `Int.MIN_VALUE`. */
-        private const val EMPTY_KEY = Long.MIN_VALUE
-
         /** The wind reaches all the way down, however thick the rock. */
         const val NO_SHELTER = 0
 
         /** The Spire's weathering, configured — **the one place these numbers live.** */
-        fun spire(base: TerrainField, lift: Int = 0) = Weathered(
-            base, Weathering.SPIRE.raisedBy(lift), CORE_BONUS, CORE_THICKNESS, CROWN_PENALTY, CROWN_REACH,
+        fun spire(base: TerrainField) = Weathered(
+            base, Weathering.SPIRE, CORE_BONUS, CORE_THICKNESS, CROWN_PENALTY, CROWN_REACH,
         )
 
         /**

@@ -11,6 +11,7 @@ object ParchmentSurface : Decoration {
     val PARCHMENT = 0xFFE9DFC3.toInt()
     val EDGE = 0xFF8B7B55.toInt()
     val INK = 0xFF2B2118.toInt()
+    val FAINT_INK = 0xFF6B5C46.toInt()
 
     override fun draw(graphics: GuiGraphicsExtractor, at: Rect) {
         graphics.fill(at.x, at.y, at.right, at.bottom, EDGE)

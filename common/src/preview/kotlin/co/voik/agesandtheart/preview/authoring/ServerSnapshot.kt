@@ -103,9 +103,6 @@ data class ServerSnapshot(
     val provenance: String
         get() = "data imported from ${source.ifEmpty { "an unrecorded world" }} at $importedAt"
 
-    /** Where [write] put it, for whatever wants to say so. */
-    fun snapshotPath(): String = FILE.path
-
     fun write() {
         val json = JsonObject().apply {
             addProperty("taken", taken.toString())
@@ -273,41 +270,35 @@ data class ServerSnapshot(
          */
         private fun <T> booted(say: (Progress) -> Unit, work: (Rcon, String, String) -> T): T {
             val launch = LaunchSpec.read()
-            val loader = System.getProperty(LaunchSpec.LOADER_PROPERTY, "fabric")
-            val properties = launch.workingDirectory.resolve("server.properties")
-            check(properties.isFile) {
-                "no ${properties.path} yet — run ./gradlew :$loader:runServer once to accept the EULA and " +
-                    "let the server write its defaults"
-            }
-            val original = properties.readText()
+            val loader = LaunchSpec.loader()
             val port = ServerLaunch.freePort()
-            properties.writeText(
-                ServerLaunch.overlaid(original, ServerLaunch.settingsFor(WORLD, port, RCON_PASSWORD)),
-            )
             say(Progress(0, 0, "starting a $loader server on :$port — a minute or so the first time"))
-            val process = runCatching { launch.start() }
-                .getOrElse { failure -> properties.writeText(original); throw failure }
+            val started = ServerLaunch.start(
+                launch,
+                ServerLaunch.settingsFor(WORLD, port, RCON_PASSWORD),
+                port,
+                RCON_PASSWORD,
+                STARTUP_SECONDS,
+            )
             try {
-                val rcon = runCatching {
-                    ServerLaunch.awaitRcon(process, port, STARTUP_SECONDS, RCON_PASSWORD)
-                }.getOrElse { failure -> process.destroyForcibly(); throw failure }
                 val world = shortly(launch.workingDirectory.resolve(WORLD))
-                return rcon.use { work(it, loader, world) }.also { say(Progress(0, 0, "stopping the server")) }
+                return started.rcon.use { work(it, loader, world) }
+                    .also { say(Progress(0, 0, "stopping the server")) }
             } finally {
                 runCatching { Rcon("127.0.0.1", port, RCON_PASSWORD).use { it.run("stop") } }
-                if (!process.waitFor(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) process.destroyForcibly()
-                properties.writeText(original)
+                if (!started.process.waitFor(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) started.process.destroyForcibly()
+                started.properties.writeText(started.originalProperties)
             }
         }
+
+        /** A path under the directory the tool was started from, which is shorter and says as much. */
+        private fun shortly(world: File): String =
+            world.absoluteFile.relativeToOrNull(File("").absoluteFile)?.path ?: world.absolutePath
 
         /**
          * Everything the snapshot holds, asked through `/age tags` and `/age words` — the instruments the
          * tag pass already built, which is why this needed no command of its own.
          */
-        /** A path under the directory the tool was started from, which is shorter and says as much. */
-        private fun shortly(world: File): String =
-            world.absoluteFile.relativeToOrNull(File("").absoluteFile)?.path ?: world.absolutePath
-
         private fun gather(
             rcon: Rcon,
             loader: String,

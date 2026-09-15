@@ -56,10 +56,7 @@ class AgeSavedData() : SavedData() {
         if (presence.remove(id) != null) setDirty()
     }
 
-    /**
-     * The recipe [id] was written from — defaulting, for an Age we have somehow lost the record of, to
-     * the Spire preset that every Age was before recipes existed.
-     */
+    /** The recipe [id] was written from, or the Spire preset for an Age with no record here. */
     fun recipe(id: Identifier): AgeRecipe = recipes[id] ?: AgeRecipe.of(AgePreset.SPIRE, id)
 
     /** How many ticks somebody has been standing in [id], counting no faster for a crowd. */

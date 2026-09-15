@@ -20,7 +20,6 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.levelgen.RandomSupport
-import java.util.Optional
 
 /**
  * What an Age is, as data — the description its world is rebuilt from on every open.
@@ -166,14 +165,11 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 52
+        const val CURRENT_GENERATOR_VERSION = 53
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
-                // Optional only so recipes written before aspects existed still load.
-                AgeWorld.MAP_CODEC.codec().optionalFieldOf("world").forGetter { Optional.of(it.world) },
-                // Read for migration only.
-                AgePreset.CODEC.optionalFieldOf("preset").forGetter { Optional.empty<AgePreset>() },
+                AgeWorld.MAP_CODEC.codec().fieldOf("world").forGetter(AgeRecipe::world),
                 Codec.LONG.fieldOf("seed").forGetter(AgeRecipe::seed),
                 // Required, never `optionalFieldOf(name, default)`: that omits the field when it equals the
                 // default, so a recipe would read back claiming whatever version is current when it is read.
@@ -193,11 +189,10 @@ data class AgeRecipe(
                 // not having been written by a player — see [authored] for why that is the safe way round.
                 Codec.BOOL.optionalFieldOf("authored", false).forGetter(AgeRecipe::authored),
             ).apply(instance) {
-                world, legacyPreset, seed, version, character, instability, words, writtenAt, template,
-                authored,
+                world, seed, version, character, instability, words, writtenAt, template, authored,
                 ->
                 AgeRecipe(
-                    world = world.orElseGet { worldFor(legacyPreset.orElse(AgePreset.SPIRE)) },
+                    world = world,
                     seed = seed,
                     character = character,
                     instability = instability,
@@ -291,13 +286,12 @@ data class AgeRecipe(
          */
         fun freshSeed(): Long = RandomSupport.generateUniqueSeed()
 
-        /** The world a classic preset names — also what a pre-aspects recipe migrates to. */
+        /** The world a classic preset names. */
         fun worldFor(preset: AgePreset): AgeWorld {
             val composition = when (preset) {
                 AgePreset.VANILLA, AgePreset.VANILLA_BARE -> return AgeWorld.Bespoke(preset)
 
-                // Both keys build the one composition, so they cannot drift apart.
-                AgePreset.SPIRE, AgePreset.FIELD -> spire()
+                AgePreset.SPIRE -> spire()
                 AgePreset.PYRAMIDS -> pyramids("grid")
                 AgePreset.PYRINGS -> pyramids("rings")
                 AgePreset.PYRVARIED -> pyramids("varied")

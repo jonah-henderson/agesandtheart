@@ -25,12 +25,6 @@ import net.minecraft.resources.Identifier
  * for the dimension, a positional one for the biomes, then the timeline and the weather. An Age's own
  * answer is one more constant layer **on top**, which is why saying nothing costs nothing: an empty layer
  * changes no value at all.
- *
- * **Only the half a server can decide is here.** `ServerLevel.setEnvironmentAttributes` is public, so the
- * gameplay attributes — whether monsters burn, whether water boils away, how much light the sky gives —
- * need nothing else. The *visual* half is built into `ClientLevel`'s own constructor from a private final
- * field, so a green sky wants a mixin and a payload, which is the route `SkySpec` already proved and is
- * not built.
  */
 object Atmosphere {
 
@@ -232,12 +226,9 @@ object Atmosphere {
     fun unlitLook(parts: AgeParts, template: AgeTemplate): Look {
         if (!Sky.isLightless(parts)) return Look.NOTHING
         val nothingIsUpThere = Look(cloud = NO_CLOUD)
-        if (isAlreadyDark(template.world())) return nothingIsUpThere
+        if (Sky.isLightless(template.world())) return nothingIsUpThere
         return nothingIsUpThere.copy(sky = STARLESS, fog = STARLESS, tint = STARLESS)
     }
-
-    /** Whether the world a book was written over was unlit before the book said anything. */
-    private fun isAlreadyDark(world: AgeParts): Boolean = Sky.isLightless(world)
 
     /** Not quite black: pure zero reads as a hole cut in the world rather than as a dark sky. */
     private val STARLESS = Rgba(0.02f, 0.02f, 0.03f)
@@ -261,8 +252,8 @@ object Atmosphere {
     fun cornersOf(parts: AgeParts): List<Identifier> =
         Aspect.entries.flatMap { aspect ->
             val options = parts.optionsFor(aspect)
-            aspect.confinableParameters.flatMap(options::confinedIn) +
-                listOfNotNull(aspect.confinablePool).flatMap(options::confinedIn)
+            val names = aspect.confinableParameters.map(Parameter::name) + listOfNotNull(aspect.confinablePool?.name)
+            names.flatMap(options::confinedIn)
         }.distinct()
 
     private fun colourOf(options: Options, parameter: Parameter, biome: Identifier?): Rgba? =
@@ -286,7 +277,7 @@ object Atmosphere {
         // **Unless the world it was written over is already dark**, which answers this better than a zero:
         // the nether's own is 4, a dim constant, and it is why it is never truly black in there. The same
         // deferral [unlitLook] makes about the colour of the air.
-        if (isAlreadyDark(template.world())) return emptyList()
+        if (Sky.isLightless(template.world())) return emptyList()
         return listOf(Asked(EnvironmentAttributes.SKY_LIGHT_LEVEL, NO_DAYLIGHT))
     }
 

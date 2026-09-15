@@ -56,10 +56,6 @@ object Spawns {
      *
      * Takes the list vanilla resolved rather than the biome's own, so a structure that overrides spawning
      * inside itself is narrowed by the same sentence as the open ground around it.
-     *
-     * The biome arrives as an **id** rather than a holder, which is what every claim in this layer is
-     * already made of — and it is what `in <biome>` (§4.3.1) will compare against when a sentence can
-     * scope a claim to one.
      */
     fun livingIn(options: Options, spawning: Spawning = Spawning()): Living {
         val claims = options.claimsOn(LIVES)
@@ -159,11 +155,9 @@ object Spawns {
      * Two rules of our own, for the two things vanilla cannot answer:
      *
      * - **A creature arrives in the pass its own category names**, so a monster is tried under the monster
-     *   rules and against the monster cap. The ones vanilla files as `MISC` — the golems, which are built
-     *   rather than born — arrive as creatures, which is what they behave like and the only pass that would
-     *   ever try them.
+     *   rules and against the monster cap.
      * - **A creature vanilla never spawns has no placement rules at all**, so `NO_RESTRICTIONS` would try a
-     *   dragon inside a mountain. Those declare [Arrival.needsOpenSky] and are offered nowhere else.
+     *   dragon inside a mountain. Its [Ground], read by [Spawning.groundOf], says where it may be tried.
      */
     private fun added(
         kept: WeightedList<MobSpawnSettings.SpawnerData>,
@@ -204,13 +198,6 @@ object Spawns {
     )
 
     /**
-     * Every creature [asked] wants that vanilla can be told to try in [category].
-     *
-     * **Settled once per biome and pass**, because none of it moves: the registry lookup, the pass filter,
-     * the weight and the entry itself are the same answer at every position, and this is asked once per
-     * spawn attempt. Measured at 0.9µs an attempt before, against 0.005µs for an Age that said nothing.
-     */
-    /**
      * Every creature a claim **names** and how thickly, as ids — what the Age places itself, which is a
      * shorter list than what it offers a biome: [resolved] stocks a menu and this summons.
      */
@@ -222,6 +209,13 @@ object Spawns {
             .filterNot { it.value == NOTHING || it.onlyWhereItGrows }
             .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
 
+    /**
+     * Every creature [asked] wants that vanilla can be told to try in [category].
+     *
+     * **Settled once per biome and pass**, because none of it moves: the registry lookup, the pass filter,
+     * the weight and the entry itself are the same answer at every position, and this is asked once per
+     * spawn attempt. Measured at 0.9µs an attempt before, against 0.005µs for an Age that said nothing.
+     */
     private fun resolved(asked: Skew, category: MobCategory, spawning: Spawning): List<Arriving> =
         asked.wanted
             // **A description may still stock a menu, but only with what it asks more of.** Adding here is
@@ -245,7 +239,7 @@ object Spawns {
                     ?: return@mapNotNull null
                 val arrival = spawning.of(id)
                 if (spawnPassFor(type) != category) return@mapNotNull null
-                val entry = carrying(type, arrival)
+                val entry = MobSpawnSettings.SpawnerData(type, arrival.least, arrival.most)
                 val ground = spawning.groundOf(id)
                 val light = spawning.lightOf(id)
                 val spacing = arrival.spacedAt(density)
@@ -261,21 +255,7 @@ object Spawns {
             }
 
     /**
-     * **What a rule about *where* costs a creature, given back to it as weight.**
-     *
-     * Every rule below narrows the places a creature may be tried, and a narrowing that is not paid back
-     * is a creature that quietly stops arriving. The two compound, which is how a written dragon came to
-     * be offered in **0.0037%** of attempts and then still had to win the draw: `apart_by=320` is one
-     * chunk in four hundred, and the open-sky rule is two heights out of a hundred and thirty-five,
-     * vanilla drawing its attempt height uniformly through the column (Jonah, 2026-08-26).
-     *
-     * So a weight in `art/spawning.json` means **the share of the world this creature holds**, not the
-     * share of one draw, and each rule hands back exactly what it took. [MOST_OFTEN] is the ceiling, and
-     * reaching it is the honest answer for something held to a four-hundredth of the map: inside its own
-     * window it is most of what arrives, and there are very few windows.
-     */
-    /**
-     * And what belonging to one ground costs, which is **not** the share of attempts that land there.
+     * What belonging to one ground costs, which is **not** the share of attempts that land there.
      *
      * An attempt underground overwhelmingly fails for *everyone* — it is solid rock — so refusing a
      * surface creature there costs it almost nothing it would have won. What it really costs is the cave
@@ -300,16 +280,6 @@ object Spawns {
      */
     private fun spawnPassFor(type: EntityType<*>): MobCategory =
         if (type.category == MobCategory.MISC) MobCategory.MONSTER else type.category
-
-    /**
-     * An entry for [type], and a plain one — nothing here is carried past a refusal any more.
-     *
-     * It used to put a `MobCategory.MISC` type back after `SpawnerData`'s constructor swapped it for a pig,
-     * which took a mixin and bought nothing: `NaturalSpawner` declines that category a step later anyway.
-     * A creature vanilla will not spawn is [AgeSpawner]'s now and never reaches a `SpawnerData` at all.
-     */
-    private fun carrying(type: EntityType<*>, arrival: Arrival): MobSpawnSettings.SpawnerData =
-        MobSpawnSettings.SpawnerData(type, arrival.least, arrival.most)
 
     /** A weight scaled by the rung, never to nothing: an entry at zero would never be drawn at all. */
     private fun howOften(entry: Weighted<MobSpawnSettings.SpawnerData>, rung: Double): Int =

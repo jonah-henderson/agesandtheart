@@ -105,13 +105,6 @@ data class AgeComposition(
     val presets: List<Taggable>
         get() = terrains + seas + carvers + listOf(underground, sky)
 
-    /** The one terrain, where there is only one — for the many places that still reasonably assume so. */
-    val terrain: Terrain get() = terrains.first()
-
-    /** Likewise the one sea and carving. */
-    val sea: Sea get() = seas.first()
-    val carver: Carvers get() = carvers.first()
-
     /**
      * Options no preset here understands, spelled `terrain.arrangment` — a typo, or a parameter a later version
      * dropped. Kept rather than discarded, and surfaced by `/age list`, so a misspelling looks wrong
@@ -136,9 +129,6 @@ data class AgeComposition(
 
     /** How the [member]th preset of [aspect] is steered — what [AgeGeneration] hands each territory. */
     override fun optionsFor(aspect: Aspect, member: Int): Options = options.of(aspect, member)
-
-    /** This composition with [aspect] filled by the preset called [key] instead. */
-    fun withPreset(aspect: Aspect, key: String): AgeComposition = withPresets(aspect, listOf(key))
 
     /**
      * This composition with [aspect] filled by the presets named in [keys].
@@ -203,15 +193,10 @@ data class AgeComposition(
     }
 
     /**
-     * This composition with one more option chosen for [aspect]. Whether the preset understands
-     * [parameter] is not asked here — an unrecognised name is kept and reported, never rejected.
-     */
-    fun withOption(aspect: Aspect, parameter: String, option: String): AgeComposition =
-        withOptions(aspect, parameter, listOf(option))
-
-    /**
-     * The same, where a writer named several — which for a material means them mingled rather than given
-     * a region each (design §3.2). Applies to every territory of the aspect; [withOptionsFor] aims one.
+     * This composition with [chosen] as [aspect]'s options for [parameter] — several of them, for a material,
+     * meaning them mingled rather than given a region each (design §3.2). Whether the preset understands
+     * [parameter] is not asked here: an unrecognised name is kept and reported, never rejected. Applies to
+     * every territory of the aspect; [withOptionsFor] aims one.
      */
     fun withOptions(aspect: Aspect, parameter: String, chosen: List<String>): AgeComposition {
         asksForASeam(aspect, parameter, chosen)?.let { return copy(spreads = spreads.withSeam(aspect, it)) }
@@ -392,13 +377,6 @@ data class AspectOptions(private val bySlot: Map<Aspect, List<Options>> = emptyM
     }
 }
 
-/**
- * How much ground a preset covers, written after it: `carvers=caves,porous@0.25`.
- *
- * Not a colon: a colon tells a registry id from an authored key (`namesARegistryEntry`), so `sea=minecraft:air`
- * read as the preset `minecraft` covering an `air` share. Only ever a command spelling — shares persist
- * as their own codec field.
- */
 /** A spatial population always has ground for one member, whatever the book said — see [AgeComposition.membersIn]. */
 private const val AT_LEAST_ONE = 1
 

@@ -8,12 +8,8 @@ package co.voik.agesandtheart.age.word.generation
  * `.gen` files under `src/main/generation` are the source, the pack JSON is generated from them by
  * `./gradlew :common:grammars`, and `GrammarSourceCheck` fails the build if the two have drifted.
  *
- * **Deliberately not `.g4`, near though it looks.** That format belongs to the *parser* (`Art.g4`), which is
- * compiled into the jar and recognises books; these produce them, are pack content a datapack may replace,
- * and carry weights, which ANTLR has no notion of. Two lexical facts settle it past the semantics: ANTLR
- * tells a rule from a token by case, where our rule names and terminals are both lowercase; and a terminal
- * may be a full id like `minecraft:jungle`, where `:` is ANTLR's rule operator. Hence `<angle>` marks a
- * reference and `=` opens a rule.
+ * Rule names and terminals are both lowercase, and a terminal may be a full id like `minecraft:jungle`, so
+ * case and `:` cannot tell them apart. Hence `<angle>` marks a reference and `=` opens a rule.
  *
  * The notation entire:
  *

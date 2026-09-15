@@ -210,27 +210,6 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
     }
 
     companion object {
-        /**
-         * What a steer actually delivers, as a share of the velocity it is aimed at.
-         *
-         * `Guardian.travelInWater` moves by the delta and *then* damps it by nine tenths, and [steer] eases
-         * [ORBIT_EASE] of the way toward its target each tick, so the steady state settles below the
-         * target. Public because the three speeds are only comparable through it — see `HadalfishCheck`.
-         */
-        const val STEERING_KEEPS = 0.714
-
-        /** How fast the orbit has to travel to stay on a circle that is turning under it. */
-        val holdingTheOrbitCosts: Double get() = TURN_RATE * ORBIT_RADIUS
-
-        /** And what the steering can actually supply against that. */
-        val orbitCanSupply: Double get() = ORBIT_SPEED * STEERING_KEEPS
-
-        /** Blocks a second, for the three that have to read as three different things. */
-        val circlesAt: Double get() = orbitCanSupply * A_SECOND
-        val chargesAt: Double get() = CHARGE_SPEED * A_SECOND
-
-        private const val A_SECOND = 20.0
-
         const val FULL_TURN = Math.PI * 2
 
         /** Whether [y] is higher than a hunt goes, [GIVES_UP_ABOVE_THE_LINE] over the abyss line. */
@@ -264,7 +243,7 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
          * What the orbit steers at — **a target velocity, of which about five parts in seven survive**.
          *
          * `Guardian.travelInWater` moves by the delta and *then* damps it by nine tenths, and [steer] eases
-         * a fifth of the way toward this each tick, so the steady state moves at [STEERING_KEEPS] of it:
+         * a fifth of the way toward this each tick, so the steady state moves at about 0.714 of it:
          * 0.54 blocks a tick, eleven a second. That is deliberately just under a wander and nothing like
          * [CHARGE_SPEED] — the three speeds have to read as three things (Jonah, 2026-09-10).
          *

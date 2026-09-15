@@ -101,10 +101,6 @@ class DeepWaterBlock(fluid: FlowingFluid, properties: Properties) : LiquidBlock(
     /**
      * Bring one block into line with the rule, in whichever direction it is out.
      *
-     * **Most of the cost went with the plane.** Whether this block may stand is one comparison against
-     * `DeepWater.lineIn` plus a scan capped at `DeepWater.STILL_A_SEA` — a quarter of the old walk, so the
-     * induction the previous version needed to be affordable at all is simply gone.
-     *
      * Two ways to be wrong and both are answered: where `DeepWater.standsAt` says no it reverts to ordinary
      * water, and any still ordinary water it touches that *would* stand is taken in. Each conversion
      * schedules what it touched, so a correction spreads a block a tick rather than waiting on a random tick

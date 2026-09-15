@@ -2,10 +2,9 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.resolved
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.AgeComposition
-import co.voik.agesandtheart.age.word.Resolver
-import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import io.kotest.core.annotation.Tags
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import io.kotest.core.spec.style.FunSpec
@@ -44,16 +43,7 @@ import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList
 @Tags(NEEDS_REGISTRIES)
 class DescribingCheck : FunSpec({
 
-    val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
-            check(it.problems.isEmpty()) { "vocabulary problems: ${it.problems}" }
-        }
-    }
-
-    fun composed(vararg pages: String): AgeComposition {
-        val sentence = Grammar.read(vocabulary, listOf("age", *pages)) ?: error("not a book: ${pages.toList()}")
-        return Resolver.resolve(vocabulary, sentence, SAMPLE_SEED).composition
-    }
+    fun composed(vararg pages: String): AgeComposition = resolved(SAMPLE_SEED, *pages).composition
 
     /**
      * What a book puts on a biome's spawn menu **that was not on it** — asked of `Spawns` itself, over a
@@ -124,10 +114,6 @@ class DescribingCheck : FunSpec({
         check(happens("tempest") == setOf("tempest")) { "naming a tempest no longer brings one" }
     }
 
-    /**
-     * Biomes take the other rule: the table comes furnished and which biome belongs where is its own
-     * judgment, so a description scales a biome where it stands and never summons one from elsewhere.
-     */
     /**
      * And the table proves it, which the flags alone cannot: a described preference for a biome the table
      * has never heard of must earn no entries, where a named one is summoned in and given a home.

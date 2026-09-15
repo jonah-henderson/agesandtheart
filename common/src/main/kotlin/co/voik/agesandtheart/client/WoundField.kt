@@ -2,6 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.location
+import co.voik.agesandtheart.math.mix64
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.Minecraft
@@ -93,12 +94,12 @@ object WoundField {
         return 1.0f - left * left * left
     }
 
+    private const val FULLY_OPEN = 1.0f
+
     /**
      * How far wounds are drawn from, in blocks — the render distance, so they behave like the terrain
      * they are holes in rather than fading at a distance of their own.
      */
-    private const val FULLY_OPEN = 1.0f
-
     private fun drawnFrom(): Double =
         (Minecraft.getInstance().options.renderDistance().get() * SECTION).toDouble()
 
@@ -179,22 +180,13 @@ object WoundField {
      * Spread over far more than either period so the two waves are decorrelated together rather than
      * shifted in step, which is what a single short offset would do.
      */
-    private fun phaseOf(wound: BlockPos): Long {
-        var bits = wound.asLong() * -0x61c8864680b583ebL
-        bits = (bits xor (bits ushr 33)) * -0x40a7b892e31b1a47L
-        return (bits xor (bits ushr 29)).mod(PHASES_OVER)
-    }
+    private fun phaseOf(wound: BlockPos): Long = mix64(wound.asLong()).mod(PHASES_OVER)
 
     /**
      * A repeatable value in `-1..1` for a given step, so the jitter is noise rather than randomness —
      * every frame inside one step agrees, and the size does not shiver at the frame rate.
      */
-    private fun hashedAt(step: Long): Double {
-        var bits = step * -0x61c8864680b583ebL
-        bits = (bits xor (bits ushr 33)) * -0x40a7b892e31b1a47L
-        bits = bits xor (bits ushr 29)
-        return (bits.toDouble() / Long.MAX_VALUE)
-    }
+    private fun hashedAt(step: Long): Double = mix64(step).toDouble() / Long.MAX_VALUE
 
     private val TEXTURE: Identifier = "textures/block/wound.png".location()
 

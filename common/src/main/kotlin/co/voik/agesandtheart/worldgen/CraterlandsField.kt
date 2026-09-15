@@ -234,7 +234,7 @@ object CraterlandsField {
      * and so the one that most has to not look like a shape.
      *
      * **[Isle] for the coast, a noisy ceiling for the top.** The two halves of an island turned out to
-     * want different tools, which is the whole of what the pair with [centralIslandFromNoise] settled:
+     * want different tools, which is what rendering it against a cone bounding a noise heightmap settled:
      *
      * - `Isle` draws a **coast** nothing else here can. Its outline is a noisy radius rather than a
      *   threshold crossing, so it is lobed the whole way round with no arc of anything showing through.
@@ -297,55 +297,12 @@ object CraterlandsField {
     )
 
     /**
-     * The island written as **a [Cone] bounding a [NoiseHeightmap]**, taking the lower of the two —
-     * **kept as evidence rather than as what generates**, and reached only by the previewer's
-     * `craterlands-island-noise` subject. [centralIsland] is what [rebound] uses.
-     *
-     * It was the cheap answer and it was expected to win: one noise sample against `Isle`'s two, with the
-     * cone asked first so outside the island it costs a distance and nothing else. What settled it was the
-     * render, and the thing to look at is the **coast**.
-     *
-     * **A shape bounding a noise field shows through wherever the shape is the tighter of the two.** The
-     * noise gives a fine lobed outline where it crosses the waterline first — but round most of the
-     * perimeter the cone gets there first, and that arc is a circle, so the island comes out as a disc
-     * with bays bitten into one side of it. Raising the noise's mean to push the crossing outward only
-     * moves which of the two is binding; it does not stop the cone being a circle when it binds.
-     *
-     * The profile is the other half of the finding and it goes the other way: this one's *section* is the
-     * better of the two — several summits and saddles — where `Isle`'s is a mesa. That is what
-     * [ISLAND_CLIP_MEAN_Y] exists to fix, and it is why the two were worth rendering side by side.
-     */
-    fun centralIslandFromNoise(salt: Long = 0L): TerrainField = Intersect(
-        listOf(
-            Cone(
-                baseX = 0,
-                baseZ = 0,
-                baseRadius = ISLAND_RADIUS,
-                baseY = ISLAND_BASE_Y,
-                tipY = ISLAND_CONE_TIP_Y,
-            ),
-            NoiseHeightmap(
-                seed = ISLAND_SEED xor salt,
-                // Roughly 64, 32 and 16 blocks against an island a couple of hundred across, so it comes
-                // out with a handful of summits and a coast of that many bays.
-                firstOctave = -6,
-                amplitudes = listOf(1.0, 0.5, 0.25),
-                scaleX = 1.0,
-                scaleZ = 1.0,
-                baseY = ISLAND_MEAN_Y,
-                relief = ISLAND_RELIEF,
-                flatY = WORLD_FLOOR,
-            ),
-        ),
-    )
-
-    /**
      * A [Radial] ring of massifs around the peak, present or absent for the whole Age.
      *
      * **The rings past the first need no mask, because the ground buries them.** [Radial] places on every
      * ring at a multiple of its spacing, and ring two lands on the rim crest a hundred blocks above
      * anything this template reaches — so the union simply swallows it. Only the rings out past the apron
-     * would show, and [Density.radial] fading to nothing at [PEAK_RING_FALLOFF] is what removes those. It
+     * would show, and a radial [Density] fading to nothing at [PEAK_RING_FALLOFF] is what removes those. It
      * fades ring one to about seven massifs of ten in passing, which is the broken arc a peak ring is.
      */
     private fun peakRing(steer: Steer, salt: Long): TerrainField = Chance(
@@ -363,7 +320,7 @@ object CraterlandsField {
                 ringSpacing = PEAK_RING_RADIUS,
                 arcSpacing = PEAK_ARC_SPACING,
                 jitter = PEAK_JITTER,
-                density = Density.radial(
+                density = Density(
                     atOrigin = 1.0,
                     atEdge = 0.0,
                     falloffRadius = PEAK_RING_FALLOFF,
@@ -585,7 +542,7 @@ object CraterlandsField {
             mostPerCell = CRATERS_PER_CELL,
             // Secondaries crowd around the basin and thin out to a sparse plain — the one gradient here
             // that is genuinely a gradient rather than a band, which is what this node describes well.
-            density = Density.radial(
+            density = Density(
                 atOrigin = CRATER_DENSITY_NEAR,
                 atEdge = CRATER_DENSITY_FAR,
                 falloffRadius = CRATER_FALLOFF,
@@ -691,28 +648,8 @@ object CraterlandsField {
     private const val NO_PEAK_RING = 0.05
     private const val ALWAYS_A_PEAK_RING = 0.95
 
-    /** How far out the central island's bound reaches, and where it stands. */
-    private const val ISLAND_RADIUS = 82.0
-
     /** Below the basin's own floor, so the island grows out of it rather than standing on it. */
     private const val ISLAND_BASE_Y = 26
-
-    /**
-     * Where the bounding cone would come to a point, which is **above anything the noise draws**. The cone
-     * is a bound and not a summit: it is meant to be the lower of the two only out at the island's edge,
-     * where it takes the footprint away and stops the blob sprawling into the basin.
-     */
-    private const val ISLAND_CONE_TIP_Y = 112
-
-    /**
-     * The island's own surface — a mean thirteen blocks over the waterline, wandering thirty-four.
-     *
-     * **The mean is what decides how much of it is land.** Most of the interior stands clear of the water
-     * and the coast is where the noise happens to fall back through it, which is a lobed outline with bays
-     * in it rather than a circle. Raise it and the island fills its bound and comes out round again.
-     */
-    private const val ISLAND_MEAN_Y = 73
-    private const val ISLAND_RELIEF = 22.0
 
     /** The isle's own parameters — see [centralIsland]. */
     private const val ISLE_SHORE_RADIUS = 45.0

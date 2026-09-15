@@ -4,7 +4,6 @@ import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
-import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.StringRepresentable
 
 /**
@@ -24,8 +23,8 @@ sealed interface ClimateDepth {
     /**
      * Vanilla climate units, measured downward from the surface.
      *
-     * [sampled] is what vanilla's own depth function says here, which only [AsSampled] wants — the others
-     * answer from their own rock and ignore it. Threaded as an argument rather than captured because the
+     * [sampled] is what vanilla's own depth function says here, which only [AsSampled] wants — [BelowTerrain]
+     * answers from its own rock and ignores it. Threaded as an argument rather than captured because the
      * value is per position and the depth outlives any one of them.
      */
     fun at(blockX: Int, blockY: Int, blockZ: Int, sampled: Float): Float
@@ -34,8 +33,8 @@ sealed interface ClimateDepth {
      * Whether [sampled] is read at all — the only reason to compute it.
      *
      * Vanilla's depth function walks a density tree, and [AgeBiomeSource] computed it on **every** biome
-     * lookup in every Age to hand it to two cases out of three that throw it away. Declared per case rather
-     * than asked as `this == AsSampled`, so a fourth case has to answer for itself.
+     * lookup in every Age to hand it to one case of two that throws it away. Declared per case rather
+     * than asked as `this == AsSampled`, so a third case has to answer for itself.
      */
     val readsVanillas: Boolean
 
@@ -55,22 +54,10 @@ sealed interface ClimateDepth {
 }
 
 /**
- * Every column is treated as surface, however deep the rock goes, so vanilla's table never reaches its
- * cave biomes. The right default where caves are incidental, and free to evaluate.
- */
-data object AtSurface : ClimateDepth {
-    override val kind = DepthKind.AT_SURFACE
-    override val readsVanillas = false
-    override fun at(blockX: Int, blockY: Int, blockZ: Int, sampled: Float): Float = 0.0f
-}
-
-/**
  * **Vanilla's own answer, passed straight through** — for an Age whose rock is vanilla's.
  *
  * The depth function in the noise router that shaped the rock is the one the sampler reads, so the two
- * agree by construction and there is nothing for us to measure. [AtSurface] would be the wrong default
- * there rather than merely a coarse one: it answers zero everywhere, and an Age would grow no cave biome at
- * all — no lush caves, no dripstone, no deep dark.
+ * agree by construction and there is nothing for us to measure.
  */
 data object AsSampled : ClimateDepth {
     override val kind = DepthKind.AS_SAMPLED
@@ -86,10 +73,7 @@ data object AsSampled : ClimateDepth {
  * [terrain] is normally the field the generator shapes with, but is a separate parameter because the two
  * need not agree: an Age could lay its biomes out against the base landmass while spires punch through it.
  */
-data class BelowTerrain(
-    val terrain: TerrainField,
-    val blocksPerUnit: Int = ClimateDepth.BLOCKS_PER_UNIT,
-) : ClimateDepth {
+data class BelowTerrain(val terrain: TerrainField) : ClimateDepth {
 
     override val kind = DepthKind.BELOW_TERRAIN
 
@@ -111,7 +95,7 @@ data class BelowTerrain(
         val spans = columnCache.get().spansAt(blockX, blockZ, terrain)
         // No rock overhead means open sky, which is the surface by any reading.
         val roofY = spans.roofOver(blockY) ?: return 0.0f
-        return (roofY - blockY).toFloat() / blocksPerUnit
+        return (roofY - blockY).toFloat() / ClimateDepth.BLOCKS_PER_UNIT
     }
 
     /**
@@ -150,19 +134,13 @@ data class BelowTerrain(
     }
 
     companion object {
-        val CODEC: MapCodec<BelowTerrain> = RecordCodecBuilder.mapCodec { instance ->
-            instance.group(
-                TerrainField.CODEC.fieldOf("terrain").forGetter(BelowTerrain::terrain),
-                Codec.INT.optionalFieldOf("blocks_per_unit", ClimateDepth.BLOCKS_PER_UNIT)
-                    .forGetter(BelowTerrain::blocksPerUnit),
-            ).apply(instance, ::BelowTerrain)
-        }
+        val CODEC: MapCodec<BelowTerrain> =
+            TerrainField.CODEC.fieldOf("terrain").xmap(::BelowTerrain, BelowTerrain::terrain)
     }
 }
 
 /** The closed set of depth cases. Codecs are built lazily so enum init can't outrun the objects. */
 enum class DepthKind(private val makeCodec: () -> MapCodec<out ClimateDepth>) : StringRepresentable {
-    AT_SURFACE({ MapCodec.unit(AtSurface) }),
     BELOW_TERRAIN({ BelowTerrain.CODEC }),
     AS_SAMPLED({ MapCodec.unit(AsSampled) });
 

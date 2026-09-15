@@ -123,7 +123,6 @@ data class Density(
             ).apply(instance, ::Density)
         }
 
-        /** Every cell, everywhere — the plain regular/jittered grid. */
         /** No patches at all: the radial figure stands, which is every placement written before this. */
         const val NO_PATCHES = 0.0
 
@@ -134,8 +133,6 @@ data class Density(
         private val PATCH_AMPLITUDES = listOf(1.0, 0.5)
 
         fun uniform(probability: Double = 1.0) = Density(probability, probability, 1.0)
-
-        fun radial(atOrigin: Double, atEdge: Double, falloffRadius: Double) = Density(atOrigin, atEdge, falloffRadius)
 
         /** Crowded in places and empty in others, about a mean of [probability]. */
         fun patchy(probability: Double, patchiness: Double, patchScale: Double, seed: Long) =

@@ -564,7 +564,6 @@ class Editor(
         overlay?.let { return handleOverlay(it, key) }
         when {
             key.ctrl && key.key == "q" -> if (unsaved) askBeforeLeaving(quits = true) else quitting = true
-            key.ctrl && key.key == "c" -> quitting = true
             key.ctrl && key.key == "s" -> save()
             key.ctrl && key.key == "z" -> undo()
             key.ctrl && key.key == "p" -> overlay = Preview.carriers(candidate, word, corpus)
@@ -772,7 +771,6 @@ class Editor(
 
     private fun handleTyping(said: Typing, key: KeyboardEvent) {
         when {
-            key.ctrl && key.key == "c" -> { typing = null; quitting = true }
             key.key == "Escape" -> typing = null
             key.key == "Enter" -> settleTyping()
             // Moving off a row is a way of finishing with it, so what is typed goes in rather than away.
@@ -855,10 +853,6 @@ class Editor(
     }
 
     /**
-     * A row of the effects list. Handles say which of the four slots they are in, since one list holds
-     * all of them: `REQUIRED_POOL/motes`, `draws/REQUIRED_POOL`, `heading/REQUESTED_ALWAYS`.
-     */
-    /**
      * A row of the picks list — the three ways of choosing a preset, told apart by their handle.
      *
      * The step is the first word of the handle, and everything after it is where the claim landed.
@@ -867,7 +861,7 @@ class Editor(
         val rest = handle.substringAfter('/', "")
         val page = rest.substringBefore('/')
         val named = rest.substringAfter('/', "")
-        val aspect = Aspect.entries.firstOrNull { it.page == page }
+        val aspect = Aspect.byPage(page)
         when (handle.substringBefore('/')) {
             "+" -> stepNamed(rest)?.let(::pickAPopulation)
             "heading" -> Unit
@@ -942,12 +936,6 @@ class Editor(
     }
 
     /**
-     * Which population the cursor's row is about, where it is about one.
-     *
-     * Read off the row's handle, which carries the aspect page for every claim but the `all` lean — that
-     * one is about every population at once and so about none in particular.
-     */
-    /**
      * The scale for the row the cursor is on, where that row sets a ranged parameter — the same chart the
      * band screen is built around, shown before it is opened rather than only inside it.
      */
@@ -975,7 +963,7 @@ class Editor(
      */
     private fun parameterNamed(spelled: String): Parameter? {
         val bare = spelled.substringAfterLast('.')
-        val on = Aspect.entries.firstOrNull { it.page == spelled.substringBefore('.', "") }
+        val on = Aspect.byPage(spelled.substringBefore('.', ""))
             ?: Aspect.entries.firstOrNull { it.ownsParameterNamed(bare) }
         return on?.let { Verdict.parametersNamed(it, bare, corpus).firstOrNull() }
     }
@@ -1012,8 +1000,8 @@ class Editor(
 
     private fun populationUnderTheCursor(): Aspect? {
         if (part != Part.POPULATIONS) return null
-        val page = rows().getOrNull(row())?.handle?.substringAfter('/', "")?.substringBefore('/')
-        return Aspect.entries.firstOrNull { it.page == page }
+        val page = rows().getOrNull(row())?.handle?.substringAfter('/', "")?.substringBefore('/') ?: return null
+        return Aspect.byPage(page)
     }
 
     private fun actOnAnEffect(handle: String) {
@@ -1228,7 +1216,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         if (handle.substringBefore('/').startsWith("+")) return
         val rest = handle.substringAfter('/', "")
         val page = rest.substringBefore('/')
-        val aspect = Aspect.entries.firstOrNull { it.page == page }
+        val aspect = Aspect.byPage(page)
         val named = rest.substringAfter('/', "")
         when (part) {
             Part.PROPERTIES -> when (handle.substringBefore('/')) {
@@ -1277,7 +1265,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         complaint = { typed ->
             when {
                 typed.isBlank() -> "a word needs a name"
-                !typed.matches(Regex("[a-z0-9/._-]+")) -> "lower case, digits and _ - . / only"
+                !WordFile.couldBeAName(typed) -> "lower case, digits and _ - . / only"
                 else -> null
             }
         },
@@ -1347,12 +1335,6 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         }).distinct().sorted()
 
     /**
-     * A parameter, offered by name across every aspect that owns one — because that is what a writer is
-     * choosing. **A name shared by several aspects is the good case** and is shown as such: one `colour`
-     * word paints eight aspects, and the note says which before it is chosen rather than after.
-     */
-    /** [into] null asks which slot, which is what the add-an-effect row wants. */
-    /**
      * **Which part of the world, or every parameter at once.**
      *
      * The flat list is the right answer when you know the parameter's name and the wrong one when you are
@@ -1383,7 +1365,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         }
         overlay = Picker("Set what, where?", options) { picked ->
             if (picked.value == EVERY_PARAMETER) pickAParameter(into)
-            else Aspect.entries.firstOrNull { it.page == picked.value }?.let { pickAParameter(into, only = it) }
+            else Aspect.byPage(picked.value)?.let { pickAParameter(into, only = it) }
         }
     }
 
@@ -1503,7 +1485,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         }
         overlay = Picker("${step.adds.replaceFirstChar(Char::uppercase)} — where?", options) { picked ->
             if (picked.value == Word.EVERYWHERE) leanOn(null)
-            else Aspect.entries.firstOrNull { it.page == picked.value }?.let { sayableIn(step, it) }
+            else Aspect.byPage(picked.value)?.let { sayableIn(step, it) }
         }
     }
 
@@ -1698,7 +1680,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         val rest = handle.substringAfter('/', "")
         val page = rest.substringBefore('/')
         val named = rest.substringAfter('/', "")
-        val aspect = Aspect.entries.firstOrNull { it.page == page }
+        val aspect = Aspect.byPage(page)
         // The cost section's numbers step too, which is what the two switches beside them already do with
         // enter — a threshold in tenths, ink and a failure weight one at a time.
         if (part == Part.TIER) return stepACost(handle.substringAfter("cost/", ""), by)
@@ -1835,7 +1817,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
     private fun typeValueFor(parameters: List<String>, into: Into) {
         val bare = parameters.first().substringAfterLast('.')
         // The aspect the parameter was qualified to, where it was — else whichever owns a parameter by that name.
-        val on = Aspect.entries.firstOrNull { it.page == parameters.first().substringBefore('.', "") }
+        val on = Aspect.byPage(parameters.first().substringBefore('.', ""))
             ?: Aspect.entries.firstOrNull { it.ownsParameterNamed(bare) }
         val parameter = parameterNamed(parameters.first())
         val shapes = parameter?.let { parts.optionsFor(it, on) }.orEmpty()
@@ -2178,9 +2160,6 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
     }
 
     private companion object {
-        /** What separates the part of the world from the preset in a picked meaning — `landmass/alps`. */
-        const val MEANING_MARK = '/'
-
         /**
          * Where a section's status mark sits — **one column past the longest name there is.**
          *
@@ -2239,10 +2218,6 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         /** What the pool list calls the row that starts one rather than adding to an existing one. */
         const val NEW_POOL = "new"
 
-        /** Which of the three things a row on the populations list is — carried in its own handle. */
-        const val MEANT = "meant"
-        const val WEIGHED = "weighed"
-        const val TAGGED = "tagged"
         const val DONE_BUILDING = "\u0000done"
 
         const val SAVE_AND_LEAVE = "\u0000save"

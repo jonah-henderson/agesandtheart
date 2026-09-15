@@ -8,7 +8,6 @@ import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeSavedData
-import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Spending
@@ -231,13 +230,9 @@ object Happenings {
             // ground above the waterline, and while the rise itself is still being refined that reads as
             // random blocks appearing everywhere and drowns out the thing being judged. `Deluge.pool` is
             // left whole and unreferenced; put this call back when the sea is settled.
-            Phenomenon.DELUGE -> Deluge.raise(level, level.seaSurface() ?: return)
+            Phenomenon.DELUGE -> Deluge.raise(level)
         }
     }
-
-    /** Where this Age's sea stands right now, or null where it has none to raise. */
-    private fun ServerLevel.seaSurface(): Int? =
-        (chunkSource.generator as? AgeChunkGenerator)?.seaFill?.surfaceY
 
     /** How often a client is reminded what the weather here is, in ticks. */
     private const val TELLING_THE_CLIENT = 20

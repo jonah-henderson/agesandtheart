@@ -89,8 +89,6 @@ object SpireField {
                     // Squashed, so a blob breaks into stacked flattish masses rather than vertical shafts.
                     scaleY = BLOB_SCALE * BLOB_SQUASH,
                     scaleZ = BLOB_SCALE,
-                    // PLAIN, not BILLOWY: billowy picks out the extremes and most of a normal field sits
-                    // near the middle, so it would leave these as thin scraps.
                     character = NoiseCharacter.PLAIN,
                     threshold = BLOB_THRESHOLD,
                     lowY = SMALL_BAND_LOW,

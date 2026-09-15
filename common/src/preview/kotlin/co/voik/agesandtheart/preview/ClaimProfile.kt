@@ -1,9 +1,8 @@
 package co.voik.agesandtheart.preview
 
+import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.worldgen.field.ClaimTilt
 import co.voik.agesandtheart.worldgen.field.RegionMap
-import net.minecraft.SharedConstants
-import net.minecraft.server.Bootstrap
 import kotlin.math.sqrt
 
 /**
@@ -20,8 +19,7 @@ import kotlin.math.sqrt
 fun main() {
     // NormalNoise reaches for the registries by way of nothing at all, but XoroshiroRandomSource is
     // enough of Minecraft to want the bootstrap; it costs a couple of seconds and makes the rest honest.
-    SharedConstants.tryDetectVersion()
-    Bootstrap.bootStrap()
+    MinecraftRegistries.ensureStoodUp()
 
     val map = RegionMap(members = 1, scale = REGION_BLOCKS, blend = 0, originX = 0, originZ = 0, seed = 1L)
     val samples = mutableListOf<Double>()

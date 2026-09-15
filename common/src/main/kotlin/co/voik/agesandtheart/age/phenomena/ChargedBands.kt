@@ -83,9 +83,6 @@ object ChargedBands {
      */
     const val FORGOTTEN_BEYOND = 256.0
 
-    /** Vanilla's, and what "seen from the ground" is measured against. */
-    const val SEA_LEVEL = 64.0
-
     /** Where a middle band falls between them — a little under half, so the last climb is the long one. */
     private const val MIDDLE_SHARE = 0.45
 

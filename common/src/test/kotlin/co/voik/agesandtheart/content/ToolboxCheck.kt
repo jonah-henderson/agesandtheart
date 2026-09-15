@@ -11,7 +11,7 @@ import io.kotest.core.spec.style.FunSpec
  * `ItemStack(item)` and `Item.components()` throw "Components not bound yet". A companion `init` does not
  * rescue it either; that was the first attempt.
  *
- * So the fence is a walk (visual backlog item G) and what is pinned here is the number it fences, which is
+ * So the fence is a walk and what is pinned here is the number it fences, which is
  * the half that can rot silently — twenty-seven slots is right for spares only while what fills them is
  * restricted, and somebody widening one without the other is the mistake worth catching.
  */

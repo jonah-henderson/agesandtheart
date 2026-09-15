@@ -18,7 +18,7 @@ import io.kotest.core.spec.style.FunSpec
  * The gates are pure functions of the recipe, which is what lets the desk's survey answer before the Age
  * is opened — so they are askable here with no server and no registries.
  *
- * Where the blocks actually land is a walk; the visual backlog carries it.
+ * Where the blocks actually land is a walk.
  */
 class EarlyGameRareMaterialsCheck : FunSpec({
 

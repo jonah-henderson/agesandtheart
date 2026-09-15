@@ -43,12 +43,6 @@ object Share {
         return shares
     }
 
-    /**
-     * [share] as a recipe holds it. Two decimals is as fine as a division of ground can mean, and it is
-     * what lets the spelling a command reads back be exactly the share that was written down.
-     */
-    fun legible(share: Double): Double = Rung.legible(share)
-
     /** The share [spelled] after an `@`, or null where that is not a share at all. */
     fun read(spelled: String): Double? = spelled.toDoubleOrNull()?.takeIf { it > 0.0 }
 }

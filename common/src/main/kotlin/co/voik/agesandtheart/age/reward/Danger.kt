@@ -134,7 +134,7 @@ data class Danger(
         fun of(recipe: AgeRecipe, table: DangerTable, prices: Map<Manifestation, Price>): Danger {
             val composition = (recipe.world as? AgeWorld.Composed)?.composition
                 ?: return nothing(table, recipe.authored)
-            return of(composition, recipe.instability, recipe.seed, recipe.authored, table, prices)
+            return of(composition, recipe.instability, recipe.authored, table, prices)
         }
 
         /**
@@ -147,12 +147,11 @@ data class Danger(
         fun of(
             composition: AgeComposition,
             instability: Instability,
-            seed: Long,
             authored: Boolean,
             table: DangerTable,
             prices: Map<Manifestation, Price>,
         ): Danger {
-            val spent = Spending.of(instability.index, prices, seed)
+            val spent = Spending.of(instability.index, prices)
             return Danger(
                 materials = materialsOf(composition, table),
                 spawns = spawnsOf(composition, table, spent, prices),

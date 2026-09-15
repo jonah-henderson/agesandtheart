@@ -99,11 +99,6 @@ object PanelWarming {
         if (busy) return
         val id = waiting.poll() ?: return
         val level = Ages.open(server, id)
-        if (level == null) {
-            underway.remove(id)
-            beginTheNext(server)
-            return
-        }
         busy = true
         generateTheRing(server, level, id)
     }

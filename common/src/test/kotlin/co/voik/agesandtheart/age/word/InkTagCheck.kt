@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus
 import com.google.gson.JsonParser
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -61,7 +62,7 @@ class InkTagCheck : FunSpec({
 
     /** Authored words are listed by name, so a typo there is a word that silently stays cheap. */
     test("every authored word listed for an ink tier is a real word") {
-        val vocabulary = Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen)
+        val vocabulary = ShippedCorpus.vocabulary
         val inkDirectory = File("src/main/resources/data/agesandtheart/art/ink")
         val listed = inkDirectory.listFiles { f -> f.extension == "json" }.orEmpty()
             .flatMap { file ->

@@ -1,17 +1,10 @@
 package co.voik.agesandtheart.age.word
 
 import com.mojang.serialization.Codec
-import net.minecraft.core.Registry
 import net.minecraft.core.RegistryAccess
-import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
-import net.minecraft.resources.ResourceKey
 import net.minecraft.server.packs.resources.ResourceManager
-import net.minecraft.tags.TagKey
 import net.minecraft.util.RandomSource
-import net.minecraft.world.level.biome.Biome
-import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.levelgen.structure.StructureSet
 
 /**
  * The words a pool holds — what a village writer's trade may hand over.
@@ -35,7 +28,7 @@ class WriterStock(private val listed: Map<String, Set<String>>) {
     fun words(pool: Identifier, vocabulary: Vocabulary, registries: RegistryAccess): List<Word> {
         val authored = listed[pool.path].orEmpty()
         fun isListed(word: Word) = word.name in authored
-        fun isTagged(word: Word) = carriesTag(word.id, pool, registries)
+        fun isTagged(word: Word) = registries.carriesTagNamed(word.id, pool)
         return vocabulary.words.filter { isListed(it) || isTagged(it) }
     }
 
@@ -55,25 +48,6 @@ class WriterStock(private val listed: Map<String, Set<String>>) {
         return if (held.isEmpty()) null else held[random.nextInt(held.size)]
     }
 
-    /**
-     * Whether the thing [id] names carries the pool's tag. Every registry a derived word can be read off
-     * is asked, since the id alone does not say which it came from.
-     */
-    private fun carriesTag(id: Identifier, pool: Identifier, registries: RegistryAccess): Boolean =
-        taggedIn(registries, Registries.BLOCK, id, TagKey.create(Registries.BLOCK, pool)) ||
-            taggedIn(registries, Registries.BIOME, id, TagKey.create(Registries.BIOME, pool)) ||
-            taggedIn(registries, Registries.STRUCTURE_SET, id, TagKey.create(Registries.STRUCTURE_SET, pool))
-
-    private fun <T : Any> taggedIn(
-        registries: RegistryAccess,
-        registry: ResourceKey<out Registry<T>>,
-        id: Identifier,
-        tag: TagKey<T>,
-    ): Boolean {
-        val holder = registries.lookup(registry).orElse(null)?.get(id)?.orElse(null) ?: return false
-        return holder.`is`(tag)
-    }
-
     companion object {
         /** Where a pack lists a pool's authored words, one file per pool. */
         const val STOCK_DIRECTORY = "art/writer_stock"
@@ -81,8 +55,6 @@ class WriterStock(private val listed: Map<String, Set<String>>) {
         private const val ART_PREFIX = "art/"
 
         private const val JSON_SUFFIX = ".json"
-
-        val NONE = WriterStock(emptyMap())
 
         /** The authored half, stacked so a pack may add words to a pool without reprinting ours. */
         fun load(resources: ResourceManager, problems: MutableList<String>): WriterStock {

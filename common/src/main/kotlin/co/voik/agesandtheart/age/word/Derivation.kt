@@ -12,7 +12,6 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.RegistryOps
-import net.minecraft.resources.ResourceKey
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
@@ -345,13 +344,4 @@ object DerivedTags {
 
     /** A tag as a rule spells it: `#minecraft:logs`, which is how a datapack writes one. */
     private fun spelled(id: Identifier): String = "#$id"
-
-    /** Which registry each aspect's members live in — for the checks, and for saying what a rule may key on. */
-    val REGISTRIES: Map<Aspect, ResourceKey<out net.minecraft.core.Registry<*>>> = mapOf(
-        Aspect.FEATURES to Registries.PLACED_FEATURE,
-        Aspect.SPAWNS to Registries.ENTITY_TYPE,
-        Aspect.BIOMES to Registries.BIOME,
-        Aspect.STRUCTURES to Registries.STRUCTURE_SET,
-        Aspect.SEA to Registries.BLOCK,
-    )
 }

@@ -15,7 +15,6 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.HolderLookup
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.packs.resources.Resource
 import net.minecraft.server.packs.resources.ResourceManager
 
 /**
@@ -209,11 +208,6 @@ data class Vocabulary(
         candidatesFor(aspect).filter { it.askableInASentence }
 
     /**
-     * The presets in [aspect] this word would keep, at its tier's strictness. A word that **means one
-     * outright** never searches, which is what keeps derived vocabulary free at resolve time (§8.2) — and
-     * is the one way to reach something [askableIn] leaves out, so a deliberate word still can.
-     */
-    /**
      * Whether anything in [aspect] answers [word] at all, either way — the question a **population** asks
      * where a preset aspect asks [carriersOf].
      *
@@ -232,6 +226,11 @@ data class Vocabulary(
         }
     }
 
+    /**
+     * The presets in [aspect] this word would keep, at its tier's strictness. A word that **means one
+     * outright** never searches, which is what keeps derived vocabulary free at resolve time (§8.2) — and
+     * is the one way to reach something [askableIn] leaves out, so a deliberate word still can.
+     */
     fun carriersOf(word: Word, aspect: Aspect): List<Taggable> {
         word.choiceIn(aspect)?.let { return listOf(it) }
         val pool = askableIn(aspect) + word.admitsIn(aspect).mapNotNull(aspect::presetFor)
@@ -329,10 +328,6 @@ data class Vocabulary(
         private const val JSON_SUFFIX = ".json"
 
         /**
-         * The corpus this server is currently running. Read fresh each time rather than cached: it happens
-         * once when an Age is written, and a cache would need invalidating on `/reload`.
-         */
-        /**
          * The corpus this server is currently running, **built once and kept**.
          *
          * It used to rebuild on every call, which is eleven hundred words derived from the registries and
@@ -366,8 +361,8 @@ data class Vocabulary(
         fun load(resources: ResourceManager, registries: HolderLookup.Provider? = null): Vocabulary {
             val problems = mutableListOf<String>()
             val authored = readWords(resources, problems)
-            // After the words, so a domain claiming a page some word file also defines is reported rather
-            // than silently winning or losing on map order.
+            // After the words, so an aspect's page that some word file also defines is reported rather than
+            // silently winning or losing on map order.
             val pages = aimingPages(authored, problems)
             val tags = readPresetTags(resources, problems)
             val rules = readDerivations(resources, problems)
@@ -493,7 +488,7 @@ data class Vocabulary(
             val words = mutableMapOf<String, Word>()
             for ((file, resource) in resources.listResources(WORD_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }) {
                 val id = idOf(file, WORD_DIRECTORY)
-                val word = parse(resource, file, Word.mapCodec(id).codec(), problems) ?: continue
+                val word = ResourceParsing.parse(resource, file, Word.mapCodec(id).codec(), problems) ?: continue
                 // Two packs both defining "floating" would otherwise leave the winner to map iteration
                 // order, so it is called out as the content collision it is.
                 val existing = words[word.name]
@@ -513,7 +508,7 @@ data class Vocabulary(
             val file = Identifier.fromNamespaceAndPath(Constants.MOD_ID, Spawning.FILE)
             var standing = Spawning()
             for (layer in resources.getResourceStack(file)) {
-                val read = parse(layer, file, Spawning.CODEC, problems) ?: continue
+                val read = ResourceParsing.parse(layer, file, Spawning.CODEC, problems) ?: continue
                 standing = standing.mergedWith(read)
             }
             return standing
@@ -533,13 +528,13 @@ data class Vocabulary(
             val rules = mutableMapOf<Aspect, Derivation>()
             for ((file, layers) in stacks) {
                 val key = idOf(file, DERIVATION_DIRECTORY).path
-                val aspect = Aspect.entries.firstOrNull { it.page == key }
+                val aspect = Aspect.byPage(key)
                 if (aspect == null) {
                     problems += "$file names no aspect ('$key'); aspects are ${Aspect.entries.joinToString(" ") { it.page }}"
                     continue
                 }
                 for (layer in layers) {
-                    val read = parse(layer, file, Derivation.CODEC, problems) ?: continue
+                    val read = ResourceParsing.parse(layer, file, Derivation.CODEC, problems) ?: continue
                     val standing = rules[aspect]
                     rules[aspect] = standing?.let {
                         Derivation(it.byTag + read.byTag, it.byKind + read.byKind)
@@ -561,14 +556,14 @@ data class Vocabulary(
             val bySlot = mutableMapOf<Aspect, MutableMap<String, PresetProfile>>()
             for ((file, layers) in stacks) {
                 val slotKey = idOf(file, PRESET_TAGS_DIRECTORY).path
-                val aspect = Aspect.entries.firstOrNull { it.page == slotKey }
+                val aspect = Aspect.byPage(slotKey)
                 if (aspect == null) {
                     problems += "$file names no aspect ('$slotKey'); aspects are ${Aspect.entries.joinToString(" ") { it.page }}"
                     continue
                 }
                 val merged = bySlot.getOrPut(aspect) { mutableMapOf() }
                 for (layer in layers) {
-                    val table = parse(layer, file, PresetTags.CODEC, problems) ?: continue
+                    val table = ResourceParsing.parse(layer, file, PresetTags.CODEC, problems) ?: continue
                     for (preset in table.described) {
                         // An open aspect takes any well-formed id: an entry for a block from a mod that is
                         // not installed is a pack covering more ground than this instance runs, not a
@@ -596,7 +591,7 @@ data class Vocabulary(
             val structural = mutableMapOf<String, GrammarWord>()
             for ((file, resource) in resources.listResources(GRAMMAR_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }) {
                 val id = idOf(file, GRAMMAR_DIRECTORY)
-                val word = parse(resource, file, GrammarWord.mapCodec(id).codec(), problems) ?: continue
+                val word = ResourceParsing.parse(resource, file, GrammarWord.mapCodec(id).codec(), problems) ?: continue
                 val existing = structural[word.name]
                 if (existing != null && existing.id != word.id) {
                     problems += "two structural words are both called '${word.name}': ${existing.id} and ${word.id}"
@@ -609,7 +604,7 @@ data class Vocabulary(
         private fun readAntonyms(resources: ResourceManager, problems: MutableList<String>): List<Antonym> {
             val stacks = resources.listResourceStacks(ANTONYM_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }
             return stacks.entries.sortedBy { it.key.toString() }.flatMap { (file, layers) ->
-                layers.flatMap { layer -> parse(layer, file, AntonymPage.CODEC, problems)?.pairs.orEmpty() }
+                layers.flatMap { layer -> ResourceParsing.parse(layer, file, AntonymPage.CODEC, problems)?.pairs.orEmpty() }
             }
         }
 
@@ -619,12 +614,5 @@ data class Vocabulary(
                 file.namespace,
                 file.path.removePrefix("$directory/").removeSuffix(JSON_SUFFIX),
             )
-
-        private fun <T> parse(
-            resource: Resource,
-            file: Identifier,
-            codec: Codec<T>,
-            problems: MutableList<String>,
-        ): T? = ResourceParsing.parse(resource, file, codec, problems)
     }
 }

@@ -3,7 +3,6 @@ package co.voik.agesandtheart
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.content.DeepWaterLogging
-import co.voik.agesandtheart.platform.Services
 import co.voik.agesandtheart.sky.Skies
 import co.voik.ephemeris.LevelWeather
 
@@ -21,11 +20,7 @@ object CommonSetup {
         Skies.attach()
         // Does nothing at all unless one of our own tools started this server — see [LauncherWatch].
         LauncherWatch.attach()
-        Constants.LOG.info(
-            "Ages and the Art initialising on {} ({} environment)",
-            Services.PLATFORM.name,
-            Services.PLATFORM.environmentName,
-        )
+        Constants.LOG.info("Ages and the Art initialising")
     }
 
     /**

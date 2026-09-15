@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.preview.authoring
 
+import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Word
@@ -15,6 +16,7 @@ import net.minecraft.server.packs.PathPackResources
 import net.minecraft.server.packs.repository.PackSource
 import net.minecraft.server.packs.resources.MultiPackResourceManager
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Optional
 
@@ -62,8 +64,8 @@ class Corpus(val vocabulary: Vocabulary, val snapshot: ServerSnapshot?) {
      * is asked for by a keystroke and not on every edit.
      */
     fun spliced(candidate: Candidate): Vocabulary {
-        val overlay = createTempDirectory()
-        val word = overlay.resolve("data/${Candidate.NAMESPACE}/${Vocabulary.WORD_DIRECTORY}")
+        val overlay = Files.createTempDirectory("art-candidate-").toFile()
+        val word = overlay.resolve("data/${Constants.MOD_ID}/${Vocabulary.WORD_DIRECTORY}")
         word.mkdirs()
         word.resolve("${candidate.name}.json").writeText(WordFile.textOf(candidate))
         return try {
@@ -73,26 +75,18 @@ class Corpus(val vocabulary: Vocabulary, val snapshot: ServerSnapshot?) {
         }
     }
 
-    private fun createTempDirectory(): File =
-        File.createTempFile("art-candidate-", "").let { placeholder ->
-            placeholder.delete()
-            placeholder.also { it.mkdirs() }
-        }
-
     private fun resourcesOver(overlay: File) = MultiPackResourceManager(
         PackType.SERVER_DATA,
-        listOf(packAt(shippedRoot(), "agesandtheart"), packAt(overlay.toPath(), "agesandtheart-candidate")),
+        listOf(
+            packAt(MinecraftRegistries.resourceRoot(), "agesandtheart"),
+            packAt(overlay.toPath(), "agesandtheart-candidate"),
+        ),
     )
 
     private fun packAt(root: Path, named: String) = PathPackResources(
         PackLocationInfo(named, Component.literal(named), PackSource.BUILT_IN, Optional.empty()),
         root,
     )
-
-    private fun shippedRoot(): Path =
-        listOf(Path.of("common/src/main/resources"), Path.of("src/main/resources"))
-            .firstOrNull { it.toFile().isDirectory }
-            ?: error("Cannot find the mod's resources from ${Path.of("").toAbsolutePath()}")
 
     companion object {
         /**

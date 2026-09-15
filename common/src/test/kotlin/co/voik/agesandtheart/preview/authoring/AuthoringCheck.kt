@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Facets
+import co.voik.agesandtheart.age.word.poolOfSingleSettings
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.preview.authoring.ui.Band
 import co.voik.agesandtheart.preview.authoring.ui.Columns
@@ -62,7 +63,7 @@ class AuthoringCheck : FunSpec({
             excludes = mapOf(Aspect.SEA to setOf("#watery")),
             biases = mapOf(Aspect.BIOMES to mapOf("minecraft:plains" to 1.0)),
             sets = mapOf("stone" to "minecraft:stone"),
-            pools = listOf(Facets.of(mapOf("spacing" to "0.4..1.0"), Draws("1..2"))),
+            pools = listOf(poolOfSingleSettings(mapOf("spacing" to "0.4..1.0"), Draws("1..2"))),
             template = "dark_void",
             mints = "minecraft:spring_water",
             unstated = "#agesandtheart:formation_substance",
@@ -170,7 +171,7 @@ class AuthoringCheck : FunSpec({
      */
     test("a parameter nothing turns is refused, in the core and in the pool") {
         val base = Candidate(name = "probe", tier = Tier.EXACT, )
-        for (invented in listOf(base.copy(sets = mapOf("suns" to "1")), base.copy(pools = listOf(Facets.of(mapOf("suns" to "1"), Draws.of(1)))))) {
+        for (invented in listOf(base.copy(sets = mapOf("suns" to "1")), base.copy(pools = listOf(poolOfSingleSettings(mapOf("suns" to "1"), Draws.of(1)))))) {
             val said = Verdict.refusals(Verdict.on(invented, corpus))
             check(said.any { it.says.contains("suns") }) {
                 "a parameter no aspect owns was not refused: ${said.joinToString { it.says }}"
@@ -312,8 +313,8 @@ class AuthoringCheck : FunSpec({
             tier = Tier.RESTRICTIVE,
             aspects = setOf(Aspect.SUN),
             pools = listOf(
-                Facets.of(mapOf("sun.colour" to "red", "sun.size" to "0.7..1.0"), Draws.of(1)),
-                Facets.of(mapOf("sky.colour" to "red", "haze" to "0.4"), Draws.of(1)),
+                poolOfSingleSettings(mapOf("sun.colour" to "red", "sun.size" to "0.7..1.0"), Draws.of(1)),
+                poolOfSingleSettings(mapOf("sky.colour" to "red", "haze" to "0.4"), Draws.of(1)),
             ),
         )
         for (draw in 0L..<40L) {
@@ -586,7 +587,7 @@ class AuthoringCheck : FunSpec({
      * every word to serve the one that needed the room — the same bargain `Tier` strikes.
      */
     test("only a pool with a group spells its groups out") {
-        val plain = Facets.of(mapOf("haze" to "0.4", "tint" to "blue"), Draws.of(1))
+        val plain = poolOfSingleSettings(mapOf("haze" to "0.4", "tint" to "blue"), Draws.of(1))
         val written = Facets.CODEC.encodeStart(JsonOps.INSTANCE, plain).getOrThrow()
         check(written.asJsonObject.get("facets").isJsonObject) { "a plain pool wrote $written" }
         check(Facets.CODEC.parse(JsonOps.INSTANCE, written).getOrThrow() == plain) { "a plain pool did not return" }

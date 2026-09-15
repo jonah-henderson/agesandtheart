@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.state.properties.IntegerProperty
  * ceiling on how big a pile can be. Eight states is a cheap price for a pile of any size.
  *
  * **A charged crystal is worth two**, and that one rule is the whole of what the lightning buys: every
- * machine it feeds reads its supply through [Arcs.supplyAround], so a bolt doubles the force of whatever
+ * machine it feeds reads its supply through [Arcs.worthOf], so a bolt doubles the force of whatever
  * was already built — the pull, the push and the bite together — without any of them being told about
  * lightning.
  */

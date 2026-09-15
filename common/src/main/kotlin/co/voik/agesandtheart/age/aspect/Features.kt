@@ -28,10 +28,6 @@ import java.util.concurrent.ConcurrentHashMap
  * writing happens — naming a feature asks for it, `except` strikes one out, `only` keeps just what was
  * named.
  *
- * **Features are per biome in vanilla, and this is per Age**, which is the one real departure. Vanilla
- * resolves a feature list through the biome, so scoping *this* aspect to a biome is a thing the language
- * could eventually say (§4.3.1's `in <biome>`); until it does, an Age's answer covers all of them.
- *
  * §7.2 is why it is load-bearing rather than decoration: "write an Age that supplies an ink farm" needs a
  * writer to be able to say what is *in* the ground.
  */
@@ -171,7 +167,6 @@ object Features {
         }
     }
 
-    /** The three parameters together, since every one of them travels to the same place. */
     /**
      * The Age's three dials and its rock, and **one rebuilt feature per feature for the whole Age**.
      *
@@ -188,7 +183,10 @@ object Features {
     ) {
         /** Nothing turned, and nothing to reach — the case where a feature is handed back untouched. */
         val asksForNothing: Boolean
-            get() = FeatureShape.asksForNothing(size, thickness, height) && FeatureShape.oresCanReach(rock)
+            get() {
+                val nothingWasTurned = size == null && thickness == null && height == null
+                return nothingWasTurned && FeatureShape.oresCanReach(rock)
+            }
 
         private val rebuilt = ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>()
 

@@ -21,7 +21,6 @@ class Line(val inks: List<Ink>) {
 
     operator fun plus(other: Line) = Line(inks + other.inks)
 
-    /** This line at exactly [to] columns — padded with spaces, or cut with an ellipsis where it overruns. */
     /**
      * This line broken to [width], each continuation indented by [hanging].
      *
@@ -73,6 +72,7 @@ class Line(val inks: List<Ink>) {
         return lines
     }
 
+    /** This line at exactly [to] columns — padded with spaces, or cut with an ellipsis where it overruns. */
     fun sized(to: Int): Line = when {
         width == to -> this
         width < to -> Line(inks + Ink(" ".repeat(to - width)))
@@ -93,14 +93,6 @@ class Line(val inks: List<Ink>) {
     }
 
     /**
-     * The line as the terminal should receive it.
-     *
-     * [colourful] is asked rather than assumed: `TextStyle.invoke` writes its escape whatever the terminal
-     * turned out to be, so a run piped to a file would otherwise carry codes nothing will read. The styles
-     * here are the sixteen basic ANSI colours, which every colour terminal has, so there is no level to
-     * negotiate beyond having one at all.
-     */
-    /**
      * This line with its trailing padding dropped.
      *
      * **A line filled to the last column wraps.** The terminal moves to the next row on its own, and the
@@ -114,14 +106,20 @@ class Line(val inks: List<Ink>) {
         return Line(kept.dropLast(1) + kept.last().let { it.copy(text = it.text.trimEnd()) })
     }
 
+    /**
+     * The line as the terminal should receive it.
+     *
+     * [colourful] is asked rather than assumed: `TextStyle.invoke` writes its escape whatever the terminal
+     * turned out to be, so a run piped to a file would otherwise carry codes nothing will read. The styles
+     * here are the sixteen basic ANSI colours, which every colour terminal has, so there is no level to
+     * negotiate beyond having one at all.
+     */
     fun rendered(colourful: Boolean): String = inks.joinToString("") { ink ->
         if (colourful) ink.style?.invoke(ink.text) ?: ink.text else ink.text
     }
 
     companion object {
         val BLANK = Line(emptyList())
-
-        fun of(vararg inks: Ink) = Line(inks.toList())
     }
 }
 

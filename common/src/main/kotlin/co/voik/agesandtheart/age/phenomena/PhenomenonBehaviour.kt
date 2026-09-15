@@ -1,16 +1,12 @@
 package co.voik.agesandtheart.age.phenomena
 
-import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import com.mojang.serialization.Codec
-import com.mojang.serialization.JsonOps
 import com.mojang.serialization.codecs.RecordCodecBuilder
-import com.google.gson.JsonParser
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.packs.resources.ResourceManager
 
 /**
- * How fiercely a phenomenon happens — **datapack content** (`art/phenomenon/<key>.json`).
+ * How fiercely a tempest happens — **datapack content** (`art/phenomenon/tempest.json`).
  *
  * Which processes exist is ours ([Phenomenon] is an enum, there being nothing behind a phenomenon in
  * vanilla to derive one from), but *how hard* one of them hits is content: a pack that wants a gentler
@@ -77,40 +73,9 @@ data class PhenomenonBehaviour(
             ).apply(instance, ::PhenomenonBehaviour)
         }
 
-        const val DIRECTORY = "art/phenomenon"
+        private val FILE = PhenomenonFile(Phenomenon.TEMPEST, CODEC, ORDINARY)
 
-        /**
-         * What this server currently says a phenomenon does.
-         *
-         * **Cached on the resource manager's identity**, exactly as `Vocabulary.of` is: `/reload` builds a
-         * new one, so the cache invalidates itself and nothing has to remember to. Read per tick by
-         * [Tempest], which is why it is cached at all.
-         */
-        fun of(server: MinecraftServer, phenomenon: Phenomenon): PhenomenonBehaviour {
-            val resources = server.resourceManager
-            loaded?.let { (from, known) -> if (from === resources) return known[phenomenon.key] ?: ORDINARY }
-            val read = load(resources)
-            loaded = resources to read
-            return read[phenomenon.key] ?: ORDINARY
-        }
-
-        private var loaded: Pair<ResourceManager, Map<String, PhenomenonBehaviour>>? = null
-
-        private fun load(resources: ResourceManager): Map<String, PhenomenonBehaviour> = buildMap {
-            for ((file, resource) in resources.listResources(DIRECTORY) { it.path.endsWith(SUFFIX) }) {
-                val key = file.path.removePrefix("$DIRECTORY/").removeSuffix(SUFFIX)
-                val read = runCatching {
-                    resource.open().use { stream ->
-                        CODEC.parse(JsonOps.INSTANCE, JsonParser.parseReader(stream.reader())).getOrThrow()
-                    }
-                }
-                // A pack that writes nonsense gets the ordinary storm and a line in the log, rather than a
-                // server that will not start over a number.
-                read.onFailure { Constants.LOG.warn("Could not read '{}': {}", file, it.message) }
-                read.getOrNull()?.let { put(key, it) }
-            }
-        }
-
-        private const val SUFFIX = ".json"
+        /** What this server currently says a tempest does. Read per tick by [Tempest], hence the cache. */
+        fun of(server: MinecraftServer): PhenomenonBehaviour = FILE.of(server)
     }
 }

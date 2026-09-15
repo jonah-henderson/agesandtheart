@@ -40,10 +40,10 @@ class AquiferSectionCheck : FunSpec({
     val table by lazy { WaterTable.matching(SeaFill.of(Blocks.WATER.defaultBlockState(), SEA_LEVEL), SEA_LEVEL, SEED) }
 
     /** As the generator asks it: the carved rock, and the rock before the caves were cut. */
-    fun aquifer(): Aquifer = table.aquiferFor(ground.shape, WaterTable.surfaceOf(ground.shape, uncut))
+    fun aquifer(): Aquifer = table.aquiferOver(ground.shape, uncut)
 
     /** As it was asked before stamp 43, judging the sea from the carved rock alone. */
-    fun carvedOnlyAquifer(): Aquifer = table.aquiferFor(ground.shape)
+    fun carvedOnlyAquifer(): Aquifer = table.aquiferOver(ground.shape)
 
     fun holdsWater(aquifer: Aquifer, worldX: Int, worldY: Int, worldZ: Int): Boolean {
         val put = aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)

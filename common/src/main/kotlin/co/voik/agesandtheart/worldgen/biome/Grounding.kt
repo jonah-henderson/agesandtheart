@@ -2,7 +2,6 @@ package co.voik.agesandtheart.worldgen.biome
 
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import com.mojang.serialization.Codec
-import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import java.util.Optional
 import kotlin.math.abs
@@ -252,14 +251,14 @@ data class Grounding(
         return if (weirdness < 0.0f) -squeezed else squeezed
     }
 
-    /**
-     * Where this surface falls on vanilla's continentalness axis. A curve through its bands rather than a
-     * set of thresholds, so a coast is a gradient and the surface rules either side of it blend.
-     */
     /** This column's surface, or the waterline where there is no ground at all. */
     private fun surfaceAt(blockX: Int, blockZ: Int): Int =
         terrain.columnSpans(blockX, blockZ).highestSolidY ?: waterline
 
+    /**
+     * Where this surface falls on vanilla's continentalness axis. A curve through its bands rather than a
+     * set of thresholds, so a coast is a gradient and the surface rules either side of it blend.
+     */
     internal fun continentalnessOf(surfaceY: Int): Float {
         val overTheWater = (surfaceY - waterline).toFloat()
         if (overTheWater <= HEIGHTS.first()) return BANDS.first()
@@ -292,7 +291,7 @@ data class Grounding(
             val key = (blockX.toLong() shl Int.SIZE_BITS) or (blockZ.toLong() and UNSIGNED_INT)
             val slot = (((blockX shr QUART_BITS) and 3) shl 2) or ((blockZ shr QUART_BITS) and 3)
             if (keys[slot] == key) return slot
-            val surface = grounding.terrain.columnSpans(blockX, blockZ).highestSolidY ?: grounding.waterline
+            val surface = grounding.surfaceAt(blockX, blockZ)
             val standing = grounding.rivers?.columnSpans(blockX, blockZ)?.highestSolidY
             continentalness[slot] = grounding.continentalnessOf(surface)
             // The steeper of the two axes, so a ridge running one way is not read as flat ground.
@@ -420,7 +419,5 @@ data class Grounding(
                 Grounding(terrain, waterline, hasSea, rivers.orElse(null), declared)
             }
         }
-
-        val MAP_CODEC: MapCodec<Grounding> = CODEC.fieldOf("grounding")
     }
 }

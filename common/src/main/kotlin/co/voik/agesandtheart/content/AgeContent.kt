@@ -30,7 +30,6 @@ import co.voik.agesandtheart.desk.SeismographMenu
 import co.voik.agesandtheart.desk.WritersDeskMenu
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
-import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.field.NearTheSurface
 import co.voik.agesandtheart.worldgen.field.RegionRule
@@ -1205,13 +1204,6 @@ object AgeContent {
         .build(ResourceKey.create(Registries.ENTITY_TYPE, Meteor.ID))
 
     /**
-     * Charged rock adrift at altitude — see [co.voik.agesandtheart.age.phenomena.DriftingOre].
-     *
-     * **Tracked far and updated slowly**, which is the pair its design asks for: the whole point of the
-     * lowest band is to be *seen from the ground* so that up reads as the direction to explore, and a body
-     * that drifts at a fifth of a block a second has nothing worth sending twenty times a second.
-     */
-    /**
      * A collapse in progress — see [co.voik.agesandtheart.age.phenomena.CaveIn].
      *
      * **Nothing is drawn and nothing is hit**: it is a place where something is happening, and what a
@@ -1244,11 +1236,6 @@ object AgeContent {
     private const val DRIFTING_ORE_SIZE = 2.0f
 
     /**
-     * Sixteen chunks, which is vanilla's own longest (the lightning bolt's) and what the bands need: the
-     * highest sits at the build limit, a quarter of a kilometre over a player at sea level, and a body
-     * nobody is told about cannot be a signpost.
-     */
-    /**
      * The arc a charged machine throws when it bites — see [ArcBolt], which explains why vanilla's own
      * lightning could not be spawned instead.
      *
@@ -1265,6 +1252,11 @@ object AgeContent {
     private const val ARC_BOLT_SIZE = 0.1f
     private const val ARC_BOLT_TRACKING_CHUNKS = 4
 
+    /**
+     * Sixteen chunks, which is vanilla's own longest (the lightning bolt's) and what the bands need: the
+     * highest sits at the build limit, a quarter of a kilometre over a player at sea level, and a body
+     * nobody is told about cannot be a signpost.
+     */
     const val DRIFTING_ORE_TRACKING_CHUNKS = 16
     /**
      * How often a body's position is sent. Read with `DriftingOre.CATCHING_UP_MARGIN`, which has to stay
@@ -1649,7 +1641,6 @@ object AgeContent {
 
     /** Chunk-generator codecs — a level's generator is serialised when it is saved, so it needs one. */
     val chunkGeneratorCodecs: List<Pair<Identifier, MapCodec<out ChunkGenerator>>> = listOf(
-        "spire".location() to SpireChunkGenerator.CODEC,
         // Renamed from `field` with the class: the generator reaches past field terrain now. Save formats
         // are still free to move (CLAUDE.md), so this is a rename rather than an alias.
         "age".location() to AgeChunkGenerator.CODEC,
@@ -1698,10 +1689,6 @@ object AgeContent {
         "porosity".location() to RuleCarver(CarverConfiguration.CODEC.codec(), Porosity.VUGS),
     )
 
-    /**
-     * Our own features. As with [carvers], this registers the *kind*; what is made of it is built in code
-     * rather than authored, there being one caller and no reason for a pack to name it.
-     */
     private val BLIZZARD_SHELTERED_ID: Identifier = "blizzard_sheltered".location()
     private val BLIZZARD_EXPOSED_ID: Identifier = "blizzard_exposed".location()
 
@@ -1740,6 +1727,10 @@ object AgeContent {
         PRESSURE_EFFECT_ID to PRESSURE_EFFECT_INSTANCE,
     )
 
+    /**
+     * Our own features. As with [carvers], this registers the *kind*; what is made of it is built in code
+     * rather than authored, there being one caller and no reason for a pack to name it.
+     */
     val features: List<Pair<Identifier, Feature<*>>> = listOf(
         "algae".location() to Algae,
         "spilled_spring".location() to SpilledSpring,

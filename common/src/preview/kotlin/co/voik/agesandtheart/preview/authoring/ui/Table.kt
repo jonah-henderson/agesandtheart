@@ -158,9 +158,6 @@ class Table(
             gap = Columns.GAP,
         ).sum() + Columns.GAP * (columns.size - 1).coerceAtLeast(0)
 
-    /** Whether the cursor is sitting on something that can be cycled rather than merely read. */
-    val onACyclingColumn: Boolean get() = columns.getOrNull(column)?.cycles == true
-
     fun move(by: Int) {
         val size = shown.size
         if (size == 0) return

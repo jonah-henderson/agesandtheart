@@ -54,9 +54,15 @@ class LifelessAgeCheck : FunSpec({
      *
      * Put back in `afterSpec` rather than at the end of the test, because the server is shared with every
      * other spec and a failing check must not leave the world without its mobs.
+     *
+     * **And the reply is read**, because the first fix was a no-op too: 26.1 renamed `doMobSpawning` to
+     * `spawn_mobs`, the old name is refused, and nothing asked — so the flake came back at 265 against 255.
      */
-    beforeSpec { server.run("gamerule doMobSpawning false") }
-    afterSpec { server.run("gamerule doMobSpawning true") }
+    beforeSpec {
+        val said = server.run("gamerule spawn_mobs false")
+        check(said.contains("now set")) { "the mob spawner was not turned off, so this measures it: $said" }
+    }
+    afterSpec { server.run("gamerule spawn_mobs true") }
 
     test("an Age nothing lives in is generated with nothing living in it") {
         val written = mapOf(ALIVE to SAYS_NOTHING_OF_LIFE, LIFELESS to "deserted age")
@@ -75,9 +81,6 @@ class LifelessAgeCheck : FunSpec({
         // field against a pyramid. And it must be vanilla's rock either way: our own shapes disable
         // chunk-generation spawning in their settings, so the pass this guards would never run.
         val listed = server.run("age list")
-        // **A book that does not parse is repaired into a whole random one**, which is what `/age write`
-        // is meant to do and is ruinous here: the check spent two runs comparing a vanilla field against a
-        // pyramid that had nothing to do with either sentence. The recipe has to say the word back.
         for ((name, sentence) in written) {
             val recipe = listed.lines().firstOrNull { name in it } ?: listed
             val said = SENTENCE.find(recipe)?.groupValues?.get(1).orEmpty()

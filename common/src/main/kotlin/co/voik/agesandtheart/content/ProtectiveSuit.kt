@@ -37,11 +37,8 @@ import net.minecraft.server.level.ServerPlayer
  * [Attributes.BURNING_TIME] driven to nought, and never freezing is `#minecraft:freeze_immune_wearables`.
  * Lava and open flame damage you where you stand rather than by igniting you, so those need [tick].
  *
- * **And the fourth condition it answers lives elsewhere: the deep** (2026-09-10). `DeepWater.press` asks
- * [wearingTheWholeSuit] and charges [wearOut] on exactly the terms the lava and the cold are charged on, so
- * a suit spent swimming an abyss is spent the way a suit crossing a lava sea is. It is written there rather
- * than here because the *reading* — how deep, and how much of it deep water — belongs to the abyss; this
- * file owns only what the suit is and what wearing all of it means.
+ * The fourth condition it answers, the deep, is charged in `DeepWater.crush` through [wearingTheWholeSuit]
+ * and [wearOut].
  *
  * That is design §7.7's claim confirming itself rather than being stretched: the suit protects against
  * hostile *conditions* and not against damage, and pressure is exactly a condition — which is also why

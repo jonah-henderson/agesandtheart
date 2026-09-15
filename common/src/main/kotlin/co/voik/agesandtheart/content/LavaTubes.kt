@@ -253,9 +253,6 @@ object LavaTubes {
         return ALONE + (CROWDED - ALONE) * share
     }
 
-    /** How often vanilla visits a given block, at the default random tick rate — the ceiling on all of this. */
-    const val TICKS_BETWEEN_VISITS = 4096.0 / 3.0
-
     /**
      * How hard a volcano with this mass throws, as a share of the whole.
      *

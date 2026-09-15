@@ -24,12 +24,12 @@ data class Tremor(val footing: Footing, val manifests: List<Manifestation>) {
 
     companion object {
         /** What the ground under this sentence will do, on the server about to be asked to build it. */
-        fun of(server: MinecraftServer, instability: Instability, seed: Long): Tremor =
-            of(instability, seed, Price.list(server))
+        fun of(server: MinecraftServer, instability: Instability): Tremor =
+            of(instability, Price.list(server))
 
         /** The same, against a price list handed in — offline, and what the checks use. */
-        fun of(instability: Instability, seed: Long, prices: Map<Manifestation, Price>): Tremor {
-            val spending = Spending.of(instability.index, prices, seed)
+        fun of(instability: Instability, prices: Map<Manifestation, Price>): Tremor {
+            val spending = Spending.of(instability.index, prices)
             val manifests = Manifestation.entries.filter { spending.bought(it) > 0 }
             return Tremor(Footing.of(manifests), manifests)
         }

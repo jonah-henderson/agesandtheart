@@ -23,10 +23,6 @@ import net.minecraft.world.phys.shapes.VoxelShape
  * **They do not tumble** (Jonah, 2026-09-09), and that is what makes the cells worth having at all: a
  * `VoxelShape` is axis-aligned and cannot be rotated, so a body that holds still *can* carry an exact
  * collider. A tumbling rock would have had to be a box however carefully it was drawn.
- *
- * That collider is **not built yet** — a body is solid across its whole cube, so you can stand on one but
- * not in its notches, and standing on a moving one does not carry you. Both want a Mixin on
- * `Entity.collectAllColliders` (`notes/authoring-tools.md` Part IV).
  */
 object OreClusters {
 

@@ -213,48 +213,6 @@ data class Choose(
     }
 }
 
-/**
- * [base], moved [lift] blocks up the world and otherwise untouched.
- *
- * Wrapping rather than editing a preset's own height constants, which `Weathering.SPIRE` derives its band
- * from: changing them in place would move the shape for **every** Age using that terrain, including ones
- * whose dimension type has no headroom (see [co.voik.agesandtheart.worldgen.VerticalWindow]).
- *
- * **A raised shape must be weathered by an equally raised profile**, erosion's keel and band being
- * absolute heights — which is what `Weathered.spire(base, lift)` keeps in step. That relation is also why
- * a *wandering* lift is [Undulated] and not a mode of this: there is no single number to raise a
- * weathering profile by, and the cost stops being free.
- */
-data class Raised(val base: TerrainField, val lift: Int) : TerrainField {
-    override val kind = FieldKind.RAISED
-    override val horizontalReach = base.horizontalReach // moving vertically changes nothing horizontally
-
-    override val samplesPerColumn = base.samplesPerColumn
-
-    override fun columnSpans(worldX: Int, worldZ: Int): Spans {
-        val standing = base.columnSpans(worldX, worldZ)
-        if (lift == 0 || standing.ranges.isEmpty()) return standing
-        // Order is preserved by a uniform shift, so no normalising pass is needed.
-        return Spans.ofAscending(standing.ranges.map { it.first + lift..it.last + lift })
-    }
-
-    /**
-     * Scaling reaches the child, and the lift scales with it: a lift is a distance in the space the
-     * child's own heights live in, so leaving it alone would move the shape relative to itself.
-     */
-    override fun resized(factor: Double, pivotY: Int) =
-        Raised(base.resized(factor, pivotY), (lift * factor).toInt())
-
-    companion object {
-        fun codec(self: Codec<TerrainField>): MapCodec<Raised> = RecordCodecBuilder.mapCodec { instance ->
-            instance.group(
-                self.fieldOf("base").forGetter(Raised::base),
-                Codec.INT.fieldOf("lift").forGetter(Raised::lift),
-            ).apply(instance, ::Raised)
-        }
-    }
-}
-
 /** Solid where [base] is solid but [cut] is not — the CSG difference (caves, canyons, cliff edges). */
 data class Subtract(val base: TerrainField, val cut: TerrainField) : TerrainField {
     override val kind = FieldKind.SUBTRACT

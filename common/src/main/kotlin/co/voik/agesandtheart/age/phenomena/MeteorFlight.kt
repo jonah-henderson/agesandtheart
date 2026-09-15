@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.math.mix64
+import co.voik.agesandtheart.math.unitDouble
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -94,15 +96,8 @@ data class MeteorFlight(
          * A plain integer mix rather than a random source: it must give the same answer on a client and a
          * server that never spoke about it, which nothing carrying its own state can promise.
          */
-        private fun mixed(storm: Long, number: Int, salt: Long): Double {
-            var value = storm * PRIME_ONE + number * PRIME_TWO + salt
-            value = value xor (value ushr 33)
-            value *= PRIME_THREE
-            value = value xor (value ushr 29)
-            value *= PRIME_FOUR
-            value = value xor (value ushr 32)
-            return (value ushr SPARE_BITS).toDouble() / KEPT
-        }
+        private fun mixed(storm: Long, number: Int, salt: Long): Double =
+            unitDouble(mix64(mix64(mix64(storm) + number) + salt))
 
         /** How far a body's moment may wander from its even share, in ticks. */
         private const val WANDER = 14.0
@@ -133,14 +128,6 @@ data class MeteorFlight(
         private const val ANGLE_SALT = 0x4D_45_54_33L
         private const val ACROSS_SALT = 0x4D_45_54_34L
         private const val ALONG_SALT = 0x4D_45_54_35L
-
-        private val PRIME_ONE = 0x9E3779B97F4A7C15uL.toLong()
-        private val PRIME_TWO = 0xBF58476D1CE4E5B9uL.toLong()
-        private val PRIME_THREE = 0xFF51AFD7ED558CCDuL.toLong()
-        private val PRIME_FOUR = 0xC4CEB9FE1A85EC53uL.toLong()
-
-        private const val SPARE_BITS = 11
-        private const val KEPT = (1L shl 53).toDouble()
 
         private const val ONE = 1
         private const val NONE = 0.0

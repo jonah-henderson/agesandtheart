@@ -79,29 +79,7 @@ object VolcanoField {
      * fraction of the first, and a column nowhere near a summit pays only for the cell walk.
      */
     fun over(seed: Long, amount: Double = Rung.ORDINARY): Volcanoes {
-        val mountains = layerOf(SHAPES, sites(seed, amount), seed, SHOULDERS)
-
-        return Volcanoes(
-            cones = mountains.cones,
-            lakes = mountains.lakes,
-        )
-    }
-
-    /**
-     * One scattering of one set of shapes, as the pair of fields that describe it.
-     *
-     * **The two layers have to agree, and building them side by side is what makes them.** A lake poured
-     * into a crater some other instance drew is a slab of lava hanging in the air. What makes them agree
-     * is that [Instanced] takes its per-instance random from the cell alone (`random.at(cellX, 0, cellZ)`),
-     * so two layers sharing a seed, a placement and a variation pick the same template at the same pose in
-     * every cell — provided their template lists stay the same length and the same order, which is why
-     * they are mapped from one list here.
-     *
-     * A lake reaches only as far as a crater does where a cone reaches a skirt's whole foot, and
-     * [Instanced] prices its cell scan off the templates' own reach — so the lake layer costs a small
-     * fraction of the rock layer, and a column nowhere near a summit pays only for the cell walk.
-     */
-    private fun layerOf(shapes: List<Mountain>, placement: Placement, seed: Long, blend: Double): Volcanoes {
+        val placement = sites(seed, amount)
         val variation = Variation(
             // Turned, because four shapes repeated unturned is still four shapes: a warped mountain has
             // a recognisable outline, and seeing the same one twice on a walk is what gives it away.
@@ -112,10 +90,10 @@ object VolcanoField {
             pivotY = BASE_Y,
         )
         return Volcanoes(
-            cones = Instanced(shapes.map { it.built(seed) }, placement, variation, seed, blend),
+            cones = Instanced(SHAPES.map { it.built(seed) }, placement, variation, seed, SHOULDERS),
             // A lake is never blended: easing two flat surfaces at different heights into one another
             // smears them, where easing two flanks is what makes a massif.
-            lakes = Instanced(shapes.map { it.lake(seed) }, placement, variation, seed, Instanced.NO_BLEND),
+            lakes = Instanced(SHAPES.map { it.lake(seed) }, placement, variation, seed, Instanced.NO_BLEND),
         )
     }
 
@@ -588,13 +566,6 @@ object VolcanoField {
     private const val BITE_SALT = 0x42_4954_45L
 
     /**
-     * How far apart the chambers sit, and how likely a cell is to hold one.
-     *
-     * Rarer than the ponds by a good margin: one of these is a find rather than scenery, and a tunnel that
-     * met one every hundred blocks would be a tunnel nobody digs. About one per two hundred and sixty
-     * square, which over a kilometre of country is a dozen or so.
-     */
-    /**
      * A scatter's cell, shrunk to hold [amount] times as many of a thing per unit of ground.
      *
      * **This is how a quantifier reaches terrain, and until 2026-09-11 nothing did.** `Volcanoes.askedFor`
@@ -618,6 +589,13 @@ object VolcanoField {
     /** Wider than the biggest cone's skirt, which is what stops a dense Age becoming one mass of rock. */
     private const val CLOSEST_TOGETHER = 80.0
 
+    /**
+     * How far apart the chambers sit, and how likely a cell is to hold one.
+     *
+     * Rarer than the ponds by a good margin: one of these is a find rather than scenery, and a tunnel that
+     * met one every hundred blocks would be a tunnel nobody digs. About one per two hundred and sixty
+     * square, which over a kilometre of country is a dozen or so.
+     */
     private const val CHAMBER_CELL = 260.0
     private const val CHAMBERS_LIKELY = 0.45
 

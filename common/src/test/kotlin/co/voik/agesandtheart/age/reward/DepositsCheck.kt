@@ -23,8 +23,7 @@ import net.minecraft.world.level.block.Blocks
  * made. `DeskStoresCheck`, `WriterProfessionCheck` and `StockedItemsCheck` all live with the same wall.
  * Every path asserted below returns before it reaches that line, which is what makes them askable.
  *
- * Where the veins actually land is `scripts/checks/danger.txt` for the ordinary case and item F of the
- * visual backlog for the terminal one.
+ * Where the veins actually land is `scripts/checks/danger.txt`.
  */
 @Tags(NEEDS_REGISTRIES)
 class DepositsCheck : FunSpec({

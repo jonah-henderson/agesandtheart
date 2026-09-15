@@ -3,7 +3,6 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.ui.BookWritingWorkSurface
-import co.voik.agesandtheart.client.ui.CapsuleGauge
 import co.voik.agesandtheart.client.ui.CountedItem
 import co.voik.agesandtheart.client.ui.DecoratedBox
 import co.voik.agesandtheart.client.ui.DecorationWidget
@@ -18,7 +17,6 @@ import co.voik.agesandtheart.client.ui.Rect
 import co.voik.agesandtheart.client.ui.RowAction
 import co.voik.agesandtheart.client.ui.SlotView
 import co.voik.agesandtheart.client.ui.TabStrip
-import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.AgeFluids
 import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.content.RimeColour
@@ -41,8 +39,6 @@ import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.world.entity.player.Inventory
-import net.minecraft.world.item.ItemStack
-import net.minecraft.world.item.Items
 
 /**
  * The desk, assembled from `client/ui` pieces.
@@ -96,7 +92,6 @@ class WritersDeskScreen(
     private lateinit var bindButton: Button
     private lateinit var reading: MultiLineTextWidget
     private lateinit var columns: Map<DeskTab, FlexColumn>
-    private lateinit var bindingRow: LinearLayout
 
     /**
      * Widgets only some tabs show, each with the rule that decides.
@@ -152,24 +147,21 @@ class WritersDeskScreen(
     private fun addWing() {
         val gauges = LinearLayout.horizontal().spacing(GAUGE_GAP)
         InkTier.entries.forEach { tier ->
-            gauges.addChild(
-                CapsuleGauge(
-                    GAUGE_WIDTH, GAUGE_HEIGHT,
-                    reading = { DeskModel.ink(tier).toFloat() / DeskModel.inkCapacity().coerceAtLeast(1) },
-                    colour = { AgeFluids.INKS[tier]?.tint ?: Palette.TEXT },
-                    tooltip = { inkTooltip(tier) },
-                ),
-            )
+            gauges.addChild(DeskStockDisplay.inkGauge(tier, GAUGE_WIDTH, GAUGE_HEIGHT) { inkTooltip(tier) })
         }
 
         val stocks = LinearLayout.vertical()
         InkTier.entries.forEach { tier ->
             stocks.addChild(
-                CountedItem(STOCK_WIDTH, STOCK_LINE, icon = { paperIcon(tier) }, count = { DeskModel.paper(tier) }),
+                CountedItem(
+                    STOCK_WIDTH, STOCK_LINE,
+                    icon = { DeskStockDisplay.paperIcon(tier) },
+                    count = { DeskModel.paper(tier) },
+                ),
             )
         }
         stocks.addChild(
-            CountedItem(STOCK_WIDTH, STOCK_LINE, icon = { BINDING_ICON }, count = { DeskModel.binding() }),
+            CountedItem(STOCK_WIDTH, STOCK_LINE, icon = { DeskStockDisplay.BINDING }, count = { DeskModel.binding() }),
         )
 
         val contents = LinearLayout.vertical().spacing(GROUP_GAP)
@@ -471,14 +463,6 @@ class WritersDeskScreen(
         return (room / TEXT_LINE).coerceAtLeast(ONE_ROW)
     }
 
-
-    /** [lines] as one component, which is what a `MultiLineTextWidget` reads. */
-    private fun stacked(lines: List<Component>): Component =
-        lines.foldIndexed(Component.empty()) { index, built, line ->
-            if (index > 0) built.append(NEW_LINE)
-            built.append(line)
-        }
-
     /**
      * What the page at [index] is arguing with, or null where nothing is.
      *
@@ -681,7 +665,7 @@ class WritersDeskScreen(
         target: Int = -1,
         title: String = "",
     ) {
-        ClientDeskNetwork.send(
+        sendToServer(
             DeskCommandPayload(
                 action = action,
                 word = word,
@@ -696,12 +680,6 @@ class WritersDeskScreen(
 
     private fun translated(suffix: String, vararg arguments: Any): Component =
         Component.translatable("container.agesandtheart.writers_desk.$suffix", *arguments)
-
-    private fun paperIcon(tier: InkTier): ItemStack = when (tier) {
-        InkTier.COMMON -> ItemStack(Items.PAPER)
-        InkTier.FINE -> ItemStack(AgeContent.FINE_PAPER)
-        InkTier.MASTERWORK -> ItemStack(AgeContent.MASTERWORK_PAPER)
-    }
 
     private fun paperGlyph(tier: InkTier): String = when (tier) {
         InkTier.COMMON -> "I"
@@ -719,14 +697,8 @@ class WritersDeskScreen(
         /** Where this client last was, so reopening a desk does not start over. */
         private var lastOpened = DeskTab.ARCHIVE
 
-        /** What a binding looks like in the stock column. */
-        val BINDING_ICON = ItemStack(Items.LEATHER)
-
         const val LINE = 12
         const val GAP = 4
-
-        /** What a `MultiLineTextWidget` breaks a line on, the pane taking one component and not a list. */
-        const val NEW_LINE = "\n"
 
         /** `MultiLineTextWidget`'s own, which it hard-codes rather than reading off the font. */
         const val TEXT_LINE = 9

@@ -14,12 +14,6 @@ data class Rect(val x: Int, val y: Int, val width: Int, val height: Int) {
         pointX >= x && pointX < right && pointY >= y && pointY < bottom
 
     fun inset(by: Int): Rect = Rect(x + by, y + by, width - by * 2, height - by * 2)
-
-    fun translated(byX: Int, byY: Int): Rect = Rect(x + byX, y + byY, width, height)
-
-    /** A sub-rectangle at [offsetX]/[offsetY] from this one's origin. */
-    fun at(offsetX: Int, offsetY: Int, width: Int, height: Int): Rect =
-        Rect(x + offsetX, y + offsetY, width, height)
 }
 
 /** Which side of a [Rect] a piece of chrome leaves unbordered. */

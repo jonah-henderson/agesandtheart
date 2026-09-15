@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.phenomena
 
-import co.voik.agesandtheart.age.aspect.Phenomenon
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.LivingEntity
@@ -30,7 +29,7 @@ object Inferno {
 
     /** One tick of it, at whatever strength the claim's rung asked for. */
     fun burn(level: ServerLevel, density: Double) {
-        val intensity = Intensity.of(level.server, Phenomenon.INFERNO)
+        val intensity = Intensity.of(level.server)
         scourTheSurface(level, intensity, density)
         scorchTheOpen(level, intensity)
     }

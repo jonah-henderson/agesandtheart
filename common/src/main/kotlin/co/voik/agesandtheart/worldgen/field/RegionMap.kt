@@ -178,8 +178,6 @@ data class RegionMap(
                 Codec.DOUBLE.listOf().optionalFieldOf("shares", emptyList()).forGetter(RegionMap::shares),
             ).apply(instance, ::RegionMap)
         }
-
-        val CODEC: Codec<RegionMap> = MAP_CODEC.codec()
     }
 }
 

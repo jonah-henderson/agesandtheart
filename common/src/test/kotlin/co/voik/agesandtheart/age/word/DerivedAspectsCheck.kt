@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import io.kotest.core.annotation.Tags
@@ -22,7 +22,6 @@ import io.kotest.core.spec.style.FunSpec
  */
 @Tags(NEEDS_REGISTRIES)
 class DerivedAspectsCheck : FunSpec({
-    val vocabulary by lazy { Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen) }
 
     fun aspectsOwning(parameter: String) = Aspect.entries.filter { it.ownsParameterNamed(parameter) }.toSet()
 
@@ -101,8 +100,11 @@ class DerivedAspectsCheck : FunSpec({
      * for an *offered* query too, so the aspects one names count as places the word speaks to.
      */
     test("a word that only sets parameters declares nothing but the aspects owning them") {
+        fun constrainsPresets(word: Word) =
+            word.chooses.isNotEmpty() || word.entryOf != null || word.excludes.isNotEmpty() ||
+                word.restricts.values.any { tags -> tags.values.any { it > 0.0 } }
         val setsAndNothingElse = vocabulary.authoredWords
-            .filter { !it.constrainsPresets && it.biases.isEmpty() && it.canSet.isNotEmpty() }
+            .filter { !constrainsPresets(it) && it.biases.isEmpty() && it.canSet.isNotEmpty() }
         for (word in setsAndNothingElse) {
             // A **lean** names its aspect and means something there, exactly as a restriction does —
             // `inferno` leans the sea toward lava and turns no parameter of the sea at all.

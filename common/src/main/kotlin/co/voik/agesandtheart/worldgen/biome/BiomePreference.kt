@@ -2,8 +2,6 @@ package co.voik.agesandtheart.worldgen.biome
 
 import co.voik.agesandtheart.Constants
 import com.mojang.datafixers.util.Pair
-import com.mojang.serialization.Codec
-import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderGetter
 import net.minecraft.core.registries.Registries
@@ -11,7 +9,6 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.Climate
-import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import kotlin.math.abs
 
@@ -46,9 +43,6 @@ data class BiomePreference(
      */
     val removes: Boolean get() = weight <= 0.0
 
-    /** Whether this asks for anything at all, a biome left at [ORDINARY] being one nobody spoke about. */
-    val isOrdinary: Boolean get() = weight == ORDINARY
-
     companion object {
         /** As much of the world as this Age was going to give it regardless. */
         const val ORDINARY = 1.0
@@ -61,15 +55,6 @@ data class BiomePreference(
 
         /** What `except` is worth — see [removes], and why removal shares the field rather than a flag. */
         const val STRUCK_OUT = 0.0
-
-        val CODEC: Codec<BiomePreference> = RecordCodecBuilder.create { instance ->
-            instance.group(
-                Identifier.CODEC.fieldOf("biome").forGetter(BiomePreference::biome),
-                Codec.DOUBLE.optionalFieldOf("weight", ORDINARY).forGetter(BiomePreference::weight),
-                Codec.BOOL.optionalFieldOf("only_where_it_grows", false)
-                    .forGetter(BiomePreference::onlyWhereItGrows),
-            ).apply(instance, ::BiomePreference)
-        }
 
         /**
          * [table] with every preference applied. Removals resolve first, so `except` beats a mention of the
@@ -139,12 +124,8 @@ data class BiomePreference(
 
         /**
          * The entries a biome the table has **never heard of** earns — everything already in it is scaled
-         * where it stands instead.
-         *
-         * - **Known elsewhere:** its points from whichever preset has them, so a nether biome lands where
-         *   the overworld climate most resembles the nether.
-         * - **Known nowhere:** a seeded synthetic point. End biomes have no climate at all, nor do mod
-         *   biomes placed by wrapping the source; they land somewhere arbitrary but *stable*.
+         * where it stands instead. Its entries are seeded homes among climates this table already reaches
+         * ([homesFor]), so they land somewhere arbitrary but *stable*.
          *
          * The count is **normalised against how much of the table a native biome holds**: vanilla's
          * overworld list carries ~60 points for cherry grove and the nether list carries **one** for
@@ -178,11 +159,6 @@ data class BiomePreference(
             val halfWidth = quantized(BORROWED_HALF_WIDTH * preference.weight)
             return homes.map { point -> Pair(point.grownTo(halfWidth), holder) }
         }
-
-        /** A biome's climate wherever vanilla knows one — its own dimension's preset, usually. */
-        private fun climatePointsFromOtherPresets(biome: Identifier): List<Climate.ParameterPoint> =
-            MultiNoiseBiomeSourceParameterList.knownPresets().values
-                .flatMap { list -> list.values().filter { it.second.identifier() == biome }.map { it.first } }
 
         /**
          * Where to put a biome that has no climate anywhere — End biomes, and mod biomes placed by wrapping
@@ -282,16 +258,5 @@ data class BiomePreference(
         private const val BIOME_MIXER = -0x61c8_8646_80b5_83ebL
 
         private fun idOf(biome: Holder<Biome>): Identifier? = biome.unwrapKey().orElse(null)?.identifier()
-
-        /**
-         * Every biome vanilla knows a climate for, across all its presets — overworld *and* nether.
-         * Registry-free and static: `knownPresets` builds its lists from `ResourceKey`s through an identity
-         * function, so a check can ask this offline without a server.
-         */
-        val BIOMES_WITH_A_KNOWN_CLIMATE: Set<Identifier> by lazy {
-            MultiNoiseBiomeSourceParameterList.knownPresets().values
-                .flatMap { list -> list.values().map { it.second.identifier() } }
-                .toSet()
-        }
     }
 }

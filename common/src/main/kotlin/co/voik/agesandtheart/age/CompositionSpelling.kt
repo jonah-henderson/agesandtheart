@@ -73,7 +73,7 @@ object CompositionSpelling {
                 instability = Instability.forced(index)
                 continue
             }
-            val aspect = Aspect.entries.firstOrNull { key.substringBefore('.') == it.page }
+            val aspect = Aspect.byPage(key.substringBefore('.'))
                 ?: error(
                     "No aspect called '${key.substringBefore('.')}'. " +
                         "Slots: ${Aspect.entries.joinToString(" ") { it.page }}",

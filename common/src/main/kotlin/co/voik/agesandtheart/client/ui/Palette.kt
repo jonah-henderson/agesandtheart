@@ -23,10 +23,6 @@ object Palette {
     val SELECTION = 0x60000000
     val HOVER = 0x30000000
 
-    // GhostSlots, verbatim — including the order they are applied in: darken, draw, wash out.
-    const val GHOST_UNDER = 822018048
-    const val GHOST_OVER = 822083583
-
     /**
      * How wide a panel's border is: one pixel of outline plus two of bevel.
      *

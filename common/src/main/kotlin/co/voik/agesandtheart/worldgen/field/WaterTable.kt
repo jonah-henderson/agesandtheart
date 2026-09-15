@@ -1,7 +1,5 @@
 package co.voik.agesandtheart.worldgen.field
 
-import co.voik.agesandtheart.worldgen.PreliminarySurface
-import co.voik.agesandtheart.worldgen.VerticalWindow
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -85,7 +83,7 @@ data class WaterTable(
     }
 
     /** A fresh aquifer for one pass: it caches cells and columns, and must not be shared between workers. */
-    fun aquiferFor(field: TerrainField, surfaceAt: SurfaceAt = surfaceOf(field), isDeepDark: DeepDarkAt? = null): Aquifer =
+    fun aquiferFor(field: TerrainField, surfaceAt: SurfaceAt, isDeepDark: DeepDarkAt?): Aquifer =
         CellAquifer(field, surfaceAt, isDeepDark)
 
     /**
@@ -459,18 +457,6 @@ data class WaterTable(
         ): Aquifer = tables.singleOrNull()?.aquiferFor(field, surfaceAt, isDeepDark)
             ?: RegionalAquifer(tables.map { it.aquiferFor(field, surfaceAt, isDeepDark) }, territories)
 
-        /**
-         * The surface an aquifer reads where no generator hands it one: [PreliminarySurface] over [field] and
-         * the rock it was cut from, in an Age's own window — what the generator's router answers.
-         */
-        fun surfaceOf(field: TerrainField, uncut: TerrainField? = null): SurfaceAt {
-            val window = VerticalWindow.DEFAULT
-            val surface = PreliminarySurface(field, uncut, window.minY, window.topY - 1, DEFAULT_CELL_HEIGHT)
-            return SurfaceAt { worldX, worldZ ->
-                Math.floor(surface.compute(DensityFunction.SinglePointContext(worldX, 0, worldZ))).toInt()
-            }
-        }
-
         private val LAVA: BlockState = Blocks.LAVA.defaultBlockState()
 
         // Vanilla's lava sea: below y -54 every aquifer answers lava.
@@ -555,9 +541,6 @@ data class WaterTable(
         private const val LAVA_SALT = 0x14057B7E_F767_814FL
         private const val BARRIER_SALT = 0x6A09_E667_F3BC_C909L
         private const val CELL_SALT = 0x2545_F491_4F6C_DD1DL
-
-        /** The overworld's noise cell height, which is how `findTopSurface` steps. */
-        private const val DEFAULT_CELL_HEIGHT = 8
 
         /**
          * An Age's default: vanilla's aquifer, seeded per Age so two Ages are not wet in the same places.

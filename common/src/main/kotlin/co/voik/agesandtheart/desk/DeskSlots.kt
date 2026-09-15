@@ -38,10 +38,6 @@ object DeskSlots {
     /** The label above the player's inventory, which is also where the desk's own contents must stop. */
     const val INVENTORY_LABEL_Y = INVENTORY_Y - 11
 
-    /** The general doorway, centred in the room the supplies tab has above the inventory. */
-    const val INTAKE_X = 79
-    const val INTAKE_Y = (18 + INVENTORY_LABEL_Y) / 2 - 8
-
     /**
      * A wing's panel — the ink case and the supply bin, which each show stores and one doorway.
      *

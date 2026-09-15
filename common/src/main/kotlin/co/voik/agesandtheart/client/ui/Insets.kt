@@ -8,15 +8,7 @@ package co.voik.agesandtheart.client.ui
  */
 data class Insets(val left: Int, val top: Int, val right: Int, val bottom: Int) {
 
-    val horizontal: Int get() = left + right
-    val vertical: Int get() = top + bottom
-
     companion object {
         val NONE = Insets(0, 0, 0, 0)
-
-        fun all(amount: Int) = Insets(amount, amount, amount, amount)
-
-        fun symmetric(horizontal: Int, vertical: Int) =
-            Insets(horizontal, vertical, horizontal, vertical)
     }
 }

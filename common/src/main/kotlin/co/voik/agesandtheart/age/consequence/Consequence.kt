@@ -36,9 +36,6 @@ data class Consequence(
     fun daysBy(now: Long): Long = (now - writtenAt).coerceAtLeast(0L) / Tearing.TICKS_PER_DAY
 
     companion object {
-        /** An Age with nothing wrong with it, which is nearly all of them. */
-        val NOTHING = Consequence(Tearing.NONE, Tearing.NONE, Collapse.NONE, AgeRecipe.UNRECORDED)
-
         /** What [recipe] bought, at the prices [server] is running. */
         fun of(server: MinecraftServer, recipe: AgeRecipe): Consequence {
             val spending = Spending.of(server, recipe)

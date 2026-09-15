@@ -4,8 +4,6 @@ import co.voik.agesandtheart.age.word.Acquaintance
 import co.voik.agesandtheart.age.word.Acquainted
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
-import net.minecraft.core.particles.ParticleTypes
-import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
@@ -116,8 +114,10 @@ class AnalysisMachineBlock(properties: Properties) : BaseEntityBlock(properties)
         sample.consume(1, writer)
         level.setBlock(pos, state.setValue(DeviceStage.PROPERTY, DeviceStage.WORKING), UPDATE_ALL)
         level.scheduleTick(pos, this, DeviceStage.WORK_TICKS)
-        level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, VOLUME, PITCH)
-        say(writer, "device.agesandtheart.analysis_machine.started")
+        level.playSound(
+            null, pos, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, DeviceWork.VOLUME, DeviceWork.PITCH,
+        )
+        DeviceWork.say(writer, "device.agesandtheart.analysis_machine.started")
     }
 
     /** One empty-handed interaction, and what it does is whatever the machine is ready for. */
@@ -132,29 +132,16 @@ class AnalysisMachineBlock(properties: Properties) : BaseEntityBlock(properties)
         val writer = player as? ServerPlayer ?: return InteractionResult.FAIL
         val serverLevel = level as? ServerLevel ?: return InteractionResult.FAIL
         when (state.getValue(DeviceStage.PROPERTY)) {
-            DeviceStage.IDLE -> say(writer, "device.agesandtheart.analysis_machine.hint")
-            DeviceStage.WORKING -> stillRunning(serverLevel, pos, writer)
+            DeviceStage.IDLE -> DeviceWork.say(writer, "device.agesandtheart.analysis_machine.hint")
+            DeviceStage.WORKING ->
+                DeviceWork.keepWorking(serverLevel, pos, this, writer, "device.agesandtheart.analysis_machine.working")
             DeviceStage.READY -> hand(serverLevel, pos, state, writer)
         }
         return InteractionResult.SUCCESS
     }
 
-    /**
-     * Says it is still working — and sets it going again if nothing is coming for it.
-     *
-     * The same guard the surveying device carries, for the same reason: the stage is a block state and the
-     * wait is a scheduled tick, so anything writing the one without the other (`/setblock`, a structure
-     * carrying one mid-run) leaves a machine that never finishes.
-     */
-    private fun stillRunning(level: ServerLevel, pos: BlockPos, writer: ServerPlayer) {
-        if (!level.blockTicks.hasScheduledTick(pos, this)) level.scheduleTick(pos, this, DeviceStage.WORK_TICKS)
-        say(writer, "device.agesandtheart.analysis_machine.working")
-    }
-
     override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
-        if (state.getValue(DeviceStage.PROPERTY) != DeviceStage.WORKING) return
-        level.setBlock(pos, state.setValue(DeviceStage.PROPERTY, DeviceStage.READY), UPDATE_ALL)
-        level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, VOLUME, PITCH)
+        DeviceWork.finishWork(level, pos, state)
     }
 
     /**
@@ -174,37 +161,21 @@ class AnalysisMachineBlock(properties: Properties) : BaseEntityBlock(properties)
         val outcome = Acquaintance.teach(writer, held)
         Acquaintance.tell(writer, outcome)
         if (outcome is Acquainted.Learned) {
-            level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, VOLUME, PITCH)
+            level.playSound(
+                null, pos, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, DeviceWork.VOLUME, DeviceWork.PITCH,
+            )
         }
         machine.holds = null
         level.setBlock(pos, state.setValue(DeviceStage.PROPERTY, DeviceStage.IDLE), UPDATE_ALL)
     }
 
-    private fun say(writer: ServerPlayer, key: String) {
-        writer.sendSystemMessage(Component.translatable(key), true)
-    }
-
     /** A working machine is visibly working, which is the only thing the wait has to say for itself. */
     override fun animateTick(state: BlockState, level: Level, pos: BlockPos, random: RandomSource) {
-        if (state.getValue(DeviceStage.PROPERTY) != DeviceStage.WORKING) return
-        level.addParticle(
-            ParticleTypes.ENCHANT,
-            pos.x + random.nextDouble(),
-            pos.y + ABOVE_THE_MACHINE,
-            pos.z + random.nextDouble(),
-            0.0,
-            DRIFTING_UP,
-            0.0,
-        )
+        DeviceWork.workingParticles(level, pos, random, state)
     }
 
     companion object {
         val CODEC: MapCodec<AnalysisMachineBlock> = simpleCodec(::AnalysisMachineBlock)
-
-        private const val ABOVE_THE_MACHINE = 1.1
-        private const val DRIFTING_UP = 0.04
-        private const val VOLUME = 1.0f
-        private const val PITCH = 1.0f
     }
 }
 

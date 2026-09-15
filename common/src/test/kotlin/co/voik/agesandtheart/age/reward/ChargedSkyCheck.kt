@@ -1,12 +1,9 @@
 package co.voik.agesandtheart.age.reward
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.resolved
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.Spending
-import co.voik.agesandtheart.age.word.Resolver
-import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -24,16 +21,7 @@ import io.kotest.core.spec.style.FunSpec
 @Tags(NEEDS_REGISTRIES)
 class ChargedSkyCheck : FunSpec({
 
-    val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
-            check(it.problems.isEmpty()) { "vocabulary problems: ${it.problems}" }
-        }
-    }
-
-    fun composed(seed: Long, vararg pages: String): AgeComposition {
-        val sentence = Grammar.read(vocabulary, listOf("age", *pages)) ?: error("not a book: ${pages.toList()}")
-        return Resolver.resolve(vocabulary, sentence, seed).composition
-    }
+    fun composed(seed: Long, vararg pages: String): AgeComposition = resolved(seed, *pages).composition
 
     fun charges(seed: Long, vararg pages: String): Boolean =
         EarlyGameRareMaterials.growsArcCrystal(composed(seed, *pages), seed, Spending.NOTHING, emptyMap())

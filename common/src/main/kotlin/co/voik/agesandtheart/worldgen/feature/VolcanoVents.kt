@@ -14,7 +14,6 @@ import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConf
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
-import kotlin.math.roundToInt
 
 /**
  * Lava tubes, seated under the lava a volcano's crater arrived full of (design §7.1.2).

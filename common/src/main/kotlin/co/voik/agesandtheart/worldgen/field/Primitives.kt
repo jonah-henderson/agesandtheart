@@ -424,11 +424,6 @@ enum class NoiseCharacter : StringRepresentable {
      */
     RIDGED {
         override fun shape(sample: Double) = 1.0 - 2.0 * abs(sample)
-    },
-
-    /** `2|n| - 1` — the exact inverse of [RIDGED], picking out the extremes. Clumped, cauliflower rock. */
-    BILLOWY {
-        override fun shape(sample: Double) = 2.0 * abs(sample) - 1.0
     };
 
     /** Maps a raw noise sample onto the value the threshold is compared against. */
@@ -577,7 +572,6 @@ private fun horizontalDistance(x1: Int, z1: Int, x2: Int, z2: Int): Double {
     return sqrt(deltaX * deltaX + deltaZ * deltaZ)
 }
 
-/** Horizontal distance of a point from the local origin (0, 0). */
 /** How far a shape authored away from the local origin reaches back towards it. */
 internal fun originDistance(x: Int, z: Int): Double = sqrt((x * x + z * z).toDouble())
 

@@ -73,5 +73,4 @@ object CavernField {
 
     private const val LAND_SEED = 0xCAFE_1A2DL
     private const val CAVE_SEED = 0xDEED_DA1EL
-    private const val TABLE_SEED = 0xD4A1_9EL
 }

@@ -33,7 +33,7 @@ import kotlin.math.roundToInt
 object Deposits {
 
     /**
-     * [base]'s settings with this Age's deposit added, or [base] itself where the Age earns nothing.
+     * This Age's deposit as a decoration layer, or null where the Age earns nothing.
      *
      * **One `PlacedFeature` for the whole Age, built here and shared by every biome.** `FeatureSorter`
      * indexes the sorted feature list by *identity* and `applyBiomeDecoration` looks each feature up in it
@@ -150,8 +150,6 @@ object Deposits {
             .map { OreConfiguration.target(BlockMatchTest(it.block), stone) }
         return vanillas + ours
     }
-
-    /** [settings] with [deposit] among its ores, everything else untouched. */
 
     /**
      * Veins per chunk at a score of one — a whole Age of the worst of everything.

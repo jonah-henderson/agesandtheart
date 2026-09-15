@@ -24,10 +24,6 @@ class PlayerInventoryView(
     CommonComponents.EMPTY,
 ) {
 
-    fun frameItemAt(itemX: Int, itemY: Int) {
-        setPosition(itemX - Palette.SLOT_INSET, itemY - Palette.SLOT_INSET)
-    }
-
     override fun extractWidgetRenderState(
         graphics: GuiGraphicsExtractor,
         mouseX: Int,
@@ -51,9 +47,8 @@ class PlayerInventoryView(
 
     override fun updateWidgetNarration(output: NarrationElementOutput) = Unit
 
-    companion object {
+    private companion object {
         const val COLUMNS = 9
         const val ROWS = 3
-        const val WIDTH = COLUMNS * Palette.SLOT
     }
 }

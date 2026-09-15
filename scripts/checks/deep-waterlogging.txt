@@ -12,7 +12,7 @@
 #   Deep waterlogging: brought 20976 block states into line
 #
 # That number is the arithmetic working out. Vanilla has 29,873 block states of which 20,976 belong to the
-# 410 waterloggable blocks (`./gradlew :common:waterlogging`); the property doubles those to 41,952, half
+# 410 waterloggable blocks; the property doubles those to 41,952, half
 # of them logged. **If that line is absent, read no further -- nothing below means anything.**
 
 age write abyss 72 age colossal cliffs landmass deep water sea

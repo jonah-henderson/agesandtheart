@@ -117,12 +117,6 @@ object Axis {
     }
 
     /**
-     * Where [said] lands, shaded.
-     *
-     * Through `Setting.settle` rather than by reading the text: `>0.4` is a floor and `+0.3` is a nudge,
-     * and what a writer wants to see is the band each of them leaves rather than the number they typed.
-     */
-    /**
      * Where [said] lands, shaded — and where it started, for a claim that works on a band rather than
      * being one.
      *

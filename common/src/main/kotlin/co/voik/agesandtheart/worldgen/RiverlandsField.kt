@@ -3,7 +3,7 @@ package co.voik.agesandtheart.worldgen
 import co.voik.agesandtheart.worldgen.field.CanyonProfile
 import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.Drainage
-import co.voik.agesandtheart.worldgen.field.DrainageYield
+import co.voik.agesandtheart.worldgen.field.FieldYield
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
@@ -33,7 +33,7 @@ object RiverlandsField {
      * downhill everywhere, so a plane wets the lowest trunks and leaves every headwater dry. Handing the
      * fill a field instead lets each reach carry its own surface.
      */
-    fun water(salt: Long = 0L): TerrainField = network(salt).copy(describes = DrainageYield.WATER)
+    fun water(salt: Long = 0L): TerrainField = network(salt).copy(describes = FieldYield.WATER)
 
     /** The bare network, before the weather and without its water. */
     fun network(salt: Long = 0L): Drainage = Drainage(

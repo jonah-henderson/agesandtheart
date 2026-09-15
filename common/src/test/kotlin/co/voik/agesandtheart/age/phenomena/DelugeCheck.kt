@@ -44,7 +44,7 @@ class DelugeCheck : FunSpec({
 
     test("it resolves exactly when it arrives") {
         val whole = Deluge.TICKS_PER_BLOCK * Deluge.FALLS_BY
-        check(!Deluge.hasResolved(whole - 1)) { "the deluge called itself over a tick early" }
-        check(Deluge.hasResolved(whole)) { "the deluge did not end when its sea got where it was going" }
+        check(Deluge.shortnessAt(whole - 1) > 0) { "the deluge called itself over a tick early" }
+        check(Deluge.shortnessAt(whole) == 0) { "the deluge did not end when its sea got where it was going" }
     }
 })

@@ -73,10 +73,6 @@ data class Facets(val offers: List<Map<String, String>>, val draws: Draws) {
         /** What separates the aspect a parameter is meant for from the parameter — `Word`'s own spelling. */
         private const val QUALIFIER = '.'
 
-        /** A pool of single settings, which is what nearly every one of them is. */
-        fun of(facets: Map<String, String>, draws: Draws) =
-            Facets(facets.entries.map { mapOf(it.key to it.value) }, draws)
-
         private val ONE_EACH: Codec<Map<String, String>> = Codec.unboundedMap(Codec.STRING, Codec.STRING)
 
         /**

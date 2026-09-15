@@ -21,11 +21,6 @@ class SlotView(itemX: Int, itemY: Int) : AbstractWidget(
     CommonComponents.EMPTY,
 ) {
 
-    /** Moves the recess to frame the item area at [itemX], [itemY]. */
-    fun frameItemAt(itemX: Int, itemY: Int) {
-        setPosition(itemX - Palette.SLOT_INSET, itemY - Palette.SLOT_INSET)
-    }
-
     override fun extractWidgetRenderState(
         graphics: GuiGraphicsExtractor,
         mouseX: Int,

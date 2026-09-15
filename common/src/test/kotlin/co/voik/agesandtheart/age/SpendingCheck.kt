@@ -12,25 +12,9 @@ import io.kotest.core.spec.style.FunSpec
  */
 class SpendingCheck : FunSpec({
 
-    /**
-     * The price list as shipped in `data/agesandtheart/art/manifestation/`, spelled out so a check reads
-     * what a server runs. Changing a file there should change this and fail loudly if it does not.
-     */
-    val SHIPPED = mapOf(
-        Manifestation.TORN_SEAMS to Price(costs = 2, most = 4),
-        Manifestation.WOUNDS to Price(costs = 5, most = 4),
-        Manifestation.SANDFALL to Price(costs = 7, most = 4),
-        Manifestation.BLIZZARD to Price(costs = 7, most = 4),
-        Manifestation.METEORS to Price(costs = 7, most = 4),
-        // One step rather than four: an inferno has no designed ramp — see `Manifestation.INFERNO`.
-        Manifestation.INFERNO to Price(costs = 7, most = 1),
-        Manifestation.WORSENING_WOUNDS to Price(costs = 9, most = 3),
-        Manifestation.COLLAPSE to Price(costs = 14, most = 3),
-    )
-
     /** What it costs to buy every step of everything — the top of the ladder, whatever is on it. */
     fun everythingCosts(): Int =
-        Manifestation.entries.sumOf { SHIPPED.getValue(it).costs * SHIPPED.getValue(it).most }
+        Manifestation.entries.sumOf { SHIPPED_PRICES.getValue(it).costs * SHIPPED_PRICES.getValue(it).most }
 
     /** A stride over the budgets, so the sweep stays quick as the ladder grows. */
     val A_FEW = 3
@@ -52,16 +36,16 @@ class SpendingCheck : FunSpec({
     }
 
     test("a coherent Age buys nothing") {
-        val spending = Spending.of(budget = 0, prices = priced(2, 4), seed = 1L)
+        val spending = Spending.of(budget = 0, prices = priced(2, 4))
         check(spending.bought(cheap) == 0) { "a coherent Age bought something: $spending" }
         check(spending.reach(cheap, priced(2, 4)) == 0.0) { "a coherent Age reached somewhere: $spending" }
     }
 
     test("a budget buys what it can afford and no more") {
         val prices = priced(costs = 2, most = 4)
-        check(Spending.of(1, prices, 1L).bought(cheap) == 0) { "1 bought a 2-point step" }
-        check(Spending.of(2, prices, 1L).bought(cheap) == 1) { "2 bought no step at all" }
-        check(Spending.of(5, prices, 1L).bought(cheap) == 2) { "5 should buy two steps of two" }
+        check(Spending.of(1, prices).bought(cheap) == 0) { "1 bought a 2-point step" }
+        check(Spending.of(2, prices).bought(cheap) == 1) { "2 bought no step at all" }
+        check(Spending.of(5, prices).bought(cheap) == 2) { "5 should buy two steps of two" }
     }
 
     /**
@@ -71,16 +55,9 @@ class SpendingCheck : FunSpec({
      */
     test("no manifestation can be bought past its cap") {
         val prices = priced(costs = 2, most = 4)
-        val rich = Spending.of(1000, prices, 1L)
+        val rich = Spending.of(1000, prices)
         check(rich.bought(cheap) == 4) { "the cap did not hold: $rich" }
         check(rich.reach(cheap, prices) == 1.0) { "a maxed manifestation should read as fully reached" }
-        check(rich.unspent > 0) { "a budget past every cap should have a remainder, and it had none" }
-    }
-
-    /** Unspent is left unspent, which §5.0 names as the safe default until something wants it. */
-    test("what cannot be afforded is left over") {
-        val spending = Spending.of(budget = 5, prices = priced(2, 4), seed = 1L)
-        check(spending.unspent == 1) { "5 spent on 2-point steps should leave 1, and left ${spending.unspent}" }
     }
 
     /**
@@ -90,7 +67,7 @@ class SpendingCheck : FunSpec({
     test("the same Age spends the same way every time") {
         val prices = priced(3, 3)
         for (budget in 0..20) {
-            check(Spending.of(budget, prices, 7L) == Spending.of(budget, prices, 7L)) {
+            check(Spending.of(budget, prices) == Spending.of(budget, prices)) {
                 "the allocation at $budget is not stable"
             }
         }
@@ -99,9 +76,8 @@ class SpendingCheck : FunSpec({
     /** A price of zero would buy infinitely many steps for nothing, so it is refused rather than looped on. */
     test("a free manifestation is skipped, not bought forever") {
         val free = priced(2, 4) + mapOf(cheap to Price(costs = 0, most = 4))
-        val spending = Spending.of(10, free, 1L)
+        val spending = Spending.of(10, free)
         check(spending.bought(cheap) == 0) { "a zero price was bought anyway: $spending" }
-        check(spending.unspent == 10) { "a zero price consumed budget: $spending" }
     }
 
     /**
@@ -146,8 +122,8 @@ class SpendingCheck : FunSpec({
      * — which is §5.0's fence working as arithmetic rather than as a guard somebody remembered to write.
      */
     test("a small mistake tears seams and opens no wounds") {
-        fun wounds(budget: Int) = Spending.of(budget, SHIPPED, 1L).bought(Manifestation.WOUNDS)
-        fun seams(budget: Int) = Spending.of(budget, SHIPPED, 1L).bought(Manifestation.TORN_SEAMS)
+        fun wounds(budget: Int) = Spending.of(budget, SHIPPED_PRICES).bought(Manifestation.WOUNDS)
+        fun seams(budget: Int) = Spending.of(budget, SHIPPED_PRICES).bought(Manifestation.TORN_SEAMS)
 
         // Everything a beginner can plausibly reach buys tearing and nothing worse.
         for (budget in 0..9) {
@@ -168,14 +144,14 @@ class SpendingCheck : FunSpec({
      */
     test("a dearer register is unaffordable until everything cheaper is at its cap") {
         val cheapestFirst = Manifestation.entries
-            .sortedWith(compareBy({ SHIPPED.getValue(it).costs }, Manifestation::ordinal))
+            .sortedWith(compareBy({ SHIPPED_PRICES.getValue(it).costs }, Manifestation::ordinal))
         // Every budget worth asking about, rather than three that were true when they were written.
         for (budget in 0..everythingCosts() step A_FEW) {
-            val spent = Spending.of(budget, SHIPPED, 1L)
+            val spent = Spending.of(budget, SHIPPED_PRICES)
             for ((rung, manifestation) in cheapestFirst.withIndex()) {
                 if (spent.bought(manifestation) == 0) continue
                 for (cheaper in cheapestFirst.take(rung)) {
-                    check(spent.bought(cheaper) == SHIPPED.getValue(cheaper).most) {
+                    check(spent.bought(cheaper) == SHIPPED_PRICES.getValue(cheaper).most) {
                         "instability $budget bought ${manifestation.key} with ${cheaper.key} not yet full"
                     }
                 }
@@ -185,9 +161,9 @@ class SpendingCheck : FunSpec({
 
     /** And that the dearest is reachable at all, or it is dead content whatever the ladder costs. */
     test("everything is reachable by an Age written to come apart") {
-        val spent = Spending.of(everythingCosts(), SHIPPED, 1L)
+        val spent = Spending.of(everythingCosts(), SHIPPED_PRICES)
         for (manifestation in Manifestation.entries) {
-            check(spent.bought(manifestation) == SHIPPED.getValue(manifestation).most) {
+            check(spent.bought(manifestation) == SHIPPED_PRICES.getValue(manifestation).most) {
                 "${manifestation.key} was unreachable even at the top of the ladder"
             }
         }
@@ -202,7 +178,7 @@ class SpendingCheck : FunSpec({
      * going unbought. That is exactly what adding the sandfall did (2026-08-31).
      */
     test("the shipped list prices every manifestation") {
-        val unpriced = Manifestation.entries.filterNot { it in SHIPPED }
+        val unpriced = Manifestation.entries.filterNot { it in SHIPPED_PRICES }
         check(unpriced.isEmpty()) {
             "$unpriced would fall back to Price.ORDINARY, which is cheaper than everything shipped"
         }
@@ -214,7 +190,7 @@ class SpendingCheck : FunSpec({
      */
     test("the shipped tearing reads sensibly across the range") {
         val prices = priced(Price.ORDINARY.costs, Price.ORDINARY.most)
-        val reaches = listOf(0, 2, 4, 6, 8, 12).map { it to Spending.of(it, prices, 1L).reach(cheap, prices) }
+        val reaches = listOf(0, 2, 4, 6, 8, 12).map { it to Spending.of(it, prices).reach(cheap, prices) }
         check(reaches.first().second == 0.0) { "a coherent Age tore: $reaches" }
         check(reaches.last().second == 1.0) { "a badly flawed Age did not tear fully: $reaches" }
         // Monotone, or a writer making an Age *worse* could make it look better.
@@ -223,3 +199,19 @@ class SpendingCheck : FunSpec({
         }
     }
 })
+
+/**
+ * The price list as shipped in `data/agesandtheart/art/manifestation/`, spelled out so a check reads
+ * what a server runs. Changing a file there should change this and fail loudly if it does not.
+ */
+internal val SHIPPED_PRICES = mapOf(
+    Manifestation.TORN_SEAMS to Price(costs = 2, most = 4),
+    Manifestation.WOUNDS to Price(costs = 5, most = 4),
+    Manifestation.SANDFALL to Price(costs = 7, most = 4),
+    Manifestation.BLIZZARD to Price(costs = 7, most = 4),
+    Manifestation.METEORS to Price(costs = 7, most = 4),
+    // One step rather than four: an inferno has no designed ramp — see `Manifestation.INFERNO`.
+    Manifestation.INFERNO to Price(costs = 7, most = 1),
+    Manifestation.WORSENING_WOUNDS to Price(costs = 9, most = 3),
+    Manifestation.COLLAPSE to Price(costs = 14, most = 3),
+)

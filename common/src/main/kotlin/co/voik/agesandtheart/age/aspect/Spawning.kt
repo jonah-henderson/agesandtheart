@@ -171,12 +171,6 @@ data class Arrival(
     val apartBy: Int = 0,
 ) {
     /**
-     * Whether an attempt at ([x], [z]) is one of the few places this creature may be tried at all.
-     *
-     * The window is one chunk of each cell, so the thinning is `(16 / apartBy)²` and a dragon held 256
-     * blocks apart is tried in a four-hundredth of the places a zombie is.
-     */
-    /**
      * **How far apart this creature stands when a rung asked for [density] of it.**
      *
      * A rung on a creature held apart moves the *spacing*, and cannot move the weight: once something is
@@ -198,7 +192,8 @@ data class Arrival(
      * window's share, so a creature held 320 blocks apart is four hundred times as likely inside its own
      * window as it would otherwise be, and no likelier over the world.
      *
-     * The KDoc above always said the weight could then be a real share. It could not, until this existed.
+     * So a weight in `art/spawning.json` is the share of the world a creature holds, not the share of one
+     * draw.
      */
     fun thinningAt(spacing: Int): Double {
         if (spacing <= NOWHERE_IN_PARTICULAR) return 1.0
@@ -206,6 +201,12 @@ data class Arrival(
         return share * share
     }
 
+    /**
+     * Whether an attempt at ([x], [z]) is one of the few places this creature may be tried at all.
+     *
+     * The window is one chunk of each cell, so the thinning is `(16 / apartBy)²` and a dragon held 256
+     * blocks apart is tried in a four-hundredth of the places a zombie is.
+     */
     fun mayBeTriedAt(x: Int, z: Int, spacing: Int): Boolean {
         if (spacing <= NOWHERE_IN_PARTICULAR) return true
         return Math.floorMod(x, spacing) < WINDOW_BLOCKS && Math.floorMod(z, spacing) < WINDOW_BLOCKS
@@ -260,7 +261,7 @@ enum class Ground {
         SURFACE -> skyIsOpen
         UNDERGROUND -> !skyIsOpen
         // Vanilla draws its attempt height no higher than one above the surface, so there is no attempt
-        // it could ever make that this would admit. [Spawns] places these itself.
+        // it could ever make that this would admit. `AgeSpawner` places these itself.
         IN_THE_AIR -> false
         ANYWHERE -> true
     }

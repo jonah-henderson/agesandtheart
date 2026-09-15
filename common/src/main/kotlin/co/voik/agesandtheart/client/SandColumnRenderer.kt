@@ -176,18 +176,6 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
          * The column's own pipeline.
          *
          * Needs no registration: Blaze3D compiles one on first use, reading shaders through `ShaderManager`,
-         * which scans `shaders/` across every namespace. Registering would only buy preloading.
-         *
-         * **Depth is tested and not written**, which is the difference from an ordinary translucent type and
-         * what lets the two nested prisms both be seen: a written depth would have the near one reject the
-         * far one and the parallax that sells the fall would be gone. Testing is what buries the bottom.
-         *
-         * **Neither face is culled**, because a player walks through a column rather than around it.
-         */
-        /**
-         * The column's own pipeline.
-         *
-         * Needs no registration: Blaze3D compiles one on first use, reading shaders through `ShaderManager`,
          * which scans `shaders/` across every namespace.
          *
          * **It writes depth, and that is what fixes water and clouds** (Jonah, 2026-08-31, walked). Both are

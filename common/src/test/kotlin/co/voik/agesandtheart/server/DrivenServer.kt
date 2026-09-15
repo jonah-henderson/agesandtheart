@@ -61,19 +61,7 @@ class DrivenServer private constructor(
     }
 
     /**
-     * Stops the server the way a console would, puts `server.properties` back however that goes, and
-     * removes the world this run made.
-     *
-     * **The only thing here that deletes anything, and it is fenced four ways** — the directory must be one
-     * this run created, must still carry the name we generated, must sit directly in the server's run
-     * directory, and must not be a link. A check harness that can reach a world somebody plays is not worth
-     * the disk it saves, so each of those is checked rather than assumed.
-     *
-     * The deletion comes last, after the process has exited: a running server holds the region files open
-     * and would write them out again underneath us.
-     */
-    /**
-     * The same tidying, for a run that never reaches [close] — a cancelled Gradle task, a Ctrl-C, an
+     * The tidying [close] does, for a run that never reaches [close] — a cancelled Gradle task, a Ctrl-C, an
      * exception out of a spec's own setup.
      *
      * **Without it a killed run leaves three things behind**: a Minecraft server holding a world lock and
@@ -95,6 +83,18 @@ class DrivenServer private constructor(
         Runtime.getRuntime().addShutdownHook(tidyUpIfWeAreKilled)
     }
 
+    /**
+     * Stops the server the way a console would, puts `server.properties` back however that goes, and
+     * removes the world this run made.
+     *
+     * **The only thing here that deletes anything, and it is fenced four ways** — the directory must be one
+     * this run created, must still carry the name we generated, must sit directly in the server's run
+     * directory, and must not be a link. A check harness that can reach a world somebody plays is not worth
+     * the disk it saves, so each of those is checked rather than assumed.
+     *
+     * The deletion comes last, after the process has exited: a running server holds the region files open
+     * and would write them out again underneath us.
+     */
     override fun close() {
         runCatching { rcon.run("stop") }
         rcon.close()
@@ -144,35 +144,21 @@ class DrivenServer private constructor(
          * A fresh world every run would fill a disk, so [close] removes it again. It must therefore be
          * named with [CHECKS_WORLD_PREFIX], which is what makes it safe to remove.
          */
-        fun start(level: String = "checks-world"): DrivenServer {
+        fun start(level: String): DrivenServer {
             val launch = LaunchSpec.read()
-            val properties = launch.workingDirectory.resolve("server.properties")
-            check(properties.isFile) {
-                "no ${properties.path} yet — run ./gradlew :fabric:runServer once to accept the EULA and " +
-                    "let the server write its defaults"
-            }
-            val originalProperties = properties.readText()
             val port = ServerLaunch.freePort()
-            properties.writeText(
-                ServerLaunch.overlaid(originalProperties, ServerLaunch.settingsFor(level, port, RCON_PASSWORD)),
+            val started = ServerLaunch.start(
+                launch,
+                ServerLaunch.settingsFor(level, port, RCON_PASSWORD),
+                port,
+                RCON_PASSWORD,
+                STARTUP_SECONDS,
             )
-
-            val process = runCatching { launch.start() }
-                .getOrElse { failure ->
-                    properties.writeText(originalProperties)
-                    throw failure
-                }
-            val rcon = runCatching { ServerLaunch.awaitRcon(process, port, STARTUP_SECONDS, RCON_PASSWORD) }
-                .getOrElse { failure ->
-                    process.destroyForcibly()
-                    properties.writeText(originalProperties)
-                    throw failure
-                }
             return DrivenServer(
-                process,
-                rcon,
-                properties,
-                originalProperties,
+                started.process,
+                started.rcon,
+                started.properties,
+                started.originalProperties,
                 launch.workingDirectory.resolve(level),
                 launch.outputFile,
             )
@@ -185,15 +171,8 @@ class DrivenServer private constructor(
          * Starting one per spec is the obvious shape and costs a minute a spec; there is nothing to isolate
          * between them, because each names its own Ages. `serverTest` runs specs one at a time for the same
          * reason — two servers would fight over one `server.properties`.
-         *
-         * The shutdown hook is what puts that file back, so a check that dies mid-run still leaves the
-         * server's settings as it found them.
          */
-        val shared: DrivenServer by lazy {
-            start("checks-${System.currentTimeMillis()}").also { server ->
-                Runtime.getRuntime().addShutdownHook(Thread { runCatching { server.close() } })
-            }
-        }
+        val shared: DrivenServer by lazy { start("checks-${System.currentTimeMillis()}") }
     }
 }
 

@@ -41,8 +41,8 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
         ): Survey {
             // Surveyed at a desk by somebody about to write the book, which is the whole of what `authored`
             // asks. A found Age is never surveyed, because a found Age was never composed here.
-            val danger = Danger.of(composition, instability, seed, authored = true, table, prices)
-            val spending = Spending.of(instability.index, prices, seed)
+            val danger = Danger.of(composition, instability, authored = true, table, prices)
+            val spending = Spending.of(instability.index, prices)
             return Survey(
                 deposit = Yield.forVeins(Deposits.veinsPerChunk(danger)),
                 earlyMaterials = EarlyGameRareMaterials.grownIn(composition, seed, spending, prices),

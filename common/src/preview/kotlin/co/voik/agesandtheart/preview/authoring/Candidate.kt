@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.preview.authoring
 
+import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Claims
 import co.voik.agesandtheart.age.word.Draws
@@ -57,7 +58,6 @@ data class Candidate(
      * strength and certainty are separate questions, so either strength may be a plain claim or a pool.
      */
     val requests: Claims = Claims.NOTHING,
-    val weights: Map<Aspect, Map<String, Double>> = emptyMap(),
     val template: String? = null,
     val mints: String? = null,
     /** What [mints] is made of when the clause says nothing — a block id, or a tag naming a pool. */
@@ -82,7 +82,7 @@ data class Candidate(
     val inkedByTag: Boolean = false,
 ) {
 
-    val id: Identifier get() = derivedFrom ?: Identifier.fromNamespaceAndPath(NAMESPACE, name)
+    val id: Identifier get() = derivedFrom ?: Identifier.fromNamespaceAndPath(Constants.MOD_ID, name)
 
     /** Whether this came from the game rather than from a file — see [derivedFrom]. */
     val isDerived: Boolean get() = derivedFrom != null
@@ -209,7 +209,6 @@ data class Candidate(
     }
 
     companion object {
-        const val NAMESPACE = "agesandtheart"
         const val COMMENT = "_comment"
 
         /**
@@ -286,7 +285,7 @@ data class Candidate(
         }
 
         private fun aspectPaged(page: String): Aspect =
-            Aspect.entries.firstOrNull { it.page == page }
+            Aspect.byPage(page)
                 ?: error("no part of the world is called '$page'")
 
         private fun readClaims(json: JsonObject): Claims {

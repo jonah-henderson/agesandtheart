@@ -74,16 +74,13 @@ data class DeskImplement(
 
 /** What a desk can do, given what is standing around it. */
 data class DeskState(
-    val present: Set<Identifier>,
     val capabilities: Set<DeskCapability>,
     /** Pages one book may hold; null meaning no limit. */
     val pageLimit: Int?,
 ) {
-    fun can(capability: DeskCapability): Boolean = capability in capabilities
-
     companion object {
         /** A desk with nothing around it. */
-        fun bare(pageLimit: Int?) = DeskState(emptySet(), emptySet(), pageLimit)
+        fun bare(pageLimit: Int?) = DeskState(emptySet(), pageLimit)
     }
 }
 
@@ -137,7 +134,7 @@ class WritersDesk(
             }
         }
         val granted = implements.filter { it.id in present }.flatMap { it.grants }.toSet()
-        return DeskState(present, granted, pageLimitFor(present.size))
+        return DeskState(granted, pageLimitFor(present.size))
     }
 
     /**
@@ -169,12 +166,9 @@ class WritersDesk(
          * obvious thing to copy and the wrong one. Vanilla counts only a *shell* at distance two, and only
          * where the block halfway there transmits — so a bookshelf tucked behind another one is worth
          * nothing. Anywhere in this room counts, at any distance up to the radius and through anything: a
-         * study is furnished by what is in it, not by what has line of sight to the desk. Only the
-         * *caching* was taken from vanilla's approach, in [survey].
+         * study is furnished by what is in it, not by what has line of sight to the desk.
          */
         private const val DEFAULT_RADIUS = 5
-
-        val NONE = WritersDesk(emptyList(), listOf(DeskTier(0, null)), DEFAULT_RADIUS)
 
         fun load(resources: ResourceManager, problems: MutableList<String>): WritersDesk {
             val implements = mutableListOf<DeskImplement>()

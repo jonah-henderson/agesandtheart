@@ -10,6 +10,8 @@ import co.voik.agesandtheart.client.panel.LinkingPanel
 import co.voik.agesandtheart.client.panel.PanelComposite
 import co.voik.agesandtheart.client.panel.PanelPicture
 import co.voik.agesandtheart.client.panel.PanelTarget
+import co.voik.agesandtheart.client.ui.ParchmentSurface
+import co.voik.agesandtheart.client.ui.Rect
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
@@ -91,10 +93,9 @@ class BookScreen(
         val left = (width - WIDTH) / 2
         val top = (height - HEIGHT) / 2
 
-        graphics.fill(left, top, left + WIDTH, top + HEIGHT, EDGE)
-        graphics.fill(left + 1, top + 1, left + WIDTH - 1, top + HEIGHT - 1, PARCHMENT)
+        ParchmentSurface.draw(graphics, Rect(left, top, WIDTH, HEIGHT))
         // The spine, so it reads as two pages rather than one sheet.
-        graphics.fill(left + WIDTH / 2 - 1, top + 1, left + WIDTH / 2 + 1, top + HEIGHT - 1, EDGE)
+        graphics.fill(left + WIDTH / 2 - 1, top + 1, left + WIDTH / 2 + 1, top + HEIGHT - 1, ParchmentSurface.EDGE)
 
         if (spread == 0) {
             drawPanel(graphics, left, top, mouseX, mouseY)
@@ -102,7 +103,7 @@ class BookScreen(
             // a place, and has no words to show (design §7.8.2).
             if (panelPage == BookPage.LEFT) {
                 scaled(graphics, left + RIGHT_COLUMN_X, top + TITLE_Y, TITLE_SCALE) {
-                    graphics.text(font, book.hoverName, 0, 0, INK, false)
+                    graphics.text(font, book.hoverName, 0, 0, ParchmentSurface.INK, false)
                 }
             }
         } else {
@@ -179,10 +180,10 @@ class BookScreen(
             var column = x
             for (word in line.words) {
                 scaled(graphics, column, y, SCRIPT_SCALE) {
-                    graphics.text(font, word.script, 0, 0, INK, false)
+                    graphics.text(font, word.script, 0, 0, ParchmentSurface.INK, false)
                 }
                 scaled(graphics, column, y + scriptHeight(), READING_SCALE) {
-                    graphics.text(font, word.reading, 0, 0, FAINT_INK, false)
+                    graphics.text(font, word.reading, 0, 0, ParchmentSurface.FAINT_INK, false)
                 }
                 column += word.width
             }
@@ -356,7 +357,7 @@ class BookScreen(
         }
         val clickedThePanel = spread == 0 && overPanel(event.x, event.y)
         if (clickedThePanel && held is BookBeingRead.InHand) {
-            ClientDeskNetwork.sender?.invoke(LinkRequest(held.hand))
+            sendToServer(LinkRequest(held.hand))
             onClose()
             return true
         }
@@ -412,11 +413,6 @@ class BookScreen(
         /** Clear space after a column, so two of them do not read as one word. */
         const val COLUMN_GAP = 4
 
-        val PARCHMENT = 0xFFE9DFC3.toInt()
-        val EDGE = 0xFF8B7B55.toInt()
-        val INK = 0xFF2B2118.toInt()
-        val FAINT_INK = 0xFF6B5C46.toInt()
-
         val PANEL_LIT = 0x18FFFFFF
 
         /** How long a panel may be empty before it admits to it. */
@@ -428,7 +424,7 @@ class BookScreen(
         const val WAITING_HEIGHT = 2
         const val WAITING_MARK = 22
 
-        /** Read against [EDGE], which it travels along. */
+        /** Read against [ParchmentSurface.EDGE], which it travels along. */
         val WAITING_INK = 0xAA2B2118.toInt()
     }
 }

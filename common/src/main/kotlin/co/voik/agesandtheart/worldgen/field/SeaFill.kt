@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen.field
 
-import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -98,14 +97,7 @@ data class SeaFill(
     companion object {
         val CODEC: MapCodec<SeaFill> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
-                // A bare `block` is how this was written before a sea could be two substances, and how it is
-                // still written whenever it is only one.
-                Codec.either(BlockState.CODEC.listOf(), BlockState.CODEC)
-                    .xmap(
-                        { either -> either.map({ many -> many }, ::listOf) },
-                        { many -> if (many.size == 1) Either.right(many.first()) else Either.left(many) },
-                    )
-                    .fieldOf("block").forGetter(SeaFill::blocks),
+                BlockState.CODEC.listOf().fieldOf("blocks").forGetter(SeaFill::blocks),
                 Codec.INT.fieldOf("level").forGetter(SeaFill::level),
                 RegionMap.MAP_CODEC.codec().optionalFieldOf("regions", RegionMap.whole())
                     .forGetter(SeaFill::map),
@@ -125,8 +117,5 @@ data class SeaFill(
 
         /** A sea filling everything below [level]. */
         fun of(block: BlockState, level: Int) = SeaFill(listOf(block), level)
-
-        /** Several substances at one level, each filling its own territory. */
-        fun divided(blocks: List<BlockState>, level: Int, map: RegionMap) = SeaFill(blocks, level, map)
     }
 }

@@ -123,15 +123,6 @@ private class Subject(
     fun worldAlongX(sample: Int): Int = (sample - samplesWide / 2) * step + centreX
     fun worldAlongZ(sample: Int): Int = (sample - samplesWide / 2) * step + centreZ
     fun worldYAt(level: Int): Int = lowestY + level * step
-
-    /**
-     * The field as it will actually generate.
-     *
-     * **Weathering is the landform's own now**, carried inside its field, so there is nothing to apply
-     * here and nothing that could drift from what the generator does — a subject asks for a *bare* world
-     * when it wants the unweathered half, rather than switching a pass off out here.
-     */
-    fun weathered(): TerrainField = field
 }
 
 /**
@@ -321,8 +312,6 @@ private val subjects: Map<String, Subject> = mapOf(
         radius = 360,
     ),
 
-    // The caves alone, hanging in space — a cave system reads far better as a solid lattice than as
-    // absence inside a hill, which is the lesson `caverns-voids` already paid for.
     // The cave volume on its own, standing in open air rather than cut out of anything — what an
     // "inverse caves" Age would be. `Subtract(slab, Caved(slab))` is the whole shape: no new node.
     "inverse-caves" to Subject(
@@ -494,7 +483,7 @@ private val subjects: Map<String, Subject> = mapOf(
     ),
 
     // Just the central island, at block resolution, because it is the one thing here a player stands on
-    // and looks at rather than across. Read it against `craterlands-island-noise` below.
+    // and looks at rather than across.
     //
     // **The window starts a block over the waterline**, which is the one way this instrument can show a
     // coast: it draws no water, so an island rendered from the world floor is its whole mass including
@@ -503,17 +492,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // land area.
     "craterlands-island" to Subject(
         CraterlandsField.centralIsland(),
-        lowestY = CraterlandsField.WATERLINE + 1,
-        highestY = 120,
-        radius = 120,
-        sliceAtZ = 0,
-        sliceAtX = 0,
-    ),
-
-    // The rejected alternative: a cone clipped by a heightmap. Read the pair — half of this one's coast
-    // is the cone's own arc, which is what settled it. See `centralIslandFromNoise`.
-    "craterlands-island-noise" to Subject(
-        CraterlandsField.centralIslandFromNoise(),
         lowestY = CraterlandsField.WATERLINE + 1,
         highestY = 120,
         radius = 120,
@@ -620,15 +598,6 @@ private val subjects: Map<String, Subject> = mapOf(
         radius = 128,
     ),
 
-    // The same islands **composed from the toolkit** rather than written as a node — read it against
-    // `islands` above. Same window, so the two pictures are directly comparable.
-    "islands-clustered" to Subject(
-        IslandsField.clustered(),
-        lowestY = 20,
-        highestY = IslandsField.SEA_LEVEL + 120,
-        radius = 1100,
-    ),
-
     "canyonlands-nowind" to Subject(
         CanyonlandsField.bareWorld(),
         lowestY = -64,
@@ -654,13 +623,6 @@ private val subjects: Map<String, Subject> = mapOf(
         highestY = 185,
         radius = 420,
     ),
-
-    // **Read off `Seam.RIFT_DEEPEST` rather than written down**, so a rift cut deeper than the picture can
-    // hold comes out clipped in the code review rather than in the picture — the silent-clip trap `spire`'s
-    // floor note warns about, met the once: the window was 30 while the floor went to −6, and the chasm
-    // simply ran off the bottom edge looking like a chasm that stopped there.
-    //
-    // `wall` shares it so the two forms stay comparable, which costs the wall some height in the frame.
 
     // **`fault`, `rift` and `fuzz` are the three forms a seam can take, and they are a set to read together.**
     // Each is `Seam.SCARP`, `Seam.RIFT` or `Seam.FUZZED` applied to the SAME two territories, so the pictures
@@ -781,7 +743,7 @@ private val subjects: Map<String, Subject> = mapOf(
 private fun solidity(subject: Subject): BooleanArray {
     val width = subject.samplesWide
     val solid = BooleanArray(width * width * subject.samplesHigh)
-    val shape = subject.weathered()
+    val shape = subject.field
 
     for (imageX in 0..<width) {
         val worldX = subject.worldAlongX(imageX)

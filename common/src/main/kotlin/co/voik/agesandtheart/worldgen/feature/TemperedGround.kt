@@ -141,13 +141,6 @@ object TemperedGround : Feature<NoneFeatureConfiguration>(NoneFeatureConfigurati
     }
 
     /**
-     * How far the heat reaches, in blocks of rock.
-     *
-     * A skin on the boundary rather than a halo around it: a lava sea's contact area is large enough that a
-     * generous reach would put more of the material in one Age than the economy is worth. The raw band is
-     * the widest because it is the one meant to be carried away.
-     */
-    /**
      * How deep a natural formation may be found — **where the bands GENERATE, and nothing about the rule.**
      *
      * A lava sea's rim yielded enough for the armour without anybody trying, which is not what a material
@@ -169,6 +162,13 @@ object TemperedGround : Feature<NoneFeatureConfiguration>(NoneFeatureConfigurati
     /** Clearly under any waterline, so a lava sea's shore is out and its floor is in. */
     private const val NOTHING_ABOVE = 32
 
+    /**
+     * How far the heat reaches, in blocks of rock.
+     *
+     * A skin on the boundary rather than a halo around it: a lava sea's contact area is large enough that a
+     * generous reach would put more of the material in one Age than the economy is worth. The raw band is
+     * the widest because it is the one meant to be carried away.
+     */
     private const val SCORCHED_BAND = 2
     private const val TEMPERED_BAND = 4
     private const val RAW_BAND = 6

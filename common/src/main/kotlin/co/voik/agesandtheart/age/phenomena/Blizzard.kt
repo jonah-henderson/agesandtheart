@@ -17,6 +17,7 @@ import co.voik.agesandtheart.location
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.phys.AABB
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
@@ -119,7 +120,7 @@ object Blizzard {
      * still keeps your *ground*; see [driftAt], which is vanilla's own rule and keeps it. What answers the
      * cold is cover, a real fire, or the leather the design always meant to be the portable answer.
      */
-    fun exposureAt(level: ServerLevel, at: BlockPos): Float =
+    fun exposureAt(level: Level, at: BlockPos): Float =
         (level.getBrightness(LightLayer.SKY, at).toFloat() / OPEN_TO_THE_SKY).coerceIn(NOTHING, ALL_OF_IT)
 
     /**

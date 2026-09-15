@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Taggable
+import co.voik.agesandtheart.math.mix64
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceKey
 import com.mojang.datafixers.util.Either
@@ -22,15 +23,12 @@ import java.util.Optional
  */
 private val ASPECT_CODEC: Codec<Aspect> = Codec.STRING.comapFlatMap(
     { named ->
-        Aspect.entries.firstOrNull { it.page == named }
+        Aspect.byPage(named)
             ?.let { DataResult.success(it) }
             ?: DataResult.error { "no part of the world is called '$named'" }
     },
     Aspect::page,
 )
-
-// A set rather than a list: "terrain terrain" means nothing, and pricing counts aspects constrained.
-private val ASPECT_SET_CODEC: Codec<Set<Aspect>> = ASPECT_CODEC.listOf().xmap({ it.toSet() }, { it.toList() })
 
 /**
  * One side of what a word does to the world's parameters — **what it always turns, and what it might.**
@@ -385,7 +383,7 @@ data class Word(
      * The registry this word **is** an entry of, where its own name is the content's id and nobody chose
      * it — `minecraft:stone`, said `stone`.
      *
-     * The other half of [meansExactly], and a different fact rather than a shorthand for the same one.
+     * The other half of [chooses], and a different fact rather than a shorthand for the same one.
      * Writing the key here would restate the word's own id 1168 times and say nothing; what is genuinely
      * unknown is the registry, because **an id cannot say which one it belongs to** —
      * `minecraft:diamond_block` and `minecraft:village_plains` are the same shape, and an open aspect's
@@ -395,7 +393,7 @@ data class Word(
      *
      * The aspects it answers for fall out of [Aspect.presetsAreEntriesOf] rather than being listed.
      *
-     * Not in the codec: a pack author writes [meansExactly], which says the same thing about one entry in
+     * Not in the codec: a pack author writes [chooses], which says the same thing about one entry in
      * the language the file already speaks. This is what a *derivation* over a whole registry says instead.
      */
     val entryOf: ResourceKey<out Registry<*>>? = null,
@@ -425,7 +423,7 @@ data class Word(
      * that method hands back the map it already has and allocates nothing.
      */
     private val someParameterNamesItsAspect: Boolean =
-        (sets.keys + pools.flatMap { it.facets.keys } + requests.everything.keys).any(::namesAnAspect)
+        (sets.keys + pools.flatMap { it.facets.keys } + requests.everything.keys).any { it.contains(PARAMETER_MARK) }
 
     /**
      * What this word sets on [aspect] — what it sets everywhere, and what it sets **only** here.
@@ -446,15 +444,15 @@ data class Word(
 
     private fun meantFor(aspect: Aspect, parameters: Map<String, String>): Map<String, String> =
         if (!someParameterNamesItsAspect) parameters else parameters.mapNotNull { (spelled, value) ->
-            val meant = aspectMeantBy(spelled)
-            if (meant != null && meant != aspect) null else parameterNameIn(spelled) to value
+            val meant = aspectNamedBy(spelled)
+            if (meant != null && meant != aspect) null else parameterIn(spelled) to value
         }.toMap()
 
     /** Everything it could set anywhere, under plain names — the capability question, never the landing one. */
     val everySet: Map<String, String> get() = bare(sets)
 
     private fun bare(parameters: Map<String, String>): Map<String, String> =
-        if (!someParameterNamesItsAspect) parameters else parameters.mapKeys { parameterNameIn(it.key) }
+        if (!someParameterNamesItsAspect) parameters else parameters.mapKeys { parameterIn(it.key) }
 
     /**
      * The aspects a key names that no aspect answers to — a typo, reported at load rather than ignored.
@@ -464,7 +462,7 @@ data class Word(
      */
     val unreadableParameters: List<String>
         get() = (required.everything.keys + requests.everything.keys)
-            .filter { it.contains(PARAMETER_MARK) && aspectMeantBy(it) == null }
+            .filter { it.contains(PARAMETER_MARK) && aspectNamedBy(it) == null }
 
     /**
      * What it actually chooses in the Age [draw] belongs to — the core, and what each pool drew.
@@ -508,24 +506,8 @@ data class Word(
         if (ALTERNATIVE !in value) return value
         val offered = value.split(ALTERNATIVE).map(String::trim).filter(String::isNotEmpty)
         if (offered.size <= 1) return offered.firstOrNull() ?: value
-        val seed = scrambled(draw xor id.hashCode().toLong() xor parameter.hashCode().toLong())
+        val seed = mix64(draw xor id.hashCode().toLong() xor parameter.hashCode().toLong())
         return offered[Random(seed).nextInt(offered.size)]
-    }
-
-    /**
-     * [value] mixed until adjacent inputs give unrelated outputs — SplitMix64's finalizer.
-     *
-     * **Handing a seed straight to `Random` is not enough**, and this is the second time that has bitten.
-     * Two Ages written a seed apart differ in a handful of low bits; xoring in a word's name and a
-     * parameter's shifts those bits but does not spread them, and `nextInt(3)` over such seeds came back
-     * with the same answer every time — fourteen scorching Ages, fourteen embers. An avalanche step makes
-     * one bit of input change half the output, which is the property a draw needed all along.
-     */
-    private fun scrambled(value: Long): Long {
-        var mixed = value + GOLDEN
-        mixed = (mixed xor (mixed ushr 30)) * FIRST_MIX
-        mixed = (mixed xor (mixed ushr 27)) * SECOND_MIX
-        return mixed xor (mixed ushr 31)
     }
 
     /**
@@ -538,7 +520,7 @@ data class Word(
     private fun facetsDrawnAt(claims: Claims, draw: Long, salt: Long): Map<String, String> {
         var settled = claims.sets
         for ((at, pool) in claims.pools.withIndex()) {
-            val seed = scrambled(draw xor id.hashCode().toLong() xor salt xor at.toLong().inv())
+            val seed = mix64(draw xor id.hashCode().toLong() xor salt xor at.toLong().inv())
             settled = settled + pool.drawnWith(Random(seed))
         }
         return settled
@@ -606,20 +588,11 @@ data class Word(
                 .filter { it.key.startsWith(TAG_MARK) }.associate { it.key.drop(1) to it.value }
 
     /**
-     * Whether this word has anything to say about *which* member fills an aspect, as opposed to how that
+     * Whether this word has anything to say about *which* member fills [aspect], as opposed to how that
      * member is steered — the three steps that can remove a candidate, and never the one that cannot.
      *
      * A word that only leans must not be treated as narrowing: an empty carrier set is how the resolver
      * recognises a word the world cannot satisfy (§3.3), and a lean can never empty one.
-     */
-    val constrainsPresets: Boolean
-        get() = chooses.isNotEmpty() || entryOf != null || excludes.isNotEmpty() ||
-            restricts.values.any { tags -> tags.values.any { it > 0.0 } }
-
-    /**
-     * The same question asked of one aspect, which is the honest form. A derived block word chooses a
-     * *sea* and merely *sets* a material on the terrain — asked globally it claims to narrow every aspect
-     * it speaks to, finds no carrier in most, and is charged as unbacked for an opinion it never had.
      */
     fun constrainsPresetsIn(aspect: Aspect): Boolean =
         choiceIn(aspect) != null || excludes[aspect].orEmpty().isNotEmpty() ||
@@ -785,25 +758,9 @@ data class Word(
         return strength > 0.0 && strength >= strictness
     }
 
-    /**
-     * Whether this preset qualifies for this word at its tier's strictness. The `> 0` is not redundant
-     * with the threshold: [Tier.EVOCATIVE]'s threshold is zero, and a preset that answers the word not at
-     * all must never qualify.
-     */
-    fun acceptsIn(aspect: Aspect, tags: Map<String, Double>): Boolean {
-        val strength = pullIn(aspect, tags)
-        return strength > 0.0 && strength >= tier.threshold
-    }
-
     override fun toString(): String = name
 
     companion object {
-        // SplitMix64's finalizer, unchanged: the odd increment walks the whole 64-bit space and the two
-        // multipliers are what spread one changed bit across all of them.
-        private const val GOLDEN = -0x61c8864680b583ebL
-        private const val FIRST_MIX = -0x40a7b892e31b1a47L
-        private const val SECOND_MIX = -0x6b2fb644ecceee15L
-
         /** The parameter a size word sets — `Features.SIZE`'s name, and every other axis that shares it. */
         private const val SIZE_PARAMETER = "size"
 
@@ -855,8 +812,8 @@ data class Word(
         ): Set<Aspect> {
             val steered = Aspect.entries.filter { aspect ->
                 steers.keys.any { spelled ->
-                    val meantBy = aspectMeantBy(spelled)
-                    (meantBy == null || meantBy == aspect) && aspect.ownsParameterNamed(parameterNameIn(spelled))
+                    val meantBy = aspectNamedBy(spelled)
+                    (meantBy == null || meantBy == aspect) && aspect.ownsParameterNamed(parameterIn(spelled))
                 }
             }
             // **Minting is the features' own.** `Resolver.mintedFeatures` is the only reader of `mints`
@@ -873,7 +830,7 @@ data class Word(
         const val TAG_MARK = "#"
 
         /**
-         * `queries`, keyed by aspect page or by [EVERYWHERE].
+         * `biases`, keyed by aspect page or by [EVERYWHERE].
          *
          * Validated on the way in so a mistyped page is a word that fails to load and is reported, rather
          * than a query that quietly asks nothing of nowhere.
@@ -883,7 +840,7 @@ data class Word(
                 .comapFlatMap(
                     { raw ->
                         val strange = raw.keys.filterNot { said ->
-                            said == EVERYWHERE || Aspect.entries.any { it.page == said }
+                            said == EVERYWHERE || Aspect.byPage(said) != null
                         }
                         if (strange.isEmpty()) {
                             com.mojang.serialization.DataResult.success(raw)
@@ -931,7 +888,7 @@ data class Word(
                 ->
                 val everywhere = leanings[EVERYWHERE].orEmpty()
                 val leaned = leanings.filterKeys { it != EVERYWHERE }
-                    .mapNotNull { (page, tags) -> Aspect.entries.firstOrNull { it.page == page }?.to(tags) }
+                    .mapNotNull { (page, tags) -> Aspect.byPage(page)?.to(tags) }
                     .toMap()
                 // **Both halves widen the reach.** A word that only *offers* to redden a sun is still a
                 // word about the sun, and one that reached nowhere would have its offer skipped in the
@@ -948,20 +905,6 @@ data class Word(
                 )
             }
         }
-
-        /**
-         * **By page, not by key.** A word file is corpus content that a person authors and the game re-reads
-         * on every load, so it names parts of the world the way a writer does. Only a *save* is written in
-         * keys, and no save holds one of these.
-         */
-        /** What separates the aspect a parameter is meant for from the parameter — `/age compose`'s own spelling. */
-        private const val PARAMETER_MARK = '.'
-
-        private fun namesAnAspect(spelled: String) = spelled.contains(PARAMETER_MARK)
-
-        private fun aspectMeantBy(spelled: String): Aspect? = aspectNamedBy(spelled)
-
-        private fun parameterNameIn(spelled: String): String = parameterIn(spelled)
     }
 }
 
@@ -977,7 +920,7 @@ private const val PARAMETER_MARK = '.'
 fun aspectNamedBy(spelled: String): Aspect? {
     if (!spelled.contains(PARAMETER_MARK)) return null
     val named = spelled.substringBefore(PARAMETER_MARK)
-    return Aspect.entries.firstOrNull { it.page == named }
+    return Aspect.byPage(named)
 }
 
 /** The parameter itself, with any aspect it named taken off — and left whole where it named none. */

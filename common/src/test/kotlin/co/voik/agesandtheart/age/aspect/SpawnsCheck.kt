@@ -70,8 +70,11 @@ class SpawnsCheck : FunSpec({
 
 private const val FOUR_TIMES = 4
 
-/** A biome's worth of creatures, weighted as vanilla weights them. */
-private fun aMeadow(): WeightedList<MobSpawnSettings.SpawnerData> {
+/**
+ * What a biome offers before anybody writes anything: two creatures and two monsters, weighted as vanilla
+ * weights them. Shared with `SpawningCheck`.
+ */
+internal fun aMeadow(): WeightedList<MobSpawnSettings.SpawnerData> {
     MinecraftRegistries.ensureStoodUp()
     return WeightedList.of(
         Weighted(MobSpawnSettings.SpawnerData(EntityType.COW, 4, 4), 8),

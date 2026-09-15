@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.worldgen.biome
 
 import com.mojang.serialization.Codec
-import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 
 /**
@@ -128,7 +127,5 @@ data class Elevation(
                     .forGetter(Elevation::lapsePerBlock),
             ).apply(instance, ::Elevation)
         }
-
-        val MAP_CODEC: MapCodec<Elevation> = CODEC.fieldOf("elevation")
     }
 }

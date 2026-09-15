@@ -41,7 +41,7 @@ object AstriteGolems {
         // block being placed and carries no player, so the nearest one is as close as we can get — which
         // in practice is the person who placed the pumpkin, since nobody else is that close by accident.
         level.getNearestPlayer(stands.x + MIDDLE_OF_A_BLOCK, stands.y.toDouble(), stands.z + MIDDLE_OF_A_BLOCK, WITHIN_REACH, false)
-            ?.let(golem::answerTo)
+            ?.let(golem::tame)
         level.addFreshEntity(golem)
         level.gameEvent(golem, GameEvent.ENTITY_PLACE, stands)
         return true
@@ -51,7 +51,7 @@ object AstriteGolems {
         for (across in 0..<match.width) {
             for (up in 0..<match.height) {
                 val was = match.getBlock(across, up, ONLY_LAYER)
-                level.setBlock(was.pos, Blocks.AIR.defaultBlockState(), UPDATE_NEIGHBOURS)
+                level.setBlock(was.pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL)
                 level.levelEvent(BREAKING_PARTICLES, was.pos, Block.getId(was.state))
             }
         }
@@ -92,6 +92,5 @@ object AstriteGolems {
     /** How far off its maker may be and still be counted as its maker, in blocks. */
     private const val WITHIN_REACH = 8.0
 
-    private const val UPDATE_NEIGHBOURS = Block.UPDATE_ALL
     private const val BREAKING_PARTICLES = 2001
 }

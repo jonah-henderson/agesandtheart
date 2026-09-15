@@ -123,7 +123,9 @@ class Menu(
                 WordFile.read(chosen.key).fold(
                     onSuccess = ::edit,
                     onFailure = { failure ->
-                        read(
+                        Dialogs.read(
+                            terminal,
+                            canvas,
                             Reader(
                                 "'${chosen.key}' would not read",
                                 listOf(Line(failure.message.orEmpty(), Palette.refused)),
@@ -274,7 +276,9 @@ class Menu(
         // **A word with its own numbers is not cycled past them.** Stepping it onto a named tier would
         // throw away five values to save opening the word, and there is nowhere here to put them back.
         if (candidate.tier.key == Tier.CUSTOM) {
-            read(
+            Dialogs.read(
+                terminal,
+                canvas,
                 Reader(
                     "'$name' states its own cost",
                     listOf(Line("Open the word to change one of its numbers.", Palette.faint)),
@@ -337,7 +341,7 @@ class Menu(
         while (true) {
             val judged = canvas.whileBusy("Auditing ${WordFile.authoredNames().size} words") { audited(byName) }
             if (judged.isEmpty()) {
-                read(Reader("Audit", listOf(Line("No word needs attention.", Palette.settled))))
+                Dialogs.read(terminal, canvas, Reader("Audit", listOf(Line("No word needs attention.", Palette.settled))))
                 return
             }
             val picker = Picker(
@@ -416,7 +420,7 @@ class Menu(
                     serverOnlyTags = corpus.vocabulary.tagsOnlyAServerGrants,
                 ) { far -> terminal.println("  " + if (far.total <= 0) far.what else "${far.done}/${far.total} ${far.what}") }
             }.fold(
-                onSuccess = { it.write(); terminal.println("Wrote ${it.snapshotPath()}") },
+                onSuccess = { it.write(); terminal.println("Wrote ${ServerSnapshot.FILE.path}") },
                 onFailure = { terminal.println("Nothing loaded: ${it.message}") },
             )
             terminal.println("")
@@ -450,15 +454,6 @@ class Menu(
     }
 
     /**
-     * A table, walked. Null where the reader backed out; otherwise the key of the row they chose.
-     *
-     * **Left and right move between columns, up and down move within one.** On the name column that means
-     * changing row; on a rarity or an ink column it means cycling the value under the cursor, which is
-     * written straight away and the rows rebuilt from disk — so what is on screen is what is in the files.
-     *
-     * [rowsOf] rather than a list, for that rebuild.
-     */
-    /**
      * What walking a list came back with: a row, or a name to write that no row had.
      *
      * The second is why this is not a bare string — searching a corpus of a hundred words for one that is
@@ -467,6 +462,15 @@ class Menu(
      */
     private data class Chosen(val key: String, val isNew: Boolean = false)
 
+    /**
+     * A table, walked. Null where the reader backed out; otherwise the key of the row they chose.
+     *
+     * **Left and right move between columns, up and down move within one.** On the name column that means
+     * changing row; on a rarity or an ink column it means cycling the value under the cursor, which is
+     * written straight away and the rows rebuilt from disk — so what is on screen is what is in the files.
+     *
+     * [rowsOf] rather than a list, for that rebuild.
+     */
     private fun walk(
         table: Table,
         rowsOf: () -> List<Table.Row>,
@@ -488,23 +492,12 @@ class Menu(
                 }
 
                 when {
-                    key.ctrl && (key.key == "q" || key.key == "c") -> return null
+                    key.ctrl && key.key == "q" -> return null
                     // Escape gives back what was typed before it gives up the screen — losing a filter
                     // is cheap, losing your place in sixteen hundred rows is not.
                     key.key == "Escape" -> if (table.isFiltered) table.clearFilter() else return null
                     key.key == "ArrowLeft" -> if (table.column == 0) return null else table.across(-1)
                     key.key == "ArrowRight" -> table.across(1)
-                    // **Up and down always move.** They cycled a value where the cursor sat on one, which
-                    // reads well written down and trips you up constantly: the same key moved you on one
-                    // column and edited on the next.
-                    key.key == "ArrowUp" -> table.move(-1)
-                    key.key == "ArrowDown" -> table.move(1)
-                    key.key == "Home" -> table.home()
-                    key.key == "End" -> table.end()
-                    key.key == "PageUp" -> table.page(-1)
-                    key.key == "PageDown" -> table.page(1)
-                    key.key == "Tab" -> table.sortByTheColumnInHand()
-                    key.key == "Backspace" -> table.backspace()
                     // On a value column enter steps it on; on the name it opens the word — or writes the
                     // one that was searched for and not found, where the list says it will.
                     key.key == "Enter" -> when {
@@ -523,9 +516,9 @@ class Menu(
                             table.withRows(canvas.whileBusy(work = rowsOf))
                         }
                     }
-                    // Everything else types. `-` and `=` are spent above, which costs nothing: no word
-                    // in the corpus has either in its name.
-                    key.key.length == 1 && !key.ctrl && !key.alt -> table.type(key.key)
+                    // Everything else is the table's. `-` and `=` are spent above, which costs nothing: no
+                    // word in the corpus has either in its name.
+                    else -> table.tookTheKey(key)
                 }
             }
         }
@@ -587,7 +580,7 @@ class Menu(
                 val key = scope.readKey() ?: return null
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
-                    key.ctrl && (key.key == "q" || key.key == "c") -> return null
+                    key.ctrl && key.key == "q" -> return null
                     key.key == "Tab" && onTab != null -> { onTab(); return null }
                     key.key == "Escape" ->
                         if (picker.filter.isNotEmpty()) picker.clearFilter() else if (canLeave) return null
@@ -598,23 +591,6 @@ class Menu(
                     key.key == "ArrowDown" -> picker.move(1)
                     key.key == "Backspace" -> picker.backspace()
                     key.key.length == 1 && !key.ctrl && !key.alt -> picker.type(key.key)
-                }
-            }
-        }
-    }
-
-    private fun read(reader: Reader) {
-        terminal.enterRawMode(MouseTracking.Off).use { scope ->
-            while (true) {
-                val window = (canvas.height - CHROME).coerceAtLeast(1)
-                canvas.show(readerLines(reader, window))
-                val key = scope.readKey() ?: return
-                if (key.ctrl && key.key == "c") throw Leaving()
-                when {
-                    key.ctrl && (key.key == "q" || key.key == "c") -> return
-                    key.key == "Escape" || key.key == "ArrowLeft" || key.key == "Enter" -> return
-                    key.key == "ArrowUp" -> reader.scroll(-1, window)
-                    key.key == "ArrowDown" -> reader.scroll(1, window)
                 }
             }
         }
@@ -656,21 +632,8 @@ class Menu(
         )
     }
 
-    private fun readerLines(reader: Reader, window: Int): List<Line> = buildList {
-        add(Line("  ${reader.title}", Palette.heading))
-        add(Line.BLANK)
-        val whole = reader.lines.flatMap { (Line("  ") + it).wrapped(canvas.width, READER_HANGING) }
-        reader.rows = whole.size
-        addAll(whole.drop(reader.offset).take(window))
-        add(Frame.rule(canvas.width))
-        add(hints("↑↓" to "scroll", "←" to "back"))
-    }
-
     private companion object {
         const val LABEL = 26
-
-        /** Where a wrapped reading's continuation lines start, so a break reads as one. */
-        const val READER_HANGING = "      "
 
         /** What a chooser answers with when `?` was asked rather than a row chosen. */
         const val WANTS_HELP = "\u0000help"

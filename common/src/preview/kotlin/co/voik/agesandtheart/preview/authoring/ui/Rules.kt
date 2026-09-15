@@ -58,7 +58,7 @@ class Rules(
                 val key = scope.readKey() ?: return
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
-                    key.ctrl && (key.key == "q" || key.key == "c") -> return
+                    key.ctrl && key.key == "q" -> return
                     key.key == "Escape" -> if (table.isFiltered) table.clearFilter() else return
                     key.key == "ArrowLeft" -> return
                     key.key == "ArrowRight" || key.key == "Enter" ->
@@ -151,7 +151,7 @@ class Rules(
                     return true
                 }
                 when {
-                    key.ctrl && (key.key == "q" || key.key == "c") -> return
+                    key.ctrl && key.key == "q" -> return
                     key.key == "Escape" -> when {
                         focused?.isFiltered == true -> focused.clearFilter()
                         !step(-1) -> return
@@ -406,7 +406,5 @@ class Rules(
         const val TAG_WIDTH = 16
         const val COUNT_WIDTH = 7
         const val WHERE_WIDTH = 20
-        const val ASPECT_WIDTH = 11
-
     }
 }

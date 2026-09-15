@@ -1,11 +1,10 @@
 package co.voik.agesandtheart.desk
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
-import co.voik.agesandtheart.age.word.Vocabulary
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.BuiltInRegistries
 import io.kotest.core.annotation.Tags
@@ -25,12 +24,6 @@ import kotlin.math.abs
  */
 @Tags(NEEDS_REGISTRIES)
 class WriteCostCheck : FunSpec({
-
-    val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
-            check(it.problems.isEmpty()) { "the corpus would not load: ${it.problems}" }
-        }
-    }
 
     // The built-in ones are enough: an authored word carries no registry tag, so `tierFor` falls through
     // to the corpus's own table, which is exactly what is being priced here.
