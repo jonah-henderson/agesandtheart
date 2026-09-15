@@ -1721,7 +1721,7 @@ object AgeContent {
         BLIZZARD_EXPOSED_ID to BLIZZARD_EXPOSED,
     )
 
-    private val PRESSURE_EFFECT_ID: Identifier = "pressure".location()
+    private val PRESSURE_EFFECT_ID: Identifier = "crushing_pressure".location()
 
     /**
      * The abyss on a body — see [PressureEffect], and `DeepWater.press` for what hands it out.

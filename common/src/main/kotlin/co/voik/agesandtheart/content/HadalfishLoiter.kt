@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.content
 
 import net.minecraft.core.BlockPos
+import net.minecraft.tags.FluidTags
 import net.minecraft.world.entity.ai.goal.Goal
 import net.minecraft.world.phys.Vec3
 import java.util.EnumSet
@@ -15,7 +16,8 @@ import java.util.EnumSet
  *
  * **It only ever moves to deep water**, which keeps the mini-boss where its reward is: a fish that wandered
  * up into the shallows would be fightable from a boat with none of the pressure or the dark that the
- * encounter is made of.
+ * encounter is made of. One that finds itself above the abyss, however it came to be there, heads straight
+ * back down — to deep water, or failing that as low in the water as it can find.
  */
 class HadalfishLoiter(private val fish: Hadalfish) : Goal() {
 
@@ -41,9 +43,54 @@ class HadalfishLoiter(private val fish: Hadalfish) : Goal() {
         // what makes it hang there, which is the whole image: a shape in the dark that has not moved.
         val drift = fish.deltaMovement
         fish.deltaMovement = Vec3(drift.x * SETTLING, 0.0, drift.z * SETTLING)
+        if (!isInTheDeep()) {
+            // Out of the abyss it goes back down at once rather than waiting out its restlessness in the
+            // shallows (Jonah, walked A7 2026-09-14), and keeps looking while it is still out.
+            val timeToLook = settledFor++ % LOOKS_FOR_THE_DEEP_EVERY == 0
+            if (timeToLook) wayDown()?.let(::driftTo)
+            return
+        }
         if (++settledFor < restlessness()) return
         settledFor = 0
-        somewhereElseDeep()?.let { fish.navigation.moveTo(it.x + HALF, it.y + HALF, it.z + HALF, DRIFTS_AT) }
+        somewhereElseDeep()?.let(::driftTo)
+    }
+
+    private fun driftTo(at: BlockPos) {
+        fish.navigation.moveTo(at.x + HALF, at.y + HALF, at.z + HALF, DRIFTS_AT)
+    }
+
+    private fun isInTheDeep(): Boolean = fish.level().getFluidState(fish.blockPosition()).`is`(DeepWater.DEEP_WATER)
+
+    /**
+     * Deep water to go down to, or failing that the lowest water it can find — the bottom of the shallows
+     * being as near the deep as it can get — or null where there is nothing lower than it already is.
+     *
+     * Straight down first, since after a hunt the abyss is usually right under it; then darts spread wide and
+     * low, as [somewhereElseDeep] throws them. The first deep water found ends it.
+     */
+    private fun wayDown(): BlockPos? {
+        val level = fish.level()
+        val from = fish.blockPosition()
+        var lowest: BlockPos? = null
+        for (step in 1..SOUNDS_DOWN) {
+            val at = from.below(step)
+            val fluid = level.getFluidState(at)
+            if (fluid.`is`(DeepWater.DEEP_WATER)) return at
+            if (!fluid.`is`(FluidTags.WATER)) break
+            lowest = at
+        }
+        repeat(TRIES) {
+            val at = from.offset(
+                fish.random.nextInt(-SEARCHES_ACROSS, SEARCHES_ACROSS + 1),
+                -fish.random.nextInt(SOUNDS_DOWN + 1),
+                fish.random.nextInt(-SEARCHES_ACROSS, SEARCHES_ACROSS + 1),
+            )
+            val fluid = level.getFluidState(at)
+            if (fluid.`is`(DeepWater.DEEP_WATER)) return at
+            val isLowerWater = fluid.`is`(FluidTags.WATER) && at.y < (lowest?.y ?: from.y)
+            if (isLowerWater) lowest = at
+        }
+        return lowest
     }
 
     /**
@@ -86,6 +133,13 @@ class HadalfishLoiter(private val fish: Hadalfish) : Goal() {
         /** Three down for every one up — see [somewhereElseDeep]. */
         const val RISES = 8
         const val SINKS = 24
+
+        /** Out of the abyss, how often it looks for a way back down — once a second. */
+        const val LOOKS_FOR_THE_DEEP_EVERY = 20
+
+        /** How far straight down it looks, and how deep its darts reach: a hunt gives up sixteen over the line. */
+        const val SOUNDS_DOWN = 48
+        const val SEARCHES_ACROSS = 24
 
         const val DRIFTS_AT = 0.7
         const val HALF = 0.5

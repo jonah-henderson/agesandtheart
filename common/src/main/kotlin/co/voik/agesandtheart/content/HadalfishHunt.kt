@@ -3,6 +3,7 @@ package co.voik.agesandtheart.content
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.ai.goal.Goal
+import net.minecraft.world.level.LevelReader
 import net.minecraft.world.phys.Vec3
 import java.util.EnumSet
 import kotlin.math.cos
@@ -67,10 +68,7 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
      * Measured on the fish and not on the quarry: what matters is where the *animal* has been drawn to,
      * which is also what stops it hanging at the surface waiting.
      */
-    private fun hasRisenTooFar(): Boolean {
-        val line = DeepWater.lineIn(fish.level()) ?: return false
-        return fish.blockY > line + GIVES_UP_ABOVE_THE_LINE
-    }
+    private fun hasRisenTooFar(): Boolean = isAboveTheHunt(fish.level(), fish.blockY)
 
     /** The orbit moves every tick, so this may not be run on the goal selector's slower beat. */
     override fun requiresUpdateEveryTick(): Boolean = true
@@ -85,6 +83,9 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
     override fun stop() {
         fish.navigation.stop()
         phase = Phase.CIRCLING
+        // Given up rather than interrupted, so it lets go: holding the quarry left it hanging where it gave up,
+        // since `HadalfishLoiter` only runs for a fish hunting nobody (Jonah, walked A7 2026-09-14).
+        if (hasRisenTooFar()) fish.target = null
     }
 
     override fun tick() {
@@ -145,7 +146,10 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
      * the length of the run and no longer.
      */
     private fun strike(quarry: LivingEntity) {
-        steer(quarry.position(), CHARGE_SPEED * PRESSING_IN, STRIKE_EASE)
+        // Closing only while out of reach, and pulling up once in it: steered at the quarry's own position
+        // for the whole run, with the charge's speed still on it, a two-block fish ended up around them.
+        if (withinReach(quarry)) fish.deltaMovement = fish.deltaMovement.scale(KEEPS_IN_REACH)
+        else steer(quarry.position(), CHARGE_SPEED * PRESSING_IN, STRIKE_EASE)
         if (betweenBites > 0) betweenBites--
         if (betweenBites <= 0 && withinReach(quarry)) {
             val level = fish.level()
@@ -229,6 +233,12 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
 
         const val FULL_TURN = Math.PI * 2
 
+        /** Whether [y] is higher than a hunt goes, [GIVES_UP_ABOVE_THE_LINE] over the abyss line. */
+        fun isAboveTheHunt(level: LevelReader, y: Int): Boolean {
+            val line = DeepWater.lineIn(level) ?: return false
+            return y > line + GIVES_UP_ABOVE_THE_LINE
+        }
+
         /**
          * **Beyond the fog, so the body is never seen circling** — the lantern fading out to uncover the
          * fish is the best thing the animal does, and it only happens if the reveal belongs to the charge.
@@ -275,6 +285,9 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
 
         /** How much of the charge it keeps while biting, so it stays on a retreating player. */
         const val PRESSING_IN = 0.35
+
+        /** The share of its speed it keeps each tick while in reach, so the charge ends at the bite. */
+        const val KEEPS_IN_REACH = 0.25
         const val STRIKE_EASE = 0.35
 
         const val WITHDRAW_SPEED = 0.75

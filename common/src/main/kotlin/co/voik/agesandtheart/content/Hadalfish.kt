@@ -77,10 +77,22 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
      * as broken rather than as vicious — and the retaliation goal above ignores this, so shooting one from
      * dry land still brings it as far as it can come.
      *
+     * **And within reach of the deep**: nothing above the height a hunt gives up at. Letting go of a quarry
+     * that rose out of reach is only letting go if it is not taken up again the moment after.
+     *
      * A baby of its own kind is meant to be the exception. There is no baby yet, so there is nothing here
      * to exempt — the exemption belongs in this predicate when there is.
      */
-    private fun worthBiting(candidate: LivingEntity, level: ServerLevel): Boolean = candidate.isInWater
+    private fun worthBiting(candidate: LivingEntity, level: ServerLevel): Boolean =
+        candidate.isInWater && !HadalfishHunt.isAboveTheHunt(level, candidate.blockY)
+
+    /**
+     * A little more reach than vanilla's, and all round rather than only sideways, so a bite lands from
+     * alongside the quarry rather than from inside it (Jonah, walked A6 2026-09-14). A fish meets its prey
+     * from above and below as often as level with it.
+     */
+    override fun isWithinMeleeAttackRange(target: LivingEntity): Boolean =
+        boundingBox.inflate(BITES_FROM).intersects(target.boundingBox)
 
     companion object {
         /**
@@ -110,6 +122,9 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
 
         /** Per strike, and it lands three of them — see [HadalfishHunt]. */
         private const val BITE = 9.0
+
+        /** How far past its own body a bite reaches, every way. Vanilla's is about 0.83, and sideways only. */
+        private const val BITES_FROM = 1.5
 
         /** Only what it loiters at. The charge is not this number. */
         private const val CRUISE = 0.4
