@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.phenomena
 
-import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.consequence.Hostility
@@ -8,6 +7,7 @@ import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Spending
@@ -37,20 +37,18 @@ object Happenings {
     /**
      * One tick of every Age that has something happening in it.
      *
-     * Called from both loaders' server-tick event, the same shape as `SERVER_STARTED` calling
-     * `Ages.reloadSaved` — there is no shared entry point for a tick, and inventing a service for one
-     * method would fragment `PlatformHelper` for a one-off (`CLAUDE.md`).
+     * Called from `CommonSetup.serverTick`.
      *
-     * **Only levels that are loaded and have someone in them.** An Age nobody is standing in has no
-     * lightning worth spending a tick on, and the check is what keeps this from scaling with how many Ages
-     * have ever been written.
+     * **Only levels that are loaded and have someone in them**, as [Sampling.watchers] counts them — a
+     * spectator alone is nobody. An Age nobody is standing in has no lightning worth spending a tick on, and
+     * the check is what keeps this from scaling with how many Ages have ever been written.
      */
     fun tick(server: MinecraftServer) {
         val saved = AgeSavedData.get(server)
         if (saved.ages.isEmpty()) return
         for (level in server.allLevels) {
             val age = level.dimension().identifier()
-            val recipe = saved.takeIf { age in it.ages }?.recipe(age) ?: continue
+            val recipe = saved.recipe(age) ?: continue
             val composition = recipe.composition ?: continue
             val happening = claimsIn(composition)
             // **The sea's level is settled before the emptiness check, and the counter after it.** Where
@@ -60,7 +58,7 @@ object Happenings {
             // register was chosen for. See [Deluge].
             val drowning = happening.any { it.value == Phenomenon.DELUGE.key }
             Deluge.stand(level, drowning, saved.presenceIn(age))
-            if (level.players().isEmpty()) continue
+            if (Sampling.watchers(level).isEmpty()) continue
             if (drowning) saved.spendATickIn(age)
             // What the Age could not hold, and what that bought. Derived rather than stored, so it comes
             // out the same on every open — see [Spending].
@@ -107,16 +105,11 @@ object Happenings {
      * The claim by which [phenomenon] befalls [level], or null where it does not.
      *
      * What [tick] reads per Age, asked the other way about — for a phenomenon that has to answer something
-     * the world did rather than the clock, as a tempest answers a bolt landing ([Tempest.struck]). The
-     * namespace test comes first because every bolt in the game asks this, and lightning outside an Age
-     * should cost one string comparison.
+     * the world did rather than the clock, as a tempest answers a bolt landing ([Tempest.struck]). Every
+     * bolt in the game asks this, which is why it goes through [Ages.recipeOf]'s namespace test.
      */
     fun claimFor(level: ServerLevel, phenomenon: Phenomenon): Claim? {
-        val age = level.dimension().identifier()
-        if (age.namespace != Constants.MOD_ID) return null
-        val saved = AgeSavedData.get(level.server)
-        if (age !in saved.ages) return null
-        val composition = saved.recipe(age).composition ?: return null
+        val composition = Ages.recipeOf(level)?.composition ?: return null
         return claimsIn(composition).firstOrNull { it.value == phenomenon.key }
     }
 
@@ -129,11 +122,7 @@ object Happenings {
      * never bought was showing something the game does not contain.
      */
     fun furyIn(level: ServerLevel, phenomenon: Phenomenon): Double {
-        val age = level.dimension().identifier()
-        if (age.namespace != Constants.MOD_ID) return NOTHING_INFLICTED
-        val saved = AgeSavedData.get(level.server)
-        if (age !in saved.ages) return NOTHING_INFLICTED
-        val recipe = saved.recipe(age)
+        val recipe = Ages.recipeOf(level) ?: return NOTHING_INFLICTED
         return furyOf(Spending.of(level.server, recipe), Price.list(level.server), phenomenon)
     }
 

@@ -35,7 +35,7 @@ import net.minecraft.world.level.block.LightningRodBlock
 object Tempest {
 
     fun strike(level: ServerLevel, density: Double) {
-        val watching = level.players()
+        val watching = Sampling.watchers(level)
         if (watching.isEmpty()) return
 
         val random = level.random

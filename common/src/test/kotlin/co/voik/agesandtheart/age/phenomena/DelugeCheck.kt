@@ -6,7 +6,7 @@ import io.kotest.core.spec.style.FunSpec
  * How far a drowning Age's sea has climbed, given how long anybody has been in it.
  *
  * **The arithmetic is all that can be checked here, and the reason is worth stating.** Everything else
- * about the deluge is near-player work: the counter advances only where `level.players()` is not empty and
+ * about the deluge is near-player work: the counter advances only where `Sampling.watchers` is not empty and
  * both the catch-up and the pooling are driven by `Sampling.sweep`, which walks the chunks around players.
  * A headless server has no players, so none of it ever runs — the rise itself is a walk, not a probe.
  *

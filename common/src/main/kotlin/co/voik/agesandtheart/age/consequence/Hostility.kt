@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.consequence
 
+import co.voik.agesandtheart.age.phenomena.Sampling
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.server.level.ServerLevel
@@ -89,8 +90,7 @@ object Hostility {
      */
     fun stir(level: ServerLevel) {
         if (level.gameTime % BETWEEN_DRAWS != 0L) return
-        for (player in level.players()) {
-            if (player.isSpectator) continue
+        for (player in Sampling.watchers(level)) {
             val eye = player.position()
             // **The nearest few only.** An Age at the top of the register can put a hundred wounds within
             // reach of one player, and stirring every one of them would be hundreds of monsters a second

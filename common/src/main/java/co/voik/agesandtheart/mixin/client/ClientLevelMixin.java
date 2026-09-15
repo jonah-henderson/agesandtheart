@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.mixin.client;
 
 import co.voik.agesandtheart.age.consequence.Wounds;
+import co.voik.agesandtheart.client.WoundField;
 import co.voik.agesandtheart.client.light.DeepLights;
 import co.voik.agesandtheart.client.light.TintedLights;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -36,8 +37,9 @@ public class ClientLevelMixin {
             BlockState oldState,
             BlockState newState,
             CallbackInfo callback) {
-        Wounds.INSTANCE.noticed((ClientLevel) (Object) this, pos, oldState, newState);
-        TintedLights.INSTANCE.noticed((ClientLevel) (Object) this, pos, oldState, newState);
-        DeepLights.INSTANCE.noticed((ClientLevel) (Object) this, pos, oldState, newState);
+        ClientLevel level = (ClientLevel) (Object) this;
+        if (Wounds.INSTANCE.noticed(level, pos, oldState, newState)) WoundField.INSTANCE.opened(level, pos);
+        TintedLights.INSTANCE.noticed(level, pos, oldState, newState);
+        DeepLights.INSTANCE.noticed(level, pos, oldState, newState);
     }
 }

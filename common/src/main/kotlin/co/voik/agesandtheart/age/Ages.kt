@@ -2,7 +2,6 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.ephemeris.RuntimeLevelConfig
 import co.voik.ephemeris.RuntimeLevelEvents
 import co.voik.ephemeris.RuntimeLevels
@@ -20,6 +19,7 @@ import net.minecraft.world.level.dimension.end.EnderDragonFight
 import net.minecraft.world.level.levelgen.Heightmap
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
+import java.util.WeakHashMap
 
 /**
  * Loader-agnostic lifecycle for Ages. Opening and discarding a level is Ephemeris' [RuntimeLevels]; this
@@ -41,11 +41,16 @@ object Ages {
         RuntimeLevelEvents.whenOpened(::lendTheDragon)
     }
 
-    /** The recipe [level] was written from, or null where it is no Age of ours. */
-    private fun recipeOf(level: ServerLevel): AgeRecipe? {
-        val saved = AgeSavedData.get(level.server)
+    /**
+     * The recipe [level] was written from, or null where it is no Age of ours.
+     *
+     * The namespace test comes first because this is asked of every level, lightning bolt and open
+     * instrument, and a level outside our namespace should cost one string comparison.
+     */
+    fun recipeOf(level: ServerLevel): AgeRecipe? {
         val id = level.dimension().identifier()
-        return if (id in saved.ages) saved.recipe(id) else null
+        if (id.namespace != Constants.MOD_ID) return null
+        return AgeSavedData.get(level.server).recipe(id)
     }
 
     /**
@@ -89,9 +94,10 @@ object Ages {
     /**
      * Opens the Age [id] from its recorded recipe, or returns it if it is open already. Opening an existing
      * Age reuses its saved chunks. Used for travel and restart-replay; must be called on the server thread.
+     * An [id] with no recorded recipe opens as the Spire preset.
      */
     fun open(server: MinecraftServer, id: Identifier): ServerLevel {
-        val recipe = AgeSavedData.get(server).recipe(id)
+        val recipe = AgeSavedData.get(server).recipe(id) ?: AgeRecipe.of(AgePreset.SPIRE, id)
         return RuntimeLevels.open(
             server,
             id,
@@ -185,12 +191,10 @@ object Ages {
      * two different places. Loads the chunk it answers about, since neither caller can use a height read
      * off ungenerated ground.
      */
-    fun arrivalIn(level: ServerLevel): BlockPos = arrivals.getOrPut(level.dimension().identifier()) {
-        workOutTheArrivalIn(level)
-    }
+    fun arrivalIn(level: ServerLevel): BlockPos = arrivals.getOrPut(level) { workOutTheArrivalIn(level) }
 
     /**
-     * Where each Age's arrival is, worked out once.
+     * Where each Age's arrival is, worked out once per level.
      *
      * **Because working it out is the slowest thing a first link does.** [findFooting] samples columns of
      * `getBaseHeight`, each a full run of the generator's density functions, and both linking and the
@@ -199,9 +203,11 @@ object Ages {
      *
      * A generator is rebuilt identically on every open, so the second answer would always be the first —
      * except that `AgeConfig.searchesForFooting` can change between server runs, which is why this is a
-     * memo for the run rather than anything persisted.
+     * memo rather than anything persisted. Weakly keyed on the level, so an arrival lasts exactly as long
+     * as the level it was worked out for: an Age deleted and written again, or one of the same name in
+     * another world, is a different level and works out its own.
      */
-    private val arrivals = mutableMapOf<Identifier, BlockPos>()
+    private val arrivals = WeakHashMap<ServerLevel, BlockPos>()
 
     private fun workOutTheArrivalIn(level: ServerLevel): BlockPos {
         val (landingX, landingZ) = findFooting(level)
@@ -384,17 +390,23 @@ object Ages {
         val saved = AgeSavedData.get(server)
         if (id !in saved.ages) return false
         evict(server, id)
-        // The memos outlive nothing: an Age written again under the same name is a different world, and a
-        // remembered arrival would send its first visitor to a place that Age never had — while a ring
-        // remembered as ready would have the next reader wait out its generation with nothing said.
-        arrivals.remove(id)
-        PanelWarming.forget(id)
+        deletionListeners.forEach { it(id) }
         if (!RuntimeLevels.delete(server, id)) return false
         saved.remove(id)
         LevelAppearance.forget(ResourceKey.create(Registries.DIMENSION, id))
         Constants.LOG.info("Deleted Age {}", id)
         return true
     }
+
+    /**
+     * Tells [listener] the id of every Age [delete] discards, before its level closes — including an Age
+     * whose level was never opened, which Ephemeris' `RuntimeLevelEvents.whenClosing` does not report.
+     */
+    fun whenDeleted(listener: (Identifier) -> Unit) {
+        deletionListeners.add(listener)
+    }
+
+    private val deletionListeners = mutableListOf<(Identifier) -> Unit>()
 
     /** Discards every Age, returning how many went. */
     fun deleteAll(server: MinecraftServer): Int =

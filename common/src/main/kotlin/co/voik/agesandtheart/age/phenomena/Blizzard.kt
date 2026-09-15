@@ -7,8 +7,8 @@ import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
-import net.minecraft.resources.Identifier
-import java.util.concurrent.ConcurrentHashMap
+import java.util.Collections
+import java.util.WeakHashMap
 import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
@@ -64,7 +64,7 @@ object Blizzard {
         val severity = hardnessIn(level, fury)
         val bearing = bearingIn(level)
         val cursor = BlockPos.MutableBlockPos()
-        for (player in level.players()) {
+        for (player in Sampling.watchers(level)) {
             val around = BlockPos.containing(player.position())
             repeat(driftsPerTick(severity)) {
                 val x = around.x + level.random.nextInt(-REACH, REACH)
@@ -185,6 +185,7 @@ object Blizzard {
             val severity = hardnessIn(level, Happenings.furyOf(spending, prices, Phenomenon.BLIZZARD))
             BlizzardPayload(age, severity, bearingIn(level).get2DDataValue())
         }
+        // Every player rather than [Sampling.watchers]: a spectator draws no storm but still sees it.
         for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
     }
 
@@ -207,22 +208,23 @@ object Blizzard {
     /**
      * A fierceness set by hand, for looking at one — `/age weather blizzard <intensity>`.
      *
-     * **Transient and per Age.** It is a debug tool, so it survives no reload and is written nowhere; and
-     * it *summons* a blizzard as well as setting its strength, because the alternative is finding an Age
-     * that already has one before you can look at the thing you are tuning.
+     * **Transient and per level.** It is a debug tool, so it is written nowhere, and weakly keyed on the
+     * level so it goes when the level does — with its server, or with the Age. It *summons* a blizzard as
+     * well as setting its strength, because the alternative is finding an Age that already has one before
+     * you can look at the thing you are tuning.
      */
-    private val forced = ConcurrentHashMap<Identifier, Double>()
+    private val forced: MutableMap<ServerLevel, Double> = Collections.synchronizedMap(WeakHashMap())
 
     fun force(level: ServerLevel, hardness: Double) {
-        forced[level.dimension().identifier()] = hardness
+        forced[level] = hardness
     }
 
     fun release(level: ServerLevel) {
-        forced.remove(level.dimension().identifier())
+        forced.remove(level)
     }
 
     /** What was set by hand here, or null where nothing was. */
-    fun forcedIn(level: ServerLevel): Double? = forced[level.dimension().identifier()]
+    fun forcedIn(level: ServerLevel): Double? = forced[level]
 
     /** How hard it blows here: what somebody asked for, else what the Age's own instability bought. */
     fun hardnessIn(level: ServerLevel, fury: Double): Double = forcedIn(level) ?: howHardOf(fury)

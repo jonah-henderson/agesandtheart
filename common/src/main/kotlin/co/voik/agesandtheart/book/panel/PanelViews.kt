@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.book.panel
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.book.BookBeingRead
@@ -245,12 +244,7 @@ object PanelViews {
             ?: net.minecraft.world.level.dimension.BuiltinDimensionTypes.OVERWORLD.identifier()
 
     /** The Age's index, and nought for a level that is not one of ours — the Spire has no book. */
-    private fun instabilityOf(level: ServerLevel): Int {
-        val saved = AgeSavedData.get(level.server)
-        val id = level.dimension().identifier()
-        if (id !in saved.ages) return 0
-        return saved.recipe(id).instability.index
-    }
+    private fun instabilityOf(level: ServerLevel): Int = Ages.recipeOf(level)?.instability?.index ?: 0
 
     private fun hold(level: ServerLevel, centre: ChunkPos) =
         level.chunkSource.addTicketWithRadius(PANEL_TICKET, centre, PanelRing.HELD_RADIUS_CHUNKS)

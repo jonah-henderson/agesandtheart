@@ -171,7 +171,7 @@ object Deluge {
      */
     private fun inViewNearestFirst(level: ServerLevel): List<Long> {
         val reach = level.server.playerList.viewDistance
-        val standing = level.players().filter { !it.isSpectator }.map { it.chunkPosition() }
+        val standing = Sampling.watchers(level).map { it.chunkPosition() }
         if (standing.isEmpty()) return emptyList()
         // Packed, and gathered into a set before it is sorted: two players a hundred blocks apart share
         // most of what they can see, and a `ChunkPos` apiece per tick is a few hundred objects a second

@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.desk
 
-import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.reward.Footing
 import co.voik.agesandtheart.age.reward.Tremor
@@ -123,13 +123,8 @@ private class LiveReading(player: ServerPlayer?, pos: BlockPos) : InstrumentRead
      * rather than a second opinion about it — and an ordinary world, which was never written, is exactly
      * what [Instability.NONE] describes.
      */
-    override fun ofTheWorld(writer: ServerPlayer): Tremor {
-        val level = writer.level()
-        val here = level.dimension().identifier()
-        val saved = AgeSavedData.get(level.server)
-        val instability = if (here in saved.ages) saved.recipe(here).instability else Instability.NONE
-        return Tremor.of(level.server, instability)
-    }
+    override fun ofTheWorld(writer: ServerPlayer, recipe: AgeRecipe?): Tremor =
+        Tremor.of(writer.level().server, recipe?.instability ?: Instability.NONE)
 
     override fun record(reading: Tremor) {
         footing = reading.footing.ordinal

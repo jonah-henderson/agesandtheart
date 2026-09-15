@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.age.AgeRecipe
-import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.client.BookScreenOpener
@@ -58,18 +57,11 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
             name = nameOf(level),
             // Taken now rather than looked up later, because later there may be nothing to look it up in:
             // the whole point is a book that outlives the Age it names (design §9, "Losing the books").
-            recipe = recipeBehind(level),
+            recipe = Ages.recipeOf(level),
         )
         stack.set(AgeContent.LINK_TARGET, target)
         player.sendSystemMessage(Component.translatable("book.agesandtheart.bound", target.name), true)
         return InteractionResult.SUCCESS
-    }
-
-    /** The recipe of the Age this book is being written in, and null anywhere that is not one of ours. */
-    private fun recipeBehind(level: ServerLevel): AgeRecipe? {
-        val id = level.dimension().identifier()
-        if (id !in AgeSavedData.get(level.server).ages) return null
-        return AgeSavedData.get(level.server).recipe(id)
     }
 
     /** "<place> Linking Book", so a shelf of them reads at a glance. */

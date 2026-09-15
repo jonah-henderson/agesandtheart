@@ -35,7 +35,7 @@ object Meteors {
      * what a rung raises first.
      */
     fun fall(level: ServerLevel, density: Double, fury: Double) {
-        if (level.players().isEmpty()) return
+        if (Sampling.watchers(level).isEmpty()) return
         // **Rolled at the quickened rate, and thinned back out again when nothing drew it.** A lure
         // shortens the wait, but asking whether one exists is a scan — so doing it on every tick to
         // decide whether to roll would cost a thousand times what it saves. Rolling at the faster rate
@@ -47,7 +47,7 @@ object Meteors {
         // answer that is nearly always the same. Behind the roll it is asked about three times an hour,
         // which is the same argument the comment above makes about the lure.
         if (gatheringIn(level) >= atMostFor(density)) return
-        val somebody = level.players()[level.random.nextInt(level.players().size)]
+        val somebody = Sampling.somebody(level) ?: return
         val drawn = drawnNear(level, somebody.position())
         if (drawn == null && level.random.nextDouble() > WITHOUT_A_LURE) return
         gatherOneNearSomebody(level, somebody, drawn, density, fury)

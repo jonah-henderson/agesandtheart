@@ -155,8 +155,7 @@ object Inferno {
      * both would otherwise be burnt twice in one tick.
      */
     private fun caughtInTheOpen(level: ServerLevel): Set<LivingEntity> =
-        level.players()
-            .filterNot { it.isSpectator }
+        Sampling.watchers(level)
             .flatMapTo(HashSet()) { level.getEntitiesOfClass(LivingEntity::class.java, it.boundingBox.inflate(ABOUT)) }
             .filterNotTo(HashSet()) { it.fireImmune() || !Sampling.openToTheSky(level, it.blockPosition()) }
 

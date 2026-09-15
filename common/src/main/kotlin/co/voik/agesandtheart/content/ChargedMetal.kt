@@ -46,7 +46,7 @@ object ChargedMetal {
     /**
      * One turn of every charged machine anybody is standing near.
      *
-     * Called from both loaders' end-of-tick beside `Happenings.tick`; there is no shared event. Not inside
+     * Called from `CommonSetup.serverTick`, beside `Happenings.tick`. Not inside
      * `Happenings`, deliberately — that walks Ages only, and a machine built at home out of crystal
      * carried back through a book has to work exactly as well as one built where the crystal fell.
      */

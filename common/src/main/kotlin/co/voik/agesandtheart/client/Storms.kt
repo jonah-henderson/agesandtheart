@@ -40,6 +40,11 @@ object Storms {
         told = payload
     }
 
+    /** For a client leaving a server, whose Age ids mean nothing on the next. */
+    fun forget() {
+        told = null
+    }
+
     /**
      * How much of the storm is actually on [player], from none of it to all of it — [Blizzard.exposureAt],
      * the same definition the cold uses.

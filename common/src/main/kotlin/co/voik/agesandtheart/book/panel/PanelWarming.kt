@@ -6,13 +6,17 @@ import co.voik.agesandtheart.WarmAgesWhen
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.content.AgeContent
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Util
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.chunk.status.ChunkStatus
 import java.util.ArrayDeque
+import java.util.Collections
+import java.util.WeakHashMap
 import java.util.concurrent.CompletableFuture
 
 /**
@@ -26,11 +30,19 @@ import java.util.concurrent.CompletableFuture
  */
 object PanelWarming {
 
-    /** Ages whose ring has been made ready this run. */
-    private val warmed = mutableSetOf<Identifier>()
+    /** Hears of every deleted Age, so one waiting its turn is not opened again when that turn comes. */
+    fun attach() {
+        Ages.whenDeleted(::forget)
+    }
+
+    /**
+     * Ages whose ring has been made ready. Weakly keyed on the level, so what was warmed goes with the level
+     * it was warmed in, and an Age written again or another world's Age of the same name is warmed afresh.
+     */
+    private val warmed: MutableSet<ServerLevel> = Collections.newSetFromMap(WeakHashMap())
 
     /** And those on the way to it, so a book ticking in an inventory does not queue itself every tick. */
-    private val underway = mutableSetOf<Identifier>()
+    private val underway: MutableSet<ServerLevel> = Collections.newSetFromMap(WeakHashMap())
 
     /**
      * Waiting their turn.
@@ -41,6 +53,8 @@ object PanelWarming {
     private val waiting = ArrayDeque<Identifier>()
 
     private var busy = false
+
+    private fun isWarmedOrUnderway(level: ServerLevel) = level in warmed || level in underway
 
     /**
      * Warms the Age [stack] has just been bound to, which is the earliest moment there is one.
@@ -74,25 +88,31 @@ object PanelWarming {
         // A book with no words is not bound and describes nothing yet.
         if (!stack.has(AgeContent.BOOK_WORDS)) return
 
-        // Cheap on every tick after the first: an Age already seen to is a set lookup and nothing else.
-        val known = stack.get(AgeContent.AGE_ID)
-        if (known != null && (known in warmed || known in underway)) return
+        // Cheap on every tick after the first: an Age already seen to is two map lookups and nothing else.
+        val known = stack.get(AgeContent.AGE_ID)?.let { server.getLevel(ResourceKey.create(Registries.DIMENSION, it)) }
+        if (known != null && isWarmedOrUnderway(known)) return
 
         // Minting stamps the id onto the book, so the check above answers on every later tick.
         val level = BookAge.of(server, stack) ?: return
-        val id = level.dimension().identifier()
-        if (id in warmed || id in underway) return
+        if (isWarmedOrUnderway(level)) return
 
-        underway.add(id)
-        waiting.add(id)
+        underway.add(level)
+        waiting.add(level.dimension().identifier())
         beginTheNext(server)
     }
 
-    /** Forgotten with the Age, so a name written again is warmed again rather than assumed ready. */
-    fun forget(id: Identifier) {
-        warmed.remove(id)
-        underway.remove(id)
+    /** Takes a deleted Age out of the queue. What was warmed is keyed on its level, which goes with it. */
+    private fun forget(id: Identifier) {
         waiting.remove(id)
+    }
+
+    /**
+     * Drops what belonged to the server that stopped: the queue, and the busy flag, which a warm in flight
+     * as it stopped would otherwise hold for good — its completion was handed to that server's executor.
+     */
+    fun serverStopped() {
+        waiting.clear()
+        busy = false
     }
 
     private fun beginTheNext(server: MinecraftServer) {
@@ -119,8 +139,8 @@ object PanelWarming {
                 level.chunkSource.getChunkFuture(it.x, it.z, ChunkStatus.FULL, true)
             }
             CompletableFuture.allOf(*ring.toTypedArray()).whenCompleteAsync({ _, _ ->
-                underway.remove(id)
-                warmed.add(id)
+                underway.remove(level)
+                warmed.add(level)
                 busy = false
                 Constants.LOG.info("Warmed {} in {}ms", id, (System.nanoTime() - began) / 1_000_000)
                 beginTheNext(server)

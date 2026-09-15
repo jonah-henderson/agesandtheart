@@ -29,7 +29,7 @@ import kotlin.math.sin
  */
 object LureLooks {
 
-    /** Called from each loader's client tick, beside the storms' own wind. */
+    /** Called from `ClientSetup.clientTick`, beside the storms' own wind. */
     fun pulse(client: Minecraft) {
         val level = client.level ?: return
         val player = client.player ?: return

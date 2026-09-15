@@ -35,7 +35,7 @@ import net.minecraft.world.phys.Vec3
  *
  * **The index is a [ChunkBlockIndex], as `Wounds`' is.** A section's palette dismisses nearly all of it
  * before a block is read, chunks fill it as they arrive, and `setBlocksDirty` keeps it true for anything
- * placed afterwards. It is a sibling of [TintedLights] rather than a sharing of it: this needs no mesher —
+ * placed afterwards. It is a sibling of [TintedLights], sharing only the index class: this needs no mesher —
  * so it must work where `TintedLights` deliberately switches itself off — and it is keyed on a tag rather
  * than on registered blocks.
  */
@@ -194,7 +194,7 @@ object DeepLights {
         val wasOne = shines(was)
         val isOne = shines(now)
         if (wasOne == isOne) return
-        if (isOne) lights.arrived(level, at) else lights.gone(level, at)
+        if (isOne) lights.arrived(level, at, Unit) else lights.gone(level, at)
     }
 
     /** Leaving a world. The index is the client's alone, so nothing else needs telling. */
@@ -203,7 +203,7 @@ object DeepLights {
     private fun shines(state: BlockState): Boolean = state.`is`(SHINES_THROUGH_THE_DEEP)
 
     /** Read on the client thread only — chunks arriving, blocks changing, and the render, are all it. */
-    private val lights = ChunkBlockIndex(::shines)
+    private val lights = ChunkBlockIndex.matching(::shines)
 
     /** From a block's corner to its middle, which is where its light is drawn. */
     private const val HALF = 0.5

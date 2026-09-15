@@ -25,7 +25,7 @@ object CaveIns {
      * with how many people are about rather than with how much Age has been generated.
      */
     fun stir(level: ServerLevel, density: Double) {
-        val watching = level.players()
+        val watching = Sampling.watchers(level)
         if (watching.isEmpty()) return
         val random = level.random
         repeat(Happenings.timesFor(density, ROLLS)) {

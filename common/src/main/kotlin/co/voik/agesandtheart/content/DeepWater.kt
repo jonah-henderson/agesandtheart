@@ -83,6 +83,30 @@ object DeepWater {
     val DEEP_WATER: TagKey<Fluid> = TagKey.create(Registries.FLUID, "deep_water".location())
 
     /**
+     * Whether deep water counts [fluid] as itself: **any water, not just ours**, which closes the seam an
+     * abyss under a sea was drawn with. Each loader's deep-water fluid answers `isSame` with this.
+     *
+     * `FluidRenderer.getHeight` fills a fluid's block to the brim only when the fluid above it is the same
+     * one, and otherwise drops it to `getOwnHeight` — about seven eighths. With the identity answer, deep
+     * water under ordinary water was a *different* fluid, so it rendered an eighth of a block short and left
+     * a visible horizontal gap between the two bodies (Jonah, walked 2026-09-11).
+     *
+     * **It is read in exactly two places and both want this answer.** The renderer is one; the other is
+     * `FlowingFluid.hasSameAbove`, which decides the fluid's *physical* height — and a block of deep water
+     * with a sea on top of it is plainly full.
+     *
+     * **Nothing about flow moves, because `isSame` is asymmetric here and that is fine.** Every other call
+     * in the fluid engine — spreading, levels, `canPassThroughWall` — asks the *neighbour's*
+     * implementation with deep water as the argument, and vanilla's water still answers no. What governs
+     * the seam is the fluid's `canBeReplacedWith`, which already reads the same tag.
+     *
+     * One consequence worth knowing: the water above stops drawing its **bottom** face, since that test
+     * does route through here. The abyss keeps its own top face, so the surface a diver sees under the sea
+     * is still there — it is simply flush now instead of floating an eighth of a block below.
+     */
+    fun countsAsTheSameFluid(fluid: Fluid): Boolean = fluid.`is`(FluidTags.WATER)
+
+    /**
      * Biomes an abyss may not stand in, however deep the column under them is.
      *
      * **The third question, beside the plane and the water table** — see `AgeChunkGenerator.abyssBelongsIn`

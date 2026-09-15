@@ -2,10 +2,9 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Phenomenon
-import net.minecraft.resources.ResourceKey
-import net.minecraft.world.level.Level
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.saveddata.WeatherData
+import java.util.WeakHashMap
 
 /**
  * An Age's own weather, kept where the overworld keeps its own.
@@ -77,8 +76,8 @@ object AgeWeather {
      * the next frame — the command would have reported success and changed nothing visible, which is worse
      * than refusing. An inferno is precisely such an Age, and its rain is precisely what wanted walking.
      *
-     * Ephemeral and unpersisted on purpose: it is a walk's business, not an Age's, and losing it on restart
-     * costs nothing but the Age reasserting itself sooner.
+     * Ephemeral and unpersisted on purpose: it is a walk's business, not an Age's, and losing it with the
+     * level costs nothing but the Age reasserting itself sooner.
      */
     fun set(level: ServerLevel, data: WeatherData, wants: Conditions) {
         val raining = wants.rainfall > ORDINARY_SHARE
@@ -89,16 +88,19 @@ object AgeWeather {
         data.setThundering(thundering)
         data.thunderTime = if (thundering) A_GOOD_WHILE else 0
         data.setDirty()
-        heldUntil[level.dimension()] = level.gameTime + A_GOOD_WHILE
+        heldUntil[level] = level.gameTime + A_GOOD_WHILE
     }
 
-    /** Ages a walk has asked for weather, and the tick each stops being humoured. */
-    private val heldUntil = mutableMapOf<ResourceKey<Level>, Long>()
+    /**
+     * Ages a walk has asked for weather, and the tick of that level's own clock each stops being humoured.
+     * Weakly keyed on the level, so a hold goes with the level it was set in.
+     */
+    private val heldUntil = WeakHashMap<ServerLevel, Long>()
 
     private fun beingHumoured(level: ServerLevel): Boolean {
-        val until = heldUntil[level.dimension()] ?: return false
+        val until = heldUntil[level] ?: return false
         if (level.gameTime < until) return true
-        heldUntil.remove(level.dimension())
+        heldUntil.remove(level)
         return false
     }
 

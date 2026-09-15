@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.platform
 
 import co.voik.agesandtheart.age.word.InkTier
+import co.voik.agesandtheart.content.AgeFluids
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.item.Item
@@ -25,6 +26,8 @@ import net.minecraft.server.level.ServerLevel
  */
 sealed class FabricInkFluid(val tier: InkTier) : FlowingFluid() {
 
+    private val flow = AgeFluids.INKS.getValue(tier).flow
+
     override fun getBucket(): Item = FabricInkFluids.bucket(tier)
 
     override fun getFlowing(): Fluid = FabricInkFluids.flowing(tier)
@@ -38,14 +41,13 @@ sealed class FabricInkFluid(val tier: InkTier) : FlowingFluid() {
         // Nothing worth dropping, and no block entity to salvage.
     }
 
-    /** Thick: it pools rather than running for the horizon. */
-    override fun getSlopeFindDistance(level: LevelReader): Int = SLOPE_DISTANCE
+    override fun getSlopeFindDistance(level: LevelReader): Int = flow.slopeFindDistance
 
-    override fun getDropOff(level: LevelReader): Int = DROP_OFF
+    override fun getDropOff(level: LevelReader): Int = flow.dropOff
 
-    override fun getTickDelay(level: LevelReader): Int = TICK_DELAY
+    override fun getTickDelay(level: LevelReader): Int = flow.tickDelay
 
-    override fun getExplosionResistance(): Float = EXPLOSION_RESISTANCE
+    override fun getExplosionResistance(): Float = flow.explosionResistance
 
     override fun canBeReplacedWith(
         state: FluidState,
@@ -77,16 +79,5 @@ sealed class FabricInkFluid(val tier: InkTier) : FlowingFluid() {
 
     private companion object {
         const val FULL = 8
-
-        /** Water is 4. Ink barely finds its way downhill. */
-        const val SLOPE_DISTANCE = 2
-
-        /** Water is 1 in the overworld. Ink loses depth fast, so a spill stays a puddle. */
-        const val DROP_OFF = 2
-
-        /** Water is 5. */
-        const val TICK_DELAY = 12
-
-        const val EXPLOSION_RESISTANCE = 100.0f
     }
 }

@@ -7,18 +7,12 @@ import net.fabricmc.fabric.api.transfer.v1.fluid.FluidConstants
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
-import net.minecraft.resources.ResourceKey
 import net.minecraft.tags.TagKey
 import net.minecraft.world.item.BucketItem
 import net.minecraft.world.item.Item
-import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.LiquidBlock
-import net.minecraft.world.level.block.SoundType
-import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.material.Fluid
-import net.minecraft.world.level.material.MapColor
-import net.minecraft.world.level.material.PushReaction
 
 /**
  * Fabric's half of [InkFluids].
@@ -67,26 +61,8 @@ class FabricInkFluids : InkFluids {
                 byFluid[source] = tier
                 byFluid[flow] = tier
 
-                blocks[tier] = LiquidBlock(
-                    source,
-                    BlockBehaviour.Properties.of()
-                        .setId(ResourceKey.create(Registries.BLOCK, identity.block))
-                        .mapColor(MapColor.COLOR_BLACK)
-                        .replaceable()
-                        .noCollision()
-                        .strength(WORLD_STRENGTH)
-                        .pushReaction(PushReaction.DESTROY)
-                        .noLootTable()
-                        .liquid()
-                        .sound(SoundType.EMPTY),
-                )
-                buckets[tier] = BucketItem(
-                    source,
-                    Item.Properties()
-                        .setId(ResourceKey.create(Registries.ITEM, identity.bucket))
-                        .craftRemainder(Items.BUCKET)
-                        .stacksTo(1),
-                )
+                blocks[tier] = LiquidBlock(source, AgeFluids.liquidBlockProperties(identity.block))
+                buckets[tier] = BucketItem(source, AgeFluids.bucketProperties(identity.bucket))
 
                 Registry.register(BuiltInRegistries.FLUID, identity.still, source)
                 Registry.register(BuiltInRegistries.FLUID, identity.flowing, flow)
@@ -94,8 +70,5 @@ class FabricInkFluids : InkFluids {
                 Registry.register(BuiltInRegistries.ITEM, identity.bucket, buckets.getValue(tier))
             }
         }
-
-        /** Water's, so an ink pool behaves like any other liquid to a shovel. */
-        private const val WORLD_STRENGTH = 100.0f
     }
 }

@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.desk
 
-import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterial
 import co.voik.agesandtheart.age.reward.Survey
 import co.voik.agesandtheart.age.reward.Yield
@@ -125,14 +125,10 @@ private class LiveSurvey(player: ServerPlayer?, pos: BlockPos) : InstrumentReadi
      * rather than a second opinion about it. A world that was never written has no recipe and so no survey,
      * which is exactly what a plain world should report.
      */
-    override fun ofTheWorld(writer: ServerPlayer): Survey? {
-        val level = writer.level()
-        val here = level.dimension().identifier()
-        val saved = AgeSavedData.get(level.server)
-        if (here !in saved.ages) return null
-        val recipe = saved.recipe(here)
+    override fun ofTheWorld(writer: ServerPlayer, recipe: AgeRecipe?): Survey? {
+        if (recipe == null) return null
         val composition = recipe.composition ?: return null
-        return Survey.of(level.server, composition, recipe.instability, recipe.seed)
+        return Survey.of(writer.level().server, composition, recipe.instability, recipe.seed)
     }
 
     override fun record(reading: Survey?) {

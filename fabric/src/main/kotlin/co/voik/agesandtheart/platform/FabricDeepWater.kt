@@ -1,13 +1,12 @@
 package co.voik.agesandtheart.platform
 
 import co.voik.agesandtheart.content.AgeFluids
+import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.content.DeepWaterBlock
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.core.registries.Registries
-import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.FluidTags
 import net.minecraft.world.entity.Entity
@@ -19,17 +18,13 @@ import net.minecraft.world.level.LevelAccessor
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.LiquidBlock
-import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.entity.BlockEntity
-import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.FluidState
-import net.minecraft.world.level.material.MapColor
-import net.minecraft.world.level.material.PushReaction
 import net.minecraft.world.entity.InsideBlockEffectApplier
 import net.minecraft.world.entity.InsideBlockEffectType
 
@@ -74,13 +69,13 @@ sealed class FabricDeepWater : FlowingFluid() {
         effectApplier.apply(InsideBlockEffectType.EXTINGUISH)
     }
 
-    override fun getSlopeFindDistance(level: LevelReader): Int = WATERS_OWN_SLOPE
+    override fun getSlopeFindDistance(level: LevelReader): Int = AgeFluids.DEEP_WATER.flow.slopeFindDistance
 
-    override fun getDropOff(level: LevelReader): Int = WATERS_OWN_DROP_OFF
+    override fun getDropOff(level: LevelReader): Int = AgeFluids.DEEP_WATER.flow.dropOff
 
-    override fun getTickDelay(level: LevelReader): Int = WATERS_OWN_TICK_DELAY
+    override fun getTickDelay(level: LevelReader): Int = AgeFluids.DEEP_WATER.flow.tickDelay
 
-    override fun getExplosionResistance(): Float = EXPLOSION_RESISTANCE
+    override fun getExplosionResistance(): Float = AgeFluids.DEEP_WATER.flow.explosionResistance
 
     /**
      * Water's own rule, and it is what keeps the two from fighting along their seam.
@@ -100,28 +95,8 @@ sealed class FabricDeepWater : FlowingFluid() {
         FabricDeepWaterFluids.block.defaultBlockState()
             .setValue(BlockStateProperties.LEVEL, getLegacyLevel(state))
 
-    /**
-     * **Any water, not just ours** — which closes the seam an abyss under a sea was drawn with.
-     *
-     * `FluidRenderer.getHeight` fills a fluid's block to the brim only when the fluid above it is the same
-     * one, and otherwise drops it to `getOwnHeight` — about seven eighths. With the identity answer here,
-     * deep water under ordinary water was a *different* fluid, so it rendered an eighth of a block short
-     * and left a visible horizontal gap between the two bodies (Jonah, walked 2026-09-11).
-     *
-     * **It is read in exactly two places and both want this answer.** The renderer is one; the other is
-     * `FlowingFluid.hasSameAbove`, which decides the fluid's *physical* height — and a block of deep water
-     * with a sea on top of it is plainly full.
-     *
-     * **Nothing about flow moves, because `isSame` is asymmetric here and that is fine.** Every other call
-     * in the fluid engine — spreading, levels, `canPassThroughWall` — asks the *neighbour's*
-     * implementation with deep water as the argument, and vanilla's water still answers no. What governs
-     * the seam is [canBeReplacedWith], which already reads the same tag.
-     *
-     * One consequence worth knowing: the water above stops drawing its **bottom** face, since that test
-     * does route through here. The abyss keeps its own top face, so the surface a diver sees under the sea
-     * is still there — it is simply flush now instead of floating an eighth of a block below.
-     */
-    override fun isSame(fluid: Fluid): Boolean = fluid.`is`(FluidTags.WATER)
+    /** **Any water, not just ours** — see [DeepWater.countsAsTheSameFluid]. */
+    override fun isSame(fluid: Fluid): Boolean = DeepWater.countsAsTheSameFluid(fluid)
 
     class Source : FabricDeepWater() {
         override fun getAmount(state: FluidState): Int = FULL
@@ -140,10 +115,6 @@ sealed class FabricDeepWater : FlowingFluid() {
 
     private companion object {
         const val FULL = 8
-        const val WATERS_OWN_SLOPE = 4
-        const val WATERS_OWN_DROP_OFF = 1
-        const val WATERS_OWN_TICK_DELAY = 5
-        const val EXPLOSION_RESISTANCE = 100.0f
     }
 }
 
@@ -167,28 +138,10 @@ object FabricDeepWaterFluids {
         val identity = AgeFluids.DEEP_WATER
         still = FabricDeepWater.Source()
         flowing = FabricDeepWater.Flowing()
-        block = DeepWaterBlock(
-            still,
-            // **Water's own properties**, so it reads as water to everything that asks a block a question.
-            // The map colour is the one departure: black rather than `MapColor.WATER`, since an abyss on a
-            // map should not look like the sea over it.
-            BlockBehaviour.Properties.of()
-                .setId(ResourceKey.create(Registries.BLOCK, identity.block))
-                .mapColor(MapColor.COLOR_BLACK)
-                .replaceable()
-                .noCollision()
-                .strength(WORLD_STRENGTH)
-                .pushReaction(PushReaction.DESTROY)
-                .noLootTable()
-                .liquid()
-                .sound(SoundType.EMPTY),
-        )
+        block = DeepWaterBlock(still, AgeFluids.liquidBlockProperties(identity.block))
 
         Registry.register(BuiltInRegistries.FLUID, identity.still, still)
         Registry.register(BuiltInRegistries.FLUID, identity.flowing, flowing)
         Registry.register(BuiltInRegistries.BLOCK, identity.block, block)
     }
-
-    /** Water's, so the abyss behaves like any other liquid to a shovel. */
-    private const val WORLD_STRENGTH = 100.0f
 }

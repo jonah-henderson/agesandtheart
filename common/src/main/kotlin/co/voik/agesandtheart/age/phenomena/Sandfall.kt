@@ -62,10 +62,8 @@ object Sandfall {
      * may only be raised where there is already a chunk to stand it on ([SandColumn.raise]).
      */
     private fun raiseOneNearSomebody(level: ServerLevel, behaviour: SandfallBehaviour, fury: Double) {
-        val watching = level.players().filterNot { it.isSpectator }
-        if (watching.isEmpty()) return
+        val watcher = Sampling.somebody(level) ?: return
         val random = level.random
-        val watcher = watching[random.nextInt(watching.size)]
         val spread = behaviour.furthestSpawn - behaviour.nearestSpawn
         repeat(BEARINGS_TRIED) {
             val column = behaviour.column

@@ -8,7 +8,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.phys.Vec3
-import java.util.WeakHashMap
 import kotlin.math.sqrt
 
 /**
@@ -40,10 +39,10 @@ import kotlin.math.sqrt
  */
 object Wounds {
 
-    private val index = ChunkBlockIndex { state -> state.`is`(AgeContent.WOUND_BLOCK) }
+    private val index = ChunkBlockIndex.matching { state -> state.`is`(AgeContent.WOUND_BLOCK) }
 
     /** Called as one is placed — by the Age tearing a fresh one, or by a block update carrying it. */
-    fun arrived(level: Level, at: BlockPos) = index.arrived(level, at)
+    fun arrived(level: Level, at: BlockPos) = index.arrived(level, at, Unit)
 
     /** And as it goes — the block being replaced, which only the Age itself can do. */
     fun gone(level: Level, at: BlockPos) = index.gone(level, at)
@@ -51,8 +50,7 @@ object Wounds {
     /**
      * Every wound a chunk holds, read as it loads — the index's whole supply.
      *
-     * Called from both loaders' chunk-load events, the same shape as `Happenings.tick` — there is no shared
-     * entry point, and a service for one method would fragment `PlatformHelper` for a one-off (`CLAUDE.md`).
+     * Called on both sides, from `CommonSetup.chunkLoaded` and `ClientSetup.chunkLoaded`.
      */
     fun stocked(level: Level, chunk: ChunkAccess) = index.stocked(level, chunk)
 
@@ -73,54 +71,20 @@ object Wounds {
      * changed something, before and regardless of the update flags. Sealing moves a wound from one state
      * to another and is deliberately not a move in the index: it is the same wound in the same place, and
      * whether it is sealed is read from the world.
+     *
+     * Returns whether a wound arrived, which is the moment `WoundField` shows it tearing open.
      */
-    fun noticed(level: Level, at: BlockPos, was: BlockState, now: BlockState) {
+    fun noticed(level: Level, at: BlockPos, was: BlockState, now: BlockState): Boolean {
         val wasOne = was.`is`(AgeContent.WOUND_BLOCK)
         val isOne = now.`is`(AgeContent.WOUND_BLOCK)
-        if (wasOne == isOne) return
+        if (wasOne == isOne) return false
         if (!isOne) {
             gone(level, at)
-            return
+            return false
         }
         arrived(level, at)
-        noteTheMoment(level, at)
+        return true
     }
-
-    /**
-     * When a wound was seen to arrive, for the few that were — **the difference between an Age worsening
-     * in front of somebody and one found already worse.**
-     *
-     * Only [noticed] writes here, and that is the whole rule: a wound read out of a chunk as it loads was
-     * always there as far as this client is concerned, and a chunk arriving should not make every hole in
-     * it lunge open at once. One torn while somebody stood there is the case worth showing.
-     *
-     * **Pruned from the front rather than swept**, which a `LinkedHashMap` makes free: entries go in in
-     * time order, so everything expired is at the head and the walk stops at the first one that is not.
-     */
-    private val opening = WeakHashMap<Level, LinkedHashMap<BlockPos, Long>>()
-
-    private fun noteTheMoment(level: Level, at: BlockPos) {
-        val here = opening.getOrPut(level) { LinkedHashMap() }
-        val now = System.currentTimeMillis()
-        val stale = here.entries.iterator()
-        while (stale.hasNext()) {
-            if (now - stale.next().value < OPENS_OVER) break
-            stale.remove()
-        }
-        here[at.immutable()] = now
-    }
-
-    /**
-     * What is still tearing itself open in [level], or null where nothing is — which is nearly always.
-     *
-     * Handed out whole rather than asked per wound, because the renderer asks for every wound in sight on
-     * every frame and a lookup apiece would be thousands of them a second for an answer that is usually
-     * "nothing at all".
-     */
-    fun openingIn(level: Level): Map<BlockPos, Long>? = opening[level]
-
-    /** How long a wound takes to tear itself open, in milliseconds — brief, and unmistakably an event. */
-    const val OPENS_OVER = 700L
 
     /** Everything, for a client leaving a server outright. */
     fun forget() = index.forget()

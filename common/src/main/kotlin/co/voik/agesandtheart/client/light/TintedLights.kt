@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client.light
 
+import co.voik.agesandtheart.ChunkBlockIndex
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.client.Minecraft
@@ -10,7 +11,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
-import java.util.concurrent.ConcurrentHashMap
+import net.minecraft.world.phys.Vec3
 
 /**
  * Blocks that give their light a colour, and where they are (see `notes/coloured-light-research.md`).
@@ -104,7 +105,7 @@ object TintedLights {
 
     private fun restock() {
         version++
-        val nowHolding = byLevel.values.any { chunks -> chunks.isNotEmpty() }
+        val nowHolding = index.holdsAnything()
         // **Said once at each crossing, and it earns the line.** Whether anything is indexed at all is the
         // first question when no tint appears, and it is otherwise invisible from inside the game: a
         // crystal renders its own colour through an unrelated seam, so the feature looks alive when the
@@ -125,17 +126,16 @@ object TintedLights {
     fun colourOf(state: BlockState): Int? = casts[state.block]?.invoke(state)
 
     /**
-     * Where they are, by chunk, because the mesher runs on worker threads against a snapshot of the world
-     * and cannot go asking the level.
+     * Where they are and what colour each casts, by chunk, because the mesher runs on worker threads against
+     * a snapshot of the world and cannot go asking the level.
      *
-     * **A concurrent map rather than a weak one, and that is a correctness fix rather than a preference.**
-     * It is written from the client thread as chunks arrive and blocks change, and read from **every
-     * mesher worker** through `TintedLightPainter`. A `WeakHashMap` read while another thread is writing
-     * it may answer null for a key that is present, or spin — so the inner maps being synchronised bought
-     * nothing while the outer one was not. Nothing leaks by dropping the weakness: [forget] clears it when
-     * the client leaves a world, which is the same moment the reference would have been released.
+     * **Concurrent throughout, and weakly keyed.** It is written from the client thread as chunks arrive and
+     * blocks change, and read from **every mesher worker** through `TintedLightPainter` with no lock. Weak,
+     * because levels other than the one the client stands in feed it too — the linking panel's preview
+     * levels load their chunks through the same event — and are let go with the level rather than held
+     * until the client leaves the server.
      */
-    private val byLevel = ConcurrentHashMap<Level, MutableMap<Long, MutableMap<BlockPos, Int>>>()
+    private val index = ChunkBlockIndex(::colourOf, readAcrossThreads = true)
 
     /**
      * Bumped whenever the index moves, so a reader that remembers an answer can tell that it has gone
@@ -154,30 +154,17 @@ object TintedLights {
      */
     fun stocked(level: Level, chunk: ChunkAccess) {
         if (casts.isEmpty()) return
-        val found = ConcurrentHashMap<BlockPos, Int>()
-        val holds = { state: BlockState -> state.block in casts }
-        for (index in chunk.sections.indices) {
-            val section = chunk.sections[index]
-            if (section.hasOnlyAir() || !section.maybeHas(holds)) continue
-            val bottom = chunk.getSectionYFromSectionIndex(index) * SECTION
-            for (x in 0..<SECTION) for (y in 0..<SECTION) for (z in 0..<SECTION) {
-                val state = section.getBlockState(x, y, z)
-                val colour = colourOf(state) ?: continue
-                found[BlockPos(chunk.pos.minBlockX + x, bottom + y, chunk.pos.minBlockZ + z)] = colour
-            }
-        }
-        val chunks = byLevel.getOrPut(level) { ConcurrentHashMap() }
-        if (found.isEmpty()) chunks.remove(ChunkPos.pack(chunk.pos.x, chunk.pos.z)) else chunks[ChunkPos.pack(chunk.pos.x, chunk.pos.z)] = found
+        index.stocked(level, chunk)
         restock()
     }
 
     fun emptied(level: Level, at: ChunkPos) {
-        byLevel[level]?.remove(ChunkPos.pack(at.x, at.z))
+        index.emptied(level, at)
         restock()
     }
 
     fun forget() {
-        byLevel.clear()
+        index.forget()
         restock()
     }
 
@@ -191,11 +178,7 @@ object TintedLights {
         val before = colourOf(was)
         val after = colourOf(now)
         if (before == after) return false
-        val chunks = byLevel.getOrPut(level) { ConcurrentHashMap() }
-        val key = ChunkPos.pack(at.x shr CHUNK_BITS, at.z shr CHUNK_BITS)
-        val holding = chunks.getOrPut(key) { ConcurrentHashMap() }
-        if (after == null) holding.remove(at) else holding[at] = after
-        if (holding.isEmpty()) chunks.remove(key)
+        if (after == null) index.gone(level, at) else index.arrived(level, at, after)
         restock()
         rebuildAround(at)
         return true
@@ -227,31 +210,18 @@ object TintedLights {
      * mixture a player would expect rather than a hard line down the middle of the room.
      */
     fun reaching(level: Level, at: BlockPos): Int? {
-        val chunks = byLevel[level] ?: return null
-        if (chunks.isEmpty()) return null
         var red = 0.0
         var green = 0.0
         var blue = 0.0
         var weight = 0.0
-        val fromChunk = at.x shr CHUNK_BITS
-        val fromZ = at.z shr CHUNK_BITS
-        for (chunkX in fromChunk - CHUNKS_IN_REACH..fromChunk + CHUNKS_IN_REACH) {
-            for (chunkZ in fromZ - CHUNKS_IN_REACH..fromZ + CHUNKS_IN_REACH) {
-                val holding = chunks[ChunkPos.pack(chunkX, chunkZ)] ?: continue
-                // **No lock, because both maps are concurrent.** The monitor that used to be taken here
-                // was never taken by the writers, so it guarded nothing while a mesher worker iterated a
-                // map the client thread was rehashing underneath it.
-                for ((where, colour) in holding) {
-                    val away = where.distSqr(at)
-                    if (away > REACH * REACH) continue
-                    val near = 1.0 - Math.sqrt(away) / REACH
-                    val share = near * near
-                    red += ARGB.red(colour) * share
-                    green += ARGB.green(colour) * share
-                    blue += ARGB.blue(colour) * share
-                    weight += share
-                }
-            }
+        // From the middle of [at] to the middle of each source, which is the same distance as corner to corner.
+        index.eachValueWithin(level, Vec3.atCenterOf(at), REACH) { _, colour, away ->
+            val near = 1.0 - Math.sqrt(away) / REACH
+            val share = near * near
+            red += ARGB.red(colour) * share
+            green += ARGB.green(colour) * share
+            blue += ARGB.blue(colour) * share
+            weight += share
         }
         if (weight <= NOTHING) return null
         // **Light adds, and the peak is what is normalised away.** Dividing by the weight was a weighted
@@ -281,9 +251,6 @@ object TintedLights {
     /** How far a tint carries, in blocks. Shorter than the light itself, so the colour fades first. */
     const val REACH = 10.0
 
-    private const val SECTION = 16
-    private const val CHUNK_BITS = 4
-    private val CHUNKS_IN_REACH = (REACH.toInt() shr CHUNK_BITS) + 1
     private const val NOTHING = 0.0
     private const val FULL_CHANNEL = 255
     private const val NONE = 0

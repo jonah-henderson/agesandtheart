@@ -62,9 +62,7 @@ class DriftingOreSpawner : CustomSpawner {
      * rather than something following you.
      */
     private fun somewhereIn(level: ServerLevel, band: Double, tier: Int): Vec3? {
-        val players = level.players().filterNot { it.isSpectator }
-        if (players.isEmpty()) return null
-        val around = players[level.random.nextInt(players.size)].blockPosition()
+        val around = Sampling.somebody(level)?.blockPosition() ?: return null
         val reach = level.server.playerList.simulationDistance * BLOCKS_PER_CHUNK
         val x = around.x + level.random.nextInt(-reach, reach + 1) + HALF
         val z = around.z + level.random.nextInt(-reach, reach + 1) + HALF

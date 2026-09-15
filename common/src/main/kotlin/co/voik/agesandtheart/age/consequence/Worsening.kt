@@ -52,8 +52,7 @@ object Worsening {
      * lighting. Measured behaviour was a generation that never finished, where the same Age at zero days
      * generated instantly. So this records a position and nothing else.
      *
-     * Called from both loaders' chunk-load events, the same shape as [Wounds.stocked] — there is no shared
-     * entry point, and a service for one method would fragment `PlatformHelper` for a one-off (`CLAUDE.md`).
+     * Called from `CommonSetup.chunkLoaded`, beside [Wounds.stocked].
      */
     fun chunkArrived(level: Level, at: ChunkPos) {
         if (level !is ServerLevel) return

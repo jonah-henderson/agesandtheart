@@ -4,16 +4,10 @@ import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.content.AgeFluids
 import co.voik.agesandtheart.platform.services.InkFluids
 import net.minecraft.core.registries.Registries
-import net.minecraft.resources.ResourceKey
 import net.minecraft.world.item.BucketItem
 import net.minecraft.world.item.Item
-import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.LiquidBlock
-import net.minecraft.world.level.block.SoundType
-import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.material.Fluid
-import net.minecraft.world.level.material.MapColor
-import net.minecraft.world.level.material.PushReaction
 import net.neoforged.neoforge.fluids.BaseFlowingFluid
 import net.neoforged.neoforge.fluids.FluidType
 import net.neoforged.neoforge.registries.RegisterEvent
@@ -64,37 +58,18 @@ class NeoForgeInkFluids : InkFluids {
                 )
                     .bucket { buckets.getValue(tier) }
                     .block { blocks.getValue(tier) }
-                    // Thick: it pools rather than running for the horizon. Water is 4 and 1.
-                    .slopeFindDistance(SLOPE_DISTANCE)
-                    .levelDecreasePerBlock(DROP_OFF)
-                    .tickRate(TICK_DELAY)
-                    .explosionResistance(EXPLOSION_RESISTANCE)
+                    .slopeFindDistance(identity.flow.slopeFindDistance)
+                    .levelDecreasePerBlock(identity.flow.dropOff)
+                    .tickRate(identity.flow.tickDelay)
+                    .explosionResistance(identity.flow.explosionResistance)
 
                 still[tier] = BaseFlowingFluid.Source(properties)
                 flowing[tier] = BaseFlowingFluid.Flowing(properties)
                 byFluid[still.getValue(tier)] = tier
                 byFluid[flowing.getValue(tier)] = tier
 
-                blocks[tier] = LiquidBlock(
-                    still.getValue(tier),
-                    BlockBehaviour.Properties.of()
-                        .setId(ResourceKey.create(Registries.BLOCK, identity.block))
-                        .mapColor(MapColor.COLOR_BLACK)
-                        .replaceable()
-                        .noCollision()
-                        .strength(WORLD_STRENGTH)
-                        .pushReaction(PushReaction.DESTROY)
-                        .noLootTable()
-                        .liquid()
-                        .sound(SoundType.EMPTY),
-                )
-                buckets[tier] = BucketItem(
-                    still.getValue(tier),
-                    Item.Properties()
-                        .setId(ResourceKey.create(Registries.ITEM, identity.bucket))
-                        .craftRemainder(Items.BUCKET)
-                        .stacksTo(1),
-                )
+                blocks[tier] = LiquidBlock(still.getValue(tier), AgeFluids.liquidBlockProperties(identity.block))
+                buckets[tier] = BucketItem(still.getValue(tier), AgeFluids.bucketProperties(identity.bucket))
             }
         }
 
@@ -117,11 +92,5 @@ class NeoForgeInkFluids : InkFluids {
                 AgeFluids.INKS.forEach { (tier, identity) -> helper.register(identity.bucket, buckets.getValue(tier)) }
             }
         }
-
-        private const val SLOPE_DISTANCE = 2
-        private const val DROP_OFF = 2
-        private const val TICK_DELAY = 12
-        private const val EXPLOSION_RESISTANCE = 100.0f
-        private const val WORLD_STRENGTH = 100.0f
     }
 }

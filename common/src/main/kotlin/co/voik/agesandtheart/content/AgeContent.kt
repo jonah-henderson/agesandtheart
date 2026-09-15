@@ -55,7 +55,9 @@ import net.minecraft.resources.Identifier
 import net.minecraft.server.level.TicketType
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.MobCategory
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier
 import net.minecraft.world.entity.ai.village.poi.PoiType
 import net.minecraft.world.entity.npc.villager.VillagerProfession
 import net.minecraft.world.item.BlockItem
@@ -1347,6 +1349,16 @@ object AgeContent {
         MeteorStorm.ID to METEOR_STORM,
         "drifting_ore".location() to DRIFTING_ORE,
         "arc_bolt".location() to ARC_BOLT,
+    )
+
+    /**
+     * Each mob's attributes. A mob is the one kind of entity whose attributes are declared apart from its
+     * type, and one with none has no health and is refused at spawn — so this is the second half of
+     * registering it, which each loader does from its own attribute hook.
+     */
+    val mobAttributes: List<Pair<EntityType<out LivingEntity>, () -> AttributeSupplier.Builder>> = listOf(
+        ASTRITE_GOLEM to { AstriteGolem.createAttributes() },
+        HADALFISH to { Hadalfish.createAttributes() },
     )
 
     val WOUND_ID: Identifier = "wound".location()

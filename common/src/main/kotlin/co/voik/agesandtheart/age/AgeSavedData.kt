@@ -56,8 +56,8 @@ class AgeSavedData() : SavedData() {
         if (presence.remove(id) != null) setDirty()
     }
 
-    /** The recipe [id] was written from, or the Spire preset for an Age with no record here. */
-    fun recipe(id: Identifier): AgeRecipe = recipes[id] ?: AgeRecipe.of(AgePreset.SPIRE, id)
+    /** The recipe [id] was written from, or null where no Age of that id exists. */
+    fun recipe(id: Identifier): AgeRecipe? = recipes[id]
 
     /** How many ticks somebody has been standing in [id], counting no faster for a crowd. */
     fun presenceIn(id: Identifier): Long = presence[id] ?: 0L

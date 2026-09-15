@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.desk
 
-import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.word.Resolution
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Vocabulary
@@ -63,8 +64,8 @@ abstract class InstrumentReading<Reading>(private val player: ServerPlayer?, pos
     /** What a desk in the room with nothing readable laid on it comes to. */
     protected abstract fun ofAnIdleDesk(writer: ServerPlayer): Reading
 
-    /** What the world the instrument is standing in comes to. */
-    protected abstract fun ofTheWorld(writer: ServerPlayer): Reading
+    /** What the world the instrument is standing in comes to, given its [recipe] — null for a world never written. */
+    protected abstract fun ofTheWorld(writer: ServerPlayer, recipe: AgeRecipe?): Reading
 
     /** Keeps [reading] in the fields the data slots answer from. */
     protected abstract fun record(reading: Reading)
@@ -87,7 +88,12 @@ abstract class InstrumentReading<Reading>(private val player: ServerPlayer?, pos
         when {
             said != null -> report(ofTheSentence(writer, said), ReadingSource.A_SENTENCE)
             laid != null -> report(ofAnIdleDesk(writer), ReadingSource.AN_IDLE_DESK)
-            else -> report(ofTheWorld(writer), whereItStands(writer))
+            else -> {
+                // Whether the world it stands in was written is the difference between a world and an Age.
+                val recipe = Ages.recipeOf(writer.level())
+                val standingIn = if (recipe != null) ReadingSource.AN_AGE else ReadingSource.A_PLAIN_WORLD
+                report(ofTheWorld(writer, recipe), standingIn)
+            }
         }
     }
 
@@ -97,14 +103,6 @@ abstract class InstrumentReading<Reading>(private val player: ServerPlayer?, pos
         val vocabulary = Vocabulary.of(writer.level().server)
         val said = Grammar.read(vocabulary, laid.map(Identifier::getPath)) ?: return null
         return Resolver.resolve(vocabulary, said, writer.writingSeed)
-    }
-
-    /** Whether the world it stands in was written, which is the difference between a world and an Age. */
-    private fun whereItStands(writer: ServerPlayer): ReadingSource {
-        val level = writer.level()
-        val here = level.dimension().identifier()
-        return if (here in AgeSavedData.get(level.server).ages) ReadingSource.AN_AGE
-        else ReadingSource.A_PLAIN_WORLD
     }
 
     private fun report(reading: Reading, from: ReadingSource) {

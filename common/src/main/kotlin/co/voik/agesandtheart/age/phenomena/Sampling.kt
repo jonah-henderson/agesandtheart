@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.phenomena
 
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.Heightmap
@@ -22,15 +23,30 @@ import net.minecraft.world.level.levelgen.Heightmap
 object Sampling {
 
     /**
-     * Offers [visit] a position in each loaded chunk near a player, this tick, at vanilla's own rate.
+     * The players who count as present in [level]: everyone but spectators.
+     *
+     * Every phenomenon and the presence gate in [Happenings.tick] read this, so a spectator alone in an Age
+     * draws nothing and advances nothing.
+     */
+    fun watchers(level: ServerLevel): List<ServerPlayer> = level.players().filterNot { it.isSpectator }
+
+    /** One of [watchers], drawn off `level.random`, or null where nobody counts as present. */
+    fun somebody(level: ServerLevel): ServerPlayer? {
+        val watching = watchers(level)
+        if (watching.isEmpty()) return null
+        return watching[level.random.nextInt(watching.size)]
+    }
+
+    /**
+     * Offers [visit] a position in each loaded chunk near one of the [watchers], this tick, at vanilla's own
+     * rate.
      *
      * The position is a *column* — an `(x, z)` with no meaningful height — because every caller so far wants
      * either the surface ([skyward]) or somewhere derived from it, and choosing a height here would be
      * choosing it for all of them.
      */
     fun sweep(level: ServerLevel, times: Int, visit: (LevelChunk, BlockPos) -> Unit) {
-        for (player in level.players()) {
-            if (player.isSpectator) continue
+        for (player in watchers(level)) {
             val standing = player.chunkPosition()
             for (x in standing.x - CHUNKS_ABOUT..standing.x + CHUNKS_ABOUT) {
                 for (z in standing.z - CHUNKS_ABOUT..standing.z + CHUNKS_ABOUT) {

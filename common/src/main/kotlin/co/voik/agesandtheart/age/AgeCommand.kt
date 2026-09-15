@@ -452,14 +452,24 @@ object AgeCommand {
         }
     }
 
-    /** The Age called [name], opened — or null, having already said why. */
-    internal fun openNamedAge(source: CommandSourceStack, name: String, report: Report): ServerLevel? {
+    /** An Age a command named: its id, and the recipe it was written from. */
+    internal data class NamedAge(val id: Identifier, val recipe: AgeRecipe)
+
+    /** The Age called [name] — or null, having already said there is none. */
+    internal fun namedAge(source: CommandSourceStack, name: String, report: Report): NamedAge? {
         val id = ageId(name)
-        if (id !in AgeSavedData.get(source.server).ages) {
+        val recipe = AgeSavedData.get(source.server).recipe(id)
+        if (recipe == null) {
             report.fail("No Age named '$name' — create it with /age create $name")
             return null
         }
-        return Ages.open(source.server, id)
+        return NamedAge(id, recipe)
+    }
+
+    /** The Age called [name], opened — or null, having already said why. */
+    internal fun openNamedAge(source: CommandSourceStack, name: String, report: Report): ServerLevel? {
+        val age = namedAge(source, name, report) ?: return null
+        return Ages.open(source.server, age.id)
     }
 
     private fun runDelete(context: CommandContext<CommandSourceStack>): Int {
@@ -562,7 +572,7 @@ object AgeCommand {
         }
         report.say { "Ages (${ages.size}):" }
         for (id in ages) {
-            val recipe = saved.recipe(id)
+            val recipe = saved.recipe(id) ?: continue
             val unknown = recipe.composition?.unknownOptions.orEmpty()
             val fields = mapOf(
                 "age" to id,

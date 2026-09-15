@@ -1,17 +1,12 @@
 package co.voik.agesandtheart.platform
 
 import co.voik.agesandtheart.content.AgeFluids
+import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.content.DeepWaterBlock
 import net.minecraft.core.registries.Registries
-import net.minecraft.resources.ResourceKey
 import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.LiquidBlock
-import net.minecraft.world.level.block.SoundType
-import net.minecraft.world.level.block.state.BlockBehaviour
-import net.minecraft.tags.FluidTags
 import net.minecraft.world.level.material.Fluid
-import net.minecraft.world.level.material.MapColor
-import net.minecraft.world.level.material.PushReaction
 import net.neoforged.neoforge.fluids.BaseFlowingFluid
 import net.neoforged.neoforge.fluids.FluidType
 import net.neoforged.neoforge.registries.NeoForgeRegistries
@@ -31,28 +26,16 @@ import net.neoforged.neoforge.registries.RegisterEvent
 object NeoForgeDeepWater {
 
     /**
-     * **Any water counts as the same fluid** — the one thing `BaseFlowingFluid` gives no builder hook for,
-     * and the reason these two subclasses exist at all.
-     *
-     * `FluidRenderer.getHeight` fills a fluid's block to the brim only when the fluid above it is the same
-     * one, so deep water under an ordinary sea rendered an eighth of a block short and left a visible
-     * horizontal gap between the two bodies (Jonah, walked 2026-09-11 on Fabric). The other reader is
-     * `FlowingFluid.hasSameAbove`, which decides the fluid's *physical* height — and a block of deep water
-     * with a sea on top of it is plainly full.
-     *
-     * Nothing about flow moves: every other `isSame` in the fluid engine asks the *neighbour's*
-     * implementation with deep water as the argument, and vanilla's water still answers no.
-     *
-     * Kept in step with `FabricDeepWater.isSame` by hand, which is what the note at the top of this file
-     * means about the two loaders not drifting on what a player experiences.
+     * **Any water counts as the same fluid** — [DeepWater.countsAsTheSameFluid], and the one thing
+     * `BaseFlowingFluid` gives no builder hook for, which is the reason these two subclasses exist at all.
      */
     private class DeepSource(properties: BaseFlowingFluid.Properties) : BaseFlowingFluid.Source(properties) {
-        override fun isSame(fluid: Fluid): Boolean = fluid.`is`(FluidTags.WATER)
+        override fun isSame(fluid: Fluid): Boolean = DeepWater.countsAsTheSameFluid(fluid)
     }
 
     /** [DeepSource]'s twin; `BaseFlowingFluid` splits the pair and the rule belongs to both. */
     private class DeepFlowing(properties: BaseFlowingFluid.Properties) : BaseFlowingFluid.Flowing(properties) {
-        override fun isSame(fluid: Fluid): Boolean = fluid.`is`(FluidTags.WATER)
+        override fun isSame(fluid: Fluid): Boolean = DeepWater.countsAsTheSameFluid(fluid)
     }
 
     private var type: FluidType? = null
@@ -83,32 +66,17 @@ object NeoForgeDeepWater {
             { still },
             { flowing },
         )
-            // Water's own figures, against the inks' deliberately thick ones — see the Fabric side.
             .bucket { Items.WATER_BUCKET }
             .block { block }
-            .slopeFindDistance(WATERS_OWN_SLOPE)
-            .levelDecreasePerBlock(WATERS_OWN_DROP_OFF)
-            .tickRate(WATERS_OWN_TICK_DELAY)
-            .explosionResistance(EXPLOSION_RESISTANCE)
+            .slopeFindDistance(identity.flow.slopeFindDistance)
+            .levelDecreasePerBlock(identity.flow.dropOff)
+            .tickRate(identity.flow.tickDelay)
+            .explosionResistance(identity.flow.explosionResistance)
 
         stillFluid = DeepSource(properties)
         flowingFluid = DeepFlowing(properties)
 
-        liquid = DeepWaterBlock(
-            still,
-            // Water's own properties but for the map colour — an abyss should not draw on a map as the sea
-            // standing over it.
-            BlockBehaviour.Properties.of()
-                .setId(ResourceKey.create(Registries.BLOCK, identity.block))
-                .mapColor(MapColor.COLOR_BLACK)
-                .replaceable()
-                .noCollision()
-                .strength(WORLD_STRENGTH)
-                .pushReaction(PushReaction.DESTROY)
-                .noLootTable()
-                .liquid()
-                .sound(SoundType.EMPTY),
-        )
+        liquid = DeepWaterBlock(still, AgeFluids.liquidBlockProperties(identity.block))
     }
 
     /** Registration is a mod-bus event here, so it is driven from the entrypoint rather than from init. */
@@ -126,10 +94,4 @@ object NeoForgeDeepWater {
             helper.register(identity.block, block)
         }
     }
-
-    private const val WATERS_OWN_SLOPE = 4
-    private const val WATERS_OWN_DROP_OFF = 1
-    private const val WATERS_OWN_TICK_DELAY = 5
-    private const val EXPLOSION_RESISTANCE = 100.0f
-    private const val WORLD_STRENGTH = 100.0f
 }

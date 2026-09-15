@@ -46,7 +46,7 @@ class LecternBookRenderState : LecternRenderState() {
  * Vanilla's lectern renderer, drawing a book of ours shut or open (design §7.8.2) and every other book as
  * it always has.
  *
- * Registered in vanilla's place by each loader, and it extends rather than wraps so that vanilla's books go
+ * Registered in vanilla's place (`ClientRegistrations`), and it extends rather than wraps so that vanilla's books go
  * through the class they always did — on NeoForge, patched render bounds included. The cover is still the
  * enchanting table's; ours is asset work.
  */

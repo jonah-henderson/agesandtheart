@@ -1,39 +1,16 @@
 package co.voik.agesandtheart
 
-import co.voik.agesandtheart.content.ChargedMetal
-import co.voik.agesandtheart.content.ProtectiveSuit
 import net.neoforged.neoforge.event.tick.ServerTickEvent
-import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.AgeCommand
 import co.voik.agesandtheart.age.Ages
-import co.voik.agesandtheart.age.word.LearnedWordsPayload
-import co.voik.agesandtheart.age.phenomena.BlizzardPayload
-import co.voik.agesandtheart.age.word.LexiconPayload
-import co.voik.agesandtheart.age.word.PageLearning
-import co.voik.agesandtheart.client.KnownWords
-import co.voik.agesandtheart.desk.DeskCommandPayload
-import co.voik.agesandtheart.desk.DeskCommands
-import co.voik.agesandtheart.book.LinkRequest
-import co.voik.agesandtheart.book.panel.PanelChunkPayload
-import co.voik.agesandtheart.book.panel.PanelChunksWanted
-import co.voik.agesandtheart.book.panel.PanelCloseRequest
-import co.voik.agesandtheart.book.panel.PanelLevelPayload
-import co.voik.agesandtheart.book.panel.PanelOpenRequest
-import co.voik.agesandtheart.book.panel.PanelViews
-import co.voik.agesandtheart.book.Linking
-import co.voik.agesandtheart.desk.DeskNoticePayload
-import co.voik.agesandtheart.desk.DeskPricePayload
-import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
-import co.voik.agesandtheart.content.AstriteGolem
-import co.voik.agesandtheart.content.Hadalfish
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent
 import co.voik.agesandtheart.platform.NeoForgeDeepWater
 import co.voik.agesandtheart.platform.NeoForgeInkFluids
 import net.minecraft.core.registries.Registries
-import co.voik.agesandtheart.age.consequence.Worsening
-import co.voik.agesandtheart.age.consequence.Wounds
-import net.minecraft.world.level.Level
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.event.level.ChunkEvent
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.api.distmarker.Dist
@@ -45,7 +22,9 @@ import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import net.neoforged.neoforge.event.server.ServerStartedEvent
+import net.neoforged.neoforge.event.server.ServerStoppedEvent
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
+import net.neoforged.neoforge.network.registration.PayloadRegistrar
 import net.neoforged.neoforge.registries.RegisterEvent
 
 @Mod(Constants.MOD_ID)
@@ -80,6 +59,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedIn)
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedOut)
         NeoForge.EVENT_BUS.addListener(::onServerStarted)
+        NeoForge.EVENT_BUS.addListener(::onServerStopped)
         NeoForge.EVENT_BUS.addListener(::onServerTick)
         NeoForge.EVENT_BUS.addListener(::onChunkLoad)
         NeoForge.EVENT_BUS.addListener(::onChunkUnload)
@@ -100,15 +80,8 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         )
     }
 
-    /**
-     * The golem's health, reach and speed.
-     *
-     * A mob is the one kind of entity whose attributes are declared apart from its type, and one with none
-     * is refused at spawn — so this is not optional wiring, it is the second half of registering it.
-     */
     private fun onCreateAttributes(event: EntityAttributeCreationEvent) {
-        event.put(AgeContent.ASTRITE_GOLEM, AstriteGolem.createAttributes().build())
-        event.put(AgeContent.HADALFISH, Hadalfish.createAttributes().build())
+        AgeContent.mobAttributes.forEach { (type, attributes) -> event.put(type, attributes().build()) }
     }
 
     /** Fires after every `RegisterEvent`, which is exactly the condition [CommonSetup.afterContentRegistered] wants. */
@@ -199,79 +172,34 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
      */
     private fun onRegisterPayloads(event: RegisterPayloadHandlersEvent) {
         val registrar = event.registrar(PAYLOAD_VERSION)
-        // These two land in client-only code. Registration must happen here — a clientbound payload the
-        // server never registered is one it cannot send — but the handler body only runs on a client, so
-        // `KnownWords` is never loaded on a dedicated server.
-        registrar.playToClient(LexiconPayload.TYPE, LexiconPayload.STREAM_CODEC) { payload, _ ->
-            KnownWords.remember(payload)
-        }
-        registrar.playToClient(BlizzardPayload.TYPE, BlizzardPayload.STREAM_CODEC) { payload, _ ->
-            co.voik.agesandtheart.client.Storms.remember(payload)
-        }
-        registrar.playToClient(LearnedWordsPayload.TYPE, LearnedWordsPayload.STREAM_CODEC) { payload, _ ->
-            KnownWords.remember(payload)
-        }
-        registrar.playToClient(DeskSyncPayload.TYPE, DeskSyncPayload.STREAM_CODEC) { payload, _ ->
-            co.voik.agesandtheart.client.DeskModel.remember(payload)
-        }
-        registrar.playToClient(DeskPricePayload.TYPE, DeskPricePayload.STREAM_CODEC) { payload, _ ->
-            co.voik.agesandtheart.client.DeskModel.remember(payload)
-        }
-        registrar.playToClient(DeskNoticePayload.TYPE, DeskNoticePayload.STREAM_CODEC) { payload, _ ->
-            co.voik.agesandtheart.client.DeskModel.remember(payload)
-        }
-        // The desk's instructions, re-checked server-side whatever the screen believed.
-        registrar.playToServer(DeskCommandPayload.TYPE, DeskCommandPayload.STREAM_CODEC) { payload, context ->
-            (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
-                DeskCommands.handle(it, payload)
-            }
-        }
-        registrar.playToServer(LinkRequest.TYPE, LinkRequest.STREAM_CODEC) { payload, context ->
-            (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
-                Linking.handle(it, payload)
-            }
-        }
+        Payloads.ROUTES.forEach { registerPayload(registrar, it) }
+    }
 
-        // The linking panel (design 7.8.1). The chunk payload is the only one in the mod keyed to a
-        // registry buffer, carrying vanilla's own chunk and light data straight through.
-        registrar.playToClient(PanelLevelPayload.TYPE, PanelLevelPayload.STREAM_CODEC) { payload, _ ->
-            co.voik.agesandtheart.client.panel.LinkingPanel.accept(payload)
-        }
-        registrar.playToClient(PanelChunkPayload.TYPE, PanelChunkPayload.STREAM_CODEC) { payload, _ ->
-            co.voik.agesandtheart.client.panel.LinkingPanel.accept(payload)
-        }
-        registrar.playToServer(PanelOpenRequest.TYPE, PanelOpenRequest.STREAM_CODEC) { payload, context ->
-            (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
-                PanelViews.open(it.level().server ?: return@let, it, payload.book)
-            }
-        }
-        registrar.playToServer(PanelCloseRequest.TYPE, PanelCloseRequest.STREAM_CODEC) { _, context ->
-            (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
-                PanelViews.close(it.level().server ?: return@let, it)
-            }
-        }
-        registrar.playToServer(PanelChunksWanted.TYPE, PanelChunksWanted.STREAM_CODEC) { payload, context ->
-            (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
-                PanelViews.resend(it.level().server ?: return@let, it, payload.positions)
+    /**
+     * Registers one payload, and for one a client sends, its handler.
+     *
+     * A clientbound payload is registered here without a handler, since one the server never registered is
+     * one it cannot send; the client entrypoint gives it its handler on `RegisterClientPayloadHandlersEvent`,
+     * so no client class is named in this one.
+     */
+    private fun <T : CustomPacketPayload> registerPayload(registrar: PayloadRegistrar, route: Payloads.Route<T>) {
+        when (route) {
+            is Payloads.Clientbound -> registrar.playToClient(route.type, route.codec)
+            is Payloads.Serverbound -> registrar.playToServer(route.type, route.codec) { payload, context ->
+                (context.player() as? ServerPlayer)?.let { route.handle(it, payload) }
             }
         }
     }
 
     private fun onPlayerLoggedIn(event: PlayerEvent.PlayerLoggedInEvent) {
-        val player = event.entity as? net.minecraft.server.level.ServerPlayer ?: return
-        PageLearning.tellEverything(player)
+        val player = event.entity as? ServerPlayer ?: return
+        CommonSetup.playerJoined(player)
     }
 
-    /**
-     * Releases a linking panel's chunk ring when its viewer leaves.
-     *
-     * A client that crashes with a book open never sends the close, so without this the ring — and the Age
-     * holding it — would stay loaded for the life of the server.
-     */
     private fun onPlayerLoggedOut(event: PlayerEvent.PlayerLoggedOutEvent) {
-        val player = event.entity as? net.minecraft.server.level.ServerPlayer ?: return
+        val player = event.entity as? ServerPlayer ?: return
         val server = player.level().server ?: return
-        PanelViews.forget(server, player)
+        CommonSetup.playerLeft(server, player)
     }
 
     /** Re-open persisted Ages once the server has started — nothing auto-restores a runtime level. */
@@ -279,37 +207,28 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         Ages.reloadSaved(event.server)
     }
 
-    /** Whatever befalls an Age. A tick has no shared entry point, so both loaders call the same one. */
+    /** The parameter names the event to the bus, which is why it is taken and not read. */
+    @Suppress("UNUSED_PARAMETER")
+    private fun onServerStopped(event: ServerStoppedEvent) {
+        CommonSetup.serverStopped()
+    }
+
     private fun onServerTick(event: ServerTickEvent.Post) {
-        Happenings.tick(event.server)
-        // And what a deretheni suit keeps off its wearer, which is the half of that no attribute can reach.
-        ProtectiveSuit.tick(event.server)
-        // And every charged machine anybody is standing near — every level, not only the Ages, since
-        // crystal carried home through a book has to work where it is set down.
-        ChargedMetal.stir(event.server)
-        // And the linking panel's own beat: an open the pace was holding, and a lectern's panel its viewer has left.
-        PanelViews.tick(event.server)
+        CommonSetup.serverTick(event.server)
     }
 
     /**
-     * Where the wounds are. A wound carries no block entity, so the index is filled by reading each chunk
-     * as it loads — see `Wounds`, which dismisses a section off its palette before touching a block.
-     *
-     * One listener for both sides here, where Fabric needs a client and a server registration: `ChunkEvent`
-     * fires on whichever level loaded it, and both sides want the index for different questions.
+     * Server levels only. `ChunkEvent` fires on whichever level loaded the chunk, and a client level's are
+     * the client entrypoint's.
      */
     private fun onChunkLoad(event: ChunkEvent.Load) {
-        val level = event.level as? Level ?: return
-        Wounds.stocked(level, event.chunk)
-        // And which of them owe the Age some tearing. Server levels only, which `Worsening` decides rather
-        // than this listener, since the same listener answers for both sides here.
-        Worsening.chunkArrived(level, event.chunk.pos)
+        val level = event.level as? ServerLevel ?: return
+        CommonSetup.chunkLoaded(level, event.chunk)
     }
 
     private fun onChunkUnload(event: ChunkEvent.Unload) {
-        val level = event.level as? Level ?: return
-        Wounds.emptied(level, event.chunk.pos)
-        Worsening.chunkLeft(level, event.chunk.pos)
+        val level = event.level as? ServerLevel ?: return
+        CommonSetup.chunkUnloaded(level, event.chunk.pos)
     }
 
     private fun onRegisterCommands(event: RegisterCommandsEvent) {

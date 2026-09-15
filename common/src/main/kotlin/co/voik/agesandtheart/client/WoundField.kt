@@ -12,7 +12,9 @@ import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.resources.Identifier
+import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
+import java.util.WeakHashMap
 import kotlin.math.pow
 import kotlin.math.sin
 
@@ -63,17 +65,48 @@ object WoundField {
         val now = System.currentTimeMillis()
         // Gathered before submitting: the lambda below runs inside the buffer's own bookkeeping, and
         // walking the index there would hold it open for the length of the walk.
-        val opening = Wounds.openingIn(level)
+        val openingHere = opening[level]
         val inSight = mutableListOf<BlockPos>()
         Wounds.eachNear(level, camera, drawnFrom()) { inSight.add(it) }
         if (inSight.isEmpty()) return
         collector.submitCustomGeometry(poseStack, RenderTypes.entitySolid(TEXTURE)) { pose, buffer ->
             for (wound in inSight) {
-                val scale = flickerAt(wound, now) * tearingOpen(opening, wound, now)
+                val scale = flickerAt(wound, now) * tearingOpen(openingHere, wound, now)
                 for (face in Direction.entries) faceOf(pose, buffer, wound, camera, scale, face)
             }
         }
     }
+
+    /**
+     * A wound this client saw arrive, from `ClientLevelMixin` when `Wounds.noticed` reports one — **the
+     * difference between an Age worsening in front of somebody and one found already worse.**
+     *
+     * Only an arrival seen here starts one tearing open: a wound read out of a chunk as it loads was always
+     * there as far as this client is concerned, and a chunk arriving should not make every hole in it lunge
+     * open at once.
+     */
+    fun opened(level: Level, at: BlockPos) {
+        val here = opening.getOrPut(level) { LinkedHashMap() }
+        val now = System.currentTimeMillis()
+        val stale = here.entries.iterator()
+        while (stale.hasNext()) {
+            if (now - stale.next().value < OPENS_OVER) break
+            stale.remove()
+        }
+        here[at.immutable()] = now
+    }
+
+    /**
+     * When each wound in [opened] arrived, by level, and read whole per frame by [submit], since a lookup
+     * apiece would be thousands a second for an answer that is usually "nothing at all".
+     *
+     * **Pruned from the front rather than swept**, which a `LinkedHashMap` makes free: entries go in in
+     * time order, so everything expired is at the head and the walk stops at the first one that is not.
+     */
+    private val opening = WeakHashMap<Level, LinkedHashMap<BlockPos, Long>>()
+
+    /** How long a wound takes to tear itself open, in milliseconds — brief, and unmistakably an event. */
+    private const val OPENS_OVER = 700L
 
     /**
      * A wound that has just torn itself open, growing from nothing — **so an Age is watched worsening rather than
@@ -89,8 +122,8 @@ object WoundField {
     private fun tearingOpen(opening: Map<BlockPos, Long>?, wound: BlockPos, now: Long): Float {
         val began = opening?.get(wound) ?: return FULLY_OPEN
         val since = now - began
-        if (since >= Wounds.OPENS_OVER) return FULLY_OPEN
-        val left = 1.0f - since.toFloat() / Wounds.OPENS_OVER
+        if (since >= OPENS_OVER) return FULLY_OPEN
+        val left = 1.0f - since.toFloat() / OPENS_OVER
         return 1.0f - left * left * left
     }
 

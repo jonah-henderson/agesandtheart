@@ -47,10 +47,7 @@ object Skies {
      * conflating them would make a lost packet look deliberate.
      */
     fun lookOf(server: MinecraftServer, dimension: ResourceKey<Level>): LevelLook? {
-        val saved = AgeSavedData.get(server)
-        val id = dimension.identifier()
-        if (id !in saved.ages) return null
-        val recipe = saved.recipe(id)
+        val recipe = AgeSavedData.get(server).recipe(dimension.identifier()) ?: return null
         // One reader over the whole composition, because the look is assembled from several aspects now —
         // the water's clarity, the air's fog and tint, the vault's colour and cloud.
         val parts = recipe.composition ?: AgeParts.NONE

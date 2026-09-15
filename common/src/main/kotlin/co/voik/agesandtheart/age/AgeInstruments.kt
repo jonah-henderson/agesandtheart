@@ -5,7 +5,7 @@ import co.voik.agesandtheart.age.AgeCommand.NAME_ARGUMENT
 import co.voik.agesandtheart.age.AgeCommand.SEED_ARGUMENT
 import co.voik.agesandtheart.age.AgeCommand.SPECIFICATION_ARGUMENT
 import co.voik.agesandtheart.age.AgeCommand.SUCCESS
-import co.voik.agesandtheart.age.AgeCommand.ageId
+import co.voik.agesandtheart.age.AgeCommand.namedAge
 import co.voik.agesandtheart.age.AgeCommand.openNamedAge
 import co.voik.agesandtheart.age.AgeCommand.reporting
 import co.voik.agesandtheart.age.consequence.Collapse
@@ -393,13 +393,8 @@ object AgeInstruments {
         val source = context.source
         val player = source.playerOrException
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val saved = AgeSavedData.get(source.server)
-        val id = ageId(name)
-        if (id !in saved.ages) {
-            return Report.prose(source).fail("No Age named '$name' — create it with /age create $name")
-        }
+        val (id, recipe) = namedAge(source, name, Report.prose(source)) ?: return FAILURE
 
-        val recipe = saved.recipe(id)
         val book = ItemStack(AgeContent.DESCRIPTIVE_BOOK)
         book.set(AgeContent.AGE_ID, id)
         book.set(AgeContent.BOOK_TITLE, name)
@@ -1463,12 +1458,7 @@ object AgeInstruments {
         val level = source.level
         val at = BlockPos.containing(source.position)
         val id = level.dimension().identifier()
-        val saved = AgeSavedData.get(source.server)
-        if (id !in saved.ages) {
-            report.fail("Not standing in an Age — /age tp <name> first")
-            return FAILURE
-        }
-        val recipe = saved.recipe(id)
+        val recipe = Ages.recipeOf(level) ?: return report.fail("Not standing in an Age — /age tp <name> first")
         val spending = Spending.of(source.server, recipe)
         val days = recipe.ageAt(source.server) / Tearing.TICKS_PER_DAY
         val written = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
@@ -1571,13 +1561,7 @@ object AgeInstruments {
     private fun runAgeDanger(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val id = ageId(name)
-        val saved = AgeSavedData.get(source.server)
-        if (id !in saved.ages) {
-            report.fail("No Age named '$name' — create it with /age create $name")
-            return FAILURE
-        }
-        val recipe = saved.recipe(id)
+        val recipe = namedAge(source, name, report)?.recipe ?: return FAILURE
         val danger = Danger.of(source.server, recipe)
 
         report.say { "Age '$name':" }
@@ -1623,12 +1607,7 @@ object AgeInstruments {
     private fun runDecay(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val id = ageId(name)
-        if (id !in AgeSavedData.get(source.server).ages) {
-            report.fail("No Age named '$name' — create it with /age create $name")
-            return FAILURE
-        }
-        val recipe = AgeSavedData.get(source.server).recipe(id)
+        val (id, recipe) = namedAge(source, name, report) ?: return FAILURE
         val spending = Spending.of(source.server, recipe)
         val days = recipe.ageAt(source.server) / Tearing.TICKS_PER_DAY
         val written = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
@@ -1666,15 +1645,10 @@ object AgeInstruments {
     private fun runBackdate(context: CommandContext<CommandSourceStack>, days: Int, report: Report): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val saved = AgeSavedData.get(source.server)
-        val id = ageId(name)
-        if (id !in saved.ages) {
-            report.fail("No Age named '$name' — create it with /age create $name")
-            return FAILURE
-        }
+        val (id, recipe) = namedAge(source, name, report) ?: return FAILURE
         val now = source.server.overworld().gameTime
-        val aged = saved.recipe(id).copy(writtenAt = now - days * Tearing.TICKS_PER_DAY)
-        saved.add(id, aged)
+        val aged = recipe.copy(writtenAt = now - days * Tearing.TICKS_PER_DAY)
+        AgeSavedData.get(source.server).add(id, aged)
         // **And the live generator, or nothing changes until the Age is reopened** (walked 2026-08-09).
         // A generator is built once at open and keeps its own copy of the clock, so rewriting the recipe
         // alone left an Age reporting a month and generating as though it were new.
@@ -1708,14 +1682,9 @@ object AgeInstruments {
     private fun runForceInstability(context: CommandContext<CommandSourceStack>, index: Int, report: Report): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val saved = AgeSavedData.get(source.server)
-        val id = ageId(name)
-        if (id !in saved.ages) {
-            report.fail("No Age named '$name' — create it with /age create $name")
-            return FAILURE
-        }
-        val forced = saved.recipe(id).copy(instability = Instability.forced(index))
-        saved.add(id, forced)
+        val (id, recipe) = namedAge(source, name, report) ?: return FAILURE
+        val forced = recipe.copy(instability = Instability.forced(index))
+        AgeSavedData.get(source.server).add(id, forced)
         retellTheGenerator(source.server, id, forced)
         val spending = Spending.of(source.server, forced)
         report.say { "Age '$name' is now instability $index, which buys $spending." }
@@ -1969,15 +1938,14 @@ object AgeInstruments {
      */
     private fun runCompare(context: CommandContext<CommandSourceStack>, radius: Int, report: Report): Int {
         val source = context.source
-        val saved = AgeSavedData.get(source.server)
         val firstName = StringArgumentType.getString(context, FIRST_ARGUMENT)
         val secondName = StringArgumentType.getString(context, SECOND_ARGUMENT)
 
-        val first = openNamedAge(source, firstName, report) ?: return FAILURE
-        val second = openNamedAge(source, secondName, report) ?: return FAILURE
+        val (firstId, firstRecipe) = namedAge(source, firstName, report) ?: return FAILURE
+        val first = Ages.open(source.server, firstId)
+        val (secondId, secondRecipe) = namedAge(source, secondName, report) ?: return FAILURE
+        val second = Ages.open(source.server, secondId)
 
-        val firstRecipe = saved.recipe(ageId(firstName))
-        val secondRecipe = saved.recipe(ageId(secondName))
         report.say { "Comparing '$firstName' [$firstRecipe] with '$secondName' [$secondRecipe]" }
 
         // Each world generated whole before the other is touched, so this asks whether the recipe
@@ -2072,8 +2040,9 @@ object AgeInstruments {
     private fun runSkyReport(context: CommandContext<CommandSourceStack>, preview: String?): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val level = openNamedAge(source, name, Report.prose(source)) ?: return FAILURE
-        val recipe = AgeSavedData.get(source.server).recipe(ageId(name))
+        val age = namedAge(source, name, Report.prose(source)) ?: return FAILURE
+        val level = Ages.open(source.server, age.id)
+        val recipe = age.recipe
 
         // The Art's own words and the library's parameters are told apart by name, so one line can carry both:
         // `sun.size=0.9..1.0 path=epicycle` reads as a sky the words describe with one thing turned.
@@ -2337,7 +2306,7 @@ object AgeInstruments {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
         val wanted = StringArgumentType.getString(context, PRESET_ARGUMENT)
-        val recipe = AgeSavedData.get(source.server).recipe(ageId(name))
+        val recipe = namedAge(source, name, Report.prose(source))?.recipe ?: return FAILURE
 
         val world = recipe.world
         if (world !is AgeWorld.Composed) {
@@ -2493,7 +2462,8 @@ object AgeInstruments {
     ): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val level = openNamedAge(source, name, report) ?: return FAILURE
+        val age = namedAge(source, name, report) ?: return FAILURE
+        val level = Ages.open(source.server, age.id)
 
         val generator = level.chunkSource.generator
         val structures = level.structureManager()
@@ -2527,7 +2497,7 @@ object AgeInstruments {
 
         // And what the Age places for itself, which vanilla's spawner never sees — counted by the gate that
         // refused it, since every one of them is doing its job and telling them apart is the diagnosis.
-        val placing = AgeGeneration.spawnersFor(source.server, AgeSavedData.get(source.server).recipe(ageId(name)))
+        val placing = AgeGeneration.spawnersFor(source.server, age.recipe)
             .filterIsInstance<AgeSpawner>()
             .firstOrNull()
         for (creature in placing?.placedCreatures.orEmpty()) {

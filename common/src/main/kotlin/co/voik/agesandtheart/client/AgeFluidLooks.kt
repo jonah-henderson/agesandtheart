@@ -1,22 +1,45 @@
-package co.voik.agesandtheart.platform
+package co.voik.agesandtheart.client
 
-import net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderingRegistry
+import co.voik.agesandtheart.content.AgeFluids
+import co.voik.agesandtheart.location
 import net.minecraft.client.color.block.BlockTintSource
 import net.minecraft.client.renderer.block.FluidModel
 import net.minecraft.client.resources.model.sprite.Material
-import co.voik.agesandtheart.location
+import net.minecraft.resources.Identifier
 
 /**
- * What deep water looks like in the world.
+ * What our fluids look like in the world. Without a model a fluid draws as the missing texture, since 26.1
+ * renders fluids from a model rather than a handler.
  *
- * **Water's own textures under a very dark tint**, which is exactly how vanilla tints water by biome — so
- * the surface animation and the flow come for free and the only thing that is ours is the colour. Without
- * this an abyss draws as the missing texture, 26.1 rendering fluids from a model rather than a handler.
- *
- * A separate file from [FabricInkRendering] rather than another loop inside it: the inks share an identity
- * shape and this does not, and a client-only class is the wrong place to grow a special case.
+ * Each loader's client entrypoint pairs these with its own still and flowing fluid objects.
  */
-object FabricDeepWaterRendering {
+object AgeFluidLooks {
+
+    /**
+     * An ink: water's textures, tinted per ink — which is exactly how vanilla tints water by biome, so the
+     * flow and surface animation come for free and only the colour is ours.
+     */
+    fun ink(identity: AgeFluids.InkIdentity): FluidModel.Unbaked = FluidModel.Unbaked(
+        water("water_still"),
+        water("water_flow"),
+        null,
+        BlockTintSource { identity.tint },
+    )
+
+    /**
+     * Deep water: our own sprites under a very dark tint, so the surface animation and the flow come from
+     * water's frames and the colour and opacity are ours.
+     */
+    fun deepWater(): FluidModel.Unbaked = FluidModel.Unbaked(
+        ours("deep_water_still"),
+        ours("deep_water_flow"),
+        null,
+        BlockTintSource { ALMOST_BLACK },
+    )
+
+    /** Water's own sprites. A `Material` is just the sprite plus a translucency flag in 26.1. */
+    private fun water(path: String) = Material(Identifier.withDefaultNamespace("block/$path"))
+
     /**
      * **Our own sprites, and the only thing ours about them is the alpha.**
      *
@@ -43,20 +66,6 @@ object FabricDeepWaterRendering {
      * namespace, so dropping a texture there is the whole of getting it onto the atlas.
      */
     private fun ours(path: String) = Material("block/$path".location())
-
-    fun register() {
-        val model = FluidModel.Unbaked(
-            ours("deep_water_still"),
-            ours("deep_water_flow"),
-            null,
-            BlockTintSource { ALMOST_BLACK },
-        )
-        FluidRenderingRegistry.register(
-            FabricDeepWaterFluids.still,
-            FabricDeepWaterFluids.flowing,
-            model,
-        )
-    }
 
     /**
      * Nearly black with the blue left in it.

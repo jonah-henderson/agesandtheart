@@ -1,47 +1,30 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.client.AgeFluidLooks
 import co.voik.agesandtheart.client.AgeLooks
-import co.voik.agesandtheart.client.AstriteGolemRenderer
-import co.voik.agesandtheart.age.consequence.Wounds
-import co.voik.agesandtheart.client.BookEntityRenderer
-import co.voik.agesandtheart.client.SandColumnRenderer
-import co.voik.agesandtheart.client.ArcBoltRenderer
-import co.voik.agesandtheart.client.DriftingOreRenderer
-import co.voik.agesandtheart.client.MoltenLumpRenderer
-import net.minecraft.client.renderer.entity.NoopRenderer
-import co.voik.agesandtheart.client.StarFissureRenderer
-import co.voik.agesandtheart.client.LecternBookRenderer
-import net.minecraft.world.level.block.entity.BlockEntityType
+import co.voik.agesandtheart.client.ClientPayloads
+import co.voik.agesandtheart.client.ClientRegistrations
+import co.voik.agesandtheart.client.ClientSetup
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
-import co.voik.agesandtheart.client.DeskModel
-import co.voik.agesandtheart.client.KnownWords
-import co.voik.agesandtheart.client.panel.LecternPanels
-import co.voik.agesandtheart.client.panel.LinkingPanel
-import co.voik.agesandtheart.client.InkCaseScreen
-import co.voik.agesandtheart.client.GeologistsToolsScreen
-import co.voik.agesandtheart.client.SeismographScreen
-import co.voik.agesandtheart.client.SupplyBinScreen
-import co.voik.agesandtheart.client.WritersDeskScreen
-import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.client.AgeTints
-import co.voik.agesandtheart.client.LureLooks
-import co.voik.agesandtheart.client.light.DeepLights
-import co.voik.agesandtheart.client.light.TintedLights
-import co.voik.agesandtheart.client.Storms
+import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.client.gui.screens.inventory.MenuAccess
+import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.level.block.entity.BlockEntity
 import net.neoforged.neoforge.event.level.ChunkEvent
 import net.neoforged.neoforge.client.event.ClientTickEvent
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent
-import net.minecraft.client.gui.screens.MenuScreens
-import net.minecraft.client.gui.screens.inventory.ContainerScreen
 import co.voik.agesandtheart.content.AgeFluids
+import co.voik.agesandtheart.platform.NeoForgeDeepWater
 import co.voik.agesandtheart.platform.NeoForgeInkFluids
-import net.minecraft.client.color.block.BlockTintSource
-import net.minecraft.client.renderer.block.FluidModel
-import net.minecraft.client.resources.model.sprite.Material
-import net.minecraft.resources.Identifier
 import net.neoforged.neoforge.client.event.RegisterFluidModelsEvent
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
+import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.common.Mod
@@ -65,49 +48,31 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         eventBus.addListener(::onRegisterBlockTints)
         eventBus.addListener(::onRegisterFluidModels)
         eventBus.addListener(::onRegisterRenderers)
-        // Which of the two winds is playing has to be re-asked as a player walks in and out of shelter, so
-        // it rides the client tick rather than the payload.
+        // The clientbound payloads' handlers, which the main class registers those payloads without.
+        eventBus.addListener(::onRegisterPayloadHandlers)
         NeoForge.EVENT_BUS.addListener(::onClientTick)
-        // The coloured-light index, filled as chunks arrive. **Registered here rather than beside the
-        // wound index in the main class**, which feeds both sides from one listener: this one is the
-        // client's alone, and `TintedLights` reaches client classes a dedicated server does not have.
+        // A client level's chunks. **Registered here rather than in the main class**, whose listener takes
+        // server levels only: what these feed reaches client classes a dedicated server does not have.
         NeoForge.EVENT_BUS.addListener(::onChunkLoad)
         NeoForge.EVENT_BUS.addListener(::onChunkUnload)
     }
 
     private fun onChunkLoad(event: ChunkEvent.Load) {
         val level = event.level as? ClientLevel ?: return
-        TintedLights.stocked(level, event.chunk)
-        // And what can be seen from across an abyss — the same index shape, for the same reason.
-        DeepLights.stocked(level, event.chunk)
+        ClientSetup.chunkLoaded(level, event.chunk)
     }
 
     private fun onChunkUnload(event: ChunkEvent.Unload) {
         val level = event.level as? ClientLevel ?: return
-        TintedLights.emptied(level, event.chunk.pos)
-        DeepLights.emptied(level, event.chunk.pos)
+        ClientSetup.chunkUnloaded(level, event.chunk.pos)
     }
 
     private fun onClientTick(event: ClientTickEvent.Post) {
-        Storms.heard(net.minecraft.client.Minecraft.getInstance())
-        Storms.blow(net.minecraft.client.Minecraft.getInstance())
-        // A lure is drawn about its cluster rather than by each block, so it rides the tick as well.
-        LureLooks.pulse(net.minecraft.client.Minecraft.getInstance())
-        // Which lectern's panel this client shows, since a lectern has no screen to tick it as a book's does.
-        LecternPanels.tick(net.minecraft.client.Minecraft.getInstance())
+        ClientSetup.clientTick(Minecraft.getInstance())
     }
 
     private fun onRegisterScreens(event: RegisterMenuScreensEvent) {
-        event.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
-        event.register(AgeContent.INK_CASE_MENU, ::InkCaseScreen)
-        event.register(AgeContent.SUPPLY_BIN_MENU, ::SupplyBinScreen)
-        // Its own screen rather than a line on the desk's -- an implement that does something is the
-        // thing you go and look at (Jonah, 2026-09-07).
-        event.register(AgeContent.SEISMOGRAPH_MENU, ::SeismographScreen)
-        event.register(AgeContent.GEOLOGISTS_TOOLS_MENU, ::GeologistsToolsScreen)
-        // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it,
-        // and the fence lives in the menu rather than in the drawing.
-        event.register(AgeContent.TOOLBOX_MENU, ::ContainerScreen)
+        ClientRegistrations.MENU_SCREENS.forEach { registerScreen(event, it) }
     }
 
     /**
@@ -119,51 +84,51 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
     }
 
     private fun onRegisterRenderers(event: EntityRenderersEvent.RegisterRenderers) {
-        event.registerEntityRenderer(AgeContent.BOOK_ENTITY, ::BookEntityRenderer)
-        event.registerEntityRenderer(AgeContent.SAND_COLUMN, ::SandColumnRenderer)
-        event.registerEntityRenderer(AgeContent.VOLCANIC_BOMB) { MoltenLumpRenderer(it, MoltenLumpRenderer.WHOLE_LUMP) }
-        event.registerEntityRenderer(AgeContent.LAVA_DROPLET) { MoltenLumpRenderer(it, MoltenLumpRenderer.GOBBET) }
-        event.registerEntityRenderer(AgeContent.METEOR) {
-            MoltenLumpRenderer(it, MoltenLumpRenderer.METEOR, MoltenLumpRenderer.METEOR_ROCK, MoltenLumpRenderer.COLD_FIRE)
-        }
-        event.registerEntityRenderer(AgeContent.DRIFTING_ORE) { DriftingOreRenderer(it) }
-        // Vanilla's lightning, turned to point at what was bitten — see [ArcBoltRenderer].
-        event.registerEntityRenderer(AgeContent.ARC_BOLT) { ArcBoltRenderer(it) }
-        // The storm is a clock standing in the sky and is drawn by the sky, not as an entity.
-        event.registerEntityRenderer(AgeContent.ASTRITE_GOLEM) { AstriteGolemRenderer(it) }
-        event.registerEntityRenderer(AgeContent.METEOR_STORM) { NoopRenderer(it) }
-        event.registerEntityRenderer(AgeContent.CAVE_IN) { NoopRenderer(it) }
-        // The fissure's shaft, a block entity drawn by shader rather than by a baked model — the same event
-        // on this loader, where Fabric has a registry of its own.
-        event.registerBlockEntityRenderer(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() }
-        // In vanilla's place, for the books of ours a lectern can hold; vanilla's own it still draws as before.
-        event.registerBlockEntityRenderer(BlockEntityType.LECTERN) { LecternBookRenderer(it) }
+        ClientRegistrations.ENTITY_RENDERERS.forEach { registerEntityRenderer(event, it) }
+        ClientRegistrations.BLOCK_ENTITY_RENDERERS.forEach { registerBlockEntityRenderer(event, it) }
     }
 
-    /**
-     * What ink looks like in the world: water's textures, tinted per ink. Without it a pool draws as the
-     * missing texture, since 26.1 renders fluids from a model rather than from a handler.
-     */
     private fun onRegisterFluidModels(event: RegisterFluidModelsEvent) {
         for ((tier, identity) in AgeFluids.INKS) {
-            val model = FluidModel.Unbaked(
-                Material(Identifier.withDefaultNamespace("block/water_still")),
-                Material(Identifier.withDefaultNamespace("block/water_flow")),
-                null,
-                BlockTintSource { identity.tint },
-            )
-            event.register(model, NeoForgeInkFluids.still(tier), NeoForgeInkFluids.flowing(tier))
+            event.register(AgeFluidLooks.ink(identity), NeoForgeInkFluids.still(tier), NeoForgeInkFluids.flowing(tier))
         }
+        event.register(AgeFluidLooks.deepWater(), NeoForgeDeepWater.still, NeoForgeDeepWater.flowing)
+    }
+
+    /** Each handler runs on the client thread, which is this event's default. */
+    private fun onRegisterPayloadHandlers(event: RegisterClientPayloadHandlersEvent) {
+        ClientPayloads.RECEIVERS.forEach { registerReceiver(event, it) }
     }
 
     private fun onLoggingOut(event: ClientPlayerNetworkEvent.LoggingOut) {
-        KnownWords.forgetAll()
-        DeskModel.forget()
-        Wounds.forget()
-        TintedLights.forget()
-        DeepLights.forget()
-        // A book open when the connection drops never reaches `Screen.removed`, so its preview level and
-        // renderer would outlive the connection that fed them. Fabric forgets in its own entrypoint.
-        LinkingPanel.forget()
+        ClientSetup.disconnected()
+    }
+
+    private fun <T : Entity> registerEntityRenderer(
+        event: EntityRenderersEvent.RegisterRenderers,
+        entry: ClientRegistrations.RendererForEntity<T>,
+    ) {
+        event.registerEntityRenderer(entry.type, entry.provider)
+    }
+
+    private fun <T : BlockEntity, S : BlockEntityRenderState> registerBlockEntityRenderer(
+        event: EntityRenderersEvent.RegisterRenderers,
+        entry: ClientRegistrations.RendererForBlockEntity<T, S>,
+    ) {
+        event.registerBlockEntityRenderer(entry.type, entry.provider)
+    }
+
+    private fun <M : AbstractContainerMenu, U> registerScreen(
+        event: RegisterMenuScreensEvent,
+        entry: ClientRegistrations.ScreenForMenu<M, U>,
+    ) where U : Screen, U : MenuAccess<M> {
+        event.register(entry.menu) { menu, inventory, title -> entry.screen(menu, inventory, title) }
+    }
+
+    private fun <T : CustomPacketPayload> registerReceiver(
+        event: RegisterClientPayloadHandlersEvent,
+        receiver: ClientPayloads.Receiver<T>,
+    ) {
+        event.register(receiver.type) { payload, _ -> receiver.receive(payload) }
     }
 }
