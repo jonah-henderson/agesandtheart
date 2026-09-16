@@ -2,7 +2,6 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import net.minecraft.core.Registry
-import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.util.StringRepresentable
 
@@ -14,7 +13,7 @@ import net.minecraft.util.StringRepresentable
  */
 val MATERIAL_PARAMETERS: Set<String> by lazy {
     Aspect.entries
-        .flatMap { aspect -> aspect.parameters + aspect.authored.flatMap { it.parameters } }
+        .flatMap { it.understood }
         .filter { it.material }
         .map { it.name }
         .toSet()
@@ -321,6 +320,19 @@ enum class Aspect(
         }
 
     /**
+     * **Every parameter this aspect understands** — its own, and those its presets carry.
+     *
+     * Written out in four places before this existed, which is three chances for one of them to drift from
+     * the others. [authored] is a list of [AuthoredPreset], so a preset's `parameters` here and the
+     * `ownParameters` that [Taggable.honoursParameterNamed] reads are the same list.
+     *
+     * A `get()` rather than a stored value or a `by lazy`, and that is load-bearing: every preset enum names
+     * [Aspect] in its own initialiser, so anything computed while `Aspect` is still loading leaves the two
+     * waiting on each other. It is the same trap [MATERIAL_PARAMETERS] is lazy for.
+     */
+    val understood: List<Parameter> get() = parameters + authored.flatMap { it.parameters }
+
+    /**
      * Whether this part of the world may be made of [named] — asked of whatever material parameters it has,
      * and true where it has none.
      *
@@ -330,7 +342,7 @@ enum class Aspect(
      * rock refuses anything a player would fall through ([Materials]) and nothing else refuses anything.
      */
     fun canBeMadeOf(named: String): Boolean =
-        (parameters + authored.flatMap { it.parameters }).filter { it.material }.all { it.accepts(named) }
+        understood.filter { it.material }.all { it.accepts(named) }
 
     /**
      * Whether a parameter by this name means anything here — its own [parameters], or a parameter one of its
@@ -341,8 +353,7 @@ enum class Aspect(
      * can also reach an open aspect's data presets — but every steering parameter an open aspect has is one of
      * its parameters, so for the question of *which aspect owns a name* the two agree.
      */
-    fun ownsParameterNamed(name: String): Boolean =
-        parameters.any { it.name == name } || authored.any { it.honoursParameterNamed(name) }
+    fun ownsParameterNamed(name: String): Boolean = understood.any { it.name == name }
 
     /**
      * The registry this aspect's presets are entries of, or null where they are designs this pack wrote.
@@ -441,7 +452,7 @@ enum class Aspect(
      * replaced a hand-kept list on `Atmosphere` that had already drifted from the `when` above it.
      */
     val confinableParameters: List<Parameter>
-        get() = (parameters + authored.flatMap { it.parameters }).filter { it.confinable }
+        get() = understood.filter { it.confinable }
 
     override fun getSerializedName(): String = key
 
@@ -456,299 +467,4 @@ enum class Aspect(
          */
         private const val ANY_REGISTRY_ENTRY = "minecraft:any"
     }
-}
-
-/**
- * One choice a preset offers — "sparse / scattered / crowded", or a stretch of a continuous axis. The
- * first option is the default, so a preset named with no options still resolves.
- *
- * **Numbers are allowed here and always were.** §3.2 forbids them being exposed to the *player*, and a
- * [Holds.RANGE] parameter never is: a writer says a word, the word carries the span. Named steps were the
- * first reading of that rule and they do not scale — every new word that wants to sit on a different band
- * needs a new step, and steps must then be named on every axis at once.
- *
- * One kind is open-valued: a [material] takes a registry id rather than one of a list.
- */
-data class Parameter(
-    val name: String,
-    val options: List<String>,
-    val open: Boolean = false,
-    /** What this property holds, which decides what a claim on it can mean — see [Holds]. */
-    val holds: Holds = Holds.CATALOGUE,
-    /**
-     * Points along a [Holds.RANGE] axis and what they mean **in the game**.
-     *
-     * An axis runs −1 to 1 and the number says nothing on its own: a writer bounding a temperature has no
-     * way to know whether `0.2` is a meadow or a desert. The corpus can say where other *words* sit,
-     * which is useful and circular; this says what the *world* does there.
-     *
-     * Approximate on purpose, and here rather than in a document for the reason [help] is: one copy, in
-     * the thing it describes, read by whatever wants to show it.
-     */
-    val landmarks: List<Landmark> = emptyList(),
-    /**
-     * Whether a claim on this may be sited in one biome — `in <biome>` (design §4.3.1). Set with [perBiome].
-     *
-     * **Asked per parameter rather than per aspect**, and the difference is not pedantry: the air's fog may
-     * be sited and its temperature may not, because temperature is what *chooses* the biome and siting it
-     * is circular. An aspect holding both would have no honest answer.
-     */
-    val confinable: Boolean = false,
-    /**
-     * Whether this parameter's value is a **block** — the palette's stone, a surface's skin, a minted
-     * pattern's substance.
-     *
-     * A fact about the parameter rather than a name to compare against. `Grammar` asks whether a word is a
-     * material and `Resolver` asks what substance it carries, and both did it by looking for `Terrain.STONE`
-     * by name — one aspect's parameter standing in for "a block", which is true of the corpus today and is not
-     * what either of them means.
-     */
-    val material: Boolean = false,
-    /**
-     * Whether what this holds has to be something a player can stand on — true of the rock and of nothing
-     * else so far (see [Materials]).
-     *
-     * **Not every material parameter, and the surface is why.** A skin is one layer over rock that already
-     * holds you up, so the worst a strange one costs is a block of fall onto solid ground — and a skin of
-     * *air* is how a writer says the ground wears nothing at all, which the rock could never allow. The
-     * fatal case is the fill: a world built of something you fall through is not a place at all.
-     */
-    val holdsYouUp: Boolean = false,
-    /**
-     * Whether the order the writer wrote these in is part of what they said.
-     *
-     * **This parameter's values are a sequence, where every other mingling parameter's are a set** — and that is the
-     * whole of the distinction. `landmass.stone=granite and andesite` is two rocks in one wall and neither
-     * is first; an aurora's colours are a ramp from its crown to its hem, and which is the crown is the one
-     * thing the writer stated outright.
-     *
-     * It is read in exactly one place, [co.voik.agesandtheart.age.word.Resolver.contended], which otherwise
-     * hands back a mingling in tier-then-seeded order. Stating it here rather than casing on the name there
-     * is what keeps that function from having to know about individual parameters.
-     *
-     * Written order decides one other thing in the whole resolver — which template a book starts from — and
-     * `the-art-design.md` §3.5 names both.
-     */
-    val keepsWrittenOrder: Boolean = false,
-    /**
-     * What this parameter is, in a sentence, for whoever is authoring a word against it.
-     *
-     * **Here rather than in a table the tool keeps**, because a second copy is a copy that goes stale:
-     * `footing` means nothing out of context and `free` means less, and a writer meeting either needs to
-     * be told at the moment they meet it. `ParameterHelpCheck` insists every parameter a word can reach has
-     * one, so a parameter added without a sentence fails the build rather than turning up blank in the tool.
-     */
-    val help: String = "",
-    /** The same for values that are not self-evident — `free`, `grounded`, `great_halls`. */
-    val optionHelp: Map<String, String> = emptyMap(),
-) {
-    /** This parameter, sited-in-a-biome — see [confinable]. */
-    fun perBiome(): Parameter = copy(confinable = true)
-
-    val default: String get() = options.first()
-
-    /**
-     * Whether this parameter would understand [option]. An open one takes any well-formed id, including
-     * one naming content this pack does not have (§3.1).
-     */
-    fun accepts(option: String): Boolean {
-        val isOneOfTheNamedOptions = option in options
-        val looksLikeARegistryId = namesARegistryEntry(option) && Identifier.tryParse(option) != null
-        // Every form a word may ask a ranged axis for, not only a band — see [Setting].
-        val looksLikeASpan = holds == Holds.RANGE && Setting.describes(option)
-        if (isOneOfTheNamedOptions || looksLikeASpan) return true
-        if (!open || !looksLikeARegistryId) return false
-        // **Rock has to hold somebody up** ([Materials]). Asked here because this is the one gate every
-        // reader already goes through: `Options.of` filters on it and `unreadableValues` reports what it
-        // filtered, so a refused block falls back and is *said* rather than quietly becoming stone.
-        return !holdsYouUp || Materials.makesAWorld(option)
-    }
-
-    /**
-     * A point on an axis, and what the game does there.
-     *
-     * [isVanilla] marks the one that is **the game's own value** — where the axis sits for a world nobody
-     * wrote. Not every axis has one (a temperature runs a whole world's worth of them) and it is not
-     * always the middle, which is the whole reason it is stated rather than assumed: a writer reading
-     * `-0.3333` needs to know it is where they started, not a number somebody liked.
-     */
-    data class Landmark(val at: Double, val said: String, val isVanilla: Boolean = false)
-
-    companion object {
-        /**
-         * What a material parameter reads as when nobody named one: the preset's own substance. A named
-         * default rather than an absent value, so every consumer asks the same question.
-         */
-        const val UNCHANGED = "unchanged"
-
-        /** A block a preset is made of — the palette's stone, a terrain's spires, a structure's walls. */
-        fun material(name: String, holdsYouUp: Boolean = false, help: String = "") =
-            Parameter(name, listOf(UNCHANGED), open = true, material = true, holdsYouUp = holdsYouUp, help = help)
-
-                /**
-         * A continuous axis a word may bound — climate's temperature and humidity. Defaults to the whole
-         * axis, so an Age told nothing keeps whatever vanilla's noise produced.
-         */
-        fun ranged(name: String, help: String = "", landmarks: List<Landmark> = emptyList()) =
-            Parameter(
-                name,
-                listOf(Span.NATURAL.spelled()),
-                holds = Holds.RANGE,
-                help = help,
-                landmarks = landmarks,
-            )
-
-        /**
-         * A property that is simply true or false — **a catalogue of two, and no new shape** (world model
-         * §2). A flag is one value drawn from a closed list like any other; what it is not is a scale, and
-         * spelling it as one invites a value between the two that does not exist.
-         *
-         * [FALSE] first, so an unstated flag is off: [default] is the first option.
-         */
-        fun flag(name: String, help: String = "") = Parameter(name, listOf(FALSE, TRUE), help = help)
-
-        /**
-         * **How many of a population there are** — the one parameter whose value is the size of the roll rather
-         * than an entry in it, and the only way a *word* can bring a body into being.
-         *
-         * A writer never turns it: they describe a sun and there is one, describe another and there are
-         * two, and `the-world-model.md` §2 is emphatic that there are no numbers in the language. This is
-         * for the corpus, where a word has to be able to say what an Age looks like when the writer said
-         * nothing at all — an inferno's sky wants more than one thing burning in it, and no clause was
-         * written to mint them.
-         *
-         * **Closed, and short.** Four is already a strange sky; leaving it open would let a word ask for
-         * forty suns and the renderer would oblige. The first option is the default, so an Age nobody asked
-         * has whatever its template gave it.
-         *
-         * `Resolver` reads this rather than steering it: the roll's size *is* the number of stored entries,
-         * so a `cast` that landed in the options would be a second place recording the same fact.
-         */
-        fun cast() = Parameter(
-            CAST,
-            listOf("1", "2", "3", "4"),
-            help = "How many of these the Age has, where the book described none of its own.",
-        )
-
-        /** The reserved name [cast] answers to, spelled once because three places compare against it. */
-        const val CAST = "cast"
-
-        const val TRUE = "true"
-        const val FALSE = "false"
-
-        /**
-         * What an option reads as when a writer left it alone — whatever the world would have done.
-         *
-         * **First in the list wherever it appears, so it is the [default]**, and named for that rather
-         * than for what it happens to mean in any one place.
-         */
-        const val DEFAULT = "default"
-    }
-}
-
-/**
- * Something an aspect can hold — **and therefore something the tag layer can describe.**
- *
- * Two quite different things implement this. An [AuthoredPreset] is a design this pack wrote, enumerated
- * in code, with parameters of its own; a [RegistryReference] is a pointer into one of the game's
- * registries, of which there are thousands and which nobody here wrote. They share no shape and no
- * provenance.
- *
- * **What they share is that a tag can be hung on them**, which is what puts them in one pool a word can
- * reach, and it is the only thing they have in common — so the interface is named for it rather than for
- * some noun that has to cover both. `art/preset_tags/` describes exactly these.
- */
-interface Taggable : StringRepresentable {
-    /** How a recipe records it: a bare `lower_snake_case` name, or a `namespace:path` id. */
-    val key: String
-
-    val aspect: Aspect
-
-
-    /**
-     * Whether a sentence may ask for this, as opposed to only a pinned recipe naming it outright.
-     *
-     * Almost every preset is askable and `VocabularyCheck` insists on it, since one no word can reach is
-     * content nobody can use. Declared here rather than inferred from a missing `preset_tags` entry,
-     * because an omission and an intention look identical — the check separately insists that anything
-     * answering `false` really is pinned somewhere.
-     */
-    val askableInASentence: Boolean get() = true
-
-    /**
-     * Whether this preset would actually *do* anything with [parameter], as opposed to recognising the
-     * name.
-     *
-     * The resolver reads this to prefer a preset that can honour what the sentence asked for. Where
-     * nothing in the aspect can, the word is charged rather than dropped (§3.3).
-     */
-    fun honours(parameter: Parameter): Boolean = ownParameters.any { it.name == parameter.name }
-
-    /**
-     * The same question asked by name, which is how the resolver has it. False for a name never declared,
-     * so "does not offer it" and "offers it but ignores it" answer alike — telling those apart is
-     * [Options.unknownTo]'s job.
-     */
-    fun honoursParameterNamed(name: String): Boolean = ownParameters.any { it.name == name }
-
-    override fun getSerializedName(): String
-}
-
-/**
- * **What one property holds** — the whole of the world model, and everything else falls out of it
- * (`the-world-model.md` §2).
- *
- * The three kinds decide what a claim on the property can mean, which operators are legal there, and
- * whether it needs tagging — so nothing anywhere has to author those rules separately.
- */
-enum class Holds {
-    /**
-     * Nothing of its own — the property is a group of other properties, and what it *is* is where they were
-     * left. Only an aspect is ever this; a parameter always holds something.
-     */
-    NOTHING,
-
-    /**
-     * One value on a continuous axis — a temperature, a fog distance, how large a vein is.
-     *
-     * **Self-describing, so no range is ever tagged**: a word bounds it and nothing has to be told which
-     * temperatures are hot. Two claims broaden into the span holding both, since a word carrying a span is
-     * evocative about that axis, and they fracture instead where the antonym table says the two disagree —
-     * without which two spans miles apart would silently average into mush.
-     */
-    RANGE,
-
-    /**
-     * One value drawn from a list — a terrain's shape, a colour, a block. Closed (three skies) or open
-     * (every block in the game), which the property says separately.
-     *
-     * **The kind that needs tags** (world model §7): a vague word choosing among seventeen shapes has
-     * nothing to go on, where a range answers for itself.
-     */
-    CATALOGUE,
-
-    /**
-     * A distribution the template ships and claims skew — the biomes, the things placed in the ground, the
-     * structures, the creatures.
-     *
-     * Members are usually named from a registry, and may also be brought into being by description
-     * (`gold block veins`). Never counted: `teeming jungles` is a weight, since there is one jungle and the
-     * world has more or less of it.
-     */
-    WEIGHTED_SET,
-
-    /**
-     * Individuals that exist only because somebody described them — the suns, the moons.
-     *
-     * Each member holds properties of its own, so this is the recursive kind. A member is minted by the
-     * clause that describes it and there is no number anywhere: `a sun. a sun.` is two suns because it is
-     * two clauses, which is what took counts out of the language.
-     *
-     * Not to be confused with [WEIGHTED_SET]: a jungle is a kind the world has more or less of, where a
-     * sun is one of several individuals. Both are populations in the ordinary sense; what separates these
-     * is that their members are written rather than drawn.
-     */
-    POPULATION,
-    ;
-
 }
