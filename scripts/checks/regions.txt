@@ -25,12 +25,11 @@
 # Ages, `sea.seam=sheared` on `twoseas`, `rock.seam=sheared` wherever carvers divide, and
 # `climate.seam=sheared` on all three climate Ages.
 #
-# **One thing for a human to rule on.** Splitting `depths=` means every Age here now also carries
-# `underground=noise_caves`, which is `AgeComposition`'s own default rather than anything this file asked
-# for. It is harmless where both sides of a comparison get it, but `halfhollow` below claims "caves in some
-# territories and solid rock in others", and its solid territories now have noise caves built into them
-# regardless. Translating the syntax is not the same as deciding that, so the line is left saying what it
-# always said.
+# **Splitting `depths=` left every Age here carrying `underground=noise_caves`**, which is
+# `AgeComposition`'s own default rather than anything this file asked for. That is harmless wherever both
+# sides of a comparison get it, so every line below keeps it — except `halfhollow`, which is walked rather
+# than measured and would have claimed solid rock it did not have. That one says `underground=none`
+# outright (Jonah, 2026-09-16).
 
 # Two terrains, one sea: the shape splits and nothing else does.
 age compose ground 7 landmass=hills,pillars sea=water rock=solid sky=plain
@@ -68,7 +67,11 @@ age gen twoseas
 # Caves in some territories and solid rock in others — `solid` holding ground of its own rather than
 # vanishing into the union's identity (design 3.4, generator version 11). The seam follows the territory
 # map now, not chunk edges: carving is a union asked at each walk's origin, not a per-chunk selection.
-age compose halfhollow 11 landmass=hills sea=water rock=caves,solid sky=plain
+#
+# **`underground=none` is said outright here**, because this one is walked rather than measured and the
+# slot defaults to `noise_caves`: without it the solid territories are riddled with noise caves and there
+# is nothing left to look at (Jonah, 2026-09-16).
+age compose halfhollow 11 landmass=hills sea=water rock=caves,solid underground=none sky=plain
 age gen halfhollow
 age bench halfhollow 4
 

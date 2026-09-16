@@ -7,51 +7,75 @@
 # Read the output rather than trusting an exit code: this drives a server, it does not assert. What
 # should pass or fail lives in `WritingCheck`.
 #
-# EVERY SENTENCE HERE OPENS WITH `age`, AND HAS TO. The nucleus is mandatory, so a book without one is
-# not a sentence and is filled in against one the Art draws for itself — which keeps the writer's content
-# pages and drops the structural ones, `only` and the rungs among them. A sentence that loses its nucleus
-# does not fail here; it quietly starts showing what repair does instead.
+# EVERY SENTENCE HERE CARRIES `age`, AND HAS TO. The nucleus is mandatory, so a book without one is not a
+# sentence and is filled in against one the Art draws for itself — which keeps the writer's content pages
+# and drops the structural ones, `only` and the rungs among them. A sentence that loses its nucleus does
+# not fail here; it quietly starts showing what repair does instead.
+#
+# **REPAIRED 2026-09-16, and every sentence in it had been rewritten by repair before it was read.** Each
+# was written in the order sections used to take — the aiming page *opening* the clause, `landmass floating
+# basalt`. That reversed on 2026-08-07 (design §4.3.1): every clause now ends with the thing it is about,
+# so it is `floating basalt landmass`. A book in the old order still parses, because repair fills in what
+# it cannot read — which is exactly why nothing here ever looked wrong. It was showing what repair does.
+#
+# So `age` opens a sentence wherever another clause is aimed elsewhere, and **closes** one where the
+# content is the nucleus itself: `unaimed floating basalt age`.
+#
+# The sentences and the expectations below are now the ones `WritingCheck` holds, which is the spec that
+# owns pass/fail for all of this and is run against a real server on every `:common:serverTest`. Two words
+# moved while this file sat stale: `finely` became `patchy`, and `bare` is gone entirely — the skin it set
+# belongs to `surface` now, where naming air is how a writer says there is none.
 
 # --- The readout ---------------------------------------------------------------------------------
 # The whole point of the prose is that it shows where each page landed. Two aiming pages, two sections,
 # and each material must come back under the part it was written against.
-# Expect: `landmass floating of basalt, over sea molten of lava.` and nothing under `supplied`.
-age write readsback age landmass floating basalt sea molten lava
+# Expect: `age: floating, basalt landmass, over molten, lava sea.` — and read it against the sentence, page
+# for page. **That is the repair test on this route**: a book repair had to fill in comes back saying
+# something other than what was written. The `supplied` list naming what was added is json-only
+# (`/age write json …`) and never appears in the output this file is driven through.
+age write readsback age floating basalt landmass molten lava sea
 
 # The same content words with no aiming page in front of them are the nucleus, and the readout has to
 # say so rather than inventing a division nobody wrote.
-# Expect: `floating of basalt.`
-age write unaimed age floating basalt
+# Expect: `age: floating, basalt.` — and note this one *closes* with `age`, the content being the nucleus.
+age write unaimed floating basalt age
 
 # A page the Art never heard of is a typo, not a vague book — a page is a physical item carrying a real
 # word, so an unknown one cannot have been written.
 # Expect: the command refuses by name and writes no Age.
-age write laundered age landmass zzzznotaword basalt
+age write laundered age zzzznotaword basalt landmass
 
 # --- The quantifier ------------------------------------------------------------------------------
-# `teeming villages` is what the production exists for. The rung must reach the recipe on the claim,
-# spelled with the `@` mark.
-# Expect: `structures.built=minecraft:villages@teeming`, and `villages` at density `teeming` under `said`.
-age write manyvillages age structures teeming villages
+# `teeming villages` is what the production exists for. The rung must reach the recipe on the claim — as a
+# resolved amount rather than as the word, a rung being what a writer says and a number what the world does.
+# Expect: `structures.built=minecraft:villages[amount=8]`, and `villages → structures` under it.
+age write manyvillages age teeming villages structures
 
-# Expect: `structures.built=minecraft:villages@scarce`.
-age write fewvillages age structures scarce villages
+# Expect: `structures.built=minecraft:villages[amount=0.5]` — scarce being a fraction of a mention, where
+# teeming is eight of one.
+age write fewvillages age scarce villages structures
 
 # A rung binds to ONE term. Joined with another value, only the quantified one carries it.
-# Expect: `minecraft:woodland_mansions,minecraft:villages@teeming` — the mansions bare of any rung.
-age write onlyoneteems age structures woodland_mansions and teeming villages
+# Expect: `minecraft:villages[amount=8],minecraft:woodland_mansions[amount=2]` — the mansions left at a
+# plain mention, which is what naming one comes to before any rung scales it.
+age write onlyoneteems age woodland_mansions and teeming villages structures
 
 # `only` and a rung on the same value — the two axes are independent and must not eat each other.
-# Expect: `structures.built=!minecraft:villages@teeming`, polarity `only` and density `teeming`.
-age write onlyteeming age structures only teeming villages
+# Expect: `structures.built=minecraft:villages[only,amount=8]` — both marks on one value, inside the one
+# bracket. It also reports `! displaced +4: 'structures' was crowded out of structures by 'villages'`, which
+# is `only` doing its job and costing instability for it, not something going wrong.
+age write onlyteeming age only teeming villages structures
 
 # --- The parameters no word could reach ---------------------------------------------------------------
-# Each was pinned into a recipe and unreachable from a sentence.
-# Expect: `mingling=fine`.
-age write finemingle age landmass finely basalt and deepslate
+# Each was pinned into a recipe and unreachable from a sentence, and each is a word now.
+# Expect: `landmass.mingling=0.1..0.7`. The word was `finely` and is `patchy`, and the axis turned over
+# with it — it meant *fineness* and means coarseness, so low is fine now (see `Terrain.MINGLING`).
+age write patchymingle age patchy basalt and deepslate landmass
 
-# Expect: `biomes.skin=bare`.
-age write bareskin age biomes bare
+# Expect: `surface.material=minecraft:air`. This said `biomes bare` until the skin stopped being a
+# two-state dial on the biomes and became the surface's own material; naming air is how a writer says
+# there is no skin at all, the way `open` says there is no sea. `bare` is not a word any more.
+age write bareground age minecraft:air surface
 
 # --- What the writer sees ------------------------------------------------------------------------
 age list
