@@ -55,11 +55,12 @@ object Collapse {
         if (cracks.isEmpty()) return
         val cursor = BlockPos.MutableBlockPos()
         val opened = mutableListOf<BlockPos>()
+        val floor = level.minY
         for (x in here.minBlockX..here.maxBlockX) {
             for (z in here.minBlockZ..here.maxBlockZ) {
                 if (cracks.none { (at, crack) -> crack.reaches(x - at.first, z - at.second) }) continue
-                openColumn(chunk, cursor, x, z, level.minY)
-                opened += BlockPos(x, topOfTheTear(chunk, x, z, level.minY), z)
+                openColumn(chunk, cursor, x, z, floor)
+                opened += BlockPos(x, topOfTheTear(chunk, x, z, floor), z)
             }
         }
         bookTheFirstTurn(chunk, opened)
@@ -86,16 +87,16 @@ object Collapse {
     /** The topmost block of the band this column just had cut, which is the only one that spreads. */
     private fun topOfTheTear(chunk: ChunkAccess, x: Int, z: Int, floor: Int): Int {
         val surface = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x and IN_CHUNK, z and IN_CHUNK)
-        return minOf(floor + KEPT_UNDERFOOT + DEEP, surface)
+        return minOf(floor + KEPT_UNDERFOOT, surface)
     }
 
     /**
      * One column, floor to daylight: the tear at the bottom and nothing above it.
      *
      * The fissure **replaces bedrock**, which is the point — a world whose floor has given way is a
-     * different thing from a world with a deep hole in it. It is a *band* rather than a filled column
-     * because that is what the structure already does and what the starfield reads best as, and everything
-     * over it is cleared to the surface so the tear is visible from the air.
+     * different thing from a world with a deep hole in it. **One layer of it**, because that is all a tear
+     * has ever needed to be: `StarFissureFall` takes whoever steps in from the moment the ground under it
+     * stops holding them. Everything over it is cleared to the surface so the tear is visible from the air.
      */
     private fun openColumn(
         chunk: ChunkAccess,
@@ -106,10 +107,10 @@ object Collapse {
     ) {
         val surface = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x and IN_CHUNK, z and IN_CHUNK)
         val lowest = floor + KEPT_UNDERFOOT
-        for (y in lowest..minOf(lowest + DEEP, surface)) {
-            cursor.set(x, y, z)
-            // Through the chunk rather than the level: a column is hundreds of writes and a chunk still
-            // being built has no use for the neighbour and lighting bookkeeping `setBlock` carries.
+        if (lowest <= surface) {
+            cursor.set(x, lowest, z)
+            // Through the chunk rather than the level: a chunk still being built has no use for the
+            // neighbour and lighting bookkeeping `setBlock` carries.
             chunk.setBlockState(cursor, TEAR, Block.UPDATE_NONE)
             // **And the block entity by hand, which is the whole of why half a tear was invisible.**
             // `ProtoChunk.setBlockState` sets the state, the lighting and the heightmaps and stops — it
@@ -120,7 +121,7 @@ object Collapse {
             // 2026-09-09, walked).
             standTheStarsUp(chunk, cursor)
         }
-        for (y in lowest + DEEP + 1..surface) {
+        for (y in lowest + 1..surface) {
             cursor.set(x, y, z)
             if (chunk.getBlockState(cursor).isAir) continue
             chunk.setBlockState(cursor, AIR, Block.UPDATE_NONE)
@@ -141,11 +142,11 @@ object Collapse {
         val lowest = level.minY + KEPT_UNDERFOOT
         val surface = level.getHeight(Heightmap.Types.MOTION_BLOCKING, at.x, at.z)
         val cursor = BlockPos.MutableBlockPos()
-        for (y in lowest..minOf(lowest + DEEP, surface)) {
-            cursor.set(at.x, y, at.z)
+        if (lowest <= surface) {
+            cursor.set(at.x, lowest, at.z)
             level.setBlock(cursor, TEAR, Block.UPDATE_ALL)
         }
-        for (y in lowest + DEEP + 1..surface) {
+        for (y in lowest + 1..surface) {
             cursor.set(at.x, y, at.z)
             if (level.getBlockState(cursor).isAir) continue
             level.setBlock(cursor, AIR, Block.UPDATE_ALL)
@@ -215,24 +216,12 @@ object Collapse {
     private const val CELL_BLOCKS = 96
 
     /**
-     * How deep the tear itself runs before it gives way to open shaft — the structure's own figure.
-     *
-     * Public because the terminal deposit is sited inside this band on purpose (design §7.7): what a
-     * doomed Age is stuffed with should be the first thing the floor takes.
-     */
-    const val DEEP = 24
-
-    /**
      * How much of the world's own floor the tear does **not** take, in layers.
      *
-     * One, and it is load-bearing rather than tidy (Jonah, 2026-08-09, walked: "it is possible to fall out
-     * of the world and into the void and die without getting teleported"). A star fissure has no collision
-     * — falling *through* it is how you use it — so it only ever worked because there was rock underneath
-     * to stop you while the portal's beat ran. Taking the last layer as well left the way out with nothing
-     * under it, and anything that fell in went past the bottom of the world.
-     *
-     * Nothing is given up visually: the layer is under twenty-four blocks of unlit starfield, so what a
-     * player sees is still a floor that has given way.
+     * One, and it is what the tear stands on rather than what saves anybody: `StarFissureFall` carries a
+     * player through whatever is under a tear, so the old hazard this guarded against — falling out of the
+     * bottom of the world before the way out could fire — cannot happen any more. What the layer still
+     * buys is that the world has a floor at all where a tear has taken its skin.
      */
     private const val KEPT_UNDERFOOT = 1
 

@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.word.LearnedWordsHolder;
 import co.voik.agesandtheart.age.word.PageLearning;
 import co.voik.agesandtheart.desk.WritingSeedHolder;
 import co.voik.agesandtheart.desk.WritingSeedKt;
+import co.voik.agesandtheart.worldgen.fissure.StarFissureFall;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerListener;
@@ -70,12 +71,18 @@ public abstract class ServerPlayerMixin implements LearnedWordsHolder, WritingSe
         input.read(LearnedWords.SAVE_KEY, LearnedWords.Packed.CODEC)
                 .ifPresent(packed -> this.agesandtheart_learnedWords().load(packed));
         this.agesandtheart$writingSeed = input.getLongOr(WritingSeedKt.WRITING_SEED_KEY, 0L);
+        // And a fall through a tear, taken up where it left off. The rest of a fall is where they are and
+        // how fast they are going, both of which vanilla saves already.
+        if (input.getBooleanOr(StarFissureFall.SAVE_KEY, false)) {
+            ((ServerPlayer) (Object) this).noPhysics = true;
+        }
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
     private void agesandtheart$write(ValueOutput output, CallbackInfo ci) {
         output.store(LearnedWords.SAVE_KEY, LearnedWords.Packed.CODEC, this.agesandtheart_learnedWords().pack());
         output.putLong(WritingSeedKt.WRITING_SEED_KEY, this.agesandtheart$writingSeed);
+        output.putBoolean(StarFissureFall.SAVE_KEY, StarFissureFall.isFalling((ServerPlayer) (Object) this));
     }
 
     @Inject(method = "restoreFrom", at = @At("TAIL"))

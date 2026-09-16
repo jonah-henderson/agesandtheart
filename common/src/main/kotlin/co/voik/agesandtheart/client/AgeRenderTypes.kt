@@ -9,8 +9,11 @@ import com.mojang.blaze3d.platform.CompareOp
 import com.mojang.blaze3d.shaders.UniformType
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
+import net.minecraft.client.renderer.RenderPipelines
+import net.minecraft.client.renderer.blockentity.AbstractEndPortalRenderer
 import net.minecraft.client.renderer.rendertype.RenderSetup
 import net.minecraft.client.renderer.rendertype.RenderType
+import java.util.Optional
 
 /**
  * Ways of drawing that vanilla has no arrangement for.
@@ -57,6 +60,62 @@ object AgeRenderTypes {
      * visible as far as its entity is tracked. Whatever draws on this owes the world its own falloff —
      * see `HadalfishRenderer.SEEN_UNTIL`.
      */
+    /**
+     * The starfield drawn over everything, whatever the depth buffer says.
+     *
+     * Vanilla's `RenderTypes.endPortal` cannot do this: it carries `DepthStencilState.DEFAULT`, so terrain
+     * between the eye and the field wins, and under an Age's world there is always terrain in the way. The
+     * shaders, the samplers and the fifteen layers are vanilla's — only the depth test differs, and it is
+     * `ALWAYS_PASS` with no write so the veil settles nothing and hides everything.
+     *
+     * **Culled, and the geometry is wound inward for it.** The veil is a closed box round the eye, so with
+     * backface culling on each direction meets exactly one face and there is no draw-order fight between
+     * the lid and the walls.
+     *
+     * Vanilla's three uniform snippets are restated because they are private, exactly as
+     * [MATRICES_AND_PROJECTION] restates one of them.
+     */
+    val starFissureVeil: RenderType = RenderType.create(
+        "age_star_fissure_veil",
+        RenderSetup.builder(
+            RenderPipeline.builder(vanillasEndPortal())
+                .withLocation("pipeline/star_fissure_veil".location())
+                .withDepthStencilState(DepthStencilState(CompareOp.ALWAYS_PASS, true))
+                .build(),
+        )
+            .withTexture("Sampler0", AbstractEndPortalRenderer.END_SKY_LOCATION)
+            .withTexture("Sampler1", AbstractEndPortalRenderer.END_PORTAL_LOCATION)
+            .createRenderSetup(),
+    )
+
+    /**
+     * Vanilla's end-portal pipeline taken apart, so one property of it can be put back differently.
+     *
+     * **Read off the built pipeline rather than restated**, which is what keeps it vanilla's: the shaders,
+     * the two samplers, the vertex format, the uniform buffers and the fifteen layers all come from
+     * whatever `RenderPipelines.END_PORTAL` is on the day, so none of it can quietly fall out of step with
+     * a version that adds a uniform. `RenderPipeline` publishes a getter for every field and `Snippet` is a
+     * public record over the same ones, so this needs no widened access at all.
+     *
+     * Only the depth test is left [Optional.empty], for the builder to fill in.
+     */
+    private fun vanillasEndPortal(): RenderPipeline.Snippet {
+        val portal = RenderPipelines.END_PORTAL
+        return RenderPipeline.Snippet(
+            Optional.of(portal.vertexShader),
+            Optional.of(portal.fragmentShader),
+            Optional.of(portal.shaderDefines),
+            Optional.of(portal.samplers),
+            Optional.of(portal.uniforms),
+            Optional.of(portal.colorTargetState),
+            Optional.empty(),
+            Optional.of(portal.polygonMode),
+            Optional.of(portal.isCull),
+            Optional.of(portal.vertexFormat),
+            Optional.of(portal.vertexFormatMode),
+        )
+    }
+
     val lightThroughFog: RenderType = RenderType.create(
         "age_light_through_fog",
         RenderSetup.builder(

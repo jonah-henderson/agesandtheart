@@ -12,6 +12,7 @@ import co.voik.agesandtheart.content.ChargedMetal
 import co.voik.agesandtheart.content.DeepWaterLogging
 import co.voik.agesandtheart.content.ProtectiveSuit
 import co.voik.agesandtheart.sky.Skies
+import co.voik.agesandtheart.worldgen.fissure.TheFall
 import co.voik.ephemeris.LevelWeather
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -60,6 +61,8 @@ object CommonSetup {
         ChargedMetal.stir(server)
         // And the linking panel's own beat: an open the pace was holding, and a lectern's panel its viewer has left.
         PanelViews.tick(server)
+        // And whoever has fallen through one of an Age's tears and come out of the bottom of the field.
+        TheFall.letGo(server)
     }
 
     /**
@@ -98,6 +101,8 @@ object CommonSetup {
      */
     fun playerJoined(player: ServerPlayer) {
         PageLearning.tellEverything(player)
+        // And a fall through a tear resumes, or ends where the tear no longer does.
+        TheFall.resumed(player)
     }
 
     /**

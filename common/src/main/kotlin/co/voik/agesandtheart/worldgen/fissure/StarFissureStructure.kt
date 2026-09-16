@@ -90,11 +90,11 @@ class StarFissureStructure(settings: StructureSettings) : Structure(settings) {
 }
 
 /**
- * The rift itself: a ragged shaft cut down from the ground and filled to the brim with the fissure.
+ * The rift itself: a ragged crack in the ground, one layer deep, filled with the fissure.
  *
- * **Deep enough to fall in.** `StarFissureBlock` lets go after about a second, which is roughly fifteen
- * blocks of falling, so a shorter shaft would drop a player onto its floor having seen the stars and gone
- * nowhere — the one failure that would make the whole thing feel broken rather than rare.
+ * **One block is enough, and that is the whole of the design.** What a player falls through is the surface
+ * giving way; `StarFissureFall` takes them from the moment they step in and the ground under the tear stops
+ * holding them, so there is no shaft to dig and nothing to land on.
  */
 class StarFissurePiece : StructurePiece {
 
@@ -142,13 +142,17 @@ class StarFissurePiece : StructurePiece {
         for (x in within.minX()..within.maxX()) {
             for (z in within.minZ()..within.maxZ()) {
                 if (!crack.reaches(x - middleX, z - middleZ)) continue
+                // **One layer, at this column's own ground.** A tear is a hole in the world's skin rather
+                // than a shaft: what you fall through is the surface giving way, and the fall itself is
+                // `StarFissureFall`'s from the moment you step in.
                 val ground = level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x, z) - 1
-                for (y in boundingBox.minY()..boundingBox.maxY()) {
+                cursor.set(x, ground, z)
+                if (within.isInside(cursor)) level.setBlock(cursor, FISSURE, UPDATE_FLAGS)
+                // And the lip cleared over it, so the tear is a hole you can see into rather than flush.
+                for (y in ground + 1..boundingBox.maxY()) {
                     cursor.set(x, y, z)
                     if (!within.isInside(cursor)) continue
-                    // Air above the ground, fissure below it: the lip is a hole you can see into, and
-                    // everything under the surface is the thing you fall through.
-                    level.setBlock(cursor, if (y > ground) AIR else FISSURE, UPDATE_FLAGS)
+                    level.setBlock(cursor, AIR, UPDATE_FLAGS)
                 }
             }
         }
@@ -167,7 +171,13 @@ class StarFissurePiece : StructurePiece {
         const val ROOM_TO_SPARE = 2
         const val REACH = (Crack.HALF_LENGTH + Crack.MOST_WANDER).toInt() + ROOM_TO_SPARE
 
-        /** Comfortably past the second of falling the block asks for. */
+        /**
+         * How far below the middle's own surface the box reaches.
+         *
+         * Nothing is filled this deep — the tear is one layer, at each column's own ground. The box only
+         * has to *contain* that ground, and a crack crossing a slope meets a good spread of them, so the
+         * slack is what stops the low end of a crack falling outside its own piece.
+         */
         const val DEEP = 24
 
         /** A little above the ground, so the tear's edge is visible rather than flush. */

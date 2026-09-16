@@ -163,9 +163,11 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
 
     /** The stars on the far side of a broken world-floor or world-ceiling — see [giveWay]. */
     private fun standTheStarsBehind(level: ServerLevel, at: BlockPos) {
-        val underTheFloor = at.y - level.minY <= at.y.let { level.minY + level.height - it }
+        val floor = level.minY
+        val ceiling = level.minY + level.height
+        val underTheFloor = at.y - floor <= ceiling - at.y
         val beyond = if (underTheFloor) at.below() else at.above()
-        val inside = beyond.y >= level.minY && beyond.y < level.minY + level.height
+        val inside = beyond.y >= floor && beyond.y < ceiling
         val where = if (inside) beyond else at
         if (level.getBlockState(where).isAir || where == at) {
             level.setBlock(where, STARS, Block.UPDATE_ALL)

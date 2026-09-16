@@ -74,7 +74,7 @@ object AgeGeneration {
      *
      * A composed `DimensionType` cannot be encoded in the join packet, so every combination is a file, and
      * each further switch would double them. All three declare [VerticalWindow.DEFAULT], which is the band
-     * a field tree builds into; an Age wearing a template's rock wears that world's own type instead, and
+     * a field tree builds into. An Age wearing a template's rock wears that world's own type instead, and
      * its band with it (see [typeFor]).
      */
     val AGE_DIMENSION_TYPE: Identifier = "age".location()
@@ -740,9 +740,9 @@ object AgeGeneration {
      * every one of those colours better, so the palette moved to a [co.voik.agesandtheart.sky.Look] and
      * what is left here is the two things only a pre-authored file can carry.
      *
-     * The band of world is deliberately *not* here. All four types declare [VerticalWindow.DEFAULT], so a
-     * sky cannot move an Age's floor — which is exactly what it used to do, to any landform reaching below
-     * y=0 that drew the Spire's sky by chance.
+     * The band of world is deliberately *not* here. All four types carry the same one —
+     * [VerticalWindow.DEFAULT] — so a sky cannot move an Age's ground, which is exactly what it used to do,
+     * to any landform reaching below y=0 that drew the Spire's sky by chance.
      */
     fun dimensionType(recipe: AgeRecipe): Identifier = when (val world = recipe.world) {
         is AgeWorld.Composed -> typeFor(world.composition, recipe.template)

@@ -27,6 +27,13 @@ class StarFissureRenderer : TheEndPortalRenderer() {
         submitNodeCollector: SubmitNodeCollector,
         camera: CameraRenderState,
     ) {
+        // **Not while somebody is falling through one.** [StarFissureVeil] leaves a hole where the tear is
+        // so the Age can be seen receding through it, and a tear's own downward face is the one thing that
+        // can stand in that hole — filling the opening with the very field the opening exists to interrupt.
+        // It is why the Age showed only while the camera was still inside the block, where every face
+        // points away. Everything else a fissure would draw is behind the veil, so declining all of it
+        // costs nothing.
+        if (StarFissureVeil.hidingTheTears()) return
         submitCube(state.facesToShow, RenderTypes.endPortal(), poseStack, submitNodeCollector)
     }
 }

@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.reward
 
-import co.voik.agesandtheart.age.consequence.Collapse
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.Holder
 import net.minecraft.tags.BlockTags
@@ -112,23 +111,18 @@ object Deposits {
      *
      * **Sited inside the tear's own band alone, it was almost entirely eaten** (Jonah, walked 2026-09-10).
      * Putting the hoard where the floor goes first was deliberate and it went too far: a reward you watch
-     * being consumed is drama, one already consumed before you arrive is an empty band. So it reaches
-     * [TELEGRAPHED_FOR] times the tear's depth, and the part above the starfield is what tells you what is
-     * inside it — *"the height limit needs to be higher to telegraph that all the good stuff is down
-     * there"*.
+     * being consumed is drama, one already consumed before you arrive is an empty band.
      *
-     * **The tear does not grow to meet it**, which is the other way this could have been read and the wrong
-     * one: a deeper `Collapse.DEEP` would eat more rather than less.
+     * **A tear is one layer now**, so there is no band to reach a multiple of: the hoard sits in the few
+     * layers directly over it, close enough that the floor is visibly coming for it and shallow enough that
+     * what the floor takes is one layer rather than a third of the seam.
      *
      * Uniform rather than triangular, so the part that survives reads as the same seam continuing down into
      * the part that does not.
-     *
-     * Reads [Collapse.DEEP] rather than restating it: if the tear's reach ever moves, the hoard has to move
-     * with it or the whole point is lost quietly.
      */
     private fun inTheFloorItself(): HeightRangePlacement = HeightRangePlacement.uniform(
         VerticalAnchor.aboveBottom(JUST_OFF_THE_FLOOR),
-        VerticalAnchor.aboveBottom(Collapse.DEEP * TELEGRAPHED_FOR),
+        VerticalAnchor.aboveBottom(REACHES_OVER_THE_TEAR),
     )
 
     /**
@@ -171,10 +165,14 @@ object Deposits {
      * Absurd on purpose and unbalanced by design — "grab what you can before you cannot" is not a rate to
      * be tuned against the ordinary economy, because the Age it comes from cannot be farmed.
      *
-     * **Split from the size, because the band it is spread through got three times taller.** They were one
-     * number, so the only way to put more ore in a taller band was to grow every vein with it — and ten
-     * times a vein of four is already a boulder, where forty times it is a floor. The count is what "more
-     * ore" means; the size is what one strike is worth.
+     * **Split from the size**, because the two answer different questions: the count is what "more ore"
+     * means, the size is what one strike is worth.
+     *
+     * **Its floor is fixed by §7.7 rather than chosen.** A doomed Age must land in [Yield.IMMENSE] however
+     * marginal its score, and the marginal case is one vein times this multiple against a band that opens
+     * at twenty — so anything under twenty silently breaks the rule `SurveyCheck` guards. The tear becoming
+     * one layer does not move it: if the seam now reads as too dense, [TERMINAL_VEIN_SIZE] is the lever,
+     * because thinning the count is what would quietly cost the register its top band.
      */
     private const val TERMINAL_VEINS = 40
 
@@ -187,12 +185,13 @@ object Deposits {
     private const val TERMINAL_VEIN_SIZE = 10
 
     /**
-     * How far past the tear's own depth the hoard reaches, so there is something left to find.
+     * How far over the tear the hoard reaches, in layers above the world's floor.
      *
-     * Three, which puts about a third of the band inside the starfield and the rest above it — enough that
-     * a raid pays even after the floor has taken what it is going to take.
+     * The tear is the one layer at `floor + 1`, so this is the handful of layers sitting straight on top of
+     * it: near enough that the floor is plainly coming for the seam, shallow enough that what it takes is a
+     * layer rather than a third of the hoard.
      */
-    private const val TELEGRAPHED_FOR = 3
+    private const val REACHES_OVER_THE_TEAR = 7
 
     private const val ORDINARY_MULTIPLE = 1
 

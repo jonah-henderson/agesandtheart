@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.mixin.client;
 
+import co.voik.agesandtheart.client.StarFissureVeil;
 import co.voik.agesandtheart.client.WoundField;
 import co.voik.agesandtheart.client.light.DeepLights;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -38,5 +39,7 @@ public class LevelRendererMixin {
         WoundField.INSTANCE.submit(poseStack, submitNodeStorage, levelRenderState.cameraRenderState.pos);
         // And every light in the deep, in one submission for the same reason the wounds are.
         DeepLights.INSTANCE.submit(poseStack, submitNodeStorage, levelRenderState.cameraRenderState.pos);
+        // And the starfield over everything, for whoever is falling out of the Age through a tear.
+        StarFissureVeil.INSTANCE.submit(poseStack, submitNodeStorage, levelRenderState.cameraRenderState.pos);
     }
 }

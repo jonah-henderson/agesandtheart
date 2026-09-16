@@ -5,18 +5,16 @@ import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.InsideBlockEffectApplier
-import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.BaseEntityBlock
-import net.minecraft.world.level.block.Portal
 import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.TheEndPortalBlockEntity
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.portal.TeleportTransition
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
@@ -25,16 +23,27 @@ import net.minecraft.world.phys.shapes.VoxelShape
  * The stuff a star fissure is filled with: a hole in an Age you fall out of (design §7.8, §9 item 15).
  *
  * **The fall is the point** (Jonah, 2026-08-05). Mystcraft's fissure took you the instant you touched it;
- * this one is entered by falling *through* — you jump in, the starfield goes past, and a beat later you are
- * somewhere else. That beat is vanilla's own: `Portal.getPortalTransitionTime` is how long an entity must be
- * continuously inside before it fires, which is exactly what a column of these gives a falling player and
- * needed no machinery of ours.
+ * this one is entered by falling *through* — you jump in, the starfield goes past, and a moment later you
+ * are somewhere else.
+ *
+ * **Not a `Portal`, and that is deliberate.** It was one, and vanilla's portal machinery cost more than it
+ * gave: `handlePortal` has three separate ways to decline a destination, and a declined one is
+ * indistinguishable from a fissure that does nothing — which is exactly how a tear placed by hand came to
+ * swallow a player and then set them down in the overworld having never moved. The two hops are ours now,
+ * and each is a single call on the tick an entity touches the block.
+ *
+ * **A player falls through it and is held inside it** ([StarFissureFall]), which takes no teleport at all:
+ * the ground under the tear stops holding them, they drop until their eyes are inside the field, and there
+ * they stay while it fills the view. [TheFall] sends them on when the eyes come out of the bottom.
+ *
+ * **Everything else goes straight home.** The fall is worth having for somebody who jumped in; for a mob or
+ * a dropped item it is a way to fall past a one-block tear and out of the world.
  *
  * **One way, and it drops you into open air.** No return trip and nothing built at the far end — you arrive
  * a little above the world's spawn already falling, so the last thing the fissure does is the same thing it
  * started with. That is the escape hatch's whole shape: found rather than carried, and never a route back.
  */
-open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties), Portal {
+open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     override fun codec(): MapCodec<out StarFissureBlock> = CODEC
 
@@ -68,33 +77,39 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
         effects: InsideBlockEffectApplier,
         overlapping: Boolean,
     ) {
-        if (!entity.canUsePortal(false)) return
+        if (level !is ServerLevel) return
         // **Whatever fell to get here, it did not fall.** A tear that runs the whole height of the world
         // (§5.3) is a hundred-odd blocks of shaft, so anything arriving at the bottom arrives at terminal
-        // velocity and is killed by the floor a tick before the portal's beat is up — dying *inside* the
-        // way out, which is the one thing this block exists to prevent. Zeroing it every tick inside also
-        // covers the ordinary structural fissure, where a long drop in was survivable but expensive.
+        // velocity and would be killed by the floor — dying *inside* the way out, which is the one thing
+        // this block exists to prevent.
         entity.resetFallDistance()
-        entity.setAsInsidePortal(this, pos)
+        // A player is [StarFissureFall]'s from here: it carries them through the ground under the tear and
+        // holds them in the field, and nothing of it is a teleport. Only the overworld has no fall to give.
+        if (entity is ServerPlayer && level.dimension() != Level.OVERWORLD) return
+        // A mob, an item, or a player where there is no fall to be had: straight home, at once.
+        sendHome(level, entity)
     }
 
     /**
-     * A little above the world's spawn, already falling.
+     * A little above the world's spawn, already falling — **the way out**.
      *
-     * The gentle push down is the illusion's other half: arriving at rest reads as a teleport, where
-     * arriving in the air still moving reads as having come *out* of somewhere.
+     * The push down is the illusion's other half: arriving at rest reads as a teleport, where arriving in
+     * the air still moving reads as having come *out* of somewhere.
      */
-    override fun getPortalDestination(level: ServerLevel, entity: Entity, pos: BlockPos): TeleportTransition? {
+    private fun sendHome(level: ServerLevel, entity: Entity) {
         val home = level.server.overworld()
-        val spawn = home.respawnData.pos()
-        return TeleportTransition(
+        val spawn = home.levelData.respawnData.pos()
+        entity.teleportTo(
             home,
-            Vec3(spawn.x + HALF_A_BLOCK, spawn.y + FALL_OUT_ABOVE, spawn.z + HALF_A_BLOCK),
-            Vec3(0.0, -GENTLY_DOWN, 0.0),
+            spawn.x + HALF_A_BLOCK,
+            spawn.y + FALL_OUT_ABOVE,
+            spawn.z + HALF_A_BLOCK,
+            emptySet(),
             entity.yRot,
             entity.xRot,
-            TeleportTransition.PLAY_PORTAL_SOUND,
+            false,
         )
+        entity.deltaMovement = Vec3(0.0, -GENTLY_DOWN, 0.0)
     }
 
     /**
@@ -105,19 +120,12 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
      * spends the beat falling past it and out of the world. Vanilla's own portals answer nought for anything
      * but a player for the same reason.
      */
-    override fun getPortalTransitionTime(level: ServerLevel, entity: Entity): Int =
-        if (entity is Player) FALLING_FOR else AT_ONCE
 
     /** No swirl: the nether's confusion is a doorway's, and this is a hole in the ground. */
-    override fun getLocalTransition(): Portal.Transition = Portal.Transition.NONE
 
     companion object {
         val CODEC: MapCodec<StarFissureBlock> = simpleCodec(::StarFissureBlock)
 
-        private const val FALLING_FOR = 20
-
-        /** What everything but a player waits, so nothing falls through the one block it has to land on. */
-        private const val AT_ONCE = 0
         private const val FALL_OUT_ABOVE = 8.0
         private const val GENTLY_DOWN = 0.2
         private const val HALF_A_BLOCK = 0.5

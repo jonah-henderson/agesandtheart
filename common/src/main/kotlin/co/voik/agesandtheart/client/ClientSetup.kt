@@ -26,6 +26,8 @@ object ClientSetup {
         LureLooks.pulse(minecraft)
         // Which lectern's panel this client shows, since a lectern has no screen to tick it as a book's does.
         LecternPanels.tick(minecraft)
+        // Whether a tear is being fallen through, settled once here rather than per fissure per frame.
+        StarFissureVeil.tick(minecraft)
     }
 
     /**
@@ -60,5 +62,6 @@ object ClientSetup {
         // renderer would outlive the connection that fed them.
         LinkingPanel.forget()
         Storms.forget()
+        StarFissureVeil.forget()
     }
 }
