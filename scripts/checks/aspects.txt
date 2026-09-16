@@ -3,15 +3,39 @@
 #
 # Read the output rather than trusting an exit code — this drives a server, it does not assert. What
 # to look for is noted against each group.
+#
+# **REPAIRED 2026-09-16, and it had been composing almost nothing.** Six lines used the old `depths=` slot,
+# which is now `rock=` — see `Aspect.CARVERS`, which says why: a carver runs wherever there is stone to
+# cut, where `underground=` is a place built beneath it. Since `drive-server.sh` asserts nothing and exits
+# 0 either way, those six Ages had been refused in silence for as long as the slot has been split.
+#
+# **Two of the repairs are substitutions rather than translations**, and should be read as somebody's
+# guess at the intent:
+#
+#   - `depths=weathered` on `spireocean` named a preset that no longer exists; `Carvers` is now exactly
+#     solid, porous, caves and flooded_caves. It says `rock=flooded_caves`, which keeps a wet subsurface
+#     under the spires, but nothing says that is what `weathered` meant.
+#   - `sea.depth=deep` on `deepcavern` was never valid *and was never failing loudly*: `Sea.DEPTH` is a
+#     ranged parameter, so `deep` parsed as an unrecognised option, was kept, and was reported — meaning
+#     that Age has been generating an ordinary sea all along, since well before the `depths=` breakage.
+#     It now says `0.9..1.0`, near the top of an axis whose far end is "96 blocks up".
+#
+# Driven 2026-09-16 after the repair: all fourteen Ages compose. The refusals still refuse, naming the
+# alternatives; `typoage` still comes back carrying "(ignored, unrecognised: landmass.elevation)", which is
+# the point of it; `bareA`/`bareB` differ by 10 blocks over 2 of 25 chunks, the small non-zero the note
+# below predicts; and `spireX`/`spireY` are still identical across 25 chunks.
+#
+# Every Age here now also carries `underground=noise_caves`, which is `AgeComposition`'s own default rather
+# than anything this file asked for — the other half of what `depths=` used to conflate.
 
 # --- The two combinations the implementation plan names by name -------------------------------
 # Spire islands over real water rather than plasma, and hills with something going on underneath.
-age compose spireocean landmass=spire_islands sea=water depths=weathered sky=storm
-age compose hillcaves landmass=hills sea=water depths=flooded_caves sky=storm structures=vanilla
+age compose spireocean landmass=spire_islands sea=water rock=flooded_caves sky=storm
+age compose hillcaves landmass=hills sea=water rock=flooded_caves sky=storm structures=vanilla
 
 # --- Others nobody wrote, to stress the aspect list ---------------------------------------------
-age compose lavapillar landmass=pillars sea=lava depths=solid sky=plain
-age compose deepcavern landmass=caverns sea=water sea.depth=deep depths=porous sky=plain
+age compose lavapillar landmass=pillars sea=lava rock=solid sky=plain
+age compose deepcavern landmass=caverns sea=water sea.depth=0.9..1.0 rock=porous sky=plain
 
 # A terrain that stands in open air, told to have a sea anyway. The terrain's contract must win:
 # expect it to be created and to generate dry, not to crash.
@@ -36,7 +60,8 @@ age compose teemingvillages landmass=hills sea=water structures=vanilla structur
 age compose fortsonly landmass=hills sea=water structures=none structures.built=agesandtheart:fortresses biomes.grown=minecraft:crimson_forest
 
 # --- What the composer must refuse, naming the alternatives ------------------------------------
-# Expect "An Age needs a terrain" and "No terrain called 'atlantis'. Try: ..." — and no Age.
+# Expect "An Age needs a terrain" and "No landmass called 'atlantis'. Try: ..." — and no Age. (The slot is
+# said `landmass` in both messages; `terrain` is the aspect's own name and never reaches a writer.)
 age compose nolandform sea=water
 age compose nonsense landmass=atlantis
 
@@ -58,8 +83,8 @@ age gen typoage
 #
 # So read a small count rather than zero, and read it against a control the way generator-parity.txt says
 # to. That file carries the measured per-Age control band; this is the same method at a smaller radius.
-age compose bareA 777 landmass=eroded sea=water depths=caves sky=plain
-age compose bareB 777 landmass=eroded sea=water depths=caves sky=plain
+age compose bareA 777 landmass=eroded sea=water rock=caves sky=plain
+age compose bareB 777 landmass=eroded sea=water rock=caves sky=plain
 age compare bareA bareB 2
 
 # The one true zero left in the mod: a bespoke Tier-B generator on a biome of its own, which decorates

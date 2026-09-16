@@ -8,6 +8,16 @@
 # A carvers that cuts nothing anywhere now holds a territory in which no walk starts, so the second
 # sentence should differ from the first over a large share of its caves. Same seed throughout, so nothing
 # but the carvers can be responsible for a difference.
+#
+# **REPAIRED 2026-09-16.** All three lines used the old `depths=` slot, now `rock=`, so none of these Ages
+# had been composing at all — and `drive-server.sh` asserts nothing and exits 0 either way, so the file
+# reported nothing wrong while measuring nothing. The `#?` bounds went too: that layer is gone and such
+# lines are skipped outright, having read the first integer on the matching line, which on a server log is
+# the hour off the timestamp. Both numbers below are read by eye now.
+#
+# Every Age here also carries `underground=noise_caves` now, which is `AgeComposition`'s default rather
+# than anything this file asked for. It does not touch the measurement: both sides of each comparison get
+# the same underground, so the difference still isolates the carvers, which is the whole question.
 
 # Caves throughout, and caves against uncut ground. `compose` rather than `write` so the carvers is
 # stated outright and no resolver draw can quietly seat a third preset.
@@ -16,8 +26,8 @@
 # from these lines (2026-07-29). Both Ages now decorate, which puts a small non-zero floor under every
 # comparison here — irrelevant at this scale, since the signal is ~249,000 blocks against a floor in the
 # tens, but worth knowing before reading the control pair as exact.
-age compose riddledonly 7 landmass=hills sea=minecraft:water depths=caves sky=plain
-age compose riddledsolid 7 landmass=hills sea=minecraft:water depths=caves,solid sky=plain
+age compose riddledonly 7 landmass=hills sea=minecraft:water rock=caves sky=plain
+age compose riddledsolid 7 landmass=hills sea=minecraft:water rock=caves,solid sky=plain
 
 # THE NUMBER. Two blocks means the union is still swallowing `solid`; a large count means uncut ground
 # exists. Expect the difference to be air-versus-stone rather than water, which is what tells uncut ground
@@ -27,10 +37,18 @@ age compose riddledsolid 7 landmass=hills sea=minecraft:water depths=caves,solid
 # 174,329 over all 169 at the radius 6 used below, re-measured 2026-07-30), against
 # two under the plain union. Uncut ground exists.
 #
+# RE-MEASURED 2026-09-16, the first run since the file was repaired: **101,976 over 141 of 169** at radius
+# 6. Lower than the 174,329 recorded above and over fewer chunks, which is worth knowing before reading
+# that figure as current — everything under `rock=` and the underground has moved since July. The finding
+# is unchanged and is the only thing this number is for: some fifty thousand times the two blocks the
+# plain union gave, so `solid` is holding ground of its own.
+#
 # The bound is the *regression* it guards against rather than the measurement: two blocks was the old
 # behaviour, and anything in that neighbourhood means `solid` is being swallowed again. Six orders of
 # magnitude sit between the two readings, so a loose floor loses nothing and survives retuning.
-#? at-least 10000 block\(s\) differ
+# WAS `#? at-least 10000 block(s) differ`. The `#?` layer is gone and such lines are now skipped outright
+# (CLAUDE.md): it read the first integer on the matching line, which on a real server log is the hour off
+# the timestamp, so this could never have passed. Read the count below against ten thousand by eye.
 age compare riddledonly riddledsolid 6
 
 # And the control: two carvers that both *cut* must still union, so this pair should differ from
@@ -39,14 +57,17 @@ age compare riddledonly riddledsolid 6
 # MEASURED: 65,779 blocks over 73 of 169 chunks at radius 6 — porosity's scattered vugs added on top of the
 # caves, in the chunks it reached. The union between two cutting carvers is untouched. (Re-measured
 # 2026-07-30 while these expectations were being written: 67,138 over 68 of 169. Same reading.)
+# (Re-measured 2026-09-16 after the repair: 60,134 over 71 of 169. Same reading again, and well inside the
+# band — nowhere near the uncut-ground count, so the two cutting carvers are still unioning.)
 #
 # Bounded on both sides, because this one is a control and both directions mean something. Nothing at all
 # would say porosity stopped adding anything; a count up near the uncut-ground reading — 174,329 over all
 # 169 chunks at this radius — would say the two cutting carvers had stopped unioning and started dividing
 # territory, which is the bug next door. The ceiling sits between the two readings.
-age compose riddledporous 7 landmass=hills sea=minecraft:water depths=caves,porous sky=plain
-#? at-least 1000 block\(s\) differ
-#? at-most 150000 block\(s\) differ
+age compose riddledporous 7 landmass=hills sea=minecraft:water rock=caves,porous sky=plain
+# WAS `#? at-least 1000` and `#? at-most 150000 block(s) differ`, and neither could fire — see the note
+# above. Both bounds mean something here, so read the count by eye: below a thousand says porosity stopped
+# adding anything, and up near 174,329 says the two cutting carvers began dividing territory instead.
 age compare riddledonly riddledporous 6
 
 age list

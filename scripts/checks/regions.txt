@@ -11,19 +11,39 @@
 # So what is left to check is the thing that was always the real risk: the four **positional** aspects —
 # terrain, sea, carvers, climate — all read `AgeCharacter.mapFor`, and if they disagreed about where a seam
 # is, one boundary would land in four nearly-identical places and read as four edges rather than one.
+#
+# **REPAIRED 2026-09-16, and it had been composing nothing.** Every line here used the old `depths=` slot,
+# which is now `rock=` (see `Aspect.CARVERS`, which says why: a carver runs wherever there is stone, where
+# `underground=` is a place built beneath it). The three climate lines were worse: they said
+# `climate=natural{...}`, and `natural` is not a preset at all — a climate member is *described* rather than
+# chosen, so it is spelled `member[...]`, with `[` for steering and `;` between parameters. Since
+# `drive-server.sh` asserts nothing and exits 0 either way, all eight Ages had simply been refused in
+# silence.
+#
+# Driven 2026-09-16: all eight compose, and every spelling reads back verbatim through `age list` — which
+# is the property this file exists to check. Each division took: `landmass.seam=rift` on the two-terrain
+# Ages, `sea.seam=sheared` on `twoseas`, `rock.seam=sheared` wherever carvers divide, and
+# `climate.seam=sheared` on all three climate Ages.
+#
+# **One thing for a human to rule on.** Splitting `depths=` means every Age here now also carries
+# `underground=noise_caves`, which is `AgeComposition`'s own default rather than anything this file asked
+# for. It is harmless where both sides of a comparison get it, but `halfhollow` below claims "caves in some
+# territories and solid rock in others", and its solid territories now have noise caves built into them
+# regardless. Translating the syntax is not the same as deciding that, so the line is left saying what it
+# always said.
 
 # Two terrains, one sea: the shape splits and nothing else does.
-age compose ground 7 landmass=hills,pillars sea=water depths=solid sky=plain
+age compose ground 7 landmass=hills,pillars sea=water rock=solid sky=plain
 age gen ground
 
 # Two climates over one terrain: the *character* of the place splits where the shape does not. This is the
 # modern counterpart of two dressings — climate drives the biome table, so expect a hot stretch and a cold
 # one over continuous hills, with the biome change carrying fog, grass colour and mobs along with it.
-age compose cover 7 landmass=hills sea=water depths=solid climate=natural{temperature=0.7..0.9},natural{temperature=-0.9..-0.5} sky=plain
+age compose cover 7 landmass=hills sea=water rock=solid climate=member[temperature=0.7..0.9],member[temperature=-0.9..-0.5] sky=plain
 age gen cover
 
 # Both at once, so two independent territory maps are live together and must not be confused for each other.
-age compose bothways 7 landmass=hills,pillars sea=water depths=caves climate=natural{humidity=0.5..0.9},natural{humidity=-0.9..-0.5} sky=storm
+age compose bothways 7 landmass=hills,pillars sea=water rock=caves climate=member[humidity=0.5..0.9],member[humidity=-0.9..-0.5] sky=storm
 age gen bothways
 age bench bothways 4
 
@@ -32,8 +52,8 @@ age bench bothways 4
 # NOTE since the dressing went: every composed Age decorates, and decoration does not reproduce block for
 # block (design 6.5, measured). So expect a *small* count here rather than zero, and read it the way
 # generator-parity.txt says to — against a control of the same Age against itself, never against zero.
-age compose repeatA 99 landmass=hills,pillars sea=water depths=caves,solid
-age compose repeatB 99 landmass=hills,pillars sea=water depths=caves,solid
+age compose repeatA 99 landmass=hills,pillars sea=water rock=caves,solid
+age compose repeatB 99 landmass=hills,pillars sea=water rock=caves,solid
 age compare repeatA repeatB 2
 
 # Every recipe should print its territory character, and paste back into /age compose.
@@ -42,18 +62,18 @@ age list
 # --- The two divisions with no vanilla equivalent at all ---------------------------------------
 # An ocean of water meeting an ocean of lava at the same level, with no barrier and no obsidian between
 # them. This is the one worth walking to, because nothing in Minecraft can show it.
-age compose twoseas 11 landmass=hills sea=water,lava depths=solid sky=plain
+age compose twoseas 11 landmass=hills sea=water,lava rock=solid sky=plain
 age gen twoseas
 
 # Caves in some territories and solid rock in others — `solid` holding ground of its own rather than
 # vanishing into the union's identity (design 3.4, generator version 11). The seam follows the territory
 # map now, not chunk edges: carving is a union asked at each walk's origin, not a per-chunk selection.
-age compose halfhollow 11 landmass=hills sea=water depths=caves,solid sky=plain
+age compose halfhollow 11 landmass=hills sea=water rock=caves,solid sky=plain
 age gen halfhollow
 age bench halfhollow 4
 
 # All four positional aspects dividing one world at once; only sky and structures stay whole.
-age compose everything 11 landmass=hills,pillars sea=water,lava depths=caves,solid climate=natural{temperature=0.6..0.9},natural{temperature=-0.9..-0.6} sky=storm
+age compose everything 11 landmass=hills,pillars sea=water,lava rock=caves,solid climate=member[temperature=0.6..0.9],member[temperature=-0.9..-0.6] sky=storm
 age gen everything
 age compare everything everything 1
 age list
