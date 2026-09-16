@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.word.WordNames
-import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.gui.Font
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.toasts.Toast

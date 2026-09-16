@@ -70,7 +70,7 @@ data class NearTheSurface(val terrain: TerrainField) : SurfaceRules.ConditionSou
         )
 
         /**
-         * Registered through `AgeContent.surfaceConditionCodecs` like any other condition kind, because the
+         * Registered through `WorldgenCodecs.surfaceConditionCodecs` like any other condition kind, because the
          * palette a generator holds **is** serialised — unlike the noise settings, which are rebuilt on load
          * and so can carry an unserialisable `PreliminarySurface`. That the field tree is then written twice, once
          * here and once as the generator's own shape, is the price, and it is paid once per Age rather than

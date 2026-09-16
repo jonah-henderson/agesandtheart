@@ -3,7 +3,7 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.ui.ParchmentSurface
 import co.voik.agesandtheart.client.ui.Rect
-import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.AgeComponents
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
@@ -81,7 +81,7 @@ class PageScreen(private val word: Identifier) : Screen(titleFor(word)) {
 
         /** Opens the page in [stack], or does nothing if it is blank. Client-side only. */
         fun open(stack: ItemStack) {
-            val word = stack.get(AgeContent.PAGE_WORD) ?: return
+            val word = stack.get(AgeComponents.PAGE_WORD) ?: return
             Minecraft.getInstance().setScreen(PageScreen(word))
         }
     }

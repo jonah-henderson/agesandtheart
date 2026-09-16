@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.book
 
-import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.AgeComponents
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -52,7 +52,7 @@ class BindLinkingBookFunction(
                 HOME_NAME,
             )
         }
-        itemStack.set(AgeContent.LINK_TARGET, target)
+        itemStack.set(AgeComponents.LINK_TARGET, target)
         return itemStack
     }
 

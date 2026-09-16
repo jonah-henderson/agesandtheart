@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.word.learnedWords
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.book.panel.PanelWarming
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.location
@@ -219,7 +220,7 @@ object DeskCommands {
     ) {
         val carried = menu.carried
         if (!NotebookItem.isPage(carried)) return
-        val word = carried.get(AgeContent.PAGE_WORD) ?: return
+        val word = carried.get(AgeComponents.PAGE_WORD) ?: return
         if (!roomInBook(player, menu, desk)) return
         val at = payload.index.coerceIn(0, menu.composing.size)
         menu.composing.add(at, word)
@@ -298,19 +299,19 @@ object DeskCommands {
         // No ink here on purpose: it was spent writing each page, and charging again at the binding
         // would tax the same words twice.
         val book = ItemStack(AgeContent.DESCRIPTIVE_BOOK)
-        book.set(AgeContent.BOOK_WORDS, words)
-        book.set(AgeContent.BOOK_TITLE, title)
+        book.set(AgeComponents.BOOK_WORDS, words)
+        book.set(AgeComponents.BOOK_TITLE, title)
         // The seed the desk has been predicting against, written down before it is rerolled — so the Age
         // this book makes is the one whose conflicts the writer was shown.
-        book.set(AgeContent.BOOK_SEED, player.writingSeed)
+        book.set(AgeComponents.BOOK_SEED, player.writingSeed)
         // What it says, and what that means, written down beside the pages it is spelled out of. Reading a
         // sentence takes the whole corpus, which is a server's; a book is read wherever it is carried.
         // Read by **the same expression `DescriptiveBookRecipe` reads it by**, so what a book says and the
         // Age it makes can never be two different sentences.
-        book.set(AgeContent.BOOK_READING, Readout.columnsOf(sentence))
+        book.set(AgeComponents.BOOK_READING, Readout.columnsOf(sentence))
         // **The one place a book is marked as somebody's own work** (design §7.7). Set here rather than
         // where the Age is made, because that path serves found books too and cannot tell them apart.
-        book.set(AgeContent.BOOK_AUTHORED, true)
+        book.set(AgeComponents.BOOK_AUTHORED, true)
         menu.composing.clear()
         // Into the output slot rather than the inventory: a book you take is a book you saw being made.
         menu.putOutput(book)

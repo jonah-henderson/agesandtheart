@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.word.learnedWords
 import co.voik.agesandtheart.age.word.grammar.Said
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
 import net.minecraft.world.item.ItemStack
@@ -59,13 +60,13 @@ internal object PlayerInstruments {
         val (id, recipe) = namedAge(source, name, Report.prose(source)) ?: return FAILURE
 
         val book = ItemStack(AgeContent.DESCRIPTIVE_BOOK)
-        book.set(AgeContent.AGE_ID, id)
-        book.set(AgeContent.BOOK_TITLE, name)
+        book.set(AgeComponents.AGE_ID, id)
+        book.set(AgeComponents.BOOK_TITLE, name)
         // A recipe keeps the sentence as pages where a book keeps it as ids, and the path is the page.
         // Set even where the Age was made by hand and has no sentence, so that a book with nothing to say
         // is not taken for a blank one and written over as a found book on the next tick.
-        book.set(AgeContent.BOOK_WORDS, recipe.words.map { it.location() })
-        readingOf(source, recipe.words)?.let { book.set(AgeContent.BOOK_READING, it) }
+        book.set(AgeComponents.BOOK_WORDS, recipe.words.map { it.location() })
+        readingOf(source, recipe.words)?.let { book.set(AgeComponents.BOOK_READING, it) }
         if (!player.addItem(book)) player.drop(book, false)
 
         source.sendSuccess({

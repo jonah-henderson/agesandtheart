@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.page
 
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.platform.Services
@@ -53,13 +54,13 @@ object PageLearning {
      * archive that lists what you know, where nothing could see or reach them again.
      */
     fun observe(player: ServerPlayer, stack: ItemStack) {
-        val page = stack.get(AgeContent.PAGE_WORD)
+        val page = stack.get(AgeComponents.PAGE_WORD)
         if (page != null) {
             teach(player, listOf(page))
             return
         }
         if (stack.item === AgeContent.NOTEBOOK) {
-            teach(player, NotebookItem.pagesIn(stack).mapNotNull { it.get(AgeContent.PAGE_WORD) })
+            teach(player, NotebookItem.pagesIn(stack).mapNotNull { it.get(AgeComponents.PAGE_WORD) })
         }
     }
 
@@ -82,7 +83,7 @@ object PageLearning {
      * One packet rather than one per word: a book teaches a dozen at once, and the toast cycles.
      */
     fun study(player: ServerPlayer, book: ItemStack) {
-        teach(player, book.get(AgeContent.BOOK_WORDS).orEmpty())
+        teach(player, book.get(AgeComponents.BOOK_WORDS).orEmpty())
     }
 
     /**

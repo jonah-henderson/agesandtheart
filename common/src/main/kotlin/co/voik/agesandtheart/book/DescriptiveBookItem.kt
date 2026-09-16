@@ -3,7 +3,7 @@ package co.voik.agesandtheart.book
 import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.age.word.grammar.Readout
-import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.client.BookScreenOpener
 import net.minecraft.server.level.ServerLevel
@@ -22,7 +22,7 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 
-/** A Mystcraft-style Descriptive Book, bound to the Age named by its [AgeContent.AGE_ID] component. */
+/** A Mystcraft-style Descriptive Book, bound to the Age named by its [AgeComponents.AGE_ID] component. */
 class DescriptiveBookItem(properties: Properties) : Item(properties) {
 
     /**
@@ -32,7 +32,7 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
      * every book of it — and so an anvil rename still wins, since a custom name takes priority over this.
      */
     override fun getName(itemStack: ItemStack): Component {
-        val title = itemStack.get(AgeContent.BOOK_TITLE) ?: return super.getName(itemStack)
+        val title = itemStack.get(AgeComponents.BOOK_TITLE) ?: return super.getName(itemStack)
         return Component.translatable("item.agesandtheart.descriptive_book.named", title)
     }
 
@@ -45,13 +45,13 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
     ) {
         // What it says, run together, so a shelf of books is readable without opening any of them. The row
         // of pages is the fallback for a book bound before the Art read one.
-        val reading = stack.get(AgeContent.BOOK_READING)?.let(Readout::asProse)
+        val reading = stack.get(AgeComponents.BOOK_READING)?.let(Readout::asProse)
         val said = reading ?: pagesOf(stack) ?: return
         builder.accept(said.copy().withStyle(ChatFormatting.DARK_GRAY))
     }
 
     private fun pagesOf(stack: ItemStack): Component? {
-        val words = stack.get(AgeContent.BOOK_WORDS).orEmpty()
+        val words = stack.get(AgeComponents.BOOK_WORDS).orEmpty()
         if (words.isEmpty()) return null
         return Component.literal(words.joinToString(" ") { WordNames.readable(it).string })
     }
@@ -93,7 +93,7 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
          */
         @JvmStatic
         fun writeIfBlank(stack: ItemStack, level: ServerLevel): Boolean {
-            if (stack.has(AgeContent.BOOK_WORDS)) return false
+            if (stack.has(AgeComponents.BOOK_WORDS)) return false
             FoundBook.write(stack, level.server, level.random.nextLong())
             // Writing itself is a found book's binding — nothing else ever binds one — so this is the
             // moment its Age is decided, and the earliest it can be made ready.

@@ -26,7 +26,7 @@ class PageItem(properties: Properties) : Item(properties) {
 
     override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResult {
         val stack = player.getItemInHand(hand)
-        if (stack.get(AgeContent.PAGE_WORD) == null) return InteractionResult.PASS
+        if (stack.get(AgeComponents.PAGE_WORD) == null) return InteractionResult.PASS
         // Guarded so the screen class is never loaded on a dedicated server.
         if (level.isClientSide) PageScreen.open(stack)
         return InteractionResult.SUCCESS
@@ -39,7 +39,7 @@ class PageItem(properties: Properties) : Item(properties) {
         builder: Consumer<Component>,
         flag: TooltipFlag,
     ) {
-        val word = stack.get(AgeContent.PAGE_WORD) ?: return
+        val word = stack.get(AgeComponents.PAGE_WORD) ?: return
         builder.accept(WordNames.readable(word).copy().withStyle(ChatFormatting.GRAY))
     }
 
@@ -53,6 +53,6 @@ class PageItem(properties: Properties) : Item(properties) {
          * here now.
          */
         fun writtenWith(word: Identifier): ItemStack =
-            ItemStack(AgeContent.PAGE).also { it.set(AgeContent.PAGE_WORD, word) }
+            ItemStack(AgeContent.PAGE).also { it.set(AgeComponents.PAGE_WORD, word) }
     }
 }

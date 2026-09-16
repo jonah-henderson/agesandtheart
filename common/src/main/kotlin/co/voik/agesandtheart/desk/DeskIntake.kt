@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.word.InkTier
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.location
@@ -76,7 +77,7 @@ object DeskIntake {
     }
 
     private fun pageWordOf(stack: ItemStack): Identifier? =
-        if (stack.item === AgeContent.PAGE) stack.get(AgeContent.PAGE_WORD) else null
+        if (stack.item === AgeContent.PAGE) stack.get(AgeComponents.PAGE_WORD) else null
 
     /**
      * A notebook is tipped into the archive and handed back empty — the pages inside are pages, and the

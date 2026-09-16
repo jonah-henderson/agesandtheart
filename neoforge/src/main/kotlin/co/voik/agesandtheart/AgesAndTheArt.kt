@@ -3,6 +3,8 @@ package co.voik.agesandtheart
 import net.neoforged.neoforge.event.tick.ServerTickEvent
 import co.voik.agesandtheart.command.AgeCommand
 import co.voik.agesandtheart.generation.Ages
+import co.voik.agesandtheart.generation.WorldgenCodecs
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent
 import co.voik.agesandtheart.platform.NeoForgeDeepWater
@@ -97,7 +99,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         NeoForgeDeepWater.register(event)
 
         event.register(Registries.DATA_COMPONENT_TYPE) { helper ->
-            AgeContent.components.forEach { (id, comp) -> helper.register(id, comp) }
+            AgeComponents.components.forEach { (id, comp) -> helper.register(id, comp) }
         }
         event.register(Registries.BLOCK) { helper ->
             AgeContent.blocks.forEach { (id, block) -> helper.register(id, block) }
@@ -142,16 +144,16 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
             AgeContent.recipeSerializers.forEach { (id, serializer) -> helper.register(id, serializer) }
         }
         event.register(Registries.CHUNK_GENERATOR) { helper ->
-            AgeContent.chunkGeneratorCodecs.forEach { (id, codec) -> helper.register(id, codec) }
+            WorldgenCodecs.chunkGeneratorCodecs.forEach { (id, codec) -> helper.register(id, codec) }
         }
         event.register(Registries.BIOME_SOURCE) { helper ->
-            AgeContent.biomeSourceCodecs.forEach { (id, codec) -> helper.register(id, codec) }
+            WorldgenCodecs.biomeSourceCodecs.forEach { (id, codec) -> helper.register(id, codec) }
         }
         event.register(Registries.MATERIAL_RULE) { helper ->
-            AgeContent.surfaceRuleCodecs.forEach { (id, codec) -> helper.register(id, codec) }
+            WorldgenCodecs.surfaceRuleCodecs.forEach { (id, codec) -> helper.register(id, codec) }
         }
         event.register(Registries.MATERIAL_CONDITION) { helper ->
-            AgeContent.surfaceConditionCodecs.forEach { (id, codec) -> helper.register(id, codec) }
+            WorldgenCodecs.surfaceConditionCodecs.forEach { (id, codec) -> helper.register(id, codec) }
         }
         event.register(Registries.FEATURE) { helper ->
             AgeContent.features.forEach { (id, feature) -> helper.register(id, feature) }

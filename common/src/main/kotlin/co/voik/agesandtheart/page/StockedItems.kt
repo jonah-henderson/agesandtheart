@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.page
 
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
 import net.minecraft.core.RegistryAccess
@@ -28,7 +29,7 @@ object StockedItems {
 
     /** Whether [stack] is waiting to be written, so a caller can skip the common case cheaply. */
     @JvmStatic
-    fun isUnwritten(stack: ItemStack): Boolean = stack.has(AgeContent.STOCKED_FROM)
+    fun isUnwritten(stack: ItemStack): Boolean = stack.has(AgeComponents.STOCKED_FROM)
 
     /**
      * [stack] written from the stock it names, in place.
@@ -42,11 +43,11 @@ object StockedItems {
 
     /** The same, of a corpus and some registries — so what it writes can be checked without a server. */
     fun write(stack: ItemStack, vocabulary: Vocabulary, registries: RegistryAccess, random: RandomSource) {
-        val pool = stack.get(AgeContent.STOCKED_FROM) ?: return
+        val pool = stack.get(AgeComponents.STOCKED_FROM) ?: return
         when {
             stack.`is`(AgeContent.PAGE) -> {
                 val word = vocabulary.stock.draw(pool, vocabulary, registries, random) ?: return
-                stack.set(AgeContent.PAGE_WORD, word.id)
+                stack.set(AgeComponents.PAGE_WORD, word.id)
             }
             stack.`is`(AgeContent.NOTEBOOK) -> {
                 val wanted = FEWEST_PAGES + random.nextInt(MOST_PAGES - FEWEST_PAGES + 1)
@@ -63,6 +64,6 @@ object StockedItems {
             else -> return
         }
         // Written now, so it is an ordinary page and stacks with other pages of that word.
-        stack.remove(AgeContent.STOCKED_FROM)
+        stack.remove(AgeComponents.STOCKED_FROM)
     }
 }

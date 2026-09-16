@@ -125,15 +125,15 @@ class NotebookItem(properties: Properties) : Item(properties) {
         private const val SOUND_PITCH = 0.8f
 
         fun isPage(stack: ItemStack): Boolean =
-            stack.item === AgeContent.PAGE && stack.get(AgeContent.PAGE_WORD) != null
+            stack.item === AgeContent.PAGE && stack.get(AgeComponents.PAGE_WORD) != null
 
         /** Newest last, so "take one out" returns what you most recently put in. */
         fun pagesIn(notebook: ItemStack): List<ItemStack> =
-            notebook.getOrDefault(AgeContent.NOTEBOOK_PAGES, emptyList())
+            notebook.getOrDefault(AgeComponents.NOTEBOOK_PAGES, emptyList())
 
         fun setPages(notebook: ItemStack, pages: List<ItemStack>) {
-            if (pages.isEmpty()) notebook.remove(AgeContent.NOTEBOOK_PAGES)
-            else notebook.set(AgeContent.NOTEBOOK_PAGES, pages.map { it.copy() })
+            if (pages.isEmpty()) notebook.remove(AgeComponents.NOTEBOOK_PAGES)
+            else notebook.set(AgeComponents.NOTEBOOK_PAGES, pages.map { it.copy() })
         }
     }
 }

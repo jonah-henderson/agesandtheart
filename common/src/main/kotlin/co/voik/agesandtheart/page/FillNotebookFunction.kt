@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.page
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.NotebookItem
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
@@ -69,7 +69,7 @@ class FillNotebookFunction(
             attempts++
             val word = available[context.random.nextInt(available.size)]
             val page = PageItem.writtenWith(word.id)
-            if (chosen.none { it.get(AgeContent.PAGE_WORD) == word.id }) chosen += page
+            if (chosen.none { it.get(AgeComponents.PAGE_WORD) == word.id }) chosen += page
         }
         // Through `NotebookItem`, which is what everything else reads a notebook by. Set as vanilla's
         // CONTAINER instead, the pages were there and nothing could see them — the desk, the tooltip and

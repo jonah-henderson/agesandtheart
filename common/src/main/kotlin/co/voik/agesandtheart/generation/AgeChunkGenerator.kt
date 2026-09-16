@@ -46,7 +46,6 @@ import net.minecraft.world.level.block.Block
 import co.voik.agesandtheart.age.consequence.Collapse
 import co.voik.agesandtheart.age.consequence.Consequence
 import co.voik.agesandtheart.age.consequence.Tearing
-import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseChunk
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings

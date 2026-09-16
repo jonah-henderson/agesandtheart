@@ -18,7 +18,7 @@ import net.minecraft.server.level.ServerPlayer
  * better Age. The consequence is accepted: two writers at one desk with the same pages see different
  * predictions, which is true to an Age being the writer's rather than the furniture's.
  *
- * **The bound book carries it** ([co.voik.agesandtheart.content.AgeContent.BOOK_SEED]). Holding it only on
+ * **The bound book carries it** ([co.voik.agesandtheart.content.AgeComponents.BOOK_SEED]). Holding it only on
  * the player would let the prediction and the Age drift apart the moment the book changed hands or waited a
  * week in a chest — and a desk that promised one world and delivered another would be worse than one that
  * promised nothing.

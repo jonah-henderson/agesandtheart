@@ -6,6 +6,7 @@ import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.Linking
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
@@ -230,7 +231,7 @@ object PanelViews {
         stack.item === AgeContent.DESCRIPTIVE_BOOK ->
             BookAge.of(server, stack)?.let { Destination(it, Ages.arrivalIn(it)) }
         stack.item === AgeContent.LINKING_BOOK -> {
-            val target = stack.get(AgeContent.LINK_TARGET)
+            val target = stack.get(AgeComponents.LINK_TARGET)
             val level = target?.let { Linking.destinationOf(it, server) }
             if (target == null || level == null) null else Destination(level, BlockPos.containing(target.position))
         }

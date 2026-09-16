@@ -5,7 +5,7 @@ import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.AgeComponents
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.item.ItemStack
@@ -20,7 +20,7 @@ object DescriptiveBookRecipe {
      * command the same act.
      */
     fun of(stack: ItemStack, server: MinecraftServer, ageId: Identifier): AgeRecipe {
-        val words = stack.get(AgeContent.BOOK_WORDS).orEmpty()
+        val words = stack.get(AgeComponents.BOOK_WORDS).orEmpty()
         if (words.isEmpty()) return AgeRecipe.of(AgePreset.SPIRE, ageId)
         val vocabulary = Vocabulary.of(server)
         val spoken = words.map { it.path }
@@ -30,10 +30,10 @@ object DescriptiveBookRecipe {
         if (read.isEmpty) return AgeRecipe.of(AgePreset.SPIRE, ageId)
         // The desk's own, where the book has one — so the Age is the world the writer was shown while
         // they were laying the pages out, and not merely one their words could have made.
-        val seed = stack.get(AgeContent.BOOK_SEED) ?: AgeRecipe.seedFor(ageId)
+        val seed = stack.get(AgeComponents.BOOK_SEED) ?: AgeRecipe.seedFor(ageId)
         // Whether the rewards will pay out here (design §7.7). A found book carries no such mark, so an
         // Age handed over already written is one you may live in and never one you are paid for.
-        val authored = stack.get(AgeContent.BOOK_AUTHORED) == true
+        val authored = stack.get(AgeComponents.BOOK_AUTHORED) == true
         return AgeRecipe.written(server, Resolver.resolve(vocabulary, read, seed), spoken, seed, authored)
     }
 }

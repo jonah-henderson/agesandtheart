@@ -2,7 +2,7 @@ package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.word.WordNames
-import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.client.BookScreenOpener
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
@@ -41,7 +41,7 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
      */
     override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResult {
         val stack = player.getItemInHand(hand)
-        val bound = stack.get(AgeContent.LINK_TARGET) != null
+        val bound = stack.get(AgeComponents.LINK_TARGET) != null
         // Guarded so the screen class is never loaded on a dedicated server.
         if (bound && level.isClientSide) BookScreenOpener.open(stack, hand)
         if (!bound && level is ServerLevel && player is ServerPlayer) return bind(stack, level, player)
@@ -59,14 +59,14 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
             // the whole point is a book that outlives the Age it names (design §9, "Losing the books").
             recipe = Ages.recipeOf(level),
         )
-        stack.set(AgeContent.LINK_TARGET, target)
+        stack.set(AgeComponents.LINK_TARGET, target)
         player.sendSystemMessage(Component.translatable("book.agesandtheart.bound", target.name), true)
         return InteractionResult.SUCCESS
     }
 
     /** "<place> Linking Book", so a shelf of them reads at a glance. */
     override fun getName(itemStack: ItemStack): Component {
-        val target = itemStack.get(AgeContent.LINK_TARGET) ?: return super.getName(itemStack)
+        val target = itemStack.get(AgeComponents.LINK_TARGET) ?: return super.getName(itemStack)
         return Component.translatable("item.agesandtheart.linking_book.bound", target.name)
     }
 
@@ -77,7 +77,7 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
         builder: Consumer<Component>,
         flag: TooltipFlag,
     ) {
-        val target = stack.get(AgeContent.LINK_TARGET)
+        val target = stack.get(AgeComponents.LINK_TARGET)
         if (target == null) {
             builder.accept(
                 Component.translatable("item.agesandtheart.linking_book.blank")

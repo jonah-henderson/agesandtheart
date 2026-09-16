@@ -11,7 +11,9 @@ import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.platform.FabricInkTank
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage
 import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.generation.WorldgenCodecs
 // `object` is a Kotlin keyword and Fabric put one in the package path, so it needs quoting.
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttributeRegistry
 import co.voik.agesandtheart.platform.FabricInkFluids
@@ -47,7 +49,7 @@ fun init() {
     // fluid and only a loader can build one — see `AgeFluids.DEEP_WATER`.
     FabricDeepWaterFluids.register()
 
-    AgeContent.components.forEach { (id, comp) -> Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id, comp) }
+    AgeComponents.components.forEach { (id, comp) -> Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id, comp) }
     AgeContent.blocks.forEach { (id, block) -> Registry.register(BuiltInRegistries.BLOCK, id, block) }
     AgeContent.items.forEach { (id, item) -> Registry.register(BuiltInRegistries.ITEM, id, item) }
     AgeContent.entities.forEach { (id, type) -> Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type) }
@@ -73,10 +75,10 @@ fun init() {
     AgeContent.recipeSerializers.forEach { (id, serializer) ->
         Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id, serializer)
     }
-    AgeContent.chunkGeneratorCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id, codec) }
-    AgeContent.biomeSourceCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.BIOME_SOURCE, id, codec) }
-    AgeContent.surfaceRuleCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.MATERIAL_RULE, id, codec) }
-    AgeContent.surfaceConditionCodecs.forEach { (id, codec) ->
+    WorldgenCodecs.chunkGeneratorCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id, codec) }
+    WorldgenCodecs.biomeSourceCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.BIOME_SOURCE, id, codec) }
+    WorldgenCodecs.surfaceRuleCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.MATERIAL_RULE, id, codec) }
+    WorldgenCodecs.surfaceConditionCodecs.forEach { (id, codec) ->
         Registry.register(BuiltInRegistries.MATERIAL_CONDITION, id, codec)
     }
     AgeContent.carvers.forEach { (id, carver) -> Registry.register(BuiltInRegistries.CARVER, id, carver) }

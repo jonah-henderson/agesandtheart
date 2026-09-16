@@ -10,8 +10,7 @@ import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.worldgen.AgeRock
 import net.minecraft.core.registries.Registries
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
-import co.voik.agesandtheart.generation.AgeChunkGenerator
-import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
+import co.voik.agesandtheart.generation.WorldgenCodecs
 import co.voik.agesandtheart.worldgen.field.Chance
 import co.voik.agesandtheart.worldgen.field.Choose
 import co.voik.agesandtheart.worldgen.field.Density
@@ -21,7 +20,6 @@ import co.voik.agesandtheart.worldgen.field.Placement
 import co.voik.agesandtheart.worldgen.field.PlacementKind
 import co.voik.agesandtheart.worldgen.field.Radial
 import co.voik.agesandtheart.worldgen.field.RegionMap
-import co.voik.agesandtheart.worldgen.field.RegionRule
 import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.Scatter
 import co.voik.agesandtheart.worldgen.field.Slab
@@ -35,18 +33,26 @@ import io.kotest.core.spec.style.FunSpec
  * initialises top to bottom, so a field declared below one that reads it is null at that moment, and the
  * assertions below exist only to stop the compiler eliding the loads.
  *
- * It does not iterate `AgeContent`, which eagerly constructs an `Item` that cannot be built once the
- * registries have frozen. The cost is a hand-maintained list: **add a codec, add it here.**
+ * **The registered generation kinds are iterated rather than copied.** `WorldgenCodecs` holds no `Item`
+ * and no `Block`, so unlike `AgeContent` — which eagerly constructs an `Item` that cannot be built once the
+ * registries have frozen — it can simply be read here. The hand-written copy it replaces had already
+ * drifted, missing `NearTheSurface` entirely, which is what a duplicate is for.
+ *
+ * What is still listed by hand is the codecs **nothing registers**, which no list can supply:
+ * **add one of those, add it here.**
  */
 @Tags(NEEDS_REGISTRIES)
 class CodecCheck : FunSpec({
 
     test("every registered codec builds") {
         MinecraftRegistries.ensureStoodUp()
-        val codecs = listOf(
-            "chunk generator (field)" to AgeChunkGenerator.CODEC,
-            "biome source (age)" to AgeBiomeSource.CODEC,
-            "surface rule (regions)" to RegionRule.CODEC,
+        // Every kind a loader actually registers, read off the lists the loaders read — so adding one
+        // brings it under this check for free, and none can be forgotten the way NearTheSurface was.
+        val registered: List<Pair<String, Any?>> = (
+            WorldgenCodecs.chunkGeneratorCodecs + WorldgenCodecs.biomeSourceCodecs +
+                WorldgenCodecs.surfaceRuleCodecs + WorldgenCodecs.surfaceConditionCodecs
+            ).map { (id, codec) -> "registered $id" to codec }
+        val codecs: List<Pair<String, Any?>> = registered + listOf(
             "field tree" to TerrainField.CODEC,
             "sky spec" to SkySpec.CODEC,
             "instability" to Instability.CODEC,

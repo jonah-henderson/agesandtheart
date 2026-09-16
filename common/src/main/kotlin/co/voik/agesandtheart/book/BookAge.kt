@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.generation.Ages
-import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.AgeComponents
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -42,7 +42,7 @@ object BookAge {
      * identical terrain — and the one you looked at would be orphaned the moment you went.
      */
     fun idFor(server: MinecraftServer, stack: ItemStack): Identifier =
-        stack.get(AgeContent.AGE_ID)
-            ?: Ages.allocateId(server, stack.get(AgeContent.BOOK_TITLE).orEmpty())
-                .also { stack.set(AgeContent.AGE_ID, it) }
+        stack.get(AgeComponents.AGE_ID)
+            ?: Ages.allocateId(server, stack.get(AgeComponents.BOOK_TITLE).orEmpty())
+                .also { stack.set(AgeComponents.AGE_ID, it) }
 }

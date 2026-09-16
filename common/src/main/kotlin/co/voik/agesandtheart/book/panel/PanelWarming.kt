@@ -5,7 +5,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.WarmAgesWhen
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.book.BookAge
-import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.AgeComponents
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
@@ -86,10 +86,10 @@ object PanelWarming {
 
     private fun warm(server: MinecraftServer, stack: ItemStack) {
         // A book with no words is not bound and describes nothing yet.
-        if (!stack.has(AgeContent.BOOK_WORDS)) return
+        if (!stack.has(AgeComponents.BOOK_WORDS)) return
 
         // Cheap on every tick after the first: an Age already seen to is two map lookups and nothing else.
-        val known = stack.get(AgeContent.AGE_ID)?.let { server.getLevel(ResourceKey.create(Registries.DIMENSION, it)) }
+        val known = stack.get(AgeComponents.AGE_ID)?.let { server.getLevel(ResourceKey.create(Registries.DIMENSION, it)) }
         if (known != null && isWarmedOrUnderway(known)) return
 
         // Minting stamps the id onto the book, so the check above answers on every later tick.

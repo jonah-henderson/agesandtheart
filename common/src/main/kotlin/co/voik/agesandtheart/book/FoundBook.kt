@@ -4,7 +4,7 @@ import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.AgeName
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
-import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.AgeComponents
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.item.ItemStack
 import kotlin.random.Random
@@ -34,12 +34,12 @@ object FoundBook {
         val vocabulary = Vocabulary.of(server)
         val pages = vocabulary.generation.grammar(GRAMMAR)?.expand(Random(seed)).orEmpty()
         val words = pages.mapNotNull { page -> vocabulary.word(page)?.id ?: vocabulary.grammarWord(page)?.id }
-        stack.set(AgeContent.BOOK_WORDS, words)
+        stack.set(AgeComponents.BOOK_WORDS, words)
         if (words.isEmpty()) return
-        stack.set(AgeContent.BOOK_TITLE, AgeName.drawn(vocabulary, seed)?.read ?: UNNAMED)
+        stack.set(AgeComponents.BOOK_TITLE, AgeName.drawn(vocabulary, seed)?.read ?: UNNAMED)
         // A generation grammar that dropped the `age` page has written something no player could bind, so
         // the book goes out unread rather than carrying a reading of a sentence it does not spell.
         val read = Grammar.read(vocabulary, pages) ?: return
-        stack.set(AgeContent.BOOK_READING, Readout.columnsOf(read))
+        stack.set(AgeComponents.BOOK_READING, Readout.columnsOf(read))
     }
 }

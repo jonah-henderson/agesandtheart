@@ -3,7 +3,6 @@ package co.voik.agesandtheart.content
 import co.voik.agesandtheart.page.FillNotebookFunction
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.page.PageWordFunction
-import co.voik.agesandtheart.age.word.grammar.Said
 import co.voik.agesandtheart.age.consequence.WoundBlock
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
@@ -14,7 +13,6 @@ import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.DescriptiveBookItem
 import co.voik.agesandtheart.book.LinkingBookItem
-import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.book.RepatternBookRecipe
 import co.voik.agesandtheart.age.consequence.CollapsingFissureBlock
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
@@ -31,25 +29,18 @@ import co.voik.agesandtheart.desk.GeologistsToolsMenu
 import co.voik.agesandtheart.desk.SeismographMenu
 import co.voik.agesandtheart.desk.WritersDeskMenu
 import co.voik.agesandtheart.location
-import co.voik.agesandtheart.generation.AgeChunkGenerator
-import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
-import co.voik.agesandtheart.worldgen.field.NearTheSurface
-import co.voik.agesandtheart.worldgen.field.RegionRule
 import co.voik.agesandtheart.worldgen.carver.Porosity
 import co.voik.agesandtheart.worldgen.carver.RuleCarver
-import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import co.voik.agesandtheart.worldgen.fissure.StarFissurePiece
 import co.voik.agesandtheart.worldgen.fissure.StarFissureStructure
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType
 import net.minecraft.world.level.levelgen.structure.StructureType
 import net.minecraft.core.Holder
-import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.world.effect.MobEffect
-import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.ContainerLevelAccess
 import net.minecraft.world.inventory.MenuType
@@ -64,7 +55,6 @@ import net.minecraft.world.entity.ai.village.poi.PoiType
 import net.minecraft.world.entity.npc.villager.VillagerProfession
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
-import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.crafting.RecipeSerializer
 import net.minecraft.world.entity.EquipmentSlot
@@ -88,9 +78,6 @@ import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.material.MapColor
 import net.minecraft.world.level.material.PushReaction
-import net.minecraft.world.level.biome.BiomeSource
-import net.minecraft.world.level.chunk.ChunkGenerator
-import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.world.level.levelgen.carver.CarverConfiguration
 import co.voik.agesandtheart.worldgen.feature.Formation
 import co.voik.agesandtheart.worldgen.feature.Algae
@@ -111,19 +98,14 @@ import net.minecraft.world.level.storage.loot.functions.LootItemFunction
  *
  * Instances are built eagerly here (constructing them needs no registry); the *registration*
  * is driven per loader — Fabric registers directly during init, NeoForge via `RegisterEvent` —
- * with each loader iterating [components], [items], and [chunkGeneratorCodecs]. See each loader's
- * entrypoint.
+ * with each loader iterating [blocks], [items] and the rest. See each loader's entrypoint.
+ *
+ * **The data components are [AgeComponents] and the generation kinds
+ * [co.voik.agesandtheart.generation.WorldgenCodecs]**, because neither holds an `Item` or a `Block`. This
+ * object builds every one of those eagerly and so cannot be loaded once the registries have frozen, which
+ * is why anything wanting only a component type or a codec should not have to reach through it.
  */
 object AgeContent {
-    /**
-     * Data component stored on a Descriptive Book stack: the id of the Age it links to.
-     * `persistent` = saved to disk; `networkSynchronized` = sent to the client.
-     */
-    val AGE_ID: DataComponentType<Identifier> = DataComponentType.builder<Identifier>()
-        .persistent(Identifier.CODEC)
-        .networkSynchronized(Identifier.STREAM_CODEC)
-        .build()
-
     /**
      * **An item must know its own id before it is constructed.** `Item.Properties.setId` is not optional:
      * the constructor derives the description id and the component initialisers from it and throws
@@ -132,35 +114,12 @@ object AgeContent {
      */
     private val DESCRIPTIVE_BOOK_ID: Identifier = "descriptive_book".location()
 
-    /** Unstackable so each book keeps its own [AGE_ID] identity. */
+    /** Unstackable so each book keeps its own [AgeComponents.AGE_ID] identity. */
     val DESCRIPTIVE_BOOK: Item = DescriptiveBookItem(
         Item.Properties()
             .setId(ResourceKey.create(Registries.ITEM, DESCRIPTIVE_BOOK_ID))
             .stacksTo(1),
     )
-
-    /** The word written on a page. Rolled when the page is generated, never when it is read. */
-    val PAGE_WORD: DataComponentType<Identifier> = DataComponentType.builder<Identifier>()
-        .persistent(Identifier.CODEC)
-        .networkSynchronized(Identifier.STREAM_CODEC)
-        .build()
-
-    /**
-     * The stock a page or notebook is still to be drawn from — **an unwritten page, not a blank one**.
-     *
-     * A villager's offer is built once and bought many times, so anything a trade writes into the item is
-     * written once: a page whose word was rolled when the offer was made hands out that same word for ever.
-     * Carrying the *pool* instead defers the draw to the moment somebody takes the item
-     * (`MerchantResultSlotMixin`), so every purchase is a different word.
-     *
-     * This is the one place §8's rule that a page's word is "rolled when the page is generated, never when
-     * it is read" is bent, and it is bent rather than broken: a found page is still rolled where it is
-     * found. What is deferred here is the roll for a page that has not been handed to anybody yet.
-     */
-    val STOCKED_FROM: DataComponentType<Identifier> = DataComponentType.builder<Identifier>()
-        .persistent(Identifier.CODEC)
-        .networkSynchronized(Identifier.STREAM_CODEC)
-        .build()
 
     private val PAGE_ID: Identifier = "page".location()
 
@@ -941,12 +900,6 @@ object AgeContent {
     /** Lighter than the machine: an instrument you expect to pick up and carry on is worth less digging. */
     private const val SURVEYING_DEVICE_STRENGTH = 2.5f
 
-    /** Where a Linking Book goes. Absent means blank — see [LinkingBookItem]. */
-    val LINK_TARGET: DataComponentType<LinkTarget> = DataComponentType.builder<LinkTarget>()
-        .persistent(LinkTarget.CODEC)
-        .networkSynchronized(LinkTarget.STREAM_CODEC)
-        .build()
-
     private val LINKING_BOOK_ID: Identifier = "linking_book".location()
 
     /** Unstackable: each one is a different door, even before it is written in. */
@@ -955,21 +908,6 @@ object AgeContent {
             .setId(ResourceKey.create(Registries.ITEM, LINKING_BOOK_ID))
             .stacksTo(1),
     )
-
-    /**
-     * The pages a notebook holds, oldest first and **uncapped**.
-     *
-     * Not `BUNDLE_CONTENTS`: a bundle's capacity is enforced in a private weight check, which would cap a
-     * notebook at sixty-four pages — a pocket rather than a catalogue.
-     *
-     * **Read and written only through [NotebookItem]**, which is not a style preference: this was set as
-     * vanilla's `CONTAINER` in one place and asked for here in every other, so a found notebook held its
-     * pages where nothing could see them and opened empty.
-     */
-    val NOTEBOOK_PAGES: DataComponentType<List<ItemStack>> = DataComponentType.builder<List<ItemStack>>()
-        .persistent(ItemStack.CODEC.listOf())
-        .networkSynchronized(ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()))
-        .build()
 
     private val INK_BOTTLE_ID: Identifier = "ink_bottle".location()
 
@@ -1483,64 +1421,6 @@ object AgeContent {
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,
     )
 
-    /** The sentence a Descriptive Book carries, in order — page order is word order. */
-    val BOOK_WORDS: DataComponentType<List<Identifier>> = DataComponentType.builder<List<Identifier>>()
-        .persistent(Identifier.CODEC.listOf())
-        .networkSynchronized(Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()))
-        .build()
-
-    /** What its writer called the Age. */
-    val BOOK_TITLE: DataComponentType<String> = DataComponentType.builder<String>()
-        .persistent(Codec.STRING)
-        .networkSynchronized(ByteBufCodecs.STRING_UTF8)
-        .build()
-
-    /**
-     * The seed the Age this book makes will be written at — chosen at the **desk**, not when the book is
-     * first opened (see [co.voik.agesandtheart.desk.WritingSeed]).
-     *
-     * On the book rather than only on its writer, so what the desk showed and what the Age turns out to be
-     * cannot drift apart: a book changes hands, waits in a chest, and is opened by somebody else.
-     *
-     * Absent on a found book or one bound before this existed, and `DescriptiveBookRecipe` falls back to
-     * seeding from the Age's id there — which is what every book did until now.
-     */
-    val BOOK_SEED: DataComponentType<Long> = DataComponentType.builder<Long>()
-        .persistent(Codec.LONG)
-        .networkSynchronized(ByteBufCodecs.VAR_LONG)
-        .build()
-
-    /**
-     * What the book **says**, column by column — [Readout][co.voik.agesandtheart.age.word.grammar.Readout]'s
-     * reading, with the particles a writer was spared for being inferable from position.
-     *
-     * Written down rather than derived, because reading a sentence takes the whole corpus and a client has
-     * none. Column by column rather than as prose, because a book sets the script over its reading **word
-     * for word**, and running them together would leave nothing to line up.
-     */
-    val BOOK_READING: DataComponentType<List<Said>> = DataComponentType.builder<List<Said>>()
-        .persistent(Said.CODEC.listOf())
-        .networkSynchronized(Said.STREAM_CODEC.apply(ByteBufCodecs.list()))
-        .build()
-
-    /**
-     * That this book was bound at a desk by a player, rather than found already written (design §7.7) —
-     * what [co.voik.agesandtheart.age.AgeRecipe.authored] is set from when the Age is first made.
-     *
-     * **Stated rather than inferred, though it could be inferred today.** A found book happens to carry no
-     * [BOOK_SEED] and a bound one always does, so the two are already distinguishable — but that is a
-     * coincidence of two write paths rather than a claim either of them makes, and the moment a found book
-     * gains a seed the reward economy would quietly open to the loot table. The fact worth recording is
-     * *who wrote this*, so it is recorded.
-     *
-     * Absent on a found book, on a book bound before this existed, and on any hand-built stack — all of
-     * which read as not authored, which is the safe way round.
-     */
-    val BOOK_AUTHORED: DataComponentType<Boolean> = DataComponentType.builder<Boolean>()
-        .persistent(Codec.BOOL)
-        .networkSynchronized(ByteBufCodecs.BOOL)
-        .build()
-
     val WRITERS_DESK_MENU: MenuType<WritersDeskMenu> = MenuType(
         { containerId, inventory -> WritersDeskMenu(containerId, inventory, ContainerLevelAccess.NULL) },
         FeatureFlags.VANILLA_SET,
@@ -1596,19 +1476,6 @@ object AgeContent {
     val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =
         listOf("repattern_descriptive_book".location() to RepatternBookRecipe.SERIALIZER)
 
-    val components: List<Pair<Identifier, DataComponentType<*>>> = listOf(
-        "stocked_from".location() to STOCKED_FROM,
-        "age_id".location() to AGE_ID,
-        "page_word".location() to PAGE_WORD,
-        "book_words".location() to BOOK_WORDS,
-        "book_title".location() to BOOK_TITLE,
-        "book_seed".location() to BOOK_SEED,
-        "book_reading".location() to BOOK_READING,
-        "book_authored".location() to BOOK_AUTHORED,
-        "link_target".location() to LINK_TARGET,
-        "notebook_pages".location() to NOTEBOOK_PAGES,
-    )
-
     val items: List<Pair<Identifier, Item>> = listOf(
         VENT_LINING_ID to VENT_LINING_ITEM,
         GLOOMGRIT_ID to GLOOMGRIT,
@@ -1650,37 +1517,6 @@ object AgeContent {
         ASTRITE_SHARD_ID to ASTRITE_SHARD,
         ALGAE_ID to ALGAE,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK,
-    )
-
-    /** Chunk-generator codecs — a level's generator is serialised when it is saved, so it needs one. */
-    val chunkGeneratorCodecs: List<Pair<Identifier, MapCodec<out ChunkGenerator>>> = listOf(
-        // Renamed from `field` with the class: the generator reaches past field terrain now. Save formats
-        // are still free to move (CLAUDE.md), so this is a rename rather than an alias.
-        "age".location() to AgeChunkGenerator.CODEC,
-    )
-
-    /**
-     * Biome-source codecs. Like the generators, an Age's biome source is persisted with it, so the kind
-     * has to be nameable — `BiomeSource.CODEC` dispatches over this registry.
-     */
-    val biomeSourceCodecs: List<Pair<Identifier, MapCodec<out BiomeSource>>> = listOf(
-        "age_biomes".location() to AgeBiomeSource.CODEC,
-    )
-
-    /**
-     * Surface-rule kinds. Ours is persisted with the Age like the generator, so the kind has to be
-     * nameable — `RuleSource.CODEC` dispatches over this registry.
-     */
-    val surfaceRuleCodecs: List<Pair<Identifier, MapCodec<out SurfaceRules.RuleSource>>> = listOf(
-        "region".location() to RegionRule.CODEC,
-    )
-
-    /**
-     * Surface-*condition* kinds, which is the same story one level down: the palette naming this condition
-     * is persisted, so `ConditionSource.CODEC` has to be able to dispatch to it.
-     */
-    val surfaceConditionCodecs: List<Pair<Identifier, MapCodec<out SurfaceRules.ConditionSource>>> = listOf(
-        NearTheSurface.ID to NearTheSurface.CODEC.codec(),
     )
 
     /**

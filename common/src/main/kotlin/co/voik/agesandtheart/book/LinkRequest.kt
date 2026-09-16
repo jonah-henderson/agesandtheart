@@ -2,6 +2,7 @@ package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.generation.Ages
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.ephemeris.sky.LevelAppearance
 import io.netty.buffer.ByteBuf
@@ -80,19 +81,19 @@ object Linking {
         // **A book is a door to somewhere else.** Carry one into the Age it describes — through a linking
         // book, say — and using it would spend the book on the room you are already standing in, which is
         // the same claim `goToThePlace` refuses and for the same reason.
-        if (stack.get(AgeContent.AGE_ID) == level.dimension().identifier()) return refuse(player, "same_world")
+        if (stack.get(AgeComponents.AGE_ID) == level.dimension().identifier()) return refuse(player, "same_world")
         // `BookAge` and not a second copy of this: the linking panel opens the same Age from the same
         // stack, and a book that previewed one world and sent you to another would be the worst fault
         // this could have.
         val age = BookAge.of(level.server, stack) ?: return refuse(player, "failed")
         Ages.teleport(player, age)
-        val called = stack.get(AgeContent.BOOK_TITLE) ?: age.dimension().identifier().path
+        val called = stack.get(AgeComponents.BOOK_TITLE) ?: age.dimension().identifier().path
         player.sendSystemMessage(Component.translatable("book.agesandtheart.linked", called), true)
         return true
     }
 
     private fun goToThePlace(player: ServerPlayer, level: ServerLevel, stack: ItemStack): Boolean {
-        val target = stack.get(AgeContent.LINK_TARGET) ?: return refuse(player, "no_destination")
+        val target = stack.get(AgeComponents.LINK_TARGET) ?: return refuse(player, "no_destination")
         // Linking is travel *between* worlds. A book that moves you within one is not a linking book —
         // which is both the lore and, incidentally, what stops this being an overland taxi.
         if (target.dimension == level.dimension()) return refuse(player, "same_world")

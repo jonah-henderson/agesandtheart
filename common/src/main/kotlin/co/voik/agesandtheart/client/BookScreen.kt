@@ -12,7 +12,7 @@ import co.voik.agesandtheart.client.panel.PanelPicture
 import co.voik.agesandtheart.client.panel.PanelTarget
 import co.voik.agesandtheart.client.ui.ParchmentSurface
 import co.voik.agesandtheart.client.ui.Rect
-import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.AgeComponents
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
@@ -72,7 +72,7 @@ class BookScreen(
         super.init()
         // Learned locally on this frame rather than after the server has rolled an Age (design §4.5). The
         // server still teaches authoritatively, and its payload adds nothing when it lands.
-        KnownWords.readFrom(book.get(AgeContent.BOOK_WORDS).orEmpty())
+        KnownWords.readFrom(book.get(AgeComponents.BOOK_WORDS).orEmpty())
         if (held is BookBeingRead.InHand) LinkingPanel.ask(held)
     }
 
@@ -235,7 +235,7 @@ class BookScreen(
         val lines = mutableListOf<Line>()
         var line = mutableListOf<Column>()
         var used = 0
-        for (word in book.get(AgeContent.BOOK_READING).orEmpty().flatMap(::columnsOf)) {
+        for (word in book.get(AgeComponents.BOOK_READING).orEmpty().flatMap(::columnsOf)) {
             if (line.isNotEmpty() && used + word.width > COLUMN_WIDTH) {
                 lines += Line(line)
                 line = mutableListOf()
