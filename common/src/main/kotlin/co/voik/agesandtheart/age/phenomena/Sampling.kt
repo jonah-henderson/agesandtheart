@@ -25,7 +25,7 @@ object Sampling {
     /**
      * The players who count as present in [level]: everyone but spectators.
      *
-     * Every phenomenon and the presence gate in [Happenings.tick] read this, so a spectator alone in an Age
+     * Every phenomenon and the presence gate in `AgeTick.tick` read this, so a spectator alone in an Age
      * draws nothing and advances nothing.
      */
     fun watchers(level: ServerLevel): List<ServerPlayer> = level.players().filterNot { it.isSpectator }

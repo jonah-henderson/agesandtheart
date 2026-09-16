@@ -1,14 +1,11 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.age.aspect.Span
-import co.voik.agesandtheart.age.consequence.Worsening
-import co.voik.agesandtheart.age.consequence.Hostility
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.ORDINARY_SHARE
 import co.voik.agesandtheart.age.aspect.WeatherConditions
 import co.voik.agesandtheart.age.AgeComposition
-import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Price
@@ -17,10 +14,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
-import co.voik.agesandtheart.age.aspect.Skew
-import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.age.aspect.Rung
-import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import kotlin.math.roundToInt
 
@@ -37,78 +31,48 @@ import kotlin.math.roundToInt
 object Happenings {
 
     /**
-     * One tick of every Age that has something happening in it.
+     * Everything that befalls [level] this tick, and the weather they insist on.
      *
-     * Called from `CommonSetup.serverTick`.
-     *
-     * **Only levels that are loaded and have someone in them**, as [Sampling.watchers] counts them — a
-     * spectator alone is nobody. An Age nobody is standing in has no lightning worth spending a tick on, and
-     * the check is what keeps this from scaling with how many Ages have ever been written.
+     * Called from `AgeTick.tick`, which owns the walk and the gate on who is watching. [spending] and
+     * [prices] are handed in rather than worked out here because the tearing done beside this reads them
+     * too, and they are one answer for the whole Age.
      */
-    fun tick(server: MinecraftServer) {
-        val saved = AgeSavedData.get(server)
-        if (saved.ages.isEmpty()) return
-        for (level in server.allLevels) {
-            val age = level.dimension().identifier()
-            val recipe = saved.recipe(age) ?: continue
-            val composition = recipe.composition ?: continue
-            val happening = claimsIn(composition)
-            // **The sea's level is settled before the emptiness check, and the counter after it.** Where
-            // the sea *stands* has to be right whenever a chunk is made, and a chunk can be made in an Age
-            // nobody is in — a forceload, a teleport arriving, a neighbouring player's view. How far it has
-            // *got* may only advance while somebody is there, which is the whole of what the counted
-            // register was chosen for. See [Deluge].
-            val drowning = happening.any { it.value == Phenomenon.DELUGE.key }
-            Deluge.stand(level, drowning, saved.presenceIn(age))
-            if (Sampling.watchers(level).isEmpty()) continue
-            if (drowning) saved.spendATickIn(age)
-            // What the Age could not hold, and what that bought. Derived rather than stored, so it comes
-            // out the same on every open — see [Spending].
-            val spending = Spending.of(server, recipe)
-            val prices = Price.list(server)
-            // **Before the weather, because a phenomenon may now scale what it asks of it.** A blizzard's
-            // whole axis is how much of the time it is blowing, and an *inflicted* one is absent from the
-            // written claims — so asking the weather from those alone left instability unable to drive the
-            // one register it buys.
-            val befalls = befalling(happening, spending, prices).toMutableMap().apply {
-                // A blizzard somebody asked for by hand happens here whether or not the book wrote one —
-                // see [Blizzard.force]. Without this, `/age weather blizzard 3` in an ordinary Age sets a
-                // fierceness nothing reads.
-                if (Blizzard.forcedIn(level) != null) putIfAbsent(Phenomenon.BLIZZARD, Rung.ORDINARY)
-            }
-            AgeWeather.steer(level, wanted(composition, befalls, spending, prices))
-            for ((phenomenon, density) in befalls) {
-                befall(level, phenomenon, density, furyOf(spending, prices, phenomenon))
-            }
-            // What the client cannot work out for itself — see [BlizzardPayload]. Sent on a slow beat
-            // rather than on change, because "changed" would need a memory per player and the message is
-            // a dozen bytes.
-            if (server.tickCount % TELLING_THE_CLIENT == 0) {
-                Blizzard.tellTheClients(level, befalls, spending, prices)
-            }
-            // Not a phenomenon — a wound is what the Age could not hold rather than something it does — but
-            // it wants the same walk, and the walk is the expensive part.
-            Hostility.stir(level)
-            // Nor is this one: an Age goes on tearing — the ground that came back while nobody was
-            // looking, and then the hole opening in front of somebody. See [Worsening].
-            Worsening.advance(level, recipe, spending)
-            // And a dragon an Age was written with needs telling where it is, or it flies to the world
-            // origin to hold its pattern — see [Dragons].
-            Dragons.findTheirOwnGround(level)
-            // Nor is this: water deep enough to be an abyss becomes one, wherever it came from. **Here and
-            // not beside `ChargedMetal.stir` on purpose** — that walks every level so crystal carried home
-            // still works, where this must reach no Overworld and no End (Jonah, 2026-09-10). Walking the
-            // Ages *is* the carve-out, and a positive one rather than a list to keep extended.
-            DeepWater.seep(level)
+    fun befallAll(
+        level: ServerLevel,
+        composition: AgeComposition,
+        happening: List<Claim>,
+        spending: Spending,
+        prices: Map<Manifestation, Price>,
+    ) {
+        // **Before the weather, because a phenomenon may now scale what it asks of it.** A blizzard's
+        // whole axis is how much of the time it is blowing, and an *inflicted* one is absent from the
+        // written claims — so asking the weather from those alone left instability unable to drive the
+        // one register it buys.
+        val befalls = befalling(happening, spending, prices).toMutableMap().apply {
+            // A blizzard somebody asked for by hand happens here whether or not the book wrote one —
+            // see [Blizzard.force]. Without this, `/age weather blizzard 3` in an ordinary Age sets a
+            // fierceness nothing reads.
+            if (Blizzard.forcedIn(level) != null) putIfAbsent(Phenomenon.BLIZZARD, Rung.ORDINARY)
+        }
+        AgeWeather.steer(level, wanted(composition, befalls, spending, prices))
+        for ((phenomenon, density) in befalls) {
+            befall(level, phenomenon, density, furyOf(spending, prices, phenomenon))
+        }
+        // What the client cannot work out for itself — see [BlizzardPayload]. Sent on a slow beat
+        // rather than on change, because "changed" would need a memory per player and the message is
+        // a dozen bytes.
+        if (level.server.tickCount % TELLING_THE_CLIENT == 0) {
+            Blizzard.tellTheClients(level, befalls, spending, prices)
         }
     }
 
     /**
      * The claim by which [phenomenon] befalls [level], or null where it does not.
      *
-     * What [tick] reads per Age, asked the other way about — for a phenomenon that has to answer something
-     * the world did rather than the clock, as a tempest answers a bolt landing ([Tempest.struck]). Every
-     * bolt in the game asks this, which is why it goes through [Ages.recipeOf]'s namespace test.
+     * What `AgeTick.tick` reads per Age, asked the other way about — for a phenomenon that has to answer
+     * something the world did rather than the clock, as a tempest answers a bolt landing
+     * ([Tempest.struck]). Every bolt in the game asks this, which is why it goes through
+     * [Ages.recipeOf]'s namespace test.
      */
     fun claimFor(level: ServerLevel, phenomenon: Phenomenon): Claim? {
         val composition = Ages.recipeOf(level)?.composition ?: return null
@@ -119,7 +83,7 @@ object Happenings {
      * What this Age's own instability makes of [phenomenon], nought to one — and nought for anywhere that
      * is not an Age.
      *
-     * The same answer [tick] works out for itself, offered to anything that wants to *imitate* what an Age
+     * The same answer `AgeTick.tick` works out for itself, offered to anything that wants to *imitate* what an Age
      * would do rather than wait for it. A debug command that raised storms at a fierceness the Age had
      * never bought was showing something the game does not contain.
      */
@@ -166,7 +130,7 @@ object Happenings {
     private const val NOTHING_INFLICTED = 0.0
 
     /** What the Age says befalls it, as claims — empty for one that says nothing. */
-    private fun claimsIn(composition: AgeComposition): List<Claim> =
+    fun claimsIn(composition: AgeComposition): List<Claim> =
         Phenomena.claimsIn(composition.optionsFor(Aspect.PHENOMENA, 0))
 
     /**
@@ -235,7 +199,7 @@ object Happenings {
             Phenomenon.BLIZZARD -> Blizzard.blow(level, density, fury)
             Phenomenon.METEORS -> Meteors.fall(level, density, fury)
             // **The rise is not here**, and that is the one thing to know about this phenomenon's shape:
-            // the sea's level is a counted number advanced in [tick] whether or not a player is looking,
+            // the sea's level is a counted number advanced in `AgeTick.tick` whether or not a player is looking,
             // where these two are the near-player block work that makes it visible. See [Deluge].
             // **The pooling rain is PARKED, not deleted** (Jonah, 2026-09-13). It places sources on sky-lit
             // ground above the waterline, and while the rise itself is still being refined that reads as

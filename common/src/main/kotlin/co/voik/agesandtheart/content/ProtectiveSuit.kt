@@ -113,7 +113,7 @@ object ProtectiveSuit {
      * lava is worth having outright and a harmless blaze is an acceptable price. What keeps it from being
      * free is [wearOut] rather than a gap in what it covers.
      *
-     * Called from `CommonSetup.serverTick`, beside `Happenings.tick`.
+     * Called from `CommonSetup.serverTick`, beside `AgeTick.tick`.
      */
     fun tick(server: MinecraftServer) {
         if (server.tickCount % A_SECOND != 0) return

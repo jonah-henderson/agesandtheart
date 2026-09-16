@@ -52,8 +52,8 @@ object CommonSetup {
 
     /** The end of every server tick. */
     fun serverTick(server: MinecraftServer) {
-        // Whatever befalls an Age.
-        Happenings.tick(server)
+        // Whatever an Age does, which is more than whatever befalls it.
+        AgeTick.tick(server)
         // And what a deretheni suit keeps off its wearer, which is the half of that no attribute can reach.
         ProtectiveSuit.tick(server)
         // And every charged machine anybody is standing near — every level, not only the Ages, since crystal
