@@ -13,7 +13,6 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.HolderSet
@@ -48,9 +47,6 @@ import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseChunk
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.DensityFunction
-import net.minecraft.world.level.levelgen.DensityFunctions
-import net.minecraft.world.level.levelgen.NoiseRouter
-import net.minecraft.world.level.levelgen.NoiseSettings
 import net.minecraft.world.level.levelgen.RandomState
 import net.minecraft.world.level.levelgen.RandomSupport
 import net.minecraft.world.level.levelgen.SurfaceRules
@@ -73,9 +69,9 @@ import net.minecraft.resources.Identifier
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.MoltenLining
 import co.voik.agesandtheart.worldgen.Overlay
-import co.voik.agesandtheart.worldgen.PreliminarySurface
 import co.voik.agesandtheart.worldgen.TerrainAdaptation
 import co.voik.agesandtheart.worldgen.VerticalWindow
+import co.voik.agesandtheart.worldgen.settingsFor
 
 /**
  * The generator every composed Age runs on: **vanilla's noise generator, with four deliberate exits.**
@@ -130,7 +126,8 @@ class AgeChunkGenerator(
     private val structureSets: List<Holder<StructureSet>> = emptyList(),
     /**
      * Where this Age's **climate** comes from, or null for an Age that has none — which is what a
-     * single-biome demo preset is. Only the climate half of the named router is taken; see [routerFor].
+     * single-biome demo preset is. Only the climate half of the named router is taken; see
+     * [co.voik.agesandtheart.worldgen.settingsFor].
      */
     private val climate: Holder<NoiseGeneratorSettings>? = null,
     /**
@@ -236,7 +233,8 @@ class AgeChunkGenerator(
 
     /**
      * The preliminary surface vanilla's surface system is told at this column — read from the router as
-     * `NoiseChunk` reads it, so this is the number the frozen-ocean icebergs stop at. See [PreliminarySurface].
+     * `NoiseChunk` reads it, so this is the number the frozen-ocean icebergs stop at. See
+     * [co.voik.agesandtheart.worldgen.PreliminarySurface].
      */
     fun preliminarySurfaceAt(worldX: Int, worldZ: Int): Int = Math.floor(
         generatorSettings().value().noiseRouter().preliminarySurfaceLevel()
@@ -245,6 +243,19 @@ class AgeChunkGenerator(
 
     /** The surface the aquifer reads, which is the one vanilla's surface system reads — as vanilla's aquifer does. */
     private fun surfaceForTheAquifer(): WaterTable.SurfaceAt = WaterTable.SurfaceAt(::preliminarySurfaceAt)
+
+    /**
+     * This Age's water table over [field], built fresh for whoever asks.
+     *
+     * **Fresh every time, and that is not an economy to make**: the object memoises a column and tracks
+     * whether the water it has just placed still has to settle, so the fill and the carving each need their
+     * own and neither may share one between chunk workers.
+     *
+     * Spelled once because it was spelled twice, identically, in the two places that need it — five
+     * arguments apiece, where a fourth argument drifting in one of them would be silent.
+     */
+    private fun aquiferFor(randomState: RandomState, field: TerrainField) =
+        WaterTable.aquiferFor(tables, field, surfaceForTheAquifer(), deepDarkIn(randomState), underground)
 
     /**
      * Whether a point lies in deep dark, which vanilla's aquifer never floods. Vanilla asks its erosion and
@@ -434,7 +445,8 @@ class AgeChunkGenerator(
     }
 
     /**
-     * The settings handed to the superclass, read back rather than kept twice — see [settingsFor]. Vanilla
+     * The settings handed to the superclass, read back rather than kept twice — see
+     * [co.voik.agesandtheart.worldgen.settingsFor]. Vanilla
      * reads the same object, so `getSeaLevel`/`getMinY`/`getGenDepth` need no overrides here.
      */
     private val generationSettings: NoiseGeneratorSettings = generatorSettings().value()
@@ -471,7 +483,7 @@ class AgeChunkGenerator(
         // it would move the position the fill is about to write to.
         val reach = BlockPos.MutableBlockPos()
         // One per chunk, because the object carries a column memo — the same reason carving mints its own.
-        val water = WaterTable.aquiferFor(tables, ours.field, surfaceForTheAquifer(), deepDarkIn(randomState), underground)
+        val water = aquiferFor(randomState, ours.field)
 
         for (localX in 0..<16) {
             for (localZ in 0..<16) {
@@ -988,7 +1000,7 @@ class AgeChunkGenerator(
         val carvingMask = protoChunk.getOrCreateCarvingMask()
         // Fresh per pass: it caches a column and tracks whether the water it just placed needs to
         // settle, so it must not be shared between chunk workers.
-        val aquifer = WaterTable.aquiferFor(tables, rock.field, surfaceForTheAquifer(), deepDarkIn(randomState), underground)
+        val aquifer = aquiferFor(randomState, rock.field)
         // Seeded per *source* chunk rather than per target, so one cave system crosses chunk borders
         // identically however the chunks happen to be generated. The reach matches vanilla's.
         val random = WorldgenRandom(LegacyRandomSource(RandomSupport.generateUniqueSeed()))
@@ -1010,76 +1022,7 @@ class AgeChunkGenerator(
                 }
             }
         }
-        tellOpenedLavaToMove(chunk)
-    }
-
-    /**
-     * **Lava a carver has just opened is told it may move.**
-     *
-     * A carver runs *after* the fill and writes its air straight into the chunk, firing no neighbour
-     * updates — generation never does. So a caldera whose wall a cave happened to cut through kept a level
-     * sheet of lava standing over the hole, because a source block does nothing until something asks it to
-     * (Jonah, walked 2026-09-11: *"it did leave some lava that should have been flowing suspended"*).
-     *
-     * **Marked rather than moved**, which is the same answer the fill already gives its own perched fluids:
-     * `markPosForPostprocessing` has vanilla give the block its first tick when the chunk loads, and it then
-     * finds its own way down. Nothing here decides where the lava goes.
-     *
-     * **Lava only, and that is what makes the sweep affordable.** It is rare — crater lakes and magma
-     * chambers — so almost every section is skipped outright by the same `maybeHas` test
-     * `DeepWater.settleTheAbyss` uses, and an Age with none pays one predicate per section. Water is left
-     * alone deliberately: a sea is most of the volume of a wet Age, and vanilla's carvers already stop at
-     * it rather than cutting it open.
-     *
-     * A neighbour outside this chunk is not looked at. It cannot be read reliably here, and the chunk it
-     * belongs to runs this same sweep over its own side of the boundary.
-     */
-    private fun tellOpenedLavaToMove(chunk: ChunkAccess) {
-        val at = BlockPos.MutableBlockPos()
-        val beside = BlockPos.MutableBlockPos()
-        val lowest = chunk.minY
-        val highest = chunk.minY + chunk.height - 1
-        for (index in chunk.minSectionY..chunk.maxSectionY) {
-            val section = chunk.getSection(chunk.getSectionIndexFromSectionY(index))
-            if (section.hasOnlyAir()) continue
-            if (!section.maybeHas { MoltenLining.isMolten(it) }) continue
-            // The section's own *block* floor. `index` is already a section Y here, so this is the shift
-            // and nothing else — round-tripping it through the index would hand back the section Y again
-            // and scan sixteen blocks starting at y = -4.
-            val floor = index shl SECTION_TO_BLOCKS
-            for (y in maxOf(floor, lowest)..minOf(floor + BLOCKS_PER_SECTION - 1, highest)) {
-                for (localX in 0..<BLOCKS_PER_SECTION) {
-                    for (localZ in 0..<BLOCKS_PER_SECTION) {
-                        at.set(chunk.pos.minBlockX + localX, y, chunk.pos.minBlockZ + localZ)
-                        if (!MoltenLining.isMolten(chunk.getBlockState(at))) continue
-                        if (opensOnto(chunk, beside, at, localX, localZ, lowest, highest)) {
-                            chunk.markPosForPostprocessing(at)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /** Whether any neighbour of [at] inside this chunk is open air for the lava to run into. */
-    private fun opensOnto(
-        chunk: ChunkAccess,
-        cursor: BlockPos.MutableBlockPos,
-        at: BlockPos,
-        localX: Int,
-        localZ: Int,
-        lowest: Int,
-        highest: Int,
-    ): Boolean {
-        if (at.y > lowest && chunk.getBlockState(cursor.setWithOffset(at, Direction.DOWN)).isAir) return true
-        if (at.y < highest && chunk.getBlockState(cursor.setWithOffset(at, Direction.UP)).isAir) return true
-        if (localX > 0 && chunk.getBlockState(cursor.setWithOffset(at, Direction.WEST)).isAir) return true
-        if (localX < BLOCKS_PER_SECTION - 1 && chunk.getBlockState(cursor.setWithOffset(at, Direction.EAST)).isAir) {
-            return true
-        }
-        if (localZ > 0 && chunk.getBlockState(cursor.setWithOffset(at, Direction.NORTH)).isAir) return true
-        return localZ < BLOCKS_PER_SECTION - 1 &&
-            chunk.getBlockState(cursor.setWithOffset(at, Direction.SOUTH)).isAir
+        MoltenLining.markLavaOpenedIn(chunk)
     }
 
     /**
@@ -1132,7 +1075,8 @@ class AgeChunkGenerator(
     }
 
     /**
-     * Nothing where the shape is ours — mob generation is disabled in [settingsFor], and the superclass
+     * Nothing where the shape is ours — mob generation is disabled in
+     * [co.voik.agesandtheart.worldgen.settingsFor], and the superclass
      * would otherwise consult its own [NoiseChunk] to decide. Vanilla's rock answers for itself: its
      * settings already say whether that world populates a fresh chunk, and the overworld's says it does.
      *
@@ -1179,7 +1123,7 @@ class AgeChunkGenerator(
     }
 
     // getGenDepth / getSeaLevel / getMinY are deliberately NOT overridden: the superclass answers all three
-    // from `generatorSettings()`, which is ours (see [settingsFor]). That makes `getSeaLevel` return the
+    // from `generatorSettings()`, which is ours (see `worldgen.settingsFor`). That makes `getSeaLevel` return the
     // *coerced* sea level, so a void sea answers the world floor rather than `Int.MIN_VALUE`.
 
     companion object {
@@ -1238,99 +1182,12 @@ class AgeChunkGenerator(
             }
         }
 
-        /**
-         * Our vertical layout in the shape vanilla's machinery expects — and, being a
-         * [NoiseBasedChunkGenerator], the settings the game reads to build our [RandomState].
-         *
-         * That is what the subclass buys: `ChunkMap` branches on `instanceof NoiseBasedChunkGenerator` to
-         * decide whether to build a [RandomState] from the generator's own settings or from
-         * `NoiseGeneratorSettings.dummy()`, so a peer can never be handed a real climate sampler.
-         *
-         * A companion function rather than a property, because a superclass constructor call cannot see
-         * the instance being built.
-         */
-        private fun settingsFor(
-            seaFill: SeaFill,
-            surfaceRule: SurfaceRules.RuleSource,
-            climate: Holder<NoiseGeneratorSettings>?,
-            fill: TerrainFill,
-            window: VerticalWindow,
-            field: TerrainField,
-            uncut: TerrainField?,
-        ) = NoiseGeneratorSettings(
-            NoiseSettings.create(window.minY, window.height, NOISE_CELLS_HORIZONTAL, NOISE_CELLS_VERTICAL),
-            // The Age's own material, not a constant, which is what makes a surface rule fire over it:
-            // `SurfaceSystem` recognises rock by comparing against these settings' default block, so
-            // laying blackstone while declaring stone paints no surface at all. One block for the whole
-            // Age, so several materials are recognised over [TerrainFill.representative] only.
-            fill.representative,
-            seaFill.representative,
-            routerFor(
-                climate,
-                PreliminarySurface(field, uncut, window.minY, window.topY - 1, QuartPos.toBlock(NOISE_CELLS_VERTICAL)),
-            ),
-            surfaceRule,
-            emptyList(),
-            // Coerced, because VOID's level is a sentinel rather than a height and this one is read as a
-            // height by the superclass, by features and by the surface system.
-            seaFill.level.coerceAtLeast(window.minY),
-            /* disableMobGeneration = */ true,
-            /* aquifersEnabled = */ false,
-            /* oreVeinsEnabled = */ false,
-            /* useLegacyRandomSource = */ false,
-        )
-
         /** Half a chunk, so a chunk is judged by its middle rather than its corner. */
         private const val BLOCKS_PER_SECTION = 16
-
-        /** A section is sixteen blocks tall, so its Y shifted by four is its floor in block space. */
-        private const val SECTION_TO_BLOCKS = 4
 
         /** One column of margin all round, which is what asking "what is beside this" costs. */
         private const val LINING_MARGIN = 1
         private const val LINING_SIDE = BLOCKS_PER_SECTION + 2 * LINING_MARGIN
-
-        /**
-         * **The climate half of a named router, and nothing else.** `ChunkMap` builds the level's
-         * [RandomState] from these settings, so this is what every consumer is handed — `applyCarvers`,
-         * the inherited `createBiomes`, `/age biomes`.
-         *
-         * **The terrain half stays zero**, since our shape is the field tree's and any density read here
-         * would describe a world that does not exist. **`depth` stays zero too**, which only looks
-         * inconsistent: depth is ours ([co.voik.agesandtheart.worldgen.biome.ClimateDepth]), and vanilla's
-         * own depth function describes vanilla's relief — a terrain function wearing a climate name.
-         *
-         * **One exception, and it earns itself: `preliminarySurfaceLevel`.** `NoiseChunk` floors that slot
-         * into a column's preliminary surface, which is how deep the surface system's frozen-ocean icebergs
-         * reach and what vanilla's `abovePreliminarySurface` compares against. [PreliminarySurface] answers it
-         * from the field tree — as a height, not a density, since a height is what the slot holds.
-         */
-        private fun routerFor(climate: Holder<NoiseGeneratorSettings>?, surface: DensityFunction): NoiseRouter {
-            val vanilla = climate?.value()?.noiseRouter() ?: return inertRouterOver(surface)
-            val nothing = DensityFunctions.zero()
-            return NoiseRouter(
-                nothing, nothing, nothing, nothing,
-                vanilla.temperature(), vanilla.vegetation(), vanilla.continents(), vanilla.erosion(),
-                /* depth = */ nothing,
-                vanilla.ridges(),
-                /* preliminarySurfaceLevel = */ surface,
-                nothing, nothing, nothing, nothing,
-            )
-        }
-
-        /** A router describing nothing but where the rock stands — what an Age with no climate gets. */
-        private fun inertRouterOver(surface: DensityFunction): NoiseRouter = DensityFunctions.zero().let { nothing ->
-            NoiseRouter(
-                nothing, nothing, nothing, nothing, nothing,
-                nothing, nothing, nothing, nothing, nothing,
-                surface, nothing, nothing, nothing, nothing,
-            )
-        }
-
-        // Cell sizes for the layout description handed to vanilla's machinery; they match the
-        // overworld's, which is the shape all of it is tuned around.
-        private const val NOISE_CELLS_HORIZONTAL = 1
-        private const val NOISE_CELLS_VERTICAL = 2
 
         // Carvers reach this many chunks out, so a cave system crosses borders. Vanilla's own figure.
         private const val CARVE_REACH_CHUNKS = 8
