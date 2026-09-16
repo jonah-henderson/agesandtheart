@@ -9,6 +9,7 @@ import co.voik.ephemeris.sky.SkySpec
 
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.SkyBodies
 import com.mojang.serialization.JsonOps
 import io.kotest.core.spec.style.FunSpec
 import co.voik.agesandtheart.age.aspect.Span
@@ -215,10 +216,10 @@ class SkyCheck : FunSpec({
         }
         // The bodies are the sun's, the moon's and the stars' rather than any sky preset's, so it is the
         // aspects that must hold their parameters — one nothing declares is a request silently dropped.
-        for (parameter in listOf(Sky.ABSENT, Sky.SUNSIZE, Sky.SUNCOLOUR)) {
+        for (parameter in listOf(SkyBodies.ABSENT, SkyBodies.SUNSIZE, SkyBodies.SUNCOLOUR)) {
             check(parameter in Aspect.SUN.parameters) { "the sun does not hold ${parameter.name}" }
         }
-        check(Sky.STARS in Aspect.STARS.parameters) { "the stars do not hold their own density" }
+        check(SkyBodies.STARS in Aspect.STARS.parameters) { "the stars do not hold their own density" }
     }
 
     /**
@@ -259,9 +260,9 @@ class SkyCheck : FunSpec({
         val unusual = listOf(
             // Two suns is two clauses that minted one, which is the cast rather than any option.
             "two suns" to Sky.PLAIN.specFor(Described(cast = mapOf(Aspect.SUN to 2)), A_SEED),
-            "no suns" to Sky.PLAIN.specFor(steering(Aspect.SUN, Sky.ABSENT, Parameter.TRUE), A_SEED),
-            "no stars" to Sky.PLAIN.specFor(steering(Aspect.STARS, Sky.STARS, EMPTIEST), A_SEED),
-            "dense stars" to Sky.PLAIN.specFor(steering(Aspect.STARS, Sky.STARS, FULLEST), A_SEED),
+            "no suns" to Sky.PLAIN.specFor(steering(Aspect.SUN, SkyBodies.ABSENT, Parameter.TRUE), A_SEED),
+            "no stars" to Sky.PLAIN.specFor(steering(Aspect.STARS, SkyBodies.STARS, EMPTIEST), A_SEED),
+            "dense stars" to Sky.PLAIN.specFor(steering(Aspect.STARS, SkyBodies.STARS, FULLEST), A_SEED),
         )
         for ((described, spec) in unusual) {
             check(!spec.isOrdinary) { "\"$described\" reads as an ordinary sky, so no Age would ever draw it" }
@@ -288,7 +289,7 @@ class SkyCheck : FunSpec({
      * sun is a fine thing to write, and `moonless` is the word for the other.
      */
     test("a sunless world is not a moonless one") {
-        val sunless = Described(mapOf(Aspect.SUN to Options(mapOf(Sky.ABSENT.name to listOf(Parameter.TRUE)))))
+        val sunless = Described(mapOf(Aspect.SUN to Options(mapOf(SkyBodies.ABSENT.name to listOf(Parameter.TRUE)))))
         val spec = Sky.PLAIN.specFor(sunless, A_SEED)
         check(spec.bodies.none { it.phase == null }) { "a sunless world kept a sun" }
         check(spec.bodies.any { it.phase != null }) { "a sunless world lost its moon as well" }

@@ -11,7 +11,7 @@ import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.AgeTemplate
 import com.mojang.serialization.JsonOps
-import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Terrain
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
@@ -88,7 +88,7 @@ class RecipeCheck : FunSpec({
         // A parameter that exists, on an aspect with no preset, given a value its axis cannot read. The
         // expectation is spelled from the parameter rather than repeated, so renaming one cannot leave a
         // check asserting the old name against the new behaviour.
-        val size = Sky.SUNSIZE.name
+        val size = SkyBodies.SUNSIZE.name
         check(saidOf(Aspect.SUN, size, "huge") == listOf("sun.$size=huge")) {
             "a value the axis cannot read went unreported: ${saidOf(Aspect.SUN, size, "huge")}"
         }
@@ -265,13 +265,13 @@ class RecipeCheck : FunSpec({
     test("a cast of bodies round-trips") {
         val written = AgeComposition(terrains = listOf(Terrain.HILLS))
             .withCastOf(Aspect.SUN, 3)
-            .withOptionsFor(Aspect.SUN, 1, Sky.SUNCOLOUR.name, listOf("red"))
+            .withOptionsFor(Aspect.SUN, 1, SkyBodies.SUNCOLOUR.name, listOf("red"))
         check(written.membersIn(Aspect.SUN) == 3) { "the cast was not written: ${written.membersIn(Aspect.SUN)}" }
         val read = AgeComposition.parse(written.toString()).getOrThrow()
         check(read.membersIn(Aspect.SUN) == 3) {
             "'$written' came back with ${read.membersIn(Aspect.SUN)} suns rather than three"
         }
-        check(read.optionsFor(Aspect.SUN, 1).of(Sky.SUNCOLOUR) == "red") {
+        check(read.optionsFor(Aspect.SUN, 1).of(SkyBodies.SUNCOLOUR) == "red") {
             "the second sun lost its colour: '$read'"
         }
     }

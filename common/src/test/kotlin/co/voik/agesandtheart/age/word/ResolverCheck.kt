@@ -18,7 +18,10 @@ import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Skew
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Share
+import co.voik.agesandtheart.age.aspect.AuroraAspect
+import co.voik.agesandtheart.age.aspect.RainbowAspect
 import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -142,7 +145,7 @@ class ResolverCheck : FunSpec({
         fun ramp(vararg colours: String): List<String> {
             val pages = listOf("age") + colours.toList().flatMap { listOf(it, "and") }.dropLast(1) + "aurora"
             val resolved = Resolver.resolve(vocabulary, read(pages), SAMPLE_SEED)
-            return resolved.composition.optionsFor(Aspect.AURORA, 0).allOf(Sky.AURORACOLOUR)
+            return resolved.composition.optionsFor(Aspect.AURORA, 0).allOf(AuroraAspect.AURORACOLOUR)
         }
 
         check(ramp("red", "green", "blue") == listOf("red", "green", "blue")) {
@@ -168,7 +171,7 @@ class ResolverCheck : FunSpec({
         // end to end: a curtain from its crown to its hem, a bow from its outside in. A third arriving here
         // is a parameter that has been given an order it has no way to mean.
         val ordered = Aspect.entries.flatMap { it.parameters }.filter { it.keepsWrittenOrder }
-        check(ordered == listOf(Sky.AURORACOLOUR, Sky.RAINBOWCOLOUR)) {
+        check(ordered == listOf(AuroraAspect.AURORACOLOUR, RainbowAspect.RAINBOWCOLOUR)) {
             "written order is kept by ${ordered.map { it.name }}, which is not the two that mean it"
         }
     }
@@ -433,7 +436,7 @@ class ResolverCheck : FunSpec({
 
         for (template in listOf(AgeTemplate.INFERNAL, AgeTemplate.DARK_VOID)) {
             val silent = composed(template.key, "age")
-            check(silent.optionsFor(Aspect.SUN, 0).isTrue(Sky.ABSENT)) {
+            check(silent.optionsFor(Aspect.SUN, 0).isTrue(SkyBodies.ABSENT)) {
                 "${template.key} came out with a sun that shines"
             }
             check(typeOf(silent) == typeOf(template.world())) {
@@ -444,7 +447,7 @@ class ResolverCheck : FunSpec({
         // And the other half: a book that writes a sun of its own gets that sun and not the world's.
         val litVoid = composed("dark_void", "age", "sun")
         check(litVoid.membersIn(Aspect.SUN) == 1) { "the book minted ${litVoid.membersIn(Aspect.SUN)} suns" }
-        check(!litVoid.optionsFor(Aspect.SUN, 0).isTrue(Sky.ABSENT)) {
+        check(!litVoid.optionsFor(Aspect.SUN, 0).isTrue(SkyBodies.ABSENT)) {
             "a sun written into the void kept the void's dark"
         }
         check(typeOf(litVoid) == Sky.AGE_DIMENSION_TYPE) {
@@ -467,7 +470,7 @@ class ResolverCheck : FunSpec({
         fun sizes(vararg pages: String): List<Set<String>> {
             val composition = Resolver.resolve(vocabulary, read(listOf("age", *pages)), SAMPLE_SEED).composition
             return (0..<composition.membersIn(Aspect.SUN)).map {
-                composition.optionsFor(Aspect.SUN, it).allSpelled(Sky.SUNSIZE.name)
+                composition.optionsFor(Aspect.SUN, it).allSpelled(SkyBodies.SUNSIZE.name)
             }
         }
         // A clause that demands nothing still mints a body, and the size belongs to the other one — which
@@ -593,8 +596,8 @@ class ResolverCheck : FunSpec({
         }
         val first = composition.optionsFor(Aspect.SUN, 0)
         val second = composition.optionsFor(Aspect.SUN, 1)
-        check(first.of(Sky.RISING) == "east") { "the first sun rises ${first.of(Sky.RISING)}" }
-        check(second.of(Sky.RISING) == "southwest") { "the second sun rises ${second.of(Sky.RISING)}" }
+        check(first.of(SkyBodies.RISING) == "east") { "the first sun rises ${first.of(SkyBodies.RISING)}" }
+        check(second.of(SkyBodies.RISING) == "southwest") { "the second sun rises ${second.of(SkyBodies.RISING)}" }
 
         // And it reaches the sky the renderer is handed, which is the half a writer actually sees.
         val drawn = composition.sky.specFor(composition, SAMPLE_SEED)

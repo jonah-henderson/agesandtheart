@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.aspect.Colour
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.RainbowAspect
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.ephemeris.sky.Rainbow
 import io.kotest.core.spec.style.FunSpec
@@ -41,13 +42,13 @@ class RainbowAuthoringCheck : FunSpec({
     test("describing one is enough on its own") {
         // The aspect holds nothing, so no clause can mint a member here. A dial with anything on it *is*
         // the writer saying the Age has bows, which is what `prismatic` leans on to mean anything at all.
-        val described = Aspect.RAINBOW to options(Sky.RAINBOWCOLOUR.name to listOf("green"))
+        val described = Aspect.RAINBOW to options(RainbowAspect.RAINBOWCOLOUR.name to listOf("green"))
         check(sky(described).rainbow != null) { "`green rainbow` described a bow that was never written" }
     }
 
     test("the band is the colours in the order they were written") {
         val outsideIn = listOf("red", "yellow", "purple")
-        val written = Aspect.RAINBOW to options(Sky.RAINBOWCOLOUR.name to outsideIn)
+        val written = Aspect.RAINBOW to options(RainbowAspect.RAINBOWCOLOUR.name to outsideIn)
         val band = bow(written).colours
         check(band.size == outsideIn.size) { "Three colours became ${band.size}" }
         // Compared through the same saturation the sky applies, so this checks order and not palette.
@@ -64,8 +65,8 @@ class RainbowAuthoringCheck : FunSpec({
     }
 
     test("the reverse order is a different sky") {
-        val redOutside = Aspect.RAINBOW to options(Sky.RAINBOWCOLOUR.name to listOf("red", "purple"))
-        val purpleOutside = Aspect.RAINBOW to options(Sky.RAINBOWCOLOUR.name to listOf("purple", "red"))
+        val redOutside = Aspect.RAINBOW to options(RainbowAspect.RAINBOWCOLOUR.name to listOf("red", "purple"))
+        val purpleOutside = Aspect.RAINBOW to options(RainbowAspect.RAINBOWCOLOUR.name to listOf("purple", "red"))
         check(bow(redOutside).colours == bow(purpleOutside).colours.reversed()) {
             "Naming two colours the other way round did not reverse the band, so the order is being lost"
         }
@@ -84,7 +85,7 @@ class RainbowAuthoringCheck : FunSpec({
         check(bow(happens("rainbow")).radiusDegrees == Rainbow.WATERS_OWN) {
             "An Age nobody asked drew its own radius, so its rain is some other substance by accident"
         }
-        val wider = Aspect.RAINBOW to options(Sky.RAINBOWSIZE.name to listOf("1.0..1.0"))
+        val wider = Aspect.RAINBOW to options(RainbowAspect.RAINBOWSIZE.name to listOf("1.0..1.0"))
         check(bow(wider).radiusDegrees > Rainbow.WATERS_OWN) { "Asking for a wide bow did not widen it" }
     }
 
@@ -97,7 +98,7 @@ class RainbowAuthoringCheck : FunSpec({
     test("`prismatic` severs the bow from the weather, and asserts one by doing it") {
         // The dial the walk asked for: an Age whose air splits light on its own. Setting it is also the
         // whole of how the word says the Age has bows at all.
-        val prismatic = Aspect.RAINBOW to options(Sky.RAINBOWRAIN.name to listOf("-1.0..-1.0"))
+        val prismatic = Aspect.RAINBOW to options(RainbowAspect.RAINBOWRAIN.name to listOf("-1.0..-1.0"))
         val written = sky(prismatic).rainbow
         check(written != null) { "`prismatic` set a dial and no bow appeared" }
         check(written.needsRain == 0.0f) { "`prismatic` left the bow needing ${written.needsRain} rain" }

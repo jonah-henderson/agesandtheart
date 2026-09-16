@@ -6,7 +6,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Sea
-import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.AuroraAspect
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import net.minecraft.resources.Identifier
@@ -119,8 +119,8 @@ class EarlyGameRareMaterialsCheck : FunSpec({
 
         /** What `electromagnetic` asks of the curtain, said as the dials rather than as the word. */
         private fun AgeComposition.underFierceCurtains(): AgeComposition = this
-            .withOptions(Aspect.AURORA, Sky.AURORAFREQUENCY.name, listOf("0.75..1"))
-            .withOptions(Aspect.AURORA, Sky.AURORAGLOW.name, listOf("0.6..1"))
+            .withOptions(Aspect.AURORA, AuroraAspect.AURORAFREQUENCY.name, listOf("0.75..1"))
+            .withOptions(Aspect.AURORA, AuroraAspect.AURORAGLOW.name, listOf("0.6..1"))
 
         private fun charged(): AgeComposition = plain()
             .withOptions(Aspect.PHENOMENA, HAPPENS, listOf(TEMPEST, AURORA))

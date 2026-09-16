@@ -200,7 +200,7 @@ enum class Aspect(
      *
      * **Describing it asserts it.** It holds nothing, so no clause can mint a member the way a clause mints
      * a sun; what it has is parameters, and anything set on one is a writer saying the Age has an aurora. See
-     * [Sky.auroraIn].
+     * [AuroraAspect.auroraIn].
      */
     AURORA("aurora"),
 
@@ -213,7 +213,7 @@ enum class Aspect(
      *
      * **Describing it asserts it**, likewise. It holds nothing, so no clause can mint a member the way a
      * clause mints a sun; what it has is parameters, and anything set on one is a writer saying the Age has
-     * bows. See [Sky.rainbowIn].
+     * bows. See [RainbowAspect.rainbowIn].
      *
      * **Almost nothing about where it goes is written here**, which is the whole of what makes it cheap: a
      * bow is a circle about the point opposite whatever lights it, so an Age with two suns has two of them
@@ -290,18 +290,24 @@ enum class Aspect(
             AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE)
             WATERS -> listOf(Atmosphere.MURK)
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER)
-            SUN -> listOf(Sky.ABSENT, Sky.SUNSIZE, Sky.SUNCOLOUR, Sky.RISING, Parameter.cast())
-            MOON -> listOf(Sky.ABSENT, Sky.RISING, Parameter.cast())
-            STARS -> listOf(Sky.STARS, Sky.STARGLOW)
+            SUN -> listOf(SkyBodies.ABSENT, SkyBodies.SUNSIZE, SkyBodies.SUNCOLOUR, SkyBodies.RISING, Parameter.cast())
+            MOON -> listOf(SkyBodies.ABSENT, SkyBodies.RISING, Parameter.cast())
+            STARS -> listOf(SkyBodies.STARS, SkyBodies.STARGLOW)
             GRASS -> listOf(Atmosphere.GRASSCOLOUR)
             LEAVES -> listOf(Atmosphere.LEAFCOLOUR)
-            AURORA -> listOf(Sky.AURORACOLOUR, Sky.AURORAGLOW, Sky.AURORASIZE, Sky.AURORAFREQUENCY, Sky.AURORAWARMTH)
+            AURORA -> listOf(
+                AuroraAspect.AURORACOLOUR,
+                AuroraAspect.AURORAGLOW,
+                AuroraAspect.AURORASIZE,
+                AuroraAspect.AURORAFREQUENCY,
+                AuroraAspect.AURORAWARMTH,
+            )
             RAINBOW -> listOf(
-                Sky.RAINBOWCOLOUR,
-                Sky.RAINBOWGLOW,
-                Sky.RAINBOWSIZE,
-                Sky.RAINBOWFREQUENCY,
-                Sky.RAINBOWRAIN,
+                RainbowAspect.RAINBOWCOLOUR,
+                RainbowAspect.RAINBOWGLOW,
+                RainbowAspect.RAINBOWSIZE,
+                RainbowAspect.RAINBOWFREQUENCY,
+                RainbowAspect.RAINBOWRAIN,
             )
             // A preset aspect with parameters: the two switches that pick the Age's dimension type. They sit
             // here rather than on `Atmosphere` because they are chosen when the Age is *made* and baked

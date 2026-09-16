@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Rung
+import co.voik.agesandtheart.age.aspect.AuroraAspect
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.ephemeris.sky.Aurora
 import io.kotest.core.spec.style.FunSpec
@@ -42,7 +43,7 @@ class AuroraAuthoringCheck : FunSpec({
     test("describing one is enough on its own") {
         // The aspect holds nothing, so no clause can mint a member here the way a clause mints a sun. A dial
         // with anything on it *is* the writer saying the Age has one, and this is what holds that.
-        val described = Aspect.AURORA to options(Sky.AURORACOLOUR.name to listOf("green"))
+        val described = Aspect.AURORA to options(AuroraAspect.AURORACOLOUR.name to listOf("green"))
         check(sky(described).aurora != null) { "`green aurora` described a curtain that was never hung" }
     }
 
@@ -58,7 +59,7 @@ class AuroraAuthoringCheck : FunSpec({
      * only ever a proxy for a latitude an Age does not carry, and a charged Age has no reason to be cold.
      */
     test("a curtain can be asked to stand over warmer ground") {
-        val warm = Aspect.AURORA to options(Sky.AURORAWARMTH.name to listOf("0.9..1"))
+        val warm = Aspect.AURORA to options(AuroraAspect.AURORAWARMTH.name to listOf("0.9..1"))
         val asked = curtain(happens("aurora"), warm)
         val ordinary = curtain(happens("aurora")).warmestGround ?: 0.0f
         check((asked.warmestGround ?: 0.0f) > ordinary) {
@@ -68,7 +69,7 @@ class AuroraAuthoringCheck : FunSpec({
 
     test("the ramp is the colours in the order they were written") {
         val crownToHem = listOf("red", "green", "purple")
-        val written = Aspect.AURORA to options(Sky.AURORACOLOUR.name to crownToHem)
+        val written = Aspect.AURORA to options(AuroraAspect.AURORACOLOUR.name to crownToHem)
         val ramp = curtain(written).colours
         check(ramp.size == crownToHem.size) { "Three colours became ${ramp.size}" }
         // Compared through the same saturation the sky applies, so this checks the order and not the palette.
@@ -83,8 +84,8 @@ class AuroraAuthoringCheck : FunSpec({
     }
 
     test("the reverse order is a different sky") {
-        val crownRed = Aspect.AURORA to options(Sky.AURORACOLOUR.name to listOf("red", "purple"))
-        val crownPurple = Aspect.AURORA to options(Sky.AURORACOLOUR.name to listOf("purple", "red"))
+        val crownRed = Aspect.AURORA to options(AuroraAspect.AURORACOLOUR.name to listOf("red", "purple"))
+        val crownPurple = Aspect.AURORA to options(AuroraAspect.AURORACOLOUR.name to listOf("purple", "red"))
         check(curtain(crownRed).colours != curtain(crownPurple).colours) {
             "Naming two colours the other way round gave the same ramp, so the order is being thrown away"
         }
@@ -94,7 +95,7 @@ class AuroraAuthoringCheck : FunSpec({
     }
 
     test("a ramp of one is a curtain of one colour") {
-        val one = Aspect.AURORA to options(Sky.AURORACOLOUR.name to listOf("blue"))
+        val one = Aspect.AURORA to options(AuroraAspect.AURORACOLOUR.name to listOf("blue"))
         check(curtain(one).colours.size == 1) { "One colour became ${curtain(one).colours.size}" }
     }
 

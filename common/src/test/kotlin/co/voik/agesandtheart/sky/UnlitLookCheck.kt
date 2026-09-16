@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.ephemeris.sky.Look
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -34,7 +35,7 @@ class UnlitLookCheck : FunSpec({
     test("a world nothing shines on is painted as dark as it is held") {
         val ordinary = Options()
         val sealed = Options(mapOf(Sky.SEALED.name to listOf(Parameter.TRUE)))
-        val sunless = Options(mapOf(Sky.ABSENT.name to listOf(Parameter.TRUE)))
+        val sunless = Options(mapOf(SkyBodies.ABSENT.name to listOf(Parameter.TRUE)))
         fun overOrdinary(sky: Options, sun: Options) =
             Atmosphere.unlitLook(described(sky, sun), AgeTemplate.OVERWORLD)
 

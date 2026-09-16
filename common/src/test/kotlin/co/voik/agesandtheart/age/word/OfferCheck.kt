@@ -7,7 +7,7 @@ import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Parameter
-import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.SkyBodies
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -63,8 +63,8 @@ class OfferCheck : FunSpec({
         check(lit.isNotEmpty()) { "no seed hung a second sun, so this proves nothing" }
         for (composition in lit) {
             val bodies = (0..<composition.membersIn(Aspect.SUN)).map { composition.optionsFor(Aspect.SUN, it) }
-            val colours = bodies.map { it.of(Sky.SUNCOLOUR) }.distinct()
-            val sizes = bodies.map { it.of(Sky.SUNSIZE) }.distinct()
+            val colours = bodies.map { it.of(SkyBodies.SUNCOLOUR) }.distinct()
+            val sizes = bodies.map { it.of(SkyBodies.SUNSIZE) }.distinct()
             check(colours.size == 1 && sizes.size == 1) {
                 "an inferno's suns did not agree — colours $colours, sizes $sizes"
             }
@@ -81,8 +81,8 @@ class OfferCheck : FunSpec({
             check(resolved.composition.membersIn(Aspect.SUN) == 1) {
                 "the writer's one sun became ${resolved.composition.membersIn(Aspect.SUN)} at seed $seed"
             }
-            check(resolved.composition.optionsFor(Aspect.SUN, 0).of(Sky.SUNCOLOUR) == "blue") {
-                "the writer's blue sun came out ${resolved.composition.optionsFor(Aspect.SUN, 0).of(Sky.SUNCOLOUR)}"
+            check(resolved.composition.optionsFor(Aspect.SUN, 0).of(SkyBodies.SUNCOLOUR) == "blue") {
+                "the writer's blue sun came out ${resolved.composition.optionsFor(Aspect.SUN, 0).of(SkyBodies.SUNCOLOUR)}"
             }
             check(resolved.instability.flaws.none { it.register == Register.DISPLACED }) {
                 "describing a sun was charged against an inferno's offer: ${resolved.instability.flaws}"
@@ -96,7 +96,7 @@ class OfferCheck : FunSpec({
      */
     test("describing a sun's colour leaves the rest of the offer standing") {
         val lit = SEEDS.map { resolve(it, "inferno", "age", "blue", "sun").composition }
-        check(lit.all { it.optionsFor(Aspect.SUN, 0).of(Sky.SUNCOLOUR) == "blue" }) {
+        check(lit.all { it.optionsFor(Aspect.SUN, 0).of(SkyBodies.SUNCOLOUR) == "blue" }) {
             "the writer's sun did not stay blue"
         }
         check(lit.any { it.optionsFor(Aspect.SKY, 0).of(Atmosphere.SKY) == "red" }) {

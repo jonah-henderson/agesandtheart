@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.sky.Described
 import co.voik.agesandtheart.sky.described
@@ -39,7 +40,7 @@ class DimensionTypeCheck : FunSpec({
     val shipped = File("src/main/resources/data/agesandtheart/dimension_type")
 
     val sealed = Options(mapOf(Sky.SEALED.name to listOf(Parameter.TRUE)))
-    val unlit = Options(mapOf(Sky.ABSENT.name to listOf(Parameter.TRUE)))
+    val unlit = Options(mapOf(SkyBodies.ABSENT.name to listOf(Parameter.TRUE)))
 
     /** Each of vanilla's three worlds and the type of ours that restates it. */
     val ourEquivalent = mapOf(
@@ -232,7 +233,7 @@ class DimensionTypeCheck : FunSpec({
             check(file.isFile) { "'${expected.path}' is chosen by $sky $sun and ships no file" }
             val written = JsonParser.parseString(file.readText()).asJsonObject
             val wantsRoof = sky.isTrue(Sky.SEALED)
-            val wantsSkylight = !wantsRoof && !sun.isTrue(Sky.ABSENT)
+            val wantsSkylight = !wantsRoof && !sun.isTrue(SkyBodies.ABSENT)
             check(written.get("has_skylight").asBoolean == wantsSkylight) {
                 "'${expected.path}' has_skylight is ${written.get("has_skylight")}, asked $wantsSkylight"
             }
