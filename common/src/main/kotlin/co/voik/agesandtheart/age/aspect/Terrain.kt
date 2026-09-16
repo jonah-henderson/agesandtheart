@@ -4,12 +4,10 @@ import co.voik.agesandtheart.worldgen.AlpsField
 import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CavernField
-import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.CliffField
 import co.voik.agesandtheart.worldgen.CraterlandsField
 import co.voik.agesandtheart.worldgen.ErodedField
 import co.voik.agesandtheart.worldgen.FlatlandsField
-import co.voik.agesandtheart.worldgen.GreatHalls
 import co.voik.agesandtheart.worldgen.InverseCavesField
 import co.voik.agesandtheart.worldgen.IslandsField
 import co.voik.agesandtheart.worldgen.NoiseField
@@ -26,7 +24,6 @@ import co.voik.agesandtheart.worldgen.biome.Elevation
 import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
-import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.world.level.block.state.BlockState
@@ -341,66 +338,18 @@ enum class Terrain(
         val uncut = build(options, salt)
         // **A landform with no room under it carries nothing**, whatever was asked for — the same shape as
         // a preset ignoring a material it cannot be made of, and the reason the ceiling is declared here.
-        if (undergroundCeiling() == null) return Ground(uncut)
-        return when (underground) {
-            Underground.NOISE_CAVES -> Ground(
-                Caved.of(uncut, CAVE_SEED xor salt, window.minY + BEDROCK_MARGIN, window.topY),
-                // A carved cave meets the water table on its way out of the rock, so it answers to one.
-                hollows = uncut,
-            )
-            Underground.GREAT_HALLS -> {
-                val halls = hallsIn(window, salt)
-                Ground(Subtract(uncut, halls), dry = halls)
-            }
-            // **Dry *and* wet**, which is not a contradiction: the vaults are kept out of the Age's own
-            // flat fill outright, and the lake standing in each is put back by the field that knows where
-            // its own water line is. Handing them to a water table instead would stand a flooded bay
-            // against a dry one with nothing between, which is what `GreatHallsWaterCheck` records.
-            Underground.CHAMBERED -> {
-                val floor = window.minY + BEDROCK_MARGIN
-                val roof = undergroundCeiling() ?: 0
-                val size = undergroundOptions.steer(SIZE, salt)
-                val vaults = Chambers.voidBetween(floor, roof, size, CHAMBER_SEED xor salt)
-                Ground(
-                    Subtract(uncut, vaults),
-                    dry = vaults,
-                    wet = Chambers.lakesIn(floor, roof, size, CHAMBER_SEED xor salt),
-                )
-            }
-            Underground.NONE -> Ground(uncut)
-        }
+        val ceiling = undergroundCeiling() ?: return Ground(uncut)
+        return underground.carve(uncut, window.minY + BEDROCK_MARGIN, ceiling, window, undergroundOptions, salt)
     }
 
     /**
-     * The storeys [Underground.GREAT_HALLS] takes out of this terrain, between the bedrock and
-     * [undergroundCeiling].
+     * The band of world this terrain's underground is **indoors** in, or null where it has none.
      *
-     * A ceiling has to be named here, unlike [Underground.NOISE_CAVES] where the band is the whole world — `Caved`
-     * only ever walks rock the base actually has and its own entrance rule keeps the cut away from the
-     * surface, so naming a ceiling there would be a second, worse copy of a decision the node already
-     * makes better. A slab of halls has no such rule and would happily open onto a hillside.
-     */
-    private fun hallsIn(window: VerticalWindow, salt: Long): TerrainField =
-        GreatHalls.voidBetween(window.minY + BEDROCK_MARGIN, undergroundCeiling() ?: 0, HALL_SEED xor salt)
-
-    /**
-     * The band of world this terrain's underground is **indoors** in, or null where it has none — see
-     * [co.voik.agesandtheart.worldgen.biome.Roofed].
-     *
-     * Only [Underground.GREAT_HALLS] claims one. Noise caves are not indoors in this sense: they are open to the
-     * surface by design, they belong to the country they were cut into, and vanilla's own cave biomes
-     * describe them exactly.
-     *
-     * **[Underground.CHAMBERED] is enclosed and still does not claim one**, which is a decision rather
-     * than an omission (Jonah, 2026-09-08). A band here overrides the climate table with one fixed biome,
-     * and what a vault wants is the opposite: the cave biomes are what carry the lush growth the algae
-     * rides on, and pinning every chamber to a hall's biome would take its features and its mob list with
-     * it. A hall is somebody's architecture and reads as one room however far it runs; a chamber is a
-     * place, and places are what biomes are for.
+     * Which undergrounds count as indoors is [Underground.indoorBand]'s question; this answers only whether
+     * there is room under the landform at all.
      */
     fun undergroundBand(underground: Underground, window: VerticalWindow): IntRange? =
-        if (underground != Underground.GREAT_HALLS) null
-        else undergroundCeiling()?.let { ceiling -> window.minY + BEDROCK_MARGIN..ceiling }
+        undergroundCeiling()?.let { ceiling -> underground.indoorBand(window.minY + BEDROCK_MARGIN, ceiling) }
 
     /**
      * A terrain's rock, and what the water is to make of the space taken out of it. **The two are
@@ -608,15 +557,6 @@ enum class Terrain(
 
         /** Vanilla's, which is where every terrain that has not said otherwise puts its sea. */
         private const val ORDINARY_SEA_LEVEL = 63
-
-        // So an Age's caves are its own, and decorrelated from the rock they are cut into.
-        private const val CAVE_SEED = 0xCA_7E5L
-
-        // And its halls likewise, decorrelated from both.
-        private const val HALL_SEED = 0x4A_115L
-
-        // And its chambers, so a world's vaults are not laid where its caves were.
-        private const val CHAMBER_SEED = 0x0C_4A_9BEL
 
         /** The one material parameter — the whole of what a writer means by "the land is andesite". */
         val STONE = Parameter.material(
