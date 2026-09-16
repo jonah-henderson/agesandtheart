@@ -1,6 +1,5 @@
-package co.voik.agesandtheart.age.phenomena
+package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.projectile.Projectile

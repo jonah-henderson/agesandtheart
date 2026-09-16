@@ -16,7 +16,7 @@ import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
  * inside it. One preset names both, so the pairing cannot be got wrong by composing carelessly.
  *
  * Named in the recipe rather than inherited from a biome — field Ages sit on biomes that carry none. See
- * [co.voik.agesandtheart.worldgen.AgeChunkGenerator.applyCarvers].
+ * [co.voik.agesandtheart.generation.AgeChunkGenerator.applyCarvers].
  */
 enum class Carvers(override val key: String) : AuthoredPreset {
     /**

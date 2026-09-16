@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.mixin;
 
-import co.voik.agesandtheart.age.phenomena.OreColliders;
+import co.voik.agesandtheart.content.OreColliders;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import net.minecraft.world.entity.Entity;

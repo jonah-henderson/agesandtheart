@@ -1,6 +1,6 @@
-package co.voik.agesandtheart.age.phenomena
+package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.age.phenomena.Sampling
 import net.minecraft.core.SectionPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.EntitySpawnReason

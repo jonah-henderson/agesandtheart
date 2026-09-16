@@ -1,6 +1,5 @@
-package co.voik.agesandtheart.age.phenomena
+package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.content.AgeContent
 import kotlin.math.abs
 import net.minecraft.core.BlockPos
 import net.minecraft.network.syncher.EntityDataAccessor

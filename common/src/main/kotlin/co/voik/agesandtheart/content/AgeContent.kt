@@ -8,18 +8,20 @@ import co.voik.agesandtheart.age.consequence.WoundBlock
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
 import co.voik.agesandtheart.age.phenomena.SandColumn
-import co.voik.agesandtheart.age.phenomena.LavaDroplet
 import co.voik.agesandtheart.age.phenomena.CaveIn
-import co.voik.agesandtheart.age.phenomena.DriftingOre
 import co.voik.agesandtheart.age.phenomena.Meteor
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
-import co.voik.agesandtheart.age.phenomena.VolcanicBomb
 import co.voik.agesandtheart.book.BookEntity
+import co.voik.agesandtheart.book.DescriptiveBookItem
+import co.voik.agesandtheart.book.LinkingBookItem
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.book.RepatternBookRecipe
-import co.voik.agesandtheart.worldgen.fissure.CollapsingFissureBlock
+import co.voik.agesandtheart.age.consequence.CollapsingFissureBlock
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlockEntity
+import co.voik.agesandtheart.desk.GeologistsToolsBlock
+import co.voik.agesandtheart.desk.SeismographBlock
+import co.voik.agesandtheart.desk.SeismographItem
 import co.voik.agesandtheart.desk.WriterProfession
 import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.desk.WritersDeskBlockEntity
@@ -1057,7 +1059,7 @@ object AgeContent {
     private val COLLAPSING_FISSURE_ID: Identifier = "collapsing_fissure".location()
 
     /**
-     * A star fissure that is still opening — see [co.voik.agesandtheart.worldgen.fissure.CollapsingFissureBlock].
+     * A star fissure that is still opening — see [co.voik.agesandtheart.age.consequence.CollapsingFissureBlock].
      *
      * **The rate is its own, and the random tick is only the safety net.** It books its own next turn at a
      * delay that falls as the Age's instability rises, because vanilla's is one number for the whole world
@@ -1139,7 +1141,7 @@ object AgeContent {
     private const val SAND_COLUMN_UPDATE_TICKS = 10
 
     /**
-     * Molten rock thrown out of a volcano. See [co.voik.agesandtheart.age.phenomena.VolcanicBomb].
+     * Molten rock thrown out of a volcano. See [VolcanicBomb].
      *
      * Updated every tick, unlike the sand column: this one arcs, and the whole of its counterplay is
      * watching where it is going to land.
@@ -1156,8 +1158,7 @@ object AgeContent {
     private const val BOMB_UPDATE_TICKS = 1
 
     /**
-     * A gobbet of molten rock thrown off a bomb's impact.
-     * See [co.voik.agesandtheart.age.phenomena.LavaDroplet].
+     * A gobbet of molten rock thrown off a bomb's impact. See [LavaDroplet].
      *
      * Tracked less far than a bomb: it lives a second or two and never leaves the crater that made it, so
      * anybody near enough to care is near enough to see it.

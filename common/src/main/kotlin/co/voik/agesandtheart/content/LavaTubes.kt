@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.age.phenomena.VolcanicBomb
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel

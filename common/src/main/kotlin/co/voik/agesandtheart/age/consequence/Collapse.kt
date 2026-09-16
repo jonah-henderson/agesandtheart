@@ -30,10 +30,9 @@ import net.minecraft.world.level.levelgen.WorldgenRandom
  * around a point reads as a hole somebody bored; this reads as something torn.
  *
  * **The blocks are the state, and nothing else is** (design §5.4, taken literally). A tear grows because
- * [co.voik.agesandtheart.worldgen.fissure.CollapsingFissureBlock] books its own next turn and takes the
- * column beside it, so there is no frontier to track and nothing to reconcile when a chunk unloads —
- * vanilla persists a scheduled tick with the chunk that carries it. Generation cuts the first crack; after
- * that the world keeps its own score.
+ * [CollapsingFissureBlock] books its own next turn and takes the column beside it, so there is no frontier
+ * to track and nothing to reconcile when a chunk unloads — vanilla persists a scheduled tick with the chunk
+ * that carries it. Generation cuts the first crack; after that the world keeps its own score.
  *
  * **The rate is the Age's rather than the server's**, which is the one thing this does not borrow from
  * grass: `randomTickSpeed` is a single number for every world at once, so an Age bought all the way to the

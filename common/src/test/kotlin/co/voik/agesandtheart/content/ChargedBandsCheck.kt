@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age.phenomena
+package co.voik.agesandtheart.content
 
 import io.kotest.core.spec.style.FunSpec
 

@@ -35,7 +35,7 @@ object StructureDensity {
      *
      * **A rebuilt set is a *direct* holder**, no registry having heard of it — registries freeze at startup
      * and an Age is written long afterwards. That is what
-     * [co.voik.agesandtheart.worldgen.AgeChunkGenerator.createState] branches on.
+     * [co.voik.agesandtheart.generation.AgeChunkGenerator.createState] branches on.
      *
      * Returns [set] unchanged on failure rather than dropping it: an Age that asked for more villages and
      * got the usual number is a disappointment, where one that lost its villages is a broken sentence.

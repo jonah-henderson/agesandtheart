@@ -1,6 +1,6 @@
-package co.voik.agesandtheart.worldgen.fissure
+package co.voik.agesandtheart.age.consequence
 
-import co.voik.agesandtheart.age.consequence.Collapse
+import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction

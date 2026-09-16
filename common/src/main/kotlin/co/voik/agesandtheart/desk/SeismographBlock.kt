@@ -1,6 +1,5 @@
-package co.voik.agesandtheart.content
+package co.voik.agesandtheart.desk
 
-import co.voik.agesandtheart.desk.SeismographMenuProvider
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerPlayer

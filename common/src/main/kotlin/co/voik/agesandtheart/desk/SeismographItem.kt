@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.content
+package co.voik.agesandtheart.desk
 
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component

@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.age.phenomena.DriftingOre
-import co.voik.agesandtheart.age.phenomena.OreClusters
+import co.voik.agesandtheart.content.DriftingOre
+import co.voik.agesandtheart.content.OreClusters
 import co.voik.agesandtheart.content.AgeContent
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.multiplayer.ClientLevel

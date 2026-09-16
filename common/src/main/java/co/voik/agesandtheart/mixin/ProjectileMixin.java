@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.mixin;
 
-import co.voik.agesandtheart.age.phenomena.OreColliders;
+import co.voik.agesandtheart.content.OreColliders;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.Projectile;
 import org.spongepowered.asm.mixin.Mixin;

@@ -110,7 +110,7 @@ mutable	field	net/minecraft/world/level/chunk/ChunkGenerator	featuresPerStep	Lja
 accessible	method	net/minecraft/server/level/ServerLevel	findLightningTargetAround	(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/BlockPos;
 
 # So an Age wearing vanilla's rock can still ask whether the sky is open
-# (co.voik.agesandtheart.worldgen.AgeChunkGenerator.skyIsOpenAt).
+# (co.voik.agesandtheart.generation.AgeChunkGenerator.skyIsOpenAt).
 #
 # The gate exists for the creatures vanilla never spawns and so wrote no placement rule for — a dragon, a
 # wither, the golems — which `NO_RESTRICTIONS` would otherwise put inside a mountain. An Age with a field of

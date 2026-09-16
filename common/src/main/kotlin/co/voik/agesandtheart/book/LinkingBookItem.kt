@@ -1,8 +1,8 @@
-package co.voik.agesandtheart.content
+package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.word.WordNames
-import co.voik.agesandtheart.book.LinkTarget
+import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.client.BookScreenOpener
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component

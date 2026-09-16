@@ -54,7 +54,7 @@ import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.age.reward.Decoration
 import co.voik.agesandtheart.age.reward.Deposits
 import co.voik.agesandtheart.age.aspect.AgeSpawner
-import co.voik.agesandtheart.age.phenomena.DriftingOreSpawner
+import co.voik.agesandtheart.content.DriftingOreSpawner
 import net.minecraft.world.level.CustomSpawner
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.word.Vocabulary
