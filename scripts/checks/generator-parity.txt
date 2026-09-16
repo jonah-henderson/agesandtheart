@@ -1,12 +1,23 @@
 # Does a change to the generator move any terrain? Run with: scripts/drive-server.sh --level <name>
 #
-# The protocol, and the third step is not optional:
+# The protocol, and the third step is not optional. **No branch checkouts**: this repository develops on
+# `main` (see notes/decisions.md), so base and control are two runs of the *unchanged working tree* and new
+# is a run of the changed one. The control's whole job is to measure how much an Age differs from itself on
+# identical code, and two runs before you edit anything measure exactly that.
 #
-#   git checkout main   && scripts/drive-server.sh --level parity-base    < scripts/checks/generator-parity.txt
-#   git checkout <work> && scripts/drive-server.sh --level parity-new     < scripts/checks/generator-parity.txt
-#   git checkout main   && scripts/drive-server.sh --level parity-control < scripts/checks/generator-parity.txt
-#   ./gradlew :common:terraindiff --args="<runs>/parity-base <runs>/parity-new"
-#   ./gradlew :common:terraindiff --args="<runs>/parity-base <runs>/parity-control"
+#   # with the working tree unchanged:
+#   scripts/drive-server.sh --level parity-base    < scripts/checks/generator-parity.txt
+#   scripts/drive-server.sh --level parity-control < scripts/checks/generator-parity.txt
+#   # then make the change:
+#   scripts/drive-server.sh --level parity-new     < scripts/checks/generator-parity.txt
+#   ./gradlew :common:terraindiff --args="fabric/runs/server/parity-base fabric/runs/server/parity-new"
+#   ./gradlew :common:terraindiff --args="fabric/runs/server/parity-base fabric/runs/server/parity-control"
+#
+# Worlds land in `fabric/runs/server/<level>`, and `--level` opts them out of the script's own discard, so
+# pick fresh names on a second attempt rather than re-running into one that already holds these Ages.
+#
+# **`terraindiff` ends in `check(moved == 0)`, so the control run is *expected* to fail.** Gradle will call
+# it a failure; the per-Age lines above the summary are the answer. Read the numbers, not the exit code.
 #
 # **Read the two diffs together.** Ages that decorate do NOT reproduce block-for-block even against
 # themselves (design §6.5, and Phase 1's acceptance said so), so `pvanilla` differing is meaningless on its
@@ -25,31 +36,48 @@
 #
 #   pbare 2 · pmaterial 5 · pdivided 8 · pvoid 10 · pvanilla 11 · pspire 0
 #
-# `pspire` is the only true zero left, its one biome being empty so nothing decorates it. So "5 of 6 identical" is
+# **Those six figures are STALE and are kept only for their shape.** They were measured against a vocabulary
+# this file no longer speaks (see the note below), and `pbare` is not even the same Age any more. Take the
+# control run's own numbers as the band, and replace these with them when you next have a clean measurement.
+#
+# `pspire` is the only true zero, its one biome being empty so nothing decorates it. So "5 of 6 identical" is
 # gone as a pass condition: read each Age against its own control number and look for a figure outside that band.
+#
+# **This file silently stopped working, and the shape of that is worth knowing.** `depths` was split into
+# `rock` (how the rock is cut) and `underground` (what is built beneath it), and per-member options moved from
+# `{braces}` to `[brackets]`. Five of the six Ages here then failed to compose — but `drive-server.sh` asserts
+# nothing by design, so every run still exited 0 while generating only `pspire`, which is the one Age that is
+# not a composed Age at all. A parity run in that state compares two worlds holding nothing but the control
+# and reports them identical. **Read the driver's output, and check every Age in `age list` at the end.**
 #
 # Each Age below covers a different path.
 # ONE RUN PER WORLD. Re-running into a world that already has these Ages composes nothing and benches
 # already-generated chunks, which looks like a pass and tests nothing.
 
 # Vanilla's biome table, real structures, carvers, an aquifer — the widest path, and the one that decorates.
-age compose pvanilla 4242 landmass=hills sea=water depths=caves structures=vanilla sky=plain
+age compose pvanilla 4242 landmass=hills sea=water rock=caves structures=vanilla sky=plain
 age bench pvanilla 4
 
 # A narrowed climate: the biome table bounded to a hot dry stretch, with a fractured pair below.
-age compose pbare 4242 landmass=spire_islands sea=water depths=weathered climate.temperature=0.4..0.9 sky=storm
+#
+# **`rock=flooded_caves` is a substitution, not a translation.** This line asked for `depths=weathered`, and
+# `weathered` is gone from the presets entirely — it is not a rename, so there is nothing to map it onto. Of
+# the four carvers left, the other three are each already covered by an Age here, so this keeps all four
+# under the check and reads closest to "a fractured pair below". If that is the wrong reading, this is the
+# line to change.
+age compose pbare 4242 landmass=spire_islands sea=water rock=flooded_caves climate.temperature=0.4..0.9 sky=storm
 age bench pbare 4
 
 # A material in the fill, a lava sea, porosity — the substance path.
-age compose pmaterial 4242 landmass=pillars sea=lava depths=porous landmass.stone=minecraft:blackstone sky=plain
+age compose pmaterial 4242 landmass=pillars sea=lava rock=porous landmass.stone=minecraft:blackstone sky=plain
 age bench pmaterial 4
 
 # Divided: two carvers and two terrains with a material each, so RegionMap and Substance both do real work.
-age compose pdivided 4242 landmass=eroded{stone=minecraft:tuff},pillars{stone=minecraft:andesite} sea=water depths=caves,solid sky=plain
+age compose pdivided 4242 landmass=eroded[stone=minecraft:tuff],pillars[stone=minecraft:andesite] sea=water rock=caves,solid sky=plain
 age bench pdivided 4
 
 # A VOID sea, whose `level` is Int.MIN_VALUE — the sentinel that reaches getSeaLevel and the world floor.
-age compose pvoid 4242 landmass=pyramids sea=void depths=solid sky=plain
+age compose pvoid 4242 landmass=pyramids sea=void rock=solid sky=plain
 age bench pvoid 4
 
 # The control that is not a composed Age at all: a bespoke Tier-B generator, which must never move.
