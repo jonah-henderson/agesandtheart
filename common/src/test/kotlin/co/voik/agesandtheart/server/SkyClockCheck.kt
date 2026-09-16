@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.server
 
-import co.voik.agesandtheart.age.AgeInstruments
+import co.voik.agesandtheart.command.SkyInstruments
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -31,12 +31,12 @@ class SkyClockCheck : FunSpec({
 
     fun clockOf(age: String): Long {
         val report = server.run("age sky $age")
-        val reading = numberAfter(report, AgeInstruments.CLOCK_LABEL)
+        val reading = numberAfter(report, SkyInstruments.CLOCK_LABEL)
         check(reading != null) { "'/age sky $age' reported no clock, so this check cannot see the thing it guards:\n$report" }
         return reading
     }
 
-    fun litAsOf(age: String): Long? = numberAfter(server.run("age sky $age"), AgeInstruments.LIT_AS_LABEL)
+    fun litAsOf(age: String): Long? = numberAfter(server.run("age sky $age"), SkyInstruments.LIT_AS_LABEL)
 
     /**
      * **An Age's clock and the hour it is lit as are two numbers, and only the second decides a colour.**

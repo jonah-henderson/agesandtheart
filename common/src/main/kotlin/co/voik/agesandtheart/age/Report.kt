@@ -74,7 +74,7 @@ class Report private constructor(private val source: CommandSourceStack, private
     }
 
     /**
-     * The command failed, said both ways. Returns [AgeCommand.FAILURE] so a caller can `return report.fail(…)`.
+     * The command failed, said both ways. Returns [FAILED] so a caller can `return report.fail(…)`.
      *
      * A structured failure is still a document rather than Brigadier's error channel: a reader that has to
      * tell "the command failed" from "the connection failed" cannot do it if one of them is not JSON.
@@ -86,7 +86,7 @@ class Report private constructor(private val source: CommandSourceStack, private
             document.addProperty("error", message)
             send()
         }
-        return AgeCommand.FAILURE
+        return FAILED
     }
 
     /** Emits the document, if there is one. Every structured command must end here or say nothing at all. */
@@ -107,6 +107,15 @@ class Report private constructor(private val source: CommandSourceStack, private
     }
 
     companion object {
+        /**
+         * Brigadier's own failure code, restated here rather than read off the command tree.
+         *
+         * A report is what *says* a command failed, so it owns the answer; reaching into `AgeCommand` for
+         * it would point the model layer at the commands built on top of it, which is the one edge the
+         * command package was split out to remove.
+         */
+        private const val FAILED = 0
+
         /** What a writer says to be answered in JSON. */
         const val STRUCTURED_LITERAL = "json"
 

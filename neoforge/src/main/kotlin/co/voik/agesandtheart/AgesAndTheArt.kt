@@ -1,7 +1,7 @@
 package co.voik.agesandtheart
 
 import net.neoforged.neoforge.event.tick.ServerTickEvent
-import co.voik.agesandtheart.age.AgeCommand
+import co.voik.agesandtheart.command.AgeCommand
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.content.AgeContent
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent
