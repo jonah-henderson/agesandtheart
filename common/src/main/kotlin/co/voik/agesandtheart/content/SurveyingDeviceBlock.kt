@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.age.word.Acquaintance
-import co.voik.agesandtheart.age.word.Acquainted
+import co.voik.agesandtheart.page.Acquaintance
+import co.voik.agesandtheart.page.Acquainted
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel

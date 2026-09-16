@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age.word
+package co.voik.agesandtheart.page
 
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
@@ -10,6 +10,12 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.BucketItem
 import net.minecraft.world.item.ItemStack
+import co.voik.agesandtheart.age.word.DerivedWords
+import co.voik.agesandtheart.age.word.LearnedWordsPayload
+import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.Withheld
+import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.word.learnedWords
 
 /**
  * Learning a word by having handled the thing, or by standing where it is (design §8.3).

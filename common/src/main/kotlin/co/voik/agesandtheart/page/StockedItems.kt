@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age.word
+package co.voik.agesandtheart.page
 
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
@@ -6,6 +6,8 @@ import net.minecraft.core.RegistryAccess
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.RandomSource
 import net.minecraft.world.item.ItemStack
+import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.content.PageItem
 
 /**
  * Writing an item that was sold **unwritten** — a page or a notebook carrying the stock it came from
@@ -53,7 +55,7 @@ object StockedItems {
                     // A notebook somebody kept would not hold the same word twice.
                     .distinctBy { it.id }
                     .map { word ->
-                        ItemStack(AgeContent.PAGE).also { it.set(AgeContent.PAGE_WORD, word.id) }
+                        PageItem.writtenWith(word.id)
                     }
                 if (pages.isEmpty()) return
                 NotebookItem.setPages(stack, pages)

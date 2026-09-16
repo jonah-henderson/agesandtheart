@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.mixin;
 
-import co.voik.agesandtheart.age.word.StockedItems;
+import co.voik.agesandtheart.page.StockedItems;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MerchantResultSlot;

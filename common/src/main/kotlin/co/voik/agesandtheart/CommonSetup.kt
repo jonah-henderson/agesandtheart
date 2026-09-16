@@ -5,7 +5,7 @@ import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.age.phenomena.Happenings
-import co.voik.agesandtheart.age.word.PageLearning
+import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.content.ChargedMetal

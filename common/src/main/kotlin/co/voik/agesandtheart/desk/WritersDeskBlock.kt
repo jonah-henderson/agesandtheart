@@ -26,6 +26,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.phys.BlockHitResult
+import co.voik.agesandtheart.content.PageItem
 
 /**
  * Which part of the desk a block is. The centre carries the block entity; every other part points at it.
@@ -134,11 +135,11 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
      */
     private fun popContents(level: Level, at: BlockPos, desk: WritersDeskBlockEntity) {
         for (word in desk.archive.words) {
-            val page = ItemStack(AgeContent.PAGE).also { it.set(AgeContent.PAGE_WORD, word) }
+            val page = PageItem.writtenWith(word)
             popEvery(level, at, page, desk.archive.count(word))
         }
         for (word in desk.everyComposition) {
-            popEvery(level, at, ItemStack(AgeContent.PAGE).also { it.set(AgeContent.PAGE_WORD, word) }, 1)
+            popEvery(level, at, PageItem.writtenWith(word), 1)
         }
         for (tier in InkTier.entries) {
             popEvery(level, at, ItemStack(paperFor(tier)), desk.stores.paper(tier))

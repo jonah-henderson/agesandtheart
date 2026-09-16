@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.age.word.PageLearning
+import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.book.FoundBook

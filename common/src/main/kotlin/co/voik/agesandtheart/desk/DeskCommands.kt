@@ -2,7 +2,7 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.word.PageLearning
+import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.learnedWords
 import co.voik.agesandtheart.age.word.grammar.Grammar
@@ -25,6 +25,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu
 import net.minecraft.world.inventory.ContainerLevelAccess
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
+import co.voik.agesandtheart.content.PageItem
 
 /** What may bind a book. A tag, so a pack can allow its own. */
 object BookBinding {
@@ -256,8 +257,7 @@ object DeskCommands {
     private fun withdraw(player: ServerPlayer, desk: WritersDeskBlockEntity, payload: DeskCommandPayload) {
         val word = payload.word ?: return
         if (!desk.takePages(word, 1)) return
-        val page = ItemStack(AgeContent.PAGE)
-        page.set(AgeContent.PAGE_WORD, word)
+        val page = PageItem.writtenWith(word)
         if (!player.inventory.add(page)) player.drop(page, false)
     }
 

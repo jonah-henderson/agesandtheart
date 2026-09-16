@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age.word
+package co.voik.agesandtheart.page
 
 import co.voik.agesandtheart.location
 import net.minecraft.core.registries.Registries

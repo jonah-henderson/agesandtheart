@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age.word
+package co.voik.agesandtheart.page
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.content.AgeContent
@@ -11,6 +11,10 @@ import net.minecraft.world.level.storage.loot.LootContext
 import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
 import java.util.Optional
+import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.Withheld
+import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.word.WriterStock
 
 /**
  * Writes a word on a page as it is generated.

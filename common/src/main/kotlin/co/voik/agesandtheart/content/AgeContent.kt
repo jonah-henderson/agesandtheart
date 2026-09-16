@@ -1,8 +1,8 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.age.word.FillNotebookFunction
+import co.voik.agesandtheart.page.FillNotebookFunction
 import co.voik.agesandtheart.age.word.InkTier
-import co.voik.agesandtheart.age.word.PageWordFunction
+import co.voik.agesandtheart.page.PageWordFunction
 import co.voik.agesandtheart.age.word.grammar.Said
 import co.voik.agesandtheart.age.consequence.WoundBlock
 import co.voik.agesandtheart.book.BindLinkingBookFunction

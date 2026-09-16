@@ -20,6 +20,7 @@ import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.network.chat.Component
+import co.voik.agesandtheart.content.PageItem
 
 internal object PlayerInstruments {
 
@@ -110,12 +111,12 @@ internal object PlayerInstruments {
         if (words.isEmpty()) return FAILURE.also { source.sendFailure(Component.literal("No words to write")) }
 
         val pages = words.map { word ->
-            ItemStack(AgeContent.PAGE).also { it.set(AgeContent.PAGE_WORD, word.id) }
+            PageItem.writtenWith(word.id)
         }
         // The structural words go in beside them: `and`, `only` and the rungs are pages a writer lays like
         // any other, and a book cannot be tested for structure without them.
         val structural = if (derived) emptyList() else vocabulary.grammarWords.map { spelled ->
-            ItemStack(AgeContent.PAGE).also { it.set(AgeContent.PAGE_WORD, spelled.id) }
+            PageItem.writtenWith(spelled.id)
         }
         val notebook = ItemStack(AgeContent.NOTEBOOK)
         NotebookItem.setPages(notebook, pages + structural)

@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.PageScreen
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
+import net.minecraft.resources.Identifier
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
@@ -40,5 +41,18 @@ class PageItem(properties: Properties) : Item(properties) {
     ) {
         val word = stack.get(AgeContent.PAGE_WORD) ?: return
         builder.accept(WordNames.readable(word).copy().withStyle(ChatFormatting.GRAY))
+    }
+
+    companion object {
+        /**
+         * A page with [word] written on it — **the one way to make one.**
+         *
+         * A written page is a stack plus a data component, and spelling that out at each of the eight
+         * places that hand one over meant anything a page must carry besides its word would have to be
+         * added at all eight. The loot functions, the desk, the instruments and the toast all come through
+         * here now.
+         */
+        fun writtenWith(word: Identifier): ItemStack =
+            ItemStack(AgeContent.PAGE).also { it.set(AgeContent.PAGE_WORD, word) }
     }
 }

@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age.word
+package co.voik.agesandtheart.page
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.content.AgeContent
@@ -16,6 +16,11 @@ import net.minecraft.world.level.storage.loot.providers.number.UniformGenerator
 import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.Identifier
 import java.util.Optional
+import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.Withheld
+import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.word.WriterStock
+import co.voik.agesandtheart.content.PageItem
 
 /**
  * Fills a notebook with pages someone else already collected.
@@ -63,8 +68,7 @@ class FillNotebookFunction(
         while (chosen.size < wanted && attempts < wanted * ATTEMPT_HEADROOM) {
             attempts++
             val word = available[context.random.nextInt(available.size)]
-            val page = ItemStack(AgeContent.PAGE)
-            page.set(AgeContent.PAGE_WORD, word.id)
+            val page = PageItem.writtenWith(word.id)
             if (chosen.none { it.get(AgeContent.PAGE_WORD) == word.id }) chosen += page
         }
         // Through `NotebookItem`, which is what everything else reads a notebook by. Set as vanilla's

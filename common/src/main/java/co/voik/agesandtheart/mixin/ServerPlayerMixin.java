@@ -2,7 +2,7 @@ package co.voik.agesandtheart.mixin;
 
 import co.voik.agesandtheart.age.word.LearnedWords;
 import co.voik.agesandtheart.age.word.LearnedWordsHolder;
-import co.voik.agesandtheart.age.word.PageLearning;
+import co.voik.agesandtheart.page.PageLearning;
 import co.voik.agesandtheart.desk.WritingSeedHolder;
 import co.voik.agesandtheart.desk.WritingSeedKt;
 import co.voik.agesandtheart.worldgen.fissure.StarFissureFall;

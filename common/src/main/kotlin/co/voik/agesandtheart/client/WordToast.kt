@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.world.item.ItemStack
+import co.voik.agesandtheart.content.PageItem
 
 /**
  * "Word Learned", the way vanilla says "Recipe Unlocked".
@@ -68,11 +69,7 @@ class WordToast : Toast {
     }
 
     /** The page it was written on, so the toast shows the object rather than an abstraction. */
-    private fun pageOf(word: Identifier): ItemStack {
-        val page = ItemStack(AgeContent.PAGE)
-        page.set(AgeContent.PAGE_WORD, word)
-        return page
-    }
+    private fun pageOf(word: Identifier): ItemStack = PageItem.writtenWith(word)
 
     companion object {
         private val BACKGROUND: Identifier = Identifier.withDefaultNamespace("toast/recipe")

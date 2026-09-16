@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age.word
+package co.voik.agesandtheart.page
 
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
@@ -10,6 +10,10 @@ import net.minecraft.world.inventory.AbstractContainerMenu
 import net.minecraft.world.inventory.ContainerListener
 import net.minecraft.world.inventory.ResultSlot
 import net.minecraft.world.item.ItemStack
+import co.voik.agesandtheart.age.word.LearnedWordsPayload
+import co.voik.agesandtheart.age.word.LexiconPayload
+import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.learnedWords
 
 /**
  * Learning a word by holding the page it is written on, or by reading a book somebody wrote with it.

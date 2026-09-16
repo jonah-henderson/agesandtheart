@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.word.PageLearning
+import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.client.BookScreenOpener
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.DescriptiveBookItem

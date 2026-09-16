@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age.word
+package co.voik.agesandtheart.page
 
 import com.google.gson.JsonParser
 import io.kotest.core.spec.style.FunSpec
