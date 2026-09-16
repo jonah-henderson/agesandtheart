@@ -7,6 +7,7 @@ import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.InsideBlockEffectApplier
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.BaseEntityBlock
@@ -96,8 +97,16 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
         )
     }
 
-    /** How long you fall before the Age lets go — about a second, which is fifteen blocks of falling. */
-    override fun getPortalTransitionTime(level: ServerLevel, entity: Entity): Int = FALLING_FOR
+    /**
+     * How long you fall before the Age lets go — about a second, which is fifteen blocks of falling.
+     *
+     * **Only a player falls.** The beat is the whole point for somebody who jumped in, and it is a way to
+     * die for everything else: a tear where bedrock used to be is one block deep, so a mob or a dropped item
+     * spends the beat falling past it and out of the world. Vanilla's own portals answer nought for anything
+     * but a player for the same reason.
+     */
+    override fun getPortalTransitionTime(level: ServerLevel, entity: Entity): Int =
+        if (entity is Player) FALLING_FOR else AT_ONCE
 
     /** No swirl: the nether's confusion is a doorway's, and this is a hole in the ground. */
     override fun getLocalTransition(): Portal.Transition = Portal.Transition.NONE
@@ -106,6 +115,9 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
         val CODEC: MapCodec<StarFissureBlock> = simpleCodec(::StarFissureBlock)
 
         private const val FALLING_FOR = 20
+
+        /** What everything but a player waits, so nothing falls through the one block it has to land on. */
+        private const val AT_ONCE = 0
         private const val FALL_OUT_ABOVE = 8.0
         private const val GENTLY_DOWN = 0.2
         private const val HALF_A_BLOCK = 0.5

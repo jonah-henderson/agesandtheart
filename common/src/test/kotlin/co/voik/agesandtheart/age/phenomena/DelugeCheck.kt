@@ -10,41 +10,41 @@ import io.kotest.core.spec.style.FunSpec
  * both the catch-up and the pooling are driven by `Sampling.sweep`, which walks the chunks around players.
  * A headless server has no players, so none of it ever runs — the rise itself is a walk, not a probe.
  *
- * What a check can still hold is the shape: that it starts low, ends exactly at what was written, and stops.
+ * What a check can still hold is the shape: that it opens at the sea the book names, climbs a block at a
+ * time, and stops a fixed distance over it.
  */
 class DelugeCheck : FunSpec({
 
-    test("an Age nobody has stood in opens the whole fall short of its written sea") {
-        check(Deluge.shortnessAt(0) == Deluge.FALLS_BY) {
-            "a deluge Age opened at something other than the full fall below its waterline"
+    test("an Age nobody has stood in opens at the sea its book names") {
+        check(Deluge.risenAt(0) == 0) {
+            "a deluge Age opened at something other than its written waterline"
         }
     }
 
     test("the sea gains a block for each span of somebody being there") {
-        check(Deluge.shortnessAt(Deluge.TICKS_PER_BLOCK) == Deluge.FALLS_BY - 1) {
+        check(Deluge.risenAt(Deluge.TICKS_PER_BLOCK) == 1) {
             "one span of presence did not buy exactly one block of sea"
         }
-        check(Deluge.shortnessAt(Deluge.TICKS_PER_BLOCK * 3) == Deluge.FALLS_BY - 3) {
+        check(Deluge.risenAt(Deluge.TICKS_PER_BLOCK * 3) == 3) {
             "the rise is not flat — three spans bought something other than three blocks"
         }
     }
 
-    test("it arrives at the written level and stops there") {
-        val whole = Deluge.TICKS_PER_BLOCK * Deluge.FALLS_BY
-        check(Deluge.shortnessAt(whole) == 0) {
-            "the sea did not reach the level the recipe names"
+    test("it climbs its whole rise and stops there") {
+        val whole = Deluge.TICKS_PER_BLOCK * Deluge.RISES_BY
+        check(Deluge.risenAt(whole) == Deluge.RISES_BY) {
+            "the sea did not climb the whole of the rise"
         }
         // **The ceiling is the whole of what makes this fair** (design §5.2): a sea rising with no known
-        // end is the punishment register at its purest, and the Age is meant to be *arriving* at what was
-        // written rather than passing it.
-        check(Deluge.shortnessAt(whole * 10) == 0) {
-            "the sea climbed past the level the book named, which is the one thing it must never do"
+        // end is the punishment register at its purest, so the rise is bounded however long anybody stays.
+        check(Deluge.risenAt(whole * 10) == Deluge.RISES_BY) {
+            "the sea climbed past its bound, which is the one thing it must never do"
         }
     }
 
     test("it resolves exactly when it arrives") {
-        val whole = Deluge.TICKS_PER_BLOCK * Deluge.FALLS_BY
-        check(Deluge.shortnessAt(whole - 1) > 0) { "the deluge called itself over a tick early" }
-        check(Deluge.shortnessAt(whole) == 0) { "the deluge did not end when its sea got where it was going" }
+        val whole = Deluge.TICKS_PER_BLOCK * Deluge.RISES_BY
+        check(Deluge.risenAt(whole - 1) < Deluge.RISES_BY) { "the deluge called itself over a tick early" }
+        check(Deluge.risenAt(whole) == Deluge.RISES_BY) { "the deluge did not end when its sea got where it was going" }
     }
 })

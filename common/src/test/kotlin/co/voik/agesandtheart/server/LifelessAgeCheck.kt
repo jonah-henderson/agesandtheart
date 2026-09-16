@@ -82,15 +82,13 @@ class LifelessAgeCheck : FunSpec({
         // chunk-generation spawning in their settings, so the pass this guards would never run.
         val listed = server.run("age list")
         for ((name, sentence) in written) {
-            val recipe = listed.lines().firstOrNull { name in it } ?: listed
-            val said = SENTENCE.find(recipe)?.groupValues?.get(1).orEmpty()
+            val said = SENTENCE.find(entryIn(listed, name))?.groupValues?.get(1).orEmpty()
             check(said.split(" ").size <= sentence.split(" ").size) {
                 "'$sentence' did not parse and was repaired into '$said', so this compares nothing"
             }
         }
         val ground = written.keys.associateWith { name ->
-            val recipe = listed.lines().firstOrNull { name in it } ?: listed
-            GROUND.findAll(recipe).joinToString(" ") { it.value }
+            GROUND.findAll(entryIn(listed, name)).joinToString(" ") { it.value }
         }
         check(ground.values.distinct().size == 1) {
             "the two Ages were not shaped alike, so this compares two worlds: $ground"
@@ -144,6 +142,20 @@ private val COUNT = Regex("to (\\d+) entit")
 
 /** What `/age list` recorded as the book, which is a repaired one where the book did not parse. */
 private val SENTENCE = Regex("\u2014 \"([^\"]*)\"")
+
+/** Where each Age's entry in `/age list` begins. */
+private val ENTRY = Regex("agesandtheart:[a-z0-9_]+ \u2014")
+
+/**
+ * One Age's entry in `/age list`, cut at the next Age's id rather than at a line break: the listing comes
+ * back over RCON as one line, so read by line every Age matched the first one's sentence and fields.
+ */
+private fun entryIn(listed: String, name: String): String {
+    val from = listed.indexOf("agesandtheart:$name \u2014")
+    check(from >= 0) { "'$name' is not in /age list: $listed" }
+    val to = ENTRY.findAll(listed).map { it.range.first }.firstOrNull { it > from } ?: listed.length
+    return listed.substring(from, to)
+}
 
 /** What a recipe says about the ground, which the two Ages must agree on to be comparable. */
 private val GROUND = Regex("(landmass|rock|underground)=\\S+")

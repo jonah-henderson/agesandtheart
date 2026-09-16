@@ -49,7 +49,7 @@ object Surface {
         // Air is how a writer says "no skin", the same way `open` says "no sea" — and it is only bare when
         // *everything* named is air, since air mingled with a rock is a skin full of holes and a fine thing
         // for a book to ask for.
-        if (blocks.all { it.isAir }) return SurfacingStrategy.SUPPRESSED
+        if (blocks.all { it.isAir }) return SurfacingStrategy.NO_SKIN
         return SurfacingStrategy.laidOn(rock.landform, blocks)
     }
 }

@@ -49,9 +49,7 @@ data class Resolution(
      * lands here: a page no sentence had room for is charged, so it is a [Flaw] and carries its own words.
      */
     val dropped: List<String> = emptyList(),
-) {
-    val sentence: List<String> get() = words.map { it.name }
-}
+)
 
 /**
  * Where one member of a part of the world stands after one word has spoken — how strongly it is claimed,

@@ -206,16 +206,16 @@ class AgeChunkGenerator(
     /**
      * How far under the level it was written with this Age's sea currently stands, in blocks.
      *
-     * **Zero for every Age but a drowning one**, and zero again once a deluge has resolved — the phenomenon
-     * is the Age *arriving* at what its recipe already names rather than starting there (design §5.2), so
-     * the written sea is the ceiling and this is the distance still to climb.
+     * **Zero for every Age but a drowning one**, and zero again until one begins — the phenomenon carries an
+     * Age *above* the sea its recipe names rather than up to it (design §5.2), so the written sea is the
+     * floor and this is how far over it the water now stands.
      *
      * `var`, and volatile, for the reason [overlay] is: a generator is built once when its Age is opened
      * and lives as long as the dimension does, so anything a phenomenon changes about it has to be settable
      * afterwards. [Deluge] sets it from the Age's counter on every tick of `Happenings`.
      */
     @Volatile
-    private var shortBy: Int = 0
+    private var risenBy: Int = 0
 
     @Volatile
     private var standingSea: SeaFill = writtenSea
@@ -231,21 +231,21 @@ class AgeChunkGenerator(
     val seaFill: SeaFill get() = standingSea
 
     /**
-     * Stand the sea [blocks] under what was written.
+     * Stand the sea [blocks] over what was written.
      *
      * Cached rather than copied per call: this is read once per column of every chunk generated, and a
      * `data class` copy there would allocate through the floor.
      */
-    fun standShortBy(blocks: Int) {
+    fun standAbove(blocks: Int) {
         val wanted = blocks.coerceAtLeast(0)
-        if (wanted == shortBy) return
-        shortBy = wanted
-        // A sea of NONE has `Int.MIN_VALUE` for a level — a sentinel, not a height — and lowering a
-        // sentinel is how you get an Age with a sea at minus two billion.
+        if (wanted == risenBy) return
+        risenBy = wanted
+        // A sea of NONE has `Int.MIN_VALUE` for a level — a sentinel, not a height — and moving a sentinel
+        // is how you get an Age with a sea at minus two billion.
         standingSea = if (wanted == 0 || writtenSea.surfaceY == null) {
             writtenSea
         } else {
-            writtenSea.copy(level = writtenSea.level - wanted)
+            writtenSea.copy(level = writtenSea.level + wanted)
         }
     }
 

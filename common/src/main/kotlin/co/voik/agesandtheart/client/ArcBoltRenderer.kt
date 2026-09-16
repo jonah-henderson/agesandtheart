@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.entity.LightningBoltRenderer
 import net.minecraft.client.renderer.entity.state.EntityRenderState
 import net.minecraft.client.renderer.entity.state.LightningBoltRenderState
 import net.minecraft.client.renderer.state.level.CameraRenderState
+import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.joml.Quaternionf
 
@@ -35,6 +36,13 @@ class ArcBoltRenderer(context: EntityRendererProvider.Context) :
     private val vanilla = LightningBoltRenderer(context)
 
     override fun createRenderState() = ArcBoltRenderState()
+
+    /**
+     * The whole arc, not just the rod it leaves from. Whoever is bitten is looking at what was bitten, and
+     * culled on the rod alone the bolt vanished whenever the rod was off screen.
+     */
+    override fun getBoundingBoxForCulling(entity: ArcBolt): AABB =
+        AABB(entity.position(), entity.position().add(entity.reachesTo)).inflate(FORK_MARGIN)
 
     override fun extractRenderState(entity: ArcBolt, state: ArcBoltRenderState, partialTicks: Float) {
         super.extractRenderState(entity, state, partialTicks)
@@ -93,6 +101,9 @@ class ArcBoltRenderer(context: EntityRendererProvider.Context) :
 
         private const val NOTHING = 1.0e-6
         private val UPRIGHT = Vec3(0.0, 1.0, 0.0)
+
+        /** Room round the arc's straight line for the fork to splay into. */
+        private const val FORK_MARGIN = 1.0
 
         /** Any spread will do; this only has to make neighbouring entity ids fork differently. */
         private const val A_BOLT_APART = 0x9E_37_79_B1L

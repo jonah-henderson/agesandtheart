@@ -300,7 +300,7 @@ object AgeCommand {
         // printed with the Age, so a world worth keeping can be pinned by writing it back.
         val chosenSeed = seed ?: AgeRecipe.freshSeed()
         val resolution = Resolver.resolve(vocabulary, read, chosenSeed)
-        val recipe = AgeRecipe.written(source.server, resolution, chosenSeed)
+        val recipe = AgeRecipe.written(source.server, resolution, pages, chosenSeed)
         val result = open(source, name, id, recipe, report)
         if (result == FAILURE) return FAILURE
 

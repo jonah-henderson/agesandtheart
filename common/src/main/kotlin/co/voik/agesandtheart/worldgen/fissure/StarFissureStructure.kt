@@ -206,11 +206,26 @@ internal class Crack(private val alongX: Double, private val alongZ: Double, pri
      * been open a while is a longer, fatter crack rather than a blob with a crack inside it.
      */
     fun reaches(offsetX: Int, offsetZ: Int, wider: Double): Boolean {
+        val (offCentre, width) = measure(offsetX, offsetZ, wider) ?: return false
+        return offCentre <= width
+    }
+
+    /**
+     * How central a column is: 1 on the crack's own centreline, falling to 0 at its edge, and below 0
+     * outside it — what a cave-in cuts its floor to, so a trough is deepest down the middle.
+     */
+    fun centralityAt(offsetX: Int, offsetZ: Int): Double {
+        val (offCentre, width) = measure(offsetX, offsetZ, 0.0) ?: return OUTSIDE
+        return if (width > 0.0) 1.0 - offCentre / width else OUTSIDE
+    }
+
+    /** How far a column stands off the crack's wandering centre, and how wide the crack is there; null past its ends. */
+    private fun measure(offsetX: Int, offsetZ: Int, wider: Double): Pair<Double, Double>? {
         // Into the crack's own frame: how far along its run, and how far off its centre.
         val along = offsetX * alongX + offsetZ * alongZ
         val across = -offsetX * alongZ + offsetZ * alongX
         val length = HALF_LENGTH + wider
-        if (along < -length || along > length) return false
+        if (along < -length || along > length) return null
 
         val reach = along / length
         // Pinched at both ends, so it tapers to a point rather than stopping square.
@@ -218,10 +233,13 @@ internal class Crack(private val alongX: Double, private val alongZ: Double, pri
         val wander = noise.getValue(along * WANDER_SCALE, 0.0, 0.0) * MOST_WANDER * taper
         val widening = noise.getValue(0.0, 0.0, along * WIDTH_SCALE) * WIDTH_VARIES
         val width = (NARROWEST + widening + wider) * taper
-        return kotlin.math.abs(across - wander) <= width
+        return kotlin.math.abs(across - wander) to width
     }
 
     companion object {
+        /** What [centralityAt] says of a column the crack does not reach at all. */
+        private const val OUTSIDE = -1.0
+
         /** Long and thin: a crack across the ground rather than a pit in it. */
         const val HALF_LENGTH = 17.0
 

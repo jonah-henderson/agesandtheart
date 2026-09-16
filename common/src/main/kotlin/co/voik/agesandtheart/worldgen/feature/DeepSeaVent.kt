@@ -222,7 +222,9 @@ object DeepSeaVent : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.
                 val reach = hypot(offsetX.toDouble(), offsetZ.toDouble())
                 val lobe = vent.lobeAt(atan2(offsetZ.toDouble(), offsetX.toDouble()))
                 val at = BlockPos(origin.x + leanX + offsetX, y, origin.z + leanZ + offsetZ)
-                if (reach <= open * lobe) {
+                // Strictly inside, so an open radius of nothing opens nothing — the axis itself sits at a
+                // reach of exactly zero.
+                if (reach < open * lobe) {
                     setBlock(level, at, abyss)
                 } else if (reach <= outer * lobe) {
                     setBlock(level, at, fill)

@@ -107,8 +107,8 @@ class PanelShots(private val seed: Long, unsettled: Float) {
 
         private const val NANOS_PER_SECOND = 1_000_000_000.0f
 
-        /** The look every Age's panel takes whatever it is like: a full turn in ten seconds. */
-        private const val TURNS_PER_SECOND = 0.10f
+        /** The look every Age's panel takes whatever it is like: a full turn in about fourteen seconds. */
+        private const val TURNS_PER_SECOND = 0.07f
 
         /** How far a shot is thrown off the pace. A whole turn is anywhere at all, and is the worst Age. */
         private const val MOST_JITTER = 1.0f

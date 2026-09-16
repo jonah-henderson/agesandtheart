@@ -19,19 +19,24 @@ import net.minecraft.world.level.material.Fluids
  * **The water comes up, and it comes up under torrential rain.** The phenomenon is a downpour that will not
  * stop, and the sea arriving is what the downpour does.
  *
- * **It rises toward the level the recipe already names**, which settles the fairness problem before it
- * arises. A sea climbing without a known end is the punishment register at its purest — you build at
- * seventy, come back three sessions later, and the water is at seventy-two. So the Age *arrives* at what
- * was written rather than starting there: it opens [FALLS_BY] blocks short and climbs, the final state is
- * exactly what a writer asked for, and the desk's reading already answers "how high will it get".
+ * **It rises by a known amount**, which settles the fairness problem before it arises. A sea climbing
+ * without a known end is the punishment register at its purest — you build at seventy, come back three
+ * sessions later, and the water is at seventy-two. So an Age opens at the sea its book names and climbs
+ * [RISES_BY] blocks above it: the end is as knowable as the start, and how far the water will come is one
+ * number rather than a horizon.
  *
- * **It resolves.** Once the written level is reached the phenomenon is over and what is left is a drowned
- * Age — a standing condition rather than a permanent tax.
+ * **Written first, risen after.** An Age nothing has begun to drown generates at exactly the sea it was
+ * written with, which is what the rest of it is built against: standing the sea short of the written one
+ * to climb back to it left vanilla's ocean monuments, and its ocean decoration generally, at a level the
+ * water had walked away from.
+ *
+ * **It resolves.** Once the rise is complete the phenomenon is over and what is left is a drowned Age — a
+ * standing condition rather than a permanent tax.
  *
  * **Three parts, and only the first of them is stored.**
  *
  * - **The sea's own level**, which is the counter: [AgeSavedData.presenceIn] ticks, turned into blocks by
- *   [shortnessAt], handed to the generator by [stand]. This is §5.4's one licensed number, and what buys it
+ *   [risenAt], handed to the generator by [stand]. This is §5.4's one licensed number, and what buys it
  *   is that the sea surface has to be *globally coherent* — a chunk generated three thousand blocks out
  *   must flood to the same line as the one under your feet, and no sampler can promise that.
  * - **The rise made real**, [raise], which is the block work. New chunks come out of the generator already
@@ -45,27 +50,27 @@ import net.minecraft.world.level.material.Fluids
 object Deluge {
 
     /**
-     * How far under its written level a drowning Age's sea begins.
+     * How far above its written level a drowning Age's sea climbs.
      *
-     * Deep enough that the shape of play changes as it climbs — shoreline, footpaths and cave mouths go
-     * under within the arc rather than all at the end — and shallow enough that the Age is recognisably
-     * the one that was written throughout. **UNWALKED; this is the dial that decides what the arc feels
-     * like**, and it wants walking against a real coastline rather than reasoning about.
+     * High enough that the shape of play changes as it rises — shoreline, footpaths and cave mouths go
+     * under within the arc rather than all at the end — and low enough that the Age is recognisably the one
+     * that was written throughout. **A default until the index buys it**: how far a drowning Age is carried
+     * is instability's to say, and this is the figure that says it until then.
      */
-    const val FALLS_BY = 24
+    const val RISES_BY = 24
 
     /**
      * How long somebody has to be in the Age for the sea to gain one block, in ticks.
      *
      * **Flat rather than accelerating**, for the reason the ceiling exists: a writer should be able to say
-     * how long they have. At this figure the whole of [FALLS_BY] is about two hours of *being in the Age* —
+     * how long they have. At this figure the whole of [RISES_BY] is about two hours of *being in the Age* —
      * not of the world existing, and not of the server running. UNWALKED.
      */
     const val TICKS_PER_BLOCK = 6000L
 
-    /** How far under its written level this Age's sea stands, after [ticks] of somebody being in it. */
-    fun shortnessAt(ticks: Long): Int =
-        (FALLS_BY - (ticks / TICKS_PER_BLOCK)).coerceIn(0L, FALLS_BY.toLong()).toInt()
+    /** How far above its written level this Age's sea stands, after [ticks] of somebody being in it. */
+    fun risenAt(ticks: Long): Int =
+        (ticks / TICKS_PER_BLOCK).coerceIn(0L, RISES_BY.toLong()).toInt()
 
     /**
      * Tell [level]'s generator where its sea stands.
@@ -77,7 +82,7 @@ object Deluge {
      */
     fun stand(level: ServerLevel, drowning: Boolean, ticks: Long) {
         val generator = level.chunkSource.generator as? AgeChunkGenerator ?: return
-        generator.standShortBy(if (drowning) shortnessAt(ticks) else NOT_DROWNING)
+        generator.standAbove(if (drowning) risenAt(ticks) else NOT_DROWNING)
     }
 
     /**
@@ -104,11 +109,11 @@ object Deluge {
      * "is this chunk behind" question any more — every column is asked, every pass, and the ones with
      * nothing to do cost a heightmap read.
      *
-     * **One level per pass, deliberately.** The rise is a layer at a time and so is everything catching up
-     * to it: a pond well under the line climbs a block a pass rather than filling in one visit, which is
-     * both what a flood looks like and what keeps the load flat. A chunk that has been unloaded for an hour
-     * heals visibly rather than snapping, and the passes are frequent enough that it is healed before you
-     * have walked to it.
+     * **A column comes all the way up on the pass that reaches it.** The sea gains a block every
+     * [TICKS_PER_BLOCK], so ordinarily that is the one block the column is behind; what it buys is the
+     * chunk nobody has been near, which arrives at the line in one visit rather than over as many passes as
+     * it is behind. A block a pass had the water climbing in strips — the near columns a block, then the
+     * ring beyond them a block — where a flood is a surface arriving.
      */
     fun raise(level: ServerLevel) {
         val sea = level.seaBlock() ?: return
@@ -151,10 +156,16 @@ object Deluge {
                     level.setBlockAndUpdate(BlockPos(x, top, z), sea)
                     continue
                 }
-                if (top >= standing) continue
-                cursor.set(x, top + 1, z)
-                if (!chunk.getBlockState(cursor).canBeReplaced(seaFluid)) continue
-                level.setBlockAndUpdate(BlockPos(x, top + 1, z), sea)
+                // Up to the line in one visit, stopping under whatever roofs the column: every block of it
+                // passes the same test the one below it did, so a sealed room stays dry however far the sea
+                // outside it has come.
+                var risen = top
+                while (risen < standing) {
+                    cursor.set(x, risen + 1, z)
+                    if (!chunk.getBlockState(cursor).canBeReplaced(seaFluid)) break
+                    level.setBlockAndUpdate(BlockPos(x, risen + 1, z), sea)
+                    risen++
+                }
             }
         }
     }

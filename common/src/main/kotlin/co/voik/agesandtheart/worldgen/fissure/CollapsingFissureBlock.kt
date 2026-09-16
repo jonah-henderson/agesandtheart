@@ -54,11 +54,14 @@ class CollapsingFissureBlock(properties: Properties) : StarFissureBlock(properti
      * a player cannot see makes a barrier they cannot trust. A player should be able to look at a tear and
      * know which block goes next.
      *
-     * The one buried in the band books nothing, which is what keeps a tear costing its edge rather than its
-     * volume: it is not on the frontier and nothing it could do would put it there.
+     * **Covering it changes nothing, because collapse is not preventable.** The test is whether another tear
+     * stands over this one, not whether the sky does: a block buried inside the band books nothing, which is
+     * what keeps a tear costing its edge rather than its volume, while a block somebody has floored over is
+     * still the top of its column and goes on taking the ground beside it. What it spreads into loses
+     * whatever was over it anyway ([Collapse.takeColumnBeside]).
      */
     override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
-        if (!level.getBlockState(pos.above()).isAir) return
+        if (level.getBlockState(pos.above()).`is`(this)) return
         Collapse.keepTearing(level, pos)
         val towards = SIDEWAYS[random.nextInt(SIDEWAYS.size)]
         Collapse.takeColumnBeside(level, pos.relative(towards))
@@ -68,15 +71,13 @@ class CollapsingFissureBlock(properties: Properties) : StarFissureBlock(properti
      * The safety net over the booked chain, and it is the same one [co.voik.agesandtheart.content.LavaTubeBlock]
      * keeps for the same reason.
      *
-     * [tick] declines a column with anything over it **before** booking the next turn, which is right — only
-     * the frontier spreads — but it leaves a covered column with nothing to wake it. Uncovering one is a
-     * change to its *neighbour*, so no event of the fissure's own fires, and without this a tear that gravel
-     * or a player once buried would stay inert for the rest of the world's life.
+     * A column whose booked turn was lost has nothing of its own to wake it — a tear the generator wrote
+     * before its first tick, say — and without this it would stay inert for the rest of the world's life.
      *
      * Costs nothing where a turn is already booked: [Collapse.keepTearing] declines to double-book.
      */
     override fun randomTick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
-        if (level.getBlockState(pos.above()).isAir) Collapse.keepTearing(level, pos)
+        if (!level.getBlockState(pos.above()).`is`(this)) Collapse.keepTearing(level, pos)
     }
 
     private companion object {

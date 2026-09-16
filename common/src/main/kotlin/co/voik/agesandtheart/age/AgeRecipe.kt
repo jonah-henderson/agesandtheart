@@ -32,7 +32,7 @@ data class AgeRecipe(
     val character: AgeCharacter = AgeCharacter.LEGACY,
     /** Resolved once when the Age was written and kept; never re-derived from the words. */
     val instability: Instability = Instability.NONE,
-    /** What the book said. Provenance only — nothing reads it to decide anything. */
+    /** The pages the book was laid with, structure included. Provenance only — nothing reads it to decide anything. */
     val words: List<String> = emptyList(),
     val generatorVersion: Int = CURRENT_GENERATOR_VERSION,
     /**
@@ -165,7 +165,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 53
+        const val CURRENT_GENERATOR_VERSION = 54
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -235,10 +235,14 @@ data class AgeRecipe(
             authored = authored,
         )
 
-        /** A fresh recipe for an Age somebody wrote: the resolved composition, plus words and instability. */
+        /**
+         * A fresh recipe for an Age somebody wrote: the resolved composition and its instability, and [pages]
+         * as they were laid — `age` and the rest of the structure included, so the book can be read back.
+         */
         fun written(
             server: MinecraftServer,
             resolution: Resolution,
+            pages: List<String>,
             seed: Long,
             authored: Boolean = true,
         ): AgeRecipe = AgeRecipe(
@@ -246,7 +250,7 @@ data class AgeRecipe(
             seed,
             AgeCharacter.drawn(server, seed),
             resolution.instability,
-            resolution.sentence,
+            pages,
             writtenAt = server.overworld().gameTime,
             template = resolution.template,
             authored = authored,

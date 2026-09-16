@@ -46,7 +46,7 @@ object Meteors {
         // it on every tick of every meteoric Age is thousands of class checks twenty times a second for an
         // answer that is nearly always the same. Behind the roll it is asked about three times an hour,
         // which is the same argument the comment above makes about the lure.
-        if (gatheringIn(level) >= atMostFor(density)) return
+        if (gatheringIn(level) >= MOST_AT_ONCE) return
         val somebody = Sampling.somebody(level) ?: return
         val drawn = drawnNear(level, somebody.position())
         if (drawn == null && level.random.nextDouble() > WITHOUT_A_LURE) return
@@ -89,7 +89,7 @@ object Meteors {
      * How many are already up.
      *
      * **A walk of every entity in the level**, not of the storms — `EntityTypeTest` filters the result and
-     * does not index it. Bounded by [atMostFor] in what it *returns*, which is not the same as what it
+     * does not index it. Bounded by [MOST_AT_ONCE] in what it *returns*, which is not the same as what it
      * costs, so it is asked behind the roll rather than in front of it.
      */
     private fun gatheringIn(level: ServerLevel): Int =
@@ -163,9 +163,6 @@ object Meteors {
     fun drawnNear(level: ServerLevel, around: Vec3): Lures.Drawn? =
         Lures.nearest(level, around, FURTHEST_APPROACH)
 
-    /** How many storms may be up at once — one ordinarily, and more as a rung asks for more. */
-    private fun atMostFor(density: Double): Int = (ONE + density * MORE_AT_ONCE).roundToInt()
-
     /**
      * How many bodies a storm drops over the whole of its life, which is also what the sky promises.
      *
@@ -225,8 +222,11 @@ object Meteors {
     private const val NEAREST_APPROACH = 40.0
     private const val FURTHEST_APPROACH = 152.0
 
-
-    private const val MORE_AT_ONCE = 1.5
+    /**
+     * One storm at a time, whatever the rung. A rung already buys more storms by shortening the wait
+     * between them, and two at once is every light in the sky drawn twice a frame.
+     */
+    private const val MOST_AT_ONCE = 1
 
     /** A body every this many ticks in an Age at rest — four a second. */
     private const val EVERY = 5

@@ -34,6 +34,6 @@ object DescriptiveBookRecipe {
         // Whether the rewards will pay out here (design §7.7). A found book carries no such mark, so an
         // Age handed over already written is one you may live in and never one you are paid for.
         val authored = stack.get(AgeContent.BOOK_AUTHORED) == true
-        return AgeRecipe.written(server, Resolver.resolve(vocabulary, read, seed), seed, authored)
+        return AgeRecipe.written(server, Resolver.resolve(vocabulary, read, seed), spoken, seed, authored)
     }
 }

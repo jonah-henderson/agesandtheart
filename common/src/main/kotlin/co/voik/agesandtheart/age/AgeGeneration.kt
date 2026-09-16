@@ -333,7 +333,7 @@ object AgeGeneration {
             // nether's tree and the End's each end in an unconditional arm that would repaint whatever
             // block was substituted below, and removing it changes nothing until one has been.
             named.isEmpty() -> SurfacingStrategy.asPatchesOver(theirs.surfaceRule())
-            named.all { it.isAir } -> SurfacingStrategy.SUPPRESSED
+            named.all { it.isAir } -> SurfacingStrategy.NO_SKIN
             else -> SurfacingStrategy.laidOnVanilla(named)
         }
         // **The substance alone, read off the book rather than off the fill.** A `SeaFill` answers where a

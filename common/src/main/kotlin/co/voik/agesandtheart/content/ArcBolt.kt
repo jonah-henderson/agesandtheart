@@ -51,6 +51,15 @@ class ArcBolt(type: EntityType<out ArcBolt>, level: Level) : Entity(type, level)
     /** Nothing to hit and nothing to keep — a bolt that survived a save would be a bolt frozen in the air. */
     override fun isPickable(): Boolean = false
 
+    /**
+     * Seen from as far as vanilla's own bolt is, rather than as far as a thing this size would be — which
+     * was a few blocks from the rod, so a bite landing any further off went undrawn.
+     */
+    override fun shouldRenderAtSqrDistance(distance: Double): Boolean {
+        val seenWithin = SEEN_WITHIN * getViewScale()
+        return distance < seenWithin * seenWithin
+    }
+
     /** And nothing to hurt: it is light, not an object. */
     override fun hurtServer(level: ServerLevel, source: DamageSource, amount: Float): Boolean = false
 
@@ -64,6 +73,9 @@ class ArcBolt(type: EntityType<out ArcBolt>, level: Level) : Entity(type, level)
 
         /** Vanilla's own bolt lasts about this long, and a bite is over well inside it. */
         private const val LIVES_FOR = 3
+
+        /** Vanilla's lightning's reach, before the player's entity-distance setting scales it. */
+        private const val SEEN_WITHIN = 64.0
 
         /**
          * Throw one from [from] to [to], or nothing where the two are the same place.

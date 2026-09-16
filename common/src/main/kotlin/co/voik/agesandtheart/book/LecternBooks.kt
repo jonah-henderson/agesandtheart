@@ -77,8 +77,15 @@ object LecternBooks {
     fun use(state: BlockState, level: Level, pos: BlockPos, player: Player, hit: BlockHitResult): InteractionResult? {
         val lectern = level.getBlockEntity(pos) as? LecternBlockEntity ?: return null
         val panelPage = panelPageOf(lectern.book) ?: return null
+        // A sneak is vanilla's "Take Book", which we have no screen for: it takes the book, open or shut, and
+        // does nothing else — no link, no reading, no shutting. Where the player may not take it, the click
+        // is an ordinary one.
+        if (player.isSecondaryUseActive && player.mayBuild()) {
+            if (level is ServerLevel) takeBack(state, level, pos, player, lectern)
+            return InteractionResult.SUCCESS
+        }
         if (!LecternOpening.isOpen(state)) {
-            useShut(state, level, pos, player, lectern)
+            if (level is ServerLevel) open(state, level, pos, lectern)
             return InteractionResult.SUCCESS
         }
         val facing = state.getValue(LecternBlock.FACING)
@@ -152,13 +159,6 @@ object LecternBooks {
             onTheWriting -> Click.READ
             else -> Click.SHUT
         }
-    }
-
-    /** A shut book opens, unless the click was a sneak — vanilla's "Take Book", which we have no screen for. */
-    private fun useShut(state: BlockState, level: Level, pos: BlockPos, player: Player, lectern: LecternBlockEntity) {
-        if (level !is ServerLevel) return
-        val takingItBack = player.isSecondaryUseActive && player.mayBuild()
-        if (takingItBack) takeBack(state, level, pos, player, lectern) else open(state, level, pos, lectern)
     }
 
     /** Goes, and leaves the book on the lectern for the next reader — which is the whole of a lectern's point. */

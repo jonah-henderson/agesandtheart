@@ -17,7 +17,8 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
  * A `SurfaceRules.RuleSource` says *how* to surface a column; this says *which* rule does it, and
  * [co.voik.agesandtheart.age.aspect.Surface] is the aspect that decides. The three are the whole of what
  * an Age can be: the biome's own rule ([delegatedToBiomes]), one or more materials laid over the lot
- * ([laidOn]), or none at all ([SUPPRESSED]), which lets the [TerrainFill] beneath show through.
+ * ([laidOn]), or none at all ([NO_SKIN]), which lays only the world's floor and lets the [TerrainFill]
+ * beneath show through.
  *
  * The private half is how those three are written rather than a language anyone else speaks.
  *
@@ -115,8 +116,9 @@ object SurfacingStrategy {
      * standing between a cave floor and a lawn, and vanilla's version interpolates a heightmap across a
      * 16-block cell, which our terrain outruns in both directions — see [NearTheSurface].
      *
-     * Its **bedrock is vanilla's own**, whichever tree this is: each puts the world's floor first in its
-     * sequence, ahead of the surface rules, which is exactly where a floor has to go.
+     * **Its bedrock is [worldFloor], laid first and outside the gate.** Each vanilla tree carries a floor of
+     * its own, but inside [NearTheSurface] that floor was only ever asked of columns near the face, which
+     * the bottom of the world is not — so an Age whose ground reached the floor stood on stone over the void.
      *
      * [skin] is the world the book was written over ([co.voik.agesandtheart.age.AgeTemplate.skin]) and not
      * the overworld's for everyone, which is what grew grass on the hills of an infernal Age (Jonah,
@@ -124,7 +126,7 @@ object SurfacingStrategy {
      * and falls through to its default, which is dirt with grass on top.
      */
     fun delegatedToBiomes(terrain: TerrainField, skin: SurfaceRules.RuleSource): SurfaceRules.RuleSource =
-        SurfaceRules.ifTrue(NearTheSurface(terrain), skin)
+        layers(worldFloor(), SurfaceRules.ifTrue(NearTheSurface(terrain), skin))
 
     /**
      * The overworld's own dressing as an Age wears it — bedrock underfoot and none overhead, and the
@@ -204,7 +206,14 @@ object SurfacingStrategy {
     private const val SKIN_DEPTH = 2
 
     /**
-     * A rule that never matches, so whatever follows it decides — how "named no material" is spelled.
+     * No skin at all — only the world's floor, which is not the palette's to decide — how "named no
+     * material" is spelled.
+     */
+    val NO_SKIN: SurfaceRules.RuleSource = worldFloor()
+
+    /**
+     * A rule that never matches, so whatever follows it decides — what [asPatchesOver] gives back for a tree
+     * with nothing to add.
      *
      * Written as *below the bottom of the world*, which no block is. An empty [layers] is not available:
      * vanilla's `sequence` rejects an empty list at class-initialisation time, so it fails far from here.
