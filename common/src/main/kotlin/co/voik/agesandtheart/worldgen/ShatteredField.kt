@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.CellCanyon
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Slab
@@ -61,6 +60,9 @@ object ShatteredField {
     const val FLOOR_Y = CanyonlandsField.FLOOR_Y
     const val RIVER_LEVEL = CanyonlandsField.RIVER_LEVEL
 
+    /** And its shelter reach, because this wears `Weathering.CANYONLANDS` — one profile, one reach. */
+    private const val SHELTER_REACH = CanyonlandsField.SHELTER_REACH
+
     /**
      * How many cells the mosaic draws between. Six, so about one join in six is missing where two
      * neighbours draw the same number and run together — which is what keeps the plate from reading as
@@ -73,9 +75,6 @@ object ShatteredField {
 
     /** Half a join's width, so about 140 across against a 145-block drop. Canyonlands' proportion. */
     private const val HALF_WIDTH = 70.0
-
-    /** How far into a wall the weather works, the same as canyonlands' for the same reason. */
-    private const val SHELTER_REACH = 24
 
     private const val MOSAIC_SEED = 0xC7AC_ED0L
     private const val CRACK_SEED = 0xC7AC_5EEDL

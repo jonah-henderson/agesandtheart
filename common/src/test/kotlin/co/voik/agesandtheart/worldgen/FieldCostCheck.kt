@@ -43,7 +43,7 @@ class FieldCostCheck : FunSpec({
      */
     test("what each volcanic field costs per column, for reading") {
         val volcanoes = VolcanoField.over(SEED, WRITTEN)
-        val chambers = VolcanoField.chambers(SEED, WRITTEN)
+        val chambers = MagmaChamberField.chambers(SEED, WRITTEN)
         val fields = listOf(
             "cones" to volcanoes.cones,
             "crater lakes" to volcanoes.lakes,
@@ -70,7 +70,7 @@ class FieldCostCheck : FunSpec({
      */
     test("how much rock each volcanic field adds per column, for reading") {
         val volcanoes = VolcanoField.over(SEED, WRITTEN)
-        val chambers = VolcanoField.chambers(SEED, WRITTEN)
+        val chambers = MagmaChamberField.chambers(SEED, WRITTEN)
         val fields = listOf(
             "cones" to volcanoes.cones,
             "crater lakes" to volcanoes.lakes,

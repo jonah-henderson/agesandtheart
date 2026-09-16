@@ -24,7 +24,7 @@ import co.voik.agesandtheart.worldgen.VolcanoField
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.age.aspect.Span
-import co.voik.agesandtheart.worldgen.carver.Weathering
+import co.voik.agesandtheart.worldgen.Weathering
 import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.Fault
 import co.voik.agesandtheart.worldgen.field.RegionMap

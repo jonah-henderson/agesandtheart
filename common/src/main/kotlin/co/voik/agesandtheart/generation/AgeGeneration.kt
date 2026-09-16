@@ -34,6 +34,7 @@ import net.minecraft.world.level.block.Blocks
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.CeilingField
+import co.voik.agesandtheart.worldgen.MagmaChamberField
 import co.voik.agesandtheart.worldgen.Overlay
 import co.voik.agesandtheart.worldgen.VolcanoField
 import co.voik.agesandtheart.worldgen.VerticalWindow
@@ -632,7 +633,7 @@ object AgeGeneration {
         // claim's density scales the scatter that places these, where until 2026-09-11 the terrain asked a
         // yes-or-no question and `teeming volcano` built the same mountains as `volcano`.
         val volcanoes = Volcanoes.amountIn(composition)?.let { VolcanoField.over(seed, it) }
-        val chambers = MagmaChambers.amountIn(composition)?.let { VolcanoField.chambers(seed, it) }
+        val chambers = MagmaChambers.amountIn(composition)?.let { MagmaChamberField.chambers(seed, it) }
         // **Named, because both bodies are lava and a feature has to find its own.** See [StandingFluid.named].
         return Overlay(
             raises = volcanoes?.cones,

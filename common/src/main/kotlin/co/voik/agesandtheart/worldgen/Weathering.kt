@@ -1,12 +1,5 @@
-package co.voik.agesandtheart.worldgen.carver
+package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.AlpsField
-import co.voik.agesandtheart.worldgen.CanyonField
-import co.voik.agesandtheart.worldgen.CanyonlandsField
-import co.voik.agesandtheart.worldgen.CliffField
-import co.voik.agesandtheart.worldgen.CraterlandsField
-import co.voik.agesandtheart.worldgen.RiverlandsField
-import co.voik.agesandtheart.worldgen.SpireField
 import kotlin.math.abs
 import kotlin.math.pow
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
@@ -367,18 +360,18 @@ class Weathering(
         val ALPS = Weathering(
             key = "alps",
             fromY = AlpsField.WORLD_FLOOR + BAND_MARGIN,
-            toY = AlpsField.SNOWLINE_Y + SUMMITS_ABOVE_THE_SNOWLINE,
+            toY = AlpsField.SNOWLINE_Y + AlpsField.SUMMITS_ABOVE_THE_SNOWLINE,
             // Firmer than a river country's and far gentler than a canyon's: the shape already has its
             // large forms, and what is wanted is damage rather than sculpture.
             bite = -0.05,
-            keelY = ALPINE_VALLEY_FLOOR,
+            keelY = AlpsField.VALLEY_FLOOR,
             atTheKeel = 0.5,
             atTheTip = 0.0,
             atTheRoot = 0.5,
             taper = 2.0,
             // Long above and short below, because the climb is where the subject is. A symmetric reach
             // would spend half of itself on bedrock nobody sees.
-            taperReachAbove = AlpsField.SNOWLINE_Y - ALPINE_VALLEY_FLOOR,
+            taperReachAbove = AlpsField.SNOWLINE_Y - AlpsField.VALLEY_FLOOR,
             taperReachBelow = 40,
             // Gully-and-buttress scale: ribs and couloirs some tens of blocks across, not a sanded face.
             scale = 1.0,
@@ -459,12 +452,6 @@ class Weathering(
             firstOctave = -3,
             amplitudes = doubleArrayOf(1.0, 0.5, 0.25),
         )
-
-        /** How far over the snowline the band still has to reach, since the tallest massifs stand clear. */
-        private const val SUMMITS_ABOVE_THE_SNOWLINE = 80
-
-        /** Where an alpine trunk valley runs, which is the level the frost is asked to spare. */
-        private const val ALPINE_VALLEY_FLOOR = 70
 
         /** The profiles a recipe may name, which is what makes [Weathered] serialisable. */
         private val BY_KEY = listOf(SPIRE, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, ALPS, CRATERLANDS)

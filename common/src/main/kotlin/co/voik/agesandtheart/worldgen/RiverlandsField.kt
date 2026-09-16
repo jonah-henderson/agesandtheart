@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.CanyonProfile
-import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.Drainage
 import co.voik.agesandtheart.worldgen.field.FieldYield
 import co.voik.agesandtheart.worldgen.field.SeaFill

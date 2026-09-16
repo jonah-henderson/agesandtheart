@@ -97,7 +97,7 @@ class MagmaChamberCheck : FunSpec({
      */
     test("a chamber that sank through the world floor keeps neither its room nor its lava") {
         // The same amount the coordinates below were found at, or the spans are a different field.
-        val chambers = VolcanoField.chambers(SEED, NAMED)
+        val chambers = MagmaChamberField.chambers(SEED, NAMED)
         var dry = 0
         var sunk = 0
         val found = chambersNear(SEARCH)
@@ -126,7 +126,7 @@ class MagmaChamberCheck : FunSpec({
      * room.
      */
     test("a chamber holds a pool with room above it") {
-        val chambers = VolcanoField.chambers(SEED, NAMED)
+        val chambers = MagmaChamberField.chambers(SEED, NAMED)
         val (x, _, z) = chambersNear(SEARCH).first()
         val hollow = chambers.cones.columnSpans(x, z)
         val pool = chambers.lakes.columnSpans(x, z)
@@ -181,7 +181,7 @@ class MagmaChamberCheck : FunSpec({
          * that genuinely grew into each other are honestly one room.
          */
         private fun chambersNear(reach: Int, amount: Double = NAMED): List<Triple<Int, Int, Int>> {
-            val chambers = VolcanoField.chambers(SEED, amount)
+            val chambers = MagmaChamberField.chambers(SEED, amount)
             val hollows = HashMap<Pair<Int, Int>, Pair<Int, Int>>()
             for (x in -reach..reach step STRIDE) {
                 for (z in -reach..reach step STRIDE) {

@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.FieldYield
 import co.voik.agesandtheart.worldgen.field.Glaciation
 import co.voik.agesandtheart.worldgen.field.MountainRange
@@ -235,6 +234,16 @@ object AlpsField {
      * did, which is the vanilla mountain problem restated.
      */
     const val SNOWLINE_Y = 272
+
+    /**
+     * How far over [SNOWLINE_Y] the weathering band still has to reach, since the tallest massifs stand
+     * clear of the cap — and where a trunk valley runs, which is the level the frost is asked to spare.
+     *
+     * Here rather than with the profile that reads them: both are alpine geometry, and the profile and the
+     * shape were designed together (`decisions.md`, "Weathering belongs to a landform").
+     */
+    const val SUMMITS_ABOVE_THE_SNOWLINE = 80
+    const val VALLEY_FLOOR = 70
 
     /** How far a massif stands above or below it, and how wide one massif is. The exceptions live here. */
     private const val SUMMIT_SCATTER = 26.0

@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.Canyon
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
@@ -100,8 +99,14 @@ object CanyonlandsField {
     /** Shallower than the grand canyon's, the river being smaller. */
     private const val BED_RELIEF = 5.0
 
-    /** How far into a mesa wall the weather works. Shallower than a canyon's — the walls are shorter. */
-    private const val SHELTER_REACH = 24
+    /**
+     * How far into a mesa wall the weather works. Shallower than a canyon's — the walls are shorter.
+     *
+     * Not private, because `ShatteredField` wears `Weathering.CANYONLANDS` and so must wear its reach:
+     * one profile, one reach, rather than the same number written down in two files where a retune would
+     * find only one of them.
+     */
+    const val SHELTER_REACH = 24
 
     private const val FAMILY_SEED = 0xE5A_1A0DL
 }

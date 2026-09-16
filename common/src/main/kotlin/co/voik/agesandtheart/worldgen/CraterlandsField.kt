@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.age.aspect.Span
-import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.Chance
 import co.voik.agesandtheart.worldgen.field.Choose
 import co.voik.agesandtheart.worldgen.field.Cone

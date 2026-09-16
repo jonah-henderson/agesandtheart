@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.worldgen.field
 
-import co.voik.agesandtheart.worldgen.carver.Weathering
+import co.voik.agesandtheart.worldgen.Weathering
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import com.mojang.serialization.MapCodec

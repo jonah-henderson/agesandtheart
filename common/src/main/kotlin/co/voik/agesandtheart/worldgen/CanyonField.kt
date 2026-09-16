@@ -5,7 +5,6 @@ import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
-import co.voik.agesandtheart.worldgen.carver.Weathering
 
 /**
  * Rock from the bedrock to the height limit, with one canyon cut through the origin — **the world is the
