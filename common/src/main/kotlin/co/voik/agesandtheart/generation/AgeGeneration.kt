@@ -5,8 +5,7 @@ import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.WaterTable
 import kotlin.math.pow
-import co.voik.agesandtheart.age.consequence.Collapse
-import co.voik.agesandtheart.age.consequence.Tearing
+import co.voik.agesandtheart.age.consequence.Consequence
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -107,14 +106,6 @@ object AgeGeneration {
         val prices = Price.list(server)
         val spending = Spending.of(server, recipe)
         val torn = spending.reach(Manifestation.TORN_SEAMS, prices)
-        // Each step bought multiplies how many open, so the register climbs from "half the chunks hold
-        // one" to "the world is holed through" over the range a badly written Age can reach.
-        val wounds = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
-        // And how much worse each of the Age's days makes it. The generator reads the clock itself, so a
-        // chunk generated a week in comes out as torn as its neighbours rather than as the book left it.
-        val worsening = Tearing.woundsPerDayAt(spending.bought(Manifestation.WORSENING_WOUNDS))
-        // And how fast the floor gives way, for the few Ages that were written past saving.
-        val collapse = Collapse.tearsPerCellAt(spending.bought(Manifestation.COLLAPSE))
 
         // One band for every Age, and the same one every dimension type admits — see [VerticalWindow].
         val window = VerticalWindow.DEFAULT
@@ -291,10 +282,9 @@ object AgeGeneration {
             ),
             // What lives here, narrowing what vanilla resolves per biome and per structure.
             Spawns.livingIn(composition.optionsFor(Aspect.SPAWNS, 0), Vocabulary.of(server).spawning),
-            woundsPerChunk = wounds,
-            woundsPerDay = worsening,
-            collapseTears = collapse,
-            writtenAt = recipe.writtenAt,
+            // What the Age's instability bought. Derived here rather than restated: these were three lines
+            // recomputing `Consequence.of`'s own arithmetic, which is how a copy comes to drift from it.
+            bought = Consequence.of(server, recipe),
             // Read only where the rock is vanilla's; a landform of ours folded the same object in already.
             overlay = if (ourGround == null) overlay else Overlay.NONE,
         )

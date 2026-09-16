@@ -43,9 +43,7 @@ import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.LegacyRandomSource
 import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Block
-import co.voik.agesandtheart.age.consequence.Collapse
 import co.voik.agesandtheart.age.consequence.Consequence
-import co.voik.agesandtheart.age.consequence.Tearing
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseChunk
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
@@ -160,38 +158,17 @@ class AgeChunkGenerator(
      */
     private val lives: Spawns.Living? = null,
     /**
-     * How many wounds open per chunk (design §5.1, §5.0) — an **expected count**, so a half is half the
-     * chunks getting one and a hundred is a hundred in every chunk.
-     *
-     * Per chunk rather than per Age, because a count for a whole dimension is a handful nobody ever walks
-     * past. **And it climbs steeply**: writing an unstable Age should be something you *know*, met as
-     * wounds you come across regularly rather than as a curiosity somewhere (Jonah, 2026-08-07). A badly
-     * torn Age is holed through, not lightly freckled.
-     *
-     * Zero for every coherent Age, which is nearly all of them.
-     */
-    woundsPerChunk: Double = NO_WOUNDS,
-    /**
-     * How many more open per chunk with each day the Age has stood — **the worsening** (design §5.2.1).
-     *
-     * Where [woundsPerChunk] is how holed the book made it, this is how holed it *becomes*. Unbounded on
-     * purpose: a ceiling would promise the Age can be outlasted, and the only question the register asks
-     * is how long you stay. Zero for every Age that is merely flawed rather than coming apart.
-     */
-    woundsPerDay: Double = NO_WOUNDS,
-    /**
-     * How many tears per cell this Age's floor is cut with — **collapse** (design §5.3). Zero for every
-     * Age that is not ending; they widen themselves once cut.
-     */
-    collapseTears: Int = Collapse.NONE,
-    /**
-     * The overworld tick this Age was written on, so [woundsPerDay] has something to count from.
+     * What this Age's instability bought (design §5.0) — **one object, because the four figures in it
+     * change together or not at all**, and a generator that took them loose could be handed half an update.
      *
      * **On the generator because a chunk generated late must come out as torn as its neighbours**, which is
      * §5.4's derived-clock escape: a chunk that has never existed has no blocks to be legible from, so the
      * generator and the fast-forward read the same function rather than one of them inferring.
+     *
+     * Named apart from the [consequence] property it seeds, which is the mutable one: this is what was true
+     * at open, and that is what is true now.
      */
-    writtenAt: Long = 0L,
+    bought: Consequence = Consequence.NONE,
     /**
      * Shape of ours laid over whatever rock this Age wears — see [Overlay].
      *
@@ -298,7 +275,7 @@ class AgeChunkGenerator(
      * and it is one reference rather than four fields precisely so a reader cannot catch half an update.
      */
     @Volatile
-    var consequence: Consequence = Consequence(woundsPerChunk, woundsPerDay, collapseTears, writtenAt)
+    var consequence: Consequence = bought
         private set
 
     /** Tell a running Age that what it is has changed, so generation stops answering from the old one. */
@@ -1149,25 +1126,9 @@ class AgeChunkGenerator(
         // ordinary water — an ocean monument most of all — and vegetation grows in that water in this same
         // stage, so there is nowhere to stand between the two. See `DeepWater.settleTheAbyss`.
         DeepWater.settleTheAbyss(level, chunk, abyssLine) { x, z -> abyssReachesAt(chunk, x, z) }
-        val bought = consequence
-        if (bought.isNothing) return
-        // **The Age's age is read here rather than at open**, so a chunk generated after a week of worsening
-        // comes out as torn as the ones beside it. Against the *overworld's* clock: an Age's own only runs
-        // while somebody is in it, which is exactly when the worsening is not supposed to be waiting.
-        val days = bought.daysBy(level.level.server.overworld().gameTime)
-        // The floor giving way first: a column the Age has already swallowed is not somewhere to put a
-        // wound, and carving after would take the wound straight back out again.
-        Collapse.carveInto(level, chunk, level.getSeed(), bought.collapseTears)
-        val density = Tearing.densityAt(bought.woundsPerChunk, bought.woundsPerDay, days)
-        // Nobody to tell and nothing to update: the chunk has not been sent to a client and will not be
-        // until it is finished, so a wound here is written into it rather than announced.
-        Tearing.tearInto(
-            level,
-            chunk,
-            level.getSeed(),
-            Tearing.wantedIn(chunk.pos, level.getSeed(), density),
-            alreadyRunning = false,
-        )
+        // And then whatever the Age's instability bought, which is the register's own pass rather than
+        // this hook's: the order those steps run in is a fact about §5, not about chunk generation.
+        consequence.writeInto(level, chunk)
     }
 
     /**
@@ -1232,9 +1193,6 @@ class AgeChunkGenerator(
         private val CARVER_SETS: Codec<HolderSet<ConfiguredWorldCarver<*>>> =
             RegistryCodecs.homogeneousList(Registries.CONFIGURED_CARVER)
 
-        /** A coherent Age, which tears nowhere. */
-        const val NO_WOUNDS = 0.0
-
         val CODEC: MapCodec<AgeChunkGenerator> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 BiomeSource.CODEC.fieldOf("biome_source").forGetter { it.biomes },
@@ -1263,24 +1221,18 @@ class AgeChunkGenerator(
                 TerrainFill.CODEC.optionalFieldOf("terrain_fill", TerrainFill.PLAIN).forGetter { it.fill },
                 // Absent means the layout every Age had before the band became a choice — see [VerticalWindow].
                 VerticalWindow.CODEC.optionalFieldOf("window", VerticalWindow.DEFAULT).forGetter { it.window },
-                // Absent for every coherent Age, which is nearly all of them.
-                Codec.DOUBLE.optionalFieldOf("wounds_per_chunk", NO_WOUNDS).forGetter { it.consequence.woundsPerChunk },
-                // And absent for every Age that is merely flawed rather than coming apart.
-                Codec.DOUBLE.optionalFieldOf("wounds_per_day", NO_WOUNDS).forGetter { it.consequence.woundsPerDay },
-                // And absent for every Age that is not ending.
-                Codec.INT.optionalFieldOf("collapse_tears", Collapse.NONE).forGetter { it.consequence.collapseTears },
-                Codec.LONG.optionalFieldOf("written_at", 0L).forGetter { it.consequence.writtenAt },
+                // The same four optional keys, written by the object they belong to — see
+                // [Consequence.MAP_CODEC]. Names, defaults and order are unchanged, so an Age serialised
+                // before this reads back identically.
+                Consequence.MAP_CODEC.forGetter { it.consequence },
                 // Absent for every Age that asked for no shape of ours over its rock.
                 Overlay.CODEC.codec().optionalFieldOf("overlay", Overlay.NONE).forGetter { it.overlay },
             ).apply(instance) { biomes, rock, seaFill, rule, carvers, underground, tables, structures, climate,
-                                fill, window, wounds, worsening, collapse, writtenAt, overlay ->
+                                fill, window, bought, overlay ->
                 AgeChunkGenerator(
                     biomes, rock, seaFill, rule, carvers, underground, tables, structures,
                     climate.orElse(null), fill, window,
-                    woundsPerChunk = wounds,
-                    woundsPerDay = worsening,
-                    collapseTears = collapse,
-                    writtenAt = writtenAt,
+                    bought = bought,
                     overlay = overlay,
                 )
             }

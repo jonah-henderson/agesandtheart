@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.age.consequence.Consequence
 import co.voik.agesandtheart.age.word.Antonym
 import co.voik.agesandtheart.age.word.PresetTags
 import co.voik.agesandtheart.age.word.Word
@@ -69,6 +70,46 @@ class CodecCheck : FunSpec({
         for ((what, codec) in codecs) {
             checkNotNull(codec) { "$what built a null codec — something above it in its companion is null too" }
         }
+    }
+
+    /**
+     * **What an Age's instability bought survives a write** — which nothing else in the suite asks.
+     *
+     * `AgeChunkGenerator.CODEC` is registered and built and never round-tripped, so these four keys are the
+     * save format of every torn Age with nothing checking them. They were four loose fields on the
+     * generator until they became [Consequence.MAP_CODEC]'s, and the promise made then was that the names,
+     * the defaults and the order did not move. This is that promise, written down.
+     *
+     * The names are asserted rather than the shape alone: a rename here does not fail, it silently orphans
+     * the wounds of every Age already on disk.
+     */
+    test("what instability bought survives a write") {
+        MinecraftRegistries.ensureStoodUp()
+        val codec = Consequence.MAP_CODEC.codec()
+        val bought = Consequence(
+            woundsPerChunk = 2.5,
+            woundsPerDay = 0.25,
+            collapseTears = 3,
+            writtenAt = 123_456L,
+        )
+        val written = codec.encodeStart(JsonOps.INSTANCE, bought)
+            .getOrThrow { error("a consequence would not encode: $it") }
+        val read = codec.parse(JsonOps.INSTANCE, written)
+            .getOrThrow { error("a consequence encoded to $written and would not read back: $it") }
+        check(read == bought) { "read back as a different consequence: wrote $bought, read $read" }
+
+        val keys = written.asJsonObject.keySet()
+        check(keys == setOf("wounds_per_chunk", "wounds_per_day", "collapse_tears", "written_at")) {
+            "the consequence's keys moved, which orphans every torn Age already written: $keys"
+        }
+
+        // And a coherent Age writes nothing at all, which is the whole of what the defaults are for.
+        val nothing = codec.encodeStart(JsonOps.INSTANCE, Consequence.NONE)
+            .getOrThrow { error("a coherent Age would not encode: $it") }
+        check(nothing.asJsonObject.keySet().isEmpty()) { "a coherent Age wrote $nothing rather than nothing" }
+        val backToNone = codec.parse(JsonOps.INSTANCE, nothing)
+            .getOrThrow { error("an omitted consequence would not read back: $it") }
+        check(backToNone == Consequence.NONE) { "an Age that wrote nothing read back as $backToNone" }
     }
 
     /**
