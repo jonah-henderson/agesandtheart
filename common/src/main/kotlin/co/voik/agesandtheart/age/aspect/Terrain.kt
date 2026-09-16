@@ -30,6 +30,14 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
 /**
+ * Vanilla's, which is where every terrain that has not said otherwise puts its sea.
+ *
+ * Out here rather than in the companion because an entry's arguments are evaluated before the companion
+ * object exists, and four of the entries below set their waterline from it.
+ */
+private const val ORDINARY_SEA_LEVEL = 63
+
+/**
  * The shape of an Age's rock: a Tier-B field preset plus its [waterline], the one fact a composer needs
  * to place anything else against it. The [Sea] chooses only the substance.
  *
@@ -42,16 +50,26 @@ enum class Terrain(
     override val key: String,
     val waterline: Int?,
     private val build: (Options, Long) -> TerrainField,
+    // Deferred like [build], because a Parameter is a companion value and an entry is built before the
+    // companion is.
+    private val axes: () -> List<Parameter> = { emptyList() },
+    // The page that means this landform. Defaults to the key, which is already a noun for the thing.
+    private val page: String? = key,
 ) : AuthoredPreset {
     /**
      * Floating islands over open air: lobed masses, talons and roots, weathered to ribs. Its waterline is
      * the floor of the world they hang over rather than a sea anything stands on, which is why it is far
      * below the 63 the grounded shapes share.
      */
-    SPIRE_ISLANDS("spire_islands", waterline = SpireField.SEA_LEVEL, build = { _, salt -> SpireField.world(salt) }),
+    SPIRE_ISLANDS(
+        "spire_islands",
+        waterline = SpireField.SEA_LEVEL,
+        build = { _, salt -> SpireField.world(salt) },
+        page = "spires",
+    ),
 
     /** Rolling noise hills breaking a sea — the closest thing here to ordinary ground. */
-    HILLS("hills", waterline = 63, build = { _, salt -> NoiseField.hills(salt) }),
+    HILLS("hills", waterline = ORDINARY_SEA_LEVEL, build = { _, salt -> NoiseField.hills(salt) }),
 
     /**
      * A level plain to the horizon and no relief anywhere in it — Minecraft's own superflat. Its waterline
@@ -61,19 +79,20 @@ enum class Terrain(
     FLATLANDS("flatlands", waterline = null, build = { _, _ -> FlatlandsField.world() }),
 
     /** Rock riddled by ridged 3D noise: this Age's caves *are* its shape, not something cut from it. */
-    CAVERNS("caverns", waterline = 63, build = { _, salt -> CavernField.world(salt) }),
+    CAVERNS("caverns", waterline = ORDINARY_SEA_LEVEL, build = { _, salt -> CavernField.world(salt) }),
 
     /** Plain 3D noise weathered into mesa-like relief, hanging clear above the water. */
-    ERODED("eroded", waterline = 63, build = { _, salt -> ErodedField.world(salt) }),
+    ERODED("eroded", waterline = ORDINARY_SEA_LEVEL, build = { _, salt -> ErodedField.world(salt) }),
 
     /** Colossal rectangular monoliths on a jittered grid, standing a hundred blocks out of the sea. */
-    PILLARS("pillars", waterline = 63, build = { _, salt -> PillarField.world(salt) }),
+    PILLARS("pillars", waterline = ORDINARY_SEA_LEVEL, build = { _, salt -> PillarField.world(salt) }),
 
     /** Instanced pyramids on a plain, in the [ARRANGEMENT] asked for. */
     PYRAMIDS(
         "pyramids",
         waterline = null,
         build = { options, salt -> PyramidField.world(options.of(ARRANGEMENT), salt) },
+        axes = { listOf(ARRANGEMENT) },
     ),
 
     /**
@@ -85,6 +104,7 @@ enum class Terrain(
         "canyon",
         waterline = CanyonField.RIVER_LEVEL,
         build = { options, salt -> CanyonField.world(bearingAt(options.steer(BEARING, salt)), salt) },
+        axes = { listOf(BEARING) },
     ),
 
     /**
@@ -94,6 +114,7 @@ enum class Terrain(
         "cliffs",
         waterline = CliffField.SEA_LEVEL,
         build = { options, salt -> CliffField.world(bearingAt(options.steer(BEARING, salt)), salt) },
+        axes = { listOf(BEARING) },
     ),
 
     /** Mesa country: a tableland under open sky, cut to pieces by canyons running three ways at once. */
@@ -132,6 +153,7 @@ enum class Terrain(
         "islands",
         waterline = IslandsField.SEA_LEVEL,
         build = { options, salt -> IslandsField.world(options.steer(SIZE, salt), salt) },
+        axes = { listOf(SIZE) },
     ),
 
     /**
@@ -145,6 +167,7 @@ enum class Terrain(
         "isle",
         waterline = IslandsField.SEA_LEVEL,
         build = { options, salt -> IslandsField.lone(options.steer(SIZE, salt), salt) },
+        axes = { listOf(SIZE) },
     ),
 
     /**
@@ -176,6 +199,7 @@ enum class Terrain(
                 salt,
             )
         },
+        axes = { listOf(SPACING, WEAR, RELIEF) },
     ),
 
     /**
@@ -187,6 +211,7 @@ enum class Terrain(
         "inverse_caves",
         waterline = null,
         build = { _, salt -> InverseCavesField.world(salt) },
+        page = "inverted",
     ),
 
     /**
@@ -231,9 +256,14 @@ enum class Terrain(
      * from the composition; `AgeComposition.parse` refuses it beside a landform of ours. The throw records
      * the invariant rather than guarding a live path.
      */
-    VANILLA("vanilla", waterline = null, build = { _, _ ->
-        error("the template's own rock has no field of ours; AgeGeneration.ourGround is not reached for it")
-    }),
+    VANILLA(
+        "vanilla",
+        waterline = null,
+        build = { _, _ ->
+            error("the template's own rock has no field of ours; AgeGeneration.ourGround is not reached for it")
+        },
+        page = null,
+    ),
     ;
 
     /**
@@ -247,29 +277,11 @@ enum class Terrain(
      * a landform is a thing with a name, where a carve pattern is a quality of the rock and is reached by
      * `unbroken`, `riddled` and `flooded` instead.
      */
-    override val writtenWordFor: String? get() = when (this) {
-        // Where the key is a noun for the thing and the page is what a writer says of an Age wearing it.
-        SPIRE_ISLANDS -> "spires"
-        INVERSE_CAVES -> "inverted"
-        VANILLA -> null
-        HILLS, CAVERNS, ERODED, PILLARS, PYRAMIDS, CANYON, CLIFFS, CANYONLANDS, SHATTERED,
-        RIVERLANDS, ISLANDS, ISLE, ALPS, CRATERLANDS, OVERWORLD, SHAPES, FLATLANDS, SOLID,
-        -> key
-    }
+    override val writtenWordFor: String? get() = page
 
     override val aspect = Aspect.TERRAIN
 
-    override val parameters: List<Parameter>
-        get() = listOfNotNull(
-            ARRANGEMENT.takeIf { this == PYRAMIDS },
-            BEARING.takeIf { this == CANYON || this == CLIFFS },
-            SIZE.takeIf { this == ISLANDS || this == ISLE },
-            SPACING.takeIf { this == CRATERLANDS },
-            WEAR.takeIf { this == CRATERLANDS },
-            RELIEF.takeIf { this == CRATERLANDS },
-            STONE,
-            MINGLING,
-        )
+    override val parameters: List<Parameter> get() = axes() + STONE + MINGLING
 
     /**
      * How high an underground of this terrain's may reach, or null where there is no room for one at all —
@@ -554,9 +566,6 @@ enum class Terrain(
         // against the water they hold has to clear the bed as well as the level.
         private const val DEEP_ENOUGH_TO_MISS_A_SEABED = 44
         private const val DEEP_ENOUGH_TO_MISS_A_RIVERBED = 36
-
-        /** Vanilla's, which is where every terrain that has not said otherwise puts its sea. */
-        private const val ORDINARY_SEA_LEVEL = 63
 
         /** The one material parameter — the whole of what a writer means by "the land is andesite". */
         val STONE = Parameter.material(
