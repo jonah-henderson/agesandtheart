@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.AgeRecipe
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.word.Resolution
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Vocabulary

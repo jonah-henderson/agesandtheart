@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.book.panel
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.LecternBooks

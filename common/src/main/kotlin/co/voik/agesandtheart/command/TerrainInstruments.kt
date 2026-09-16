@@ -1,14 +1,14 @@
 package co.voik.agesandtheart.command
 
-import co.voik.agesandtheart.age.AgeGeneration
+import co.voik.agesandtheart.generation.AgeGeneration
 import co.voik.agesandtheart.age.AgeWorld
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.worldgen.feature.SheerFace
 import co.voik.agesandtheart.age.aspect.AgeSpawner
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.worldgen.AgeChunkGenerator
+import co.voik.agesandtheart.generation.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Spans

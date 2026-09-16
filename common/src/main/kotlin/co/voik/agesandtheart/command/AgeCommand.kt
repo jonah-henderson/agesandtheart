@@ -1,13 +1,13 @@
 package co.voik.agesandtheart.command
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.AgeGeneration
+import co.voik.agesandtheart.generation.AgeGeneration
 import co.voik.agesandtheart.age.AgePreset
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.AgeWorld
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.CompositionSpelling
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Report

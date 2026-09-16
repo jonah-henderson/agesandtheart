@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.age.AgeGeneration
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.Appearance
 import co.voik.ephemeris.sky.Aurora
@@ -9,7 +8,7 @@ import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.Look
 import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.SkySpec
-import co.voik.agesandtheart.sky.SpireSky
+import co.voik.agesandtheart.location
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import kotlin.math.roundToInt
@@ -527,10 +526,26 @@ enum class Sky(override val key: String) : AuthoredPreset {
             // **Three, not four.** A world sealed overhead cannot also let the sky reach the ground, so
             // roofed-and-lit is a combination the facts cannot produce and the file for it is gone.
             when {
-                isRoofed(parts) -> AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE
-                isLightless(parts) -> AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE
-                else -> AgeGeneration.AGE_DIMENSION_TYPE
+                isRoofed(parts) -> AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE
+                isLightless(parts) -> AGE_LIGHTLESS_DIMENSION_TYPE
+                else -> AGE_DIMENSION_TYPE
             }
+
+        /**
+         * The three types an Age with rock of its own may wear — [SKYLIGHT] and [ROOF], spelled out.
+         *
+         * A composed `DimensionType` cannot be encoded in the join packet, so every combination is a file
+         * we ship, and each further switch would double them. All three declare
+         * [co.voik.agesandtheart.worldgen.VerticalWindow.DEFAULT], which is the band a field tree builds
+         * into; an Age wearing a template's rock wears that world's own type instead, and its band with it.
+         *
+         * **They live with the aspect that decides them** rather than with the generation that reads them:
+         * which type an Age wears is a fact about its sky, and the model asking the composition for it was
+         * the one edge that kept generation from being lifted out of `age`.
+         */
+        val AGE_DIMENSION_TYPE: Identifier = "age".location()
+        val AGE_LIGHTLESS_DIMENSION_TYPE: Identifier = "age_lightless".location()
+        val AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE: Identifier = "age_lightless_roofed".location()
 
         private const val NONE = 0
 

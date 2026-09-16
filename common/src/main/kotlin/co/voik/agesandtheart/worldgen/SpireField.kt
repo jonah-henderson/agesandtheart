@@ -193,7 +193,7 @@ object SpireField {
      * Measured through the weathering at this height (`./gradlew :common:preview --args=spire`): rock
      * stands between y=71 and y=310, so the spires clear the world's ceiling of 319 by nine blocks and
      * nothing comes near [SEA_LEVEL]. Column tops run to a median of 165 and a ninetieth percentile of 183,
-     * which is what puts them just under [co.voik.agesandtheart.sky.SpireSky.UPPER_DECK_HEIGHT] with only
+     * which is what puts them just under [co.voik.agesandtheart.age.aspect.SpireSky.UPPER_DECK_HEIGHT] with only
      * three per cent breaking through.
      */
     internal const val DECK_Y = 156

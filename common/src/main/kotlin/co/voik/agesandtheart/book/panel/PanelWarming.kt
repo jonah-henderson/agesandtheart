@@ -3,7 +3,7 @@ package co.voik.agesandtheart.book.panel
 import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.WarmAgesWhen
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.registries.Registries

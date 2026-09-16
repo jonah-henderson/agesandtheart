@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.ephemeris.sky.LevelAppearance
 import io.netty.buffer.ByteBuf

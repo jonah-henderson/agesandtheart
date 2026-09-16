@@ -1,6 +1,6 @@
 package co.voik.agesandtheart
 
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.age.phenomena.AgeWeather

@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age
+package co.voik.agesandtheart.generation
 
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Sea
@@ -32,7 +32,6 @@ import co.voik.agesandtheart.worldgen.field.Weathered
 import co.voik.agesandtheart.worldgen.field.TerrainFill
 import net.minecraft.world.level.block.Blocks
 import co.voik.agesandtheart.location
-import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.CeilingField
 import co.voik.agesandtheart.worldgen.Overlay
@@ -63,30 +62,23 @@ import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Volcanoes
 import co.voik.agesandtheart.age.aspect.Surface
+import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.AgePreset
+import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.AgeTemplate
+import co.voik.agesandtheart.age.AgeWorld
+import co.voik.agesandtheart.age.AspectOptions
+import co.voik.agesandtheart.age.Manifestation
+import co.voik.agesandtheart.age.Price
+import co.voik.agesandtheart.age.Seam
+import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.Spread
 
 /**
  * Turns an [AgeRecipe] into the generator that builds its world — a pure function of the recipe (plus the
  * server, for registries), because an Age must rebuild identically on every open.
  */
 object AgeGeneration {
-    /**
-     * The three types an Age with rock of its own may wear — `Sky.SKYLIGHT` and `Sky.ROOF`, spelled out.
-     *
-     * A composed `DimensionType` cannot be encoded in the join packet, so every combination is a file, and
-     * each further switch would double them. All three declare [VerticalWindow.DEFAULT], which is the band
-     * a field tree builds into. An Age wearing a template's rock wears that world's own type instead, and
-     * its band with it (see [typeFor]).
-     */
-    val AGE_DIMENSION_TYPE: Identifier = "age".location()
-    val AGE_LIGHTLESS_DIMENSION_TYPE: Identifier = "age_lightless".location()
-    val AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE: Identifier = "age_lightless_roofed".location()
-
-    /** The custom biome (green plasma water), registered as a datapack biome at load. */
-    val PLASMA_BIOME: Identifier = "plasma".location()
-
-    /** The biome an Age's great halls are, carrying their own dark and their own sound. */
-    val GREAT_HALL_BIOME: Identifier = "great_hall".location()
-
     fun chunkGenerator(server: MinecraftServer, recipe: AgeRecipe): ChunkGenerator = when (val world = recipe.world) {
         is AgeWorld.Composed -> assemble(server, world.composition, recipe)
         is AgeWorld.Bespoke -> bespoke(server, world.preset)
@@ -695,7 +687,7 @@ object AgeGeneration {
     /** The biome a great hall is, rather than whichever cave biome its climate would otherwise name. */
     private fun greatHallBiome(server: MinecraftServer): Holder<Biome> =
         server.registryAccess().lookupOrThrow(Registries.BIOME)
-            .getOrThrow(ResourceKey.create(Registries.BIOME, GREAT_HALL_BIOME))
+            .getOrThrow(ResourceKey.create(Registries.BIOME, Biomes.GREAT_HALL_BIOME))
 
     /**
      * The seed a territory's shape is built from: the Age's own, mixed with which territory it is.
@@ -746,7 +738,7 @@ object AgeGeneration {
      */
     fun dimensionType(recipe: AgeRecipe): Identifier = when (val world = recipe.world) {
         is AgeWorld.Composed -> typeFor(world.composition, recipe.template)
-        is AgeWorld.Bespoke -> AGE_DIMENSION_TYPE
+        is AgeWorld.Bespoke -> Sky.AGE_DIMENSION_TYPE
     }
 
     /**

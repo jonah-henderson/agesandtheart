@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.book
 
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer

@@ -10,7 +10,7 @@ import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.worldgen.AgeRock
 import net.minecraft.core.registries.Registries
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
-import co.voik.agesandtheart.worldgen.AgeChunkGenerator
+import co.voik.agesandtheart.generation.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.field.Chance
 import co.voik.agesandtheart.worldgen.field.Choose

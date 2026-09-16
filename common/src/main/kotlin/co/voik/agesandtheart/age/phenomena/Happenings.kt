@@ -7,7 +7,7 @@ import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeSavedData
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Spending

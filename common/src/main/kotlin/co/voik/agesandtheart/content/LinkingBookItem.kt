@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.client.BookScreenOpener

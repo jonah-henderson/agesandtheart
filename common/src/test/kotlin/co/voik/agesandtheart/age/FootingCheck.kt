@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age
 
+import co.voik.agesandtheart.generation.Ages
 import io.kotest.core.spec.style.StringSpec
 
 /**

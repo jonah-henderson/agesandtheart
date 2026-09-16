@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.worldgen
+package co.voik.agesandtheart.generation
 
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.content.DeepWater
@@ -73,6 +73,12 @@ import net.minecraft.util.random.WeightedList
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.level.biome.MobSpawnSettings
 import net.minecraft.resources.Identifier
+import co.voik.agesandtheart.worldgen.AgeRock
+import co.voik.agesandtheart.worldgen.MoltenLining
+import co.voik.agesandtheart.worldgen.Overlay
+import co.voik.agesandtheart.worldgen.PreliminarySurface
+import co.voik.agesandtheart.worldgen.TerrainAdaptation
+import co.voik.agesandtheart.worldgen.VerticalWindow
 
 /**
  * The generator every composed Age runs on: **vanilla's noise generator, with four deliberate exits.**

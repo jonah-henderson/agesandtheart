@@ -348,12 +348,17 @@ The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` no
 
 ## Ages / runtime dimensions
 
-The core mechanic — creating dimensions ("Ages") at runtime and persisting them — lives in `common/.../age/`, and opening a level is Ephemeris' `RuntimeLevels` on both loaders:
+The core mechanic — creating dimensions ("Ages") at runtime and persisting them — is split in two, and the
+split is the point: the **model** and its store live in `common/.../age/`, and the **composition** that turns
+one into a world — `Ages`, `AgeGeneration` and `AgeChunkGenerator` — lives in `common/.../generation/`. The
+model is the bottom layer every feature imports; the composition is the top layer that imports every
+feature, and keeping them in one package made a cycle of each. Opening a level is Ephemeris'
+`RuntimeLevels` on both loaders:
 
 - **`AgeRecipe`** — **what an Age is, as data**: the world it was written from (a composition of slot presets, or one of the few bespoke generators), its seed, the character drawn for it, the instability and words it was written with, and the generator version that made it. Codec-serialised, and the _only_ record of an Age — the dimension is rebuilt from it on every open. `AgePreset` names the generation presets; its `key` is the save format, so renaming one orphans every Age already written with it.
-- **`AgeGeneration`** — turns a recipe into a `ChunkGenerator`, in an exhaustive `when` over `AgePreset`. A pure function of the recipe (plus the server, for registries), because an Age must rebuild identically on every open.
+- **`AgeGeneration`** (in `generation/`) — turns a recipe into a `ChunkGenerator`, in an exhaustive `when` over `AgePreset`. A pure function of the recipe (plus the server, for registries), because an Age must rebuild identically on every open.
 - **`AgeSavedData`** — vanilla `SavedData` on the overworld's data storage, persisting each Age's recipe. Runtime-dimension libraries do **not** auto-restore dimensions on restart, so we track them ourselves.
-- **`Ages`** — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (calling `RuntimeLevels.open` / `RuntimeLevels.delete` with the recipe and dimension type, which are ours) and `reloadSaved` (replay on boot).
+- **`Ages`** (in `generation/`) — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (calling `RuntimeLevels.open` / `RuntimeLevels.delete` with the recipe and dimension type, which are ours) and `reloadSaved` (replay on boot).
 - **`age/word/`** — **the Art's language.** `Word` (tier, a signed tag query keyed by aspect, and the
   claims its reach is derived from — **a word does not declare where it speaks**; `queries` is keyed by
   aspect page, or by `all` for an evocative word, which is the one that tilts the whole Age),

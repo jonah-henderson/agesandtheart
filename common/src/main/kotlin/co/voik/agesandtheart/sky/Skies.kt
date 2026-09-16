@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.sky
 
-import co.voik.agesandtheart.age.AgeGeneration
+import co.voik.agesandtheart.generation.AgeGeneration
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.aspect.AgeParts
 import co.voik.agesandtheart.age.aspect.Atmosphere

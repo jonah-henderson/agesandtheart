@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.generation.AgeGeneration
 import co.voik.agesandtheart.worldgen.field.TerrainFill
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec

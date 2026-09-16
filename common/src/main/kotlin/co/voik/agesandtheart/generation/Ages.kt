@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age
+package co.voik.agesandtheart.generation
 
 import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.Constants
@@ -20,6 +20,9 @@ import net.minecraft.world.level.levelgen.Heightmap
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import java.util.WeakHashMap
+import co.voik.agesandtheart.age.AgePreset
+import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.AgeSavedData
 
 /**
  * Loader-agnostic lifecycle for Ages. Opening and discarding a level is Ephemeris' [RuntimeLevels]; this

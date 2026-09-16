@@ -3,7 +3,7 @@ package co.voik.agesandtheart.command
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.ReportFor
 import com.mojang.brigadier.builder.ArgumentBuilder

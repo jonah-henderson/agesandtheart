@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.preview
 
-import co.voik.agesandtheart.sky.SpireSky
+import co.voik.agesandtheart.age.aspect.SpireSky
 import co.voik.agesandtheart.worldgen.AlpsField
 import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.CanyonlandsField

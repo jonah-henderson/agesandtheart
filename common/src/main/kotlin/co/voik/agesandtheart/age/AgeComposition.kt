@@ -127,7 +127,10 @@ data class AgeComposition(
             }
         }.distinct()
 
-    /** How the [member]th preset of [aspect] is steered — what [AgeGeneration] hands each territory. */
+    /**
+     * How the [member]th preset of [aspect] is steered — what
+     * [co.voik.agesandtheart.generation.AgeGeneration] hands each territory.
+     */
     override fun optionsFor(aspect: Aspect, member: Int): Options = options.of(aspect, member)
 
     /**

@@ -467,7 +467,7 @@ data class AgeRecipe(
                         Options(
                             mapOf(
                                 Biomes.GROWN.name to listOf(
-                                    Claim(AgeGeneration.PLASMA_BIOME.toString(), Polarity.ONLY).spelled(),
+                                    Claim(Biomes.PLASMA_BIOME.toString(), Polarity.ONLY).spelled(),
                                 ),
                             ),
                         ),

@@ -3,7 +3,7 @@ package co.voik.agesandtheart.worldgen.field
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgeComposition
-import co.voik.agesandtheart.age.AgeGeneration
+import co.voik.agesandtheart.generation.AgeGeneration
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Underground

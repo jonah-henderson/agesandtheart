@@ -2,7 +2,7 @@ package co.voik.agesandtheart.command
 
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Price
@@ -18,7 +18,7 @@ import net.minecraft.world.DifficultyInstance
 import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterials
 import co.voik.agesandtheart.age.reward.Danger
-import co.voik.agesandtheart.worldgen.AgeChunkGenerator
+import co.voik.agesandtheart.generation.AgeChunkGenerator
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder

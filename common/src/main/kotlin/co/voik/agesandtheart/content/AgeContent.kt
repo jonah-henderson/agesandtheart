@@ -29,7 +29,7 @@ import co.voik.agesandtheart.desk.GeologistsToolsMenu
 import co.voik.agesandtheart.desk.SeismographMenu
 import co.voik.agesandtheart.desk.WritersDeskMenu
 import co.voik.agesandtheart.location
-import co.voik.agesandtheart.worldgen.AgeChunkGenerator
+import co.voik.agesandtheart.generation.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.field.NearTheSurface
 import co.voik.agesandtheart.worldgen.field.RegionRule

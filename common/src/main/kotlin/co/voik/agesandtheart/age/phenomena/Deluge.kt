@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.age.AgeSavedData
-import co.voik.agesandtheart.worldgen.AgeChunkGenerator
+import co.voik.agesandtheart.generation.AgeChunkGenerator
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel

@@ -4,7 +4,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents
 import co.voik.agesandtheart.platform.FabricDeepWaterFluids
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import co.voik.agesandtheart.command.AgeCommand
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.word.PageLoot
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.desk.WritersDeskBlock

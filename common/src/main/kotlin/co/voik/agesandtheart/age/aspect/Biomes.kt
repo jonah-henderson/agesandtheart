@@ -4,6 +4,7 @@ import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.world.level.levelgen.SurfaceRules
+import co.voik.agesandtheart.location
 import net.minecraft.resources.Identifier
 
 /**
@@ -18,6 +19,18 @@ import net.minecraft.resources.Identifier
  * What is left here is how the table is *worn* — the skin over it and whether it agrees with the shape.
  */
 object Biomes {
+
+    /**
+     * The biomes this pack registers itself, as against the ones it names out of the game's own.
+     *
+     * They sit with the aspect rather than with the generation that places them, so nothing in the model
+     * has to ask the composition what a biome is called.
+     */
+    val PLASMA_BIOME: Identifier = "plasma".location()
+
+    /** The biome an Age's great halls are, carrying their own dark and their own sound. */
+    val GREAT_HALL_BIOME: Identifier = "great_hall".location()
+
 
     /**
      * The biomes this Age was told to grow, as weights against what it would have grown anyway — above

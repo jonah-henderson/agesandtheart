@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.command
 
 import co.voik.agesandtheart.age.AgeComposition
-import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.ReportFor
 import co.voik.agesandtheart.age.SkyParameters

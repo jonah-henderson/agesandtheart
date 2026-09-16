@@ -43,9 +43,9 @@ class DimensionTypeCheck : FunSpec({
 
     /** Each of vanilla's three worlds and the type of ours that restates it. */
     val ourEquivalent = mapOf(
-        BuiltinDimensionTypes.OVERWORLD to AgeGeneration.AGE_DIMENSION_TYPE,
-        BuiltinDimensionTypes.NETHER to AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE,
-        BuiltinDimensionTypes.END to AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE,
+        BuiltinDimensionTypes.OVERWORLD to Sky.AGE_DIMENSION_TYPE,
+        BuiltinDimensionTypes.NETHER to Sky.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE,
+        BuiltinDimensionTypes.END to Sky.AGE_LIGHTLESS_DIMENSION_TYPE,
     )
 
     /**
@@ -53,9 +53,9 @@ class DimensionTypeCheck : FunSpec({
      * lit is a combination the world cannot be in, so no file ships for it.
      */
     val everyCombination = listOf(
-        Triple(Options(), Options(), AgeGeneration.AGE_DIMENSION_TYPE),
-        Triple(Options(), unlit, AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE),
-        Triple(sealed, Options(), AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE),
+        Triple(Options(), Options(), Sky.AGE_DIMENSION_TYPE),
+        Triple(Options(), unlit, Sky.AGE_LIGHTLESS_DIMENSION_TYPE),
+        Triple(sealed, Options(), Sky.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE),
     )
 
     /**
@@ -69,11 +69,11 @@ class DimensionTypeCheck : FunSpec({
      */
     test("a landform that reaches the ceiling is roofed without the word") {
         val open = Described()
-        check(Sky.dimensionType(open) == AgeGeneration.AGE_DIMENSION_TYPE) {
+        check(Sky.dimensionType(open) == Sky.AGE_DIMENSION_TYPE) {
             "an Age with nothing said about it is not the ordinary one"
         }
         val solidRock = Described(roofedByItsRock = true)
-        check(Sky.dimensionType(solidRock) == AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE) {
+        check(Sky.dimensionType(solidRock) == Sky.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE) {
             "a world of solid rock wears ${Sky.dimensionType(solidRock)} rather than the roofed type"
         }
         check(Sky.isRoofed(solidRock) && Sky.isLightless(solidRock)) {

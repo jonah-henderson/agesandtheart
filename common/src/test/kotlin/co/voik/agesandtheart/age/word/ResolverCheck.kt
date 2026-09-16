@@ -6,7 +6,6 @@ import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.read
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.AgeComposition
-import co.voik.agesandtheart.age.AgeGeneration
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Register
@@ -448,7 +447,7 @@ class ResolverCheck : FunSpec({
         check(!litVoid.optionsFor(Aspect.SUN, 0).isTrue(Sky.ABSENT)) {
             "a sun written into the void kept the void's dark"
         }
-        check(typeOf(litVoid) == AgeGeneration.AGE_DIMENSION_TYPE) {
+        check(typeOf(litVoid) == Sky.AGE_DIMENSION_TYPE) {
             "a void with a sun in it is still ${typeOf(litVoid)}"
         }
     }

@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.sky
+package co.voik.agesandtheart.age.aspect
 
 import co.voik.ephemeris.sky.CloudDeck
 import co.voik.ephemeris.sky.Look

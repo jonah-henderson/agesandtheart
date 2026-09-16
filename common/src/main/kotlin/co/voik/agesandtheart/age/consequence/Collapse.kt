@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age.consequence
 
 import co.voik.agesandtheart.content.AgeContent
-import co.voik.agesandtheart.worldgen.AgeChunkGenerator
+import co.voik.agesandtheart.generation.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.fissure.Crack
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel

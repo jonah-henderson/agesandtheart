@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.content.AgeContent
-import co.voik.agesandtheart.worldgen.AgeChunkGenerator
+import co.voik.agesandtheart.generation.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
