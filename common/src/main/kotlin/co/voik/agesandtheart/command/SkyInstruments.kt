@@ -16,7 +16,7 @@ import co.voik.ephemeris.sky.Rainbow
 import co.voik.ephemeris.sky.Daylight
 import co.voik.ephemeris.sky.LevelDaylight
 import co.voik.ephemeris.debug.LevelLookPreview
-import co.voik.agesandtheart.sky.Skies
+import co.voik.agesandtheart.generation.Skies
 import net.minecraft.core.Direction
 import co.voik.ephemeris.sky.LevelAppearance
 import co.voik.ephemeris.sky.LevelClock
@@ -237,7 +237,7 @@ internal object SkyInstruments {
     private fun runAuroraNow(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val level = source.level
-        val look = Skies.lookOf(source.server, level.dimension())
+        val look = Ages.recipeOf(level)?.let(Skies::lookOf)
         val aurora = look?.sky?.aurora
         if (look == null || aurora == null) {
             source.sendFailure(Component.literal("Nothing hangs a curtain here to bring on"))
@@ -277,7 +277,7 @@ internal object SkyInstruments {
     private fun runRainbow(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val source = context.source
         val level = source.level
-        val look = Skies.lookOf(source.server, level.dimension())
+        val look = Ages.recipeOf(level)?.let(Skies::lookOf)
         val rainbow = look?.sky?.rainbow
         if (look == null || rainbow == null) {
             report.say { "Nothing writes a bow into ${level.dimension().identifier()}." }
@@ -373,7 +373,7 @@ internal object SkyInstruments {
     private fun runRainbowNow(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val level = source.level
-        val look = Skies.lookOf(source.server, level.dimension())
+        val look = Ages.recipeOf(level)?.let(Skies::lookOf)
         val rainbow = look?.sky?.rainbow
         if (look == null || rainbow == null) {
             source.sendFailure(Component.literal("Nothing writes a bow here to bring on"))
@@ -469,14 +469,14 @@ internal object SkyInstruments {
 
     /** The curtain this level wears, or null where it wears none. */
     private fun auroraOf(level: ServerLevel): Aurora? =
-        Skies.lookOf(level.server, level.dimension())?.sky?.aurora
+        Ages.recipeOf(level)?.let(Skies::lookOf)?.sky?.aurora
 
     /**
      * How dark the sky has gone, as the client will read it — the level's own suns where it has any of its
      * own, and vanilla's curve where it does not.
      */
     private fun starlitnessIn(level: ServerLevel): Float {
-        val look = Skies.lookOf(level.server, level.dimension()) ?: return NOTHING_SHOWING
+        val look = Ages.recipeOf(level)?.let(Skies::lookOf) ?: return NOTHING_SHOWING
         look.air.starBrightness?.let { return it }
         if (!look.sky.isOrdinary && look.rules.daylight != Daylight.VANILLA_CLOCK) {
             return LevelDaylight.starlitnessOf(look.readAt(level.defaultClockTime), look.rules)

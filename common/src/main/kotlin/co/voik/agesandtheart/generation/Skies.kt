@@ -1,16 +1,12 @@
-package co.voik.agesandtheart.sky
+package co.voik.agesandtheart.generation
 
-import co.voik.agesandtheart.generation.AgeGeneration
-import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.aspect.AgeParts
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.ephemeris.RuntimeLevelEvents
 import co.voik.ephemeris.sky.LevelAppearance
 import co.voik.ephemeris.sky.LevelLook
-import net.minecraft.resources.ResourceKey
-import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.world.level.Level
 
 /**
  * What the skies of this server's Ages look like — **the Art's thin end of `LevelAppearance`**.
@@ -21,6 +17,10 @@ import net.minecraft.world.level.Level
  *
  * Derived, never stored: every look here comes from the recipe through pure functions, so an Age rebuilt on
  * the next boot looks the same and two clients told at different moments are told the same thing.
+ *
+ * **[lookOf] takes the recipe rather than fetching it**, which is what makes that last paragraph true of the
+ * code and not only of the intent. It used to be handed a server and a dimension and look the recipe up
+ * itself, so the pure part could not be called — or checked — without one.
  */
 object Skies {
 
@@ -37,17 +37,18 @@ object Skies {
 
     /** Says what an Age looks like, and tells everyone who should know. Silent for a level that is not ours. */
     fun describe(level: ServerLevel) {
-        val look = lookOf(level.server, level.dimension()) ?: return
-        LevelAppearance.give(level, look)
+        val recipe = Ages.recipeOf(level) ?: return
+        LevelAppearance.give(level, lookOf(recipe))
     }
 
     /**
-     * How the Age at [dimension] looks, or null when that dimension is not an Age of ours. An ordinary sky is
-     * still an answer, because the renderer treats an unknown Age and an ordinary one differently and
-     * conflating them would make a lost packet look deliberate.
+     * How the Age [recipe] describes looks.
+     *
+     * An ordinary sky is still an answer, because the renderer treats an unknown Age and an ordinary one
+     * differently and conflating them would make a lost packet look deliberate — which is why the caller
+     * decides what "not an Age of ours" means, by having no recipe to hand.
      */
-    fun lookOf(server: MinecraftServer, dimension: ResourceKey<Level>): LevelLook? {
-        val recipe = AgeSavedData.get(server).recipe(dimension.identifier()) ?: return null
+    fun lookOf(recipe: AgeRecipe): LevelLook {
         // One reader over the whole composition, because the look is assembled from several aspects now —
         // the water's clarity, the air's fog and tint, the vault's colour and cloud.
         val parts = recipe.composition ?: AgeParts.NONE

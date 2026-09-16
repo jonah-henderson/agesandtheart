@@ -5,6 +5,8 @@ import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.consequence.Hostility
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Atmosphere
+import co.voik.agesandtheart.age.aspect.ORDINARY_SHARE
+import co.voik.agesandtheart.age.aspect.WeatherConditions
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.generation.Ages
@@ -178,15 +180,35 @@ object Happenings {
         befalls: Map<Phenomenon, Double>,
         spending: Spending,
         prices: Map<Manifestation, Price>,
-    ): AgeWeather.Conditions {
+    ): WeatherConditions {
         val air = composition.optionsFor(Aspect.WEATHER, 0)
         fun asked(parameter: Parameter) =
-            air.steer(parameter, WEATHER_SALT)?.let(Span.NATURAL::fractionOf) ?: AgeWeather.ORDINARY_SHARE
-        val dialled = AgeWeather.Conditions(asked(Atmosphere.RAINFALL), asked(Atmosphere.THUNDER))
+            air.steer(parameter, WEATHER_SALT)?.let(Span.NATURAL::fractionOf) ?: ORDINARY_SHARE
+        val dialled = WeatherConditions(asked(Atmosphere.RAINFALL), asked(Atmosphere.THUNDER))
         return befalls.entries.fold(dialled) { wants, (phenomenon, density) ->
-            val howOften = Blizzard.howOftenOf(density, furyOf(spending, prices, phenomenon))
-            wants.atLeast(phenomenon.insistsAt(howOften))
+            wants.atLeast(phenomenon.insistsAt(density, furyOf(spending, prices, phenomenon)))
         }
+    }
+
+    /**
+     * The weather [this] insists on when it befalls an Age this hard.
+     *
+     * **Only a blizzard has anything to say here.** Every other phenomenon wants a condition or does not,
+     * and wanting it *more* means nothing — a bow needs the rain to thin whatever rung asked for it. A
+     * blizzard is the one whose whole scaling axis is how much of the time it is happening.
+     *
+     * **Here rather than on the enum**, which is what lets [Phenomenon] stop importing the runtime that
+     * obeys it: a vocabulary word should not carry one implementation's formula. It also means
+     * `howOftenOf` is worked out only for the blizzard, where it used to be computed for every phenomenon
+     * and thrown away for all but one.
+     */
+    private fun Phenomenon.insistsAt(density: Double, fury: Double): WeatherConditions = when (this) {
+        Phenomenon.BLIZZARD ->
+            WeatherConditions(rainfall = Blizzard.shareOfTheTime(Blizzard.howOftenOf(density, fury)))
+        // **A deluge does not scale here and should not.** Its axis is how far the sea has climbed, which
+        // is a counted number rather than a share of the weather — the rain is simply on until it resolves.
+        Phenomenon.TEMPEST, Phenomenon.INFERNO, Phenomenon.AURORA, Phenomenon.RAINBOW,
+        Phenomenon.SANDFALL, Phenomenon.METEORS, Phenomenon.TECTONICS, Phenomenon.DELUGE -> insistsOn
     }
 
     /**

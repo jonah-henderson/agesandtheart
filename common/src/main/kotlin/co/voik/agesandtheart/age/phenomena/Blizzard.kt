@@ -190,7 +190,8 @@ object Blizzard {
     }
 
     /**
-     * How much of the time an Age at this severity is in a storm, as [AgeWeather.Conditions] wants it.
+     * How much of the time an Age at this severity is in a storm, as
+     * [co.voik.agesandtheart.age.aspect.WeatherConditions] wants it.
      *
      * **One of the two things severity drives**, and the one that decides how much of your life is spent
      * in a storm: an ordinary blizzard comes about as often as vanilla's rain and passes in a few minutes,

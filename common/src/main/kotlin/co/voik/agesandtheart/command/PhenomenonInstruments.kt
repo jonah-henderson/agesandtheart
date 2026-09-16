@@ -9,6 +9,7 @@ import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.phenomena.SandColumn
 import co.voik.agesandtheart.age.phenomena.SandfallBehaviour
 import co.voik.agesandtheart.age.phenomena.Tempest
+import co.voik.agesandtheart.age.aspect.WeatherConditions
 import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.age.phenomena.Blizzard
 import com.mojang.brigadier.arguments.DoubleArgumentType
@@ -134,7 +135,7 @@ internal object PhenomenonInstruments {
     private fun runWeather(
         context: CommandContext<CommandSourceStack>,
         name: String,
-        wants: AgeWeather.Conditions,
+        wants: WeatherConditions,
         hardness: Double?,
     ): Int {
         val source = context.source

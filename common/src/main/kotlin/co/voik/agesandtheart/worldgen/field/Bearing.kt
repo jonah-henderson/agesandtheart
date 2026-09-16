@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen.field
 
-import co.voik.agesandtheart.age.aspect.Span
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -27,18 +26,3 @@ internal fun alongBearing(bearing: Double, atX: Double, atZ: Double): Double =
 
 internal fun acrossBearing(bearing: Double, atX: Double, atZ: Double): Double =
     atX * cos(bearing) - atZ * sin(bearing)
-
-/**
- * Which way a line runs, from where a word left its axis — see `Terrain.BEARING`. A line has no direction,
- * so the whole axis is one half-turn, and an axis nobody bounded runs north to south.
- */
-fun bearingAt(axis: Double?): Double =
-    (axis?.let(Span.NATURAL::fractionOf) ?: Span.NATURAL.fractionOf(NORTH_SOUTH)) * HALF_TURN
-
-/**
- * The bearing an unbounded axis runs along. A point on the axis rather than a value of its own: a writer
- * says a word, and the word bounds the axis.
- */
-const val NORTH_SOUTH = Span.NATURAL_LEAST
-
-private const val HALF_TURN = Math.PI

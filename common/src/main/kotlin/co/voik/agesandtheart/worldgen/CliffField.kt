@@ -5,7 +5,6 @@ import co.voik.agesandtheart.worldgen.field.Escarpment
 import co.voik.agesandtheart.worldgen.field.Weathered
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
-import co.voik.agesandtheart.worldgen.field.bearingAt
 
 /**
  * A world cut in two: open ocean one way, a plateau the other, and one cliff between them running from
@@ -30,12 +29,20 @@ object CliffField {
      * There is open sky over the plateau here, so no roof rule: what keeps the tableland walkable is the
      * profile in [Weathering.CLIFFS], which protects the top of the band and works the middle.
      */
-    fun world(bearing: Double? = null, salt: Long = 0L): TerrainField =
+    /**
+     * The angle a line runs at when nobody said — north to south, which is where a zero bearing points.
+     *
+     * A number rather than a word: translating an axis into an angle is `age.aspect`'s, and reaching for
+     * it here is what put the Art's vocabulary underneath the field toolkit.
+     */
+    private const val NORTH_TO_SOUTH = 0.0
+
+    fun world(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L): TerrainField =
         Weathered.sculpting(bareWorld(bearing, salt), Weathering.CLIFFS, SHELTER_REACH)
 
     /** The face before the weather reaches it — the previewer's other half, and nothing else's. */
-    fun bareWorld(bearing: Double? = null, salt: Long = 0L): TerrainField = Escarpment(
-        bearing = bearingAt(bearing),
+    fun bareWorld(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L): TerrainField = Escarpment(
+        bearing = bearing,
         offset = 0.0,
         lowY = SEABED_Y,
         highY = PLATEAU_Y,

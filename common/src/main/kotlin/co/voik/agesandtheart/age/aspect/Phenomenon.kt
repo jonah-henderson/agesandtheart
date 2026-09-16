@@ -1,8 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.phenomena.Blizzard
-import co.voik.agesandtheart.age.phenomena.AgeWeather
 import net.minecraft.util.StringRepresentable
 
 /**
@@ -40,7 +38,7 @@ enum class Phenomenon(
      * leaves it where the writer put it. Keeping it declarative is what stops each phenomenon reaching for
      * the weather itself and the two ending up disagreeing about who owns it.
      */
-    val insistsOn: AgeWeather.Conditions = AgeWeather.Conditions.ORDINARY,
+    val insistsOn: WeatherConditions = WeatherConditions.ORDINARY,
     /**
      * What an Age's instability buys to inflict this, or null where nothing does (design §7.7).
      *
@@ -67,7 +65,7 @@ enum class Phenomenon(
      * **A lightning rod grounds it**, which is the answer §5.2 asks a process to have: the storm is
      * inexorable and it can be lived with, by a writer who brings copper to the Age they wrote.
      */
-    TEMPEST("tempest", AgeWeather.Conditions(rainfall = MOSTLY, thunder = MOSTLY)),
+    TEMPEST("tempest", WeatherConditions(rainfall = MOSTLY, thunder = MOSTLY)),
 
     /**
      * A world that burns: what can see the sky catches light, and what stands in the open burns by day.
@@ -121,7 +119,7 @@ enum class Phenomenon(
      * **Showery rather than streaming.** A bow needs the rain to *stop*, or at least to thin: the light has
      * to reach the drops. An Age held at a downpour would have the wettest sky and no bows in it.
      */
-    RAINBOW("rainbow", AgeWeather.Conditions(rainfall = SHOWERY)),
+    RAINBOW("rainbow", WeatherConditions(rainfall = SHOWERY)),
 
     /**
      * Columns of sand that walk the Age, burying what they cross — the Outer Wilds nod §5.2 has named since
@@ -160,12 +158,13 @@ enum class Phenomenon(
      * threshold. The emergent behaviour is a lit path home, which is a build project nobody was told to do.
      *
      * **It insists on precipitation and scales with it**, which is the one thing here that is not a
-     * constant: [insistsAt] takes a blizzard from about as often as ordinary rain up to an Age scarcely
-     * ever out of one. The *cold* is not insisted on here — it is demanded in `art/word/blizzard.json`,
+     * constant: the scaling in `Happenings` takes a blizzard from about as often as ordinary rain up to an
+     * Age scarcely ever out of one. It lives there rather than on this enum because the formula is the
+     * blizzard's own, and a vocabulary word should not have to carry one implementation's arithmetic. The *cold* is not insisted on here — it is demanded in `art/word/blizzard.json`,
      * mirroring `inferno.json`, so that writing a blizzard into a hot Age fractures and is charged for
      * rather than yielding silently.
      */
-    BLIZZARD("blizzard", AgeWeather.Conditions(rainfall = SHOWERY), Manifestation.BLIZZARD),
+    BLIZZARD("blizzard", WeatherConditions(rainfall = SHOWERY), Manifestation.BLIZZARD),
 
     /**
      * The sky falls on it in showers ([co.voik.agesandtheart.age.phenomena.Meteors]).
@@ -219,23 +218,8 @@ enum class Phenomenon(
      * a tempest's rain is the weather its lightning arrives in — so this asks for the same sky without the
      * bolts.
      */
-    DELUGE("deluge", AgeWeather.Conditions(rainfall = MOSTLY)),
+    DELUGE("deluge", WeatherConditions(rainfall = MOSTLY)),
     ;
-
-    /**
-     * The weather this insists on at [howOften], where one is an ordinary claim and more is a rung or an
-     * Age's instability driving it.
-     *
-     * **Only a blizzard has anything to say here.** Every other phenomenon wants a condition or does not,
-     * and wanting it *more* means nothing — a bow needs the rain to thin whatever rung asked for it. A
-     * blizzard is the one whose whole scaling axis is how much of the time it is happening.
-     */
-    fun insistsAt(howOften: Double): AgeWeather.Conditions = when (this) {
-        BLIZZARD -> AgeWeather.Conditions(rainfall = Blizzard.shareOfTheTime(howOften))
-        // **A deluge does not scale here and should not.** Its axis is how far the sea has climbed, which
-        // is a counted number rather than a share of the weather — the rain is simply on until it resolves.
-        TEMPEST, INFERNO, AURORA, RAINBOW, SANDFALL, METEORS, TECTONICS, DELUGE -> insistsOn
-    }
 
     override val aspect = Aspect.PHENOMENA
 

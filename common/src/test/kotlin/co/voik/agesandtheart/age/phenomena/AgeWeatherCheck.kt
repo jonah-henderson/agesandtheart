@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.aspect.ORDINARY_SHARE
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import io.kotest.core.spec.style.FunSpec
 
@@ -28,7 +29,7 @@ class AgeWeatherCheck : FunSpec({
         val thunder = asked.getValue("thunder")
         check(rain.rainfall > clear.rainfall) { "rain is no wetter than clear" }
         check(thunder.thunder > rain.thunder) { "thunder is no stormier than rain" }
-        check(rain.rainfall > AgeWeather.ORDINARY_SHARE) { "asking for rain would not rain" }
+        check(rain.rainfall > ORDINARY_SHARE) { "asking for rain would not rain" }
     }
 
     /**

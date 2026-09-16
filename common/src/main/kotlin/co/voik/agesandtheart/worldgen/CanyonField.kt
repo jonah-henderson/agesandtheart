@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Canyon
-import co.voik.agesandtheart.worldgen.field.bearingAt
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
@@ -31,12 +30,20 @@ object CanyonField {
      * separable from the landform: an unweathered canyon does not read as a plainer canyon, it reads as
      * machined. So the wind is part of the shape here rather than something `weathered` adds to it.
      */
-    fun world(bearing: Double? = null, salt: Long = 0L): TerrainField =
+    /**
+     * The angle a line runs at when nobody said — north to south, which is where a zero bearing points.
+     *
+     * A number rather than a word: translating an axis into an angle is `age.aspect`'s, and reaching for
+     * it here is what put the Art's vocabulary underneath the field toolkit.
+     */
+    private const val NORTH_TO_SOUTH = 0.0
+
+    fun world(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L): TerrainField =
         Weathered.sculpting(bareWorld(bearing, salt), Weathering.CANYON, SHELTER_REACH, WORLD_CEILING)
 
     /** The cut before the weather reaches it — the previewer's other half, and nothing else's. */
-    fun bareWorld(bearing: Double? = null, salt: Long = 0L): TerrainField =
-        Canyon.cut(ground(), listOf(canyon(bearingAt(bearing), salt)))
+    fun bareWorld(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L): TerrainField =
+        Canyon.cut(ground(), listOf(canyon(bearing, salt)))
 
     /** Bedrock to the ceiling, everywhere. */
     fun ground(): TerrainField = Slab(lowY = WORLD_FLOOR, highY = WORLD_CEILING)

@@ -11,7 +11,7 @@ import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.content.ChargedMetal
 import co.voik.agesandtheart.content.DeepWaterLogging
 import co.voik.agesandtheart.content.ProtectiveSuit
-import co.voik.agesandtheart.sky.Skies
+import co.voik.agesandtheart.generation.Skies
 import co.voik.agesandtheart.worldgen.fissure.TheFall
 import co.voik.ephemeris.LevelWeather
 import net.minecraft.server.MinecraftServer

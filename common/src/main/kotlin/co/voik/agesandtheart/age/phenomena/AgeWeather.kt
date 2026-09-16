@@ -1,7 +1,9 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.aspect.ORDINARY_SHARE
 import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.WeatherConditions
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.saveddata.WeatherData
 import java.util.WeakHashMap
@@ -17,25 +19,6 @@ import java.util.WeakHashMap
  * is written down.
  */
 object AgeWeather {
-
-    /**
-     * How much of the time an Age rains, and how much of that is thunder — each a fraction of its axis,
-     * where [ORDINARY_SHARE] is "leave it as vanilla would have it".
-     *
-     * A pair rather than two arguments so a phenomenon can insist on conditions without knowing how they
-     * are applied, and so the two can be [atLeast] one another.
-     */
-    data class Conditions(val rainfall: Double = ORDINARY_SHARE, val thunder: Double = ORDINARY_SHARE) {
-        /** The wetter and stormier of the two — how a phenomenon raises a floor without lowering one. */
-        fun atLeast(other: Conditions): Conditions =
-            Conditions(maxOf(rainfall, other.rainfall), maxOf(thunder, other.thunder))
-
-        val saysNothing: Boolean get() = rainfall == ORDINARY_SHARE && thunder == ORDINARY_SHARE
-
-        companion object {
-            val ORDINARY = Conditions()
-        }
-    }
 
     /**
      * Steers [level]'s weather toward [wants], one tick's worth.
@@ -59,10 +42,10 @@ object AgeWeather {
      * the sky to be doing". So `tempest` appears here for free and `inferno` does not, because one is
      * weather-like and the other only lives in it, and nothing had to say which is which.
      */
-    fun asked(): Map<String, Conditions> = buildMap {
-        put("clear", Conditions(rainfall = NONE, thunder = NONE))
-        put("rain", Conditions(rainfall = FULLY, thunder = NONE))
-        put("thunder", Conditions(rainfall = FULLY, thunder = FULLY))
+    fun asked(): Map<String, WeatherConditions> = buildMap {
+        put("clear", WeatherConditions(rainfall = NONE, thunder = NONE))
+        put("rain", WeatherConditions(rainfall = FULLY, thunder = NONE))
+        put("thunder", WeatherConditions(rainfall = FULLY, thunder = FULLY))
         for (phenomenon in Phenomenon.entries) {
             if (!phenomenon.insistsOn.saysNothing) put(phenomenon.key, phenomenon.insistsOn)
         }
@@ -79,7 +62,7 @@ object AgeWeather {
      * Ephemeral and unpersisted on purpose: it is a walk's business, not an Age's, and losing it with the
      * level costs nothing but the Age reasserting itself sooner.
      */
-    fun set(level: ServerLevel, data: WeatherData, wants: Conditions) {
+    fun set(level: ServerLevel, data: WeatherData, wants: WeatherConditions) {
         val raining = wants.rainfall > ORDINARY_SHARE
         val thundering = wants.thunder > ORDINARY_SHARE
         data.clearWeatherTime = if (raining) 0 else A_GOOD_WHILE
@@ -111,7 +94,7 @@ object AgeWeather {
     private const val NONE = 0.0
     private const val FULLY = 1.0
 
-    fun steer(level: ServerLevel, wants: Conditions) {
+    fun steer(level: ServerLevel, wants: WeatherConditions) {
         if (wants.saysNothing || beingHumoured(level)) return
         val weather = level.dataStorage.computeIfAbsent(WeatherData.TYPE)
         val rainTime = capped(wants.rainfall, weather.isRaining, weather.rainTime, ORDINARY_RAIN)
@@ -132,9 +115,6 @@ object AgeWeather {
         val cap = (ordinary * (1.0 - distance / ORDINARY_SHARE)).toInt().coerceAtLeast(0)
         return timeLeft.coerceAtMost(cap)
     }
-
-    /** The middle of a ranged axis, which is where a writer who said nothing leaves it. */
-    const val ORDINARY_SHARE = 0.5
 
     /**
      * Vanilla's own spells, in ticks, as the scale everything is a share of — half a day of rain and about

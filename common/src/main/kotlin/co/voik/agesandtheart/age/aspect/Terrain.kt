@@ -87,7 +87,7 @@ enum class Terrain(
     CANYON(
         "canyon",
         waterline = CanyonField.RIVER_LEVEL,
-        build = { options, salt -> CanyonField.world(options.steer(BEARING, salt), salt) },
+        build = { options, salt -> CanyonField.world(bearingAt(options.steer(BEARING, salt)), salt) },
     ),
 
     /**
@@ -96,7 +96,7 @@ enum class Terrain(
     CLIFFS(
         "cliffs",
         waterline = CliffField.SEA_LEVEL,
-        build = { options, salt -> CliffField.world(options.steer(BEARING, salt), salt) },
+        build = { options, salt -> CliffField.world(bearingAt(options.steer(BEARING, salt)), salt) },
     ),
 
     /** Mesa country: a tableland under open sky, cut to pieces by canyons running three ways at once. */
