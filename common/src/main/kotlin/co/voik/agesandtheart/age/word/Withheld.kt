@@ -23,5 +23,5 @@ object Withheld {
     val TAG_NAME: Identifier = "withheld".location()
 
     /** Whether [word] is held back from the channels. Authored words never are — they name no referent. */
-    fun holdsBack(word: Word, registries: RegistryAccess): Boolean = registries.carriesTagNamed(word.id, TAG_NAME)
+    fun holdsBack(word: Word, registries: RegistryAccess): Boolean = registries.carriesTagNamed(word, TAG_NAME)
 }

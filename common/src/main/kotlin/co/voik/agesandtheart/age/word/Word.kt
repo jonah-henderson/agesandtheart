@@ -402,6 +402,14 @@ data class Word(
     val name: String get() = id.path
 
     /**
+     * Every registry this word names an entry of: its own ([entryOf]), and each open aspect it [chooses] in.
+     * A word merged from two derivations — `blue_ice`, a block and a placed feature both — gets both, and an
+     * authored word naming nothing gets none.
+     */
+    val referentRegistries: Set<ResourceKey<out Registry<*>>>
+        get() = setOfNotNull(entryOf) + chooses.keys.mapNotNull { it.presetsAreEntriesOf }
+
+    /**
      * Everything this word could ever choose — its core and its whole pool.
      *
      * **The capability question, and not the same as [setsDrawnAt].** Whether a word belongs in an aspect,

@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.location
 import net.minecraft.core.HolderLookup
+import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceKey
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
@@ -15,10 +16,7 @@ import net.minecraft.resources.Identifier
 import net.minecraft.tags.TagKey
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
-import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.levelgen.placement.PlacedFeature
-import net.minecraft.world.level.levelgen.structure.StructureSet
 
 /**
  * Vocabulary the pack gives us for free: a word for everything a writer could point at (design §8).
@@ -93,8 +91,6 @@ object DerivedWords {
         },
     )
 
-    private val FORBIDDEN_BIOMES: TagKey<Biome> = TagKey.create(Registries.BIOME, FORBIDDEN)
-
     /**
      * Every word this pack's biomes give the [Biomes] aspect.
      *
@@ -104,15 +100,8 @@ object DerivedWords {
      * A biome word **sets a parameter** rather than naming a preset — a sea *is* its block, where a biome
      * enriches a table (§3.1, §3.2). Populative, so two accumulate and neither excludes anything.
      */
-    fun biomes(registries: HolderLookup.Provider): List<Word> = registries.lookupOrThrow(Registries.BIOME).let { lookup ->
-        val struckOut = lookup.struckOutBy(FORBIDDEN_BIOMES)
-        lookup.listElements()
-            .filter { holder -> holder.key() !in struckOut }
-            .map { holder -> choosing(holder.key().identifier(), Aspect.BIOMES) }
-            .toList()
-    }
-
-    private val FORBIDDEN_FEATURES: TagKey<PlacedFeature> = TagKey.create(Registries.PLACED_FEATURE, FORBIDDEN)
+    fun biomes(registries: HolderLookup.Provider): List<Word> =
+        choosingEachEntryOf(registries, Registries.BIOME, Aspect.BIOMES)
 
     /**
      * **A word for every placed feature in the pack** — `ore_diamond`, `flower_meadow`, `lake_lava`.
@@ -121,13 +110,8 @@ object DerivedWords {
      * Per *placed* feature, because that is the unit a biome's list holds and so the only one a writer can
      * name and have mean something — see [co.voik.agesandtheart.age.aspect.PlacedFeature].
      */
-    fun features(registries: HolderLookup.Provider): List<Word> = registries.lookupOrThrow(Registries.PLACED_FEATURE).let { lookup ->
-        val struckOut = lookup.struckOutBy(FORBIDDEN_FEATURES)
-        lookup.listElements()
-            .filter { holder -> holder.key() !in struckOut }
-            .map { holder -> choosing(holder.key().identifier(), Aspect.FEATURES) }
-            .toList()
-    }
+    fun features(registries: HolderLookup.Provider): List<Word> =
+        choosingEachEntryOf(registries, Registries.PLACED_FEATURE, Aspect.FEATURES)
 
     private val FORBIDDEN_SPAWNS: TagKey<EntityType<*>> = TagKey.create(Registries.ENTITY_TYPE, FORBIDDEN)
 
@@ -157,19 +141,26 @@ object DerivedWords {
      */
     private fun livesSomewhere(type: EntityType<*>): Boolean = type.category != MobCategory.MISC
 
-    private val FORBIDDEN_STRUCTURE_SETS: TagKey<StructureSet> = TagKey.create(Registries.STRUCTURE_SET, FORBIDDEN)
-
     /**
      * **A word for every structure set in the pack** — `villages`, `woodland_mansions`, `ocean_monuments`.
      * [biomes]'s twin in every respect, structures being a population too.
      *
      * Per structure *set*, not per structure — see [co.voik.agesandtheart.age.aspect.Structures] for why.
      */
-    fun structures(registries: HolderLookup.Provider): List<Word> = registries.lookupOrThrow(Registries.STRUCTURE_SET).let { lookup ->
-        val struckOut = lookup.struckOutBy(FORBIDDEN_STRUCTURE_SETS)
-        lookup.listElements()
+    fun structures(registries: HolderLookup.Provider): List<Word> =
+        choosingEachEntryOf(registries, Registries.STRUCTURE_SET, Aspect.STRUCTURES)
+
+    /** A word [choosing] each entry of [registry] in [aspect], but the ones the pack tags [FORBIDDEN]. */
+    private fun <T : Any> choosingEachEntryOf(
+        registries: HolderLookup.Provider,
+        registry: ResourceKey<out Registry<T>>,
+        aspect: Aspect,
+    ): List<Word> {
+        val lookup = registries.lookupOrThrow(registry)
+        val struckOut = lookup.struckOutBy(TagKey.create(registry, FORBIDDEN))
+        return lookup.listElements()
             .filter { holder -> holder.key() !in struckOut }
-            .map { holder -> choosing(holder.key().identifier(), Aspect.STRUCTURES) }
+            .map { holder -> choosing(holder.key().identifier(), aspect) }
             .toList()
     }
 

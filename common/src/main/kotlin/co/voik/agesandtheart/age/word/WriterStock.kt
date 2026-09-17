@@ -28,7 +28,7 @@ class WriterStock(private val listed: Map<String, Set<String>>) {
     fun words(pool: Identifier, vocabulary: Vocabulary, registries: RegistryAccess): List<Word> {
         val authored = listed[pool.path].orEmpty()
         fun isListed(word: Word) = word.name in authored
-        fun isTagged(word: Word) = registries.carriesTagNamed(word.id, pool)
+        fun isTagged(word: Word) = registries.carriesTagNamed(word, pool)
         return vocabulary.words.filter { isListed(it) || isTagged(it) }
     }
 

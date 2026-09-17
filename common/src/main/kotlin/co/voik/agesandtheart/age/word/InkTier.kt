@@ -50,14 +50,14 @@ class InkRequirement(private val authored: Map<String, InkTier>) {
      * said something more specific than a name collision could.
      */
     fun tierFor(word: Word, registries: RegistryAccess): InkTier =
-        fromTags(word.id, registries) ?: authored[word.name] ?: InkTier.DEFAULT
+        fromTags(word, registries) ?: authored[word.name] ?: InkTier.DEFAULT
 
     /**
      * The tag answer, or null if nothing carries one. Asked dearest first, so a thing carrying both tags,
-     * or an id in two registries wanting different inks, gets the better ink.
+     * or a word naming entries in two registries that want different inks, gets the better ink.
      */
-    private fun fromTags(id: Identifier, registries: RegistryAccess): InkTier? =
-        TAG_NAMES.entries.firstOrNull { (_, tag) -> registries.carriesTagNamed(id, tag) }?.key
+    private fun fromTags(word: Word, registries: RegistryAccess): InkTier? =
+        TAG_NAMES.entries.firstOrNull { (_, tag) -> registries.carriesTagNamed(word, tag) }?.key
 
     companion object {
         /** Where a pack lists authored words by ink tier, one file per tier. */

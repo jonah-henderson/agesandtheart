@@ -65,15 +65,15 @@ object PageLearning {
     }
 
     /**
-     * Learns each of [words] the player did not already know, and says so once.
+     * Learns each of [words] the player did not already know, says so once, and answers which were new.
      *
      * One packet however many are learned, because these arrive by the notebook and the deskful now — and
      * the toast cycles through a batch where a packet each would raise a wall of them.
      */
-    fun teach(player: ServerPlayer, words: Collection<Identifier>) {
+    fun teach(player: ServerPlayer, words: Collection<Identifier>): List<Identifier> {
         val learned = words.filter(player.learnedWords::learn)
-        if (learned.isEmpty()) return
-        Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(learned))
+        if (learned.isNotEmpty()) Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(learned))
+        return learned
     }
 
     /**

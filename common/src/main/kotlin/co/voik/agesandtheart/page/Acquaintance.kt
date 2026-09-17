@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.page
 
-import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
@@ -11,7 +10,6 @@ import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.BucketItem
 import net.minecraft.world.item.ItemStack
 import co.voik.agesandtheart.age.word.DerivedWords
-import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.word.Word
@@ -43,14 +41,24 @@ object Acquaintance {
      * The analysis machine destroys its sample, so it has to know the answer before it takes one: a block
      * eaten in exchange for "you already know that" is the one refusal that costs something.
      */
-    fun refusalFor(player: ServerPlayer, referent: Identifier): Acquainted? {
-        val server = (player.level() as? ServerLevel)?.server ?: return Acquainted.Unnameable
+    fun refusalFor(player: ServerPlayer, referent: Identifier): Acquainted? =
+        (lookUp(player, referent) as? Lookup.Refused)?.why
+
+    /** The word [referent] would teach, or why it would teach nothing — the server and vocabulary asked once. */
+    private fun lookUp(player: ServerPlayer, referent: Identifier): Lookup {
+        val server = (player.level() as? ServerLevel)?.server ?: return Lookup.Refused(Acquainted.Unnameable)
         val vocabulary = Vocabulary.of(server)
-        val word = vocabulary.word(referent.toString()) ?: return Acquainted.Unnameable
-        if (!vocabulary.isDerived(word)) return Acquainted.Unnameable
-        if (Withheld.holdsBack(word, server.registryAccess())) return Acquainted.HeldBack
-        if (player.learnedWords.knows(word.id)) return Acquainted.AlreadyKnown(word)
-        return null
+        val word = vocabulary.word(referent.toString()) ?: return Lookup.Refused(Acquainted.Unnameable)
+        if (!vocabulary.isDerived(word)) return Lookup.Refused(Acquainted.Unnameable)
+        if (Withheld.holdsBack(word, server.registryAccess())) return Lookup.Refused(Acquainted.HeldBack)
+        if (player.learnedWords.knows(word.id)) return Lookup.Refused(Acquainted.AlreadyKnown(word))
+        return Lookup.Teaches(word)
+    }
+
+    private sealed interface Lookup {
+        data class Teaches(val word: Word) : Lookup
+
+        data class Refused(val why: Acquainted) : Lookup
     }
 
     /**
@@ -79,12 +87,12 @@ object Acquaintance {
 
     /** Learns the word for [referent], or says why not. */
     fun teach(player: ServerPlayer, referent: Identifier): Acquainted {
-        refusalFor(player, referent)?.let { return it }
-        val server = (player.level() as? ServerLevel)?.server ?: return Acquainted.Unnameable
-        val word = Vocabulary.of(server).word(referent.toString()) ?: return Acquainted.Unnameable
-        if (!player.learnedWords.learn(word.id)) return Acquainted.AlreadyKnown(word)
-        Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(word.id))
-        return Acquainted.Learned(word)
+        val word = when (val found = lookUp(player, referent)) {
+            is Lookup.Refused -> return found.why
+            is Lookup.Teaches -> found.word
+        }
+        val learned = PageLearning.teach(player, listOf(word.id))
+        return if (learned.isEmpty()) Acquainted.AlreadyKnown(word) else Acquainted.Learned(word)
     }
 
     /**
