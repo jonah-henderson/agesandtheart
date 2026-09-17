@@ -8,15 +8,20 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.level.chunk.status.ChunkStatus
+import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
 import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration
+import net.minecraft.world.level.levelgen.structure.Structure
+import net.minecraft.world.level.levelgen.structure.StructureStart
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -62,13 +67,14 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
         if (submerged(level, middle.x, middle.z)) return false
         val struck = Struck.drawnBy(random, reach, roomAround(middle, context.origin()))
         val out = struck.carriesTo()
+        if (landsOnASurfaceStructure(level, context.origin(), middle, out)) return false
         val sea = seaOverTheCut(level, middle, struck)
         for (awayX in -out..out) {
             for (awayZ in -out..out) {
                 reshape(level, middle.x + awayX, middle.z + awayZ, struck.offsetAt(awayX, awayZ), sea)
             }
         }
-        dropWhatIsLeftHanging(level, middle, out)
+        dropWhatIsLeftHanging(level, middle, struck)
         scatterEjecta(level, middle, struck)
         seedWithAstrite(level, random, middle, reach, scale)
         return true
@@ -86,10 +92,11 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
      * **Vanilla's own survival rule is the test**, rather than a list of what counts as decoration: every
      * plant, layer and sapling already knows what it needs under it, so `canSurvive` catches all of them
      * and stays right when a pack adds another. A margin of one is swept beyond the reach because the
-     * undermined column is by definition the one just outside the cut.
+     * undermined column is by definition the one just outside the cut — except where the reach already
+     * stops at the writable room, since a block past that is a far-chunk write the chunk pyramid drops.
      */
-    private fun dropWhatIsLeftHanging(level: WorldGenLevel, middle: BlockPos, out: Int) {
-        val swept = out + ONE
+    private fun dropWhatIsLeftHanging(level: WorldGenLevel, middle: BlockPos, struck: Struck) {
+        val swept = (struck.carriesTo() + ONE).coerceAtMost(struck.room)
         val cursor = BlockPos.MutableBlockPos()
         for (awayX in -swept..swept) {
             for (awayZ in -swept..swept) {
@@ -153,6 +160,71 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
             /** Nothing stands here, so every height is above the water and fills with air. */
             val NONE = Sea(Blocks.AIR.defaultBlockState(), Int.MIN_VALUE)
         }
+    }
+
+    /**
+     * Whether the crater, or the ground just past its reach, would land on a structure built at the surface —
+     * a village, an outpost, a temple, a star fissure.
+     *
+     * Structures are placed in a later step than craters, but a crater decorating a neighbouring chunk can be
+     * placed after them, and it cut through roads and piled its rim against doors. A crater that would touch one
+     * is not placed at all.
+     *
+     * Read from the structure references of each chunk the crater reaches, which record every structure
+     * overlapping a chunk from before any of its blocks are down. **Both bounds are the region's, not a choice**:
+     * a feature may read references only within [REFERENCES_READABLE_WITHIN] chunks of its own, and structure
+     * starts only within [STARTS_READABLE_WITHIN]. Asking past either crashes generation. Neither loses anything
+     * under the crater itself: its reach never leaves the ring the references cover, so a structure the first
+     * bound misses can only come within the clearance, and no surface structure spans eight chunks.
+     */
+    private fun landsOnASurfaceStructure(
+        level: WorldGenLevel,
+        origin: BlockPos,
+        middle: BlockPos,
+        out: Int,
+    ): Boolean {
+        val clearance = out + CLEAR_OF_STRUCTURES
+        val leastX = middle.x - clearance
+        val mostX = middle.x + clearance
+        val leastZ = middle.z - clearance
+        val mostZ = middle.z + clearance
+        val originChunk = ChunkPos.containing(origin)
+
+        fun isReadable(chunkX: Int, chunkZ: Int, within: Int) =
+            originChunk.getChessboardDistance(chunkX, chunkZ) <= within
+
+        fun isBuiltAtTheSurface(structure: Structure) =
+            structure.step() == GenerationStep.Decoration.SURFACE_STRUCTURES
+
+        fun reachesTheCrater(start: StructureStart) =
+            start.pieces.any { piece -> piece.boundingBox.intersects(leastX, leastZ, mostX, mostZ) }
+
+        fun startOf(structure: Structure, reference: Long): StructureStart? {
+            val startChunk = ChunkPos.unpack(reference)
+            if (!isReadable(startChunk.x, startChunk.z, STARTS_READABLE_WITHIN)) return null
+            val chunk = level.getChunk(startChunk.x, startChunk.z, ChunkStatus.STRUCTURE_STARTS)
+            return chunk.getStartForStructure(structure)?.takeIf { it.isValid }
+        }
+
+        fun anySurfaceStructureFromChunk(chunkX: Int, chunkZ: Int): Boolean {
+            val references = level.getChunk(chunkX, chunkZ, ChunkStatus.STRUCTURE_REFERENCES).allReferences
+            return references.any { (structure, startChunks) ->
+                fun reachesTheCraterFrom(startChunk: Long) =
+                    startOf(structure, startChunk)?.let(::reachesTheCrater) == true
+                isBuiltAtTheSurface(structure) && startChunks.any(::reachesTheCraterFrom)
+            }
+        }
+
+        val leastChunkX = leastX shr CHUNK_BITS
+        val mostChunkX = mostX shr CHUNK_BITS
+        val leastChunkZ = leastZ shr CHUNK_BITS
+        val mostChunkZ = mostZ shr CHUNK_BITS
+        val chunksReached = (leastChunkX..mostChunkX).flatMap { chunkX ->
+            (leastChunkZ..mostChunkZ).map { chunkZ -> chunkX to chunkZ }
+        }
+        return chunksReached
+            .filter { (chunkX, chunkZ) -> isReadable(chunkX, chunkZ, REFERENCES_READABLE_WITHIN) }
+            .any { (chunkX, chunkZ) -> anySurfaceStructureFromChunk(chunkX, chunkZ) }
     }
 
     /**
@@ -599,6 +671,15 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
     private const val CHUNK = 16
 
     private const val CHUNK_BITS = 4
+
+    /** Blocks of open ground kept between a crater's reach and a structure, so no rim or ejecta lands against it. */
+    private const val CLEAR_OF_STRUCTURES = 4
+
+    /** How far from its own chunk, in chunks, a feature's region lets it read structure references. */
+    private const val REFERENCES_READABLE_WITHIN = 1
+
+    /** And structure starts, which the chunk pyramid holds at a wider ring for decoration's own use. */
+    private const val STARTS_READABLE_WITHIN = 8
     private const val HALF_A_CHUNK = 8
     private const val FULL_BUMP = 4.0
     private const val UNMOVED = 0
