@@ -19,7 +19,7 @@ import net.minecraft.core.Direction
 object ShapesField {
 
     fun world(salt: Long = 0L): TerrainField {
-        val ground = Slab(lowY = FLOOR_Y, highY = GROUND_TOP)
+        val ground = Slab(lowY = VerticalWindow.MIN_Y, highY = GROUND_TOP)
         return Union(listOf(ground, tower(), monolith(), octahedron(), ramp(), mesa(salt), arch()))
     }
 
@@ -88,7 +88,7 @@ object ShapesField {
             scaleZ = 1.0,
             baseY = BASE_Y + 26,
             relief = 8.0,
-            flatY = FLOOR_Y,
+            flatY = VerticalWindow.MIN_Y,
         )
         val footprint = Cylinder(
             axis = Direction.Axis.Y,
@@ -123,7 +123,6 @@ object ShapesField {
     private val SIGNS = listOf(-1.0, 1.0)
     private const val FIRST_STATION_X = 40
     private const val STATION_SPACING = 56
-    private const val FLOOR_Y = -64
     private const val GROUND_TOP = 63
     private const val BASE_Y = GROUND_TOP + 1
     // Tall enough that the clipping cylinder never cuts the noise top — only its edge does the work.

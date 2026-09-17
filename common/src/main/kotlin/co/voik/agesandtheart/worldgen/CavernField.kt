@@ -29,7 +29,7 @@ object CavernField {
             scaleZ = 1.0,
             baseY = SURFACE_Y,
             relief = SURFACE_RELIEF,
-            flatY = WORLD_FLOOR,
+            flatY = VerticalWindow.MIN_Y,
         ),
         cut = caves(),
     )
@@ -58,7 +58,6 @@ object CavernField {
         highY = CAVE_HIGHEST_Y,
     )
 
-    private const val WORLD_FLOOR = -64
     private const val SURFACE_Y = 78
     private const val SURFACE_RELIEF = 26.0
 

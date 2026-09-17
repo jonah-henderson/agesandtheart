@@ -45,11 +45,9 @@ object CliffField {
         offset = 0.0,
         lowY = SEABED_Y,
         highY = PLATEAU_Y,
-        floorY = WORLD_FLOOR,
+        floorY = VerticalWindow.MIN_Y,
         seed = COAST_SEED xor salt,
     )
-
-    private const val WORLD_FLOOR = -64
 
     /** The convention every shape wanting a sea keeps to. */
     const val SEA_LEVEL = 63

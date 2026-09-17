@@ -22,7 +22,7 @@ object NoiseField {
         scaleZ = 1.0,
         baseY = 68,
         relief = 30.0,
-        flatY = -64,
+        flatY = VerticalWindow.MIN_Y,
     )
 
     private const val TERRAIN_SEED = 0x1DEA_5EEDL

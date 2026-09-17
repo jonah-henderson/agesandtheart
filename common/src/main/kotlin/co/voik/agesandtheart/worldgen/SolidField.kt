@@ -14,15 +14,7 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
  */
 object SolidField {
 
-    fun world(): TerrainField = Slab(lowY = WORLD_FLOOR, highY = WORLD_CEILING)
-
-    private const val WORLD_FLOOR = -64
-
-    /**
-     * The topmost block the band admits, so the rock genuinely reaches the ceiling rather than stopping
-     * under a strip of air nobody can get to.
-     */
-    const val WORLD_CEILING = 319
+    fun world(): TerrainField = Slab(lowY = VerticalWindow.MIN_Y, highY = VerticalWindow.HIGHEST_BLOCK_Y)
 
     /**
      * How high an underground may reach here — clear of the bedrock roof, and there is nothing else above

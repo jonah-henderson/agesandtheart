@@ -12,9 +12,7 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
  */
 object FlatlandsField {
 
-    fun world(): TerrainField = Slab(lowY = WORLD_FLOOR, highY = SURFACE_Y)
-
-    private const val WORLD_FLOOR = -64
+    fun world(): TerrainField = Slab(lowY = VerticalWindow.MIN_Y, highY = SURFACE_Y)
 
     /**
      * Vanilla's own ground level, so that what a feature or a structure assumes about where the world's

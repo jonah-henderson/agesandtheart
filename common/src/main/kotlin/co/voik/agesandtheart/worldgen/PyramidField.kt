@@ -61,12 +61,11 @@ object PyramidField {
             Pyramid(centerX = 0, centerZ = 0, baseY = GROUND_TOP + 1, height = height, baseHalfWidth = height)
         }
         val scattered = Instanced(pyramids, placement, variation, seed = SCATTER_SEED xor salt)
-        val ground = Slab(lowY = FLOOR_Y, highY = GROUND_TOP)
+        val ground = Slab(lowY = VerticalWindow.MIN_Y, highY = GROUND_TOP)
         return Union(listOf(ground, scattered))
     }
 
     private val PYRAMID_HEIGHTS = listOf(8, 16, 24, 32)
-    private const val FLOOR_Y = -64
     private const val GROUND_TOP = 63
     private const val SCATTER_SEED = 0x5EED_C0DEL
 

@@ -57,11 +57,10 @@ object ErodedField {
             lowY = MASS_CENTER_Y - MASS_RADIUS_Y.toInt() - 1,
             highY = MASS_CENTER_Y + MASS_RADIUS_Y.toInt() + 1,
         )
-        val seabed = Slab(lowY = WORLD_FLOOR, highY = SEABED_TOP)
+        val seabed = Slab(lowY = VerticalWindow.MIN_Y, highY = SEABED_TOP)
         return Union(listOf(seabed, Intersect(listOf(masses, weathering))))
     }
 
-    private const val WORLD_FLOOR = -64
     private const val SEABED_TOP = 37
 
     private const val MASS_CENTER_Y = 153

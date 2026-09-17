@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen.field
 
 import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.worldgen.AlpsField
+import co.voik.agesandtheart.worldgen.VerticalWindow
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import java.util.concurrent.ConcurrentHashMap
@@ -94,7 +95,7 @@ class MountainRangeCheck : FunSpec({
         for (worldZ in -1200..1200 step 37) {
             for (worldX in -1200..1200 step 41) {
                 val rock = range.columnSpans(worldX, worldZ)
-                check(rock.contains(AlpsField.WORLD_FLOOR)) {
+                check(rock.contains(VerticalWindow.MIN_Y)) {
                     "the column at ($worldX, $worldZ) is empty at the world floor, so the Age is hollow under it"
                 }
             }

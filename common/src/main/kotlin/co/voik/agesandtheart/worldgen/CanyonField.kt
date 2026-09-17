@@ -11,8 +11,8 @@ import co.voik.agesandtheart.worldgen.field.Weathered
  * absence**, which is the reverse of every other preset here.
  *
  * Two consequences of filling to the ceiling, both deliberate and both visible the moment you arrive.
- * `getBaseHeight` answers truthfully, so the plateau's surface *is* [WORLD_CEILING]: vanilla paints its
- * surface rules there, grows its features there and places its structures there. And a field Age's biomes
+ * `getBaseHeight` answers truthfully, so the plateau's surface *is* [VerticalWindow.HIGHEST_BLOCK_Y]: vanilla
+ * paints its surface rules there, grows its features there and places its structures there. And a field Age's biomes
  * carry no carvers, so the rock is solid — the canyon is the only open space in the world.
  *
  * The river needs no mechanism of its own. [SeaFill] fills whatever the shape leaves empty below its
@@ -38,14 +38,14 @@ object CanyonField {
     private const val NORTH_TO_SOUTH = 0.0
 
     fun world(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L): TerrainField =
-        Weathered.sculpting(bareWorld(bearing, salt), Weathering.CANYON, SHELTER_REACH, WORLD_CEILING)
+        Weathered.sculpting(bareWorld(bearing, salt), Weathering.CANYON, SHELTER_REACH, VerticalWindow.HIGHEST_BLOCK_Y)
 
     /** The cut before the weather reaches it — the previewer's other half, and nothing else's. */
     fun bareWorld(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L): TerrainField =
         Canyon.cut(ground(), listOf(canyon(bearing, salt)))
 
     /** Bedrock to the ceiling, everywhere. */
-    fun ground(): TerrainField = Slab(lowY = WORLD_FLOOR, highY = WORLD_CEILING)
+    fun ground(): TerrainField = Slab(lowY = VerticalWindow.MIN_Y, highY = VerticalWindow.HIGHEST_BLOCK_Y)
 
     /**
      * One canyon of this Age's size, on a [bearing] and [offset] of its own.
@@ -60,19 +60,13 @@ object CanyonField {
         halfWidth = HALF_WIDTH,
         floorY = FLOOR_Y,
         // One past the ceiling, so the rim is met rather than shaved.
-        rimY = WORLD_CEILING + 1,
+        rimY = VerticalWindow.TOP_Y,
         seed = MEANDER_SEED xor salt,
         // Both are lengths, so they are taken from the width rather than left at the node's defaults —
         // which is what keeps a canyon of any size meandering in proportion to itself.
         meanderReach = HALF_WIDTH * MEANDER_SHARE_OF_WIDTH,
         meanderStretch = HALF_WIDTH * BEND_SHARE_OF_WIDTH,
     )
-
-    /** The lowest block of [VerticalWindow.DEFAULT], which this world is solid all the way down to. */
-    const val WORLD_FLOOR = -64
-
-    /** The topmost block of [VerticalWindow.DEFAULT], which this world is solid all the way up to. */
-    const val WORLD_CEILING = 319
 
     /** How much rock is left under the deepest the river runs. */
     private const val ROOM_UNDER_THE_RIVER = 16
@@ -81,11 +75,11 @@ object CanyonField {
     private const val RIVER_DEPTH = 6
 
     /**
-     * The **mean** bed level at the axis — sixteen blocks over [WORLD_FLOOR], which is the room left under
-     * the river for a mine, a cave or anything else that wants to be beneath the world. The bed itself
+     * The **mean** bed level at the axis — sixteen blocks over [VerticalWindow.MIN_Y], which is the room left
+     * under the river for a mine, a cave or anything else that wants to be beneath the world. The bed itself
      * rises and falls either side of it; see [Canyon.bedRelief].
      */
-    const val FLOOR_Y = WORLD_FLOOR + ROOM_UNDER_THE_RIVER
+    const val FLOOR_Y = VerticalWindow.MIN_Y + ROOM_UNDER_THE_RIVER
 
     /**
      * A few blocks over [FLOOR_Y], so the river sits in the valley bed rather than drowning the gorge.

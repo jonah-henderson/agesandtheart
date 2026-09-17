@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.carver
 
+import co.voik.agesandtheart.worldgen.VerticalWindow
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.synth.NormalNoise
 
@@ -45,8 +46,8 @@ class Porosity(
          * do nothing for half of them. `RuleCarver` skips air first, so the width costs little.
          */
         val VUGS = Porosity(
-            fromY = -64,
-            toY = 320,
+            fromY = VerticalWindow.MIN_Y,
+            toY = VerticalWindow.TOP_Y,
             scale = 9.0,
             verticalScale = 6.5,
             threshold = 0.62,

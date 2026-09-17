@@ -20,6 +20,7 @@ import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.SolidField
 import co.voik.agesandtheart.worldgen.SpireField
+import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.VolcanoField
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.age.Seam
@@ -242,10 +243,10 @@ private val subjects: Map<String, Subject> = mapOf(
     "hills" to Subject(NoiseField.hills(), lowestY = 20, highestY = 120),
     "pillars" to Subject(PillarField.world(), lowestY = 30, highestY = 185),
     "shapes" to Subject(ShapesField.world(), lowestY = 55, highestY = 130, radius = 200),
-    "caverns" to Subject(CavernField.world(), lowestY = -64, highestY = 110),
+    "caverns" to Subject(CavernField.world(), lowestY = VerticalWindow.MIN_Y, highestY = 110),
     // The tunnels on their own. A cave system reads far better as a solid lattice hanging in space than
     // as absence inside a hill, and the slices are where the network's connectedness actually shows.
-    "caverns-voids" to Subject(CavernField.caves(), lowestY = -64, highestY = 70),
+    "caverns-voids" to Subject(CavernField.caves(), lowestY = VerticalWindow.MIN_Y, highestY = 70),
     "eroded" to Subject(ErodedField.world(), lowestY = 30, highestY = 195, radius = 200),
 
     // **Read the slice across the bearing, not the plan.** From above a solid world is one flat shade with
@@ -259,8 +260,8 @@ private val subjects: Map<String, Subject> = mapOf(
         CanyonField.world(bearing = bearingAt(NORTH_SOUTH)),
         // Already inside the field, unlike the Spire's — see [CanyonField.world]. Passing it again here
         // would weather the canyon twice with two different winds.
-        lowestY = -64,
-        highestY = CanyonField.WORLD_CEILING,
+        lowestY = VerticalWindow.MIN_Y,
+        highestY = VerticalWindow.HIGHEST_BLOCK_Y,
         radius = 400,
     ),
 
@@ -270,7 +271,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // most of what the picture contains.
     "cliffs" to Subject(
         CliffField.world(bearing = bearingAt(NORTH_SOUTH)),
-        lowestY = -64,
+        lowestY = VerticalWindow.MIN_Y,
         highestY = CliffField.PLATEAU_Y + 32,
         radius = 500,
     ),
@@ -279,7 +280,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // something breaks it, so this is the picture that says whether the weather is doing its job.
     "cliffs-nowind" to Subject(
         CliffField.bareWorld(bearing = bearingAt(NORTH_SOUTH)),
-        lowestY = -64,
+        lowestY = VerticalWindow.MIN_Y,
         highestY = CliffField.PLATEAU_Y + 32,
         radius = 500,
     ),
@@ -289,7 +290,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // The window is wide enough to hold several of the spacing, or a family reads as a single canyon.
     "canyonlands" to Subject(
         CanyonlandsField.world(),
-        lowestY = -64,
+        lowestY = VerticalWindow.MIN_Y,
         highestY = CanyonlandsField.PLATEAU_Y + 16,
         radius = 900,
     ),
@@ -298,7 +299,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // transect is one canyon or none. What is worth reading is whether the cells look like cells.
     "shattered" to Subject(
         ShatteredField.world(),
-        lowestY = -64,
+        lowestY = VerticalWindow.MIN_Y,
         highestY = ShatteredField.PLATEAU_Y + 16,
         radius = 900,
     ),
@@ -308,7 +309,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // the whole point — same shape, one of them hollow.
     "riverlands-caved" to Subject(
         Caved.of(RiverlandsField.world(), 0xCA_7E5L, -59, 320),
-        lowestY = -64,
+        lowestY = VerticalWindow.MIN_Y,
         highestY = RiverlandsField.LAND_Y + 60,
         radius = 360,
     ),
@@ -332,7 +333,7 @@ private val subjects: Map<String, Subject> = mapOf(
             OverworldField.world(),
             GreatHalls.voidBetween(HALL_FLOOR, HALL_ROOF, 0L),
         ),
-        lowestY = -64,
+        lowestY = VerticalWindow.MIN_Y,
         highestY = 176,
         // Wide enough to hold several bays of piers and a stretch of coast over them.
         radius = 320,
@@ -361,7 +362,7 @@ private val subjects: Map<String, Subject> = mapOf(
 
     "riverlands-caves" to Subject(
         Subtract(RiverlandsField.world(), Caved.of(RiverlandsField.world(), 0xCA_7E5L, -59, 320)),
-        lowestY = -64,
+        lowestY = VerticalWindow.MIN_Y,
         highestY = RiverlandsField.LAND_Y + 60,
         radius = 360,
     ),
@@ -384,7 +385,7 @@ private val subjects: Map<String, Subject> = mapOf(
     "alps" to Subject(
         AlpsField.world(),
         // Already inside the field, as a canyon's is — passing it again would weather the range twice.
-        lowestY = -64,
+        lowestY = VerticalWindow.MIN_Y,
         highestY = 300,
         // Wide enough to hold a couple of the network's cells, which is what the picture is for — one cell
         // says nothing about whether the ranges close round it.
@@ -400,7 +401,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // this scale, and on a landform whose shape is already made of planes that is a real question.
     "alps-nowind" to Subject(
         AlpsField.bareWorld(),
-        lowestY = -64,
+        lowestY = VerticalWindow.MIN_Y,
         highestY = 300,
         radius = 2600,
         step = 4,
@@ -413,7 +414,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // and whether the hillslopes really do meet in a crest rather than a dome.
     "alps-core" to Subject(
         AlpsField.world(),
-        lowestY = -64,
+        lowestY = VerticalWindow.MIN_Y,
         highestY = 300,
         radius = 1150,
         step = 3,
@@ -556,8 +557,8 @@ private val subjects: Map<String, Subject> = mapOf(
             SolidField.world(),
             Chambers.voidBetween(-59, SolidField.UNDERGROUND_CEILING, size = Span.NATURAL_MOST),
         ),
-        lowestY = -64,
-        highestY = SolidField.WORLD_CEILING,
+        lowestY = VerticalWindow.MIN_Y,
+        highestY = VerticalWindow.HIGHEST_BLOCK_Y,
         radius = 700,
         step = 2,
         sliceAtZ = 0,
@@ -568,8 +569,8 @@ private val subjects: Map<String, Subject> = mapOf(
     // `CavernField.caves` is public.
     "chambers-void" to Subject(
         Chambers.voidBetween(-59, SolidField.UNDERGROUND_CEILING, size = Span.NATURAL_MOST),
-        lowestY = -64,
-        highestY = SolidField.WORLD_CEILING,
+        lowestY = VerticalWindow.MIN_Y,
+        highestY = VerticalWindow.HIGHEST_BLOCK_Y,
         radius = 700,
         step = 2,
         sliceAtZ = 0,
@@ -582,8 +583,8 @@ private val subjects: Map<String, Subject> = mapOf(
     // chamber under the first with its own lake, and rock between them rather than a shaft.
     "chambers-storeys" to Subject(
         Chambers.voidBetween(-59, SolidField.UNDERGROUND_CEILING),
-        lowestY = -64,
-        highestY = SolidField.WORLD_CEILING,
+        lowestY = VerticalWindow.MIN_Y,
+        highestY = VerticalWindow.HIGHEST_BLOCK_Y,
         radius = 900,
         step = 2,
         sliceAtZ = 0,
@@ -594,14 +595,14 @@ private val subjects: Map<String, Subject> = mapOf(
     // spread of column tops is a single number if the plain is level.
     "flatlands" to Subject(
         FlatlandsField.world(),
-        lowestY = -64,
+        lowestY = VerticalWindow.MIN_Y,
         highestY = FlatlandsField.SURFACE_Y + 16,
         radius = 128,
     ),
 
     "canyonlands-nowind" to Subject(
         CanyonlandsField.bareWorld(),
-        lowestY = -64,
+        lowestY = VerticalWindow.MIN_Y,
         highestY = CanyonlandsField.PLATEAU_Y + 16,
         radius = 900,
     ),
@@ -610,8 +611,8 @@ private val subjects: Map<String, Subject> = mapOf(
     // exactly as `spire-nowind` does. Here it is the difference between benches and ruled contours.
     "canyon-nowind" to Subject(
         CanyonField.bareWorld(bearing = bearingAt(NORTH_SOUTH)),
-        lowestY = -64,
-        highestY = CanyonField.WORLD_CEILING,
+        lowestY = VerticalWindow.MIN_Y,
+        highestY = VerticalWindow.HIGHEST_BLOCK_Y,
         radius = 400,
     ),
 

@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.NORTH_SOUTH
 import co.voik.agesandtheart.age.aspect.bearingAt
 import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.worldgen.CanyonField
+import co.voik.agesandtheart.worldgen.VerticalWindow
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import kotlin.math.PI
@@ -148,7 +149,7 @@ class CanyonCheck : FunSpec({
         for (world in listOf(CanyonField.world(bearingAt(NORTH_SOUTH)), CanyonField.bareWorld(bearingAt(NORTH_SOUTH)))) {
             for (worldZ in -400..400 step 53) {
                 val far = world.columnSpans(FAR_FROM_THE_AXIS, worldZ)
-                check(far.highestSolidY == CanyonField.WORLD_CEILING) {
+                check(far.highestSolidY == VerticalWindow.HIGHEST_BLOCK_Y) {
                     "at ($FAR_FROM_THE_AXIS, $worldZ) the plateau topped out at ${far.highestSolidY}"
                 }
             }
@@ -167,7 +168,7 @@ class CanyonCheck : FunSpec({
         for (worldZ in -400..400 step 17) {
             for (worldX in -400..400 step 3) {
                 val standing = bare.columnSpans(worldX, worldZ).highestSolidY ?: continue
-                if (standing >= CanyonField.WORLD_CEILING) continue
+                if (standing >= VerticalWindow.HIGHEST_BLOCK_Y) continue
                 walls++
                 if (weathered.columnSpans(worldX, worldZ).highestSolidY != standing) worn++
             }
@@ -186,7 +187,7 @@ class CanyonCheck : FunSpec({
         for (worldZ in -500..500 step 23) {
             for (worldX in -500..500 step 7) {
                 val lowest = world.columnSpans(worldX, worldZ).ranges.firstOrNull()?.first ?: continue
-                check(lowest == CanyonField.WORLD_FLOOR) {
+                check(lowest == VerticalWindow.MIN_Y) {
                     "at ($worldX, $worldZ) the rock began at $lowest rather than the world's floor"
                 }
             }

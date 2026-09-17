@@ -30,7 +30,7 @@ object CanyonlandsField {
     fun bareWorld(salt: Long = 0L): TerrainField = Canyon.cut(ground(), families(salt))
 
     /** The tableland the canyons are cut out of. */
-    fun ground(): TerrainField = Slab(lowY = WORLD_FLOOR, highY = PLATEAU_Y)
+    fun ground(): TerrainField = Slab(lowY = VerticalWindow.MIN_Y, highY = PLATEAU_Y)
 
     /** Where one family of canyons sits: which way it runs, how far apart its members are, and where it starts. */
     private data class Family(val bearing: Double, val spacing: Double, val offset: Double)
@@ -66,8 +66,6 @@ object CanyonlandsField {
             bedRelief = BED_RELIEF,
         )
     }
-
-    private const val WORLD_FLOOR = -64
 
     /** The tableland's surface, with sky over it — the whole difference from [CanyonField]. */
     const val PLATEAU_Y = 185

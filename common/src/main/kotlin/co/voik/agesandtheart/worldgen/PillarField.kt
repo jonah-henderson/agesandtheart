@@ -23,7 +23,7 @@ object PillarField {
     fun world(salt: Long = 0L): TerrainField {
         // Authored around the local origin; the instancer translates each copy into place.
         val pillar = Box(
-            minX = -PILLAR_HALF_WIDTH, minY = WORLD_FLOOR, minZ = -PILLAR_HALF_WIDTH,
+            minX = -PILLAR_HALF_WIDTH, minY = VerticalWindow.MIN_Y, minZ = -PILLAR_HALF_WIDTH,
             maxX = PILLAR_HALF_WIDTH - 1, maxY = PILLAR_TOP, maxZ = PILLAR_HALF_WIDTH - 1,
         )
         val pillars = Instanced(
@@ -33,11 +33,9 @@ object PillarField {
             seed = PILLAR_SEED xor salt,
         )
         // A shallow floor so the ocean rests on ground rather than on the bottom of the world.
-        val seabed = Slab(lowY = WORLD_FLOOR, highY = SEABED_TOP)
+        val seabed = Slab(lowY = VerticalWindow.MIN_Y, highY = SEABED_TOP)
         return Union(listOf(seabed, pillars))
     }
-
-    private const val WORLD_FLOOR = -64
 
     // 64 wide: -32..31 inclusive. Centre-to-centre spacing of 96 leaves ~32-block channels between them.
     private const val PILLAR_HALF_WIDTH = 32

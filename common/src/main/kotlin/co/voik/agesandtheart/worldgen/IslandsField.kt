@@ -91,7 +91,7 @@ object IslandsField {
 
     fun world(size: Double? = null, salt: Long = 0L): TerrainField =
         Isle(
-            floorY = WORLD_FLOOR,
+            floorY = VerticalWindow.MIN_Y,
             seabedY = SEABED_Y,
             shoreY = SEA_LEVEL,
             peakRise = peakRiseAt(size),
@@ -114,7 +114,7 @@ object IslandsField {
     fun lone(size: Double? = null, salt: Long = 0L): TerrainField {
         val shoreRadius = loneShoreRadiusAt(size)
         return Isle(
-            floorY = WORLD_FLOOR,
+            floorY = VerticalWindow.MIN_Y,
             seabedY = SEABED_Y,
             shoreY = SEA_LEVEL,
             peakRise = betweenTheEnds(SMALLEST_LONE_PEAK_RISE, LARGEST_LONE_PEAK_RISE, size),
@@ -204,8 +204,6 @@ object IslandsField {
      * a pair can close by `j * spacing` in total — not twice that.
      */
     fun leastApart(size: Double?): Double = spacingFor(size) * (1.0 - JITTER)
-
-    private const val WORLD_FLOOR = -64
 
     /** Deep enough that the sea between islands reads as ocean rather than as a flooded plain. */
     const val SEABED_Y = 28

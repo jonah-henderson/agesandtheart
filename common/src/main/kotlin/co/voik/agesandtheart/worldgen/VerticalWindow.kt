@@ -28,8 +28,17 @@ data class VerticalWindow(val minY: Int, val height: Int) {
     val topY: Int get() = minY + height
 
     companion object {
+        const val MIN_Y = -64
+        const val HEIGHT = 384
+
+        /** One past the topmost block, as [topY] is. */
+        const val TOP_Y = MIN_Y + HEIGHT
+
+        /** The topmost block itself. */
+        const val HIGHEST_BLOCK_Y = TOP_Y - 1
+
         /** Matches all three `agesandtheart:age…` dimension types, which differ only in light and roof. */
-        val DEFAULT = VerticalWindow(minY = -64, height = 384)
+        val DEFAULT = VerticalWindow(minY = MIN_Y, height = HEIGHT)
 
         val CODEC: Codec<VerticalWindow> = RecordCodecBuilder.create { instance ->
             instance.group(

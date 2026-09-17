@@ -36,7 +36,7 @@ object RiverlandsField {
 
     /** The bare network, before the weather and without its water. */
     fun network(salt: Long = 0L): Drainage = Drainage(
-        floorY = WORLD_FLOOR,
+        floorY = VerticalWindow.MIN_Y,
         landY = LAND_Y,
         relief = RELIEF,
         landStretch = LAND_STRETCH,
@@ -47,8 +47,6 @@ object RiverlandsField {
         // where a canyon is strata worn back at different rates.
         profile = CanyonProfile(benches = 2, riserShare = 0.45, floorShare = 0.22, gorgeShare = 0.45, gorgeRise = 0.4),
     )
-
-    private const val WORLD_FLOOR = -64
 
     /** The mean height of the upland the rivers are cut into. */
     const val LAND_Y = 108

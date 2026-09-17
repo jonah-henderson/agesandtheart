@@ -39,7 +39,8 @@ object AlpsField {
 
     /** The range before the weather reaches it — the previewer's other half, and nothing else's. */
     fun bareWorld(salt: Long = 0L): MountainRange = MountainRange(
-        floorY = WORLD_FLOOR,
+        // Where the rock starts, not where the valleys bottom out: any higher leaves void under the Age.
+        floorY = VerticalWindow.MIN_Y,
         profile = profile(salt),
         glaciation = glaciation(salt),
         spacing = SPACING,
@@ -99,18 +100,6 @@ object AlpsField {
         cirqueLowestY = CIRQUE_LOWEST_Y,
         seed = GLACIATION_SEED xor salt,
     )
-
-    /**
-     * The bottom of the rock — **the window's own floor, so there is nothing under the world.**
-     *
-     * A field's floor is where its rock *starts*, not where its surface bottoms out, and setting it to the
-     * lowest a valley should reach left the fifteen layers beneath that as void: a cavity under the whole
-     * Age, with no bedrock either, since `SurfacingStrategy`'s bedrock gradient paints rock and there was none to
-     * paint. What was actually asked for is the *surface* coming down towards −48, which is a property of
-     * the landform's own tuning rather than a floor to set, and it leaves the band of dirt and stone this
-     * Age has instead of an underground: enough for ore, nothing like enough for a cave system.
-     */
-    const val WORLD_FLOOR = -64
 
     /**
      * The floor of a basin, and the level the drainage then cuts a further ten or so beneath — which is what

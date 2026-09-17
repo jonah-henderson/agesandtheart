@@ -26,7 +26,7 @@ object OverworldField {
     fun world(salt: Long = 0L): TerrainField = Union(
         listOf(
             // Whole, not noisy: this is the rock the halls are taken out of.
-            Slab(lowY = WORLD_FLOOR, highY = SOLID_TOP),
+            Slab(lowY = VerticalWindow.MIN_Y, highY = SOLID_TOP),
             surface(salt),
         ),
     )
@@ -52,8 +52,6 @@ object OverworldField {
         // And past what the noise can reach at the top, so nothing stands at the ceiling.
         thresholdAtTop = EMPTY_AT_THE_TOP,
     )
-
-    private const val WORLD_FLOOR = -64
 
     /** Solid below this, shaped above it. The underground lives beneath, and needs the room. */
     const val SOLID_TOP = 104

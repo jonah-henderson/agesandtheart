@@ -26,7 +26,7 @@ object ShatteredField {
     fun bareWorld(salt: Long = 0L): TerrainField = CellCanyon.cut(ground(), cells(salt))
 
     /** The plate the cells are cracked out of. */
-    fun ground(): TerrainField = Slab(lowY = WORLD_FLOOR, highY = PLATEAU_Y)
+    fun ground(): TerrainField = Slab(lowY = VerticalWindow.MIN_Y, highY = PLATEAU_Y)
 
     fun cells(salt: Long = 0L) = CellCanyon(
         map = mosaic(salt),
@@ -52,8 +52,6 @@ object ShatteredField {
         originZ = 0,
         seed = MOSAIC_SEED xor salt,
     )
-
-    private const val WORLD_FLOOR = -64
 
     /** Canyonlands' table and floor — see the class note on why they are shared rather than restated. */
     const val PLATEAU_Y = CanyonlandsField.PLATEAU_Y

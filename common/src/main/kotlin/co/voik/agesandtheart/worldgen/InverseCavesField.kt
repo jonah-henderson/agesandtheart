@@ -23,23 +23,17 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
 object InverseCavesField {
 
     fun world(salt: Long): TerrainField {
-        val everything = Slab(lowY = WORLD_FLOOR, highY = WORLD_CEILING)
+        // The whole band: the cave noises keep producing all the way up, nine columns in ten past y=280.
+        val everything = Slab(lowY = VerticalWindow.MIN_Y, highY = VerticalWindow.TOP_Y)
         val hollowed = Caved(
             base = everything,
             seed = CAVE_SEED xor salt,
-            fromY = WORLD_FLOOR,
-            toY = WORLD_CEILING,
+            fromY = VerticalWindow.MIN_Y,
+            toY = VerticalWindow.TOP_Y,
             entranceReach = ENTRANCE_REACH,
         )
         return Subtract(everything, hollowed)
     }
-
-    /**
-     * The full vanilla band, and measured rather than assumed: the cave noises keep producing all the way
-     * up, with nine columns in ten topping out above y=280. Stopping lower would trade world for nothing.
-     */
-    const val WORLD_FLOOR = -64
-    const val WORLD_CEILING = 320
 
     /**
      * No shallow-rock rule at all. It exists to keep chambers from opening the ground out from under a

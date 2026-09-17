@@ -203,7 +203,7 @@ class Weathering(
             // Read from `CanyonField` for the same reason the Spire reads from `SpireField`. Below the
             // floor is the eighty blocks of bedrock the canyon deliberately leaves whole.
             fromY = CanyonField.FLOOR_Y,
-            toY = CanyonField.WORLD_CEILING,
+            toY = VerticalWindow.HIGHEST_BLOCK_Y,
             // Against a resistance spread running about ∓0.39 at the tenth and ninetieth percentiles, this
             // takes well over half of an exposed face and almost nothing a dozen blocks behind it — the
             // steep falloff being `Weathered`'s shelter rather than anything here.
@@ -216,7 +216,7 @@ class Weathering(
             // Nothing lies below the keel: the band starts there.
             atTheRoot = 0.0,
             taper = 1.0,
-            taperReachAbove = CanyonField.WORLD_CEILING - CanyonField.FLOOR_Y,
+            taperReachAbove = VerticalWindow.HIGHEST_BLOCK_Y - CanyonField.FLOOR_Y,
             taperReachBelow = 1,
             // Alcove-scale rather than pillar-scale: features some tens of blocks across, so a bench is
             // broken into spurs rather than sanded or bitten in half.
@@ -359,7 +359,7 @@ class Weathering(
          */
         val ALPS = Weathering(
             key = "alps",
-            fromY = AlpsField.WORLD_FLOOR + BAND_MARGIN,
+            fromY = VerticalWindow.MIN_Y + BAND_MARGIN,
             toY = AlpsField.SNOWLINE_Y + AlpsField.SUMMITS_ABOVE_THE_SNOWLINE,
             // Firmer than a river country's and far gentler than a canyon's: the shape already has its
             // large forms, and what is wanted is damage rather than sculpture.

@@ -310,7 +310,7 @@ enum class Terrain(
     fun undergroundCeiling(): Int? = when (this) {
         OVERWORLD -> OverworldField.SOLID_TOP - ROOM_FOR_A_ROOF
         // Solid either side of the gorge all the way up, so this is bounded by taste rather than by rock.
-        CANYON -> CanyonField.WORLD_CEILING / 2
+        CANYON -> VerticalWindow.HIGHEST_BLOCK_Y / 2
         CANYONLANDS -> CanyonlandsField.FLOOR_Y - ROOM_FOR_A_ROOF
         SHATTERED -> ShatteredField.FLOOR_Y - ROOM_FOR_A_ROOF
         CLIFFS -> CliffField.SEABED_Y - ROOM_FOR_A_ROOF

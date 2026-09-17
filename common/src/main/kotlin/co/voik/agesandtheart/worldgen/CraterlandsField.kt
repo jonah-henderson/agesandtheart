@@ -156,7 +156,7 @@ object CraterlandsField {
         scaleZ = 1.0,
         baseY = PLAIN_Y,
         relief = PLAIN_RELIEF,
-        flatY = WORLD_FLOOR,
+        flatY = VerticalWindow.MIN_Y,
     )
 
     /**
@@ -165,7 +165,7 @@ object CraterlandsField {
      * again by [excavation] — so the rim's inner face is the *bowl's* wall rather than a face of its own,
      * which is where its steepness comes from and why nothing tunes it.
      */
-    private fun apron(): Cone = slopeFrom(WORLD_FLOOR, RIM_CREST_RADIUS, RIM_CREST_Y, APRON_RADIUS)
+    private fun apron(): Cone = slopeFrom(VerticalWindow.MIN_Y, RIM_CREST_RADIUS, RIM_CREST_Y, APRON_RADIUS)
 
     /**
      * The hole, **with a floor rather than a surface of revolution.**
@@ -269,10 +269,10 @@ object CraterlandsField {
                 scaleZ = 1.0,
                 baseY = ISLAND_CLIP_MEAN_Y,
                 relief = ISLAND_CLIP_RELIEF,
-                flatY = WORLD_FLOOR,
+                flatY = VerticalWindow.MIN_Y,
             ),
             Isle(
-                floorY = WORLD_FLOOR,
+                floorY = VerticalWindow.MIN_Y,
                 // Under the basin's own deepest floor, so the seabed an isle lays everywhere is buried.
                 seabedY = ISLAND_BASE_Y,
                 shoreY = WATERLINE,
@@ -401,7 +401,7 @@ object CraterlandsField {
         return Intersect(
             listOf(
                 annulus(crestRadius, outerRadius),
-                slopeFrom(WORLD_FLOOR, crestRadius, PLAIN_Y + rise, outerRadius),
+                slopeFrom(VerticalWindow.MIN_Y, crestRadius, PLAIN_Y + rise, outerRadius),
             ),
         )
     }
@@ -567,8 +567,6 @@ object CraterlandsField {
             bowls = Instanced(CRATER_SHAPES.map { it.bowl() }, layout, poses, CRATER_SEED xor salt),
         )
     }
-
-    private const val WORLD_FLOOR = -64
 
     /** The plain, high above the waterline so that only the basin and the crater ponds hold water. */
     const val PLAIN_Y = 84
