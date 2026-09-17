@@ -6,8 +6,7 @@ import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.agesandtheart.age.phenomena.Meteors
 import co.voik.agesandtheart.age.aspect.Rung
-import co.voik.agesandtheart.age.phenomena.SandColumn
-import co.voik.agesandtheart.age.phenomena.SandfallBehaviour
+import co.voik.agesandtheart.age.phenomena.Sandfall
 import co.voik.agesandtheart.age.phenomena.Tempest
 import co.voik.agesandtheart.age.aspect.WeatherConditions
 import co.voik.agesandtheart.age.phenomena.AgeWeather
@@ -92,10 +91,6 @@ internal object PhenomenonInstruments {
     /** `/age weather blizzard <intensity>` — how hard, where one is ordinary and three is fully bought. */
     private const val INTENSITY_ARGUMENT = "intensity"
 
-    private const val ORDINARY_STORM = 1.0
-
-    private const val WILDEST_STORM = 5.0
-
     /**
      * `/age weather <clear|rain|thunder>` — set the weather of **the Age you are standing in**.
      *
@@ -117,7 +112,7 @@ internal object PhenomenonInstruments {
                 // or does not. One is ordinary and three is everything instability can buy.
                 if (name == Phenomenon.BLIZZARD.key) {
                     branch.then(
-                        Commands.argument(INTENSITY_ARGUMENT, DoubleArgumentType.doubleArg(ORDINARY_STORM, WILDEST_STORM))
+                        Commands.argument(INTENSITY_ARGUMENT, DoubleArgumentType.doubleArg(Rung.ORDINARY, Blizzard.HARDEST_FORCED))
                             .executes { context ->
                                 runWeather(
                                     context,
@@ -372,27 +367,14 @@ internal object PhenomenonInstruments {
         val level = source.level
         val facing = Vec3.directionFromRotation(source.rotation)
         val at = source.position.add(facing.scale(distance.toDouble()))
-        val whole = SandfallBehaviour.of(source.server)
-        val behaviour = whole.column
-        val fury = furyPercent.toDouble() / ALL_FURY
-        val random = level.random
-        val column = SandColumn.raise(
+        val column = Sandfall.raise(
             level = level,
             atX = at.x,
             atZ = at.z,
             // Turned around to walk back at you, so a column stood up ahead is one you then have to answer.
             headingDegrees = source.rotation.y + HALF_COMPASS,
-            speed = behaviour.slowestSpeed + random.nextDouble() * (behaviour.fastestSpeed - behaviour.slowestSpeed),
-            fullHalfWidth = whole.narrowestHalfWidthAt(fury) +
-                random.nextDouble() * (whole.widestHalfWidthAt(fury) - whole.narrowestHalfWidthAt(fury)),
-            depth = whole.depthAt(fury),
-            lifetime = seconds?.times(TICKS_PER_SECOND)
-                ?: (
-                    whole.shortestLifeAt(fury) +
-                        random.nextInt(
-                            (whole.longestLifeAt(fury) - whole.shortestLifeAt(fury)).coerceAtLeast(1),
-                        )
-                    ),
+            fury = furyPercent.toDouble() / ALL_FURY,
+            lifetime = seconds?.times(TICKS_PER_SECOND),
         )
         if (column == null) {
             // Two causes, and saying which is the difference between a one-line fix and an afternoon: the

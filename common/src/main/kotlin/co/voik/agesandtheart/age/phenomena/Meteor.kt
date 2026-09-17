@@ -510,7 +510,7 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
          * Redstone dust as a shape and nothing of redstone as a colour — the alternative was a bespoke
          * particle type, and that needs a texture the asset pass has not written.
          */
-        private val EMBER = DustParticleOptions(0x9E72FF, 0.9f)
+        private val EMBER = DustParticleOptions(AgeContent.ASTRITE_TINT, 0.9f)
 
         /** How far off one is still drawn, in blocks — its whole flight, and then some. */
         private const val SEEN_FROM = 320.0

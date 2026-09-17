@@ -541,6 +541,12 @@ object Blizzard {
     /** And how much it adds to how often one comes, on top of whatever rung was written. */
     private const val FURY_ALSO_LINGERS = 2.0
 
+    /** The hardest storm an Age can earn: [howHardOf] at the whole of its fury. */
+    const val HARDEST_EARNED = Rung.ORDINARY + FURY_DRIVES
+
+    /** The hardest storm `/age weather blizzard` will force, past anything an Age can earn. */
+    const val HARDEST_FORCED = 5.0
+
     private const val HORIZONS = 4
     private const val TICKS_PER_DAY = 24000L
 

@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
+import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.AstriteBlock
 import co.voik.agesandtheart.content.Lures
 import net.minecraft.client.Minecraft
@@ -125,7 +126,7 @@ object LureLooks {
     private fun strayed(level: ClientLevel): Double = (level.random.nextDouble() - MIDDLE) * COLUMN_WANDERS
 
     /** The pack's violet, in the one particle vanilla lets us colour. */
-    private val DRAWING = DustParticleOptions(0x9E72FF, 1.0f)
+    private val DRAWING = DustParticleOptions(AgeContent.ASTRITE_TINT, 1.0f)
 
     private const val FORCED = true
     private const val SHOW_ANYWAY = true

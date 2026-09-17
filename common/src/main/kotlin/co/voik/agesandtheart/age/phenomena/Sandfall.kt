@@ -66,28 +66,51 @@ object Sandfall {
         val random = level.random
         val spread = behaviour.furthestSpawn - behaviour.nearestSpawn
         repeat(BEARINGS_TRIED) {
-            val column = behaviour.column
-            // Every dial the Age's instability reaches, read at this much of it — see [SandfallBehaviour].
-            val narrowest = behaviour.narrowestHalfWidthAt(fury)
-            val widest = behaviour.widestHalfWidthAt(fury)
-            val shortest = behaviour.shortestLifeAt(fury)
-            val longest = behaviour.longestLifeAt(fury)
             val away = behaviour.nearestSpawn + random.nextInt(spread.coerceAtLeast(AT_ONCE))
             val bearing = random.nextDouble() * FULL_TURN
             val heading = bearing + HALF_TURN + (random.nextDouble() - random.nextDouble()) * SPREAD_DEGREES
-            val raised = SandColumn.raise(
+            val raised = raise(
                 level = level,
                 atX = watcher.x - sin(bearing * Mth.DEG_TO_RAD) * away,
                 atZ = watcher.z + cos(bearing * Mth.DEG_TO_RAD) * away,
                 headingDegrees = heading.toFloat(),
-                speed = column.slowestSpeed + random.nextDouble() * (column.fastestSpeed - column.slowestSpeed),
-                lifetime = shortest + random.nextInt((longest - shortest).coerceAtLeast(AT_ONCE)),
-                // No two quite alike, which is the whole of why this is a range rather than a number.
-                fullHalfWidth = narrowest + random.nextDouble() * (widest - narrowest),
-                depth = behaviour.depthAt(fury),
+                fury = fury,
             )
             if (raised != null) return
         }
+    }
+
+    /**
+     * **The one place a column is rolled**, whoever asked for one: its speed, width, depth and lifetime at
+     * this much [fury]. A [lifetime] in ticks replaces the rolled one.
+     */
+    fun raise(
+        level: ServerLevel,
+        atX: Double,
+        atZ: Double,
+        headingDegrees: Float,
+        fury: Double,
+        lifetime: Int? = null,
+    ): SandColumn? {
+        val behaviour = SandfallBehaviour.of(level.server)
+        val column = behaviour.column
+        val random = level.random
+        // Every dial the Age's instability reaches, read at this much of it — see [SandfallBehaviour].
+        val narrowest = behaviour.narrowestHalfWidthAt(fury)
+        val widest = behaviour.widestHalfWidthAt(fury)
+        val shortest = behaviour.shortestLifeAt(fury)
+        val longest = behaviour.longestLifeAt(fury)
+        return SandColumn.raise(
+            level = level,
+            atX = atX,
+            atZ = atZ,
+            headingDegrees = headingDegrees,
+            speed = column.slowestSpeed + random.nextDouble() * (column.fastestSpeed - column.slowestSpeed),
+            lifetime = lifetime ?: (shortest + random.nextInt((longest - shortest).coerceAtLeast(AT_ONCE))),
+            // No two quite alike, which is the whole of why this is a range rather than a number.
+            fullHalfWidth = narrowest + random.nextDouble() * (widest - narrowest),
+            depth = behaviour.depthAt(fury),
+        )
     }
 
     /** How far off a bearing straight back at the player one may be aimed. */

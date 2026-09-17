@@ -2,6 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
+import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.ephemeris.Rgba
 import net.minecraft.core.BlockPos
@@ -205,7 +206,7 @@ object Storms {
      * only ever divides this between the two.
      */
     private fun loudnessOf(severity: Double): Float =
-        (QUIETEST + (LOUDEST - QUIETEST) * (severity - ORDINARY).coerceIn(NONE.toDouble(), ALL_OF_IT.toDouble()))
+        (QUIETEST + (LOUDEST - QUIETEST) * (severity - Rung.ORDINARY).coerceIn(NONE.toDouble(), ALL_OF_IT.toDouble()))
             .toFloat()
 
     /**
@@ -259,12 +260,13 @@ object Storms {
      */
     private fun seenThrough(was: Float, hard: Double): Float {
         val ordinary = was * CLEAREST
-        if (hard <= HARDEST_EARNED) {
-            val bite = ((hard - ORDINARY) / (HARDEST_EARNED - ORDINARY)).coerceIn(0.0, 1.0)
+        if (hard <= Blizzard.HARDEST_EARNED) {
+            val bite = ((hard - Rung.ORDINARY) / (Blizzard.HARDEST_EARNED - Rung.ORDINARY)).coerceIn(0.0, 1.0)
             return (ordinary + (EARNED_WHITEOUT - ordinary) * bite).toFloat()
         }
         // Past what any Age can earn, and only `/age weather blizzard` goes here.
-        val over = ((hard - HARDEST_EARNED) / (HARDEST_FORCED - HARDEST_EARNED)).coerceIn(0.0, 1.0)
+        val over = ((hard - Blizzard.HARDEST_EARNED) / (Blizzard.HARDEST_FORCED - Blizzard.HARDEST_EARNED))
+            .coerceIn(0.0, 1.0)
         return (EARNED_WHITEOUT + (FORCED_WHITEOUT - EARNED_WHITEOUT) * over).toFloat()
     }
 
@@ -306,14 +308,6 @@ object Storms {
      */
     private const val EARNED_CLEAR = 6.0f
     private const val BEGINS_AT = EARNED_CLEAR / EARNED_WHITEOUT
-
-    private const val ORDINARY = 1.0
-
-    /** Everything an Age's instability can buy — see `Blizzard.howHardOf`. */
-    private const val HARDEST_EARNED = 3.0
-
-    /** The top of `/age weather blizzard`'s own range, which no Age reaches. */
-    private const val HARDEST_FORCED = 5.0
 
     /** How far around the player the storm is drawn, in blocks. */
     private const val AROUND = 14
