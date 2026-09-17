@@ -20,29 +20,17 @@ import java.util.concurrent.TimeUnit
  * lobby you link out of, and generating a real one is most of the startup.
  */
 class PreviewServer private constructor(
-    private val rcon: Rcon,
+    private val started: ServerLaunch.Started,
     /** The port a person types into Minecraft. */
     val port: Int,
-    private val process: Process,
-    private val properties: File,
-    private val originalProperties: String,
     private val world: File,
 ) : AutoCloseable {
 
-    /**
-     * The server killed if the tool is, rather than left running with a world nobody will clear up.
-     *
-     * Forcible rather than the polite stop [close] does: this runs while the JVM is going down, and a
-     * shutdown hook that waits a minute for a clean save is a shutdown hook somebody kills again.
-     */
-    private val stopIfWeAreKilled = Thread {
-        process.destroyForcibly().waitFor()
-        properties.writeText(originalProperties)
-        if (isOursToRemove(world)) world.deleteRecursively()
-    }
+    private val rcon: Rcon get() = started.rcon
 
     init {
-        Runtime.getRuntime().addShutdownHook(stopIfWeAreKilled)
+        // The server killed if the tool is, rather than left running with a world nobody will clear up.
+        started.tidyUpIfKilled { discard(world) }
     }
 
     /**
@@ -99,21 +87,13 @@ class PreviewServer private constructor(
      * a running server holds its region files open and would write them straight back out.
      */
     override fun close() {
-        runCatching { Runtime.getRuntime().removeShutdownHook(stopIfWeAreKilled) }
-        runCatching { rcon.run("stop") }
-        rcon.close()
-        if (!process.waitFor(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) process.destroy()
-        if (!process.waitFor(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) process.destroyForcibly()
-        properties.writeText(originalProperties)
+        started.stop()
         discard(world)
     }
 
     companion object {
-        private const val STARTUP_SECONDS = 240L
-
         /** Long enough for a cold daemon, short enough that a hung build does not hold the tool. */
         private const val STAGING_SECONDS = 180L
-        private const val SHUTDOWN_SECONDS = 60L
         private const val RCON_PASSWORD = "agesandtheart-workshop"
 
         /** The port Minecraft offers by default, so "localhost" is the whole address when it is free. */
@@ -124,7 +104,7 @@ class PreviewServer private constructor(
          * nothing whose name does not start with it, so a world somebody plays can never be reached
          * however the level ends up configured.
          */
-        private const val WORKSHOP_WORLD_PREFIX = "workshop-"
+        const val WORKSHOP_WORLD_PREFIX = "workshop-"
 
         /**
          * A server of our own, up and answering.
@@ -152,16 +132,8 @@ class PreviewServer private constructor(
                 ),
                 rconPort,
                 RCON_PASSWORD,
-                STARTUP_SECONDS,
             )
-            return PreviewServer(
-                rcon = started.rcon,
-                port = gamePort,
-                process = started.process,
-                properties = started.properties,
-                originalProperties = started.originalProperties,
-                world = launch.workingDirectory.resolve(world),
-            )
+            return PreviewServer(started, port = gamePort, world = launch.workingDirectory.resolve(world))
         }
 
         /**
@@ -206,24 +178,14 @@ class PreviewServer private constructor(
         private const val RADIX = 36
 
         /**
-         * Whether this directory is one of ours to remove — **named here so a check can ask it.**
+         * The world removed, where [ServerLaunch.isOursToRemove] says it is one of ours.
          *
          * A tool that stands up a world every time somebody glances at a half-written book will make a
          * hundred of them in an afternoon, so the removal is not tidiness but the reason the feature is
-         * safe at all. Three fences, and each is a way a world somebody plays could otherwise be reached:
-         * it must carry the name this tool generates, sit where this tool put it, and be a real directory
-         * rather than a link into one.
+         * safe at all.
          */
-        fun isOursToRemove(world: File): Boolean {
-            val runDirectory = world.parentFile ?: return false
-            val isOurs = world.name.startsWith(WORKSHOP_WORLD_PREFIX)
-            val isWhereWePutIt = runDirectory.resolve(world.name).canonicalFile == world.canonicalFile
-            val isARealDirectory = world.isDirectory && world.canonicalPath == world.absolutePath
-            return isOurs && isWhereWePutIt && isARealDirectory
-        }
-
         private fun discard(world: File) {
-            if (!isOursToRemove(world)) return
+            if (!ServerLaunch.isOursToRemove(world, WORKSHOP_WORLD_PREFIX)) return
             world.deleteRecursively()
         }
     }

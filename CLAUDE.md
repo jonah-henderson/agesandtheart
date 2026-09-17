@@ -203,7 +203,7 @@ something, because the grammar admits more than the world does (`decisions.md`).
 and counted rather than dropped; `^i` shows them. The cost, the flaws and the aiming pages still open move as
 each page goes down. `^o` boots a dedicated server, writes the Age, and sends you in when you connect —
 kept up between rewrites, so changing a page and looking again is seconds. The world is thrown away when
-the screen is left, fenced on the name so it can never reach one somebody plays (`PreviewServerCheck`).
+the screen is left, fenced on the name so it can never reach one somebody plays (`ThrowawayWorldCheck`).
 Drafts live in `.authoring/ages/` and hold the **pages**, never the recipe.
 
 **Scrivener reaches past the words.** Its main menu is four groups — the words, the world they

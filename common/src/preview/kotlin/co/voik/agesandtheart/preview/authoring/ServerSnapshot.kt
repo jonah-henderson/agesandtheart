@@ -9,7 +9,6 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.io.File
 import java.time.Instant
-import java.util.concurrent.TimeUnit
 
 /**
  * What a running server knows that an offline corpus cannot — **remembered, so it is never needed twice.**
@@ -183,8 +182,6 @@ data class ServerSnapshot(
         const val BLOCK_REGISTRY = "minecraft:block"
 
         private const val RCON_PASSWORD = "agesandtheart-authoring"
-        private const val STARTUP_SECONDS = 240L
-        private const val SHUTDOWN_SECONDS = 60L
 
         /**
          * The world the tool's own server writes to.
@@ -263,7 +260,8 @@ data class ServerSnapshot(
         }
 
         /**
-         * Starts a server, does [work] on it, and puts `server.properties` back however that goes.
+         * Starts a server, does [work] on it, and puts `server.properties` back however that goes — a killed
+         * refresh included.
          *
          * The world is left where it is. This tool has no business removing one, and keeping it is what
          * makes a second refresh quick.
@@ -278,16 +276,13 @@ data class ServerSnapshot(
                 ServerLaunch.settingsFor(WORLD, port, RCON_PASSWORD),
                 port,
                 RCON_PASSWORD,
-                STARTUP_SECONDS,
             )
+            started.tidyUpIfKilled()
             try {
                 val world = shortly(launch.workingDirectory.resolve(WORLD))
-                return started.rcon.use { work(it, loader, world) }
-                    .also { say(Progress(0, 0, "stopping the server")) }
+                return work(started.rcon, loader, world).also { say(Progress(0, 0, "stopping the server")) }
             } finally {
-                runCatching { Rcon("127.0.0.1", port, RCON_PASSWORD).use { it.run("stop") } }
-                if (!started.process.waitFor(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) started.process.destroyForcibly()
-                started.properties.writeText(started.originalProperties)
+                started.stop()
             }
         }
 

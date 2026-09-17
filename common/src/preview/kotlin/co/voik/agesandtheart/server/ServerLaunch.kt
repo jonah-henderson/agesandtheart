@@ -9,8 +9,9 @@ import java.util.concurrent.TimeUnit
  * The awkward parts of starting a dedicated server and getting RCON to answer — shared by the checks and
  * by the word-authoring tool, which start one for different reasons and get these wrong the same way.
  *
- * Policy stays with each caller: which world, whether to remove it afterwards, how long to wait. What is
- * here is only what was learned the hard way and should not be learned twice.
+ * Policy stays with each caller: which world, and whether to remove it afterwards. What is here is only what
+ * was learned the hard way and should not be learned twice — starting one, stopping one, and the fence a
+ * removal has to clear.
  */
 object ServerLaunch {
 
@@ -53,14 +54,78 @@ object ServerLaunch {
     /** A port nobody is on. Racy in principle; in practice this is one process on a developer's machine. */
     fun freePort(): Int = ServerSocket(0).use { it.localPort }
 
-    /** A server [start] brought up, and the `server.properties` text the caller must put back. */
-    data class Started(val process: Process, val rcon: Rcon, val properties: File, val originalProperties: String)
+    /** Long enough for a cold first boot, which generates a world and warms every registry. */
+    const val STARTUP_SECONDS = 240L
+
+    /** How long each of a stop's two waits gives a server to save and exit before it is pushed harder. */
+    const val SHUTDOWN_SECONDS = 60L
+
+    /** A server [start] brought up, which puts `server.properties` back however it is stopped. */
+    class Started(val process: Process, val rcon: Rcon, val properties: File, val originalProperties: String) {
+
+        private var shutdownHook: Thread? = null
+
+        private var stopped = false
+
+        /**
+         * The tidying [stop] does, for a JVM that goes down before reaching it — a cancelled Gradle task, a
+         * Ctrl-C, an exception out of a caller's own setup: the server's process tree ended,
+         * `server.properties` put back, and then [alsoWhenKilled].
+         *
+         * **Forcible rather than polite**: this runs while the JVM is going down, and a shutdown hook that
+         * waits a minute for a clean save is one somebody kills again. `SIGKILL` reaches none of this, which
+         * is what `LauncherWatch` is for.
+         */
+        fun tidyUpIfKilled(alsoWhenKilled: () -> Unit = {}) {
+            val hook = Thread {
+                LaunchSpec.endTheTree(process)
+                properties.writeText(originalProperties)
+                alsoWhenKilled()
+            }
+            Runtime.getRuntime().addShutdownHook(hook)
+            shutdownHook = hook
+        }
+
+        /**
+         * Stops the server the way a console would, and puts `server.properties` back however that goes.
+         *
+         * `stop` over RCON, then [shutdownSeconds] for it to save and exit, then `destroy`, then the same wait
+         * and `destroyForcibly`. The shutdown hook is let go only once the process has gone, so a JVM killed
+         * during the wait still tidies up. Does nothing the second time.
+         */
+        fun stop(shutdownSeconds: Long = SHUTDOWN_SECONDS) {
+            if (stopped) return
+            stopped = true
+            runCatching { rcon.run("stop") }
+            rcon.close()
+            if (!process.waitFor(shutdownSeconds, TimeUnit.SECONDS)) process.destroy()
+            if (!process.waitFor(shutdownSeconds, TimeUnit.SECONDS)) process.destroyForcibly()
+            shutdownHook?.let { hook -> runCatching { Runtime.getRuntime().removeShutdownHook(hook) } }
+            properties.writeText(originalProperties)
+        }
+    }
+
+    /**
+     * Whether [world] is a throwaway world that may be removed — **the only fence between a deletion and a
+     * world somebody plays**, stated once for every caller that removes one.
+     *
+     * Three fences, and each is a way a real save could otherwise be reached: it must carry the [prefix]
+     * the caller generated its name with, sit directly in the run directory where it was put, and be a real
+     * directory rather than a link into one.
+     */
+    fun isOursToRemove(world: File, prefix: String): Boolean {
+        val runDirectory = world.parentFile ?: return false
+        val isOurs = world.name.startsWith(prefix)
+        val isWhereWePutIt = runDirectory.resolve(world.name).canonicalFile == world.canonicalFile
+        val isARealDirectory = world.isDirectory && world.canonicalPath == world.absolutePath
+        return isOurs && isWhereWePutIt && isARealDirectory
+    }
 
     /**
      * A server started from [launch] with [settings] laid over its `server.properties`, once RCON on
      * [rconPort] answers.
      *
-     * Stopping it and putting the file back are the caller's. A start that fails here puts the file back
+     * Stopping it is the caller's, through [Started.stop]. A start that fails here puts the file back
      * itself, and kills the process if there is one.
      */
     fun start(
@@ -68,7 +133,7 @@ object ServerLaunch {
         settings: Map<String, String>,
         rconPort: Int,
         password: String,
-        startupSeconds: Long,
+        startupSeconds: Long = STARTUP_SECONDS,
     ): Started {
         val properties = launch.workingDirectory.resolve("server.properties")
         check(properties.isFile) {

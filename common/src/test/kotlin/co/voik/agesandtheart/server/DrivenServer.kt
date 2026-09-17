@@ -3,7 +3,6 @@ package co.voik.agesandtheart.server
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.io.File
-import java.util.concurrent.TimeUnit
 
 /**
  * A dedicated server, started and driven from a check — **a tool, and nothing more**.
@@ -20,13 +19,12 @@ import java.util.concurrent.TimeUnit
  * a world somebody cares about, and the file is the server's, not ours — see [close].
  */
 class DrivenServer private constructor(
-    private val process: Process,
-    private val rcon: Rcon,
-    private val properties: File,
-    private val originalProperties: String,
+    private val started: ServerLaunch.Started,
     private val world: File,
     private val bootLog: File,
 ) : AutoCloseable {
+
+    private val rcon: Rcon get() = started.rcon
 
     /** [command] run on the server, and its output verbatim. `/age write …`, without the slash. */
     fun run(command: String): String = rcon.run(command)
@@ -60,55 +58,25 @@ class DrivenServer private constructor(
         return parsed.asJsonObject
     }
 
-    /**
-     * The tidying [close] does, for a run that never reaches [close] — a cancelled Gradle task, a Ctrl-C, an
-     * exception out of a spec's own setup.
-     *
-     * **Without it a killed run leaves three things behind**: a Minecraft server holding a world lock and
-     * a port, a `server.properties` still carrying the harness's RCON settings, and a `checks-…` world.
-     * `PreviewServer` has had this since it was written; this did not, and the servers it stranded were
-     * found running for hours.
-     *
-     * Forcible rather than the polite stop, for the reason `PreviewServer` gives: this runs while the JVM
-     * is going down, and a shutdown hook that waits a minute for a clean save is one somebody kills again.
-     * The world is a throwaway either way.
-     */
-    private val tidyUpIfWeAreKilled = Thread {
-        LaunchSpec.endTheTree(process)
-        properties.writeText(originalProperties)
-        discard(world)
-    }
-
     init {
-        Runtime.getRuntime().addShutdownHook(tidyUpIfWeAreKilled)
+        // Without this a killed run leaves a server holding a world lock and a port, a `server.properties`
+        // still carrying the harness's RCON settings, and a `checks-…` world.
+        started.tidyUpIfKilled { discard(world) }
     }
 
     /**
-     * Stops the server the way a console would, puts `server.properties` back however that goes, and
-     * removes the world this run made.
+     * Stops the server and removes the world this run made.
      *
-     * **The only thing here that deletes anything, and it is fenced four ways** — the directory must be one
-     * this run created, must still carry the name we generated, must sit directly in the server's run
-     * directory, and must not be a link. A check harness that can reach a world somebody plays is not worth
-     * the disk it saves, so each of those is checked rather than assumed.
-     *
-     * The deletion comes last, after the process has exited: a running server holds the region files open
-     * and would write them out again underneath us.
+     * **The only thing here that deletes anything**, and only past [ServerLaunch.isOursToRemove]. The deletion
+     * comes last, after the process has exited: a running server holds the region files open and would write
+     * them out again underneath us.
      */
     override fun close() {
-        runCatching { rcon.run("stop") }
-        rcon.close()
-        if (!process.waitFor(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) process.destroy()
-        if (!process.waitFor(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) process.destroyForcibly()
-        runCatching { Runtime.getRuntime().removeShutdownHook(tidyUpIfWeAreKilled) }
-        properties.writeText(originalProperties)
+        started.stop()
         discard(world)
     }
 
-
     companion object {
-        private const val STARTUP_SECONDS = 240L
-        private const val SHUTDOWN_SECONDS = 60L
         private const val RCON_PASSWORD = "agesandtheart-checks"
 
         /**
@@ -116,18 +84,14 @@ class DrivenServer private constructor(
          * remove nothing whose name does not start with it, so a world a person named can never be reached
          * however the level ends up configured.
          */
-        private const val CHECKS_WORLD_PREFIX = "checks-"
+        const val CHECKS_WORLD_PREFIX = "checks-"
 
         /**
          * Removes a world **only** if it is one of ours, sitting where we put it, and not a link. Anything
          * else is left exactly alone and said out loud rather than silently skipped.
          */
         private fun discard(world: File) {
-            val runDirectory = world.parentFile ?: return
-            val isOurs = world.name.startsWith(CHECKS_WORLD_PREFIX)
-            val isWhereWePutIt = runDirectory.resolve(world.name).canonicalFile == world.canonicalFile
-            val isARealDirectory = world.isDirectory && world.canonicalPath == world.absolutePath
-            if (!isOurs || !isWhereWePutIt || !isARealDirectory) {
+            if (!ServerLaunch.isOursToRemove(world, CHECKS_WORLD_PREFIX)) {
                 println("drive: leaving '${world.absolutePath}' alone — it is not a world this run created")
                 return
             }
@@ -152,16 +116,8 @@ class DrivenServer private constructor(
                 ServerLaunch.settingsFor(level, port, RCON_PASSWORD),
                 port,
                 RCON_PASSWORD,
-                STARTUP_SECONDS,
             )
-            return DrivenServer(
-                started.process,
-                started.rcon,
-                started.properties,
-                started.originalProperties,
-                launch.workingDirectory.resolve(level),
-                launch.outputFile,
-            )
+            return DrivenServer(started, launch.workingDirectory.resolve(level), launch.outputFile)
         }
 
         /**
