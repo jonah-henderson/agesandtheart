@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age.word.generation
 
-import co.voik.agesandtheart.age.word.ResourceParsing
+import co.voik.agesandtheart.datapack.ResourceParsing
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.resources.Identifier
@@ -240,8 +240,6 @@ data class GenerationGrammars(private val byName: Map<String, GenerationGrammar>
         /** Where a pack puts generation grammars, one file per grammar. */
         const val GENERATION_DIRECTORY = "art/generation"
 
-        private const val JSON_SUFFIX = ".json"
-
         fun load(
             resources: ResourceManager,
             isAWord: (String) -> Boolean,
@@ -249,8 +247,8 @@ data class GenerationGrammars(private val byName: Map<String, GenerationGrammar>
         ): GenerationGrammars {
             val grammars = mutableMapOf<String, GenerationGrammar>()
             val sources = mutableMapOf<String, Identifier>()
-            for ((file, resource) in resources.listResources(GENERATION_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }) {
-                val name = nameOf(file)
+            for ((file, resource) in resources.listResources(GENERATION_DIRECTORY, ResourceParsing::isJson)) {
+                val name = ResourceParsing.nameUnder(file, GENERATION_DIRECTORY)
                 val grammar = ResourceParsing.parse(resource, file, GenerationGrammar.codec(name), problems)
                     ?: continue
                 // Two namespaces both shipping `book.json` would otherwise leave the winner to iteration
@@ -263,8 +261,5 @@ data class GenerationGrammars(private val byName: Map<String, GenerationGrammar>
             }
             return GenerationGrammars(grammars.toMap())
         }
-
-        private fun nameOf(file: Identifier): String =
-            file.path.removePrefix("$GENERATION_DIRECTORY/").removeSuffix(JSON_SUFFIX)
     }
 }

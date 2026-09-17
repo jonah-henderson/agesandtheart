@@ -1,9 +1,9 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.Constants
-import com.google.gson.JsonParser
+import co.voik.agesandtheart.datapack.PerReload
+import co.voik.agesandtheart.datapack.ResourceParsing
 import com.mojang.serialization.Codec
-import com.mojang.serialization.JsonOps
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.packs.resources.ResourceManager
@@ -165,33 +165,29 @@ data class Price(
 
         const val DIRECTORY = "art/manifestation"
 
-        /** The price list this server is running, cached on the resource manager exactly as the corpus is. */
-        fun list(server: MinecraftServer): Map<Manifestation, Price> {
-            val resources = server.resourceManager
-            loaded?.let { (from, known) -> if (from === resources) return known }
-            return read(resources).also { loaded = resources to it }
-        }
+        /** The price list this server is running, read once per datapack load. */
+        fun list(server: MinecraftServer): Map<Manifestation, Price> = current.of(server)
 
-        private var loaded: Pair<ResourceManager, Map<Manifestation, Price>>? = null
+        private val current = PerReload { server -> load(server.resourceManager) }
 
-        private fun read(resources: ResourceManager): Map<Manifestation, Price> = buildMap {
-            for (manifestation in Manifestation.entries) put(manifestation, ORDINARY)
-            for ((file, resource) in resources.listResources(DIRECTORY) { it.path.endsWith(SUFFIX) }) {
-                val key = file.path.removePrefix("$DIRECTORY/").removeSuffix(SUFFIX)
-                val named = Manifestation.entries.firstOrNull { it.key == key }
-                if (named == null) {
-                    Constants.LOG.warn("'{}' names no manifestation, so nothing reads it", file)
-                    continue
+        /** The price list in [resources] — the whole of the loading, and usable offline. */
+        fun load(resources: ResourceManager): Map<Manifestation, Price> {
+            val problems = mutableListOf<String>()
+            val prices = buildMap {
+                for (manifestation in Manifestation.entries) put(manifestation, ORDINARY)
+                for ((file, resource) in resources.listResources(DIRECTORY, ResourceParsing::isJson)) {
+                    val key = ResourceParsing.nameUnder(file, DIRECTORY)
+                    val named = Manifestation.entries.firstOrNull { it.key == key }
+                    if (named == null) {
+                        problems += "$file names no manifestation, so nothing reads it"
+                        continue
+                    }
+                    ResourceParsing.parse(resource, file, CODEC, problems)?.let { put(named, it) }
                 }
-                val read = runCatching {
-                    resource.open().use { CODEC.parse(JsonOps.INSTANCE, JsonParser.parseReader(it.reader())).getOrThrow() }
-                }
-                read.onFailure { Constants.LOG.warn("Could not read '{}': {}", file, it.message) }
-                read.getOrNull()?.let { put(named, it) }
             }
+            for (problem in problems) Constants.LOG.warn("Price list: {}", problem)
+            return prices
         }
-
-        private const val SUFFIX = ".json"
     }
 }
 

@@ -1,7 +1,8 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.datapack.PerReload
+import co.voik.agesandtheart.datapack.ResourceParsing
 import co.voik.agesandtheart.Constants
-import com.google.gson.JsonParser
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -325,31 +326,14 @@ data class Vocabulary(
         /** Where a pack puts the structural words — one file per word, naming a production. */
         const val GRAMMAR_DIRECTORY = "art/grammar"
 
-        private const val JSON_SUFFIX = ".json"
-
         /**
-         * The corpus this server is currently running, **built once and kept**.
-         *
-         * It used to rebuild on every call, which is eleven hundred words derived from the registries and
-         * every authored word re-read off the resource manager — and callers reasonably assume a getter is
-         * a getter. The desk asks for it on every action, and twice for a while.
-         *
-         * **Keyed on the resource manager's identity**, which is exactly the thing a datapack reload
-         * replaces: `reloadResources` builds a fresh `MultiPackResourceManager`, so a reloaded pack misses
-         * the cache and rebuilds, and nothing has to remember to invalidate anything.
-         *
-         * No lock. Two threads arriving together build it twice and one wins, which costs a rebuild that
-         * was happening every call until now and cannot produce a wrong answer — `load` is pure in its
-         * inputs.
+         * The corpus this server is currently running, **built once per datapack load** — eleven hundred
+         * words derived from the registries and every authored word read off the resource manager, which
+         * the desk would otherwise pay on every action.
          */
-        @Volatile
-        private var corpus: Pair<ResourceManager, Vocabulary>? = null
+        private val corpus = PerReload { server -> load(server.resourceManager, server.registryAccess()) }
 
-        fun of(server: MinecraftServer): Vocabulary {
-            val resources = server.resourceManager
-            corpus?.let { (from, known) -> if (from === resources) return known }
-            return load(resources, server.registryAccess()).also { corpus = resources to it }
-        }
+        fun of(server: MinecraftServer): Vocabulary = corpus.of(server)
 
         /**
          * The corpus in [resources] — the whole of the loading, and usable offline.
@@ -448,17 +432,14 @@ data class Vocabulary(
          */
         private fun readCharges(resources: ResourceManager, problems: MutableList<String>): Map<String, Int> =
             buildMap {
-                for ((file, resource) in resources.listResources(CHARGE_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }) {
-                    val key = idOf(file, CHARGE_DIRECTORY).path
-                    val read: Result<Int> = runCatching {
-                        resource.open().use { stream ->
-                            JsonParser.parseReader(stream.reader()).asJsonObject["earns"].asInt
-                        }
-                    }
-                    read.onSuccess { put(key, it) }
-                        .onFailure { problems += "'$file' does not say what it earns: ${it.message}" }
+                for ((file, resource) in resources.listResources(CHARGE_DIRECTORY, ResourceParsing::isJson)) {
+                    val earns = ResourceParsing.parse(resource, file, EARNS, problems) ?: continue
+                    put(ResourceParsing.nameUnder(file, CHARGE_DIRECTORY), earns)
                 }
             }
+
+        /** A charge file says one thing: what a contradiction of its kind earns. */
+        private val EARNS: Codec<Int> = Codec.INT.fieldOf("earns").codec()
 
         /**
          * **One aiming page per aspect**, synthesised rather than authored (`the-world-model.md` §3).
@@ -486,7 +467,7 @@ data class Vocabulary(
 
         private fun readWords(resources: ResourceManager, problems: MutableList<String>): Map<String, Word> {
             val words = mutableMapOf<String, Word>()
-            for ((file, resource) in resources.listResources(WORD_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }) {
+            for ((file, resource) in resources.listResources(WORD_DIRECTORY, ResourceParsing::isJson)) {
                 val id = idOf(file, WORD_DIRECTORY)
                 val word = ResourceParsing.parse(resource, file, Word.mapCodec(id).codec(), problems) ?: continue
                 // Two packs both defining "floating" would otherwise leave the winner to map iteration
@@ -524,15 +505,10 @@ data class Vocabulary(
             resources: ResourceManager,
             problems: MutableList<String>,
         ): Map<Aspect, Derivation> {
-            val stacks = resources.listResourceStacks(DERIVATION_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }
+            val stacks = resources.listResourceStacks(DERIVATION_DIRECTORY, ResourceParsing::isJson)
             val rules = mutableMapOf<Aspect, Derivation>()
             for ((file, layers) in stacks) {
-                val key = idOf(file, DERIVATION_DIRECTORY).path
-                val aspect = Aspect.byPage(key)
-                if (aspect == null) {
-                    problems += "$file names no aspect ('$key'); aspects are ${Aspect.entries.joinToString(" ") { it.page }}"
-                    continue
-                }
+                val aspect = aspectNamedBy(file, DERIVATION_DIRECTORY, problems) ?: continue
                 for (layer in layers) {
                     val read = ResourceParsing.parse(layer, file, Derivation.CODEC, problems) ?: continue
                     val standing = rules[aspect]
@@ -552,15 +528,10 @@ data class Vocabulary(
             resources: ResourceManager,
             problems: MutableList<String>,
         ): Map<Aspect, PresetTags> {
-            val stacks = resources.listResourceStacks(PRESET_TAGS_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }
+            val stacks = resources.listResourceStacks(PRESET_TAGS_DIRECTORY, ResourceParsing::isJson)
             val bySlot = mutableMapOf<Aspect, MutableMap<String, PresetProfile>>()
             for ((file, layers) in stacks) {
-                val slotKey = idOf(file, PRESET_TAGS_DIRECTORY).path
-                val aspect = Aspect.byPage(slotKey)
-                if (aspect == null) {
-                    problems += "$file names no aspect ('$slotKey'); aspects are ${Aspect.entries.joinToString(" ") { it.page }}"
-                    continue
-                }
+                val aspect = aspectNamedBy(file, PRESET_TAGS_DIRECTORY, problems) ?: continue
                 val merged = bySlot.getOrPut(aspect) { mutableMapOf() }
                 for (layer in layers) {
                     val table = ResourceParsing.parse(layer, file, PresetTags.CODEC, problems) ?: continue
@@ -589,7 +560,7 @@ data class Vocabulary(
             problems: MutableList<String>,
         ): Map<String, GrammarWord> {
             val structural = mutableMapOf<String, GrammarWord>()
-            for ((file, resource) in resources.listResources(GRAMMAR_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }) {
+            for ((file, resource) in resources.listResources(GRAMMAR_DIRECTORY, ResourceParsing::isJson)) {
                 val id = idOf(file, GRAMMAR_DIRECTORY)
                 val word = ResourceParsing.parse(resource, file, GrammarWord.mapCodec(id).codec(), problems) ?: continue
                 val existing = structural[word.name]
@@ -602,7 +573,7 @@ data class Vocabulary(
         }
 
         private fun readAntonyms(resources: ResourceManager, problems: MutableList<String>): List<Antonym> {
-            val stacks = resources.listResourceStacks(ANTONYM_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }
+            val stacks = resources.listResourceStacks(ANTONYM_DIRECTORY, ResourceParsing::isJson)
             return stacks.entries.sortedBy { it.key.toString() }.flatMap { (file, layers) ->
                 layers.flatMap { layer -> ResourceParsing.parse(layer, file, AntonymPage.CODEC, problems)?.pairs.orEmpty() }
             }
@@ -610,9 +581,16 @@ data class Vocabulary(
 
         /** A file's id without its directory or suffix: `…/art/word/floating.json` → `…:floating`. */
         private fun idOf(file: Identifier, directory: String): Identifier =
-            Identifier.fromNamespaceAndPath(
-                file.namespace,
-                file.path.removePrefix("$directory/").removeSuffix(JSON_SUFFIX),
-            )
+            Identifier.fromNamespaceAndPath(file.namespace, ResourceParsing.nameUnder(file, directory))
+
+        /** The aspect a per-aspect file under [directory] is named for, or null having said it names none. */
+        private fun aspectNamedBy(file: Identifier, directory: String, problems: MutableList<String>): Aspect? {
+            val key = ResourceParsing.nameUnder(file, directory)
+            val aspect = Aspect.byPage(key)
+            if (aspect == null) {
+                problems += "$file names no aspect ('$key'); aspects are ${Aspect.entries.joinToString(" ") { it.page }}"
+            }
+            return aspect
+        }
     }
 }

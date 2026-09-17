@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.datapack.ResourceParsing
 import com.mojang.serialization.Codec
 import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.Identifier
@@ -52,17 +53,15 @@ class WriterStock(private val listed: Map<String, Set<String>>) {
         /** Where a pack lists a pool's authored words, one file per pool. */
         const val STOCK_DIRECTORY = "art/writer_stock"
 
-        private const val ART_PREFIX = "art/"
-
-        private const val JSON_SUFFIX = ".json"
+        private const val ART_DIRECTORY = "art"
 
         /** The authored half, stacked so a pack may add words to a pool without reprinting ours. */
         fun load(resources: ResourceManager, problems: MutableList<String>): WriterStock {
             val byPool = mutableMapOf<String, MutableSet<String>>()
-            val stacks = resources.listResourceStacks(STOCK_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }
+            val stacks = resources.listResourceStacks(STOCK_DIRECTORY, ResourceParsing::isJson)
             for ((file, layers) in stacks.entries.sortedBy { it.key.toString() }) {
                 // The key is the tag path a trade will name, so the file's own location *is* the pool id.
-                val pool = file.path.removePrefix(ART_PREFIX).removeSuffix(JSON_SUFFIX)
+                val pool = ResourceParsing.nameUnder(file, ART_DIRECTORY)
                 for (layer in layers) {
                     val page = ResourceParsing.parse(layer, file, StockPage.CODEC, problems) ?: continue
                     byPool.getOrPut(pool) { mutableSetOf() } += page.words

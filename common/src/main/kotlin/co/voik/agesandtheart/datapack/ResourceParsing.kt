@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age.word
+package co.voik.agesandtheart.datapack
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
@@ -7,8 +7,18 @@ import com.mojang.serialization.JsonOps
 import net.minecraft.resources.Identifier
 import net.minecraft.server.packs.resources.Resource
 
-/** Reading one datapack file through one codec, collecting failures rather than throwing. */
+/** Reading datapack files through codecs, collecting failures rather than throwing. */
 object ResourceParsing {
+    /** The one kind of file a datapack directory of ours is read for. */
+    const val JSON_SUFFIX = ".json"
+
+    /** Whether [file] is one of them — the filter every directory listing takes. */
+    fun isJson(file: Identifier): Boolean = file.path.endsWith(JSON_SUFFIX)
+
+    /** What a file under [directory] is called: `art/word/floating.json` is `floating`. */
+    fun nameUnder(file: Identifier, directory: String): String =
+        file.path.removePrefix("$directory/").removeSuffix(JSON_SUFFIX)
+
     /**
      * One file through one codec, or null having said why. Failures are collected because one malformed
      * word must not cost a writer the rest, and a corpus that quietly lost a word is exactly what the

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.datapack.ResourceParsing
 import co.voik.agesandtheart.location
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -107,8 +108,6 @@ data class Script(
         /** The rule table, whole. Not a directory: see the class doc on why these do not merge. */
         const val RULES_FILE = "art/transliteration.json"
 
-        private const val JSON_SUFFIX = ".json"
-
         /** Nothing authored and nothing rewritten — every word comes out in plain letters. */
         val NONE = Script(emptyMap(), emptyList(), font = null)
 
@@ -156,7 +155,7 @@ data class Script(
 
         fun load(resources: ResourceManager, problems: MutableList<String>): Script {
             val spellings = mutableMapOf<String, String>()
-            val stacks = resources.listResourceStacks(SPELLING_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }
+            val stacks = resources.listResourceStacks(SPELLING_DIRECTORY, ResourceParsing::isJson)
             for ((file, layers) in stacks.entries.sortedBy { it.key.toString() }) {
                 for (layer in layers) {
                     val page = ResourceParsing.parse(layer, file, SpellingPage.CODEC, problems) ?: continue

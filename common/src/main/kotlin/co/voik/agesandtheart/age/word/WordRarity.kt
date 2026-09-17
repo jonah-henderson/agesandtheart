@@ -1,8 +1,8 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.datapack.ResourceParsing
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
-import net.minecraft.resources.Identifier
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.util.RandomSource
 
@@ -132,14 +132,12 @@ data class WordRarity(val buckets: List<RarityBucket>) {
         /** Where a pack puts rarity buckets, one file per rarity. */
         const val RARITY_DIRECTORY = "art/rarity"
 
-        private const val JSON_SUFFIX = ".json"
-
         /** The buckets in [resources], stacked so a pack may retune a weight without reprinting the file. */
         fun load(resources: ResourceManager, problems: MutableList<String>): WordRarity {
             val merged = mutableMapOf<String, RarityBucket>()
-            val stacks = resources.listResourceStacks(RARITY_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }
+            val stacks = resources.listResourceStacks(RARITY_DIRECTORY, ResourceParsing::isJson)
             for ((file, layers) in stacks.entries.sortedBy { it.key.toString() }) {
-                val name = nameOf(file)
+                val name = ResourceParsing.nameUnder(file, RARITY_DIRECTORY)
                 for (layer in layers) {
                     val bucket = ResourceParsing.parse(layer, file, RarityBucket.codec(name), problems)
                         ?: continue
@@ -153,8 +151,5 @@ data class WordRarity(val buckets: List<RarityBucket>) {
             }
             return WordRarity(buckets)
         }
-
-        private fun nameOf(file: Identifier): String =
-            file.path.removePrefix("$RARITY_DIRECTORY/").removeSuffix(JSON_SUFFIX)
     }
 }

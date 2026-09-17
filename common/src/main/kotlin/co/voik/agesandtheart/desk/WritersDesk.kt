@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.desk
 
-import co.voik.agesandtheart.age.word.ResourceParsing
+import co.voik.agesandtheart.datapack.ResourceParsing
 import co.voik.agesandtheart.location
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -154,8 +154,6 @@ class WritersDesk(
         const val IMPLEMENT_DIRECTORY = "art/implement"
         const val TIERS_FILE = "art/writers_desk.json"
 
-        private const val JSON_SUFFIX = ".json"
-
         /**
          * Half-width of the cube searched, in every direction — so 5 means an 11×11×11 room.
          *
@@ -172,11 +170,8 @@ class WritersDesk(
 
         fun load(resources: ResourceManager, problems: MutableList<String>): WritersDesk {
             val implements = mutableListOf<DeskImplement>()
-            for ((file, resource) in resources.listResources(IMPLEMENT_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }) {
-                val id = Identifier.fromNamespaceAndPath(
-                    file.namespace,
-                    file.path.removePrefix("$IMPLEMENT_DIRECTORY/").removeSuffix(JSON_SUFFIX),
-                )
+            for ((file, resource) in resources.listResources(IMPLEMENT_DIRECTORY, ResourceParsing::isJson)) {
+                val id = Identifier.fromNamespaceAndPath(file.namespace, ResourceParsing.nameUnder(file, IMPLEMENT_DIRECTORY))
                 implements += ResourceParsing.parse(resource, file, DeskImplement.codec(id), problems)
                     ?: continue
             }

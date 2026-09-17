@@ -1,7 +1,8 @@
 package co.voik.agesandtheart.age.reward
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.word.ResourceParsing
+import co.voik.agesandtheart.datapack.PerReload
+import co.voik.agesandtheart.datapack.ResourceParsing
 import co.voik.agesandtheart.location
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -181,15 +182,10 @@ data class DangerTable(
             ).apply(instance, ::DangerTable)
         }
 
-        /** The table this server is running, cached on the resource manager exactly as the corpus is. */
-        fun of(server: MinecraftServer): DangerTable {
-            val resources = server.resourceManager
-            loaded?.let { (from, known) -> if (from === resources) return known }
-            return load(resources).also { loaded = resources to it }
-        }
+        /** The table this server is running, read once per datapack load. */
+        fun of(server: MinecraftServer): DangerTable = current.of(server)
 
-        @Volatile
-        private var loaded: Pair<ResourceManager, DangerTable>? = null
+        private val current = PerReload { server -> load(server.resourceManager) }
 
         /**
          * The table in [resources] — the whole of the loading, and usable offline.

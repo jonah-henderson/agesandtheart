@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.datapack.ResourceParsing
 import co.voik.agesandtheart.location
 import com.mojang.serialization.Codec
 import net.minecraft.core.RegistryAccess
@@ -63,8 +64,6 @@ class InkRequirement(private val authored: Map<String, InkTier>) {
         /** Where a pack lists authored words by ink tier, one file per tier. */
         const val INK_DIRECTORY = "art/ink"
 
-        private const val JSON_SUFFIX = ".json"
-
         /**
          * `agesandtheart:requires_masterwork_ink` and `..._fine_ink`, dearest first, on each registry a word
          * can name.
@@ -75,9 +74,9 @@ class InkRequirement(private val authored: Map<String, InkTier>) {
         /** The authored half, stacked so a pack may add words without reprinting ours. */
         fun load(resources: ResourceManager, problems: MutableList<String>): InkRequirement {
             val byWord = mutableMapOf<String, InkTier>()
-            val stacks = resources.listResourceStacks(INK_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }
+            val stacks = resources.listResourceStacks(INK_DIRECTORY, ResourceParsing::isJson)
             for ((file, layers) in stacks.entries.sortedBy { it.key.toString() }) {
-                val tierKey = file.path.removePrefix("$INK_DIRECTORY/").removeSuffix(JSON_SUFFIX)
+                val tierKey = ResourceParsing.nameUnder(file, INK_DIRECTORY)
                 val tier = InkTier.entries.firstOrNull { it.key == tierKey }
                 if (tier == null) {
                     problems += "$file names no ink tier ('$tierKey'); tiers are ${InkTier.entries.joinToString(" ") { it.key }}"
