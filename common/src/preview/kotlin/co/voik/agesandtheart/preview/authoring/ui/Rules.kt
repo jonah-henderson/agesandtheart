@@ -345,16 +345,9 @@ class Rules(
     private fun refreshed(): Boolean {
         var far = ServerSnapshot.Progress(0, 0, "starting")
         val taken = canvas.whileBusy(saying = { bar(far) }) {
-            runCatching {
-                ServerSnapshot.refresh(
-                    attach = null,
-                    serverOnlyTags = corpus.vocabulary.tagsOnlyAServerGrants,
-                ) { far = it }
-            }
+            runCatching { corpus.withFreshSnapshot { far = it } }
         }
-        taken.onFailure { return false }
-        taken.getOrNull()?.write()
-        corpus = Corpus(corpus.vocabulary, ServerSnapshot.read())
+        corpus = taken.getOrNull() ?: return false
         return true
     }
 

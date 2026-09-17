@@ -123,19 +123,12 @@ object Preview {
         }
         val lines = findings.sortedBy { it.standing.ordinal }.flatMap { finding ->
             listOf(
-                Line("${finding.standing.name.lowercase().padEnd(9)}", styleOf(finding.standing)) +
+                Line("${finding.standing.name.lowercase().padEnd(9)}", finding.standing.style) +
                     Line(finding.says, Palette.value) +
                     Line(finding.heldBy?.let { "   [$it]" }.orEmpty(), Palette.faint),
             ) + (finding.because?.let { listOf(Line("          $it", Palette.faint)) }.orEmpty())
         }
         return Reader("What is wrong with it", lines)
-    }
-
-    private fun styleOf(standing: Verdict.Standing) = when (standing) {
-        Verdict.Standing.ERROR -> Palette.refused
-        Verdict.Standing.WARNED -> Palette.warned
-        Verdict.Standing.NUDGED -> Palette.nudged
-        Verdict.Standing.NOTED -> Palette.noted
     }
 
     /**

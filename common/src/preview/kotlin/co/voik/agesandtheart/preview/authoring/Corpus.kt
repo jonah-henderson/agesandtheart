@@ -37,6 +37,18 @@ class Corpus(val vocabulary: Vocabulary, val snapshot: ServerSnapshot?) {
     fun otherThan(name: String): List<Word> = vocabulary.words.filterNot { it.name == name }
 
     /**
+     * This corpus with a snapshot taken from a server now, and written down for every later run — the one
+     * way a screen refreshes, so none of them goes on reading the snapshot it had.
+     *
+     * [progress] is how the minutes of a server booting reach whoever asked.
+     */
+    fun withFreshSnapshot(progress: (ServerSnapshot.Progress) -> Unit): Corpus {
+        val taken = ServerSnapshot.refresh(attach = null, vocabulary.tagsOnlyAServerGrants, say = progress)
+        taken.write()
+        return Corpus(vocabulary, taken)
+    }
+
+    /**
      * Which registry a derived word was read off, as the tag directory that holds its tags.
      *
      * **Asked of the registries rather than guessed from the id**, which cannot be done: `the_end` is a

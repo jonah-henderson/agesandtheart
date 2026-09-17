@@ -377,11 +377,7 @@ class Menu(
             value = name,
             label = name,
             note = found.joinToString("  ${Glyph.BULLET} ") { it.says },
-            mark = when (Verdict.Standing.entries[worst]) {
-                Verdict.Standing.ERROR -> Glyph.CROSS
-                Verdict.Standing.WARNED -> Glyph.WARN
-                else -> Glyph.BULLET
-            },
+            mark = Verdict.Standing.entries[worst].mark,
             tone = when {
                 found.size >= MANY -> Palette.refused
                 found.size >= SOME -> Palette.warned
@@ -399,12 +395,7 @@ class Menu(
         }
         val worth = judged.filter { (_, found) -> found.isNotEmpty() }
         if (byName) return worth.sortedBy { (name, _) -> name }
-        return worth.sortedWith(
-            compareByDescending<Pair<String, List<Verdict.Finding>>> { (_, found) ->
-                found.count { it.standing == Verdict.Standing.ERROR }
-            }.thenByDescending { (_, found) -> found.count { it.standing == Verdict.Standing.WARNED } }
-                .thenByDescending { (_, found) -> found.size },
-        )
+        return worth.sortedWith(Verdict.WORST_FIRST)
     }
 
     /**
@@ -415,12 +406,14 @@ class Menu(
         canvas.lending {
             terminal.println("Loading Minecraft data. This boots a server, so give it a minute.")
             runCatching {
-                ServerSnapshot.refresh(
-                    attach = null,
-                    serverOnlyTags = corpus.vocabulary.tagsOnlyAServerGrants,
-                ) { far -> terminal.println("  " + if (far.total <= 0) far.what else "${far.done}/${far.total} ${far.what}") }
+                corpus.withFreshSnapshot { far ->
+                    terminal.println("  " + if (far.total <= 0) far.what else "${far.done}/${far.total} ${far.what}")
+                }
             }.fold(
-                onSuccess = { it.write(); terminal.println("Wrote ${ServerSnapshot.FILE.path}") },
+                onSuccess = { refreshed ->
+                    corpus = refreshed
+                    terminal.println("Wrote ${ServerSnapshot.FILE.path}")
+                },
                 onFailure = { terminal.println("Nothing loaded: ${it.message}") },
             )
             terminal.println("")

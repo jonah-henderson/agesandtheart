@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
+import co.voik.agesandtheart.preview.authoring.Verdict
 import com.github.ajalt.mordant.rendering.TextColors
 import com.github.ajalt.mordant.rendering.TextStyle
 import com.github.ajalt.mordant.rendering.TextStyles
@@ -193,6 +194,23 @@ object Glyph {
     const val FULL = "█"
     const val EMPTY = "░"
 }
+
+/** The colour a finding of this standing is drawn in, everywhere one is. */
+val Verdict.Standing.style: TextStyle
+    get() = when (this) {
+        Verdict.Standing.ERROR -> Palette.refused
+        Verdict.Standing.WARNED -> Palette.warned
+        Verdict.Standing.NUDGED -> Palette.nudged
+        Verdict.Standing.NOTED -> Palette.noted
+    }
+
+/** And the mark it carries. */
+val Verdict.Standing.mark: String
+    get() = when (this) {
+        Verdict.Standing.ERROR -> Glyph.CROSS
+        Verdict.Standing.WARNED -> Glyph.WARN
+        Verdict.Standing.NUDGED, Verdict.Standing.NOTED -> Glyph.BULLET
+    }
 
 /**
  * [text] as inks, with anything marked as a tag coloured.

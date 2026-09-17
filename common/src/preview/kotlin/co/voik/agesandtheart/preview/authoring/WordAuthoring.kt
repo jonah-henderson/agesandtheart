@@ -4,6 +4,7 @@ import co.voik.agesandtheart.preview.authoring.ui.Canvas
 import co.voik.agesandtheart.preview.authoring.ui.Editor
 import co.voik.agesandtheart.preview.authoring.ui.Leaving
 import co.voik.agesandtheart.preview.authoring.ui.Menu
+import co.voik.agesandtheart.preview.authoring.ui.style
 import com.github.ajalt.mordant.rendering.TextColors
 import com.github.ajalt.mordant.rendering.TextStyles
 import com.github.ajalt.mordant.terminal.Terminal
@@ -129,15 +130,7 @@ private fun audit(terminal: Terminal, corpus: Corpus) {
     val judged = WordFile.authoredNames().mapNotNull { name ->
         val candidate = WordFile.read(name).getOrNull() ?: return@mapNotNull name to unreadable(name)
         name to Verdict.on(candidate, corpus)
-    }.sortedWith(
-        compareByDescending<Pair<String, List<Verdict.Finding>>> { (_, findings) ->
-            findings.count { it.standing == Verdict.Standing.ERROR }
-        }.thenByDescending { (_, findings) ->
-            findings.count { it.standing == Verdict.Standing.WARNED }
-        }.thenByDescending { (_, findings) ->
-            findings.count { it.standing == Verdict.Standing.NUDGED }
-        },
-    )
+    }.sortedWith(Verdict.WORST_FIRST)
     terminal.println(TextStyles.bold("\nThe corpus, worst first\n"))
     for ((name, findings) in judged) {
         val refused = findings.count { it.standing == Verdict.Standing.ERROR }
@@ -145,9 +138,9 @@ private fun audit(terminal: Terminal, corpus: Corpus) {
         val nudged = findings.count { it.standing == Verdict.Standing.NUDGED }
         if (refused + warned + nudged == 0) continue
         val marks = listOfNotNull(
-            refused.takeIf { it > 0 }?.let { TextColors.brightRed("$it refused") },
-            warned.takeIf { it > 0 }?.let { TextColors.yellow("$it warned") },
-            nudged.takeIf { it > 0 }?.let { TextColors.brightBlue("$it nudged") },
+            refused.takeIf { it > 0 }?.let { Verdict.Standing.ERROR.style("$it refused") },
+            warned.takeIf { it > 0 }?.let { Verdict.Standing.WARNED.style("$it warned") },
+            nudged.takeIf { it > 0 }?.let { Verdict.Standing.NUDGED.style("$it nudged") },
         )
         terminal.println("  ${name.padEnd(24)}${marks.joinToString("  ")}")
         findings.filterNot { it.standing == Verdict.Standing.NOTED }.forEach {

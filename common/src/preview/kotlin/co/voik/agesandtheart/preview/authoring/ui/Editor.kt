@@ -11,6 +11,21 @@ import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.preview.authoring.Candidate
 import co.voik.agesandtheart.preview.authoring.Corpus
+import co.voik.agesandtheart.preview.authoring.Insistence
+import co.voik.agesandtheart.preview.authoring.Into
+import co.voik.agesandtheart.preview.authoring.drawing
+import co.voik.agesandtheart.preview.authoring.dropping
+import co.voik.agesandtheart.preview.authoring.everythingOn
+import co.voik.agesandtheart.preview.authoring.holding
+import co.voik.agesandtheart.preview.authoring.leaning
+import co.voik.agesandtheart.preview.authoring.poolsOn
+import co.voik.agesandtheart.preview.authoring.putting
+import co.voik.agesandtheart.preview.authoring.puttingInPool
+import co.voik.agesandtheart.preview.authoring.restricting
+import co.voik.agesandtheart.preview.authoring.without
+import co.voik.agesandtheart.preview.authoring.withoutInPool
+import co.voik.agesandtheart.preview.authoring.withoutOffer
+import co.voik.agesandtheart.preview.authoring.withoutPool
 import co.voik.agesandtheart.preview.authoring.Verdict
 import co.voik.agesandtheart.preview.authoring.WordFile
 import com.github.ajalt.mordant.input.KeyboardEvent
@@ -454,7 +469,7 @@ class Editor(
         val counted = Verdict.Standing.entries
             .mapNotNull { standing ->
                 val many = findings.count { it.standing == standing }
-                if (many == 0) null else Ink("$many ${standing.name.lowercase()}  ", styleOf(standing))
+                if (many == 0) null else Ink("$many ${standing.name.lowercase()}  ", standing.style)
             }
         val summary = if (counted.isEmpty()) {
             Line("  ${Glyph.TICK} nothing to answer for", Palette.settled)
@@ -462,27 +477,13 @@ class Editor(
             Line("  ") + Line(counted)
         }
         val said = ordered.take(STRIP_LINES - 1).map { finding ->
-            Line("  ${markerOf(finding.standing)} ", styleOf(finding.standing)) +
+            Line("  ${finding.standing.mark} ", finding.standing.style) +
                 Line(finding.says, Palette.value) +
                 Line(finding.because?.let { " ${Glyph.BULLET} $it" }.orEmpty(), Palette.faint) +
                 Line(finding.heldBy?.let { "  [$it]" }.orEmpty(), Palette.faint)
         }
         return (listOf(summary) + said + List(STRIP_LINES) { Line.BLANK }).take(STRIP_LINES)
             .map { it.sized(width) }
-    }
-
-    private fun styleOf(standing: Verdict.Standing) = when (standing) {
-        Verdict.Standing.ERROR -> Palette.refused
-        Verdict.Standing.WARNED -> Palette.warned
-        Verdict.Standing.NUDGED -> Palette.nudged
-        Verdict.Standing.NOTED -> Palette.noted
-    }
-
-    private fun markerOf(standing: Verdict.Standing) = when (standing) {
-        Verdict.Standing.ERROR -> Glyph.CROSS
-        Verdict.Standing.WARNED -> Glyph.WARN
-        Verdict.Standing.NUDGED -> Glyph.BULLET
-        Verdict.Standing.NOTED -> Glyph.BULLET
     }
 
     /**
@@ -1171,23 +1172,6 @@ class Editor(
         .firstNotNullOfOrNull { stepNamed(it.handle.substringAfter('/').substringBefore('/')) }
         ?: Step.CHOOSE
 
-/** One entry out of a map of sets, and the key with it where nothing is left under it. */
-private fun Map<Aspect, Set<String>>.without(aspect: Aspect?, named: String): Map<Aspect, Set<String>> {
-    val where = aspect ?: return this
-    val here = (this[where].orEmpty() - named).takeIf { it.isNotEmpty() } ?: return this - where
-    return this + (where to here)
-}
-
-/** The same for a map of weighted things. */
-private fun Map<Aspect, Map<String, Double>>.dropping(
-    aspect: Aspect?,
-    named: String,
-): Map<Aspect, Map<String, Double>> {
-    val where = aspect ?: return this
-    val here = (this[where].orEmpty() - named).takeIf { it.isNotEmpty() } ?: return this - where
-    return this + (where to here)
-}
-
     private fun add() {
         when (part) {
             // Straight to the parameter: an effect is a value on a parameter, and the half it belongs to is
@@ -1665,12 +1649,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
             hint = "what it has to clear is the tier's threshold; 1.0 asks for it outright",
             typed = candidate.restricts[aspect]?.get(tag)?.toString() ?: "1.0",
             complaint = { typed -> if (typed.toDoubleOrNull() == null) "a number between -1 and 1" else null },
-            onDone = { typed ->
-                edit { at ->
-                    val kept = at.restricts[aspect].orEmpty() + (tag to typed.toDouble())
-                    at.copy(restricts = at.restricts + (aspect to kept))
-                }
-            },
+            onDone = { typed -> edit { it.restricting(aspect, tag, typed.toDouble()) } },
         )
     }
 
@@ -1692,8 +1671,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
             "restricts" -> aspect?.let { where ->
                 edit { at ->
                     val standing = at.restricts[where]?.get(named) ?: 0.0
-                    val kept = at.restricts[where].orEmpty() + (named to (standing + by).coerceIn(-1.0, 1.0))
-                    at.copy(restricts = at.restricts + (where to kept))
+                    at.restricting(where, named, (standing + by).coerceIn(-1.0, 1.0))
                 }
             }
             else -> Unit
@@ -1726,16 +1704,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
             hint = "positive pulls, negative pushes away; it only chooses between what is left",
             typed = standing?.toString() ?: "1.0",
             complaint = { typed -> if (typed.toDoubleOrNull() == null) "a number between -1 and 1" else null },
-            onDone = { typed ->
-                val weight = typed.toDouble()
-                edit { at ->
-                    if (aspect == null) {
-                        at.copy(leansEverywhere = at.leansEverywhere + (named to weight))
-                    } else {
-                        at.copy(biases = at.biases + (aspect to (at.biases[aspect].orEmpty() + (named to weight))))
-                    }
-                }
-            },
+            onDone = { typed -> edit { it.leaning(aspect, named, typed.toDouble()) } },
         )
     }
 

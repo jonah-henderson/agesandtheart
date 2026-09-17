@@ -16,15 +16,8 @@ import co.voik.agesandtheart.preview.authoring.ui.Gauge
 import co.voik.agesandtheart.preview.authoring.ui.Step
 import co.voik.agesandtheart.preview.authoring.ui.Touched
 import co.voik.agesandtheart.preview.authoring.ui.Glyph
-import co.voik.agesandtheart.preview.authoring.ui.Insistence
-import co.voik.agesandtheart.preview.authoring.ui.addingAPool
-import co.voik.agesandtheart.preview.authoring.ui.drawing
 import co.voik.agesandtheart.preview.authoring.ui.Part
 import co.voik.agesandtheart.preview.authoring.ui.Parts
-import co.voik.agesandtheart.preview.authoring.ui.leaning
-import co.voik.agesandtheart.preview.authoring.ui.poolsOn
-import co.voik.agesandtheart.preview.authoring.ui.puttingInPool
-import co.voik.agesandtheart.preview.authoring.ui.withoutInPool
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import io.kotest.core.annotation.Tags

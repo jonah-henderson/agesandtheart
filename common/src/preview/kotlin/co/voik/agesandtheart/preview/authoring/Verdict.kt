@@ -8,9 +8,6 @@ import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.namesARegistryEntry
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Word
-import co.voik.agesandtheart.preview.authoring.ui.Insistence
-import co.voik.agesandtheart.preview.authoring.ui.everythingOn
-import co.voik.agesandtheart.preview.authoring.ui.poolsOn
 
 /**
  * What is wrong with a word, and what is merely worth thinking about — **the same rules the checks hold,
@@ -61,6 +58,13 @@ object Verdict {
 
     /** Whether anything here would fail a check — what the writer has to clear before saving. */
     fun refusals(findings: List<Finding>) = findings.filter { it.standing == Standing.ERROR }
+
+    /** Named words worst first: most refused, then most warned, then most nudged, then by name. */
+    val WORST_FIRST: Comparator<Pair<String, List<Finding>>> =
+        compareByDescending<Pair<String, List<Finding>>> { (_, found) -> found.count { it.standing == Standing.ERROR } }
+            .thenByDescending { (_, found) -> found.count { it.standing == Standing.WARNED } }
+            .thenByDescending { (_, found) -> found.count { it.standing == Standing.NUDGED } }
+            .thenBy { (name, _) -> name }
 
     // -- the name ------------------------------------------------------------------------------------
 
@@ -320,7 +324,6 @@ object Verdict {
             )
             return@buildList
         }
-        addAll(meaningFaults(candidate, word, corpus))
         for (aspect in word.aspects.sortedBy { it.ordinal }) {
             addAll(sayInFaults(word, aspect, corpus))
         }
