@@ -46,9 +46,6 @@ internal object PhenomenonInstruments {
     /** Far enough out to watch one come, and inside what is loaded at an ordinary view distance. */
     private const val DEFAULT_SANDFALL_DISTANCE = 64
 
-    /** Far enough that the sky reads as somewhere else, near enough to walk to before it falls. */
-    private const val DEFAULT_STORM_DISTANCE = 90
-
     private const val MAX_STORM_DISTANCE = 512
 
     private const val LOOK_LITERAL = "look"
@@ -265,7 +262,7 @@ internal object PhenomenonInstruments {
         // toDouble FIRST: ALL_FURY is an Int, so dividing without it makes every fury under a hundred nought.
         val fury = furyPercent?.let { it.toDouble() / ALL_FURY } ?: Happenings.furyIn(level, Phenomenon.METEORS)
         val facing = Vec3.directionFromRotation(source.rotation)
-        val ahead = source.position.add(facing.scale((distance ?: DEFAULT_STORM_DISTANCE).toDouble()))
+        val ahead = source.position.add(facing.scale(distance?.toDouble() ?: Meteors.gathersAway(level)))
         val spot = BlockPos.containing(ahead.x, source.position.y, ahead.z)
         // Lures are consulted exactly as written weather consults them, unless asked not to — the whole
         // point of this command is that it does what a storm does.

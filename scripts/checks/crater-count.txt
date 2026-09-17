@@ -1,0 +1,41 @@
+# Are a meteoric Age's craters actually THERE? Run with: scripts/drive-server.sh scripts/checks/crater-count.txt
+#
+# THIS ASSERTS NOTHING -- read the numbers. It is the other half of `craters.txt`, which can only say that
+# a crater did not throw inside worldgen. This says whether any was placed, by composing one Age twice --
+# once with the meteors claim and once without it, same seed, same everything else -- and diffing them
+# block for block. Nothing else in generation reads that claim, so every differing block is a crater or
+# the ore a meteoric Age buys.
+#
+# `age compose` rather than `age write`, because a sentence resolves against the corpus of the day: the
+# control has to be the same composition minus one key, not a second sentence that once meant that.
+#
+# MEASURED 2026-09-17, radius 4 (81 chunks):
+#   dry hills, seed 4242 ........................ 21222 blocks, 81 of 81 chunks
+#   the same, with the game's structures in it ... 21636 blocks, 81 of 81 -- the gate costs nothing
+#   the noise floor, one composition twice .......... 904 blocks, 13 of 81
+#   landmass=vanilla, water, seed 4242 ........... 18062 blocks (measured apart from this file)
+#   dry hills, seed 5150028736327257943 ........... 1552 blocks, every example pitchstone ore
+#
+# **Read the chunk count as well as the block count.** Craters touch every chunk of the square; the noise
+# floor is decoration not reproducing between two worlds and sits in a fraction of them.
+#
+# The last row is not a fault: **one meteoric Age in five has no craters at all**, by Craters.pockmarked,
+# and that seed rolls 0.9006 against its 0.8. An Age with craters differs by tens of thousands of blocks in
+# every chunk; one without differs by the ore alone. If a pockmarked seed ever comes back near the noise
+# floor, the craters have stopped being placed and `craters.txt` will not tell you so.
+
+age compose crateredA 4242 landmass=hills sea=minecraft:air rock=caves underground=noise_caves sky=plain sun=member moon=member structures.built=nothing climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1 phenomena.happens=meteors[amount=8]
+age compose crateredB 4242 landmass=hills sea=minecraft:air rock=caves underground=noise_caves sky=plain sun=member moon=member structures.built=nothing climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1
+age compare crateredA crateredB 4
+
+# The noise floor: the SAME composition twice under two names. Whatever this reads is what decoration does
+# not reproduce between two worlds, and the numbers above are only worth reading against it.
+age compose sameA 4242 landmass=hills sea=minecraft:air rock=caves underground=noise_caves sky=plain sun=member moon=member structures.built=nothing climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1 phenomena.happens=meteors[amount=8]
+age compose sameB 4242 landmass=hills sea=minecraft:air rock=caves underground=noise_caves sky=plain sun=member moon=member structures.built=nothing climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1 phenomena.happens=meteors[amount=8]
+age compare sameA sameB 4
+
+# The first pair again with the game's own structures in the Age, which is what the surface-structure gate
+# reads. A gate that refused everything would show up here as a collapse against the pair above.
+age compose structuredA 4242 landmass=hills sea=minecraft:air rock=caves underground=noise_caves sky=plain sun=member moon=member climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1 phenomena.happens=meteors[amount=8]
+age compose structuredB 4242 landmass=hills sea=minecraft:air rock=caves underground=noise_caves sky=plain sun=member moon=member climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1
+age compare structuredA structuredB 4

@@ -10,6 +10,7 @@ import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.Vec3
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
@@ -96,6 +97,42 @@ object Meteors {
         level.getEntities(EntityTypeTest.forClass(MeteorStorm::class.java)) { true }.size
 
     /**
+     * How far from a watcher a storm may do anything at all, in blocks.
+     *
+     * **Everything a storm involves has to happen inside this, and that is what bounds the disc.** Past a
+     * player's chunks, a body is thrown into ground neither side can read and into a chunk that does not
+     * tick: it never falls, and the light that promised it goes out over nothing (Jonah, walked). Vanilla
+     * fixes both limits and neither can be bought off — entities tick only within the simulation distance,
+     * and one is drawn to a client only within `min(its tracking range, that player's view distance)`.
+     *
+     * A chunk of margin, because a player walks while a storm is coming in.
+     */
+    fun withinSight(level: ServerLevel): Double {
+        val players = level.server.playerList
+        val chunks = minOf(players.viewDistance, players.simulationDistance) - A_CHUNK_OF_MARGIN
+        return (chunks * CHUNK_WIDTH).toDouble().coerceAtLeast(CHUNK_WIDTH.toDouble())
+    }
+
+    /**
+     * And what is left for the disc once a body's own entry line has taken its share.
+     *
+     * A body is thrown from [MeteorStorm.ENTRY_RANGE] back up its line, so the throw is that much further
+     * out than the place it is aimed at — which is the part of this that is spent before anything is
+     * placed. What remains is the storm's distance from the watcher plus its reach, together.
+     */
+    private fun roomFor(level: ServerLevel): Double =
+        (withinSight(level) - MeteorStorm.ENTRY_RANGE).coerceAtLeast(SMALLEST_REACH)
+
+    /**
+     * How far out a storm gathers from the watcher it gathers near, in blocks.
+     *
+     * Public because the debug trigger stands one at this distance when it is not told another: a storm
+     * somebody asked for should be the storm the Age would have raised, and a figure of its own would drift
+     * from this one the moment a view distance changed.
+     */
+    fun gathersAway(level: ServerLevel): Double = roomFor(level) * ((NEAREST_SHARE + FURTHEST_SHARE) / TWICE)
+
+    /**
      * Gathers one out past somebody, **on the ground it will fall on**.
      *
      * A storm is a place rather than a thing in the air, and where that place *is* has to include its
@@ -105,10 +142,15 @@ object Meteors {
      * agreeing about how a meteor comes in (Jonah, walked). Sitting it on the surface costs nothing —
      * nothing collides with it, nothing draws it, and the lights it hangs are thousands of blocks up.
      *
-     * **Out past, and rarely overhead.** A storm centred on a player is a scripted event rather than
-     * weather, and design §5.2 refuses it in as many words: falling *near you* rather than *over an area
-     * you are in* makes shelter useless, because you are being aimed at. One gathered a little way off is
-     * a place you can see being pounded, walk out of, or walk toward once it is over.
+     * **Out past, never on top of.** A storm centred on a player is a scripted event rather than weather,
+     * and design §5.2 refuses it in as many words: falling *near you* rather than *at you* is what leaves
+     * shelter and running worth anything.
+     *
+     * **What the budget took is the storm watched from outside it.** The offset is a share of the room a
+     * client leaves ([roomFor]) rather than a distance of its own, and at an ordinary view distance that
+     * offset is smaller than the reach — so a player is inside the disc rather than beside it, and running
+     * out of it is the whole of the answer. Design §5.2 is written as though standing outside one were the
+     * common case; it is now the case only at a wide view distance.
      */
     private fun gatherOneNearSomebody(
         level: ServerLevel,
@@ -119,7 +161,8 @@ object Meteors {
     ) {
         val random = level.random
         val bearing = random.nextDouble() * FULL_TURN
-        val away = NEAREST_APPROACH + random.nextDouble() * (FURTHEST_APPROACH - NEAREST_APPROACH)
+        val room = roomFor(level)
+        val away = room * (NEAREST_SHARE + random.nextDouble() * (FURTHEST_SHARE - NEAREST_SHARE))
         val spot = BlockPos.containing(somebody.x + cos(bearing) * away, somebody.y, somebody.z + sin(bearing) * away)
         raise(level, spot, density, fury, drawn)
     }
@@ -149,7 +192,8 @@ object Meteors {
         } else {
             otherwise
         }
-        val reach = drawn?.let { Lures.reachFor(it.blocks) } ?: MeteorStorm.REACH
+        val asked = drawn?.let { Lures.reachFor(it.blocks) } ?: MeteorStorm.REACH
+        val reach = asked.coerceAtMost(roomLeftAround(level, middle))
         val where = Vec3(middle.x + HALF, standsAbove(level, middle, reach), middle.z + HALF)
         val falling = lasting ?: lengthenedBy(
             MeteorStorm.SHORTEST_FALL +
@@ -159,9 +203,32 @@ object Meteors {
         return MeteorStorm.gatherAt(level, where, bodiesFor(fury, falling), falling, fury, slant, reach)
     }
 
-    /** What is drawing a storm near here, if anything — the lure a caller must consult before [raise]. */
+    /**
+     * How wide a storm centred at [middle] may spread, given where the nearest watcher is standing.
+     *
+     * The disc and the distance out to it come out of one budget, so a storm that gathered further off is
+     * a tighter one rather than one whose far side lands where nobody can see it. A storm the debug
+     * command stood up beyond the budget altogether keeps the floor and says what it got.
+     */
+    private fun roomLeftAround(level: ServerLevel, middle: BlockPos): Double {
+        val watching = Sampling.watchers(level).minByOrNull { awayFrom(it.position(), middle) }
+            ?: return MeteorStorm.REACH
+        return (roomFor(level) - awayFrom(watching.position(), middle)).coerceAtLeast(SMALLEST_REACH)
+    }
+
+    /** How far apart two places are on the ground, which is the distance every limit here is measured in. */
+    private fun awayFrom(watcher: Vec3, middle: BlockPos): Double =
+        hypot(watcher.x - (middle.x + HALF), watcher.z - (middle.z + HALF))
+
+    /**
+     * What is drawing a storm near here, if anything — the lure a caller must consult before [raise].
+     *
+     * **A lure reaches as far as a storm can**, rather than further: one found beyond that would draw a
+     * storm to a place whose bodies could not be thrown, which is the lure doing the very thing this
+     * phenomenon was just taught not to do.
+     */
     fun drawnNear(level: ServerLevel, around: Vec3): Lures.Drawn? =
-        Lures.nearest(level, around, FURTHEST_APPROACH)
+        Lures.nearest(level, around, roomFor(level))
 
     /**
      * How many bodies a storm drops over the whole of its life, which is also what the sky promises.
@@ -211,16 +278,24 @@ object Meteors {
     private const val ONE_WHOLE = 1.0
 
     /**
-     * Far enough out to be somewhere else, near enough to see and to reach afterwards.
+     * How much of [roomFor]'s budget goes on standing the storm away from the watcher, the rest being its
+     * reach — **far enough out to be somewhere else, and never so far that its far side is out of sight**.
      *
-     * **Bounded above by the simulation distance, which is the real constraint.** Entities tick only in
-     * chunks a player keeps ticking — about ten chunks — so a storm gathered further out than this does
-     * not happen at all until somebody walks towards it, which is worse than one that lands on you. With
-     * a disc a hundred and thirty-five wide, that leaves about one storm in seven centred far enough off
-     * to be watched from outside; the rest are somewhere you are standing, and running is the answer.
+     * Shares rather than distances, because the budget is the player's own view and simulation distances
+     * and a storm has to fit whatever those are. At the usual twelve chunks this is a storm gathered
+     * sixteen to forty blocks off with a reach of forty to sixty-four, where it used to be forty to a
+     * hundred and fifty off with a reach of a hundred and thirty-five — smaller, and every body of it
+     * lands where it can be watched landing.
      */
-    private const val NEAREST_APPROACH = 40.0
-    private const val FURTHEST_APPROACH = 152.0
+    private const val NEAREST_SHARE = 0.2
+    private const val FURTHEST_SHARE = 0.5
+
+    /** No storm is thinner than this, however little room a view distance leaves it. */
+    private const val SMALLEST_REACH = 16.0
+
+    /** Kept back from the view distance, because a player walks while a storm is coming in. */
+    private const val A_CHUNK_OF_MARGIN = 1
+    private const val CHUNK_WIDTH = 16
 
     /**
      * One storm at a time, whatever the rung. A rung already buys more storms by shortening the wait

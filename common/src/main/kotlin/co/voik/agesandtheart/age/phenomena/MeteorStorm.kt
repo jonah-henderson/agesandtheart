@@ -7,6 +7,7 @@ import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.resources.Identifier
 import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.entity.Entity
@@ -62,13 +63,22 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
     /**
      * How steeply this storm's bodies come in, in radians off the horizontal.
      *
-     * Watched, because the sky draws the approach from it and the ground throws along it. Carried rather
-     * than worked out from the storm's identity so that a storm can be *asked* for at a named angle —
-     * which is the only way to look at the shallow and the steep ends of the range side by side.
+     * Watched, because the sky draws the approach from it and the ground throws along it. What is watched
+     * is an angle somebody *asked* for, which is the only way to look at the shallow and the steep ends of
+     * the range side by side; a storm that drew its own reads it off its identity, which both sides can do
+     * once the uuid has arrived.
+     *
+     * **The watched default has to be a constant.** A client is sent only the values that differ from
+     * their defaults, and `uuid` inside [defineSynchedData] is still the placeholder vanilla fills in
+     * afterwards — so a default drawn from it is never sent, and each side answers with an angle of its
+     * own.
      */
     var slant: Float
-        get() = entityData.get(SLANT)
+        get() = entityData.get(SLANT).takeIf { it != UNASKED } ?: drawnSlant()
         set(value) = entityData.set(SLANT, value)
+
+    /** The angle this storm comes in at when nobody named one — its own, off its own identity. */
+    private fun drawnSlant(): Float = MeteorFlight.angleOf(uuid.leastSignificantBits).toFloat()
 
     /**
      * How wide this storm's bodies are spread, in blocks — [REACH] unless a lure drew it in.
@@ -106,10 +116,18 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             return (level().gameTime - gathered).toInt().coerceAtLeast(JUST_GATHERED)
         }
 
+    /**
+     * The same clock [partOfATickOn] into the tick being drawn — what a frame wants and a tick does not.
+     *
+     * A light's place is worked out from this, and at twenty steps a second it closes the last of its
+     * approach in twenty-block strides, which reads as a light being redrawn rather than one moving.
+     */
+    fun ageWithin(partOfATickOn: Float): Float = age + partOfATickOn
+
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         builder.define(BODIES, FEW)
         builder.define(FALLING, SHORTEST_FALL)
-        builder.define(SLANT, MeteorFlight.angleOf(uuid.leastSignificantBits).toFloat())
+        builder.define(SLANT, UNASKED)
         builder.define(GATHERED_AT, NEVER)
         builder.define(REACHES, REACH.toFloat())
     }
@@ -210,14 +228,34 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      * difference between them tilted the flight against the light it was announced by — a body landing
      * twenty blocks below the storm centre flew at thirty-six degrees where thirty had been drawn.
      *
-     * The height is asked of the world rather than carried, on both sides. A client has the heightmap for
-     * anything inside a storm's disc, that being well within render distance of somebody near enough to be
-     * having a storm at all.
+     * The height is asked of the world rather than carried, on both sides, and where neither can answer
+     * they agree on the plane the storm itself stands on — see [groundUnder].
      */
     fun landingOf(flight: MeteorFlight): Vec3 {
         val landsAt = BlockPos.containing(x + flight.landsAwayX, y, z + flight.landsAwayZ)
-        val ground = level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, landsAt)
-        return Vec3(ground.x + HALF, ground.y.toDouble(), ground.z + HALF)
+        return Vec3(landsAt.x + HALF, groundUnder(landsAt), landsAt.z + HALF)
+    }
+
+    /**
+     * The ground a body is aimed at, or **the storm's own plane where that chunk is not loaded**.
+     *
+     * A heightmap answers `minY` for a chunk it does not have — silently, and on either side: a client for
+     * anything it was never sent, a server for anything past its view distance. A storm's disc reaches
+     * nearly three hundred blocks, well past both, so the far side of a shower was aiming at bedrock: the
+     * sky drew lights closing on a point underground, and the ground threw bodies from inside the rock.
+     *
+     * The storm's own height is the answer both sides have, since it is part of the position vanilla
+     * already syncs. A body thrown at it flies over real terrain and is landed by its own collision, or by
+     * `Meteor.overdue` if the world it was crossing stopped ticking under it.
+     */
+    private fun groundUnder(landsAt: BlockPos): Double {
+        val level = level()
+        val loaded = level.hasChunk(
+            SectionPos.blockToSectionCoord(landsAt.x),
+            SectionPos.blockToSectionCoord(landsAt.z),
+        )
+        if (!loaded) return y
+        return level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, landsAt).y.toDouble()
     }
 
     /**
@@ -299,7 +337,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         falling = input.getIntOr(FALLING_KEY, SHORTEST_FALL)
         fury = input.getDoubleOr(FURY_KEY, ORDINARY_FURY)
         bodies = input.getIntOr(BODIES_KEY, FEW)
-        slant = input.getFloatOr(SLANT_KEY, MeteorFlight.angleOf(uuid.leastSignificantBits).toFloat())
+        slant = input.getFloatOr(SLANT_KEY, UNASKED)
         gatheredAt = input.getLongOr(GATHERED_KEY, NEVER)
         droppedTo = input.getIntOr(DROPPED_KEY, NONE_THROWN_YET)
         reach = input.getFloatOr(REACH_KEY, REACH.toFloat())
@@ -344,9 +382,15 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         private const val NOTICING = 60
 
         /**
-         * How far the pounding reaches from its middle — **exactly as far as you can run in the warning
-         * you are given** (Jonah), which is why it is worked out here rather than chosen. A radius, so the
-         * disc is twice this across; every reach in this phenomenon is one, a lure's included.
+         * How far the pounding would reach from its middle if there were room for it — **as far as you can
+         * run in the warning you are given** (Jonah), which is why it is worked out here rather than
+         * chosen. A radius, so the disc is twice this across; every reach in this phenomenon is one, a
+         * lure's included.
+         *
+         * **A ceiling rather than the figure a storm gets.** [Meteors.withinSight] is what usually binds,
+         * and under a twelve-chunk view it binds well under this — a storm that spread this wide put a
+         * third of its bodies where no client could hold the ground they were aimed at. Nothing about the
+         * counterplay breaks when it comes down, since a narrower disc is one you leave sooner.
          *
          * Take the telegraph, take off the seconds the warning itself spends coming up, take off a few
          * more for noticing it and turning round, and multiply what is left by a sprint. A storm that
@@ -374,6 +418,9 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         /** No length a storm can have, so the flights are worked out the first time they are asked for. */
         private const val NOT_YET = -1
 
+        /** No angle a storm can come in at, so it reads as "nobody named one" — see [slant]. */
+        private const val UNASKED = 0.0f
+
         /**
          * **A bit under a creeper at rest, and past twice TNT at the very top** (Jonah, 2026-09-06).
          *
@@ -394,8 +441,15 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         fun fiercenessOf(blast: Float): Double =
             ((blast - AT_REST) / (AT_FULL_FURY - AT_REST)).coerceIn(NONE_OF_IT.toDouble(), ALL_OF_IT.toDouble())
 
-        /** How far back along its own entry line a body starts. Far enough to cross real sky. */
-        const val ENTRY_RANGE = 150.0
+        /**
+         * How far back along its own entry line a body starts — far enough to cross real sky, and **the
+         * first charge on what a watcher's client can hold** ([Meteors.withinSight]).
+         *
+         * A body is thrown from here rather than from where it lands, so this much of the budget is spent
+         * before the storm has any width at all: at the usual twelve chunks it is over half of it. It buys
+         * about five ticks of visible flight, and lengthening it takes blocks off the disc.
+         */
+        const val ENTRY_RANGE = 96.0
 
         /**
          * How far out a body's light hangs when it first appears, in blocks.

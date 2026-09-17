@@ -45,7 +45,7 @@ object MeteorSky {
         val lights = mutableListOf<Glow>()
         for (entity in moment.level.entitiesForRendering()) {
             val storm = entity as? MeteorStorm ?: continue
-            gatherWhatIsStillToCome(storm, moment.camera.position(), lights)
+            gatherWhatIsStillToCome(storm, moment.partOfATickOn, moment.camera.position(), lights)
         }
         Blaze3dSkyCanvas.drawGlows(lights)
     }
@@ -58,14 +58,24 @@ object MeteorSky {
      * were still approaching, so each appeared from nowhere at nine tenths of its size the moment a slot
      * freed. A long storm is a hundred bodies and every one has to be in the sky for its whole approach or
      * the sky and the ground are telling different stories. `drawGlows` puts the lot in one submission.
+     *
+     * **Drawn against the frame's own clock rather than the tick's** ([MeteorStorm.ageWithin]), since a
+     * body covers twenty blocks in the last tick of its approach and a light stepping that far at a time
+     * reads as one being redrawn somewhere else.
      */
-    private fun gatherWhatIsStillToCome(storm: MeteorStorm, eye: Vec3, into: MutableList<Glow>) {
+    private fun gatherWhatIsStillToCome(
+        storm: MeteorStorm,
+        partOfATickOn: Float,
+        eye: Vec3,
+        into: MutableList<Glow>,
+    ) {
+        val age = storm.ageWithin(partOfATickOn)
         for (number in 0..<storm.bodies) {
             val flight = storm.flightOf(number)
-            val until = flight.fallsAt - storm.age
+            val until = flight.fallsAt - age
             if (until <= NONE_LEFT) continue
             if (until > SEEN_COMING) continue
-            val nearness = ONE_WHOLE - until.toFloat() / SEEN_COMING
+            val nearness = ONE_WHOLE - until / SEEN_COMING
             into += lightFor(storm.seenFrom(flight, nearness).subtract(eye), nearness)
         }
     }
@@ -106,7 +116,7 @@ object MeteorSky {
     private val COLD_FIRE = Rgba(0.62f, 0.45f, 1.0f, 0.95f)
 
     /** How long before its own fall a body's light appears, in ticks — the thirty-second warning. */
-    private const val SEEN_COMING = MeteorStorm.APPROACHING
+    private const val SEEN_COMING = MeteorStorm.APPROACHING.toFloat()
 
     /**
      * **A star, growing to about two of them** (Jonah, walked), and measured rather than judged: vanilla
@@ -123,7 +133,7 @@ object MeteorSky {
     /** Small lights need to be bright to be lights at all, so they arrive already burning. */
     private const val DIMMEST = 0.5f
 
-    private const val NONE_LEFT = 0
+    private const val NONE_LEFT = 0.0f
     private const val ONE_WHOLE = 1.0f
 
     private const val UP_X = 0.0f
