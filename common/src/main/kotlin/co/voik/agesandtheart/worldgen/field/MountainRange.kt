@@ -106,23 +106,14 @@ data class MountainRange(
     override val samplesPerColumn = SCAN * SCAN + 5
 
     /**
-     * Everything the network needs for one column.
+     * Everything the network needs for one column, thread-confined and overwritten per column for the reason
+     * [LatticeScan] gives.
      *
-     * **Thread-confined scratch rather than a fresh allocation, and never anything longer-lived than a
-     * call.** [Drainage] holds the equivalent in locals because chunk workers evaluate columns
-     * concurrently, and a field remembering its last neighbourhood would answer one thread's question with
-     * another's. A scan of a hundred and twenty-one nodes is four arrays and some three kilobytes, though,
-     * and allocating that per column left megabytes of garbage per chunk — so the arrays are held per
-     * thread and overwritten, which keeps the confinement and drops the churn.
-     *
-     * Positions are in the range's own frame: along the strike and across it, which is where the lattice
-     * lives so that the grain and the wedge can both be read straight off a node.
+     * The scan's positions are in the range's own frame: along the strike and across it, which is where the
+     * lattice lives so that the grain and the wedge can both be read straight off a node.
      */
     private class Neighbourhood {
-        val along = DoubleArray(SCAN * SCAN)
-        val across = DoubleArray(SCAN * SCAN)
-        val height = DoubleArray(SCAN * SCAN)
-        val flowsTo = IntArray(SCAN * SCAN)
+        val scan = LatticeScan(SCAN)
 
         /** Where [measureBend] left its answer — see there for why it is written rather than returned. */
         var bendDistance = 0.0
@@ -141,8 +132,7 @@ data class MountainRange(
      *
      * A whole chunk's worth of columns and a ring beyond it, indexed straight off the low bits of the block
      * coordinates so a chunk and its neighbours cannot collide with themselves. Thread-confined, because a
-     * field is shared across every chunk worker; the same shape [Grounding] and `ClimateDepth.BelowTerrain`
-     * already use, one size up.
+     * field is shared across every chunk worker.
      */
     private val memo = ColumnMemo(::derive)
 
@@ -169,6 +159,9 @@ data class MountainRange(
         val cellAlong = floor(along / spacing).toInt()
         val cellAcross = floor(across / spacing).toInt()
         val around = scanAround(cellAlong, cellAcross)
+        val scan = around.scan
+        val nodeAlong = scan.first
+        val nodeAcross = scan.second
 
         // The hillslope envelope, kept apart from the finished ground because it is what the water may
         // stand against: a cirque scooped below its own channel has to be allowed to hold a tarn.
@@ -188,16 +181,16 @@ data class MountainRange(
         for (row in RING - DRAWN..RING + DRAWN) {
             for (column in RING - DRAWN..RING + DRAWN) {
                 val here = row * SCAN + column
-                val downhill = around.flowsTo[here]
+                val downhill = scan.flowsTo[here]
                 if (downhill == NOWHERE) continue
-                val joining = inflowsTo(here, around.flowsTo)
+                val joining = inflowsTo(here, scan)
 
                 // How far this reach bows, as a pure function of the node it leaves — so the two query cells
                 // that can both see it always draw the same curve, and there is no seam between them.
                 val bow = cellHash(cellAlong + column - RING, cellAcross + row - RING, BOW_SALT) * reachBow * 2.0
                 measureBend(
                     around, along, across,
-                    around.along[here], around.across[here], around.along[downhill], around.across[downhill],
+                    nodeAlong[here], nodeAcross[here], nodeAlong[downhill], nodeAcross[downhill],
                     bow,
                 )
                 // **How far down the reach this column is, measured on the straight chord and not on the
@@ -208,7 +201,7 @@ data class MountainRange(
                 // every meander. A projection onto the chord is smooth everywhere and says the same thing.
                 val alongReach = alongSegment(
                     along, across,
-                    around.along[here], around.across[here], around.along[downhill], around.across[downhill],
+                    nodeAlong[here], nodeAcross[here], nodeAlong[downhill], nodeAcross[downhill],
                 )
                 val fromChannel = around.bendDistance
 
@@ -217,22 +210,22 @@ data class MountainRange(
                 // it joins, so every junction comes out as a star of straight scratches meeting at a point.
                 // Growing it towards the *downstream* node's order is what makes a valley widen as it goes
                 // and lets tributaries merge into their trunk instead of arriving beside it.
-                val gathering = joining + (inflowsTo(downhill, around.flowsTo) - joining) * alongReach
+                val gathering = joining + (inflowsTo(downhill, scan) - joining) * alongReach
 
                 // The bed under whichever point of the reach this column is nearest to, so the fall the land
                 // has along a reach is the fall its river has. Incision is read at the *reach's* own place in
                 // the wedge rather than this column's, or a trunk would deepen and shallow as you walked
                 // beside it.
                 val cutting = incisionAt(reliefScale, gathering)
-                val bed = around.height[here] +
-                    (around.height[downhill] - around.height[here]) * alongReach - cutting
+                val bed = scan.height[here] +
+                    (scan.height[downhill] - scan.height[here]) * alongReach - cutting
                 // A cirque belongs to the head of a valley, not to whichever reach happens to run nearest —
                 // so it is offered whether or not this reach won the ground, and takes its own depth from a
                 // headwater's incision rather than from the interpolated one.
                 if (joining == 0.0) {
                     val head = glaciation.cirqueAt(
-                        distance(along, across, around.along[here], around.across[here]),
-                        around.height[here],
+                        distance(along, across, nodeAlong[here], nodeAcross[here]),
+                        scan.height[here],
                         incisionAt(reliefScale, 0.0),
                     )
                     if (head != null && head < scooped) scooped = head
@@ -399,51 +392,31 @@ data class MountainRange(
     /** Where every node of the scan stands in the range's frame, how high it is, and which way it flows. */
     private fun scanAround(cellAlong: Int, cellAcross: Int): Neighbourhood {
         val around = scratch.get()
-        // **Cleared, because the buffer is reused.** Only the inner rings are written below, so the border
-        // would otherwise keep whichever column's flow directions were last worked out here.
-        around.flowsTo.fill(NOWHERE)
-        for (row in 0..<SCAN) {
-            for (column in 0..<SCAN) {
-                val nodeAlong = cellAlong + column - RING
-                val nodeAcross = cellAcross + row - RING
-                val at = row * SCAN + column
-                around.along[at] = nodeAt(nodeAlong, nodeAcross, ALONG_SALT)
-                around.across[at] = nodeAt(nodeAcross, nodeAlong, ACROSS_SALT)
-                around.height[at] = profile.landAt(around.along[at], around.across[at])
-            }
-        }
-        // Only where a node's own eight neighbours are inside the scan can its flow be known at all.
-        for (row in 1..<SCAN - 1) {
-            for (column in 1..<SCAN - 1) {
-                around.flowsTo[row * SCAN + column] = lowestNeighbourOf(row, column, around.height, SCAN)
-            }
-        }
+        around.scan.fill(
+            cellFirst = cellAlong,
+            cellSecond = cellAcross,
+            nodeFirst = ::nodeAlongAt,
+            nodeSecond = ::nodeAcrossAt,
+            heightAt = profile::landAt,
+        )
         return around
     }
 
     /**
-     * How many streams join here — the stream order, and the whole of what tells a trunk from a headwater.
-     * Counted rather than accumulated, for the reason [Drainage] gives: a true Strahler order would need the
-     * network walked to its sources, and one step of it distinguishes a confluence from a beginning.
+     * How many streams join here, as [LatticeScan.inflowsTo] counts them — **clamped, because an inflow count
+     * is a stand-in for drainage area and not a measure of it.** A hollow that all eight neighbours drain into
+     * does not carry eight times a confluence's water, and reading it that way sinks a shaft where a basin
+     * belongs.
      */
-    private fun inflowsTo(here: Int, flowsTo: IntArray): Double {
-        val row = here / SCAN
-        val column = here % SCAN
-        var joining = 0
-        for (upRow in -1..1) {
-            for (upColumn in -1..1) {
-                if (upRow == 0 && upColumn == 0) continue
-                if (flowsTo[(row + upRow) * SCAN + (column + upColumn)] == here) joining++
-            }
-        }
-        // **Clamped, because an inflow count is a stand-in for drainage area and not a measure of it.** A
-        // hollow that all eight neighbours drain into does not carry eight times a confluence's water, and
-        // reading it that way sinks a shaft where a basin belongs.
-        return joining.coerceAtMost(MOST_TRIBUTARIES).toDouble()
-    }
+    private fun inflowsTo(here: Int, scan: LatticeScan): Double =
+        scan.inflowsTo(here).coerceAtMost(MOST_TRIBUTARIES).toDouble()
 
-    private fun nodeAt(cell: Int, otherCell: Int, salt: Int): Double =
-        (cell + HALF + cellHash(cell, otherCell, salt) * jitter) * spacing
+    // Each axis's jitter is hashed on the cell with its own axis first.
+    private fun nodeAlongAt(cellAlong: Int, cellAcross: Int): Double =
+        latticeNode(cellAlong, cellAlong, cellAcross, ALONG_SALT, jitter, spacing)
+
+    private fun nodeAcrossAt(cellAlong: Int, cellAcross: Int): Double =
+        latticeNode(cellAcross, cellAcross, cellAlong, ACROSS_SALT, jitter, spacing)
 
     private val roughnessNoise = fieldNoise(seed xor ROUGHNESS_SALT, ROUGHNESS_OCTAVE, ROUGHNESS_AMPLITUDES)
 
@@ -496,8 +469,6 @@ data class MountainRange(
 
         /** No reach wets this column. */
         private const val NO_WATER = Double.NEGATIVE_INFINITY
-
-        private const val HALF = 0.5
 
         /**
          * Thirty degrees, as a gradient. Bedrock stands nearer thirty-five and soil-mantled ground nearer

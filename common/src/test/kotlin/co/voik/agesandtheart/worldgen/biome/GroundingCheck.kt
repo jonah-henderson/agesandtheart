@@ -327,13 +327,12 @@ class GroundingCheck : FunSpec({
     }
 
     /**
-     * The per-column cache is direct-mapped over sixteen slots, so two columns four quart-cells apart land
-     * in the same one. It keys on the column as well, but a cache that did not would answer plausibly and
-     * wrongly — one column wearing its neighbour's coastline.
+     * The column memo is direct-mapped over a 32-block square, so two columns that far apart land in the same
+     * slot. It keys on the column as well, but a cache that did not would answer plausibly and wrongly — one
+     * column wearing its neighbour's coastline.
      */
     test("two columns sharing a cache slot keep their own answers") {
         val land = Grounding(RiverlandsField.network(), waterline)
-        // Sixteen blocks is four quart cells, which is exactly one lap of the slot index.
         val apart = (0..4000 step 64).firstOrNull { at ->
             land.continentalnessOf(surfaceOf(land, at)) != land.continentalnessOf(surfaceOf(land, at + SLOT_LAP))
         } ?: error("no two colliding columns anywhere differed, so this would have checked nothing")
@@ -359,8 +358,8 @@ class GroundingCheck : FunSpec({
         /** How far in from the coast the climb behind the beach is well under way. */
         const val SHOULDER_WAY_IN = 0.7
 
-        /** Four quart cells, which is one lap of the cache's direct-mapped index. */
-        const val SLOT_LAP = 16
+        /** One lap of the column memo's direct-mapped index. */
+        const val SLOT_LAP = 32
 
         fun surfaceOf(grounding: Grounding, worldX: Int): Int =
             grounding.terrain.columnSpans(worldX, 0).highestSolidY ?: 0

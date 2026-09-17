@@ -80,7 +80,7 @@ object CraterlandsField {
      */
     private fun dialled(steer: Double?, tuned: Double, atLeast: Double, atMost: Double): Double {
         if (steer == null) return tuned
-        val alongTheAxis = (steer - Span.NATURAL_LEAST) / (Span.NATURAL_MOST - Span.NATURAL_LEAST)
+        val alongTheAxis = Span.NATURAL.fractionOf(steer)
         return atLeast + alongTheAxis * (atMost - atLeast)
     }
 

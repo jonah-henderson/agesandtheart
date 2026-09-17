@@ -36,9 +36,9 @@ import kotlin.math.abs
  * - **Deep dark**, which vanilla never floods, is asked of the biome source ([isDeepDark]) rather than of
  *   vanilla's erosion and depth, since our depth is our own.
  *
- * And what is ours by design: water the shape pours — rivers, lakes, a caldera's lava ([standing], [carried]) —
- * answers before any of this, and [floods] is the preset that drowns everything below the waterline, which is
- * vanilla's aquifer switched off.
+ * And what is ours by design: water the shape pours — rivers, lakes, a caldera's lava ([SeaFill.wet],
+ * [SeaFill.carried]) — answers before any of this, and [floods] is the preset that drowns everything below the
+ * waterline, which is vanilla's aquifer switched off.
  *
  * The class is the serialisable *description*; [aquiferFor] mints the short-lived per-pass object, which
  * carries caches and must not be shared between chunk workers.
@@ -52,16 +52,6 @@ data class WaterTable(
      * rather than an extreme of the same one, and exactly vanilla's aquifer with aquifers disabled.
      */
     val floods: Boolean = false,
-    /**
-     * Water the shape carries itself — the same field `SeaFill.wet` pours. It answers before the cells, and
-     * raises the sea's level over the columns it stands in, so a carver under a river finds the river.
-     */
-    val standing: TerrainField? = null,
-    /**
-     * Bodies the shape carries that are made of something else — the same [StandingFluid]s [SeaFill] fills,
-     * so a carver cutting into a caldera's lava lake finds lava rather than a hole in it.
-     */
-    val carried: List<StandingFluid> = emptyList(),
 ) {
     // Vanilla's four aquifer noises, at vanilla's octaves, each on its own seed from this table's.
     private val floodedness = fieldNoise(seed xor FLOODEDNESS_SALT, FLOODEDNESS_FIRST_OCTAVE, listOf(1.0))
@@ -82,9 +72,15 @@ data class WaterTable(
         fun isDeepDark(worldX: Int, worldY: Int, worldZ: Int): Boolean
     }
 
-    /** A fresh aquifer for one pass: it caches cells and columns, and must not be shared between workers. */
-    fun aquiferFor(field: TerrainField, surfaceAt: SurfaceAt, isDeepDark: DeepDarkAt?): Aquifer =
-        CellAquifer(field, surfaceAt, isDeepDark)
+    /**
+     * A fresh aquifer for one pass: it caches cells and columns, and must not be shared between workers.
+     *
+     * [seaFill] is asked only for what the shape pours for itself — its water answers before the cells and raises
+     * the sea's level over the columns it stands in, so a carver under a river finds the river, and its other
+     * bodies answer with what they are made of, so one cutting into a caldera finds lava.
+     */
+    fun aquiferFor(field: TerrainField, surfaceAt: SurfaceAt, isDeepDark: DeepDarkAt?, seaFill: SeaFill): Aquifer =
+        CellAquifer(field, surfaceAt, isDeepDark, seaFill)
 
     /**
      * One aquifer per territory, asked whichever owns the column being carved.
@@ -110,6 +106,7 @@ data class WaterTable(
         private val field: TerrainField,
         private val surfaceAt: SurfaceAt,
         private val isDeepDark: DeepDarkAt?,
+        private val seaFill: SeaFill,
     ) : Aquifer {
         private var scheduleFluidUpdate = false
 
@@ -150,13 +147,8 @@ data class WaterTable(
          * into a chamber's lake must find it: this is a body of water somebody can see, not groundwater. A body
          * made of something else answers first, and answers with what it is made of.
          */
-        private fun pouredAt(column: Column, worldY: Int): BlockState? {
-            val carriedSpans = column.carriedSpans
-            for (index in carriedSpans.indices) {
-                if (carriedSpans[index].contains(worldY)) return carried[index].fluid
-            }
-            return if (column.standingSpans?.contains(worldY) == true) fluid else null
-        }
+        private fun pouredAt(column: Column, worldY: Int): BlockState? =
+            seaFill.carriedAt(worldY, column.carriedSpans) ?: if (column.standingSpans.contains(worldY)) fluid else null
 
         /** Vanilla's `computeSubstance` from its cell search onward, line for line. */
         private fun fromTheNearestCells(worldX: Int, worldY: Int, worldZ: Int, substance: Double): BlockState? {
@@ -421,16 +413,14 @@ data class WaterTable(
             val surface: Int by lazy(LazyThreadSafetyMode.NONE) { surfaceAt.surfaceAt(x, z) }
 
             /** Where this column's own water actually stands, rather than how high it reaches. */
-            val standingSpans: Spans? by lazy(LazyThreadSafetyMode.NONE) { standing?.columnSpans(x, z) }
+            val standingSpans: Spans by lazy(LazyThreadSafetyMode.NONE) { seaFill.wetnessAt(x, z) }
 
-            /** And where each body of something else stands, in [carried]'s own order. */
-            val carriedSpans: List<Spans> by lazy(LazyThreadSafetyMode.NONE) {
-                if (carried.isEmpty()) emptyList() else carried.map { it.where.columnSpans(x, z) }
-            }
+            /** And where each body of something else stands, in [SeaFill.carried]'s own order. */
+            val carriedSpans: List<Spans> by lazy(LazyThreadSafetyMode.NONE) { seaFill.carriedAt(x, z) }
 
             /** The sea over this column: the waterline, or higher where the shape carries water of its own. */
             val sea: Aquifer.FluidStatus by lazy(LazyThreadSafetyMode.NONE) {
-                val carriedTop = standingSpans?.highestSolidY?.plus(1) ?: seaLevel
+                val carriedTop = standingSpans.highestSolidY?.plus(1) ?: seaLevel
                 Aquifer.FluidStatus(maxOf(seaLevel, carriedTop), fluid)
             }
 
@@ -453,9 +443,10 @@ data class WaterTable(
             field: TerrainField,
             surfaceAt: SurfaceAt,
             isDeepDark: DeepDarkAt?,
+            seaFill: SeaFill,
             territories: RegionMap,
-        ): Aquifer = tables.singleOrNull()?.aquiferFor(field, surfaceAt, isDeepDark)
-            ?: RegionalAquifer(tables.map { it.aquiferFor(field, surfaceAt, isDeepDark) }, territories)
+        ): Aquifer = tables.singleOrNull()?.aquiferFor(field, surfaceAt, isDeepDark, seaFill)
+            ?: RegionalAquifer(tables.map { it.aquiferFor(field, surfaceAt, isDeepDark, seaFill) }, territories)
 
         private val LAVA: BlockState = Blocks.LAVA.defaultBlockState()
 
@@ -552,9 +543,6 @@ data class WaterTable(
             fluid = seaFill.representative.takeUnless { it.isAir } ?: Blocks.WATER.defaultBlockState(),
             seaLevel = seaLevel,
             seed = seed,
-            // Whatever the shape pours for itself, so a carver under a river finds the river.
-            standing = seaFill.wet,
-            carried = seaFill.carried,
         )
 
         val CODEC: MapCodec<WaterTable> = RecordCodecBuilder.mapCodec { instance ->
@@ -563,13 +551,7 @@ data class WaterTable(
                 Codec.INT.fieldOf("sea_level").forGetter(WaterTable::seaLevel),
                 Codec.LONG.fieldOf("seed").forGetter(WaterTable::seed),
                 Codec.BOOL.optionalFieldOf("floods", false).forGetter(WaterTable::floods),
-                TerrainField.CODEC.optionalFieldOf("standing")
-                    .forGetter { table -> java.util.Optional.ofNullable(table.standing) },
-                StandingFluid.codec(TerrainField.CODEC).codec().listOf().optionalFieldOf("carried", emptyList())
-                    .forGetter(WaterTable::carried),
-            ).apply(instance) { fluid, level, seed, floods, standing, carried ->
-                WaterTable(fluid, level, seed, floods, standing.orElse(null), carried)
-            }
+            ).apply(instance, ::WaterTable)
         }
     }
 }

@@ -39,21 +39,33 @@ class WaterTableCheck : FunSpec({
     // means nothing here ever does.
     val water by lazy { Blocks.WATER.defaultBlockState() }
 
-    fun tableOver(shape: TerrainField, standing: TerrainField? = null): WaterTable =
-        WaterTable.matching(SeaFill.of(water, seaLevel).copy(wet = standing), seaLevel)
+    fun tableOver(shape: TerrainField): WaterTable = WaterTable.matching(SeaFill.of(water, seaLevel), seaLevel)
 
-    /** Whether the aquifer floods a block the carver just opened at this position. */
-    fun floodsAt(table: WaterTable, shape: TerrainField, worldX: Int, worldY: Int, worldZ: Int): Boolean {
-        val aquifer = table.aquiferOver(shape)
+    /** Whether the aquifer floods a block the carver just opened at this position, under water [standing]. */
+    fun floodsAt(
+        table: WaterTable,
+        shape: TerrainField,
+        worldX: Int,
+        worldY: Int,
+        worldZ: Int,
+        standing: TerrainField? = null,
+    ): Boolean {
+        val aquifer = table.aquiferOver(shape, seaFill = SeaFill.of(water, seaLevel).copy(wet = standing))
         val opened = aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
         return opened != null && !opened.fluidState.isEmpty
     }
 
     /** How often a carve at [under] blocks below this shape's surface comes out wet, over a spread of columns. */
-    fun floodedShare(table: WaterTable, shape: TerrainField, surfaceY: Int, under: Int): Double {
+    fun floodedShare(
+        table: WaterTable,
+        shape: TerrainField,
+        surfaceY: Int,
+        under: Int,
+        standing: TerrainField? = null,
+    ): Double {
         val columns = (0..2000 step 53).flatMap { worldX -> (0..2000 step 71).map { worldX to it } }
         return columns.count { (worldX, worldZ) ->
-            floodsAt(table, shape, worldX, surfaceY - under, worldZ)
+            floodsAt(table, shape, worldX, surfaceY - under, worldZ, standing)
         }.toDouble() / columns.size
     }
 
@@ -240,7 +252,7 @@ class WaterTableCheck : FunSpec({
 
         val surfaceY = seaLevel + 40
         val unaware = floodedShare(tableOver(bank), bank, surfaceY, under = 1)
-        val knowing = floodedShare(tableOver(bank, standing = river), bank, surfaceY, under = 1)
+        val knowing = floodedShare(tableOver(bank), bank, surfaceY, under = 1, standing = river)
 
         check(knowing == 1.0) { "only ${"%.0f%%".format(knowing * 100)} under a river flooded, so it drains" }
         check(unaware < MOSTLY_DRY) { "the same ground with nothing over it flooded anyway, so this proves nothing" }

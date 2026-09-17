@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.biome
 
+import co.voik.agesandtheart.worldgen.field.ColumnMemo
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -146,26 +147,25 @@ data class Grounding(
     }
 
     /**
-     * One cache per chunk worker, for the same reason [BelowTerrain] keeps one: a biome is asked per quart
-     * cell, so a chunk asks hundreds of times about sixteen distinct columns — and on a
+     * The columns remembered while a chunk's biomes are laid out: a biome is asked per quart cell, so a chunk
+     * asks hundreds of times about sixteen distinct columns — and on a
      * [co.voik.agesandtheart.worldgen.field.Drainage] a column is a fifty-sample neighbourhood scan.
      */
-    private val columnCache = ThreadLocal.withInitial { ColumnCache() }
+    private val surfaces = ColumnMemo(terrain::columnSpans)
+    private val riverColumns = rivers?.let { ColumnMemo(it::columnSpans) }
 
     /** How far inland this column reads as — vanilla's own axis, answered by our shape. */
     fun continentalnessAt(blockX: Int, blockZ: Int): Float {
-        val cache = columnCache.get()
-        val slot = cache.slotFor(blockX, blockZ, this)
         // A river runs through the country it drains, whatever the height of its own bed would say. Without
         // this a valley deep enough to hold water reads as ocean, and grows kelp.
-        if (cache.isRiver(slot)) return NEAR_INLAND
+        if (isRiverAt(blockX, blockZ)) return NEAR_INLAND
         // An Age with relief and no sea reads this off the relief — see [Elevation.continentalnessFor].
-        declared.elevation?.let { return it.continentalnessFor(cache.surface(slot)) }
+        declared.elevation?.let { return it.continentalnessFor(surfaceAt(blockX, blockZ)) }
         // And one with no sea and no relief to read is simply inland, everywhere. There is no shore to
         // find and no ocean floor to stand on, so the only honest answer is the one vanilla files dry
         // country under — see [hasSea].
         if (!hasSea) return if (declared.isDeepInland) DEEP_INLAND else INLAND_WITH_NO_COAST
-        return cache.continentalness(slot)
+        return continentalnessOf(surfaceAt(blockX, blockZ))
     }
 
     /**
@@ -176,19 +176,40 @@ data class Grounding(
      * biome is chosen at anyway.
      */
     fun erosionAt(blockX: Int, blockZ: Int): Float {
-        val cache = columnCache.get()
-        val slot = cache.slotFor(blockX, blockZ, this)
-        val worn = cache.erosion(slot)
+        val surface = surfaceAt(blockX, blockZ)
+        // The steeper of the two axes, so a ridge running one way is not read as flat ground.
+        val eastward = surfaceAt(blockX + A_QUART, blockZ) - surface
+        val northward = surfaceAt(blockX, blockZ + A_QUART) - surface
+        val worn = erosionOf(maxOf(abs(eastward), abs(northward)).toDouble() / A_QUART)
         // Sand rather than shingle: `erosions[2]` ends at −0.2225 and everything under it is a stony shore.
-        return if (isSandyShore(cache, slot)) maxOf(worn, SANDY_ENOUGH) else worn
+        return if (isSandyShore(blockX, blockZ)) maxOf(worn, SANDY_ENOUGH) else worn
     }
 
     /**
      * Whether this column is a shore this Age means to be sand. A river mouth is not, however coastal it
      * reads — what grows at one is the sea's business, and the river branch has already said so.
      */
-    private fun isSandyShore(cache: ColumnCache, slot: Int): Boolean =
-        declared.hasSandyShores && !cache.isRiver(slot) && cache.continentalness(slot) in A_SHORE
+    private fun isSandyShore(blockX: Int, blockZ: Int): Boolean {
+        val readsAsAShore = continentalnessOf(surfaceAt(blockX, blockZ)) in A_SHORE
+        return declared.hasSandyShores && !isRiverAt(blockX, blockZ) && readsAsAShore
+    }
+
+    /**
+     * **A river stops being one when it reaches the sea.** Carrying water over its bed is not enough: where
+     * that water stands at or under the waterline, this is the sea the river runs into, and what grows there
+     * is an ocean's business — vanilla picks *which* ocean off the temperature axis, which passes through
+     * untouched, so a cold one gets a frozen one.
+     *
+     * Unless there is no sea to reach, in which case the level itself is the river and any ground it covers
+     * is that river's bed. See [Declared.waterlineIsRiver].
+     */
+    private fun isRiverAt(blockX: Int, blockZ: Int): Boolean {
+        val surface = surfaceAt(blockX, blockZ)
+        val standing = riverColumns?.spansAt(blockX, blockZ)?.highestSolidY
+        val runsOverItsOwnBed = standing != null && standing > surface && standing > waterline
+        val liesUnderTheOnlyWater = declared.waterlineIsRiver && surface < waterline
+        return runsOverItsOwnBed || liesUnderTheOnlyWater
+    }
 
     /** Where a fall of this steepness falls on vanilla's erosion axis. A curve through its bands, as above. */
     internal fun erosionOf(fall: Double): Float {
@@ -215,14 +236,12 @@ data class Grounding(
      * simply false, and nudging it clear costs nothing.
      */
     fun weirdnessAt(blockX: Int, blockZ: Int, otherwise: Float): Float {
-        val cache = columnCache.get()
-        val slot = cache.slotFor(blockX, blockZ, this)
-        if (cache.isRiver(slot)) return IN_A_VALLEY
+        if (isRiverAt(blockX, blockZ)) return IN_A_VALLEY
         // An Age with real relief answers this axis outright rather than nudging vanilla's noise off the
         // valley band: where a column sits between floor and crest **is** what the axis asks. See [Elevation].
-        declared.elevation?.let { return it.weirdnessFor(cache.surface(slot), otherwise) }
+        declared.elevation?.let { return it.weirdnessFor(surfaceAt(blockX, blockZ), otherwise) }
         val outOfTheValley = clearOfTheValley(otherwise)
-        return if (isSandyShore(cache, slot)) intoTheBeachSlice(outOfTheValley) else outOfTheValley
+        return if (isSandyShore(blockX, blockZ)) intoTheBeachSlice(outOfTheValley) else outOfTheValley
     }
 
     /**
@@ -231,8 +250,7 @@ data class Grounding(
      */
     fun temperatureAt(blockX: Int, blockZ: Int, otherwise: Float): Float {
         val lapse = declared.elevation ?: return otherwise
-        val cache = columnCache.get()
-        return lapse.chilled(cache.surface(cache.slotFor(blockX, blockZ, this)), otherwise)
+        return lapse.chilled(surfaceAt(blockX, blockZ), otherwise)
     }
 
     /** [weirdness], moved off vanilla's valley band the way it was already leaning, and no further. */
@@ -253,7 +271,7 @@ data class Grounding(
 
     /** This column's surface, or the waterline where there is no ground at all. */
     private fun surfaceAt(blockX: Int, blockZ: Int): Int =
-        terrain.columnSpans(blockX, blockZ).highestSolidY ?: waterline
+        surfaces.spansAt(blockX, blockZ).highestSolidY ?: waterline
 
     /**
      * Where this surface falls on vanilla's continentalness axis. A curve through its bands rather than a
@@ -275,64 +293,10 @@ data class Grounding(
         return BANDS.last() + (DEEP_INLAND - BANDS.last()) * beyond
     }
 
-    /**
-     * The columns of one chunk, remembered while its biomes are laid out — the shape [BelowTerrain] uses,
-     * down to why the index has to shift to the quart first. What is cached is the *answer* rather than the
-     * spans, both readings being wanted together and neither being wanted afterwards.
-     */
-    private class ColumnCache {
-        private val keys = LongArray(SLOTS) { EMPTY_KEY }
-        private val continentalness = FloatArray(SLOTS)
-        private val erosion = FloatArray(SLOTS)
-        private val river = BooleanArray(SLOTS)
-        private val surface = IntArray(SLOTS)
-
-        fun slotFor(blockX: Int, blockZ: Int, grounding: Grounding): Int {
-            val key = (blockX.toLong() shl Int.SIZE_BITS) or (blockZ.toLong() and UNSIGNED_INT)
-            val slot = (((blockX shr QUART_BITS) and 3) shl 2) or ((blockZ shr QUART_BITS) and 3)
-            if (keys[slot] == key) return slot
-            val surface = grounding.surfaceAt(blockX, blockZ)
-            val standing = grounding.rivers?.columnSpans(blockX, blockZ)?.highestSolidY
-            continentalness[slot] = grounding.continentalnessOf(surface)
-            // The steeper of the two axes, so a ridge running one way is not read as flat ground.
-            val eastward = grounding.surfaceAt(blockX + A_QUART, blockZ) - surface
-            val northward = grounding.surfaceAt(blockX, blockZ + A_QUART) - surface
-            erosion[slot] = grounding.erosionOf(maxOf(abs(eastward), abs(northward)).toDouble() / A_QUART)
-            // **A river stops being one when it reaches the sea.** Carrying water over its bed is not
-            // enough: where that water stands at or under the waterline, this is the sea the river runs
-            // into, and what grows there is an ocean's business — vanilla picks *which* ocean off the
-            // temperature axis, which passes through untouched, so a cold one gets a frozen one.
-            //
-            // Unless there is no sea to reach, in which case the level itself is the river and any ground
-            // it covers is that river's bed. See [waterlineIsRiver].
-            val runsOverItsOwnBed = standing != null && standing > surface && standing > grounding.waterline
-            val liesUnderTheOnlyWater = grounding.declared.waterlineIsRiver && surface < grounding.waterline
-            river[slot] = runsOverItsOwnBed || liesUnderTheOnlyWater
-            this.surface[slot] = surface
-            keys[slot] = key
-            return slot
-        }
-
-        fun continentalness(slot: Int): Float = continentalness[slot]
-
-        fun erosion(slot: Int): Float = erosion[slot]
-
-        fun isRiver(slot: Int): Boolean = river[slot]
-
-        fun surface(slot: Int): Int = surface[slot]
-
-        private companion object {
-            const val SLOTS = 16
-            const val UNSIGNED_INT = 0xFFFF_FFFFL
-            const val QUART_BITS = 2
-            const val EMPTY_KEY = Long.MIN_VALUE
-
-            /** How far apart the two probes are — one biome cell, the grain a biome is chosen at. */
-            const val A_QUART = 4
-        }
-    }
-
     companion object {
+        /** How far apart the two erosion probes are — one biome cell, the grain a biome is chosen at. */
+        private const val A_QUART = 4
+
         /**
          * How far the ground stands over the waterline, against where that puts it on vanilla's
          * continentalness axis.

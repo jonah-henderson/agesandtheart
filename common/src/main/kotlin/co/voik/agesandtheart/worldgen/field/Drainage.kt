@@ -87,16 +87,11 @@ data class Drainage(
     override val samplesPerColumn = SCAN * SCAN + 3
 
     /**
-     * **Everything the network needs, worked out fresh for one column.** Held in local arrays rather than
-     * anywhere longer-lived: chunk workers evaluate columns concurrently, so a field that remembered which
-     * cell it last looked at would answer one thread's question with another's neighbourhood.
+     * **Everything the network needs for one column**, in world X and Z. Thread-confined and overwritten per
+     * column: chunk workers evaluate columns concurrently, so a scan shared between them would answer one
+     * thread's question with another's neighbourhood.
      */
-    private class Neighbourhood {
-        val atX = DoubleArray(SCAN * SCAN)
-        val atZ = DoubleArray(SCAN * SCAN)
-        val height = DoubleArray(SCAN * SCAN)
-        val flowsTo = IntArray(SCAN * SCAN) { NOWHERE }
-    }
+    private val scratch = ThreadLocal.withInitial { LatticeScan(SCAN) }
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         // Everything below works in warped space, the land included — see [meander].
@@ -114,6 +109,8 @@ data class Drainage(
         var ground = landHere
         var channelY = NO_WATER
         var carried = 0
+        val positionsX = around.first
+        val positionsZ = around.second
         // Only the middle nine have both a flow of their own and every inflow visible, and only their
         // reaches can come within a valley's width of this column — see the note on [spacing].
         for (row in RING - 1..RING + 1) {
@@ -121,14 +118,14 @@ data class Drainage(
                 val here = row * SCAN + column
                 val downhill = around.flowsTo[here]
                 if (downhill == NOWHERE) continue
-                val inflows = inflowsTo(here, around.flowsTo)
+                val inflows = around.inflowsTo(here)
                 val widthHere = halfWidth * (1.0 + inflows * widthPerOrder)
                 val along = alongSegment(
                     atX, atZ,
-                    around.atX[here], around.atZ[here], around.atX[downhill], around.atZ[downhill],
+                    positionsX[here], positionsZ[here], positionsX[downhill], positionsZ[downhill],
                 )
-                val nearestX = around.atX[here] + (around.atX[downhill] - around.atX[here]) * along
-                val nearestZ = around.atZ[here] + (around.atZ[downhill] - around.atZ[here]) * along
+                val nearestX = positionsX[here] + (positionsX[downhill] - positionsX[here]) * along
+                val nearestZ = positionsZ[here] + (positionsZ[downhill] - positionsZ[here]) * along
                 val fromAxis = distance(atX, atZ, nearestX, nearestZ)
                 if (fromAxis >= widthHere) continue
 
@@ -157,54 +154,26 @@ data class Drainage(
     }
 
     /** Where every node of the scan stands, how high it is, and which way it flows. */
-    private fun scanAround(cellX: Int, cellZ: Int): Neighbourhood {
-        val around = Neighbourhood()
-        for (row in 0..<SCAN) {
-            for (column in 0..<SCAN) {
-                val nodeCellX = cellX + column - RING
-                val nodeCellZ = cellZ + row - RING
-                val at = row * SCAN + column
-                around.atX[at] = nodeX(nodeCellX, nodeCellZ)
-                around.atZ[at] = nodeZ(nodeCellX, nodeCellZ)
-                around.height[at] = landAt(around.atX[at], around.atZ[at])
-            }
-        }
-        // Only where a node's own eight neighbours are inside the scan can its flow be known at all.
-        for (row in 1..<SCAN - 1) {
-            for (column in 1..<SCAN - 1) {
-                around.flowsTo[row * SCAN + column] = lowestNeighbourOf(row, column, around.height, SCAN)
-            }
-        }
+    private fun scanAround(cellX: Int, cellZ: Int): LatticeScan {
+        val around = scratch.get()
+        around.fill(
+            cellFirst = cellX,
+            cellSecond = cellZ,
+            nodeFirst = ::nodeX,
+            nodeSecond = ::nodeZ,
+            heightAt = ::landAt,
+        )
         return around
-    }
-
-    /**
-     * How many streams join here — the stream order, and the whole of what makes a trunk differ from a
-     * headwater. **Counted rather than accumulated**: a true Strahler order would need the network walked
-     * to its sources, and one step of it is enough to tell a confluence from a beginning.
-     */
-    private fun inflowsTo(here: Int, flowsTo: IntArray): Int {
-        val row = here / SCAN
-        val column = here % SCAN
-        var joining = 0
-        for (upRow in -1..1) {
-            for (upColumn in -1..1) {
-                if (upRow == 0 && upColumn == 0) continue
-                if (flowsTo[(row + upRow) * SCAN + (column + upColumn)] == here) joining++
-            }
-        }
-        return joining
     }
 
     /** The land's own surface, before anything is cut into it. */
     private fun landAt(worldX: Double, worldZ: Double): Double =
         landY + landNoise.getValue(worldX / landStretch, 0.0, worldZ / landStretch).coerceIn(-1.0, 1.0) * relief
 
-    private fun nodeX(cellX: Int, cellZ: Int): Double =
-        (cellX + HALF + cellHash(cellX, cellZ, X_SALT) * jitter) * spacing
+    // Both axes' jitters are hashed on the cell as (x, z).
+    private fun nodeX(cellX: Int, cellZ: Int): Double = latticeNode(cellX, cellX, cellZ, X_SALT, jitter, spacing)
 
-    private fun nodeZ(cellX: Int, cellZ: Int): Double =
-        (cellZ + HALF + cellHash(cellX, cellZ, Z_SALT) * jitter) * spacing
+    private fun nodeZ(cellX: Int, cellZ: Int): Double = latticeNode(cellZ, cellX, cellZ, Z_SALT, jitter, spacing)
 
     private val landNoise = fieldNoise(seed, LAND_OCTAVE, LAND_AMPLITUDES)
     private val warpNoise = fieldNoise(seed xor WARP_SALT, WARP_OCTAVE, WARP_AMPLITUDES)
@@ -236,8 +205,6 @@ data class Drainage(
 
         /** How deep a headwater runs. Shallow: a stream you can wade, deepening as it gathers. */
         const val DEFAULT_WATER_DEPTH = 3.0
-
-        private const val HALF = 0.5
 
         /** How deep a headwater cuts, and how much each confluence adds. */
         const val DEFAULT_VALLEY_DEPTH = 11.0

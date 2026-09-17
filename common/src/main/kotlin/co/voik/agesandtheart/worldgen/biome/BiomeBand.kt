@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.biome
 
+import co.voik.agesandtheart.worldgen.field.ColumnMemo
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -44,10 +45,13 @@ data class BiomeBand(
     val above: TerrainField? = null,
 ) {
 
+    /** [above]'s columns, remembered: a band is asked per quart cell, many levels to a column. */
+    private val aboveColumns = above?.let { ColumnMemo(it::columnSpans) }
+
     /** The biome at this position, or null where the band does not reach — so the climate table answers. */
     fun biomeAt(blockX: Int, blockY: Int, blockZ: Int): Holder<Biome>? {
         if (blockY !in floorY..roofY) return null
-        val bed = above?.columnSpans(blockX, blockZ)?.highestSolidY
+        val bed = aboveColumns?.spansAt(blockX, blockZ)?.highestSolidY
         if (bed != null && blockY <= bed) return null
         return biome
     }

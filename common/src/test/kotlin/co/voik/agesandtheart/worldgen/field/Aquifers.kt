@@ -20,6 +20,9 @@ fun preliminarySurfaceOf(field: TerrainField, uncut: TerrainField? = null): Wate
     }
 }
 
-/** This table's aquifer over [field], reading [preliminarySurfaceOf] and with no deep dark anywhere. */
-fun WaterTable.aquiferOver(field: TerrainField, uncut: TerrainField? = null): Aquifer =
-    aquiferFor(field, preliminarySurfaceOf(field, uncut), isDeepDark = null)
+/**
+ * This table's aquifer over [field], reading [preliminarySurfaceOf] and with no deep dark anywhere. [seaFill] is
+ * only asked what the shape pours for itself, so the default is a shape that pours nothing.
+ */
+fun WaterTable.aquiferOver(field: TerrainField, uncut: TerrainField? = null, seaFill: SeaFill = SeaFill.NONE): Aquifer =
+    aquiferFor(field, preliminarySurfaceOf(field, uncut), isDeepDark = null, seaFill)

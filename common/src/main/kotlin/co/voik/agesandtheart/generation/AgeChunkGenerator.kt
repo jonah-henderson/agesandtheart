@@ -251,11 +251,11 @@ class AgeChunkGenerator(
      * whether the water it has just placed still has to settle, so the fill and the carving each need their
      * own and neither may share one between chunk workers.
      *
-     * Spelled once because it was spelled twice, identically, in the two places that need it — five
-     * arguments apiece, where a fourth argument drifting in one of them would be silent.
+     * Spelled once because it was spelled twice, identically, in the two places that need it — six
+     * arguments apiece, where one drifting in one of them would be silent.
      */
     private fun aquiferFor(randomState: RandomState, field: TerrainField) =
-        WaterTable.aquiferFor(tables, field, surfaceForTheAquifer(), deepDarkIn(randomState), underground)
+        WaterTable.aquiferFor(tables, field, surfaceForTheAquifer(), deepDarkIn(randomState), writtenSea, underground)
 
     /**
      * Whether a point lies in deep dark, which vanilla's aquifer never floods. Vanilla asks its erosion and
@@ -674,9 +674,7 @@ class AgeChunkGenerator(
      * below, dry above — which an Age can replace with a wandering one for dry deep caves and perched
      * pockets. It mints a fresh aquifer per carving pass, since that object carries state.
      */
-    private val tables: List<WaterTable> =
-        waterTables.map { it.copy(carried = seaFill.carried) }
-            .ifEmpty { listOf(WaterTable.matching(seaFill, seaLevel)) }
+    private val tables: List<WaterTable> = waterTables.ifEmpty { listOf(WaterTable.matching(writtenSea, seaLevel)) }
 
     /**
      * Every carving's carvers together — the union described on [carvers]. Built once and **in composition
