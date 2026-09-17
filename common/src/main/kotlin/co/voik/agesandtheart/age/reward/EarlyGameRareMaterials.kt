@@ -1,8 +1,6 @@
 package co.voik.agesandtheart.age.reward
 
 import co.voik.agesandtheart.age.AgeComposition
-import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Phenomena
@@ -62,13 +60,12 @@ object EarlyGameRareMaterials {
         composition: AgeComposition,
         seed: Long,
         spending: Spending,
-        prices: Map<Manifestation, Price>,
     ): Set<EarlyGameRareMaterial> = EarlyGameRareMaterial.entries
         .filter { material ->
             when (material) {
-                EarlyGameRareMaterial.RIME -> growsRime(composition, spending, prices)
+                EarlyGameRareMaterial.RIME -> growsRime(composition, spending)
                 EarlyGameRareMaterial.TEMPERSTONE -> bakesTemperstone(composition)
-                EarlyGameRareMaterial.ARC_CRYSTAL -> growsArcCrystal(composition, seed, spending, prices)
+                EarlyGameRareMaterial.ARC_CRYSTAL -> growsArcCrystal(composition, seed, spending)
             }
         }
         .toSet()
@@ -89,8 +86,7 @@ object EarlyGameRareMaterials {
         composition: AgeComposition,
         seed: Long,
         spending: Spending,
-        prices: Map<Manifestation, Price>,
-    ): Boolean = befalls(Phenomenon.TEMPEST, composition, spending, prices) &&
+    ): Boolean = befalls(Phenomenon.TEMPEST, composition, spending) &&
         theCurtainsAreConstant(composition, seed)
 
     private fun theCurtainsAreConstant(composition: AgeComposition, seed: Long): Boolean {
@@ -138,8 +134,7 @@ object EarlyGameRareMaterials {
     fun growsRime(
         composition: AgeComposition,
         spending: Spending,
-        prices: Map<Manifestation, Price>,
-    ): Boolean = neverThaws(composition) && befalls(Phenomenon.BLIZZARD, composition, spending, prices)
+    ): Boolean = neverThaws(composition) && befalls(Phenomenon.BLIZZARD, composition, spending)
 
     /**
      * Whether every one of the Age's climates tops out at or below the snow.
@@ -169,12 +164,11 @@ object EarlyGameRareMaterials {
         phenomenon: Phenomenon,
         composition: AgeComposition,
         spending: Spending,
-        prices: Map<Manifestation, Price>,
     ): Boolean {
         val written = Phenomena.claimsIn(composition.optionsFor(Aspect.PHENOMENA, 0))
             .any { it.value == phenomenon.key }
         val manifestation = phenomenon.inflictedBy ?: return written
-        return written || spending.reach(manifestation, prices) > NOTHING_INFLICTED
+        return written || spending.reach(manifestation) > NOTHING_INFLICTED
     }
 
     /**

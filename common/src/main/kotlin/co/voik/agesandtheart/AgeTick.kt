@@ -1,7 +1,6 @@
 package co.voik.agesandtheart
 
 import co.voik.agesandtheart.age.AgeSavedData
-import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.consequence.Hostility
@@ -49,8 +48,7 @@ object AgeTick {
             // out the same on every open — see [Spending]. Worked out here rather than inside
             // [Happenings.befallAll] because the tearing below reads it too.
             val spending = Spending.of(server, recipe)
-            val prices = Price.list(server)
-            Happenings.befallAll(level, composition, happening, spending, prices)
+            Happenings.befallAll(level, composition, happening, spending)
             // Not a phenomenon — a wound is what the Age could not hold rather than something it does — but
             // it wants the same walk, and the walk is the expensive part.
             Hostility.stir(level)

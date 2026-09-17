@@ -7,8 +7,6 @@ import co.voik.agesandtheart.age.aspect.ORDINARY_SHARE
 import co.voik.agesandtheart.age.aspect.WeatherConditions
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.generation.Ages
-import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Claim
@@ -33,36 +31,35 @@ object Happenings {
     /**
      * Everything that befalls [level] this tick, and the weather they insist on.
      *
-     * Called from `AgeTick.tick`, which owns the walk and the gate on who is watching. [spending] and
-     * [prices] are handed in rather than worked out here because the tearing done beside this reads them
-     * too, and they are one answer for the whole Age.
+     * Called from `AgeTick.tick`, which owns the walk and the gate on who is watching. [spending] is handed
+     * in rather than worked out here because the tearing done beside this reads it too, and it is one
+     * answer for the whole Age.
      */
     fun befallAll(
         level: ServerLevel,
         composition: AgeComposition,
         happening: List<Claim>,
         spending: Spending,
-        prices: Map<Manifestation, Price>,
     ) {
         // **Before the weather, because a phenomenon may now scale what it asks of it.** A blizzard's
         // whole axis is how much of the time it is blowing, and an *inflicted* one is absent from the
         // written claims — so asking the weather from those alone left instability unable to drive the
         // one register it buys.
-        val befalls = befalling(happening, spending, prices).toMutableMap().apply {
+        val befalls = befalling(happening, spending).toMutableMap().apply {
             // A blizzard somebody asked for by hand happens here whether or not the book wrote one —
             // see [Blizzard.force]. Without this, `/age weather blizzard 3` in an ordinary Age sets a
             // fierceness nothing reads.
             if (Blizzard.forcedIn(level) != null) putIfAbsent(Phenomenon.BLIZZARD, Rung.ORDINARY)
         }
-        AgeWeather.steer(level, wanted(composition, befalls, spending, prices))
+        AgeWeather.steer(level, wanted(composition, befalls, spending))
         for ((phenomenon, density) in befalls) {
-            befall(level, phenomenon, density, furyOf(spending, prices, phenomenon))
+            befall(level, phenomenon, density, furyOf(spending, phenomenon))
         }
         // What the client cannot work out for itself — see [BlizzardPayload]. Sent on a slow beat
         // rather than on change, because "changed" would need a memory per player and the message is
         // a dozen bytes.
         if (level.server.tickCount % TELLING_THE_CLIENT == 0) {
-            Blizzard.tellTheClients(level, befalls, spending, prices)
+            Blizzard.tellTheClients(level, befalls, spending)
         }
     }
 
@@ -89,7 +86,7 @@ object Happenings {
      */
     fun furyIn(level: ServerLevel, phenomenon: Phenomenon): Double {
         val recipe = Ages.recipeOf(level) ?: return NOTHING_INFLICTED
-        return furyOf(Spending.of(level.server, recipe), Price.list(level.server), phenomenon)
+        return furyOf(Spending.of(level.server, recipe), phenomenon)
     }
 
     /**
@@ -104,14 +101,10 @@ object Happenings {
      * A phenomenon instability inflicted comes at [Rung.ORDINARY], so its fury is the only thing making it
      * fierce; one that was written keeps whatever rung its writer gave it.
      */
-    fun befalling(
-        written: List<Claim>,
-        spending: Spending,
-        prices: Map<Manifestation, Price>,
-    ): Map<Phenomenon, Double> = buildMap {
+    fun befalling(written: List<Claim>, spending: Spending): Map<Phenomenon, Double> = buildMap {
         for (claim in written) Phenomenon.named(claim.value)?.let { put(it, claim.density) }
         for (phenomenon in Phenomenon.entries) {
-            if (furyOf(spending, prices, phenomenon) <= NOTHING_INFLICTED) continue
+            if (furyOf(spending, phenomenon) <= NOTHING_INFLICTED) continue
             putIfAbsent(phenomenon, Rung.ORDINARY)
         }
     }
@@ -122,9 +115,9 @@ object Happenings {
      * Zero for a phenomenon instability has no manifestation for, which is every one of them but the
      * sandfall so far.
      */
-    fun furyOf(spending: Spending, prices: Map<Manifestation, Price>, phenomenon: Phenomenon): Double {
+    fun furyOf(spending: Spending, phenomenon: Phenomenon): Double {
         val manifestation = phenomenon.inflictedBy ?: return NOTHING_INFLICTED
-        return spending.reach(manifestation, prices)
+        return spending.reach(manifestation)
     }
 
     private const val NOTHING_INFLICTED = 0.0
@@ -143,14 +136,13 @@ object Happenings {
         composition: AgeComposition,
         befalls: Map<Phenomenon, Double>,
         spending: Spending,
-        prices: Map<Manifestation, Price>,
     ): WeatherConditions {
         val air = composition.optionsFor(Aspect.WEATHER, 0)
         fun asked(parameter: Parameter) =
             air.steer(parameter, WEATHER_SALT)?.let(Span.NATURAL::fractionOf) ?: ORDINARY_SHARE
         val dialled = WeatherConditions(asked(Atmosphere.RAINFALL), asked(Atmosphere.THUNDER))
         return befalls.entries.fold(dialled) { wants, (phenomenon, density) ->
-            wants.atLeast(phenomenon.insistsAt(density, furyOf(spending, prices, phenomenon)))
+            wants.atLeast(phenomenon.insistsAt(density, furyOf(spending, phenomenon)))
         }
     }
 

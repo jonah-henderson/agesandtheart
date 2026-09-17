@@ -38,7 +38,7 @@ class SpendingCheck : FunSpec({
     test("a coherent Age buys nothing") {
         val spending = Spending.of(budget = 0, prices = priced(2, 4))
         check(spending.bought(cheap) == 0) { "a coherent Age bought something: $spending" }
-        check(spending.reach(cheap, priced(2, 4)) == 0.0) { "a coherent Age reached somewhere: $spending" }
+        check(spending.reach(cheap) == 0.0) { "a coherent Age reached somewhere: $spending" }
     }
 
     test("a budget buys what it can afford and no more") {
@@ -57,7 +57,7 @@ class SpendingCheck : FunSpec({
         val prices = priced(costs = 2, most = 4)
         val rich = Spending.of(1000, prices)
         check(rich.bought(cheap) == 4) { "the cap did not hold: $rich" }
-        check(rich.reach(cheap, prices) == 1.0) { "a maxed manifestation should read as fully reached" }
+        check(rich.reach(cheap) == 1.0) { "a maxed manifestation should read as fully reached" }
     }
 
     /**
@@ -190,7 +190,7 @@ class SpendingCheck : FunSpec({
      */
     test("the shipped tearing reads sensibly across the range") {
         val prices = priced(Price.ORDINARY.costs, Price.ORDINARY.most)
-        val reaches = listOf(0, 2, 4, 6, 8, 12).map { it to Spending.of(it, prices).reach(cheap, prices) }
+        val reaches = listOf(0, 2, 4, 6, 8, 12).map { it to Spending.of(it, prices).reach(cheap) }
         check(reaches.first().second == 0.0) { "a coherent Age tore: $reaches" }
         check(reaches.last().second == 1.0) { "a badly flawed Age did not tear fully: $reaches" }
         // Monotone, or a writer making an Age *worse* could make it look better.

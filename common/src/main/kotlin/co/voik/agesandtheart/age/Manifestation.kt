@@ -206,7 +206,11 @@ data class Price(
  * can afford to collapse also has torn seams, because it paid for those on the way. Consequence reads as
  * accumulation rather than as a threshold crossed into a different world.
  */
-data class Spending(private val steps: Map<Manifestation, Int>) {
+data class Spending(
+    private val steps: Map<Manifestation, Int>,
+    /** The most steps each bought manifestation could have had, at the prices it was bought at. */
+    private val ceilings: Map<Manifestation, Int> = emptyMap(),
+) {
 
     /** How many steps of [manifestation] were bought — zero where the budget never reached it. */
     fun bought(manifestation: Manifestation): Int = steps[manifestation] ?: 0
@@ -215,9 +219,8 @@ data class Spending(private val steps: Map<Manifestation, Int>) {
      * How far into [manifestation] this Age went, from nothing at all to everything it could buy — the
      * number a generator scales by, so a caller never has to know what a step cost.
      */
-    fun reach(manifestation: Manifestation, prices: Map<Manifestation, Price>): Double {
-        val most = prices[manifestation]?.most ?: Price.ORDINARY.most
-        if (most <= 0) return 0.0
+    fun reach(manifestation: Manifestation): Double {
+        val most = ceilings[manifestation] ?: return 0.0
         return bought(manifestation).toDouble() / most
     }
 
@@ -238,6 +241,7 @@ data class Spending(private val steps: Map<Manifestation, Int>) {
             if (budget <= 0) return NOTHING
             var remaining = budget
             val steps = mutableMapOf<Manifestation, Int>()
+            val ceilings = mutableMapOf<Manifestation, Int>()
             val cheapestFirst = Manifestation.entries.sortedWith(
                 compareBy({ prices[it]?.costs ?: Price.ORDINARY.costs }, Manifestation::ordinal),
             )
@@ -247,9 +251,11 @@ data class Spending(private val steps: Map<Manifestation, Int>) {
                 val affordable = (remaining / price.costs).coerceAtMost(price.most)
                 if (affordable <= 0) continue
                 steps[manifestation] = affordable
+                // Positive, since at least one step was affordable within it.
+                ceilings[manifestation] = price.most
                 remaining -= affordable * price.costs
             }
-            return Spending(steps)
+            return Spending(steps, ceilings)
         }
 
         /** The same, for a recipe — which is where every caller actually starts. */

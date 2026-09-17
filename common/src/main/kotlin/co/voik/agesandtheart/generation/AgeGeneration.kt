@@ -69,7 +69,6 @@ import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.AspectOptions
 import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.Spread
@@ -103,9 +102,8 @@ object AgeGeneration {
 
         // What this Age's instability bought, as a fraction of everything tearing could be (design §5.0).
         // Derived rather than stored: a pure function of the recipe, so it comes out the same on every open.
-        val prices = Price.list(server)
         val spending = Spending.of(server, recipe)
-        val torn = spending.reach(Manifestation.TORN_SEAMS, prices)
+        val torn = spending.reach(Manifestation.TORN_SEAMS)
 
         // One band for every Age, and the same one every dimension type admits — see [VerticalWindow].
         val window = VerticalWindow.DEFAULT
@@ -276,7 +274,7 @@ object AgeGeneration {
                     // built by hand never had.
                     Craters.layer(composition, seed),
                     EarlyGameRareMaterials.layer(
-                        EarlyGameRareMaterials.grownIn(composition, seed, spending, prices),
+                        EarlyGameRareMaterials.grownIn(composition, seed, spending),
                     ),
                 ),
             ),
@@ -707,12 +705,7 @@ object AgeGeneration {
         // **The one reward that arrives as an entity**, so it is here rather than among the decoration
         // layers — asked of the recipe by the same gate the survey reads, so a book can promise it before
         // the Age is opened (design §7.7).
-        val charged = EarlyGameRareMaterials.growsArcCrystal(
-            composition,
-            recipe.seed,
-            Spending.of(server, recipe),
-            Price.list(server),
-        )
+        val charged = EarlyGameRareMaterials.growsArcCrystal(composition, recipe.seed, Spending.of(server, recipe))
         return listOfNotNull(placing, DriftingOreSpawner().takeIf { charged })
     }
 

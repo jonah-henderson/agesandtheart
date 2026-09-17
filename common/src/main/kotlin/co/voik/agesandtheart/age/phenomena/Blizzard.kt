@@ -1,7 +1,5 @@
 package co.voik.agesandtheart.age.phenomena
 
-import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Rung
@@ -175,14 +173,13 @@ object Blizzard {
         level: ServerLevel,
         befalls: Map<Phenomenon, Double>,
         spending: Spending,
-        prices: Map<Manifestation, Price>,
     ) {
         val age = level.dimension().identifier()
         val density = befalls[Phenomenon.BLIZZARD]
         val telling = if (density == null) {
             BlizzardPayload.noneIn(age)
         } else {
-            val severity = hardnessIn(level, Happenings.furyOf(spending, prices, Phenomenon.BLIZZARD))
+            val severity = hardnessIn(level, Happenings.furyOf(spending, Phenomenon.BLIZZARD))
             BlizzardPayload(age, severity, bearingIn(level).get2DDataValue())
         }
         // Every player rather than [Sampling.watchers]: a spectator draws no storm but still sees it.

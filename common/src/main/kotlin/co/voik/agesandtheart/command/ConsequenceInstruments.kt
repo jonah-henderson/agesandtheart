@@ -5,7 +5,6 @@ import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.ReportFor
 import co.voik.agesandtheart.age.Spending
@@ -293,12 +292,7 @@ internal object ConsequenceInstruments {
         // there was nowhere to ask it of an Age that already exists. Which matters most for the ones that
         // are hard to see — arc crystal is a hundred and twenty blocks up before it is anything at all.
         recipe.composition?.let { composition ->
-            val grown = EarlyGameRareMaterials.grownIn(
-                composition,
-                recipe.seed,
-                Spending.of(source.server, recipe),
-                Price.list(source.server),
-            )
+            val grown = EarlyGameRareMaterials.grownIn(composition, recipe.seed, Spending.of(source.server, recipe))
             report.fact("grows", grown.map { it.name.lowercase() }) {
                 if (grown.isEmpty()) "  grows none of the early materials"
                 else "  grows " + grown.joinToString(", ") { it.name.lowercase() }

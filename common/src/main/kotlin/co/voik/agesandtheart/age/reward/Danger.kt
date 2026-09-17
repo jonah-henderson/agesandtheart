@@ -155,11 +155,11 @@ data class Danger(
             val spent = Spending.of(instability.index, prices)
             return Danger(
                 materials = materialsOf(composition, table),
-                spawns = spawnsOf(composition, table, spent, prices),
-                phenomena = phenomenaOf(composition, table, spent, prices),
+                spawns = spawnsOf(composition, table, spent),
+                phenomena = phenomenaOf(composition, table, spent),
                 lighting = lightingOf(composition, table),
                 features = featuresOf(composition, table),
-                terminal = spent.reach(Manifestation.COLLAPSE, prices),
+                terminal = spent.reach(Manifestation.COLLAPSE),
                 authored = authored,
                 weights = table.weights,
                 paysAbove = table.paysAbove,
@@ -233,7 +233,6 @@ data class Danger(
             composition: AgeComposition,
             table: DangerTable,
             spent: Spending,
-            prices: Map<Manifestation, Price>,
         ): Double {
             val claims = composition.optionsFor(Aspect.SPAWNS, 0).claimsOn(Spawns.LIVES)
             val asked = wanted(claims).sumOf { claim ->
@@ -246,7 +245,7 @@ data class Danger(
             // climbs with the Age's *own days*, and this is read at the desk before the Age has any — so
             // at the only moment the score is asked for, worsening has done nothing. Scoring it here would
             // be measuring in play, which §7.7 says this never does.
-            val wounds = spent.reach(Manifestation.WOUNDS, prices) * table.woundHostility
+            val wounds = spent.reach(Manifestation.WOUNDS) * table.woundHostility
             return (asked / table.spawnsFull) + wounds
         }
 
@@ -262,7 +261,6 @@ data class Danger(
             composition: AgeComposition,
             table: DangerTable,
             spent: Spending,
-            prices: Map<Manifestation, Price>,
         ): Double {
             val options = composition.optionsFor(Aspect.PHENOMENA, 0)
             val written = Phenomena.claimsIn(options).sumOf { claim ->
@@ -270,7 +268,7 @@ data class Danger(
             }
             val inflicted = Phenomenon.entries.sumOf { phenomenon ->
                 val manifestation = phenomenon.inflictedBy ?: return@sumOf 0.0
-                table.phenomenon(phenomenon.key) * spent.reach(manifestation, prices)
+                table.phenomenon(phenomenon.key) * spent.reach(manifestation)
             }
             return (written + inflicted) / table.phenomenaFull
         }

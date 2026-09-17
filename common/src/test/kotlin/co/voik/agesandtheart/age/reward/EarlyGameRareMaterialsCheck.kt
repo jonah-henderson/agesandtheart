@@ -53,27 +53,27 @@ class EarlyGameRareMaterialsCheck : FunSpec({
      * a writer is promised at the desk and what they look up at are the same curtain.
      */
     test("an Age with tempests and constant fierce curtains grows arc crystal") {
-        check(EarlyGameRareMaterials.growsArcCrystal(charged(), SEED, Spending.NOTHING, emptyMap())) {
+        check(EarlyGameRareMaterials.growsArcCrystal(charged(), SEED, Spending.NOTHING)) {
             "an Age with both halves of the gate put nothing in its sky"
         }
     }
 
     test("storms with an ordinary curtain grow nothing") {
         val stormy = plain().withOptions(Aspect.PHENOMENA, HAPPENS, listOf(TEMPEST, AURORA))
-        check(!EarlyGameRareMaterials.growsArcCrystal(stormy, SEED, Spending.NOTHING, emptyMap())) {
+        check(!EarlyGameRareMaterials.growsArcCrystal(stormy, SEED, Spending.NOTHING)) {
             "a curtain nobody leaned on counted as charged, so `tempests auroral` is the whole gate"
         }
     }
 
     test("curtains with no storms grow nothing") {
         val quiet = plain().withOptions(Aspect.PHENOMENA, HAPPENS, listOf(AURORA)).underFierceCurtains()
-        check(!EarlyGameRareMaterials.growsArcCrystal(quiet, SEED, Spending.NOTHING, emptyMap())) {
+        check(!EarlyGameRareMaterials.growsArcCrystal(quiet, SEED, Spending.NOTHING)) {
             "an unstormy Age grew arc crystal, which makes the tempest half of the gate decorative"
         }
     }
 
     test("an Age nobody said anything about grows nothing") {
-        check(!EarlyGameRareMaterials.growsArcCrystal(plain(), SEED, Spending.NOTHING, emptyMap())) {
+        check(!EarlyGameRareMaterials.growsArcCrystal(plain(), SEED, Spending.NOTHING)) {
             "a silent sky counted as charged"
         }
     }

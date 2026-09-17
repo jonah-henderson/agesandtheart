@@ -24,7 +24,7 @@ class ChargedSkyCheck : FunSpec({
     fun composed(seed: Long, vararg pages: String): AgeComposition = resolved(seed, *pages).composition
 
     fun charges(seed: Long, vararg pages: String): Boolean =
-        EarlyGameRareMaterials.growsArcCrystal(composed(seed, *pages), seed, Spending.NOTHING, emptyMap())
+        EarlyGameRareMaterials.growsArcCrystal(composed(seed, *pages), seed, Spending.NOTHING)
 
     /**
      * **The sentence a writer is meant to write**, and it says the storms outright.
