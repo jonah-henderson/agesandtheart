@@ -16,6 +16,7 @@ import co.voik.agesandtheart.preview.authoring.ui.Gauge
 import co.voik.agesandtheart.preview.authoring.ui.Step
 import co.voik.agesandtheart.preview.authoring.ui.Touched
 import co.voik.agesandtheart.preview.authoring.ui.Glyph
+import co.voik.agesandtheart.preview.authoring.ui.Handle
 import co.voik.agesandtheart.preview.authoring.ui.Part
 import co.voik.agesandtheart.preview.authoring.ui.Parts
 import com.google.gson.JsonParser
@@ -86,15 +87,15 @@ class AuthoringCheck : FunSpec({
         fun handlesFor(candidate: Candidate) =
             parts.rowsOf(Part.PROPERTIES, candidate, word = null, width = PANEL_WIDTH).map { it.handle }.toSet()
 
-        check("+mints" in handlesFor(Candidate.blank("nothing"))) {
+        check(Handle.AddMints in handlesFor(Candidate.blank("nothing"))) {
             "a word that mints nothing has no way to start: ${handlesFor(Candidate.blank("nothing"))}"
         }
         val minting = Candidate.blank("something").copy(mints = "minecraft:spring_water")
         val reachable = handlesFor(minting)
-        check(setOf("mints", "flows", "+unstated").all { it in reachable }) {
+        check(setOf(Handle.Mints, Handle.Flows, Handle.AddUnstated).all { it in reachable }) {
             "a minting word cannot reach all of what it writes: $reachable"
         }
-        check("unstated" in handlesFor(minting.copy(unstated = "minecraft:stone"))) {
+        check(Handle.Unstated in handlesFor(minting.copy(unstated = "minecraft:stone"))) {
             "a fallback that is set cannot be changed"
         }
     }

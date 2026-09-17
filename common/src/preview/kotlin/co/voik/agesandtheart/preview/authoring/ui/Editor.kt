@@ -529,7 +529,7 @@ class Editor(
         null -> if (!inside) {
             hints("→" to "open this part")
         } else {
-            hints(*parts.keysFor(part, rows().getOrNull(row()), candidate).toTypedArray())
+            hints(*parts.keysFor(rows().getOrNull(row())).toTypedArray())
         }
     }
 
@@ -730,8 +730,8 @@ class Editor(
      * from an edit made in there except the reach, which the preview recomputes when it is next asked.
      */
     private fun openTheTagLayer() {
-        val handle = rows().getOrNull(row())?.handle ?: return
-        val tag = parts.tagOn(candidate, handle) ?: return
+        val claim = rows().getOrNull(row())?.handle as? Handle.Claim ?: return
+        val tag = claim.tag ?: return
         Tags(terminal, canvas, corpus).open(tag)
     }
 
@@ -791,7 +791,7 @@ class Editor(
 
     /** Starts typing on the row the cursor is on, so the value is edited where it is shown. */
     private fun typeOn(
-        handle: String,
+        handle: Handle,
         standing: String,
         complaint: (String) -> String? = { null },
         commit: (String) -> Unit,
@@ -836,87 +836,91 @@ class Editor(
     // -- what a row does -----------------------------------------------------------------------------
 
     private fun act() {
-        val handle = rows().getOrNull(row())?.handle ?: return
-        when (part) {
-            Part.NAME -> if (rows().getOrNull(row())?.handle == "display") retitle() else renameTo()
-            Part.TIER -> actOnACost(handle)
-            Part.REVIEW -> Unit
-            Part.TEMPLATE -> pickABaseDimension()
-            Part.PROPERTIES -> actOnAnEffect(handle)
-            Part.POPULATIONS -> actOnAPick(handle)
-            Part.COMMENT -> openTheEditor()
-            Part.LISTING -> relist(handle)
-            Part.SAVE -> save()
+        when (val handle = rows().getOrNull(row())?.handle ?: return) {
+            is Handle.Heading, Handle.Said -> Unit
+            Handle.Name -> renameTo()
+            Handle.Display -> retitle()
+            is Handle.NamedTier -> takeATier(handle.named)
+            is Handle.Cost -> retypeACost(handle.field)
+            Handle.BaseDimension -> pickABaseDimension()
+            Handle.Rarity -> relist()
+            Handle.InkQuality -> reink()
+            is Handle.AddEffect -> pickATarget(Into(handle.insistence))
+            is Handle.AddPool -> buildAPool(handle.insistence)
+            // The two ways into a pool that exists, said on its own rows rather than left to `a`.
+            is Handle.AddToPool -> { building = handle.pool; pickATarget(handle.pool) }
+            is Handle.AddGroup -> { building = handle.pool; startAGroup(handle.pool) }
+            // A group's own rows — its heading and the `+` under it both ask what goes in *this* one.
+            is Handle.Group -> { building = handle.group; pickATarget(handle.group) }
+            is Handle.AddToGroup -> { building = handle.group; pickATarget(handle.group) }
+            Handle.AddMints, Handle.Mints -> pickAPattern()
+            Handle.AddUnstated, Handle.Unstated -> pickASubstance()
+            Handle.Flows -> edit { it.copy(mintsSomethingThatFlows = !it.mintsSomethingThatFlows) }
+            // **The pool's own menu**, where adding a facet and setting the count are the same size of
+            // decision. Opening straight into the count made the count the price of looking at the pool.
+            is Handle.DrawCount -> { building = handle.pool; keepBuilding(handle.pool) }
+            // **Re-opening a claim asks what adding one asks.** Both used to end at a prompt with the
+            // standing value typed into it — so a temperature already set was edited as a string while the
+            // same temperature being set for the first time got the axis, the bands and the landmarks.
+            is Handle.Facet -> typeValueFor(listOf(handle.parameter), handle.into)
+            is Handle.AddClaim -> pickAPopulation(handle.step)
+            is Handle.Claim -> actOnAClaim(handle)
+            Handle.Comment -> openTheEditor()
             // Leaving only where the write actually happened; a refusal keeps you on the word.
-            Part.SAVE_AND_LEAVE -> { save(); if (!unsaved) quitting = true }
-            Part.DELETE -> askAboutDeleting()
+            is Handle.Save -> { save(); if (handle.andLeave && !unsaved) quitting = true }
+            Handle.Delete -> askAboutDeleting()
         }
     }
 
-    /**
-     * A row of the picks list — the three ways of choosing a preset, told apart by their handle.
-     *
-     * The step is the first word of the handle, and everything after it is where the claim landed.
-     */
-    private fun actOnAPick(handle: String) {
-        val rest = handle.substringAfter('/', "")
-        val page = rest.substringBefore('/')
-        val named = rest.substringAfter('/', "")
-        val aspect = Aspect.byPage(page)
-        when (handle.substringBefore('/')) {
-            "+" -> stepNamed(rest)?.let(::pickAPopulation)
-            "heading" -> Unit
-            // Opening one re-asks the step it belongs to, which is where its own list already is.
-            "chooses" -> aspect?.let { pickOneOfOurs(it) }
-            "admits" -> aspect?.let { pickAMemberToAdmit(it) }
-            "excludes" -> aspect?.let { pickSomethingToStrike(it) }
-            "restricts" -> aspect?.let { retypeRestriction(it, named) }
-            "biases" -> retypeLean(aspect, named)
-            else -> Unit
+    /** A claim about a population, re-opened: each asks again the step it belongs to. */
+    private fun actOnAClaim(claim: Handle.Claim) {
+        val aspect = claim.aspect
+        when (claim.step) {
+            Step.CHOOSE -> aspect?.let { pickOneOfOurs(it) }
+            Step.ADD -> aspect?.let { pickAMemberToAdmit(it) }
+            Step.REMOVE -> aspect?.let { pickSomethingToStrike(it) }
+            Step.KEEP -> aspect?.let { retypeRestriction(it, claim.named) }
+            Step.BIAS -> retypeLean(aspect, claim.named)
         }
     }
 
-    private fun stepNamed(named: String) = Step.entries.firstOrNull { it.name == named }
+    /** One of the three names, which fills all five numbers in, or `custom`, which opens them. */
+    private fun takeATier(named: String) {
+        parts.openTheCost(named == Tier.CUSTOM)
+        Tier.NAMED[named]?.let { tier -> edit { it.copy(tier = tier) } }
+    }
 
     /**
-     * A row of the cost section: one of the three names, which fills all five numbers in, or one number.
-     *
-     * The two switches are turned rather than asked about — a question with two answers, one of which is
-     * already on screen, is a keystroke spent on nothing.
+     * One of a tier's numbers, typed — or a switch, turned rather than asked about, since a question with
+     * two answers, one of which is already on screen, is a keystroke spent on nothing.
      */
-    private fun actOnACost(handle: String) {
-        val named = handle.substringAfter("named/", "")
-        if (named.isNotEmpty()) {
-            parts.openTheCost(named == Tier.CUSTOM)
-            Tier.NAMED[named]?.let { tier -> edit { it.copy(tier = tier) } }
-            return
-        }
+    private fun retypeACost(field: CostField) {
         // The numbers are there to be read under a named tier, and only a word saying its own may move them.
         if (!parts.statingItsOwnCost(candidate)) return
-        when (handle.substringAfter("cost/", "")) {
-            "base ink cost" -> retypeCost(
-                "base ink cost",
+        when (field) {
+            CostField.BASE_INK_COST -> retypeCost(
+                field.label,
                 "${candidate.tier.cost}",
                 "fine inks, before its reach is counted",
             ) { tier, said -> said.toIntOrNull()?.takeIf { it >= 0 }?.let { tier.copy(cost = it) } }
-            "versatility multiplier" -> retypeCost(
-                "versatility multiplier",
+            CostField.VERSATILITY_MULTIPLIER -> retypeCost(
+                field.label,
                 "%.2f".format(candidate.tier.versatilityMultiplier),
                 "one charges every further aspect in full; zero prices the page flat",
             ) { tier, said ->
                 said.toDoubleOrNull()?.takeIf { it >= 0.0 }?.let { tier.copy(versatilityMultiplier = it) }
             }
-            "tag match threshold" -> retypeCost(
-                "tag match threshold",
+            CostField.TAG_MATCH_THRESHOLD -> retypeCost(
+                field.label,
                 "%.2f".format(candidate.tier.threshold),
                 "how well a tag must align to be considered matching — 0 keeps everything, 1 only a perfect carrier",
             ) { tier, said -> said.toDoubleOrNull()?.takeIf { it in 0.0..1.0 }?.let { tier.copy(threshold = it) } }
-            "instability cost" -> retypeCost(
-                "instability cost",
+            CostField.INSTABILITY_COST -> retypeCost(
+                field.label,
                 "${candidate.tier.weight}",
                 "points penalised when this word is used in a contradiction",
             ) { tier, said -> said.toIntOrNull()?.takeIf { it >= 0 }?.let { tier.copy(weight = it) } }
-            "restricts" -> edit { it.copy(tier = it.tier.copy(narrows = !it.tier.narrows)) }
+            CostField.RESTRICTS -> edit { it.copy(tier = it.tier.copy(narrows = !it.tier.narrows)) }
         }
     }
 
@@ -941,18 +945,10 @@ class Editor(
      * band screen is built around, shown before it is opened rather than only inside it.
      */
     private fun axisUnderTheCursor(width: Int): List<Line> {
-        if (part != Part.PROPERTIES) return emptyList()
-        val handle = rows().getOrNull(row())?.handle ?: return emptyList()
-        val kind = handle.substringBefore('/')
-        val rest = handle.substringAfter('/', "")
-        val into = when (kind) {
-            "pool" -> pointedAt(rest.substringBeforeLast('/'))
-            else -> insistenceNamed(kind)?.let(::Into)
-        } ?: return emptyList()
-        val spelled = if (kind == "pool") rest.substringAfterLast('/') else rest
-        val parameter = parameterNamed(spelled) ?: return emptyList()
+        val facet = rows().getOrNull(row())?.handle as? Handle.Facet ?: return emptyList()
+        val parameter = parameterNamed(facet.parameter) ?: return emptyList()
         if (parameter.holds != Holds.RANGE) return emptyList()
-        val said = candidate.holding(into)[spelled].orEmpty()
+        val said = candidate.holding(facet.into)[facet.parameter].orEmpty()
         return listOf(Line.BLANK) + Axis.chart(parameter, said.ifEmpty { null }, width)
     }
 
@@ -976,72 +972,16 @@ class Editor(
      * heading names nothing.
      */
     private fun tagOrMemberUnderTheCursor(): String? {
-        if (part != Part.POPULATIONS) return null
-        val handle = rows().getOrNull(row())?.handle ?: return null
-        val kind = handle.substringBefore('/')
-        if (kind !in setOf("admits", "excludes", "restricts", "biases")) return null
-        val named = handle.substringAfter('/', "").substringAfter('/', "")
-        if (named.isEmpty()) return null
+        val claim = rows().getOrNull(row())?.handle as? Handle.Claim ?: return null
+        if (claim.step == Step.CHOOSE || claim.named.isEmpty()) return null
         // A restriction's row spells its tag without the mark, the mark being what the row itself draws.
-        return if (kind == "restricts") "${Word.TAG_MARK}$named" else named
+        return if (claim.step == Step.KEEP) "${Word.TAG_MARK}${claim.named}" else claim.named
     }
 
     /** Which of the five steps the row under the cursor is one of — what the list beside it is *for*. */
-    private fun stepUnderTheCursor(): Step? {
-        if (part != Part.POPULATIONS) return null
-        return when (rows().getOrNull(row())?.handle?.substringBefore('/')) {
-            "chooses" -> Step.CHOOSE
-            "admits" -> Step.ADD
-            "restricts" -> Step.KEEP
-            "excludes" -> Step.REMOVE
-            "biases" -> Step.BIAS
-            else -> null
-        }
-    }
+    private fun stepUnderTheCursor(): Step? = (rows().getOrNull(row())?.handle as? Handle.Claim)?.step
 
-    private fun populationUnderTheCursor(): Aspect? {
-        if (part != Part.POPULATIONS) return null
-        val page = rows().getOrNull(row())?.handle?.substringAfter('/', "")?.substringBefore('/') ?: return null
-        return Aspect.byPage(page)
-    }
-
-    private fun actOnAnEffect(handle: String) {
-        val kind = handle.substringBefore('/')
-        val rest = handle.substringAfter('/', "")
-        when (kind) {
-            "+" -> insistenceNamed(rest)?.let { pickATarget(Into(it)) }
-            "+pool" -> insistenceNamed(rest)?.let(::buildAPool)
-            // The two ways into a pool that exists, said on its own rows rather than left to `a`.
-            "+in" -> pointedAt(rest)?.let { into -> building = into; pickATarget(into) }
-            "+group" -> pointedAt(rest)?.let { into -> building = into; startAGroup(into) }
-            // A group's own rows — its heading and the `+` under it both ask what goes in *this* one.
-            "+into", "group" -> pointedAt(rest.substringBeforeLast('/'))?.let { into ->
-                val which = rest.substringAfterLast('/').toIntOrNull()
-                building = into.copy(offer = which)
-                pickATarget(into.copy(offer = which))
-            }
-            "heading" -> Unit
-            // **The three rows of the `makes` section.** They drew themselves and did nothing else: enter
-            // fell through to `insistenceNamed("mints")`, which is null, so the footer's "change what it
-            // makes" was a promise nothing kept and a word could only ever mint by being edited as a file.
-            "mints", "+mints" -> pickAPattern()
-            "unstated", "+unstated" -> pickASubstance()
-            "flows" -> edit { it.copy(mintsSomethingThatFlows = !it.mintsSomethingThatFlows) }
-            // **The pool's own menu**, where adding a facet and setting the count are the same size of
-            // decision. Opening straight into the count made the count the price of looking at the pool.
-            "draws" -> pointedAt(rest)?.let { into ->
-                building = into
-                keepBuilding(into)
-            }
-            // **Re-opening a claim asks what adding one asks.** Both used to end here, at a prompt with the
-            // standing value typed into it — so a temperature already set was edited as a string while the
-            // same temperature being set for the first time got the axis, the bands and the landmarks.
-            "pool" -> pointedAt(rest.substringBeforeLast('/'))?.let { into ->
-                typeValueFor(listOf(rest.substringAfterLast('/')), into)
-            }
-            else -> insistenceNamed(kind)?.let { insistence -> typeValueFor(listOf(rest), Into(insistence)) }
-        }
-    }
+    private fun populationUnderTheCursor(): Aspect? = (rows().getOrNull(row())?.handle as? Handle.Claim)?.aspect
 
     /**
      * A short value being typed **on its own row**, rather than in a question over the top of it.
@@ -1052,7 +992,7 @@ class Editor(
      * what somebody typing a number and then pressing down means by it.
      */
     private class Typing(
-        val handle: String,
+        val handle: Handle,
         var text: String,
         val complaint: (String) -> String?,
         val commit: (String) -> Unit,
@@ -1141,14 +1081,6 @@ class Editor(
         }
     }
 
-    /** The insistence a handle names, and the pool within it where one is spelled — `REQUIRED/2`. */
-    private fun pointedAt(handle: String): Into? {
-        val insistence = insistenceNamed(handle.substringBefore('/')) ?: return null
-        return Into(insistence, handle.substringAfter('/', "").toIntOrNull())
-    }
-
-    private fun insistenceNamed(named: String) = Insistence.entries.firstOrNull { it.name == named }
-
     /**
      * The pool and offer the cursor's row belongs to, where it is a facet of one.
      *
@@ -1157,20 +1089,24 @@ class Editor(
      * was emptied and the ones after it moved up.
      */
     private fun offerAtTheCursor(): Into? {
-        if (part != Part.PROPERTIES) return null
-        val handle = rows().getOrNull(row())?.handle ?: return null
-        if (handle.substringBefore('/') != "pool") return null
-        val into = pointedAt(handle.removePrefix("pool/").substringBeforeLast('/')) ?: return null
-        val parameter = handle.substringAfterLast('/')
-        val pool = candidate.poolsOn(into.insistence).getOrNull(into.pool ?: return null) ?: return null
-        val which = pool.offers.indexOfFirst { parameter in it }.takeIf { it >= 0 } ?: return null
-        return into.copy(offer = which)
+        val facet = rows().getOrNull(row())?.handle as? Handle.Facet ?: return null
+        val at = facet.into.pool ?: return null
+        val pool = candidate.poolsOn(facet.into.insistence).getOrNull(at) ?: return null
+        val which = pool.offers.indexOfFirst { facet.parameter in it }.takeIf { it >= 0 } ?: return null
+        return facet.into.copy(offer = which)
     }
 
-    /** Which step the cursor is in, read by walking back to the heading above it. */
+    /** Which step the cursor is in, read by walking back to the nearest row that belongs to one. */
     private fun stepAtTheCursor(): Step = rows().take(row() + 1).asReversed()
-        .firstNotNullOfOrNull { stepNamed(it.handle.substringAfter('/').substringBefore('/')) }
+        .firstNotNullOfOrNull { stepOf(it.handle) }
         ?: Step.CHOOSE
+
+    private fun stepOf(handle: Handle): Step? = when (handle) {
+        is Handle.Heading -> handle.step
+        is Handle.AddClaim -> handle.step
+        is Handle.Claim -> handle.step
+        else -> null
+    }
 
     private fun add() {
         when (part) {
@@ -1192,59 +1128,71 @@ class Editor(
      * gives. Required where nothing is above the cursor at all, since that is the group the list opens on.
      */
     private fun insistenceAtTheCursor(): Insistence = rows().take(row() + 1).asReversed()
-        .firstNotNullOfOrNull { insistenceNamed(it.handle.substringAfter('/').substringBefore('/')) }
+        .firstNotNullOfOrNull { insistenceOf(it.handle) }
         ?: Insistence.REQUIRED
 
+    private fun insistenceOf(handle: Handle): Insistence? = when (handle) {
+        is Handle.Heading -> handle.insistence
+        is Handle.AddEffect -> handle.insistence
+        is Handle.AddPool -> handle.insistence
+        is Handle.Facet -> handle.into.insistence
+        is Handle.DrawCount -> handle.pool.insistence
+        is Handle.AddToPool -> handle.pool.insistence
+        is Handle.AddGroup -> handle.pool.insistence
+        is Handle.Group -> handle.group.insistence
+        is Handle.AddToGroup -> handle.group.insistence
+        else -> null
+    }
+
     private fun remove() {
-        val handle = rows().getOrNull(row())?.handle ?: return
-        if (handle.substringBefore('/').startsWith("+")) return
-        val rest = handle.substringAfter('/', "")
-        val page = rest.substringBefore('/')
-        val aspect = Aspect.byPage(page)
-        val named = rest.substringAfter('/', "")
-        when (part) {
-            Part.PROPERTIES -> when (handle.substringBefore('/')) {
-                // The whole idea, rather than a setting of it: what a group *is* is that it goes together.
-                "group" -> pointedAt(rest.substringBeforeLast('/'))?.let { into ->
-                    val which = rest.substringAfterLast('/').toIntOrNull() ?: return@let
-                    edit { it.withoutOffer(into.insistence, into.pool ?: return@edit it, which) }
-                }
-                "pool" -> pointedAt(handle.removePrefix("pool/").substringBeforeLast('/'))?.let { into ->
-                    val parameter = handle.substringAfterLast('/')
-                    edit { it.withoutInPool(into.insistence, into.pool ?: return@edit it, parameter) }
-                }
-                "draws" -> pointedAt(handle.removePrefix("draws/"))?.let { into ->
-                    edit { it.withoutPool(into.insistence, into.pool ?: return@edit it) }
-                }
-                // Minting nothing has nothing to fall back to, so the two go together.
-                "mints" -> edit { it.copy(mints = null, unstated = null) }
-                "unstated" -> edit { it.copy(unstated = null) }
-                else -> insistenceNamed(handle.substringBefore('/'))?.let { insistence ->
-                    edit { it.without(insistence, handle.substringAfter('/')) }
+        when (val handle = rows().getOrNull(row())?.handle ?: return) {
+            // The whole idea, rather than a setting of it: what a group *is* is that it goes together.
+            is Handle.Group -> {
+                val (insistence, pool, offer) = handle.group
+                if (pool != null && offer != null) edit { it.withoutOffer(insistence, pool, offer) }
+            }
+            is Handle.Facet -> {
+                val (insistence, pool) = handle.into
+                if (pool == null) {
+                    edit { it.without(insistence, handle.parameter) }
+                } else {
+                    edit { it.withoutInPool(insistence, pool, handle.parameter) }
                 }
             }
-            Part.POPULATIONS -> when (handle.substringBefore('/')) {
-                "heading" -> Unit
-                "chooses" -> aspect?.let { where -> edit { at -> at.copy(chooses = at.chooses - where) } }
-                "admits" -> edit { at -> at.copy(admits = at.admits.without(aspect, named)) }
-                "excludes" -> edit { at -> at.copy(excludes = at.excludes.without(aspect, named)) }
-                "restricts" -> edit { at ->
-                    at.copy(restricts = at.restricts.dropping(aspect, named))
-                }
-                "biases" -> edit { at ->
-                    if (aspect == null) at.copy(leansEverywhere = at.leansEverywhere - named)
-                    else at.copy(biases = at.biases.dropping(aspect, named))
-                }
-                else -> Unit
+            is Handle.DrawCount -> {
+                val (insistence, pool) = handle.pool
+                if (pool != null) edit { it.withoutPool(insistence, pool) }
             }
-            else -> Unit
+            // Minting nothing has nothing to fall back to, so the two go together.
+            Handle.Mints -> edit { it.copy(mints = null, unstated = null) }
+            Handle.Unstated -> edit { it.copy(unstated = null) }
+            is Handle.Claim -> removeAClaim(handle)
+            is Handle.Heading, Handle.Said, Handle.Name, Handle.Display, is Handle.NamedTier, is Handle.Cost,
+            Handle.BaseDimension, Handle.Rarity, Handle.InkQuality, is Handle.AddEffect, is Handle.AddPool,
+            is Handle.AddToPool, is Handle.AddGroup, is Handle.AddToGroup, Handle.AddMints, Handle.Flows,
+            Handle.AddUnstated, is Handle.AddClaim, Handle.Comment, is Handle.Save, Handle.Delete -> Unit
+        }
+    }
+
+    private fun removeAClaim(claim: Handle.Claim) {
+        val aspect = claim.aspect
+        val named = claim.named
+        when (claim.step) {
+            Step.CHOOSE -> aspect?.let { where -> edit { at -> at.copy(chooses = at.chooses - where) } }
+            Step.ADD -> edit { at -> at.copy(admits = at.admits.without(aspect, named)) }
+            Step.REMOVE -> edit { at -> at.copy(excludes = at.excludes.without(aspect, named)) }
+            Step.KEEP -> edit { at -> at.copy(restricts = at.restricts.dropping(aspect, named)) }
+            Step.BIAS -> edit { at ->
+                if (aspect == null) at.copy(leansEverywhere = at.leansEverywhere - named)
+                else at.copy(biases = at.biases.dropping(aspect, named))
+            }
         }
     }
 
     // -- the edits themselves ------------------------------------------------------------------------
 
     private fun renameTo() = typeOn(
-        handle = "name",
+        handle = Handle.Name,
         standing = candidate.name,
         complaint = { typed ->
             when {
@@ -1305,7 +1253,7 @@ class Editor(
      */
     private fun retitle() {
         val id = candidate.listingKey
-        typeOn("display", WordFile.displayOf(id).orEmpty()) { typed ->
+        typeOn(Handle.Display, WordFile.displayOf(id).orEmpty()) { typed ->
             runCatching { WordFile.setDisplay(id, typed.ifBlank { null }) }
                 .onSuccess { message = typed.ifBlank { null }?.let { "shown as $it" } ?: "back to the fallback" }
                 .onFailure { message = "could not rename: ${it.message}" }
@@ -1655,42 +1603,52 @@ class Editor(
 
     /** One step of the value under the cursor, where the row carries one. */
     private fun step(by: Double) {
-        val handle = rows().getOrNull(row())?.handle ?: return
-        val rest = handle.substringAfter('/', "")
-        val page = rest.substringBefore('/')
-        val named = rest.substringAfter('/', "")
-        val aspect = Aspect.byPage(page)
-        // The cost section's numbers step too, which is what the two switches beside them already do with
-        // enter — a threshold in tenths, ink and a failure weight one at a time.
-        if (part == Part.TIER) return stepACost(handle.substringAfter("cost/", ""), by)
-        when (handle.substringBefore('/')) {
-            "biases" -> edit { at ->
+        when (val handle = rows().getOrNull(row())?.handle ?: return) {
+            // The cost section's numbers step too, which is what the two switches beside them already do
+            // with enter — a threshold in tenths, ink and a failure weight one at a time.
+            is Handle.Cost -> stepACost(handle.field, by)
+            is Handle.Claim -> stepAClaim(handle, by)
+            is Handle.Heading, Handle.Said, Handle.Name, Handle.Display, is Handle.NamedTier,
+            Handle.BaseDimension, Handle.Rarity, Handle.InkQuality, is Handle.AddEffect, is Handle.AddPool,
+            is Handle.Facet, is Handle.DrawCount, is Handle.AddToPool, is Handle.AddGroup, is Handle.Group,
+            is Handle.AddToGroup, Handle.AddMints, Handle.Mints, Handle.Flows, Handle.AddUnstated,
+            Handle.Unstated, is Handle.AddClaim, Handle.Comment, is Handle.Save, Handle.Delete -> Unit
+        }
+    }
+
+    /** A weight nudged — a lean or a restriction, the two claims that carry one. */
+    private fun stepAClaim(claim: Handle.Claim, by: Double) {
+        val aspect = claim.aspect
+        val named = claim.named
+        when (claim.step) {
+            Step.BIAS -> edit { at ->
                 val standing = if (aspect == null) at.leansEverywhere[named] else at.biases[aspect]?.get(named)
                 at.leaning(aspect, named, ((standing ?: 0.0) + by).coerceIn(-1.0, 1.0))
             }
-            "restricts" -> aspect?.let { where ->
+            Step.KEEP -> aspect?.let { where ->
                 edit { at ->
                     val standing = at.restricts[where]?.get(named) ?: 0.0
                     at.restricting(where, named, (standing + by).coerceIn(-1.0, 1.0))
                 }
             }
-            else -> Unit
+            Step.CHOOSE, Step.ADD, Step.REMOVE -> Unit
         }
     }
 
     /** One of a tier's numbers nudged: a threshold in tenths, ink and a failure weight one at a time. */
-    private fun stepACost(field: String, by: Double) {
+    private fun stepACost(field: CostField, by: Double) {
         if (!parts.statingItsOwnCost(candidate)) return
         val whole = if (by > 0) 1 else -1
         edit { at ->
             val tier = when (field) {
-                "base ink cost" -> at.tier.copy(cost = (at.tier.cost + whole).coerceAtLeast(0))
-                "instability cost" -> at.tier.copy(weight = (at.tier.weight + whole).coerceAtLeast(0))
-                "tag match threshold" -> at.tier.copy(threshold = (at.tier.threshold + by).coerceIn(0.0, 1.0))
-                "versatility multiplier" -> at.tier.copy(
+                CostField.BASE_INK_COST -> at.tier.copy(cost = (at.tier.cost + whole).coerceAtLeast(0))
+                CostField.INSTABILITY_COST -> at.tier.copy(weight = (at.tier.weight + whole).coerceAtLeast(0))
+                CostField.TAG_MATCH_THRESHOLD ->
+                    at.tier.copy(threshold = (at.tier.threshold + by).coerceIn(0.0, 1.0))
+                CostField.VERSATILITY_MULTIPLIER -> at.tier.copy(
                     versatilityMultiplier = (at.tier.versatilityMultiplier + by).coerceAtLeast(0.0),
                 )
-                else -> at.tier
+                CostField.RESTRICTS -> at.tier
             }
             at.copy(tier = tier)
         }
@@ -1912,7 +1870,7 @@ class Editor(
         building = null
         turnTo(Part.PROPERTIES)
         inside = true
-        val handle = "draws/${of.insistence.name}/${of.pool}"
+        val handle = Handle.DrawCount(Into(of.insistence, of.pool))
         rows().indexOfFirst { it.handle == handle }.takeIf { it >= 0 }?.let { rowOf[Part.PROPERTIES] = it }
         typeOn(
             handle = handle,
@@ -1977,8 +1935,7 @@ class Editor(
         )
     }
 
-    private fun relist(handle: String) {
-        if (handle == "ink") return reink()
+    private fun relist() {
         val standing = WordFile.listingFor(candidate.listingKey).rarity
         val standings = WordFile.rarityStandings()
         val total = standings.values.sumOf { (weight, _) -> weight }

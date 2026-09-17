@@ -21,6 +21,7 @@ import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.preview.authoring.Candidate
 import co.voik.agesandtheart.preview.authoring.Corpus
 import co.voik.agesandtheart.preview.authoring.Insistence
+import co.voik.agesandtheart.preview.authoring.Into
 import co.voik.agesandtheart.preview.authoring.holding
 import co.voik.agesandtheart.preview.authoring.leaning
 import co.voik.agesandtheart.preview.authoring.poolsOn
@@ -108,6 +109,15 @@ enum class Step(val title: String, val about: String, val adds: String) {
     BIAS("bias", "leans the draw between whatever is left; it never removes anything", "lean toward or away"),
 }
 
+/** The five numbers a tier is, as the cost section labels them. */
+enum class CostField(val label: String) {
+    BASE_INK_COST("base ink cost"),
+    RESTRICTS("restricts"),
+    TAG_MATCH_THRESHOLD("tag match threshold"),
+    INSTABILITY_COST("instability cost"),
+    VERSATILITY_MULTIPLIER("versatility multiplier"),
+}
+
 /**
  * One line of a section: what it says, and the handle the editor acts on.
  *
@@ -115,7 +125,90 @@ enum class Step(val title: String, val about: String, val adds: String) {
  * — a parameter wants to say where it can be used, what it is, and what values it takes, and one line of that
  * is a sentence with the other two cut off.
  */
-data class Row(val handle: String, val shown: List<Ink>, val note: String = "")
+data class Row(val handle: Handle, val shown: List<Ink>, val note: String = "")
+
+/**
+ * **What a row is**, which is what the editor acts on when the cursor rests on it.
+ *
+ * Typed so that every `when` over one is exhaustive, and a row with nothing to do is a build error rather than
+ * a `when` that falls through to nothing.
+ */
+sealed interface Handle {
+
+    /**
+     * A line the cursor passes over: a heading, the air between groups, the sum under the numbers. A half's
+     * heading carries its [insistence] and a step's its [step], which is how `a` knows where it is.
+     */
+    data class Heading(val insistence: Insistence? = null, val step: Step? = null) : Handle
+
+    /** A line that is read and never acted on — the review page. */
+    data object Said : Handle
+
+    data object Name : Handle
+
+    data object Display : Handle
+
+    /** One of the tiers the Art names, or `custom`, which opens the numbers. */
+    data class NamedTier(val named: String) : Handle
+
+    /** One of a tier's numbers — passed over like a heading unless the word states its own ([open]). */
+    data class Cost(val field: CostField, val open: Boolean) : Handle
+
+    data object BaseDimension : Handle
+
+    data object Rarity : Handle
+
+    data object InkQuality : Handle
+
+    data class AddEffect(val insistence: Insistence) : Handle
+
+    data class AddPool(val insistence: Insistence) : Handle
+
+    /** A setting: outright where [into] names no pool, and one of that pool's facets where it does. */
+    data class Facet(val into: Into, val parameter: String) : Handle
+
+    /** A pool's own row, which says how many of it are drawn. */
+    data class DrawCount(val pool: Into) : Handle
+
+    data class AddToPool(val pool: Into) : Handle
+
+    data class AddGroup(val pool: Into) : Handle
+
+    /** A group's heading inside a pool, which is a row because a group is deleted whole. */
+    data class Group(val group: Into) : Handle
+
+    data class AddToGroup(val group: Into) : Handle
+
+    data object AddMints : Handle
+
+    data object Mints : Handle
+
+    data object Flows : Handle
+
+    data object AddUnstated : Handle
+
+    data object Unstated : Handle
+
+    data class AddClaim(val step: Step) : Handle
+
+    /** A claim about a population, where a null [aspect] is a lean on the whole Age. */
+    data class Claim(val step: Step, val aspect: Aspect?, val named: String) : Handle {
+
+        /** The tag this claim is about, without its mark, or null where it names a member. */
+        val tag: String?
+            get() = when (step) {
+                Step.KEEP -> named
+                Step.REMOVE, Step.BIAS -> named.takeIf { it.startsWith(TAG_MARK) }?.drop(1)
+                Step.CHOOSE, Step.ADD -> null
+            }
+    }
+
+    data object Comment : Handle
+
+    data class Save(val andLeave: Boolean) : Handle
+
+    data object Delete : Handle
+}
 
 /**
  * What each section shows for a word.
@@ -174,62 +267,41 @@ class Parts(private val corpus: Corpus) {
      * It also replaces the hints that used to sit in a row's own note. A note is for what a thing means;
      * which keys work on it belongs where every other key is listed.
      */
-    fun keysFor(part: Part, row: Row?, candidate: Candidate): List<Pair<String, String>> {
-        val handle = row?.handle.orEmpty()
-        val kind = handle.substringBefore('/')
-        return when (part) {
-            Part.PROPERTIES -> when {
-                kind.startsWith("+") -> listOf("enter" to "do it")
-                kind == "group" -> listOf(
-                    "enter" to "add a setting to this group",
-                    "d" to "remove the whole group",
-                )
-                kind == "draws" -> listOf("enter" to "how many are drawn", "d" to "remove the pool")
-                kind == "pool" -> listOf(
-                    "enter" to "set it",
-                    "a" to "add to this one's group",
-                    "d" to "remove it",
-                )
-                kind == "mints" -> listOf("enter" to "change the pattern", "d" to "make nothing")
-                kind == "flows" -> listOf("enter" to "block or fluid")
-                kind == "unstated" -> listOf("enter" to "change the pool", "d" to "say nothing")
-                handle.isEmpty() -> emptyList()
-                else -> listOf("enter" to "set it", "a" to "add another", "d" to "remove it")
-            }
-            Part.POPULATIONS -> when {
-                kind.startsWith("+") -> listOf("enter" to "do it")
-                kind == "restricts" || kind == "biases" -> listOf(
-                    "enter" to "type the weight",
-                    "- =" to "step it",
-                    "d" to "remove it",
-                )
-                kind == "chooses" || kind == "admits" || kind == "excludes" ->
-                    listOf("enter" to "change it", "d" to "remove it")
-                handle.isEmpty() -> emptyList()
-                else -> listOf("a" to "add", "d" to "remove")
-            }
-            Part.TIER -> when {
-                kind == "named" -> listOf("enter" to "take these numbers")
-                kind == "cost" && statingItsOwnCost(candidate) ->
-                    listOf("enter" to "type it", "- =" to "step it")
-                kind == "cost" -> listOf("" to "take `custom` above to change these")
-                else -> emptyList()
-            }
-            Part.NAME -> listOf("enter" to "rename it")
-            Part.LISTING -> listOf("enter" to "choose one")
-            Part.TEMPLATE -> listOf("enter" to "choose one")
-            Part.COMMENT -> listOf("enter" to "open \$EDITOR")
-            Part.REVIEW -> emptyList()
-            Part.SAVE, Part.SAVE_AND_LEAVE -> listOf("enter" to "write the file")
-            Part.DELETE -> listOf("enter" to "delete the word")
+    fun keysFor(row: Row?): List<Pair<String, String>> = when (val handle = row?.handle) {
+        null, is Handle.Heading, Handle.Said -> emptyList()
+        Handle.Name, Handle.Display -> listOf("enter" to "rename it")
+        is Handle.NamedTier -> listOf("enter" to "take these numbers")
+        is Handle.Cost ->
+            if (handle.open) listOf("enter" to "type it", "- =" to "step it")
+            else listOf("" to "take `custom` above to change these")
+        Handle.BaseDimension, Handle.Rarity, Handle.InkQuality -> listOf("enter" to "choose one")
+        is Handle.AddEffect, is Handle.AddPool, is Handle.AddToPool, is Handle.AddGroup, is Handle.AddToGroup,
+        Handle.AddMints, Handle.AddUnstated, is Handle.AddClaim -> listOf("enter" to "do it")
+        is Handle.Facet ->
+            if (handle.into.pool == null) listOf("enter" to "set it", "a" to "add another", "d" to "remove it")
+            else listOf("enter" to "set it", "a" to "add to this one's group", "d" to "remove it")
+        is Handle.DrawCount -> listOf("enter" to "how many are drawn", "d" to "remove the pool")
+        is Handle.Group -> listOf("enter" to "add a setting to this group", "d" to "remove the whole group")
+        Handle.Mints -> listOf("enter" to "change the pattern", "d" to "make nothing")
+        Handle.Flows -> listOf("enter" to "block or fluid")
+        Handle.Unstated -> listOf("enter" to "change the pool", "d" to "say nothing")
+        is Handle.Claim -> when (handle.step) {
+            Step.KEEP, Step.BIAS -> listOf("enter" to "type the weight", "- =" to "step it", "d" to "remove it")
+            Step.CHOOSE, Step.ADD, Step.REMOVE -> listOf("enter" to "change it", "d" to "remove it")
         }
+        Handle.Comment -> listOf("enter" to "open \$EDITOR")
+        is Handle.Save -> listOf("enter" to "write the file")
+        Handle.Delete -> listOf("enter" to "delete the word")
     }
 
     /** Whether the cursor may rest on this row at all — a heading names what is under it and does nothing. */
-    fun isAHeading(row: Row) = row.handle.startsWith("heading/")
+    fun isAHeading(row: Row): Boolean {
+        val isACostNotOpen = row.handle is Handle.Cost && !row.handle.open
+        return row.handle is Handle.Heading || isACostNotOpen
+    }
 
     /** A line of air between two groups. A heading, so the cursor passes over it rather than into it. */
-    private fun spacer(named: String) = Row("heading/space/$named", emptyList())
+    private fun spacer() = Row(Handle.Heading(), emptyList())
 
     // -- word and specificity ------------------------------------------------------------------------
 
@@ -238,13 +310,13 @@ class Parts(private val corpus: Corpus) {
         val called = WordFile.displayOf(id)
         return listOf(
             Row(
-                handle = "name",
+                handle = Handle.Name,
                 shown = listOf(Ink("id       ", Palette.faint), Ink(candidate.name.ifBlank { "(unnamed)" }, Palette.value)),
                 note = "the file name, and what a book is written in\n" +
                     (if (WordFile.exists(candidate.name)) "    a file already exists for this" else ""),
             ),
             Row(
-                handle = "display",
+                handle = Handle.Display,
                 shown = listOf(
                     Ink("shown as ", Palette.faint),
                     Ink(called ?: WordFile.fallbackDisplay(id), if (called == null) Palette.faint else Palette.value),
@@ -267,7 +339,7 @@ class Parts(private val corpus: Corpus) {
         val own = statingItsOwnCost(candidate)
         val named = Tier.NAMED.map { (named, tier) ->
             Celled(
-                "named/$named",
+                Handle.NamedTier(named),
                 listOf(
                     Ink(named, if (!own && candidate.tier == tier) Palette.value else Palette.faint),
                     Ink("ink ${tier.cost}", Palette.faint),
@@ -276,7 +348,7 @@ class Parts(private val corpus: Corpus) {
                 mark = !own && candidate.tier == tier,
             )
         } + Celled(
-            "named/${Tier.CUSTOM}",
+            Handle.NamedTier(Tier.CUSTOM),
             listOf(
                 Ink(Tier.CUSTOM, if (own) Palette.value else Palette.faint),
                 Ink("", Palette.faint),
@@ -285,7 +357,7 @@ class Parts(private val corpus: Corpus) {
             mark = own,
         )
         addAll(laidInColumns(named, TIER_CHOICES, width, marked = true))
-        add(Row("heading/space/numbers", emptyList()))
+        add(spacer())
         addAll(costRows(candidate, own, width))
     }
 
@@ -307,13 +379,13 @@ class Parts(private val corpus: Corpus) {
         // **No note under the pane**: the third column already says what each number does, and a footer
         // repeating it in other words is the same sentence twice with the cursor between them.
         //
-        // **Under a named tier the cursor passes over them**, the `heading/` handle being what makes a row
-        // unreachable. They are there to be read — reading `exact`'s threshold is what tells you what
-        // `exact` means — and a row that stops the cursor without taking an edit reads as one that broke.
-        fun row(field: String, said: String, about: String) = Celled(
-            handle = if (own) "cost/$field" else "heading/cost/$field",
+        // **Under a named tier the cursor passes over them**, a cost that is not open being read as a
+        // heading. They are there to be read — reading `exact`'s threshold is what tells you what `exact`
+        // means — and a row that stops the cursor without taking an edit reads as one that broke.
+        fun row(field: CostField, said: String, about: String) = Celled(
+            handle = Handle.Cost(field, open = own),
             cells = listOf(
-                Ink(field, if (own) Palette.parameter else Palette.faint),
+                Ink(field.label, if (own) Palette.parameter else Palette.faint),
                 Ink(said, if (own) Palette.value else Palette.faint),
                 Ink(about, Palette.faint),
             ),
@@ -329,28 +401,29 @@ class Parts(private val corpus: Corpus) {
         // page and it belongs to the row above it, which reads as a crowd when there are three more rows
         // beneath. `base ink cost` says what it is, so it is left to.
         val rows = listOf(
-            row("base ink cost", "${tier.cost}", ""),
-            row("restricts", yesOrNo(tier.narrows), restricting),
+            row(CostField.BASE_INK_COST, "${tier.cost}", ""),
+            row(CostField.RESTRICTS, yesOrNo(tier.narrows), restricting),
             row(
-                "tag match threshold",
+                CostField.TAG_MATCH_THRESHOLD,
                 "%.2f".format(tier.threshold),
                 "how well a tag must align to be considered matching",
             ),
             row(
-                "instability cost",
+                CostField.INSTABILITY_COST,
                 "${tier.weight}",
                 "how many instability points are penalised when this word is used in a contradiction",
             ),
             row(
-                "versatility multiplier",
+                CostField.VERSATILITY_MULTIPLIER,
                 "%.2f".format(tier.versatilityMultiplier),
                 "scales the versatility cost by this amount",
             ),
         )
         val laid = laidInColumns(rows, TIER_NUMBERS, width).toMutableList()
         // Anchored on the row rather than on its position, so moving one does not silently move the sum.
-        val multiplier = laid.indexOfFirst { it.handle == "cost/versatility multiplier" }
-        laid.add(multiplier + 1, Row("heading/sum", listOf(Ink("        ${inkSpelledOut(candidate)}", Palette.faint))))
+        val multiplier = laid.indexOfFirst { (it.handle as? Handle.Cost)?.field == CostField.VERSATILITY_MULTIPLIER }
+        val sum = Row(Handle.Heading(), listOf(Ink("        ${inkSpelledOut(candidate)}", Palette.faint)))
+        laid.add(multiplier + 1, sum)
         return laid
     }
 
@@ -386,7 +459,7 @@ class Parts(private val corpus: Corpus) {
 
     /** A row before its columns are measured — what every list here with columns is built from. */
     private data class Celled(
-        val handle: String,
+        val handle: Handle,
         val cells: List<Ink>,
         val note: String = "",
         val mark: Boolean = false,
@@ -432,13 +505,13 @@ class Parts(private val corpus: Corpus) {
      * them while the aside beside it ran off the end.
      */
     private sealed interface Told {
-        val handle: String
+        val handle: Handle
 
         /** A line that owns the width: a heading, a blank, a line of the comment, the aspects it reaches. */
-        data class Whole(override val handle: String, val shown: List<Ink>) : Told
+        data class Whole(override val handle: Handle, val shown: List<Ink>) : Told
 
         /** A line in the page's columns: what it is about, what it says, and the aside after. */
-        data class Columned(override val handle: String, val cells: List<Ink>) : Told
+        data class Columned(override val handle: Handle, val cells: List<Ink>) : Told
     }
 
     /**
@@ -450,7 +523,7 @@ class Parts(private val corpus: Corpus) {
      */
     private fun reviewRows(candidate: Candidate, word: Word?, width: Int): List<Row> {
         if (word == null) {
-            return listOf(Row("none", listOf(Ink("this word will not load", Palette.refused))))
+            return listOf(Row(Handle.Said, listOf(Ink("this word will not load", Palette.refused))))
         }
         val listing = WordFile.listingFor(candidate.listingKey)
         // **A section at a time.** One measurement for the whole page makes every value column as wide as
@@ -464,7 +537,7 @@ class Parts(private val corpus: Corpus) {
             under("comment", candidate.commentLines.map { said(it) }),
         )
         if (sections.all { it.isEmpty() }) {
-            return listOf(Row("none", listOf(Ink("nothing said yet", Palette.faint))))
+            return listOf(Row(Handle.Said, listOf(Ink("nothing said yet", Palette.faint))))
         }
         return sections.flatMap { laidOut(it, width) }
     }
@@ -498,21 +571,21 @@ class Parts(private val corpus: Corpus) {
      */
     private fun under(title: String, rows: List<Told>): List<Told> =
         if (rows.isEmpty()) emptyList() else listOf(
-            blank(title),
-            Told.Whole("heading/$title", listOf(Ink(title, Palette.heading))),
+            blank(),
+            Told.Whole(Handle.Heading(), listOf(Ink(title, Palette.heading))),
         ) + rows
 
     /** A line that spaces two things apart, handled as a heading so the cursor passes over it. */
-    private fun blank(named: String) = Told.Whole("heading/space/$named", emptyList())
+    private fun blank() = Told.Whole(Handle.Heading(), emptyList())
 
     /** A group inside a section — the required half of the properties, or one pool of them. */
     private fun grouped(title: String, rows: List<Told>): List<Told> =
-        grouped(title, listOf(Ink(title, Palette.chosen)), rows)
+        grouped(listOf(Ink(title, Palette.chosen)), rows)
 
     /** The same, where the heading has something in it worth colouring apart from the rest. */
-    private fun grouped(named: String, shown: List<Ink>, rows: List<Told>): List<Told> =
+    private fun grouped(shown: List<Ink>, rows: List<Told>): List<Told> =
         if (rows.isEmpty()) emptyList() else listOf(
-            Told.Whole("heading/group/$named", listOf(Ink("  ")) + shown),
+            Told.Whole(Handle.Heading(), listOf(Ink("  ")) + shown),
         ) + rows
 
     /**
@@ -535,10 +608,10 @@ class Parts(private val corpus: Corpus) {
         }
     }
 
-    private fun told(handle: String, label: String, value: String, after: String = "", tone: TextStyle = Palette.value) =
-        Told.Columned(handle, listOf(Ink(label, Palette.faint), Ink(value, tone), Ink(after, Palette.faint)))
+    private fun told(label: String, value: String, after: String = "", tone: TextStyle = Palette.value) =
+        Told.Columned(Handle.Said, listOf(Ink(label, Palette.faint), Ink(value, tone), Ink(after, Palette.faint)))
 
-    private fun said(line: String) = Told.Whole("said", listOf(Ink("    "), Ink(line, Palette.faint)))
+    private fun said(line: String) = Told.Whole(Handle.Said, listOf(Ink("    "), Ink(line, Palette.faint)))
 
     private fun costTold(candidate: Candidate, word: Word, listing: WordFile.Listing) = buildList {
         val reach = if (word.versatility > 1.0) {
@@ -547,11 +620,11 @@ class Parts(private val corpus: Corpus) {
         } else {
             "${word.tier.cost} flat, whatever it reaches"
         }
-        add(told("cost/ink", "ink", "${word.price}", "${word.tier.key} ${Glyph.BULLET} $reach"))
-        listing.rarity?.let { add(told("cost/rarity", "rarity", it, "how hard it is to find")) }
-        WordFile.inkOf(candidate)?.let { add(told("cost/quality", "ink quality", it, "what it takes to write")) }
+        add(told("ink", "${word.price}", "${word.tier.key} ${Glyph.BULLET} $reach"))
+        listing.rarity?.let { add(told("rarity", it, "how hard it is to find")) }
+        WordFile.inkOf(candidate)?.let { add(told("ink quality", it, "what it takes to write")) }
         candidate.template?.let {
-            add(told("cost/base", "base dimension", dimensionCalled(it), "the world a book starts from"))
+            add(told("base dimension", dimensionCalled(it), "the world a book starts from"))
         }
     }
 
@@ -567,7 +640,7 @@ class Parts(private val corpus: Corpus) {
         if (reached.isEmpty()) return emptyList()
         val indent = " ".repeat(REVIEW_INDENT)
         return Line(indent + reached, Palette.value).wrapped(width, hanging = indent)
-            .map { Told.Whole("reaches", it.inks) }
+            .map { Told.Whole(Handle.Said, it.inks) }
     }
 
     /**
@@ -582,22 +655,16 @@ class Parts(private val corpus: Corpus) {
             val always = grouped(
                 insistence.title,
                 candidate.settingOn(insistence).entries.sortedBy { it.key }.map { (parameter, value) ->
-                    told("set/${insistence.name}/$parameter", saidAsAParameter(parameter), value, wherever(parameter))
+                    told(saidAsAParameter(parameter), value, wherever(parameter))
                 },
             )
             val pools = candidate.poolsOn(insistence).mapIndexed { at, pool ->
                 grouped(
-                    "${insistence.name}/pool/$at",
                     poolHeading(insistence, at, pool),
                     pool.offers.flatMapIndexed { which, offer ->
                         val together = if (offer.size > 1) " ${Glyph.BULLET} with the rest of group ${which + 1}" else ""
                         offer.entries.sortedBy { it.key }.map { (parameter, value) ->
-                            told(
-                                "pool/${insistence.name}/$at/$parameter",
-                                saidAsAParameter(parameter),
-                                value,
-                                wherever(parameter) + together,
-                            )
+                            told(saidAsAParameter(parameter), value, wherever(parameter) + together)
                         }
                     },
                 )
@@ -605,7 +672,7 @@ class Parts(private val corpus: Corpus) {
             listOf(always) + pools
         }.filter { it.isNotEmpty() }
         // A blank between the groups and none before the first, which the section heading already carries.
-        return groups.reduceOrNull { standing, next -> standing + blank("group") + next }.orEmpty()
+        return groups.reduceOrNull { standing, next -> standing + blank() + next }.orEmpty()
     }
 
     /**
@@ -630,25 +697,25 @@ class Parts(private val corpus: Corpus) {
     private fun populationsTold(candidate: Candidate): List<Told> {
         val everywhere = candidate.leansEverywhere.entries.sortedByDescending { it.value }
             .map { (named, weight) ->
-                told("lean/all/$named", Word.EVERYWHERE, "${leanSaid(weight)} $named", "%+.2f".format(weight))
+                told(Word.EVERYWHERE, "${leanSaid(weight)} $named", "%+.2f".format(weight))
             }
         val keyed = Aspect.entries.sortedBy { it.ordinal }.flatMap { aspect ->
             val page = aspect.page
             buildList {
                 candidate.chooses[aspect]?.let {
-                    add(told("chooses/$page", page, "chooses $it", "nothing is searched for"))
+                    add(told(page, "chooses $it", "nothing is searched for"))
                 }
                 candidate.admits[aspect]?.sorted()?.forEach {
-                    add(told("admits/$page/$it", page, "adds $it", "into the pool"))
+                    add(told(page, "adds $it", "into the pool"))
                 }
                 candidate.restricts[aspect]?.entries?.sortedByDescending { it.value }?.forEach { (tag, weight) ->
-                    add(told("restricts/$page/$tag", page, "keeps only $TAG_MARK$tag", "%+.2f".format(weight)))
+                    add(told(page, "keeps only $TAG_MARK$tag", "%+.2f".format(weight)))
                 }
                 candidate.excludes[aspect]?.sorted()?.forEach {
-                    add(told("excludes/$page/$it", page, "removes $it", "out of the pool"))
+                    add(told(page, "removes $it", "out of the pool"))
                 }
                 candidate.biases[aspect]?.entries?.sortedByDescending { it.value }?.forEach { (named, weight) ->
-                    add(told("biases/$page/$named", page, "${leanSaid(weight)} $named", "%+.2f".format(weight)))
+                    add(told(page, "${leanSaid(weight)} $named", "%+.2f".format(weight)))
                 }
             }
         }
@@ -658,7 +725,7 @@ class Parts(private val corpus: Corpus) {
     /** A section that is one thing to do, so its whole list is the doing of it. */
     private fun doingRows(part: Part, candidate: Candidate): List<Row> = listOf(
         Row(
-            handle = part.name,
+            handle = Handle.Save(andLeave = part == Part.SAVE_AND_LEAVE),
             shown = listOf(Ink(part.title, if (candidate.isDerived) Palette.faint else Palette.value)),
             note = if (candidate.isDerived) "an auto-generated word has no file to write" else part.about,
         ),
@@ -675,10 +742,10 @@ class Parts(private val corpus: Corpus) {
      */
     private fun effectRows(candidate: Candidate, word: Word?): List<Row> = buildList {
         for (insistence in Insistence.entries) {
-            if (isNotEmpty()) add(spacer(insistence.name))
+            if (isNotEmpty()) add(spacer())
             add(
                 Row(
-                    handle = "heading/${insistence.name}",
+                    handle = Handle.Heading(insistence = insistence),
                     shown = listOf(Ink(insistence.title, Palette.heading)),
                     note = insistence.about,
                 ),
@@ -686,36 +753,43 @@ class Parts(private val corpus: Corpus) {
             // **Under the heading rather than at the foot of the list.** The half a claim belongs to is
             // the question these used to open with, so putting one pair in each group asks it by where
             // you are standing — and a word with a dozen effects does not bury the way to add another.
-            add(Row("+/${insistence.name}", listOf(Ink("    + add an effect", Palette.faint))))
-            add(Row("+pool/${insistence.name}", listOf(Ink("    + add a pool, drawn per Age", Palette.faint))))
+            add(Row(Handle.AddEffect(insistence), listOf(Ink("    + add an effect", Palette.faint))))
+            add(Row(Handle.AddPool(insistence), listOf(Ink("    + add a pool, drawn per Age", Palette.faint))))
             for ((parameter, value) in candidate.settingOn(insistence).entries.sortedBy { it.key }) {
-                add(facetRow("${insistence.name}/$parameter", parameter, value, word))
+                add(facetRow(Into(insistence), parameter, value, word))
             }
             // **Each pool under its own heading**, because what a pool is *for* is that its facets belong
             // together — a writer laying `sun.colour` beside `sun.size` is saying the Age varies in its
             // sun, and a single flat list of eight facets says only that it varies.
             for ((at, pool) in candidate.poolsOn(insistence).withIndex()) {
+                val into = Into(insistence, at)
                 add(drawsRow(insistence, at, pool))
                 // **Pinned above what is in it**, and both ways in are rows. `a` on a facet joins its
                 // offer, which is the quick way once you know it — and nothing here should be reachable
                 // only by knowing it.
-                add(Row("+in/${insistence.name}/$at", listOf(Ink("      + add a setting", Palette.faint))))
+                add(Row(Handle.AddToPool(into), listOf(Ink("      + add a setting", Palette.faint))))
                 add(
                     Row(
-                        handle = "+group/${insistence.name}/$at",
+                        handle = Handle.AddGroup(into),
                         shown = listOf(Ink("      + add a group", Palette.faint)),
                         note = "several settings the Age takes whole or not at all",
                     ),
                 )
-                addAll(offerRows(insistence, at, pool, word))
+                addAll(offerRows(into, pool, word))
             }
         }
-        add(Row("heading/mints", listOf(Ink("makes", Palette.heading)), "a new member, out of a pattern the game already has"))
+        add(
+            Row(
+                Handle.Heading(),
+                listOf(Ink("makes", Palette.heading)),
+                "a new member, out of a pattern the game already has",
+            ),
+        )
         val pattern = candidate.mints
         if (pattern == null) {
             add(
                 Row(
-                    handle = "+mints",
+                    handle = Handle.AddMints,
                     shown = listOf(Ink("    + make something out of a pattern", Palette.faint)),
                     note = "`ink springs` is vanilla's spring running with ours — the pattern is the page",
                 ),
@@ -723,7 +797,7 @@ class Parts(private val corpus: Corpus) {
         } else {
             add(
                 Row(
-                    handle = "mints",
+                    handle = Handle.Mints,
                     shown = listOf(
                         Ink("    "),
                         Ink("pattern".padEnd(PARAMETER_COLUMN), Palette.parameter),
@@ -734,7 +808,7 @@ class Parts(private val corpus: Corpus) {
             )
             add(
                 Row(
-                    handle = "flows",
+                    handle = Handle.Flows,
                     shown = listOf(
                         Ink("    "),
                         Ink("made of".padEnd(PARAMETER_COLUMN), Palette.parameter),
@@ -745,7 +819,7 @@ class Parts(private val corpus: Corpus) {
             )
             add(
                 Row(
-                    handle = if (candidate.unstated == null) "+unstated" else "unstated",
+                    handle = if (candidate.unstated == null) Handle.AddUnstated else Handle.Unstated,
                     shown = candidate.unstated?.let { fallback ->
                         listOf(
                             Ink("    "),
@@ -792,34 +866,28 @@ class Parts(private val corpus: Corpus) {
      * the list then calls it. A group of one is what every facet used to be and is drawn as one row with
      * nothing said about it.
      */
-    private fun offerRows(insistence: Insistence, at: Int, pool: Facets, word: Word?): List<Row> =
+    private fun offerRows(into: Into, pool: Facets, word: Word?): List<Row> =
         pool.offers.flatMapIndexed { which, offer ->
             val grouped = offer.size > 1
+            val group = into.copy(offer = which)
             // **The heading is a row, not a heading.** A group is a thing you can delete whole, and the
             // only place that means anything is the line naming it — a cursor that skipped past it left
             // `d` deleting settings one at a time with no way to say "not this idea at all".
             val head = if (!grouped) emptyList() else listOf(
                 Row(
-                    handle = "group/${insistence.name}/$at/$which",
+                    handle = Handle.Group(group),
                     shown = listOf(Ink("      group ${which + 1}", Palette.tag)),
                     note = "these are drawn together or not at all, and count as one thing drawn",
                 ),
             )
             val settings = offer.entries.sortedBy { it.key }.map { (parameter, value) ->
-                facetRow(
-                    "pool/${insistence.name}/$at/$parameter",
-                    parameter,
-                    value,
-                    word,
-                    deeper = true,
-                    grouped = grouped,
-                )
+                facetRow(into, parameter, value, word, grouped = grouped)
             }
             // **On the group, not on the pool.** What a group takes is a question about that group, and
             // the row under it is where a reader already is when they think to ask.
             val joining = if (!grouped) emptyList() else listOf(
                 Row(
-                    handle = "+into/${insistence.name}/$at/$which",
+                    handle = Handle.AddToGroup(group),
                     shown = listOf(Ink("        + add to this group", Palette.faint)),
                     note = "drawn with the rest of it or not at all",
                 ),
@@ -827,16 +895,17 @@ class Parts(private val corpus: Corpus) {
             head + settings + joining
         }
 
+    /** A setting's row — indented a step further inside a pool, and another inside a group. */
     private fun facetRow(
-        handle: String,
+        into: Into,
         parameter: String,
         value: String,
         word: Word?,
-        deeper: Boolean = false,
         grouped: Boolean = false,
-    ) =
-        Row(
-            handle = handle,
+    ): Row {
+        val deeper = into.pool != null
+        return Row(
+            handle = Handle.Facet(into, parameter),
             shown = listOf(
                 Ink(if (grouped) "        " else if (deeper) "      " else "    "),
                 // **The part of the world first**, where the key names one. `size` alone is a landform's
@@ -849,6 +918,7 @@ class Parts(private val corpus: Corpus) {
             ),
             note = parameterNote(parameter, value, word),
         )
+    }
 
     /**
      * A pool's own heading — which one it is, and how much of itself an Age takes.
@@ -858,7 +928,7 @@ class Parts(private val corpus: Corpus) {
      * label that grows as a pool does is a label you stop reading.
      */
     private fun drawsRow(insistence: Insistence, at: Int, pool: Facets): Row = Row(
-        handle = "draws/${insistence.name}/$at",
+        handle = Handle.DrawCount(Into(insistence, at)),
         shown = listOf(
             Ink("    "),
             Ink(poolNamed(at).padEnd(PARAMETER_COLUMN), Palette.tag),
@@ -1037,9 +1107,9 @@ class Parts(private val corpus: Corpus) {
      */
     private fun pickRows(candidate: Candidate, word: Word?): List<Row> = buildList {
         for (step in Step.entries) {
-            if (isNotEmpty()) add(spacer(step.name))
-            add(Row("heading/${step.name}", listOf(Ink(step.title, Palette.heading)), step.about))
-            add(Row("+/${step.name}", listOf(Ink("    + ${step.adds}", Palette.faint))))
+            if (isNotEmpty()) add(spacer())
+            add(Row(Handle.Heading(step = step), listOf(Ink(step.title, Palette.heading)), step.about))
+            add(Row(Handle.AddClaim(step), listOf(Ink("    + ${step.adds}", Palette.faint))))
             addAll(stepRows(step, candidate, word))
         }
     }
@@ -1057,13 +1127,13 @@ class Parts(private val corpus: Corpus) {
 
     private fun stepRows(step: Step, candidate: Candidate, word: Word?): List<Row> = when (step) {
         Step.CHOOSE -> candidate.chooses.entries.sortedBy { it.key.ordinal }.map { (aspect, key) ->
-            Row("chooses/${aspect.page}", populationInk(aspect, key, Palette.chosen), whatItMeans(aspect, key))
+            Row(Handle.Claim(step, aspect, key), populationInk(aspect, key, Palette.chosen), whatItMeans(aspect, key))
         }
         Step.ADD -> candidate.admits.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, keys) ->
             val settled = settledNote(step, candidate, aspect)
             keys.sorted().map { key ->
                 Row(
-                    "admits/${aspect.page}/$key",
+                    Handle.Claim(step, aspect, key),
                     populationInk(aspect, key, if (settled == null) Palette.value else Palette.faint),
                     settled ?: addedNote(aspect, key),
                 )
@@ -1073,7 +1143,7 @@ class Parts(private val corpus: Corpus) {
             val settled = settledNote(step, candidate, aspect)
             tags.entries.sortedByDescending { it.value }.map { (tag, weight) ->
                 Row(
-                    "restricts/${aspect.page}/$tag",
+                    Handle.Claim(step, aspect, tag),
                     tagInk(tag, weight, aspect.page),
                     settled ?: tagNote(tag, word, aspect),
                 )
@@ -1083,7 +1153,7 @@ class Parts(private val corpus: Corpus) {
             val settled = settledNote(step, candidate, aspect)
             keys.sorted().map { key ->
                 Row(
-                    "excludes/${aspect.page}/$key",
+                    Handle.Claim(step, aspect, key),
                     populationInk(aspect, key, if (settled == null) Palette.refused else Palette.faint),
                     settled ?: struckNote(aspect, key),
                 )
@@ -1102,7 +1172,7 @@ class Parts(private val corpus: Corpus) {
     private fun leaningRows(candidate: Candidate, word: Word?): List<Row> {
         val everywhere = candidate.leansEverywhere.entries.map { (named, weight) ->
             weight to Row(
-                "biases/${Word.EVERYWHERE}/$named",
+                Handle.Claim(Step.BIAS, null, named),
                 leanInk(named, weight, Word.EVERYWHERE),
                 leanNote(null, named),
             )
@@ -1111,7 +1181,7 @@ class Parts(private val corpus: Corpus) {
             val settled = settledNote(Step.BIAS, candidate, aspect)
             by.entries.map { (named, weight) ->
                 weight to Row(
-                    "biases/${aspect.page}/$named",
+                    Handle.Claim(Step.BIAS, aspect, named),
                     leanInk(named, weight, aspect.page),
                     settled ?: leanNote(aspect, named),
                 )
@@ -1177,7 +1247,7 @@ class Parts(private val corpus: Corpus) {
 
     private fun templateRows(candidate: Candidate) = listOf(
         Row(
-            handle = "template",
+            handle = Handle.BaseDimension,
             shown = listOf(
                 Ink(
                     candidate.template?.let(::dimensionCalled) ?: UNSET,
@@ -1201,26 +1271,6 @@ class Parts(private val corpus: Corpus) {
         "dark_void" to "islands in a void, and its own sky.",
     )
 
-
-    /**
-     * The tag a populations row is about, where it is about one.
-     *
-     * Read off the claim rather than off the handle: a member named like a step would otherwise be taken
-     * for one, and a lean names members and tags in the same map.
-     */
-    fun tagOn(candidate: Candidate, handle: String): String? {
-        val kept = candidate.restricts.entries.flatMap { (aspect, tags) ->
-            tags.keys.map { "restricts/${aspect.page}/$it" to it }
-        }
-        val struck = candidate.excludes.entries.flatMap { (aspect, keys) ->
-            keys.filter { it.startsWith(TAG_MARK) }.map { "excludes/${aspect.page}/$it" to it.drop(1) }
-        }
-        val leaned = (candidate.biases.entries.map { it.key.page to it.value } +
-            listOf(Word.EVERYWHERE to candidate.leansEverywhere)).flatMap { (page, by) ->
-            by.keys.filter { it.startsWith(TAG_MARK) }.map { "biases/$page/$it" to it.drop(1) }
-        }
-        return (kept + struck + leaned).firstOrNull { it.first == handle }?.second
-    }
 
     private fun tagInk(tag: String, weight: Double, only: String): List<Ink> = listOf(
         Ink("    "),
@@ -1286,13 +1336,13 @@ class Parts(private val corpus: Corpus) {
         val lines = candidate.commentLines
         return listOf(
             Row(
-                handle = "comment",
+                handle = Handle.Comment,
                 shown = listOf(
                     Ink(if (lines.isEmpty()) "nothing written" else "${lines.size} line(s)", Palette.value),
                 ),
                 note = "enter opens \$EDITOR",
             ),
-        ) + lines.take(COMMENT_PREVIEW).map { Row("", listOf(Ink("  $it", Palette.faint))) }
+        ) + lines.take(COMMENT_PREVIEW).map { Row(Handle.Comment, listOf(Ink("  $it", Palette.faint))) }
     }
 
     private fun listingRows(candidate: Candidate): List<Row> {
@@ -1301,9 +1351,9 @@ class Parts(private val corpus: Corpus) {
         val labels = listOf("rarity", "required ink quality")
         val wide = labels.maxOf { it.length } + LABEL_GUTTER
         return listOf(
-            Row("rarity", field(labels[0], listing.rarity, wide)),
+            Row(Handle.Rarity, field(labels[0], listing.rarity, wide)),
             Row(
-                handle = "ink",
+                handle = Handle.InkQuality,
                 shown = field(labels[1], ink, wide),
                 note = if (candidate.inkTagDirectory != null) "written as a tag on ${candidate.id}" else "",
             ),
@@ -1312,7 +1362,7 @@ class Parts(private val corpus: Corpus) {
 
     private fun deleteRows(candidate: Candidate): List<Row> = listOf(
         Row(
-            handle = "delete",
+            handle = Handle.Delete,
             shown = listOf(
                 Ink("${Glyph.WARN} ", Palette.refused),
                 Ink(
