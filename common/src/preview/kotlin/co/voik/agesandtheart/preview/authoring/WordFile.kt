@@ -2,11 +2,14 @@ package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
+import co.voik.agesandtheart.age.word.InkRequirement
 import co.voik.agesandtheart.age.word.InkTier
+import co.voik.agesandtheart.age.word.WordRarity
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import net.minecraft.resources.Identifier
 import java.io.File
 
 /**
@@ -22,6 +25,8 @@ object WordFile {
     private val GSON = GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create()
 
     private const val JSON_SUFFIX = ".json"
+
+    private const val TAGS = "tags"
 
     /** The pack's resources in the source tree, as [MinecraftRegistries.resourceRoot] finds them. */
     val resources: File by lazy {
@@ -147,21 +152,25 @@ object WordFile {
         // Moved rather than dropped: the caller writes the word out afterwards, but a rename that only
         // deleted would lose it outright if that write then failed.
         fileFor(from).renameTo(fileFor(to))
-        list("rarity", from, null)
-        list("ink", from, null)
+        list(rarityLists, from, null)
+        list(inkLists, from, null)
         setDisplay(from, null)
-        listing.rarity?.let { list("rarity", to, it) }
-        listing.ink?.let { list("ink", to, it) }
+        listing.rarity?.let { list(rarityLists, to, it) }
+        listing.ink?.let { list(inkLists, to, it) }
         called?.let { setDisplay(to, it) }
     }
 
     /** A word and every trace of it — the file, its rarity, its ink and what it was shown as. */
     fun deleteWord(name: String) {
         fileFor(name).delete()
-        list("rarity", name, null)
-        list("ink", name, null)
+        list(rarityLists, name, null)
+        list(inkLists, name, null)
         setDisplay(name, null)
     }
+
+    private val rarityLists: File get() = art.parentFile.resolve(WordRarity.RARITY_DIRECTORY)
+
+    private val inkLists: File get() = art.parentFile.resolve(InkRequirement.INK_DIRECTORY)
 
     /**
      * Every word's rarity and ink in one pass — **five files read once, not once per row.**
@@ -170,19 +179,29 @@ object WordFile {
      * eight thousand reads for a table of sixteen hundred. The lists are small and the inversion is cheap.
      */
     fun everyListing(): Map<String, Listing> {
-        val rarity = namesByBucket(art.resolve("rarity"))
-        val ink = namesByBucket(art.resolve("ink"))
+        val rarity = namesByBucket(rarityLists)
+        val ink = namesByBucket(inkLists)
         return (rarity.keys + ink.keys).associateWith { Listing(rarity[it], ink[it]) }
     }
 
-    /** Every id an ink tag holds, by id — the same saving for the derived half. */
-    fun everyInkTag(where: String): Map<String, String> = buildMap {
-        for (tier in listOf("fine", "masterwork")) {
-            val file = art.parentFile.resolve("tags/$where/requires_${tier}_ink.json")
-            if (!file.isFile) continue
-            JsonParser.parseString(file.readText()).asJsonObject
-                .getAsJsonArray("values")?.forEach { put(it.asString, tier) }
+    /**
+     * Every id an ink tag holds, by tag directory and then by id — the same saving for the derived half.
+     *
+     * Found by walking `tags/` rather than from a list of registries, so a directory is never missed.
+     */
+    fun everyInkTag(): Map<String, Map<String, String>> {
+        val namespace = art.parentFile
+        val byDirectory = mutableMapOf<String, MutableMap<String, String>>()
+        // Cheapest first, so an id both tags carry ends on the dearest, which is what `InkRequirement` reads.
+        for ((tier, tag) in InkRequirement.TAG_NAMES.entries.reversed()) {
+            val fileName = "${tag.path}$JSON_SUFFIX"
+            for (file in namespace.resolve(TAGS).walkTopDown().filter { it.isFile && it.name == fileName }) {
+                val directory = file.parentFile.relativeTo(namespace).invariantSeparatorsPath
+                val tiers = byDirectory.getOrPut(directory, ::mutableMapOf)
+                tagValuesIn(file).forEach { tiers[it] = tier.key }
+            }
         }
+        return byDirectory
     }
 
     private fun namesByBucket(directory: File): Map<String, String> = buildMap {
@@ -196,8 +215,8 @@ object WordFile {
     }
 
     fun listingFor(name: String) = Listing(
-        rarity = bucketNaming(art.resolve("rarity"), name),
-        ink = bucketNaming(art.resolve("ink"), name),
+        rarity = bucketNaming(rarityLists, name),
+        ink = bucketNaming(inkLists, name),
     )
 
     /**
@@ -207,7 +226,7 @@ object WordFile {
      * stepping through them in the tool read as random.
      */
     fun rarityBuckets(): List<String> {
-        val directory = art.resolve("rarity")
+        val directory = rarityLists
         return bucketNames(directory).sortedByDescending { name ->
             runCatching {
                 JsonParser.parseString(directory.resolve("$name$JSON_SUFFIX").readText())
@@ -224,7 +243,7 @@ object WordFile {
      * number sitting in the file the picker is about to write to.
      */
     fun rarityStandings(): Map<String, Pair<Double, Int>> {
-        val directory = art.resolve("rarity")
+        val directory = rarityLists
         return bucketNames(directory).associateWith { name ->
             val json = runCatching {
                 JsonParser.parseString(directory.resolve("$name$JSON_SUFFIX").readText()).asJsonObject
@@ -237,15 +256,43 @@ object WordFile {
     /** The ink qualities, cheapest first — [InkTier]'s own order, which is what "better" means. */
     fun inkTiers(): List<String> {
         val known = InkTier.entries.map { it.key }
-        return bucketNames(art.resolve("ink")).sortedBy { known.indexOf(it).takeIf { at -> at >= 0 } ?: known.size }
+        return bucketNames(inkLists).sortedBy { known.indexOf(it).takeIf { at -> at >= 0 } ?: known.size }
+    }
+
+    /** Lists [key] — a [Candidate.listingKey] — under the rarity [bucket], or in none. */
+    fun setRarity(key: String, bucket: String?) = list(rarityLists, key, bucket)
+
+    /**
+     * Which ink [candidate] demands, asked as `InkRequirement.tierFor` asks it: a tag on the entry it names
+     * first, then its name in `art/ink/`.
+     */
+    fun inkOf(candidate: Candidate): String? {
+        val tagged = candidate.inkTagDirectory?.let { inkTagOn(candidate.id.toString(), it) }
+        return tagged ?: bucketNaming(inkLists, candidate.name)
     }
 
     /**
-     * Lists [name] under [bucket] in [directory] and takes it out of every sibling, so a word is in one
-     * bucket or none rather than quietly in two.
+     * Sets the ink [candidate] demands — **as a tag on the entry where it names one, and by name where it
+     * does not.**
+     *
+     * The two halves of the vocabulary answer through different channels and this is the reason: a derived
+     * word *is* a registry entry, so tagging the entry is what lets another mod's ore be worth the good ink
+     * without anybody editing our files. An authored word names nothing and has to be listed.
      */
-    fun list(directory: String, name: String, bucket: String?) {
-        val root = art.resolve(directory)
+    fun setInk(candidate: Candidate, tier: String?) {
+        val directory = candidate.inkTagDirectory
+        if (directory == null) {
+            list(inkLists, candidate.name, tier)
+        } else {
+            inkTagFor(candidate.id.toString(), directory, tier)
+        }
+    }
+
+    /**
+     * Lists [name] under [bucket] in [root] and takes it out of every sibling, so a word is in one bucket or
+     * none rather than quietly in two.
+     */
+    private fun list(root: File, name: String, bucket: String?) {
         for (file in root.listFiles { it.name.endsWith(JSON_SUFFIX) }.orEmpty()) {
             val json = JsonParser.parseString(file.readText()).asJsonObject
             val listed = json.getAsJsonArray("words")?.map { it.asString }.orEmpty()
@@ -257,23 +304,14 @@ object WordFile {
         }
     }
 
-    /**
-     * Which ink a **derived** word demands — written as a tag on the thing it names, not as a name in
-     * `art/ink/`.
-     *
-     * The two halves of the vocabulary answer through different channels and this is the reason: a derived
-     * word *is* a registry entry, so tagging the entry is what lets another mod's ore be worth the good ink
-     * without anybody editing our files. An authored word names nothing and has to be listed.
-     *
-     * Which registry it is decides which tag file, and the id says: a block, a biome or a structure set.
-     */
-    fun inkTagFor(id: String, where: String, tier: String?) {
-        for (each in listOf("fine", "masterwork")) {
-            val file = art.parentFile.resolve("tags/$where/requires_${each}_ink.json")
-            if (!file.isFile && each != tier) continue
+    /** Puts [id] in the ink tag for [tier] under [directory] and takes it out of the others. */
+    private fun inkTagFor(id: String, directory: String, tier: String?) {
+        for ((each, tag) in InkRequirement.TAG_NAMES) {
+            val file = inkTagFile(directory, tag)
+            val wanted = each.key == tier
+            if (!file.isFile && !wanted) continue
             val json = if (file.isFile) JsonParser.parseString(file.readText()).asJsonObject else JsonObject()
-            val values = json.getAsJsonArray("values")?.map { it.asString }.orEmpty()
-            val wanted = each == tier
+            val values = tagValuesIn(file)
             if (wanted == (id in values)) continue
             val kept = if (wanted) (values + id).sorted() else values - id
             json.add("values", JsonArray().apply { kept.forEach(::add) })
@@ -283,13 +321,19 @@ object WordFile {
         }
     }
 
-    /** What a derived word's ink tag is written down as today, or null where nothing tags it. */
-    fun inkTagOn(id: String, where: String): String? =
-        listOf("masterwork", "fine").firstOrNull { tier ->
-            val file = art.parentFile.resolve("tags/$where/requires_${tier}_ink.json")
-            file.isFile && JsonParser.parseString(file.readText()).asJsonObject
-                .getAsJsonArray("values")?.any { it.asString == id } == true
-        }
+    /** The dearest ink tag under [directory] holding [id], or null where none does. */
+    private fun inkTagOn(id: String, directory: String): String? =
+        InkRequirement.TAG_NAMES.entries.firstOrNull { (_, tag) -> id in tagValuesIn(inkTagFile(directory, tag)) }
+            ?.let { (tier, _) -> tier.key }
+
+    private fun inkTagFile(directory: String, tag: Identifier): File =
+        art.parentFile.resolve("$directory/${tag.path}$JSON_SUFFIX")
+
+    private fun tagValuesIn(file: File): List<String> {
+        if (!file.isFile) return emptyList()
+        val values = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("values")
+        return values?.map { it.asString }.orEmpty()
+    }
 
     private fun bucketNames(directory: File) =
         directory.listFiles { file -> file.name.endsWith(JSON_SUFFIX) }.orEmpty()

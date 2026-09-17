@@ -56,6 +56,20 @@ class WordRarityCheck : FunSpec({
         }
     }
 
+    /** And a page says the bucket it was drawn from, under whichever of its two names it was listed. */
+    test("a derived word listed by its full id is in that bucket") {
+        val ore = vocabulary.word("minecraft:diamond_ore") ?: error("no word for minecraft:diamond_ore")
+        val rarity = WordRarity(
+            listOf(
+                RarityBucket("mass", 1.0, emptySet(), 1.0, catchAll = false),
+                RarityBucket("rare", 0.0, setOf(ore.id.toString()), 0.0, catchAll = false),
+            ),
+        )
+        check(rarity.bucketOf(vocabulary, ore)?.name == "rare") {
+            "'${ore.id}' is listed as rare and its page says ${rarity.bucketOf(vocabulary, ore)?.name}"
+        }
+    }
+
     /** And the same for an authored word, which is the rule this was brought into line with. */
     test("a named authored word is gone from the catch-all") {
         val word = vocabulary.authoredWords.first()

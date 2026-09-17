@@ -60,9 +60,9 @@ data class RarityBucket(
  */
 data class WordRarity(val buckets: List<RarityBucket>) {
 
-    /** Which bucket [word] belongs to, for the page to say so. */
+    /** Which bucket [word] belongs to, for the page to say so. A derived word may be listed by its full id. */
     fun bucketOf(vocabulary: Vocabulary, word: Word): RarityBucket? {
-        buckets.firstOrNull { word.name in it.words }?.let { return it }
+        buckets.firstOrNull { word.name in it.words || word.id.toString() in it.words }?.let { return it }
         if (vocabulary.isDerived(word)) return buckets.filter { it.derived > 0.0 }.maxByOrNull { it.derived }
         return buckets.firstOrNull { it.catchAll }
     }

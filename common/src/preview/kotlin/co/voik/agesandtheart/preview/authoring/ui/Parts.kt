@@ -549,7 +549,7 @@ class Parts(private val corpus: Corpus) {
         }
         add(told("cost/ink", "ink", "${word.price}", "${word.tier.key} ${Glyph.BULLET} $reach"))
         listing.rarity?.let { add(told("cost/rarity", "rarity", it, "how hard it is to find")) }
-        inkOf(candidate)?.let { add(told("cost/quality", "ink quality", it, "what it takes to write")) }
+        WordFile.inkOf(candidate)?.let { add(told("cost/quality", "ink quality", it, "what it takes to write")) }
         candidate.template?.let {
             add(told("cost/base", "base dimension", dimensionCalled(it), "the world a book starts from"))
         }
@@ -1295,20 +1295,9 @@ class Parts(private val corpus: Corpus) {
         ) + lines.take(COMMENT_PREVIEW).map { Row("", listOf(Ink("  $it", Palette.faint))) }
     }
 
-    /**
-     * What ink this word demands, from whichever of the two places holds it.
-     *
-     * A registry entry's is a tag on the entry rather than a name in `art/ink/`, which is what lets another
-     * mod's ore be worth the good ink without anybody editing our files. A page minted from one of our own
-     * designs has no entry to tag and is listed by name like the rest.
-     */
-    private fun inkOf(candidate: Candidate): String? =
-        if (candidate.inkedByTag) corpus.registryOf(candidate.id)?.let { WordFile.inkTagOn(candidate.id.toString(), it) }
-        else WordFile.listingFor(candidate.listingKey).ink
-
     private fun listingRows(candidate: Candidate): List<Row> {
         val listing = WordFile.listingFor(candidate.listingKey)
-        val ink = inkOf(candidate)
+        val ink = WordFile.inkOf(candidate)
         val labels = listOf("rarity", "required ink quality")
         val wide = labels.maxOf { it.length } + LABEL_GUTTER
         return listOf(
@@ -1316,7 +1305,7 @@ class Parts(private val corpus: Corpus) {
             Row(
                 handle = "ink",
                 shown = field(labels[1], ink, wide),
-                note = if (candidate.inkedByTag) "written as a tag on ${candidate.id}" else "",
+                note = if (candidate.inkTagDirectory != null) "written as a tag on ${candidate.id}" else "",
             ),
         )
     }

@@ -12,6 +12,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import com.mojang.serialization.JsonOps
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 
 /**
@@ -72,14 +73,14 @@ data class Candidate(
      */
     val derivedFrom: Identifier? = null,
     /**
-     * Whether this word's ink is a **tag on the thing itself** rather than a name in `art/ink/`.
+     * Where this word's ink is a **tag on the thing itself** — the tag directory of the registry holding
+     * it, such as `tags/worldgen/biome` — or null where it is a name in `art/ink/`.
      *
-     * True of a word that *is* a registry entry, which is what lets another mod's ore be worth the good
-     * ink without anybody editing our files. **Not true of every derived word**: a landform's page is
-     * minted from the landform (`AuthoredPreset.writtenWordFor`) and has no id in any registry to hang a
-     * tag on, so it is listed by name exactly as an authored word is.
+     * Read off [Word.referentRegistries], the registries `InkRequirement` asks. **Null for some derived
+     * words**: a landform's page is minted from the landform (`AuthoredPreset.writtenWordFor`) and names no
+     * registry entry, so it is listed by name exactly as an authored word is.
      */
-    val inkedByTag: Boolean = false,
+    val inkTagDirectory: String? = null,
 ) {
 
     val id: Identifier get() = derivedFrom ?: Identifier.fromNamespaceAndPath(Constants.MOD_ID, name)
@@ -88,7 +89,8 @@ data class Candidate(
     val isDerived: Boolean get() = derivedFrom != null
 
     /**
-     * What the rarity and ink lists call this word.
+     * What the rarity list and the display names call this word. The ink list names it by [name], which is
+     * what `InkRequirement` reads — see [WordFile.inkOf].
      *
      * **The full id for an auto-generated word**, because that is what reaches it: the bare path is
      * ambiguous across registries and across mods, and `WordRarity` has to be able to take the word out
@@ -241,7 +243,7 @@ data class Candidate(
             unstated = word.unstated,
             mintsSomethingThatFlows = word.mintsSomethingThatFlows,
             derivedFrom = word.id,
-            inkedByTag = word.entryOf != null,
+            inkTagDirectory = word.referentRegistries.firstOrNull()?.let(Registries::tagsDirPath),
         )
 
         /** A blank word, which is what `--new` starts from. */

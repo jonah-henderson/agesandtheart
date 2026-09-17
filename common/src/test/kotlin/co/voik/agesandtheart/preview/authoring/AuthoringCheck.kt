@@ -318,20 +318,30 @@ class AuthoringCheck : FunSpec({
     }
 
     /**
-     * **Not every derived word is a registry entry**, which the ink screen had assumed: a landform's page
-     * is minted from the landform and has no id in any registry to hang a tag on, so asking for one said
-     * "nothing in the game has the id agesandtheart:alps" and its ink could not be set at all.
+     * **The screen reads ink where `InkRequirement` does.** A landform's page is minted from the landform
+     * and names no registry entry, so it is listed by name; a block's word and a biome's are tags on the
+     * entry, and a screen that took only blocks for entries showed no ink on a biome the pack tags.
      */
-    test("a page minted from one of our designs takes its ink by name") {
+    test("a word's ink is a tag exactly where the game reads one") {
         val alps = corpus.vocabulary.words.distinct().firstOrNull { it.name == "alps" }
         checkNotNull(alps) { "no page means the alps — is DerivedWords.designs running?" }
         val page = Candidate.of(alps)
         check(page.isDerived) { "the alps page is not derived, so this check is testing nothing" }
-        check(!page.inkedByTag) { "the alps page would be inked by tagging '${page.id}', which is in no registry" }
+        check(page.inkTagDirectory == null) {
+            "the alps page would be inked by tagging '${page.id}', which is in no registry"
+        }
 
-        val ice = corpus.vocabulary.words.distinct().firstOrNull { it.name == "ice" }
+        val ice = corpus.vocabulary.word("minecraft:ice")
         checkNotNull(ice) { "no derived word for ice" }
-        check(Candidate.of(ice).inkedByTag) { "a block's word must be inked by tagging the block" }
+        check(Candidate.of(ice).inkTagDirectory == "tags/block") { "a block's word must be inked by tagging the block" }
+
+        val grove = corpus.vocabulary.word("minecraft:cherry_grove")
+        checkNotNull(grove) { "no derived word for cherry_grove" }
+        val biome = Candidate.of(grove)
+        check(biome.inkTagDirectory == "tags/worldgen/biome") { "a biome's word must be inked by tagging the biome" }
+        check(WordFile.inkOf(biome) == "fine") {
+            "the pack tags cherry_grove fine and the screen says ${WordFile.inkOf(biome)}"
+        }
     }
 
     test("a rename takes the word's rarity, ink and display with it") {
@@ -339,7 +349,7 @@ class AuthoringCheck : FunSpec({
         val to = "probe_after_rename"
         try {
             WordFile.write(Candidate.blank(from).copy(sets = mapOf("colour" to "red")))
-            WordFile.list("rarity", from, "rare")
+            WordFile.setRarity(from, "rare")
             WordFile.setDisplay(from, "Probed")
 
             WordFile.renameWord(from, to)
@@ -360,8 +370,8 @@ class AuthoringCheck : FunSpec({
     test("deleting a word leaves nothing behind") {
         val name = "probe_to_delete"
         WordFile.write(Candidate.blank(name).copy(sets = mapOf("colour" to "red")))
-        WordFile.list("rarity", name, "rare")
-        WordFile.list("ink", name, "fine")
+        WordFile.setRarity(name, "rare")
+        WordFile.setInk(Candidate.blank(name), "fine")
         WordFile.setDisplay(name, "Probed")
 
         WordFile.deleteWord(name)

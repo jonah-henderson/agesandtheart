@@ -434,8 +434,9 @@ object Verdict {
         // comparison and common is the lowest), so an unlisted word and one listed as common are the same
         // word — and reading "common by default" beside a list that does not offer common sent a writer
         // looking for a bucket the model has no room for.
-        if (listing.ink != null) {
-            add(Finding(Standing.NOTED, "wants ${listing.ink} ink", "ordinary ink will not write it"))
+        val ink = WordFile.inkOf(candidate)
+        if (ink != null) {
+            add(Finding(Standing.NOTED, "wants $ink ink", "ordinary ink will not write it"))
         }
     }
 

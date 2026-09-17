@@ -74,7 +74,7 @@ class InkRequirement(private val authored: Map<String, InkTier>) {
          * `agesandtheart:requires_masterwork_ink` and `..._fine_ink`, dearest first, on each registry a word
          * can name.
          */
-        private val TAG_NAMES: Map<InkTier, Identifier> =
+        val TAG_NAMES: Map<InkTier, Identifier> =
             listOf(InkTier.MASTERWORK, InkTier.FINE).associateWith { "requires_${it.key}_ink".location() }
 
         /** The authored half, stacked so a pack may add words without reprinting ours. */

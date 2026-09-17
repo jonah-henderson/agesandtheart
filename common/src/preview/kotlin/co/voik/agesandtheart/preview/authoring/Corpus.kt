@@ -4,11 +4,6 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Word
-import net.minecraft.core.Registry
-import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.core.registries.Registries
-import net.minecraft.resources.Identifier
-import net.minecraft.resources.ResourceKey
 import net.minecraft.network.chat.Component
 import net.minecraft.server.packs.PackLocationInfo
 import net.minecraft.server.packs.PackType
@@ -47,24 +42,6 @@ class Corpus(val vocabulary: Vocabulary, val snapshot: ServerSnapshot?) {
         taken.write()
         return Corpus(vocabulary, taken)
     }
-
-    /**
-     * Which registry a derived word was read off, as the tag directory that holds its tags.
-     *
-     * **Asked of the registries rather than guessed from the id**, which cannot be done: `the_end` is a
-     * biome and `end_stone` a block and nothing in either string says so. Null where nothing in the game
-     * has that id, which for a word the corpus produced should not happen.
-     */
-    fun registryOf(id: Identifier): String? = when {
-        BuiltInRegistries.BLOCK.containsKey(id) -> "block"
-        holds(Registries.BIOME, id) -> "worldgen/biome"
-        holds(Registries.STRUCTURE_SET, id) -> "worldgen/structure_set"
-        else -> null
-    }
-
-    private fun <T : Any> holds(registry: ResourceKey<Registry<T>>, id: Identifier): Boolean =
-        MinecraftRegistries.worldgen.lookup(registry).orElse(null)
-            ?.get(ResourceKey.create(registry, id))?.isPresent ?: false
 
     /**
      * The corpus with [candidate] in it, for the questions that need a whole vocabulary rather than one

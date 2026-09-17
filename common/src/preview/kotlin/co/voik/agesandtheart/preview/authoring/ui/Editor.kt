@@ -2013,45 +2013,27 @@ class Editor(
     private fun writeRarity(bucket: String?) {
         // A derived word is named by its full id, which is how `WordRarity` finds it and how it stops
         // being drawn from the anonymous derived mass.
-        WordFile.list("rarity", candidate.listingKey, bucket)
+        WordFile.setRarity(candidate.listingKey, bucket)
         message = bucket?.let { "rarity set to $it" } ?: "rarity cleared"
         judged = null
     }
 
-    /**
-     * Which ink it demands — **through a tag for a derived word and a name list for an authored one.**
-     *
-     * The two halves answer through different channels on purpose: a derived word is a registry entry, so
-     * tagging the entry is what lets another mod's ore be worth the good ink without touching our files.
-     */
+    /** Which ink it demands — through a tag or a name list, as [WordFile.setInk] decides. */
     private fun reink() {
-        val where = if (candidate.inkedByTag) corpus.registryOf(candidate.id) else null
-        if (candidate.inkedByTag && where == null) {
-            message = "nothing in the game has the id ${candidate.id}, so it cannot be tagged"
-            return
-        }
-        val standing = if (where != null) {
-            WordFile.inkTagOn(candidate.id.toString(), where)
-        } else {
-            WordFile.listingFor(candidate.listingKey).ink
-        }
+        val standing = WordFile.inkOf(candidate)
         val tiers = WordFile.inkTiers().map {
             Picker.Option(it, it, if (it == standing) "current" else "", marked = it == standing)
         }
         overlay = Picker(
             title = "Which ink quality?",
             options = unsetFirst("any ink writes it", standing == null) + tiers,
-            onPick = { picked -> writeInk(where, picked.value.takeIf { it != Parts.UNSET }) },
-            onClear = { writeInk(where, null) },
+            onPick = { picked -> writeInk(picked.value.takeIf { it != Parts.UNSET }) },
+            onClear = { writeInk(null) },
         )
     }
 
-    private fun writeInk(where: String?, tier: String?) {
-        if (where == null) {
-            WordFile.list("ink", candidate.name, tier)
-        } else {
-            WordFile.inkTagFor(candidate.id.toString(), where, tier)
-        }
+    private fun writeInk(tier: String?) {
+        WordFile.setInk(candidate, tier)
         message = tier?.let { "ink set to $it" } ?: "ink cleared"
         judged = null
     }

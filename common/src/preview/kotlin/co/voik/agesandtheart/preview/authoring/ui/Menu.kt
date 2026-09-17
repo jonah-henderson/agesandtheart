@@ -203,8 +203,8 @@ class Menu(
         val derived = corpus.vocabulary.derivedWords
         val rowsOf = {
             val listings = WordFile.everyListing()
-            val inks = INK_TAG_DIRECTORIES.associateWith(WordFile::everyInkTag)
-            derived.map { derivedRow(it, listings, inks) }
+            val inkTags = WordFile.everyInkTag()
+            derived.map { derivedRow(it, listings, inkTags) }
         }
         val table = Table(
             title = "${derived.size} auto-generated words",
@@ -226,14 +226,16 @@ class Menu(
         }
     }
 
+    /** The same reading [WordFile.inkOf] makes of one word, made of the whole table's files read once. */
     private fun derivedRow(
         word: Word,
         listings: Map<String, WordFile.Listing>,
-        inks: Map<String, Map<String, String>>,
+        inkTags: Map<String, Map<String, String>>,
     ): Table.Row {
-        val id = word.id.toString()
-        val rarity = listings[id]?.rarity
-        val ink = inks.values.firstNotNullOfOrNull { it[id] }
+        val page = Candidate.of(word)
+        val rarity = listings[page.listingKey]?.rarity
+        val tagged = page.inkTagDirectory?.let { inkTags[it]?.get(word.id.toString()) }
+        val ink = tagged ?: listings[word.name]?.ink
         return Table.Row(
             key = word.name,
             cells = listOf(word.name, word.tier.key, rarity.orEmpty(), ink.orEmpty(), word.id.toString()),
@@ -241,28 +243,20 @@ class Menu(
         )
     }
 
-    /**
-     * The rarity or the ink of whichever row the cursor is on, moved one step round.
-     *
-     * Both lists are keyed the same way — an authored word by its name, an auto-generated one by its full
-     * id, which is what reaches it and what takes it out of the anonymous mass.
-     */
+    /** The rarity or the ink of whichever row the cursor is on, moved one step round. */
     private fun cycle(row: Table.Row, kind: String, at: Int, by: Int) {
         val word = corpus.vocabulary.word(row.key) ?: return
-        val derived = corpus.vocabulary.isDerived(word)
-        val key = if (derived) word.id.toString() else row.key
+        val candidate =
+            if (corpus.vocabulary.isDerived(word)) Candidate.of(word) else WordFile.read(row.key).getOrNull() ?: return
         val standing = row.cells.getOrElse(at) { "" }.ifEmpty { null }
         when (kind) {
-            RARITY -> WordFile.list("rarity", key, cycled(listOf(null) + WordFile.rarityBuckets(), standing, by))
-            INK -> reink(word, key, derived, cycled(listOf(null) + WordFile.inkTiers(), standing, by))
+            RARITY -> WordFile.setRarity(
+                candidate.listingKey,
+                cycled(listOf(null) + WordFile.rarityBuckets(), standing, by),
+            )
+            INK -> WordFile.setInk(candidate, cycled(listOf(null) + WordFile.inkTiers(), standing, by))
             TIER -> retier(row.key, standing, by)
         }
-    }
-
-    private fun reink(word: Word, key: String, derived: Boolean, wanted: String?) {
-        val where = if (derived) corpus.registryOf(word.id) else null
-        if (derived && where == null) return
-        if (where == null) WordFile.list("ink", key, wanted) else WordFile.inkTagFor(key, where, wanted)
     }
 
     /**
@@ -642,9 +636,6 @@ class Menu(
         const val RARITY = "rarity"
         const val INK = "ink"
         const val TIER = "tier"
-
-        /** Where an ink tag can live — one per registry a derived word may name. */
-        val INK_TAG_DIRECTORIES = listOf("block", "worldgen/biome", "worldgen/structure_set")
 
         /** Which column each function key reaches, by kind rather than by position. */
         val HOTKEYS = mapOf("F1" to RARITY, "F2" to INK, "F3" to TIER)
