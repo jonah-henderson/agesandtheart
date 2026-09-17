@@ -47,7 +47,7 @@ import net.minecraft.world.level.material.FluidState
  * admits deep water itself.
  *
  * **Once standing, a column settles as the water it holds would**: deep that could not stand goes ordinary,
- * and deep water beside an ordinary block takes it in (`DeepWaterBlock.deepen`). A column raised through
+ * and deep water beside an ordinary block takes it in (`DeepWater.takeIn`). A column raised through
  * ordinary water that the abyss reaches afterwards is taken in with the rest.
  */
 class DeepBubbleColumnBlock(properties: BlockBehaviour.Properties) : BubbleColumnBlock(properties) {
@@ -159,7 +159,7 @@ class DeepBubbleColumnBlock(properties: BlockBehaviour.Properties) : BubbleColum
                 level.setBlockAndUpdate(pos, state.setValue(DEEP, false))
                 return
             }
-            for (side in Direction.entries) DeepWaterBlock.deepen(level, pos.relative(side))
+            for (side in Direction.entries) DeepWater.takeIn(level, pos.relative(side))
         }
 
         /** Whether vanilla's own column is handed to [raise] instead: in a level with an abyss. */

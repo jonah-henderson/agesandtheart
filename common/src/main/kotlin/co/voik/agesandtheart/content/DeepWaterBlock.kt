@@ -12,7 +12,6 @@ import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.ScheduledTickAccess
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.BubbleColumnBlock
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FlowingFluid
@@ -108,22 +107,20 @@ class DeepWaterBlock(fluid: FlowingFluid, properties: Properties) : LiquidBlock(
      */
     private fun settle(state: BlockState, level: ServerLevel, pos: BlockPos) {
         if (!DeepWater.standsAt(level, pos)) {
-            // **Water keeps its level rather than becoming a source**: both blocks carry the same `LEVEL`,
-            // and a flowing tongue that promoted itself on the way out would make water from nothing.
-            level.setBlockAndUpdate(pos, Blocks.WATER.defaultBlockState().setValue(LEVEL, state.getValue(LEVEL)))
+            level.setBlockAndUpdate(pos, DeepWater.ordinaryWaterFor(state))
             for (side in Direction.entries) release(level, pos.relative(side))
             return
         }
         // Take in the ordinary water it touches, which is what closes a gap the moment one opens — a
         // bucket poured in, or a block mined out and filled by the sea.
-        for (side in Direction.entries) deepen(level, pos.relative(side))
+        for (side in Direction.entries) DeepWater.takeIn(level, pos.relative(side))
     }
 
 
     /**
      * Give [at] its ordinary water back, where it was holding the abyss and the column above has opened.
      *
-     * The counterpart of [deepen] and reached the same way: a reverting block releases what it touches, so
+     * The counterpart of [DeepWater.takeIn] and reached the same way: a reverting block releases what it touches, so
      * a cut column unzips through the wreck standing in it rather than leaving stairs full of a deep that
      * is no longer there.
      */
@@ -168,36 +165,5 @@ class DeepWaterBlock(fluid: FlowingFluid, properties: Properties) : LiquidBlock(
     companion object {
         /** One tick, which is "instantly" as far as anybody watching is concerned. */
         private const val SETTLES_IN = 1
-
-        /**
-         * Take [at] into the abyss, whether it is still ordinary water, a block holding some, or the ordinary
-         * part of a whirlpool.
-         *
-         * **Still water only.** Water falling or spreading through the deep stays ordinary: taking it in carries
-         * the deep up a falling tongue block by block until it reaches where the deep may not stand, which gives
-         * the water back, and the block below takes it in again — without end.
-         *
-         * **A block that holds the abyss does not tick**, being a stair rather than a fluid, so the spread
-         * reaches only what the abyss itself touches. That is enough for what changes at runtime — a stair
-         * placed in the deep, a wreck opened into — and generation's own sweep has already done the interiors
-         * (`DeepWater.settleTheAbyss`).
-         *
-         * **A whirlpool is taken in like the water it holds**, and ticks to carry the spread on up and down
-         * itself: one raised through ordinary water before the abyss reached it would otherwise stand
-         * ordinary through the deep for good.
-         */
-        fun deepen(level: ServerLevel, at: BlockPos) {
-            val state = level.getBlockState(at)
-            if (DeepWaterLogging.couldHold(state)) {
-                if (DeepWater.standsAt(level, at)) level.setBlockAndUpdate(at, DeepWaterLogging.holding(state))
-                return
-            }
-            val deepWhirlpool = DeepBubbleColumnBlock.deepened(state)
-            val isStillWater = state.`is`(Blocks.WATER) && state.fluidState.isSource
-            val taken = deepWhirlpool ?: DeepWater.deepWater().takeIf { isStillWater } ?: return
-            if (!DeepWater.standsAt(level, at)) return
-            level.setBlockAndUpdate(at, taken)
-            level.scheduleTick(at, taken.block, SETTLES_IN)
-        }
     }
 }

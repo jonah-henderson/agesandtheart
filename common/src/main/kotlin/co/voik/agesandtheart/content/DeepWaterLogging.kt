@@ -120,11 +120,8 @@ object DeepWaterLogging {
     }
 
     /**
-     * The abyss as a source, looked up through the block for the reason `DeepWater.deepWater` records —
-     * nothing in common needs the `Fluid` object, and a `LiquidBlock`'s own state carries it.
+     * The abyss as a source, looked up through the block — nothing in common needs the `Fluid` object, and a
+     * `LiquidBlock`'s own state carries it.
      */
-    private fun source(): FluidState? = BuiltInRegistries.BLOCK
-        .getOptional(AgeFluids.DEEP_WATER.block)
-        .map { it.defaultBlockState().fluidState }
-        .orElse(null)
+    private fun source(): FluidState? = DeepWater.deepWaterOrNull()?.fluidState
 }

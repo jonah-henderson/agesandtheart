@@ -369,9 +369,7 @@ object DeepWater {
                         at.set(originX + x, y, originZ + z)
                         if (!abyssReaches(at.x, at.z)) continue
                         val here = chunk.getBlockState(at)
-                        // Still water only, as `DeepWaterBlock.deepen` takes it: a flowing tongue stays ordinary.
-                        val isStillWater = here.`is`(Blocks.WATER) && here.fluidState.isSource
-                        if (isStillWater || here.`is`(KEPT_OUT)) chunk.setBlockState(at, deep)
+                        if (isStillWater(here) || here.`is`(KEPT_OUT)) chunk.setBlockState(at, deep)
                         // A wreck's stairs and slabs, which vanilla left dry: `SimpleWaterloggedBlock`
                         // waterlogs on the fluid's identity rather than on `#minecraft:water`, so a
                         // structure placed in an abyss comes out full of air pockets. See
@@ -418,12 +416,7 @@ object DeepWater {
             at.set(x, y - step, z)
             val under = chunk.getBlockState(at)
             if (under.fluidState.isEmpty) return
-            if (under.`is`(deepWater().block)) {
-                chunk.setBlockState(
-                    at,
-                    Blocks.WATER.defaultBlockState().setValue(LiquidBlock.LEVEL, under.getValue(LiquidBlock.LEVEL)),
-                )
-            }
+            if (under.`is`(deepWater().block)) chunk.setBlockState(at, ordinaryWaterFor(under))
         }
     }
 
@@ -451,21 +444,76 @@ object DeepWater {
      * needs the fluid *object*, and a `Services` entry carrying one block would be a seam for its own sake.
      */
     private var found: BlockState? = null
+    private var warnedOfItsAbsence = false
 
     /**
-     * The abyss as a block state, looked up once and remembered.
+     * The abyss as a block state, or null where it is not registered yet.
+     *
+     * **A found state is remembered and a miss never is**, because whether the abyss exists yet is a
+     * question of loader startup order: a miss remembered early would pin ordinary water for the process.
+     */
+    fun deepWaterOrNull(): BlockState? = found ?: BuiltInRegistries.BLOCK
+        .getOptional(AgeFluids.DEEP_WATER.block)
+        .map { it.defaultBlockState() }
+        .orElse(null)
+        ?.also { found = it }
+
+    /**
+     * The abyss as a block state, or ordinary water where it is not registered.
      *
      * Public because anything *writing* an abyss needs it — the generator's own fill, and `DeepSeaVent`,
      * which cuts a room out of the sea floor and has to put the sea back into it rather than air.
      */
-    fun deepWater(): BlockState = found ?: BuiltInRegistries.BLOCK
-        .getOptional(AgeFluids.DEEP_WATER.block)
-        .map { it.defaultBlockState() }
-        .orElseGet {
+    fun deepWater(): BlockState = deepWaterOrNull() ?: ordinaryWaterInstead()
+
+    private fun ordinaryWaterInstead(): BlockState {
+        if (!warnedOfItsAbsence) {
             Constants.LOG.warn("Deep water is not registered; an abyss will come out as ordinary water")
-            Blocks.WATER.defaultBlockState()
+            warnedOfItsAbsence = true
         }
-        .also { found = it }
+        return Blocks.WATER.defaultBlockState()
+    }
+
+    /**
+     * Still ordinary water, the only water the abyss takes in. Water falling or spreading through the deep
+     * stays ordinary: taking it in carries the deep up a falling tongue block by block until it reaches where
+     * the deep may not stand, which gives the water back, and the block below takes it in again — without end.
+     */
+    fun isStillWater(state: BlockState): Boolean = state.`is`(Blocks.WATER) && state.fluidState.isSource
+
+    /**
+     * The ordinary water a deep block gives back, **keeping its level rather than becoming a source**: both
+     * blocks carry the same `LEVEL`, and a flowing tongue that promoted itself on the way out would make water
+     * from nothing.
+     */
+    fun ordinaryWaterFor(deep: BlockState): BlockState =
+        Blocks.WATER.defaultBlockState().setValue(LiquidBlock.LEVEL, deep.getValue(LiquidBlock.LEVEL))
+
+    /**
+     * Take [at] into the abyss, whether it is still ordinary water, a block holding some, or the ordinary
+     * part of a whirlpool. Both [DeepWaterBlock] and [DeepBubbleColumnBlock] spread the abyss through this.
+     *
+     * **A block that holds the abyss does not tick**, being a stair rather than a fluid, so the spread
+     * reaches only what the abyss itself touches. That is enough for what changes at runtime — a stair
+     * placed in the deep, a wreck opened into — and generation's own sweep has already done the interiors
+     * ([settleTheAbyss]).
+     *
+     * **A whirlpool is taken in like the water it holds**, and ticks to carry the spread on up and down
+     * itself: one raised through ordinary water before the abyss reached it would otherwise stand
+     * ordinary through the deep for good.
+     */
+    fun takeIn(level: ServerLevel, at: BlockPos) {
+        val state = level.getBlockState(at)
+        if (DeepWaterLogging.couldHold(state)) {
+            if (standsAt(level, at)) level.setBlockAndUpdate(at, DeepWaterLogging.holding(state))
+            return
+        }
+        val deepWhirlpool = DeepBubbleColumnBlock.deepened(state)
+        val taken = deepWhirlpool ?: deepWater().takeIf { isStillWater(state) } ?: return
+        if (!standsAt(level, at)) return
+        level.setBlockAndUpdate(at, taken)
+        level.scheduleTick(at, taken.block, TAKEN_IN_SETTLES_IN)
+    }
 
     /**
      * Deep water forming in water that never had any — the seedless half.
@@ -495,8 +543,7 @@ object DeepWater {
 
             val spot = at.atY(line)
             val water = level.getBlockState(spot)
-            // Still water only, as `DeepWaterBlock.deepen` takes it: a flowing tongue stays ordinary.
-            if (!water.`is`(Blocks.WATER) || !water.fluidState.isSource) return@sweep
+            if (!isStillWater(water)) return@sweep
             if (!standsAt(level, spot)) return@sweep
             level.setBlockAndUpdate(spot, deepWater())
         }
@@ -510,6 +557,9 @@ object DeepWater {
      * like every other environmental process in the game.
      */
     private const val SEEPS_PER_CHUNK = 1
+
+    /** One tick, which is "instantly" as far as anybody watching is concerned. */
+    private const val TAKEN_IN_SETTLES_IN = 1
 
     private const val CHUNK_MASK = 15
 
