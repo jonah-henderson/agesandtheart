@@ -260,7 +260,6 @@ class SpawningCheck : FunSpec({
      * If vanilla ever stops placing it on the ground, the exemption stops being needed and this says so.
      */
     test("what an Age places aloft is placed on the ground by vanilla") {
-        MinecraftRegistries.ensureStoodUp()
         for (aloft in listOf(EntityType.ENDER_DRAGON)) {
             check(SpawnPlacements.getPlacementType(aloft) === SpawnPlacementTypes.ON_GROUND) {
                 "${aloft.description.string} is no longer placed on the ground, so the aloft exemption " +

@@ -42,7 +42,6 @@ class VanillasRockCheck : FunSpec({
     }
 
     test("the sea a book named is the fluid that world is given") {
-        MinecraftRegistries.ensureStoodUp()
         val lavaOverworld = AgeGeneration.vanillasRockFor(
             theirs(AgeTemplate.OVERWORLD),
             writing(AgeTemplate.OVERWORLD, Aspect.SEA.page to "lava"),
@@ -73,7 +72,6 @@ class VanillasRockCheck : FunSpec({
      * silence means. It did not before: this path quietly substituted the world's own fluid.
      */
     test("and a book that added nothing rebuilds the world it was written over") {
-        MinecraftRegistries.ensureStoodUp()
         for (template in AgeTemplate.entries) {
             val world = theirs(template)
             val asItWas = AgeGeneration.vanillasRockFor(world, template.world(), TerrainFill.PLAIN)
@@ -90,7 +88,6 @@ class VanillasRockCheck : FunSpec({
 
     /** And silence in a hand-written spelling is a sea of nothing, which is what that spelling says. */
     test("a spelling with no sea in it asks for no sea") {
-        MinecraftRegistries.ensureStoodUp()
         val composed = AgeGeneration.vanillasRockFor(
             theirs(AgeTemplate.OVERWORLD),
             writing(AgeTemplate.OVERWORLD),
@@ -102,7 +99,6 @@ class VanillasRockCheck : FunSpec({
     }
 
     test("the rock a book named is the block that world is made of") {
-        MinecraftRegistries.ensureStoodUp()
         val world = theirs(AgeTemplate.OVERWORLD)
         val written = writing(AgeTemplate.OVERWORLD, "${Aspect.TERRAIN.page}.${Terrain.STONE.name}" to BLACKSTONE)
         val fill = TerrainFill(listOf(written.optionsFor(Aspect.TERRAIN, 0).materialsOf(Terrain.STONE)))
@@ -119,7 +115,6 @@ class VanillasRockCheck : FunSpec({
      * so it belongs in the report a writer reads and not in a silent drop.
      */
     test("a second rock or a second sea is reported rather than dropped") {
-        MinecraftRegistries.ensureStoodUp()
         fun reportOn(vararg said: Pair<String, String>): List<String> =
             AgeRecipe(
                 world = AgeWorld.Composed(writing(AgeTemplate.OVERWORLD, *said)),
@@ -142,7 +137,6 @@ class VanillasRockCheck : FunSpec({
 
     /** A surface the writer named is the third and last thing that reaches a rock we did not lay. */
     test("and the skin a book named is the rule that world wears") {
-        MinecraftRegistries.ensureStoodUp()
         val world = theirs(AgeTemplate.OVERWORLD)
         val silent = AgeGeneration.vanillasRockFor(world, writing(AgeTemplate.OVERWORLD), TerrainFill.PLAIN)
         check(silent.surfaceRule() == world.surfaceRule()) { "a book that named no skin repainted the world" }

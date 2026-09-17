@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.book.panel
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.StringSpec
@@ -16,7 +15,6 @@ import net.minecraft.world.level.ChunkPos
 class PanelCheck : StringSpec({
 
     // `ChunkPos` reaches `ChunkStatus` in its static initialiser, so even this arithmetic needs registries.
-    beforeSpec { MinecraftRegistries.ensureStoodUp() }
 
     "the ring is a square of known size" {
         val ring = PanelRing.around(ChunkPos(0, 0))

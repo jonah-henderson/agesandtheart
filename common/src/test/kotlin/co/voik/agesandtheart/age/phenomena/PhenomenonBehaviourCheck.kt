@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.phenomena
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import com.google.gson.JsonParser
@@ -23,7 +22,6 @@ class PhenomenonBehaviourCheck : FunSpec({
     val shipped = Path.of("src/main/resources/data/agesandtheart/art/phenomenon/tempest.json")
 
     test("the shipped tempest reads") {
-        MinecraftRegistries.ensureStoodUp()
         val read = PhenomenonBehaviour.CODEC
             .parse(JsonOps.INSTANCE, JsonParser.parseString(shipped.readText()))
             .getOrThrow { problem -> IllegalStateException("the shipped tempest would not read: $problem") }

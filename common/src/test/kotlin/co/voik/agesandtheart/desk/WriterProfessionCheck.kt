@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.desk
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -16,8 +15,6 @@ import net.minecraft.core.registries.Registries
  */
 @Tags(NEEDS_REGISTRIES)
 class WriterProfessionCheck : FunSpec({
-
-    beforeSpec { MinecraftRegistries.ensureStoodUp() }
 
     /**
      * The five trade sets are named in code and shipped as data, with nothing but the string joining them.

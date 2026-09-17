@@ -414,15 +414,15 @@ class SandfallCheck : FunSpec({
      * two blocks would be the whole of it.
      */
     test("the shell around the core stays about two blocks whatever the column") {
-        fun shellOf(standing: Float) = standing - coreOf(standing)
+        fun shellOf(standing: Float) = standing - SandColumn.coreOf(standing)
         for (standing in listOf(4.0f, 5.0f, 6.0f, 8.0f, 10.0f)) {
             check(abs(shellOf(standing) - SHELL) < A_HAIR.toFloat()) {
                 "a column standing $standing wide had a shell of ${shellOf(standing)}"
             }
         }
         // And a column too narrow to spare two blocks keeps a core rather than losing it entirely.
-        check(coreOf(1.0f) > 0.0f) { "a closing column had no solid middle left at all" }
-        check(coreOf(1.0f) < 1.0f) { "a closing column was solid to its own edge" }
+        check(SandColumn.coreOf(1.0f) > 0.0f) { "a closing column had no solid middle left at all" }
+        check(SandColumn.coreOf(1.0f) < 1.0f) { "a closing column was solid to its own edge" }
     }
 
     /** Being under a wider column is worse, and being under none is nothing. */
@@ -455,12 +455,8 @@ class SandfallCheck : FunSpec({
         const val A_HAIR = 1e-9
         const val NO_FURY = 0.0
 
-        /** `SandColumn.SHELL_BLOCKS`, which is private to it — this is the number a walk will judge. */
+        /** The see-through shell a walk judged right, in blocks — stated here rather than read off the column. */
         const val SHELL = 2.0f
-        const val LEAST_CORE = 0.3f
-
-        /** The same arithmetic the column does, so the check reads what a player sees. */
-        fun coreOf(standing: Float): Float = maxOf(standing - SHELL, standing * LEAST_CORE)
         const val ALL_FURY = 1.0
         const val A_TENTH = 0.1
 

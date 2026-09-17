@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen.feature
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Rung
 import io.kotest.core.annotation.Tags
@@ -23,8 +22,6 @@ import kotlin.math.abs
  */
 @Tags(NEEDS_REGISTRIES)
 class FeatureDensityCheck : FunSpec({
-
-    beforeSpec { MinecraftRegistries.ensureStoodUp() }
 
     /** Enough that the mean is settled to three decimals, and seeded, so it is the same run to run. */
     val draws = 200_000

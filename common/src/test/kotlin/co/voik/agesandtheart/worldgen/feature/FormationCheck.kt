@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen.feature
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.worldgen.field.Box
 import co.voik.agesandtheart.worldgen.field.Density
@@ -28,8 +27,6 @@ import net.minecraft.world.level.levelgen.placement.PlacedFeature
  */
 @Tags(NEEDS_REGISTRIES)
 class FormationCheck : FunSpec({
-
-    beforeSpec { MinecraftRegistries.ensureStoodUp() }
 
     val stone by lazy { Blocks.STONE.defaultBlockState() }
 

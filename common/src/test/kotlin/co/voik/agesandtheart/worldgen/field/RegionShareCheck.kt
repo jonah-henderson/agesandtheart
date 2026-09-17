@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.worldgen.field
 
 import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -35,10 +34,6 @@ class RegionShareCheck : FunSpec({
     )
 
     withData(nameFn = { shares -> "shares ${shares.joinToString("/") { "%.0f".format(it) }} own the ground they were promised" }, shareCases) { shares ->
-        // NormalNoise reaches for the registries by way of nothing at all, but XoroshiroRandomSource is
-        // enough of Minecraft to want the bootstrap.
-        MinecraftRegistries.ensureStoodUp()
-
         val map = RegionMap(
             members = shares.size,
             scale = REGION_BLOCKS,

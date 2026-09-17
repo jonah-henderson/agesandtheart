@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen.biome
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import com.mojang.datafixers.util.Pair
 import io.kotest.core.annotation.Tags
@@ -102,7 +101,6 @@ private fun applied(
     vararg preferences: BiomePreference,
     keepsOnlyNamed: Boolean = false,
 ): Climate.ParameterList<Holder<Biome>> {
-    MinecraftRegistries.ensureStoodUp()
     return BiomePreference.applied(table(), preferences.toList(), keepsOnlyNamed, NO_BIOMES, A_SEED)
 }
 

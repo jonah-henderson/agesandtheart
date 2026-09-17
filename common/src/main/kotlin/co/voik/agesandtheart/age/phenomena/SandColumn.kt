@@ -67,7 +67,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
      * would be the whole column and there would be no shell left to see it through.
      */
     val coreHalfWidth: Float
-        get() = max(halfWidth - SHELL_BLOCKS, halfWidth * LEAST_CORE_SHARE)
+        get() = coreOf(halfWidth)
 
     /** Whether [atX], [atZ] is inside the column's own turned square of half-width [reach]. */
     fun covers(atX: Double, atZ: Double, reach: Double): Boolean {
@@ -461,6 +461,9 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
 
         /** What is left solid when a column is too narrow to spare two blocks — the ends of a life. */
         private const val LEAST_CORE_SHARE = 0.3f
+
+        /** The solid middle's half-width for a column standing [halfWidth] — see [coreHalfWidth]. */
+        internal fun coreOf(halfWidth: Float): Float = max(halfWidth - SHELL_BLOCKS, halfWidth * LEAST_CORE_SHARE)
 
         /** How far up a column its sound is thrown from, in blocks — the part a player is standing in. */
         private const val HEARD_UP_TO = 24.0

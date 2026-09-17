@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Carvers
@@ -67,8 +66,6 @@ class SpellingCheck : FunSpec({
     val undergrounds = Arb.element(Carvers.entries.toList())
     val skies = Arb.element(Sky.entries.toList())
     val materials = Arb.of("minecraft:andesite", "minecraft:copper_block", "minecraft:tuff")
-
-    beforeSpec { MinecraftRegistries.ensureStoodUp() }
 
     test("every composition reads back as what it spelled") {
         checkAll(

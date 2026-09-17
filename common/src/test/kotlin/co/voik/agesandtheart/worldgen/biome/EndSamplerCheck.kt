@@ -41,7 +41,6 @@ class EndSamplerCheck : FunSpec({
     fun groundedEndAge() = endAge().groundedIn(land).suitedTo(Grounding(land, waterline = SEA_LEVEL))
 
     test("the erosion an End Age is handed is the erosion it reads") {
-        MinecraftRegistries.ensureStoodUp()
         val grounded = groundedEndAge()
 
         val worn = grounded.getNoiseBiome(FAR_OUT, ABOVE_GROUND, FAR_OUT, samplerReading { _, _ -> WORN_FLAT })
@@ -55,7 +54,6 @@ class EndSamplerCheck : FunSpec({
     }
 
     test("so an End Age under a landform grows what the same End grows without one") {
-        MinecraftRegistries.ensureStoodUp()
         val plain = endAge()
         val grounded = groundedEndAge()
 

@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -75,7 +74,6 @@ private const val FOUR_TIMES = 4
  * weights them. Shared with `SpawningCheck`.
  */
 internal fun aMeadow(): WeightedList<MobSpawnSettings.SpawnerData> {
-    MinecraftRegistries.ensureStoodUp()
     return WeightedList.of(
         Weighted(MobSpawnSettings.SpawnerData(EntityType.COW, 4, 4), 8),
         Weighted(MobSpawnSettings.SpawnerData(EntityType.SHEEP, 4, 4), 12),

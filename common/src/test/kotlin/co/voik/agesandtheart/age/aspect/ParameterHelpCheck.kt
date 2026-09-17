@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -22,7 +21,6 @@ class ParameterHelpCheck : FunSpec({
     }
 
     test("every parameter says what it is") {
-        MinecraftRegistries.ensureStoodUp()
         val silent = everyParameter().filter { (_, parameter) -> parameter.help.isBlank() }
             .map { (aspect, parameter) -> "${aspect.page}.${parameter.name}" }
             .distinct()
@@ -37,7 +35,6 @@ class ParameterHelpCheck : FunSpec({
      * which is the shape a rushed one takes and says nothing the name did not.
      */
     test("a parameter's help says more than its name") {
-        MinecraftRegistries.ensureStoodUp()
         val thin = everyParameter()
             .filter { (_, parameter) -> parameter.help.isNotBlank() && parameter.help.length < SENTENCE }
             .map { (aspect, parameter) -> "${aspect.page}.${parameter.name}: '${parameter.help}'" }
@@ -47,7 +44,6 @@ class ParameterHelpCheck : FunSpec({
 
     /** Where a value is explained, it has to be a value the parameter actually takes. */
     test("value help names values that exist") {
-        MinecraftRegistries.ensureStoodUp()
         val stray = everyParameter().flatMap { (aspect, parameter) ->
             (parameter.optionHelp.keys - parameter.options.toSet())
                 .map { "${aspect.page}.${parameter.name} explains '$it', which it does not take" }

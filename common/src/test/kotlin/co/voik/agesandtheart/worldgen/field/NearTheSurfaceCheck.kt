@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.worldgen.field
 
 import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.content.AgeContent
 import com.mojang.serialization.JsonOps
@@ -24,7 +23,6 @@ class NearTheSurfaceCheck : FunSpec({
     val ground = Slab(lowY = -64, highY = 64)
 
     test("the condition keeps the shape it was asked about across a round trip") {
-        MinecraftRegistries.ensureStoodUp()
 
         val written = NearTheSurface.CODEC.codec()
             .codec()

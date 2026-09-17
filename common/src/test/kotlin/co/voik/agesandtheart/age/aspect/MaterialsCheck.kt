@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -18,7 +17,6 @@ import net.minecraft.core.registries.BuiltInRegistries
 class MaterialsCheck : FunSpec({
 
     val blocks by lazy {
-        MinecraftRegistries.ensureStoodUp()
         BuiltInRegistries.BLOCK.listElements().toList().map { it.key().identifier() to it.value() }
     }
 

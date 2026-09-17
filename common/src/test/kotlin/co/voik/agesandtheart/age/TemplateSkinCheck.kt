@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import com.google.gson.JsonObject
@@ -59,7 +58,6 @@ class TemplateSkinCheck : FunSpec({
      * nothing here to fix, and every assertion below would pass over three trees already patch-shaped.
      */
     test("two of vanilla's three worlds do paint over every block of their rock") {
-        MinecraftRegistries.ensureStoodUp()
         val repainting = AgeTemplate.entries.filter { paintsEveryBlock(spelled(it.skin)) }
         check(repainting.map { it.key } == listOf("infernal", "dark_void")) {
             "the worlds whose skin paints every block are ${repainting.map { it.key }}, and the strip was " +
@@ -68,7 +66,6 @@ class TemplateSkinCheck : FunSpec({
     }
 
     test("and stripped of their last arm, none of the three does") {
-        MinecraftRegistries.ensureStoodUp()
         for (template in AgeTemplate.entries) {
             val patches = SurfacingStrategy.asPatchesOver(template.skin)
             check(!paintsEveryBlock(spelled(patches))) {
@@ -83,7 +80,6 @@ class TemplateSkinCheck : FunSpec({
      * would happily pass.
      */
     test("and loses nothing but that arm") {
-        MinecraftRegistries.ensureStoodUp()
         for (template in AgeTemplate.entries) {
             val tree = spelled(template.skin)
             val stripped = SurfacingStrategy.asPatchesOver(template.skin)
@@ -106,7 +102,6 @@ class TemplateSkinCheck : FunSpec({
 
     /** The overworld's tree already paints patches, so nothing may happen to it at all. */
     test("and a world that already painted patches is untouched") {
-        MinecraftRegistries.ensureStoodUp()
         val overworld = AgeTemplate.OVERWORLD.skin
         check(spelled(SurfacingStrategy.asPatchesOver(overworld)) == spelled(overworld)) {
             "the overworld's own tree was rewritten, and it had no tail to take off"

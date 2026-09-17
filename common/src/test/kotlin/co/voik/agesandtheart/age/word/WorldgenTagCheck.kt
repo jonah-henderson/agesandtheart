@@ -32,7 +32,6 @@ import java.io.File
 class WorldgenTagCheck : FunSpec({
 
     test("every biome named by one of our tags exists") {
-        MinecraftRegistries.ensureStoodUp()
         val missing = danglingIn("biome", Registries.BIOME)
         check(missing.isEmpty()) {
             "Biome tags name biomes this pack does not ship, which fails the registry freeze at world " +
@@ -41,7 +40,6 @@ class WorldgenTagCheck : FunSpec({
     }
 
     test("every structure set named by one of our tags exists") {
-        MinecraftRegistries.ensureStoodUp()
         val missing = danglingIn("structure_set", Registries.STRUCTURE_SET)
         check(missing.isEmpty()) {
             "Structure set tags name sets this pack does not ship, which fails the registry freeze at " +

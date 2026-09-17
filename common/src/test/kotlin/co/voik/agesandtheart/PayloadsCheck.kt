@@ -12,8 +12,6 @@ import io.kotest.core.spec.style.FunSpec
 @Tags(NEEDS_REGISTRIES)
 class PayloadsCheck : FunSpec({
 
-    beforeSpec { MinecraftRegistries.ensureStoodUp() }
-
     test("every clientbound payload has one client receiver, and only those do") {
         val clientbound = Payloads.ROUTES.filterIsInstance<Payloads.Clientbound<*>>().map { it.type.id.toString() }
         val received = ClientPayloads.RECEIVERS.map { it.type.id.toString() }

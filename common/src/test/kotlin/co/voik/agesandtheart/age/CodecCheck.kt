@@ -46,7 +46,6 @@ import io.kotest.core.spec.style.FunSpec
 class CodecCheck : FunSpec({
 
     test("every registered codec builds") {
-        MinecraftRegistries.ensureStoodUp()
         // Every kind a loader actually registers, read off the lists the loaders read — so adding one
         // brings it under this check for free, and none can be forgotten the way NearTheSurface was.
         val registered: List<Pair<String, Any?>> = (
@@ -84,7 +83,6 @@ class CodecCheck : FunSpec({
      * the wounds of every Age already on disk.
      */
     test("what instability bought survives a write") {
-        MinecraftRegistries.ensureStoodUp()
         val codec = Consequence.MAP_CODEC.codec()
         val bought = Consequence(
             woundsPerChunk = 2.5,
@@ -118,7 +116,6 @@ class CodecCheck : FunSpec({
      * wrong would wait for the first Age that used one.
      */
     test("placements survive a write") {
-        MinecraftRegistries.ensureStoodUp()
         val cases = listOf<Placement>(
             Grid(spacing = 250.0, jitter = 20.0, density = Density.uniform(0.85)),
             Radial(ringSpacing = 300.0, arcSpacing = 200.0, jitter = 40.0, density = Density(atOrigin = 1.0, atEdge = 0.2, falloffRadius = 900.0)),
@@ -147,7 +144,6 @@ class CodecCheck : FunSpec({
      * height, which is an empty world.
      */
     test("which rock answers survives a write") {
-        MinecraftRegistries.ensureStoodUp()
         val settings = MinecraftRegistries.worldgen.lookupOrThrow(Registries.NOISE_SETTINGS)
             .getOrThrow(NoiseGeneratorSettings.NETHER)
         val cases = listOf<AgeRock>(
@@ -196,7 +192,6 @@ class CodecCheck : FunSpec({
      * Their *behaviour* is `ChooseCheck`'s business. This asks only whether the bytes survive.
      */
     test("the randomised combinators survive a write") {
-        MinecraftRegistries.ensureStoodUp()
         val cases = listOf<TerrainField>(
             Chance(child = Slab(lowY = 0, highY = 8), probability = 0.3, seed = 12_345L),
             Choose(
@@ -219,7 +214,6 @@ class CodecCheck : FunSpec({
      * plain `CODEC`, not a `codec(self)`).
      */
     test("the fault nodes survive a write") {
-        MinecraftRegistries.ensureStoodUp()
         val territories = RegionMap(
             members = 2, scale = 400.0, blend = 12, originX = 40, originZ = -80, seed = 0x4E6109L,
             shares = listOf(3.0, 1.0),

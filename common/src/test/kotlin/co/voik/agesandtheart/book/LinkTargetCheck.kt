@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.book
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeRecipe
@@ -27,7 +26,6 @@ import net.minecraft.world.phys.Vec3
 @Tags(NEEDS_REGISTRIES)
 class LinkTargetCheck : FunSpec({
     test("a link target round-trips with the Age behind it") {
-        MinecraftRegistries.ensureStoodUp()
         val composition = AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
             .withOptions(Aspect.TERRAIN, Terrain.STONE.name, listOf("minecraft:blackstone"))
         val recipe = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED)
@@ -48,7 +46,6 @@ class LinkTargetCheck : FunSpec({
 
     /** A book to a vanilla dimension carries none, and must still be a legal book. */
     test("a link target with no Age behind it round-trips") {
-        MinecraftRegistries.ensureStoodUp()
         val target = LinkTarget(
             dimension = Level.OVERWORLD,
             position = Vec3(0.0, 64.0, 0.0),

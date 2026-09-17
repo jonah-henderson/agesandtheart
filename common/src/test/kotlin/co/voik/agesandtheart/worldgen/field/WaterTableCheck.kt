@@ -33,10 +33,8 @@ class WaterTableCheck : FunSpec({
 
     /** The share of cases that vanilla's own aquifer allows, but seldom produces. */
     val RARELY = 0.05
-    // `by lazy`, because Kotest builds a spec to discover its tests: read eagerly this touches the block
-    // registry during discovery, before `NEEDS_REGISTRIES` has bought the bootstrap — which is fine under
-    // `test`, where another spec has already paid it, and fatal under `serverTest`, where the tag filter
-    // means nothing here ever does.
+    // `by lazy`, because Kotest builds a spec to discover its tests before `NEEDS_REGISTRIES` has stood the
+    // registries up, and read eagerly this touches the block registry during discovery.
     val water by lazy { Blocks.WATER.defaultBlockState() }
 
     fun tableOver(shape: TerrainField): WaterTable = WaterTable.matching(SeaFill.of(water, seaLevel), seaLevel)

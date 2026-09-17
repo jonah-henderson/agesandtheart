@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen.feature
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -41,7 +40,6 @@ class SpilledSpringCheck : FunSpec({
     fun openAir(): FakeChunk = FakeChunk { Blocks.AIR.defaultBlockState() }
 
     test("it comes out sideways before it falls") {
-        MinecraftRegistries.ensureStoodUp()
         val source = BlockPos(0, 40, 0)
         val world = wallWithAnOpeningEastOf(source)
 
@@ -59,7 +57,6 @@ class SpilledSpringCheck : FunSpec({
 
     /** And what falls, stops — this is a thing that set, not a column to the floor. */
     test("what came out falls a little and sets") {
-        MinecraftRegistries.ensureStoodUp()
         val source = BlockPos(0, 40, 0)
         val world = wallWithAnOpeningEastOf(source)
         world.spill(source, substance)
@@ -75,7 +72,6 @@ class SpilledSpringCheck : FunSpec({
      * would be a gold block in the middle of the stone with no story attached to it.
      */
     test("a source walled in on every side leaves nothing at all") {
-        MinecraftRegistries.ensureStoodUp()
         val source = BlockPos(0, 40, 0)
         val solid = solidRock()
 
@@ -85,7 +81,6 @@ class SpilledSpringCheck : FunSpec({
 
     /** And one hanging in open air is not a spring at all — there is no wall for it to have come out of. */
     test("a source in open air leaves nothing either") {
-        MinecraftRegistries.ensureStoodUp()
         val source = BlockPos(0, 40, 0)
         val air = openAir()
 

@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.generation.AgeGeneration
@@ -41,7 +40,6 @@ class OverlayCheck : FunSpec({
      * has to be the same answer twice.
      */
     test("what the fill writes is what a height query reads") {
-        MinecraftRegistries.ensureStoodUp()
         for (x in -A_FEW..A_FEW) {
             for (z in -A_FEW..A_FEW) {
                 val column = A_CONE_WITH_A_LAKE_IN_IT.at(x, z)
@@ -64,7 +62,6 @@ class OverlayCheck : FunSpec({
      * would pass on air. All three kinds have to appear in it.
      */
     test("the sample actually holds rock, a hollow and a lake") {
-        MinecraftRegistries.ensureStoodUp()
         val columns = (-A_FEW..A_FEW).flatMap { x -> (-A_FEW..A_FEW).map { z -> A_CONE_WITH_A_LAKE_IN_IT.at(x, z) } }
         check(columns.any { it.rock.ranges.isNotEmpty() }) { "no column of the sample holds any rock" }
         check(columns.any { it.air.ranges.isNotEmpty() }) { "nothing in the sample was hollowed" }
@@ -78,7 +75,6 @@ class OverlayCheck : FunSpec({
      * at all, so a hollow it did not count is a caldera that silently never lowers the ground.
      */
     test("the top of an overlay counts what it took out as well as what it put in") {
-        MinecraftRegistries.ensureStoodUp()
         val onlyAHollow = Overlay(hollows = Box(-A_FEW, LOW, -A_FEW, A_FEW, HIGH, A_FEW))
         val column = onlyAHollow.at(0, 0)
         check(column.rock.ranges.isEmpty()) { "a hollow put rock somewhere" }
@@ -93,7 +89,6 @@ class OverlayCheck : FunSpec({
      * the Age would actually have, not a hope that one is nearby.
      */
     test("a volcano written over vanilla's own landmass still raises its cones") {
-        MinecraftRegistries.ensureStoodUp()
         val overlay = AgeGeneration.volcanicOverlay(vanillaTerrainWriting(Volcanoes.ID.toString()), SEED)
         check(!overlay.isEmpty) { "a book naming a volcano over vanilla's landmass produced no overlay" }
 
@@ -124,7 +119,6 @@ class OverlayCheck : FunSpec({
      * another. The words were one word until 2026-09-10 and the overlay is where two of them now meet.
      */
     test("the three volcanic words stay separate over vanilla's landmass") {
-        MinecraftRegistries.ensureStoodUp()
         val conesOnly = AgeGeneration.volcanicOverlay(vanillaTerrainWriting(Volcanoes.ID.toString()), SEED)
         check(conesOnly.raises != null) { "a volcano raises nothing" }
         check(conesOnly.hollows == null) { "a volcano on its own hollowed out a magma chamber" }

@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -16,7 +15,6 @@ import io.kotest.core.spec.style.FunSpec
 class MotesCheck : FunSpec({
 
     test("every named mote resolves to a particle") {
-        MinecraftRegistries.ensureStoodUp()
         val unresolved = Motes.ALL.filter { Motes.named(it) == null }
         check(unresolved.isEmpty()) { "these motes name no particle: $unresolved" }
     }

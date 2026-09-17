@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Slab
@@ -32,7 +31,6 @@ class GreatHallsWaterCheck : FunSpec({
     val samples = (-160..160 step 11).flatMap { x -> (-160..160 step 11).map { z -> x to z } }
 
     test("the sea is kept out of every storey, even standing well over their ceilings") {
-        MinecraftRegistries.ensureStoodUp()
         // Deliberately above the highest storey, which is the case that used to flood.
         val sea = SeaFill.of(Blocks.WATER.defaultBlockState(), level = OverworldField.WATERLINE).copy(dry = halls)
 
@@ -51,7 +49,6 @@ class GreatHallsWaterCheck : FunSpec({
     }
 
     test("keeping the halls dry does not dry out the rest of the world") {
-        MinecraftRegistries.ensureStoodUp()
         val sea = SeaFill.of(Blocks.WATER.defaultBlockState(), level = OverworldField.WATERLINE).copy(dry = halls)
         // A level over the halls' roof and under the waterline, which is ordinary sea and must stay wet.
         val overTheRoof = roofY + 8

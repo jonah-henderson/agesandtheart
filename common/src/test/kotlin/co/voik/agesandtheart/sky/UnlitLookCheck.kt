@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.sky
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -23,8 +22,6 @@ import io.kotest.core.spec.style.FunSpec
  */
 @Tags(NEEDS_REGISTRIES)
 class UnlitLookCheck : FunSpec({
-
-    beforeSpec { MinecraftRegistries.ensureStoodUp() }
 
     /**
      * **An Age is dark two ways, and everything that reads the fact has to know both.** Sealed overhead is

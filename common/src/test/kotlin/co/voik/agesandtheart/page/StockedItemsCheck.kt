@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.page
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import io.kotest.core.annotation.Tags
@@ -28,7 +27,6 @@ class StockedItemsCheck : FunSpec({
 
     /** Blocks are built in, which is the master stock's derived half; biomes simply find nothing offline. */
     val registries: RegistryAccess by lazy {
-        MinecraftRegistries.ensureStoodUp()
         RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY)
     }
 

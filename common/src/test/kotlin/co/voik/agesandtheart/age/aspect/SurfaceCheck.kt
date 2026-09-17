@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.worldgen.AgeRock
@@ -38,7 +37,6 @@ class SurfaceCheck : FunSpec({
     val saidNothing = Options()
 
     test("a sealed Age is dressed exactly as the same land left open") {
-        MinecraftRegistries.ensureStoodUp()
 
         val underALid = Surface.ruleFor(saidNothing, sealed, AgeTemplate.INFERNAL)
         val underTheSky = Surface.ruleFor(saidNothing, open, AgeTemplate.INFERNAL)
@@ -49,7 +47,6 @@ class SurfaceCheck : FunSpec({
     }
 
     test("and so is one wearing a skin the writer named") {
-        MinecraftRegistries.ensureStoodUp()
         val blackstone = Options(mapOf(Surface.MATERIAL.name to listOf("minecraft:blackstone")))
 
         val underALid = Surface.ruleFor(blackstone, sealed, AgeTemplate.INFERNAL)

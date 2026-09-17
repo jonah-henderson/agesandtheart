@@ -51,7 +51,6 @@ class DangerCheck : FunSpec({
      * wheat field was always free.
      */
     test("what an Age asked to have placed in it adds up rather than counting only its worst") {
-        MinecraftRegistries.ensureStoodUp()
         val cones = groundScore(growing(VOLCANO)).features
         val tubes = groundScore(growing(LAVA_TUBES)).features
         val both = groundScore(growing(VOLCANO, LAVA_TUBES)).features
@@ -64,7 +63,6 @@ class DangerCheck : FunSpec({
 
     /** And a hazard the book struck out is not one the Age has. The maximum never checked. */
     test("a feature written out of an Age stops counting against it") {
-        MinecraftRegistries.ensureStoodUp()
         val struck = growing(VOLCANO, "$VOLCANO${Claim.OPEN}${Claim.EXCEPT}${Claim.CLOSE}", LAVA_TUBES)
         check(groundScore(struck).features == 0.6 / 2.0) {
             "an Age that wrote its volcano out still scored ${groundScore(struck).features}"
@@ -73,7 +71,6 @@ class DangerCheck : FunSpec({
 
     /** Scenery is free, which is what lets the sum be a sum. */
     test("a feature the table has no line for costs nothing") {
-        MinecraftRegistries.ensureStoodUp()
         val withScenery = growing(VOLCANO, "minecraft:patch_sunflower")
         check(groundScore(withScenery).features == groundScore(growing(VOLCANO)).features) {
             "adding a sunflower patch to a volcano moved the score"

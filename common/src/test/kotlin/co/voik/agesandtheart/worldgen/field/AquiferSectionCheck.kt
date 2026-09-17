@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen.field
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.generation.AgeGeneration
@@ -32,7 +31,6 @@ class AquiferSectionCheck : FunSpec({
 
     val window = VerticalWindow.DEFAULT
     val ground by lazy {
-        MinecraftRegistries.ensureStoodUp()
         val options = AgeComposition(terrains = listOf(Terrain.HILLS)).optionsFor(Aspect.TERRAIN, 0)
         Terrain.HILLS.ground(Underground.NOISE_CAVES, options, options, window, TERRAIN_SALT)
     }

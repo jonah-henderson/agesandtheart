@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Biomes
@@ -24,7 +23,6 @@ import io.kotest.core.spec.style.FunSpec
 class BespokeRecipeCheck : FunSpec({
 
     test("the Spire grows its own biome and nothing else") {
-        MinecraftRegistries.ensureStoodUp()
         val world = AgeRecipe.worldFor(AgePreset.SPIRE)
         val composed = world as? AgeWorld.Composed ?: error("the Spire stopped being a composition: $world")
         val claims = composed.composition.optionsFor(Aspect.BIOMES, 0)

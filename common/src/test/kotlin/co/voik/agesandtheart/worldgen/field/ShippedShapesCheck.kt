@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen.field
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
@@ -23,8 +22,6 @@ import java.io.File
  */
 @Tags(NEEDS_REGISTRIES)
 class ShippedShapesCheck : FunSpec({
-
-    beforeSpec { MinecraftRegistries.ensureStoodUp() }
 
     val shipped = File("src/main/resources/data/agesandtheart/worldgen/configured_feature")
 

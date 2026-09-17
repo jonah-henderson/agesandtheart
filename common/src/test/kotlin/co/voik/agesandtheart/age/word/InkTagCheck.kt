@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus
 import com.google.gson.JsonParser
@@ -41,7 +40,6 @@ class InkTagCheck : FunSpec({
     }
 
     test("every block named by an ink tag exists") {
-        MinecraftRegistries.ensureStoodUp()
         val files = File(tagRoot, "block").listFiles { f -> f.name.startsWith("requires_") }.orEmpty()
         check(files.isNotEmpty()) { "No ink tags found under ${tagRoot.absolutePath}/block" }
 
@@ -53,7 +51,6 @@ class InkTagCheck : FunSpec({
 
     /** The two tiers must not overlap, or which ink a thing needs depends on map iteration order. */
     test("no block demands two different inks") {
-        MinecraftRegistries.ensureStoodUp()
         val byTier = File(tagRoot, "block").listFiles { f -> f.name.startsWith("requires_") }.orEmpty()
             .associate { it.name to valuesIn(it).toSet() }
         val overlap = byTier.values.reduceOrNull { a, b -> a intersect b }.orEmpty()

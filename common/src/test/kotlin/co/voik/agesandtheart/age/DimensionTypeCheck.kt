@@ -109,7 +109,6 @@ class DimensionTypeCheck : FunSpec({
      * built fresh on every call, so two calls to `nether()` are equal in meaning and not by reference.
      */
     test("each template dresses our ground in its own world's skin") {
-        MinecraftRegistries.ensureStoodUp()
         fun spelled(rule: SurfaceRules.RuleSource) =
             SurfaceRules.RuleSource.CODEC.encodeStart(JsonOps.INSTANCE, rule).getOrThrow().toString()
 
@@ -138,7 +137,6 @@ class DimensionTypeCheck : FunSpec({
      * agree about which of the three each world is.
      */
     test("each template's own type matches the facts of its world") {
-        MinecraftRegistries.ensureStoodUp()
         for (template in AgeTemplate.entries) {
             val world = template.world()
             val facts = Sky.dimensionType(world)
@@ -160,7 +158,6 @@ class DimensionTypeCheck : FunSpec({
      * leave the lending reaching for something that is not there.
      */
     test("a dragon belongs to a template's own world, never to a type of ours") {
-        MinecraftRegistries.ensureStoodUp()
         val vanillas = MinecraftRegistries.worldgen.lookupOrThrow(Registries.DIMENSION_TYPE)
         val lending = AgeTemplate.entries
             .filter { vanillas.getOrThrow(it.dimensionType).value().hasEnderDragonFight() }
@@ -192,7 +189,6 @@ class DimensionTypeCheck : FunSpec({
      * only one this check knew about, which is why it did not catch the other two.
      */
     test("each type of ours states every colour of the world it restates") {
-        MinecraftRegistries.ensureStoodUp()
         val vanillas = MinecraftRegistries.worldgen.lookupOrThrow(Registries.DIMENSION_TYPE)
 
         val colours = listOf(
