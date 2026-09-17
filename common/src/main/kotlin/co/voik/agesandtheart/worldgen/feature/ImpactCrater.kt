@@ -278,18 +278,27 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
         )
     }
 
-    /** The top solid block of a column, which is one below where the heightmap stops. */
+    /**
+     * The top solid block of a column as it stands now, which is one below where the heightmap stops.
+     *
+     * **A final heightmap, never a worldgen one.** While features are placed, a chunk updates only the four
+     * final maps, so `OCEAN_FLOOR_WG` still answers with the ground from before any feature ran. Read through
+     * it, a crater could not see another crater: it raised its rim from ground already dug out, and cut
+     * under the rim another had thrown up, leaving both hanging.
+     */
     private fun groundAt(level: WorldGenLevel, x: Int, z: Int): Int =
-        level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z) - ONE
+        level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z) - ONE
 
     /**
-     * And the top of *anything at all* in the column, plants and leaves included.
+     * And the top of *anything at all* in the column, plants, snow and leaves included — final for the same
+     * reason as [groundAt], since grass and snow placed after the terrain are exactly what a worldgen map
+     * cannot see.
      *
      * The difference between this and [groundAt] is exactly what a meadow standing on the ground is, which
      * is what the carve has to take with it.
      */
     private fun topOf(level: WorldGenLevel, x: Int, z: Int): Int =
-        level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x, z) - ONE
+        level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - ONE
 
     /**
      * Whether this column stands under water.
