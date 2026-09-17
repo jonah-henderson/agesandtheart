@@ -6,6 +6,7 @@ import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.LinkRequest
+import co.voik.agesandtheart.client.panel.LecternPanels
 import co.voik.agesandtheart.client.panel.LinkingPanel
 import co.voik.agesandtheart.client.panel.PanelComposite
 import co.voik.agesandtheart.client.panel.PanelPicture
@@ -41,16 +42,18 @@ object BookScreenOpener {
  * a page turns it: the right page forward, the left page back.
  *
  * The panel asks for its Age while the book is open and gives it back when it closes (design §7.8.1), which
- * is what makes a live panel affordable at all. A book read off a lectern has no panel here: its own is
- * already showing in the world, to everybody standing there (§7.8.2).
+ * is what makes a live panel affordable at all. **The screen always has a live panel, and outranks every
+ * lectern** (§7.8.2): it covers most of the world, so the panel being looked at is the one that has to be
+ * current. A book read off a lectern takes up that lectern's panel, and the lectern goes on showing the same
+ * picture.
  */
 class BookScreen(
     private val book: ItemStack,
     val held: BookBeingRead,
 ) : Screen(book.hoverName) {
 
-    /** Whether the panel is this screen's own, which a lectern book's is not. */
-    private val showsItsOwnPanel = held is BookBeingRead.InHand
+    /** Whether clicking the panel links: only in a hand, since a lectern's book links by a click on the lectern. */
+    private val linksFromThePanel = held is BookBeingRead.InHand
 
     /** Which leaf the panel is on: a descriptive book's left, beside its writing, and a linking book's right. */
     private val panelPage = LecternBooks.panelPageOf(book) ?: BookPage.LEFT
@@ -73,19 +76,27 @@ class BookScreen(
         // Learned locally on this frame rather than after the server has rolled an Age (design §4.5). The
         // server still teaches authoritatively, and its payload adds nothing when it lands.
         KnownWords.readFrom(book.get(AgeComponents.BOOK_WORDS).orEmpty())
-        if (held is BookBeingRead.InHand) LinkingPanel.ask(held)
+        LinkingPanel.ask(held)
     }
 
-    /** The panel's only tick: its camera's environment probe, and the wait for an unanswered request. */
+    /** Whether the panel's spread is the one open, which is when this screen composes the panel's picture. */
+    val isShowingItsPanel: Boolean get() = spread == 0
+
+    /** The panel's tick while the screen is up: its camera's environment probe, and the wait for an answer. */
     override fun tick() {
         super.tick()
-        if (showsItsOwnPanel) LinkingPanel.tick()
+        LinkingPanel.tick()
     }
 
-    /** Gives the ring back, on every way out rather than only the link path — where the ring is this screen's. */
+    /**
+     * Gives a hand's ring back, on every way out rather than only the link path.
+     *
+     * A lectern's is handed back to [LecternPanels] instead, which keeps it while that lectern is still the one
+     * to show, so closing the screen does not load the panel again from mist.
+     */
     override fun removed() {
         super.removed()
-        if (showsItsOwnPanel) LinkingPanel.release()
+        if (held is BookBeingRead.InHand) LinkingPanel.release()
     }
 
     override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
@@ -115,17 +126,12 @@ class BookScreen(
 
     /**
      * The panel: one blit of its finished picture, frame and all — the picture a lectern's book shows too
-     * (design §7.8.2) — and, where the panel is this screen's own, what a pointer and a wait add to it.
+     * (design §7.8.2) — and what a wait adds to it, and a pointer where clicking it links.
      */
     private fun drawPanel(graphics: GuiGraphicsExtractor, left: Int, top: Int, mouseX: Int, mouseY: Int) {
         val x = left + panelAcrossTheBook()
         val y = top + PANEL_Y
-        val picture = if (showsItsOwnPanel) {
-            PanelComposite.composeLive(LinkingPanel.preview, Minecraft.getInstance().deltaTracker)
-        } else {
-            // A lectern book's own panel is showing on the lectern, to everybody standing there.
-            PanelComposite.composeMisted()
-        }
+        val picture = PanelComposite.composeLive(LinkingPanel.preview, Minecraft.getInstance().deltaTracker)
         val frame = PanelPicture.FRAME_WIDTH
         // V backwards: a render target's origin is at its bottom.
         graphics.blit(
@@ -140,8 +146,7 @@ class BookScreen(
             1.0f,
             0.0f,
         )
-        if (!showsItsOwnPanel) return
-        if (overPanel(mouseX.toDouble(), mouseY.toDouble())) {
+        if (linksFromThePanel && overPanel(mouseX.toDouble(), mouseY.toDouble())) {
             graphics.fill(x, y, x + PanelPicture.WIDTH, y + PanelPicture.HEIGHT, PANEL_LIT)
         }
         drawWaiting(graphics, x, y)

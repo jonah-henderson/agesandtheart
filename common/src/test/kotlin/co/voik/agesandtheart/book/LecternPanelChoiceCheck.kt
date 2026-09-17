@@ -39,6 +39,16 @@ class LecternPanelChoiceCheck : FunSpec({
         check(LecternPanelChoice.choose(here, listOf(at(here, 6.0), at(there, 3.0))) == there)
     }
 
+    test("two lecterns two blocks apart still hand over, to somebody standing at the other") {
+        val besideIt = BlockPos(2, 64, 0)
+        check(LecternPanelChoice.choose(here, listOf(at(here, 2.3), at(besideIt, 1.1))) == besideIt)
+    }
+
+    test("and do not, to somebody standing between them") {
+        val besideIt = BlockPos(2, 64, 0)
+        check(LecternPanelChoice.choose(here, listOf(at(here, 1.6), at(besideIt, 1.4))) == here)
+    }
+
     test("a book that has shut or gone hands the panel on") {
         check(LecternPanelChoice.choose(here, listOf(at(there, 7.0))) == there)
     }

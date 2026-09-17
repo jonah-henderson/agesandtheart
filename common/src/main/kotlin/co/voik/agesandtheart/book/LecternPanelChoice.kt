@@ -12,11 +12,15 @@ data class NearbyLectern(val pos: BlockPos, val distance: Double)
  * A client draws one panel, and every change of lectern is a fresh ring and a fade from mist. The two
  * margins are what stop a player standing between two lecterns, or at the edge of one, from paying that
  * over and over.
+ *
+ * **The switching margin is a share of the distance, not a number of blocks.** How much nearer one lectern
+ * can be than another is bounded by how far apart the two stand, so a margin in blocks would stop lecterns
+ * closer together than it from ever handing the panel over.
  */
 object LecternPanelChoice {
 
-    /** How much nearer another lectern has to be before it takes the panel from the one showing. */
-    const val SWITCH_MARGIN_BLOCKS = 2.0
+    /** Another lectern takes the panel once it is nearer than this share of the showing one's distance. */
+    const val TAKES_OVER_WITHIN_SHARE_OF_DISTANCE = 0.6
 
     /** How far off the showing lectern may get before it is let go: a block past where one is first taken up. */
     const val LET_GO_BEYOND_BLOCKS = LecternBooks.REACH_BLOCKS + 1.0
@@ -27,7 +31,7 @@ object LecternPanelChoice {
         return when {
             stillShowing == null -> nearest?.pos
             nearest == null -> stillShowing.pos
-            nearest.distance + SWITCH_MARGIN_BLOCKS < stillShowing.distance -> nearest.pos
+            nearest.distance < stillShowing.distance * TAKES_OVER_WITHIN_SHARE_OF_DISTANCE -> nearest.pos
             else -> stillShowing.pos
         }
     }

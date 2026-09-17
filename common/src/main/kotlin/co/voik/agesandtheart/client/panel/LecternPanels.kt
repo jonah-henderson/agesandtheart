@@ -20,8 +20,8 @@ import net.minecraft.world.phys.Vec3
  * §7.8.2).
  *
  * A client draws one panel ([LinkingPanel]), so of every open book of ours within reach the nearest resolves
- * and the rest wear the mist. A book screen with a panel of its own outranks them all: its `ask` takes the panel
- * over, and this stands aside until the screen gives it back.
+ * and the rest wear the mist. **A book screen outranks them all**, a lectern's own book included: it takes the
+ * panel up for the book it shows, and this stands aside for as long as the screen is open.
  *
  * Two beats, because a lectern has no screen to lend it either. The client tick chooses the lectern and ticks
  * the panel, as `BookScreen.tick` would; the frame lays the pictures down ([PanelComposite]) — and only those a
@@ -41,8 +41,8 @@ object LecternPanels {
     fun tick(minecraft: Minecraft) {
         val level = minecraft.level ?: return
         val player = minecraft.player ?: return
-        // A hand's panel belongs to its screen, which ticks it and gives it back when it closes.
-        if (LinkingPanel.showingFor is BookBeingRead.InHand) return
+        // An open book screen owns the panel and ticks it; the choice resumes from its lectern once it closes.
+        if (minecraft.screen is BookScreen) return
 
         val showing = shown
         val wanted = LecternPanelChoice.choose(showing, openBooksNear(level, player.position()))
@@ -67,15 +67,15 @@ object LecternPanels {
     /**
      * Lays down the pictures this frame's lecterns will show, before the GUI is extracted (`GameRendererMixin`).
      *
-     * The live one is skipped for the one viewer who cannot see it — whoever has that book's own screen up —
-     * whose lectern goes on showing the last picture, under the screen.
+     * The live one is skipped where the lectern's own book screen is open at its panel, which composes the same
+     * picture this frame and the lectern shows that.
      */
     @JvmStatic
     fun drawFrame(delta: DeltaTracker) {
         val lectern = shown
         val shownIsSeen = shownSeenThisFrame
         shownSeenThisFrame = false
-        if (lectern != null && shownIsSeen && !isReadingItsScreen(lectern)) {
+        if (lectern != null && shownIsSeen && !isComposedByItsScreen(lectern)) {
             PanelComposite.composeLive(LinkingPanel.preview, delta)
         }
         // After the live picture, whose Age may itself have had a lectern of ours in view.
@@ -83,9 +83,9 @@ object LecternPanels {
         mistedSeenThisFrame = false
     }
 
-    private fun isReadingItsScreen(lectern: BlockPos): Boolean {
+    private fun isComposedByItsScreen(lectern: BlockPos): Boolean {
         val screen = Minecraft.getInstance().screen as? BookScreen ?: return false
-        return screen.held == BookBeingRead.OnALectern(lectern)
+        return screen.held == BookBeingRead.OnALectern(lectern) && screen.isShowingItsPanel
     }
 
     /** Every open book of ours near enough to [viewer] to be chosen. */
