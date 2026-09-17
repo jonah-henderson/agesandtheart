@@ -62,9 +62,10 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
         if (submerged(level, middle.x, middle.z)) return false
         val struck = Struck.drawnBy(random, reach, roomAround(middle, context.origin()))
         val out = struck.carriesTo()
+        val sea = seaOverTheCut(level, middle, struck)
         for (awayX in -out..out) {
             for (awayZ in -out..out) {
-                reshape(level, middle.x + awayX, middle.z + awayZ, struck.offsetAt(awayX, awayZ))
+                reshape(level, middle.x + awayX, middle.z + awayZ, struck.offsetAt(awayX, awayZ), sea)
             }
         }
         dropWhatIsLeftHanging(level, middle, out)
@@ -114,42 +115,61 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
      * itself, which is the ejecta being what was thrown out of the hole: the rim of a crater in sand is
      * sand, and in stone it is stone, with nothing here needing to know which.
      */
-    private fun reshape(level: WorldGenLevel, x: Int, z: Int, offset: Int) {
+    private fun reshape(level: WorldGenLevel, x: Int, z: Int, offset: Int, seaOverTheCut: Sea) {
         if (offset == UNMOVED) return
         val surface = groundAt(level, x, z)
-        // **A crater by the shore fills rather than stopping at the waterline** (Jonah, 2026-09-10). The
-        // sea it is cut under is put back into everything the cut opened, so the hole is flooded on arrival
-        // and there is no air pocket waiting for something to notice it — which is what submerged columns
-        // used to be skipped to avoid. Whatever the Age's sea is made of, since the fluid is read here
-        // rather than named.
-        val sea = seaOver(level, x, z, surface)
-        fun fillAt(y: Int): BlockState = if (y <= sea.reaches) sea.fluid else AIR
         // **Whatever is *standing* on the column as well as the column itself.** The ground heightmap
         // counts what blocks motion, and grass, bushes and flowers do not — so carving to it took the dirt
         // out from under a meadow and left it hanging (Jonah, 2026-09-09, walked: "trees, grass, bushes
         // floating in the air"). Leaves are missed the same way. An impact leaves none of it.
         val standing = topOf(level, x, z)
         if (offset < UNMOVED) {
+            // The cut is one hole, so it fills to one waterline — a dry column cut below the sea floods as
+            // the drowned one beside it does, and no air pocket is left waiting for something to notice it.
             for (y in surface + offset + ONE..maxOf(surface, standing)) {
-                level.setBlock(BlockPos(x, y, z), fillAt(y), Block.UPDATE_CLIENTS)
+                level.setBlock(BlockPos(x, y, z), seaOverTheCut.fillAt(y), Block.UPDATE_CLIENTS)
             }
             return
         }
+        // A raised column puts back only what stood over it, so a dry rim never carries water of its own.
+        val seaOverTheColumn = seaOver(level, x, z, surface)
         val top = level.getBlockState(BlockPos(x, surface, z))
         val under = level.getBlockState(BlockPos(x, surface - ONE, z))
         for (y in surface + ONE..surface + offset) level.setBlock(BlockPos(x, y, z), under, Block.UPDATE_CLIENTS)
         level.setBlock(BlockPos(x, surface + offset, z), top, Block.UPDATE_CLIENTS)
         // And nothing left poking out of what was thrown over it: a trunk taller than the rim is buried
         // to the rim's height and would otherwise stand out of the top of it.
-        for (y in surface + offset + ONE..standing) level.setBlock(BlockPos(x, y, z), fillAt(y), Block.UPDATE_CLIENTS)
+        for (y in surface + offset + ONE..standing) {
+            level.setBlock(BlockPos(x, y, z), seaOverTheColumn.fillAt(y), Block.UPDATE_CLIENTS)
+        }
     }
 
     /** The sea standing over a column, and how high it reaches — [Sea.NONE] where the column is dry. */
     private class Sea(val fluid: BlockState, val reaches: Int) {
+        /** What a cut cell at [y] is filled with: the sea at or under its waterline, and air above it. */
+        fun fillAt(y: Int): BlockState = if (y <= reaches) fluid else AIR
+
         companion object {
             /** Nothing stands here, so every height is above the water and fills with air. */
             val NONE = Sea(Blocks.AIR.defaultBlockState(), Int.MIN_VALUE)
         }
+    }
+
+    /**
+     * The highest sea standing over any column the crater cuts down, which the whole cut fills to.
+     *
+     * Read before anything is cut, since cutting a column changes what stands over it. Only the columns the
+     * cut lowers are asked: the rim opens nothing, and the ejecta's reach may cross water the hole never meets.
+     * The fluid is read rather than named, so a crater in an Age whose sea is lava fills with lava.
+     */
+    private fun seaOverTheCut(level: WorldGenLevel, middle: BlockPos, struck: Struck): Sea {
+        val out = struck.carriesTo()
+        val everyOffset = (-out..out).flatMap { awayX -> (-out..out).map { awayZ -> awayX to awayZ } }
+        fun seaOverColumn(x: Int, z: Int) = seaOver(level, x, z, groundAt(level, x, z))
+        return everyOffset
+            .filter { (awayX, awayZ) -> struck.offsetAt(awayX, awayZ) < UNMOVED }
+            .map { (awayX, awayZ) -> seaOverColumn(middle.x + awayX, middle.z + awayZ) }
+            .maxByOrNull { it.reaches } ?: Sea.NONE
     }
 
     /**
