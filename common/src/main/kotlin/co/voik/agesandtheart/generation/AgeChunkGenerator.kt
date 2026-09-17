@@ -3,6 +3,7 @@ package co.voik.agesandtheart.generation
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.worldgen.field.SeaFill
+import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.TerrainFill
@@ -397,11 +398,41 @@ class AgeChunkGenerator(
      */
     private fun abyssReachesAt(chunk: ChunkAccess, worldX: Int, worldZ: Int): Boolean {
         val ours = rock as? AgeRock.Ours ?: return false
-        if (ours.field.columnSpans(worldX, worldZ).contains(abyssLine)) return false
-        if (!seaFill.fillsAt(abyssLine, seaFill.drynessAt(worldX, worldZ), seaFill.wetnessAt(worldX, worldZ))) {
-            return false
-        }
-        return abyssBelongsIn(chunk, ours, worldX, worldZ)
+        return isAbyssal(
+            ours,
+            worldX,
+            worldZ,
+            rockHere = ours.field.columnSpans(worldX, worldZ),
+            seaFillsTheLine = {
+                seaFill.fillsAt(abyssLine, seaFill.drynessAt(worldX, worldZ), seaFill.wetnessAt(worldX, worldZ))
+            },
+            biomeAtTheLine = { biomeAtTheLineIn(chunk, worldX, worldZ) },
+        )
+    }
+
+    /** The biome at the abyss line, off a chunk whose biomes are already laid. */
+    private fun biomeAtTheLineIn(chunk: ChunkAccess, worldX: Int, worldZ: Int): Holder<Biome> =
+        chunk.getNoiseBiome(QuartPos.fromBlock(worldX), QuartPos.fromBlock(abyssLine), QuartPos.fromBlock(worldZ))
+
+    /**
+     * **The one statement of whether a column is abyssal**, for the settling tick and [getBaseColumn] alike,
+     * so the blocks a heightmap query is answered with are the blocks that were laid. `FieldFill` asks the
+     * same three things of its own snapshot of the sea.
+     *
+     * The rock has to stop short of the line, the sea has to stand at it, and [abyssBelongsIn] has to agree —
+     * in that order, cheapest first, which is why the last two arrive as lambdas.
+     */
+    private inline fun isAbyssal(
+        ours: AgeRock.Ours,
+        worldX: Int,
+        worldZ: Int,
+        rockHere: Spans,
+        seaFillsTheLine: () -> Boolean,
+        biomeAtTheLine: () -> Holder<Biome>,
+    ): Boolean {
+        if (rockHere.contains(abyssLine)) return false
+        if (!seaFillsTheLine()) return false
+        return abyssBelongsIn(biomeAtTheLine(), ours, worldX, worldZ)
     }
 
     /**
@@ -426,18 +457,13 @@ class AgeChunkGenerator(
      *   Asked at the abyss line rather than at the surface, because the biome that matters is the one down
      *   where the water would be.
      *
-     * Read off the chunk, which is safe here and only here: `BIOMES` runs before `NOISE`, so the biomes are
-     * settled by the time the fill asks.
+     * [biomeAtTheLine] is the biome at the abyss line. The fill and the settling tick read it off the chunk,
+     * which is safe there: `BIOMES` runs before `NOISE`, so the biomes are settled by the time either asks.
      */
-    private fun abyssBelongsIn(chunk: ChunkAccess, ours: AgeRock.Ours, worldX: Int, worldZ: Int): Boolean {
+    private fun abyssBelongsIn(biomeAtTheLine: Holder<Biome>, ours: AgeRock.Ours, worldX: Int, worldZ: Int): Boolean {
         // **The biome first, because it is an array read and the other is a whole field tree.** This runs
         // per column of the fill, and the landform of a volcanic Age is the most expensive thing in it.
-        val biome = chunk.getNoiseBiome(
-            QuartPos.fromBlock(worldX),
-            QuartPos.fromBlock(abyssLine),
-            QuartPos.fromBlock(worldZ),
-        )
-        if (biome.`is`(DeepWater.NO_ABYSS)) return false
+        if (biomeAtTheLine.`is`(DeepWater.NO_ABYSS)) return false
         // The land rather than the whole rock, as `getBaseHeight` reads it: a lid over a sealed Age is not
         // a sea floor, and reading it here would call every column of such an Age dry land.
         val ground = ours.landform.columnSpans(worldX, worldZ).highestSolidY
@@ -482,7 +508,9 @@ class AgeChunkGenerator(
             adaptation = adaptation,
             // Reaches back for the *live* sea rather than the snapshot, which is what it did before the fill
             // moved out of here. [FieldFill]'s note says why that is left alone rather than tidied.
-            abyssBelongsHere = { at, worldX, worldZ -> abyssBelongsIn(at, ours, worldX, worldZ) },
+            abyssBelongsHere = { at, worldX, worldZ ->
+                abyssBelongsIn(biomeAtTheLineIn(at, worldX, worldZ), ours, worldX, worldZ)
+            },
         ).fillInto(chunk)
         return CompletableFuture.completedFuture(chunk)
     }
@@ -634,16 +662,30 @@ class AgeChunkGenerator(
         val dryness = seaFill.drynessAt(x, z)
         val wetness = seaFill.wetnessAt(x, z)
         val bodies = seaFill.carriedAt(x, z)
+        // The same abyss the chunk fill lays, so a heightmap query and the blocks agree.
+        val abyssal = isAbyssal(
+            ours,
+            x,
+            z,
+            rockHere = spans,
+            seaFillsTheLine = { seaFill.fillsAt(abyssLine, dryness, wetness) },
+            biomeAtTheLine = {
+                biomeSource.getNoiseBiome(
+                    QuartPos.fromBlock(x),
+                    QuartPos.fromBlock(abyssLine),
+                    QuartPos.fromBlock(z),
+                    randomState.sampler(),
+                )
+            },
+        )
         val column = Array(window.height) { index ->
             val y = window.minY + index
             when {
                 spans.contains(y) -> fill.blockAt(x, y, z)
-                // The same abyss the chunk fill lays, so a heightmap query and the blocks agree.
-                else -> DeepWater.seaAt(
-                    y,
-                    abyssLine,
-                    seaFill.carriedAt(y, bodies) ?: if (seaFill.fillsAt(y, dryness, wetness)) sea else AIR,
-                )
+                else -> {
+                    val open = seaFill.carriedAt(y, bodies) ?: if (seaFill.fillsAt(y, dryness, wetness)) sea else AIR
+                    if (abyssal) DeepWater.seaAt(y, abyssLine, open) else open
+                }
             }
         }
         return NoiseColumn(window.minY, column)

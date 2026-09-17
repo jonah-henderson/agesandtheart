@@ -54,7 +54,7 @@ object DeepSeaVent : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.
         val floor = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, origin.x, origin.z)
         val chimneyHeight = SHORTEST_CHIMNEY + random.nextInt(TALLEST_CHIMNEY - SHORTEST_CHIMNEY + 1)
         if (!standsInOpenAbyss(level, origin.x, origin.z, floor, chimneyHeight)) return false
-        val vent = Silhouette(random)
+        val vent = Silhouette(random, leansFrom = floor)
         val chamberHeight = SHALLOWEST_CHAMBER + random.nextInt(DEEPEST_CHAMBER - SHALLOWEST_CHAMBER + 1)
         val chamberTop = floor - NECK_BLOCKS - 1
         val chamberBottom = chamberTop - chamberHeight + 1
@@ -240,13 +240,16 @@ object DeepSeaVent : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.
      * **Rolled once per vent rather than per block**, which is what makes the shape *a* shape — sampling
      * noise per column would give a fuzzy circle, where a fixed set of lobes gives a chimney with sides.
      * The harmonics are low and odd so the lobes do not line up into something that reads as symmetrical.
+     *
+     * **The axis leans away from [leansFrom] both up and down**, so the vent stands on the column that was
+     * checked, and the drift stays a few blocks either way — inside the neighbouring chunks a feature may
+     * write to, wherever in its own chunk it was placed.
      */
-    private class Silhouette(random: RandomSource) {
+    private class Silhouette(random: RandomSource, private val leansFrom: Int) {
 
         private val phases = DoubleArray(HARMONICS.size) { random.nextDouble() * FULL_TURN }
         private val leanX = random.nextDouble() * LEAN_PER_BLOCK - LEAN_PER_BLOCK / 2.0
         private val leanZ = random.nextDouble() * LEAN_PER_BLOCK - LEAN_PER_BLOCK / 2.0
-        private val leansFrom = random.nextInt(LEAN_ORIGIN_SPREAD)
 
         /** How far this bearing's wall stands from the axis, as a multiple of the nominal radius. */
         fun lobeAt(bearing: Double): Double {
@@ -275,9 +278,6 @@ object DeepSeaVent : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.
 
     /** Blocks of sideways drift per block of climb — enough to lean, far too little to topple. */
     private const val LEAN_PER_BLOCK = 0.18
-
-    /** So two vents in one Age do not lean the same way from the same height. */
-    private const val LEAN_ORIGIN_SPREAD = 64
 
     private const val SHORTEST_CHIMNEY = 7
     private const val TALLEST_CHIMNEY = 15
