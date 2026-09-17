@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.datapack.PerReload
 import co.voik.agesandtheart.datapack.ResourceParsing
 import co.voik.agesandtheart.location
 import com.mojang.serialization.Codec
@@ -8,6 +10,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.tags.TagKey
 import net.minecraft.util.StringRepresentable
@@ -155,6 +158,22 @@ class WritersDesk(
         const val TIERS_FILE = "art/writers_desk.json"
 
         /**
+         * What counts as an implement on this server, read once per datapack load — and a broken file said
+         * then, rather than thrown away on every desk action.
+         *
+         * Only the definitions are kept. What a room *holds* is surveyed fresh every time (see
+         * `WritersDeskBlockEntity.capabilities`).
+         */
+        fun of(server: MinecraftServer): WritersDesk = current.of(server)
+
+        private val current = PerReload { server ->
+            val problems = mutableListOf<String>()
+            load(server.resourceManager, problems).also {
+                for (problem in problems) Constants.LOG.warn("Writer's desk: {}", problem)
+            }
+        }
+
+        /**
          * Half-width of the cube searched, in every direction — so 5 means an 11×11×11 room.
          *
          * A cube rather than a flat disc because people shelve things high, and a study with its rarities
@@ -171,7 +190,8 @@ class WritersDesk(
         fun load(resources: ResourceManager, problems: MutableList<String>): WritersDesk {
             val implements = mutableListOf<DeskImplement>()
             for ((file, resource) in resources.listResources(IMPLEMENT_DIRECTORY, ResourceParsing::isJson)) {
-                val id = Identifier.fromNamespaceAndPath(file.namespace, ResourceParsing.nameUnder(file, IMPLEMENT_DIRECTORY))
+                val name = ResourceParsing.nameUnder(file, IMPLEMENT_DIRECTORY)
+                val id = Identifier.fromNamespaceAndPath(file.namespace, name)
                 implements += ResourceParsing.parse(resource, file, DeskImplement.codec(id), problems)
                     ?: continue
             }

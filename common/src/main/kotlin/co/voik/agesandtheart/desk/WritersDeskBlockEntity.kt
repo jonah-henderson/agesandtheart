@@ -49,6 +49,32 @@ class WritersDeskBlockEntity(pos: BlockPos, state: BlockState) :
         setChanged()
     }
 
+    /** Lays [word] in [writer]'s row at [at], or at the end. Where it goes is what it means. */
+    fun lay(writer: UUID, word: Identifier, at: Int? = null) {
+        val laid = compositionFor(writer).toMutableList()
+        laid.add((at ?: laid.size).coerceIn(0, laid.size), word)
+        setComposition(writer, laid)
+    }
+
+    /** Takes the page at [at] out of [writer]'s row, or null where there is none. */
+    fun takeFromComposition(writer: UUID, at: Int): Identifier? {
+        val laid = compositionFor(writer).toMutableList()
+        if (at !in laid.indices) return null
+        val taken = laid.removeAt(at)
+        setComposition(writer, laid)
+        return taken
+    }
+
+    /** Moves [writer]'s page at [from] to [to], clamped, so a drop past the end puts it last. */
+    fun moveInComposition(writer: UUID, from: Int, to: Int) {
+        val laid = compositionFor(writer).toMutableList()
+        if (from !in laid.indices) return
+        val landing = to.coerceIn(0, laid.size - 1)
+        if (from == landing) return
+        laid.add(landing, laid.removeAt(from))
+        setComposition(writer, laid)
+    }
+
     /** Every writer's pages together — what a broken desk owes the floor, whoever laid it. */
     val everyComposition: List<Identifier> get() = compositions.values.flatten()
 

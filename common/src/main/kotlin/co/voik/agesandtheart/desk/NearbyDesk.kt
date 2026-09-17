@@ -33,8 +33,7 @@ class NearbyDesk(private val pos: BlockPos) {
         val known = deskAt?.let { level.getBlockEntity(it) as? WritersDeskBlockEntity }
         if (known != null) return known.compositionFor(writer.uuid)
         deskAt = null
-        val workshop = WritersDesk.load(level.server.resourceManager, mutableListOf())
-        val reach = workshop.radius
+        val reach = WritersDesk.of(level.server).radius
         val cursor = BlockPos.MutableBlockPos()
         for (x in -reach..reach) for (y in -reach..reach) for (z in -reach..reach) {
             cursor.setWithOffset(pos, x, y, z)

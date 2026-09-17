@@ -58,9 +58,6 @@ object DeskCommands {
         val menu = player.containerMenu as? WritersDeskMenu ?: return
         val desk = menu.deskOf(player) ?: return
         readTheArchive(player, desk)
-        // The pages this writer left on this desk, back on the surface they were left on.
-        menu.composing.clear()
-        menu.composing += desk.compositionFor(player.uuid)
         sync(player, menu, desk)
     }
 
@@ -84,21 +81,22 @@ object DeskCommands {
         val menu = player.containerMenu as? WritersDeskMenu ?: return
         val desk = menu.deskOf(player) ?: return
         when (payload.action) {
-            DeskAction.WRITE_TO_ARCHIVE -> write(player, menu, desk, payload, toBook = false)
-            DeskAction.WRITE_TO_BOOK -> write(player, menu, desk, payload, toBook = true)
-            DeskAction.COMPOSE_FROM_ARCHIVE -> composeFromArchive(player, menu, desk, payload)
+            DeskAction.WRITE_TO_ARCHIVE -> write(player, desk, payload, toBook = false)
+            DeskAction.WRITE_TO_BOOK -> write(player, desk, payload, toBook = true)
+            DeskAction.COMPOSE_FROM_ARCHIVE -> composeFromArchive(player, desk, payload)
             DeskAction.COMPOSE_FROM_HAND -> composeFromHand(player, menu, desk, payload)
-            DeskAction.RETURN_TO_ARCHIVE -> returnToArchive(menu, desk, payload)
+            DeskAction.RETURN_TO_ARCHIVE -> returnToArchive(player, desk, payload)
             DeskAction.WITHDRAW -> withdraw(player, desk, payload)
             // No sync afterwards: the tab is the client's own state and it already knows. Turning *to*
             // the archive is reading it, and what that teaches goes out on its own packet.
             DeskAction.SET_TAB -> {
-                menu.openTab = payload.index
-                if (payload.index == WritersDeskMenu.ARCHIVE_TAB) readTheArchive(player, desk)
+                val tab = DeskTab.entries.getOrNull(payload.index) ?: return
+                menu.openTab = tab
+                if (tab == DeskTab.ARCHIVE) readTheArchive(player, desk)
                 return
             }
             DeskAction.PRICE -> return quote(player, payload)
-            DeskAction.MOVE_IN_BOOK -> moveInBook(menu, payload)
+            DeskAction.MOVE_IN_BOOK -> desk.moveInComposition(player.uuid, payload.index, payload.target)
             DeskAction.FINALISE -> finalise(player, menu, desk, payload)
         }
         sync(player, menu, desk)
@@ -125,8 +123,7 @@ object DeskCommands {
      * cannot leave the centre's screen looking at an emptied archive.
      */
     fun sync(player: ServerPlayer, desk: WritersDeskBlockEntity) {
-        val workshop = WritersDesk.load(player.level().server.resourceManager, mutableListOf())
-        val capabilities = desk.capabilities(workshop)
+        val capabilities = desk.capabilities(WritersDesk.of(player.level().server))
         Services.NETWORK.sendToPlayer(
             player,
             DeskSyncPayload(
@@ -144,22 +141,14 @@ object DeskCommands {
         )
     }
 
-    /**
-     * Pushes the desk's state to the screen — and writes the laid-out pages down on the way past.
-     *
-     * Every action ends here, so this is the one place a composition has to be saved from: the menu is
-     * where the pages are being moved and the block entity is what survives a chunk unloading. Persisting
-     * per action rather than only on close means a crash costs the last click rather than the sentence.
-     */
+    /** Pushes the desk's state to the screen. */
     fun sync(player: ServerPlayer, menu: WritersDeskMenu, desk: WritersDeskBlockEntity) {
-        desk.setComposition(player.uuid, menu.composing)
-        val workshop = WritersDesk.load(player.level().server.resourceManager, mutableListOf())
-        Services.NETWORK.sendToPlayer(player, menu.snapshot(player, desk, desk.capabilities(workshop)))
+        val capabilities = desk.capabilities(WritersDesk.of(player.level().server))
+        Services.NETWORK.sendToPlayer(player, menu.snapshot(player, desk, capabilities))
     }
 
     private fun write(
         player: ServerPlayer,
-        menu: WritersDeskMenu,
         desk: WritersDeskBlockEntity,
         payload: DeskCommandPayload,
         toBook: Boolean,
@@ -168,7 +157,7 @@ object DeskCommands {
         if (!player.learnedWords.knows(wordId)) return complain(player, "unknown_word")
         val vocabulary = Vocabulary.of(player.level().server)
         val word = vocabulary.word(wordId.toString()) ?: vocabulary.word(wordId.path) ?: return
-        if (toBook && !roomInBook(player, menu, desk)) return
+        if (toBook && !roomInBook(player, desk)) return
 
         val cost = WriteCost.of(
             word,
@@ -177,14 +166,13 @@ object DeskCommands {
             payload.paperTier,
             Services.INK_FLUIDS.unitsPerBucket,
         )
-        // The writer may pour better ink than the word demands, never worse — `satisfies` is the same
-        // rule the desk checks when it spends, so asking for common ink on a diamond changes nothing.
-        val spending = if (payload.inkTier.satisfies(cost.inkTier)) payload.inkTier else cost.inkTier
+        // Asking for common ink on a diamond changes nothing: the screen reads the same rule to price it.
+        val spending = payload.inkTier.spentFor(cost.inkTier)
         if (!desk.spend(spending, cost.inkUnits, cost.paperTier, cost.sheets)) {
             return complain(player, "cannot_afford")
         }
         // Straight into the composer when writing for a book, so the page never has to be found again.
-        if (toBook) menu.composing += wordId else desk.addPages(wordId, 1)
+        if (toBook) desk.lay(player.uuid, wordId) else desk.addPages(wordId, 1)
     }
 
     /**
@@ -193,16 +181,11 @@ object DeskCommands {
      * did not: pages laid this way ran past what the desk could bind, where the work surface draws only as
      * many as it can, so a writer had pages they could not see and a reading that counted them.
      */
-    private fun composeFromArchive(
-        player: ServerPlayer,
-        menu: WritersDeskMenu,
-        desk: WritersDeskBlockEntity,
-        payload: DeskCommandPayload,
-    ) {
+    private fun composeFromArchive(player: ServerPlayer, desk: WritersDeskBlockEntity, payload: DeskCommandPayload) {
         val word = payload.word ?: return
-        if (!roomInBook(player, menu, desk)) return
+        if (!roomInBook(player, desk)) return
         if (!desk.takePages(word, 1)) return
-        menu.composing += word
+        desk.lay(player.uuid, word)
     }
 
     /**
@@ -221,9 +204,8 @@ object DeskCommands {
         val carried = menu.carried
         if (!NotebookItem.isPage(carried)) return
         val word = carried.get(AgeComponents.PAGE_WORD) ?: return
-        if (!roomInBook(player, menu, desk)) return
-        val at = payload.index.coerceIn(0, menu.composing.size)
-        menu.composing.add(at, word)
+        if (!roomInBook(player, desk)) return
+        desk.lay(player.uuid, word, at = payload.index)
         carried.shrink(1)
         menu.carried = carried
     }
@@ -232,27 +214,9 @@ object DeskCommands {
      * Undo for a misclick. The page goes back to the archive rather than the ink coming back — the player
      * keeps something reusable, which is a better refund than the resource it was made from.
      */
-    private fun returnToArchive(
-        menu: WritersDeskMenu,
-        desk: WritersDeskBlockEntity,
-        payload: DeskCommandPayload,
-    ) {
-        val at = payload.index
-        if (at !in menu.composing.indices) return
-        desk.addPages(menu.composing.removeAt(at), 1)
-    }
-
-    /**
-     * Reordering. Nothing is spent or refunded — the same pages are being read in a different order, and
-     * that different order is a different Age.
-     */
-    private fun moveInBook(menu: WritersDeskMenu, payload: DeskCommandPayload) {
-        val from = payload.index
-        if (from !in menu.composing.indices) return
-        // Clamped rather than rejected, so dropping past the end means "put it last".
-        val to = payload.target.coerceIn(0, menu.composing.size - 1)
-        if (from == to) return
-        menu.composing.add(to, menu.composing.removeAt(from))
+    private fun returnToArchive(player: ServerPlayer, desk: WritersDeskBlockEntity, payload: DeskCommandPayload) {
+        val word = desk.takeFromComposition(player.uuid, payload.index) ?: return
+        desk.addPages(word, 1)
     }
 
     private fun withdraw(player: ServerPlayer, desk: WritersDeskBlockEntity, payload: DeskCommandPayload) {
@@ -262,10 +226,9 @@ object DeskCommands {
         if (!player.inventory.add(page)) player.drop(page, false)
     }
 
-    private fun roomInBook(player: ServerPlayer, menu: WritersDeskMenu, desk: WritersDeskBlockEntity): Boolean {
-        val workshop = WritersDesk.load(player.level().server.resourceManager, mutableListOf())
-        val limit = desk.capabilities(workshop).pageLimit ?: return true
-        if (menu.composing.size < limit) return true
+    private fun roomInBook(player: ServerPlayer, desk: WritersDeskBlockEntity): Boolean {
+        val limit = desk.capabilities(WritersDesk.of(player.level().server)).pageLimit ?: return true
+        if (desk.compositionFor(player.uuid).size < limit) return true
         complain(player, "book_full")
         return false
     }
@@ -282,8 +245,8 @@ object DeskCommands {
         desk: WritersDeskBlockEntity,
         payload: DeskCommandPayload,
     ) {
-        if (menu.composing.isEmpty()) return complain(player, "no_pages")
-        val words = menu.composing.toList()
+        val words = desk.compositionFor(player.uuid)
+        if (words.isEmpty()) return complain(player, "no_pages")
         // **The Art's one refusal** (§4.3.1): a book opens with the `age` page or it is not a book, and
         // this is not repairable — without it an empty book would be a free reroll on a random Age.
         // Read up here because it is also what the book carries, so what it says and the Age it makes can
@@ -312,7 +275,7 @@ object DeskCommands {
         // **The one place a book is marked as somebody's own work** (design §7.7). Set here rather than
         // where the Age is made, because that path serves found books too and cannot tell them apart.
         book.set(AgeComponents.BOOK_AUTHORED, true)
-        menu.composing.clear()
+        desk.setComposition(player.uuid, emptyList())
         // Into the output slot rather than the inventory: a book you take is a book you saw being made.
         menu.putOutput(book)
         // The earliest an Age can be made ready, and the whole point of doing it here: the writer is still

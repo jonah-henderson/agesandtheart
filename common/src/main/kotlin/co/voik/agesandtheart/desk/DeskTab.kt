@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.client
+package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.network.chat.Component

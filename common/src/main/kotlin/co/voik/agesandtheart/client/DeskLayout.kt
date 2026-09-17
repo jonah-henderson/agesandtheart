@@ -4,6 +4,7 @@ import co.voik.agesandtheart.client.ui.Palette
 import co.voik.agesandtheart.client.ui.Rect
 import co.voik.agesandtheart.client.ui.TabStrip
 import co.voik.agesandtheart.desk.DeskSlots
+import co.voik.agesandtheart.desk.DeskTab
 
 /**
  * The desk's fixed points, and nothing else.

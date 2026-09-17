@@ -4,6 +4,8 @@ import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.desk.DeskCapability
 import co.voik.agesandtheart.desk.DeskSyncPayload
+import co.voik.agesandtheart.desk.WriteCost
+import co.voik.agesandtheart.content.AgeFluids
 import net.minecraft.resources.Identifier
 
 /** One row in a word list: what it is called, and what the desk can currently do with it. */
@@ -53,6 +55,11 @@ object DeskModel {
     /** Records that a quote is on its way. @return false if one already was. */
     fun startAsking(word: Identifier): Boolean = asked.add(word)
 
+    /** Asks for [word]'s quote through [send] unless this session already has, however often it is hovered. */
+    fun askPriceOnce(word: Identifier, send: (Identifier) -> Unit) {
+        if (startAsking(word)) send(word)
+    }
+
     /** What [paper] would cost for [word], or null if nothing has been quoted for it yet. */
     fun priceFor(word: Identifier?, paper: InkTier): Pair<InkTier, Long>? =
         quotes[word ?: return null]?.get(paper)
@@ -80,6 +87,29 @@ object DeskModel {
     fun ink(tier: InkTier): Long = state?.ink?.get(tier) ?: 0L
 
     fun inkCapacity(): Long = state?.inkCapacity ?: 1L
+
+    /**
+     * Fluid units as a fraction of a bucket, which is the only measure of ink a player ever sees.
+     *
+     * The unit itself is the loader's — Fabric counts droplets and NeoForge millibuckets — so a number in
+     * it is not a quantity anybody can hold in their head, and it would not even mean the same thing on
+     * the two loaders.
+     */
+    fun inBuckets(units: Long): String = String.format("%.2f", units.toDouble() / unitsPerBucket())
+
+    /**
+     * The same, in **bottles** — which is the unit a page is priced in.
+     *
+     * A page costs a tenth of a bottle and a tank holds buckets, so the two want different units: "0.03
+     * buckets" is a number nobody can hold beside "10 words to the bottle", which is what the price
+     * actually means.
+     */
+    fun inBottles(units: Long): String {
+        val perBottle = unitsPerBucket().toDouble() / WriteCost.BOTTLES_PER_BUCKET
+        return String.format("%.2f", units.toDouble() / perBottle)
+    }
+
+    private fun unitsPerBucket(): Long = (inkCapacity() / AgeFluids.TANK_CAPACITY_BUCKETS).coerceAtLeast(1)
 
     fun paper(tier: InkTier): Int = state?.paper?.get(tier) ?: 0
 

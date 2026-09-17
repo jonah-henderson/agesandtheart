@@ -3,7 +3,6 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.ui.BookWritingWorkSurface
-import co.voik.agesandtheart.client.ui.CountedItem
 import co.voik.agesandtheart.client.ui.DecoratedBox
 import co.voik.agesandtheart.client.ui.DecorationWidget
 import co.voik.agesandtheart.client.ui.Edge
@@ -17,14 +16,13 @@ import co.voik.agesandtheart.client.ui.Rect
 import co.voik.agesandtheart.client.ui.RowAction
 import co.voik.agesandtheart.client.ui.SlotView
 import co.voik.agesandtheart.client.ui.TabStrip
-import co.voik.agesandtheart.content.AgeFluids
 import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.content.RimeColour
 import co.voik.agesandtheart.desk.DeskAction
+import co.voik.agesandtheart.desk.DeskTab
 import co.voik.agesandtheart.desk.DeskCapability
 import co.voik.agesandtheart.desk.DeskCommandPayload
 import co.voik.agesandtheart.desk.DeskSlots
-import co.voik.agesandtheart.desk.WriteCost
 import co.voik.agesandtheart.desk.WritersDeskMenu
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
@@ -110,7 +108,7 @@ class WritersDeskScreen(
         build()
         showTab()
         // The server has to agree about which slots exist.
-        menu.openTab = tab.ordinal
+        menu.openTab = tab
         send(DeskAction.SET_TAB, index = tab.ordinal)
     }
 
@@ -145,28 +143,9 @@ class WritersDeskScreen(
     }
 
     private fun addWing() {
-        val gauges = LinearLayout.horizontal().spacing(GAUGE_GAP)
-        InkTier.entries.forEach { tier ->
-            gauges.addChild(DeskStockDisplay.inkGauge(tier, GAUGE_WIDTH, GAUGE_HEIGHT) { inkTooltip(tier) })
-        }
-
-        val stocks = LinearLayout.vertical()
-        InkTier.entries.forEach { tier ->
-            stocks.addChild(
-                CountedItem(
-                    STOCK_WIDTH, STOCK_LINE,
-                    icon = { DeskStockDisplay.paperIcon(tier) },
-                    count = { DeskModel.paper(tier) },
-                ),
-            )
-        }
-        stocks.addChild(
-            CountedItem(STOCK_WIDTH, STOCK_LINE, icon = { DeskStockDisplay.BINDING }, count = { DeskModel.binding() }),
-        )
-
         val contents = LinearLayout.vertical().spacing(GROUP_GAP)
-        contents.addChild(gauges)
-        contents.addChild(stocks)
+        contents.addChild(DeskStockDisplay.inkGauges(GAUGE_WIDTH, GAUGE_HEIGHT, GAUGE_GAP))
+        contents.addChild(DeskStockDisplay.stockColumn(STOCK_WIDTH, STOCK_LINE))
 
         // Asymmetric because the border eats the left edge but not the open right, and because the gauges
         // want more room above them than the stocks want below. These four numbers, the two group sizes and
@@ -369,7 +348,7 @@ class WritersDeskScreen(
     private fun openTab(entry: DeskTab) {
         tab = entry
         lastOpened = entry
-        menu.openTab = entry.ordinal
+        menu.openTab = entry
         send(DeskAction.SET_TAB, index = entry.ordinal)
         showTab()
     }
@@ -526,28 +505,30 @@ class WritersDeskScreen(
      * A word nobody has quoted yet is asked about **here**, on the hover, rather than only on selection —
      * "what does this cost" is the question a hover is asking, and a row that answered it only after being
      * clicked read as a tooltip that worked sometimes. One request per word per session
-     * ([DeskModel.startAsking]), so the corpus still never crosses the wire.
+     * ([DeskModel.askPriceOnce]), so the corpus still never crosses the wire.
      */
     private fun writeTooltip(row: WordRow): Component {
         val price = DeskModel.priceFor(row.word, chosenPaper)
             ?: return quoteFor(row.word)
         val (required, units) = price
-        val inkTier = spentOn(required)
+        val inkTier = chosenInk.spentFor(required)
         val hasTheInk = DeskModel.ink(inkTier) >= units
         val hasThePaper = DeskModel.paper(chosenPaper) > 0
         val affordable = hasTheInk && hasThePaper
         return translated(
             if (affordable) "write_costs" else "write_short",
-            inBottles(units),
-            inkName(spentOn(inkTier)),
+            DeskModel.inBottles(units),
+            DeskStockDisplay.inkName(inkTier),
         )
     }
 
     /** Asks the server for a quote if this word has never been priced, and says so meanwhile. */
     private fun quoteFor(word: Identifier): Component {
-        if (DeskModel.startAsking(word)) send(DeskAction.PRICE, word = word)
+        DeskModel.askPriceOnce(word, ::askPrice)
         return translated("write_unpriced")
     }
+
+    private fun askPrice(word: Identifier) = send(DeskAction.PRICE, word = word)
 
     /**
      * Picking a word asks what it costs, and that is the whole of what a click means.
@@ -558,14 +539,14 @@ class WritersDeskScreen(
     private fun chooseWord(row: WordRow) {
         if (selectedWord == row.word) return
         selectedWord = row.word
-        if (DeskModel.startAsking(row.word)) send(DeskAction.PRICE, word = row.word)
+        DeskModel.askPriceOnce(row.word, ::askPrice)
     }
 
     /** Whether a page could be written on [paper] at all — the ink for it, and a sheet to put it on. */
     private fun canWrite(paper: InkTier): Boolean {
         if (DeskModel.paper(paper) <= 0) return false
         val (required, units) = DeskModel.priceFor(selectedWord, paper) ?: return true
-        return DeskModel.ink(spentOn(required)) >= units
+        return DeskModel.ink(chosenInk.spentFor(required)) >= units
     }
 
     /**
@@ -583,7 +564,8 @@ class WritersDeskScreen(
     }
 
     /**
-     * What each paper choice would cost in ink, under its button and red when it is out of reach.
+     * What each paper choice would cost in ink, under its button and red when it is out of reach — the ink
+     * actually spent, once the writer's own choice of ink is applied, as the tooltip and the button read it.
      *
      * Read off the button rather than placed: the column decided where the row went, so asking it is the
      * only way this cannot drift.
@@ -591,11 +573,12 @@ class WritersDeskScreen(
     private fun extractPrices(graphics: GuiGraphicsExtractor) {
         val word = selectedWord ?: return
         InkTier.entries.forEachIndexed { index, paper ->
-            val price = DeskModel.priceFor(word, paper) ?: return@forEachIndexed
+            val (required, units) = DeskModel.priceFor(word, paper) ?: return@forEachIndexed
+            val spent = chosenInk.spentFor(required)
             val button = paperButtons[index]
-            val colour = if (DeskModel.ink(price.first) >= price.second) Palette.TEXT else Palette.WARNING
+            val colour = if (DeskModel.ink(spent) >= units) Palette.TEXT else Palette.WARNING
             graphics.text(
-                font, inkGlyph(price.first),
+                font, inkGlyph(spent),
                 button.x, button.y + button.height + PRICE_DROP, colour, false,
             )
         }
@@ -617,44 +600,6 @@ class WritersDeskScreen(
         if (DeskModel.can(DeskCapability.REVEAL_CONFLICTS)) return
         val unseen = translated("conflicts_unseen")
         graphics.text(font, unseen, composition.right - font.width(unseen), baseline, Palette.FAINT, false)
-    }
-
-    /** Exactly what the tank holds, since a gauge can only ever say roughly. */
-    private fun inkTooltip(tier: InkTier): Component = translated(
-        "ink",
-        inkName(tier),
-        inBuckets(DeskModel.ink(tier)),
-        AgeFluids.TANK_CAPACITY_BUCKETS,
-    )
-
-    private fun inkName(tier: InkTier): Component = translated("ink.${tier.key}")
-
-    /** Which ink a page would actually take — the word's demand, or the writer's floor above it. */
-    private fun spentOn(required: InkTier): InkTier = if (chosenInk.satisfies(required)) chosenInk else required
-
-    /**
-     * The same, in **bottles** — which is the unit a page is priced in.
-     *
-     * A page costs a tenth of a bottle and a tank holds buckets, so the two want different units: "0.03
-     * buckets" is a number nobody can hold beside "10 words to the bottle", which is what the price
-     * actually means.
-     */
-    private fun inBottles(units: Long): String {
-        val perBucket = (DeskModel.inkCapacity() / AgeFluids.TANK_CAPACITY_BUCKETS).coerceAtLeast(1)
-        val perBottle = perBucket.toDouble() / WriteCost.BOTTLES_PER_BUCKET
-        return String.format("%.2f", units.toDouble() / perBottle)
-    }
-
-    /**
-     * Fluid units as a fraction of a bucket, which is the only measure of ink a player ever sees.
-     *
-     * The unit itself is the loader's — Fabric counts droplets and NeoForge millibuckets — so a number in
-     * it is not a quantity anybody can hold in their head, and it would not even mean the same thing on
-     * the two loaders.
-     */
-    private fun inBuckets(units: Long): String {
-        val perBucket = (DeskModel.inkCapacity() / AgeFluids.TANK_CAPACITY_BUCKETS).coerceAtLeast(1)
-        return String.format("%.2f", units.toDouble() / perBucket)
     }
 
     private fun send(

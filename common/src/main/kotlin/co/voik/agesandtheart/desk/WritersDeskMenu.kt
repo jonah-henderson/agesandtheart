@@ -28,9 +28,8 @@ import java.util.Optional
  * day feed it; the archive, the tanks and the composer have no slot shape and travel as
  * [DeskSyncPayload] instead.
  *
- * **The composer lives here, not on the block entity**, because a half-written sentence belongs to the
- * session rather than to the furniture — and [removed] hands its pages back so closing the screen can
- * never eat them.
+ * **The laid-out pages are not here.** They belong to the desk, per writer (`WritersDeskBlockEntity`),
+ * so closing the screen leaves them where they were laid.
  */
 class WritersDeskMenu(
     containerId: Int,
@@ -47,13 +46,7 @@ class WritersDeskMenu(
      * The menu needs it because slots cannot move — `Slot.x` and `y` are final — so each slot sits where
      * its own tab wants it and is simply *inactive* on the others. The client says which tab it is on.
      */
-    var openTab: Int = 0
-
-    /** Words laid out, in order. Order is word order, so this is a list and never a set. */
-    val composing: MutableList<Identifier> = mutableListOf()
-
-    /** Mirrors `DeskTab.showsInventory` on the client; the two must agree. */
-    private val showsPlayerInventory: Boolean get() = openTab == ARCHIVE_TAB
+    var openTab: DeskTab = DeskTab.ARCHIVE
 
     init {
         // No doorway here any more: supplies are the wings' business, and what a page or a notebook does
@@ -61,7 +54,7 @@ class WritersDeskMenu(
         addSlot(object : Slot(output, 0, OUTPUT_X, OUTPUT_Y) {
             /** Take-only: a finished book is produced here, never placed here. */
             override fun mayPlace(stack: ItemStack): Boolean = false
-            override fun isActive(): Boolean = openTab == BIND_TAB
+            override fun isActive(): Boolean = openTab == DeskTab.BIND
         })
         for (row in 0 until 3) {
             for (column in 0 until 9) {
@@ -72,7 +65,7 @@ class WritersDeskMenu(
                         INVENTORY_X + column * 18,
                         INVENTORY_Y + row * 18,
                     ) {
-                        override fun isActive(): Boolean = showsPlayerInventory
+                        override fun isActive(): Boolean = openTab.showsInventory
                     },
                 )
             }
@@ -80,7 +73,7 @@ class WritersDeskMenu(
         for (column in 0 until 9) {
             addSlot(
                 object : Slot(playerInventory, column, INVENTORY_X + column * 18, HOTBAR_Y) {
-                    override fun isActive(): Boolean = showsPlayerInventory
+                    override fun isActive(): Boolean = openTab.showsInventory
                 },
             )
         }
@@ -139,9 +132,6 @@ class WritersDeskMenu(
     override fun removed(player: Player) {
         super.removed(player)
         access.execute { _, _ ->
-            val serverPlayer = player as? ServerPlayer ?: return@execute
-            deskOf(serverPlayer)?.setComposition(serverPlayer.uuid, composing)
-            composing.clear()
             val held = output.removeItemNoUpdate(0)
             if (!held.isEmpty && !player.inventory.add(held)) player.drop(held, false)
         }
@@ -166,6 +156,7 @@ class WritersDeskMenu(
         // and parsing it twice was two passes over the corpus for one row of pages. Resolving it is dearer
         // still and only the conflicts ask for that — so it is done at most once, and only where something
         // in the room can show what it says.
+        val composing = desk.compositionFor(player.uuid)
         val said = composing.takeIf { it.isNotEmpty() }
             ?.let { Grammar.read(vocabularyFor(player), it.map(Identifier::getPath)) }
         val resolved = said
@@ -179,8 +170,8 @@ class WritersDeskMenu(
             inkCapacity = desk.inkCapacity,
             capabilities = capabilities.capabilities,
             pageLimit = capabilities.pageLimit,
-            composing = composing.toList(),
-            quarrels = quarrelsIn(capabilities, resolved),
+            composing = composing,
+            quarrels = quarrelsIn(capabilities, composing, resolved),
             reading = readingOf(capabilities, said),
         )
     }
@@ -219,7 +210,7 @@ class WritersDeskMenu(
      * Each flaw becomes a mark on **both** its words. A flaw naming one word is paired with itself, which
      * is how "nothing here can be this" reaches a display that only knows how to mark pairs.
      */
-    private fun quarrelsIn(capabilities: DeskState, resolved: Resolution?): List<Quarrel> {
+    private fun quarrelsIn(capabilities: DeskState, composing: List<Identifier>, resolved: Resolution?): List<Quarrel> {
         if (DeskCapability.REVEAL_CONFLICTS !in capabilities.capabilities) return emptyList()
         val flaws = resolved?.instability?.flaws ?: return emptyList()
         val byName = composing.associateBy { it.path }
@@ -236,10 +227,6 @@ class WritersDeskMenu(
     }
 
     companion object {
-        /** Tab ordinals, shared with the screen's `DeskTab` — the menu only needs to compare them. */
-        const val ARCHIVE_TAB = 0
-        const val BIND_TAB = 2
-
         // Positions live in `DeskSlots`, because the screen draws a recess behind every one of them and the
         // two must agree. Aliased here only so the slot declarations above stay readable.
         private const val OUTPUT_X = DeskSlots.OUTPUT_X

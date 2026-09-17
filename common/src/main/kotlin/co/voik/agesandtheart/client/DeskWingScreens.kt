@@ -100,41 +100,20 @@ abstract class DeskWingScreen<Menu : DeskWingMenu>(
 class InkCaseScreen(menu: InkCaseMenu, inventory: Inventory, title: Component) :
     DeskWingScreen<InkCaseMenu>(menu, inventory, title) {
 
-    override fun contents(): LinearLayout = LinearLayout.horizontal().spacing(GAUGE_GAP).apply {
-        InkTier.entries.forEach { tier ->
-            addChild(DeskStockDisplay.inkGauge(tier, GAUGE_WIDTH, GAUGE_HEIGHT) { inkTooltip(tier) })
-        }
-    }
-
-    private fun inkTooltip(tier: InkTier): Component = Component.translatable(
-        "container.agesandtheart.ink_case.tank",
-        Component.translatable("ink.agesandtheart.${tier.serializedName}"),
-        DeskModel.ink(tier),
-        DeskModel.inkCapacity(),
-    )
+    override fun contents(): LinearLayout = DeskStockDisplay.inkGauges(GAUGE_WIDTH, GAUGE_HEIGHT, GAUGE_GAP)
 }
 
 /** The supply bin: what a book is made of, as opposed to what it says. */
 class SupplyBinScreen(menu: SupplyBinMenu, inventory: Inventory, title: Component) :
     DeskWingScreen<SupplyBinMenu>(menu, inventory, title) {
 
-    override fun contents(): LinearLayout = LinearLayout.vertical().apply {
-        InkTier.entries.forEach { tier ->
-            addChild(
-                CountedItem(
-                    STOCK_WIDTH, STOCK_LINE,
-                    icon = { DeskStockDisplay.paperIcon(tier) },
-                    count = { DeskModel.paper(tier) },
-                ),
-            )
-        }
-        addChild(
-            CountedItem(STOCK_WIDTH, STOCK_LINE, icon = { DeskStockDisplay.BINDING }, count = { DeskModel.binding() }),
-        )
-    }
+    override fun contents(): LinearLayout = DeskStockDisplay.stockColumn(STOCK_WIDTH, STOCK_LINE)
 }
 
-/** How the desk's stock is shown, the same on the desk's own wing and on the wing screens. */
+/**
+ * How the desk's stock is shown, the same on the desk's own wing and on the wing screens — each passes its
+ * own sizes, and nothing else about the two may differ.
+ */
 object DeskStockDisplay {
     /** What a binding looks like in a stock column. */
     val BINDING: ItemStack = ItemStack(Items.LEATHER)
@@ -145,12 +124,37 @@ object DeskStockDisplay {
         InkTier.MASTERWORK -> ItemStack(AgeContent.MASTERWORK_PAPER)
     }
 
-    /** The desk's tank of [tier] ink, as a gauge in its own colour. */
-    fun inkGauge(tier: InkTier, width: Int, height: Int, tooltip: () -> Component): CapsuleGauge =
+    /** What [tier] ink is called, wherever the desk names it. */
+    fun inkName(tier: InkTier): Component =
+        Component.translatable("container.agesandtheart.writers_desk.ink.${tier.key}")
+
+    /** Exactly what the tank holds, since a gauge can only ever say roughly — in buckets, never loader units. */
+    fun tankTooltip(tier: InkTier): Component = Component.translatable(
+        "container.agesandtheart.writers_desk.ink",
+        inkName(tier),
+        DeskModel.inBuckets(DeskModel.ink(tier)),
+        AgeFluids.TANK_CAPACITY_BUCKETS,
+    )
+
+    /** The three tanks side by side, each a gauge in its own colour. */
+    fun inkGauges(width: Int, height: Int, spacing: Int): LinearLayout =
+        LinearLayout.horizontal().spacing(spacing).apply {
+            InkTier.entries.forEach { tier -> addChild(inkGauge(tier, width, height)) }
+        }
+
+    /** Paper by tier and then bindings, a line each. */
+    fun stockColumn(width: Int, line: Int): LinearLayout = LinearLayout.vertical().apply {
+        InkTier.entries.forEach { tier ->
+            addChild(CountedItem(width, line, icon = { paperIcon(tier) }, count = { DeskModel.paper(tier) }))
+        }
+        addChild(CountedItem(width, line, icon = { BINDING }, count = { DeskModel.binding() }))
+    }
+
+    private fun inkGauge(tier: InkTier, width: Int, height: Int): CapsuleGauge =
         CapsuleGauge(
             width, height,
             reading = { DeskModel.ink(tier).toFloat() / DeskModel.inkCapacity().coerceAtLeast(1) },
             colour = { AgeFluids.INKS[tier]?.tint ?: Palette.TEXT },
-            tooltip = tooltip,
+            tooltip = { tankTooltip(tier) },
         )
 }
