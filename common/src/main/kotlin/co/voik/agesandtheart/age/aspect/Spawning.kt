@@ -15,8 +15,7 @@ import kotlin.math.roundToInt
  *
  * **The exceptions are the creatures vanilla never spawns at all**, which is why this file exists: they
  * have no weight anywhere and no notion of how many arrive together, so somebody has to say. *Where* they
- * belong is not here — that is [SpawnGround], a pair of tags, because it is a judgement about a creature
- * rather than a number for one and a pack should be able to make it over any mob in the game.
+ * belong is [groundOf], and what light they come in is [lightOf].
  */
 data class Spawning(
     private val byType: Map<String, Arrival> = emptyMap(),

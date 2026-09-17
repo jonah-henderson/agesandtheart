@@ -30,7 +30,7 @@ sealed interface ClimateDepth {
     fun at(blockX: Int, blockY: Int, blockZ: Int, sampled: Float): Float
 
     /**
-     * Whether [sampled] is read at all — the only reason to compute it.
+     * Whether [at] reads its `sampled` argument at all — the only reason to compute it.
      *
      * Vanilla's depth function walks a density tree, and [AgeBiomeSource] computed it on **every** biome
      * lookup in every Age to hand it to one case of two that throws it away. Declared per case rather

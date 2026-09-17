@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
+import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.math.mix64
 import net.minecraft.core.Registry
@@ -81,7 +82,7 @@ data class Claims(
  * hard that score bites. Nothing branches on *which* tier a word has — only on what it says.
  */
 data class Tier(
-    /** Fine inks per part of the world constrained, before [timesItsReach]. */
+    /** Fine inks per part of the world constrained, before [Word.versatility]. */
     val cost: Int,
     /**
      * How strongly a preset must answer a word for the word to keep it. Zero rather than absent where a
@@ -309,7 +310,7 @@ data class Word(
      * (`the-world-model.md` §5).
      *
      * `scorching` "insists on the heat and offers a red sky, large suns, several of them", and until this
-     * existed there was no way to write the second half: [pool] draws *which* facets fire, and then
+     * existed there was no way to write the second half: [pools] draws *which* facets fire, and then
      * demands whatever it drew. So an offer contended with the writer, and `a blue sun. an inferno Age.`
      * displaced one of them and charged somebody for a contradiction the writer never made — the same
      * fault the size words' coupling to mingling was retired for.
@@ -436,7 +437,7 @@ data class Word(
     /**
      * What this word sets on [aspect] — what it sets everywhere, and what it sets **only** here.
      *
-     * The same shape as [queryIn], and for the same reason an aspect keys [weights]: an aspect is the unit
+     * The same shape as [restrictsIn], and for the same reason an aspect keys [restricts]: an aspect is the unit
      * a claim lands in. What it adds is the other direction — a word that must *not* say the same thing
      * everywhere it could. `sun.absent` and `moon.absent` are one parameter on two bodies, and `sunless` means
      * only the first; without a way to say so the two words would be indistinguishable, since

@@ -59,10 +59,10 @@ data class Overlay(
     /**
      * What this overlay does to one column, resolved once.
      *
-     * **All three of [AgeChunkGenerator]'s terrain exits go through this** — the chunk fill, the height
-     * answer and the column answer. The class doc there says why they must agree: structures and features
-     * place against the height, so a cone the fill raised and the height did not would put a village inside
-     * a mountain, and a tree on the ground beneath it. Answering all three from one object makes them
+     * **All three of [co.voik.agesandtheart.generation.AgeChunkGenerator]'s terrain exits go through this**
+     * — the chunk fill, the height answer and the column answer. The class doc there says why they must
+     * agree: structures and features place against the height, so a cone the fill raised and the height did
+     * not would put a village inside a mountain, and a tree on the ground beneath it. Answering all three from one object makes them
      * disagreeing impossible rather than merely unlikely, which is the same rule [foldedInto] keeps for the
      * analytic path.
      *

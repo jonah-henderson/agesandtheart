@@ -637,11 +637,14 @@ object CraterlandsField {
     private const val LEAST_CRATER_CELL = 58.0
     private const val MOST_CRATER_CELL = 190.0
 
-    /** What the outer scarps' own rises are multiplied by at each end of [Terrain.RELIEF]. */
+    /**
+     * What the outer scarps' own rises are multiplied by at each end of
+     * [co.voik.agesandtheart.age.aspect.Terrain.RELIEF].
+     */
     private const val FAINTEST_SCARP = 0.35
     private const val BOLDEST_SCARP = 1.6
 
-    /** And the ends of the peak ring's draw, which [Terrain.RELIEF] also moves. */
+    /** And the ends of the peak ring's draw, which [co.voik.agesandtheart.age.aspect.Terrain.RELIEF] also moves. */
     private const val NO_PEAK_RING = 0.05
     private const val ALWAYS_A_PEAK_RING = 0.95
 

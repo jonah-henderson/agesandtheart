@@ -20,6 +20,8 @@ import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.word.grammar.Phrase
 import co.voik.agesandtheart.age.word.grammar.Constraint
+import co.voik.agesandtheart.age.word.grammar.Readout
+import co.voik.agesandtheart.age.word.grammar.Repair
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Polarity
@@ -1266,7 +1268,8 @@ object Resolver {
      * **evocative** word tilts by how well the member answers it, signed, so "beautiful" thins the ash
      * flats as surely as it thickens the flower meadows; a **restrictive** word bears down on the members
      * that qualify at its threshold; and a member is never *removed* by either, since a word that merely
-     * likes something is not an instruction to delete anything ([BiomePreference.LEAST_KEPT]).
+     * likes something is not an instruction to delete anything
+     * ([co.voik.agesandtheart.worldgen.biome.BiomePreference.LEAST_KEPT]).
      *
      * `only` and `except` are the exception, and deliberately so: those are the writer saying outright
      * what to keep and what to strike, rather than what to prefer.
@@ -1510,7 +1513,7 @@ object Resolver {
      * tie, and every loser is charged as displaced. Joining them changes what was asked rather than who
      * wins — "blackstone **and** tuff" is one rock made of both. Only the winner's own group joins it.
      *
-     * **Two words asking for the same thing are not contending**, which is the rule [agree] already
+     * **Two words asking for the same thing are not contending**, which is the rule [groupsOf] already
      * carries for grouping and this path was missing: `intergalactic lost` set no suns twice and was
      * charged twelve instability for agreeing with itself.
      */

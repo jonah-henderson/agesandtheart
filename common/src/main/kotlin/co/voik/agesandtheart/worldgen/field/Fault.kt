@@ -107,8 +107,8 @@ data class Fault(
  * shape, so what it adds to the toolkit is only "near a seam": [RegionMap.blocksFromSeamAt] made into a
  * field.
  *
- * The rim wanders, because a chasm ruled straight across a world reads as a trench someone dug. [FieldNoise]
- * moves the measured distance either way by up to [rimWander] blocks.
+ * The rim wanders, because a chasm ruled straight across a world reads as a trench someone dug. A noise
+ * from [fieldNoise] moves the measured distance either way by up to [rimWander] blocks.
  *
  * **The floor is not put under the waterline.** A rift used to flood by construction; leaving it dry is
  * what lets a sea spill in only where the rift actually cuts a coast, which is the thing worth seeing.

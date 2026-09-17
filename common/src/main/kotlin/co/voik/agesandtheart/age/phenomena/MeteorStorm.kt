@@ -26,7 +26,7 @@ import net.minecraft.world.phys.Vec3
  * an entity is both of those already: it has a position, it is ticked, it is tracked to nearby clients by
  * vanilla, and it goes away by being removed. Nothing else has to know it exists.
  *
- * **It runs in two phases and the first one drops nothing.** For [approaching] ticks it is only a thing in
+ * **It runs in two phases and the first one drops nothing.** For [APPROACHING] ticks it is only a thing in
  * the sky getting closer, which is what the client draws its telegraph from; then it falls for as long as
  * it was given. A crater that simply appears is a punishment and one that arcs in is a challenge, so the
  * quiet phase is the mechanic rather than decoration on it.

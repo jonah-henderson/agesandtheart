@@ -171,7 +171,7 @@ enum class Sky(override val key: String) : AuthoredPreset {
             }
 
         /**
-         * The three types an Age with rock of its own may wear — [SKYLIGHT] and [ROOF], spelled out.
+         * The three types an Age with rock of its own may wear — [isLightless] and [isRoofed], spelled out.
          *
          * A composed `DimensionType` cannot be encoded in the join packet, so every combination is a file
          * we ship, and each further switch would double them. All three declare

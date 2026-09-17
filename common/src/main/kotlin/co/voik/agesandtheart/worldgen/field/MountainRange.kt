@@ -61,7 +61,7 @@ data class MountainRange(
      * The tangent of the angle a hillside stands at: rise over run. **A property of rock, not a dial** —
      * bare bedrock slopes cluster near thirty-five degrees and soil-mantled ones near thirty, because that
      * is where landsliding takes over from incision. Scaled down through the foothills by
-     * [RangeProfile.reliefScaleAt], since slopes only reach the threshold where the ground is being cut fast.
+     * [RangeProfile.reliefScaleFrom], since slopes only reach the threshold where the ground is being cut fast.
      */
     val hillslopeGrade: Double = DEFAULT_HILLSLOPE_GRADE,
     /** How far a **headwater** channel sits below the land it drains. */

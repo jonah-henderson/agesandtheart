@@ -87,7 +87,7 @@ object AgeComponents {
 
     /**
      * The seed the Age this book makes will be written at — chosen at the **desk**, not when the book is
-     * first opened (see [co.voik.agesandtheart.desk.WritingSeed]).
+     * first opened (see [co.voik.agesandtheart.desk.WritingSeedHolder]).
      *
      * On the book rather than only on its writer, so what the desk showed and what the Age turns out to be
      * cannot drift apart: a book changes hands, waits in a chest, and is opened by somebody else.

@@ -114,7 +114,7 @@ enum class Underground(override val key: String) : AuthoredPreset {
 
     /**
      * The band this underground is **indoors** in, or null where it claims none — see
-     * [co.voik.agesandtheart.worldgen.biome.Roofed].
+     * [co.voik.agesandtheart.worldgen.biome.BiomeBand].
      *
      * Only [GREAT_HALLS] claims one. Noise caves are not indoors in this sense: they are open to the
      * surface by design, they belong to the country they were cut into, and vanilla's own cave biomes

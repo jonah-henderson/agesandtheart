@@ -550,7 +550,7 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
     /**
      * How far a whole crater stands from its middle, as a multiple of its reach.
      *
-     * The lip is the reach as [Lobes] moved it, up to [LOBED_BY] out, and the skirt carries
+     * The lip is the reach as [Lobes] moved it, up to [Lobes.LOBED_BY] out, and the skirt carries
      * [RIM_REACHES] past that. So the visible crater is nearly half again its own reach, and the reach
      * that fits a box is the box divided by this.
      */

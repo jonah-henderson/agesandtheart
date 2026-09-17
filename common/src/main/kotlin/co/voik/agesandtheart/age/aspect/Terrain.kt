@@ -23,6 +23,7 @@ import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.biome.Elevation
 import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.field.Caved
+import co.voik.agesandtheart.worldgen.field.MountainRange
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
@@ -285,8 +286,8 @@ enum class Terrain(
 
     /**
      * How high an underground of this terrain's may reach, or null where there is no room for one at all —
-     * **a landform's own declaration**, like [hasSandyShores], because only the landform knows where its
-     * lowest ground is and nothing general can be derived from what it does know.
+     * **a landform's own declaration**, like [Grounding.Declared.hasSandyShores], because only the landform knows
+     * where its lowest ground is and nothing general can be derived from what it does know.
      *
      * The height is what matters: an underground has to stop under the deepest thing the surface cuts, or
      * it opens into it. That is a different question per landform and each answers from its own datum —
@@ -472,7 +473,7 @@ enum class Terrain(
          * owns, so a word that bends `spacing` bends a crater field, a pillar grid and an archipelago —
          * each in its own units, none of them told what a block is. A landform declares the ones it can
          * honour and stays silent about the rest, and a word that reaches only silent ones goes unbacked
-         * ([Resolver]'s `wentUnheeded`) rather than doing nothing quietly.
+         * ([co.voik.agesandtheart.age.word.Resolver]'s `wentUnheeded`) rather than doing nothing quietly.
          *
          * What a landform may reach *through* one of these is its own business, including features
          * nothing else has: `craterlands` reads [RELIEF] as its rim height, its bowl depth **and** whether

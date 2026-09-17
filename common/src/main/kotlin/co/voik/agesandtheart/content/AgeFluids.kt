@@ -2,6 +2,7 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.location
+import co.voik.agesandtheart.platform.services.InkFluids
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey

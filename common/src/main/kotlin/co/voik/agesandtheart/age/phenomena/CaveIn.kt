@@ -322,7 +322,7 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
         /** How far the plan shape reaches, which is a crack's own length and wander. */
         private const val REACHES = 24
 
-        /** How far it cuts up from where it began, and the most it cuts down — see [deepestAt]. */
+        /** How far it cuts up from where it began, and the most it cuts down — see [claimedAt]. */
         private const val DEEPENS = 12
 
         /** How far a block may stand off the trough's own wall, as a share of the crack's half-width. */

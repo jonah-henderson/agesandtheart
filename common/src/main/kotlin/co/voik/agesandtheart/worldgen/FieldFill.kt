@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen
 import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Spans
+import co.voik.agesandtheart.worldgen.field.StandingFluid
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.TerrainFill
 import net.minecraft.core.BlockPos

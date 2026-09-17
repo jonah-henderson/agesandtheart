@@ -46,7 +46,7 @@ import kotlin.math.sin
  * the position, so the renderer gets the direction of travel for free and the prism turns with it.
  *
  * **What is synced is the width, not the clock that decides it.** The ramp is arithmetic over the Age's
- * parameters ([SandfallBehaviour.halfWidthAt]) and a client has no datapack to read them from, so it is computed
+ * parameters ([ColumnBehaviour.halfWidthAt]) and a client has no datapack to read them from, so it is computed
  * once, here, and the answer is sent. A client that re-derived it would be a second copy of the rule to
  * keep in step, and the value it would need is larger than the value itself.
  */
@@ -258,7 +258,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
      * Bends the course, occasionally and never far.
      *
      * The cap is the brief's thirty degrees, but the thing that makes it read as *mostly straight* is
-     * [SandfallBehaviour.turnEvery] rather than the cap: a turn is a rare event, and its size is drawn so
+     * [ColumnBehaviour.turnEvery] rather than the cap: a turn is a rare event, and its size is drawn so
      * that small ones are much likelier than large.
      */
     private fun steer(behaviour: ColumnBehaviour) {

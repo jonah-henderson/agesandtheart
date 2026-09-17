@@ -713,7 +713,7 @@ object AgeGeneration {
      * The dimension type an Age wears — **whether the sky reaches it, and whether there is rock overhead**.
      *
      * It used to be the colour of the air, which is why the Spire had a type of its own; `Atmosphere` says
-     * every one of those colours better, so the palette moved to a [co.voik.agesandtheart.sky.Look] and
+     * every one of those colours better, so the palette moved to a [co.voik.ephemeris.sky.Look] and
      * what is left here is the two things only a pre-authored file can carry.
      *
      * The band of world is deliberately *not* here. All four types carry the same one —

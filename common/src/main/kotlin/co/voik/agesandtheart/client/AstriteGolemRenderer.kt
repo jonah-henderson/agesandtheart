@@ -34,7 +34,10 @@ class AstriteGolemRenderer(context: EntityRendererProvider.Context) :
     companion object {
         private val BORROWED: Identifier = Identifier.withDefaultNamespace("textures/entity/iron_golem/iron_golem.png")
 
-        /** The pack's violet, opaque, as an ARGB tint over the borrowed texture. */
+        /**
+         * A violet a shade deeper than [co.voik.agesandtheart.content.AgeContent.ASTRITE_TINT], opaque, as an
+         * ARGB tint over the borrowed texture.
+         */
         private const val ASTRITE = 0xFF8C5CFF.toInt()
 
         private const val SHADOW = 0.7f

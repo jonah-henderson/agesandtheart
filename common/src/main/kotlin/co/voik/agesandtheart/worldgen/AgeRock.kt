@@ -18,8 +18,8 @@ import java.util.Optional
  * rock behind.
  *
  * **Only the rock divides.** Everything above it — the biomes, the structures, the features, the spawns,
- * the sky and the air — is ours either way, which is why this is a field on [AgeChunkGenerator] rather
- * than a second generator beside it.
+ * the sky and the air — is ours either way, which is why this is a field on
+ * [co.voik.agesandtheart.generation.AgeChunkGenerator] rather than a second generator beside it.
  */
 sealed interface AgeRock {
     val kind: Kind

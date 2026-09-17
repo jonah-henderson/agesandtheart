@@ -32,7 +32,10 @@ import java.util.stream.Stream
  * depth hands the sampler straight back, and the world below runs exactly as it would have alone.
  */
 class AgeBiomeSource(
-    /** The world these biomes come from — a template's own, or a table of ours. See [BiomeTables]. */
+    /**
+     * The world these biomes come from — a template's own, or a table of ours. See
+     * [co.voik.agesandtheart.age.AgeTemplate.biomesOf].
+     */
     private val under: BiomeSource,
     /**
      * How buried a point is, which is the one climate parameter our worlds answer for themselves.
@@ -99,7 +102,7 @@ class AgeBiomeSource(
     private val handsTheSamplerOn: Boolean get() = bendsNothing || underPicksByItsOwnRule
 
     /**
-     * [climate] as this Age reads it — the same six numbers, bent, grounded and re-deepened.
+     * The climate sampler as this Age reads it — the same six numbers, bent, grounded and re-deepened.
      *
      * **Remembered against the sampler it was made from.** One sampler serves a level, and building six
      * wrappers per biome lookup would be a few thousand allocations a chunk. The check is by identity and
@@ -149,7 +152,7 @@ class AgeBiomeSource(
         return made
     }
 
-    /** One axis of [climate], read the way this Age reads it. */
+    /** One axis of the climate sampler, read the way this Age reads it. */
     private fun asThisAgeReadsIt(vanillas: DensityFunction, read: (DensityFunction.FunctionContext, Float) -> Float) =
         AsThisAgeReadsIt(vanillas) { context -> read(context, vanillas.compute(context).toFloat()).toDouble() }
 

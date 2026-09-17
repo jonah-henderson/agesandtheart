@@ -17,6 +17,7 @@ import net.minecraft.world.DifficultyInstance
 import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterials
 import co.voik.agesandtheart.age.reward.Danger
+import co.voik.agesandtheart.age.reward.DangerTable
 import co.voik.agesandtheart.generation.AgeChunkGenerator
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType

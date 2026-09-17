@@ -4,8 +4,6 @@ import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.word.Vocabulary
 import io.kotest.core.annotation.Tags
-import co.voik.agesandtheart.age.aspect.Ground
-import co.voik.agesandtheart.age.aspect.Lit
 import net.minecraft.resources.Identifier
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.BlockPos

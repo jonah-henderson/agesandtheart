@@ -21,8 +21,8 @@ data class Shot(val turns: Float, val closeness: Float, val loft: Float)
  * The panel is interlaced out of the shot showing and the one before it ([PanelDistortion]), so how far
  * apart two consecutive shots stand *is* how much the two fields disagree.
  *
- * It scatters rather than paces for a reason. Every Age's panel eases round at the same [PACE], and what
- * an unsettled one adds is a jitter on top of it — so a coherent Age steps a few degrees and combs almost
+ * It scatters rather than paces for a reason. Every Age's panel eases round at the same [TURNS_PER_SECOND],
+ * and what an unsettled one adds is a jitter on top of it — so a coherent Age steps a few degrees and combs almost
  * invisibly, and one at odds with itself lands somewhere different every tenth of a second and combs hard,
  * *without* the camera ending up spinning. A faster pace would read as a spinning camera, which is a
  * different claim from a picture that will not hold still.

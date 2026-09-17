@@ -20,7 +20,7 @@ enum class InkTier(val key: String) : StringRepresentable {
     MASTERWORK("masterwork"),
     ;
 
-    /** Whether an ink of [this] quality can write something demanding [required]. */
+    /** Whether an ink of this quality can write something demanding [required]. */
     fun satisfies(required: InkTier): Boolean = ordinal >= required.ordinal
 
     /**

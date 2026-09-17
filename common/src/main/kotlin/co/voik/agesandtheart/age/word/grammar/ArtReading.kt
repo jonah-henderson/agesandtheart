@@ -33,8 +33,8 @@ import net.minecraft.resources.Identifier
  *
  * **It also removed a production.** An evocative word used to have a slot of its own before the subject,
  * because that was the only way to lean on something that had not been named yet. Everything leads now, so
- * there is one run of modifiers and [Tier] alone decides whether a word tilts or narrows — which is what
- * decided it all along.
+ * there is one run of modifiers and [co.voik.agesandtheart.age.word.Tier] alone decides whether a word tilts
+ * or narrows — which is what decided it all along.
  *
  * **Why this and not a parser generator** (settled in advance, `decisions.md`). A generated grammar had to
  * name every aspect four times over — a token pair, a section alternative, a modifier rule and a term rule
@@ -303,9 +303,9 @@ internal object ArtReading {
     /**
      * Where a word reaches from the clause it was laid in.
      *
-     * **Not intersected with what the word declares.** [Word.aspects] is where a word speaks when nobody
-     * aimed it — "only a liquid volunteers for the sea unprompted" — so intersecting would keep every
-     * solid out of a sea it was pointed straight at, and `ice sea` would stop being a sentence.
+     * **Not intersected with what the word declares.** [co.voik.agesandtheart.age.word.Word.aspects] is where
+     * a word speaks when nobody aimed it — "only a liquid volunteers for the sea unprompted" — so intersecting
+     * would keep every solid out of a sea it was pointed straight at, and `ice sea` would stop being a sentence.
      */
     private fun scopeFor(word: co.voik.agesandtheart.age.word.Word, aim: Set<Aspect>): Set<Aspect> {
         if (!word.tier.narrows) return emptySet()

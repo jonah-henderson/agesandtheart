@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.reward
 
+import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.Holder
 import net.minecraft.tags.BlockTags

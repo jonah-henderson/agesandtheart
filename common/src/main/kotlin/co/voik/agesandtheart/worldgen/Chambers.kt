@@ -180,7 +180,7 @@ object Chambers {
      * Read in world space rather than per copy, so neighbouring chambers are cut from different parts of
      * one field and two that meet agree where they touch. At a finer scale this would be a sponge; at this
      * one it takes a bay out of one wall and leaves a headland on the other, which is what a cave looks
-     * like. [THRESHOLD] is how much it takes — nearer zero eats more.
+     * like. [ROUGHNESS_THRESHOLD] is how much it takes — nearer zero eats more.
      */
     private fun roughness(plan: Plan, storey: Storey, salt: Long): TerrainField = Noise3D(
         seed = ROUGHNESS_SEED xor salt xor storey.salt,

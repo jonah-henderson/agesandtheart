@@ -12,7 +12,7 @@ import net.minecraft.resources.Identifier
  * who asks for volcanoes gets all of that, and none of the three can disagree about whether the Age has
  * any.
  *
- * **What a volcano no longer drags in with it** is the small craters ([Firespouts]), the deep magma
+ * **What a volcano no longer drags in with it** is the small craters (`agesandtheart:firespout`), the deep magma
  * ([MagmaChambers]) and the tubes seeded through the rock (`agesandtheart:lava_tubes`, which needs no
  * object here — its whole expression is a placed feature the claim resolves to). Each is written for on
  * its own, and `volcanic` is the word that reaches all four. Jonah, walking the split on 2026-09-11:

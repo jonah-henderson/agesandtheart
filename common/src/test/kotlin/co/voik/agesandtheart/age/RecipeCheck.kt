@@ -9,7 +9,6 @@ import co.voik.agesandtheart.age.aspect.Skew
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Structures
-import co.voik.agesandtheart.age.AgeTemplate
 import com.mojang.serialization.JsonOps
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Terrain

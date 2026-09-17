@@ -19,7 +19,7 @@ import net.minecraft.world.item.ItemStack
  * the hit test read it from there.
  *
  * **Drawing takes two passes**, because the panel goes between them: unselected tabs tuck behind it and so
- * must be drawn before it ([extractBehindPanel]), while the selected tab sits proud and is drawn in the
+ * must be drawn before it ([backdrop]), while the selected tab sits proud and is drawn in the
  * widget pass, which the screen runs afterwards.
  */
 class TabStrip<T : Any>(

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
+import co.voik.agesandtheart.worldgen.field.Weathered
 import kotlin.math.abs
 import kotlin.math.pow
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource

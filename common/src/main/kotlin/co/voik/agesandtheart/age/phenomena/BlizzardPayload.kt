@@ -21,9 +21,9 @@ import net.minecraft.resources.Identifier
  * a bearing from the next would be a storm blowing the wrong way, which is exactly the kind of fault a
  * split message makes possible and a single one cannot.
  *
- * [NONE] is how an Age says it has no blizzard, which is most of them: the client is told on every change
- * of world rather than only when there is something to say, or leaving a frozen Age for an ordinary one
- * would leave the wind blowing.
+ * A payload from [noneIn] is how an Age says it has no blizzard, which is most of them: the client is told on
+ * every change of world rather than only when there is something to say, or leaving a frozen Age for an
+ * ordinary one would leave the wind blowing.
  */
 data class BlizzardPayload(
     /**

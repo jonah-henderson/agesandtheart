@@ -30,10 +30,11 @@ import kotlin.math.abs
  * level of its own, or dry, by a floodedness noise against thresholds that slide with the point's depth.
  *
  * What a field Age answers for itself, each where vanilla reads something we do not have:
- * - **The surface** is [surfaceAt] — the generator's own preliminary surface, the rock before its caves were
+ * - **The surface** is [SurfaceAt] — the generator's own preliminary surface, the rock before its caves were
  *   cut, which is what vanilla's is.
- * - **How open a cave is** — vanilla reads its terrain density; [opennessAt] measures the distance to rock.
- * - **Deep dark**, which vanilla never floods, is asked of the biome source ([isDeepDark]) rather than of
+ * - **How open a cave is** — vanilla reads its terrain density; [CellAquifer.opennessAt] measures the distance
+ *   to rock.
+ * - **Deep dark**, which vanilla never floods, is asked of the biome source ([DeepDarkAt]) rather than of
  *   vanilla's erosion and depth, since our depth is our own.
  *
  * And what is ours by design: water the shape pours — rivers, lakes, a caldera's lava ([SeaFill.wet],

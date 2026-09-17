@@ -14,8 +14,8 @@ import co.voik.agesandtheart.worldgen.field.Weathered
  *
  * Three **families** rather than a list of canyons. A list is a finite set of lines through one part of
  * the world, so the land between them grows without bound as you walk away — walk far enough and you are
- * on an endless plain. A family repeats every [SPACING] blocks, so the network is as dense at the edge of
- * the world as it is at the origin. See [Canyon.spacing].
+ * on an endless plain. A family repeats every [Canyon.spacing] blocks, so the network is as dense at the edge
+ * of the world as it is at the origin.
  *
  * The bearings are a third of a turn apart, which leaves rough triangles rather than the rectangles two
  * families at right angles would. Rivers need no arranging: every family shares one floor, so one

@@ -11,8 +11,8 @@ import net.minecraft.commands.CommandSourceStack
  * object of some two and a half thousand lines, sharing one block of seventy-odd constants: the rainbow's
  * readout sat between consequence arithmetic and chunk diffing, and most of the package cycles in the mod
  * ran through that one file. Each family now owns its own constants and its own helpers, and what they
- * genuinely share — the argument names and result codes in [CommandArguments], the units and readouts in
- * [Measurements] — is named rather than reached for through a command object.
+ * genuinely share — the argument names and result codes in `CommandArguments.kt`, the units and readouts
+ * in `Measurements.kt` — is named rather than reached for through a command object.
  *
  * **The order here is the families' first appearance in the old chain**, and within each family the
  * subcommands keep the order they had. It cannot be exactly the old order, because that chain interleaved

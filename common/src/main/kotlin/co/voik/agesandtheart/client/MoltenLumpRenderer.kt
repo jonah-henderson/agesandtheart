@@ -120,8 +120,8 @@ open class MoltenLumpRenderer<T : Entity>(
         private const val GONE_OUT = 0.02f
 
         /**
-         * A meteor's own light: violet-white, and the same violet its storm hangs in the sky and casts on
-         * the ground, so the three read as one arrival.
+         * A meteor's own light: violet-white. The storm's glow in the sky ([MeteorSky]) and its cast on the
+         * ground ([MeteorGlow]) are violets of their own, each tuned for how it is drawn.
          */
         val COLD_FIRE = Rgba(0.72f, 0.56f, 1.0f, 0.9f)
 

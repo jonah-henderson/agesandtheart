@@ -10,7 +10,7 @@ import kotlin.math.abs
  * entrances that open onto a hillside, and the pillars left standing in the middle of a cavern.
  *
  * **Vanilla's arithmetic, our evaluation.** The cave shapes are a stack of density functions in
- * `NoiseRouterData`, and this is that stack written out as plain maths over [FieldNoise]'s noises. Nothing
+ * `NoiseRouterData`, and this is that stack written out as plain maths over noises from [fieldNoise]. Nothing
  * here is invented: the octaves and amplitudes are the ones vanilla registers, the formulae are its
  * `spaghetti2D`, `spaghettiRoughnessFunction`, `entrances`, `pillars` and `underground` transcribed, and the
  * quantised rarity tables are copied outright.
@@ -38,7 +38,7 @@ data class Caved(
     val toY: Int,
     /**
      * How far under its own rock a block must lie before the **whole** cave set reaches it. Above that only
-     * [entrances] cut, which is what opens a tunnel onto a hillside without hollowing out the hillside.
+     * the `entrances` cut, which is what opens a tunnel onto a hillside without hollowing out the hillside.
      */
     val entranceReach: Int = DEFAULT_ENTRANCE_REACH,
     /** Whether the cheese chambers are cut — the large open caverns. */

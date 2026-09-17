@@ -18,7 +18,7 @@ import kotlin.math.roundToInt
  * file wanted regardless.)
  *
  * **What a pack sets is how deep a pass leaves the ground, not how fast sand falls.** The deposit rate is
- * derived from [depth], [halfWidth] and the column's own speed ([depositChanceFor]), so speed stays a free
+ * derived from [depth], the column's half-width and its own speed ([depositChanceFor]), so speed stays a free
  * variable instead of a second number to keep in step with this one.
  */
 data class ColumnBehaviour(

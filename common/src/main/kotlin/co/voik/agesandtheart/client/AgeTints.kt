@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.Block
  * **Which block is what colour is all that is shared**, because the two loaders reach
  * `BlockColors.register` by different routes and at a moment neither lets us choose. Fabric queues into
  * `BlockColorRegistry`; NeoForge fires `RegisterColorHandlersEvent.BlockTintSources` from inside
- * `BlockColors.createDefault`. Both take the same pair, so each passes its own [registrar] in.
+ * `BlockColors.createDefault`. Both take the same pair, so each passes its own registrar to [register].
  *
  * **Calling `Minecraft.getInstance().blockColors` from a client entrypoint does not work**, whatever the
  * signature suggests: `Minecraft.<init>` runs the entrypoints ninety lines before it assigns `blockColors`,

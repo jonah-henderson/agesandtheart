@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.phenomena.MeteorFlight
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.client.Blaze3dSkyCanvas
@@ -101,7 +102,7 @@ object MeteorSky {
         )
     }
 
-    /** Violet-white, and the same violet the ground under a storm is lit in. */
+    /** Violet-white, and paler than the violet [MeteorGlow] lights the ground in. */
     private val COLD_FIRE = Rgba(0.62f, 0.45f, 1.0f, 0.95f)
 
     /** How long before its own fall a body's light appears, in ticks — the thirty-second warning. */

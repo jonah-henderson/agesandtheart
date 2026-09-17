@@ -16,8 +16,9 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
  *
  * **This is how the grammar is taught** (design §4.5). `and`, `only`, `except` and the rungs are structure
  * rather than content, so no page loot hands them out and no device derives one — a writer meets them in a
- * book somebody else wrote, and reading it is what teaches them ([PageLearning.study], called when the
- * book is opened). A player who has only ever found *pages* has a vocabulary and no sentences.
+ * book somebody else wrote, and reading it is what teaches them
+ * ([co.voik.agesandtheart.page.PageLearning.study], called when the book is opened). A player who has only
+ * ever found *pages* has a vocabulary and no sentences.
  *
  * What it writes is the `book` generation grammar (`art/generation/book.json`), which is why a found book
  * reads as something a person would write rather than as a heap of words — and why retuning what turns up

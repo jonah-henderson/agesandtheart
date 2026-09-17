@@ -41,7 +41,7 @@ import kotlin.math.roundToInt
  * down; that it is *hard to be in* is what the place is for.
  *
  * **Organic rather than drawn.** A cylinder reads as built, and one vent looking like the next reads as a
- * dungeon. The silhouette is a sum of a few cosine lobes at phases rolled per vent ([lobeAt]), the axis
+ * dungeon. The silhouette is a sum of a few cosine lobes at phases rolled per vent ([Silhouette.lobeAt]), the axis
  * leans as it climbs on a random walk, and the radius narrows toward the mouth — so no two are the same
  * chimney and none of them is round.
  */
@@ -271,7 +271,7 @@ object DeepSeaVent : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.
     /** How far a lobe may push a wall in or out, as a share of the radius. */
     private const val LOBE_DEPTH = 0.22
 
-    /** The most [lobeAt] can ever return, which is what the scan has to be wide enough to reach. */
+    /** The most [Silhouette.lobeAt] can ever return, which is what the scan has to be wide enough to reach. */
     private const val MOST_A_LOBE_ADDS = 1.0 + LOBE_DEPTH * 2.0
 
     private const val FULL_TURN = 2.0 * Math.PI

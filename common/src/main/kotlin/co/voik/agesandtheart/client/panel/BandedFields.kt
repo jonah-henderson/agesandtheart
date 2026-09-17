@@ -4,11 +4,11 @@ package co.voik.agesandtheart.client.panel
  * One picture cut into horizontal bands, each band free to come from a different field.
  *
  * Two fields alternating band by band is what a frame of interlaced video is. Two things keep the seams from
- * reading as ruled lines. [spill] gives each band a taller slice of its field than its own rows, so neighbours
- * overlap in what they show and the sampler averages the difference across the boundary rather than cutting at
- * it. And a band is laid in [columns] pieces rather than one, each free to sit a page-pixel lower than its
- * neighbour — [edgeAt] says which, and the band above and the band below read the same answer for the boundary
- * they share, so a ragged edge never opens a gap.
+ * reading as ruled lines. [cut]'s `spill` gives each band a taller slice of its field than its own rows, so
+ * neighbours overlap in what they show and the sampler averages the difference across the boundary rather than
+ * cutting at it. And a band is laid in `columns` pieces rather than one, each free to sit a page-pixel lower
+ * than its neighbour — `edgeAt` says which, and the band above and the band below read the same answer for the
+ * boundary they share, so a ragged edge never opens a gap.
  *
  * The pieces come back grouped by field rather than in band order. Bands never overlap, so the order they are
  * laid in changes nothing, and grouped they are two draws rather than one a band.

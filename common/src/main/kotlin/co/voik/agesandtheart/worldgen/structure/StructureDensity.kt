@@ -14,7 +14,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
- * How often an Age builds a thing — [Density] applied to a structure set's *placement*.
+ * How often an Age builds a thing — a density on the [Rung] scale, applied to a structure set's *placement*.
  *
  * **Placement, not selection weights.** A set's weights look like emphasis and are almost inert: vanilla
  * rolls a weighted entry, tries it, and on failure removes it and re-rolls until one fits the biome — so
@@ -31,7 +31,7 @@ import kotlin.math.sqrt
  */
 object StructureDensity {
     /**
-     * [set] rebuilt to occur as often as [density] asks, or [set] itself untouched at [Density.ORDINARY].
+     * [set] rebuilt to occur as often as [density] asks, or [set] itself untouched at [Rung.ORDINARY].
      *
      * **A rebuilt set is a *direct* holder**, no registry having heard of it — registries freeze at startup
      * and an Age is written long afterwards. That is what
