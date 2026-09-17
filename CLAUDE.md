@@ -46,10 +46,11 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   for the decision and the reason. Read it before re-proposing anything; several entries exist because an
   idea was tried and collapsed.
 - **`notes/accretion-audit.md`** — the three-pass audit against LLM accretion: where each pass got to, the
-  commit trail, what is deferred and on whose word, and the latent bugs it found. Its finding records are
-  `notes/audit/` — the `p*.json` theme files are the working set, the two reports are the archive. **Read it
-  before doing any audit work, and re-date every finding against the commits since**: they were written
-  2026-09-15 and later phases have already moved much of the code they describe.
+  commit trail, what is deferred and on whose word, and the latent bugs it found. Passes 1 and 2 are done.
+  **Its first section is the brief for pass 3** (renames and comment trimming), and says how to start it.
+  Its records are `notes/audit/`: pass 2's theme files, both reports, and in `tooling/` the workflow scripts,
+  scans and digests the passes were run with. **Read it before doing any audit work, and re-date every
+  finding against the commits since**, because later work moves the code findings describe within days.
 - **`notes/generator-versions.md`** — what moved at each `CURRENT_GENERATOR_VERSION` bump, and which Ages
   it moved. Read it when bumping the stamp, and add a row.
 - **`notes/per-age-skies-research.md`** — the sky renderer's reference: render-state traps and what a
