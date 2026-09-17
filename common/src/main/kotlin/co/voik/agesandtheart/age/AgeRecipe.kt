@@ -9,6 +9,7 @@ import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Options
+import co.voik.agesandtheart.age.aspect.Pool
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -455,7 +456,7 @@ data class AgeRecipe(
                     Aspect.STRUCTURES,
                     // Nobody built here. The `only plasma` claim below would strand every set anyway, but
                     // the Spire says so outright rather than relying on a side effect of its biome.
-                    listOf(Options(mapOf(Structures.BUILT.name to listOf(Structures.NOTHING)))),
+                    listOf(Options(mapOf(Structures.BUILT.name to listOf(Pool.NOTHING)))),
                 )
                 .with(
                     Aspect.BIOMES,

@@ -34,8 +34,8 @@ object Phenomena {
      */
     val HAPPENS = Pool(
         "happens",
-        leastKept = NOTHING_AT_ALL,
-        emptiedBy = NOTHING,
+        // `happens=nothing` is a quiet Age: nothing befalls it, whatever its instability would otherwise bring.
+        emptiedBy = Pool.NOTHING,
         named = Phenomenon.entries.map { it.key },
             help = "What happens here: a tempest, an inferno, an aurora.",
         )
@@ -48,7 +48,7 @@ object Phenomena {
      * Two copies of a `Skew` over one parameter is exactly the shape a rule kept in two places takes.
      */
     fun claimsIn(options: Options): List<Claim> =
-        Skew.of(options.allSpelled(HAPPENS.name).map(Claim::read)).wanted
+        options.skewOn(HAPPENS).wanted
             // **The one pool that starts empty**, so a description here cannot mean "more of what is
             // already happening" — nothing is. One asking for more than ordinary brings its phenomenon
             // about, which is how `beautiful` earns its aurora; one asking for less asks for less of
@@ -58,9 +58,4 @@ object Phenomena {
     /** The claim by which [phenomenon] befalls these options, or null where it does not. */
     fun claimFor(options: Options, phenomenon: Phenomenon): Claim? =
         claimsIn(options).firstOrNull { it.value == phenomenon.key }
-
-    /** How an Age says it is quiet: nothing befalls it, whatever its instability would otherwise bring. */
-    const val NOTHING = "nothing"
-
-    private const val NOTHING_AT_ALL = 0.0
 }

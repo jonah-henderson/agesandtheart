@@ -42,16 +42,16 @@ object Biomes {
      * word's emphasis would be applied twice and differ from what the recipe says.
      */
     fun preferencesIn(options: Options): List<BiomePreference> {
-        val asked = Skew.of(options.claimsOn(GROWN))
+        val asked = options.skewOn(GROWN)
         fun named(claims: List<Claim>) = claims.filter { it.value != Parameter.UNCHANGED }
-            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { Triple(it, claim.density, claim.onlyWhereItGrows) } }
+            .mapNotNull { claim -> claim.id?.let { Triple(it, claim.density, claim.onlyWhereItGrows) } }
         return named(asked.wanted).map { (biome, weight, bendsOnly) -> BiomePreference(biome, weight, bendsOnly) } +
             asked.struck.filter { it != Parameter.UNCHANGED }.mapNotNull(Identifier::tryParse)
                 .map { biome -> BiomePreference(biome, BiomePreference.STRUCK_OUT) }
     }
 
     /** Whether the sentence singled biomes out, so everything it did not name is struck from the table. */
-    fun keepsOnlyNamed(options: Options): Boolean = Skew.of(options.claimsOn(GROWN)).exclusive
+    fun keepsOnlyNamed(options: Options): Boolean = options.skewOn(GROWN).exclusive
 
     /** Whether this Age's biomes are chosen to suit its shape — see [FOOTING]. */
     fun groundsBiomes(options: Options): Boolean = options.of(FOOTING) != FREE_FOOTING

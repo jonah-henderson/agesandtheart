@@ -12,6 +12,7 @@ import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Phenomena
+import co.voik.agesandtheart.age.aspect.Pool
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Share
@@ -318,7 +319,7 @@ data class Danger(
 
         /** Whether the book said nothing lives here at all — `lives=nothing`. */
         private fun spawnsNothing(composition: AgeComposition): Boolean =
-            Spawns.NOTHING in composition.optionsFor(Aspect.SPAWNS, 0).allOf(Spawns.LIVES)
+            Pool.NOTHING in composition.optionsFor(Aspect.SPAWNS, 0).allOf(Spawns.LIVES)
 
         /** The claims that ask for something, removals applied last exactly as [Skew] applies them (§3.5). */
         private fun wanted(claims: List<Claim>): List<Claim> {

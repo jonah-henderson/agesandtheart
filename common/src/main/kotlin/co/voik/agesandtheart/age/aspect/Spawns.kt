@@ -40,16 +40,11 @@ object Spawns {
      */
     val LIVES = Pool(
         "lives",
-        leastKept = NOTHING_AT_ALL,
-        emptiedBy = NOTHING,
+        // `lives=nothing` is no natural spawning at all, whatever the Age's biomes would hold.
+        emptiedBy = Pool.NOTHING,
         help = "Which creatures live here.",
         confinable = true,
     )
-
-    /** How an Age says nothing lives here: no natural spawning at all, whatever its biomes would hold. */
-    const val NOTHING = "nothing"
-
-    private const val NOTHING_AT_ALL = 0.0
 
     /**
      * This Age's answer for one biome's weighted list, or the list itself where nothing was said.
@@ -59,7 +54,7 @@ object Spawns {
      */
     fun livingIn(options: Options, spawning: Spawning = Spawning()): Living {
         val claims = options.claimsOn(LIVES)
-        if (Skew.of(claims).isSilent && claims.none { it.confinedTo != null }) {
+        if (LIVES.skewOf(claims).isSilent && claims.none { it.confinedTo != null }) {
             return Living { _, _, _, offered -> offered }
         }
         // **Asked per biome, because a claim may be confined to one** (§4.3.1). Remembered for the same
@@ -71,8 +66,8 @@ object Spawns {
         // decides whether one of them may be tried here.
         val couldArrive = ConcurrentHashMap<Arrivals, List<Arriving>>()
         return Living { biome, category, where, offered ->
-            val asked = biome?.let { here.computeIfAbsent(it) { where -> Skew.of(claims, where) } }
-                ?: Skew.of(claims)
+            val asked = biome?.let { here.computeIfAbsent(it) { where -> LIVES.skewOf(claims, where) } }
+                ?: LIVES.skewOf(claims)
             val kept = narrowed(offered, asked)
             val candidates = couldArrive.computeIfAbsent(Arrivals(biome, category)) {
                 resolved(asked, category, spawning)
@@ -114,7 +109,7 @@ object Spawns {
 
     /**
      * One weighted list with the sentence applied: struck creatures dropped, named ones weighted by the
-     * rung they were asked at, and everything unnamed dropped where the writer said `only` or [NOTHING].
+     * rung they were asked at, and everything unnamed dropped where the writer said `only` or [Pool.NOTHING].
      *
      * Adding what the list *lacks* is [added]'s, and the two are deliberately apart: this one can only ever
      * take away or reweight.
@@ -125,10 +120,10 @@ object Spawns {
     ): WeightedList<MobSpawnSettings.SpawnerData> {
         if (asked.isSilent) return offered
         val struck = asked.struck.mapNotNull(Identifier::tryParse).toSet()
-        val weights = asked.wanted.filterNot { it.value == NOTHING }
-            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
+        val weights = asked.wanted
+            .mapNotNull { claim -> claim.id?.let { it to claim.density } }
             .toMap()
-        val emptied = asked.exclusive || asked.wanted.any { it.value == NOTHING }
+        val emptied = asked.startsFromNothing
         val kept = offered.unwrap().mapNotNull { entry ->
             val id = idOf(entry.value().type())
             val asked = weights[id]
@@ -202,12 +197,12 @@ object Spawns {
      * shorter list than what it offers a biome: [resolved] stocks a menu and this summons.
      */
     fun claimedCreatures(options: Options): List<Pair<Identifier, Double>> =
-        Skew.of(options.claimsOn(LIVES)).wanted
+        options.skewOn(LIVES).wanted
             // **Summoning one takes naming it.** This is the Age's own placement — the golems, the wither,
             // the dragon — and a boss is not an atmosphere: a word brushing the dragon through `hostile`
             // put one in the sky of a beautiful Age. `teeming ender_dragon` still names it outright.
-            .filterNot { it.value == NOTHING || it.onlyWhereItGrows }
-            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
+            .filterNot { it.onlyWhereItGrows }
+            .mapNotNull { claim -> claim.id?.let { it to claim.density } }
 
     /**
      * Every creature [asked] wants that vanilla can be told to try in [category].
@@ -223,8 +218,8 @@ object Spawns {
             // work at all in a world whose biomes offer none — but an evocative word's faintest reaches
             // are held at a floor rather than dropped (§3.3), so `beautiful` was asking for a fifth of a
             // ghast and getting a ghast (Jonah, 2026-09-03). [narrowed] is where such a claim belongs.
-            .filterNot { it.value == NOTHING || it.bringsNothingAbout }
-            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
+            .filterNot { it.bringsNothingAbout }
+            .mapNotNull { claim -> claim.id?.let { it to claim.density } }
             .mapNotNull { (id, density) ->
                 // **Asked whether it is there before asking what it is.** The entity registry is a
                 // *defaulted* one, so an id it has never heard of comes back as `minecraft:pig` rather

@@ -83,6 +83,9 @@ data class Claim(
      */
     val bringsNothingAbout: Boolean get() = onlyWhereItGrows && density <= Rung.ORDINARY
 
+    /** The value read as a registry id, or null where it is not one. */
+    val id: Identifier? get() = Identifier.tryParse(value)
+
     /** Whether this claim has anything to say where [biome] is what the ground holds. */
     fun appliesIn(biome: Identifier?): Boolean = confinedTo == null || confinedTo == biome
 
@@ -174,36 +177,48 @@ data class Claim(
 data class Skew(
     /** Whether anything was singled out, in which case whatever the preset would have supplied is dropped. */
     val exclusive: Boolean,
-    /** What to introduce, each with the density it was asked for — said plainly or singled out, alike. */
+    /**
+     * What to introduce, each with the density it was asked for — said plainly or singled out, alike. Never
+     * the pool's emptier, which is a statement about the whole population rather than a member of it.
+     */
     val wanted: List<Claim>,
     /** What to strike out. */
     val struck: List<String>,
+    /** Whether the pool's emptier was named — `spawns nothing` — which drops the base as `only` does. */
+    val emptied: Boolean = false,
 ) {
+    /** Whether whatever the preset would have supplied is dropped: something was singled out, or emptied. */
+    val startsFromNothing: Boolean get() = exclusive || emptied
+
     /** Whether the sentence said anything at all about this distribution. */
-    val isSilent: Boolean get() = !exclusive && wanted.isEmpty() && struck.isEmpty()
+    val isSilent: Boolean get() = !startsFromNothing && wanted.isEmpty() && struck.isEmpty()
 
     companion object {
         /**
-         * What these claims ask **where [biome] is the ground**, or of the whole Age where it is null.
+         * What these claims ask **where [biome] is the ground**, or of the whole Age where it is null, in a
+         * pool emptied by [emptiedBy] — see [Pool.skewOf], which is how a reader should ask.
          *
          * A claim confined somewhere else is not merely ignored here, it is *absent*: "in the mushroom
          * fields, only slimes" leaves every other biome exactly as it was, which is what makes `only`
          * bearable inside a scope at all (§4.3.1).
          */
-        fun of(claims: List<Claim>, biome: Identifier? = null): Skew {
+        fun of(claims: List<Claim>, biome: Identifier? = null, emptiedBy: String? = null): Skew {
             val here = claims.filter { it.appliesIn(biome) }
             fun claimsAt(polarity: Polarity) = here.filter { it.polarity == polarity }.distinctBy { it.value }
             val singledOut = claimsAt(Polarity.ONLY)
             val removed = claimsAt(Polarity.EXCEPT).map { it.value }
+            // **Removals apply last** (§3.5), so a member one word named and another struck out is struck
+            // out. Said here rather than in each reader: `Spawns.narrowed` dropped it and `Spawns.added` put
+            // it straight back, which is the shape a rule kept in two places takes.
+            val named = (singledOut + claimsAt(Polarity.ASSERTED))
+                .distinctBy { it.value }
+                .filterNot { it.value in removed }
+            fun isTheEmptier(claim: Claim) = emptiedBy != null && claim.value == emptiedBy
             return Skew(
                 exclusive = singledOut.isNotEmpty(),
-                // **Removals apply last** (§3.5), so a member one word named and another struck out is
-                // struck out. Said here rather than in each reader: `Spawns.narrowed` dropped it and
-                // `Spawns.added` put it straight back, which is the shape a rule kept in two places takes.
-                wanted = (singledOut + claimsAt(Polarity.ASSERTED))
-                    .distinctBy { it.value }
-                    .filterNot { it.value in removed },
+                wanted = named.filterNot(::isTheEmptier),
                 struck = removed,
+                emptied = named.any(::isTheEmptier),
             )
         }
     }

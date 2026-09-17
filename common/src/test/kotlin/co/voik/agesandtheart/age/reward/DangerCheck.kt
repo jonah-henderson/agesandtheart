@@ -14,6 +14,7 @@ import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Phenomena
+import co.voik.agesandtheart.age.aspect.Pool
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Spawns
@@ -204,7 +205,7 @@ class DangerCheck : FunSpec({
      */
     test("a sealed Age is dangerous, unless nothing lives in it") {
         val sealed = oneTerritory().withOptions(Aspect.SKY, Sky.SEALED.name, listOf(Parameter.TRUE))
-        val sealedAndEmpty = sealed.withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(Spawns.NOTHING))
+        val sealedAndEmpty = sealed.withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(Pool.NOTHING))
 
         check(score(sealed).lighting > 0.0) { "a sealed Age took no danger from its roof" }
         check(score(sealedAndEmpty).lighting == 0.0) {

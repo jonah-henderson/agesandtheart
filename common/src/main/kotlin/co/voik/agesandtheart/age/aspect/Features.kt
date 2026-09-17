@@ -39,21 +39,18 @@ object Features {
      *
      * A mention is worth the **ordinary** amount, like a structure set and unlike a biome: naming a
      * feature asks for a thing that was not there rather than for more of a thing that was. And it may be
-     * emptied — a world where nothing is placed is a world — so [NOTHING] is what says so.
+     * emptied — a world where nothing is placed is a world — so [Pool.NOTHING] is what says so: bare ground,
+     * whatever its biomes would have carried.
      *
      * **A rung here is absolute and takes nothing from anything else** ([FeatureDensity]): twice the trees
      * is twice the trees, where twice the desert is necessarily less of some other biome.
      */
     val PLACES = Pool(
         "grows",
-        leastKept = NOTHING_AT_ALL,
-        emptiedBy = NOTHING,
+        emptiedBy = Pool.NOTHING,
         help = "What is placed in the world: trees, ores, plants, ruins.",
         confinable = true,
     )
-
-    /** How an Age says nothing is placed here at all: bare ground, whatever its biomes would have carried. */
-    const val NOTHING = "nothing"
 
     /**
      * The claim naming [feature] in this composition, or null where nothing asks for it.
@@ -65,7 +62,7 @@ object Features {
      */
     fun claimNaming(composition: AgeComposition, feature: Identifier): Claim? =
         composition.optionsFor(Aspect.FEATURES, 0).claimsOn(PLACES)
-            .firstOrNull { claim -> Identifier.tryParse(claim.value) == feature }
+            .firstOrNull { claim -> claim.id == feature }
 
     /**
      * How big one of a thing is, how thick a patch of it is, and how deep in the column it sits — the
@@ -103,8 +100,6 @@ object Features {
             ),
         ).perBiome()
 
-    private const val NOTHING_AT_ALL = 0.0
-
     /**
      * A biome's own generation settings, adjusted by whatever the sentence said — the function
      * `ChunkGenerator` takes for exactly this and `NoiseBasedChunkGenerator` never passes on.
@@ -119,7 +114,7 @@ object Features {
         rock: List<BlockState>,
     ): (Holder<Biome>) -> BiomeGenerationSettings {
         val claims = options.claimsOn(PLACES)
-        val asked = Skew.of(claims)
+        val asked = PLACES.skewOf(claims)
         val shape = Shape(
             size = options.steer(SIZE, salt),
             thickness = options.steer(THICKNESS, salt),
@@ -153,14 +148,14 @@ object Features {
             settled.computeIfAbsent(biome) {
                 // A claim confined to one biome (§4.3.1) is absent from every other, so each biome's
                 // settings are built from what applies *there*.
-                val here = Skew.of(claims, it.unwrapKey().orElse(null)?.identifier())
+                val here = PLACES.skewOf(claims, it.unwrapKey().orElse(null)?.identifier())
                 settingsFrom(
                     it,
                     wanted(server, here, salt, grown),
                     bentWhereItGrows(here),
                     bent,
                     here.struck.mapNotNull(Identifier::tryParse).toSet(),
-                    here.exclusive || here.wanted.any { claim -> claim.value == NOTHING },
+                    here.startsFromNothing,
                     shape,
                 )
             }
@@ -222,11 +217,10 @@ object Features {
         val biomes = server.registryAccess().lookupOrThrow(Registries.BIOME)
         val byStep = mutableMapOf<Int, MutableList<Grown>>()
         for (claim in asked.wanted) {
-            if (claim.value == NOTHING) continue
             // A description asks for more of what grows here, never for something that does not — see
             // [bentWhereItGrows] and `Claim.onlyWhereItGrows`.
             if (claim.onlyWhereItGrows && claim.madeOf == null) continue
-            val named = Identifier.tryParse(claim.value) ?: continue
+            val named = claim.id ?: continue
             val found = features.get(ResourceKey.create(Registries.PLACED_FEATURE, named)).orElse(null)
             if (found == null) {
                 Constants.LOG.warn("An Age asked to grow '{}', which is no placed feature in this pack", named)
@@ -264,8 +258,8 @@ object Features {
      */
     private fun bentWhereItGrows(asked: Skew): Map<Identifier, Double> =
         asked.wanted
-            .filter { it.onlyWhereItGrows && it.madeOf == null && it.value != NOTHING }
-            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
+            .filter { it.onlyWhereItGrows && it.madeOf == null }
+            .mapNotNull { claim -> claim.id?.let { it to claim.density } }
             .toMap()
 
     /**
@@ -310,7 +304,7 @@ object Features {
     /**
      * One biome's settings with the sentence applied: everything named added at the step it belongs in,
      * everything struck out dropped, and the biome's own list left out entirely where the writer said
-     * `only` or [NOTHING].
+     * `only` or [Pool.NOTHING].
      *
      * **Carvers are carried across untouched.** They live on these settings too and belong to the Carvers
      * aspect, which reaches them through the generator — so this rebuilds the feature half and copies the

@@ -23,14 +23,14 @@ data class Pool(
     val name: String,
 
 
-    /**
-     * The least a claim may be scaled to and still be kept, or [Rung.ORDINARY] where nothing may be
-     * emptied. Below it the member is struck out instead.
-     */
-    val leastKept: Double = Rung.ORDINARY,
-
     /** How a recipe says this population holds nothing at all, or null where it may never be emptied. */
     val emptiedBy: String? = null,
+
+    /**
+     * The least a claim may be scaled to and still be kept — nothing at all where the pool may be emptied,
+     * and otherwise [Rung.ORDINARY]. Below it the member is struck out instead.
+     */
+    val leastKept: Double = if (emptiedBy != null) NOTHING_AT_ALL else Rung.ORDINARY,
 
     /**
      * Values that are **ours** rather than a registry's, which closes the pool.
@@ -61,4 +61,14 @@ data class Pool(
      */
     fun accepts(value: String): Boolean =
         value in options || (open && Identifier.tryParse(value) != null)
+
+    /** How [claims] skew this population where [biome] is the ground — see [Skew.of], told this pool's emptier. */
+    fun skewOf(claims: List<Claim>, biome: Identifier? = null): Skew = Skew.of(claims, biome, emptiedBy)
+
+    companion object {
+        /** How every pool that may be emptied says so: `spawns nothing`, `structures nothing`. */
+        const val NOTHING = "nothing"
+
+        private const val NOTHING_AT_ALL = 0.0
+    }
 }

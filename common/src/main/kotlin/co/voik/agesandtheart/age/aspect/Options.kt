@@ -78,6 +78,9 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
     fun claimsOn(pool: Pool): List<Claim> =
         chosen[pool.name].orEmpty().map(Claim::read).filter { pool.accepts(it.value) }
 
+    /** How these options skew [pool] where [biome] is the ground — [claimsOn] read through [Pool.skewOf]. */
+    fun skewOn(pool: Pool, biome: Identifier? = null): Skew = pool.skewOf(claimsOn(pool), biome)
+
     /**
      * The blocks chosen for a **material** [parameter] — the ids read back as real blocks.
      *

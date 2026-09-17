@@ -712,7 +712,7 @@ class ResolverCheck : FunSpec({
         }
         // Nothing said means nothing written, and the world reads an unwritten population as vanilla's own.
         val untouched = builtIn(resolve(vocabulary, "untouched").composition)
-        check(untouched == listOf(Structures.NOTHING)) { "'untouched' left $untouched standing" }
+        check(untouched == listOf(Pool.NOTHING)) { "'untouched' left $untouched standing" }
 
         val settled = Skew.of(
             resolve(vocabulary, "settled").composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT),

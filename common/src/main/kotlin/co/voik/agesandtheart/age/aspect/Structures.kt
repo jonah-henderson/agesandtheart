@@ -57,7 +57,7 @@ object Structures {
 
     /**
      * The sets vanilla may consider here, steered by whatever the sentence said. Three steps, ordered so
-     * the outcome is independent of the writer's word order (§3.5): `only` (or [NOTHING]) drops the base,
+     * the outcome is independent of the writer's word order (§3.5): `only` (or [Pool.NOTHING]) drops the base,
      * everything named joins at its density, then `except` strikes out.
      */
     fun structureSets(
@@ -75,19 +75,15 @@ object Structures {
         thickened: Map<Identifier, Double> = emptyMap(),
     ): List<Holder<VanillaStructureSet>> {
         val sets = server.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET)
-        val asked = Skew.of(options.claimsOn(BUILT))
+        val asked = options.skewOn(BUILT)
         val seated = LinkedHashMap<Identifier, Holder<VanillaStructureSet>>()
         // Sets a writer named, which [thickened] may not talk over.
         val spokenFor = HashSet<Identifier>()
-        val startsFromNothing = asked.exclusive || asked.wanted.any { it.value == NOTHING }
-        if (!startsFromNothing) {
+        if (!asked.startsFromNothing) {
             for (key in standing) seated[key.identifier()] = sets.get(key).orElse(null) ?: continue
         }
         for (claim in asked.wanted) {
-            // `nothing` is the emptier, not a set: it has already done its work above, and asking the
-            // registry for it warned that the pack ships no `minecraft:nothing` on every Age ever written.
-            if (claim.value == NOTHING) continue
-            val named = Identifier.tryParse(claim.value) ?: continue
+            val named = claim.id ?: continue
             // **A description only reweighs what is built here already** — see [Claim.onlyWhereItGrows].
             if (claim.onlyWhereItGrows && named !in seated) continue
             val found = sets.get(ResourceKey.create(Registries.STRUCTURE_SET, named)).orElse(null)
@@ -140,20 +136,11 @@ object Structures {
      */
     val BUILT = Pool(
         "built",
-        leastKept = NOTHING_AT_ALL,
-        emptiedBy = NOTHING,
+        // `built=nothing` drops the base whatever vanilla adds to it later, and a word striking out every
+        // set the Art can reach resolves to it rather than to a list of exclusions as long as the pack.
+        emptiedBy = Pool.NOTHING,
         help = "Which structures are built here.",
     )
-
-    /**
-     * How an Age says nobody ever built here: `built=nothing`, which drops the base whatever vanilla adds
-     * to it later. A word that strikes out every set the Art can reach resolves to this rather than to a
-     * list of exclusions as long as the pack.
-     */
-    const val NOTHING = "nothing"
-
-    /** A world nobody ever built in is a world, so a set may be pushed all the way to none of it. */
-    private const val NOTHING_AT_ALL = 0.0
 
     /**
      * The base an Age starts from. Nether and end sets are left out because no overworld biome could
