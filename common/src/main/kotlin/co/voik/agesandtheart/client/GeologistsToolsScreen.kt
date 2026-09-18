@@ -52,5 +52,6 @@ class GeologistsToolsScreen(menu: GeologistsToolsMenu, inventory: Inventory, tit
         EarlyGameRareMaterial.RIME -> AgeContent.RIME_CRYSTAL_BLOCKS.getValue(RimeColour.CYAN).name
         EarlyGameRareMaterial.TEMPERSTONE -> AgeContent.TEMPERSTONE_BLOCK.name
         EarlyGameRareMaterial.ARC_CRYSTAL -> AgeContent.ARC_CRYSTAL_CLUSTER.name
+        EarlyGameRareMaterial.GLOOMGRIT -> AgeContent.GLOOMGRIT_CLUSTER.name
     }
 }

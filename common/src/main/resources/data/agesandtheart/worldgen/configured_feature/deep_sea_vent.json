@@ -1,8 +1,10 @@
 {
   "_comment": [
     "A vent on the floor of an abyss -- see `DeepSeaVent` for the shape and for why each part of it is",
-    "there. Shipped as a configured feature rather than held directly in code so it has an id: only a",
-    "feature with one can be named in a sentence, weighed by a rung, or looked for by the D'ni city."
+    "there. Shipped as a configured feature so it has an id, which is what `/place feature` and the D'ni",
+    "city can name it by. **There is deliberately no placed feature of the same name**: every placed feature",
+    "is a word a writer can say, and a vent must not be sayable -- it is earned by an abyss and a deluge",
+    "(`EarlyGameRareMaterials.ventsTheAbyss`), which lays it through a placement held in code."
   ],
   "type": "agesandtheart:deep_sea_vent",
   "config": {}

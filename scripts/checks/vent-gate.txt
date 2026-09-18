@@ -1,0 +1,20 @@
+# The deep-ocean material's gate: an abyss AND a deluge vents it, either alone does not (design 7.1.2).
+# Run with: scripts/drive-server.sh scripts/checks/vent-gate.txt
+#
+# Read the "grows" line of each `danger score`. It is the same `EarlyGameRareMaterials.grownIn` the
+# generator lays the vents from and the geologist's tools report at the desk, so what it says is what
+# generates. Where a vent actually stands is still the vent's own check (deep water from foot to mouth),
+# and `deep-sea-vent.txt` is the shape.
+#
+# MEASURED 2026-09-17, seed 7, `isle` under `deep`:
+#
+#     abyssonly     deep sea, no deluge          grows none of the early materials
+#     drenched      deep sea and a deluge        grows gloomgrit
+#     shallows      a deluge over an ordinary    grows none of the early materials
+#                   sea
+age write abyssonly 7 age isle landmass deep water sea
+age danger score abyssonly
+age write drenched 7 age isle landmass deep water sea deluge phenomena
+age danger score drenched
+age write shallows 7 age isle landmass water sea deluge phenomena
+age danger score shallows

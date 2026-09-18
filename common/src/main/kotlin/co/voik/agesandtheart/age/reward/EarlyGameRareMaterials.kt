@@ -8,7 +8,12 @@ import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.age.aspect.Sea
+import co.voik.agesandtheart.worldgen.feature.DeepSeaVent
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
+import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.world.level.levelgen.placement.HeightmapPlacement
+import net.minecraft.world.level.levelgen.placement.RarityFilter
 import co.voik.agesandtheart.worldgen.feature.TemperedGround
 import net.minecraft.core.Holder
 import net.minecraft.resources.Identifier
@@ -66,9 +71,42 @@ object EarlyGameRareMaterials {
                 EarlyGameRareMaterial.RIME -> growsRime(composition, spending)
                 EarlyGameRareMaterial.TEMPERSTONE -> bakesTemperstone(composition)
                 EarlyGameRareMaterial.ARC_CRYSTAL -> growsArcCrystal(composition, seed, spending)
+                EarlyGameRareMaterial.GLOOMGRIT -> ventsTheAbyss(composition, seed, spending)
             }
         }
         .toSet()
+
+    /**
+     * Whether the abyss here is vented — and so whether gloomgrit, and the phasmium refined from it, can be
+     * had at all.
+     *
+     * **Two halves, both hard** (design §7.1.2): a sea deep enough to hold an abyss, and a deluge, written
+     * or inflicted. The deep sea is where the vents stand and the deluge is what the Age has to be living
+     * through to have them — the same shape as rime's cold and its blizzard.
+     *
+     * **The abyss is judged from the recipe, not found in the world**, so the survey can promise it at the
+     * desk. Whether a given stretch of floor is deep enough is still the vent's own to check, and it refuses
+     * any column that is not deep water from foot to mouth — so a raised sea over high ground promises vents
+     * that stand only where the floor falls away.
+     */
+    fun ventsTheAbyss(
+        composition: AgeComposition,
+        seed: Long,
+        spending: Spending,
+    ): Boolean = holdsAnAbyss(composition, seed) && befalls(Phenomenon.DELUGE, composition, spending)
+
+    /**
+     * Whether the sea is water and stands high enough over its ground to hold an abyss.
+     *
+     * Deep water only ever replaces a plain water sea, and only where the water over it is deeper than any
+     * vanilla ocean. [ABYSSAL_RAISE] is where `deep` begins, which is where it was measured to start
+     * growing deep water on the flat-floored landforms — nothing short of it grows any on any landform.
+     */
+    private fun holdsAnAbyss(composition: AgeComposition, seed: Long): Boolean {
+        val isWater = composition.seas.any { sea -> !sea.isEmpty && sea.id == WATER }
+        val raise = Sea.depthShift(composition.optionsFor(Aspect.SEA, 0), seed)
+        return isWater && raise >= ABYSSAL_RAISE
+    }
 
     /**
      * Whether the sky here is charged enough to put ore up in it.
@@ -172,25 +210,55 @@ object EarlyGameRareMaterials {
     }
 
     /**
-     * The early materials [grown] names as a decoration layer, or null where it names none.
+     * The early materials [grown] names as decoration layers, one per step they are laid at — empty where
+     * it names none.
      *
      * One `PlacedFeature` for the whole Age and the settings remembered per biome, for the reason
      * [Deposits] spells out: the sorted feature list is indexed by identity, and an equal-but-new object is
      * a lookup miss in the middle of generation.
      */
-    fun layer(grown: Set<EarlyGameRareMaterial>): Decoration.Layer? =
-        Decoration.layerOf(GenerationStep.Decoration.LOCAL_MODIFICATIONS, grown.flatMap(::placementsOf))
+    fun layers(grown: Set<EarlyGameRareMaterial>): List<Decoration.Layer> =
+        grown.sortedBy { it.ordinal }
+            .flatMap(::placementsOf)
+            .groupBy({ it.first }, { it.second })
+            .mapNotNull { (step, features) -> Decoration.layerOf(step, features) }
 
-    /** How a material is placed — one pass, or several where the material arrives more than one way. */
-    private fun placementsOf(material: EarlyGameRareMaterial): List<Holder<PlacedFeature>> = when (material) {
-        EarlyGameRareMaterial.RIME -> listOf(scanningTheChunk(RimeCrystal))
-        EarlyGameRareMaterial.TEMPERSTONE -> listOf(scanningTheChunk(TemperedGround), rawBlobs())
-        // **Nothing is decorated for it, and that is its whole design.** Arc crystal arrives as drifting
-        // bodies a spawner puts in the air (`DriftingOreSpawner`), because what is being rewarded is
-        // getting it down rather than finding it. A placed feature would be the reward this one exists to
-        // not be.
-        EarlyGameRareMaterial.ARC_CRYSTAL -> emptyList()
-    }
+    /** How a material is placed, and at which step — one pass, or several where it arrives more than one way. */
+    private fun placementsOf(material: EarlyGameRareMaterial): List<Pair<GenerationStep.Decoration, Holder<PlacedFeature>>> =
+        when (material) {
+            EarlyGameRareMaterial.RIME -> listOf(LOCAL to scanningTheChunk(RimeCrystal))
+            EarlyGameRareMaterial.TEMPERSTONE -> listOf(LOCAL to scanningTheChunk(TemperedGround), LOCAL to rawBlobs())
+            // **Nothing is decorated for it, and that is its whole design.** Arc crystal arrives as drifting
+            // bodies a spawner puts in the air (`DriftingOreSpawner`), because what is being rewarded is
+            // getting it down rather than finding it. A placed feature would be the reward this one exists to
+            // not be.
+            EarlyGameRareMaterial.ARC_CRYSTAL -> emptyList()
+            // At the whalefall's step, beside it on the same floor.
+            EarlyGameRareMaterial.GLOOMGRIT ->
+                listOf(GenerationStep.Decoration.UNDERGROUND_STRUCTURES to ventsOnTheAbyssFloor())
+        }
+
+    /**
+     * A vent on the floor of an abyss, one chunk in [VENT_RARITY].
+     *
+     * **No biome filter, and nothing is lost by it.** A layer is laid over every biome of the Age, so a
+     * biome filter would pass everywhere; what actually keeps a vent in the abyss is `DeepSeaVent` itself,
+     * which refuses any column that is not deep water from its foot to over its mouth. `OCEAN_FLOOR_WG` is
+     * the whalefall's arrangement, the floor the vent builds from.
+     */
+    private fun ventsOnTheAbyssFloor(): Holder<PlacedFeature> =
+        Holder.direct(
+            PlacedFeature(
+                Holder.direct(ConfiguredFeature(DeepSeaVent, NoneFeatureConfiguration.INSTANCE)),
+                listOf(
+                    RarityFilter.onAverageOnceEvery(VENT_RARITY),
+                    InSquarePlacement.spread(),
+                    HeightmapPlacement.onHeightmap(Heightmap.Types.OCEAN_FLOOR_WG),
+                ),
+            ),
+        )
+
+    private val LOCAL = GenerationStep.Decoration.LOCAL_MODIFICATIONS
 
     /**
      * A feature that walks the chunk itself, run once over it.
@@ -261,6 +329,16 @@ object EarlyGameRareMaterials {
     private const val FIERCE_CURTAIN = 1.2f
 
     private val LAVA: Identifier = Identifier.withDefaultNamespace("lava")
+    private val WATER: Identifier = Identifier.withDefaultNamespace("water")
+
+    /** The least raise `deep` writes (`art/word/deep.json`, 0.85 on the cubic), in blocks over the terrain's waterline. */
+    private const val ABYSSAL_RAISE = 59
+
+    /**
+     * One chunk in this many tries for a vent. UNWALKED: it puts one within a few hundred blocks of wherever
+     * a diver goes down, which may be too many for a landmark.
+     */
+    private const val VENT_RARITY = 32
 
     /**
      * How much raw stone an Age that bakes it holds.
@@ -290,4 +368,7 @@ enum class EarlyGameRareMaterial {
     RIME,
     TEMPERSTONE,
     ARC_CRYSTAL,
+
+    /** The deep-ocean material, named for what the vents grow rather than what it is refined into. */
+    GLOOMGRIT,
 }

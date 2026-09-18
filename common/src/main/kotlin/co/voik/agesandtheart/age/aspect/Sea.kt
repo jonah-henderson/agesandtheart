@@ -139,7 +139,7 @@ data class Sea(override val id: Identifier) : RegistryReference {
          * Nothing quantises on the way in: [Options.steer] draws uniformly inside whatever span the word
          * wrote, so a curve here costs nothing anywhere else.
          */
-        private fun depthShift(options: Options, seed: Long): Int {
+        fun depthShift(options: Options, seed: Long): Int {
             val depth = options.steer(DEPTH, seed) ?: return AS_THE_TERRAIN_LEFT_IT
             val share = depth / Span.NATURAL_MOST
             return (share * share * share * DEEPEST_SHIFT).roundToInt()

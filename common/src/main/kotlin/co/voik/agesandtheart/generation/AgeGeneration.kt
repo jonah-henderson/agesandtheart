@@ -273,10 +273,7 @@ object AgeGeneration {
                     // which also gets them the Age's own rock in their ore targets — something a layer
                     // built by hand never had.
                     Craters.layer(composition, seed),
-                    EarlyGameRareMaterials.layer(
-                        EarlyGameRareMaterials.grownIn(composition, seed, spending),
-                    ),
-                ),
+                ) + EarlyGameRareMaterials.layers(EarlyGameRareMaterials.grownIn(composition, seed, spending)),
             ),
             // What lives here, narrowing what vanilla resolves per biome and per structure.
             Spawns.livingIn(composition.optionsFor(Aspect.SPAWNS, 0), Vocabulary.of(server).spawning),
