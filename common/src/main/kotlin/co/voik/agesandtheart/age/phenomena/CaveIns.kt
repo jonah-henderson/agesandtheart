@@ -23,10 +23,15 @@ object CaveIns {
      *
      * Sited off a player's own position the way every other phenomenon here is, so what it costs scales
      * with how many people are about rather than with how much Age has been generated.
+     *
+     * **The rung says how often and the [fury] how bad**, which is the cleanest split this phenomenon
+     * could have had: `teeming tectonics` is the ground giving way four times as often, and an Age at odds
+     * with itself is the ground giving way over more of itself and faster. Where both, they compound.
      */
-    fun stir(level: ServerLevel, density: Double) {
+    fun stir(level: ServerLevel, density: Double, fury: Double) {
         val watching = Sampling.watchers(level)
         if (watching.isEmpty()) return
+        val behaviour = TectonicsBehaviour.of(level.server)
         val random = level.random
         repeat(Happenings.timesFor(density, ROLLS)) {
             if (random.nextInt(SELDOM) != 0) return@repeat
@@ -34,7 +39,15 @@ object CaveIns {
             val x = near.x + random.nextInt(NEARBY * 2 + 1) - NEARBY
             val z = near.z + random.nextInt(NEARBY * 2 + 1) - NEARBY
             if (!level.isLoaded(BlockPos(x, near.y, z))) return@repeat
-            CaveIn.begin(level, groundAt(level, x, z), random.nextLong())
+            val shape = random.nextLong()
+            CaveIn.begin(
+                level = level,
+                at = groundAt(level, x, z),
+                shape = shape,
+                form = behaviour.shapeDrawnFrom(shape),
+                reach = behaviour.reachAt(fury),
+                pace = behaviour.paceAt(fury),
+            )
         }
     }
 

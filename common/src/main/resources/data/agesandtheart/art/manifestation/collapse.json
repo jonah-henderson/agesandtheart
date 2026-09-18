@@ -3,8 +3,11 @@
     "What it costs an Age's instability budget to come apart at the bottom (design 5.3). The dearest",
     "thing in the price list and the only one that ends the Age: fissures open at the world floor,",
     "widen, and put whatever falls in back in the overworld. Each step bought is how fast the tear",
-    "spreads. Priced so that only an Age written to be unsalvageable can reach it -- with the defaults",
-    "above it, that is an instability index in the twenties."
+    "spreads. Priced so that only an Age written to be unsalvageable can reach it: the budget is spent",
+    "cheapest-first and each register is filled before the next is touched, so the first step of this one",
+    "wants an index of 188 with the prices as they now stand. `/age decay <name> unstable <n>` is how that",
+    "is reached for testing -- earning it honestly wants a book of two dozen pages opposing two dozen",
+    "different things."
   ],
   "costs": 14,
   "most": 3

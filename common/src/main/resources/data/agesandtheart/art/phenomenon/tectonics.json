@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "How the ground gives way, and in what shapes (design 5.3).",
+    "",
+    "`reach` is a RADIUS in blocks, not an area, so doubling it is four times the ground. Each shape spends",
+    "it as its own shape wants -- a fissure's length, a bowl's radii, a bolt's whole span, a shaft's depth --",
+    "and draws its other dimensions from it, so this is the one number that says how big.",
+    "",
+    "`pace` is how long the falling takes against the walked one: under one is quicker, over one is slower.",
+    "It moves the stagger between neighbouring blocks, the length of a crumbling stage and how often the",
+    "swathe is rescanned, all together, because moving any one of them alone is visible as the wrong thing.",
+    "The three-second warning is on neither dial and is not meant to be.",
+    "",
+    "`shapes` weights the seven against each other; a shape left out never happens. The fissure is the",
+    "commonest because it reads best on the most ground. The square is one in a hundred because a thing that",
+    "unnatural stops being unnatural if it is common -- it is meant to be the one you tell somebody about.",
+    "",
+    "`fury` is what the top of `tectonics` in the price list makes of the two dials. Unwalked, like the top",
+    "of every other inflicted register: nothing sees it without a badly broken Age."
+  ],
+  "reach": 24,
+  "pace": 1.0,
+  "shapes": {
+    "fissure": 30,
+    "ellipsoid": 20,
+    "bolt": 18,
+    "crescent": 14,
+    "ring": 9,
+    "shaft": 8,
+    "square": 1
+  },
+  "fury": {
+    "reach": 48,
+    "pace": 0.45
+  }
+}

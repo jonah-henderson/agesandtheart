@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.content.AgeContent
-import co.voik.agesandtheart.worldgen.fissure.Crack
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.network.syncher.SynchedEntityData
@@ -21,6 +21,7 @@ import net.minecraft.world.level.storage.ValueOutput
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.math.mix64
 import co.voik.agesandtheart.math.unitDouble
+import kotlin.math.roundToLong
 
 /**
  * One cave-in: a fissure-shaped swathe of an Age that cracks and then crumbles away (design §5.3).
@@ -31,10 +32,10 @@ import co.voik.agesandtheart.math.unitDouble
  * is the ledger the rule warns against. It also buys persistence and chunk-locality for nothing: a cave-in
  * only runs while somebody is near enough for its chunk to tick.
  *
- * **It saves a seed and a time, and reads the rest off the world.** The swathe is [Crack.of] on the seed,
- * which is the same shape — and the same maths — a star fissure and a collapse tear are cut with. Which
- * blocks are *left* is the world's own record of how far this has got, so nothing about the frontier is
- * persisted: a cave-in reloaded mid-collapse looks at what is still standing and carries on from there.
+ * **It saves a seed, a time and its dials, and reads the rest off the world.** The swathe is [Swathe.of] on
+ * the seed, which is one of several shapes the ground can give way in. Which blocks are *left* is the
+ * world's own record of how far this has got, so nothing about the frontier is persisted: a cave-in
+ * reloaded mid-collapse looks at what is still standing and carries on from there.
  *
  * **The crack is vanilla's mining overlay**, which is what lets any of this touch an Age's existing blocks.
  * A `BlockState`'s properties are fixed at registration, so no ladder can be hung on somebody's granite —
@@ -47,6 +48,16 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
 
     /** When it began, on the level's clock. */
     private var startedAt: Long = NOT_STARTED
+
+    /** Which shape the ground gives way in — drawn from [shape] where nothing said. */
+    private var form: CollapseShape? = null
+
+    /** How far the swathe spreads and how fast it falls — from the Age's own fury where nothing said. */
+    private var reach: Int = UNDRAWN
+    private var pace: Double = UNDRAWN.toDouble()
+
+    /** Drawn once and kept, the sweep asking for it several times a second. */
+    private var drawnSwathe: Swathe? = null
 
     /**
      * What is cracking and since when — **rebuilt from the world, never saved**.
@@ -76,23 +87,67 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
     override fun tick() {
         val level = level()
         if (level !is ServerLevel) return
-        if (startedAt == NOT_STARTED) {
-            startedAt = level.gameTime
-            // A summoned one arrives with no shape, so it draws its own — see the entity type's comment.
-            if (shape == NO_SHAPE) shape = level.random.nextLong()
-        }
+        if (startedAt == NOT_STARTED) settleIn(level)
         val elapsed = level.gameTime - startedAt
         // **It can always die**, which an entity must be able to do: this one is saved, so a cave-in that
         // somehow found nothing to eat would otherwise sit in the chunk for the life of the world.
-        if (elapsed > LIVES_FOR) return discard()
+        if (elapsed > livesFor()) return discard()
         // **Crumbling every tick, scanning seldom.** Advancing what is already cracking is a walk of a small
         // map and has to look continuous — a stage is a tick, so gating it made the fall four times slower
         // than the stages say. Finding what is newly exposed is a sweep of the whole swathe and does not.
         crumbleWhatIsReady(level)
-        if (level.gameTime % LOOKS_EVERY != 0L) return
+        if (level.gameTime % looksEvery() != 0L) return
         crackWhatIsExposed(level)
         if (cracking.isEmpty() && elapsed > SETTLES_AFTER) discard()
     }
+
+    /**
+     * What a cave-in nobody gave anything to has to work out for itself, once.
+     *
+     * One that [begin] made arrives knowing all of it. A summoned one has neither a seed nor its dials, so
+     * it takes the size and pace **the Age it landed in would have given it** — which is what makes
+     * `/summon` in a badly torn Age show that Age's collapse rather than an ordinary one.
+     */
+    private fun settleIn(level: ServerLevel) {
+        startedAt = level.gameTime
+        if (shape == NO_SHAPE) shape = level.random.nextLong()
+        val undrawn = form == null || reach <= UNDRAWN || pace <= UNDRAWN
+        if (!undrawn) return
+        val behaviour = TectonicsBehaviour.of(level.server)
+        val fury = Happenings.furyIn(level, Phenomenon.TECTONICS)
+        if (form == null) form = behaviour.shapeDrawnFrom(shape)
+        if (reach <= UNDRAWN) reach = behaviour.reachAt(fury)
+        if (pace <= UNDRAWN) pace = behaviour.paceAt(fury)
+    }
+
+    private fun swathe(): Swathe =
+        drawnSwathe ?: Swathe.of(form ?: CollapseShape.FISSURE, shape, reach).also { drawnSwathe = it }
+
+    /** How long a block spends on each stage of its crumbling, in ticks — never less than a tick. */
+    private fun aStage(): Long = (A_STAGE * pace).roundToLong().coerceAtLeast(ONE_TICK)
+
+    /** How often the swathe is rescanned for what the last course exposed, in ticks. */
+    private fun looksEvery(): Long = (LOOKS_EVERY * pace).roundToLong().coerceIn(ONE_TICK, SELDOMEST_LOOK)
+
+    /**
+     * How long this one may live at all, in ticks.
+     *
+     * Stretched by both dials, since the bound exists to stop a cave-in that found nothing to eat sitting
+     * in the chunk forever — and a large or a slow one has honest work left long after the walked one is
+     * done. Never shorter than the walked bound, however small and quick.
+     */
+    private fun livesFor(): Long =
+        (LIVES_FOR * pace * reach / ORDINARY_REACH).roundToLong().coerceAtLeast(LIVES_FOR)
+
+    /**
+     * A bound on the frontier, so a cave-in in a cavern wall cannot walk the whole cavern at once.
+     *
+     * Raised with the reach rather than with the footprint, which grows as its square: a swathe four times
+     * the ground gets twice the frontier, so a large collapse eats faster than a small one without the
+     * per-tick cost of the crumbling walk going up with the area.
+     */
+    private fun mostAtOnce(): Int =
+        (MOST_AT_ONCE * reach / ORDINARY_REACH).coerceIn(MOST_AT_ONCE, MOST_EVER_AT_ONCE)
 
     /**
      * Advance everything that is cracking, and take what has reached the end.
@@ -118,7 +173,7 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
             // in one instant — see [staggerAt].
             val waits = (if (began >= firstGaveWayAt) FOLLOWS_FOR else WARNS_FOR) + staggerAt(at)
             if (since < waits) continue
-            val stage = CRACKED_TO + ((since - waits) / A_STAGE).toInt()
+            val stage = CRACKED_TO + ((since - waits) / aStage()).toInt()
             if (stage < GONE) {
                 level.destroyBlockProgress(breakerFor(at), at, stage)
                 continue
@@ -179,21 +234,24 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
      *
      * **Exposure is the whole of the rule**, and it is what makes the vertical extent look after itself: on
      * a hillside a cave-in starts at the skin and eats in, and on flat ground it starts at the top and digs
-     * a fissure-shaped trench down, each course becoming exposed as the one above it goes, into the trough
-     * [claimedAt] cuts. It is frosted ice's rim-first idea asked a better way — *can this be seen* rather than
-     * *how many neighbours has it*.
+     * its shape down, each course becoming exposed as the one above it goes. It is frosted ice's rim-first
+     * idea asked a better way — *can this be seen* rather than *how many neighbours has it*.
+     *
+     * **A column is asked once and skipped whole**, which is what the shapes are split along ([Swathe]):
+     * everything outside the plan costs one test rather than one per course.
      */
     private fun crackWhatIsExposed(level: ServerLevel) {
-        if (cracking.size >= MOST_AT_ONCE) return
+        val frontier = mostAtOnce()
+        if (cracking.size >= frontier) return
         val middle = blockPosition()
-        val crack = Crack.of(shape)
+        val swathe = swathe()
         val cursor = BlockPos.MutableBlockPos()
-        for (awayX in -REACHES..REACHES) {
-            for (awayZ in -REACHES..REACHES) {
-                val central = crack.centralityAt(awayX, awayZ)
-                if (central < OUTSIDE_IT) continue
-                for (awayY in -DEEPENS..DEEPENS) {
-                    if (central < claimedAt(awayX, awayY, awayZ)) continue
+        for (awayX in -swathe.reachesOut..swathe.reachesOut) {
+            for (awayZ in -swathe.reachesOut..swathe.reachesOut) {
+                val howCentral = swathe.howCentral(awayX, awayZ)
+                if (howCentral < OUTSIDE_IT) continue
+                for (awayY in -swathe.reachesDown..swathe.reachesUp) {
+                    if (!swathe.takes(awayX, awayY, awayZ, howCentral)) continue
                     cursor.set(middle.x + awayX, middle.y + awayY, middle.z + awayZ)
                     if (cursor.y < level.minY) continue
                     val at = cursor.immutable()
@@ -203,25 +261,10 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
                     if (!openToTheAir(level, at)) continue
                     cracking[at] = level.gameTime
                     level.destroyBlockProgress(breakerFor(at), at, CRACKED_TO)
-                    if (cracking.size >= MOST_AT_ONCE) return
+                    if (cracking.size >= frontier) return
                 }
             }
         }
-    }
-
-    /**
-     * **How central a column has to be for this course to take it**: nothing at all at the top, and
-     * tightening with depth, so the swathe narrows to a trough down the crack's own middle rather than
-     * dropping a shaft with vertical walls and a level floor.
-     *
-     * Roughened per block, which is what keeps the sides from reading as a cone. Read off the shape's seed
-     * and the position, so a reloaded cave-in cuts the same trough it was cutting before.
-     */
-    private fun claimedAt(awayX: Int, awayY: Int, awayZ: Int): Double {
-        if (awayY >= AT_THE_TOP) return NOTHING_REQUIRED
-        val depth = -awayY.toDouble() / DEEPENS
-        val rough = (unitDouble(mix64(shape xor BlockPos.asLong(awayX, awayY, awayZ))) * TWICE - ONE) * ROUGHNESS
-        return (depth * depth + rough).coerceAtLeast(NOTHING_REQUIRED)
     }
 
     /**
@@ -231,7 +274,7 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
      * same way it was staggering before.
      */
     private fun staggerAt(at: BlockPos): Long =
-        (unitDouble(mix64(shape xor at.asLong())) * STAGGERED_BY).toLong()
+        (unitDouble(mix64(shape xor at.asLong())) * STAGGERED_BY * pace).toLong()
 
     /** Whether any of the six sides of [at] is open, which is the only way a crack on it could be seen. */
     private fun openToTheAir(level: ServerLevel, at: BlockPos): Boolean =
@@ -254,22 +297,44 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
      */
     private fun breakerFor(at: BlockPos): Int = -(at.asLong().hashCode() and Int.MAX_VALUE) - 1
 
-    /** The seed and the clock, which is all a cave-in is — see the class doc. */
+    /**
+     * The seed, the clock and the dials, which is all a cave-in is — see the class doc.
+     *
+     * **Every one of them may be absent**, which is what makes `/summon agesandtheart:cave_in ~ ~ ~
+     * {form:"bolt",reach:40}` the instrument for looking at one shape: what is written is obeyed and what
+     * is not is drawn in [settleIn].
+     */
     override fun readAdditionalSaveData(input: ValueInput) {
-        shape = input.getLongOr(SHAPE_KEY, 0L)
+        shape = input.getLongOr(SHAPE_KEY, NO_SHAPE)
         startedAt = input.getLongOr(STARTED_KEY, NOT_STARTED)
+        form = input.getString(FORM_KEY).orElse(null)?.let(CollapseShape::named)
+        reach = input.getIntOr(REACH_KEY, UNDRAWN)
+        pace = input.getDoubleOr(PACE_KEY, UNDRAWN.toDouble())
     }
 
     override fun addAdditionalSaveData(output: ValueOutput) {
         output.putLong(SHAPE_KEY, shape)
         output.putLong(STARTED_KEY, startedAt)
+        form?.let { output.putString(FORM_KEY, it.key) }
+        output.putInt(REACH_KEY, reach)
+        output.putDouble(PACE_KEY, pace)
     }
 
     companion object {
         /** Set once by whatever spawns it — see [CaveIns]. */
-        fun begin(level: ServerLevel, at: BlockPos, shape: Long): CaveIn? {
+        fun begin(
+            level: ServerLevel,
+            at: BlockPos,
+            shape: Long,
+            form: CollapseShape,
+            reach: Int,
+            pace: Double,
+        ): CaveIn? {
             val born = AgeContent.CAVE_IN.create(level, EntitySpawnReason.EVENT) ?: return null
             born.shape = shape
+            born.form = form
+            born.reach = reach
+            born.pace = pace
             born.startedAt = level.gameTime
             born.setPos(at.x + HALF, at.y.toDouble(), at.z + HALF)
             level.addFreshEntity(born)
@@ -307,8 +372,12 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
         /** How long what the ground exposes once it has started going waits: nothing — see [crumbleWhatIsReady]. */
         private const val FOLLOWS_FOR = 0L
 
-        /** And then it goes, very fast — about a quarter of a second from first movement to gone. */
+        /**
+         * And then it goes, very fast — about a quarter of a second from first movement to gone, at the
+         * walked pace. A pace under one cannot quicken this, a stage already being a tick.
+         */
         private const val A_STAGE = 1L
+        private const val ONE_TICK = 1L
 
         /** How far apart the blocks of one course start going, so a layer does not vanish all at once. */
         private const val STAGGERED_BY = 6.0
@@ -316,31 +385,23 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
         /** Often enough to look continuous, seldom enough that a swathe is not rescanned every tick. */
         private const val LOOKS_EVERY = 4L
 
-        /** A bound on the frontier, so a cave-in in a cavern wall cannot walk the whole cavern at once. */
+        /** Past this the frontier stops moving between looks, whatever the pace says. */
+        private const val SELDOMEST_LOOK = 10L
+
+        /** A bound on the frontier at the walked reach — see [mostAtOnce]. */
         private const val MOST_AT_ONCE = 512
+        private const val MOST_EVER_AT_ONCE = 1024
 
-        /** How far the plan shape reaches, which is a crack's own length and wander. */
-        private const val REACHES = 24
+        /** The reach the two bounds above were walked at, which is what the dials are read against. */
+        private const val ORDINARY_REACH = 24
 
-        /** How far it cuts up from where it began, and the most it cuts down — see [claimedAt]. */
-        private const val DEEPENS = 12
-
-        /** How far a block may stand off the trough's own wall, as a share of the crack's half-width. */
-        private const val ROUGHNESS = 0.08
-
-        /** A column the crack does not reach at all — see [Crack.centralityAt]. */
+        /** A column the swathe does not reach at all — see [Swathe.howCentral]. */
         private const val OUTSIDE_IT = 0.0
-
-        /** At and above where it began, the whole swathe goes. */
-        private const val AT_THE_TOP = 0
-        private const val NOTHING_REQUIRED = 0.0
-        private const val TWICE = 2.0
-        private const val ONE = 1.0
 
         /** Quiet for this long with nothing left cracking means it has finished. */
         private const val SETTLES_AFTER = 200L
 
-        /** Whatever happens, it is gone after two minutes. */
+        /** Whatever happens, an ordinary one is gone after two minutes — see [livesFor]. */
         private const val LIVES_FOR = 2400L
 
         private const val LEAVES_RUBBLE = 0.08f
@@ -352,9 +413,16 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
 
         /** What a summoned cave-in has instead of a seed, until its first tick draws one. */
         private const val NO_SHAPE = 0L
+
+        /** What a dial nobody set reads as, so a summoned cave-in knows to ask the Age for it. */
+        private const val UNDRAWN = 0
+
         private const val HALF = 0.5
 
         private const val SHAPE_KEY = "shape"
         private const val STARTED_KEY = "started_at"
+        private const val FORM_KEY = "form"
+        private const val REACH_KEY = "reach"
+        private const val PACE_KEY = "pace"
     }
 }

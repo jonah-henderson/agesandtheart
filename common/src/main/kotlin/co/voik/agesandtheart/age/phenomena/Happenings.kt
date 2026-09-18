@@ -187,7 +187,7 @@ object Happenings {
             // something to arrange here. See [Phenomenon.RAINBOW].
             Phenomenon.RAINBOW -> Unit
             Phenomenon.SANDFALL -> Sandfall.wander(level, density, fury)
-            Phenomenon.TECTONICS -> CaveIns.stir(level, density)
+            Phenomenon.TECTONICS -> CaveIns.stir(level, density, fury)
             Phenomenon.BLIZZARD -> Blizzard.blow(level, density, fury)
             Phenomenon.METEORS -> Meteors.fall(level, density, fury)
             // **The rise is not here**, and that is the one thing to know about this phenomenon's shape:

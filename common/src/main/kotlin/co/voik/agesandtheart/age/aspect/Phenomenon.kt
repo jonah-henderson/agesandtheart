@@ -193,8 +193,12 @@ enum class Phenomenon(
      *
      * **It insists on no weather.** Rock does not care what the sky is doing, and `insistsOn` is a floor
      * that can only raise, so there is nothing here it could say.
+     *
+     * **And it is inflicted as well as written**, like its three neighbours: an Age at odds with itself
+     * gives way under whoever is walking it whether or not anybody wrote that in, and the ground taken is
+     * wider and quicker the further the budget reached.
      */
-    TECTONICS("tectonics"),
+    TECTONICS("tectonics", inflictedBy = Manifestation.TECTONICS),
 
     /**
      * The sea comes up, under rain that will not stop

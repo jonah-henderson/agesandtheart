@@ -210,6 +210,7 @@ internal val SHIPPED_PRICES = mapOf(
     Manifestation.SANDFALL to Price(costs = 7, most = 4),
     Manifestation.BLIZZARD to Price(costs = 7, most = 4),
     Manifestation.METEORS to Price(costs = 7, most = 4),
+    Manifestation.TECTONICS to Price(costs = 7, most = 4),
     // One step rather than four: an inferno has no designed ramp — see `Manifestation.INFERNO`.
     Manifestation.INFERNO to Price(costs = 7, most = 1),
     Manifestation.WORSENING_WOUNDS to Price(costs = 9, most = 3),

@@ -96,6 +96,22 @@ enum class Manifestation(val key: String) : StringRepresentable {
     METEORS("meteors"),
 
     /**
+     * The ground gives way under itself (design §5.2, §5.3's collapse asked of one hillside at a time) —
+     * swathes that take more of the Age and take it faster the further the budget reaches.
+     *
+     * **Priced with [SANDFALL], [BLIZZARD] and [METEORS]**, on the argument the four share: it is
+     * difficulty you can answer rather than a verdict you cannot. What it asks of a player is to read the
+     * floor, and three seconds of unmistakable fracture is a long time to get off a piece of ground — so
+     * an Age that keeps holing itself is still the dearer thing.
+     *
+     * **What a step buys is size and speed, never the warning.** The warning is the mechanism rather than
+     * a difficulty setting: a collapse that arrived unannounced would not be harder, it would be a
+     * different and worse thing. [COLLAPSE] is the register that ends the Age, and this one only takes the
+     * ground you happen to be standing on.
+     */
+    TECTONICS("tectonics"),
+
+    /**
      * The Age is set alight (design §5.2) — the sun scours frost off the ground and lights whatever will
      * burn, in a world that was never written to be fiery.
      *

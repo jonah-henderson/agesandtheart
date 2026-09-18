@@ -30,21 +30,24 @@ internal class Crack(private val alongX: Double, private val alongZ: Double, pri
      * been open a while is a longer, fatter crack rather than a blob with a crack inside it.
      */
     fun reaches(offsetX: Int, offsetZ: Int, wider: Double): Boolean {
-        val (offCentre, width) = measure(offsetX, offsetZ, wider) ?: return false
+        val (offCentre, width) = measure(offsetX.toDouble(), offsetZ.toDouble(), wider) ?: return false
         return offCentre <= width
     }
 
     /**
      * How central a column is: 1 on the crack's own centreline, falling to 0 at its edge, and below 0
      * outside it — what a cave-in cuts its floor to, so a trough is deepest down the middle.
+     *
+     * Offsets are fractional because a cave-in reads the plan at whatever scale its own size asks for, so
+     * the same crack serves a swathe half its length and one twice it.
      */
-    fun centralityAt(offsetX: Int, offsetZ: Int): Double {
+    fun centralityAt(offsetX: Double, offsetZ: Double): Double {
         val (offCentre, width) = measure(offsetX, offsetZ, 0.0) ?: return OUTSIDE
         return if (width > 0.0) 1.0 - offCentre / width else OUTSIDE
     }
 
     /** How far a column stands off the crack's wandering centre, and how wide the crack is there; null past its ends. */
-    private fun measure(offsetX: Int, offsetZ: Int, wider: Double): Pair<Double, Double>? {
+    private fun measure(offsetX: Double, offsetZ: Double, wider: Double): Pair<Double, Double>? {
         // Into the crack's own frame: how far along its run, and how far off its centre.
         val along = offsetX * alongX + offsetZ * alongZ
         val across = -offsetX * alongZ + offsetZ * alongX
