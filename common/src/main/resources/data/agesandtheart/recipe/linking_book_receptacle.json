@@ -1,0 +1,18 @@
+{
+  "_comment": "Jonah's pattern (2026-09-17), with any colour of rime crystal through the tag.",
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "R": "#agesandtheart:rime_crystals",
+    "P": "agesandtheart:phasmium",
+    "D": "agesandtheart:pitchstone_plate",
+    "S": "minecraft:redstone"
+  },
+  "pattern": [
+    "I I",
+    "RPR",
+    "DSD"
+  ],
+  "result": { "id": "agesandtheart:linking_book_receptacle" }
+}

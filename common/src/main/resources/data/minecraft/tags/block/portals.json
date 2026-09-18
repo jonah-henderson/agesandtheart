@@ -1,0 +1,5 @@
+{
+  "_comment": "Vanilla reads this in one place: a rider dismounting a vehicle that stands in a portal is not set down inside it.",
+  "replace": false,
+  "values": ["agesandtheart:linking_portal"]
+}

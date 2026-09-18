@@ -1,0 +1,39 @@
+# The linking portal's crossing half: a lit portal sends what walks into it where the receptacle's book leads,
+# and goes out when its frame breaks.
+# Run with: scripts/drive-server.sh scripts/checks/linking-portal.txt
+#
+# **Lighting cannot be driven headless** — a book goes into a receptacle by a player's click, and a headless
+# server has no player. So the receptacle is set down already holding a book, and the opening is filled by
+# hand. `strict` is what makes that possible: without it each portal block placed is checked by its
+# neighbours before the rest exist, finds no whole portal, and goes out.
+#
+# MEASURED 2026-09-17: all four expectations below hold. The startup line read `Loaded 1545 recipes` with the
+# receptacle's recipe in and no parse error logged; the count without it was not taken (phasmium.txt says
+# why the count is the recipe check).
+#
+# The frame: a 2x3 opening in the X plane, x 1-2 and y 201-203 at z 0, cornerless, with the receptacle on top.
+execute in minecraft:overworld run forceload add 0 0
+execute in minecraft:the_nether run forceload add 0 0
+fill 1 200 0 2 200 0 agesandtheart:phasmium_block
+fill 0 201 0 0 203 0 agesandtheart:phasmium_block
+fill 3 201 0 3 203 0 agesandtheart:phasmium_block
+fill 1 204 0 2 204 0 agesandtheart:phasmium_block
+setblock 1 205 0 agesandtheart:linking_book_receptacle[has_book=true]{Book:{id:"agesandtheart:linking_book",count:1,components:{"agesandtheart:link_target":{dimension:"minecraft:the_nether",position:[0.5d,100.0d,0.5d],name:"Nether"}}}}
+fill 1 201 0 2 203 0 agesandtheart:linking_portal[axis=x] strict
+# Expect: both pass — the portal is standing.
+execute if block 1 201 0 agesandtheart:linking_portal
+execute if block 2 203 0 agesandtheart:linking_portal
+summon minecraft:pig 1.5 201 0.5 {NoAI:1b,Tags:["probe"]}
+# A few commands' worth of ticks for the pig to go.
+say waiting
+say waiting
+# Expect: the first fails and the second passes, count 1 — the pig is at the book's spot in the Nether.
+# **Both selectors are bounded by distance on purpose**: an unbounded `@e` searches every dimension, so
+# `execute in` alone narrows nothing and the two lines would always agree. Asked promptly, too — the Nether
+# at the origin can drown a pig in lava within seconds, and a dead one passes neither.
+execute in minecraft:overworld positioned 1.5 201 0.5 if entity @e[tag=probe,distance=..4]
+execute in minecraft:the_nether positioned 0.5 100 0.5 if entity @e[tag=probe,distance=..4]
+# Break a side of the frame. Expect: both fail — the portal went out.
+setblock 0 202 0 minecraft:air
+execute if block 1 201 0 agesandtheart:linking_portal
+execute if block 2 203 0 agesandtheart:linking_portal

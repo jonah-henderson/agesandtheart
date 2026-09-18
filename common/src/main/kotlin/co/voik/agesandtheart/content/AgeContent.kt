@@ -6,6 +6,10 @@ import co.voik.agesandtheart.page.PageWordFunction
 import co.voik.agesandtheart.age.consequence.WoundBlock
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
+import co.voik.agesandtheart.portal.LinkingBookReceptacleBlock
+import co.voik.agesandtheart.portal.LinkingBookReceptacleBlockEntity
+import co.voik.agesandtheart.portal.LinkingPortalBlock
+import co.voik.agesandtheart.portal.LinkingPortalShape
 import co.voik.agesandtheart.age.phenomena.SandColumn
 import co.voik.agesandtheart.age.phenomena.CaveIn
 import co.voik.agesandtheart.age.phenomena.Meteor
@@ -439,12 +443,11 @@ object AgeContent {
     )
 
     /**
-     * Nine phasmium worked together — the block a linking portal's frame is built out of.
+     * Nine phasmium worked together — the block a linking portal's frame is built out of, by the nether
+     * portal's rules (see [LinkingPortalShape]).
      *
      * **Iron's numbers, as astrite has**: this is a worked metal, and a frame is something you assemble
-     * rather than something you pile up. Nothing here knows about portals yet and it does not need to — a
-     * frame block that is only a block is the right thing to have first, since it is what a player must
-     * have made before any of the rest can be tried at all.
+     * rather than something you pile up.
      */
     val PHASMIUM_BLOCK_BLOCK: Block = Block(
         BlockBehaviour.Properties.of()
@@ -463,6 +466,48 @@ object AgeContent {
     /** Iron's, which is what a block of worked metal should cost to get through. */
     private const val PHASMIUM_STRENGTH = 5.0f
     private const val PHASMIUM_RESISTANCE = 6.0f
+
+    private val LINKING_PORTAL_ID: Identifier = "linking_portal".location()
+    private val LINKING_BOOK_RECEPTACLE_ID: Identifier = "linking_book_receptacle".location()
+
+    /** A lit linking portal's opening, with a nether portal's properties: no collision, no breaking, no drop. */
+    val LINKING_PORTAL: LinkingPortalBlock = LinkingPortalBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, LINKING_PORTAL_ID))
+            .noCollision()
+            .strength(UNBREAKABLE)
+            .sound(SoundType.GLASS)
+            .lightLevel { PORTAL_LIGHT }
+            .pushReaction(PushReaction.BLOCK)
+            .noLootTable(),
+    )
+
+    /** What lights a phasmium frame — see [LinkingBookReceptacleBlock]. */
+    val LINKING_BOOK_RECEPTACLE_BLOCK: LinkingBookReceptacleBlock = LinkingBookReceptacleBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, LINKING_BOOK_RECEPTACLE_ID))
+            .mapColor(MapColor.METAL)
+            .strength(PHASMIUM_STRENGTH, PHASMIUM_RESISTANCE)
+            .sound(SoundType.METAL)
+            .requiresCorrectToolForDrops(),
+    )
+
+    val LINKING_BOOK_RECEPTACLE_ENTITY: BlockEntityType<LinkingBookReceptacleBlockEntity> =
+        BlockEntityType(
+            { pos, state -> LinkingBookReceptacleBlockEntity(pos, state) },
+            setOf(LINKING_BOOK_RECEPTACLE_BLOCK),
+        )
+
+    val LINKING_BOOK_RECEPTACLE: Item = BlockItem(
+        LINKING_BOOK_RECEPTACLE_BLOCK,
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, LINKING_BOOK_RECEPTACLE_ID))
+            .useBlockDescriptionPrefix(),
+    )
+
+    /** A nether portal's glow, and its strength: nothing but a command breaks it. */
+    private const val PORTAL_LIGHT = 11
+    private const val UNBREAKABLE = -1.0f
 
     /**
      * Drab, and drab deliberately — a dull warm grey with no hue worth naming.
@@ -1421,6 +1466,8 @@ object AgeContent {
         VENT_LINING_ID to VENT_LINING,
         DEEP_BUBBLE_COLUMN_ID to DEEP_BUBBLE_COLUMN,
         PHASMIUM_BLOCK_ID to PHASMIUM_BLOCK_BLOCK,
+        LINKING_PORTAL_ID to LINKING_PORTAL,
+        LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_BLOCK,
         GLOOMGRIT_ID to GLOOMGRIT_CLUSTER,
         WOUND_ID to WOUND_BLOCK,
         WRITERS_DESK_ID to WRITERS_DESK_BLOCK,
@@ -1464,6 +1511,7 @@ object AgeContent {
         WRITERS_DESK_ID to WRITERS_DESK_ENTITY,
         STAR_FISSURE_ID to STAR_FISSURE_ENTITY,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,
+        LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_ENTITY,
     )
 
     val WRITERS_DESK_MENU: MenuType<WritersDeskMenu> = MenuType(
@@ -1527,6 +1575,7 @@ object AgeContent {
         PHASMIUM_GRAINS_ID to PHASMIUM_GRAINS,
         PHASMIUM_ID to PHASMIUM,
         PHASMIUM_BLOCK_ID to PHASMIUM_BLOCK,
+        LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE,
         DESCRIPTIVE_BOOK_ID to DESCRIPTIVE_BOOK,
         PAGE_ID to PAGE,
         NOTEBOOK_ID to NOTEBOOK,

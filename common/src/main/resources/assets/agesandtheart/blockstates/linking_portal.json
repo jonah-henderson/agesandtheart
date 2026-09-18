@@ -1,0 +1,7 @@
+{
+  "_comment": "The nether portal's own sheet stands in until the model pass (Phase 9). It should not survive the asset pass: a linking portal is not the Nether's, and at the moment nothing on sight tells the two apart.",
+  "variants": {
+    "axis=x": { "model": "minecraft:block/nether_portal_ns" },
+    "axis=z": { "model": "minecraft:block/nether_portal_ew" }
+  }
+}

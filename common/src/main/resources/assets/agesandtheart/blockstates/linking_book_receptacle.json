@@ -1,0 +1,7 @@
+{
+  "_comment": "A respawn anchor stands in until the model pass: uncharged while empty, charged while it holds a book, so whether a receptacle is lighting its frame reads from across the room. Borrowed, and it should not survive the asset pass.",
+  "variants": {
+    "has_book=false": { "model": "minecraft:block/respawn_anchor_0" },
+    "has_book=true": { "model": "minecraft:block/respawn_anchor_4" }
+  }
+}
