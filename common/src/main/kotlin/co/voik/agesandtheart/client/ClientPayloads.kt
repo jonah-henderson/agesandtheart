@@ -9,6 +9,8 @@ import co.voik.agesandtheart.client.panel.LinkingPanel
 import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
+import co.voik.agesandtheart.worldgen.fissure.FallResumedPayload
+import net.minecraft.client.Minecraft
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 
 /**
@@ -26,6 +28,9 @@ object ClientPayloads {
         Receiver(DeskSyncPayload.TYPE) { DeskModel.remember(it) },
         Receiver(DeskPricePayload.TYPE) { DeskModel.remember(it) },
         Receiver(DeskNoticePayload.TYPE) { DeskModel.remember(it) },
+        // The drop carries on from where it left off: where they are and how fast they were going came
+        // back with them, and this is the flag that says the ground is still not holding them.
+        Receiver(FallResumedPayload.TYPE) { Minecraft.getInstance().player?.noPhysics = true },
         Receiver(PanelLevelPayload.TYPE) { LinkingPanel.accept(it) },
         Receiver(PanelChunkPayload.TYPE) { LinkingPanel.accept(it) },
     )

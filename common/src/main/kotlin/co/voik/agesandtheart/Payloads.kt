@@ -18,6 +18,7 @@ import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
+import co.voik.agesandtheart.worldgen.fissure.FallResumedPayload
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.server.level.ServerPlayer
 
@@ -56,6 +57,8 @@ object Payloads {
         Clientbound(DeskSyncPayload.TYPE, DeskSyncPayload.STREAM_CODEC),
         Clientbound(DeskPricePayload.TYPE, DeskPricePayload.STREAM_CODEC),
         Clientbound(DeskNoticePayload.TYPE, DeskNoticePayload.STREAM_CODEC),
+        // A fall through a tear that a disconnection interrupted, taken up again.
+        Clientbound(FallResumedPayload.TYPE, FallResumedPayload.STREAM_CODEC),
         // The desk's instructions, re-checked server-side whatever the screen believed.
         Serverbound(DeskCommandPayload.TYPE, DeskCommandPayload.STREAM_CODEC, DeskCommands::handle),
         Serverbound(LinkRequest.TYPE, LinkRequest.STREAM_CODEC, Linking::handle),

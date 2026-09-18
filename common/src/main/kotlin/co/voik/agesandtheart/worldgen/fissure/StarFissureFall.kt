@@ -26,18 +26,30 @@ object StarFissureFall {
     /**
      * Whether a tear has this player, which is what lets them through the ground under it.
      *
-     * [alreadyFalling] is what separates the two questions this answers. Entering asks whether a tear is
-     * *against the body*, so a tear in a wall beside a walkway is scenery; once falling, it asks only
-     * whether the tear is still overhead, which it must keep answering or the ground would catch somebody
-     * halfway down and set them inside it.
+     * [alreadyFalling] is what separates the two questions this answers. Entering asks whether a tear is in
+     * the way down, so a tear in a wall beside a walkway is scenery; once falling, it asks only whether the
+     * tear is still overhead, which it must keep answering or the ground would catch somebody halfway down
+     * and set them inside it.
      */
     @JvmStatic
     fun takesHold(player: Player, alreadyFalling: Boolean): Boolean {
         if (player.isSpectator) return false
         if (player.level().dimension() == Level.OVERWORLD) return false
-        if (alreadyFalling) return tearOfTheFall(player) != null
-        if (player.onGround()) return false
-        return tearAgainstTheBody(player) != null
+        if (alreadyFalling) return stillUnderTheTear(player)
+        return tearInTheWayDown(player) != null
+    }
+
+    /**
+     * Whether the tear a fall began at is still there — and yes wherever the answer cannot be had.
+     *
+     * A client that has just joined holds no chunks yet, and a column it cannot read answers air. Letting
+     * that end a fall would drop somebody back into physics inside the rock they were passing through, so
+     * an unloaded column keeps its tear rather than losing it. The server, whose chunks are held by the
+     * player standing in them, never takes this branch.
+     */
+    private fun stillUnderTheTear(player: Player): Boolean {
+        val cannotSeeTheColumn = !player.level().hasChunkAt(player.blockPosition())
+        return cannotSeeTheColumn || tearOfTheFall(player) != null
     }
 
     /**
@@ -79,59 +91,90 @@ object StarFissureFall {
     fun eyesInside(player: Player, tear: BlockPos): Boolean = player.eyeY < tear.y + A_BLOCK
 
     /**
-     * The tear this fall is under — the first one at or above the feet, in the player's own column.
+     * The tear this fall is under — the lowest one in the player's own column.
      *
      * Searched from the feet rather than the eyes so the same call answers on the way in, where the tear is
      * level with the body, and all the way down, where it is a long way overhead. The reach is a little
      * past [FALL_DEPTH], so the fall is always let go of before the tear is lost.
      */
-    fun tearOfTheFall(player: Player): BlockPos? {
-        val lowest = Mth.floor(player.y)
-        for (y in lowest..lowest + REACHES_BACK) {
-            val at = BlockPos(Mth.floor(player.x), y, Mth.floor(player.z))
-            if (player.level().getBlockState(at).block is StarFissureBlock) return at
+    fun tearOfTheFall(player: Player): BlockPos? =
+        tearInTheColumn(player, upTo = Mth.floor(player.y) + REACHES_BACK)
+
+    /**
+     * Which columns overhead are open, as the tears standing near [tear] — the hole to leave in the lid.
+     *
+     * **The tear's own columns, not the box around them.** A crack fills its bounding rectangle no better
+     * than a spreading tear's band does, and what a lid with a rectangle cut out of it leaves overhead is
+     * the ground the tear did not take — at the floor of an Age, a chunk of bedrock where the field should
+     * be.
+     *
+     * **One layer is enough to look at**, because every tear is cut at one: a collapse tear stands at the
+     * Age's own floor and a natural fissure is levelled across its whole crack ([StarFissurePiece]).
+     */
+    fun openingAround(player: Player, tear: BlockPos): Opening {
+        val torn = BooleanArray(SIDE * SIDE)
+        val cursor = BlockPos.MutableBlockPos()
+        for (awayX in -SPREADS_OVER..SPREADS_OVER) {
+            for (awayZ in -SPREADS_OVER..SPREADS_OVER) {
+                cursor.set(tear.x + awayX, tear.y, tear.z + awayZ)
+                val column = (awayX + SPREADS_OVER) * SIDE + (awayZ + SPREADS_OVER)
+                torn[column] = player.level().getBlockState(cursor).block is StarFissureBlock
+            }
         }
-        return null
+        return Opening(tear.x - SPREADS_OVER, tear.z - SPREADS_OVER, SIDE, torn)
     }
 
     /**
-     * How wide the opening overhead is, as the block span of the tears joined to [tear] on its own layer.
+     * The hole in the veil's lid: which of the columns around a tear are themselves torn, in blocks.
      *
-     * A tear is often one block and sometimes a spreading group of them, and what the veil needs is the
-     * hole to leave in its lid. Taken as the span rather than the exact shape: an opening a block too
-     * generous at a corner is not visible from under it, and a flood fill per frame would be.
+     * Everything outside the square this was searched over is lid, which is what [leastX], [leastZ] and
+     * [side] are for — the veil frames that square once and only goes column by column inside it.
      */
-    fun openingAround(player: Player, tear: BlockPos): Opening {
-        var leastX = tear.x
-        var mostX = tear.x
-        var leastZ = tear.z
-        var mostZ = tear.z
-        for (awayX in -SPREADS_OVER..SPREADS_OVER) {
-            for (awayZ in -SPREADS_OVER..SPREADS_OVER) {
-                val at = BlockPos(tear.x + awayX, tear.y, tear.z + awayZ)
-                if (player.level().getBlockState(at).block !is StarFissureBlock) continue
-                leastX = minOf(leastX, at.x)
-                mostX = maxOf(mostX, at.x)
-                leastZ = minOf(leastZ, at.z)
-                mostZ = maxOf(mostZ, at.z)
-            }
+    class Opening(val leastX: Int, val leastZ: Int, val side: Int, private val torn: BooleanArray) {
+
+        val mostX: Int get() = leastX + side - 1
+        val mostZ: Int get() = leastZ + side - 1
+
+        fun isTorn(x: Int, z: Int): Boolean {
+            val alongX = x - leastX
+            val alongZ = z - leastZ
+            if (alongX !in 0..<side || alongZ !in 0..<side) return false
+            return torn[alongX * side + alongZ]
         }
-        return Opening(leastX.toDouble(), mostX + A_BLOCK, leastZ.toDouble(), mostZ + A_BLOCK)
     }
 
-    /** The hole in the veil's lid, in world coordinates. */
-    data class Opening(val leastX: Double, val mostX: Double, val leastZ: Double, val mostZ: Double)
+    /**
+     * A tear anywhere the body will have passed through by the end of this tick — **how one is entered**.
+     *
+     * **Swept rather than a snapshot**, because a tear one block deep standing on solid ground is stepped
+     * clean over by a fall at speed: the tick before, the tear is still under the feet; the tick after, what
+     * is under the tear has already caught them, and a body standing on the ground was never asked. A tear
+     * at an Age's floor (`Collapse`) is a hundred blocks of cleared shaft with bedrock under its one layer,
+     * so it was *always* arrived at that way and the snapshot never took one at all.
+     */
+    private fun tearInTheWayDown(player: Player): BlockPos? =
+        tearInTheColumn(player, upTo = Mth.floor(player.y + player.bbHeight))
 
-    /** A tear anywhere up the body, which is how one is entered. */
-    private fun tearAgainstTheBody(player: Player): BlockPos? {
-        val lowest = Mth.floor(player.y)
-        val highest = Mth.floor(player.y + player.bbHeight)
-        for (y in lowest..highest) {
-            val at = BlockPos(Mth.floor(player.x), y, Mth.floor(player.z))
-            if (player.level().getBlockState(at).block is StarFissureBlock) return at
+    /**
+     * The lowest tear in the player's own column, from where this tick's fall will put them up to [upTo].
+     *
+     * **It reaches under the feet, and every caller wants it to.** A tear caught on the way in is often
+     * still below the body for the tick it is caught on, and a fall whose tear cannot be found is a fall
+     * that has come out of the bottom — [TheFall] would put them back in the overworld having never moved,
+     * and [carry] would let them drift off the tear's column on the way past it.
+     */
+    private fun tearInTheColumn(player: Player, upTo: Int): BlockPos? {
+        val lowest = Mth.floor(player.y + thisTicksDrop(player))
+        val cursor = BlockPos.MutableBlockPos()
+        for (y in lowest..upTo) {
+            cursor.set(Mth.floor(player.x), y, Mth.floor(player.z))
+            if (player.level().getBlockState(cursor).block is StarFissureBlock) return cursor.immutable()
         }
         return null
     }
+
+    /** How far this tick's fall carries them, read at the head of it, before gravity has been added. */
+    private fun thisTicksDrop(player: Player): Double = minOf(0.0, player.deltaMovement.y) - GRAVITY
 
     /**
      * Where a fall in progress is written on the player, so a disconnection does not strand them.
@@ -150,8 +193,12 @@ object StarFissureFall {
     /** How far back up the fall looks for the tear it came through — past [FALL_DEPTH], never short of it. */
     private const val REACHES_BACK = FALL_DEPTH + 8
 
-    /** How far a tear is followed sideways when measuring the opening. */
+    /** How far a tear is followed sideways when measuring the opening, and the square that makes. */
     private const val SPREADS_OVER = 8
+    private const val SIDE = SPREADS_OVER * 2 + 1
+
+    /** What a tick of falling adds, which the tick has not added yet when a fall is looked for. */
+    private const val GRAVITY = 0.08
 
     private const val HALF_A_BLOCK = 0.5
     private const val A_BLOCK = 1.0

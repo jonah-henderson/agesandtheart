@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.client
 
 import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.blockentity.TheEndPortalRenderer
 import net.minecraft.client.renderer.blockentity.state.EndPortalRenderState
@@ -21,6 +22,22 @@ import net.minecraft.client.renderer.state.level.CameraRenderState
  */
 class StarFissureRenderer : TheEndPortalRenderer() {
 
+    /**
+     * **As far as the Age around it is drawn**, where a block entity is otherwise given sixty-four blocks.
+     *
+     * Vanilla never had to raise it: a stronghold's portal is something you stand over. A tear is landscape,
+     * and the one at an Age's floor is a hundred-odd blocks down a cleared shaft — so at the default it was
+     * never visible from the top of its own shaft, and the fall it exists to offer could not be seen to be
+     * there. This is `BeaconRenderer`'s own answer to the same question, and it ties the field to the render
+     * distance rather than to a number of our own.
+     *
+     * The cost is a render state per tear per frame over a much larger volume, which the tears at an Age's
+     * floor are the worry for rather than the fissures on its surface. If a walk finds one heavy, the
+     * batched pass the wounds use is the shape to copy (design §5.2.1) — and [StarFissureVeil] is the proof
+     * it would work, drawing the same field from plain geometry with no block entity at all.
+     */
+    override fun getViewDistance(): Int = Minecraft.getInstance().options.effectiveRenderDistance * A_CHUNK
+
     override fun submit(
         state: EndPortalRenderState,
         poseStack: PoseStack,
@@ -35,5 +52,10 @@ class StarFissureRenderer : TheEndPortalRenderer() {
         // costs nothing.
         if (StarFissureVeil.hidingTheTears()) return
         submitCube(state.facesToShow, RenderTypes.endPortal(), poseStack, submitNodeCollector)
+    }
+
+    private companion object {
+        /** Render distance is in chunks and a view distance is in blocks. */
+        const val A_CHUNK = 16
     }
 }

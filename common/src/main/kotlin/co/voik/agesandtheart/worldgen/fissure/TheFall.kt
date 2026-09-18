@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.fissure
 
+import co.voik.agesandtheart.platform.Services
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.phys.Vec3
@@ -47,8 +48,12 @@ object TheFall {
      */
     fun resumed(player: ServerPlayer) {
         if (!StarFissureFall.isFalling(player)) return
-        if (StarFissureFall.tearOfTheFall(player) != null) return
-        putBackInTheOverworld(player, player.level().server)
+        if (StarFissureFall.tearOfTheFall(player) == null) {
+            putBackInTheOverworld(player, player.level().server)
+            return
+        }
+        // And the client told, which is the one part of a fall it cannot read off the blocks for itself.
+        Services.NETWORK.sendToPlayer(player, FallResumedPayload)
     }
 
     /**
