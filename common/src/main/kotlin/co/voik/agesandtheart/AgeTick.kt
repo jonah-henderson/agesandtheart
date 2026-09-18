@@ -2,7 +2,6 @@ package co.voik.agesandtheart
 
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Spending
-import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.consequence.Hostility
 import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.phenomena.Deluge
@@ -35,19 +34,18 @@ object AgeTick {
             val recipe = saved.recipe(age) ?: continue
             val composition = recipe.composition ?: continue
             val happening = Happenings.claimsIn(composition)
+            // What the Age could not hold, and what that bought. Derived rather than stored, so it comes
+            // out the same on every open — see [Spending]. Worked out here rather than inside
+            // [Happenings.befallAll] because the sea and the tearing below read it too.
+            val spending = Spending.of(server, recipe)
             // **The sea's level is settled before the emptiness check, and the counter after it.** Where
             // the sea *stands* has to be right whenever a chunk is made, and a chunk can be made in an Age
             // nobody is in — a forceload, a teleport arriving, a neighbouring player's view. How far it has
-            // *got* may only advance while somebody is there, which is the whole of what the counted
-            // register was chosen for. See [Deluge].
-            val drowning = happening.any { it.value == Phenomenon.DELUGE.key }
-            Deluge.stand(level, drowning, saved.presenceIn(age))
+            // *got* may only advance while somebody is there and the rain is falling. See [Deluge].
+            val rising = Deluge.risingIn(happening, spending)
+            Deluge.stand(level, rising, saved.presenceIn(age))
             if (Sampling.watchers(level).isEmpty()) continue
-            if (drowning) saved.spendATickIn(age)
-            // What the Age could not hold, and what that bought. Derived rather than stored, so it comes
-            // out the same on every open — see [Spending]. Worked out here rather than inside
-            // [Happenings.befallAll] because the tearing below reads it too.
-            val spending = Spending.of(server, recipe)
+            if (rising != null && level.isRaining) saved.spendATickIn(age)
             Happenings.befallAll(level, composition, happening, spending)
             // Not a phenomenon — a wound is what the Age could not hold rather than something it does — but
             // it wants the same walk, and the walk is the expensive part.

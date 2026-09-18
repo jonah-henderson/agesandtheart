@@ -2,25 +2,21 @@
 # Run with: scripts/drive-server.sh scripts/checks/deluge.txt
 #
 # **Most of this phenomenon cannot be checked headlessly, and that is by design rather than by omission.**
-# The counter advances only where `level.players()` is not empty, and both the catch-up and the pooling are
-# driven by `Sampling.sweep`, which walks the chunks around players. A headless server has none, so the
-# rise, the flooding and the rain all never run. The arithmetic is held by `DelugeCheck` instead, and the
-# rise itself is a walk.
+# The counter advances only where `level.players()` is not empty and it is raining, and both the catch-up
+# and the pooling are driven by chunks around players. A headless server has none, so the rise, the flooding
+# and the rain all never run. The arithmetic is held by `DelugeCheck` instead, and the rise itself is a walk.
 #
 # What this file holds is the state at t=0: an Age written with `deluge` opens at exactly the sea its recipe
-# names, the same as one written without it. The rise is what carries it `Deluge.RISES_BY` blocks over that,
-# and nobody has stood in either Age, so both probes read the written level.
+# names, the same as one written without it. Its three dials — rate, downpour and height, bought by the
+# Age's instability — are what carry it over that, and nobody has stood in either Age, so both probes read
+# the written level.
 #
-# **The sea used to open `FALLS_BY` blocks under the written level and climb back to it**, which is what the
-# measurement below caught. That generated a drowning Age against a waterline the water had walked away
-# from, and its ocean decoration with it, so the arc was turned the other way up.
-#
-# MEASURED 2026-09-12, seed 7, `isle` under `deep`, and SUPERSEDED by that change:
+# MEASURED 2026-09-12, seed 7, `isle` under `deep`, under the old direction (the sea opened 24 short):
 #
 #     no deluge     sea standing at y=134     the written level
-#     deluge        sea standing at y=110     24 short, which was FALLS_BY exactly
+#     deluge        sea standing at y=110
 #
-# Both should now read y=134. Re-measure on the next walk.
+# MEASURED 2026-09-17 under the present direction: both read y=134.
 #
 # **`age compose phenomena=deluge` does NOT do this** and came out at 134 — the compose route sets the
 # aspect by a different path than the written claim `phenomena.happens=deluge` that `Happenings` reads.

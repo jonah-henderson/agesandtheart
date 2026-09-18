@@ -1,10 +1,18 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.age.Manifestation
+import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.aspect.Claim
+import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.generation.AgeChunkGenerator
+import co.voik.agesandtheart.platform.Services
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.tags.BlockTags
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
@@ -12,6 +20,9 @@ import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.level.material.Fluids
+import kotlin.math.pow
+import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 /**
  * The rising sea — design §5.2's deluge, and the second gate on the deep-ocean material of §7.1.2.
@@ -19,11 +30,9 @@ import net.minecraft.world.level.material.Fluids
  * **The water comes up, and it comes up under torrential rain.** The phenomenon is a downpour that will not
  * stop, and the sea arriving is what the downpour does.
  *
- * **It rises by a known amount**, which settles the fairness problem before it arises. A sea climbing
- * without a known end is the punishment register at its purest — you build at seventy, come back three
- * sessions later, and the water is at seventy-two. So an Age opens at the sea its book names and climbs
- * [RISES_BY] blocks above it: the end is as knowable as the start, and how far the water will come is one
- * number rather than a horizon.
+ * **How fast, how often and how far are the Age's instability's to say** ([Rising]), one dial each, so an
+ * Age can earn a near-constant downpour cheaply and only one about to come apart drowns to the build limit.
+ * The sea climbs only while it rains, so the rain is visibly what brings it.
  *
  * **Written first, risen after.** An Age nothing has begun to drown generates at exactly the sea it was
  * written with, which is what the rest of it is built against: standing the sea short of the written one
@@ -35,8 +44,8 @@ import net.minecraft.world.level.material.Fluids
  *
  * **Three parts, and only the first of them is stored.**
  *
- * - **The sea's own level**, which is the counter: [AgeSavedData.presenceIn] ticks, turned into blocks by
- *   [risenAt], handed to the generator by [stand]. This is §5.4's one licensed number, and what buys it
+ * - **The sea's own level**, which is the counter: [AgeSavedData.presenceIn] ticks of rain, turned into
+ *   blocks by [risenAt], handed to the generator by [stand]. This is §5.4's one licensed number, and what buys it
  *   is that the sea surface has to be *globally coherent* — a chunk generated three thousand blocks out
  *   must flood to the same line as the one under your feet, and no sampler can promise that.
  * - **The rise made real**, [raise], which is the block work. New chunks come out of the generator already
@@ -44,45 +53,89 @@ import net.minecraft.world.level.material.Fluids
  *   column, over every chunk anybody can see.
  * - **The pooling**, [pool], which needs no number at all — the water is the state. It is what keeps a
  *   ceiling from being an immunity: any writer who reads their own book knows a safe altitude, and rain
- *   that stands where it falls reaches them there. **PARKED 2026-09-13** (Jonah) while the rise is being
- *   refined — it is whole and unreferenced, and `Happenings` says where the call goes back.
+ *   that stands where it falls reaches them there.
  */
 object Deluge {
 
     /**
-     * How far above its written level a drowning Age's sea climbs.
+     * What one Age's deluge does — its three dials, read off its rung and what its instability bought.
      *
-     * High enough that the shape of play changes as it rises — shoreline, footpaths and cave mouths go
-     * under within the arc rather than all at the end — and low enough that the Age is recognisably the one
-     * that was written throughout. **A default until the index buys it**: how far a drowning Age is carried
-     * is instability's to say, and this is the figure that says it until then.
+     * A pure function of the recipe, so the counter's ticks turn into the same height on every open.
      */
-    const val RISES_BY = 24
+    data class Rising(
+        /** How many ticks of rain, with somebody present, the sea takes to gain a block. */
+        val ticksPerBlock: Long,
+        /** How far toward the build limit the sea may climb past [ORDINARY_RISE], nought to one. */
+        val heightReach: Double,
+        /** The share of the time the Age asks to be raining, as `WeatherConditions.rainfall` reads it. */
+        val rainShare: Double,
+        /** How heavy the rain looks, nought to one — what a client is told to draw. */
+        val heaviness: Double,
+    )
 
     /**
-     * How long somebody has to be in the Age for the sea to gain one block, in ticks.
-     *
-     * **Flat rather than accelerating**, for the reason the ceiling exists: a writer should be able to say
-     * how long they have. At this figure the whole of [RISES_BY] is about two hours of *being in the Age* —
-     * not of the world existing, and not of the server running. UNWALKED.
+     * What the deluge does in an Age whose book claims [written] and whose instability bought [spending],
+     * or null where no deluge befalls it from either direction.
      */
-    const val TICKS_PER_BLOCK = 6000L
+    fun risingIn(written: List<Claim>, spending: Spending): Rising? =
+        Happenings.befalling(written, spending)[Phenomenon.DELUGE]?.let { risingOf(it, spending) }
 
-    /** How far above its written level this Age's sea stands, after [ticks] of somebody being in it. */
-    fun risenAt(ticks: Long): Int =
-        (ticks / TICKS_PER_BLOCK).coerceIn(0L, RISES_BY.toLong()).toInt()
+    /** What a deluge claimed at [density] does in an Age that bought [spending]. */
+    fun risingOf(density: Double, spending: Spending): Rising {
+        val rate = spending.reach(Manifestation.DELUGE, Manifestation.RISE_RATE)
+        val downpour = spending.reach(Manifestation.DELUGE, Manifestation.DOWNPOUR)
+        val height = spending.reach(Manifestation.DELUGE, Manifestation.RISE_HEIGHT)
+        // Geometric, so every step of rate is the same proportion quicker rather than the last ones counting
+        // for nothing against a figure already small.
+        val quickening = (FASTEST_TICKS_PER_BLOCK.toDouble() / ORDINARY_TICKS_PER_BLOCK).pow(rate)
+        val asked = (ORDINARY_DOWNPOUR * density / Rung.ORDINARY).coerceAtMost(ALMOST_CONSTANT)
+        return Rising(
+            ticksPerBlock = (ORDINARY_TICKS_PER_BLOCK * quickening).roundToLong(),
+            heightReach = height,
+            rainShare = asked + (ALMOST_CONSTANT - asked) * downpour,
+            heaviness = spending.reach(Manifestation.DELUGE),
+        )
+    }
 
     /**
-     * Tell [level]'s generator where its sea stands.
+     * How far over its written surface [writtenSurface] the sea can be carried in a level whose highest
+     * block is [topY]: [ORDINARY_RISE], and [Rising.heightReach] of the room left above that.
+     */
+    fun climbFor(heightReach: Double, writtenSurface: Int, topY: Int): Int {
+        val room = (topY - HEADROOM - writtenSurface).coerceAtLeast(0)
+        val ordinary = ORDINARY_RISE.coerceAtMost(room)
+        return ordinary + ((room - ordinary) * heightReach.coerceIn(0.0, 1.0)).roundToInt()
+    }
+
+    /** How far above its written level the sea stands after [ticks] of rain with somebody present. */
+    fun risenAt(ticks: Long, ticksPerBlock: Long, climb: Int): Int =
+        (ticks / ticksPerBlock.coerceAtLeast(1L)).coerceIn(0L, climb.toLong()).toInt()
+
+    /**
+     * Tell [level]'s generator where its sea stands, where [rising] is null for an Age nothing is drowning.
      *
      * **Done for every Age on every tick, including the ones nobody is in.** The *counter* only advances
-     * while somebody is present, but the generator must be right whenever a chunk is made — and a chunk
-     * can be made in an empty Age by a forceload, a teleport arriving, or a neighbouring player's view. It
-     * is an integer compare when nothing has changed.
+     * while somebody is present and it is raining, but the generator must be right whenever a chunk is made
+     * — and a chunk can be made in an empty Age by a forceload, a teleport arriving, or a neighbouring
+     * player's view. It is an integer compare when nothing has changed.
      */
-    fun stand(level: ServerLevel, drowning: Boolean, ticks: Long) {
+    fun stand(level: ServerLevel, rising: Rising?, ticks: Long) {
         val generator = level.chunkSource.generator as? AgeChunkGenerator ?: return
-        generator.standAbove(if (drowning) risenAt(ticks) else NOT_DROWNING)
+        val written = generator.writtenSeaSurfaceY
+        if (rising == null || written == null) return generator.standAbove(NOT_DROWNING)
+        val climb = climbFor(rising.heightReach, written, level.maxY)
+        generator.standAbove(risenAt(ticks, rising.ticksPerBlock, climb))
+    }
+
+    /**
+     * Tell everybody in [level] how heavy the rain is, or that there is no deluge here.
+     *
+     * Sent on the same slow beat as the blizzard's, for the same reason — see [DelugePayload].
+     */
+    fun tellTheClients(level: ServerLevel, rising: Rising?) {
+        val age = level.dimension().identifier()
+        val payload = if (rising == null) DelugePayload.noneIn(age) else DelugePayload(age, rising.heaviness)
+        for (player in level.players()) Services.NETWORK.sendToPlayer(player, payload)
     }
 
     /**
@@ -110,7 +163,7 @@ object Deluge {
      * nothing to do cost a heightmap read.
      *
      * **A column comes all the way up on the pass that reaches it.** The sea gains a block every
-     * [TICKS_PER_BLOCK], so ordinarily that is the one block the column is behind; what it buys is the
+     * [Rising.ticksPerBlock] of rain, so ordinarily that is the one block the column is behind; what it buys is the
      * chunk nobody has been near, which arrives at the line in one visit rather than over as many passes as
      * it is behind. A block a pass had the water climbing in strips — the near columns a block, then the
      * ring beyond them a block — where a flood is a surface arriving.
@@ -211,34 +264,40 @@ object Deluge {
      * **Its counterplay is a roof**, which is the blizzard's bargain in a different costume — the thing
      * that protects your ground protects you.
      *
+     * **Never water on water** (Jonah, 2026-09-17). A drop onto a puddle stacked a source on it, and
+     * enough of those read as pillars of water standing at random. So a drop lands only on dry ground, or
+     * turns a spreading puddle's flowing edge into a source where it lies — never falling water, never
+     * water on leaves, both of which pour off an edge as a column.
+     *
      * Sampled near the players where the rise is swept over everything in view, and the difference is the
      * point: a sea is one surface and must be coherent everywhere, where a puddle is a local accident and
      * nobody can tell that the one in the next valley never happened.
      */
-    fun pool(level: ServerLevel, fury: Double) {
+    fun pool(level: ServerLevel) {
         if (!level.isRaining) return
         val standing = level.seaSurfaceY() ?: return
-        Sampling.sweep(level, dropsPerChunk(fury)) { _, at ->
-            val top = level.getHeight(Heightmap.Types.MOTION_BLOCKING, at.x, at.z)
+        Sampling.sweep(level, ONE_SAMPLE) { _, at ->
+            if (level.random.nextInt(ONE_DROP_IN) != 0) return@sweep
+            val top = BlockPos(at.x, level.getHeight(Heightmap.Types.MOTION_BLOCKING, at.x, at.z) - 1, at.z)
             // Below the waterline is the sea's business, and a source laid down there would put water
             // inside whatever the sea has not reached yet — the sealed room the promise above depends on.
-            if (top <= standing) return@sweep
-            val onto = BlockPos(at.x, top, at.z)
-            if (!level.getBlockState(onto).canBeReplaced(Fluids.WATER)) return@sweep
+            if (top.y <= standing) return@sweep
+            val onto = top.above()
             if (!level.canSeeSky(onto)) return@sweep
+            val ground = level.getBlockState(top)
+            val lying = ground.fluidState
+            if (lying.`is`(Fluids.WATER) || lying.`is`(Fluids.FLOWING_WATER)) {
+                val isSpreading = !lying.isSource && ground.`is`(Blocks.WATER)
+                val isFalling = lying.getValue(FlowingFluid.FALLING)
+                if (isSpreading && !isFalling) level.setBlockAndUpdate(top, Blocks.WATER.defaultBlockState())
+                return@sweep
+            }
+            val isFirmGround = ground.isFaceSturdy(level, top, Direction.UP) && !ground.`is`(BlockTags.LEAVES)
+            if (!isFirmGround) return@sweep
+            if (!level.getBlockState(onto).canBeReplaced(Fluids.WATER)) return@sweep
             level.setBlockAndUpdate(onto, Blocks.WATER.defaultBlockState())
         }
     }
-
-    /**
-     * How many columns a chunk gets a drop in per tick.
-     *
-     * **Deliberately small, and the reason is measured elsewhere**: flowing water at storm scale is one of
-     * vanilla's heavier update paths, and §5.2 names this as the sandfall's "do not spawn falling entities
-     * at storm scale" lesson wearing new clothes. One source spreads for a long time after it lands, so
-     * the rate that matters is how many are *in flight* rather than how many are placed. UNWALKED.
-     */
-    private fun dropsPerChunk(fury: Double): Int = (1.0 + fury * FURY_DRIVES).toInt().coerceAtLeast(1)
 
     /** This Age's own sea material, or null where it has no sea to raise. */
     private fun ServerLevel.seaBlock(): BlockState? {
@@ -272,5 +331,40 @@ object Deluge {
      */
     private const val CHUNKS_A_TICK = 32
 
-    private const val FURY_DRIVES = 3.0
+    /**
+     * How far over its written level an ordinary deluge carries the sea, in blocks — what an Age that
+     * bought no height climbs.
+     *
+     * High enough that the shape of play changes as it rises — shoreline, footpaths and cave mouths go
+     * under within the arc rather than all at the end — and low enough that the Age is recognisably the one
+     * that was written throughout.
+     */
+    const val ORDINARY_RISE = 24
+
+    /** Blocks kept clear under the build limit, so the highest sea still has a surface to stand on. */
+    private const val HEADROOM = 2
+
+    /**
+     * Ticks of rain per block for an ordinary deluge, and for one whose rate is bought out.
+     *
+     * At the ordinary figure and [ORDINARY_DOWNPOUR], [ORDINARY_RISE] takes about two hours of being in the
+     * Age; bought out, a block every fifteen seconds of rain. UNWALKED.
+     */
+    const val ORDINARY_TICKS_PER_BLOCK = 3000L
+    const val FASTEST_TICKS_PER_BLOCK = 300L
+
+    /** The share of the time an ordinary deluge asks to be raining — what its word insists on. */
+    private val ORDINARY_DOWNPOUR = Phenomenon.DELUGE.insistsOn.rainfall
+
+    /** The most of the time any deluge can ask to be raining: dry spells of well under a minute. */
+    private const val ALMOST_CONSTANT = 0.98
+
+    /**
+     * How the pooling rain is sampled: one chance per chunk per tick through [Sampling.sweep], and one drop in
+     * this many of those — about one a second across the thirteen-chunk square it sweeps, so a given chunk
+     * takes a drop every few minutes. **Deliberately slow**: flowing water at storm scale is one of vanilla's
+     * heavier update paths, and a source spreads for a long time after it lands. UNWALKED.
+     */
+    private const val ONE_SAMPLE = 1
+    private const val ONE_DROP_IN = 80
 }

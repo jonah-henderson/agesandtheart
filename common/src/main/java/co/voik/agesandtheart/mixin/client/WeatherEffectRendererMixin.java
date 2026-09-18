@@ -1,7 +1,9 @@
 package co.voik.agesandtheart.mixin.client;
 
+import co.voik.agesandtheart.client.Downpours;
 import co.voik.agesandtheart.client.Storms;
 import net.minecraft.client.Camera;
+import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ParticleStatus;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.WeatherEffectRenderer;
@@ -13,7 +15,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Takes vanilla's own precipitation off the screen while a blizzard is blowing.
+ * Takes vanilla's own precipitation off the screen while a blizzard is blowing, and makes it heavier in a
+ * deluge.
  *
  * <p>Vanilla draws rain and snow as gently falling columns, which is right for weather and reads as a lie
  * in a storm that is filling the ground in front of you — the two were on screen together and the gentle
@@ -36,6 +39,22 @@ public abstract class WeatherEffectRendererMixin {
     @Inject(method = "render(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/state/level/WeatherRenderState;)V", at = @At("HEAD"), cancellable = true)
     private void agesandtheart$ourOwnSnowInstead(Vec3 cameraPos, WeatherRenderState state, CallbackInfo callback) {
         if (Storms.drawingItsOwn()) callback.cancel();
+    }
+
+    /**
+     * A deluge's rain, made heavier once vanilla has laid it out. {@code extractRenderState} is where the
+     * frame's columns are built and nothing else reads them before {@code render}, so thickening the list
+     * here is the whole of it.
+     */
+    @Inject(method = "extractRenderState", at = @At("TAIL"))
+    private void agesandtheart$heavierInADeluge(
+            Level level,
+            int ticks,
+            float partialTicks,
+            Vec3 cameraPos,
+            WeatherRenderState renderState,
+            CallbackInfo callback) {
+        Downpours.thicken(renderState.rainColumns);
     }
 
     @Inject(method = "tickRainParticles", at = @At("HEAD"), cancellable = true)

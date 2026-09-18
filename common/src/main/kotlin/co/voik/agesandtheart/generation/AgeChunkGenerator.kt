@@ -212,6 +212,9 @@ class AgeChunkGenerator(
      */
     val seaFill: SeaFill get() = standingSea
 
+    /** The surface of the sea as it was written, or null where the Age has none. */
+    val writtenSeaSurfaceY: Int? get() = writtenSea.surfaceY
+
     /**
      * Stand the sea [blocks] over what was written.
      *

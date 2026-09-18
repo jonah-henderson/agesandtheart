@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
+import co.voik.agesandtheart.age.phenomena.DelugePayload
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
@@ -24,6 +25,7 @@ object ClientPayloads {
     val RECEIVERS: List<Receiver<*>> = listOf(
         Receiver(LexiconPayload.TYPE) { KnownWords.remember(it) },
         Receiver(BlizzardPayload.TYPE) { Storms.remember(it) },
+        Receiver(DelugePayload.TYPE) { Downpours.remember(it) },
         Receiver(LearnedWordsPayload.TYPE) { KnownWords.remember(it) },
         Receiver(DeskSyncPayload.TYPE) { DeskModel.remember(it) },
         Receiver(DeskPricePayload.TYPE) { DeskModel.remember(it) },

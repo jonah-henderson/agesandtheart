@@ -14,6 +14,9 @@ private const val MOSTLY = 0.85
 /** Rain often enough that it is a fact about the Age, and broken enough that the light gets through. */
 private const val SHOWERY = 0.55
 
+/** Rain more often than not, with dry spells long enough to notice — an ordinary deluge's downpour. */
+private const val OFTEN = 0.65
+
 /**
  * A process that befalls an Age — what [Phenomena]'s claims name (design §3.1, §5.2).
  *
@@ -214,15 +217,15 @@ enum class Phenomenon(
      * everything reachable from above the water arrive. Its answers converge on verticality, which is the
      * most natural instinct a Minecraft player has.
      *
-     * **It resolves**, like the inferno — the Age arrives at the level its own recipe names and the
+     * **It resolves**, like the inferno — the sea arrives at the height the Age can climb to and the
      * phenomenon is over. It is also the **second gate on the deep-ocean material** (§7.1.2), the peer of
      * the blizzard on rime and the aurora on arc crystal.
      *
-     * **It insists on rain as hard as a tempest's and no thunder.** The downpour *is* the phenomenon, where
-     * a tempest's rain is the weather its lightning arrives in — so this asks for the same sky without the
-     * bolts.
+     * **It asks for rain and no thunder, and how much rain is a dial** — the downpour *is* the phenomenon,
+     * and the sea only climbs while it falls. [insistsOn] is the floor an ordinary one asks for; what
+     * instability adds is worked out where the weather is steered.
      */
-    DELUGE("deluge", WeatherConditions(rainfall = MOSTLY)),
+    DELUGE("deluge", WeatherConditions(rainfall = OFTEN), inflictedBy = Manifestation.DELUGE),
     ;
 
     override val aspect = Aspect.PHENOMENA
