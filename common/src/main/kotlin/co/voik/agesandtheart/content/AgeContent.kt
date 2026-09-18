@@ -381,6 +381,9 @@ object AgeContent {
      * than that, the *refining* is where this material's interest lives: gloomgrit mixed with glowstone
      * dust and smelted is what becomes phasmium, and a drab grit that reads as worthless until it is
      * worked says that better than a pretty crystal ever would.
+     *
+     * Its second use is fine ink, where it is the pigment — §7.1.2's two-uses rule, and the reason the ink
+     * takes the grit rather than the grains, which are meant to have only the one.
      */
     val GLOOMGRIT_CLUSTER: AmethystClusterBlock = AmethystClusterBlock(
         GLOOMGRIT_HEIGHT,

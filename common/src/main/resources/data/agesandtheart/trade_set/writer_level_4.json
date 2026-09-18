@@ -1,7 +1,10 @@
 {
-  "_comment": "Two of these, drawn per villager -- vanilla's number, so writers differ and one is worth seeking.",
+  "_comment": [
+    "Two are drawn per villager, which is vanilla's number. This level lists exactly two, so every",
+    "writer has both -- the draw only makes writers differ where a level offers a third.",
+    "Fine ink was sold here and is not any more, for the reason level 3 gives."
+  ],
   "trades": [
-    "agesandtheart:writer/sell_fine_ink",
     "agesandtheart:writer/sell_expert_page",
     "agesandtheart:writer/sell_filled_notebook"
   ],

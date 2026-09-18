@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "What fine paper is pulped from. Vanilla has no stripped-logs tag of its own -- `#minecraft:logs`",
+    "carries bark and the nether stems -- so the list is written out here.",
+    "Stripped, because bark is taken off before pulping in the real craft: it is mostly lignin and it",
+    "specks the sheet. The nether hyphae are left out for the same reason they are not wood.",
+    "Bamboo is in on purpose rather than by accident -- it is one of the oldest papermaking fibres there is."
+  ],
+  "values": [
+    "minecraft:stripped_oak_log",
+    "minecraft:stripped_spruce_log",
+    "minecraft:stripped_birch_log",
+    "minecraft:stripped_jungle_log",
+    "minecraft:stripped_acacia_log",
+    "minecraft:stripped_dark_oak_log",
+    "minecraft:stripped_mangrove_log",
+    "minecraft:stripped_cherry_log",
+    "minecraft:stripped_pale_oak_log",
+    "minecraft:stripped_oak_wood",
+    "minecraft:stripped_spruce_wood",
+    "minecraft:stripped_birch_wood",
+    "minecraft:stripped_jungle_wood",
+    "minecraft:stripped_acacia_wood",
+    "minecraft:stripped_dark_oak_wood",
+    "minecraft:stripped_mangrove_wood",
+    "minecraft:stripped_cherry_wood",
+    "minecraft:stripped_pale_oak_wood",
+    "minecraft:stripped_bamboo_block"
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "_comment": [
+    "Unlocked by holding either rare ingredient, so the recipe is in the book before the first sheet is",
+    "made rather than after -- which is what vanilla's obtain-the-result fallback would give.",
+    "Either, not both: whichever of the two Ages you wrote first should be the one that tells you."
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_astrite_shard": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:astrite_shard"
+          }
+        ]
+      }
+    },
+    "has_pitchstone": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:pitchstone"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipe": "agesandtheart:fine_paper"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_astrite_shard",
+      "has_pitchstone",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:fine_paper"
+    ]
+  }
+}

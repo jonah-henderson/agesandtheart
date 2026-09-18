@@ -1,16 +1,25 @@
 {
   "_comment": [
-    "STUB. Glowstone dust stands in for whatever actually makes an ink fine -- the shape is 'ordinary ink",
-    "plus something semi-rare', and only the second ingredient is undecided.",
-    "Two of them because refining should cost more than the ink itself, not less."
+    "The stub's shape kept -- 'ordinary ink plus something semi-rare' -- with the second ingredient decided.",
+    "",
+    "An ink is a pigment carried in a vehicle, so what it wants is a grit, and gloomgrit is one: a drab",
+    "powder scraped off a vent's lining whose whole interest is in what it becomes. This is its second use,",
+    "and it takes the grit rather than the phasmium grains it otherwise makes on purpose -- the grains are",
+    "meant to have exactly one purpose, which is to stop being grains.",
+    "",
+    "Deretheni is the danger material, which design 7.1.1 asks both mid-tier rungs to carry. It earns its",
+    "place twice over here: being jet-black it is also the colourant, which nothing else in the pack is.",
+    "",
+    "Two gloomgrit because refining should cost more than the ink itself, not less."
   ],
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "group": "agesandtheart_ink",
   "ingredients": [
     "agesandtheart:ink_bottle",
-    "minecraft:glowstone_dust",
-    "minecraft:glowstone_dust"
+    "agesandtheart:gloomgrit",
+    "agesandtheart:gloomgrit",
+    "agesandtheart:pitchstone"
   ],
   "result": {
     "id": "agesandtheart:fine_ink_bottle",
