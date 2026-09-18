@@ -218,6 +218,12 @@ object Spawns {
             // work at all in a world whose biomes offer none — but an evocative word's faintest reaches
             // are held at a floor rather than dropped (§3.3), so `beautiful` was asking for a fifth of a
             // ghast and getting a ghast (Jonah, 2026-09-03). [narrowed] is where such a claim belongs.
+            //
+            // **What makes "safe by construction" true is [Spawning.placeWhereTheyBelong]**, and it was
+            // not: a creature of ours with no registered placement is put on dry ground by vanilla's own
+            // default, which is how a hadalfish reached by one evocative page hunted a hillside (Jonah,
+            // 2026-09-17, the Age Tumar). The gate belongs there rather than here, because a word aimed at
+            // an aspect — `villagers`, `undead` — is a description that *should* introduce.
             .filterNot { it.bringsNothingAbout }
             .mapNotNull { claim -> claim.id?.let { it to claim.density } }
             .mapNotNull { (id, density) ->

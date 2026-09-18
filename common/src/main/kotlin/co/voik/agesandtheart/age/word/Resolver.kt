@@ -27,6 +27,8 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Rung
 import net.minecraft.resources.Identifier
+import co.voik.agesandtheart.math.mix64
+import co.voik.agesandtheart.math.unitDouble
 
 /**
  * What a sentence turned into: the world it describes, what it cost to say, and where it argued with
@@ -1230,9 +1232,16 @@ object Resolver {
             val drawnFrom = (
                 curated + speaking.flatMap(::namedBy).distinct().mapNotNull(aspect::presetFor)
                 ).distinct()
-            val reached = drawnFrom.mapNotNull { member ->
-                claimForMember(vocabulary, member, pool, speaking, aspect, member in curated, draw)
-            }
+            val reached = drawnAmong(
+                vocabulary,
+                drawnFrom.mapNotNull { member ->
+                    claimForMember(vocabulary, member, pool, speaking, aspect, member in curated, draw)
+                },
+                drawnFrom,
+                speaking,
+                aspect,
+                draw,
+            )
             if (reached.isEmpty()) continue
             flaws += crowdedOutOfAnOnly(vocabulary, speaking, aspect)
             val settled = weighed.optionsFor(aspect, 0).allOf(pool)
@@ -1240,6 +1249,108 @@ object Resolver {
         }
         return weighed
     }
+
+    /**
+     * **What an atmosphere brings about, drawn rather than taken whole.**
+     *
+     * An evocative word leans on tags and a tag reaches dozens of members, so lifting every one of them is
+     * how a single `foreboding` page wrote forty-nine creatures and seven phenomena into one Age (Jonah,
+     * 2026-09-17, the Age Tsi — hadalfish, ghasts, piglins and a wither in a basalt world, with a tempest,
+     * a blizzard, an inferno and a deluge running at once). A word meaning dread should make an Age
+     * *dreadful*, which is a few of the right things rather than the catalogue.
+     *
+     * So the lifts an atmosphere made are drawn among, **weighted by how hard it leaned**, so the few that
+     * survive are still the fitting few — and off the Age's own seed, so two Ages written from the same
+     * word are unalike. That second property is the one worth having: `foreboding` now means something
+     * different each time it is written.
+     *
+     * **Only where a lift introduces**, which is [INTRODUCES_WHAT_IT_LIFTS] — everywhere else a lift
+     * reweighs what the biome already grows, and bending all fifty-nine of a desolate Age's features is
+     * exactly what an atmosphere is for. **Only upward**, since asking for less of something brings
+     * nothing about. And **only a word that does not narrow**: one aimed at an aspect — `undead`,
+     * `villagers`, `volcanic` — means every member it reaches and is left whole.
+     */
+    private fun drawnAmong(
+        vocabulary: Vocabulary,
+        reached: List<Claim>,
+        drawnFrom: List<Taggable>,
+        speaking: List<Constraint>,
+        aspect: Aspect,
+        draw: Long,
+    ): List<Claim> {
+        val allowed = INTRODUCES_WHAT_IT_LIFTS[aspect] ?: return reached
+        // **An atmosphere is a word that does not narrow**, which is the same test [purchaseFor] reads to
+        // decide whether a word aims itself. Leaning everywhere is *not* the test and was tried: a
+        // restrictive word's own tag reach lands in the same map, so `undead` read as an atmosphere and was
+        // drawn down to six of them.
+        val atmospheres = speaking.filterNot { it.word.tier.narrows }
+        if (atmospheres.isEmpty()) return reached
+        val byKey = drawnFrom.associateBy(Taggable::key)
+
+        fun leanedOn(claim: Claim): Double {
+            val member = byKey[claim.value] ?: return NO_LEAN
+            val tags = vocabulary.tagsOf(member)
+            return atmospheres.sumOf { it.word.biasOn(member, tags) }
+        }
+
+        val lifted = reached
+            .filter { it.onlyWhereItGrows && it.density > Rung.ORDINARY }
+            .map { Lifted(it, leanedOn(it)) }
+            .filter { it.leanedOn > NO_LEAN }
+        if (lifted.size <= allowed) return reached
+        val kept = drawnFew(lifted, allowed, mix64(draw xor aspect.ordinal.toLong()))
+        val dropped = lifted.map { it.claim.value }.toSet() - kept
+        return reached.filterNot { it.value in dropped }
+    }
+
+    /** One member an atmosphere lifted, and how hard it leaned to do it — see [drawnAmong]. */
+    private class Lifted(val claim: Claim, val leanedOn: Double)
+
+    /**
+     * [howMany] of [among], drawn without replacement and weighted by how hard the atmosphere leaned, as a
+     * pure function of [seed] so an Age resolves the same way every time it is opened.
+     */
+    private fun drawnFew(among: List<Lifted>, howMany: Int, seed: Long): Set<String> {
+        val left = among.toMutableList()
+        val chosen = mutableSetOf<String>()
+        var roll = seed
+        while (chosen.size < howMany && left.isNotEmpty()) {
+            roll = mix64(roll)
+            val landing = unitDouble(roll) * left.sumOf(Lifted::leanedOn)
+            var walked = NO_LEAN
+            var taken = left.lastIndex
+            for (index in left.indices) {
+                walked += left[index].leanedOn
+                if (walked > landing) {
+                    taken = index
+                    break
+                }
+            }
+            chosen += left[taken].claim.value
+            left.removeAt(taken)
+        }
+        return chosen
+    }
+
+    private const val NO_LEAN = 0.0
+
+    /**
+     * Where a description above ordinary **introduces** its member rather than reweighing one already
+     * there, and how many of them one atmosphere may bring about.
+     *
+     * These two are the aspects whose consumers read `Claim.bringsNothingAbout` — `Spawns.resolved` and
+     * `Phenomena.claimsIn` — and they read it because there is nothing to bend: a biome offering no ghast
+     * cannot offer more of one, and a phenomenon pool starts empty. An aspect absent from this map is one
+     * where a lift only bends, so a draw would make an atmosphere patchy and protect against nothing.
+     *
+     * **Both counts are a first guess and want a walk.** Two phenomena is a dreadful Age rather than four
+     * disasters at once; six creatures is a biome's worth of the wrong thing on top of whatever it
+     * already offers.
+     */
+    private val INTRODUCES_WHAT_IT_LIFTS = mapOf(
+        Aspect.SPAWNS to 6,
+        Aspect.PHENOMENA to 2,
+    )
 
     /**
      * **How one [word] alone stands towards one member of [aspect]** — a sentence of one page, resolved.

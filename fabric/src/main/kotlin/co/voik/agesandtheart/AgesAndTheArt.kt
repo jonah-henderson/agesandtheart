@@ -28,7 +28,12 @@ import fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry
 import net.neoforged.fml.config.ModConfig
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.world.entity.SpawnPlacements
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
+import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.Mob
+import net.minecraft.world.entity.SpawnPlacementType
+import net.minecraft.world.level.levelgen.Heightmap
 
 fun init() {
     CommonSetup.init()
@@ -54,6 +59,14 @@ fun init() {
     AgeContent.items.forEach { (id, item) -> Registry.register(BuiltInRegistries.ITEM, id, item) }
     AgeContent.entities.forEach { (id, type) -> Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type) }
     AgeContent.mobAttributes.forEach { (type, attributes) -> FabricDefaultAttributeRegistry.register(type, attributes()) }
+    AgeContent.placeWhereTheyBelong(object : AgeContent.SpawnPlacing {
+        override fun <T : Mob> of(
+            type: EntityType<T>,
+            placement: SpawnPlacementType,
+            heightmap: Heightmap.Types,
+            rule: SpawnPlacements.SpawnPredicate<T>,
+        ) = SpawnPlacements.register(type, placement, heightmap, rule)
+    })
     AgeContent.soundEvents.forEach { (id, sound) -> Registry.register(BuiltInRegistries.SOUND_EVENT, id, sound) }
     AgeContent.mobEffects.forEach { (id, effect) -> Registry.register(BuiltInRegistries.MOB_EFFECT, id, effect) }
     AgeContent.tickets.forEach { (id, type) -> Registry.register(BuiltInRegistries.TICKET_TYPE, id, type) }

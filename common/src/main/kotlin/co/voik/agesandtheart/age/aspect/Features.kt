@@ -59,10 +59,23 @@ object Features {
      * opened as after — which is what lets the desk survey and `/age danger score` ask it of a recipe that
      * has never been built. The amount rides on the claim, so a caller wanting one takes it from here
      * rather than asking a second time.
+     *
+     * **Naming is the whole of it**, and two kinds of mention are not that. A description
+     * ([Claim.onlyWhereItGrows]) asks for more of the thing where it already grows, and a landform grows
+     * nowhere — so `desolate`, leaning on `#barren`, reached `agesandtheart:volcano` at 1.6 and raised
+     * cones through a frozen Age (Jonah, 2026-09-17, the Age Tumar). A strike-out is the opposite mention
+     * and used to build what it struck, which [Danger] already fixed on its own side.
+     *
+     * Confinement is *not* filtered here and cannot be honoured by the callers, whose fields are laid over
+     * the whole Age — `volcano[in=minecraft:badlands]` raises them everywhere. That wants `unhonoured`
+     * rather than a silent drop, and is left alone.
      */
-    fun claimNaming(composition: AgeComposition, feature: Identifier): Claim? =
-        composition.optionsFor(Aspect.FEATURES, 0).claimsOn(PLACES)
-            .firstOrNull { claim -> claim.id == feature }
+    fun claimNaming(composition: AgeComposition, feature: Identifier): Claim? {
+        val mentions = composition.optionsFor(Aspect.FEATURES, 0).claimsOn(PLACES).filter { it.id == feature }
+        val isStruckOut = mentions.any { it.polarity == Polarity.EXCEPT }
+        if (isStruckOut) return null
+        return mentions.firstOrNull { !it.onlyWhereItGrows }
+    }
 
     /**
      * How big one of a thing is, how thick a patch of it is, and how deep in the column it sits — the

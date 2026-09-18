@@ -7,6 +7,7 @@ import co.voik.agesandtheart.generation.WorldgenCodecs
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent
+import net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent
 import co.voik.agesandtheart.platform.NeoForgeDeepWater
 import co.voik.agesandtheart.platform.NeoForgeInkFluids
 import net.minecraft.core.registries.Registries
@@ -28,6 +29,11 @@ import net.neoforged.neoforge.event.server.ServerStoppedEvent
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import net.neoforged.neoforge.network.registration.PayloadRegistrar
 import net.neoforged.neoforge.registries.RegisterEvent
+import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.Mob
+import net.minecraft.world.entity.SpawnPlacementType
+import net.minecraft.world.entity.SpawnPlacements
+import net.minecraft.world.level.levelgen.Heightmap
 
 @Mod(Constants.MOD_ID)
 class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
@@ -56,6 +62,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         eventBus.addListener(::onRegisterPayloads)
         eventBus.addListener(::onRegisterCapabilities)
         eventBus.addListener(::onCreateAttributes)
+        eventBus.addListener(::onRegisterSpawnPlacements)
         // Commands are a game-bus event.
         NeoForge.EVENT_BUS.addListener(::onRegisterCommands)
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedIn)
@@ -84,6 +91,22 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
 
     private fun onCreateAttributes(event: EntityAttributeCreationEvent) {
         AgeContent.mobAttributes.forEach { (type, attributes) -> event.put(type, attributes().build()) }
+    }
+
+    /**
+     * Where our mobs may spawn. NeoForge owns the placement map and refuses a direct
+     * `SpawnPlacements.register`, so this is the seam rather than Fabric's call — see
+     * [AgeContent.placeWhereTheyBelong].
+     */
+    private fun onRegisterSpawnPlacements(event: RegisterSpawnPlacementsEvent) {
+        AgeContent.placeWhereTheyBelong(object : AgeContent.SpawnPlacing {
+            override fun <T : Mob> of(
+                type: EntityType<T>,
+                placement: SpawnPlacementType,
+                heightmap: Heightmap.Types,
+                rule: SpawnPlacements.SpawnPredicate<T>,
+            ) = event.register(type, placement, heightmap, rule, RegisterSpawnPlacementsEvent.Operation.REPLACE)
+        })
     }
 
     /** Fires after every `RegisterEvent`, which is exactly the condition [CommonSetup.afterContentRegistered] wants. */

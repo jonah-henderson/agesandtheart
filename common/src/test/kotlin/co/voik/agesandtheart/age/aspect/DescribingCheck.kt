@@ -90,6 +90,22 @@ class DescribingCheck : FunSpec({
         check("minecraft:zombie" in stocks("undead")) { "'undead' stocked no zombie: ${stocks("undead")}" }
     }
 
+    /**
+     * **A landform grows nowhere**, so a description can never mean "more of it where it already is" — and
+     * the terrain fields read their amount straight off the claim, with no biome in between to bend.
+     *
+     * `desolate` leans on `#barren`, `agesandtheart:volcano` carries it, and the found-book grammar writes
+     * `desolate` into its *frozen* branch — so a snowy Age came out with volcanoes in it (Jonah,
+     * 2026-09-17, the Age Tumar). Naming one outright still raises them.
+     */
+    test("a description raises no landform, however much of it it asks for") {
+        fun raises(vararg pages: String) = Volcanoes.amountIn(composed(*pages))
+        check(raises("desolate") == null) { "a desolate Age raised volcanoes at ${raises("desolate")}" }
+        check(raises("foreboding") == null) { "a foreboding Age raised volcanoes at ${raises("foreboding")}" }
+        // And the word that means them still does, or the fix has taken the feature away instead.
+        check(raises("volcanic", "features") != null) { "naming volcanic features no longer raises one" }
+    }
+
     test("summoning takes naming, whatever a query brushed") {
         check(summons("beautiful").isEmpty()) { "a beautiful Age summoned ${summons("beautiful")}" }
         check(summons("foreboding").isEmpty()) { "a foreboding Age summoned ${summons("foreboding")}" }

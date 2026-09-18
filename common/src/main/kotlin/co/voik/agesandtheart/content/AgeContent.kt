@@ -48,6 +48,11 @@ import net.minecraft.resources.Identifier
 import net.minecraft.server.level.TicketType
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.Mob
+import net.minecraft.world.entity.SpawnPlacementType
+import net.minecraft.world.entity.SpawnPlacementTypes
+import net.minecraft.world.entity.SpawnPlacements
+import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier
@@ -1302,6 +1307,43 @@ object AgeContent {
         ASTRITE_GOLEM to { AstriteGolem.createAttributes() },
         HADALFISH to { Hadalfish.createAttributes() },
     )
+
+    /**
+     * Where each of our mobs may be spawned — **the third half of registering one**, beside the type and
+     * [mobAttributes].
+     *
+     * A placement is registered per `EntityType`, so a mob of ours that does not declare one is placed by
+     * vanilla's default: on the ground, on the surface heightmap. That default is silent and it is wrong
+     * for anything that does not live there, which is how a hadalfish came to hunt dry land — see
+     * [Hadalfish.spawnsHere]. A mob of ours that spawns naturally belongs on this list.
+     *
+     * **A visitor rather than a list of tuples**, because the registration is generic in the mob's own type
+     * and the loaders reach it differently: Fabric calls `SpawnPlacements.register` and NeoForge has an
+     * event that must be used instead. Only [ASTRITE_GOLEM] is absent, and deliberately — the Age places
+     * it itself rather than offering it to a biome, so no placement of vanilla's is ever consulted.
+     */
+    fun placeWhereTheyBelong(placing: SpawnPlacing) {
+        placing.of(
+            HADALFISH,
+            SpawnPlacementTypes.IN_WATER,
+            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+            Hadalfish::spawnsHere,
+        )
+    }
+
+    /**
+     * How a loader registers one placement — see [placeWhereTheyBelong].
+     *
+     * A plain interface rather than a `fun interface`, which Kotlin does not allow a generic method on.
+     */
+    interface SpawnPlacing {
+        fun <T : Mob> of(
+            type: EntityType<T>,
+            placement: SpawnPlacementType,
+            heightmap: Heightmap.Types,
+            rule: SpawnPlacements.SpawnPredicate<T>,
+        )
+    }
 
     val WOUND_ID: Identifier = "wound".location()
 

@@ -129,7 +129,55 @@ class WritingCheck : FunSpec({
             check(expected in recipe) { "'$sentence' should have written $expected, and wrote $recipe" }
         }
     }
+
+    /**
+     * **What one evocative page may bring about** — the bound on an atmosphere's reach
+     * (`Resolver.drawnAmong`), and **the check has to be here**: a tag's reach is only whole on a server,
+     * so offline `foreboding` touches a fraction of what it touches in play.
+     *
+     * The sentence and the seed are a real Age's. Written from a found book, it resolved to **forty-nine
+     * creatures and seven phenomena** — in play, hadalfish and ghasts in a basalt world under a tempest, a
+     * blizzard, an inferno and a deluge at once (Jonah, 2026-09-17, the Age Tsi). A word meaning dread
+     * should make an Age dreadful, which is a few of the right things rather than the catalogue.
+     *
+     * The other half matters as much: it must still bring *something* about, or the bound has turned an
+     * evocative word into a word that does nothing.
+     */
+    test("one evocative page brings about a few things, not the catalogue") {
+        server.ask("write", "dreadful 5134421 foreboding age basalt landmass molten sea")
+        val recipe = recipeOf(server, "dreadful")
+
+        val creatures = introducedIn(recipe, "spawns.lives")
+        check(creatures.size in SOMETHING..MOST_CREATURES) {
+            "'foreboding' introduced ${creatures.size} creatures: $creatures"
+        }
+        val phenomena = introducedIn(recipe, "phenomena.happens")
+        check(phenomena.size in SOMETHING..MOST_PHENOMENA) {
+            "'foreboding' introduced ${phenomena.size} phenomena: $phenomena"
+        }
+    }
 })
+
+/**
+ * Everything a description **introduces** into one pool — a claim it reached by query and asked more than
+ * ordinary of, which is the pair of conditions the consumers read (`Claim.bringsNothingAbout`).
+ */
+private fun introducedIn(recipe: String, pool: String): List<String> {
+    val written = Regex("""\b${Regex.escape(pool)}=(\S+)""").find(recipe)?.groupValues?.get(1) ?: return emptyList()
+    return Regex("""([\w:]+)\[where_it_grows,amount=([0-9.]+)]""").findAll(written)
+        .filter { it.groupValues[2].toDouble() > ORDINARY }
+        .map { it.groupValues[1] }
+        .toList()
+}
+
+private const val ORDINARY = 1.0
+
+/** At least one, or a bound that brings nothing about would pass as well as a working one. */
+private const val SOMETHING = 1
+
+/** `Resolver.INTRODUCES_WHAT_IT_LIFTS`, restated so a change to it is a change here too. */
+private const val MOST_CREATURES = 6
+private const val MOST_PHENOMENA = 2
 
 /**
  * A quantifier page and the number it writes — the page is what a book holds and the number is what the

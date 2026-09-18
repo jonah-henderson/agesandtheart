@@ -1,8 +1,13 @@
 package co.voik.agesandtheart.content
 
+import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.tags.FluidTags
+import net.minecraft.util.RandomSource
+import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.level.ServerLevelAccessor
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier
 import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal
@@ -95,6 +100,31 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
         boundingBox.inflate(BITES_FROM).intersects(target.boundingBox)
 
     companion object {
+        /**
+         * **Where one may be spawned at all: in water, within reach of the deep.**
+         *
+         * The same line [HadalfishHunt.isAboveTheHunt] draws for giving up a chase, asked of the spawn
+         * instead, so the depth it hunts in and the depth it appears in are one rule rather than two that
+         * can drift.
+         *
+         * **Without this vanilla places it on dry ground**, because a placement is registered per
+         * `EntityType` and not per class: extending [Guardian] inherits its behaviour and none of its
+         * registration, so `agesandtheart:hadalfish` fell to the default of `ON_GROUND` on the surface
+         * heightmap. That is how one came to hunt a frozen hillside (Jonah, 2026-09-17, the Age Tumar) —
+         * and it is what `Spawns.resolved` means by vanilla re-checking every placement, which it can only
+         * do for a creature that told it what to check.
+         */
+        fun spawnsHere(
+            type: EntityType<Hadalfish>,
+            level: ServerLevelAccessor,
+            reason: EntitySpawnReason,
+            at: BlockPos,
+            random: RandomSource,
+        ): Boolean {
+            val isInWater = level.getFluidState(at).`is`(FluidTags.WATER)
+            return isInWater && !HadalfishHunt.isAboveTheHunt(level, at.y)
+        }
+
         /**
          * A mini-boss's numbers, and the shape of them is the design rather than the values.
          *
