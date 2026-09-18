@@ -76,6 +76,14 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   seam it needs plus the four things that make it cheap — chiefly that **occlusion is already solved before
   the hook runs**. Read it before proposing coloured light, a lightmap trick, or a post effect. Also holds
   26.1's `CardinalLighting`, which is a per-Age look knob for one line of datapack.
+- **`notes/energy-interop-research.md`** — whether our powered machines should speak the shared power
+  standard. **Read §2 before writing a line of energy code**: NeoForge replaced the whole API in 21.9
+  (`EnergyHandler`, capability id `neoforge:energy_handler`, transaction-based) and the old package is
+  already deleted on 26.3, so every tutorial older than 1.21.9 is wrong and fails *silently* — an unmigrated
+  mod does not error, it simply cannot see you. Also: Fabric ships no energy module and Team Reborn's is the
+  one everybody bundles. Its ruling is **export, never import** — the bridge is cheap, but accepting foreign
+  power would undo §7.1.2's whole argument, since any tech mod's first generator would pay for machines that
+  are meant to be bought by writing Ages.
 - **`notes/link-panel-research.md`** — the live view of an Age on a bound book's panel, and **built**: why a
   preview `ClientLevel` beats a hand-written mesh builder, what it cost, and the register of everything
   vanilla keeps exactly one of per client. **Read that register before standing up a second level of any
