@@ -373,10 +373,10 @@ internal object ConsequenceInstruments {
      * Set an Age's instability outright, so the consequence registers can be tested without writing a book
      * that earns them.
      *
-     * Reaching the worsening honestly takes an index near sixty-five and collapse near a hundred, which is two dozen
-     * pages opposing two dozen different things — a great deal of fighting the vocabulary to exercise
-     * arithmetic the vocabulary has nothing to do with. The index goes through the real price list from
-     * here, so what it buys is exactly what a book of that index would have bought.
+     * Reaching the worsening honestly takes an index past a hundred and collapse two hundred, which is a
+     * great deal of fighting the vocabulary to exercise arithmetic the vocabulary has nothing to do with. The
+     * index goes through the real price list and the Age's own seed from here, so what it buys is exactly
+     * what a book of that index would have bought in that Age.
      */
     private fun runForceInstability(context: CommandContext<CommandSourceStack>, index: Int, report: Report): Int {
         val source = context.source

@@ -20,7 +20,7 @@ class BefallingCheck : FunSpec({
     /** Far enough past the top of the ladder that every rung is bought, however many there are. */
     val MOST_BROKEN = 20
 
-    fun spendingAt(budget: Int) = Spending.of(budget, SHIPPED_PRICES)
+    fun spendingAt(budget: Int) = Spending.of(budget, ANY_SEED, SHIPPED_PRICES)
     fun sandfall(value: String = Phenomenon.SANDFALL.key, density: Double = Rung.ORDINARY) =
         Claim(value = value, density = density)
 
@@ -88,7 +88,12 @@ class BefallingCheck : FunSpec({
     }
 }) {
     private companion object {
-        /** Enough to reach the sandfall: seams and wounds fill at 28, and a step of sandfall is 7 more. */
-        const val RUINED = 35
+        /**
+         * Enough to buy every step of everything, so the sandfall is reached whatever the draw leans
+         * toward — which of the phenomena a *moderate* index reaches is the seed's to say.
+         */
+        const val RUINED = 10_000
+
+        const val ANY_SEED = 7L
     }
 }

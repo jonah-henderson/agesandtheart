@@ -2,17 +2,12 @@
   "_comment": [
     "What an inflicted meteor storm costs an Age's instability budget, and how far it can reach (design 5.0, 5.2).",
     "",
-    "Priced with the sandfall and the blizzard, on the argument all three share: this is difficulty you can",
-    "answer rather than a verdict you cannot. Anything in `agesandtheart:seals_wounds` is immune to a blast",
-    "worth using, and being properly indoors is free -- where an Age that goes on holing itself only asks how",
-    "long you stay.",
-    "",
-    "A step buys all three of its dials at once, which no other manifestation does: how often a storm",
-    "gathers, how long it lasts, and how hard the bodies come in. A shower that only came more often would",
-    "read as the bottom of the ramp repeated.",
-    "",
-    "Unwalked, like the sandfall's four steps: nothing reaches the top of this without a badly broken Age."
+    "Difficulty you can answer: anything in `agesandtheart:seals_wounds` is immune to a blast worth using,",
+    "and being properly indoors is free. A step buys all three of its dials at once -- how often a storm",
+    "gathers, how long it lasts, and how hard the bodies come in -- which want splitting into dials of",
+    "their own. Opens at 16 with the other phenomena."
   ],
-  "costs": 7,
-  "most": 4
+  "dials": {
+    "fury": { "costs": 7, "most": 4, "opens_at": 16 }
+  }
 }

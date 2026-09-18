@@ -1,10 +1,14 @@
 {
   "_comment": [
     "What it costs an Age's instability budget to open tears in its ground, and how far that goes",
-    "(design 5.0, 5.1). Dearer than a torn seam: a seam is the world's shape being wrong, a wound is the",
-    "world being holed. Each step bought makes one likelier per chunk rather than adding a fixed count --",
-    "a handful of wounds in a whole dimension is a handful nobody ever walks past."
+    "(design 5.0, 5.1). A seam is the world's shape being wrong, a wound is the world being holed. Each",
+    "step bought makes one likelier per chunk rather than adding a fixed count -- a handful of wounds in a",
+    "whole dimension is a handful nobody ever walks past.",
+    "",
+    "Opens at 10, which is the fence that says a small mistake tears seams and holes nothing: a five-page",
+    "book cannot reach it however the draw falls."
   ],
-  "costs": 5,
-  "most": 4
+  "dials": {
+    "frequency": { "costs": 5, "most": 4, "opens_at": 10 }
+  }
 }

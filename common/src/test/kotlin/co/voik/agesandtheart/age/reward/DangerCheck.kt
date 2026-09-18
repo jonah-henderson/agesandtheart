@@ -264,27 +264,35 @@ class DangerCheck : FunSpec({
         private const val A_TWENTIETH = 0.05
         private const val ONE_TENTH = 0.1
 
-        /** Every manifestation the same price, so an index maps onto what it bought by plain arithmetic. */
+        /** Every step the same price, so an index maps onto what it bought by plain arithmetic. */
         private const val A_STEP = 2
         private const val STEPS_EACH = 4
-        private const val FULLY = A_STEP * STEPS_EACH
 
-        private const val NOTHING_WRONG = 0
-        private const val ONLY_TORN_SEAMS = FULLY
-        private const val AS_FAR_AS_WOUNDS = FULLY * 2
+        /** What every step of [manifestation] costs together. */
+        private fun wholeOf(manifestation: Manifestation) = A_STEP * STEPS_EACH * manifestation.dials.size
+
+        /** What every manifestation declared before [manifestation] costs together. */
+        private fun before(manifestation: Manifestation) =
+            Manifestation.entries.takeWhile { it != manifestation }.sumOf(::wholeOf)
 
         /**
-         * Budgets counted from the ladder rather than written down.
-         *
-         * The ladder gains rungs as phenomena gain manifestations — a blizzard added one on 2026-09-05 —
-         * and a number written here would make every such addition a failure in a file about scoring.
-         * Every manifestation costs the same in [PRICES], so a rung is [FULLY] and the position of the
-         * dearest is however many there are.
+         * **A ladder made of floors**, so the draw cannot make these checks depend on a seed: each
+         * manifestation opens one point after everything declared before it could be bought whole, so an
+         * index of exactly [upTo] buys every step of every manifestation to there and nothing past it.
          */
-        private val AS_FAR_AS_SANDFALL = FULLY * (Manifestation.entries.indexOf(Manifestation.SANDFALL) + 1)
-        private val AS_FAR_AS_COLLAPSE = FULLY * Manifestation.entries.size
+        private val PRICES = Manifestation.entries.associateWith {
+            Price.flat(it, A_STEP, STEPS_EACH, opensAt = before(it) + 1)
+        }
 
-        private val PRICES = Manifestation.entries.associateWith { Price(A_STEP, STEPS_EACH) }
+        private fun upTo(manifestation: Manifestation) = before(manifestation) + wholeOf(manifestation)
+
+        private const val NOTHING_WRONG = 0
+        private val ONLY_TORN_SEAMS = upTo(Manifestation.TORN_SEAMS)
+        private val AS_FAR_AS_WOUNDS = upTo(Manifestation.WOUNDS)
+        private val AS_FAR_AS_SANDFALL = upTo(Manifestation.SANDFALL)
+        private val AS_FAR_AS_COLLAPSE = upTo(Manifestation.COLLAPSE)
+
+        private const val ANY_SEED = 7L
 
         init {
             MinecraftRegistries.ensureStoodUp()
@@ -344,7 +352,7 @@ class DangerCheck : FunSpec({
             oneTerritory().withOptionsFor(Aspect.FEATURES, 0, Features.PLACES.name, placed.toList())
 
         private fun groundScore(composition: AgeComposition): Danger =
-            Danger.of(composition, Instability.NONE, true, GROUND_ONLY, PRICES)
+            Danger.of(composition, Instability.NONE, ANY_SEED, true, GROUND_ONLY, PRICES)
 
         /** One landform covering the whole Age, made of nothing in particular. */
         private fun oneTerritory(): AgeComposition = AgeComposition(terrains = listOf(Terrain.HILLS))
@@ -367,7 +375,7 @@ class DangerCheck : FunSpec({
             composition: AgeComposition,
             authored: Boolean = true,
             index: Int = NOTHING_WRONG,
-        ): Danger = Danger.of(composition, instabilityAt(index), authored, TABLE, PRICES)
+        ): Danger = Danger.of(composition, instabilityAt(index), ANY_SEED, authored, TABLE, PRICES)
 
         /**
          * An instability worth exactly [index], as one flaw.

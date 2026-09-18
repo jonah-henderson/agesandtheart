@@ -111,10 +111,10 @@ private class LiveReading(player: ServerPlayer?, pos: BlockPos) : InstrumentRead
     }
 
     override fun ofTheSentence(writer: ServerPlayer, resolved: Resolution): Tremor =
-        Tremor.of(writer.level().server, resolved.instability)
+        Tremor.of(writer.level().server, resolved.instability, writer.writingSeed)
 
     override fun ofAnIdleDesk(writer: ServerPlayer): Tremor =
-        Tremor.of(writer.level().server, Instability.NONE)
+        Tremor.of(writer.level().server, Instability.NONE, writer.writingSeed)
 
     /**
      * What the world the instrument is standing in is doing.
@@ -124,7 +124,7 @@ private class LiveReading(player: ServerPlayer?, pos: BlockPos) : InstrumentRead
      * what [Instability.NONE] describes.
      */
     override fun ofTheWorld(writer: ServerPlayer, recipe: AgeRecipe?): Tremor =
-        Tremor.of(writer.level().server, recipe?.instability ?: Instability.NONE)
+        Tremor.of(writer.level().server, recipe?.instability ?: Instability.NONE, recipe?.seed ?: writer.writingSeed)
 
     override fun record(reading: Tremor) {
         footing = reading.footing.ordinal

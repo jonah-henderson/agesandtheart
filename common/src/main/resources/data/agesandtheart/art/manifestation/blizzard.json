@@ -2,14 +2,12 @@
   "_comment": [
     "What a blizzard costs an Age's instability budget, and how far it can reach (design 5.0, 5.2).",
     "",
-    "Priced beside the sandfall, and on the same argument: both are difficulty you can answer rather than a",
-    "verdict you cannot. Light stops the snow settling and leather stops the freezing -- both vanilla's own",
-    "rules -- where an Age that goes on holing itself only asks how long you stay.",
-    "",
-    "A step buys weather rather than violence: how often a blizzard blows and how long it stays. One step is",
-    "about as often as ordinary rain for a few minutes; four is an Age scarcely ever out of one. The burial",
-    "that follows is the hazard and is meant to be."
+    "Difficulty you can answer: light stops the snow settling and leather stops the freezing -- both",
+    "vanilla's own rules. A step buys weather rather than violence: how often a blizzard blows and how long",
+    "it stays. One step is about as often as ordinary rain for a few minutes; four is an Age scarcely ever",
+    "out of one. Opens at 16 with the other phenomena."
   ],
-  "costs": 7,
-  "most": 4
+  "dials": {
+    "fury": { "costs": 7, "most": 4, "opens_at": 16 }
+  }
 }

@@ -104,7 +104,7 @@ class DangerTableCheck : FunSpec({
     test("scoring a recipe is scoring the composition in it") {
         val composition = AgeTemplate.INFERNAL.world()
         val throughTheRecipe = scoreOver(AgeTemplate.INFERNAL)
-        val direct = Danger.of(composition, Instability.NONE, authored = true, table, prices)
+        val direct = Danger.of(composition, Instability.NONE, SEED, authored = true, table, prices)
         check(throughTheRecipe == direct) { "a recipe scored $throughTheRecipe where its composition scored $direct" }
     }
 }) {
@@ -116,7 +116,7 @@ class DangerTableCheck : FunSpec({
 
         private val table by lazy { DangerTable.load(MinecraftRegistries.shippedData()) }
 
-        private val prices = Manifestation.entries.associateWith { Price.ORDINARY }
+        private val prices = Manifestation.entries.associateWith(Price::ordinaryFor)
 
         private fun scoreOver(template: AgeTemplate): Danger = Danger.of(
             AgeRecipe(AgeWorld.Composed(template.world()), seed = SEED, template = template, authored = true),

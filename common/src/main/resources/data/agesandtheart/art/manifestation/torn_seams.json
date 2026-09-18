@@ -1,10 +1,11 @@
 {
   "_comment": [
     "What it costs an Age's instability budget to tear its own seams open, and how far that can go",
-    "(design 5.0). `costs` is one step; `most` is how many steps may ever be bought, so a runaway index",
-    "moves on to the next manifestation rather than buying an unbounded amount of this one.",
-    "The cheapest thing in the price list, and the first an unstable Age reaches for."
+    "(design 5.0). Each dial sells steps: `costs` is the price of a step, `most` how many there are, and",
+    "`opens_at` the index a step waits for before the draw may buy it. Open from the first point of",
+    "instability, so it is the thing a barely unstable Age most often shows."
   ],
-  "costs": 2,
-  "most": 4
+  "dials": {
+    "width": { "costs": 2, "most": 4 }
+  }
 }
