@@ -188,16 +188,16 @@ object Deposits {
     /**
      * How far over the tear the hoard reaches, in layers above the world's floor.
      *
-     * The tear is the one layer at `floor + 1`, so this is the handful of layers sitting straight on top of
-     * it: near enough that the floor is plainly coming for the seam, shallow enough that what it takes is a
+     * The tear is the world's floor itself, so this is the handful of layers sitting straight on top of it:
+     * near enough that the floor is plainly coming for the seam, shallow enough that what it takes is a
      * layer rather than a third of the hoard.
      */
-    private const val REACHES_OVER_THE_TEAR = 7
+    private const val REACHES_OVER_THE_TEAR = 6
 
     private const val ORDINARY_MULTIPLE = 1
 
-    /** Clear of the layer `Collapse` keeps underfoot, so the hoard is in the tear rather than under it. */
-    private const val JUST_OFF_THE_FLOOR = 2
+    /** The layer over the floor, which is where a tear stands. */
+    private const val JUST_OFF_THE_FLOOR = 1
 
     /** Vanilla's own diamond vein, which is the scarcity this is aiming at. */
     private const val VEIN_SIZE = 4

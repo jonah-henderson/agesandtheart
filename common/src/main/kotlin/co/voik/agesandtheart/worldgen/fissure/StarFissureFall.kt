@@ -66,12 +66,18 @@ object StarFissureFall {
         player.setPos(tear.x + HALF_A_BLOCK, player.y, tear.z + HALF_A_BLOCK)
     }
 
-    /** Whether the fall is far enough along to be let go of — [FALL_DEPTH] under the tear it began at. */
+    /** Whether the fall is far enough along to be let go of — nearly into the void under the Age. */
     fun hasFallenFarEnough(player: Player): Boolean {
         if (!isFalling(player)) return false
-        val tear = tearOfTheFall(player) ?: return true
-        return player.y < tear.y - FALL_DEPTH
+        if (tearOfTheFall(player) == null) return true
+        return player.y < letsGoAt(player.level())
     }
+
+    /**
+     * The height the Age lets go at: as deep as a fall can go before vanilla's void damage, which
+     * `Entity.checkBelowWorld` starts [VOID_BELOW_THE_FLOOR] under the world's floor.
+     */
+    fun letsGoAt(level: Level): Int = level.minY - VOID_BELOW_THE_FLOOR + CLEAR_OF_THE_VOID
 
     /**
      * Whether a fall is running at all — the cheap half of every question asked about one.
@@ -94,11 +100,11 @@ object StarFissureFall {
      * The tear this fall is under — the lowest one in the player's own column.
      *
      * Searched from the feet rather than the eyes so the same call answers on the way in, where the tear is
-     * level with the body, and all the way down, where it is a long way overhead. The reach is a little
-     * past [FALL_DEPTH], so the fall is always let go of before the tear is lost.
+     * level with the body, and all the way down, where it is a long way overhead. The search stops at the
+     * first tear it meets, so it costs the distance fallen and no more.
      */
     fun tearOfTheFall(player: Player): BlockPos? =
-        tearInTheColumn(player, upTo = Mth.floor(player.y) + REACHES_BACK)
+        tearInTheColumn(player, upTo = player.level().maxY)
 
     /**
      * Which columns overhead are open, as the tears standing near [tear] — the hole to leave in the lid.
@@ -149,8 +155,8 @@ object StarFissureFall {
      * **Swept rather than a snapshot**, because a tear one block deep standing on solid ground is stepped
      * clean over by a fall at speed: the tick before, the tear is still under the feet; the tick after, what
      * is under the tear has already caught them, and a body standing on the ground was never asked. A tear
-     * at an Age's floor (`Collapse`) is a hundred blocks of cleared shaft with bedrock under its one layer,
-     * so it was *always* arrived at that way and the snapshot never took one at all.
+     * at an Age's floor (`Collapse`) is the bottom of a hundred blocks of cleared shaft, so it is *always*
+     * arrived at that way.
      */
     private fun tearInTheWayDown(player: Player): BlockPos? =
         tearInTheColumn(player, upTo = Mth.floor(player.y + player.bbHeight))
@@ -187,11 +193,14 @@ object StarFissureFall {
      */
     const val SAVE_KEY = "agesandtheart:falling"
 
-    /** How far under the tear the Age lets go, in blocks. */
-    const val FALL_DEPTH = 50
+    /** How far under the world's floor `Entity.checkBelowWorld` starts hurting, in blocks. */
+    private const val VOID_BELOW_THE_FLOOR = 64
 
-    /** How far back up the fall looks for the tear it came through — past [FALL_DEPTH], never short of it. */
-    private const val REACHES_BACK = FALL_DEPTH + 8
+    /**
+     * How far above that the Age lets go — more than a tick's fall at terminal speed, about four blocks,
+     * since the let-go runs after the entities have ticked.
+     */
+    private const val CLEAR_OF_THE_VOID = 8
 
     /** How far a tear is followed sideways when measuring the opening, and the square that makes. */
     private const val SPREADS_OVER = 8

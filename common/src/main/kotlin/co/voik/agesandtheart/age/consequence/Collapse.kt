@@ -211,12 +211,10 @@ object Collapse {
     /**
      * How much of the world's own floor the tear does **not** take, in layers.
      *
-     * One, and it is what the tear stands on rather than what saves anybody: `StarFissureFall` carries a
-     * player through whatever is under a tear, so the old hazard this guarded against — falling out of the
-     * bottom of the world before the way out could fire — cannot happen any more. What the layer still
-     * buys is that the world has a floor at all where a tear has taken its skin.
+     * None: the tear is the bottom layer itself, so someone falling out of it looks up at the field and not
+     * at bedrock left standing under it.
      */
-    private const val KEPT_UNDERFOOT = 1
+    private const val KEPT_UNDERFOOT = 0
 
     /** How many cells either way can reach into this chunk, given a crack's length and its wander. */
     private const val REACHES = 1

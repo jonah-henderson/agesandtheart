@@ -8,8 +8,8 @@ import net.minecraft.world.phys.Vec3
 /**
  * Letting go of whoever has fallen through a tear (design §7.8).
  *
- * **The hold keeps no clock.** A player drops until they are [StarFissureFall.FALL_DEPTH] under the tear
- * they came in by, and that depth is what says the beat is up. So there is no timer per player and no map
+ * **The hold keeps no clock.** A player drops until they are nearly into the void under the Age
+ * ([StarFissureFall.letsGoAt]), and that depth is what says the beat is up. So there is no timer per player and no map
  * to clear when a server stops — §5.4's rule that the world is the state, which the fissures have kept
  * from the start.
  *
@@ -26,11 +26,6 @@ object TheFall {
         for (level in server.allLevels) {
             if (level === home) continue
             for (player in level.players().toList()) {
-                // **The band's floor is not a signal.** A tear in the bedrock is at the generated floor, so
-                // a fall from one is under `level.minY` within a few blocks and would be cut off at a
-                // fraction of its length. Losing the tear is the only other way out, and
-                // `hasFallenFarEnough` answers that too — fifty blocks stays well clear of the void, which
-                // does not begin until `minY - 64`.
                 if (!StarFissureFall.hasFallenFarEnough(player)) continue
                 putBackInTheOverworld(player, server)
             }
