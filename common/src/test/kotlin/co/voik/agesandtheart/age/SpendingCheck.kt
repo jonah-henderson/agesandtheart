@@ -239,7 +239,8 @@ internal val SHIPPED_PRICES = mapOf(
     Manifestation.SANDFALL to Price.flat(Manifestation.SANDFALL, costs = 7, most = 4, opensAt = 16),
     Manifestation.BLIZZARD to Price.flat(Manifestation.BLIZZARD, costs = 7, most = 4, opensAt = 16),
     Manifestation.METEORS to Price.flat(Manifestation.METEORS, costs = 7, most = 4, opensAt = 16),
-    Manifestation.TECTONICS to Price.flat(Manifestation.TECTONICS, costs = 7, most = 4, opensAt = 16),
+    // At 200 with `collapse`, not 16 with the phenomena: given time it takes the whole Age.
+    Manifestation.TECTONICS to Price.flat(Manifestation.TECTONICS, costs = 7, most = 4, opensAt = 200),
     // One step rather than four: an inferno has no designed ramp — see `Manifestation.INFERNO`.
     Manifestation.INFERNO to Price.flat(Manifestation.INFERNO, costs = 7, most = 1, opensAt = 16),
     Manifestation.DELUGE to Price(

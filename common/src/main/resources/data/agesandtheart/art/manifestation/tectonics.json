@@ -10,9 +10,11 @@
     "harder version of this, it would be a different and worse thing.",
     "",
     "Not the same register as `collapse`, which tears the world floor and ends the Age. This one only ever",
-    "takes the hillside you are standing on. Opens at 16 with the other phenomena."
+    "takes the hillside you are standing on -- but given long enough it takes every hillside, which is an Age",
+    "undone as surely as a torn floor. So it opens at 200 with `collapse` rather than at 16 with the other",
+    "phenomena (Jonah, 2026-09-17)."
   ],
   "dials": {
-    "fury": { "costs": 7, "most": 4, "opens_at": 16 }
+    "fury": { "costs": 7, "most": 4, "opens_at": 200 }
   }
 }
