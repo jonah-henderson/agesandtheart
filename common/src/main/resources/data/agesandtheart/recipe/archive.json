@@ -1,0 +1,15 @@
+{
+  "_comment": "A bookshelf's recipe with notebooks where the books go (Jonah, 2026-09-18). A notebook with pages in it loses them to the recipe, as a filled bundle would -- file them first.",
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "PPP",
+    "NNN",
+    "PPP"
+  ],
+  "key": {
+    "P": "#minecraft:planks",
+    "N": "agesandtheart:notebook"
+  },
+  "result": { "id": "agesandtheart:archive" }
+}

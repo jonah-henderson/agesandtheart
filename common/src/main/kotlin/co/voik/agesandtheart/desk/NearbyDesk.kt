@@ -22,7 +22,8 @@ class NearbyDesk(private val pos: BlockPos) {
     private var deskAt: BlockPos? = null
 
     /**
-     * This writer's pages on the desk in the room, or null where the room holds no desk.
+     * The words this writer's template at the desk in the room names — the learned ones, which are the
+     * ones a book could be bound from — or null where the room holds no desk.
      *
      * An empty list and a null are different answers and both matter: a desk with a bare surface is an
      * instrument with nothing to read, where no desk at all is an instrument that should fall back to the
@@ -31,7 +32,7 @@ class NearbyDesk(private val pos: BlockPos) {
     fun laidOutBy(writer: ServerPlayer): List<Identifier>? {
         val level = writer.level()
         val known = deskAt?.let { level.getBlockEntity(it) as? WritersDeskBlockEntity }
-        if (known != null) return known.compositionFor(writer.uuid)
+        if (known != null) return DeskTemplates.wordsOf(writer, known.templateFor(writer.uuid))
         deskAt = null
         val reach = WritersDesk.of(level.server).radius
         val cursor = BlockPos.MutableBlockPos()
@@ -39,7 +40,7 @@ class NearbyDesk(private val pos: BlockPos) {
             cursor.setWithOffset(pos, x, y, z)
             val desk = level.getBlockEntity(cursor) as? WritersDeskBlockEntity ?: continue
             deskAt = cursor.immutable()
-            return desk.compositionFor(writer.uuid)
+            return DeskTemplates.wordsOf(writer, desk.templateFor(writer.uuid))
         }
         return null
     }

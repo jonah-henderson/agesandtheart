@@ -7,8 +7,8 @@ import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
 import co.voik.agesandtheart.client.panel.LinkingPanel
+import co.voik.agesandtheart.desk.ArchiveSyncPayload
 import co.voik.agesandtheart.desk.DeskNoticePayload
-import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.worldgen.fissure.FallResumedPayload
 import net.minecraft.client.Minecraft
@@ -28,8 +28,8 @@ object ClientPayloads {
         Receiver(DelugePayload.TYPE) { Downpours.remember(it) },
         Receiver(LearnedWordsPayload.TYPE) { KnownWords.remember(it) },
         Receiver(DeskSyncPayload.TYPE) { DeskModel.remember(it) },
-        Receiver(DeskPricePayload.TYPE) { DeskModel.remember(it) },
         Receiver(DeskNoticePayload.TYPE) { DeskModel.remember(it) },
+        Receiver(ArchiveSyncPayload.TYPE) { ArchiveScreen.remember(it) },
         // The drop carries on from where it left off: where they are and how fast they were going came
         // back with them, and this is the flag that says the ground is still not holding them.
         Receiver(FallResumedPayload.TYPE) { Minecraft.getInstance().player?.noPhysics = true },

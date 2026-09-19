@@ -26,7 +26,40 @@ class RowAction<T : Any>(
 )
 
 /**
+ * [label] broken into lines no wider than [width], the second and later ones [indent] pixels in.
+ *
+ * Breaks between words where it can, and inside a word only when the word alone is too wide for a line.
+ */
+fun wrapLabel(label: String, width: Int, indent: Int, measure: (String) -> Int): List<String> {
+    val lines = mutableListOf<String>()
+    var line = ""
+    fun widthFor(lineIndex: Int) = if (lineIndex == 0) width else width - indent
+    for (word in label.split(' ')) {
+        val joined = if (line.isEmpty()) word else "$line $word"
+        if (measure(joined) <= widthFor(lines.size)) {
+            line = joined
+            continue
+        }
+        if (line.isNotEmpty()) lines += line
+        line = word
+        while (measure(line) > widthFor(lines.size)) {
+            val fits = generateSequence(line.length - 1) { it - 1 }
+                .takeWhile { it > 1 }
+                .firstOrNull { measure(line.take(it)) <= widthFor(lines.size) }
+                ?: 1
+            lines += line.take(fits)
+            line = line.drop(fits)
+        }
+    }
+    lines += line
+    return lines
+}
+
+/**
  * One row of a [LabelledList]: a name, optionally a count, and whatever the row offers to do.
+ *
+ * A name too long for the row wraps onto indented lines beneath it; the count and the buttons stay on the
+ * first.
  *
  * Kept out of the list class so the self-referential bound `Entry<E>` resolves — an inner class cannot name
  * itself in its own supertype.
@@ -34,6 +67,7 @@ class RowAction<T : Any>(
 class LabelledRow<T : Any>(
     val value: T,
     private val label: String,
+    private val lines: List<String>,
     private val count: Int?,
     private val onActivate: (T) -> Unit,
     private val actions: List<RowAction<T>> = emptyList(),
@@ -54,15 +88,19 @@ class LabelledRow<T : Any>(
         val font = Minecraft.getInstance().font
         val washed = hovered || isFocused
         if (hovered) graphics.fill(x, y, x + width, y + height, Palette.HOVER)
-        val baseline = y + (height - font.lineHeight) / 2
-        graphics.text(font, label, x + TEXT_INSET, baseline, Palette.TEXT, false)
+        val baseline = y + (FIRST_LINE_HEIGHT - font.lineHeight) / 2
+        lines.forEachIndexed { index, line ->
+            val indent = if (index == 0) 0 else WRAP_INDENT
+            graphics.text(font, line, x + TEXT_INSET + indent, baseline + index * font.lineHeight, Palette.TEXT, false)
+        }
 
         for ((index, action) in actions.withIndex()) {
             val left = buttonAt(index)
-            val over = mouseX >= left && mouseX < left + BUTTON_WIDTH && mouseY >= y && mouseY < y + height
+            val onTheFirstLine = mouseY >= y && mouseY < y + FIRST_LINE_HEIGHT
+            val over = mouseX >= left && mouseX < left + BUTTON_WIDTH && onTheFirstLine
             val live = action.enabled(value)
             if (over) {
-                graphics.fill(left, y, left + BUTTON_WIDTH, y + height, Palette.HOVER)
+                graphics.fill(left, y, left + BUTTON_WIDTH, y + FIRST_LINE_HEIGHT, Palette.HOVER)
                 graphics.setTooltipForNextFrame(action.tooltip(value), mouseX, mouseY)
             }
             val ink = if (live) Palette.TEXT else Palette.FAINT
@@ -84,7 +122,9 @@ class LabelledRow<T : Any>(
 
     override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {
         val clickX = event.x()
+        val onTheFirstLine = event.y() < y + FIRST_LINE_HEIGHT
         for ((index, action) in actions.withIndex()) {
+            if (!onTheFirstLine) break
             val left = buttonAt(index)
             if (clickX < left || clickX >= left + BUTTON_WIDTH) continue
             // A disabled button still swallows the click: it is a button that is not ready, not a gap in
@@ -101,12 +141,37 @@ class LabelledRow<T : Any>(
     private fun countRight(): Int =
         if (actions.isEmpty()) x + width - TEXT_INSET else buttonAt(0) - TEXT_INSET
 
-    private companion object {
-        const val TEXT_INSET = 2
+    companion object {
+        private const val TEXT_INSET = 2
+        private const val WRAP_INDENT = 6
 
         /** A glyph and a little air, which is as much as a twelve-pixel row has to give. */
-        const val BUTTON_WIDTH = 11
-        const val BUTTON_PITCH = 12
+        private const val BUTTON_WIDTH = 11
+        private const val BUTTON_PITCH = 12
+
+        const val FIRST_LINE_HEIGHT = 12
+
+        /** A row of [rowWidth] holding [label], its [count] and [actionCount] buttons, wrapped to fit. */
+        fun <T : Any> wrapped(
+            value: T,
+            label: String,
+            count: Int?,
+            onActivate: (T) -> Unit,
+            actions: List<RowAction<T>>,
+            rowWidth: Int,
+        ): LabelledRow<T> {
+            val font = Minecraft.getInstance().font
+            val countWidth = if (count != null && count > 0) font.width("$count") + TEXT_INSET else 0
+            val labelWidth = rowWidth - TEXT_INSET * 2 - countWidth - actions.size * BUTTON_PITCH
+            val lines = wrapLabel(label, labelWidth.coerceAtLeast(MINIMUM_LABEL_WIDTH), WRAP_INDENT, font::width)
+            return LabelledRow(value, label, lines, count, onActivate, actions)
+        }
+
+        fun heightOf(row: LabelledRow<*>): Int =
+            FIRST_LINE_HEIGHT + (row.lines.size - 1) * Minecraft.getInstance().font.lineHeight
+
+        /** Before the list has been laid out it has no width, and nothing should wrap a letter a line. */
+        private const val MINIMUM_LABEL_WIDTH = 24
     }
 }
 
@@ -121,15 +186,22 @@ class LabelledList<T : Any>(
     minecraft: Minecraft,
     bounds: Rect,
     private val onSelect: (T) -> Unit,
-) : ObjectSelectionList<LabelledRow<T>>(minecraft, bounds.width, bounds.height, bounds.y, ROW_HEIGHT), Resized {
+) : ObjectSelectionList<LabelledRow<T>>(minecraft, bounds.width, bounds.height, bounds.y, LabelledRow.FIRST_LINE_HEIGHT),
+    Resized {
+
+    /** The last [show], kept so a new width can wrap the same rows again. */
+    private var reshow: () -> Unit = {}
 
     init {
         centerListVertically = false
         updateSizeAndPosition(bounds.width, bounds.height, bounds.x, bounds.y)
     }
 
-    /** Entries are positioned when the list is, so a layout moving it has to say so. */
-    override fun onResized(bounds: Rect) = place(bounds)
+    /** Entries are positioned when the list is, so a layout moving it has to say so — and rewrapped. */
+    override fun onResized(bounds: Rect) {
+        place(bounds)
+        reshow()
+    }
 
     /**
      * Replaces the contents, keeping the selection where [key] still identifies a row.
@@ -144,9 +216,14 @@ class LabelledList<T : Any>(
         key: (T) -> Any = { it },
         actions: List<RowAction<T>> = emptyList(),
     ) {
+        reshow = { show(values, label, count, key, actions) }
         val wasSelected = selected?.value?.let(key)
         val wasScrolledTo = scrollAmount()
-        replaceEntries(values.map { LabelledRow(it, label(it), count(it), onSelect, actions) })
+        clearEntries()
+        for (value in values) {
+            val row = LabelledRow.wrapped(value, label(value), count(value), onSelect, actions, rowWidth)
+            addEntry(row, LabelledRow.heightOf(row))
+        }
         selected = children().firstOrNull { key(it.value) == wasSelected }
         // `setSelected` scrolls the selection back into view, and after a keyboard event it does so
         // unconditionally — which would drag the list away from wherever the reader had put it every time a
@@ -190,7 +267,6 @@ class LabelledList<T : Any>(
     override fun extractListSeparators(graphics: GuiGraphicsExtractor) = Unit
 
     private companion object {
-        const val ROW_HEIGHT = 12
         const val SCROLLBAR_GUTTER = 8
     }
 }

@@ -39,6 +39,10 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   `art/preset_tags/`, adding a tag, or authoring a word that queries one.
 - **`notes/terrain-architecture.md`** — the two-tier terrain system (composable field toolkit + bespoke
   presets): the evaluation contract, where things live, the performance budget. Built and shipped.
+- **`notes/writers-desk-redesign.md`** — the desk split into blocks: the archive block, writing from a
+  template of known words paid for whole at the bind, and one inventory-less screen. **Built 2026-09-18,
+  unwalked**, and it supersedes parts of `the-art-design.md` §7.4 and §7.5. Its "Calls made while building"
+  lists what the build decided without Jonah. Read it before touching `desk/` or the desk's screens.
 - **`notes/walk-list.md`** — **what is built and unwalked**, opened 2026-09-11 and organised by section with
   a reference per item. Verdicts go to `decisions.md` and the item is struck; when the last one goes, so
   does the file. Read it before walking anything or before assuming a recent change has been seen.

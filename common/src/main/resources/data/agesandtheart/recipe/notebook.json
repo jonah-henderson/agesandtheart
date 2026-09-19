@@ -1,0 +1,13 @@
+{
+  "_comment": "The bucket's shape in leather (Jonah, 2026-09-18). Notebooks were loot-only, which would have gated the archive on finding three. A crafted one is empty.",
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "L L",
+    " L "
+  ],
+  "key": {
+    "L": "minecraft:leather"
+  },
+  "result": { "id": "agesandtheart:notebook" }
+}

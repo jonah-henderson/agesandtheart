@@ -6,19 +6,19 @@ import co.voik.agesandtheart.age.word.Word
 import net.minecraft.core.RegistryAccess
 
 /**
- * What one page costs: which ink, how much of it, and a sheet of the chosen paper.
+ * What one page costs in ink: which ink, and how much of it on the chosen paper.
  *
  * Two independent axes meet here, and keeping them apart is the point (design §7.1.1). **Which** ink a
  * word demands comes from the referent's tags — a diamond needs the good ink however vaguely you use it.
  * **How much** comes from [Word.price], which is specificity times versatility (world model §9) and the
  * same number a book's cost is the sum of. Paper discounts the amount without ever touching the tier, so
- * it eases the economy but can never unlock a word.
+ * it eases the economy but can never unlock a word. The sheets a book takes are the book's business — see
+ * [sheetsFor] and [BookCost].
  */
 data class WriteCost(
     val inkTier: InkTier,
     val inkUnits: Long,
     val paperTier: InkTier,
-    val sheets: Int = 1,
 ) {
     companion object {
         /**
@@ -55,6 +55,31 @@ data class WriteCost(
 
         /** What [paperTier] multiplies a word's cost by — read by the checks that price the economy. */
         fun paperEfficiency(paperTier: InkTier): Double = PAPER_EFFICIENCY[paperTier] ?: 1.0
+
+        /**
+         * How many words one sheet carries (Jonah, 2026-09-18, to be playtested). Better paper has to be
+         * **strictly superior for the effort of getting it**, so beyond the ink it saves, a sheet of it
+         * carries more than one word.
+         */
+        private val WORDS_PER_SHEET = mapOf(
+            InkTier.COMMON to 1,
+            InkTier.FINE to 4,
+            InkTier.MASTERWORK to 10,
+        )
+
+        fun wordsPerSheet(paperTier: InkTier): Int = WORDS_PER_SHEET[paperTier] ?: 1
+
+        /** The sheets [pages] new pages take on [paperTier], rounded up — a part-used sheet is still spent. */
+        fun sheetsFor(pages: Int, paperTier: InkTier): Int {
+            val perSheet = wordsPerSheet(paperTier)
+            return (pages + perSheet - 1) / perSheet
+        }
+
+        /** A structural word's ink on [paperTier]: one unit of cost, the least any page is priced at. */
+        fun structural(paperTier: InkTier, unitsPerBucket: Long): Long {
+            val perUnit = unitsPerBucket.toDouble() / COST_UNITS_PER_BUCKET
+            return Math.ceil(perUnit * paperEfficiency(paperTier)).toLong().coerceAtLeast(1L)
+        }
 
         fun of(
             word: Word,

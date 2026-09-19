@@ -1,0 +1,24 @@
+{
+  "_comment": "The shulker box's table: the pages go with the item rather than onto the floor, because an unbounded store emptied at once is a lag spike rather than a courtesy.",
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:archive",
+          "functions": [
+            {
+              "function": "minecraft:copy_components",
+              "source": "block_entity",
+              "include": ["agesandtheart:archive_pages"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/archive"
+}

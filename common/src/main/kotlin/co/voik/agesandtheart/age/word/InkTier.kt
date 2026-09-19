@@ -23,12 +23,6 @@ enum class InkTier(val key: String) : StringRepresentable {
     /** Whether an ink of this quality can write something demanding [required]. */
     fun satisfies(required: InkTier): Boolean = ordinal >= required.ordinal
 
-    /**
-     * The ink a page actually takes when this is poured for a word demanding [required]: better ink than
-     * the word demands is spent as poured, and worse is never spent at all.
-     */
-    fun spentFor(required: InkTier): InkTier = if (satisfies(required)) this else required
-
     override fun getSerializedName(): String = key
 
     companion object {

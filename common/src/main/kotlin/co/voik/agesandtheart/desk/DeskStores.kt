@@ -3,36 +3,6 @@ package co.voik.agesandtheart.desk
 import co.voik.agesandtheart.age.word.InkTier
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
-import net.minecraft.resources.Identifier
-
-/**
- * Every page the desk holds, as word → count.
- *
- * Pages of the same word are identical items, so a count is lossless — and it is what makes "unlimited"
- * affordable, since a thousand pages of `flat` cost one entry rather than a thousand stacks.
- */
-data class PageArchive(private val counts: Map<Identifier, Int>) {
-    val words: Set<Identifier> get() = counts.keys
-
-    fun count(word: Identifier): Int = counts[word] ?: 0
-
-    fun with(word: Identifier, added: Int): PageArchive =
-        PageArchive(counts + (word to (count(word) + added).coerceAtLeast(0)))
-
-    /** @return the archive without [taken] copies, or null if it does not hold that many. */
-    fun without(word: Identifier, taken: Int): PageArchive? {
-        val remaining = count(word) - taken
-        if (remaining < 0) return null
-        return PageArchive(if (remaining == 0) counts - word else counts + (word to remaining))
-    }
-
-    companion object {
-        val EMPTY = PageArchive(emptyMap())
-
-        val CODEC: Codec<PageArchive> = Codec.unboundedMap(Identifier.CODEC, Codec.INT)
-            .xmap(::PageArchive) { it.counts }
-    }
-}
 
 /**
  * The three ink tanks, the three paper stacks, and the binding.
@@ -59,12 +29,6 @@ data class DeskStores(
         return copy(binding = binding + accepted) to (count - accepted)
     }
 
-    /** @return this less one binding, or null if there is none — so binding cannot go halfway. */
-    fun spendingBinding(): DeskStores? {
-        if (binding <= 0) return null
-        return copy(binding = binding - 1)
-    }
-
     /** Room left in a tank. [capacity] is passed in because the unit belongs to the loader, not to us. */
     fun inkSpace(tier: InkTier, capacity: Long): Long = capacity - ink(tier)
 
@@ -85,12 +49,17 @@ data class DeskStores(
         return copy(paper = paper + (tier to paper(tier) + accepted)) to (sheets - accepted)
     }
 
-    /** @return this less the cost, or null if it cannot be paid — so a partial spend is unrepresentable. */
-    fun spending(inkTier: InkTier, inkUnits: Long, paperTier: InkTier, sheets: Int): DeskStores? {
-        if (ink(inkTier) < inkUnits || paper(paperTier) < sheets) return null
+    /**
+     * @return this less the whole of [cost], or null if any of it cannot be paid — so a book half-paid for
+     * is unrepresentable.
+     */
+    fun paying(cost: BookCost): DeskStores? {
+        if (!cost.affordableFrom(this)) return null
+        val inkLeft = cost.ink.entries.fold(ink) { tanks, (tier, units) -> tanks + (tier to ink(tier) - units) }
         return copy(
-            ink = ink + (inkTier to ink(inkTier) - inkUnits),
-            paper = paper + (paperTier to paper(paperTier) - sheets),
+            ink = inkLeft,
+            paper = paper + (cost.paper to paper(cost.paper) - cost.sheets),
+            binding = binding - cost.bindings,
         )
     }
 

@@ -2,6 +2,7 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.age.word.grammar.Said
 import co.voik.agesandtheart.book.LinkTarget
+import co.voik.agesandtheart.desk.PageArchive
 import co.voik.agesandtheart.location
 import com.mojang.serialization.Codec
 import net.minecraft.core.component.DataComponentType
@@ -73,6 +74,15 @@ object AgeComponents {
         .networkSynchronized(ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()))
         .build()
 
+    /**
+     * The pages an archive holds, carried on the item when the block is broken — a shulker box's
+     * bargain, because an unbounded store emptied onto the floor is a lag spike rather than a courtesy.
+     */
+    val ARCHIVE_PAGES: DataComponentType<PageArchive> = DataComponentType.builder<PageArchive>()
+        .persistent(PageArchive.CODEC)
+        .networkSynchronized(PageArchive.STREAM_CODEC)
+        .build()
+
     /** The sentence a Descriptive Book carries, in order — page order is word order. */
     val BOOK_WORDS: DataComponentType<List<Identifier>> = DataComponentType.builder<List<Identifier>>()
         .persistent(Identifier.CODEC.listOf())
@@ -142,5 +152,6 @@ object AgeComponents {
         "book_authored".location() to BOOK_AUTHORED,
         "link_target".location() to LINK_TARGET,
         "notebook_pages".location() to NOTEBOOK_PAGES,
+        "archive_pages".location() to ARCHIVE_PAGES,
     )
 }

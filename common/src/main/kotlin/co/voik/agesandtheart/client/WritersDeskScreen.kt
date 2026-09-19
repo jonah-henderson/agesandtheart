@@ -2,205 +2,119 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
-import co.voik.agesandtheart.client.ui.BookWritingWorkSurface
 import co.voik.agesandtheart.client.ui.DecoratedBox
 import co.voik.agesandtheart.client.ui.DecorationWidget
 import co.voik.agesandtheart.client.ui.Edge
 import co.voik.agesandtheart.client.ui.FlexColumn
 import co.voik.agesandtheart.client.ui.Insets
 import co.voik.agesandtheart.client.ui.LabelledList
+import co.voik.agesandtheart.client.ui.MarkedText
 import co.voik.agesandtheart.client.ui.Palette
 import co.voik.agesandtheart.client.ui.PanelSurface
-import co.voik.agesandtheart.client.ui.PlayerInventoryView
+import co.voik.agesandtheart.client.ui.PricedItem
 import co.voik.agesandtheart.client.ui.Rect
-import co.voik.agesandtheart.client.ui.RowAction
-import co.voik.agesandtheart.client.ui.SlotView
-import co.voik.agesandtheart.client.ui.TabStrip
-import co.voik.agesandtheart.content.NotebookItem
-import co.voik.agesandtheart.content.RimeColour
-import co.voik.agesandtheart.desk.DeskAction
-import co.voik.agesandtheart.desk.DeskTab
+import co.voik.agesandtheart.client.ui.TemplateEditor
+import co.voik.agesandtheart.client.ui.TextMark
+import co.voik.agesandtheart.desk.BookCost
+import co.voik.agesandtheart.desk.DeskBindPayload
 import co.voik.agesandtheart.desk.DeskCapability
-import co.voik.agesandtheart.desk.DeskCommandPayload
-import co.voik.agesandtheart.desk.DeskSlots
+import co.voik.agesandtheart.desk.DeskTemplatePayload
+import co.voik.agesandtheart.desk.ReadWord
+import co.voik.agesandtheart.desk.WordState
 import co.voik.agesandtheart.desk.WritersDeskMenu
+import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
-import net.minecraft.client.gui.components.AbstractWidget
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.EditBox
-import net.minecraft.client.gui.components.MultiLineTextWidget
+import net.minecraft.client.gui.components.FittingMultiLineTextWidget
+import net.minecraft.client.gui.components.Tooltip
 import net.minecraft.client.gui.layouts.LinearLayout
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.client.input.KeyEvent
-import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
-import net.minecraft.resources.Identifier
 import net.minecraft.world.entity.player.Inventory
 
 /**
- * The desk, assembled from `client/ui` pieces.
+ * The writer's desk: every word you know on the left, the template in the middle, the stock on the right
+ * (design: the writer's desk redesign).
  *
- * Composes and decides; draws nothing itself. Widgets are added **back to front** — the order of [build]
- * is the order they stack.
+ * **One screen, no tabs and no inventory.** A template is typed, or built by clicking words in from the
+ * list; the desk reads it back — each word underlined as the reader took it, its D'ni beneath where the
+ * writer has learned it — prices the book, and binds it with one click.
+ *
+ * Composes and decides; draws nothing itself but lines of text. Widgets are added **back to front**.
  */
 class WritersDeskScreen(
     menu: WritersDeskMenu,
     inventory: Inventory,
     title: Component,
-) : AbstractContainerScreen<WritersDeskMenu>(
-    menu, inventory, title, DeskLayout.WIDTH, DeskLayout.HEIGHT,
-) {
+) : AbstractContainerScreen<WritersDeskMenu>(menu, inventory, title, PANEL_WIDTH, PANEL_HEIGHT) {
 
-    /**
-     * Which tab is showing, starting where this client left off (Jonah, 2026-08-08).
-     *
-     * A writer who is filing pages opens the desk many times in a row and wants the same wing each time;
-     * being put back on the archive every time is a click paid for nothing. Remembered on the client and
-     * not in the recipe or the menu, because it is a preference about *looking* rather than a fact about
-     * the desk — a second player at the same desk keeps their own.
-     */
-    private var tab = lastOpened
-    private var selectedWord: Identifier? = null
-
-    /** Which paper a row's write button spends. The cheapest by default, so nobody wastes the good stuff. */
-    private var chosenPaper: InkTier = InkTier.COMMON
-
-    /**
-     * The floor a writer puts under the ink, for spending better than a word demands.
-     *
-     * Common by default, which means "whatever it needs" — a word's required tier is the referent's
-     * business and this can only ever raise it. What it buys is a use for a tank of the good stuff before
-     * something turns up that insists on it.
-     */
-    private var chosenInk: InkTier = InkTier.COMMON
-
-    // What the lists are showing, so they are only rebuilt when the answer actually changes.
-    private var shownWords: List<WordRow> = emptyList()
-    private var shownComposition: List<Identifier> = emptyList()
-
-    private lateinit var layout: DeskLayout
-    private lateinit var tabs: TabStrip<DeskTab>
-    private lateinit var wordList: LabelledList<WordRow>
-    private lateinit var composition: BookWritingWorkSurface<Identifier>
     private lateinit var search: EditBox
+    private lateinit var wordList: LabelledList<WordRow>
     private lateinit var ageName: EditBox
+    private lateinit var editor: TemplateEditor
+    private lateinit var readingView: FittingMultiLineTextWidget
+    private lateinit var costRow: LinearLayout
+    private lateinit var costItems: List<PricedItem>
     private lateinit var paperButtons: List<Button>
-    private lateinit var inkButtons: List<Button>
+    private lateinit var readButton: Button
     private lateinit var bindButton: Button
-    private lateinit var reading: MultiLineTextWidget
-    private lateinit var columns: Map<DeskTab, FlexColumn>
 
-    /**
-     * Widgets only some tabs show, each with the rule that decides.
-     *
-     * Registered where a widget is added, so the two cannot drift apart.
-     */
-    private val perTab = mutableListOf<Pair<AbstractWidget, (DeskTab) -> Boolean>>()
+    private var shownWords: List<WordRow> = emptyList()
+
+    /** Whether the editor has been given the template the desk kept, which happens once per opening. */
+    private var seeded = false
+
+    /** Ticks since the template last changed and was not yet sent, or null when the desk has it. */
+    private var unsentFor: Int? = null
+
+    private var showingReading = false
+
+    /** The template as it was when Bind was pressed, until the desk either clears it or keeps it. */
+    private var bindingTemplate: String? = null
+
+    init {
+        // Whatever the last desk said is not this desk's.
+        DeskModel.forget()
+    }
 
     override fun init() {
         super.init()
-        // Vanilla centres the panel alone, but the tabs stand above it — so the whole thing sat high enough
-        // to clip them off the top. What has to be centred is panel *plus* lift, and moving down by half
-        // the lift is the same statement.
-        topPos += TabStrip.LIFT / 2
-        layout = DeskLayout(leftPos, topPos)
-        build()
-        showTab()
-        // The server has to agree about which slots exist.
-        menu.openTab = tab
-        send(DeskAction.SET_TAB, index = tab.ordinal)
-    }
-
-    /** Back to front. Everything below is added in the order it stacks. */
-    private fun build() {
+        // Vanilla centres the panel alone, but the stock hangs off its right edge.
+        leftPos -= STOCK_ALLOWANCE / 2
+        inventoryLabelY = OFFSCREEN
         val keptFilter = if (::search.isInitialized) search.value else ""
-        clearWidgets()
-        // In step with `clearWidgets`, or a resize would leave rules pointing at widgets no longer shown.
-        perTab.clear()
+        val keptTemplate = if (::editor.isInitialized) editor.value else null
+        val keptName = if (::ageName.isInitialized) ageName.value else ""
 
-        tabs = TabStrip(
-            layout.tabsX, layout.tabsY, DeskTab.entries, tab,
-            icon = { it.icon() },
-            label = { it.title },
-            onSelect = ::openTab,
+        addRenderableWidget(
+            DecorationWidget(PanelSurface.RAISED).also {
+                it.setPosition(leftPos, topPos)
+                it.setSize(imageWidth, imageHeight)
+            },
         )
-        tabs.pulsedAt = { if (it == DeskTab.ARCHIVE) DeskModel.archiveGrewAt else 0L }
-
-        // Unselected tabs tuck under the panel, so they go on before it.
-        addRenderableWidget(tabs.backdrop)
-        // One panel per tab, because the bind screen's is shorter — a single rectangle resized on the way
-        // past would be a size stated in two places and true in one.
-        DeskTab.entries.forEach { owner ->
-            addShownOn(surface(PanelSurface.RAISED, layout.panel(owner))) { it == owner }
-        }
-        addWing()
-        addSlots()
-        // The strip itself last of the chrome, so the selected tab sits proud of the panel.
-        addRenderableWidget(tabs)
-
-        addControls(keptFilter)
+        addStock()
+        addWordColumn(keptFilter)
+        addTemplateColumn(keptTemplate, keptName)
     }
 
-    private fun addWing() {
+    private fun addStock() {
         val contents = LinearLayout.vertical().spacing(GROUP_GAP)
         contents.addChild(DeskStockDisplay.inkGauges(GAUGE_WIDTH, GAUGE_HEIGHT, GAUGE_GAP))
         contents.addChild(DeskStockDisplay.stockColumn(STOCK_WIDTH, STOCK_LINE))
-
-        // Asymmetric because the border eats the left edge but not the open right, and because the gauges
-        // want more room above them than the stocks want below. These four numbers, the two group sizes and
-        // the spacings are the whole of the wing's layout — its width and height fall out of them.
-        val wing = DecoratedBox(PanelSurface(openOn = Edge.RIGHT), WING_PADDING)
-        wing.holding(contents)
-        wing.arrangeElements()
-        // Overlapping the panel's border rather than painting over it: the wing's own top and bottom edges
-        // then run the whole way across, so the two borders meet instead of stopping short of each other.
-        wing.sized(wing.width + Palette.BORDER, wing.height)
-        wing.setPosition(layout.panelX + Palette.BORDER - wing.width, layout.panelY)
-        wing.arrangeElements()
-        wing.visitWidgets(::addRenderableWidget)
+        val stock = DecoratedBox(PanelSurface(openOn = Edge.LEFT), STOCK_PADDING)
+        stock.holding(contents)
+        stock.arrangeElements()
+        // Overlapping the panel's border, so the two borders meet instead of stopping short of each other.
+        stock.sized(stock.width + Palette.BORDER, stock.height)
+        stock.setPosition(leftPos + imageWidth - Palette.BORDER, topPos)
+        stock.arrangeElements()
+        stock.visitWidgets(::addRenderableWidget)
     }
 
-    private fun addSlots() {
-        addShownOn(
-            PlayerInventoryView(
-                layout.playerInventory.x, layout.playerInventory.y, DeskSlots.HOTBAR_DROP,
-            ),
-        ) { it.showsInventory }
-
-        // A recess per slot, shown exactly when the menu makes that slot active.
-        DeskTab.entries.forEach { owner ->
-            layout.slotsOn(owner).forEach { area ->
-                addShownOn(SlotView(area.x, area.y)) { it == owner }
-            }
-        }
-
-    }
-
-    /** Adds a widget and says in the same breath which tabs it belongs to. */
-    private fun <T : AbstractWidget> addShownOn(widget: T, showsOn: (DeskTab) -> Boolean): T {
-        addRenderableWidget(widget)
-        perTab += widget to showsOn
-        return widget
-    }
-
-    /**
-     * The word list, its search and the paper the buttons spend — all the archive's, and only the
-     * archive's.
-     *
-     * The list used to appear on the work surface's tab too, as a second way to lay a page out. It was a
-     * good idea with nowhere to happen: three rows of words and a search box took the room the surface
-     * exists to give, and the archive's own `»` already does the same job with the whole list to pick from.
-     */
-    private fun archives(tab: DeskTab) = tab == DeskTab.ARCHIVE
-
-    private fun binds(tab: DeskTab) = tab == DeskTab.BIND
-
-    /** The pages laid out — the work surface's own tab, and read back on the bind screen. */
-    private fun composes(tab: DeskTab) = tab == DeskTab.WRITE_BOOK
-
-    private fun addControls(keptFilter: String) {
-        // Sizes only — where any of this goes is the columns' business, below.
+    private fun addWordColumn(keptFilter: String) {
         search = EditBox(font, 0, 0, 0, LINE, Component.empty())
         search.setHint(translated("search"))
         search.value = keptFilter
@@ -208,419 +122,287 @@ class WritersDeskScreen(
             wordList.resetScroll()
             refreshWords(force = true)
         }
-        addShownOn(search, ::archives)
+        addRenderableWidget(search)
+        wordList = addRenderableWidget(LabelledList(Minecraft.getInstance(), Rect(0, 0, 0, 0), ::insertWord))
 
-        wordList = addShownOn(
-            LabelledList(Minecraft.getInstance(), Rect(0, 0, 0, 0), ::chooseWord), ::archives,
-        )
+        val column = FlexColumn(WORD_COLUMN_WIDTH, imageHeight - CONTENT_TOP - INSET)
+        column.add(search, height = LINE)
+        column.gap(GAP)
+        column.fill(wordList)
+        column.setPosition(leftPos + INSET, topPos + CONTENT_TOP)
+        column.arrangeElements()
+        refreshWords(force = true)
+    }
 
-        composition = addShownOn(
-            BookWritingWorkSurface(
-                Rect(0, 0, 0, 0),
-                columns = DeskLayout.SURFACE_COLUMNS,
-                cellHeight = DeskLayout.CELL_HEIGHT,
-                gutterHeight = DeskLayout.GUTTER_HEIGHT,
-                script = { KnownWords.scriptLines(it) },
-                translation = { WordNames.readable(it).string },
-                onReorder = { from, onto -> send(DeskAction.MOVE_IN_BOOK, index = from, target = onto) },
-                onRemove = { index -> send(DeskAction.RETURN_TO_ARCHIVE, index = index) },
-                capacity = { DeskModel.pageLimit() },
-                quarrel = ::quarrelAt,
-                help = translated("surface_help"),
-            ),
-            ::composes,
-        )
+    private fun addTemplateColumn(keptTemplate: String?, keptName: String) {
+        val columnWidth = imageWidth - TEMPLATE_COLUMN_X - INSET
 
-        // **A toggle, not three write buttons.** Which word to write is a row's business now, so what is
-        // left here is which paper it is written on — better paper buys the same word for less ink and can
-        // never unlock one (`WriteCost`).
-        paperButtons = InkTier.entries.map { paper ->
-            val button = Button.builder(Component.literal(paperGlyph(paper))) { chosenPaper = paper }
-                .bounds(0, 0, PAPER_BUTTON_WIDTH, LINE + 2).build()
-            addShownOn(button, ::archives)
-        }
-
-        // The second row, and the same shape: which ink, where the paper row says which paper.
-        inkButtons = InkTier.entries.map { ink ->
-            val button = Button.builder(Component.literal(inkGlyph(ink))) { chosenInk = ink }
-                .bounds(0, 0, PAPER_BUTTON_WIDTH, LINE + 2).build()
-            addShownOn(button, ::archives)
-        }
-
-        // **Scratch mode** (design §4.3.1): the row of pages said back as a sentence, which is the half
-        // that makes attachment visible. It comes from the server — reading one takes the whole corpus —
-        // and it is the same `Readout` the bound book carries, so the desk and the book cannot disagree.
-        reading = addShownOn(
-            MultiLineTextWidget(Component.empty(), font).setMaxWidth(layout.content(DeskTab.BIND).width),
-            ::binds,
-        )
-
-        // Width comes from the column it sits in, which is the whole of the bind screen's own.
         ageName = EditBox(font, 0, 0, 0, LINE, Component.empty())
         ageName.setHint(translated("name"))
-        ageName.setMaxLength(DeskCommandPayload.MAX_TITLE)
-        addShownOn(ageName, ::binds)
+        ageName.setMaxLength(DeskBindPayload.MAX_TITLE)
+        ageName.value = keptName
+        addRenderableWidget(ageName)
 
-        bindButton = addShownOn(
-            Button.builder(translated("bind")) {
-                send(DeskAction.FINALISE, title = ageName.value)
-            }.bounds(0, 0, DeskSlots.BIND_BUTTON_WIDTH, LINE).build(),
-            ::binds,
+        editor = TemplateEditor(font, columnWidth, 0, translated("template_hint"), ::marks)
+        editor.setCharacterLimit(DeskTemplatePayload.MAX_TEMPLATE)
+        keptTemplate?.let { editor.value = it }
+        editor.onChange { unsentFor = 0 }
+        addRenderableWidget(editor)
+
+        readingView = FittingMultiLineTextWidget(0, 0, columnWidth, 0, Component.empty(), font)
+        addRenderableWidget(readingView)
+
+        costRow = LinearLayout.horizontal().spacing(COST_GAP)
+        costItems = listOf(
+            *InkTier.entries.map(::inkPrice).toTypedArray(),
+            PricedItem(
+                PAPER_PRICE_WIDTH,
+                icon = { DeskStockDisplay.paperIcon(chosenPaper) },
+                amount = { "${currentCost().sheets}" },
+                isShort = { DeskModel.paper(chosenPaper) < currentCost().sheets },
+                tooltip = {
+                    val price = priceTooltip(
+                        DeskStockDisplay.paperName(chosenPaper),
+                        "${currentCost().sheets}",
+                        "${DeskModel.paper(chosenPaper)}",
+                    )
+                    val drawn = DeskModel.drawn()
+                    if (drawn == 0) listOf(price) else listOf(price, faint(translated("pages_drawn", drawn)))
+                },
+            ),
+            PricedItem(
+                BINDING_PRICE_WIDTH,
+                icon = { DeskStockDisplay.BINDING },
+                amount = { "${currentCost().bindings}" },
+                isShort = { DeskModel.binding() < currentCost().bindings },
+                tooltip = {
+                    listOf(priceTooltip(DeskStockDisplay.BINDING.hoverName, "${currentCost().bindings}", "${DeskModel.binding()}"))
+                },
+            ),
         )
+        costItems.forEach { costRow.addChild(it); addRenderableWidget(it) }
 
-        columns = DeskTab.entries.associateWith(::columnFor)
+        val controls = LinearLayout.horizontal().spacing(GAP)
+        paperButtons = InkTier.entries.map { paper ->
+            Button.builder(Component.literal(paperGlyph(paper))) { chosenPaper = paper }
+                .bounds(0, 0, TOGGLE_WIDTH, BUTTON_HEIGHT)
+                .tooltip(Tooltip.create(DeskStockDisplay.paperName(paper)))
+                .build()
+                .also(controls::addChild)
+        }
+        readButton = Button.builder(translated("preview")) { showingReading = !showingReading }
+            .bounds(0, 0, READ_BUTTON_WIDTH, BUTTON_HEIGHT).build()
+            .also(controls::addChild)
+        bindButton = Button.builder(translated("bind")) { bind() }
+            .bounds(0, 0, BIND_BUTTON_WIDTH, BUTTON_HEIGHT).build()
+        (paperButtons + readButton + bindButton).forEach(::addRenderableWidget)
+
+        val column = FlexColumn(columnWidth, imageHeight - CONTENT_TOP - INSET)
+        column.add(ageName, height = LINE)
+        column.gap(GAP)
+        column.fill(editor)
+        column.gap(GAP)
+        column.add(costRow)
+        column.gap(GAP)
+        column.add(controls)
+        column.setPosition(leftPos + TEMPLATE_COLUMN_X, topPos + CONTENT_TOP)
+        column.arrangeElements()
+
+        readingView.setPosition(editor.x, editor.y)
+        readingView.setWidth(editor.width)
+        readingView.height = editor.height
+        // The bind button stands at the right of the row, apart from the choices it acts on.
+        bindButton.setPosition(leftPos + imageWidth - INSET - BIND_BUTTON_WIDTH, controls.y)
+        focused = editor
+    }
+
+    /** A word from the list goes in at the cursor, as the name the list shows it by. */
+    private fun insertWord(row: WordRow) {
+        editor.insertWord(row.readable)
+        focused = editor
+    }
+
+    private fun bind() {
+        sendTemplateNow()
+        bindingTemplate = editor.value
+        sendToServer(DeskBindPayload(ageName.value, chosenPaper))
     }
 
     /**
-     * How a tab stacks, and the only statement of it.
-     *
-     * No position appears here — a column is told its room and which child stretches, and works the rest
-     * out. Which is why the same four widgets can sit at four different heights without anyone writing down
-     * where any of them stops.
+     * A bound book leaves the desk's template empty, so the editor and the name follow it. A refused bind
+     * leaves the template as it was, and anything typed since the click is the writer's and stays.
      */
-    private fun columnFor(entry: DeskTab): FlexColumn {
-        val room = layout.content(entry)
-        val column = FlexColumn(room.width, room.height)
-        when (entry) {
-            // Every word you know, and the paper to write one on — the page tab's whole job, absorbed.
-            DeskTab.ARCHIVE -> {
-                column.add(search, height = LINE)
-                column.gap(GAP)
-                column.fill(wordList)
-                column.gap(GAP)
-                column.add(paperRow())
-                column.gap(LINE) // the ink price under each button, drawn rather than a widget
-                column.add(inkRow())
-            }
-            // The surface and nothing else, which is what this tab is for.
-            DeskTab.WRITE_BOOK -> {
-                column.gap(LINE) // the "n / limit" header, drawn rather than a widget
-                column.fill(composition)
-            }
-            // The sentence, and the name it is about to be given. The button and the slot it fills sit
-            // below both, anchored to the panel's foot by `DeskLayout.bindButton`.
-            DeskTab.BIND -> {
-                column.fill(reading)
-                column.gap(GAP)
-                column.add(ageName, height = LINE)
-            }
+    private fun clearOnceBound() {
+        val bound = bindingTemplate ?: return
+        if (editor.value != bound) {
+            bindingTemplate = null
+            return
         }
-        column.setPosition(room.x, room.y)
-        return column
-    }
-
-    private fun paperRow(): LinearLayout =
-        LinearLayout.horizontal().spacing(GAP).apply { paperButtons.forEach(::addChild) }
-
-    private fun inkRow(): LinearLayout =
-        LinearLayout.horizontal().spacing(GAP).apply { inkButtons.forEach(::addChild) }
-
-    private fun surface(decoration: co.voik.agesandtheart.client.ui.Decoration, at: Rect): AbstractWidget =
-        DecorationWidget(decoration).also {
-            it.setPosition(at.x, at.y)
-            it.setSize(at.width, at.height)
-        }
-
-    /**
-     * Applies every registered rule, so nothing can be shown by having been forgotten, then lets this
-     * tab's column place what it shows.
-     *
-     * Arranging rather than rebuilding: the widgets are shared between tabs and only their arrangement
-     * differs, and rebuilding would mutate the widget list that the dispatching click is iterating.
-     */
-    private fun showTab() {
-        inventoryLabelY = layout.inventoryLabelY(tab)
-        perTab.forEach { (widget, showsOn) -> widget.visible = showsOn(tab) }
-        // Keys reach a widget only through the screen's focus, so an unfocused search box lets `e` fall
-        // through to "close the inventory". The creative screen focuses its search for the same reason.
-        if (search.visible) focused = search
-        columns[tab]?.arrangeElements()
-        if (tab == DeskTab.BIND) {
-            val at = layout.bindButton()
-            bindButton.setPosition(at.x, at.y)
-        }
-
-        refreshWords(force = true)
-        refreshComposition(force = true)
-        refreshReading()
-    }
-
-    private fun openTab(entry: DeskTab) {
-        tab = entry
-        lastOpened = entry
-        menu.openTab = entry
-        send(DeskAction.SET_TAB, index = entry.ordinal)
-        showTab()
+        if (DeskModel.template() != "") return
+        bindingTemplate = null
+        editor.value = ""
+        ageName.value = ""
+        unsentFor = null
     }
 
     /**
-     * A page held in hand, dropped onto the work surface.
-     *
-     * Checked before the widgets get the click, because the surface would otherwise read it as the start of
-     * a drag. Carrying an item is vanilla's own gesture — picked up from the player's inventory or from the
-     * archive — so laying one out is that same motion continued rather than a second drag mechanic.
-     */
-    override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {
-        if (composition.visible && NotebookItem.isPage(menu.carried)) {
-            val at = composition.insertionAt(event.x, event.y)
-            if (at != null) {
-                if (!composition.isFull) send(DeskAction.COMPOSE_FROM_HAND, index = at)
-                return true
-            }
-        }
-        return super.mouseClicked(event, doubleClick)
-    }
-
-    /**
-     * A key pressed while a box has the caret belongs to the box, whether or not it wanted it.
-     *
-     * Without this, `e` reaches `AbstractContainerScreen`'s "close the inventory" and the desk shuts
-     * mid-word: an [EditBox] returns false from `keyPressed` for an ordinary letter, because the letter
-     * arrives as a character rather than as a key. Vanilla's creative search box is guarded exactly so.
+     * A key pressed while a box has the caret belongs to the box, whether or not it wanted it — or `e`
+     * reaches "close the inventory" and the desk shuts mid-word. Vanilla's creative search is guarded so.
      */
     override fun keyPressed(event: KeyEvent): Boolean {
-        val typingInto = boxWithTheCaret() ?: return super.keyPressed(event)
+        val typingInto = listOf(search, ageName, editor).firstOrNull { it.visible && it.isFocused }
+            ?: return super.keyPressed(event)
         if (typingInto.keyPressed(event)) return true
         return if (event.isEscape) super.keyPressed(event) else true
     }
 
-    private fun boxWithTheCaret(): EditBox? =
-        listOf(search, ageName).firstOrNull { it.visible && it.isFocused }
-
     override fun containerTick() {
         super.containerTick()
+        seedFromTheDesk()
+        clearOnceBound()
+        unsentFor?.let { waited ->
+            if (waited >= SEND_AFTER_TICKS) sendTemplateNow() else unsentFor = waited + 1
+        }
         refreshWords(force = false)
-        refreshComposition(force = false)
-        refreshReading()
-        paperButtons.forEachIndexed { index, button ->
-            // Dark for the chosen one, so the row of three reads as a setting rather than three actions.
-            button.active = InkTier.entries[index] != chosenPaper
-        }
-        inkButtons.forEachIndexed { index, button ->
-            button.active = InkTier.entries[index] != chosenInk
-        }
+        refreshControls()
+    }
+
+    /** Sends a template still waiting out its pause before the screen closes, so nothing typed is lost. */
+    override fun removed() {
+        sendTemplateNow()
+        super.removed()
+    }
+
+    private fun seedFromTheDesk() {
+        if (seeded) return
+        val kept = DeskModel.template() ?: return
+        if (editor.value.isEmpty()) editor.value = kept
+        seeded = true
+        unsentFor = null
+    }
+
+    private fun sendTemplateNow() {
+        if (unsentFor == null) return
+        unsentFor = null
+        sendToServer(DeskTemplatePayload(editor.value))
     }
 
     private fun refreshWords(force: Boolean) {
-        if (!wordList.visible) return
         val rows = DeskModel.knownRows(search.value)
         if (!force && rows == shownWords) return
         shownWords = rows
-        wordList.show(
-            rows,
-            label = { it.readable },
-            count = { it.inArchive },
-            key = { it.word },
-            actions = rowActions(),
+        wordList.show(rows, label = { it.readable }, key = { it.word })
+    }
+
+    private fun refreshControls() {
+        paperButtons.forEachIndexed { index, button ->
+            val paper = InkTier.entries[index]
+            // Dark for the chosen one, so the row of three reads as a setting rather than three actions.
+            button.active = paper != chosenPaper
+        }
+        val readable = DeskModel.can(DeskCapability.READABLE_GRAMMAR)
+        readButton.visible = readable
+        if (!readable) showingReading = false
+        readButton.message = translated(if (showingReading) "write_again" else "preview")
+        // A refusal takes the cost row's place for as long as it is shown.
+        val refused = DeskNotice.current() != null
+        costItems.forEach { it.visible = !refused }
+        editor.visible = !showingReading
+        readingView.visible = showingReading
+        readingView.message = readingText()
+    }
+
+    /** The runs of the template as the desk last read them, with the text they were read from. */
+    private fun marks(): MarkedText? {
+        val readFrom = DeskModel.template() ?: return null
+        return MarkedText(readFrom, DeskModel.read().map(::markFor))
+    }
+
+    private fun markFor(read: ReadWord): TextMark = when (read.state) {
+        WordState.LEARNED -> {
+            val word = read.word
+            val quarrel = DeskModel.quarrels().firstOrNull { it.word == word }
+            TextMark(
+                read.start, read.end,
+                script = word?.let(KnownWords::scriptText),
+                colour = quarrel?.let { Palette.WARNING },
+                underline = if (quarrel != null) Palette.WARNING else UNDERLINE,
+                tooltip = quarrel?.let {
+                    if (it.word == it.against) translated("quarrel_alone")
+                    else translated("quarrel", WordNames.readable(it.against))
+                },
+            )
+        }
+        WordState.UNLEARNED -> TextMark(
+            read.start, read.end,
+            scriptUnknown = true, underline = UNDERLINE, tooltip = translated("translation_unknown"),
+        )
+        WordState.UNKNOWN -> TextMark(
+            read.start, read.end,
+            colour = Palette.WARNING, underline = Palette.WARNING, tooltip = translated("not_a_word"),
         )
     }
 
     /**
-     * The sentence, whenever the pages under it move.
-     *
      * **An empty reading means two different things and has to say which.** Nothing written is a writer
-     * with an empty surface; nothing *readable* is a desk that cannot read (design §7.3) — and showing
-     * "nothing written" over a full surface would read as the Art having no opinion, which is the silent
-     * acceptance §3.3 forbids wearing a different hat.
+     * with an empty template; nothing *readable* is a desk that cannot read (design §7.3).
      */
-    private fun refreshReading() {
-        if (!reading.visible) return
+    private fun readingText(): Component {
         val said = DeskModel.reading()
-        reading.message = when {
-            !DeskModel.can(DeskCapability.READABLE_GRAMMAR) -> translated("grammar_unread")
-            said.isEmpty() -> translated("nothing_written")
-            else -> Component.literal(said)
-        }
-        // Clipped to what is left above the name field rather than allowed to overrun it: a widget that
-        // overruns its box draws over the field rather than stopping at it.
-        reading.setMaxRows(rowsLeftForTheSentence())
-        columns[DeskTab.BIND]?.arrangeElements()
+        return if (said.isEmpty()) translated("nothing_written") else Component.literal(said)
     }
 
-    private fun rowsLeftForTheSentence(): Int {
-        val room = layout.content(DeskTab.BIND).height - GAP - LINE
-        return (room / TEXT_LINE).coerceAtLeast(ONE_ROW)
-    }
+    /** What binding the template would cost now, on the chosen paper. */
+    private fun currentCost(): BookCost = BookCost.of(DeskModel.toWrite(), chosenPaper)
 
-    /**
-     * What the page at [index] is arguing with, or null where nothing is.
-     *
-     * By position rather than by word, because the same word laid twice is two pages and the quarrel may
-     * be about only one of them — the server names the words, and the first laid page carrying that word is
-     * the one the argument is about.
-     */
-    private fun quarrelAt(index: Int): Component? {
-        val laid = DeskModel.composing().getOrNull(index) ?: return null
-        val quarrel = DeskModel.quarrels().firstOrNull { it.word == laid } ?: return null
-        val other = WordNames.readable(quarrel.against)
-        return if (quarrel.word == quarrel.against) {
-            Component.translatable("container.agesandtheart.writers_desk.quarrel_alone")
-        } else {
-            Component.translatable("container.agesandtheart.writers_desk.quarrel", other)
-        }
-    }
-
-    private fun refreshComposition(force: Boolean) {
-        if (!composition.visible) return
-        val words = DeskModel.composing()
-        if (!force && words == shownComposition) return
-        shownComposition = words
-        composition.show(words)
-    }
-
-    /**
-     * What a row of the archive offers to do with its word: write one, lay one out, take one away.
-     *
-     * Each says why it is dark rather than vanishing when it cannot act, which is the difference between a
-     * button that is not ready and a feature you have not found.
-     */
-    private fun rowActions(): List<RowAction<WordRow>> = listOf(
-        RowAction(
-            glyph = "+",
-            tooltip = { row -> writeTooltip(row) },
-            enabled = { canWrite(chosenPaper) },
-            act = { row -> send(DeskAction.WRITE_TO_ARCHIVE, word = row.word, paper = chosenPaper) },
-        ),
-        RowAction(
-            glyph = "»",
-            tooltip = { row ->
-                if (row.inArchive > 0) translated("to_book") else translated("to_book_none")
+    private fun inkPrice(tier: InkTier): PricedItem {
+        fun needed() = currentCost().ink[tier] ?: 0L
+        fun savedByPaper() = (BookCost.of(DeskModel.toWrite(), InkTier.COMMON).ink[tier] ?: 0L) - needed()
+        return PricedItem(
+            INK_PRICE_WIDTH,
+            icon = { DeskStockDisplay.inkIcon(tier) },
+            amount = { DeskModel.inBottles(needed()) },
+            isShort = { DeskModel.ink(tier) < needed() },
+            tooltip = {
+                val price = priceTooltip(
+                    DeskStockDisplay.inkName(tier),
+                    DeskModel.inBottles(needed()),
+                    DeskModel.inBottles(DeskModel.ink(tier), roundUp = false),
+                )
+                val saved = savedByPaper()
+                if (saved <= 0L) {
+                    listOf(price)
+                } else {
+                    val savedLine = translated("ink_saved", DeskModel.inBottles(saved), DeskStockDisplay.paperName(chosenPaper))
+                    listOf(price, faint(savedLine))
+                }
             },
-            enabled = { it.inArchive > 0 },
-            act = { row -> send(DeskAction.COMPOSE_FROM_ARCHIVE, word = row.word) },
-        ),
-        RowAction(
-            glyph = "\u25bc",
-            tooltip = { row ->
-                if (row.inArchive > 0) translated("withdraw") else translated("withdraw_none")
-            },
-            enabled = { it.inArchive > 0 },
-            act = { row -> send(DeskAction.WITHDRAW, word = row.word) },
-        ),
-    )
-
-    /**
-     * What writing one would cost, or why it cannot be paid.
-     *
-     * A word nobody has quoted yet is asked about **here**, on the hover, rather than only on selection —
-     * "what does this cost" is the question a hover is asking, and a row that answered it only after being
-     * clicked read as a tooltip that worked sometimes. One request per word per session
-     * ([DeskModel.askPriceOnce]), so the corpus still never crosses the wire.
-     */
-    private fun writeTooltip(row: WordRow): Component {
-        val price = DeskModel.priceFor(row.word, chosenPaper)
-            ?: return quoteFor(row.word)
-        val (required, units) = price
-        val inkTier = chosenInk.spentFor(required)
-        val hasTheInk = DeskModel.ink(inkTier) >= units
-        val hasThePaper = DeskModel.paper(chosenPaper) > 0
-        val affordable = hasTheInk && hasThePaper
-        return translated(
-            if (affordable) "write_costs" else "write_short",
-            DeskModel.inBottles(units),
-            DeskStockDisplay.inkName(inkTier),
         )
     }
 
-    /** Asks the server for a quote if this word has never been priced, and says so meanwhile. */
-    private fun quoteFor(word: Identifier): Component {
-        DeskModel.askPriceOnce(word, ::askPrice)
-        return translated("write_unpriced")
-    }
+    private fun priceTooltip(name: Component, needed: String, held: String): Component =
+        translated("price", name, needed, held)
 
-    private fun askPrice(word: Identifier) = send(DeskAction.PRICE, word = word)
+    private fun faint(line: Component): Component = line.copy().withStyle(ChatFormatting.GRAY)
 
     /**
-     * Picking a word asks what it costs, and that is the whole of what a click means.
-     *
-     * The list is the archive's alone, where selecting says which word the paper buttons write. Laying a
-     * page out and taking one are the row's own buttons rather than side effects of looking at it.
-     */
-    private fun chooseWord(row: WordRow) {
-        if (selectedWord == row.word) return
-        selectedWord = row.word
-        DeskModel.askPriceOnce(row.word, ::askPrice)
-    }
-
-    /** Whether a page could be written on [paper] at all — the ink for it, and a sheet to put it on. */
-    private fun canWrite(paper: InkTier): Boolean {
-        if (DeskModel.paper(paper) <= 0) return false
-        val (required, units) = DeskModel.priceFor(selectedWord, paper) ?: return true
-        return DeskModel.ink(chosenInk.spentFor(required)) >= units
-    }
-
-    /**
-     * The only drawing left, and it is all text over widgets that have already placed themselves.
-     *
-     * **In `extractContents`, not `extractBackground`.** The background is its own stratum, laid under
-     * every widget on the screen — so the panel painted over every word of this, and a refusal the desk
-     * had gone to the trouble of sending arrived invisible.
+     * Beside the cost row, how long the book is against the page limit — or, in the row's place, whatever
+     * the desk last refused with.
      */
     override fun extractContents(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
         super.extractContents(graphics, mouseX, mouseY, a)
-        if (tab == DeskTab.ARCHIVE) extractPrices(graphics)
-        if (tab == DeskTab.WRITE_BOOK) extractCompositionHeader(graphics)
-        DeskNotice.extract(graphics, font, layout.panel(tab))
-    }
-
-    /**
-     * What each paper choice would cost in ink, under its button and red when it is out of reach — the ink
-     * actually spent, once the writer's own choice of ink is applied, as the tooltip and the button read it.
-     *
-     * Read off the button rather than placed: the column decided where the row went, so asking it is the
-     * only way this cannot drift.
-     */
-    private fun extractPrices(graphics: GuiGraphicsExtractor) {
-        val word = selectedWord ?: return
-        InkTier.entries.forEachIndexed { index, paper ->
-            val (required, units) = DeskModel.priceFor(word, paper) ?: return@forEachIndexed
-            val spent = chosenInk.spentFor(required)
-            val button = paperButtons[index]
-            val colour = if (DeskModel.ink(spent) >= units) Palette.TEXT else Palette.WARNING
-            graphics.text(
-                font, inkGlyph(spent),
-                button.x, button.y + button.height + PRICE_DROP, colour, false,
-            )
+        val baseline = costRow.y + (Palette.ITEM - font.lineHeight) / 2 + 1
+        val notice = DeskNotice.current()
+        if (notice != null) {
+            graphics.text(font, notice, editor.x, baseline, Palette.WARNING, false)
+            return
         }
-    }
-
-    /**
-     * Sits in the line the column left above the work surface for it: how much of the book is spoken for,
-     * and — when this desk cannot see them — that an unmarked page proves nothing.
-     *
-     * Saying so is not giving the currency away (design §7.3). A writer who is shown no quarrels at a bare
-     * desk otherwise reads that as *there are none*, which is the one thing the absence does not mean.
-     */
-    private fun extractCompositionHeader(graphics: GuiGraphicsExtractor) {
-        val written = DeskModel.composing().size
+        val words = DeskModel.read().size
         val limit = DeskModel.pageLimit()
-        val header = if (limit == null) "$written" else "$written / $limit"
-        val baseline = composition.y - LINE
-        graphics.text(font, header, composition.x, baseline, Palette.FAINT, false)
-        if (DeskModel.can(DeskCapability.REVEAL_CONFLICTS)) return
-        val unseen = translated("conflicts_unseen")
-        graphics.text(font, unseen, composition.right - font.width(unseen), baseline, Palette.FAINT, false)
-    }
-
-    private fun send(
-        action: DeskAction,
-        word: Identifier? = null,
-        paper: InkTier = InkTier.COMMON,
-        index: Int = -1,
-        target: Int = -1,
-        title: String = "",
-    ) {
-        sendToServer(
-            DeskCommandPayload(
-                action = action,
-                word = word,
-                paperTier = paper,
-                inkTier = chosenInk,
-                index = index,
-                target = target,
-                title = title,
-            ),
-        )
+        val length = if (limit == null) "$words" else "$words/$limit"
+        val tooLong = limit != null && words > limit
+        val right = editor.x + editor.width
+        graphics.text(font, length, right - font.width(length), baseline, if (tooLong) Palette.WARNING else Palette.FAINT, false)
     }
 
     private fun translated(suffix: String, vararg arguments: Any): Component =
@@ -632,28 +414,42 @@ class WritersDeskScreen(
         InkTier.MASTERWORK -> "III"
     }
 
-    private fun inkGlyph(tier: InkTier): String = when (tier) {
-        InkTier.COMMON -> "i"
-        InkTier.FINE -> "ii"
-        InkTier.MASTERWORK -> "iii"
-    }
-
     private companion object {
-        /** Where this client last was, so reopening a desk does not start over. */
-        private var lastOpened = DeskTab.ARCHIVE
+        /** The paper, kept between openings on this client. The cheapest by default, so nobody wastes the good stuff. */
+        var chosenPaper = InkTier.COMMON
 
+        const val PANEL_WIDTH = 320
+        const val PANEL_HEIGHT = 200
+
+        /** Roughly what the stock hanging off the right edge takes, so the whole is centred rather than the panel. */
+        const val STOCK_ALLOWANCE = 70
+
+        const val INSET = 8
+        const val CONTENT_TOP = 18
+        const val WORD_COLUMN_WIDTH = 100
+        const val TEMPLATE_COLUMN_X = INSET + WORD_COLUMN_WIDTH + INSET
         const val LINE = 12
         const val GAP = 4
+        const val BUTTON_HEIGHT = 14
+        const val TOGGLE_WIDTH = 20
+        const val READ_BUTTON_WIDTH = 50
 
-        /** `MultiLineTextWidget`'s own, which it hard-codes rather than reading off the font. */
-        const val TEXT_LINE = 9
-        const val ONE_ROW = 1
-        const val PAPER_BUTTON_WIDTH = 30
-        const val PRICE_DROP = 4
+        /** Each wide enough for its icon and the longest amount it is likely to say — `12.5`, `40`, `1`. */
+        const val INK_PRICE_WIDTH = 34
+        const val PAPER_PRICE_WIDTH = 28
+        const val BINDING_PRICE_WIDTH = 24
+        const val COST_GAP = 2
+        const val BIND_BUTTON_WIDTH = 44
 
-        // The wing's contents. Its padding is asymmetric because the border eats the left edge and not the
-        // open right, and because the gauges want more room above them than the stocks want below.
-        val WING_PADDING = Insets(left = 7, top = 12, right = 4, bottom = 6)
+        /** How long a pause in typing is before the desk is asked to read it — a quarter of a second. */
+        const val SEND_AFTER_TICKS = 5
+
+        /** Far enough down that vanilla's inventory label is simply not drawn. There is no inventory. */
+        const val OFFSCREEN = 10_000
+
+        val UNDERLINE = 0x806B5C46.toInt()
+
+        val STOCK_PADDING = Insets(left = 4, top = 12, right = 7, bottom = 6)
         const val GAUGE_WIDTH = 9
         const val GAUGE_HEIGHT = 58
         const val GAUGE_GAP = 4

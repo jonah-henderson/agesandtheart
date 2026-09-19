@@ -2,67 +2,34 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
-import co.voik.agesandtheart.desk.DeskCapability
-import co.voik.agesandtheart.desk.DeskSyncPayload
-import co.voik.agesandtheart.desk.WriteCost
 import co.voik.agesandtheart.content.AgeFluids
+import co.voik.agesandtheart.desk.DeskCapability
+import co.voik.agesandtheart.desk.DeskNoticePayload
+import co.voik.agesandtheart.desk.DeskSyncPayload
+import co.voik.agesandtheart.desk.PagePrice
+import co.voik.agesandtheart.desk.Quarrel
+import co.voik.agesandtheart.desk.ReadWord
+import co.voik.agesandtheart.desk.WriteCost
 import net.minecraft.resources.Identifier
+import kotlin.math.ceil
+import kotlin.math.floor
 
-/** One row in a word list: what it is called, and what the desk can currently do with it. */
-data class WordRow(
-    val word: Identifier,
-    val readable: String,
-    val inArchive: Int,
-)
+/** One row in the word list: a word the writer knows, and what it is called. */
+data class WordRow(val word: Identifier, val readable: String)
 
 /**
  * What the open desk screen believes, kept between payloads.
  *
- * Searching never leaves the client: the learned set is already here from [KnownWords], and the archive
- * arrives whole, so filtering a thousand words is a string comparison rather than a round trip.
+ * Searching never leaves the client: the learned set is already here from [KnownWords], so filtering a
+ * thousand words is a string comparison rather than a round trip.
  */
 object DeskModel {
     var state: DeskSyncPayload? = null
         private set
 
-    /** When the archive last grew, so the tab that owns it can react. */
-    var archiveGrewAt: Long = 0L
-        private set
-
     fun remember(payload: DeskSyncPayload) {
-        val before = state?.archive?.values?.sum() ?: 0
-        val after = payload.archive.values.sum()
-        if (after > before) archiveGrewAt = System.currentTimeMillis()
         state = payload
     }
-
-    /**
-     * Every quote the server has given this session, by word.
-     *
-     * Kept rather than replaced, because a price is a fact about a word and does not change while the desk
-     * is open — so the row you hovered a moment ago can still say what it costs. Still one word at a time,
-     * on demand: the rule that the corpus never crosses the wire is what this is a cache *for*.
-     */
-    private val quotes = mutableMapOf<Identifier, Map<InkTier, Pair<InkTier, Long>>>()
-
-    /** Words a request has already gone out for, so a hover cannot ask again every frame. */
-    private val asked = mutableSetOf<Identifier>()
-
-    fun remember(quote: co.voik.agesandtheart.desk.DeskPricePayload) {
-        quotes[quote.word] = quote.prices
-    }
-
-    /** Records that a quote is on its way. @return false if one already was. */
-    fun startAsking(word: Identifier): Boolean = asked.add(word)
-
-    /** Asks for [word]'s quote through [send] unless this session already has, however often it is hovered. */
-    fun askPriceOnce(word: Identifier, send: (Identifier) -> Unit) {
-        if (startAsking(word)) send(word)
-    }
-
-    /** What [paper] would cost for [word], or null if nothing has been quoted for it yet. */
-    fun priceFor(word: Identifier?, paper: InkTier): Pair<InkTier, Long>? =
-        quotes[word ?: return null]?.get(paper)
 
     /** The last refusal and when it arrived, so the screen can show it and let it fade. */
     var notice: String? = null
@@ -70,16 +37,13 @@ object DeskModel {
     var noticeAt: Long = 0L
         private set
 
-    fun remember(notice: co.voik.agesandtheart.desk.DeskNoticePayload) {
+    fun remember(notice: DeskNoticePayload) {
         this.notice = notice.reason
         noticeAt = System.currentTimeMillis()
     }
 
     fun forget() {
         state = null
-        quotes.clear()
-        asked.clear()
-        archiveGrewAt = 0L
         notice = null
         noticeAt = 0L
     }
@@ -98,16 +62,18 @@ object DeskModel {
     fun inBuckets(units: Long): String = String.format("%.2f", units.toDouble() / unitsPerBucket())
 
     /**
-     * The same, in **bottles** — which is the unit a page is priced in.
-     *
-     * A page costs a tenth of a bottle and a tank holds buckets, so the two want different units: "0.03
-     * buckets" is a number nobody can hold beside "10 words to the bottle", which is what the price
-     * actually means.
+     * [units] in **bottles**, the unit a page is priced in, to one place and with no `.0` on a whole
+     * number. A price rounds up so it never reads as less than it is; what is held rounds down so it never
+     * reads as more.
      */
-    fun inBottles(units: Long): String {
+    fun inBottles(units: Long, roundUp: Boolean = true): String {
         val perBottle = unitsPerBucket().toDouble() / WriteCost.BOTTLES_PER_BUCKET
-        return String.format("%.2f", units.toDouble() / perBottle)
+        val exactTenths = units * TENTHS / perBottle
+        val tenths = (if (roundUp) ceil(exactTenths) else floor(exactTenths)).toLong()
+        return if (tenths % TENTHS == 0L) "${tenths / TENTHS}" else "${tenths / TENTHS}.${tenths % TENTHS}"
     }
+
+    private const val TENTHS = 10
 
     private fun unitsPerBucket(): Long = (inkCapacity() / AgeFluids.TANK_CAPACITY_BUCKETS).coerceAtLeast(1)
 
@@ -116,40 +82,32 @@ object DeskModel {
     /** Bindings held. A counted stock like paper, not a slot. */
     fun binding(): Int = state?.binding ?: 0
 
-    fun can(capability: DeskCapability): Boolean = state?.capabilities?.contains(capability) == true
-
-    fun composing(): List<Identifier> = state?.composing.orEmpty()
+    fun can(capability: DeskCapability): Boolean =
+        state?.capabilities?.contains(capability) == true
 
     fun pageLimit(): Int? = state?.pageLimit
 
-    fun archiveCount(word: Identifier): Int = state?.archive?.get(word) ?: 0
+    /** The template the server last read, and what it read it as. */
+    fun template(): String? = state?.template
+
+    fun read(): List<ReadWord> = state?.read.orEmpty()
+
+    fun toWrite(): List<PagePrice> = state?.toWrite.orEmpty()
+
+    fun drawn(): Int = state?.drawn ?: 0
 
     /** What disagrees with what, as the server resolved it against the seed the book will use. */
-    fun quarrels(): List<co.voik.agesandtheart.desk.Quarrel> = state?.quarrels.orEmpty()
+    fun quarrels(): List<Quarrel> = state?.quarrels.orEmpty()
 
-    /** The sentence the laid-out pages make, as the server read it back. */
+    /** The sentence the template makes, as the server read it back. */
     fun reading(): String = state?.reading.orEmpty()
 
-    /**
-     * Every word the player knows, each with however many pages of it the desk holds.
-     *
-     * **Knowledge rather than stock**, which is the archive's whole shape now: a word you know and have no
-     * page for is a row offering to write one, where a list of only what you hold cannot offer anything.
-     * A row is therefore *your* word against *this desk's* pages — two writers at one desk see different
-     * rows over one pile.
-     */
-    fun knownRows(filter: String): List<WordRow> =
-        KnownWords.words.map(::rowFor).matching(filter)
-
-    private fun rowFor(word: Identifier) =
-        WordRow(word, WordNames.readable(word).string, archiveCount(word))
-
-    /** Case-insensitive on the readable name and the id both, so `blackstone` and `minecraft:` both find. */
-    private fun List<WordRow>.matching(filter: String): List<WordRow> {
+    /** Every word the player knows, alphabetical by the name the list shows, filtered by [filter]. */
+    fun knownRows(filter: String): List<WordRow> {
         val needle = filter.trim().lowercase()
-        val found = if (needle.isEmpty()) this else filter { row ->
-            row.readable.lowercase().contains(needle) || row.word.toString().contains(needle)
-        }
-        return found.sortedBy { it.readable }
+        return KnownWords.words
+            .map { WordRow(it, WordNames.readable(it).string) }
+            .filter { row -> needle.isEmpty() || row.readable.lowercase().contains(needle) || row.word.toString().contains(needle) }
+            .sortedBy { it.readable.lowercase() }
     }
 }

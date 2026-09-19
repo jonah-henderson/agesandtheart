@@ -26,7 +26,6 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.phys.BlockHitResult
-import co.voik.agesandtheart.content.PageItem
 
 /**
  * Which part of the desk a block is. The centre carries the block entity; every other part points at it.
@@ -125,22 +124,10 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
      * Everything the desk was holding, on the floor.
      *
      * **Ink is not among it.** A fluid has no item to be — it arrived by bottle or by pipe and the tank is
-     * the unit — so a desk that emptied itself into bottles would be inventing them. The archive, the
-     * paper and the binding all went in as items and come back out as ones.
-     *
-     * The menu returns its own slots when it closes, but **not the pages laid on the surface** — those
-     * stay on the desk now, under the name of whoever laid them, so a broken desk owes them to the floor
-     * as much as it owes the archive. Whoever swings the axe gets everybody's, which is the same bargain
-     * a shared chest makes.
+     * the unit — so a desk that emptied itself into bottles would be inventing them. The paper and the
+     * binding went in as items and come back out as ones. A template is only text, and owes nothing.
      */
     private fun popContents(level: Level, at: BlockPos, desk: WritersDeskBlockEntity) {
-        for (word in desk.archive.words) {
-            val page = PageItem.writtenWith(word)
-            popEvery(level, at, page, desk.archive.count(word))
-        }
-        for (word in desk.everyComposition) {
-            popEvery(level, at, PageItem.writtenWith(word), 1)
-        }
         for (tier in InkTier.entries) {
             popEvery(level, at, ItemStack(paperFor(tier)), desk.stores.paper(tier))
         }
@@ -171,7 +158,7 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
     /**
      * An empty hand opens **what you touched**: the ink case, the supply bin, or the desk itself.
      *
-     * All three anchor on the centre, because the stores and the archive live on its block entity — a menu
+     * All three anchor on the centre, because the stores and the templates live on its block entity — a menu
      * anchored at the part you clicked would fail `stillValid` the moment it looked for one.
      */
     override fun useWithoutItem(
@@ -197,7 +184,7 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
     }
 
     /**
-     * Using an item on any part of the desk offers it to the stores — the same door the UI's input slot
+     * Using an item on any part of the desk offers it to the stores — the same door a wing's input slot
      * uses, so the two can never disagree about what is accepted.
      */
     override fun useItemOn(

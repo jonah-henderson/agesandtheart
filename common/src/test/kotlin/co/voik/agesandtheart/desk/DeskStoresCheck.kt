@@ -37,23 +37,35 @@ class DeskStoresCheck : FunSpec({
         check(rejected == 7)
     }
 
-    /** The property the whole write path leans on: never half-paid. */
-    test("spending is all or nothing") {
+    fun costOf(common: Long, sheets: Int, fine: Long = 0) = BookCost(
+        ink = mapOf(InkTier.COMMON to common, InkTier.FINE to fine).filterValues { it > 0 },
+        paper = InkTier.COMMON,
+        sheets = sheets,
+        bindings = 1,
+    )
+
+    /** The property the whole bind leans on: a book is never half-paid for. */
+    test("paying is all or nothing") {
         val (stocked, _) = DeskStores.EMPTY.addingInk(InkTier.COMMON, 1000, capacity)
         val (withPaper, _) = stocked.addingPaper(InkTier.COMMON, 2)
+        val (ready, _) = withPaper.addingBinding(1)
 
-        check(withPaper.spending(InkTier.COMMON, 1001, InkTier.COMMON, 1) == null) { "Too little ink" }
-        check(withPaper.spending(InkTier.COMMON, 500, InkTier.COMMON, 3) == null) { "Too little paper" }
+        check(ready.paying(costOf(common = 1001, sheets = 1)) == null) { "Too little ink" }
+        check(ready.paying(costOf(common = 500, sheets = 3)) == null) { "Too little paper" }
+        check(withPaper.paying(costOf(common = 400, sheets = 1)) == null) { "No binding" }
+        check(ready.paying(costOf(common = 400, sheets = 1, fine = 1)) == null) { "No fine ink at all" }
 
-        val paid = withPaper.spending(InkTier.COMMON, 400, InkTier.COMMON, 1)
-        check(paid != null) { "Affordable spend should succeed" }
+        val paid = ready.paying(costOf(common = 400, sheets = 1))
+        check(paid != null) { "An affordable book should be paid for" }
         check(paid!!.ink(InkTier.COMMON) == 600L) { "Ink left ${paid.ink(InkTier.COMMON)}" }
         check(paid.paper(InkTier.COMMON) == 1) { "Paper left ${paid.paper(InkTier.COMMON)}" }
+        check(paid.binding() == 0) { "Binding left ${paid.binding()}" }
     }
 
-    test("a failed spend leaves the stores untouched") {
+    test("a refused payment leaves the stores untouched") {
         val (stocked, _) = DeskStores.EMPTY.addingInk(InkTier.MASTERWORK, 50, capacity)
-        check(stocked.spending(InkTier.MASTERWORK, 100, InkTier.COMMON, 0) == null)
+        val cost = BookCost(mapOf(InkTier.MASTERWORK to 100L), InkTier.COMMON, sheets = 0, bindings = 0)
+        check(stocked.paying(cost) == null)
         check(stocked.ink(InkTier.MASTERWORK) == 50L) { "Nothing should have been deducted" }
     }
 

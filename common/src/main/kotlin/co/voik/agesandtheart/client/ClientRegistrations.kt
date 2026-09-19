@@ -74,6 +74,7 @@ object ClientRegistrations {
         // you go and look at (Jonah, 2026-09-07).
         ScreenForMenu(AgeContent.SEISMOGRAPH_MENU, ::SeismographScreen),
         ScreenForMenu(AgeContent.GEOLOGISTS_TOOLS_MENU, ::GeologistsToolsScreen),
+        ScreenForMenu(AgeContent.ARCHIVE_MENU, ::ArchiveScreen),
         // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it, and
         // the fence lives in the menu rather than in the drawing.
         ScreenForMenu(AgeContent.TOOLBOX_MENU, ::ContainerScreen),

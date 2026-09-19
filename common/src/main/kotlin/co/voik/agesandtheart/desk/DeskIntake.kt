@@ -17,7 +17,7 @@ import net.minecraft.world.item.Items
 /**
  * Putting something into the desk.
  *
- * One place, because there are two doors into it — the UI's input slot and using an item on the block —
+ * One place, because there are two doors into it — a wing's input slot and using an item on the block —
  * and they must agree about what is accepted.
  */
 object DeskIntake {
@@ -39,14 +39,13 @@ object DeskIntake {
         }
     }
 
-    /** Offers [stack] to the desk. Whole items only — never a fractional bottle. */
+    /**
+     * Offers [stack] to the desk. Whole items only — never a fractional bottle.
+     *
+     * Pages are not among what it takes: they are filed in an archive, which the desk draws on at the bind.
+     */
     fun offer(desk: WritersDeskBlockEntity, stack: ItemStack): Result {
         if (stack.isEmpty) return Result.untouched(stack)
-        pageWordOf(stack)?.let { word ->
-            desk.addPages(word, stack.count)
-            return Result.consumed()
-        }
-        if (stack.item === AgeContent.NOTEBOOK) return acceptNotebook(desk, stack)
         paperTierOf(stack)?.let { return acceptPaper(desk, stack, it) }
         if (stack.`is`(BookBinding.TAG)) return acceptBinding(desk, stack)
         inkOf(stack)?.let { (tier, perContainer, emptied) ->
@@ -55,18 +54,9 @@ object DeskIntake {
         return Result.untouched(stack)
     }
 
-    /**
-     * Whether this lands in the archive rather than in the stores — which the wings cannot show, so what
-     * goes this way has to be said out loud (see [DeskWingMenu]).
-     */
-    fun landsInTheArchive(stack: ItemStack): Boolean =
-        pageWordOf(stack) != null || stack.item === AgeContent.NOTEBOOK
-
     /** Whether the desk would take this, so a slot can refuse it before the player commits. */
     fun accepts(stack: ItemStack): Boolean =
-        pageWordOf(stack) != null ||
-            stack.item === AgeContent.NOTEBOOK ||
-            paperTierOf(stack) != null ||
+        paperTierOf(stack) != null ||
             stack.`is`(BookBinding.TAG) ||
             inkOf(stack) != null
 
@@ -74,28 +64,6 @@ object DeskIntake {
         val rejected = desk.addBinding(stack.count)
         if (rejected == stack.count) return Result.untouched(stack)
         return Result(stack.copyWithCount(rejected), ItemStack.EMPTY, took = true)
-    }
-
-    private fun pageWordOf(stack: ItemStack): Identifier? =
-        if (stack.item === AgeContent.PAGE) stack.get(AgeComponents.PAGE_WORD) else null
-
-    /**
-     * A notebook is tipped into the archive and handed back empty — the pages inside are pages, and the
-     * notebook is the folder rather than part of the contents. One at a time, since each emptied notebook
-     * is a separate returned item.
-     */
-    private fun acceptNotebook(desk: WritersDeskBlockEntity, stack: ItemStack): Result {
-        val held = NotebookItem.pagesIn(stack)
-        var took = false
-        for (page in held) {
-            val word = pageWordOf(page) ?: continue
-            desk.addPages(word, page.count)
-            took = true
-        }
-        if (!took) return Result.untouched(stack)
-        val emptied = stack.copyWithCount(1)
-        NotebookItem.setPages(emptied, emptyList())
-        return Result(stack.copyWithCount(stack.count - 1), emptied, took = true)
     }
 
     private fun paperTierOf(stack: ItemStack): InkTier? = when {

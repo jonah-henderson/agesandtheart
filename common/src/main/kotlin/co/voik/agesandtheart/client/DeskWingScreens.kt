@@ -124,6 +124,12 @@ object DeskStockDisplay {
         InkTier.MASTERWORK -> ItemStack(AgeContent.MASTERWORK_PAPER)
     }
 
+    /** Masterwork ink has no bottle of its own yet, so it borrows fine's until the asset pass. */
+    fun inkIcon(tier: InkTier): ItemStack = ItemStack(AgeContent.INK_BOTTLES[tier] ?: AgeContent.FINE_INK_BOTTLE)
+
+    /** What [tier] paper is called, wherever the desk names it. */
+    fun paperName(tier: InkTier): Component = paperIcon(tier).hoverName
+
     /** What [tier] ink is called, wherever the desk names it. */
     fun inkName(tier: InkTier): Component =
         Component.translatable("container.agesandtheart.writers_desk.ink.${tier.key}")

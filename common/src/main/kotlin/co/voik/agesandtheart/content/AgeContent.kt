@@ -22,6 +22,10 @@ import co.voik.agesandtheart.age.consequence.CollapsingFissureBlock
 import co.voik.agesandtheart.age.consequence.CrumblingColumn
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlockEntity
+import co.voik.agesandtheart.desk.ArchiveBlock
+import co.voik.agesandtheart.desk.ArchiveBlockEntity
+import co.voik.agesandtheart.desk.ArchiveItem
+import co.voik.agesandtheart.desk.ArchiveMenu
 import co.voik.agesandtheart.desk.GeologistsToolsBlock
 import co.voik.agesandtheart.desk.SeismographBlock
 import co.voik.agesandtheart.desk.SeismographItem
@@ -1022,6 +1026,28 @@ object AgeContent {
     val WRITERS_DESK_ENTITY: BlockEntityType<WritersDeskBlockEntity> =
         BlockEntityType({ pos, state -> WritersDeskBlockEntity(pos, state) }, setOf(WRITERS_DESK_BLOCK))
 
+    private val ARCHIVE_ID: Identifier = "archive".location()
+
+    /** Every page filed, without limit — see [co.voik.agesandtheart.desk.ArchiveBlock]. */
+    val ARCHIVE_BLOCK: ArchiveBlock = ArchiveBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, ARCHIVE_ID))
+            .mapColor(MapColor.WOOD)
+            .strength(1.5f)
+            .sound(SoundType.CHISELED_BOOKSHELF),
+    )
+
+    val ARCHIVE: Item = ArchiveItem(
+        ARCHIVE_BLOCK,
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, ARCHIVE_ID))
+            .useBlockDescriptionPrefix()
+            .stacksTo(1),
+    )
+
+    val ARCHIVE_ENTITY: BlockEntityType<ArchiveBlockEntity> =
+        BlockEntityType({ pos, state -> ArchiveBlockEntity(pos, state) }, setOf(ARCHIVE_BLOCK))
+
     /** The desk as a job site — see [WriterProfession] for why only its centre counts. */
     val WRITERS_DESK_POI: PoiType = WriterProfession.poiType(WRITERS_DESK_BLOCK)
 
@@ -1482,6 +1508,7 @@ object AgeContent {
         GLOOMGRIT_ID to GLOOMGRIT_CLUSTER,
         WOUND_ID to WOUND_BLOCK,
         WRITERS_DESK_ID to WRITERS_DESK_BLOCK,
+        ARCHIVE_ID to ARCHIVE_BLOCK,
         STAR_FISSURE_ID to STAR_FISSURE_BLOCK,
         COLLAPSING_FISSURE_ID to COLLAPSING_FISSURE_BLOCK,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_BLOCK,
@@ -1520,6 +1547,7 @@ object AgeContent {
     val blockEntities: List<Pair<Identifier, BlockEntityType<*>>> = listOf(
         TOOLBOX_ID to TOOLBOX_ENTITY,
         WRITERS_DESK_ID to WRITERS_DESK_ENTITY,
+        ARCHIVE_ID to ARCHIVE_ENTITY,
         STAR_FISSURE_ID to STAR_FISSURE_ENTITY,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_ENTITY,
@@ -1568,6 +1596,12 @@ object AgeContent {
         FeatureFlags.VANILLA_SET,
     )
 
+    /** An archive's: the player's inventory in slots, and its pages on a payload. */
+    val ARCHIVE_MENU: MenuType<ArchiveMenu> = MenuType(
+        { containerId, inventory -> ArchiveMenu(containerId, inventory, ContainerLevelAccess.NULL) },
+        FeatureFlags.VANILLA_SET,
+    )
+
     val menus: List<Pair<Identifier, MenuType<*>>> = listOf(
         WRITERS_DESK_ID to WRITERS_DESK_MENU,
         "ink_case".location() to INK_CASE_MENU,
@@ -1575,6 +1609,7 @@ object AgeContent {
         TOOLBOX_ID to TOOLBOX_MENU,
         SEISMOGRAPH_ID to SEISMOGRAPH_MENU,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_MENU,
+        ARCHIVE_ID to ARCHIVE_MENU,
     )
 
     val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =
@@ -1591,6 +1626,7 @@ object AgeContent {
         PAGE_ID to PAGE,
         NOTEBOOK_ID to NOTEBOOK,
         WRITERS_DESK_ID to WRITERS_DESK,
+        ARCHIVE_ID to ARCHIVE,
         LINKING_BOOK_ID to LINKING_BOOK,
         INK_BOTTLE_ID to INK_BOTTLE,
         FINE_INK_BOTTLE_ID to FINE_INK_BOTTLE,

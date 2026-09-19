@@ -14,10 +14,15 @@ import net.minecraft.network.chat.Component
  */
 object DeskNotice {
 
+    /** What the desk is saying right now, or null once the last thing it said has faded. */
+    fun current(): Component? {
+        val line = DeskModel.notice ?: return null
+        if (System.currentTimeMillis() - DeskModel.noticeAt > SHOWN_FOR_MS) return null
+        return Component.translatable("container.agesandtheart.writers_desk.$line")
+    }
+
     fun extract(graphics: GuiGraphicsExtractor, font: Font, panel: Rect) {
-        val line = DeskModel.notice ?: return
-        if (System.currentTimeMillis() - DeskModel.noticeAt > SHOWN_FOR_MS) return
-        val text = Component.translatable("container.agesandtheart.writers_desk.$line")
+        val text = current() ?: return
         graphics.text(
             font, text,
             panel.x + (panel.width - font.width(text)) / 2,
