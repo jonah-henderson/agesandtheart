@@ -128,29 +128,23 @@ object Collapse {
     }
 
     /**
-     * Take the column at [at] into the tear — what a spreading fissure does when it ticks.
+     * Start the column at [at] crumbling into the tear — what a spreading fissure does when it ticks.
      *
      * One column, and never more: every block on the frontier books its own turn, so the aggregate is fast
-     * while any single event stays small. Declines a column that is already ours, and declines to reach
-     * into a chunk that is not loaded — a tear should widen where somebody is, not quietly load the world
-     * outward.
+     * while any single event stays small. The column cracks and crumbles over a few seconds rather than
+     * going at once ([CrumblingColumn]). Declines a column that is already ours, and declines to reach into
+     * a chunk that is not loaded — a tear should widen where somebody is, not quietly load the world outward.
      */
     fun takeColumnBeside(level: ServerLevel, at: BlockPos) {
         if (!level.isLoaded(at)) return
         if (level.getBlockState(at).`is`(AgeContent.COLLAPSING_FISSURE_BLOCK)) return
-        val lowest = level.minY + KEPT_UNDERFOOT
         val surface = level.getHeight(Heightmap.Types.MOTION_BLOCKING, at.x, at.z)
-        val cursor = BlockPos.MutableBlockPos()
-        if (lowest <= surface) {
-            cursor.set(at.x, lowest, at.z)
-            level.setBlock(cursor, TEAR, Block.UPDATE_ALL)
-        }
-        for (y in lowest + 1..surface) {
-            cursor.set(at.x, y, at.z)
-            if (level.getBlockState(cursor).isAir) continue
-            level.setBlock(cursor, AIR, Block.UPDATE_ALL)
-        }
+        if (surface < floorOfATear(level)) return
+        CrumblingColumn.begin(level, at.x, at.z)
     }
+
+    /** The layer a tear's column stands on, which becomes the tear itself. */
+    fun floorOfATear(level: LevelAccessor): Int = level.minY + KEPT_UNDERFOOT
 
     /**
      * The block entity a fissure is drawn from, made where the chunk will not make one itself.

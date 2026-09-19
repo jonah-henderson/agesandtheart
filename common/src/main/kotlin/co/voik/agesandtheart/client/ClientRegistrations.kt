@@ -56,6 +56,7 @@ object ClientRegistrations {
         // The storm is a clock standing in the sky and is drawn by the sky, not as an entity.
         RendererForEntity(AgeContent.METEOR_STORM) { NoopRenderer(it) },
         RendererForEntity(AgeContent.CAVE_IN) { NoopRenderer(it) },
+        RendererForEntity(AgeContent.CRUMBLING_COLUMN) { NoopRenderer(it) },
     )
 
     val BLOCK_ENTITY_RENDERERS: List<RendererForBlockEntity<*, *>> = listOf(

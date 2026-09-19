@@ -19,6 +19,7 @@ import co.voik.agesandtheart.book.DescriptiveBookItem
 import co.voik.agesandtheart.book.LinkingBookItem
 import co.voik.agesandtheart.book.RepatternBookRecipe
 import co.voik.agesandtheart.age.consequence.CollapsingFissureBlock
+import co.voik.agesandtheart.age.consequence.CrumblingColumn
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlockEntity
 import co.voik.agesandtheart.desk.GeologistsToolsBlock
@@ -1216,6 +1217,15 @@ object AgeContent {
     private const val CAVE_IN_SIZE = 0.5f
     private const val CAVE_IN_TRACKING_CHUNKS = 6
 
+    /** One column a collapse tear is taking — see [co.voik.agesandtheart.age.consequence.CrumblingColumn]. */
+    val CRUMBLING_COLUMN: EntityType<CrumblingColumn> = EntityType.Builder
+        .of({ type, level -> CrumblingColumn(type, level) }, MobCategory.MISC)
+        .sized(CAVE_IN_SIZE, CAVE_IN_SIZE)
+        .clientTrackingRange(CRUMBLING_COLUMN_TRACKING_CHUNKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, "crumbling_column".location()))
+
+    private const val CRUMBLING_COLUMN_TRACKING_CHUNKS = 2
+
     val DRIFTING_ORE: EntityType<DriftingOre> = EntityType.Builder
         .of({ type, level -> DriftingOre(type, level) }, MobCategory.MISC)
         .sized(DRIFTING_ORE_SIZE, DRIFTING_ORE_SIZE)
@@ -1333,6 +1343,7 @@ object AgeContent {
         ASTRITE_GOLEM_ID to ASTRITE_GOLEM,
         HADALFISH_ID to HADALFISH,
         "cave_in".location() to CAVE_IN,
+        "crumbling_column".location() to CRUMBLING_COLUMN,
         "descriptive_book".location() to BOOK_ENTITY,
         "sand_column".location() to SAND_COLUMN,
         "volcanic_bomb".location() to VOLCANIC_BOMB,
