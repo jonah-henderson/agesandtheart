@@ -266,8 +266,9 @@ object Deluge {
      *
      * **Never water on water** (Jonah, 2026-09-17). A drop onto a puddle stacked a source on it, and
      * enough of those read as pillars of water standing at random. So a drop lands only on dry ground, or
-     * turns a spreading puddle's flowing edge into a source where it lies — never falling water, never
-     * water on leaves, both of which pour off an edge as a column.
+     * turns a spreading puddle's flowing edge into a source where it lies — and only an edge lying on firm
+     * ground (Jonah, 2026-09-18), never one over air, over other water, or falling, any of which pours off
+     * as a column.
      *
      * Sampled near the players where the rise is swept over everything in view, and the difference is the
      * point: a sea is one surface and must be coherent everywhere, where a puddle is a local accident and
@@ -289,14 +290,22 @@ object Deluge {
             if (lying.`is`(Fluids.WATER) || lying.`is`(Fluids.FLOWING_WATER)) {
                 val isSpreading = !lying.isSource && ground.`is`(Blocks.WATER)
                 val isFalling = lying.getValue(FlowingFluid.FALLING)
-                if (isSpreading && !isFalling) level.setBlockAndUpdate(top, Blocks.WATER.defaultBlockState())
+                val liesOnFirmGround = isFirmGround(level, top.below())
+                if (isSpreading && !isFalling && liesOnFirmGround) {
+                    level.setBlockAndUpdate(top, Blocks.WATER.defaultBlockState())
+                }
                 return@sweep
             }
-            val isFirmGround = ground.isFaceSturdy(level, top, Direction.UP) && !ground.`is`(BlockTags.LEAVES)
-            if (!isFirmGround) return@sweep
+            if (!isFirmGround(level, top)) return@sweep
             if (!level.getBlockState(onto).canBeReplaced(Fluids.WATER)) return@sweep
             level.setBlockAndUpdate(onto, Blocks.WATER.defaultBlockState())
         }
+    }
+
+    /** Whether [at]'s top face will hold standing water: sturdy, and not leaves, which it pours through. */
+    private fun isFirmGround(level: ServerLevel, at: BlockPos): Boolean {
+        val block = level.getBlockState(at)
+        return block.isFaceSturdy(level, at, Direction.UP) && !block.`is`(BlockTags.LEAVES)
     }
 
     /** This Age's own sea material, or null where it has no sea to raise. */
@@ -361,10 +370,12 @@ object Deluge {
 
     /**
      * How the pooling rain is sampled: one chance per chunk per tick through [Sampling.sweep], and one drop in
-     * this many of those — about one a second across the thirteen-chunk square it sweeps, so a given chunk
-     * takes a drop every few minutes. **Deliberately slow**: flowing water at storm scale is one of vanilla's
-     * heavier update paths, and a source spreads for a long time after it lands. UNWALKED.
+     * this many of those — with the sweep's own one in [Sampling.BETWEEN_CHUNK_SAMPLES], a drop in each chunk
+     * about once a minute (Jonah, 2026-09-18: thirty seconds pooled too much, and a minute is still ahead of
+     * the sea, which gains a block every two and a half minutes of rain at the ordinary rate). A drop that
+     * finds nowhere to land is skipped, so fewer are placed than drawn. That is some three drops a second
+     * over the thirteen-chunk square the sweep covers. UNWALKED.
      */
     private const val ONE_SAMPLE = 1
-    private const val ONE_DROP_IN = 80
+    private const val ONE_DROP_IN = 24
 }
