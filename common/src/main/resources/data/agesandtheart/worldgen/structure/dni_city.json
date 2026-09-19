@@ -1,0 +1,89 @@
+{
+  "_comment": [
+    "The PLACEHOLDER for the D'ni city (design 7.6): vanilla's ancient city, rerouted by pool aliases.",
+    "Every pool the templates name is aliased to our copy under dni_city/, which carries our processor lists",
+    "(no sculk sensors, our loot). The sculk pool -- the patches, the shriekers and so the warden -- goes to",
+    "minecraft:empty. The aliases apply inside this structure only, so the overworld's cities are untouched.",
+    "To try a room of your own, alias a pool to a pool of yours. Where it stands is decided in code, not by",
+    "start_height: see DniCitySite."
+  ],
+  "type": "agesandtheart:dni_city",
+  "biomes": "#agesandtheart:has_structure/dni_city",
+  "step": "underground_decoration",
+  "terrain_adaptation": "beard_box",
+  "spawn_overrides": {
+    "ambient": {
+      "bounding_box": "full",
+      "spawns": []
+    },
+    "axolotls": {
+      "bounding_box": "full",
+      "spawns": []
+    },
+    "creature": {
+      "bounding_box": "full",
+      "spawns": []
+    },
+    "misc": {
+      "bounding_box": "full",
+      "spawns": []
+    },
+    "monster": {
+      "bounding_box": "full",
+      "spawns": []
+    },
+    "underground_water_creature": {
+      "bounding_box": "full",
+      "spawns": []
+    },
+    "water_ambient": {
+      "bounding_box": "full",
+      "spawns": []
+    },
+    "water_creature": {
+      "bounding_box": "full",
+      "spawns": []
+    }
+  },
+  "start_pool": "agesandtheart:dni_city/city_center",
+  "start_jigsaw_name": "minecraft:city_anchor",
+  "size": 7,
+  "max_distance_from_center": 116,
+  "pool_aliases": [
+    {
+      "type": "minecraft:direct",
+      "alias": "minecraft:ancient_city/city_center",
+      "target": "agesandtheart:dni_city/city_center"
+    },
+    {
+      "type": "minecraft:direct",
+      "alias": "minecraft:ancient_city/city_center/walls",
+      "target": "agesandtheart:dni_city/city_center/walls"
+    },
+    {
+      "type": "minecraft:direct",
+      "alias": "minecraft:ancient_city/city/entrance",
+      "target": "agesandtheart:dni_city/city/entrance"
+    },
+    {
+      "type": "minecraft:direct",
+      "alias": "minecraft:ancient_city/structures",
+      "target": "agesandtheart:dni_city/structures"
+    },
+    {
+      "type": "minecraft:direct",
+      "alias": "minecraft:ancient_city/walls",
+      "target": "agesandtheart:dni_city/walls"
+    },
+    {
+      "type": "minecraft:direct",
+      "alias": "minecraft:ancient_city/walls/no_corners",
+      "target": "agesandtheart:dni_city/walls/no_corners"
+    },
+    {
+      "type": "minecraft:direct",
+      "alias": "minecraft:ancient_city/sculk",
+      "target": "minecraft:empty"
+    }
+  ]
+}

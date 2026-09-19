@@ -1,0 +1,86 @@
+{
+  "_comment": [
+    "Vanilla's minecraft:ancient_city_generic_degradation, unchanged, and then the two things that make an",
+    "ancient city a D'ni ruin for now: its sculk sensors taken out, and its chests filled from our own table.",
+    "The placeholder for the D'ni city -- see DniCityStructure."
+  ],
+  "processors": [
+    {
+      "integrity": 0.95,
+      "processor_type": "minecraft:block_rot",
+      "rottable_blocks": "#minecraft:ancient_city_replaceable"
+    },
+    {
+      "processor_type": "minecraft:rule",
+      "rules": [
+        {
+          "input_predicate": {
+            "block": "minecraft:deepslate_bricks",
+            "predicate_type": "minecraft:random_block_match",
+            "probability": 0.3
+          },
+          "location_predicate": {
+            "predicate_type": "minecraft:always_true"
+          },
+          "output_state": {
+            "Name": "minecraft:cracked_deepslate_bricks"
+          }
+        },
+        {
+          "input_predicate": {
+            "block": "minecraft:deepslate_tiles",
+            "predicate_type": "minecraft:random_block_match",
+            "probability": 0.3
+          },
+          "location_predicate": {
+            "predicate_type": "minecraft:always_true"
+          },
+          "output_state": {
+            "Name": "minecraft:cracked_deepslate_tiles"
+          }
+        },
+        {
+          "input_predicate": {
+            "block": "minecraft:soul_lantern",
+            "predicate_type": "minecraft:random_block_match",
+            "probability": 0.05
+          },
+          "location_predicate": {
+            "predicate_type": "minecraft:always_true"
+          },
+          "output_state": {
+            "Name": "minecraft:air"
+          }
+        }
+      ]
+    },
+    {
+      "processor_type": "minecraft:protected_blocks",
+      "value": "#minecraft:features_cannot_replace"
+    },
+    {
+      "processor_type": "minecraft:rule",
+      "rules": [
+        {
+          "input_predicate": {
+            "predicate_type": "minecraft:block_match",
+            "block": "minecraft:sculk_sensor"
+          },
+          "location_predicate": {
+            "predicate_type": "minecraft:always_true"
+          },
+          "output_state": {
+            "Name": "minecraft:air"
+          }
+        }
+      ]
+    },
+    {
+      "processor_type": "agesandtheart:loot_table_swap",
+      "swaps": {
+        "minecraft:chests/ancient_city": "agesandtheart:chests/dni_city",
+        "minecraft:chests/ancient_city_ice_box": "agesandtheart:chests/dni_city"
+      }
+    }
+  ]
+}

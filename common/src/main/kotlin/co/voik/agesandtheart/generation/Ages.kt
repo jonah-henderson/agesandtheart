@@ -7,6 +7,7 @@ import co.voik.ephemeris.RuntimeLevelEvents
 import co.voik.ephemeris.RuntimeLevels
 import co.voik.ephemeris.sky.LevelAppearance
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
@@ -23,6 +24,7 @@ import java.util.WeakHashMap
 import co.voik.agesandtheart.age.AgePreset
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.worldgen.dni.DniCity
 
 /**
  * Loader-agnostic lifecycle for Ages. Opening and discarding a level is Ephemeris' [RuntimeLevels]; this
@@ -177,15 +179,21 @@ object Ages {
         // the route all the same, so going lazy is one call to `LevelAppearance.lazily` and no hunting for
         // the places a player starts travelling.
         LevelAppearance.expecting(player, level.dimension())
-        val arrival = arrivalIn(level)
+        val arrival = arrivals.getOrPut(level) { workOutTheArrivalIn(level) }
         openUpArrival(level, arrival)
         // `teleportTo` gained a relative-movement set and a "set camera" flag. Nothing here is relative and
         // the camera should follow, which is the empty set and `true`.
         player.teleportTo(
-            level, arrival.x + 0.5, arrival.y.toDouble(), arrival.z + 0.5,
-            emptySet(), player.yRot, player.xRot, true,
+            level, arrival.at.x + 0.5, arrival.at.y.toDouble(), arrival.at.z + 0.5,
+            emptySet(), arrival.facing?.toYRot() ?: player.yRot, player.xRot, true,
         )
     }
+
+    /**
+     * Where a visitor lands and which way they face. [facing] is null for footing found in the rock, where
+     * a visitor keeps the heading they had; set, it marks a built doorway that [openUpArrival] must not widen.
+     */
+    data class Arrival(val at: BlockPos, val facing: Direction? = null)
 
     /**
      * Where a visitor lands — the block their feet occupy.
@@ -194,7 +202,7 @@ object Ages {
      * two different places. Loads the chunk it answers about, since neither caller can use a height read
      * off ungenerated ground.
      */
-    fun arrivalIn(level: ServerLevel): BlockPos = arrivals.getOrPut(level) { workOutTheArrivalIn(level) }
+    fun arrivalIn(level: ServerLevel): BlockPos = arrivals.getOrPut(level) { workOutTheArrivalIn(level) }.at
 
     /**
      * Where each Age's arrival is, worked out once per level.
@@ -210,11 +218,13 @@ object Ages {
      * as the level it was worked out for: an Age deleted and written again, or one of the same name in
      * another world, is a different level and works out its own.
      */
-    private val arrivals = WeakHashMap<ServerLevel, BlockPos>()
+    private val arrivals = WeakHashMap<ServerLevel, Arrival>()
 
-    private fun workOutTheArrivalIn(level: ServerLevel): BlockPos {
+    /** Into the D'ni city where the Age has one (design §7.6), and otherwise onto footing near the origin. */
+    private fun workOutTheArrivalIn(level: ServerLevel): Arrival {
+        DniCity.arrivalIn(level)?.let { return it }
         val (landingX, landingZ) = findFooting(level)
-        return footingIn(level, landingX, landingZ)
+        return Arrival(footingIn(level, landingX, landingZ))
     }
 
     /**
@@ -255,24 +265,28 @@ object Ages {
      *
      * Only on the way in, never on the way to a panel: a book that carved a pocket merely by being opened
      * would edit an Age nobody had visited.
+     *
+     * At a built doorway only the visitor's own column: the city's arrival is one block from its frame.
      */
-    private fun openUpArrival(level: ServerLevel, arrival: BlockPos) {
+    private fun openUpArrival(level: ServerLevel, arrival: Arrival) {
+        val (at, facing) = arrival
         val cursor = BlockPos.MutableBlockPos()
-        fun blocked(y: Int) = !level.getBlockState(cursor.set(arrival.x, y, arrival.z)).isAir
-        if (!blocked(arrival.y) && !blocked(arrival.y + 1)) return
+        fun blocked(y: Int) = !level.getBlockState(cursor.set(at.x, y, at.z)).isAir
+        if (!blocked(at.y) && !blocked(at.y + 1)) return
 
-        Constants.LOG.info("Carving room to arrive at {} in {}", arrival, level.dimension().identifier())
-        for (y in arrival.y..arrival.y + HEADROOM) {
-            for (x in arrival.x - 1..arrival.x + 1) {
-                for (z in arrival.z - 1..arrival.z + 1) {
+        Constants.LOG.info("Carving room to arrive at {} in {}", at, level.dimension().identifier())
+        val reach = if (facing == null) 1 else 0
+        for (y in at.y..at.y + HEADROOM) {
+            for (x in at.x - reach..at.x + reach) {
+                for (z in at.z - reach..at.z + reach) {
                     level.setBlockAndUpdate(cursor.set(x, y, z), Blocks.AIR.defaultBlockState())
                 }
             }
         }
         // A floor under the pocket, or one carved out of a hillside drops the visitor through it.
-        for (x in arrival.x - 1..arrival.x + 1) {
-            for (z in arrival.z - 1..arrival.z + 1) {
-                val under = cursor.set(x, arrival.y - 1, z)
+        for (x in at.x - reach..at.x + reach) {
+            for (z in at.z - reach..at.z + reach) {
+                val under = cursor.set(x, at.y - 1, z)
                 if (level.getBlockState(under).isAir) level.setBlockAndUpdate(under, FOOTING_BLOCK)
             }
         }

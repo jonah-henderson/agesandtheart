@@ -2,6 +2,7 @@ package co.voik.agesandtheart.generation
 
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Sea
+import co.voik.agesandtheart.worldgen.dni.DniCity
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.WaterTable
 import kotlin.math.pow
@@ -250,7 +251,7 @@ object AgeGeneration {
                 composition.optionsFor(Aspect.STRUCTURES, 0),
                 recipe.template.standingStructures,
                 if (abyssLineOf(seaFill, window) == null) emptyMap() else WRECKAGE_ON_AN_ABYSS_FLOOR,
-            ),
+            ) + DniCity.structureSets(server, composition),
             // **The climate the biomes are looked up by, and it comes from the same world they do.** This
             // was the overworld's for every Age, so a landform of ours over the infernal template chose
             // nether biomes with overworld noise — and over the dark void, where the End picks by distance

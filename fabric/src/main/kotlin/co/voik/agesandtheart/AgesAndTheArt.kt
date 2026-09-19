@@ -75,6 +75,9 @@ fun init() {
     AgeContent.structurePieces.forEach { (id, type) ->
         Registry.register(BuiltInRegistries.STRUCTURE_PIECE, id, type)
     }
+    AgeContent.structureProcessors.forEach { (id, type) ->
+        Registry.register(BuiltInRegistries.STRUCTURE_PROCESSOR, id, type)
+    }
     // **Through `PoiHelper`, not `Registry.register`.** `PoiTypes` keeps its block-state map private, so
     // a plainly registered point of interest is never recognised on the ground — `PoiTypes.forState`
     // returns nothing and no villager sees the desk. NeoForge's half needs no such help.

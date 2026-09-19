@@ -148,6 +148,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.STRUCTURE_PIECE) { helper ->
             AgeContent.structurePieces.forEach { (id, type) -> helper.register(id, type) }
         }
+        event.register(Registries.STRUCTURE_PROCESSOR) { helper ->
+            AgeContent.structureProcessors.forEach { (id, type) -> helper.register(id, type) }
+        }
         event.register(Registries.BLOCK_ENTITY_TYPE) { helper ->
             AgeContent.blockEntities.forEach { (id, type) -> helper.register(id, type) }
         }

@@ -43,8 +43,11 @@ import co.voik.agesandtheart.worldgen.carver.RuleCarver
 import com.mojang.serialization.MapCodec
 import co.voik.agesandtheart.worldgen.fissure.StarFissurePiece
 import co.voik.agesandtheart.worldgen.fissure.StarFissureStructure
+import co.voik.agesandtheart.worldgen.dni.DniCityStructure
+import co.voik.agesandtheart.worldgen.structure.LootTableSwap
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType
 import net.minecraft.world.level.levelgen.structure.StructureType
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType
 import net.minecraft.core.Holder
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.BuiltInRegistries
@@ -1102,8 +1105,18 @@ object AgeContent {
 
     val STAR_FISSURE_PIECE: StructurePieceType = StructurePieceType.ContextlessType(::StarFissurePiece)
 
+    /** The D'ni city — see the `dni` package. */
+    val DNI_CITY_STRUCTURE: StructureType<DniCityStructure> = StructureType { DniCityStructure.CODEC }
+
     val structureTypes: List<Pair<Identifier, StructureType<*>>> = listOf(
         STAR_FISSURE_ID to STAR_FISSURE_STRUCTURE,
+        "dni_city".location() to DNI_CITY_STRUCTURE,
+    )
+
+    val LOOT_TABLE_SWAP: StructureProcessorType<LootTableSwap> = StructureProcessorType { LootTableSwap.CODEC }
+
+    val structureProcessors: List<Pair<Identifier, StructureProcessorType<*>>> = listOf(
+        "loot_table_swap".location() to LOOT_TABLE_SWAP,
     )
 
     val structurePieces: List<Pair<Identifier, StructurePieceType>> = listOf(
