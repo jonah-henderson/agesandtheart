@@ -11,6 +11,7 @@ import co.voik.agesandtheart.age.phenomena.Tempest
 import co.voik.agesandtheart.age.aspect.WeatherConditions
 import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.age.phenomena.Blizzard
+import co.voik.agesandtheart.age.phenomena.Deluge
 import com.mojang.brigadier.arguments.DoubleArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.builder.ArgumentBuilder
@@ -142,6 +143,8 @@ internal object PhenomenonInstruments {
         if (name == Phenomenon.BLIZZARD.key) {
             if (hardness == null) Blizzard.release(level) else Blizzard.force(level, hardness)
         }
+        // A deluge asked for pools its rain whatever the Age was written with; any other weather ends that.
+        if (name == Phenomenon.DELUGE.key) Deluge.force(level) else Deluge.release(level)
         AgeWeather.set(level, own, wants)
         source.sendSuccess({ Component.translatable("commands.agesandtheart.weather.set", name) }, true)
         return 1

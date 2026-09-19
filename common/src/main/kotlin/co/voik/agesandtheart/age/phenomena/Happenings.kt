@@ -50,6 +50,8 @@ object Happenings {
             // see [Blizzard.force]. Without this, `/age weather blizzard 3` in an ordinary Age sets a
             // fierceness nothing reads.
             if (Blizzard.forcedIn(level) != null) putIfAbsent(Phenomenon.BLIZZARD, Rung.ORDINARY)
+            // And a deluge likewise — see [Deluge.force].
+            if (Deluge.isForcedIn(level)) putIfAbsent(Phenomenon.DELUGE, Rung.ORDINARY)
         }
         AgeWeather.steer(level, wanted(composition, befalls, spending))
         for ((phenomenon, density) in befalls) {

@@ -53,18 +53,12 @@ object DeskModel {
     fun inkCapacity(): Long = state?.inkCapacity ?: 1L
 
     /**
-     * Fluid units as a fraction of a bucket, which is the only measure of ink a player ever sees.
+     * [units] in **bottles**, the only measure of ink a player sees, to one place and with no `.0` on a
+     * whole number. A price rounds up so it never reads as less than it is; what is held rounds down so it
+     * never reads as more.
      *
-     * The unit itself is the loader's — Fabric counts droplets and NeoForge millibuckets — so a number in
-     * it is not a quantity anybody can hold in their head, and it would not even mean the same thing on
-     * the two loaders.
-     */
-    fun inBuckets(units: Long): String = String.format("%.2f", units.toDouble() / unitsPerBucket())
-
-    /**
-     * [units] in **bottles**, the unit a page is priced in, to one place and with no `.0` on a whole
-     * number. A price rounds up so it never reads as less than it is; what is held rounds down so it never
-     * reads as more.
+     * The raw unit is the loader's — Fabric counts droplets, NeoForge millibuckets — and means nothing to
+     * anybody. A bottle here is [WriteCost.BOTTLES_PER_BUCKET]'s share of a bucket on both loaders.
      */
     fun inBottles(units: Long, roundUp: Boolean = true): String {
         val perBottle = unitsPerBucket().toDouble() / WriteCost.BOTTLES_PER_BUCKET

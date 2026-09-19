@@ -364,7 +364,8 @@ class WritersDeskScreen(
             amount = { DeskModel.inBottles(needed()) },
             isShort = { DeskModel.ink(tier) < needed() },
             tooltip = {
-                val price = priceTooltip(
+                val price = translated(
+                    "ink_price",
                     DeskStockDisplay.inkName(tier),
                     DeskModel.inBottles(needed()),
                     DeskModel.inBottles(DeskModel.ink(tier), roundUp = false),

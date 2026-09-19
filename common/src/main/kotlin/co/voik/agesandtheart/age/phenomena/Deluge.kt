@@ -20,6 +20,8 @@ import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.level.material.Fluids
+import java.util.Collections
+import java.util.WeakHashMap
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -56,6 +58,22 @@ import kotlin.math.roundToLong
  *   that stands where it falls reaches them there.
  */
 object Deluge {
+
+    /**
+     * Ages where `/age weather deluge` has made the rain pool, whether or not a deluge befalls them. The sea
+     * does not climb in one: its level is a saved counter, and a walk should not leave that moved.
+     */
+    private val forced: MutableSet<ServerLevel> = Collections.newSetFromMap(Collections.synchronizedMap(WeakHashMap()))
+
+    fun force(level: ServerLevel) {
+        forced += level
+    }
+
+    fun release(level: ServerLevel) {
+        forced -= level
+    }
+
+    fun isForcedIn(level: ServerLevel): Boolean = level in forced
 
     /**
      * What one Age's deluge does — its three dials, read off its rung and what its instability bought.

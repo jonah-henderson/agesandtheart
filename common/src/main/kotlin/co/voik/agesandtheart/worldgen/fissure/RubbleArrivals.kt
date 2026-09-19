@@ -21,8 +21,8 @@ import kotlin.math.sqrt
  * time, faster the more is waiting (Jonah's walk of G12).
  *
  * **Kept rather than moved.** Rubble arriving the moment it fell in came down all at once when a tear
- * widened; each block now joins a backlog of at most [KEPT_AT_MOST], and what arrives past that falls into
- * the stars. The backlog is saved with the overworld, so what an Age lost is still owed after a restart.
+ * widened; each block now joins a backlog of at most [KEPT_AT_MOST] — see [RubbleBacklog] for which go
+ * first. The backlog is saved with the overworld, so what an Age lost is still owed after a restart.
  *
  * **Let down only while the spawn is ticking.** It is not kept loaded, and rubble dropped into a chunk that
  * is not running would hang in the air until somebody came back.
@@ -34,11 +34,17 @@ import kotlin.math.sqrt
  */
 object RubbleArrivals {
 
-    /** Keeps [rubble]'s block for the spawn, and takes the entity out of the Age. */
+    /**
+     * Keeps [rubble]'s block for the spawn, and takes the entity out of the Age. A block nobody could break,
+     * such as bedrock, is never sent: a heap of it at the spawn could never be cleared.
+     */
     fun deliver(home: ServerLevel, rubble: FallingBlockEntity) {
-        RubbleBacklog.of(home).keep(rubble.blockState)
+        if (!isUnbreakable(home, rubble.blockState)) RubbleBacklog.of(home).keep(rubble.blockState)
         rubble.discard()
     }
+
+    private fun isUnbreakable(home: ServerLevel, state: BlockState): Boolean =
+        state.getDestroySpeed(home, BlockPos.ZERO) < 0.0f
 
     /** One tick's worth of the backlog, dropped over the spawn. */
     fun letDown(server: MinecraftServer) {
@@ -49,7 +55,8 @@ object RubbleArrivals {
         if (!home.isPositionEntityTicking(spawn)) return
         repeat(dropsThisTick(backlog.size, home.random.nextDouble())) {
             val state = backlog.next() ?: return
-            drop(home, spawn, state)
+            // A backlog saved before unbreakable blocks were refused may still hold some.
+            if (!isUnbreakable(home, state)) drop(home, spawn, state)
         }
     }
 
@@ -94,7 +101,10 @@ object RubbleArrivals {
     private const val FULL_TURN = 2 * Math.PI
 }
 
-/** The rubble still owed to the overworld's spawn, oldest first. */
+/**
+ * The rubble still owed to the overworld's spawn — **newest first**, so after visiting several collapsing
+ * Ages it is the latest one's rock that comes down, and when full it is the oldest that is let go.
+ */
 class RubbleBacklog private constructor(private val waiting: ArrayDeque<BlockState>) : SavedData() {
 
     constructor() : this(ArrayDeque())
@@ -103,14 +113,14 @@ class RubbleBacklog private constructor(private val waiting: ArrayDeque<BlockSta
 
     val isEmpty: Boolean get() = waiting.isEmpty()
 
-    /** Keeps [state] if there is room, and lets it go if there is not. */
+    /** Keeps [state], letting the oldest go if there is no room. */
     fun keep(state: BlockState) {
-        if (waiting.size >= RubbleArrivals.KEPT_AT_MOST) return
+        if (waiting.size >= RubbleArrivals.KEPT_AT_MOST) waiting.removeFirst()
         waiting.addLast(state)
         setDirty()
     }
 
-    fun next(): BlockState? = waiting.removeFirstOrNull()?.also { setDirty() }
+    fun next(): BlockState? = waiting.removeLastOrNull()?.also { setDirty() }
 
     companion object {
         private const val NAME = "agesandtheart_rubble"

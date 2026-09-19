@@ -15,6 +15,7 @@ import co.voik.agesandtheart.desk.DeskSlots
 import co.voik.agesandtheart.desk.DeskWingMenu
 import co.voik.agesandtheart.desk.InkCaseMenu
 import co.voik.agesandtheart.desk.SupplyBinMenu
+import co.voik.agesandtheart.desk.WriteCost
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.AbstractWidget
 import net.minecraft.client.gui.layouts.LinearLayout
@@ -134,12 +135,12 @@ object DeskStockDisplay {
     fun inkName(tier: InkTier): Component =
         Component.translatable("container.agesandtheart.writers_desk.ink.${tier.key}")
 
-    /** Exactly what the tank holds, since a gauge can only ever say roughly — in buckets, never loader units. */
+    /** Exactly what the tank holds, since a gauge can only ever say roughly — in bottles, never loader units. */
     fun tankTooltip(tier: InkTier): Component = Component.translatable(
         "container.agesandtheart.writers_desk.ink",
         inkName(tier),
-        DeskModel.inBuckets(DeskModel.ink(tier)),
-        AgeFluids.TANK_CAPACITY_BUCKETS,
+        DeskModel.inBottles(DeskModel.ink(tier), roundUp = false),
+        AgeFluids.TANK_CAPACITY_BUCKETS * WriteCost.BOTTLES_PER_BUCKET,
     )
 
     /** The three tanks side by side, each a gauge in its own colour. */
