@@ -12,6 +12,7 @@ import co.voik.agesandtheart.content.ChargedMetal
 import co.voik.agesandtheart.content.DeepWaterLogging
 import co.voik.agesandtheart.content.ProtectiveSuit
 import co.voik.agesandtheart.generation.Skies
+import co.voik.agesandtheart.worldgen.fissure.RubbleArrivals
 import co.voik.agesandtheart.worldgen.fissure.TheFall
 import co.voik.ephemeris.LevelWeather
 import net.minecraft.server.MinecraftServer
@@ -63,6 +64,8 @@ object CommonSetup {
         PanelViews.tick(server)
         // And whoever has fallen through one of an Age's tears and come out of the bottom of the field.
         TheFall.letGo(server)
+        // And the rubble the tears have sent home, a little at a time.
+        RubbleArrivals.letDown(server)
     }
 
     /**

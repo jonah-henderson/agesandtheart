@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.InsideBlockEffectApplier
+import net.minecraft.world.entity.item.FallingBlockEntity
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.BaseEntityBlock
@@ -86,6 +87,7 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
         // A player is [StarFissureFall]'s from here: it carries them through the ground under the tear and
         // holds them in the field, and nothing of it is a teleport. Only the overworld has no fall to give.
         if (entity is ServerPlayer && level.dimension() != Level.OVERWORLD) return
+        if (entity is FallingBlockEntity) return RubbleArrivals.deliver(level.server.overworld(), entity)
         // A mob, an item, or a player where there is no fall to be had: straight home, at once.
         sendHome(level, entity)
     }
