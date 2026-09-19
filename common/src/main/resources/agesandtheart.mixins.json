@@ -11,6 +11,7 @@
     "DragonPhaseAccessor",
     "EnderDragonMixin",
     "EntityCollidersMixin",
+    "EntityFluidInteractionMixin",
     "LecternBlockEntityMixin",
     "LecternBlockMixin",
     "LightningBoltMixin",
