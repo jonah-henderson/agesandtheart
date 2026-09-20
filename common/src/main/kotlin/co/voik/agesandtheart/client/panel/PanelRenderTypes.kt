@@ -3,6 +3,7 @@ package co.voik.agesandtheart.client.panel
 import co.voik.agesandtheart.client.AgeRenderTypes.MATRICES_AND_PROJECTION
 import co.voik.agesandtheart.compat.ONLY_VERTEX_BINDING
 import co.voik.agesandtheart.location
+import com.mojang.blaze3d.GpuFormat
 import com.mojang.blaze3d.PrimitiveTopology
 import com.mojang.blaze3d.pipeline.BindGroupLayout
 import com.mojang.blaze3d.pipeline.BlendFunction
@@ -68,8 +69,16 @@ object PanelRenderTypes {
      * Straight replacement is right rather than merely better: the RGB in the target is *already* the
      * Age composited over its own fog colour, including where nothing was drawn, which is the same colour
      * the haze fill underneath is painted with.
+     *
+     * **And it writes colour only, leaving the composite's own alpha alone.** Replacing the alpha as well
+     * moved the fault rather than fixing it: the picture's partial alpha landed in the composite, which
+     * looked right on a lectern — [ON_A_PAGE] draws opaquely and never reads it — and turned the same
+     * foliage the colour of the *page* in the book screen, which blends. The fills beneath have already
+     * written alpha one across the whole panel, so masking alpha out here leaves the composite opaque
+     * everywhere, which is what a finished picture should be for either reader.
      */
     private val FIELD_PIPELINE: RenderPipeline = RenderPipeline.builder(MATRICES_AND_PROJECTION)
+        .withColorTargetState(ColorTargetState(Optional.empty(), GpuFormat.RGBA8_UNORM, ColorTargetState.WRITE_COLOR))
         .withLocation("pipeline/linking_panel_field".location())
         .withVertexShader("core/position_tex_color")
         .withFragmentShader("core/position_tex_color")
