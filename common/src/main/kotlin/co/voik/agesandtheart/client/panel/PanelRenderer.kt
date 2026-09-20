@@ -36,7 +36,14 @@ object PanelRenderer {
     /** The same black as [BEHIND_THE_AGE], as 26.2's clear wants it: a vector rather than a packed int. */
     private val NOTHING_BEHIND_THE_AGE = Vector4f(0.0f, 0.0f, 0.0f, 1.0f)
 
-    private const val FURTHEST_DEPTH = 1.0
+    /**
+     * **Zero, because 26.2's depth runs backwards.** `DepthStencilState.DEFAULT` compares
+     * `GREATER_THAN_OR_EQUAL`, which is reversed-Z: the near plane is 1 and the far plane is 0. Clearing
+     * to 1 — the old convention, and what this said through the port — fills the buffer with "something is
+     * already here, right against the eye", so what survives the test afterwards is whatever the draw
+     * order happens to favour. Every depth clear in vanilla is 0.
+     */
+    private const val FURTHEST_DEPTH = 0.0
 
     /** No shot has been drawn since the panel last started over. */
     private const val NO_SHOT = -1
