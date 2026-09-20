@@ -168,3 +168,29 @@ accessible	method	net/minecraft/client/renderer/rendertype/RenderType	create	(Lj
 accessible	method	net/minecraft/client/Camera	prepareCullFrustum	(Lorg/joml/Matrix4fc;Lorg/joml/Matrix4f;Lnet/minecraft/world/phys/Vec3;)V
 accessible	method	net/minecraft/client/Camera	setupPerspective	(FFFFF)V
 
+
+# So the linking panel's renderer reads the panel's OWN render state (co.voik.agesandtheart.client.panel.PreviewLevel).
+#
+# **26.2 split the level renderer in two and wired only half of the split to a parameter.** `LevelExtractor`
+# is *given* a `LevelRenderState` to fill; `LevelRenderer` is not, and its constructor reaches for the
+# player's instead, as the last line of a nine-argument constructor that looks for all the world like it
+# takes everything it needs:
+#
+#     this.levelRenderState = gameRenderer.gameRenderState().levelRenderState;
+#
+# So a second renderer built the sanctioned way *draws the player's extracted world*: its entities, its
+# block entities, its clouds and its dirty chunk sections, whatever level the extractor beside it was
+# filling. The failure is not subtle once it lands but it is silent at construction, and a panel that
+# looked right was reading the overworld's state through the Age's view area.
+#
+# It crashed on the sections. `compileSections` looks each one up in *this* renderer's view area, which is
+# positioned in the Age, so the player's overworld sections resolve to null and vanilla dereferences
+# without a check. Everything else went quietly wrong instead.
+#
+# One field, assigned once, immediately after construction and before the renderer is ever used. The
+# alternatives were both worse: handing the extractor the player's state instead makes our extract clobber
+# the player's frame, since the panel is drawn from inside `Gui.extractRenderState` after the world's own
+# extract and before the world is drawn; and a Mixin on the constructor would have to tell the panel's
+# renderer from the player's, which is exactly the thing that does not exist yet at construction time.
+accessible	field	net/minecraft/client/renderer/LevelRenderer	levelRenderState	Lnet/minecraft/client/renderer/state/level/LevelRenderState;
+mutable	field	net/minecraft/client/renderer/LevelRenderer	levelRenderState	Lnet/minecraft/client/renderer/state/level/LevelRenderState;

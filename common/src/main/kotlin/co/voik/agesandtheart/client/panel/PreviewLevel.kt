@@ -204,6 +204,13 @@ class PreviewLevel private constructor(
                 PanelTarget.SHARPEST_HEIGHT,
             )
             val renderState = LevelRenderState()
+            // **And the renderer has to be told about it, because its constructor was not.** Only the
+            // extractor half of 26.2's split takes a render state; `LevelRenderer` reaches for the
+            // player's on the last line of its constructor, so a second one built the sanctioned way
+            // draws the player's entities, block entities, clouds and dirty sections no matter which
+            // level the extractor beside it is filling. See the access widener for the whole of it.
+            // Assigned before the renderer is used for anything.
+            renderer.levelRenderState = renderState
             val extractor = LevelExtractor(minecraft, renderState, renderer)
             val level = ClientLevel(
                 connection,
