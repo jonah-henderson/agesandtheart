@@ -172,13 +172,19 @@ object PanelComposite {
      * **Written in two passes, because the upload is one call for all of them.** Every run is appended and
      * filled first, then a single upload stages the lot, then each is executed in the order it was laid —
      * which is what keeps the composite a painter's stack rather than a race between draws.
+     *
+     * **`endDraw` is not "finish this draw".** It is the teardown of a whole append-upload-execute cycle:
+     * it clears the draw list and drops the uploaded buffer. Calling it per run — which is what its name
+     * invites — empties the batch before [StagedVertexBuffer.upload] ever sees it, so the upload returns
+     * early having allocated nothing and the first execute dies on "Cannot execute before upload". The
+     * order below is vanilla's own, from `GuiRenderer.render`: append everything, upload once, execute
+     * each, and only then tear down. Nothing closes a draw; the next `getVertexBuilder` does it.
      */
     private fun lay(runs: List<Run>) {
         val appended = runs.map { run ->
             val draw = staged.appendDraw(run.format, PrimitiveTopology.QUADS)
             val builder = staged.getVertexBuilder(draw)
             run.strokes.forEach { cornersOf(builder, it) }
-            staged.endDraw()
             run to draw
         }
         staged.upload()
@@ -186,6 +192,9 @@ object PanelComposite {
         appended.forEach { (run, draw) ->
             staged.getExecuteInfo(draw)?.let { run.renderType.prepare().drawFromBuffer(it) }
         }
+        // `endFrame` opens with `endDraw`, so this is both halves of vanilla's teardown. It is per
+        // composite rather than per frame because nothing here has a frame hook, and the buffer pool
+        // only recycles what it was told the frame was done with — skipping it would leak a buffer a panel.
         staged.endFrame()
     }
 
