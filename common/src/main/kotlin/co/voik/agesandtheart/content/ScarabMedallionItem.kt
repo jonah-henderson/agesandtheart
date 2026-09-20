@@ -70,14 +70,18 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
         val warmth = ScarabHabitat.warmthOf(composition)
         say(player, lineFor(warmth))
 
-        val jungle = ScarabHabitat.nearestJungle(level, player.blockPosition())
-        say(player, if (jungle == null) NO_JUNGLE else JUNGLE_SOMEWHERE)
+        // Whether the Age has a jungle is a fact about the Age; where the nearest one is, is a fact about
+        // here. They were one question until a walk caught the sweep declaring an Age jungleless with a
+        // jungle in it, so the condition now reads the Age and only the direction reads the sweep.
+        val anyJungle = ScarabHabitat.anyJungle(level)
+        val jungle = if (anyJungle) ScarabHabitat.nearestJungle(level, player.blockPosition()) else null
+        say(player, if (anyJungle) JUNGLE_SOMEWHERE else NO_JUNGLE)
 
         val torchflowers = ScarabHabitat.torchflowersIn(composition) { biome -> isJungle(level, biome) }
         say(player, lineFor(torchflowers))
 
         val written = warmth == ScarabHabitat.Warmth.SUITS &&
-            jungle != null &&
+            anyJungle &&
             torchflowers == ScarabHabitat.Torchflowers.WILD_IN_THE_JUNGLE
         chime(level, player, promising = written)
         if (!written) return
@@ -91,10 +95,17 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
      *
      * Whether you are in one is asked of the biome underfoot rather than of the sweep, which samples every
      * few chunks and would send somebody standing in a jungle off to the north.
+     *
+     * A null [jungle] here does **not** mean the Age has none — that condition has already passed — but
+     * that the sweep could not reach one, which is worth saying rather than staying silent about.
      */
-    private fun sayWhereTheJungleIs(level: ServerLevel, player: ServerPlayer, jungle: BlockPos) {
+    private fun sayWhereTheJungleIs(level: ServerLevel, player: ServerPlayer, jungle: BlockPos?) {
         if (level.getBiome(player.blockPosition()).`is`(BiomeTags.IS_JUNGLE)) {
             say(player, JUNGLE_HERE)
+            return
+        }
+        if (jungle == null) {
+            say(player, JUNGLE_OUT_OF_REACH)
             return
         }
         val here = player.blockPosition()
@@ -201,6 +212,7 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
         const val JUNGLE_SOMEWHERE = "$ITEM.jungle_somewhere"
         const val JUNGLE_HERE = "$ITEM.jungle_here"
         const val JUNGLE_TOWARD = "$ITEM.jungle_toward"
+        const val JUNGLE_OUT_OF_REACH = "$ITEM.jungle_out_of_reach"
         const val SITE = "$ITEM.site"
         const val NO_MUD = "$ITEM.no_mud"
         const val MUD_WITHOUT_SAND = "$ITEM.mud_without_sand"

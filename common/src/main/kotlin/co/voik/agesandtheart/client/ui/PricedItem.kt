@@ -27,7 +27,12 @@ class PricedItem(
         val ink = if (isShort()) Palette.WARNING else Palette.TEXT
         graphics.text(font, amount(), x + Palette.ITEM + AMOUNT_GAP, y + (height - font.lineHeight) / 2 + 1, ink, false)
         val hovered = mouseX >= x && mouseX < right && mouseY >= y && mouseY < bottom
-        if (hovered) graphics.setComponentTooltipForNextFrame(font, tooltip(), mouseX, mouseY)
+        // An empty list is "nothing to say" rather than an empty box: a price that reads off the row
+        // already does not want a tooltip repeating it, so most of these are silent most of the time.
+        if (hovered) {
+            val lines = tooltip()
+            if (lines.isNotEmpty()) graphics.setComponentTooltipForNextFrame(font, lines, mouseX, mouseY)
+        }
     }
 
     /** Reports rather than accepts, so it never takes a click from anything beneath it. */

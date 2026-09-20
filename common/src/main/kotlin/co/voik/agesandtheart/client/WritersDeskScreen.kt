@@ -161,13 +161,8 @@ class WritersDeskScreen(
                 amount = { "${currentCost().sheets}" },
                 isShort = { DeskModel.paper(chosenPaper) < currentCost().sheets },
                 tooltip = {
-                    val price = priceTooltip(
-                        DeskStockDisplay.paperName(chosenPaper),
-                        "${currentCost().sheets}",
-                        "${DeskModel.paper(chosenPaper)}",
-                    )
                     val drawn = DeskModel.drawn()
-                    if (drawn == 0) listOf(price) else listOf(price, faint(translated("pages_drawn", drawn)))
+                    if (drawn == 0) emptyList() else listOf(faint(translated("pages_drawn", drawn)))
                 },
             ),
             PricedItem(
@@ -175,9 +170,8 @@ class WritersDeskScreen(
                 icon = { DeskStockDisplay.BINDING },
                 amount = { "${currentCost().bindings}" },
                 isShort = { DeskModel.binding() < currentCost().bindings },
-                tooltip = {
-                    listOf(priceTooltip(DeskStockDisplay.BINDING.hoverName, "${currentCost().bindings}", "${DeskModel.binding()}"))
-                },
+                // Nothing ever discounts a binding, so this one is always silent.
+                tooltip = { emptyList() },
             ),
         )
         costItems.forEach { costRow.addChild(it); addRenderableWidget(it) }
@@ -364,25 +358,15 @@ class WritersDeskScreen(
             amount = { DeskModel.inBottles(needed()) },
             isShort = { DeskModel.ink(tier) < needed() },
             tooltip = {
-                val price = translated(
-                    "ink_price",
-                    DeskStockDisplay.inkName(tier),
-                    DeskModel.inBottles(needed()),
-                    DeskModel.inBottles(DeskModel.ink(tier), roundUp = false),
-                )
                 val saved = savedByPaper()
                 if (saved <= 0L) {
-                    listOf(price)
+                    emptyList()
                 } else {
-                    val savedLine = translated("ink_saved", DeskModel.inBottles(saved), DeskStockDisplay.paperName(chosenPaper))
-                    listOf(price, faint(savedLine))
+                    listOf(faint(translated("ink_saved", DeskModel.inBottles(saved), DeskStockDisplay.paperName(chosenPaper))))
                 }
             },
         )
     }
-
-    private fun priceTooltip(name: Component, needed: String, held: String): Component =
-        translated("price", name, needed, held)
 
     private fun faint(line: Component): Component = line.copy().withStyle(ChatFormatting.GRAY)
 

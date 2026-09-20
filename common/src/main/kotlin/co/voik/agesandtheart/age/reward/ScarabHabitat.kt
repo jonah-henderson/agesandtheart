@@ -88,7 +88,23 @@ object ScarabHabitat {
     }
 
     /**
+     * Whether this Age can grow a jungle anywhere at all.
+     *
+     * **Asked of the biome source's own table rather than of [nearestJungle]**, which is a sweep and so can
+     * only ever say "not within reach". The two were one question until a walk found the medallion
+     * announcing an Age had no jungle while `/locate biome` stood one up a few thousand blocks away — the
+     * sweep reaches [JUNGLE_SWEEP] and `/locate` reaches far further, so the sweep was answering a question
+     * it had no standing to answer. This one is exact and costs nothing: a biome not in the source's set
+     * cannot be placed by it.
+     */
+    fun anyJungle(level: ServerLevel): Boolean =
+        level.chunkSource.generator.biomeSource.possibleBiomes().any { it.`is`(BiomeTags.IS_JUNGLE) }
+
+    /**
      * The nearest jungle to [from], or null where a wide sweep finds none.
+     *
+     * **"None" here means none within [JUNGLE_SWEEP], not none in the Age** — [anyJungle] is the question
+     * about the Age.
      *
      * The biome census's method: `getBaseHeight` samples the noise column and `getNoiseBiome` indexes the
      * table, so this reaches far past what has been generated and touches no region file. Sampled at the
