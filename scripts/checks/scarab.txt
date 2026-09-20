@@ -1,0 +1,26 @@
+# The scarab's habitat: does the torchflower patch load, and can a book put it in a jungle?
+# Run with: scripts/drive-server.sh scripts/checks/scarab.txt
+#
+# What only a server can answer is whether `worldgen/placed_feature/torchflowers.json` parses and reaches
+# the registry — an unparseable one is dropped at datapack load and the word for it simply never appears,
+# which is silent everywhere else. The habitat conditions themselves are offline (`ScarabHabitatCheck`),
+# except the two that are questions about a world, and those are walked with the medallion in hand.
+
+# The word exists at all. It is derived from the placed feature, so it is here if and only if the file
+# loaded: look for `agesandtheart:torchflowers` in the listing.
+age words
+
+# The phrasing design §7.1.2 names first — flowers confined to the jungle. The siting TRAILS its
+# clause (`torchflowers features in jungle`), as an aiming page does; leading with `in` strands it, and
+# the book is written anyway with the flowers unconfined. Read the recipe back: the claim should say
+# `agesandtheart:torchflowers[in=minecraft:jungle]` under the features page.
+age write scarabhome 7 age jungle biomes torchflowers features in jungle
+age list
+
+# The other phrasing: flowers across the whole Age, which reaches the jungle too.
+age write scarabwide 7 age jungle biomes torchflowers features
+age gen scarabwide
+
+# Where the jungle actually is in that Age, and how much of it there is — the medallion sweeps for the
+# same thing, so a census with no jungle in it means the medallion will say so too.
+age biomes scarabwide 16

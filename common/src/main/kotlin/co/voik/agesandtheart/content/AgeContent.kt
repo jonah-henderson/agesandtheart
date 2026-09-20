@@ -961,6 +961,18 @@ object AgeContent {
     /** Lighter than the machine: an instrument you expect to pick up and carry on is worth less digging. */
     private const val SURVEYING_DEVICE_STRENGTH = 2.5f
 
+    private val SCARAB_MEDALLION_ID: Identifier = "scarab_medallion".location()
+
+    /**
+     * The scarab detector of design §7.1.2 — salvage from a D'ni ink workshop, since a scarab is what an
+     * ink workshop was for. See [ScarabMedallionItem] for what it reads.
+     */
+    val SCARAB_MEDALLION: Item = ScarabMedallionItem(
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, SCARAB_MEDALLION_ID))
+            .stacksTo(1),
+    )
+
     private val LINKING_BOOK_ID: Identifier = "linking_book".location()
 
     /** Unstackable: each one is a different door, even before it is written in. */
@@ -987,15 +999,20 @@ object AgeContent {
 
     private val FINE_INK_BOTTLE_ID: Identifier = "fine_ink_bottle".location()
 
-    /**
-     * Fine ink by the bottle — the unit a recipe can actually name, where the tank holds a fluid.
-     *
-     * Masterwork has none yet: nothing needs to *craft* with it, and adding a bottle nobody consumes
-     * would be an item to explain rather than an item to use.
-     */
+    /** Fine ink by the bottle — the unit a recipe can actually name, where the tank holds a fluid. */
     val FINE_INK_BOTTLE: Item = Item(
         Item.Properties()
             .setId(ResourceKey.create(Registries.ITEM, FINE_INK_BOTTLE_ID))
+            .craftRemainder(Items.GLASS_BOTTLE)
+            .stacksTo(16),
+    )
+
+    private val MASTERWORK_INK_BOTTLE_ID: Identifier = "masterwork_ink_bottle".location()
+
+    /** Nothing crafts with it; what it is for is being found in a D'ni ink workshop and poured into a desk. */
+    val MASTERWORK_INK_BOTTLE: Item = Item(
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, MASTERWORK_INK_BOTTLE_ID))
             .craftRemainder(Items.GLASS_BOTTLE)
             .stacksTo(16),
     )
@@ -1004,6 +1021,7 @@ object AgeContent {
     val INK_BOTTLES: Map<InkTier, Item> = mapOf(
         InkTier.COMMON to INK_BOTTLE,
         InkTier.FINE to FINE_INK_BOTTLE,
+        InkTier.MASTERWORK to MASTERWORK_INK_BOTTLE,
     )
 
     private val WRITERS_DESK_ID: Identifier = "writers_desk".location()
@@ -1643,10 +1661,12 @@ object AgeContent {
         LINKING_BOOK_ID to LINKING_BOOK,
         INK_BOTTLE_ID to INK_BOTTLE,
         FINE_INK_BOTTLE_ID to FINE_INK_BOTTLE,
+        MASTERWORK_INK_BOTTLE_ID to MASTERWORK_INK_BOTTLE,
         FINE_PAPER_ID to FINE_PAPER,
         MASTERWORK_PAPER_ID to MASTERWORK_PAPER,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE,
         SURVEYING_DEVICE_ID to SURVEYING_DEVICE,
+        SCARAB_MEDALLION_ID to SCARAB_MEDALLION,
         PITCHSTONE_ID to PITCHSTONE,
         PITCHSTONE_ORE_ID to PITCHSTONE_ORE,
         DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE,

@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "**A placed feature and not a bare configured one**, because only a placed feature has a word: see",
+    "`DerivedWords.features`, which makes one word per entry of the registry. `torchflowers` is therefore",
+    "sayable the moment this file exists -- `in jungle, features torchflowers`, or Age-wide, which reaches",
+    "the jungle too. Both phrasings satisfy the scarab (design §7.1.2).",
+    "",
+    "No biome carries it, so nothing grows it until a book asks: this is the one flower whose presence is",
+    "always somebody's decision.",
+    "",
+    "**`MOTION_BLOCKING_NO_LEAVES` where vanilla's flowers use `MOTION_BLOCKING`**, which matters because",
+    "these are for a jungle: on the plain heightmap nearly every attempt lands on the canopy, fails",
+    "`canSurvive` and places nothing, so the flowers would thin out exactly where they are needed.",
+    "",
+    "A handful per chunk in the chunks that get any, so the flowers arrive in clearings rather than evenly",
+    "-- a stand somebody wrote into a jungle, and a standing larder the colony grazes and comes back to."
+  ],
+  "feature": "agesandtheart:torchflowers",
+  "placement": [
+    { "type": "minecraft:rarity_filter", "chance": 2 },
+    {
+      "type": "minecraft:count",
+      "count": { "type": "minecraft:uniform", "min_inclusive": 2, "max_inclusive": 5 }
+    },
+    { "type": "minecraft:in_square" },
+    { "type": "minecraft:heightmap", "heightmap": "MOTION_BLOCKING_NO_LEAVES" },
+    { "type": "minecraft:biome" }
+  ]
+}
