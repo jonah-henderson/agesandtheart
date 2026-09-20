@@ -1,7 +1,9 @@
 package co.voik.agesandtheart.client.panel
 
+import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.Camera
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.renderer.Projection
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.core.BlockPos
 import net.minecraft.util.Mth
@@ -24,6 +26,15 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
     init {
         setLevel(level)
     }
+
+    /**
+     * The draw's projection, kept as vanilla's own object rather than as a matrix we write.
+     *
+     * `Camera` has one of these privately and hands it to `extractRenderState`; an orbit cannot use that
+     * path, because `Camera.extractRenderState` reaches for the player and the level it is attached to.
+     * So the panel keeps its own, which costs one field and buys every depth convention 26.2 has.
+     */
+    private val drawProjection = Projection()
 
     /** `Camera.xRot` and `yRot` are private with no getters, and [describeTo] needs both. */
     private var placedYaw: Float = 0.0f
@@ -56,7 +67,8 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         setRotation(placedYaw, placedPitch)
 
         setupPerspective(NEAR_PLANE, FAR_PLANE, FIELD_OF_VIEW, width.toFloat(), height.toFloat())
-        prepareCullFrustum(getViewRotationMatrix(Matrix4f()), projectionFor(width, height), position())
+        drawProjection.setupPerspective(NEAR_PLANE, FAR_PLANE, FIELD_OF_VIEW, width.toFloat(), height.toFloat())
+        prepareCullFrustum(getViewRotationMatrix(Matrix4f()), cullingProjectionFor(width, height), position())
     }
 
     /**
@@ -90,7 +102,14 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         state.orientation = rotation()
         state.cullFrustum = cullFrustum
         state.viewRotationMatrix = getViewRotationMatrix(Matrix4f())
-        state.projectionMatrix = projectionFor(width, height)
+        // **Vanilla's own projection, never one of ours.** 26.2 draws with reversed depth — the near plane
+        // is 1 and the far plane 0 — and `Projection.getMatrix` produces it by handing JOML `zFar` as the
+        // near argument and `zNear` as the far one, with the backend's clip-space convention alongside. A
+        // plainly-written `setPerspective(fov, aspect, near, far)` is the *forward* matrix, which under
+        // 26.2's `GREATER_THAN_OR_EQUAL` test lets whatever is furthest away win every pixel: terrain seen
+        // through itself, caves and their lava drawn over the ground above them. Asking vanilla is also the
+        // only version of this that stays right if they turn the depth round again.
+        state.projectionMatrix = drawProjection.getMatrix(Matrix4f())
         state.depthFar = FAR_PLANE
         state.hudFov = FIELD_OF_VIEW
         // An orbit sits in open air by construction; the Age's own air reaches the panel as an environment
@@ -119,8 +138,11 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         /**
          * The panel's optics, in one place.
          *
-         * The cull frustum is prepared from these, so anything that builds a different projection to draw
-         * with culls what it would otherwise have rendered.
+         * **These are shared; the two matrices built from them are not.** The frustum's and the draw's
+         * must describe the same cone of the world, or the panel culls what it would have drawn — but
+         * since 26.2 they are not the *same matrix*, because the draw's depth runs backwards and the
+         * frustum's does not. Keeping the optics here and the two constructions apart is what lets both
+         * stay true at once.
          */
         const val FIELD_OF_VIEW = 70.0f
         const val NEAR_PLANE = 0.05f
@@ -134,13 +156,30 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
          */
         const val FAR_PLANE = 2048.0f
 
-        /** The projection both the frustum and the draw must use, for a target of [width] by [height]. */
-        fun projectionFor(width: Int, height: Int): Matrix4f = Matrix4f().setPerspective(
+        /**
+         * The matrix the **frustum** is built from — which since 26.2 is *not* the one the draw uses.
+         *
+         * Near and far the ordinary way round, as vanilla's own `createProjectionMatrixForCulling` has
+         * them: the frustum wants planes in world terms and does not care which end of the depth range
+         * the GPU calls near. What it does care about is [zZeroToOne], because that decides where JOML
+         * puts the near plane and so what the frustum thinks it can see.
+         *
+         * The draw's matrix is [Projection]'s, built in [placeAt] — see [describeTo] for why it cannot
+         * be this one.
+         */
+        fun cullingProjectionFor(width: Int, height: Int): Matrix4f = Matrix4f().setPerspective(
             FIELD_OF_VIEW * Mth.DEG_TO_RAD,
             width.toFloat() / height.toFloat(),
             NEAR_PLANE,
             FAR_PLANE,
+            zZeroToOne(),
         )
+
+        /**
+         * Whether this GPU's clip space runs its depth 0..1 or −1..1 — a backend fact, not a setting, and
+         * the reason it has to be asked at all is that 26.2 can be on Vulkan or on OpenGL.
+         */
+        private fun zZeroToOne(): Boolean = RenderSystem.getDevice().deviceInfo.isZZeroToOne
 
         /**
          * How far out a shot may stand, either side of half the streamed ring.
