@@ -110,6 +110,6 @@ object KnownWords {
 
     /** One toast that cycles, not one per word — emptying a notebook can teach a dozen at once. */
     private fun announce(word: Identifier) {
-        WordToast.show(Minecraft.getInstance().toastManager, word)
+        WordToast.show(Minecraft.getInstance().gui.toastManager(), word)
     }
 }

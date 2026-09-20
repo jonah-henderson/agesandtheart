@@ -110,7 +110,7 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
             // which is what puts the cube's middle on the entity and makes the drawing agree with
             // `DriftingOre.makeBoundingBox`, since the offsets run from `-side / 2`.
             poseStack.translate(drawn.at.x.toDouble(), drawn.at.y.toDouble(), drawn.at.z.toDouble())
-            collector.submitMovingBlock(poseStack, drawn.block)
+            collector.submitMovingBlock(poseStack, drawn.block, NO_OUTLINE)
             poseStack.popPose()
         }
         super.submit(state, poseStack, collector, camera)
@@ -139,6 +139,9 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
     }
 
     private companion object {
+        /** Nothing here is outlined; 26.2 asks every submitted block to say so. */
+        const val NO_OUTLINE = 0
+
         private val clusters = java.util.concurrent.ConcurrentHashMap<Int, Map<BlockPos, BlockState>>()
 
         /**

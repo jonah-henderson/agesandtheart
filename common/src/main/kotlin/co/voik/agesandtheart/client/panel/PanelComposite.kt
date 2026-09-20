@@ -1,15 +1,18 @@
 package co.voik.agesandtheart.client.panel
 
+import com.mojang.blaze3d.GpuFormat
+import com.mojang.blaze3d.PrimitiveTopology
 import com.mojang.blaze3d.ProjectionType
 import com.mojang.blaze3d.pipeline.RenderTarget
 import com.mojang.blaze3d.pipeline.TextureTarget
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.GpuTextureView
-import com.mojang.blaze3d.vertex.BufferBuilder
-import com.mojang.blaze3d.vertex.ByteBufferBuilder
+import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
+import org.joml.Vector4f
 import net.minecraft.client.DeltaTracker
+import net.minecraft.client.renderer.StagedVertexBuffer
 import net.minecraft.client.renderer.ProjectionMatrixBuffer
 import net.minecraft.client.renderer.rendertype.RenderType
 import net.minecraft.util.ARGB
@@ -35,7 +38,8 @@ object PanelComposite {
     private const val FRAMED_WIDTH = PanelPicture.WIDTH + 2 * PanelPicture.FRAME_WIDTH
     private const val FRAMED_HEIGHT = PanelPicture.HEIGHT + 2 * PanelPicture.FRAME_WIDTH
 
-    private const val TRANSPARENT = 0
+    /** Nothing at all behind the composite — 26.2's clear takes a vector rather than a packed int. */
+    private val TRANSPARENT = Vector4f(0.0f, 0.0f, 0.0f, 0.0f)
     private const val FURTHEST_DEPTH = 1.0
     private const val WHOLLY_MISTED = 1.0f
     private const val UNTINTED = -1
@@ -60,7 +64,11 @@ object PanelComposite {
     /** Made on first use and kept for the life of the client, as [PanelTarget]'s fields are. */
     private var live: RenderTarget? = null
     private var misted: RenderTarget? = null
-    private val vertices by lazy { ByteBufferBuilder(VERTEX_BYTES) }
+    /**
+     * 26.2's immediate-mode path: a draw is appended, written into, uploaded and then executed, where a
+     * `BufferBuilder` used to be built and handed straight to the render type.
+     */
+    private val staged by lazy { StagedVertexBuffer({ "Ages linking panel composite" }, VERTEX_BYTES) }
     private val projections by lazy { ProjectionMatrixBuffer("ages linking panel composite") }
 
     /**
@@ -91,6 +99,7 @@ object PanelComposite {
         FRAMED_WIDTH * TEXELS_PER_PAGE_PIXEL,
         FRAMED_HEIGHT * TEXELS_PER_PAGE_PIXEL,
         true,
+        GpuFormat.RGBA8_UNORM,
     )
 
     private fun compose(target: RenderTarget, strokes: List<PanelStroke>): GpuTextureView {
@@ -103,7 +112,7 @@ object PanelComposite {
             FURTHEST_DEPTH,
         )
         PanelTexture.registerAll()
-        ontoTheComposite(colour, depth) { runsOf(strokes).forEach(::lay) }
+        ontoTheComposite(colour, depth) { lay(runsOf(strokes)) }
         return colour
     }
 
@@ -159,14 +168,29 @@ object PanelComposite {
         is PanelStroke.Field -> DefaultVertexFormat.POSITION_TEX_COLOR
     }
 
-    private fun lay(run: Run) {
-        val builder = BufferBuilder(vertices, VertexFormat.Mode.QUADS, run.format)
-        run.strokes.forEach { cornersOf(builder, it) }
-        run.renderType.draw(builder.buildOrThrow())
+    /**
+     * **Written in two passes, because the upload is one call for all of them.** Every run is appended and
+     * filled first, then a single upload stages the lot, then each is executed in the order it was laid —
+     * which is what keeps the composite a painter's stack rather than a race between draws.
+     */
+    private fun lay(runs: List<Run>) {
+        val appended = runs.map { run ->
+            val draw = staged.appendDraw(run.format, PrimitiveTopology.QUADS)
+            val builder = staged.getVertexBuilder(draw)
+            run.strokes.forEach { cornersOf(builder, it) }
+            staged.endDraw()
+            run to draw
+        }
+        staged.upload()
+        // Null where a draw took no vertices, which is nothing to execute rather than a fault.
+        appended.forEach { (run, draw) ->
+            staged.getExecuteInfo(draw)?.let { run.renderType.prepare().drawFromBuffer(it) }
+        }
+        staged.endFrame()
     }
 
     /** A stroke's four corners, top-left round to top-right. */
-    private fun cornersOf(builder: BufferBuilder, stroke: PanelStroke) {
+    private fun cornersOf(builder: VertexConsumer, stroke: PanelStroke) {
         val left = stroke.rect.left.toFloat()
         val top = stroke.rect.top.toFloat()
         val right = stroke.rect.right.toFloat()

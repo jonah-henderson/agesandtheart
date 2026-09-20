@@ -45,6 +45,9 @@ class FlexColumn(width: Int, height: Int) : AbstractLayout(0, 0, width, height) 
 
     override fun visitChildren(visitor: Consumer<LayoutElement>) = cells.forEach { visitor.accept(it.child) }
 
+    /** The gaps go with them: a cell is a child and its spacing, and neither outlives the other. */
+    override fun removeChildren() = cells.clear()
+
     override fun arrangeElements() {
         // Nested layouts settle first, so a child's height is final before it is counted.
         super.arrangeElements()

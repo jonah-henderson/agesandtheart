@@ -1,9 +1,9 @@
 package co.voik.agesandtheart.worldgen.field
 
 import co.voik.agesandtheart.location
+import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.resources.Identifier
-import net.minecraft.util.KeyDispatchDataCodec
 import net.minecraft.world.level.levelgen.SurfaceRules
 
 /**
@@ -34,7 +34,7 @@ data class NearTheSurface(val terrain: TerrainField) : SurfaceRules.ConditionSou
 
     override fun apply(context: SurfaceRules.Context): SurfaceRules.Condition = InThisColumn(context)
 
-    override fun codec(): KeyDispatchDataCodec<out SurfaceRules.ConditionSource> = CODEC
+    override fun codec(): MapCodec<out SurfaceRules.ConditionSource> = CODEC
 
     private inner class InThisColumn(private val context: SurfaceRules.Context) : SurfaceRules.Condition {
         private var knownX = Int.MIN_VALUE
@@ -62,12 +62,10 @@ data class NearTheSurface(val terrain: TerrainField) : SurfaceRules.ConditionSou
          */
         private const val HOW_FAR_BELOW = 8
 
-        val CODEC: KeyDispatchDataCodec<NearTheSurface> = KeyDispatchDataCodec.of(
-            RecordCodecBuilder.mapCodec { instance ->
-                instance.group(TerrainField.CODEC.fieldOf("terrain").forGetter(NearTheSurface::terrain))
-                    .apply(instance, ::NearTheSurface)
-            },
-        )
+        val CODEC: MapCodec<NearTheSurface> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(TerrainField.CODEC.fieldOf("terrain").forGetter(NearTheSurface::terrain))
+                .apply(instance, ::NearTheSurface)
+        }
 
         /**
          * Registered through `WorldgenCodecs.surfaceConditionCodecs` like any other condition kind, because the

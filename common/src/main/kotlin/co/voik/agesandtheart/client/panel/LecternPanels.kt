@@ -42,7 +42,7 @@ object LecternPanels {
         val level = minecraft.level ?: return
         val player = minecraft.player ?: return
         // An open book screen owns the panel and ticks it; the choice resumes from its lectern once it closes.
-        if (minecraft.screen is BookScreen) return
+        if (minecraft.gui.screen() is BookScreen) return
 
         val showing = shown
         val wanted = LecternPanelChoice.choose(showing, openBooksNear(level, player.position()))
@@ -84,7 +84,7 @@ object LecternPanels {
     }
 
     private fun isComposedByItsScreen(lectern: BlockPos): Boolean {
-        val screen = Minecraft.getInstance().screen as? BookScreen ?: return false
+        val screen = Minecraft.getInstance().gui.screen() as? BookScreen ?: return false
         return screen.held == BookBeingRead.OnALectern(lectern) && screen.isShowingItsPanel
     }
 

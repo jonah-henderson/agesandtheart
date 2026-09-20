@@ -22,7 +22,7 @@ import net.minecraft.world.entity.boss.enderdragon.EnderDragon
 object Dragons {
     /** Every dragon in [level] that still thinks the fight is at the world origin, told otherwise. */
     fun findTheirOwnGround(level: ServerLevel) {
-        for (dragon in level.getEntities(net.minecraft.world.entity.EntityType.ENDER_DRAGON) { lost(it) }) {
+        for (dragon in level.getEntities(net.minecraft.world.entity.EntityTypes.ENDER_DRAGON) { lost(it) }) {
             dragon.fightOrigin = dragon.blockPosition()
         }
     }

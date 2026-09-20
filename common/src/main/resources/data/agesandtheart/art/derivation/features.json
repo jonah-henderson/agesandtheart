@@ -127,7 +127,7 @@
       "hostile": 0.7,
       "cavernous": 0.6
     },
-    "dripstone_cluster": {
+    "speleothem_cluster": {
       "cavernous": 1.0,
       "sheer": 0.5
     },
@@ -135,7 +135,7 @@
       "cavernous": 1.0,
       "sheer": 0.7
     },
-    "pointed_dripstone": {
+    "speleothem": {
       "cavernous": 0.9,
       "sheer": 0.5
     },

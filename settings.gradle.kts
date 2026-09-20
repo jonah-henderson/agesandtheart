@@ -49,9 +49,9 @@ plugins {
  */
 includeBuild("../ephemeris") {
     dependencySubstitution {
-        substitute(module("co.voik.ephemeris:ephemeris-common-26.1.2")).using(project(":common"))
-        substitute(module("co.voik.ephemeris:ephemeris-fabric-26.1.2")).using(project(":fabric"))
-        substitute(module("co.voik.ephemeris:ephemeris-neoforge-26.1.2")).using(project(":neoforge"))
+        substitute(module("co.voik.ephemeris:ephemeris-common-26.2")).using(project(":common"))
+        substitute(module("co.voik.ephemeris:ephemeris-fabric-26.2")).using(project(":fabric"))
+        substitute(module("co.voik.ephemeris:ephemeris-neoforge-26.2")).using(project(":neoforge"))
     }
 }
 // Ages and the Art.

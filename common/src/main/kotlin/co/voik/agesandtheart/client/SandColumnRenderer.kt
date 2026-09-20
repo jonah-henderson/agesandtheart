@@ -1,6 +1,9 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.phenomena.SandColumn
+import co.voik.agesandtheart.compat.ONLY_VERTEX_BINDING
+import com.mojang.blaze3d.PrimitiveTopology
+import com.mojang.blaze3d.pipeline.BindGroupLayout
 import com.mojang.blaze3d.pipeline.BlendFunction
 import com.mojang.blaze3d.pipeline.ColorTargetState
 import com.mojang.blaze3d.pipeline.DepthStencilState
@@ -192,16 +195,25 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
             .withLocation(Identifier.fromNamespaceAndPath(NAMESPACE, "pipeline/sand_column"))
             .withVertexShader(Identifier.fromNamespaceAndPath(NAMESPACE, "sand_column"))
             .withFragmentShader(Identifier.fromNamespaceAndPath(NAMESPACE, "sand_column"))
-            .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-            .withUniform("Projection", UniformType.UNIFORM_BUFFER)
-            .withUniform("Globals", UniformType.UNIFORM_BUFFER)
-            .withUniform("Fog", UniformType.UNIFORM_BUFFER)
+            .withBindGroupLayout(
+                BindGroupLayout.builder()
+                    .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                    .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+                    .withUniform("Globals", UniformType.UNIFORM_BUFFER)
+                    .withUniform("Fog", UniformType.UNIFORM_BUFFER)
+                    .build(),
+            )
             // The world's own light, so a column goes down with the sun instead of glowing at midnight.
-            .withSampler("Sampler2")
+            .withBindGroupLayout(
+                BindGroupLayout.builder()
+                    .withSampler("Sampler2")
+                    .build(),
+            )
             .withColorTargetState(ColorTargetState(BlendFunction.TRANSLUCENT))
             .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, true))
             .withCull(false)
-            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR, VertexFormat.Mode.QUADS)
+            .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR)
+            .withPrimitiveTopology(PrimitiveTopology.QUADS)
             .build()
 
         /**

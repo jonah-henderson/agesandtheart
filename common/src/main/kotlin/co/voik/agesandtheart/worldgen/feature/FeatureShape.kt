@@ -103,9 +103,13 @@ object FeatureShape {
             // **A lake is a bowl, so anything may fill it** — no fluid test beside the spring's, because
             // `LakeFeature` places the fill as plain blocks and only asks whether it is water to decide
             // about freezing it. The barrier it lines the bowl with is the pattern's and stays.
+            // The three predicates are the pattern's own, as the barrier is: only the fluid is ours.
             is LakeFeature.Configuration -> LakeFeature.Configuration(
                 BlockStateProvider.simple(block.defaultBlockState()),
                 configuration.barrier(),
+                configuration.canPlaceFeature(),
+                configuration.canReplaceWithAirOrFluid(),
+                configuration.canReplaceWithBarrier(),
             )
             is OreConfiguration -> OreConfiguration(
                 configuration.targetStates.map { OreConfiguration.target(it.target, block.defaultBlockState()) },

@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.RandomSource
 import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.EntityTypes
 import net.minecraft.world.entity.LightningBolt
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.level.Level
@@ -67,7 +68,7 @@ object Tempest {
      */
     fun callDown(level: ServerLevel, near: BlockPos, reason: EntitySpawnReason): BlockPos {
         val target = level.findLightningTargetAround(near)
-        val bolt = EntityType.LIGHTNING_BOLT.create(level, reason) ?: return target
+        val bolt = EntityTypes.LIGHTNING_BOLT.create(level, reason) ?: return target
         bolt.snapTo(Vec3.atBottomCenterOf(target))
         level.addFreshEntity(bolt)
         return target

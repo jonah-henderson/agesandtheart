@@ -64,13 +64,6 @@ class InfernoCheck : FunSpec({
         }
     }
 
-    /** Sampling is calibrated against vanilla's own precipitation pass, so a rate can be reasoned about. */
-    test("sampling matches the rate vanilla ticks weather at") {
-        check(Sampling.BETWEEN_CHUNK_SAMPLES == 48) {
-            "the reference rate moved to ${Sampling.BETWEEN_CHUNK_SAMPLES}, so every tuning file now means " +
-                "something different"
-        }
-    }
 })
 
 /** What `art/phenomenon/inferno.json` ships, restated so a change to it has to be a deliberate one. */

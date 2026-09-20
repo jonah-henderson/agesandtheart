@@ -80,7 +80,7 @@ object Collapse {
      */
     private fun bookTheFirstTurn(chunk: ChunkAccess, opened: List<BlockPos>) {
         val cursor = BlockPos.MutableBlockPos()
-        for (at in opened) chunk.markPosForPostprocessing(cursor.set(at))
+        for (at in opened) chunk.markPosForPostProcessing(cursor.set(at))
     }
 
     /** The topmost block of the band this column just had cut, which is the only one that spreads. */

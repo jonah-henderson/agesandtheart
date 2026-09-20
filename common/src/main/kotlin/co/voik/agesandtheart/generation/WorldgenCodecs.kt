@@ -52,6 +52,6 @@ object WorldgenCodecs {
      * is persisted, so `ConditionSource.CODEC` has to be able to dispatch to it.
      */
     val surfaceConditionCodecs: List<Pair<Identifier, MapCodec<out SurfaceRules.ConditionSource>>> = listOf(
-        NearTheSurface.ID to NearTheSurface.CODEC.codec(),
+        NearTheSurface.ID to NearTheSurface.CODEC,
     )
 }

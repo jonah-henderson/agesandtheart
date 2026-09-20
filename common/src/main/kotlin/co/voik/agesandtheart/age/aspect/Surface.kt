@@ -4,6 +4,8 @@ import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.TerrainFill
+import net.minecraft.world.level.biome.Biome
+import net.minecraft.core.HolderGetter
 import net.minecraft.world.level.levelgen.SurfaceRules
 
 /**
@@ -44,9 +46,14 @@ object Surface {
      * A name this pack does not have leaves the biome's own skin rather than stripping it: an Age must
      * still open, and a missing block is a pack problem rather than an instruction to bare the world.
      */
-    fun ruleFor(options: Options, rock: AgeRock.Ours, template: AgeTemplate): SurfaceRules.RuleSource {
+    fun ruleFor(
+        options: Options,
+        rock: AgeRock.Ours,
+        template: AgeTemplate,
+        biomes: HolderGetter<Biome>,
+    ): SurfaceRules.RuleSource {
         val blocks = options.materialsOf(MATERIAL)
-        if (blocks.isEmpty()) return SurfacingStrategy.delegatedToBiomes(rock.landform, template.skin)
+        if (blocks.isEmpty()) return SurfacingStrategy.delegatedToBiomes(rock.landform, template.skin(biomes))
         // Air is how a writer says "no skin", the same way `open` says "no sea" — and it is only bare when
         // *everything* named is air, since air mingled with a rock is a skin full of holes and a fine thing
         // for a book to ask for.

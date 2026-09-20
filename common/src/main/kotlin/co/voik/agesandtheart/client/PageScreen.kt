@@ -82,7 +82,7 @@ class PageScreen(private val word: Identifier) : Screen(titleFor(word)) {
         /** Opens the page in [stack], or does nothing if it is blank. Client-side only. */
         fun open(stack: ItemStack) {
             val word = stack.get(AgeComponents.PAGE_WORD) ?: return
-            Minecraft.getInstance().setScreen(PageScreen(word))
+            Minecraft.getInstance().setScreenAndShow(PageScreen(word))
         }
     }
 }

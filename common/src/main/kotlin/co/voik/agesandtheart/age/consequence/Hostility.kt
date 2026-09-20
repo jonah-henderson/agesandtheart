@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.consequence
 
 import co.voik.agesandtheart.age.phenomena.Sampling
+import co.voik.agesandtheart.compat.center
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.server.level.ServerLevel

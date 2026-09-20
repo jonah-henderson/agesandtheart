@@ -6,6 +6,7 @@ import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.pipeline.RenderTarget
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator
 import com.mojang.blaze3d.systems.RenderSystem
+import org.joml.Vector4f
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.fog.FogRenderer
@@ -30,6 +31,9 @@ object PanelRenderer {
     private var drawn = NO_SHOT
 
     private const val BEHIND_THE_AGE = 0xFF000000.toInt()
+
+    /** The same black as [BEHIND_THE_AGE], as 26.2's clear wants it: a vector rather than a packed int. */
+    private val NOTHING_BEHIND_THE_AGE = Vector4f(0.0f, 0.0f, 0.0f, 1.0f)
 
     private const val FURTHEST_DEPTH = 1.0
 
@@ -71,7 +75,7 @@ object PanelRenderer {
         val camera = preview.camera
         camera.placeAt(preview.shots.showing(), target.width, target.height)
 
-        val state = preview.renderState.levelRenderState.cameraRenderState
+        val state = preview.renderState.cameraRenderState
         camera.describeTo(state, target.width, target.height)
         val terrainFog = describeAtmosphere(state, preview, delta)
 
@@ -99,7 +103,7 @@ object PanelRenderer {
      */
     private fun restoreDispatchers() {
         val minecraft = Minecraft.getInstance()
-        val playersCamera = minecraft.gameRenderer.mainCamera
+        val playersCamera = minecraft.gameRenderer.mainCamera()
         minecraft.entityRenderDispatcher.camera = playersCamera
         minecraft.blockEntityRenderDispatcher.prepare(playersCamera.position())
     }
@@ -133,7 +137,7 @@ object PanelRenderer {
         val colour = target.colorTexture ?: return
         val depth = target.depthTexture ?: return
         RenderSystem.getDevice().createCommandEncoder()
-            .clearColorAndDepthTextures(colour, BEHIND_THE_AGE, depth, FURTHEST_DEPTH)
+            .clearColorAndDepthTextures(colour, NOTHING_BEHIND_THE_AGE, depth, FURTHEST_DEPTH)
     }
 
     /**
@@ -151,26 +155,23 @@ object PanelRenderer {
     ): Boolean {
         preview.advanceLight()
 
-        // Spectator, because that flag turns smart culling off where the camera is inside a solid block,
-        // and an orbit is inside terrain often enough that the occlusion graph would otherwise decide it
-        // was sealed in and cull the whole Age.
-        preview.renderer.cullTerrain(camera, camera.cullFrustum, true)
-        preview.renderer.compileSections(camera)
-
-        preview.renderer.extractLevel(delta, camera, delta.getGameTimeDeltaPartialTick(false))
+        // **Culling and section compilation are inside the extract now.** 26.2 folded `cullTerrain` and
+        // `compileSections` into `LevelExtractor.extract`, which is also where the frustum is applied — so
+        // the spectator flag that used to keep an orbit inside terrain from culling the whole Age has no
+        // caller-side equivalent, and whether an orbit still draws from inside the rock wants a walk.
+        preview.extractor.extract(delta, camera, delta.getGameTimeDeltaPartialTick(false))
         // Discarded rather than prevented: `extractLevel` takes particles from the global engine, so these
         // are the player's, gathered into our render state. Preventing it would need a Mixin.
         //
         // The list only, never `reset()`: a group's render state is a field of the group itself, so the
         // elements in this list are the same objects the player's frame is about to submit, and clearing
         // them would empty the player's own particles rather than ours.
-        preview.renderState.levelRenderState.particlesRenderState.particles.clear()
+        preview.renderState.particlesRenderState.particles.clear()
 
-        // Null means the extract decided there was nothing to draw, which is not a failure.
-        val sections = preview.renderState.levelRenderState.chunkSectionsToRender ?: return false
-
+        // **The sections are no longer handed in**: `render` prepares its own chunk renders, so the
+        // "nothing to draw" answer the extract used to give the caller is decided inside it now.
         PanelTarget.redirecting {
-            preview.renderer.renderLevel(
+            preview.renderer.render(
                 GraphicsResourceAllocator.UNPOOLED,
                 delta,
                 false,
@@ -179,7 +180,6 @@ object PanelRenderer {
                 terrainFog,
                 state.fogData.color,
                 true,
-                sections,
             )
         }
         return true

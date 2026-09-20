@@ -47,7 +47,7 @@ import co.voik.agesandtheart.worldgen.dni.DniCityStructure
 import co.voik.agesandtheart.worldgen.structure.LootTableSwap
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType
 import net.minecraft.world.level.levelgen.structure.StructureType
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
 import net.minecraft.core.Holder
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.BuiltInRegistries
@@ -1131,10 +1131,12 @@ object AgeContent {
         "dni_city".location() to DNI_CITY_STRUCTURE,
     )
 
-    val LOOT_TABLE_SWAP: StructureProcessorType<LootTableSwap> = StructureProcessorType { LootTableSwap.CODEC }
-
-    val structureProcessors: List<Pair<Identifier, StructureProcessorType<*>>> = listOf(
-        "loot_table_swap".location() to LOOT_TABLE_SWAP,
+    /**
+     * 26.2 keeps the codec in the registry itself, where `StructureProcessorType` used to wrap one — so a
+     * processor kind *is* its map codec now, and there is nothing left to declare beside it.
+     */
+    val structureProcessors: List<Pair<Identifier, MapCodec<out StructureProcessor>>> = listOf(
+        "loot_table_swap".location() to LootTableSwap.CODEC,
     )
 
     val structurePieces: List<Pair<Identifier, StructurePieceType>> = listOf(

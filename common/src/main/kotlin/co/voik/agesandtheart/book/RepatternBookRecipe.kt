@@ -8,6 +8,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.world.item.BannerItem
 import net.minecraft.world.item.DyeColor
+import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.crafting.CraftingInput
@@ -84,23 +85,7 @@ class RepatternBookRecipe : CustomRecipe() {
         private fun patternOn(stack: ItemStack): BannerPatternLayers =
             stack.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY)
 
-        private fun bannerOf(colour: DyeColor) = when (colour) {
-            DyeColor.WHITE -> Items.WHITE_BANNER
-            DyeColor.ORANGE -> Items.ORANGE_BANNER
-            DyeColor.MAGENTA -> Items.MAGENTA_BANNER
-            DyeColor.LIGHT_BLUE -> Items.LIGHT_BLUE_BANNER
-            DyeColor.YELLOW -> Items.YELLOW_BANNER
-            DyeColor.LIME -> Items.LIME_BANNER
-            DyeColor.PINK -> Items.PINK_BANNER
-            DyeColor.GRAY -> Items.GRAY_BANNER
-            DyeColor.LIGHT_GRAY -> Items.LIGHT_GRAY_BANNER
-            DyeColor.CYAN -> Items.CYAN_BANNER
-            DyeColor.PURPLE -> Items.PURPLE_BANNER
-            DyeColor.BLUE -> Items.BLUE_BANNER
-            DyeColor.BROWN -> Items.BROWN_BANNER
-            DyeColor.GREEN -> Items.GREEN_BANNER
-            DyeColor.RED -> Items.RED_BANNER
-            DyeColor.BLACK -> Items.BLACK_BANNER
-        }
+        /** 26.2 gathers the sixteen coloured variants into a `ColorCollection`, which this picks from. */
+        private fun bannerOf(colour: DyeColor): Item = Items.BANNER.pick(colour)
     }
 }

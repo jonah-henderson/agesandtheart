@@ -86,7 +86,7 @@ class BorrowedFrame private constructor(
             try {
                 RenderSystem.setProjectionMatrix(projections.getBuffer(projection), ProjectionType.PERSPECTIVE)
 
-                val options = minecraft.gameRenderer.gameRenderState.optionsRenderState
+                val options = minecraft.gameRenderer.gameRenderState().optionsRenderState
                 globals.update(
                     target.width,
                     target.height,

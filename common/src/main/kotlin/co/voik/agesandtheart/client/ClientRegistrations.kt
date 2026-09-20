@@ -16,6 +16,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu
 import net.minecraft.world.inventory.MenuType
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.level.block.entity.BlockEntityTypes
 
 /**
  * The renderers and screens the client registers, listed once: each loader's client entrypoint loops over
@@ -63,7 +64,7 @@ object ClientRegistrations {
         // The fissure's shaft, a block entity drawn by shader rather than by a baked model.
         RendererForBlockEntity(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() },
         // In vanilla's place, for the books of ours a lectern can hold; vanilla's own it still draws as before.
-        RendererForBlockEntity(BlockEntityType.LECTERN) { LecternBookRenderer(it) },
+        RendererForBlockEntity(BlockEntityTypes.LECTERN) { LecternBookRenderer(it) },
     )
 
     val MENU_SCREENS: List<ScreenForMenu<*, *>> = listOf(

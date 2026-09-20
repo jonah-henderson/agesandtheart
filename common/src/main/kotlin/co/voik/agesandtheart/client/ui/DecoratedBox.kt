@@ -42,6 +42,11 @@ class DecoratedBox(
         child?.let(visitor::accept)
     }
 
+    /** The surface stays: it is what this box *is*, where the child is what it was given to hold. */
+    override fun removeChildren() {
+        child = null
+    }
+
     override fun arrangeElements() {
         // Nested layouts settle their own contents first, so a child's size is final before it is read.
         super.arrangeElements()

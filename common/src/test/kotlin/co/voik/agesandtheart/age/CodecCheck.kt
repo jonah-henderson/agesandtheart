@@ -155,11 +155,14 @@ class CodecCheck : FunSpec({
             "a rock kind has no round-trip case here — add one, it is what decides an Age's whole terrain"
         }
         val codec = AgeRock.MAP_CODEC.codec()
+        // Registry-aware, because a rock carries its world's skin and 26.2's surface rules may name
+        // biomes — which a plain `JsonOps` cannot reach the registry for.
+        val ops = MinecraftRegistries.worldgen.createSerializationContext(JsonOps.INSTANCE)
         for (rock in cases) {
-            val written = codec.encodeStart(JsonOps.INSTANCE, rock).getOrThrow {
+            val written = codec.encodeStart(ops, rock).getOrThrow {
                 error("${rock.kind} would not encode: $it")
             }
-            val read = codec.parse(JsonOps.INSTANCE, written).getOrThrow {
+            val read = codec.parse(ops, written).getOrThrow {
                 error("${rock.kind} encoded and would not read back: $it")
             }
             // **The kind first, because it is the whole point.** A rock that came back as the other kind is

@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen.structure
 
-import co.voik.agesandtheart.content.AgeContent
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
@@ -8,7 +7,6 @@ import net.minecraft.resources.Identifier
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate.StructureBlockInfo
 
 /**
@@ -21,13 +19,13 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
  *
  * A container naming a table that is not in [swaps] keeps the one it had.
  */
-class LootTableSwap(private val swaps: Map<Identifier, Identifier>) : StructureProcessor() {
+class LootTableSwap(private val swaps: Map<Identifier, Identifier>) : StructureProcessor {
 
     override fun processBlock(
         level: LevelReader,
         targetPosition: BlockPos,
         referencePos: BlockPos,
-        originalBlockInfo: StructureBlockInfo,
+        templateRelativePos: BlockPos,
         processedBlockInfo: StructureBlockInfo,
         settings: StructurePlaceSettings,
     ): StructureBlockInfo {
@@ -38,7 +36,7 @@ class LootTableSwap(private val swaps: Map<Identifier, Identifier>) : StructureP
         return StructureBlockInfo(processedBlockInfo.pos, processedBlockInfo.state, swapped)
     }
 
-    override fun getType(): StructureProcessorType<*> = AgeContent.LOOT_TABLE_SWAP
+    override fun codec(): MapCodec<out StructureProcessor> = CODEC
 
     companion object {
         /** Where a container's block entity keeps the table it has yet to open from. */

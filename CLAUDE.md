@@ -61,9 +61,12 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   per-Age sky cannot change. Read §3 before touching the renderer. **Its API details were verified against
   the 1.21.1 jar** and the renderer was rebuilt for 26.1 during the upgrade — so trust its _conclusions_
   about what a sky can and cannot do, and re-check any signature it quotes.
-- **`notes/version-upgrade.md`** — the 1.21.1 → 26.1.2 move: the dependency matrix, what the build chain
-  cost, and the two 26.1 subsystems (retained-mode GUI, model-based fluids) that changed what is worth
-  building. Read it before assuming any pre-upgrade note still holds.
+- **`notes/version-upgrade.md`** — **both** version moves. The 1.21.1 → 26.1.2 one: the dependency matrix,
+  what the build chain cost, and the two 26.1 subsystems (retained-mode GUI, model-based fluids) that
+  changed what is worth building. And at the end, the 26.1.2 → 26.2 one, which is the record of what a hop
+  actually costs this codebase now that the toolchain no longer moves with it. **26.2 and 26.3 are both
+  shipping targets** (Jonah, 2026-09-20) — read its closing section before starting the 26.3 port, and
+  `walk-list.md` section V for what the 26.2 port left unproven.
 - **`notes/ui-libraries-research.md`** — why the screens are vanilla widgets and not a UI framework, and
   the component layer that decision implies. Read it before proposing a library or hand-drawing a screen.
 - **`notes/minecraft-ui-conventions.md`** — what a vanilla screen actually looks like, measured off the
@@ -119,7 +122,7 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 
 ## What this is
 
-**Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 26.1.2**, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
+**Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 26.2**, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
 
 Current state: Phases 1–5 are done and Phase 6 (consequence) is built through its last register. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence, and the loop runs without commands — word pages, the notebook, the writer's desk, descriptive and linking books, and the two acquaintance devices that put the derived corpus within reach. An Age's instability now reaches generation: seams widen, wounds open, the wounds go on opening, and collapse tears the floor. Phase 7 (rewards) has started: an Age is scored for danger from its recipe and a book records whether a player wrote it. Phases 8 (book editing) and 9 (the asset pass, and there are no textures at all) have not started. **Runtime dimensions work on both loaders**, on **Ephemeris** — our own library, now its own project at `../ephemeris` (see "Ephemeris" below).
 
@@ -138,7 +141,7 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOM
 ## Commands
 
 ```bash
-# Build + remap both loaders (produces */build/libs/agesandtheart-<loader>-26.1.2-<version>.jar)
+# Build + remap both loaders (produces */build/libs/agesandtheart-<loader>-26.2-<version>.jar)
 ./gradlew build
 
 # Launch the game in a dev sandbox (requires a graphical display)

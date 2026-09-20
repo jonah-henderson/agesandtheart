@@ -13,6 +13,7 @@ import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import com.mojang.serialization.Codec
+import net.minecraft.core.HolderGetter
 import net.minecraft.data.worldgen.SurfaceRuleData
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
@@ -61,7 +62,7 @@ enum class AgeTemplate(
         override val biomeList = MultiNoiseBiomeSourceParameterLists.OVERWORLD
         override val standingStructures = Structures.OVERWORLD_STRUCTURE_SETS
         override val dimensionType get() = BuiltinDimensionTypes.OVERWORLD
-        override val skin get() = SurfacingStrategy.overworldsSkin()
+        override fun skin(biomes: HolderGetter<Biome>) = SurfacingStrategy.overworldsSkin(biomes)
 
         override fun world(): AgeComposition = AgeComposition(
             terrains = listOf(Terrain.VANILLA),
@@ -77,7 +78,7 @@ enum class AgeTemplate(
     INFERNAL("infernal", NoiseGeneratorSettings.NETHER) {
         override val biomeList = MultiNoiseBiomeSourceParameterLists.NETHER
         override val dimensionType get() = BuiltinDimensionTypes.NETHER
-        override val skin get() = SurfaceRuleData.nether()
+        override fun skin(biomes: HolderGetter<Biome>) = SurfaceRuleData.nether(biomes)
         override val standingStructures = listOf(
             BuiltinStructureSets.NETHER_COMPLEXES,
             BuiltinStructureSets.NETHER_FOSSILS,
@@ -116,7 +117,7 @@ enum class AgeTemplate(
         override val biomeList: ResourceKey<MultiNoiseBiomeSourceParameterList>? = null
         override val standingStructures = listOf(BuiltinStructureSets.END_CITIES)
         override val dimensionType get() = BuiltinDimensionTypes.END
-        override val skin get() = SurfaceRuleData.end()
+        override fun skin(biomes: HolderGetter<Biome>) = SurfaceRuleData.end()
 
         override fun world(): AgeComposition = AgeComposition(
             terrains = listOf(Terrain.VANILLA),
@@ -181,7 +182,7 @@ enum class AgeTemplate(
      *
      * A getter, like [dimensionType]: these trees are built out of `Blocks`, which needs the registries.
      */
-    abstract val skin: SurfaceRules.RuleSource
+    abstract fun skin(biomes: HolderGetter<Biome>): SurfaceRules.RuleSource
 
 
     /** Whether a book may weigh or narrow this world's biomes, which needs a table to adjust. */

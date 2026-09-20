@@ -54,7 +54,7 @@ object MoltenLining {
      * (Jonah, walked 2026-09-11: *"it did leave some lava that should have been flowing suspended"*).
      *
      * **Marked rather than moved**, which is the same answer the fill already gives its own perched fluids:
-     * `markPosForPostprocessing` has vanilla give the block its first tick when the chunk loads, and it then
+     * `markPosForPostProcessing` has vanilla give the block its first tick when the chunk loads, and it then
      * finds its own way down. Nothing here decides where the lava goes.
      *
      * **Lava only, and that is what makes the sweep affordable.** It is rare — crater lakes and magma
@@ -88,7 +88,7 @@ object MoltenLining {
                         at.set(chunk.pos.minBlockX + localX, y, chunk.pos.minBlockZ + localZ)
                         if (!isMolten(chunk.getBlockState(at))) continue
                         if (opensOnto(chunk, beside, at, localX, localZ, lowest, highest)) {
-                            chunk.markPosForPostprocessing(at)
+                            chunk.markPosForPostProcessing(at)
                         }
                     }
                 }

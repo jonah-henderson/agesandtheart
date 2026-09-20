@@ -37,6 +37,9 @@ import java.io.File
 @Tags(NEEDS_REGISTRIES)
 class DimensionTypeCheck : FunSpec({
 
+    /** 26.2\'s surface rules ask for the biome registry; these are vanilla\'s own. */
+    val BIOMES = MinecraftRegistries.worldgen.lookupOrThrow(Registries.BIOME)
+
     val shipped = File("src/main/resources/data/agesandtheart/dimension_type")
 
     val sealed = Options(mapOf(Sky.SEALED.name to listOf(Parameter.TRUE)))
@@ -110,19 +113,22 @@ class DimensionTypeCheck : FunSpec({
      */
     test("each template dresses our ground in its own world's skin") {
         fun spelled(rule: SurfaceRules.RuleSource) =
-            SurfaceRules.RuleSource.CODEC.encodeStart(JsonOps.INSTANCE, rule).getOrThrow().toString()
+            SurfaceRules.RuleSource.CODEC.encodeStart(
+                MinecraftRegistries.worldgen.createSerializationContext(JsonOps.INSTANCE),
+                rule,
+            ).getOrThrow().toString()
 
         val theirs = mapOf(
-            AgeTemplate.INFERNAL to SurfaceRuleData.nether(),
+            AgeTemplate.INFERNAL to SurfaceRuleData.nether(BIOMES),
             AgeTemplate.DARK_VOID to SurfaceRuleData.end(),
         )
         for ((template, tree) in theirs) {
-            check(spelled(template.skin) == spelled(tree)) {
+            check(spelled(template.skin(BIOMES)) == spelled(tree)) {
                 "${template.key} dresses our ground in something that is not its own world's skin"
             }
         }
 
-        val distinct = AgeTemplate.entries.map { spelled(it.skin) }.distinct()
+        val distinct = AgeTemplate.entries.map { spelled(it.skin(BIOMES)) }.distinct()
         check(distinct.size == AgeTemplate.entries.size) {
             "two templates share a skin, so at least one is wearing another world's"
         }

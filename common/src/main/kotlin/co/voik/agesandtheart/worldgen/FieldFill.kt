@@ -143,7 +143,7 @@ internal class FieldFill(
                     } else {
                         nothingBelow || band.openBeside(localX, localZ, y)
                     }
-                    if (wantsToMove && !state.fluidState.isEmpty) chunk.markPosForPostprocessing(cursor)
+                    if (wantsToMove && !state.fluidState.isEmpty) chunk.markPosForPostProcessing(cursor)
                     nothingBelow = false
                     chunk.setBlockState(cursor, state)
                     oceanFloor.update(localX, y, localZ, state)

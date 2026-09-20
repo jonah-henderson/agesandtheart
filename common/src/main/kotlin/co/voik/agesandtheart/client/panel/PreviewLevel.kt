@@ -7,8 +7,8 @@ import co.voik.agesandtheart.book.panel.PanelRing
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.LevelRenderer
-import net.minecraft.client.renderer.RenderBuffers
-import net.minecraft.client.renderer.state.GameRenderState
+import net.minecraft.client.renderer.extract.LevelExtractor
+import net.minecraft.client.renderer.state.level.LevelRenderState
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.core.SectionPos
@@ -34,8 +34,10 @@ import java.util.BitSet
 class PreviewLevel private constructor(
     val level: ClientLevel,
     val renderer: LevelRenderer,
-    /** Ours rather than the game's: two renderers sharing one would collide over `levelRenderState`. */
-    val renderState: GameRenderState,
+    /** What binds a level to the renderer in 26.2, and what a second level therefore needs its own of. */
+    val extractor: LevelExtractor,
+    /** Ours rather than the game's: two renderers sharing one would collide over what they extracted. */
+    val renderState: LevelRenderState,
     val camera: PanelCamera,
     val shots: PanelShots,
     /** How far the Age is at odds with itself as the panel shows it, `0..1` (design §7.3). */
@@ -93,7 +95,6 @@ class PreviewLevel private constructor(
             payload.x - 1, level.minSectionY, payload.z - 1,
             payload.x + 1, level.maxSectionY, payload.z + 1,
         )
-        renderer.onChunkReadyToRender(chunk.pos)
         load.took(payload.x, payload.z)
     }
 
@@ -155,33 +156,22 @@ class PreviewLevel private constructor(
     /**
      * Releases the renderer, its section buffers and its dispatcher.
      *
-     * `LevelRenderer.close` disposes only its outline target, sky renderer, sampler and clouds; the
-     * `ViewArea`'s GPU buffers and the `SectionRenderDispatcher` are released by `setLevel(null)` alone, so
-     * both calls are needed or every book opened leaks a view area sized to the player's render distance.
+     * Both calls are needed and they let go of different things: the extractor's `setLevel(null)` releases
+     * the view area's GPU buffers and the section dispatcher, and `LevelRenderer.close` disposes the
+     * outline target, sky renderer, sampler and clouds. Dropping either leaks a view area sized to the
+     * player's render distance every time a book is opened.
      *
      * `setLevel(null)` also resets the *shared* entity dispatcher's camera, so the player's is put back
      * after — the same restoration [PanelRenderer] does each frame.
-     *
-     * [SHARED_BUFFERS] is deliberately not released: it belongs to no one preview.
      */
     override fun close() {
-        renderer.setLevel(null)
+        extractor.setLevel(null)
         renderer.close()
         val minecraft = Minecraft.getInstance()
-        minecraft.entityRenderDispatcher.camera = minecraft.gameRenderer.mainCamera
+        minecraft.entityRenderDispatcher.camera = minecraft.gameRenderer.mainCamera()
     }
 
     companion object {
-
-        private const val SECTION_BUILDERS = 2
-
-        /**
-         * One set of buffers for every panel there will be, because they cannot be given back.
-         *
-         * A `RenderBuffers` holds a pool of off-heap builders with no `close`, and `LevelRenderer.close`
-         * does not dispose the buffers it was handed. Only one panel is ever open, so sharing costs nothing.
-         */
-        private val SHARED_BUFFERS: RenderBuffers by lazy { RenderBuffers(SECTION_BUILDERS) }
 
         /** Null when the dimension type the server named is not in the client's registries. */
         fun open(payload: PanelLevelPayload): PreviewLevel? {
@@ -199,15 +189,22 @@ class PreviewLevel private constructor(
                 return null
             }
 
-            val renderState = GameRenderState()
+            // **The renderer no longer holds a level**: 26.2 split the pass in two, and what is bound to a
+            // level is the extractor. Its size is the sharpest rung a panel is ever drawn at, since the
+            // renderer sizes its own targets from it and every coarser rung fits inside that.
             val renderer = LevelRenderer(
-                minecraft,
                 minecraft.entityRenderDispatcher,
                 minecraft.blockEntityRenderDispatcher,
-                SHARED_BUFFERS,
-                renderState,
-                minecraft.gameRenderer.featureRenderDispatcher,
+                minecraft.modelManager,
+                minecraft.textureManager,
+                minecraft.atlasManager,
+                minecraft.shaderManager,
+                minecraft.gameRenderer,
+                PanelTarget.SHARPEST_WIDTH,
+                PanelTarget.SHARPEST_HEIGHT,
             )
+            val renderState = LevelRenderState()
+            val extractor = LevelExtractor(minecraft, renderState, renderer)
             val level = ClientLevel(
                 connection,
                 ClientLevel.ClientLevelData(Difficulty.PEACEFUL, false, false),
@@ -215,15 +212,15 @@ class PreviewLevel private constructor(
                 @Suppress("UNCHECKED_CAST") (dimensionType as Holder<DimensionType>),
                 PanelRing.HELD_RADIUS_CHUNKS,
                 PanelRing.HELD_RADIUS_CHUNKS,
-                renderer,
+                extractor,
                 false,
                 payload.biomeZoomSeed,
                 payload.seaLevel,
             )
-            // A hand-built renderer has no sky renderer until told to reload, and would carry a null one
-            // into `extractLevel`. The same call builds the entity-outline target.
-            renderer.onResourceManagerReload(minecraft.resourceManager)
-            renderer.setLevel(level)
+            // A hand-built extractor has no sky renderer until told to reload, and would carry a null one
+            // into the extraction. The same call builds the entity-outline target.
+            extractor.onResourceManagerReload(minecraft.resourceManager)
+            extractor.setLevel(level)
             // Nothing ticks a level outside `minecraft.level`, so the Age's clock is set once from the
             // server's; the panel is a glance rather than a window, and does not need it to run.
             level.setTimeFromServer(payload.gameTime)
@@ -236,6 +233,7 @@ class PreviewLevel private constructor(
             return PreviewLevel(
                 level = level,
                 renderer = renderer,
+                extractor = extractor,
                 renderState = renderState,
                 camera = PanelCamera(level, payload.around),
                 shots = PanelShots(payload.biomeZoomSeed, unsettled),

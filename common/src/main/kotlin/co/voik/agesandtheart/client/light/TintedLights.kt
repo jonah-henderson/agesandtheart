@@ -5,6 +5,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
 import net.minecraft.util.ARGB
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
@@ -197,9 +198,16 @@ object TintedLights {
      */
     private fun rebuildAround(at: BlockPos) {
         val reach = REACH.toInt()
-        Minecraft.getInstance().levelRenderer.setBlocksDirty(
-            at.x - reach, at.y - reach, at.z - reach,
-            at.x + reach, at.y + reach, at.z + reach,
+        // 26.2 moved this off the renderer and onto the level, and what is left counts in *sections*
+        // rather than blocks — so the reach is converted rather than handed over as it was.
+        val level = Minecraft.getInstance().level ?: return
+        level.setSectionRangeDirty(
+            SectionPos.blockToSectionCoord(at.x - reach),
+            SectionPos.blockToSectionCoord(at.y - reach),
+            SectionPos.blockToSectionCoord(at.z - reach),
+            SectionPos.blockToSectionCoord(at.x + reach),
+            SectionPos.blockToSectionCoord(at.y + reach),
+            SectionPos.blockToSectionCoord(at.z + reach),
         )
     }
 

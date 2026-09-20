@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.worldgen.AgeRock
@@ -7,6 +8,7 @@ import co.voik.agesandtheart.worldgen.CeilingField
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Union
+import net.minecraft.core.registries.Registries
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -25,6 +27,9 @@ import io.kotest.core.spec.style.FunSpec
  */
 @Tags(NEEDS_REGISTRIES)
 class SurfaceCheck : FunSpec({
+
+    /** 26.2\'s surface rules ask for the biome registry; these are vanilla\'s own. */
+    val BIOMES = MinecraftRegistries.worldgen.lookupOrThrow(Registries.BIOME)
     val window = VerticalWindow.DEFAULT
     val land = Slab(lowY = window.minY, highY = 64)
     val sealed = AgeRock.Ours(
@@ -38,8 +43,8 @@ class SurfaceCheck : FunSpec({
 
     test("a sealed Age is dressed exactly as the same land left open") {
 
-        val underALid = Surface.ruleFor(saidNothing, sealed, AgeTemplate.INFERNAL)
-        val underTheSky = Surface.ruleFor(saidNothing, open, AgeTemplate.INFERNAL)
+        val underALid = Surface.ruleFor(saidNothing, sealed, AgeTemplate.INFERNAL, BIOMES)
+        val underTheSky = Surface.ruleFor(saidNothing, open, AgeTemplate.INFERNAL, BIOMES)
 
         check(underALid == underTheSky) {
             "a lid changed the surface rule, so the dressing hangs from the roof rather than the land"
@@ -49,8 +54,8 @@ class SurfaceCheck : FunSpec({
     test("and so is one wearing a skin the writer named") {
         val blackstone = Options(mapOf(Surface.MATERIAL.name to listOf("minecraft:blackstone")))
 
-        val underALid = Surface.ruleFor(blackstone, sealed, AgeTemplate.INFERNAL)
-        val underTheSky = Surface.ruleFor(blackstone, open, AgeTemplate.INFERNAL)
+        val underALid = Surface.ruleFor(blackstone, sealed, AgeTemplate.INFERNAL, BIOMES)
+        val underTheSky = Surface.ruleFor(blackstone, open, AgeTemplate.INFERNAL, BIOMES)
 
         check(underALid == underTheSky) { "a named skin is hung from the roof of a sealed Age" }
     }

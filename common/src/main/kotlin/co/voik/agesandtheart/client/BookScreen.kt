@@ -25,11 +25,11 @@ import net.minecraft.world.item.ItemStack
 /** Opens the book, kept apart so the item never names a client class directly. */
 object BookScreenOpener {
     fun open(stack: ItemStack, hand: InteractionHand) {
-        Minecraft.getInstance().setScreen(BookScreen(stack, BookBeingRead.InHand(hand)))
+        Minecraft.getInstance().setScreenAndShow(BookScreen(stack, BookBeingRead.InHand(hand)))
     }
 
     fun openFromLectern(stack: ItemStack, pos: BlockPos) {
-        Minecraft.getInstance().setScreen(BookScreen(stack, BookBeingRead.OnALectern(pos)))
+        Minecraft.getInstance().setScreenAndShow(BookScreen(stack, BookBeingRead.OnALectern(pos)))
     }
 }
 

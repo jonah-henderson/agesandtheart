@@ -7,6 +7,7 @@ import net.minecraft.util.random.Weighted
 import net.minecraft.util.random.WeightedList
 import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.EntityTypes
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.level.biome.MobSpawnSettings
 
@@ -51,8 +52,8 @@ class SpawnsCheck : FunSpec({
     /** A rung is how *often*, which for a creature is the weight it is drawn at. */
     test("a rung weighs a creature more heavily") {
         val narrowed = narrowedBy("minecraft:cow[amount=4]")
-        val cow = narrowed.unwrap().first { it.value().type() == EntityType.COW }
-        val ordinary = aMeadow().unwrap().first { it.value().type() == EntityType.COW }
+        val cow = narrowed.unwrap().first { it.value().type() == EntityTypes.COW }
+        val ordinary = aMeadow().unwrap().first { it.value().type() == EntityTypes.COW }
         check(cow.weight() == ordinary.weight() * FOUR_TIMES) {
             "asking for four times the cows gave weight ${cow.weight()} against ${ordinary.weight()}"
         }
@@ -62,7 +63,7 @@ class SpawnsCheck : FunSpec({
     /** And it never weighs one to nothing, since an entry at zero would simply never be drawn. */
     test("a faint rung still leaves a creature drawable") {
         val narrowed = narrowedBy("minecraft:cow[amount=0.01]")
-        val cow = narrowed.unwrap().first { it.value().type() == EntityType.COW }
+        val cow = narrowed.unwrap().first { it.value().type() == EntityTypes.COW }
         check(cow.weight() >= 1) { "a scarce cow came out at weight ${cow.weight()}, which is never drawn" }
     }
 })
@@ -75,10 +76,10 @@ private const val FOUR_TIMES = 4
  */
 internal fun aMeadow(): WeightedList<MobSpawnSettings.SpawnerData> {
     return WeightedList.of(
-        Weighted(MobSpawnSettings.SpawnerData(EntityType.COW, 4, 4), 8),
-        Weighted(MobSpawnSettings.SpawnerData(EntityType.SHEEP, 4, 4), 12),
-        Weighted(MobSpawnSettings.SpawnerData(EntityType.ZOMBIE, 4, 4), 95),
-        Weighted(MobSpawnSettings.SpawnerData(EntityType.SPIDER, 4, 4), 100),
+        Weighted(MobSpawnSettings.SpawnerData(EntityTypes.COW, 4, 4), 8),
+        Weighted(MobSpawnSettings.SpawnerData(EntityTypes.SHEEP, 4, 4), 12),
+        Weighted(MobSpawnSettings.SpawnerData(EntityTypes.ZOMBIE, 4, 4), 95),
+        Weighted(MobSpawnSettings.SpawnerData(EntityTypes.SPIDER, 4, 4), 100),
     )
 }
 

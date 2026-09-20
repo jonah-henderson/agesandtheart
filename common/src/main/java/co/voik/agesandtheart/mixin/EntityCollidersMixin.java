@@ -35,7 +35,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Entity.class)
 public abstract class EntityCollidersMixin {
 
-    @Inject(method = "collectColliders", at = @At("RETURN"), cancellable = true)
+    @Inject(
+        method = "collectCollidersIgnoringWorldBorder(Lnet/minecraft/world/entity/Entity;"
+            + "Lnet/minecraft/world/level/Level;Ljava/util/List;Lnet/minecraft/world/phys/AABB;)"
+            + "Ljava/util/List;",
+        at = @At("RETURN"),
+        cancellable = true
+    )
     private static void agesandtheart$standOnTheRock(
         Entity source,
         Level level,

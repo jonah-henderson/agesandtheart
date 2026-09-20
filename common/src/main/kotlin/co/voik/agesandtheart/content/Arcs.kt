@@ -2,6 +2,7 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.location
 import kotlin.math.roundToInt
+import net.minecraft.tags.BlockTags
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
@@ -275,7 +276,8 @@ object Arcs {
      * about what it is worth was already written.
      */
     fun rodsOn(level: BlockGetter, mass: Collection<BlockPos>): Set<BlockPos> =
-        mass.filterTo(LinkedHashSet()) { level.getBlockState(it).`is`(Blocks.LIGHTNING_ROD) }
+        // A rod weathers in 26.2, so there are several blocks and a tag that gathers them.
+        mass.filterTo(LinkedHashSet()) { level.getBlockState(it).`is`(BlockTags.LIGHTNING_RODS) }
 
     /**
      * How far a charged mass bites past itself, given the rods on it — nothing at all without one.

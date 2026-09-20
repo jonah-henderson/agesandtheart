@@ -1,6 +1,9 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.compat.ONLY_VERTEX_BINDING
 import co.voik.agesandtheart.location
+import com.mojang.blaze3d.PrimitiveTopology
+import com.mojang.blaze3d.pipeline.BindGroupLayout
 import com.mojang.blaze3d.pipeline.BlendFunction
 import com.mojang.blaze3d.pipeline.ColorTargetState
 import com.mojang.blaze3d.pipeline.DepthStencilState
@@ -32,8 +35,12 @@ object AgeRenderTypes {
      * step for them.
      */
     internal val MATRICES_AND_PROJECTION: RenderPipeline.Snippet = RenderPipeline.builder()
-        .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
-        .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+        .withBindGroupLayout(
+            BindGroupLayout.builder()
+                .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                .withUniform("Projection", UniformType.UNIFORM_BUFFER)
+                .build(),
+        )
         .buildSnippet()
 
     /**
@@ -92,27 +99,29 @@ object AgeRenderTypes {
      * Vanilla's end-portal pipeline taken apart, so one property of it can be put back differently.
      *
      * **Read off the built pipeline rather than restated**, which is what keeps it vanilla's: the shaders,
-     * the two samplers, the vertex format, the uniform buffers and the fifteen layers all come from
-     * whatever `RenderPipelines.END_PORTAL` is on the day, so none of it can quietly fall out of step with
-     * a version that adds a uniform. `RenderPipeline` publishes a getter for every field and `Snippet` is a
+     * the bind group layouts, the vertex bindings and the fifteen layers all come from whatever
+     * `RenderPipelines.END_PORTAL` is on the day, so none of it can quietly fall out of step with a version
+     * that adds a uniform. `RenderPipeline` publishes a getter for nearly every field and `Snippet` is a
      * public record over the same ones, so this needs no widened access at all.
      *
-     * Only the depth test is left [Optional.empty], for the builder to fill in.
+     * The one exception is how many colour targets are live: a built pipeline does not say, so it is
+     * counted off the array. Only the depth test is left [Optional.empty], for the builder to fill in.
      */
     private fun vanillasEndPortal(): RenderPipeline.Snippet {
         val portal = RenderPipelines.END_PORTAL
+        val colourTargets = portal.colorTargetStates
         return RenderPipeline.Snippet(
             Optional.of(portal.vertexShader),
             Optional.of(portal.fragmentShader),
             Optional.of(portal.shaderDefines),
-            Optional.of(portal.samplers),
-            Optional.of(portal.uniforms),
-            Optional.of(portal.colorTargetState),
+            Optional.of(portal.bindGroupLayouts),
+            colourTargets,
+            colourTargets.count { it != null },
             Optional.empty(),
             Optional.of(portal.polygonMode),
             Optional.of(portal.isCull),
-            Optional.of(portal.vertexFormat),
-            Optional.of(portal.vertexFormatMode),
+            portal.vertexFormatBindings,
+            Optional.of(portal.primitiveTopology),
         )
     }
 
@@ -124,7 +133,8 @@ object AgeRenderTypes {
                 .withVertexShader("core/position_color")
                 .withFragmentShader("core/position_color")
                 .withColorTargetState(ColorTargetState(BlendFunction.LIGHTNING))
-                .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.TRIANGLES)
+                .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_COLOR)
+                .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
                 .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
                 .build(),
         ).createRenderSetup(),

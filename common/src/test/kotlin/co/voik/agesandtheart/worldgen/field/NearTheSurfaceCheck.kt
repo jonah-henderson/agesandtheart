@@ -25,10 +25,9 @@ class NearTheSurfaceCheck : FunSpec({
     test("the condition keeps the shape it was asked about across a round trip") {
 
         val written = NearTheSurface.CODEC.codec()
-            .codec()
             .encodeStart(JsonOps.INSTANCE, NearTheSurface(ground))
             .getOrThrow()
-        val read = NearTheSurface.CODEC.codec().codec().parse(JsonOps.INSTANCE, written).getOrThrow()
+        val read = NearTheSurface.CODEC.codec().parse(JsonOps.INSTANCE, written).getOrThrow()
 
         check(read == NearTheSurface(ground)) { "The condition lost its terrain in the round trip: $written" }
     }

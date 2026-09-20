@@ -80,7 +80,7 @@ open class MoltenLumpRenderer<T : Entity>(
         // own corner, and half of it is half of whatever size it has been drawn at.
         poseStack.scale(scale, scale, scale)
         poseStack.translate(-HALF_BLOCK, -HALF_BLOCK, -HALF_BLOCK)
-        collector.submitMovingBlock(poseStack, state.block)
+        collector.submitMovingBlock(poseStack, state.block, NO_OUTLINE)
         poseStack.popPose()
         if (burn != null) submitBurning(state, poseStack, collector, camera, burn)
         super.submit(state, poseStack, collector, camera)
@@ -109,6 +109,9 @@ open class MoltenLumpRenderer<T : Entity>(
     }
 
     companion object {
+        /** Nothing here is outlined; 26.2 asks every submitted block to say so. */
+        const val NO_OUTLINE = 0
+
         private const val HALF_BLOCK = 0.5
 
         /** The bloom and the head of the streak, as multiples of how big the lump is drawn. */

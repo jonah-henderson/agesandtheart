@@ -235,7 +235,12 @@ object AgeGeneration {
             // tree, and an Age wearing vanilla's rock has none to delegate through. `vanillasRockFor`
             // carries that Age's skin instead.
             ourGround?.let {
-                val skin = Surface.ruleFor(composition.optionsFor(Aspect.SURFACE, 0), it.rock, recipe.template)
+                val skin = Surface.ruleFor(
+                    composition.optionsFor(Aspect.SURFACE, 0),
+                    it.rock,
+                    recipe.template,
+                    server.registryAccess().lookupOrThrow(Registries.BIOME),
+                )
                 // A landform that is its own roof closes it with bedrock, as vanilla closes the nether's.
                 if (composition.roofedByItsRock) SurfacingStrategy.shutOverhead(skin) else skin
             }

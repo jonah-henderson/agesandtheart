@@ -344,7 +344,7 @@ object DeepWater {
                         val under = chunk.getBlockState(below.setWithOffset(at, Direction.DOWN))
                         val raisesAColumn = under.`is`(BlockTags.ENABLES_BUBBLE_COLUMN_DRAG_DOWN) ||
                             under.`is`(BlockTags.ENABLES_BUBBLE_COLUMN_PUSH_UP)
-                        if (raisesAColumn) chunk.markPosForPostprocessing(at)
+                        if (raisesAColumn) chunk.markPosForPostProcessing(at)
                     }
                 }
             }

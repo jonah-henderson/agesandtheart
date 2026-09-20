@@ -17,7 +17,7 @@ import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
  * `0.25` normally and `0.0625` under Large Biomes.
  *
  * **Read through the codec, because `DensityFunctions.ShiftedNoise` is protected** — the type cannot be
- * named from outside and an `is` check will not compile. `DensityFunction.DIRECT_CODEC` is public, and a
+ * named from outside and an `is` check will not compile. `DensityFunction.CODEC` is public, and a
  * function that came out of a datapack must go back into one, so encoding the setting and reading the
  * field out of the JSON gets the number through the front door. Works for any datapack that changes
  * climate scale, not merely vanilla's own Large Biomes.
@@ -47,7 +47,7 @@ object BiomeScale {
         val generator = server.overworld().chunkSource.generator as? NoiseBasedChunkGenerator ?: return null
         val temperature = generator.generatorSettings().value().noiseRouter().temperature()
         val ops = RegistryOps.create(JsonOps.INSTANCE, server.registryAccess())
-        val encoded = DensityFunction.DIRECT_CODEC.encodeStart(ops, temperature).result().orElse(null)
+        val encoded = DensityFunction.CODEC.encodeStart(ops, temperature).result().orElse(null)
         encoded?.let(::firstXzScale)
     }.getOrNull()
 

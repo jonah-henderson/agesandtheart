@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.worldgen.field
 
 import co.voik.agesandtheart.location
+import net.minecraft.world.level.biome.Biome
+import net.minecraft.core.HolderGetter
 import net.minecraft.core.registries.Registries
 import net.minecraft.data.worldgen.SurfaceRuleData
 import net.minecraft.resources.ResourceKey
@@ -136,7 +138,8 @@ object SurfacingStrategy {
      * Only this one is spelled with the builder: the flags exist nowhere else, and the other two worlds
      * have a single tree each with nothing to choose.
      */
-    fun overworldsSkin(): SurfaceRules.RuleSource = SurfaceRuleData.overworldLike(
+    fun overworldsSkin(biomes: HolderGetter<Biome>): SurfaceRules.RuleSource = SurfaceRuleData.overworldLike(
+        biomes,
         /* aboveGround = */ false,
         /* bedrockRoof = */ false,
         /* bedrockFloor = */ true,
@@ -239,7 +242,7 @@ object SurfacingStrategy {
         return layers(
             *scattered.mapIndexed { band, block ->
                 val from = MOTTLE_RANGE.first + band * bandWidth
-                where(SurfaceRules.noiseCondition(MINGLE_NOISE, from, from + bandWidth), block)
+                where(SurfaceRules.noiseCondition2d(MINGLE_NOISE, from, from + bandWidth), block)
             }.toTypedArray(),
             solid(ground),
         )

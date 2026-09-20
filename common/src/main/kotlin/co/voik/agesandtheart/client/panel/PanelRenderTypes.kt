@@ -1,7 +1,10 @@
 package co.voik.agesandtheart.client.panel
 
 import co.voik.agesandtheart.client.AgeRenderTypes.MATRICES_AND_PROJECTION
+import co.voik.agesandtheart.compat.ONLY_VERTEX_BINDING
 import co.voik.agesandtheart.location
+import com.mojang.blaze3d.PrimitiveTopology
+import com.mojang.blaze3d.pipeline.BindGroupLayout
 import com.mojang.blaze3d.pipeline.BlendFunction
 import com.mojang.blaze3d.pipeline.ColorTargetState
 import com.mojang.blaze3d.pipeline.DepthStencilState
@@ -40,7 +43,8 @@ object PanelRenderTypes {
                 .withLocation("pipeline/linking_panel_fill".location())
                 .withVertexShader("core/position_color")
                 .withFragmentShader("core/position_color")
-                .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS)
+                .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_COLOR)
+                .withPrimitiveTopology(PrimitiveTopology.QUADS)
                 .build(),
         ).createRenderSetup(),
     )
@@ -50,8 +54,13 @@ object PanelRenderTypes {
         .withLocation("pipeline/linking_panel_field".location())
         .withVertexShader("core/position_tex_color")
         .withFragmentShader("core/position_tex_color")
-        .withSampler("Sampler0")
-        .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+        .withBindGroupLayout(
+            BindGroupLayout.builder()
+                .withSampler("Sampler0")
+                .build(),
+        )
+        .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_TEX_COLOR)
+        .withPrimitiveTopology(PrimitiveTopology.QUADS)
         .build()
 
     private val newestField: RenderType = fieldFrom(PanelTexture.NEWEST_FIELD)
@@ -68,10 +77,15 @@ object PanelRenderTypes {
         RenderSetup.builder(
             RenderPipeline.builder(LAID)
                 .withLocation("pipeline/linking_panel_mist".location())
-                .withUniform("Globals", UniformType.UNIFORM_BUFFER)
+                .withBindGroupLayout(
+                    BindGroupLayout.builder()
+                        .withUniform("Globals", UniformType.UNIFORM_BUFFER)
+                        .build(),
+                )
                 .withVertexShader("panel_mist".location())
                 .withFragmentShader("panel_mist".location())
-                .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS)
+                .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_COLOR)
+                .withPrimitiveTopology(PrimitiveTopology.QUADS)
                 .build(),
         ).createRenderSetup(),
     )
@@ -84,8 +98,13 @@ object PanelRenderTypes {
         .withLocation("pipeline/linking_panel_on_a_page".location())
         .withVertexShader("core/position_tex_color")
         .withFragmentShader("core/position_tex_color")
-        .withSampler("Sampler0")
-        .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+        .withBindGroupLayout(
+            BindGroupLayout.builder()
+                .withSampler("Sampler0")
+                .build(),
+        )
+        .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_TEX_COLOR)
+        .withPrimitiveTopology(PrimitiveTopology.QUADS)
         .withDepthStencilState(DepthStencilState.DEFAULT)
         .withCull(false)
         .build()

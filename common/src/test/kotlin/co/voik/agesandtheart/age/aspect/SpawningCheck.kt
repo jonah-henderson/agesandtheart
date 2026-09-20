@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.SpawnPlacements
 import net.minecraft.world.entity.SpawnPlacementTypes
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.EntityTypes
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.level.biome.MobSpawnSettings
 import net.minecraft.world.level.levelgen.Heightmap
@@ -48,19 +49,19 @@ class SpawningCheck : FunSpec({
 
     /**
      * **A golem is carried past a refusal vanilla makes of everyone else.** `SpawnerData`'s constructor
-     * reads `this.type = type.getCategory() == MobCategory.MISC ? EntityType.PIG : type`, so a misc entity
+     * reads `this.type = type.getCategory() == MobCategory.MISC ? EntityTypes.PIG : type`, so a misc entity
      * put in a list *becomes a pig* — which is how the first attempt at this filled meadows with pork.
      *
      * The guard stays for every other path and is lifted only where the Age's own words named the
      * creature, which is what `SpawnerDataMixin` is and where it is reached from.
      */
     test("a golem never arrives as a pig, whatever else it does") {
-        check(EntityType.SNOW_GOLEM.category == MobCategory.MISC) {
+        check(EntityTypes.SNOW_GOLEM.category == MobCategory.MISC) {
             "a snow golem is no longer misc, so this check is guarding nothing"
         }
         // Vanilla's own refusal, pinned: if this ever stops being true the bypass can go.
-        val substituted = MobSpawnSettings.SpawnerData(EntityType.SNOW_GOLEM, 1, 1).type()
-        check(substituted == EntityType.PIG) {
+        val substituted = MobSpawnSettings.SpawnerData(EntityTypes.SNOW_GOLEM, 1, 1).type()
+        check(substituted == EntityTypes.PIG) {
             "vanilla no longer swaps a misc entity for a pig — SpawnerDataMixin may be deleted"
         }
         // **Offline there is no mixin**, since nothing transforms classes outside a launched game — so what
@@ -123,7 +124,7 @@ class SpawningCheck : FunSpec({
             Options(mapOf(Spawns.LIVES.name to listOf(claim))),
             shippedSpawning,
         ).at(null, MobCategory.MONSTER, Spawns.Situation(BlockPos.ZERO, true, DARK), aMeadow()).unwrap()
-            .firstOrNull { it.value().type() == EntityType.ILLUSIONER }?.weight()
+            .firstOrNull { it.value().type() == EntityTypes.ILLUSIONER }?.weight()
 
         // An illusioner, which is held apart from nothing — see the test below for what a rung does to
         // one that is, where it moves the spacing and cannot move the weight.
@@ -167,12 +168,16 @@ class SpawningCheck : FunSpec({
         val spacing = dragon.spacedAt(1.0)
         fun triedAt(x: Int, z: Int) = dragon.mayBeTriedAt(x, z, spacing)
 
-        check(spacing == 320) { "the dragon's own cell is $spacing" }
+        // Said against the spacing the shipped file gives rather than against the number it is today, so
+        // retuning the dragon moves the window this describes instead of failing it.
+        check(spacing > 0) { "the dragon has no cell of its own: $spacing" }
         check(triedAt(0, 0)) { "a dragon was not tried at the corner of its own cell" }
-        check(!triedAt(160, 160)) { "a dragon was tried in the middle of a cell it is held out of" }
+        check(!triedAt(spacing / 2, spacing / 2)) {
+            "a dragon was tried in the middle of a cell it is held out of"
+        }
         // And the cell repeats, in both directions and on both sides of the origin.
-        check(triedAt(320, 320)) { "the grid did not repeat" }
-        check(triedAt(-320, -320)) { "the grid did not repeat behind the origin" }
+        check(triedAt(spacing, spacing)) { "the grid did not repeat" }
+        check(triedAt(-spacing, -spacing)) { "the grid did not repeat behind the origin" }
     }
 
     /** And a creature that arrives by the ordinary spawner is held apart from nothing — weight scatters it. */
@@ -208,8 +213,8 @@ class SpawningCheck : FunSpec({
         checkNotNull(placing) { "an Age that wrote a dragon and a golem places neither" }
 
         val grounds = placing.placedCreatures.associate { it.type to it.ground }
-        check(grounds[EntityType.ENDER_DRAGON] == Ground.IN_THE_AIR) { "the dragon is placed on $grounds" }
-        check(grounds[EntityType.IRON_GOLEM] == Ground.SURFACE) { "the golem is placed on $grounds" }
+        check(grounds[EntityTypes.ENDER_DRAGON] == Ground.IN_THE_AIR) { "the dragon is placed on $grounds" }
+        check(grounds[EntityTypes.IRON_GOLEM] == Ground.SURFACE) { "the golem is placed on $grounds" }
     }
 
     /**
@@ -236,8 +241,8 @@ class SpawningCheck : FunSpec({
         checkNotNull(placing) { "an Age that wrote a golem and a dragon places neither" }
 
         val surfaces = placing.placedCreatures.associate { it.type to it.surface }
-        check(surfaces[EntityType.IRON_GOLEM] == Heightmap.Types.MOTION_BLOCKING_NO_LEAVES) {
-            "a golem is looked for on ${surfaces[EntityType.IRON_GOLEM]}, which is not what places it"
+        check(surfaces[EntityTypes.IRON_GOLEM] == Heightmap.Types.MOTION_BLOCKING_NO_LEAVES) {
+            "a golem is looked for on ${surfaces[EntityTypes.IRON_GOLEM]}, which is not what places it"
         }
         for ((type, surface) in surfaces) {
             check(surface == SpawnPlacements.getHeightmapType(type)) {
@@ -258,7 +263,7 @@ class SpawningCheck : FunSpec({
      * If vanilla ever stops placing it on the ground, the exemption stops being needed and this says so.
      */
     test("what an Age places aloft is placed on the ground by vanilla") {
-        for (aloft in listOf(EntityType.ENDER_DRAGON)) {
+        for (aloft in listOf(EntityTypes.ENDER_DRAGON)) {
             check(SpawnPlacements.getPlacementType(aloft) === SpawnPlacementTypes.ON_GROUND) {
                 "${aloft.description.string} is no longer placed on the ground, so the aloft exemption " +
                     "may not be needed — it exists because `ON_GROUND` wants a block below"

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client.panel
 
+import com.mojang.blaze3d.GpuFormat
 import com.mojang.blaze3d.pipeline.RenderTarget
 import com.mojang.blaze3d.pipeline.TextureTarget
 import com.mojang.blaze3d.systems.RenderSystem
@@ -45,6 +46,13 @@ object PanelTarget {
         112 to 70,
         80 to 50,
     )
+
+    /**
+     * The sharpest rung, which is what a hand-built `LevelRenderer` is sized to: it sizes its own targets
+     * from the size it is given, and every coarser rung fits inside this one.
+     */
+    val SHARPEST_WIDTH: Int = COARSENESSES.first().first
+    val SHARPEST_HEIGHT: Int = COARSENESSES.first().second
 
     private const val CLEAREST = 0
 
@@ -125,7 +133,13 @@ object PanelTarget {
         val fields = fieldsAt[coarseness]
         val (width, height) = COARSENESSES[coarseness]
         return fields[which]
-            ?: TextureTarget("Ages linking panel ${width}x$height field $which", width, height, true)
+            ?: TextureTarget(
+                "Ages linking panel ${width}x$height field $which",
+                width,
+                height,
+                true,
+                GpuFormat.RGBA8_UNORM,
+            )
                 .also { fields[which] = it }
     }
 

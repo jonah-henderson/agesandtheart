@@ -2,7 +2,6 @@ package co.voik.agesandtheart.worldgen.field
 
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
-import net.minecraft.util.KeyDispatchDataCodec
 import net.minecraft.world.level.levelgen.SurfaceRules
 
 /**
@@ -27,7 +26,7 @@ data class RegionRule(
     val map: RegionMap,
 ) : SurfaceRules.RuleSource {
 
-    override fun codec(): KeyDispatchDataCodec<out SurfaceRules.RuleSource> = KEY_CODEC
+    override fun codec(): MapCodec<out SurfaceRules.RuleSource> = CODEC
 
     /**
      * Every member's rule, built once for this column stack, then chosen between per block. All of them
@@ -50,7 +49,6 @@ data class RegionRule(
             ).apply(instance, ::RegionRule)
         }
 
-        private val KEY_CODEC = KeyDispatchDataCodec.of(CODEC)
 
         /** [members] painted by territory, or the single rule itself when there is nothing to divide. */
         fun of(members: List<SurfaceRules.RuleSource>, map: RegionMap): SurfaceRules.RuleSource =

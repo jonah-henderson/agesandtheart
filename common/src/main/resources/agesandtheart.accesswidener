@@ -168,17 +168,3 @@ accessible	method	net/minecraft/client/renderer/rendertype/RenderType	create	(Lj
 accessible	method	net/minecraft/client/Camera	prepareCullFrustum	(Lorg/joml/Matrix4fc;Lorg/joml/Matrix4f;Lnet/minecraft/world/phys/Vec3;)V
 accessible	method	net/minecraft/client/Camera	setupPerspective	(FFFFF)V
 
-# So the linking panel can cull its own terrain as a spectator does
-# (co.voik.agesandtheart.client.panel.PanelRenderer, design §7.8.1).
-#
-# `LevelRenderer.update` is the public way in and it hard-codes
-# `this.minecraft.player.isSpectator()` — the player's, which is what the panel is not. That flag does one
-# thing: where the camera is inside a solid block it turns **smart culling off**, which is why a spectator
-# can see out of a block and everyone else sees black. A panel's orbit is regularly inside terrain, so
-# with the flag false the occlusion graph decides it is sealed in and culls the whole world — meshed
-# sections and all, silently.
-#
-# Calling the two halves ourselves is the only way to pass our own answer. `compileSections` comes with it
-# because `update` is exactly these two and nothing else.
-accessible	method	net/minecraft/client/renderer/LevelRenderer	cullTerrain	(Lnet/minecraft/client/Camera;Lnet/minecraft/client/renderer/culling/Frustum;Z)V
-accessible	method	net/minecraft/client/renderer/LevelRenderer	compileSections	(Lnet/minecraft/client/Camera;)V
