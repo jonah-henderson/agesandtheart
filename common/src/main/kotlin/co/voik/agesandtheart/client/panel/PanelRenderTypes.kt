@@ -49,8 +49,27 @@ object PanelRenderTypes {
         ).createRenderSetup(),
     )
 
-    /** A piece of a field: vanilla's `position_tex_color`, which the End sky and the GUI's own blits draw with. */
-    private val FIELD_PIPELINE: RenderPipeline = RenderPipeline.builder(LAID)
+    /**
+     * A piece of a field: vanilla's `position_tex_color`, which the End sky and the GUI's own blits draw
+     * with.
+     *
+     * **Opaque, for the same reason [ON_A_PAGE] is** — a field *is* the finished picture, and a finished
+     * picture has nothing behind it worth seeing. It is not built on [LAID], which blends.
+     *
+     * **Blending it was what washed out the Age's foliage.** A level render clears its background to the
+     * fog colour at alpha zero and composites over that, so the picture that comes back is *premultiplied*:
+     * a leaf covering a fraction `a` of its pixel arrives already multiplied by `a`. Laying that over the
+     * haze fill with ordinary translucent blending multiplies by `a` a second time, so the leaf is weighed
+     * at `a²` against a haze weighed at `1 - a` — and the thinner the coverage the more haze wins. Solid
+     * ground writes `a = 1` and never notices; distant foliage, whose mipped alpha is thin, goes milky;
+     * near foliage is nearly opaque and looks right. Turning Minecraft's own "Improved Transparency" on
+     * hid it by routing translucent terrain through the post chain, which hands back `a = 1`.
+     *
+     * Straight replacement is right rather than merely better: the RGB in the target is *already* the
+     * Age composited over its own fog colour, including where nothing was drawn, which is the same colour
+     * the haze fill underneath is painted with.
+     */
+    private val FIELD_PIPELINE: RenderPipeline = RenderPipeline.builder(MATRICES_AND_PROJECTION)
         .withLocation("pipeline/linking_panel_field".location())
         .withVertexShader("core/position_tex_color")
         .withFragmentShader("core/position_tex_color")
@@ -61,6 +80,8 @@ object PanelRenderTypes {
         )
         .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_TEX_COLOR)
         .withPrimitiveTopology(PrimitiveTopology.QUADS)
+        .withDepthStencilState(Optional.empty())
+        .withCull(false)
         .build()
 
     private val newestField: RenderType = fieldFrom(PanelTexture.NEWEST_FIELD)
