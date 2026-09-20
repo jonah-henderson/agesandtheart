@@ -229,6 +229,38 @@ class GrammarCheck : FunSpec({
     }
 
     /**
+     * **The subject carries the clause's siting too**, which is what a minted feature reads: `Resolver`
+     * mints off `subject.confinedTo`, so a subject that forgot its ground minted over the whole Age while
+     * the clause around it was sited.
+     */
+    test("a sited clause sites its subject") {
+        val read = read(listOf("age", "mud", "pits", "in", "jungle"))
+        check(read.dropped.isEmpty()) { "the siting did not read: ${read.dropped}" }
+        val pits = read.constraints.single { it.word.name == "pits" }
+        check(pits.confinedTo?.path == "jungle") { "'pits' was sited in ${pits.confinedTo}" }
+    }
+
+    /**
+     * A word reaching exactly one part of the world closes its own clause, so no aiming page is needed
+     * after it (§4.3.1). It is a last resort, which the test below guards.
+     */
+    test("an unambiguous word closes its own clause") {
+        val read = read(listOf("age", "ore_diamond"))
+        check(read.dropped.isEmpty()) { "the word did not read: ${read.dropped}" }
+        val ore = read.constraints.single { it.word.name == "ore_diamond" }
+        check(ore.aimedAt == setOf(Aspect.FEATURES)) { "'ore_diamond' reaches ${ore.aimedAt}" }
+    }
+
+    /** And it never steals a clause an aiming page would have closed — `teeming ore_diamond features`. */
+    test("an aiming page still closes a clause a term could have") {
+        val read = read(listOf("age", "teeming", "ore_diamond", "features"))
+        val aimed = read.phrases.single { phrase -> phrase.subject?.word?.name == "features" }
+        check(aimed.modifiers.any { it.word.name == "ore_diamond" }) {
+            "'ore_diamond' closed the clause itself, leaving ${aimed.modifiers.map { it.word.name }}"
+        }
+    }
+
+    /**
      * §4.3.1: an evocative word describes the whole Age, so it cannot be sited in one biome. A sited clause
      * aims at a place exactly as a subject aims at a part, and both are a refusal.
      */

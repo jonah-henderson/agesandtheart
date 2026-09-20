@@ -1223,31 +1223,58 @@ object Resolver {
             val pool = aspect.pool ?: continue
             val speaking = sentence.filter { aspect in reachOf(vocabulary, it) }
             if (speaking.isEmpty()) continue
-            // **What the sentence put in**, the same widening a catalogue's draw gets. A member named — by
-            // being chosen or by being admitted — was reaching nothing here, since this drew from curation
-            // alone, and curation is exactly what a writer naming a biome outright is reaching past.
-            fun namedBy(said: Constraint) =
-                said.word.admitsIn(aspect) + listOfNotNull(said.word.choiceIn(aspect)?.key)
-            val curated = vocabulary.askableIn(aspect)
-            val drawnFrom = (
-                curated + speaking.flatMap(::namedBy).distinct().mapNotNull(aspect::presetFor)
-                ).distinct()
-            val reached = drawnAmong(
-                vocabulary,
-                drawnFrom.mapNotNull { member ->
-                    claimForMember(vocabulary, member, pool, speaking, aspect, member in curated, draw)
-                },
-                drawnFrom,
-                speaking,
-                aspect,
-                draw,
-            )
-            if (reached.isEmpty()) continue
-            flaws += crowdedOutOfAnOnly(vocabulary, speaking, aspect)
-            val settled = weighed.optionsFor(aspect, 0).allOf(pool)
-            weighed = weighed.withOptions(aspect, pool.name, (settled + spelled(reached, pool, drawnFrom)).distinct())
+            // **Each ground is weighed on its own**, as a ranged axis already is ([spanned]). A claim
+            // confined to a biome is a second claim about the same member rather than a rival for the one
+            // claim, and `Features.placedIn` and `Spawns` both read a claim back per biome — so the whole
+            // of honouring `in` (§4.3.1) is carrying the ground this far.
+            for (ground in speaking.map { it.confinedTo }.distinct()) {
+                weighed = weighed.weighedIn(
+                    vocabulary,
+                    aspect,
+                    pool,
+                    speaking.filter { it.confinedTo == ground },
+                    ground,
+                    draw,
+                    flaws,
+                )
+            }
         }
         return weighed
+    }
+
+    /** What one ground's claimants ask of [aspect]'s population — [weighed]'s body, once per confinement. */
+    private fun AgeComposition.weighedIn(
+        vocabulary: Vocabulary,
+        aspect: Aspect,
+        pool: Pool,
+        speaking: List<Constraint>,
+        ground: Identifier?,
+        draw: Long,
+        flaws: MutableList<Flaw>,
+    ): AgeComposition {
+        // **What the sentence put in**, the same widening a catalogue's draw gets. A member named — by
+        // being chosen or by being admitted — was reaching nothing here, since this drew from curation
+        // alone, and curation is exactly what a writer naming a biome outright is reaching past.
+        fun namedBy(said: Constraint) =
+            said.word.admitsIn(aspect) + listOfNotNull(said.word.choiceIn(aspect)?.key)
+        val curated = vocabulary.askableIn(aspect)
+        val drawnFrom = (
+            curated + speaking.flatMap(::namedBy).distinct().mapNotNull(aspect::presetFor)
+            ).distinct()
+        val reached = drawnAmong(
+            vocabulary,
+            drawnFrom.mapNotNull { member ->
+                claimForMember(vocabulary, member, pool, speaking, aspect, member in curated, draw, ground)
+            },
+            drawnFrom,
+            speaking,
+            aspect,
+            draw,
+        )
+        if (reached.isEmpty()) return this
+        flaws += crowdedOutOfAnOnly(vocabulary, speaking, aspect)
+        val settled = optionsFor(aspect, 0).allOf(pool)
+        return withOptions(aspect, pool.name, (settled + spelled(reached, pool, drawnFrom, ground)).distinct())
     }
 
     /**
@@ -1394,13 +1421,15 @@ object Resolver {
         alreadyInThePool: Boolean,
         /** The Age being written, or null to ask what a word reaches in *every* Age — see [strictnessOf]. */
         draw: Long?,
+        /** The biome these claimants confined themselves to, or null where they speak for the Age. */
+        ground: Identifier? = null,
     ): Claim? {
         val tags = vocabulary.tagsOf(member)
         // **A word that takes a member out takes it out.** Excluding is the pipeline's own removal, so it
         // does not have to argue the weight down to nothing — which is the only way `untouched` can mean
         // anything, there being no tag for the absence of a thing to put on the members that are present.
         if (speaking.any { it.word.tier.narrows && it.word.excludes(member, tags) }) {
-            return Claim(member.key, Polarity.EXCEPT)
+            return Claim(member.key, Polarity.EXCEPT, confinedTo = ground)
         }
         // **Claiming something here is the price of insisting.** A word that only leans restricts nothing,
         // and `acceptsOn` keeps every member where nothing was restricted — read as insistence that would
@@ -1463,7 +1492,7 @@ object Resolver {
         val weight = Rung.legible(asked.coerceIn(pool.leastKept, MOST_OF_A_WORLD))
         // Struck out rather than kept at nothing: a claim of none of something is what `except` says, and
         // saying it that way keeps one mechanism for removal instead of two.
-        if (weight <= NONE_OF_IT) return Claim(member.key, Polarity.EXCEPT)
+        if (weight <= NONE_OF_IT) return Claim(member.key, Polarity.EXCEPT, confinedTo = ground)
         // **Described rather than named**, which decides whether this asks for the thing or for more of
         // it where it already is (world model §3). A member reached only by a query is a description; one
         // a word named is a naming. `only` and `except` are neither — they are instructions about what the
@@ -1497,6 +1526,7 @@ object Resolver {
             member.key,
             polarity ?: Polarity.ASSERTED,
             weight,
+            confinedTo = ground,
             onlyWhereItGrows = described,
         )
     }
@@ -1508,10 +1538,17 @@ object Resolver {
      * A word meaning "nothing built here" would otherwise write an exclusion per structure set, which says
      * the same thing at ten times the length and stops saying it the moment a pack adds a set.
      */
-    private fun spelled(claims: List<Claim>, pool: Pool, drawnFrom: List<Taggable>): List<String> {
+    private fun spelled(
+        claims: List<Claim>,
+        pool: Pool,
+        drawnFrom: List<Taggable>,
+        ground: Identifier? = null,
+    ): List<String> {
         val emptied = pool.emptiedBy ?: return claims.map { it.spelled() }
         val everythingStruck = claims.size == drawnFrom.size && claims.all { it.polarity == Polarity.EXCEPT }
-        return if (everythingStruck) listOf(emptied) else claims.map { it.spelled() }
+        // **A confined group never collapses**: the word for emptiness carries no ground, so "nothing in
+        // the jungle" written that way would empty the whole Age instead of one biome.
+        return if (everythingStruck && ground == null) listOf(emptied) else claims.map { it.spelled() }
     }
 
     /**

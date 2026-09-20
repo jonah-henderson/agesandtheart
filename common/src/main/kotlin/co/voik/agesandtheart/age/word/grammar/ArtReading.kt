@@ -50,6 +50,9 @@ internal object ArtReading {
     /** `in` and the biome it names — what a siting costs the cursor once it has been read. */
     private const val PAGES_IN_A_SITING = 2
 
+    /** What makes a term unambiguous, and so able to close its own clause — see [Reading.trailingCloseAt]. */
+    private const val ONE_PART_OF_THE_WORLD = 1
+
     /** The book [pages] spell, or null where they spell none — which is [Repair]'s cue, never an error. */
     fun parse(pages: List<Page>): Sentence? {
         val phrases = Reading(pages).book() ?: return null
@@ -108,17 +111,16 @@ internal object ArtReading {
          * bounded look ahead inside one clause — no page is re-stamped, and a word still belongs exactly
          * where it was laid.
          *
-         * **Every clause closes on something**, and a run that reaches the end of the book without a close
-         * is not a sentence. There is deliberately no "trailing run about nothing": anything unaimed can be
-         * written ahead of `age`, since modifiers lead, so allowing it at the end would be a second spelling
-         * for one meaning and would read as an afterthought stapled on. What a writer laid there instead is
-         * [Repair]'s to move.
+         * **Every clause closes on something**, and the last page of a book may be that something itself
+         * when it says what it is about — see [speaksForItself].
          */
         private fun clause(nucleus: Boolean): Phrase? {
             // The *index* is what is searched for, never the page. A `Page` is a data class, so a book that
             // lays the same word twice has equal pages in it and `indexOf` answers with the first — which
             // walked the cursor backwards and read the same clause forever.
-            val closesAt = (at..<pages.size).firstOrNull { closes(pages[it]) } ?: return null
+            val closesAt = (at..<pages.size).firstOrNull { closes(pages[it]) }
+                ?: (if (nucleus) null else trailingCloseAt())
+                ?: return null
             // Meeting the wrong kind is a book that does not read rather than a page swallowed: a second
             // `age` mid-book is `Repair`'s to report, not ours to absorb.
             if ((pages[closesAt].kind == PageClass.NUCLEUS) != nucleus) return null
@@ -147,6 +149,9 @@ internal object ArtReading {
                         scopeFor(it, aim),
                         latent = subject.latent,
                         rehomed = subject.rehomed,
+                        // The siting is the clause's, so it is the subject's too — `mud pits in jungle`
+                        // mints off the subject, and a subject that forgot its ground minted everywhere.
+                        confinedTo = confinedTo,
                         describes = body,
                     )
                 },
@@ -157,6 +162,24 @@ internal object ArtReading {
         /** Whether this page ends the clause it is in — an aiming page, or the `in` that opens a siting. */
         private fun closes(page: Page): Boolean =
             page.kind == PageClass.NUCLEUS || page.kind == PageClass.SUBJECT || page.kind == PageClass.CONFINER
+
+        /**
+         * The last page of a run nothing else closes, where that page reaches **exactly one** part of the
+         * world — `age torchflowers`, which needs no `features` after it to say where it was aimed
+         * (§4.3.1).
+         *
+         * **A last resort, tried only when no aiming page and no siting follow**, so every book that reads
+         * today reads the same way: `teeming volcano features` still closes on `features`, because a closer
+         * was found before this was asked. And only an unambiguous term qualifies — a word reaching two
+         * parts of the world is exactly the case an aiming page exists to settle, and a material is
+         * ambiguous by construction (`PageClass.MATERIAL`).
+         */
+        private fun trailingCloseAt(): Int? {
+            val last = pages.lastIndex.takeIf { it >= at } ?: return null
+            val page = pages[last]
+            if (page.kind != PageClass.TERM) return null
+            return last.takeIf { page.word?.aspects?.size == ONE_PART_OF_THE_WORLD }
+        }
 
         /**
          * `IN <biome>` closing a clause — *teeming temples in jungles* (§4.3.1).
