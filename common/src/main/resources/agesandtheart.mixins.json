@@ -33,7 +33,8 @@
     "client.LiquidBlockMixin",
     "client.MainRenderTargetMixin",
     "client.ModelBlockRendererMixin",
-    "client.WeatherEffectRendererMixin"
+    "client.WeatherEffectRendererMixin",
+    "client.WeatherParticlesMixin"
   ],
   "injectors": {
     "defaultRequire": 1

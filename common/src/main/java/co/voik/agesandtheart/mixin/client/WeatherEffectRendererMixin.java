@@ -2,9 +2,6 @@ package co.voik.agesandtheart.mixin.client;
 
 import co.voik.agesandtheart.client.Downpours;
 import co.voik.agesandtheart.client.Storms;
-import net.minecraft.client.Camera;
-import net.minecraft.world.level.Level;
-import net.minecraft.server.level.ParticleStatus;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.WeatherEffectRenderer;
 import net.minecraft.client.renderer.state.level.WeatherRenderState;
@@ -30,8 +27,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * deal more code to end up drawing nothing.
  *
  * <p><b>Both entry points, because they are two different things.</b> {@code render} draws the falling
- * columns and {@code tickRainParticles} spawns the splashes and the ambient flecks; suppressing only the
- * first leaves the second pattering away in a whiteout.
+ * columns and the particle tick spawns the splashes and the ambient flecks; suppressing only the first
+ * leaves the second pattering away in a whiteout. In 26.2 the second one is no longer on this class at
+ * all — it is {@code ClientLevel.tickWeatherEffects}, and it is suppressed by
+ * {@link WeatherParticlesMixin}.
  */
 @Mixin(WeatherEffectRenderer.class)
 public abstract class WeatherEffectRendererMixin {
@@ -48,23 +47,11 @@ public abstract class WeatherEffectRendererMixin {
      */
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void agesandtheart$heavierInADeluge(
-            Level level,
-            int ticks,
+            ClientLevel level,
             float partialTicks,
             Vec3 cameraPos,
             WeatherRenderState renderState,
             CallbackInfo callback) {
         Downpours.thicken(renderState.rainColumns);
-    }
-
-    @Inject(method = "tickRainParticles", at = @At("HEAD"), cancellable = true)
-    private void agesandtheart$noGentleFlecks(
-            ClientLevel level,
-            Camera camera,
-            int ticks,
-            ParticleStatus particleStatus,
-            int weatherRadius,
-            CallbackInfo callback) {
-        if (Storms.drawingItsOwn()) callback.cancel();
     }
 }

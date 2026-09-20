@@ -5,7 +5,7 @@ import co.voik.agesandtheart.client.WoundField;
 import co.voik.agesandtheart.client.light.DeepLights;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.state.level.LevelRenderState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -34,12 +34,12 @@ public class LevelRendererMixin {
     private void agesandtheart$drawTheWounds(
             PoseStack poseStack,
             LevelRenderState levelRenderState,
-            SubmitNodeStorage submitNodeStorage,
+            SubmitNodeCollector submitNodes,
             CallbackInfo callback) {
-        WoundField.INSTANCE.submit(poseStack, submitNodeStorage, levelRenderState.cameraRenderState.pos);
+        WoundField.INSTANCE.submit(poseStack, submitNodes, levelRenderState.cameraRenderState.pos);
         // And every light in the deep, in one submission for the same reason the wounds are.
-        DeepLights.INSTANCE.submit(poseStack, submitNodeStorage, levelRenderState.cameraRenderState.pos);
+        DeepLights.INSTANCE.submit(poseStack, submitNodes, levelRenderState.cameraRenderState.pos);
         // And the starfield over everything, for whoever is falling out of the Age through a tear.
-        StarFissureVeil.INSTANCE.submit(poseStack, submitNodeStorage, levelRenderState.cameraRenderState.pos);
+        StarFissureVeil.INSTANCE.submit(poseStack, submitNodes, levelRenderState.cameraRenderState.pos);
     }
 }
