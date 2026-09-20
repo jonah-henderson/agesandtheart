@@ -11,6 +11,7 @@ import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.fog.FogRenderer
 import net.minecraft.client.renderer.state.level.CameraRenderState
+import net.minecraft.core.SectionPos
 import net.minecraft.util.ARGB
 import net.minecraft.world.attribute.EnvironmentAttributes
 
@@ -155,11 +156,32 @@ object PanelRenderer {
     ): Boolean {
         preview.advanceLight()
 
+        // **The section grid is moved to the camera here rather than left to the render**, which is the
+        // ordering the two steps below both depend on. `LevelRenderer.render` opens by repositioning the
+        // grid and closes by compiling the sections the extract gathered; a grid that moves *between*
+        // those two retires the sections at its trailing edge, and `compileSections` then dereferences a
+        // lookup for one of them without a null check. The player's camera never moves far enough between
+        // an extract and its render for that to bite. An orbit cutting to a new shot does, which is why
+        // this crashed a few seconds into a book rather than on the first frame. Doing it first makes the
+        // render's own reposition a no-op, so nothing moves under the extract.
+        val viewArea = preview.renderer.viewArea()
+        viewArea?.repositionCamera(SectionPos.of(camera.position()))
+
         // **Culling and section compilation are inside the extract now.** 26.2 folded `cullTerrain` and
         // `compileSections` into `LevelExtractor.extract`, which is also where the frustum is applied — so
         // the spectator flag that used to keep an orbit inside terrain from culling the whole Age has no
         // caller-side equivalent, and whether an orbit still draws from inside the rock wants a walk.
         preview.extractor.extract(delta, camera, delta.getGameTimeDeltaPartialTick(false))
+
+        // And the other half: the extract gathers from the *previous* frame's visibility answer, which was
+        // computed against wherever the grid was then, so a shot change can still put a retired section in
+        // the list. Vanilla's invariant is that every gathered section is one the view area still holds;
+        // this is that invariant, restated, because the method that relies on it is not ours to guard.
+        // A dropped section keeps its old mesh until something dirties it again, which is the right way to
+        // be wrong here — a frame late beats a crash.
+        preview.renderState.sectionUpdateRenderStates.removeIf { update ->
+            viewArea?.getRenderSectionAt(SectionPos.of(update.sectionNode()).center()) == null
+        }
         // Discarded rather than prevented: `extractLevel` takes particles from the global engine, so these
         // are the player's, gathered into our render state. Preventing it would need a Mixin.
         //
