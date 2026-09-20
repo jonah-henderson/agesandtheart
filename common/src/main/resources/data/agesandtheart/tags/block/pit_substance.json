@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "What a pit nobody named a material for is full of -- loose ground rather than",
+    "`#formation_substance`'s handsome stones, since a pit is a place something collected rather than a",
+    "thing somebody raised.",
+    "",
+    "Mud is in it deliberately: with `pits` sayable, a writer has a second way to put surface mud into a",
+    "jungle beside `mud lakes`, which is what the scarab's habitat wants (design §7.1.2)."
+  ],
+  "values": [
+    "minecraft:sand",
+    "minecraft:red_sand",
+    "minecraft:gravel",
+    "minecraft:mud",
+    "minecraft:clay",
+    "minecraft:coarse_dirt"
+  ]
+}

@@ -1,0 +1,27 @@
+# The pit: the geometric family's one shape that goes down, and the two ways to put mud in a jungle.
+# Run with: scripts/drive-server.sh scripts/checks/pits.txt
+#
+# What only a server can answer is whether the formation's JSON parses and whether minting swaps the
+# substance — an unparseable configured feature is dropped at datapack load and the word for it simply
+# never appears, which is silent everywhere else.
+
+# The word exists, which it does only if both files loaded.
+age words
+
+# A pit of what the word means on its own — drawn from `#agesandtheart:pit_substance`.
+age write pitplain 7 age pits
+age gen pitplain
+
+# Minted: the clause names what it is full of. Expect `agesandtheart:pits[of=minecraft:mud]` in the recipe.
+age write mudpit 7 age mud pits
+age gen mudpit
+
+# Both routes to the scarab's third condition, confined to the jungle where the colony would live.
+# Expect `[in=minecraft:jungle]` on each claim — a siting reaches a population claim now.
+age write pitjungle 7 age jungle biomes mud pits in jungle
+age write lakejungle 7 age jungle biomes mud lakes in jungle
+age list
+
+# And the habitat written whole: warmth, jungle, torchflowers and the mud together.
+age write scarabreal 7 age tropical climate jungle biomes torchflowers in jungle mud pits in jungle
+age gen scarabreal

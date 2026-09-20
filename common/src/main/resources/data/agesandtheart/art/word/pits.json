@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "A funnel of loose ground cut into the surface, and the one shape in the geometric family that goes",
+    "down rather than up. It mints like any other pattern, so the clause names what it is full of:",
+    "`mud pits`, `sand pits`, `clay pits`.",
+    "",
+    "Its unstated pool is loose ground rather than `#formation_substance`, and that is the whole",
+    "difference between this word and its siblings: an obelisk nobody gave a material to should be some",
+    "handsome stone, where a pit of polished granite is a monument somebody dug a hole for."
+  ],
+  "tier": "exact",
+  "mints": "agesandtheart:pits",
+  "unstated": "#agesandtheart:pit_substance"
+}

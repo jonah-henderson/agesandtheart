@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "**One position per chunk and no modifier that moves it**, as every formation is placed: a pit may be",
+    "wider than a chunk, so it cannot be built outwards from a position vanilla hands it -- it runs once",
+    "per chunk and lays the part of every pit that crosses this one. Where they sit is the `scatter` in",
+    "the configured feature.",
+    "",
+    "No biome carries it, so nothing digs one until a book asks."
+  ],
+  "feature": "agesandtheart:pits",
+  "placement": []
+}
