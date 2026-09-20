@@ -1,0 +1,191 @@
+{
+  "_comment": [
+    "Where the Maintainers kitted out to walk into a newly-written Age: worn deretheni plate, and the",
+    "linking books they went in and came back by. A suit is never found whole -- a piece at a time, and",
+    "damaged, which is the right thing for a player who has found deretheni for boots and not for a",
+    "chestplate (see ProtectiveSuit).",
+    "The surveying device is here because reading an Age before trusting it was the job (Jonah,",
+    "2026-09-19). The analysis machine is the writer's workshop's: the two acquaintance devices are split",
+    "by what each one is, one carried into the field and one standing on a bench."
+  ],
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 1,
+        "max": 2
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:pitchstone_helmet",
+          "weight": 3,
+          "functions": [
+            {
+              "function": "minecraft:set_damage",
+              "damage": { "type": "minecraft:uniform", "min": 0.2, "max": 0.6 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:pitchstone_boots",
+          "weight": 3,
+          "functions": [
+            {
+              "function": "minecraft:set_damage",
+              "damage": { "type": "minecraft:uniform", "min": 0.2, "max": 0.6 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:pitchstone_leggings",
+          "weight": 2,
+          "functions": [
+            {
+              "function": "minecraft:set_damage",
+              "damage": { "type": "minecraft:uniform", "min": 0.2, "max": 0.6 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:pitchstone_chestplate",
+          "weight": 2,
+          "functions": [
+            {
+              "function": "minecraft:set_damage",
+              "damage": { "type": "minecraft:uniform", "min": 0.2, "max": 0.6 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:pitchstone_plate",
+          "weight": 5,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "type": "minecraft:uniform", "min": 1, "max": 3 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:pitchstone",
+          "weight": 4,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "type": "minecraft:uniform", "min": 1, "max": 4 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 1,
+        "max": 2
+      },
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:inject/linking_book",
+          "weight": 2
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:surveying_device",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 19
+        }
+      ]
+    },
+    {
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 1,
+        "max": 2
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:iron_ingot",
+          "weight": 5,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "type": "minecraft:uniform", "min": 1, "max": 5 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:iron_chain",
+          "weight": 4,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "type": "minecraft:uniform", "min": 2, "max": 8 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:golden_apple",
+          "weight": 3
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:potion",
+          "weight": 3,
+          "functions": [
+            {
+              "function": "minecraft:set_potion",
+              "id": "minecraft:strong_healing"
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:milk_bucket",
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:inject/pages"
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:chests/dni_city/salvage"
+        }
+      ]
+    }
+  ]
+}

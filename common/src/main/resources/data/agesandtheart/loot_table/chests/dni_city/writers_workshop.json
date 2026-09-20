@@ -1,0 +1,178 @@
+{
+  "_comment": [
+    "Where the D'ni wrote. Two things no other room gives: pages drawn from the expert and master stocks",
+    "rather than the whole corpus by rarity, and the desk implements themselves -- which design 7.6 wants",
+    "to become salvage rather than furniture. Every implement can turn up, all of them rarely: a player who",
+    "has reached a city has most of them already, so this is a second route rather than a shortcut past a",
+    "material (Jonah, 2026-09-19).",
+    "**The analysis machine is here, and for it this is the only route that exists** (Jonah, 2026-09-20).",
+    "Its recipe takes masterwork paper, which comes from the tree, which is the endgame -- so a device whose",
+    "whole job is teaching a midgame writer the words for blocks could not be built until long after it was",
+    "wanted. A city is where the D'ni kept their apparatus, so a city is where it is found.",
+    "The pair is split by what each one is: this is bench apparatus and belongs beside the desk, where the",
+    "surveying device is something you carry to a place and stand up, and is the maintenance hall's."
+  ],
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 1,
+        "max": 3
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:page",
+          "functions": [
+            {
+              "function": "agesandtheart:roll_page_word",
+              "pool": "agesandtheart:writer_stock/expert"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:page",
+          "weight": 1,
+          "functions": [
+            {
+              "function": "agesandtheart:roll_page_word",
+              "pool": "agesandtheart:writer_stock/master"
+            }
+          ]
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:writers_desk",
+          "weight": 3
+        },
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:archive",
+          "weight": 3
+        },
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:geologists_tools",
+          "weight": 2
+        },
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:seismograph",
+          "weight": 2
+        },
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:analysis_machine",
+          "weight": 2
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 40
+        }
+      ]
+    },
+    {
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 1,
+        "max": 3
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:fine_ink_bottle",
+          "weight": 4,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "type": "minecraft:uniform", "min": 1, "max": 2 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:fine_paper",
+          "weight": 4,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "type": "minecraft:uniform", "min": 1, "max": 3 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:ink_bottle",
+          "weight": 4,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "type": "minecraft:uniform", "min": 1, "max": 3 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:leather",
+          "weight": 3,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "type": "minecraft:uniform", "min": 1, "max": 4 }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:paper",
+          "weight": 3,
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "type": "minecraft:uniform", "min": 3, "max": 9 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:inject/notebook",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 2
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:chests/dni_city/salvage"
+        }
+      ]
+    }
+  ]
+}

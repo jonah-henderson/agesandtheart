@@ -1,4 +1,12 @@
 {
+  "_comment": [
+    "Vanilla's ancient_city/structures, with each element's processor list saying what the room was FOR.",
+    "Of these templates only ten hold a chest at all, and they are the four rooms of design 7.6 plus the",
+    "ice box: chamber_1..3 are the library, sauna_1 the ink and paper workshop, barracks the writer's",
+    "workshop, tall_ruin_1..4 the maintenance hall. Everything else keeps the generic list.",
+    "Pairing a ROOM with a vanilla template is the placeholder half -- when the rooms are authored the",
+    "same loot tables are pointed at by the new elements and nothing else moves."
+  ],
   "elements": [
     {
       "element": {
@@ -10,7 +18,7 @@
       "element": {
         "element_type": "minecraft:single_pool_element",
         "location": "minecraft:ancient_city/structures/barracks",
-        "processors": "agesandtheart:dni_city_generic_degradation",
+        "processors": "agesandtheart:dni_city_writers_workshop",
         "projection": "rigid"
       },
       "weight": 4
@@ -19,7 +27,7 @@
       "element": {
         "element_type": "minecraft:single_pool_element",
         "location": "minecraft:ancient_city/structures/chamber_1",
-        "processors": "agesandtheart:dni_city_generic_degradation",
+        "processors": "agesandtheart:dni_city_library",
         "projection": "rigid"
       },
       "weight": 4
@@ -28,7 +36,7 @@
       "element": {
         "element_type": "minecraft:single_pool_element",
         "location": "minecraft:ancient_city/structures/chamber_2",
-        "processors": "agesandtheart:dni_city_generic_degradation",
+        "processors": "agesandtheart:dni_city_library",
         "projection": "rigid"
       },
       "weight": 4
@@ -37,7 +45,7 @@
       "element": {
         "element_type": "minecraft:single_pool_element",
         "location": "minecraft:ancient_city/structures/chamber_3",
-        "processors": "agesandtheart:dni_city_generic_degradation",
+        "processors": "agesandtheart:dni_city_library",
         "projection": "rigid"
       },
       "weight": 4
@@ -46,7 +54,7 @@
       "element": {
         "element_type": "minecraft:single_pool_element",
         "location": "minecraft:ancient_city/structures/sauna_1",
-        "processors": "agesandtheart:dni_city_generic_degradation",
+        "processors": "agesandtheart:dni_city_ink_and_paper_workshop",
         "projection": "rigid"
       },
       "weight": 4
@@ -73,7 +81,7 @@
       "element": {
         "element_type": "minecraft:single_pool_element",
         "location": "minecraft:ancient_city/structures/tall_ruin_1",
-        "processors": "agesandtheart:dni_city_generic_degradation",
+        "processors": "agesandtheart:dni_city_maintenance_hall",
         "projection": "rigid"
       },
       "weight": 1
@@ -82,7 +90,7 @@
       "element": {
         "element_type": "minecraft:single_pool_element",
         "location": "minecraft:ancient_city/structures/tall_ruin_2",
-        "processors": "agesandtheart:dni_city_generic_degradation",
+        "processors": "agesandtheart:dni_city_maintenance_hall",
         "projection": "rigid"
       },
       "weight": 1
@@ -91,7 +99,7 @@
       "element": {
         "element_type": "minecraft:single_pool_element",
         "location": "minecraft:ancient_city/structures/tall_ruin_3",
-        "processors": "agesandtheart:dni_city_generic_degradation",
+        "processors": "agesandtheart:dni_city_maintenance_hall",
         "projection": "rigid"
       },
       "weight": 2
@@ -100,7 +108,7 @@
       "element": {
         "element_type": "minecraft:single_pool_element",
         "location": "minecraft:ancient_city/structures/tall_ruin_4",
-        "processors": "agesandtheart:dni_city_generic_degradation",
+        "processors": "agesandtheart:dni_city_maintenance_hall",
         "projection": "rigid"
       },
       "weight": 2
