@@ -204,3 +204,24 @@ mutable	field	net/minecraft/client/renderer/LevelRenderer	levelRenderState	Lnet/
 # system is read from it on every tick.
 accessible	field	net/minecraft/server/level/ServerLevel	environmentAttributes	Lnet/minecraft/world/attribute/EnvironmentAttributeSystem;
 mutable	field	net/minecraft/server/level/ServerLevel	environmentAttributes	Lnet/minecraft/world/attribute/EnvironmentAttributeSystem;
+
+# So the `thickness` parameter can rebuild a vegetation patch with its fill scaled (design 7.2).
+#
+# 26.2 held these ten values in `VegetationPatchConfiguration`, a public record, so rebuilding one needed
+# no widening at all. 26.3 folded a configuration into its feature and the fields came with it as
+# `protected final` with no accessor -- and the constructor that takes all ten is still public, so what is
+# missing is only the reading. Every one of them is passed straight back unchanged except the fill.
+#
+# The alternative was to drop `thickness` for patches, which is the silent kind of loss the design calls a
+# bug rather than an outcome; a codec round trip is the other way and needs registry ops this call has no
+# way to reach.
+accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	replaceable	Lnet/minecraft/core/HolderSet;
+accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	groundState	Lnet/minecraft/core/Holder;
+accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	vegetationFeature	Lnet/minecraft/core/Holder;
+accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	surface	Lnet/minecraft/world/level/levelgen/placement/CaveSurface;
+accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	depth	Lnet/minecraft/util/valueproviders/IntProvider;
+accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	extraBottomBlockChance	F
+accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	verticalRange	I
+accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	vegetationChance	F
+accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	xzRadius	Lnet/minecraft/util/valueproviders/IntProvider;
+accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	extraEdgeColumnChance	F

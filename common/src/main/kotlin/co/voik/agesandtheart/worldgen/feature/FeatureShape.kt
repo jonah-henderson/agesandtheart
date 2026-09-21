@@ -1,21 +1,23 @@
 package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.age.aspect.Span
+import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.world.level.levelgen.VerticalAnchor
 import net.minecraft.world.level.levelgen.feature.Feature
-import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.levelgen.feature.LakeFeature
 import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider
 import net.minecraft.world.level.block.Block
 
-import net.minecraft.world.level.levelgen.feature.configurations.BlockStateConfiguration
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
-import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration
-import net.minecraft.world.level.levelgen.feature.configurations.SpringConfiguration
-import net.minecraft.world.level.levelgen.feature.configurations.VegetationPatchConfiguration
+import net.minecraft.world.level.levelgen.feature.AbstractOreFeature
+import net.minecraft.world.level.levelgen.feature.BlockReplacement
+import net.minecraft.world.level.levelgen.feature.OreFeature
+import net.minecraft.world.level.levelgen.feature.ScatteredOreFeature
+import net.minecraft.world.level.levelgen.feature.SpringFeature
+import net.minecraft.world.level.levelgen.feature.VegetationPatchFeature
+import net.minecraft.world.level.levelgen.feature.WaterloggedVegetationPatchFeature
 import net.minecraft.world.level.levelgen.heightproviders.UniformHeight
 import net.minecraft.world.level.levelgen.placement.HeightRangePlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
@@ -62,10 +64,8 @@ object FeatureShape {
      * the feature's own test for a wall to come out of and an opening to come out into is what decides
      * whether anything is laid at all, exactly as a spring's rock and hole counts decide for it.
      */
-    private fun spilled(block: Block, placement: List<PlacementModifier>): Holder<PlacedFeature> {
-        val made = ConfiguredFeature(SpilledSpring, BlockStateConfiguration(block.defaultBlockState()))
-        return Holder.direct(PlacedFeature(Holder.direct(made), placement))
-    }
+    private fun spilled(block: Block, placement: List<PlacementModifier>): Holder<PlacedFeature> =
+        Holder.direct(PlacedFeature(Holder.direct(SpilledSpring(block.defaultBlockState())), placement))
 
     /**
      * [pattern] made of [substance] instead of whatever it was made of — how a writer asks for a thing the
@@ -85,20 +85,19 @@ object FeatureShape {
             ?.let { BuiltInRegistries.BLOCK.getOptional(it).orElse(null) }
             ?: return pattern
         val placed = pattern.value()
-        val feature = placed.feature().value()
-        val rebuilt = when (val configuration = feature.config()) {
-            is SpringConfiguration -> {
+        val rebuilt = when (val feature = placed.feature().value()) {
+            is SpringFeature -> {
                 // **A spring runs with a fluid, and a solid holds none.** `fluidState` of a block that is
                 // not one is `Fluids.EMPTY`, so `gold block springs` would rebuild a spring that places
                 // nothing at all. What it gets instead is [spilled] — the shape of a spring that tried.
                 val running = block.defaultBlockState().fluidState
                 if (running.isEmpty) return spilled(block, placed.placement())
-                SpringConfiguration(
+                SpringFeature(
                     running,
-                    configuration.requiresBlockBelow,
-                    configuration.rockCount,
-                    configuration.holeCount,
-                    configuration.validBlocks,
+                    feature.requiresBlockBelow(),
+                    feature.rockCount(),
+                    feature.holeCount(),
+                    feature.validBlocks(),
                 )
             }
             // **A lake is a bowl, so anything may fill it** — no fluid test beside the spring's, because
@@ -107,25 +106,31 @@ object FeatureShape {
             // The three predicates are the pattern's own, as the barrier is: only the fluid is ours.
             // Vanilla has deprecated the whole feature, but a datapack may still carry one and this
             // only re-points its fill — so the deprecation is the pack's to answer, not ours.
-            is LakeFeature.Configuration -> LakeFeature.Configuration(
-                BlockStateProvider.simple(block.defaultBlockState()),
-                configuration.barrier(),
-                configuration.canPlaceFeature(),
-                configuration.canReplaceWithAirOrFluid(),
-                configuration.canReplaceWithBarrier(),
+            is LakeFeature -> LakeFeature(
+                BlockStateProvider.holderOf(block.defaultBlockState()),
+                feature.barrier(),
+                feature.canPlaceFeature(),
+                feature.canReplaceWithAirOrFluid(),
+                feature.canReplaceWithBarrier(),
             )
-            is OreConfiguration -> OreConfiguration(
-                configuration.targetStates.map { OreConfiguration.target(it.target, block.defaultBlockState()) },
-                configuration.size,
-                configuration.discardChanceOnAirExposure,
+            // Scattered before plain: both read the same targets and `ScatteredOreFeature` extends the
+            // same base rather than `OreFeature`, so matching the plain one first would quietly turn every
+            // scattered ore into a blob.
+            is ScatteredOreFeature -> ScatteredOreFeature(
+                feature.targetStates().map { BlockReplacement.replace(it.target(), block.defaultBlockState()) },
+                feature.size(),
+                feature.discardChanceOnAirExposure(),
+            )
+            is OreFeature -> OreFeature(
+                feature.targetStates().map { BlockReplacement.replace(it.target(), block.defaultBlockState()) },
+                feature.size(),
+                feature.discardChanceOnAirExposure(),
             )
             // A formation is a shape and a substance and nothing else, so this is the whole of minting one.
-            is FormationConfiguration -> configuration.copy(substance = block.defaultBlockState())
+            is Formation -> feature.copy(substance = block.defaultBlockState())
             else -> return pattern
         }
-        @Suppress("UNCHECKED_CAST")
-        val made = ConfiguredFeature(feature.feature() as Feature<FeatureConfiguration>, rebuilt)
-        return Holder.direct(PlacedFeature(Holder.direct(made), placed.placement()))
+        return Holder.direct(PlacedFeature(Holder.direct(rebuilt), placed.placement()))
     }
 
     fun reshaped(
@@ -136,60 +141,90 @@ object FeatureShape {
         rock: List<BlockState>,
     ): Holder<PlacedFeature> {
         val placed = feature.value()
-        val configured = withConfiguration(placed.feature(), size, thickness, rock)
+        val shaped = withShape(placed.feature(), size, thickness, rock)
         val placement = withHeight(placed.placement(), height)
-        if (configured === placed.feature() && placement === placed.placement()) return feature
-        return Holder.direct(PlacedFeature(configured, placement))
+        if (shaped === placed.feature() && placement === placed.placement()) return feature
+        return Holder.direct(PlacedFeature(shaped, placement))
     }
 
     /**
-     * The configured feature with its own shape rebuilt — an ore's vein size, a patch's fill.
+     * The feature with its own shape rebuilt — an ore's vein size, a patch's fill.
      *
-     * Both are one number in a record with a public constructor, so this needs neither a codec round trip
-     * nor a widener. Anything else is returned as it stands: thirty-odd configuration types exist and
-     * guessing at one we did not survey would be worse than declining.
+     * Both are one number in a class with a public constructor. Anything else is returned as it stands:
+     * thirty-odd feature types exist and guessing at one we did not survey would be worse than declining.
      */
-    private fun withConfiguration(
-        configured: Holder<ConfiguredFeature<*, *>>,
+    private fun withShape(
+        held: Holder<Feature>,
         size: Double?,
         thickness: Double?,
         rock: List<BlockState>,
-    ): Holder<ConfiguredFeature<*, *>> {
-        val feature = configured.value()
-        val rebuilt = when (val configuration = feature.config()) {
-            is OreConfiguration -> {
-                val targets = targetsReaching(configuration, rock)
-                val veins = size?.let { scaled(configuration.size, it, MOST_OF_A_VEIN) }
+    ): Holder<Feature> {
+        val rebuilt = when (val feature = held.value()) {
+            // Scattered before plain, for the reason [mintedFrom] gives.
+            is ScatteredOreFeature -> {
+                val targets = targetsReaching(feature, rock)
+                val veins = size?.let { scaled(feature.size(), it, MOST_OF_A_VEIN) }
                 if (targets == null && veins == null) {
                     null
                 } else {
-                    OreConfiguration(
-                        targets ?: configuration.targetStates,
-                        veins ?: configuration.size,
-                        configuration.discardChanceOnAirExposure,
+                    ScatteredOreFeature(
+                        targets ?: feature.targetStates(),
+                        veins ?: feature.size(),
+                        feature.discardChanceOnAirExposure(),
                     )
                 }
             }
 
-            is VegetationPatchConfiguration -> thickness?.let {
-                VegetationPatchConfiguration(
-                    configuration.replaceable,
-                    configuration.groundState,
-                    configuration.vegetationFeature,
-                    configuration.surface,
-                    configuration.depth,
-                    configuration.extraBottomBlockChance,
-                    configuration.verticalRange,
-                    scaledChance(configuration.vegetationChance, it),
-                    configuration.xzRadius,
-                    configuration.extraEdgeColumnChance,
+            is OreFeature -> {
+                val targets = targetsReaching(feature, rock)
+                val veins = size?.let { scaled(feature.size(), it, MOST_OF_A_VEIN) }
+                if (targets == null && veins == null) {
+                    null
+                } else {
+                    OreFeature(
+                        targets ?: feature.targetStates(),
+                        veins ?: feature.size(),
+                        feature.discardChanceOnAirExposure(),
+                    )
+                }
+            }
+
+            // Waterlogged before plain: it extends the plain one, and rebuilding it as the base class
+            // would dry out every waterlogged patch in the Age.
+            is WaterloggedVegetationPatchFeature -> thickness?.let {
+                WaterloggedVegetationPatchFeature(
+                    feature.replaceable,
+                    feature.groundState,
+                    feature.vegetationFeature,
+                    feature.surface,
+                    feature.depth,
+                    feature.extraBottomBlockChance,
+                    feature.verticalRange,
+                    scaledChance(feature.vegetationChance, it),
+                    feature.xzRadius,
+                    feature.extraEdgeColumnChance,
+                )
+            }
+
+            is VegetationPatchFeature -> thickness?.let {
+                VegetationPatchFeature(
+                    feature.replaceable,
+                    feature.groundState,
+                    feature.vegetationFeature,
+                    feature.surface,
+                    feature.depth,
+                    feature.extraBottomBlockChance,
+                    feature.verticalRange,
+                    scaledChance(feature.vegetationChance, it),
+                    feature.xzRadius,
+                    feature.extraEdgeColumnChance,
                 )
             }
 
             // **Resized rather than rebuilt**, which is what a field tree buys: the description grows, so a
             // colossal obelisk has more courses of blocks rather than a stretched staircase. The pose is
             // resized with it, its lifts being absolute blocks.
-            is FormationConfiguration -> size?.let {
+            is Formation -> size?.let {
                 val factor = sizeFactor(it)
                 // **The layout is spread with the shapes, but by the root of the factor.** Spreading it
                 // linearly keeps the *fraction of ground covered* constant, which sounds right and makes a
@@ -197,21 +232,16 @@ object FeatureShape {
                 // writer asking for colossal wants bigger, not scarcer — so the spacing grows with the
                 // square root, and a colossal ring sits about twice as far from its neighbour rather than
                 // four times. Walked at 4x: one every ~800 blocks became one every ~400.
-                configuration.copy(
-                    shapes = configuration.shapes.map { shape -> shape.resized(factor, STANDING_ON_THE_GROUND) },
-                    variation = configuration.variation.resized(factor),
-                    placement = configuration.placement.resized(sqrt(factor)),
+                feature.copy(
+                    shapes = feature.shapes.map { shape -> shape.resized(factor, STANDING_ON_THE_GROUND) },
+                    variation = feature.variation.resized(factor),
+                    placement = feature.placement.resized(sqrt(factor)),
                 )
             }
 
             else -> null
-        } ?: return configured
-        // The generics are the record's own: a `ConfiguredFeature<FC, F>` pairs a configuration with the
-        // feature that reads it, and rebuilding one loses the pairing the compiler was tracking. The
-        // configuration came out of this very feature, so the pair is sound.
-        @Suppress("UNCHECKED_CAST")
-        val paired = ConfiguredFeature(feature.feature() as Feature<FeatureConfiguration>, rebuilt)
-        return Holder.direct(paired)
+        } ?: return held
+        return Holder.direct(rebuilt)
     }
 
     /**
@@ -224,17 +254,19 @@ object FeatureShape {
      * deepslate diamond ore, which is the right one for a rock that is not deepslate.
      */
     private fun targetsReaching(
-        configuration: OreConfiguration,
+        feature: AbstractOreFeature,
         rock: List<BlockState>,
-    ): List<OreConfiguration.TargetBlockState>? {
+    ): List<BlockReplacement>? {
         val probe = XoroshiroRandomSource(A_FIXED_PROBE)
+        // 26.3's `RuleTest` takes the position too. None of the tests that could answer differently read
+        // it — they turn on the state or on the random — so this asks about nowhere in particular.
         val unreached = rock.filterNot { block ->
-            configuration.targetStates.any { it.target.test(block, probe) }
+            feature.targetStates().any { it.target().test(block, BlockPos.ZERO, probe) }
         }
         if (unreached.isEmpty()) return null
-        val ore = configuration.targetStates.firstOrNull()?.state ?: return null
-        return configuration.targetStates +
-            unreached.distinct().map { OreConfiguration.target(BlockMatchTest(it.block), ore) }
+        val ore = feature.targetStates().firstOrNull()?.state() ?: return null
+        return feature.targetStates() +
+            unreached.distinct().map { BlockReplacement.replace(BlockMatchTest(it.block), ore) }
     }
 
     /**
