@@ -245,7 +245,7 @@ object AgeGeneration {
                 if (composition.roofedByItsRock) SurfacingStrategy.shutOverhead(skin) else skin
             }
                 ?: SurfacingStrategy.SUPPRESSED,
-            composition.carvers.map { it.configuredCarvers(server) },
+            composition.carvers.map { it.carversFor(server) },
             below,
             waterTablesOf(composition, seaFill, seed),
             // One answer for the whole dimension — vanilla places structures against the level, and what

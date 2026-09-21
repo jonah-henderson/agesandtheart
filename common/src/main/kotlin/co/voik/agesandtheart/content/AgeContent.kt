@@ -39,7 +39,6 @@ import co.voik.agesandtheart.desk.SeismographMenu
 import co.voik.agesandtheart.desk.WritersDeskMenu
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.carver.Porosity
-import co.voik.agesandtheart.worldgen.carver.RuleCarver
 import com.mojang.serialization.MapCodec
 import co.voik.agesandtheart.worldgen.fissure.StarFissurePiece
 import co.voik.agesandtheart.worldgen.fissure.StarFissureStructure
@@ -95,7 +94,6 @@ import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.material.MapColor
 import net.minecraft.world.level.material.PushReaction
-import net.minecraft.world.level.levelgen.carver.CarverConfiguration
 import co.voik.agesandtheart.worldgen.feature.Formation
 import co.voik.agesandtheart.worldgen.feature.Algae
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
@@ -1707,11 +1705,11 @@ object AgeContent {
     )
 
     /**
-     * Our own carvers. The configured instances that use them are datapack JSON under
-     * `data/agesandtheart/worldgen/configured_carver/`; this registers the carver *kinds* those refer to.
+     * Our own carvers. The instances that use them are datapack JSON under
+     * `data/agesandtheart/worldgen/carver/`; this registers the codecs those dispatch on.
      */
-    val carvers: List<Pair<Identifier, WorldCarver<*>>> = listOf(
-        "porosity".location() to RuleCarver(CarverConfiguration.CODEC.codec(), Porosity.VUGS),
+    val carvers: List<Pair<Identifier, MapCodec<out WorldCarver>>> = listOf(
+        "porosity".location() to Porosity.CODEC,
     )
 
     private val BLIZZARD_SHELTERED_ID: Identifier = "blizzard_sheltered".location()

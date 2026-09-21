@@ -1,7 +1,14 @@
 package co.voik.agesandtheart.worldgen.carver
 
-import co.voik.agesandtheart.worldgen.VerticalWindow
+import com.mojang.serialization.Codec
+import com.mojang.serialization.MapCodec
+import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.util.RandomSource
+import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.chunk.CarverOutput
+import net.minecraft.world.level.levelgen.WorldGenerationContext
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
+import net.minecraft.world.level.levelgen.carver.WorldCarver
 import net.minecraft.world.level.levelgen.synth.NormalNoise
 
 /**
@@ -12,6 +19,9 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
  * **Deliberately not caves** — a cave is a connected walk you travel along, this is isolated voids you
  * break into. The difference comes from the noise rather than any extra machinery: a fine scale with a
  * high threshold leaves scattered blobs where a coarse one with a low threshold joins them into tunnels.
+ *
+ * It is both the rule and the carver: 26.3 folded a carver's configuration into the carver itself, so the
+ * dials below are the serialised form rather than a separate record beside it.
  */
 class Porosity(
     override val fromY: Int,
@@ -30,30 +40,44 @@ class Porosity(
     val threshold: Double,
     val seed: Long,
     val firstOctave: Int,
-    val amplitudes: DoubleArray,
-) : CarvingRule {
-    private val pockets = NormalNoise.create(XoroshiroRandomSource(seed), firstOctave, *amplitudes)
+    val amplitudes: List<Double>,
+    /** How often a chunk is a starting one at all. */
+    val probability: Float,
+) : CarvingRule, WorldCarver {
+
+    private val pockets = NormalNoise.createParity(firstOctave, *amplitudes.toDoubleArray())
+        .create(XoroshiroRandomSource(seed))
 
     override fun cuts(worldX: Int, worldY: Int, worldZ: Int): Boolean {
         if (worldY !in fromY..toY) return false
-        return pockets.getValue(worldX / scale, worldY / verticalScale, worldZ / scale) > threshold
+        return pockets.get(worldX / scale, worldY / verticalScale, worldZ / scale) > threshold
     }
 
+    override fun isStartChunk(random: RandomSource): Boolean = random.nextFloat() <= probability
+
+    override fun carve(
+        context: WorldGenerationContext,
+        random: RandomSource,
+        chunkBeingBuilt: ChunkPos,
+        sourceChunk: ChunkPos,
+        output: CarverOutput,
+    ): Boolean = RuleCarving.cut(this, chunkBeingBuilt, sourceChunk, output)
+
+    override fun codec(): MapCodec<out WorldCarver> = CODEC
+
     companion object {
-        /**
-         * The shipped rule: small vugs through the whole rock column. The band spans the world rather than
-         * a tuned slice, because a carving may be paired with any terrain and a fixed band would quietly
-         * do nothing for half of them. `RuleCarver` skips air first, so the width costs little.
-         */
-        val VUGS = Porosity(
-            fromY = VerticalWindow.MIN_Y,
-            toY = VerticalWindow.TOP_Y,
-            scale = 9.0,
-            verticalScale = 6.5,
-            threshold = 0.62,
-            seed = 0x0B_5E_1FL,
-            firstOctave = -3,
-            amplitudes = doubleArrayOf(1.0, 0.6),
-        )
+        val CODEC: MapCodec<Porosity> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                Codec.INT.fieldOf("from_y").forGetter(Porosity::fromY),
+                Codec.INT.fieldOf("to_y").forGetter(Porosity::toY),
+                Codec.DOUBLE.fieldOf("scale").forGetter(Porosity::scale),
+                Codec.DOUBLE.fieldOf("vertical_scale").forGetter(Porosity::verticalScale),
+                Codec.DOUBLE.fieldOf("threshold").forGetter(Porosity::threshold),
+                Codec.LONG.fieldOf("seed").forGetter(Porosity::seed),
+                Codec.INT.fieldOf("first_octave").forGetter(Porosity::firstOctave),
+                Codec.DOUBLE.listOf().fieldOf("amplitudes").forGetter(Porosity::amplitudes),
+                Codec.FLOAT.fieldOf("probability").forGetter(Porosity::probability),
+            ).apply(instance, ::Porosity)
+        }
     }
 }

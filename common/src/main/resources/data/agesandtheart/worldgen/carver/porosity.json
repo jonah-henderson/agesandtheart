@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "The shipped rule: small vugs through the whole rock column.",
+    "The band spans the world rather than a tuned slice, because a carving may be paired with any terrain",
+    "and a fixed band would quietly do nothing for half of them. The carve loop skips air first (OpenGround),",
+    "so the width costs little.",
+    "scale is blocks per unit of noise — how big a pocket is. Small on purpose: raise it and the pockets",
+    "grow, meet one another and become caves, which is a different preset's job. threshold is the single",
+    "dial worth turning: the noise is near-normal, so a high one takes only the extremes and leaves rock",
+    "that is mostly solid."
+  ],
+  "type": "agesandtheart:porosity",
+  "from_y": -64,
+  "to_y": 320,
+  "scale": 9.0,
+  "vertical_scale": 6.5,
+  "threshold": 0.62,
+  "seed": 744991,
+  "first_octave": -3,
+  "amplitudes": [1.0, 0.6],
+  "probability": 1.0
+}

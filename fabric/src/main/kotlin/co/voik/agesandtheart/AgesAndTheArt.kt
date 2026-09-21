@@ -97,7 +97,7 @@ fun init() {
     WorldgenCodecs.surfaceConditionCodecs.forEach { (id, codec) ->
         Registry.register(BuiltInRegistries.MATERIAL_CONDITION, id, codec)
     }
-    AgeContent.carvers.forEach { (id, carver) -> Registry.register(BuiltInRegistries.CARVER, id, carver) }
+    AgeContent.carvers.forEach { (id, codec) -> Registry.register(BuiltInRegistries.CARVER_TYPE, id, codec) }
     AgeContent.features.forEach { (id, feature) -> Registry.register(BuiltInRegistries.FEATURE, id, feature) }
     AgeContent.lootFunctions.forEach { (id, fn) -> Registry.register(BuiltInRegistries.LOOT_FUNCTION_TYPE, id, fn) }
 

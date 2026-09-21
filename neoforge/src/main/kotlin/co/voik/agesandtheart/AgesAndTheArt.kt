@@ -184,8 +184,8 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.FEATURE) { helper ->
             AgeContent.features.forEach { (id, feature) -> helper.register(id, feature) }
         }
-        event.register(Registries.CARVER) { helper ->
-            AgeContent.carvers.forEach { (id, carver) -> helper.register(id, carver) }
+        event.register(Registries.CARVER_TYPE) { helper ->
+            AgeContent.carvers.forEach { (id, codec) -> helper.register(id, codec) }
         }
         event.register(Registries.LOOT_FUNCTION_TYPE) { helper ->
             AgeContent.lootFunctions.forEach { (id, fn) -> helper.register(id, fn) }
