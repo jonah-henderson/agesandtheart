@@ -240,7 +240,10 @@ internal object SkyInstruments {
         val look = Ages.recipeOf(level)?.let(Skies::lookOf)
         val aurora = look?.sky?.aurora
         if (look == null || aurora == null) {
-            source.sendFailure(Component.literal("Nothing hangs a curtain here to bring on"))
+            // **Says what to do about it**, because this is the command somebody reaches for when they
+            // cannot find the curtain they think they wrote — and "there isn't one" is the one answer that
+            // reads as a fault in the command rather than in the book.
+            source.sendFailure(Component.literal(whyThereIsNoCurtain(level, look == null)))
             return FAILURE
         }
         val insisted = aurora.copy(frequency = EVERY_NIGHT, warmestGround = null)
@@ -254,6 +257,19 @@ internal object SkyInstruments {
         // that is not up at all — which is exactly the confusion this command exists to end.
         source.sendSuccess({ Component.literal("  ${facingFor(insisted.bearingDegrees)}") }, false)
         return SUCCESS
+    }
+
+    /**
+     * Why there is nothing to bring on, and how to get one.
+     *
+     * Two different answers: a level that is not an Age at all has no book to have written a curtain, and
+     * an Age whose recipe simply did not ask for one needs a word that does.
+     */
+    private fun whyThereIsNoCurtain(level: ServerLevel, notAnAge: Boolean): String {
+        val where = level.dimension().identifier()
+        if (notAnAge) return "$where is not an Age, so no book wrote a curtain over it."
+        return "Nothing hangs a curtain over $where. Write one with `auroral phenomena`, or describe one " +
+            "and mean it — `green and red aurora`. Then `/age showing aurora` says why it is or is not up."
     }
 
     /** Where to stand looking, given a curtain crossing the sky at [bearingDegrees]. */
