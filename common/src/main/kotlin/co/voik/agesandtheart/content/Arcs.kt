@@ -2,7 +2,6 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.location
 import kotlin.math.roundToInt
-import net.minecraft.tags.BlockTags
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
@@ -274,10 +273,13 @@ object Arcs {
      * of the mass [copperAround] found. That one fact is what makes a rod stood on a pile of arc crystal
      * need no rule: it is a conducting mass of one block, driven by the crystal under it, and everything
      * about what it is worth was already written.
+     *
+     * **[MASTS] and not vanilla's `lightning_rods`**, which in 26.2 gathers every weathering stage. An
+     * oxidised rod cannot reach here anyway, the mass having been walked by [conducts] — but saying "any
+     * rod" where the rule is "a bare one" is a sentence waiting to come true.
      */
     fun rodsOn(level: BlockGetter, mass: Collection<BlockPos>): Set<BlockPos> =
-        // A rod weathers in 26.2, so there are several blocks and a tag that gathers them.
-        mass.filterTo(LinkedHashSet()) { level.getBlockState(it).`is`(BlockTags.LIGHTNING_RODS) }
+        mass.filterTo(LinkedHashSet()) { level.getBlockState(it).`is`(MASTS) }
 
     /**
      * How far a charged mass bites past itself, given the rods on it — nothing at all without one.
@@ -345,6 +347,13 @@ object Arcs {
     val ATTRACTIVE: TagKey<Block> = TagKey.create(Registries.BLOCK, "carries_attractive_current".location())
     val REPULSIVE: TagKey<Block> = TagKey.create(Registries.BLOCK, "carries_repulsive_current".location())
     val ELECTRIC: TagKey<Block> = TagKey.create(Registries.BLOCK, "carries_electric_current".location())
+
+    /**
+     * The rods a mast may throw from — bare ones, where vanilla's `lightning_rods` gathers all eight
+     * stages 26.2 gave the rod. Ours, for the reason [ELECTRIC] is ours: which stage conducts is the
+     * mechanic.
+     */
+    val MASTS: TagKey<Block> = TagKey.create(Registries.BLOCK, "throws_an_arc".location())
 
     fun conducts(state: BlockState): Boolean = state.`is`(ELECTRIC)
 

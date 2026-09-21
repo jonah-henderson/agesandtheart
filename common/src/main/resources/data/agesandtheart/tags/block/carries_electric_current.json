@@ -12,7 +12,11 @@
     "**And so is the lightning rod, because a lightning rod is made of copper** (Jonah, 2026-09-09). That",
     "one line is what makes a rod stood on a pile of arc crystal work with no rule of its own: it is a",
     "conducting mass of one block, driven by the crystal touching it, and `Arcs.reachOfAMast` already says",
-    "what a rod on a mass is worth. It never oxidises, which is correct -- vanilla has no weathered rod.",
+    "what a rod on a mass is worth.",
+    "",
+    "**A rod weathers as of 26.2**, where it never used to, so the bare ones are named here and the other",
+    "six are left out by the same rule as any other green copper. That is also what keeps a green rod from",
+    "throwing an arc: it is not in a mass, so `Arcs.rodsOn` never sees it (Jonah, 2026-09-20).",
     "",
     "Spelled out rather than built on `minecraft:copper_blocks`, which would drag every oxidised stage in",
     "with it -- and *which* stage conducts is the mechanic, not an implementation detail."
@@ -26,6 +30,7 @@
     "minecraft:waxed_copper_grate",
     "minecraft:cut_copper",
     "minecraft:waxed_cut_copper",
-    "minecraft:lightning_rod"
+    "minecraft:lightning_rod",
+    "minecraft:waxed_lightning_rod"
   ]
 }

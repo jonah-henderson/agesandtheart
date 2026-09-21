@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "The rods an arc will throw from -- **bare copper ones, and that is the whole of the rule**.",
+    "",
+    "26.2 gave the lightning rod the rest of copper's weathering, so there are eight of them where there",
+    "was one, and `minecraft:lightning_rods` gathers all eight. Filtering a mast with vanilla's tag would",
+    "say a green rod throws, which contradicts `carries_electric_current`: oxide is an insulator there, and",
+    "which stage conducts is the mechanic rather than an implementation detail (Jonah, 2026-09-20).",
+    "",
+    "Waxed is in, for that file's reason -- wax keeps copper bare rather than covering it.",
+    "",
+    "**It is not redundant, though nothing oxidised can reach it today.** A mast is filtered out of a mass",
+    "that `Arcs.copperAround` already walked by `carries_electric_current`, so a green rod is excluded twice",
+    "over. That is exactly why this exists: the outer rule is the one a pack can change, and a rod that",
+    "started conducting should not silently start throwing as well."
+  ],
+  "values": [
+    "minecraft:lightning_rod",
+    "minecraft:waxed_lightning_rod"
+  ]
+}
