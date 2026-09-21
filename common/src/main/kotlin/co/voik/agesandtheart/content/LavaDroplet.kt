@@ -69,9 +69,10 @@ class LavaDroplet(type: EntityType<out LavaDroplet>, level: Level) : ThrowablePr
         if (hit !is BlockHitResult || hit.direction != Direction.UP) return
         val at = hit.blockPos.relative(hit.direction)
         val standing = level.getBlockState(at)
-        // Somewhere already molten, or somewhere with no room: either way this one is simply spent. Both
-        // matter — without them a volcano would keep stacking lava into ground that had already flooded.
-        if (standing.blocksMotion() || standing.`is`(Blocks.LAVA)) return
+        // Somewhere with no room, which includes somewhere already molten: either way this one is
+        // simply spent, and without it a volcano keeps stacking lava into ground that has already flooded.
+        // Grass and the like are *not* room taken — a droplet is meant to fall through them.
+        if (!standing.canBeReplaced()) return
         level.setBlockAndUpdate(at, Blocks.LAVA.defaultBlockState())
         level.playSound(null, at, SoundEvents.LAVA_POP, SoundSource.BLOCKS)
     }

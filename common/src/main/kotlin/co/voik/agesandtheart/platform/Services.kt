@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.platform
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.platform.services.Flammability
 import co.voik.agesandtheart.platform.services.InkFluids
 import co.voik.agesandtheart.platform.services.Network
 import co.voik.agesandtheart.platform.services.Platform
@@ -14,6 +15,9 @@ object Services {
 
     /** The registered ink fluids, which only a loader can build. See [InkFluids]. */
     val INK_FLUIDS = load(InkFluids::class.java)
+
+    /** Whether fire takes hold on a block, which NeoForge asks per face and vanilla does not. */
+    val FLAMMABILITY = load(Flammability::class.java)
 
     fun <T> load(clazz: Class<T>): T {
         val loadedService = ServiceLoader.load(clazz)

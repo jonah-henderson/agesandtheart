@@ -55,7 +55,7 @@ sealed class FabricInkFluid(val tier: InkTier) : FlowingFluid() {
         pos: BlockPos,
         other: Fluid,
         direction: Direction,
-    ): Boolean = direction == Direction.DOWN && !other.`is`(FabricInkFluids.tag(tier))
+    ): Boolean = direction == Direction.DOWN && !other.defaultFluidState().`is`(FabricInkFluids.tag(tier))
 
     override fun createLegacyBlock(state: FluidState): BlockState =
         FabricInkFluids.block(tier).defaultBlockState().setValue(BlockStateProperties.LEVEL, getLegacyLevel(state))

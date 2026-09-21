@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.fissure
 
+import co.voik.agesandtheart.compat.hasChunkAtColumn
 import net.minecraft.core.BlockPos
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.player.Player
@@ -48,7 +49,7 @@ object StarFissureFall {
      * player standing in them, never takes this branch.
      */
     private fun stillUnderTheTear(player: Player): Boolean {
-        val cannotSeeTheColumn = !player.level().hasChunkAt(player.blockX, player.blockZ)
+        val cannotSeeTheColumn = !player.level().hasChunkAtColumn(player.blockX, player.blockZ)
         return cannotSeeTheColumn || tearOfTheFall(player) != null
     }
 

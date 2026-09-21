@@ -104,7 +104,7 @@ object DeepWater {
      * does route through here. The abyss keeps its own top face, so the surface a diver sees under the sea
      * is still there — it is simply flush now instead of floating an eighth of a block below.
      */
-    fun countsAsTheSameFluid(fluid: Fluid): Boolean = fluid.`is`(FluidTags.WATER)
+    fun countsAsTheSameFluid(fluid: Fluid): Boolean = fluid.defaultFluidState().`is`(FluidTags.WATER)
 
     /**
      * Biomes an abyss may not stand in, however deep the column under them is.

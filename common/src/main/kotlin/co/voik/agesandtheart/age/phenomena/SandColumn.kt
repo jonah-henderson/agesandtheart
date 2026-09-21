@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.compat.hasChunkAtColumn
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
 import net.minecraft.network.syncher.EntityDataAccessor
@@ -399,7 +400,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
     /** The first empty place above that column, or null where there is no chunk to ask. */
     private fun topOf(level: ServerLevel, atX: Int, atZ: Int): BlockPos? {
         val column = BlockPos(atX, level.minY, atZ)
-        if (!level.hasChunkAt(column.x, column.z)) return null
+        if (!level.hasChunkAtColumn(column.x, column.z)) return null
         return Sampling.skyward(level, column)
     }
 

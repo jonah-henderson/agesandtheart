@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.compat.hasChunkAtColumn
 import co.voik.agesandtheart.compat.center
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
@@ -160,7 +161,7 @@ class AgeSpawner(
         val reach = level.server.playerList.simulationDistance * BLOCKS_PER_CHUNK
         val x = around.x + level.random.nextInt(-reach, reach + 1)
         val z = around.z + level.random.nextInt(-reach, reach + 1)
-        if (!level.hasChunkAt(x, z)) return null
+        if (!level.hasChunkAtColumn(x, z)) return null
         return BlockPos(x, level.getHeight(chosen.surface, x, z), z)
     }
 

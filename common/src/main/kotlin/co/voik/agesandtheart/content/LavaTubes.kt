@@ -35,7 +35,10 @@ object LavaTubes {
      * not — which is what makes plugging a deliberate act, and what lets water do it for a bucket by
      * turning the lava to obsidian.
      */
-    fun plugged(level: BlockGetter, at: BlockPos): Boolean = level.getBlockState(at.above()).blocksMotion()
+    fun plugged(level: BlockGetter, at: BlockPos): Boolean {
+        val lid = at.above()
+        return level.getBlockState(lid).isFaceSturdy(level, lid, Direction.DOWN)
+    }
 
     /**
      * The connected run of tubes [at] belongs to, six-ways, up to [MOST_IN_A_MASS].

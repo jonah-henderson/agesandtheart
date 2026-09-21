@@ -1,11 +1,14 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.tags.BlockTags
 import net.minecraft.world.level.block.BaseFireBlock
 import net.minecraft.world.level.block.IceBlock
+import net.minecraft.world.level.block.state.BlockState
 
 /**
  * A world that burns (design §5.2.2).
@@ -89,14 +92,25 @@ object Inferno {
     private fun light(level: ServerLevel, above: BlockPos) {
         val standing = level.getBlockState(above)
         // Vanilla's own choice of fire, so soul sand gets soul fire and nothing needs a special case.
-        if (standing.ignitedByLava()) {
+        if (catchesFire(level, above, standing)) {
             level.setBlockAndUpdate(above, BaseFireBlock.getState(level, above))
             return
         }
         if (!standing.isAir) return
-        if (!level.getBlockState(above.below()).ignitedByLava()) return
+        val under = above.below()
+        if (!catchesFire(level, under, level.getBlockState(under))) return
         level.setBlockAndUpdate(above, BaseFireBlock.getState(level, above))
     }
+
+    /**
+     * Whether this block takes the sky's fire — **asked of the loader**, because NeoForge lets a block
+     * answer per face and per position where vanilla has only a flag. See
+     * [co.voik.agesandtheart.platform.services.Flammability].
+     *
+     * The fire comes down out of the sky, so the face it arrives at is the top one.
+     */
+    private fun catchesFire(level: ServerLevel, at: BlockPos, state: BlockState): Boolean =
+        Services.FLAMMABILITY.catchesFire(level, at, state, Direction.UP)
 
     /**
      * Takes the frost off a place too hot to have it, and says whether there was any.

@@ -89,7 +89,7 @@ sealed class FabricDeepWater : FlowingFluid() {
         pos: BlockPos,
         other: Fluid,
         direction: Direction,
-    ): Boolean = direction == Direction.DOWN && !other.`is`(FluidTags.WATER)
+    ): Boolean = direction == Direction.DOWN && !other.defaultFluidState().`is`(FluidTags.WATER)
 
     override fun createLegacyBlock(state: FluidState): BlockState =
         FabricDeepWaterFluids.block.defaultBlockState()

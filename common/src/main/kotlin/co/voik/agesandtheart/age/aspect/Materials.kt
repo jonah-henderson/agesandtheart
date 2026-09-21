@@ -8,6 +8,7 @@ import net.minecraft.resources.Identifier
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.EmptyBlockGetter
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.LiquidBlock
 
 /**
  * What an Age's **rock** may be made of — the fill a world is built from (§3.2's material parameters).
@@ -84,7 +85,7 @@ object Materials {
         // **A fluid is allowed though nothing stands on it**, and the distinction is accident against
         // intent: an ocean world and a world of lava are Ages somebody meant, with a boat and a potion as
         // the answers, where a world of signs is a block nobody thought of as a world at all.
-        if (state.liquid()) return true
+        if (state.block is LiquidBlock) return true
         return Block.isShapeFullBlock(state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO))
     }
 
