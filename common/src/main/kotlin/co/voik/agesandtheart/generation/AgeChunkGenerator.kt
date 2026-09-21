@@ -362,11 +362,17 @@ class AgeChunkGenerator(
      * manager's, which is the only route to one from here.
      */
     private fun skyIsOpenAt(structures: StructureManager, at: BlockPos): Boolean {
-        val ours = rock as? AgeRock.Ours
+        rock as? AgeRock.Ours
             ?: return at.y >= structures.level.getHeight(Heightmap.Types.WORLD_SURFACE, at.x, at.z)
-        val highestRock = ours.field.columnSpans(at.x, at.z).highestSolidY ?: return true
+        val highestRock = openSky.highestSolidYAt(at.x, at.z) ?: return true
         return at.y > highestRock
     }
+
+    /**
+     * The field's own answer to [skyIsOpenAt], remembered — see [OpenSkyHeights] for why the spawner needs
+     * a cache of its own and why it could not be the one generation already has.
+     */
+    private val openSky: OpenSkyHeights by lazy { OpenSkyHeights((rock as AgeRock.Ours).field) }
 
     override fun codec(): MapCodec<out ChunkGenerator> = CODEC
 
