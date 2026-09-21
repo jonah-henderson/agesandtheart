@@ -5,12 +5,15 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.Holder
 import net.minecraft.core.QuartPos
-import net.minecraft.util.KeyDispatchDataCodec
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.biome.TheEndBiomeSource
-import net.minecraft.world.level.levelgen.DensityFunction
+import net.minecraft.world.level.biome.BiomeResolver
+import net.minecraft.world.level.levelgen.densityfunction.DensityBuffer
+import net.minecraft.world.level.levelgen.densityfunction.DensitySampler
+import net.minecraft.world.level.levelgen.densityfunction.DensityVolume
+import net.minecraft.world.level.levelgen.densityfunction.SamplerContext
 import java.util.Optional
 import java.util.stream.Stream
 
@@ -68,14 +71,39 @@ class AgeBiomeSource(
 
     fun told(bent: RegionalClimate): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands)
 
-    override fun getNoiseBiome(quartX: Int, quartY: Int, quartZ: Int, climate: Climate.Sampler): Holder<Biome> {
+    /**
+     * **A factory now, where 26.3 asked a source for one biome at a time.** That is what retired the memo
+     * this class used to keep: the wrappers below were built per lookup and remembered against the sampler
+     * they came from, and a resolver is built once per pass, so there is nothing left to remember.
+     */
+    override fun createResolver(climate: Climate.Sampler): BiomeResolver = resolverOver(under.createResolver(asThisAgeSeesIt(climate)))
+
+    /**
+     * Forwarded rather than left to the default, because `MultiNoiseBiomeSource` overrides this to work a
+     * chunk at a time and falling through would throw that away.
+     */
+    override fun createResolverForChunk(
+        climate: Climate.Sampler,
+        fromQuartX: Int,
+        fromQuartY: Int,
+        fromQuartZ: Int,
+        toQuartX: Int,
+        toQuartY: Int,
+        toQuartZ: Int,
+    ): BiomeResolver = resolverOver(
+        under.createResolverForChunk(
+            asThisAgeSeesIt(climate), fromQuartX, fromQuartY, fromQuartZ, toQuartX, toQuartY, toQuartZ,
+        ),
+    )
+
+    private fun resolverOver(beneath: BiomeResolver) = BiomeResolver { quartX, quartY, quartZ ->
         // Answered before any climate is consulted at all, because it is not a climate question: the halls
         // are a *place*, and no table has a coordinate meaning "indoors" or "under eighty blocks of sea".
         val blockX = QuartPos.toBlock(quartX)
         val blockY = QuartPos.toBlock(quartY)
         val blockZ = QuartPos.toBlock(quartZ)
-        for (band in bands) band.biomeAt(blockX, blockY, blockZ)?.let { return it }
-        return under.getNoiseBiome(quartX, quartY, quartZ, asThisAgeSeesIt(climate))
+        bands.firstNotNullOfOrNull { band -> band.biomeAt(blockX, blockY, blockZ) }
+            ?: beneath.getNoiseBiome(quartX, quartY, quartZ)
     }
 
     /** The world below's own, plus anything only a [BiomeBand] hands out — in no table, so it must be said. */
@@ -104,66 +132,62 @@ class AgeBiomeSource(
     /**
      * The climate sampler as this Age reads it — the same six numbers, bent, grounded and re-deepened.
      *
-     * **Remembered against the sampler it was made from.** One sampler serves a level, and building six
-     * wrappers per biome lookup would be a few thousand allocations a chunk. The check is by identity and
-     * the worst a race can do is build one twice.
+     * **It used to be remembered against the sampler it was made from**, because these were built per
+     * biome lookup and six wrappers a lookup is a few thousand allocations a chunk. 26.3 asks a source for
+     * a *resolver* instead, built once per pass, so there is nothing left to remember and the memo and its
+     * `@Volatile` both go.
      */
-    @Volatile
-    private var seenThrough: Pair<Climate.Sampler, Climate.Sampler>? = null
-
     private fun asThisAgeSeesIt(climate: Climate.Sampler): Climate.Sampler {
         if (handsTheSamplerOn) return climate
-        seenThrough?.let { (given, made) -> if (given === climate) return made }
 
-        fun biasAt(context: DensityFunction.FunctionContext) =
-            bent.at(QuartPos.fromBlock(context.blockX()), QuartPos.fromBlock(context.blockZ()))
+        fun biasAt(blockX: Int, blockZ: Int) =
+            bent.at(QuartPos.fromBlock(blockX), QuartPos.fromBlock(blockZ))
 
-        val made = Climate.Sampler(
+        return Climate.Sampler(
             // Bent first, then chilled by however far this column stands above the Age's floor — the bias is
             // what the writer asked for and the lapse is what the mountain does to it, so a warm Age still
             // has cold summits and a cold one has colder. See [Elevation].
-            asThisAgeReadsIt(climate.temperature()) { context, vanillas ->
-                val warmth = biasAt(context).shift(ClimateAxis.TEMPERATURE, vanillas)
-                grounding?.temperatureAt(context.blockX(), context.blockZ(), warmth) ?: warmth
+            asThisAgeReadsIt(climate.temperature()) { blockX, _, blockZ, vanillas ->
+                val warmth = biasAt(blockX, blockZ).shift(ClimateAxis.TEMPERATURE, vanillas)
+                grounding?.temperatureAt(blockX, blockZ, warmth) ?: warmth
             },
-            asThisAgeReadsIt(climate.humidity()) { context, vanillas ->
-                biasAt(context).shift(ClimateAxis.HUMIDITY, vanillas)
+            asThisAgeReadsIt(climate.humidity()) { blockX, _, blockZ, vanillas ->
+                biasAt(blockX, blockZ).shift(ClimateAxis.HUMIDITY, vanillas)
             },
             // Continentalness describes shape, and an Age's shape is the field tree's rather than the
             // climate's — so by default it passes through untouched and the two simply disagree. A
             // *grounded* Age reads it off the shape instead. See [Grounding] and [ClimateAxis].
-            asThisAgeReadsIt(climate.continentalness()) { context, vanillas ->
-                grounding?.continentalnessAt(context.blockX(), context.blockZ()) ?: vanillas
+            asThisAgeReadsIt(climate.continentalness()) { blockX, _, blockZ, vanillas ->
+                grounding?.continentalnessAt(blockX, blockZ) ?: vanillas
             },
             // Erosion means how worn flat the ground is, so a grounded Age reads it off its own fall rather
             // than off a noise that never saw the terrain — which decides a sandy beach from a stony shore.
-            asThisAgeReadsIt(climate.erosion()) { context, vanillas ->
-                grounding?.erosionAt(context.blockX(), context.blockZ()) ?: vanillas
+            asThisAgeReadsIt(climate.erosion()) { blockX, _, blockZ, vanillas ->
+                grounding?.erosionAt(blockX, blockZ) ?: vanillas
             },
             depthAsThisAgeReadsIt(climate.depth()),
             // Weirdness passes through too. A grounded Age pushes it into the valley band where its own
             // rivers run, which is where vanilla files them. See [ClimateAxis].
-            asThisAgeReadsIt(climate.weirdness()) { context, vanillas ->
-                grounding?.weirdnessAt(context.blockX(), context.blockZ(), vanillas) ?: vanillas
+            asThisAgeReadsIt(climate.weirdness()) { blockX, _, blockZ, vanillas ->
+                grounding?.weirdnessAt(blockX, blockZ, vanillas) ?: vanillas
             },
-            climate.spawnTarget(),
         )
-        seenThrough = climate to made
-        return made
     }
 
     /** One axis of the climate sampler, read the way this Age reads it. */
-    private fun asThisAgeReadsIt(vanillas: DensityFunction, read: (DensityFunction.FunctionContext, Float) -> Float) =
-        AsThisAgeReadsIt(vanillas) { context -> read(context, vanillas.compute(context).toFloat()).toDouble() }
+    private fun asThisAgeReadsIt(
+        vanillas: DensitySampler.Bound,
+        read: (Int, Int, Int, Float) -> Float,
+    ): DensitySampler.Bound = bound(vanillas) { x, y, z -> read(x, y, z, vanillas.sampleValue(x, y, z)) }
 
     /**
      * Depth, which alone decides whether to *ask* the world below at all — two of the three depths answer
      * from their own rock, and computing vanilla's for them walks a density tree per lookup to throw the
      * answer away.
      */
-    private fun depthAsThisAgeReadsIt(vanillas: DensityFunction) = AsThisAgeReadsIt(vanillas) { context ->
-        val sampled = if (!depth.readsVanillas) UNREAD else vanillas.compute(context).toFloat()
-        depth.at(context.blockX(), context.blockY(), context.blockZ(), sampled).toDouble()
+    private fun depthAsThisAgeReadsIt(vanillas: DensitySampler.Bound) = bound(vanillas) { x, y, z ->
+        val sampled = if (!depth.readsVanillas) UNREAD else vanillas.sampleValue(x, y, z)
+        depth.at(x, y, z, sampled)
     }
 
     companion object {
@@ -185,30 +209,22 @@ class AgeBiomeSource(
 /**
  * One climate axis as an Age reads it, wrapping the world's own.
  *
- * A [DensityFunction.SimpleFunction] because that is the whole of what a sampler asks of one: a value at a
- * position. It is never serialised — a sampler is built per level from the level's own router, and this is
- * built from that.
+ * **A sampler rather than a density function**, which is the whole of what a climate sampler asks for: a
+ * value at a position. 26.3 split the two, and this never needed the function half — no codec, no bounds,
+ * and nothing to rewrite beneath it. It carries the wrapped axis's own context, so it is asked wherever
+ * that one would have been.
  */
-private class AsThisAgeReadsIt(
-    private val vanillas: DensityFunction,
-    private val read: (DensityFunction.FunctionContext) -> Double,
-) : DensityFunction.SimpleFunction {
-    override fun compute(context: DensityFunction.FunctionContext): Double = read(context)
+private fun bound(vanillas: DensitySampler.Bound, read: (Int, Int, Int) -> Float): DensitySampler.Bound =
+    DensitySampler.Bound(
+        object : DensitySampler {
+            override fun sampleValue(context: SamplerContext, blockX: Int, blockY: Int, blockZ: Int): Float =
+                read(blockX, blockY, blockZ)
 
-    // **Wider than the axis, deliberately.** These bound an optimiser rather than the answer, and a bend
-    // may carry a value past whatever the world below would have produced on its own.
-    override fun minValue(): Double = minOf(vanillas.minValue(), LOWEST)
-    override fun maxValue(): Double = maxOf(vanillas.maxValue(), HIGHEST)
-
-    override fun codec(): KeyDispatchDataCodec<out DensityFunction> =
-        error("an Age's own climate is built for one level's sampler and is never serialised")
-
-    private companion object {
-        /** Vanilla's climate axes live in −2..2, and a bend cannot carry one past the end of its own axis. */
-        const val LOWEST = -2.0
-        const val HIGHEST = 2.0
-    }
-}
+            override fun sampleVolume(context: SamplerContext, into: DensityBuffer, over: DensityVolume) =
+                DensitySampler.sampleVolumeNaive(context, into, over, this)
+        },
+        vanillas.context(),
+    )
 
 /** What stands in for vanilla's depth where the Age's own depth never reads it — see [ClimateDepth.readsVanillas]. */
 private const val UNREAD = 0.0f
