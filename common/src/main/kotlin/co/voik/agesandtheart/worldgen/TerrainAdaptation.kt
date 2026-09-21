@@ -3,7 +3,7 @@ package co.voik.agesandtheart.worldgen
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.StructureManager
 import net.minecraft.world.level.levelgen.Beardifier
-import net.minecraft.world.level.levelgen.DensityFunction
+import net.minecraft.world.level.levelgen.densityfunction.SamplerContext
 import net.minecraft.world.level.levelgen.structure.TerrainAdjustment
 
 /**
@@ -32,7 +32,7 @@ class TerrainAdaptation private constructor(
      */
     fun verdictAt(x: Int, y: Int, z: Int): Boolean? {
         if (y !in lowY..highY) return null
-        val beard = beardifier.compute(DensityFunction.SinglePointContext(x, y, z))
+        val beard = beardifier.sampleValue(SamplerContext.EMPTY_UNCACHED, x, y, z)
         return when {
             beard > BEARD_DECIDES -> true
             beard < -BEARD_DECIDES -> false
@@ -58,7 +58,7 @@ class TerrainAdaptation private constructor(
          */
         fun around(structureManager: StructureManager, chunkPos: ChunkPos): TerrainAdaptation? {
             val boxes = structureManager
-                .startsForStructure(chunkPos) { it.terrainAdaptation() != TerrainAdjustment.NONE }
+                .startsForStructure(chunkPos.x, chunkPos.z) { it.terrainAdaptation() != TerrainAdjustment.NONE }
                 .flatMap { it.pieces }
                 .filter { it.isCloseToChunk(chunkPos, REACH) }
                 .map { it.boundingBox }

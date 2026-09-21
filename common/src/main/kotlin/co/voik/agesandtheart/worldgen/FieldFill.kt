@@ -10,7 +10,6 @@ import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.level.levelgen.Aquifer
-import net.minecraft.world.level.levelgen.DensityFunction
 import net.minecraft.world.level.levelgen.Heightmap
 
 /**
@@ -105,7 +104,7 @@ internal class FieldFill(
                         // Inside the rock a cave system opened: the table answers, not the waterline. Asked
                         // before the sea, since this space is under it and the sea would otherwise take it.
                         band.hollow(at, y) -> heldBackFrom(
-                            water.computeSubstance(DensityFunction.SinglePointContext(worldX, y, worldZ), HOLLOW),
+                            water.computeSubstance(worldX, y, worldZ, HOLLOW),
                             band,
                             localX,
                             localZ,

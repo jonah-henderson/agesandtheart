@@ -131,10 +131,10 @@ data class Caved(
             val z = worldZ.toDouble()
 
             // The walls' texture, wanted by both the tunnels and the mouths.
-            forEachSample(height) { i -> rough[i] = spaghettiRoughness.getValue(x, (lowest + i).toDouble(), z) }
+            forEachSample(height) { i -> rough[i] = spaghettiRoughness.get(x, (lowest + i).toDouble(), z).toDouble() }
             forEachSample(height) { i ->
                 val depth = mapped(
-                    spaghettiRoughnessModulator.getValue(x, (lowest + i).toDouble(), z),
+                    spaghettiRoughnessModulator.get(x, (lowest + i).toDouble(), z).toDouble(),
                     ROUGHNESS_FROM,
                     ROUGHNESS_TO,
                 )
@@ -145,22 +145,22 @@ data class Caved(
             // the two cannot share a pass — but each is still one table read straight down the column.
             forEachSample(height) { i ->
                 working[i] = rarityOfFlatSpaghetti(
-                    spaghetti2dModulator.getValue(x * 2.0, (lowest + i).toDouble(), z * 2.0),
+                    spaghetti2dModulator.get(x * 2.0, (lowest + i).toDouble(), z * 2.0).toDouble(),
                 )
             }
             forEachSample(height) { i ->
                 val rarity = working[i]
-                tunnels[i] = rarity * abs(spaghetti2d.getValue(x / rarity, (lowest + i) / rarity, z / rarity))
+                tunnels[i] = rarity * abs(spaghetti2d.get(x / rarity, (lowest + i) / rarity, z / rarity).toDouble())
             }
             forEachSample(height) { i ->
                 working[i] = mapped(
-                    spaghetti2dThickness.getValue(x * 2.0, (lowest + i).toDouble(), z * 2.0),
+                    spaghetti2dThickness.get(x * 2.0, (lowest + i).toDouble(), z * 2.0).toDouble(),
                     SPAGHETTI_2D_THICKNESS_FROM,
                     SPAGHETTI_2D_THICKNESS_TO,
                 )
             }
             // One reading for the whole column: vanilla scales this noise's Y by zero, so it is flat.
-            val elevation = SPAGHETTI_2D_ELEVATION_REACH * spaghetti2dElevation.getValue(x, 0.0, z)
+            val elevation = SPAGHETTI_2D_ELEVATION_REACH * spaghetti2dElevation.get(x, 0.0, z).toDouble()
             forEachSample(height) { i ->
                 val thickness = working[i]
                 val fromTheBand = abs(
@@ -174,21 +174,21 @@ data class Caved(
             // The tunnels that reach the surface.
             forEachSample(height) { i ->
                 working[i] = rarityOfRoundSpaghetti(
-                    spaghetti3dRarity.getValue(x * 2.0, (lowest + i).toDouble(), z * 2.0),
+                    spaghetti3dRarity.get(x * 2.0, (lowest + i).toDouble(), z * 2.0).toDouble(),
                 )
             }
             forEachSample(height) { i ->
                 val rarity = working[i]
-                mouths[i] = rarity * abs(spaghetti3dFirst.getValue(x / rarity, (lowest + i) / rarity, z / rarity))
+                mouths[i] = rarity * abs(spaghetti3dFirst.get(x / rarity, (lowest + i) / rarity, z / rarity).toDouble())
             }
             forEachSample(height) { i ->
                 val rarity = working[i]
-                val second = rarity * abs(spaghetti3dSecond.getValue(x / rarity, (lowest + i) / rarity, z / rarity))
+                val second = rarity * abs(spaghetti3dSecond.get(x / rarity, (lowest + i) / rarity, z / rarity).toDouble())
                 mouths[i] = maxOf(mouths[i], second)
             }
             forEachSample(height) { i ->
                 val thickness = mapped(
-                    spaghetti3dThickness.getValue(x, (lowest + i).toDouble(), z),
+                    spaghetti3dThickness.get(x, (lowest + i).toDouble(), z).toDouble(),
                     SPAGHETTI_3D_THICKNESS_FROM,
                     SPAGHETTI_3D_THICKNESS_TO,
                 )
@@ -196,7 +196,7 @@ data class Caved(
             }
             forEachSample(height) { i ->
                 val y = lowest + i
-                val mouth = caveEntrance.getValue(x * ENTRANCE_XZ, y * ENTRANCE_Y, z * ENTRANCE_XZ) +
+                val mouth = caveEntrance.get(x * ENTRANCE_XZ, y * ENTRANCE_Y, z * ENTRANCE_XZ).toDouble() +
                     ENTRANCE_BIAS + gradient(y, ENTRANCE_FROM_Y, ENTRANCE_TO_Y, ENTRANCE_AT_FLOOR, ENTRANCE_AT_TOP)
                 mouths[i] = minOf(mouth, mouths[i])
             }
@@ -204,12 +204,12 @@ data class Caved(
             // The chambers: the cheap gate for every block, the nine-octave body only where it can matter.
             if (cheese) {
                 forEachSample(height) { i ->
-                    val layer = caveLayer.getValue(x, (lowest + i) * CAVE_LAYER_Y, z)
+                    val layer = caveLayer.get(x, (lowest + i) * CAVE_LAYER_Y, z).toDouble()
                     chambers[i] = CHEESE_LAYER_WEIGHT * layer * layer
                 }
                 forEachSample(height) { i ->
                     if (chambers[i] <= CHEESE_BODY_REACH) {
-                        val body = caveCheese.getValue(x, (lowest + i) * CAVE_CHEESE_Y, z)
+                        val body = caveCheese.get(x, (lowest + i) * CAVE_CHEESE_Y, z).toDouble()
                         chambers[i] += (CHEESE_BIAS + body).coerceIn(-1.0, 1.0)
                     }
                 }
@@ -224,18 +224,18 @@ data class Caved(
             if (pillars) {
                 forEachSample(height) { i ->
                     standing[i] = PILLAR_SHAFT_WEIGHT *
-                        pillar.getValue(x * PILLAR_XZ, (lowest + i) * PILLAR_Y, z * PILLAR_XZ)
+                        pillar.get(x * PILLAR_XZ, (lowest + i) * PILLAR_Y, z * PILLAR_XZ).toDouble()
                 }
                 forEachSample(height) { i ->
                     standing[i] += mapped(
-                        pillarRareness.getValue(x, (lowest + i).toDouble(), z),
+                        pillarRareness.get(x, (lowest + i).toDouble(), z).toDouble(),
                         PILLAR_RARENESS_FROM,
                         PILLAR_RARENESS_TO,
                     )
                 }
                 forEachSample(height) { i ->
                     val thickness = mapped(
-                        pillarThickness.getValue(x, (lowest + i).toDouble(), z),
+                        pillarThickness.get(x, (lowest + i).toDouble(), z).toDouble(),
                         PILLAR_THICKNESS_FROM,
                         PILLAR_THICKNESS_TO,
                     )

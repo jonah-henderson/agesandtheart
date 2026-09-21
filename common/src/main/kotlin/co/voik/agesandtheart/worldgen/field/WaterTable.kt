@@ -11,7 +11,6 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.dimension.DimensionType
 import net.minecraft.world.level.levelgen.Aquifer
-import net.minecraft.world.level.levelgen.DensityFunction
 import net.minecraft.world.level.levelgen.PositionalRandomFactory
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import java.lang.Math.floorDiv
@@ -94,10 +93,10 @@ data class WaterTable(
     private class RegionalAquifer(private val byTerritory: List<Aquifer>, private val territories: RegionMap) : Aquifer {
         private var lastAsked: Aquifer = byTerritory.first()
 
-        override fun computeSubstance(context: DensityFunction.FunctionContext, substance: Double): BlockState? {
-            val here = byTerritory[territories.memberAt(context.blockX(), context.blockZ()).coerceIn(byTerritory.indices)]
+        override fun computeSubstance(blockX: Int, blockY: Int, blockZ: Int, substance: Double): BlockState? {
+            val here = byTerritory[territories.memberAt(blockX, blockZ).coerceIn(byTerritory.indices)]
             lastAsked = here
-            return here.computeSubstance(context, substance)
+            return here.computeSubstance(blockX, blockY, blockZ, substance)
         }
 
         override fun shouldScheduleFluidUpdate(): Boolean = lastAsked.shouldScheduleFluidUpdate()
@@ -123,13 +122,13 @@ data class WaterTable(
         /** The barrier noise at the block being asked about, sampled at most once for it. */
         private var barrierHere = Double.NaN
 
-        override fun computeSubstance(context: DensityFunction.FunctionContext, density: Double): BlockState? {
+        override fun computeSubstance(blockX: Int, blockY: Int, blockZ: Int, density: Double): BlockState? {
             scheduleFluidUpdate = false
             // Positive means solid: nothing is being removed here, so the block stands as it is.
             if (density > 0.0) return null
-            val worldX = context.blockX()
-            val worldY = context.blockY()
-            val worldZ = context.blockZ()
+            val worldX = blockX
+            val worldY = blockY
+            val worldZ = blockZ
             val column = columnAt(worldX, worldZ)
             pouredAt(column, worldY)?.let { return it }
             val sea = globalFluidAt(worldX, worldY, worldZ).at(worldY)
@@ -267,7 +266,7 @@ data class WaterTable(
         }
 
         private fun barrierNoiseAt(worldX: Int, worldY: Int, worldZ: Int): Double {
-            if (barrierHere.isNaN()) barrierHere = barrier.getValue(worldX.toDouble(), worldY * BARRIER_Y_SCALE, worldZ.toDouble())
+            if (barrierHere.isNaN()) barrierHere = barrier.get(worldX.toDouble(), worldY * BARRIER_Y_SCALE, worldZ.toDouble()).toDouble()
             return barrierHere
         }
 
@@ -333,7 +332,7 @@ data class WaterTable(
             val belowTheSurface = (lowestSurface + SURFACE_MARGIN - pointY).toDouble()
             val nearness = if (underTheSea) Mth.clampedMap(belowTheSurface, 0.0, FLOODEDNESS_MAX_DEPTH, 1.0, 0.0) else 0.0
             val wetness = Mth.clamp(
-                floodedness.getValue(pointX.toDouble(), pointY * FLOODEDNESS_Y_SCALE, pointZ.toDouble()),
+                floodedness.get(pointX.toDouble(), pointY * FLOODEDNESS_Y_SCALE, pointZ.toDouble()).toDouble(),
                 -1.0,
                 1.0,
             )
@@ -352,7 +351,7 @@ data class WaterTable(
             val cellY = floorDiv(pointY, LEVEL_CELL_HEIGHT)
             val cellZ = floorDiv(pointZ, LEVEL_CELL_WIDTH)
             val middle = cellY * LEVEL_CELL_HEIGHT + LEVEL_CELL_HEIGHT / 2
-            val spreadHere = spread.getValue(cellX.toDouble(), cellY * SPREAD_Y_SCALE, cellZ.toDouble()) * LEVEL_SPREAD
+            val spreadHere = spread.get(cellX.toDouble(), cellY * SPREAD_Y_SCALE, cellZ.toDouble()).toDouble() * LEVEL_SPREAD
             return minOf(lowestSurface, middle + Mth.quantize(spreadHere, LEVEL_STEP))
         }
 
@@ -360,11 +359,11 @@ data class WaterTable(
         private fun fluidTypeAt(pointX: Int, pointY: Int, pointZ: Int, sea: Aquifer.FluidStatus, level: Int): BlockState {
             val deepEnough = level <= LAVA_POCKETS_AT_OR_BELOW && level != DimensionType.WAY_BELOW_MIN_Y
             if (!deepEnough || sea.fluidType == LAVA) return sea.fluidType
-            val pocket = lavaPockets.getValue(
+            val pocket = lavaPockets.get(
                 floorDiv(pointX, LAVA_CELL_WIDTH).toDouble(),
                 floorDiv(pointY, LAVA_CELL_HEIGHT).toDouble(),
                 floorDiv(pointZ, LAVA_CELL_WIDTH).toDouble(),
-            )
+            ).toDouble()
             return if (abs(pocket) > LAVA_POCKET_THRESHOLD) LAVA else sea.fluidType
         }
 
