@@ -53,17 +53,21 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         val eyeX = centre.x + 0.5 + kotlin.math.cos(angle) * orbit
         val eyeZ = centre.z + 0.5 + kotlin.math.sin(angle) * orbit
         val lift = Mth.lerp(shot.loft, LOWEST_ORBIT, HIGHEST_ORBIT).toDouble()
-        val eyeY = liftedClear(eyeX, centre.y + lift, eyeZ)
-        val eye = Vec3(eyeX, eyeY, eyeZ)
+        // **A level orbit, even where it passes through rock** (Jonah, 2026-09-20). Raising the eye out of
+        // whatever it entered kept the view clear one frame at a time, and the cost was the shape of the
+        // orbit itself: the ring rose and fell with the ground under it, so the turn lurched wherever the
+        // terrain did. A steady circle that sometimes goes inside a hill reads better than a clear view on
+        // a path nobody could have drawn.
+        val eye = Vec3(eyeX, centre.y + lift, eyeZ)
         setPosition(eye)
 
-        // Aimed from where the eye ended up, since a fixed pitch looks past the arrival once the eye has
-        // risen to clear a hill.
+        // Aimed at the arrival rather than held at a fixed pitch, so closeness and loft can move the eye
+        // without the subject sliding out of the middle.
         val toCentreX = centre.x + 0.5 - eyeX
         val toCentreZ = centre.z + 0.5 - eyeZ
         val overGround = kotlin.math.sqrt(toCentreX * toCentreX + toCentreZ * toCentreZ)
         placedYaw = Mth.wrapDegrees(Math.toDegrees(kotlin.math.atan2(toCentreZ, toCentreX)).toFloat() - QUARTER_TURN)
-        placedPitch = Math.toDegrees(kotlin.math.atan2(eyeY - centre.y, overGround)).toFloat()
+        placedPitch = Math.toDegrees(kotlin.math.atan2(lift, overGround)).toFloat()
         setRotation(placedYaw, placedPitch)
 
         setupPerspective(NEAR_PLANE, FAR_PLANE, FIELD_OF_VIEW, width.toFloat(), height.toFloat())
@@ -112,24 +116,9 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         state.projectionMatrix = drawProjection.getMatrix(Matrix4f())
         state.depthFar = FAR_PLANE
         state.hudFov = FIELD_OF_VIEW
-        // An orbit sits in open air by construction; the Age's own air reaches the panel as an environment
-        // layer rather than as camera fog.
+        // The Age's own air reaches the panel as an environment layer rather than as camera fog — which
+        // is also what leaves an eye inside rock seeing through it rather than blacked out.
         state.fogType = FogType.NONE
-    }
-
-    /**
-     * [from] raised until it is not inside something solid, by at most [MOST_OF_A_LIFT].
-     *
-     * Capped rather than persistent: an Age that is solid all the way up should show rock.
-     */
-    private fun liftedClear(x: Double, from: Double, z: Double): Double {
-        val column = BlockPos.containing(x, from, z)
-        for (lift in 0..MOST_OF_A_LIFT) {
-            val at = column.above(lift)
-            if (at.y > level.maxY) break
-            if (!level.getBlockState(at).isSolidRender) return from + lift
-        }
-        return from
     }
 
     companion object {
@@ -196,9 +185,6 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
 
         /** Vanilla's yaw is degrees clockwise from south, where `atan2` is counted from east. */
         private const val QUARTER_TURN = 90.0f
-
-        /** Enough to clear a hillside and not enough to leave a cavern or the streamed ring. */
-        private const val MOST_OF_A_LIFT = 12
 
         /** Where the pitch starts before the first frame places it properly. */
         private const val PITCH_DEGREES = 20.0f
