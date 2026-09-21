@@ -375,7 +375,7 @@ data class NoiseHeightmap(
     private val stretchZ = scaleZ.coerceAtLeast(SMALLEST_STRETCH)
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
-        val sampled = noise.getValue(worldX / stretchX, 0.0, worldZ / stretchZ)
+        val sampled = noise.get(worldX / stretchX, 0.0, worldZ / stretchZ).toDouble()
         val surfaceY = baseY + (sampled * relief).roundToInt()
         return if (baseY >= flatY) Spans.of(flatY, surfaceY) else Spans.of(surfaceY, flatY)
     }
@@ -515,7 +515,7 @@ data class Noise3D(
         val solid = ArrayList<IntRange>(EXPECTED_RUNS)
         var runStart: Int? = null
         for (y in lowY..highY) {
-            val isSolid = character.shape(noise.getValue(sampleX, y / stretchY, sampleZ)) > thresholds[y - lowY]
+            val isSolid = character.shape(noise.get(sampleX, y / stretchY, sampleZ).toDouble()) > thresholds[y - lowY]
             if (isSolid) {
                 if (runStart == null) runStart = y
             } else if (runStart != null) {

@@ -83,10 +83,10 @@ class Weathering(
     val amplitudes: DoubleArray,
 ) {
     // Shared and immutable: resistance is a property of the rock in a place, not of a chunk.
-    private val resistance = NormalNoise.create(XoroshiroRandomSource(seed), firstOctave, *amplitudes)
+    private val resistance = NormalNoise.createParity(firstOctave, *amplitudes).create(XoroshiroRandomSource(seed))
 
     // A separate, finer pattern picking out the few places that survive whatever the wind does.
-    private val needles = NormalNoise.create(XoroshiroRandomSource(seed * 31 + 17), firstOctave, *amplitudes)
+    private val needles = NormalNoise.createParity(firstOctave, *amplitudes).create(XoroshiroRandomSource(seed * 31 + 17))
 
     /**
      * Whether the wind takes the block at this position, given an extra [favour] the caller worked out for
@@ -114,7 +114,7 @@ class Weathering(
 
     /** Whether this column is one of the rare places that keeps its full height, top and bottom. */
     fun isNeedle(worldX: Int, worldZ: Int): Boolean =
-        needles.getValue(worldX / needleScale, 0.0, worldZ / needleScale) > needleThreshold
+        needles.get(worldX / needleScale, 0.0, worldZ / needleScale).toDouble() > needleThreshold
 
     /**
      * How well the rock here holds out. Mostly a property of the *column*, which is what leaves sheer
@@ -122,7 +122,7 @@ class Weathering(
      * verticality and let hollows close over.
      */
     fun resistanceAt(worldX: Int, worldY: Int, worldZ: Int): Double =
-        resistance.getValue(worldX / (scale * windStretch), worldY / verticalScale, worldZ / scale)
+        resistance.get(worldX / (scale * windStretch), worldY / verticalScale, worldZ / scale).toDouble()
 
     /**
      * The rock's advantage at a given height — a ridge of leniency at the keel falling away in both

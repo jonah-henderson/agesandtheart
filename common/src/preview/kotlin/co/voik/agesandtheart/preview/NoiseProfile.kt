@@ -19,10 +19,10 @@ fun main() {
     println("            ${THRESHOLDS.joinToString("") { "%7.2f".format(it) }}")
 
     for (character in NoiseCharacter.entries) {
-        val noise = NormalNoise.create(XoroshiroRandomSource(PROFILE_SEED), FIRST_OCTAVE, *AMPLITUDES)
+        val noise = NormalNoise.createParity(FIRST_OCTAVE, *AMPLITUDES).create(XoroshiroRandomSource(PROFILE_SEED))
         val above = IntArray(THRESHOLDS.size)
         forEachSample { x, y, z ->
-            val shaped = character.shape(noise.getValue(x, y, z))
+            val shaped = character.shape(noise.get(x, y, z).toDouble())
             THRESHOLDS.forEachIndexed { index, threshold -> if (shaped > threshold) above[index]++ }
         }
         val row = above.joinToString("") { "%6.1f%%".format(100.0 * it / SAMPLES) }

@@ -126,7 +126,7 @@ private class WanderingRim(seed: Long, private val wanders: Double) {
     private val noise = fieldNoise(mix64(seed), OCTAVE, AMPLITUDES)
 
     fun at(awayX: Int, awayZ: Int): Double =
-        noise.getValue(awayX * SCALE, 0.0, awayZ * SCALE) * wanders
+        noise.get(awayX * SCALE, 0.0, awayZ * SCALE).toDouble() * wanders
 
     private companion object {
         const val OCTAVE = -3

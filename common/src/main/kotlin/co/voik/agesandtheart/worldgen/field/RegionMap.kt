@@ -109,7 +109,7 @@ data class RegionMap(
         var runnerUp = 0
         var runnerUpTilted = Double.NEGATIVE_INFINITY
         for (member in claims.indices) {
-            val claim = claims[member].getValue(sampleX, 0.0, sampleZ)
+            val claim = claims[member].get(sampleX, 0.0, sampleZ).toDouble()
             val tilted = ClaimTilt.of(claim) + tilts.getOrElse(member) { 0.0 }
             if (tilted > bestTilted) {
                 runnerUp = best
@@ -135,11 +135,11 @@ data class RegionMap(
      * One member's raw claim at a column, before any share tilts it — for the offline share check, which
      * has to know the distribution the tilt is built on.
      */
-    fun claimAt(member: Int, worldX: Int, worldZ: Int): Double = claims[member].getValue(
+    fun claimAt(member: Int, worldX: Int, worldZ: Int): Double = claims[member].get(
         (worldX - originX) / stretch,
         0.0,
         (worldZ - originZ) / stretch,
-    )
+    ).toDouble()
 
     /** The same territories at [factor] the size, for when a whole field is resized around them. */
     fun resized(factor: Double): RegionMap = copy(

@@ -2,7 +2,7 @@ package co.voik.agesandtheart.worldgen.fissure
 
 import co.voik.agesandtheart.worldgen.field.fieldNoise
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
-import net.minecraft.world.level.levelgen.synth.NormalNoise
+import net.minecraft.world.level.levelgen.synth.Noise
 
 /**
  * The plan of one crack: which way it runs, how it wanders, and how wide it is along its length.
@@ -17,7 +17,7 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
  * two sides are never mirror images. And its width **varies along the run** and pinches to nothing at both
  * ends, which is what makes it read as torn open rather than bored out.
  */
-internal class Crack(private val alongX: Double, private val alongZ: Double, private val noise: NormalNoise) {
+internal class Crack(private val alongX: Double, private val alongZ: Double, private val noise: Noise) {
 
     fun reaches(offsetX: Int, offsetZ: Int): Boolean = reaches(offsetX, offsetZ, 0.0)
 
@@ -57,8 +57,8 @@ internal class Crack(private val alongX: Double, private val alongZ: Double, pri
         val reach = along / length
         // Pinched at both ends, so it tapers to a point rather than stopping square.
         val taper = 1.0 - reach * reach
-        val wander = noise.getValue(along * WANDER_SCALE, 0.0, 0.0) * MOST_WANDER * taper
-        val widening = noise.getValue(0.0, 0.0, along * WIDTH_SCALE) * WIDTH_VARIES
+        val wander = noise.get(along * WANDER_SCALE, 0.0, 0.0).toDouble() * MOST_WANDER * taper
+        val widening = noise.get(0.0, 0.0, along * WIDTH_SCALE).toDouble() * WIDTH_VARIES
         val width = (NARROWEST + widening + wider) * taper
         return kotlin.math.abs(across - wander) to width
     }

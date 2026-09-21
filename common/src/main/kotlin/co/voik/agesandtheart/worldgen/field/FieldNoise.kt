@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen.field
 
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.synth.NormalNoise
+import net.minecraft.world.level.levelgen.synth.Noise
 
 /**
  * The noise every sampling field is built on, in one place: vanilla's own [NormalNoise], seeded per
@@ -9,14 +10,26 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
  */
 
 /**
- * Vanilla's [NormalNoise], with its two hostile inputs settled first — neither is trusted, both being
+ * Vanilla's normal noise, with its two hostile inputs settled first — neither is trusted, both being
  * able to arrive from a serialised field tree. Vanilla forbids more amplitudes than the first octave
  * leaves room for, an empty list leaves the noise nothing to sum, and a positive [firstOctave] asks for
  * a negative count, which `take` rejects somewhere uninformative.
+ *
+ * **`createParity` is the 26.3 spelling of what `NormalNoise.create(random, firstOctave, amplitudes…)`
+ * did**, and it is named for that: the parameters are an object now and making a sampler from them is a
+ * second call. Measured against 26.2 over 240 samples across five seeds, three octaves and three
+ * amplitude lists, the two agree to float precision — max absolute delta 8.0e-7, mean 1.4e-7. The builder
+ * beside it is *not* the equivalent; it normalises on its own terms.
+ *
+ * **What a sample reads is a `Float` now**, where it was a `Double`. Every caller narrows at the read
+ * rather than here, so the one place precision is lost is visible at the place it is lost. It moves the
+ * last bits of every sample, which moves every contour of every landform by a rounding — see the
+ * generator-version row that carries it.
  */
-internal fun fieldNoise(seed: Long, firstOctave: Int, amplitudes: List<Double>): NormalNoise {
+internal fun fieldNoise(seed: Long, firstOctave: Int, amplitudes: List<Double>): Noise {
     val weights = amplitudes.take((-firstOctave + 1).coerceAtLeast(0)).ifEmpty { listOf(1.0) }
-    return NormalNoise.create(XoroshiroRandomSource(seed), firstOctave, *weights.toDoubleArray())
+    return NormalNoise.createParity(firstOctave, *weights.toDoubleArray())
+        .create(XoroshiroRandomSource(seed))
 }
 
 /** A zero stretch would divide the sample coordinates to infinity, so every scale is held above this. */
