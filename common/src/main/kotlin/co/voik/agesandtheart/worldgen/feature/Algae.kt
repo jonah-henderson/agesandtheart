@@ -2,13 +2,14 @@ package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.AlgaeBlock
+import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
+import net.minecraft.util.RandomSource
 import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.feature.Feature
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
 
 /**
  * The algae, sown across the surface of any sunless water it is dropped over (design §7.6).
@@ -24,12 +25,21 @@ import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConf
  * the sky channel for the same fact once the world is running, and the two agree everywhere it matters —
  * an open ocean is covered by nothing, and a cavern lake by its roof.
  */
-object Algae : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.CODEC) {
+object Algae : Feature {
 
-    override fun place(context: FeaturePlaceContext<NoneFeatureConfiguration>): Boolean {
-        val level = context.level()
-        val random = context.random()
-        val surface = waterSurfaceUnder(level, context.origin()) ?: return false
+    /** Nothing to configure, so the codec is the object itself. Supplied lazily: an `object`'s instance
+     *  field is assigned after its initialisers run, so naming it directly here would capture null. */
+    val CODEC: MapCodec<Algae> = MapCodec.unit { Algae }
+
+    override fun codec(): MapCodec<out Feature> = CODEC
+
+    override fun place(
+        level: WorldGenLevel,
+        generator: ChunkGenerator,
+        random: RandomSource,
+        origin: BlockPos,
+    ): Boolean {
+        val surface = waterSurfaceUnder(level, origin) ?: return false
         // Sown at whatever the hour is, so a chunk generated now matches the lake it joins rather than
         // arriving at full glow and fading to meet it.
         val sown = AgeContent.ALGAE_BLOCK.defaultBlockState()

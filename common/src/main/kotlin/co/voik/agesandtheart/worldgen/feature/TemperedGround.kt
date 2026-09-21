@@ -12,9 +12,10 @@ import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.util.RandomSource
+import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.feature.Feature
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
+import com.mojang.serialization.MapCodec
 
 /**
  * Stone baked by its distance from lava (design §7.1.2).
@@ -24,11 +25,19 @@ import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConf
  * formation sees the whole rule laid out in space — and because the raw band is a block rather than plain
  * stone, the rule is one they can carry away and use.
  */
-object TemperedGround : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.CODEC) {
+object TemperedGround : Feature {
 
-    override fun place(context: FeaturePlaceContext<NoneFeatureConfiguration>): Boolean {
-        val level = context.level()
-        val seeds = contactSurfaces(level, context.origin())
+    val CODEC: MapCodec<TemperedGround> = MapCodec.unit { TemperedGround }
+
+    override fun codec(): MapCodec<out Feature> = CODEC
+
+    override fun place(
+        level: WorldGenLevel,
+        generator: ChunkGenerator,
+        random: RandomSource,
+        origin: BlockPos,
+    ): Boolean {
+        val seeds = contactSurfaces(level, origin)
         if (seeds.isEmpty()) return false
         return bake(level, seeds)
     }

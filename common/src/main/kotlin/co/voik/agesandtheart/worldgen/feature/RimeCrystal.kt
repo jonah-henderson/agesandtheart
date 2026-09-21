@@ -8,9 +8,10 @@ import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.util.RandomSource
+import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.feature.Feature
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
+import com.mojang.serialization.MapCodec
 
 /**
  * Rime crystals, which grow only where a cliff is sheer (design §7.1.2, `SheerFace`).
@@ -26,12 +27,18 @@ import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConf
  * crystal wherever the ground actually earns one, which is what `/age cliffs` measures and what its
  * numbers were tuned against.
  */
-object RimeCrystal : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.CODEC) {
+object RimeCrystal : Feature {
 
-    override fun place(context: FeaturePlaceContext<NoneFeatureConfiguration>): Boolean {
-        val level = context.level()
-        val random = context.random()
-        val origin = context.origin()
+    val CODEC: MapCodec<RimeCrystal> = MapCodec.unit { RimeCrystal }
+
+    override fun codec(): MapCodec<out Feature> = CODEC
+
+    override fun place(
+        level: WorldGenLevel,
+        generator: ChunkGenerator,
+        random: RandomSource,
+        origin: BlockPos,
+    ): Boolean {
         var grew = false
         for (offsetX in 0..<CHUNK) {
             for (offsetZ in 0..<CHUNK) {

@@ -8,9 +8,9 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.feature.Feature
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
+import com.mojang.serialization.MapCodec
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.sqrt
@@ -38,7 +38,11 @@ import kotlin.math.sqrt
  * The other half of the containment is `LavaTubes.POOL_RISES_BY`: a tube at the bottom of a bowl would
  * otherwise creep its pool up to the rim and over it.
  */
-object LavaPuddles : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.CODEC) {
+object LavaPuddles : Feature {
+
+    val CODEC: MapCodec<LavaPuddles> = MapCodec.unit { LavaPuddles }
+
+    override fun codec(): MapCodec<out Feature> = CODEC
 
     /**
      * Dig what this chunk gets, and answer whether anything went down.
@@ -47,12 +51,15 @@ object LavaPuddles : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.
      * it the way it scales anything else. How often one turns up is the placement's business now and not
      * this one's — see the `firespout` placed feature, where the rarity lives.
      */
-    override fun place(context: FeaturePlaceContext<NoneFeatureConfiguration>): Boolean {
-        val origin = context.origin()
-        val random = context.random()
+    override fun place(
+        level: WorldGenLevel,
+        generator: ChunkGenerator,
+        random: RandomSource,
+        origin: BlockPos,
+    ): Boolean {
         val x = origin.x + INSET + random.nextInt(CHUNK - INSET - INSET)
         val z = origin.z + INSET + random.nextInt(CHUNK - INSET - INSET)
-        return dig(context.level(), x, z, random)
+        return dig(level, x, z, random)
     }
 
     /**

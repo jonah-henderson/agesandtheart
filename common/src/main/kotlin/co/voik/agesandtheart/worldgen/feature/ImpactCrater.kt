@@ -18,8 +18,8 @@ import net.minecraft.world.level.chunk.status.ChunkStatus
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.feature.Feature
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
-import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration
+import com.mojang.serialization.MapCodec
+import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.structure.Structure
 import net.minecraft.world.level.levelgen.structure.StructureStart
 import kotlin.math.PI
@@ -53,21 +53,42 @@ import kotlin.math.sqrt
  * [FREELY_PLACED] blocks in every direction; from the chunk's *middle* it guarantees [PINNED_REACHES].
  * So a crater big enough to need it is pinned to the middle, and only those are.
  */
-object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
+class ImpactCrater(
+    /**
+     * How big a crater is: one feature with a scale rather than two features, because a small crater and a
+     * large one differ in nothing but their numbers — everything that makes them look unalike is drawn
+     * inside the feature.
+     */
+    val leastReach: Int,
+    val mostReach: Int,
+    /**
+     * **Whether a crater kept anything and how much are two dials, not one** (Jonah, walked 2026-09-10).
+     * They were a single `nextInt(mostShards + 1)`, which at a [mostShards] of one is a coin toss: half of
+     * all small craters held none and the rest held exactly one, with no way to make the find rarer without
+     * making it impossible, or commoner without making it two. Rarity is this one; [mostShards] says how
+     * much a crater that kept something kept, so the floor, once it holds any, is one.
+     */
+    val holdsShards: Float,
+    val mostShards: Int,
+) : Feature {
 
-    override fun place(context: FeaturePlaceContext<CraterScale>): Boolean {
-        val level = context.level()
-        val random = context.random()
-        val scale = context.config()
-        val drawn = scale.leastReach + random.nextInt(scale.mostReach - scale.leastReach + ONE)
+    override fun codec(): MapCodec<out Feature> = CODEC
+
+    override fun place(
+        level: WorldGenLevel,
+        generator: ChunkGenerator,
+        random: RandomSource,
+        origin: BlockPos,
+    ): Boolean {
+        val drawn = leastReach + random.nextInt(mostReach - leastReach + ONE)
         // Clamped rather than trusted: a scale asking for more than the chunk pyramid allows would have
         // its outer blocks silently dropped, which reads as a crater with a bite taken out of it.
         val reach = drawn.coerceAtMost(PINNED_REACHES)
-        val middle = middleFor(context.origin(), reach)
+        val middle = middleFor(origin, reach)
         if (submerged(level, middle.x, middle.z)) return false
-        val struck = Struck.drawnBy(random, reach, roomAround(middle, context.origin()))
+        val struck = Struck.drawnBy(random, reach, roomAround(middle, origin))
         val out = struck.carriesTo()
-        if (landsOnASurfaceStructure(level, context.origin(), middle, out)) return false
+        if (landsOnASurfaceStructure(level, origin, middle, out)) return false
         val sea = seaOverTheCut(level, middle, struck)
         for (awayX in -out..out) {
             for (awayZ in -out..out) {
@@ -76,7 +97,7 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
         }
         dropWhatIsLeftHanging(level, middle, struck)
         scatterEjecta(level, middle, struck)
-        seedWithAstrite(level, random, middle, reach, scale)
+        seedWithAstrite(level, random, middle, reach)
         return true
     }
 
@@ -298,12 +319,11 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
         random: RandomSource,
         middle: BlockPos,
         reach: Int,
-        scale: CraterScale,
     ) {
-        // Rarity first, amount second — see [CraterScale]. One roll decides whether this crater kept
-        // anything at all, and only then is there a count, which is never nought.
-        if (random.nextFloat() >= scale.holdsShards) return
-        val kept = ONE + random.nextInt(scale.mostShards)
+        // Rarity first, amount second. One roll decides whether this crater kept anything at all, and only
+        // then is there a count, which is never nought.
+        if (random.nextFloat() >= holdsShards) return
+        val kept = ONE + random.nextInt(mostShards)
         val inner = (reach * SHARDS_WITHIN).roundToInt().coerceAtLeast(ONE)
         val about = BlockPos(middle.x + spread(random, inner), middle.y, middle.z + spread(random, inner))
         repeat(kept) {
@@ -397,8 +417,6 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
      * so that neighbouring columns can be asked in any order and a re-generated chunk agrees with itself.
      * Drawing it would make the ragged edge depend on which column happened to be visited first.
      */
-    private fun hashedAt(awayX: Int, awayZ: Int, grain: Long): Double =
-        unitDouble(mix64(mix64(mix64(grain) + awayX) + awayZ))
 
     /**
      * How far this column's own ground wanders off the arithmetic, in blocks.
@@ -408,11 +426,6 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
      * Applied to the shape rather than to the blocks, so the rim is *ragged* rather than *speckled* — a
      * per-block coin toss reads as damage, and this reads as weather.
      */
-    private fun erosionAt(awayX: Int, awayZ: Int, atTheRim: Double, struck: Struck): Int {
-        if (atTheRim <= NOTHING) return UNMOVED
-        val wander = hashedAt(awayX, awayZ, struck.grain) - HALF
-        return (wander * TWICE * struck.eroded * atTheRim * struck.reach * WEARS_BY).roundToInt()
-    }
 
     /**
      * What a crater is shaped like, which is drawn rather than derived.
@@ -628,97 +641,92 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
         }
     }
 
-    private val AIR: BlockState = Blocks.AIR.defaultBlockState()
-
-    /** How deep the bowl goes at its middle, and how far out and how high the rim carries, all as shares. */
-    private const val DEEPEST_SHARE = 0.42
-    private const val RIM_REACHES = 0.30
-    private const val RIM_RISES = 0.13
-
-    /** How far the rim may wander off the arithmetic, as a share of the reach at full wear. */
-    private const val WEARS_BY = 0.09
-
-    /** How far debris carries past the outermost skirt, as a multiple of the crater's own extent. */
-    private const val EJECTA_CARRIES = 1.45
-
-    /** A bound on the walk up a flooded column, so a crater under an abyss does not climb the whole sea. */
-    private const val DEEPEST_SEA_CUT = 64
-
-    /** Where shards may stand, as a share of the reach — well inside, where the carve reached rock. */
-    private const val SHARDS_WITHIN = 0.45
-    private const val TOGETHER = 3
-
-    /**
-     * How far a whole crater stands from its middle, as a multiple of its reach.
-     *
-     * The lip is the reach as [Lobes] moved it, up to [Lobes.LOBED_BY] out, and the skirt carries
-     * [RIM_REACHES] past that. So the visible crater is nearly half again its own reach, and the reach
-     * that fits a box is the box divided by this.
-     */
-    private const val WHOLE_CRATER = 1.42
-
-    /**
-     * What a crater may reach from anywhere in its chunk, and from the middle of it.
-     *
-     * `blockStateWriteRadius(1)` gives sixteen blocks on the tightest side from anywhere in a chunk, and
-     * twenty-three from its middle; [WHOLE_CRATER] is what turns those into a reach. So the biggest hole
-     * this can cut is thirty-two blocks across with its rim carrying it to about forty-six, and the debris
-     * beyond that is clipped rather than shrinking the crater to make room for it.
-     */
-    private const val FREELY_PLACED = 11
-    private const val PINNED_REACHES = 16
-
-    private const val CHUNK = 16
-
-    private const val CHUNK_BITS = 4
-
-    /** Blocks of open ground kept between a crater's reach and a structure, so no rim or ejecta lands against it. */
-    private const val CLEAR_OF_STRUCTURES = 4
-
-    /** How far from its own chunk, in chunks, a feature's region lets it read structure references. */
-    private const val REFERENCES_READABLE_WITHIN = 1
-
-    /** And structure starts, which the chunk pyramid holds at a wider ring for decoration's own use. */
-    private const val STARTS_READABLE_WITHIN = 8
-    private const val HALF_A_CHUNK = 8
-    private const val FULL_BUMP = 4.0
-    private const val UNMOVED = 0
-    private const val NONE = 0
-    private const val ONE = 1
-    private const val TWICE = 2
-    private const val HALF = 0.5
-    private const val NOTHING = 0.0
-    private const val ALL_OF_IT = 1.0
-    private const val FULL_TURN = 2.0 * PI
-}
-
-/**
- * How big a crater is and what it may have kept.
- *
- * One feature with a scale rather than two features, because a small crater and a large one differ in
- * nothing but their numbers — everything that makes them look unalike is drawn inside the feature.
- *
- * **Whether a crater kept anything and how much are two dials, not one** (Jonah, walked 2026-09-10). They
- * were a single `nextInt(mostShards + 1)`, which at a `mostShards` of one is a coin toss: half of all small
- * craters held none and the rest held exactly one, with no way to make the find rarer without making it
- * impossible, or commoner without making it two. Splitting them puts rarity on [holdsShards] and leaves
- * [mostShards] to say how much a crater that kept something kept — so the floor, once it holds any, is one.
- */
-data class CraterScale(
-    val leastReach: Int,
-    val mostReach: Int,
-    val holdsShards: Float,
-    val mostShards: Int,
-) : FeatureConfiguration {
-
     companion object {
-        val CODEC: Codec<CraterScale> = RecordCodecBuilder.create { instance ->
-            instance.group(
-                Codec.INT.fieldOf("least_reach").forGetter(CraterScale::leastReach),
-                Codec.INT.fieldOf("most_reach").forGetter(CraterScale::mostReach),
-                Codec.FLOAT.fieldOf("holds_shards").forGetter(CraterScale::holdsShards),
-                Codec.INT.fieldOf("most_shards").forGetter(CraterScale::mostShards),
-            ).apply(instance, ::CraterScale)
+
+        /**
+         * Where a column's ground wanders off the arithmetic, and the hash it wanders by — in the companion
+         * because [Struck] reads them, and a nested class cannot reach an instance member of its outer one.
+         */
+        private fun erosionAt(awayX: Int, awayZ: Int, atTheRim: Double, struck: Struck): Int {
+            if (atTheRim <= NOTHING) return UNMOVED
+            val wander = hashedAt(awayX, awayZ, struck.grain) - HALF
+            return (wander * TWICE * struck.eroded * atTheRim * struck.reach * WEARS_BY).roundToInt()
         }
+
+        private fun hashedAt(awayX: Int, awayZ: Int, grain: Long): Double =
+            unitDouble(mix64(mix64(mix64(grain) + awayX) + awayZ))
+
+        val CODEC: MapCodec<ImpactCrater> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                Codec.INT.fieldOf("least_reach").forGetter(ImpactCrater::leastReach),
+                Codec.INT.fieldOf("most_reach").forGetter(ImpactCrater::mostReach),
+                Codec.FLOAT.fieldOf("holds_shards").forGetter(ImpactCrater::holdsShards),
+                Codec.INT.fieldOf("most_shards").forGetter(ImpactCrater::mostShards),
+            ).apply(instance, ::ImpactCrater)
+        }
+
+        private val AIR: BlockState = Blocks.AIR.defaultBlockState()
+
+        /** How deep the bowl goes at its middle, and how far out and how high the rim carries, all as shares. */
+        private const val DEEPEST_SHARE = 0.42
+        private const val RIM_REACHES = 0.30
+        private const val RIM_RISES = 0.13
+
+        /** How far the rim may wander off the arithmetic, as a share of the reach at full wear. */
+        private const val WEARS_BY = 0.09
+
+        /** How far debris carries past the outermost skirt, as a multiple of the crater's own extent. */
+        private const val EJECTA_CARRIES = 1.45
+
+        /** A bound on the walk up a flooded column, so a crater under an abyss does not climb the whole sea. */
+        private const val DEEPEST_SEA_CUT = 64
+
+        /** Where shards may stand, as a share of the reach — well inside, where the carve reached rock. */
+        private const val SHARDS_WITHIN = 0.45
+        private const val TOGETHER = 3
+
+        /**
+         * How far a whole crater stands from its middle, as a multiple of its reach.
+         *
+         * The lip is the reach as [Lobes] moved it, up to [Lobes.LOBED_BY] out, and the skirt carries
+         * [RIM_REACHES] past that. So the visible crater is nearly half again its own reach, and the reach
+         * that fits a box is the box divided by this.
+         */
+        private const val WHOLE_CRATER = 1.42
+
+        /**
+         * What a crater may reach from anywhere in its chunk, and from the middle of it.
+         *
+         * `blockStateWriteRadius(1)` gives sixteen blocks on the tightest side from anywhere in a chunk, and
+         * twenty-three from its middle; [WHOLE_CRATER] is what turns those into a reach. So the biggest hole
+         * this can cut is thirty-two blocks across with its rim carrying it to about forty-six, and the debris
+         * beyond that is clipped rather than shrinking the crater to make room for it.
+         */
+        private const val FREELY_PLACED = 11
+        private const val PINNED_REACHES = 16
+
+        private const val CHUNK = 16
+
+        private const val CHUNK_BITS = 4
+
+        /** Blocks of open ground kept between a crater's reach and a structure, so no rim or ejecta lands against it. */
+        private const val CLEAR_OF_STRUCTURES = 4
+
+        /** How far from its own chunk, in chunks, a feature's region lets it read structure references. */
+        private const val REFERENCES_READABLE_WITHIN = 1
+
+        /** And structure starts, which the chunk pyramid holds at a wider ring for decoration's own use. */
+        private const val STARTS_READABLE_WITHIN = 8
+        private const val HALF_A_CHUNK = 8
+        private const val FULL_BUMP = 4.0
+        private const val UNMOVED = 0
+        private const val NONE = 0
+        private const val ONE = 1
+        private const val TWICE = 2
+        private const val HALF = 0.5
+        private const val NOTHING = 0.0
+        private const val ALL_OF_IT = 1.0
+        private const val FULL_TURN = 2.0 * PI
     }
 }
+

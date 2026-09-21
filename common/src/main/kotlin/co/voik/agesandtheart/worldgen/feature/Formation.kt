@@ -16,8 +16,8 @@ import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.feature.Feature
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
-import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration
+import com.mojang.serialization.MapCodec
+import net.minecraft.util.RandomSource
 
 /**
  * A shape standing on the ground, made of one substance — an obelisk, a boulder, a ring of stones.
@@ -50,7 +50,7 @@ import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfigur
  * `Grid` keeps each cell only with `Density.keepProbability`, jitters the origin freely inside it, and
  * that probability carries a noise swing — so it scatters and clumps rather than ranking up.
  */
-data class FormationConfiguration(
+data class Formation(
     /**
      * The shapes this kind of formation may take, one drawn per copy.
      *
@@ -65,31 +65,20 @@ data class FormationConfiguration(
     /** Keeps one kind of formation's layout from being another's. */
     val seed: Long,
     val substance: BlockState,
-) : FeatureConfiguration {
+) : Feature {
 
-    companion object {
-        val CODEC: Codec<FormationConfiguration> = RecordCodecBuilder.create { instance ->
-            instance.group(
-                TerrainField.CODEC.listOf().fieldOf("shapes").forGetter(FormationConfiguration::shapes),
-                Variation.CODEC.codec().optionalFieldOf("variation", Variation.NONE)
-                    .forGetter(FormationConfiguration::variation),
-                Placement.CODEC.fieldOf("placement").forGetter(FormationConfiguration::placement),
-                Codec.LONG.fieldOf("seed").forGetter(FormationConfiguration::seed),
-                BlockState.CODEC.fieldOf("substance").forGetter(FormationConfiguration::substance),
-            ).apply(instance, ::FormationConfiguration)
-        }
-    }
-}
+    override fun codec(): MapCodec<out Feature> = CODEC
 
-object Formation : Feature<FormationConfiguration>(FormationConfiguration.CODEC) {
-
-    override fun place(context: FeaturePlaceContext<FormationConfiguration>): Boolean {
-        val level = context.level()
-        val origin = context.origin()
+    override fun place(
+        level: WorldGenLevel,
+        generator: ChunkGenerator,
+        random: RandomSource,
+        origin: BlockPos,
+    ): Boolean {
         // The chunk being decorated, which is the only one this call may write into.
         val chunk = ChunkPos(SectionPos.blockToSectionCoord(origin.x), SectionPos.blockToSectionCoord(origin.z))
-        val groundAt = surfaceOf(level, context.chunkGenerator())
-        val laid = raise(context.config(), level.seed, chunk, groundAt) { position, state ->
+        val groundAt = surfaceOf(level, generator)
+        val laid = raise(level.seed, chunk, groundAt) { position, state ->
             if (!level.isOutsideBuildHeight(position)) level.setBlock(position, state, PLACED_BY_WORLDGEN)
         }
         return laid > 0
@@ -118,20 +107,19 @@ object Formation : Feature<FormationConfiguration>(FormationConfiguration.CODEC)
      * Returns how many blocks it laid, so a caller can tell a formation from nothing at all.
      */
     fun raise(
-        configuration: FormationConfiguration,
         worldSeed: Long,
         chunk: ChunkPos,
         groundAt: (Int, Int) -> Int,
         lay: (BlockPos, BlockState) -> Unit,
     ): Int {
-        val posed = configuration.shapes.flatMap(configuration.variation::sizesOf)
+        val posed = shapes.flatMap(variation::sizesOf)
         if (posed.isEmpty()) return 0
         // **An unbounded shape is not a formation.** A slab or a half-space is solid to the horizon, and
         // there would be no cell scan wide enough to find every copy covering a column.
         val furthest = posed.maxOf { it.horizontalReach }
         if (!furthest.isFinite()) return 0
 
-        val origins = XoroshiroRandomSource(worldSeed xor configuration.seed).forkPositional()
+        val origins = XoroshiroRandomSource(worldSeed xor seed).forkPositional()
 
         // **Asked once for the chunk, never once per column.** This runs in every chunk of every Age, so
         // the common answer — nothing near — has to be cheap, and the ground under a formation is a noise
@@ -140,7 +128,7 @@ object Formation : Feature<FormationConfiguration>(FormationConfiguration.CODEC)
         val centreX = chunk.minBlockX + HALF_A_CHUNK
         val centreZ = chunk.minBlockZ + HALF_A_CHUNK
         val anywhereInTheChunk = furthest + CORNER_OF_A_CHUNK
-        configuration.placement.forEachInstanceNear(centreX, centreZ, anywhereInTheChunk, origins) { x, z, _ ->
+        placement.forEachInstanceNear(centreX, centreZ, anywhereInTheChunk, origins) { x, z, _ ->
             val pose = origins.at(x, 0, z)
             val template = posed[pose.nextInt(posed.size)]
             standing += Standing(x, z, template, template.horizontalReach)
@@ -161,12 +149,12 @@ object Formation : Feature<FormationConfiguration>(FormationConfiguration.CODEC)
                     // the same way — the pose belongs to the thing, not to the column asking about it.
                     val turning = origins.at(formation.originX, 0, formation.originZ)
                     turning.nextInt(posed.size)
-                    val solid = configuration.variation.sample(
+                    val solid = variation.sample(
                         formation.template, x - formation.originX, z - formation.originZ, turning,
                     )
                     if (solid.ranges.isEmpty()) continue
                     val standsOn = ground ?: groundAt(formation.originX, formation.originZ).also { ground = it }
-                    laid += layColumn(solid, standsOn, x, z, configuration.substance, lay)
+                    laid += layColumn(solid, standsOn, x, z, substance, lay)
                 }
             }
         }
@@ -210,11 +198,25 @@ object Formation : Feature<FormationConfiguration>(FormationConfiguration.CODEC)
     private fun LevelHeightAccessor.isOutsideBuildHeight(position: BlockPos): Boolean =
         position.y < minY || position.y > maxY
 
-    /** Vanilla's own flag for a block a feature lays: change it, and do not tell a neighbour. */
-    private const val PLACED_BY_WORLDGEN = 2
+    companion object {
 
-    private const val HALF_A_CHUNK = 8
+        val CODEC: MapCodec<Formation> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                TerrainField.CODEC.listOf().fieldOf("shapes").forGetter(Formation::shapes),
+                Variation.CODEC.codec().optionalFieldOf("variation", Variation.NONE)
+                    .forGetter(Formation::variation),
+                Placement.CODEC.fieldOf("placement").forGetter(Formation::placement),
+                Codec.LONG.fieldOf("seed").forGetter(Formation::seed),
+                BlockState.CODEC.fieldOf("substance").forGetter(Formation::substance),
+            ).apply(instance, ::Formation)
+        }
 
-    /** From a chunk's middle to its furthest corner, rounded up — so no covering formation is missed. */
-    private const val CORNER_OF_A_CHUNK = 12.0
+        /** Vanilla's own flag for a block a feature lays: change it, and do not tell a neighbour. */
+        private const val PLACED_BY_WORLDGEN = 2
+
+        private const val HALF_A_CHUNK = 8
+
+        /** From a chunk's middle to its furthest corner, rounded up — so no covering formation is missed. */
+        private const val CORNER_OF_A_CHUNK = 12.0
+    }
 }

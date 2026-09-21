@@ -8,9 +8,11 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import com.mojang.serialization.Codec
+import com.mojang.serialization.MapCodec
+import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.feature.Feature
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -29,20 +31,28 @@ import kotlin.math.sqrt
  * is the one holding the lake's middle — a question every chunk over that lake answers the same way, so
  * exactly one of them says yes without any of them comparing itself against the others.
  *
- * **One class, one instance per body of lava** ([body]). A crater lake and a magma chamber's pool want
- * exactly this routine and differ only in which field they are; registering it twice is what lets
- * `volcano` and `magma_chamber` be written for separately without either one's vents going missing.
+ * **One kind, one instance per body of lava** ([body]). A crater lake and a magma chamber's pool want
+ * exactly this routine and differ only in which field they are, which is what lets `volcano` and
+ * `magma_chamber` be written for separately without either one's vents going missing. In 26.3 the body is
+ * a field of the feature itself, so the two are two entries in `worldgen/feature/` rather than the same
+ * code registered twice under different ids.
  */
-class VolcanoVents(private val body: String) : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.CODEC) {
+data class VolcanoVents(val body: String) : Feature {
 
-    override fun place(context: FeaturePlaceContext<NoneFeatureConfiguration>): Boolean {
-        val generator = context.chunkGenerator() as? AgeChunkGenerator ?: return false
-        val origin = context.origin()
-        val lakes = moltenIn(generator) ?: return false
+    override fun codec(): MapCodec<out Feature> = CODEC
+
+    override fun place(
+        level: WorldGenLevel,
+        generator: ChunkGenerator,
+        random: RandomSource,
+        origin: BlockPos,
+    ): Boolean {
+        val ageGenerator = generator as? AgeChunkGenerator ?: return false
+        val lakes = moltenIn(ageGenerator) ?: return false
         val anywhere = someLavaIn(lakes, origin) ?: return false
         val middle = middleOfTheLakeAt(lakes, anywhere)
         if (!inside(origin, middle)) return false
-        return seat(context.level(), lakes, middle, context.random())
+        return seat(level, lakes, middle, random)
     }
 
     /**
@@ -249,7 +259,13 @@ class VolcanoVents(private val body: String) : Feature<NoneFeatureConfiguration>
         (-reach..reach).flatMap { x -> (-reach..reach).map { z -> x to z } }
             .filter { (x, z) -> x * x + z * z <= reach * reach }
 
-    private companion object {
+    companion object {
+
+    val CODEC: MapCodec<VolcanoVents> = RecordCodecBuilder.mapCodec { instance ->
+        instance.group(
+            Codec.STRING.fieldOf("body").forGetter(VolcanoVents::body),
+        ).apply(instance, ::VolcanoVents)
+    }
 
     /**
      * How wide the cap is, drawn per crater so two volcanoes are not the same machine.

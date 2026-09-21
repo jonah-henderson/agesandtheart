@@ -8,9 +8,9 @@ import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.feature.Feature
-import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
+import com.mojang.serialization.MapCodec
 import kotlin.math.atan2
 import kotlin.math.ceil
 import kotlin.math.cos
@@ -45,12 +45,18 @@ import kotlin.math.roundToInt
  * leans as it climbs on a random walk, and the radius narrows toward the mouth — so no two are the same
  * chimney and none of them is round.
  */
-object DeepSeaVent : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.CODEC) {
+object DeepSeaVent : Feature {
 
-    override fun place(context: FeaturePlaceContext<NoneFeatureConfiguration>): Boolean {
-        val level = context.level()
-        val random = context.random()
-        val origin = context.origin()
+    val CODEC: MapCodec<DeepSeaVent> = MapCodec.unit { DeepSeaVent }
+
+    override fun codec(): MapCodec<out Feature> = CODEC
+
+    override fun place(
+        level: WorldGenLevel,
+        generator: ChunkGenerator,
+        random: RandomSource,
+        origin: BlockPos,
+    ): Boolean {
         val floor = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, origin.x, origin.z)
         val chimneyHeight = SHORTEST_CHIMNEY + random.nextInt(TALLEST_CHIMNEY - SHORTEST_CHIMNEY + 1)
         if (!standsInOpenAbyss(level, origin.x, origin.z, floor, chimneyHeight)) return false
