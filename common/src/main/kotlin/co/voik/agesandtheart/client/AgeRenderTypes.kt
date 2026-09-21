@@ -112,10 +112,9 @@ object AgeRenderTypes {
     @Suppress("DEPRECATION")
     private fun vanillasEndPortal(): RenderPipeline.Snippet {
         val portal = RenderPipelines.END_PORTAL
-        val colourTargets = portal.colorTargetStates
+        val colourTargets = portal.colorTargetStates.toTypedArray()
         return RenderPipeline.Snippet(
-            Optional.of(portal.vertexShader),
-            Optional.of(portal.fragmentShader),
+            portal.shaders,
             Optional.of(portal.shaderDefines),
             Optional.of(portal.bindGroupLayouts),
             colourTargets,
@@ -123,8 +122,9 @@ object AgeRenderTypes {
             Optional.empty(),
             Optional.of(portal.polygonMode),
             Optional.of(portal.isCull),
-            portal.vertexFormatBindings,
+            portal.vertexFormatBindings.toTypedArray(),
             Optional.of(portal.primitiveTopology),
+            portal.pushConstantSize(),
         )
     }
 
