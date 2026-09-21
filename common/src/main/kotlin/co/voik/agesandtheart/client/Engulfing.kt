@@ -39,7 +39,7 @@ object Engulfing {
      */
     fun paint(level: ClientLevel, layers: EnvironmentAttributeSystem.Builder): EnvironmentAttributeSystem.Builder {
         layers.addPositionalLayer(EnvironmentAttributes.FOG_COLOR) { was, at, _ ->
-            if (engulfedAt(level, at)) SAND.packed() else was
+            if (engulfedAt(level, at)) SAND.rgb() else was
         }
         // Not the sky's own fog end: that would paint the horizon and leave the world in front of you
         // perfectly clear, which is the opposite of the point.
@@ -62,7 +62,7 @@ object Engulfing {
         // Belt and braces: with the sky fogged to nothing its own colour should never be reached, and if
         // it is, sand overhead is a great deal less wrong than blue.
         layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { was, at, _ ->
-            if (engulfedAt(level, at)) SAND.packed() else was
+            if (engulfedAt(level, at)) SAND.rgb() else was
         }
         return layers
     }

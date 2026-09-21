@@ -95,8 +95,8 @@ object AgeAir {
         private val falling: List<CloudDeck>,
     ) {
         fun onto(layers: EnvironmentAttributeSystem.Builder) {
-            layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { _, at, _ -> skyAt(at.y).packed() }
-            layers.addPositionalLayer(EnvironmentAttributes.FOG_COLOR) { _, at, _ -> fogAt(at.y).packed() }
+            layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { _, at, _ -> skyAt(at.y).rgb() }
+            layers.addPositionalLayer(EnvironmentAttributes.FOG_COLOR) { _, at, _ -> fogAt(at.y).rgb() }
         }
 
         /** The open sky, then each deck's own gloom, each one dimmer than the last. */
@@ -147,13 +147,13 @@ object AgeAir {
      * of it. Both granular sets are still there for the day a word wants one.
      */
     private fun painting(look: Look): List<Painted<*>> = buildList {
-        look.sky?.let { add(Painted(EnvironmentAttributes.SKY_COLOR, it.packed())) }
-        look.cloud?.let { add(Painted(EnvironmentAttributes.CLOUD_COLOR, it.packed())) }
-        look.fog?.let { add(Painted(EnvironmentAttributes.FOG_COLOR, it.packed())) }
+        look.sky?.let { add(Painted(EnvironmentAttributes.SKY_COLOR, it.rgb())) }
+        look.cloud?.let { add(Painted(EnvironmentAttributes.CLOUD_COLOR, it.rgba())) }
+        look.fog?.let { add(Painted(EnvironmentAttributes.FOG_COLOR, it.rgb())) }
         // One parameter for the light, because a writer who says the light is green means all of it.
         look.tint?.let {
-            add(Painted(EnvironmentAttributes.SKY_LIGHT_COLOR, it.packed()))
-            add(Painted(EnvironmentAttributes.AMBIENT_LIGHT_COLOR, it.packed()))
+            add(Painted(EnvironmentAttributes.SKY_LIGHT_COLOR, it.rgb()))
+            add(Painted(EnvironmentAttributes.AMBIENT_LIGHT_COLOR, it.rgb()))
         }
         // How often is `Motes`', not ours: a lava spark has to be thinner than drifting ash to read as air.
         look.motes?.let { named ->

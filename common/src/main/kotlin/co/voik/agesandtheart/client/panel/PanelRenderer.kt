@@ -2,7 +2,7 @@ package co.voik.agesandtheart.client.panel
 
 import co.voik.agesandtheart.book.panel.PanelRing
 import co.voik.ephemeris.client.OffscreenLevelRender
-import com.mojang.blaze3d.buffers.GpuBufferSlice
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice
 import com.mojang.blaze3d.pipeline.RenderTarget
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator
 import com.mojang.blaze3d.systems.RenderSystem

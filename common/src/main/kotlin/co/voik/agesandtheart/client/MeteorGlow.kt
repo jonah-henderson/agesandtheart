@@ -10,6 +10,7 @@ import net.minecraft.world.attribute.EnvironmentAttributes
 import net.minecraft.world.level.LightLayer
 import net.minecraft.world.phys.Vec3
 import kotlin.math.sqrt
+import org.joml.Vector3fc
 
 /**
  * The violet a meteor storm turns a place, for as long as it is over it (design §5.2).
@@ -69,9 +70,9 @@ object MeteorGlow {
     }
 
     /** One packed colour dragged [toward] the violet by however much of a storm reaches [at]. */
-    private fun turnedViolet(level: ClientLevel, was: Int, at: Vec3, toward: Rgba): Int {
+    private fun turnedViolet(level: ClientLevel, was: Vector3fc, at: Vec3, toward: Rgba): Vector3fc {
         val how = easedStrengthAt(level, at)
-        return if (how <= NONE) was else Rgba.of(was).lerp(toward, how).packed()
+        return if (how <= NONE) was else Rgba.of(was).lerp(toward, how).rgb()
     }
 
     /**

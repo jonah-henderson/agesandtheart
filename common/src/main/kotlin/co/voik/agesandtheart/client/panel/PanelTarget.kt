@@ -1,12 +1,12 @@
 package co.voik.agesandtheart.client.panel
 
-import com.mojang.blaze3d.GpuFormat
+import com.mojang.renderpearl.api.GpuFormat
 import com.mojang.blaze3d.pipeline.RenderTarget
 import com.mojang.blaze3d.pipeline.TextureTarget
 import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.textures.FilterMode
-import com.mojang.blaze3d.textures.GpuSampler
-import com.mojang.blaze3d.textures.GpuTextureView
+import com.mojang.renderpearl.api.textures.FilterMode
+import com.mojang.renderpearl.api.textures.GpuSampler
+import com.mojang.renderpearl.api.textures.GpuTextureView
 
 /**
  * The off-screen surfaces a panel's world is drawn onto, and the flag that redirects the renderer.

@@ -1,15 +1,15 @@
 package co.voik.agesandtheart.client.panel
 
-import com.mojang.blaze3d.GpuFormat
-import com.mojang.blaze3d.PrimitiveTopology
+import com.mojang.renderpearl.api.GpuFormat
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology
 import com.mojang.blaze3d.ProjectionType
 import com.mojang.blaze3d.pipeline.RenderTarget
 import com.mojang.blaze3d.pipeline.TextureTarget
 import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.textures.GpuTextureView
+import com.mojang.renderpearl.api.textures.GpuTextureView
 import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
-import com.mojang.blaze3d.vertex.VertexFormat
+import com.mojang.renderpearl.api.vertex.VertexFormat
 import org.joml.Vector4f
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.renderer.StagedVertexBuffer

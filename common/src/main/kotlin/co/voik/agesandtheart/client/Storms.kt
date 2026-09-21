@@ -17,6 +17,7 @@ import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
+import org.joml.Vector3fc
 
 /**
  * What the client has been told about the storm it is standing in.
@@ -112,9 +113,9 @@ object Storms {
     }
 
     /** How far toward a whiteout this sample is — the colour follows the distances rather than snapping. */
-    private fun whitenedBy(level: ClientLevel, at: Vec3, was: Int): Int {
+    private fun whitenedBy(level: ClientLevel, at: Vec3, was: Vector3fc): Vector3fc {
         val exposed = Blizzard.exposureAt(level, BlockPos.containing(at))
-        return ARGB.srgbLerp(exposed, was, DRIVEN_SNOW.packed())
+        return ARGB.srgbLerp(exposed, was, DRIVEN_SNOW.rgb())
     }
 
     /**

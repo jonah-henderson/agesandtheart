@@ -1,11 +1,13 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.content.DeepWater
+import co.voik.ephemeris.Rgba
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
 import net.minecraft.world.phys.Vec3
+import org.joml.Vector3fc
 
 /**
  * What being *in* deep water does to what you can see (design §7.1.2).
@@ -67,7 +69,7 @@ object DeepWaterFog {
      * every channel rescaling to full and the fog coming out white. Red is the one to spend, water eating
      * it first anyway.
      */
-    private const val ABYSSAL = 0x000A0A
+    private val ABYSSAL: Vector3fc = Rgba.of(0x000A0A).rgb()
 
     /**
      * No clear water between you and the murk: it begins at the eye rather than eight blocks behind it.

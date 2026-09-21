@@ -7,6 +7,7 @@ import net.minecraft.world.effect.MobEffects
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
+import org.joml.Vector3fc
 
 /**
  * What being near a wound does to the air (design §5.1).
@@ -37,15 +38,15 @@ object Corruption {
     fun paint(level: ClientLevel, layers: EnvironmentAttributeSystem.Builder): EnvironmentAttributeSystem.Builder {
         // The world going black around you — the fog's colour and the sky's, so it closes in rather than
         // merely darkening overhead.
-        layers.corrupting(level, EnvironmentAttributes.FOG_COLOR) { was, how -> was.dimmed(1.0f - how).packed() }
-        layers.corrupting(level, EnvironmentAttributes.SKY_COLOR) { was, how -> was.dimmed(1.0f - how).packed() }
+        layers.corrupting(level, EnvironmentAttributes.FOG_COLOR) { was, how -> was.dimmed(1.0f - how).rgb() }
+        layers.corrupting(level, EnvironmentAttributes.SKY_COLOR) { was, how -> was.dimmed(1.0f - how).rgb() }
 
         // And the light losing its *colour*, which is what desaturation actually is: what reaches you is
         // grey rather than tinted, so a place looks wrong before it looks dark.
         layers.corrupting(level, EnvironmentAttributes.SKY_LIGHT_COLOR) { was, how ->
-            was.drained(how).dimmed(1.0f - how).packed()
+            was.drained(how).dimmed(1.0f - how).rgb()
         }
-        layers.corrupting(level, EnvironmentAttributes.BLOCK_LIGHT_TINT) { was, how -> was.drained(how).packed() }
+        layers.corrupting(level, EnvironmentAttributes.BLOCK_LIGHT_TINT) { was, how -> was.drained(how).rgb() }
 
         // Night vision is not touched at all — see [yieldsToNightVision].
 
@@ -64,8 +65,8 @@ object Corruption {
      */
     private fun EnvironmentAttributeSystem.Builder.corrupting(
         level: ClientLevel,
-        attribute: net.minecraft.world.attribute.EnvironmentAttribute<Int>,
-        bend: (Rgba, Float) -> Int,
+        attribute: net.minecraft.world.attribute.EnvironmentAttribute<Vector3fc>,
+        bend: (Rgba, Float) -> Vector3fc,
     ) {
         addPositionalLayer(attribute) { was, at, _ ->
             val how = if (yieldsToNightVision()) Wounds.NONE else Wounds.corruptionAt(level, at)
