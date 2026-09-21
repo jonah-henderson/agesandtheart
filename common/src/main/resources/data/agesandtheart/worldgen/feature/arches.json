@@ -1,0 +1,65 @@
+{
+  "_comment": [
+    "Twenty-five tall as written, so `colossal` is a hundred. A wall with a way through it,",
+    "facing wherever it happens to face."
+  ],
+  "type": "agesandtheart:formation",
+  "shapes": [
+    {
+      "type": "subtract",
+      "base": {
+        "type": "box",
+        "min_x": -12,
+        "min_y": 0,
+        "min_z": -2,
+        "max_x": 12,
+        "max_y": 25,
+        "max_z": 2
+      },
+      "cut": {
+        "type": "union",
+        "fields": [
+          {
+            "type": "cylinder",
+            "axis": "z",
+            "center_x": 0,
+            "center_y": 13,
+            "center_z": 0,
+            "radius": 8.0,
+            "half_length": 3.0
+          },
+          {
+            "type": "box",
+            "min_x": -8,
+            "min_y": 0,
+            "min_z": -3,
+            "max_x": 8,
+            "max_y": 13,
+            "max_z": 3
+          }
+        ]
+      }
+    }
+  ],
+  "variation": {
+    "yaw_steps": 8,
+    "min_scale": 0.9,
+    "max_scale": 1.3,
+    "scale_steps": 3,
+    "pivot_y": 0,
+    "min_lift": 0,
+    "max_lift": 0,
+    "lift_steps": 1
+  },
+  "placement": {
+    "type": "scatter",
+    "cell_size": 112.0,
+    "least_per_cell": 0,
+    "most_per_cell": 2,
+    "at_origin": 1.0,
+    "at_edge": 1.0,
+    "falloff_radius": 1.0
+  },
+  "seed": 10667237,
+  "substance": "minecraft:stone"
+}

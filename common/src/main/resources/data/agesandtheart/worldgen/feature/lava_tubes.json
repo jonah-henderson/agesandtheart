@@ -17,51 +17,45 @@
     "these at all."
   ],
   "type": "minecraft:random_selector",
-  "config": {
-    "features": [
-      {
-        "chance": 0.034,
-        "feature": {
-          "feature": {
-            "type": "minecraft:ore",
-            "config": {
-              "size": 30,
-              "discard_chance_on_air_exposure": 0.0,
-              "targets": [
-                {
-                  "target": { "predicate_type": "minecraft:tag_match", "tag": "minecraft:base_stone_overworld" },
-                  "state": { "Name": "agesandtheart:lava_tube" }
-                },
-                {
-                  "target": { "predicate_type": "minecraft:tag_match", "tag": "minecraft:base_stone_nether" },
-                  "state": { "Name": "agesandtheart:lava_tube" }
-                }
-              ]
-            }
-          },
-          "placement": []
-        }
-      }
-    ],
-    "default": {
+  "features": [
+    {
+      "chance": 0.034,
       "feature": {
-        "type": "minecraft:ore",
-        "config": {
-          "size": 12,
+        "feature": {
+          "type": "minecraft:ore",
+          "size": 30,
           "discard_chance_on_air_exposure": 0.0,
           "targets": [
             {
               "target": { "predicate_type": "minecraft:tag_match", "tag": "minecraft:base_stone_overworld" },
-              "state": { "Name": "agesandtheart:lava_tube" }
+              "state": "agesandtheart:lava_tube"
             },
             {
               "target": { "predicate_type": "minecraft:tag_match", "tag": "minecraft:base_stone_nether" },
-              "state": { "Name": "agesandtheart:lava_tube" }
+              "state": "agesandtheart:lava_tube"
             }
           ]
-        }
-      },
-      "placement": []
+        },
+        "placement": []
+      }
     }
+  ],
+  "default": {
+    "feature": {
+      "type": "minecraft:ore",
+      "size": 12,
+      "discard_chance_on_air_exposure": 0.0,
+      "targets": [
+        {
+          "target": { "predicate_type": "minecraft:tag_match", "tag": "minecraft:base_stone_overworld" },
+          "state": "agesandtheart:lava_tube"
+        },
+        {
+          "target": { "predicate_type": "minecraft:tag_match", "tag": "minecraft:base_stone_nether" },
+          "state": "agesandtheart:lava_tube"
+        }
+      ]
+    },
+    "placement": []
   }
 }

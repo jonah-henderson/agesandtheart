@@ -5,5 +5,5 @@
     "told where it is. Its own body of lava is the crater lakes; the chambers have a feature of their own."
   ],
   "type": "agesandtheart:volcano_vents",
-  "config": {}
+  "body": "crater_lakes"
 }

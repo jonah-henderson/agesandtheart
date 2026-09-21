@@ -103,7 +103,6 @@ import co.voik.agesandtheart.worldgen.feature.ImpactCrater
 import co.voik.agesandtheart.worldgen.feature.DeepSeaVent
 import co.voik.agesandtheart.worldgen.feature.LavaPuddles
 import co.voik.agesandtheart.worldgen.feature.VolcanoVents
-import co.voik.agesandtheart.worldgen.field.StandingFluid
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.carver.WorldCarver
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction
@@ -1754,17 +1753,17 @@ object AgeContent {
      * Our own features. As with [carvers], this registers the *kind*; what is made of it is built in code
      * rather than authored, there being one caller and no reason for a pack to name it.
      */
-    val features: List<Pair<Identifier, Feature<*>>> = listOf(
-        "algae".location() to Algae,
-        "spilled_spring".location() to SpilledSpring,
-        "formation".location() to Formation,
-        "rime_crystal".location() to RimeCrystal,
-        "tempered_ground".location() to TemperedGround,
-        // The same routine twice, once per body of lava an Age may carry — see [VolcanoVents].
-        "volcano_vents".location() to VolcanoVents(StandingFluid.CRATER_LAKES),
-        "chamber_vents".location() to VolcanoVents(StandingFluid.CHAMBER_POOLS),
-        "lava_puddles".location() to LavaPuddles,
-        "impact_crater".location() to ImpactCrater,
-        "deep_sea_vent".location() to DeepSeaVent,
+    val features: List<Pair<Identifier, MapCodec<out Feature>>> = listOf(
+        "algae".location() to Algae.CODEC,
+        "spilled_spring".location() to SpilledSpring.CODEC,
+        "formation".location() to Formation.CODEC,
+        "rime_crystal".location() to RimeCrystal.CODEC,
+        "tempered_ground".location() to TemperedGround.CODEC,
+        // One kind now: the body of lava is a field, so the two an Age may carry are two entries in
+        // `worldgen/feature/` rather than the same code registered under two ids — see [VolcanoVents].
+        "volcano_vents".location() to VolcanoVents.CODEC,
+        "lava_puddles".location() to LavaPuddles.CODEC,
+        "impact_crater".location() to ImpactCrater.CODEC,
+        "deep_sea_vent".location() to DeepSeaVent.CODEC,
     )
 }

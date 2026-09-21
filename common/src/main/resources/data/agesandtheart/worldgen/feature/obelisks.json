@@ -1,0 +1,55 @@
+{
+  "_comment": [
+    "A shaft under a pointed cap, twenty-five tall as written -- so `colossal` is a hundred, which is the",
+    "standard every formation here is drawn to.",
+    "**The shaft and the cap overlap by a block on purpose.** `max_y` is an inclusive coordinate, not a",
+    "height, so resizing scales the shaft's top and the cap's base separately and they drift apart: the cap",
+    "floated three blocks over the column at `colossal`. Overlapping them means no factor can part them."
+  ],
+  "type": "agesandtheart:formation",
+  "shapes": [
+    {
+      "type": "union",
+      "fields": [
+        {
+          "type": "box",
+          "min_x": -2,
+          "min_y": 0,
+          "min_z": -2,
+          "max_x": 2,
+          "max_y": 20,
+          "max_z": 2
+        },
+        {
+          "type": "pyramid",
+          "center_x": 0,
+          "center_z": 0,
+          "base_y": 19,
+          "height": 6,
+          "base_half_width": 2
+        }
+      ]
+    }
+  ],
+  "variation": {
+    "yaw_steps": 4,
+    "min_scale": 1.0,
+    "max_scale": 1.0,
+    "scale_steps": 1,
+    "pivot_y": 0,
+    "min_lift": 0,
+    "max_lift": 0,
+    "lift_steps": 1
+  },
+  "placement": {
+    "type": "scatter",
+    "cell_size": 112.0,
+    "least_per_cell": 0,
+    "most_per_cell": 2,
+    "at_origin": 1.0,
+    "at_edge": 1.0,
+    "falloff_radius": 1.0
+  },
+  "seed": 199300549,
+  "substance": "minecraft:stone"
+}

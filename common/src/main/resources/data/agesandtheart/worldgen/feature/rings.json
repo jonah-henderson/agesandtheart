@@ -1,0 +1,83 @@
+{
+  "_comment": [
+    "A torus, and it leans. Twenty-five across as written, so `colossal` is the hundred-block",
+    "ring this was drawn for -- the standard every formation here shares.",
+    "Five leans rather than a rotation dial: `Variation` turns a shape by rotating the query",
+    "column, which is a yaw and nothing else, so the lean has to be in the shape.",
+    "The lift sinks some of them, since a ring half in the ground is the better half of them."
+  ],
+  "type": "agesandtheart:formation",
+  "shapes": [
+    {
+      "type": "torus",
+      "center_x": 0,
+      "center_y": 2,
+      "center_z": 0,
+      "ring_radius": 11.0,
+      "tube_radius": 1.5,
+      "tilt": 0.0,
+      "turn": 0.0
+    },
+    {
+      "type": "torus",
+      "center_x": 0,
+      "center_y": 4,
+      "center_z": 0,
+      "ring_radius": 11.0,
+      "tube_radius": 1.5,
+      "tilt": 18.0,
+      "turn": 0.0
+    },
+    {
+      "type": "torus",
+      "center_x": 0,
+      "center_y": 6,
+      "center_z": 0,
+      "ring_radius": 11.0,
+      "tube_radius": 1.5,
+      "tilt": 35.0,
+      "turn": 45.0
+    },
+    {
+      "type": "torus",
+      "center_x": 0,
+      "center_y": 9,
+      "center_z": 0,
+      "ring_radius": 11.0,
+      "tube_radius": 1.5,
+      "tilt": 58.0,
+      "turn": 20.0
+    },
+    {
+      "type": "torus",
+      "center_x": 0,
+      "center_y": 12,
+      "center_z": 0,
+      "ring_radius": 11.0,
+      "tube_radius": 1.5,
+      "tilt": 82.0,
+      "turn": 70.0
+    }
+  ],
+  "variation": {
+    "yaw_steps": 8,
+    "min_scale": 0.8,
+    "max_scale": 1.2,
+    "scale_steps": 3,
+    "pivot_y": 0,
+    "min_lift": -6,
+    "max_lift": 2,
+    "lift_steps": 5
+  },
+  "placement": {
+    "type": "scatter",
+    "cell_size": 144.0,
+    "least_per_cell": 0,
+    "most_per_cell": 1,
+    "at_origin": 1.0,
+    "at_edge": 1.0,
+    "falloff_radius": 1.0
+  },
+  "seed": 35243280,
+  "substance": "minecraft:stone"
+}

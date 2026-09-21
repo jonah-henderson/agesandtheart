@@ -5,20 +5,20 @@
     "world is proof somebody wrote it there. That is what makes the scarab's first condition unforgeable,",
     "and why the patch is ours rather than a vanilla feature we could have named.",
     "",
-    "**`simple_block`, because 26.1 has no patch feature left.** `minecraft:flower` and",
+    "**`simple_block`, because there is no patch feature left.** `minecraft:flower` and",
     "`minecraft:random_patch` are both gone from the feature registry -- vanilla's own FLOWER_DEFAULT is a",
     "`simple_block` now, and what used to be `tries`/`xz_spread` is done with placement modifiers instead.",
-    "A configured feature naming either of the old types is dropped at datapack load, which is silent.",
+    "A feature naming either of the old types is dropped at datapack load, which is silent.",
     "",
     "The block is `minecraft:torchflower` -- the grown flower, not `torchflower_crop`, which is farmland-",
     "bound and would pop off a jungle floor at its first neighbour update. `simple_block` asks",
-    "`canSurvive` before it places, so a flower that lands on stone or leaves simply does not appear."
+    "`canSurvive` before it places, so a flower that lands on stone or leaves simply does not appear.",
+    "",
+    "26.3 takes the state straight: `simple_state_provider` is gone from the data, and `to_place` reads a",
+    "block state where it read a provider wrapping one."
   ],
   "type": "minecraft:simple_block",
-  "config": {
-    "to_place": {
-      "type": "minecraft:simple_state_provider",
-      "state": { "Name": "minecraft:torchflower" }
-    }
+  "to_place": {
+    "id": "minecraft:torchflower"
   }
 }

@@ -4,6 +4,5 @@
     "finds the water itself by falling from wherever it was put -- a lake in a chamber is nowhere near",
     "the heightmap, so nothing could have pointed at it."
   ],
-  "type": "agesandtheart:algae",
-  "config": {}
+  "type": "agesandtheart:algae"
 }

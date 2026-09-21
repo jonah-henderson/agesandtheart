@@ -181,8 +181,8 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.MATERIAL_CONDITION) { helper ->
             WorldgenCodecs.surfaceConditionCodecs.forEach { (id, codec) -> helper.register(id, codec) }
         }
-        event.register(Registries.FEATURE) { helper ->
-            AgeContent.features.forEach { (id, feature) -> helper.register(id, feature) }
+        event.register(Registries.FEATURE_TYPE) { helper ->
+            AgeContent.features.forEach { (id, codec) -> helper.register(id, codec) }
         }
         event.register(Registries.CARVER_TYPE) { helper ->
             AgeContent.carvers.forEach { (id, codec) -> helper.register(id, codec) }
