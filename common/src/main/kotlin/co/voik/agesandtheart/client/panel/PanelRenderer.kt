@@ -202,13 +202,14 @@ object PanelRenderer {
         PanelTarget.redirecting {
             preview.renderer.render(
                 GraphicsResourceAllocator.UNPOOLED,
-                delta,
                 false,
                 state,
-                state.viewRotationMatrix,
                 terrainFog,
                 state.fogData.color,
                 true,
+                // Whether a post-processing chain is live. The panel has none, and vanilla reads this to
+                // decide whether the level needs drawing into a texture it can then run effects over.
+                false,
             )
         }
         return true

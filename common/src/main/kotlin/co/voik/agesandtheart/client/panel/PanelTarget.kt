@@ -137,8 +137,8 @@ object PanelTarget {
                 "Ages linking panel ${width}x$height field $which",
                 width,
                 height,
-                true,
                 GpuFormat.RGBA8_UNORM,
+                GpuFormat.D32_FLOAT,
             )
                 .also { fields[which] = it }
     }

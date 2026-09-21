@@ -57,13 +57,9 @@ class PreviewLevel private constructor(
      */
     fun accept(payload: PanelChunkPayload) {
         val cache = level.chunkSource
-        val chunk = cache.replaceWithPacketData(
-            payload.x,
-            payload.z,
-            payload.chunk.readBuffer,
-            payload.chunk.heightmaps,
-            payload.chunk.getBlockEntitiesTagsConsumer(payload.x, payload.z),
-        )
+        // 26.3 takes the packet data whole, where it took the buffer, the heightmaps and the block-entity
+        // consumer unpacked from it.
+        val chunk = cache.replaceWithPacketData(payload.x, payload.z, payload.chunk)
         if (chunk == null) {
             // The view centre and the ring disagree, which is a bug here rather than a network fault.
             Constants.LOG.warn("Panel chunk {},{} fell outside the preview's own range", payload.x, payload.z)

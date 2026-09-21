@@ -92,7 +92,7 @@ class BorrowedFrame private constructor(
                     target.height,
                     options.glintStrength,
                     level.gameTime,
-                    delta,
+                    delta.getGameTimeDeltaPartialTick(false),
                     options.menuBackgroundBlurriness,
                     camera.position(),
                     options.textureFiltering == TextureFilteringMethod.RGSS,

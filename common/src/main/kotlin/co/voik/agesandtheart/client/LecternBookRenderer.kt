@@ -123,7 +123,6 @@ class LecternBookRenderer(context: BlockEntityRendererProvider.Context) : Lecter
             EnchantTableRenderer.BOOK_TEXTURE,
             sprites,
             NO_OUTLINE,
-            state.breakProgress,
         )
     }
 

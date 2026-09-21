@@ -6,7 +6,10 @@ import com.mojang.blaze3d.ProjectionType
 import com.mojang.blaze3d.pipeline.RenderTarget
 import com.mojang.blaze3d.pipeline.TextureTarget
 import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.renderpearl.api.commands.RenderPass
 import com.mojang.renderpearl.api.textures.GpuTextureView
+import java.util.Optional
+import java.util.OptionalDouble
 import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.renderpearl.api.vertex.VertexFormat
@@ -99,45 +102,47 @@ object PanelComposite {
         "Ages linking panel, $which",
         FRAMED_WIDTH * TEXELS_PER_PAGE_PIXEL,
         FRAMED_HEIGHT * TEXELS_PER_PAGE_PIXEL,
-        true,
         GpuFormat.RGBA8_UNORM,
+        // 26.3 names the depth format where it took a "give me depth" flag; this is what vanilla's own
+        // main target asks for, and a null here would mean no depth at all.
+        GpuFormat.D32_FLOAT,
     )
 
     private fun compose(target: RenderTarget, strokes: List<PanelStroke>): GpuTextureView {
         val colour = requireNotNull(target.colorTextureView) { "A panel composite has no colour to lay onto" }
         val depth = requireNotNull(target.depthTextureView) { "A panel composite has no depth to lay onto" }
-        RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(
-            requireNotNull(target.colorTexture),
-            TRANSPARENT,
-            requireNotNull(target.depthTexture),
-            FURTHEST_DEPTH,
-        )
         PanelTexture.registerAll()
-        ontoTheComposite(colour, depth) { lay(runsOf(strokes)) }
+        ontoTheComposite(colour, depth) { pass -> lay(runsOf(strokes), pass) }
         return colour
     }
 
     /**
-     * Runs [block] with vanilla's immediate draws pointed at the composite and measured in page-pixels, and puts
-     * back everything it borrowed: the frame this is laid down in goes on to draw the world and the GUI with them.
+     * Runs [block] against a pass over the composite, measured in page-pixels, and puts back the projection
+     * it borrowed: the frame this is laid down in goes on to draw the world and the GUI with it.
+     *
+     * **The pass is the target now.** 26.2 pointed vanilla's immediate draws at a texture through two global
+     * overrides on `RenderSystem` and let every draw find them; 26.3 has no such override and hands each draw
+     * the pass to run in, so where the strokes land is said once, here, rather than being ambient. The clear
+     * rides along with it — a pass opens by clearing what it is given — which is why there is no longer a
+     * separate call for that.
      */
-    private fun ontoTheComposite(colour: GpuTextureView, depth: GpuTextureView, block: () -> Unit) {
-        val outerColour = RenderSystem.outputColorTextureOverride
-        val outerDepth = RenderSystem.outputDepthTextureOverride
+    private fun ontoTheComposite(colour: GpuTextureView, depth: GpuTextureView, block: (RenderPass) -> Unit) {
         val outerProjection = RenderSystem.getProjectionMatrixBuffer()
         val outerProjectionType = RenderSystem.getProjectionType()
         val modelView = RenderSystem.getModelViewStack()
         modelView.pushMatrix()
         try {
             modelView.identity()
-            RenderSystem.outputColorTextureOverride = colour
-            RenderSystem.outputDepthTextureOverride = depth
             RenderSystem.setProjectionMatrix(projections.getBuffer(PAGE_PIXELS), ProjectionType.ORTHOGRAPHIC)
-            block()
+            RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+                { "Ages linking panel composite" },
+                colour,
+                Optional.of(TRANSPARENT),
+                depth,
+                OptionalDouble.of(FURTHEST_DEPTH),
+            ).use(block)
         } finally {
             modelView.popMatrix()
-            RenderSystem.outputColorTextureOverride = outerColour
-            RenderSystem.outputDepthTextureOverride = outerDepth
             outerProjection?.let { RenderSystem.setProjectionMatrix(it, outerProjectionType) }
         }
     }
@@ -181,7 +186,7 @@ object PanelComposite {
      * order below is vanilla's own, from `GuiRenderer.render`: append everything, upload once, execute
      * each, and only then tear down. Nothing closes a draw; the next `getVertexBuilder` does it.
      */
-    private fun lay(runs: List<Run>) {
+    private fun lay(runs: List<Run>, pass: RenderPass) {
         val appended = runs.map { run ->
             val draw = staged.appendDraw(run.format, PrimitiveTopology.QUADS)
             val builder = staged.getVertexBuilder(draw)
@@ -191,7 +196,7 @@ object PanelComposite {
         staged.upload()
         // Null where a draw took no vertices, which is nothing to execute rather than a fault.
         appended.forEach { (run, draw) ->
-            staged.getExecuteInfo(draw)?.let { run.renderType.prepare().drawFromBuffer(it) }
+            staged.getExecuteInfo(draw)?.let { run.renderType.prepare().drawFromBuffer(it, pass) }
         }
         // `endFrame` opens with `endDraw`, so this is both halves of vanilla's teardown. It is per
         // composite rather than per frame because nothing here has a frame hook, and the buffer pool
