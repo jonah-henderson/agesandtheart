@@ -20,12 +20,13 @@ import net.minecraft.core.HolderLookup
 import net.minecraft.core.HolderSet
 import net.minecraft.core.QuartPos
 import net.minecraft.core.registries.Registries
-import net.minecraft.core.RegistryCodecs
+import net.minecraft.core.registries.codec.RegistryCodecs
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.WorldGenRegion
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.attribute.EnvironmentAttributes
 import net.minecraft.world.level.LevelHeightAccessor
 import net.minecraft.world.level.NoiseColumn
 import net.minecraft.world.level.StructureManager
@@ -47,15 +48,23 @@ import net.minecraft.world.level.block.Block
 import co.voik.agesandtheart.age.consequence.Consequence
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseChunk
+import net.minecraft.world.level.levelgen.WorldGenerationContext
+import net.minecraft.world.level.levelgen.densityfunction.DensityVolume
+import net.minecraft.world.level.levelgen.densityfunction.DensitySampler
+import net.minecraft.world.level.levelgen.densityfunction.SamplerContext
+import net.minecraft.world.level.chunk.CarvingMask
+import net.minecraft.core.Direction
+import net.minecraft.tags.BlockTags
+import net.minecraft.util.Util
+import co.voik.agesandtheart.worldgen.carver.OpenGround
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
-import net.minecraft.world.level.levelgen.DensityFunction
+import net.minecraft.world.level.levelgen.densityfunction.DensityFunction
 import net.minecraft.world.level.levelgen.RandomState
 import net.minecraft.world.level.levelgen.RandomSupport
-import net.minecraft.world.level.levelgen.SurfaceRules
+import net.minecraft.world.level.levelgen.material.rule.MaterialRule
 import net.minecraft.world.level.levelgen.WorldgenRandom
 import net.minecraft.world.level.levelgen.blending.Blender
-import net.minecraft.world.level.levelgen.carver.CarvingContext
-import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
+import net.minecraft.world.level.levelgen.carver.WorldCarver
 import net.minecraft.world.level.levelgen.structure.StructureSet
 import java.util.Optional
 import java.util.concurrent.CompletableFuture
@@ -98,7 +107,7 @@ class AgeChunkGenerator(
     /** Who answers for the rock — the field tree, or vanilla's own router. See [AgeRock]. */
     val rock: AgeRock,
     private val writtenSea: SeaFill,
-    private val surfaceRule: SurfaceRules.RuleSource = SurfacingStrategy.SUPPRESSED,
+    private val surfaceRule: MaterialRule = SurfacingStrategy.SUPPRESSED,
     /**
      * What is cut back out of the rock, one set per carving — **and they all run**, except where a carving
      * asserting the rock is *uncut* holds the ground (§3.4, and [uncarvedTerritories]).
@@ -110,7 +119,7 @@ class AgeChunkGenerator(
      * A carver is a stateful walk, so there is no column at which to ask whether it may cut; [applyCarvers]
      * asks at the walk's *origin*, the one position a walk has.
      */
-    private val carvers: List<HolderSet<ConfiguredWorldCarver<*>>> = listOf(HolderSet.direct()),
+    private val carvers: List<HolderSet<WorldCarver>> = listOf(HolderSet.direct()),
     /**
      * Which carving owns which ground — read by **carving and hydrology alike**, so that the caves and
      * the water standing in them belong to the same territory rather than to two maps that nearly agree.
@@ -242,10 +251,12 @@ class AgeChunkGenerator(
      * `NoiseChunk` reads it, so this is the number the frozen-ocean icebergs stop at. See
      * [co.voik.agesandtheart.worldgen.PreliminarySurface].
      */
-    fun preliminarySurfaceAt(worldX: Int, worldZ: Int): Int = Math.floor(
-        generatorSettings().value().noiseRouter().preliminarySurfaceLevel()
-            .compute(DensityFunction.SinglePointContext(worldX, 0, worldZ)),
-    ).toInt()
+    fun preliminarySurfaceAt(worldX: Int, worldZ: Int): Int {
+        // Always one of ours, and its own sampler: `routerFor` puts a `PreliminarySurface` in this slot
+        // for every Age, so there is no compile context to build in order to read it.
+        val surface = generatorSettings().value().noiseRouter().chunkSurfaceLevel() as DensitySampler
+        return Math.floor(surface.sampleValue(SamplerContext.EMPTY_UNCACHED, worldX, 0, worldZ).toDouble()).toInt()
+    }
 
     /** The surface the aquifer reads, which is the one vanilla's surface system reads — as vanilla's aquifer does. */
     private fun surfaceForTheAquifer(): WaterTable.SurfaceAt = WaterTable.SurfaceAt(::preliminarySurfaceAt)
@@ -268,11 +279,10 @@ class AgeChunkGenerator(
      * depth; our depth is our own, so this asks the biome those two would have chosen.
      */
     private fun deepDarkIn(randomState: RandomState): WaterTable.DeepDarkAt = WaterTable.DeepDarkAt { worldX, worldY, worldZ ->
-        biomeSource.getNoiseBiome(
+        biomeSource.createUncachedResolver(randomState).getNoiseBiome(
             QuartPos.fromBlock(worldX),
             QuartPos.fromBlock(worldY),
             QuartPos.fromBlock(worldZ),
-            randomState.sampler(),
         ).`is`(Biomes.DEEP_DARK)
     }
 
@@ -329,21 +339,23 @@ class AgeChunkGenerator(
      * — and it needs no widener, unlike the feature seam beside it.
      */
     override fun getMobsAt(
-        biome: Holder<Biome>,
+        level: Level,
         structures: StructureManager,
         category: MobCategory,
         at: BlockPos,
     ): WeightedList<MobSpawnSettings.SpawnerData> {
-        val offered = super.getMobsAt(biome, structures, category, at)
+        val offered = super.getMobsAt(level, structures, category, at)
         val living = lives ?: return offered
-        val world = structures.level as? Level
+        // The biome off the level rather than handed in: 26.3 passes the level, which is also what
+        // retired the widener line that used to reach one through the structure manager.
+        val biome = level.getBiome(at)
         return living.at(
             biome.unwrapKey().orElse(null)?.identifier(),
             category,
             Spawns.Situation(
                 at = at,
                 skyIsOpen = skyIsOpenAt(structures, at),
-                brightness = world?.getMaxLocalRawBrightness(at) ?: FULLY_LIT,
+                brightness = level.getMaxLocalRawBrightness(at),
             ),
             offered,
         )
@@ -488,20 +500,59 @@ class AgeChunkGenerator(
      */
     private val generationSettings: NoiseGeneratorSettings = generatorSettings().value()
 
-    override fun fillFromNoise(
+    /**
+     * **Fill, then this Age's own relief, then the surface, then the carvers** — vanilla's own order with
+     * one insertion, which is the whole reason this is overridden rather than inherited.
+     *
+     * 26.3 collapsed `fillFromNoise`, `buildSurface` and `applyCarvers` into this one call and made the
+     * pipeline inside it private. The [Overlay] has to land between the fill and the surfacing: surfaced
+     * after being raised, a cone comes out with the biome's own grass or snow or netherrack on it, and
+     * surfaced before, it comes out as bare rock (stamp 33, walked). A feature could not do it either —
+     * it may write only one chunk past its own, and it would arrive after the surface was decided.
+     *
+     * `doFill` and `generateCarvers` are widened for this. Reimplementing vanilla's fill was the
+     * alternative and was declined: it drifts every version, and drift inside the terrain fill is
+     * invisible until somebody walks it.
+     */
+    override fun buildTerrain(
+        chunk: ChunkAccess,
         blender: Blender,
         randomState: RandomState,
         structureManager: StructureManager,
+        biomeManager: BiomeManager,
+        region: WorldGenRegion?,
+        biomes: MutableSet<Holder<Biome>>,
+    ): CompletableFuture<ChunkAccess> = CompletableFuture.supplyAsync({
+        noiseChunkFor(chunk, randomState, structureManager).use { noiseChunk ->
+            val ours = rock as? AgeRock.Ours
+            if (ours == null) doFill(noiseChunk, chunk) else fillOurGround(ours, chunk, randomState, structureManager)
+            // Only where the rock is vanilla's: an Age of ours folds its overlay into the field tree.
+            if (ours == null) layOverlayInto(chunk)
+            randomState.surfaceSystem().buildSurface(
+                randomState,
+                biomeManager,
+                WorldGenerationContext(this, chunk.heightAccessorForGeneration),
+                chunk,
+                noiseChunk,
+                surfaceRule,
+                biomes,
+            )
+            if (ours == null) {
+                region?.let { generateCarvers(chunk, blender, noiseChunk, randomState, biomeManager, it, surfaceRule) }
+            } else {
+                region?.let { carveOurGround(ours, chunk, randomState, biomeManager, noiseChunk, it) }
+            }
+        }
+        chunk
+    }, Util.backgroundExecutor())
+
+    /** The field tree's own fill — [FieldFill], which knows nothing of density functions. */
+    private fun fillOurGround(
+        ours: AgeRock.Ours,
         chunk: ChunkAccess,
-    ): CompletableFuture<ChunkAccess> {
-        val ours = rock as? AgeRock.Ours
-            // **Vanilla's rock, and then ours on top of it.** Chained rather than done afterwards so it
-            // lands inside the noise stage, which is what gets it surfaced: `buildSurface` runs next and
-            // paints whatever it finds, so a cone comes out with the biome's own grass or snow or
-            // netherrack on it. A feature could not — it may write only one chunk past its own, and it
-            // would arrive after the surface was already decided.
-            ?: return super.fillFromNoise(blender, randomState, structureManager, chunk)
-                .thenApply { filled -> filled.also { layOverlayInto(it) } }
+        randomState: RandomState,
+        structureManager: StructureManager,
+    ) {
         // Null in almost every chunk, which is what makes asking it per block affordable.
         val adaptation = TerrainAdaptation.around(structureManager, chunk.pos)
         // **One reading of the sea for the whole chunk** — see [FieldFill], which is built around it.
@@ -523,7 +574,6 @@ class AgeChunkGenerator(
                 abyssBelongsIn(biomeAtTheLineIn(at, worldX, worldZ), ours, worldX, worldZ)
             },
         ).fillInto(chunk)
-        return CompletableFuture.completedFuture(chunk)
     }
 
     // --- Surface height contract: honest answers so structures/features land on the terrain. ---
@@ -681,11 +731,10 @@ class AgeChunkGenerator(
             rockHere = spans,
             seaFillsTheLine = { seaFill.fillsAt(abyssLine, dryness, wetness) },
             biomeAtTheLine = {
-                biomeSource.getNoiseBiome(
+                biomeSource.createUncachedResolver(randomState).getNoiseBiome(
                     QuartPos.fromBlock(x),
                     QuartPos.fromBlock(abyssLine),
                     QuartPos.fromBlock(z),
-                    randomState.sampler(),
                 )
             },
         )
@@ -735,7 +784,7 @@ class AgeChunkGenerator(
      * what keeps an Age reproducible. `distinct()` so a carver named twice runs once, rather than twice at
      * different seeds, which would double its density.
      */
-    private val carving: List<Holder<ConfiguredWorldCarver<*>>> by lazy {
+    private val carving: List<Holder<WorldCarver>> by lazy {
         carvers.flatMap { perSubsurface -> perSubsurface.toList() }.distinct()
     }
 
@@ -755,20 +804,28 @@ class AgeChunkGenerator(
     private val ambientFluid =
         Aquifer.FluidPicker { x, _, z -> Aquifer.FluidStatus(seaLevel, writtenSea.blockAt(x, z)) }
 
-    /** Cached on the chunk, so surfacing and carving share one — it is the access toll, paid once. */
-    private fun noiseChunkFor(chunk: ChunkAccess, randomState: RandomState, structureManager: StructureManager): NoiseChunk =
-        chunk.getOrCreateNoiseChunk { access ->
-            NoiseChunk.forChunk(
-                access,
-                randomState,
-                // The real beardifier rather than the inert marker: it is public, and it is what will
-                // let structures flatten the ground around themselves once they are switched on.
-                Beardifier.forStructuresInChunk(structureManager, access.pos),
-                generationSettings,
-                ambientFluid,
-                Blender.empty(),
-            )
-        }
+    /**
+     * One per `buildTerrain`, closed when it is done — 26.3 stopped caching these on the chunk and made
+     * them `AutoCloseable`, the samplers inside holding buffers worth giving back.
+     */
+    private fun noiseChunkFor(chunk: ChunkAccess, randomState: RandomState, structureManager: StructureManager): NoiseChunk {
+        val settings = generationSettings.noiseSettings().clampToHeightAccessor(chunk.heightAccessorForGeneration)
+        return NoiseChunk(
+            randomState,
+            // The real beardifier rather than the inert marker: it is public, and it is what will
+            // let structures flatten the ground around themselves once they are switched on.
+            Beardifier.forStructuresInChunk(structureManager, chunk.pos),
+            generationSettings,
+            ambientFluid,
+            Blender.empty(),
+            // Vanilla's own `chunkVolume`, which is private and is this: the chunk, as deep as the
+            // settings say, anchored at its corner.
+            DensityVolume(
+                BLOCKS_ACROSS_A_CHUNK, settings.height(), BLOCKS_ACROSS_A_CHUNK,
+                chunk.pos.minBlockX, settings.minY(), chunk.pos.minBlockZ,
+            ),
+        )
+    }
 
     /**
      * Cuts caves and canyons out of the shape the field laid down. Carvers are stateful random walks across
@@ -783,41 +840,30 @@ class AgeChunkGenerator(
      * - Ground much narrower than that reach is swamped by what bleeds into it — 400-block territories
      *   against a reach of 128, so an even division reads clearly and a scarce one fades.
      */
-    override fun applyCarvers(
-        level: WorldGenRegion,
-        seed: Long,
+    private fun carveOurGround(
+        ours: AgeRock.Ours,
+        chunk: ChunkAccess,
         randomState: RandomState,
         biomeManager: BiomeManager,
-        structureManager: StructureManager,
-        chunk: ChunkAccess,
+        noiseChunk: NoiseChunk,
+        level: WorldGenRegion,
     ) {
-        // Vanilla's rock brings vanilla's caves with it: its carvers read the same router the shape came
-        // out of, where ours would be cutting into a world they know nothing about.
-        if (rock !is AgeRock.Ours) {
-            return super.applyCarvers(level, seed, randomState, biomeManager, structureManager, chunk)
-        }
         if (carving.isEmpty()) return
-        val protoChunk = chunk as? ProtoChunk ?: return
+        val seed = level.seed
 
-        // A biome manager reading this Age's own source rather than the level's, which a carver asks
-        // per position to decide what it may cut through.
-        val carvingBiomes = biomeManager.withDifferentSource { quartX, quartY, quartZ ->
-            biomes.getNoiseBiome(quartX, quartY, quartZ, randomState.sampler())
-        }
-        val noiseChunk = noiseChunkFor(chunk, randomState, structureManager)
-        val context = CarvingContext(
-            // Ourselves: [CarvingContext] demands a concrete [NoiseBasedChunkGenerator], which we are.
-            this,
-            level.registryAccess(),
-            chunk.heightAccessorForGeneration,
-            noiseChunk,
-            randomState,
-            surfaceRule,
+        // A biome manager reading this Age's own source rather than the level's, which the mask's own
+        // application asks per position to decide what a cut block becomes.
+        val carvingBiomes = biomeManager.withDifferentSource(
+            biomes.createResolver(randomState.createClimateSampler(SamplerContext.EMPTY_UNCACHED)),
         )
-        val carvingMask = protoChunk.getOrCreateCarvingMask()
+        val context = WorldGenerationContext(this, chunk.heightAccessorForGeneration)
+        // Ours to make and ours to apply: 26.3 has a carver write into a mask and lets the generator
+        // decide afterwards what each marked block becomes. Vanilla's own application reads the aquifer
+        // the NoiseChunk built, which for us is the disabled one — see [openGroundOf].
+        val carvingMask = CarvingMask(window.height, window.minY)
         // Fresh per pass: it caches a column and tracks whether the water it just placed needs to
         // settle, so it must not be shared between chunk workers.
-        val aquifer = aquiferFor(randomState, rock.field)
+        val aquifer = aquiferFor(randomState, ours.field)
         // Seeded per *source* chunk rather than per target, so one cave system crosses chunk borders
         // identically however the chunks happen to be generated. The reach matches vanilla's.
         val random = WorldgenRandom(LegacyRandomSource(RandomSupport.generateUniqueSeed()))
@@ -832,14 +878,90 @@ class AgeChunkGenerator(
                 carving.forEachIndexed { index, carver ->
                     random.setLargeFeatureSeed(seed + index, source.x, source.z)
                     if (carver.value().isStartChunk(random)) {
-                        // Our own aquifer, not the NoiseChunk's: vanilla's reads noise from the
-                        // RandomState's router, which is inert for a generator like ours.
-                        carver.value().carve(context, chunk, carvingBiomes::getBiome, random, aquifer, source, carvingMask)
+                        carver.value().carve(context, random, chunk.pos, source, openGroundOf(chunk, carvingMask))
                     }
                 }
             }
         }
+        applyOurCarvingMask(chunk, carvingMask, aquifer, randomState, noiseChunk, context, carvingBiomes::getBiome)
         MoltenLining.markLavaOpenedIn(chunk)
+    }
+
+    /**
+     * The mask, plus the one question 26.3 took away from a carver: whether there is rock here at all.
+     *
+     * A carver is handed a write-only output now, so the air test that used to be made against the
+     * `ChunkAccess` has nowhere to be asked from — and [co.voik.agesandtheart.worldgen.carver.Porosity]
+     * runs the whole world column, most of which is sky. See [OpenGround].
+     */
+    private fun openGroundOf(chunk: ChunkAccess, mask: CarvingMask): OpenGround {
+        val cursor = BlockPos.MutableBlockPos()
+        return object : OpenGround {
+            override fun carve(localX: Int, worldY: Int, localZ: Int) = mask.carve(localX, worldY, localZ)
+            override fun minY(): Int = mask.minY()
+            override fun maxY(): Int = mask.maxY()
+            override fun holdsRockAt(worldX: Int, worldY: Int, worldZ: Int): Boolean =
+                !chunk.getBlockState(cursor.set(worldX, worldY, worldZ)).isAir
+        }
+    }
+
+    /**
+     * What a carved block becomes — **vanilla's own `applyCarvingMask`, transcribed, with our aquifer in
+     * place of the one the `NoiseChunk` holds.**
+     *
+     * That substitution is the whole reason it is transcribed rather than called. 26.3 moved the choice of
+     * block out of the carver and into the generator, and vanilla's copy reads `noiseChunk.aquifer()` —
+     * which for us is the disabled one, since the settings carry no `Aquifer.Config` on purpose. Handing it
+     * the bare aquifer would lose the decorator that lets water the shape poured answer first, and a carver
+     * cutting into a river would stop finding the river.
+     *
+     * The rest is vanilla's line for line, including the part that is easy to miss: a cut that takes a
+     * grass block or mycelium re-dresses the dirt beneath it, which is what stops a carved hillside
+     * showing a band of bare earth along its lip.
+     */
+    private fun applyOurCarvingMask(
+        chunk: ChunkAccess,
+        mask: CarvingMask,
+        aquifer: Aquifer,
+        randomState: RandomState,
+        noiseChunk: NoiseChunk,
+        context: WorldGenerationContext,
+        biomeAt: (BlockPos) -> Holder<Biome>,
+    ) {
+        if (mask.isEmpty()) return
+        val here = BlockPos.MutableBlockPos()
+        val below = BlockPos.MutableBlockPos()
+        mask.visit { localX, localZ, lowY, highY ->
+            val worldX = chunk.pos.getBlockX(localX)
+            val worldZ = chunk.pos.getBlockZ(localZ)
+            // Downward, as vanilla's own walk is: the aquifer's column cache is built top down.
+            for (worldY in highY downTo lowY) {
+            here.set(worldX, worldY, worldZ)
+            val standing = chunk.getBlockState(here)
+            if (!standing.`is`(BlockTags.UNCARVABLE)) {
+                val wasTurf = standing.`is`(Blocks.GRASS_BLOCK) || standing.`is`(Blocks.MYCELIUM)
+                val cut = aquifer.computeSubstance(worldX, worldY, worldZ, NO_CAVE_DENSITY)
+                if (cut != null) {
+                    chunk.setBlockState(here, cut)
+                    if (aquifer.shouldScheduleFluidUpdate() && !cut.fluidState.isEmpty) {
+                        chunk.markPosForPostProcessing(here)
+                    }
+                    if (wasTurf && chunk.getBlockState(below.setWithOffset(here, Direction.DOWN)).`is`(Blocks.DIRT)) {
+                        randomState.surfaceSystem().topMaterial(
+                            surfaceRule,
+                            randomState,
+                            context,
+                            biomeAt,
+                            chunk,
+                            noiseChunk.cachingSamplers(),
+                            below,
+                            !cut.fluidState.isEmpty,
+                        ).ifPresent { dressed -> chunk.setBlockState(below, dressed) }
+                    }
+                }
+            }
+            }
+        }
     }
 
     /**
@@ -863,11 +985,14 @@ class AgeChunkGenerator(
             return ChunkGeneratorStructureState.createForNormal(
                 randomState,
                 seed,
+                getOrigin(randomState),
                 biomes,
                 structureSetLookup.restrictedTo(structureSets),
             )
         }
-        return ChunkGeneratorStructureState.createForFlat(randomState, seed, biomes, structureSets.stream())
+        return ChunkGeneratorStructureState.createForFlat(
+            randomState, seed, getOrigin(randomState), biomes, structureSets.stream(),
+        )
     }
 
     /**
@@ -912,9 +1037,13 @@ class AgeChunkGenerator(
     /**
      * Whether this Age would refuse every creature the chunk-generation pass could place.
      *
-     * Asked of the same biome the superclass would use, so the question is the one vanilla is about to
-     * answer. **Only emptiness is acted on**: a sentence that merely narrows still gets vanilla's own list
-     * here, since the pass reads the biome directly and there is nowhere to hand it a shorter one.
+     * Asked the way vanilla's own spawner asks, so the question is the one it is about to answer.
+     * **Only emptiness is acted on**: a sentence that merely narrows still gets vanilla's own list here,
+     * since the pass reads the attribute directly and there is nowhere to hand it a shorter one.
+     *
+     * **26.3 moved a biome's spawners off the biome** and onto `NATURAL_MOB_SPAWNS`, an environment
+     * attribute like the sky's colour or the fog's. Read positionally here because that is what the
+     * attribute is — a layer may answer differently at two places in one biome.
      *
      * The situation is the surface in daylight because that is what this pass places — animals, out in the
      * open, before there is any lighting to ask about.
@@ -923,7 +1052,9 @@ class AgeChunkGenerator(
         val living = lives ?: return false
         val at = level.center.worldPosition.atY(level.maxY)
         val biome = level.getBiome(at)
-        val offered = biome.value().mobSettings.getMobs(MobCategory.CREATURE)
+        val offered = level.environmentAttributes()
+            .getValue(EnvironmentAttributes.NATURAL_MOB_SPAWNS, at)
+            .getMobsToSpawn(MobCategory.CREATURE)
         if (offered.isEmpty) return false
         val kept = living.at(
             biome.unwrapKey().orElse(null)?.identifier(),
@@ -935,8 +1066,13 @@ class AgeChunkGenerator(
     }
 
     /** The superclass renders noise-router values in F3, which describe terrain a field Age does not have. */
-    override fun addDebugScreenInfo(info: MutableList<String>, randomState: RandomState, pos: BlockPos) {
-        if (rock !is AgeRock.Ours) super.addDebugScreenInfo(info, randomState, pos)
+    override fun addDebugScreenInfo(
+        info: MutableList<String>,
+        randomState: RandomState,
+        pos: BlockPos,
+        samplers: SamplerContext,
+    ) {
+        if (rock !is AgeRock.Ours) super.addDebugScreenInfo(info, randomState, pos, samplers)
     }
 
     // getGenDepth / getSeaLevel / getMinY are deliberately NOT overridden: the superclass answers all three
@@ -951,8 +1087,8 @@ class AgeChunkGenerator(
         // this from below would read a null.
         // One set per territory. It was a map keyed by `GenerationStep.Carving` until vanilla collapsed
         // its two carving passes into one; only the air half was ever populated, so nothing was lost.
-        private val CARVER_SETS: Codec<HolderSet<ConfiguredWorldCarver<*>>> =
-            RegistryCodecs.homogeneousList(Registries.CONFIGURED_CARVER)
+        private val CARVER_SETS: Codec<HolderSet<WorldCarver>> =
+            RegistryCodecs.holderSet(Registries.CARVER)
 
         val CODEC: MapCodec<AgeChunkGenerator> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -960,7 +1096,7 @@ class AgeChunkGenerator(
                 AgeRock.MAP_CODEC.forGetter { it.rock },
                 SeaFill.CODEC.forGetter { it.writtenSea },
                 // Optional so field Ages serialised before palettes existed still load.
-                SurfaceRules.RuleSource.CODEC.optionalFieldOf("surface_rule", SurfacingStrategy.SUPPRESSED)
+                MaterialRule.DIRECT_CODEC.optionalFieldOf("surface_rule", SurfacingStrategy.SUPPRESSED)
                     .forGetter { it.surfaceRule },
                 // One carver set per carving, since carving is set-valued.
                 CARVER_SETS.listOf()
@@ -1008,6 +1144,11 @@ class AgeChunkGenerator(
 
         // Carvers reach this many chunks out, so a cave system crosses borders. Vanilla's own figure.
         private const val CARVE_REACH_CHUNKS = 8
+
+        private const val BLOCKS_ACROSS_A_CHUNK = 16
+
+        /** What a carved block's density reads as: a cut is open, whatever the shape said. */
+        private const val NO_CAVE_DENSITY = 0.0
 
         // What the field lays down before the palette repaints it.
         private val AIR: BlockState = Blocks.AIR.defaultBlockState()

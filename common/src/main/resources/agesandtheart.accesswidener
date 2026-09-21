@@ -231,3 +231,16 @@ accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeatu
 accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	vegetationChance	F
 accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	xzRadius	Lnet/minecraft/util/valueproviders/IntProvider;
 accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	extraEdgeColumnChance	F
+
+# So the Age's own relief can be written between vanilla's fill and its surfacing.
+#
+# 26.3 collapsed fillFromNoise, buildSurface and applyCarvers into one `buildTerrain` and made the pipeline
+# inside it private. The `Overlay` has to land between the fill and the surface: surfaced after being
+# raised, a cone wears the biome's own grass or snow or netherrack, and surfaced before, it comes out bare
+# rock (stamp 33, walked). Reproducing vanilla's sequence needs the two private steps it is made of.
+#
+# `buildSurface` is not among them -- `MaterialSystem.buildSurface` is public and is what vanilla's own
+# private one calls. Reimplementing the fill instead of widening it was the alternative and was declined:
+# it drifts every version, and drift inside the terrain fill is invisible until somebody walks it.
+accessible	method	net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator	doFill	(Lnet/minecraft/world/level/levelgen/NoiseChunk;Lnet/minecraft/world/level/chunk/ChunkAccess;)V
+accessible	method	net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator	generateCarvers	(Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/world/level/levelgen/blending/Blender;Lnet/minecraft/world/level/levelgen/NoiseChunk;Lnet/minecraft/world/level/levelgen/RandomState;Lnet/minecraft/world/level/biome/BiomeManager;Lnet/minecraft/server/level/WorldGenRegion;Lnet/minecraft/world/level/levelgen/material/rule/MaterialRule;)V
