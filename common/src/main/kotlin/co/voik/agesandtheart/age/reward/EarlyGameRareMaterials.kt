@@ -19,14 +19,13 @@ import net.minecraft.core.Holder
 import net.minecraft.resources.Identifier
 import net.minecraft.tags.BlockTags
 import net.minecraft.world.level.levelgen.VerticalAnchor
+import net.minecraft.world.level.levelgen.feature.BlockReplacement
 import net.minecraft.world.level.levelgen.feature.Feature
-import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration
+import net.minecraft.world.level.levelgen.feature.OreFeature
 import net.minecraft.world.level.levelgen.placement.HeightRangePlacement
 import net.minecraft.world.level.levelgen.placement.InSquarePlacement
 import net.minecraft.world.level.levelgen.structure.templatesystem.TagMatchTest
 import net.minecraft.world.level.levelgen.GenerationStep
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
-import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
 import net.minecraft.world.level.levelgen.placement.CountPlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 
@@ -249,7 +248,7 @@ object EarlyGameRareMaterials {
     private fun ventsOnTheAbyssFloor(): Holder<PlacedFeature> =
         Holder.direct(
             PlacedFeature(
-                Holder.direct(ConfiguredFeature(DeepSeaVent, NoneFeatureConfiguration.INSTANCE)),
+                Holder.direct(DeepSeaVent),
                 listOf(
                     RarityFilter.onAverageOnceEvery(VENT_RARITY),
                     InSquarePlacement.spread(),
@@ -266,12 +265,9 @@ object EarlyGameRareMaterials {
      * Scattering these would waste nearly every attempt: a sheer face stands at well under one per cent of
      * columns, and lava is found by walking out from where it already is rather than by sampling for it.
      */
-    private fun scanningTheChunk(feature: Feature<NoneFeatureConfiguration>): Holder<PlacedFeature> =
+    private fun scanningTheChunk(feature: Feature): Holder<PlacedFeature> =
         Holder.direct(
-            PlacedFeature(
-                Holder.direct(ConfiguredFeature(feature, NoneFeatureConfiguration.INSTANCE)),
-                listOf(CountPlacement.of(ONE_PASS)),
-            ),
+            PlacedFeature(Holder.direct(feature), listOf(CountPlacement.of(ONE_PASS))),
         )
 
     /**
@@ -284,18 +280,18 @@ object EarlyGameRareMaterials {
      */
     private fun rawBlobs(): Holder<PlacedFeature> {
         val targets = listOf(
-            OreConfiguration.target(
+            BlockReplacement.replace(
                 TagMatchTest(BlockTags.BASE_STONE_OVERWORLD),
                 AgeContent.RAW_TEMPERSTONE_BLOCK.defaultBlockState(),
             ),
-            OreConfiguration.target(
+            BlockReplacement.replace(
                 TagMatchTest(BlockTags.BASE_STONE_NETHER),
                 AgeContent.RAW_TEMPERSTONE_BLOCK.defaultBlockState(),
             ),
         )
         return Holder.direct(
             PlacedFeature(
-                Holder.direct(ConfiguredFeature(Feature.ORE, OreConfiguration(targets, BLOB_SIZE))),
+                Holder.direct(OreFeature(targets, BLOB_SIZE)),
                 listOf(
                     CountPlacement.of(BLOBS_PER_CHUNK),
                     InSquarePlacement.spread(),

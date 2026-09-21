@@ -7,9 +7,8 @@ import net.minecraft.tags.BlockTags
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.VerticalAnchor
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
-import net.minecraft.world.level.levelgen.feature.Feature
-import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration
+import net.minecraft.world.level.levelgen.feature.BlockReplacement
+import net.minecraft.world.level.levelgen.feature.OreFeature
 import net.minecraft.world.level.levelgen.placement.BiomeFilter
 import net.minecraft.world.level.levelgen.placement.CountPlacement
 import net.minecraft.world.level.levelgen.placement.HeightRangePlacement
@@ -84,10 +83,9 @@ object Deposits {
      */
     private fun depositIn(rock: List<BlockState>, veins: Int, raid: Boolean): Holder<PlacedFeature> {
         val size = VEIN_SIZE * if (raid) TERMINAL_VEIN_SIZE else ORDINARY_MULTIPLE
-        val configured = ConfiguredFeature(Feature.ORE, OreConfiguration(targetsIn(rock), size))
         return Holder.direct(
             PlacedFeature(
-                Holder.direct(configured),
+                Holder.direct(OreFeature(targetsIn(rock), size)),
                 listOf(
                     CountPlacement.of(veins),
                     InSquarePlacement.spread(),
@@ -133,16 +131,16 @@ object Deposits {
      * granite would grow no deposit at all — the same trap `FeatureShape.targetsReaching` exists for, and
      * the reason the rock is threaded down here rather than assumed.
      */
-    private fun targetsIn(rock: List<BlockState>): List<OreConfiguration.TargetBlockState> {
+    private fun targetsIn(rock: List<BlockState>): List<BlockReplacement> {
         val stone = AgeContent.PITCHSTONE_ORE_BLOCK.defaultBlockState()
         val deepslate = AgeContent.DEEPSLATE_PITCHSTONE_ORE_BLOCK.defaultBlockState()
         val vanillas = listOf(
-            OreConfiguration.target(TagMatchTest(BlockTags.STONE_ORE_REPLACEABLES), stone),
-            OreConfiguration.target(TagMatchTest(BlockTags.DEEPSLATE_ORE_REPLACEABLES), deepslate),
+            BlockReplacement.replace(TagMatchTest(BlockTags.STONE_ORE_REPLACEABLES), stone),
+            BlockReplacement.replace(TagMatchTest(BlockTags.DEEPSLATE_ORE_REPLACEABLES), deepslate),
         )
         val ours = rock.distinct()
             .filterNot { it.`is`(BlockTags.STONE_ORE_REPLACEABLES) || it.`is`(BlockTags.DEEPSLATE_ORE_REPLACEABLES) }
-            .map { OreConfiguration.target(BlockMatchTest(it.block), stone) }
+            .map { BlockReplacement.replace(BlockMatchTest(it.block), stone) }
         return vanillas + ours
     }
 

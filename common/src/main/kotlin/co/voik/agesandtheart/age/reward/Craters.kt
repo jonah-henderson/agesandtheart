@@ -5,13 +5,11 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Rung
-import co.voik.agesandtheart.worldgen.feature.CraterScale
 import co.voik.agesandtheart.worldgen.feature.ImpactCrater
 import net.minecraft.core.Holder
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.Heightmap
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
 import net.minecraft.world.level.levelgen.placement.HeightmapPlacement
 import net.minecraft.world.level.levelgen.placement.InSquarePlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
@@ -57,7 +55,7 @@ object Craters {
      * to a chunk's middle and so never line up with each other.
      */
     private fun small(density: Double): Holder<PlacedFeature> =
-        scattered(CraterScale(SMALL_LEAST, SMALL_MOST, SMALL_HOLDS, SMALL_KEEPS), rarityFor(SMALL_EVERY, density))
+        scattered(ImpactCrater(SMALL_LEAST, SMALL_MOST, SMALL_HOLDS, SMALL_KEEPS), rarityFor(SMALL_EVERY, density))
 
     /**
      * And the rare big one, which is a landmark.
@@ -67,12 +65,12 @@ object Craters {
      * go rather than the other way round.
      */
     private fun large(density: Double): Holder<PlacedFeature> =
-        scattered(CraterScale(LARGE_LEAST, LARGE_MOST, LARGE_HOLDS, LARGE_KEEPS), rarityFor(LARGE_EVERY, density))
+        scattered(ImpactCrater(LARGE_LEAST, LARGE_MOST, LARGE_HOLDS, LARGE_KEEPS), rarityFor(LARGE_EVERY, density))
 
-    private fun scattered(scale: CraterScale, rarity: Int): Holder<PlacedFeature> =
+    private fun scattered(crater: ImpactCrater, rarity: Int): Holder<PlacedFeature> =
         Holder.direct(
             PlacedFeature(
-                Holder.direct(ConfiguredFeature(ImpactCrater, scale)),
+                Holder.direct(crater),
                 listOf(
                     RarityFilter.onAverageOnceEvery(rarity),
                     InSquarePlacement.spread(),
