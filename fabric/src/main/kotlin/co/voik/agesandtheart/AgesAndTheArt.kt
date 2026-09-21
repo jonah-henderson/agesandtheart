@@ -93,9 +93,13 @@ fun init() {
     }
     WorldgenCodecs.chunkGeneratorCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id, codec) }
     WorldgenCodecs.biomeSourceCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.BIOME_SOURCE, id, codec) }
-    WorldgenCodecs.surfaceRuleCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.MATERIAL_RULE, id, codec) }
-    WorldgenCodecs.surfaceConditionCodecs.forEach { (id, codec) ->
-        Registry.register(BuiltInRegistries.MATERIAL_CONDITION, id, codec)
+    // The *_TYPE registries, not MATERIAL_RULE/MATERIAL_CONDITION: 26.3 gave those names to the datapack
+    // element registries, and the codecs a dispatch reads live in the type registries beside them.
+    WorldgenCodecs.materialRuleCodecs.forEach { (id, codec) ->
+        Registry.register(BuiltInRegistries.MATERIAL_RULE_TYPE, id, codec)
+    }
+    WorldgenCodecs.materialConditionCodecs.forEach { (id, codec) ->
+        Registry.register(BuiltInRegistries.MATERIAL_CONDITION_TYPE, id, codec)
     }
     AgeContent.carvers.forEach { (id, codec) -> Registry.register(BuiltInRegistries.CARVER_TYPE, id, codec) }
     AgeContent.features.forEach { (id, codec) -> Registry.register(BuiltInRegistries.FEATURE_TYPE, id, codec) }

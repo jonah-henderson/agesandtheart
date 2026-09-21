@@ -3,12 +3,13 @@ package co.voik.agesandtheart.generation
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.field.NearTheSurface
-import co.voik.agesandtheart.worldgen.field.RegionRule
+import co.voik.agesandtheart.worldgen.field.InRegion
 import com.mojang.serialization.MapCodec
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
-import net.minecraft.world.level.levelgen.SurfaceRules
+import net.minecraft.world.level.levelgen.material.condition.MaterialCondition
+import net.minecraft.world.level.levelgen.material.rule.MaterialRule
 
 /**
  * The generation kinds that have to be nameable, because an Age is rebuilt from its recipe every time it
@@ -40,18 +41,21 @@ object WorldgenCodecs {
     )
 
     /**
-     * Surface-rule kinds. Ours is persisted with the Age like the generator, so the kind has to be
-     * nameable — `RuleSource.CODEC` dispatches over this registry.
+     * Material-rule kinds. Ours is persisted with the Age like the generator, so the kind has to be
+     * nameable — `MaterialRule.CODEC` dispatches over this registry.
+     *
+     * Empty, and kept rather than deleted: both of ours are conditions, which is the shape most of
+     * vanilla's vocabulary takes, but the next rule of our own wants a place to land and `CodecCheck`
+     * wants a list to read rather than a hand-written copy of one.
      */
-    val surfaceRuleCodecs: List<Pair<Identifier, MapCodec<out SurfaceRules.RuleSource>>> = listOf(
-        "region".location() to RegionRule.CODEC,
-    )
+    val materialRuleCodecs: List<Pair<Identifier, MapCodec<out MaterialRule>>> = emptyList()
 
     /**
-     * Surface-*condition* kinds, which is the same story one level down: the palette naming this condition
-     * is persisted, so `ConditionSource.CODEC` has to be able to dispatch to it.
+     * Material-*condition* kinds, which is the same story one level down: the palette naming this
+     * condition is persisted, so `MaterialCondition.CODEC` has to be able to dispatch to it.
      */
-    val surfaceConditionCodecs: List<Pair<Identifier, MapCodec<out SurfaceRules.ConditionSource>>> = listOf(
+    val materialConditionCodecs: List<Pair<Identifier, MapCodec<out MaterialCondition>>> = listOf(
         NearTheSurface.ID to NearTheSurface.CODEC,
+        InRegion.ID to InRegion.CODEC,
     )
 }

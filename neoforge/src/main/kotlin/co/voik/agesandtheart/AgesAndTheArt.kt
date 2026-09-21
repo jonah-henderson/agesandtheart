@@ -175,11 +175,14 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.BIOME_SOURCE) { helper ->
             WorldgenCodecs.biomeSourceCodecs.forEach { (id, codec) -> helper.register(id, codec) }
         }
-        event.register(Registries.MATERIAL_RULE) { helper ->
-            WorldgenCodecs.surfaceRuleCodecs.forEach { (id, codec) -> helper.register(id, codec) }
+        // The *_TYPE registries, not MATERIAL_RULE/MATERIAL_CONDITION: 26.3 gave those names to the
+        // datapack element registries, and the codecs a dispatch reads live in the type registries beside
+        // them. Registering into the element registry here typechecks and then finds nothing at dispatch.
+        event.register(Registries.MATERIAL_RULE_TYPE) { helper ->
+            WorldgenCodecs.materialRuleCodecs.forEach { (id, codec) -> helper.register(id, codec) }
         }
-        event.register(Registries.MATERIAL_CONDITION) { helper ->
-            WorldgenCodecs.surfaceConditionCodecs.forEach { (id, codec) -> helper.register(id, codec) }
+        event.register(Registries.MATERIAL_CONDITION_TYPE) { helper ->
+            WorldgenCodecs.materialConditionCodecs.forEach { (id, codec) -> helper.register(id, codec) }
         }
         event.register(Registries.FEATURE_TYPE) { helper ->
             AgeContent.features.forEach { (id, codec) -> helper.register(id, codec) }

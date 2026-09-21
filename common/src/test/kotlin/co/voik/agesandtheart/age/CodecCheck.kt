@@ -50,7 +50,7 @@ class CodecCheck : FunSpec({
         // brings it under this check for free, and none can be forgotten the way NearTheSurface was.
         val registered: List<Pair<String, Any?>> = (
             WorldgenCodecs.chunkGeneratorCodecs + WorldgenCodecs.biomeSourceCodecs +
-                WorldgenCodecs.surfaceRuleCodecs + WorldgenCodecs.surfaceConditionCodecs
+                WorldgenCodecs.materialRuleCodecs + WorldgenCodecs.materialConditionCodecs
             ).map { (id, codec) -> "registered $id" to codec }
         val codecs: List<Pair<String, Any?>> = registered + listOf(
             "field tree" to TerrainField.CODEC,
