@@ -2,7 +2,6 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.page.Acquaintance
 import co.voik.agesandtheart.page.Acquainted
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -40,7 +39,6 @@ class SurveyingDeviceBlock(properties: Properties) : Block(properties) {
         registerDefaultState(stateDefinition.any().setValue(DeviceStage.PROPERTY, DeviceStage.IDLE))
     }
 
-    override fun codec(): MapCodec<SurveyingDeviceBlock> = CODEC
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         builder.add(DeviceStage.PROPERTY)
@@ -105,6 +103,5 @@ class SurveyingDeviceBlock(properties: Properties) : Block(properties) {
     }
 
     companion object {
-        val CODEC: MapCodec<SurveyingDeviceBlock> = simpleCodec(::SurveyingDeviceBlock)
     }
 }

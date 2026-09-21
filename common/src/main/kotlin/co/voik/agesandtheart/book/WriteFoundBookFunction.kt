@@ -5,6 +5,8 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.storage.loot.LootContext
 import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction
+import net.minecraft.core.Holder
+import java.util.Optional
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
 
 /**
@@ -30,7 +32,7 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
  * that happened rather than from the chest's own generation. A found book should be a *thing already
  * written*, and reading its cover is half of what makes finding one worth anything.
  */
-class WriteFoundBookFunction(predicates: List<LootItemCondition>) : LootItemConditionalFunction(predicates) {
+class WriteFoundBookFunction(predicate: Optional<Holder<LootItemCondition>>) : LootItemConditionalFunction(predicate) {
 
     override fun codec(): MapCodec<out LootItemConditionalFunction> = MAP_CODEC
 

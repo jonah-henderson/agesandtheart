@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.portal
 
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
@@ -34,7 +33,6 @@ class LinkingBookReceptacleBlock(properties: Properties) : BaseEntityBlock(prope
         registerDefaultState(stateDefinition.any().setValue(HAS_BOOK, false))
     }
 
-    override fun codec(): MapCodec<out BaseEntityBlock> = CODEC
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity =
         LinkingBookReceptacleBlockEntity(pos, state)
@@ -89,7 +87,6 @@ class LinkingBookReceptacleBlock(properties: Properties) : BaseEntityBlock(prope
     }
 
     companion object {
-        val CODEC: MapCodec<LinkingBookReceptacleBlock> = simpleCodec(::LinkingBookReceptacleBlock)
 
         val HAS_BOOK: BooleanProperty = BlockStateProperties.HAS_BOOK
 

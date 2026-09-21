@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.desk
 
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionResult
@@ -25,7 +24,6 @@ import net.minecraft.world.phys.BlockHitResult
  */
 class SeismographBlock(properties: BlockBehaviour.Properties) : Block(properties) {
 
-    override fun codec(): MapCodec<SeismographBlock> = CODEC
 
     override fun useWithoutItem(
         state: BlockState,
@@ -40,6 +38,5 @@ class SeismographBlock(properties: BlockBehaviour.Properties) : Block(properties
     }
 
     companion object {
-        val CODEC: MapCodec<SeismographBlock> = simpleCodec(::SeismographBlock)
     }
 }

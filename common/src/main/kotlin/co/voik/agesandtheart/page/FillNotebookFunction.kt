@@ -9,10 +9,12 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.storage.loot.LootContext
 import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction
+import net.minecraft.core.Holder
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
-import net.minecraft.world.level.storage.loot.providers.number.NumberProvider
-import net.minecraft.world.level.storage.loot.providers.number.NumberProviders
-import net.minecraft.world.level.storage.loot.providers.number.UniformGenerator
+import net.minecraft.world.level.storage.loot.providers.number.ints.ConstantValue
+import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider
+import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders
+import net.minecraft.world.level.storage.loot.providers.number.ints.UniformGenerator
 import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.Identifier
 import java.util.Optional
@@ -41,11 +43,11 @@ import co.voik.agesandtheart.content.PageItem
  * belongs, so asking a second question of it could only contradict the first.
  */
 class FillNotebookFunction(
-    predicates: List<LootItemCondition>,
-    val pages: NumberProvider,
+    predicate: Optional<Holder<LootItemCondition>>,
+    val pages: Holder<ContextIntProvider>,
     val derivedOnly: Boolean,
     val pool: Identifier?,
-) : LootItemConditionalFunction(predicates) {
+) : LootItemConditionalFunction(predicate) {
 
     override fun codec(): MapCodec<out LootItemConditionalFunction> = MAP_CODEC
 
@@ -62,7 +64,7 @@ class FillNotebookFunction(
         }
         // Distinct: a notebook someone kept would not hold the same word twice, and the draw is with
         // replacement. Asking for more pages than the corpus has simply yields fewer.
-        val wanted = pages.getInt(context).coerceAtMost(available.size)
+        val wanted = pages.value().getInt(context).coerceAtMost(available.size)
         val chosen = LinkedHashSet<ItemStack>()
         var attempts = 0
         while (chosen.size < wanted && attempts < wanted * ATTEMPT_HEADROOM) {
@@ -91,12 +93,18 @@ class FillNotebookFunction(
         /** How many draws to allow past the target before settling for a shorter notebook. */
         private const val ATTEMPT_HEADROOM = 4
 
-        private val DEFAULT_PAGES: NumberProvider = UniformGenerator.between(9.0f, 12.0f)
+        private val DEFAULT_PAGES: Holder<ContextIntProvider> = Holder.direct(
+            UniformGenerator(Holder.direct(ConstantValue(FEWEST_PAGES)), Holder.direct(ConstantValue(MOST_PAGES))),
+        )
+
+        /** How many pages a found notebook holds — nine to twelve, as it always has. */
+        private const val FEWEST_PAGES = 9
+        private const val MOST_PAGES = 12
 
         val MAP_CODEC: MapCodec<FillNotebookFunction> = RecordCodecBuilder.mapCodec { instance ->
             commonFields(instance)
                 .and(
-                    NumberProviders.CODEC.optionalFieldOf("pages", DEFAULT_PAGES)
+                    ContextIntProviders.CODEC.optionalFieldOf("pages", DEFAULT_PAGES)
                         .forGetter(FillNotebookFunction::pages),
                 )
                 .and(
@@ -107,8 +115,8 @@ class FillNotebookFunction(
                     Identifier.CODEC.optionalFieldOf("pool")
                         .forGetter { Optional.ofNullable(it.pool) },
                 )
-                .apply(instance) { predicates, pages, derivedOnly, pool ->
-                    FillNotebookFunction(predicates, pages, derivedOnly, pool.orElse(null))
+                .apply(instance) { predicate, pages, derivedOnly, pool ->
+                    FillNotebookFunction(predicate, pages, derivedOnly, pool.orElse(null))
                 }
         }
     }

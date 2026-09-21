@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.age.consequence
 
 import co.voik.agesandtheart.location
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.particles.DustParticleOptions
@@ -75,7 +74,6 @@ class WoundBlock(properties: Properties) : Block(properties) {
         if (!level.getBlockState(pos).`is`(this)) Wounds.gone(level, pos)
     }
 
-    override fun codec(): MapCodec<WoundBlock> = CODEC
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         builder.add(SEALED)
@@ -203,7 +201,6 @@ class WoundBlock(properties: Properties) : Block(properties) {
     }
 
     companion object {
-        val CODEC: MapCodec<WoundBlock> = simpleCodec(::WoundBlock)
 
         /** A speck of the same absence the block is: black, and small enough to read as a mote. */
         private val SPECK = DustParticleOptions(0x000000, 0.4f)

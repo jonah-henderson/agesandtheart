@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.content
 
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.item.ItemEntity
@@ -21,7 +20,6 @@ import net.minecraft.world.phys.BlockHitResult
  */
 class ToolboxBlock(properties: Properties) : BaseEntityBlock(properties) {
 
-    override fun codec(): MapCodec<out BaseEntityBlock> = CODEC
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = ToolboxBlockEntity(pos, state)
 
@@ -61,7 +59,6 @@ class ToolboxBlock(properties: Properties) : BaseEntityBlock(properties) {
     }
 
     companion object {
-        val CODEC: MapCodec<ToolboxBlock> = simpleCodec(::ToolboxBlock)
 
         private const val MIDDLE = 0.5
     }

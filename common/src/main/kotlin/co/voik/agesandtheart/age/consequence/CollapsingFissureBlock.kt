@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.age.consequence
 
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
@@ -31,7 +30,6 @@ import net.minecraft.world.level.redstone.Orientation
  */
 class CollapsingFissureBlock(properties: Properties) : StarFissureBlock(properties) {
 
-    override fun codec(): MapCodec<out CollapsingFissureBlock> = CODEC
 
     /**
      * **A block written at generation gets no placement event**, so [Collapse] lays the first schedule for
@@ -81,7 +79,6 @@ class CollapsingFissureBlock(properties: Properties) : StarFissureBlock(properti
     }
 
     private companion object {
-        val CODEC: MapCodec<CollapsingFissureBlock> = simpleCodec(::CollapsingFissureBlock)
 
         /** A tear widens across the ground; it is already as deep as the world. */
         val SIDEWAYS = Direction.Plane.HORIZONTAL.toList()

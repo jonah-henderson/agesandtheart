@@ -2,7 +2,6 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.content.AgeContent
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.StringRepresentable
@@ -72,7 +71,6 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
         )
     }
 
-    override fun codec(): MapCodec<WritersDeskBlock> = CODEC
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         builder.add(FACING, PART)
@@ -238,7 +236,6 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
         defaultBlockState().setValue(FACING, state.getValue(FACING)).setValue(PART, part)
 
     companion object {
-        val CODEC: MapCodec<WritersDeskBlock> = simpleCodec(::WritersDeskBlock)
 
         val FACING: EnumProperty<Direction> = HorizontalDirectionalBlock.FACING
         val PART: EnumProperty<DeskPart> = EnumProperty.create("part", DeskPart::class.java)

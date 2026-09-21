@@ -370,7 +370,7 @@ object AgeContent {
             .replaceable()
             .noCollision()
             .noLootTable()
-            .pushReaction(PushReaction.DESTROY)
+            .pushReaction(PushReaction.POPPED)
             .liquid()
             .sound(SoundType.EMPTY),
     )
@@ -483,7 +483,7 @@ object AgeContent {
             .strength(UNBREAKABLE)
             .sound(SoundType.GLASS)
             .lightLevel { PORTAL_LIGHT }
-            .pushReaction(PushReaction.BLOCK)
+            .pushReaction(PushReaction.IMMOVEABLE)
             .noLootTable(),
     )
 
@@ -945,7 +945,7 @@ object AgeContent {
             .requiresCorrectToolForDrops()
             // An instrument reading *this* place should not be shovable to another one — and a piston does
             // not carry a block's scheduled tick with it, so a pushed survey would run forever.
-            .pushReaction(PushReaction.BLOCK),
+            .pushReaction(PushReaction.IMMOVEABLE),
     )
 
     val SURVEYING_DEVICE: Item = BlockItem(
@@ -1089,7 +1089,7 @@ object AgeContent {
             .lightLevel { FISSURE_GLOW }
             .strength(-1.0f, Float.MAX_VALUE)
             .noLootTable()
-            .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK),
+            .pushReaction(net.minecraft.world.level.material.PushReaction.IMMOVEABLE),
     )
 
     private val COLLAPSING_FISSURE_ID: Identifier = "collapsing_fissure".location()
@@ -1112,7 +1112,7 @@ object AgeContent {
             .strength(-1.0f, Float.MAX_VALUE)
             .noLootTable()
             .randomTicks()
-            .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK),
+            .pushReaction(net.minecraft.world.level.material.PushReaction.IMMOVEABLE),
     )
 
     /** The tear itself, and the piece that cuts it — see the fissure package. */
@@ -1481,7 +1481,7 @@ object AgeContent {
             // bump into and items would come to rest on top of it; an open one is walked into and dropped
             // through, which is the whole of how a player meets one.
             .noCollision()
-            .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK),
+            .pushReaction(net.minecraft.world.level.material.PushReaction.IMMOVEABLE),
     )
 
     private val ALGAE_ID: Identifier = "algae".location()
@@ -1506,7 +1506,7 @@ object AgeContent {
             .noOcclusion()
             // A growth on the water, and nothing about it should survive being shoved: a piston takes it
             // rather than carrying it, the way it takes grass.
-            .pushReaction(net.minecraft.world.level.material.PushReaction.DESTROY),
+            .pushReaction(net.minecraft.world.level.material.PushReaction.POPPED),
     )
 
     /**

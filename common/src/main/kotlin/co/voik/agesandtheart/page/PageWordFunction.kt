@@ -9,6 +9,7 @@ import net.minecraft.resources.Identifier
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.storage.loot.LootContext
 import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction
+import net.minecraft.core.Holder
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
 import java.util.Optional
 import co.voik.agesandtheart.age.word.Vocabulary
@@ -34,9 +35,9 @@ import co.voik.agesandtheart.age.word.WriterStock
  * ```
  */
 class PageWordFunction(
-    predicates: List<LootItemCondition>,
+    predicate: Optional<Holder<LootItemCondition>>,
     val pool: Identifier?,
-) : LootItemConditionalFunction(predicates) {
+) : LootItemConditionalFunction(predicate) {
 
     override fun codec(): MapCodec<out LootItemConditionalFunction> = MAP_CODEC
 
@@ -70,7 +71,7 @@ class PageWordFunction(
                     Identifier.CODEC.optionalFieldOf("pool")
                         .forGetter { Optional.ofNullable(it.pool) },
                 )
-                .apply(instance) { predicates, pool -> PageWordFunction(predicates, pool.orElse(null)) }
+                .apply(instance) { predicate, pool -> PageWordFunction(predicate, pool.orElse(null)) }
         }
     }
 }

@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.desk
 
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
@@ -22,7 +21,6 @@ import net.minecraft.world.phys.BlockHitResult
  */
 class ArchiveBlock(properties: Properties) : BaseEntityBlock(properties) {
 
-    override fun codec(): MapCodec<ArchiveBlock> = CODEC
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = ArchiveBlockEntity(pos, state)
 
@@ -77,7 +75,6 @@ class ArchiveBlock(properties: Properties) : BaseEntityBlock(properties) {
     }
 
     companion object {
-        val CODEC: MapCodec<ArchiveBlock> = simpleCodec(::ArchiveBlock)
 
         private const val HALF = 0.5
     }

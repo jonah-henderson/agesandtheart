@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.content
 
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
@@ -56,7 +55,6 @@ class DeepBubbleColumnBlock(properties: BlockBehaviour.Properties) : BubbleColum
         registerDefaultState(defaultBlockState().setValue(DEEP, true))
     }
 
-    override fun codec(): MapCodec<BubbleColumnBlock> = CODEC
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         super.createBlockStateDefinition(builder)
@@ -122,7 +120,6 @@ class DeepBubbleColumnBlock(properties: BlockBehaviour.Properties) : BubbleColum
     }
 
     companion object {
-        val CODEC: MapCodec<BubbleColumnBlock> = simpleCodec(::DeepBubbleColumnBlock)
 
         /** Whether a block of the column took the place of deep water, and so is the abyss. */
         @JvmField

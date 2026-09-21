@@ -31,7 +31,7 @@ import net.minecraft.world.level.block.LiquidBlock
  *
  * **Two proxies were tried and thrown away**, which is worth knowing before either is proposed again:
  *
- * - **`PushReaction.DESTROY`** as "fragile" reads well and is wrong. Leaves and pumpkins are destroyed by
+ * - **`PushReaction.POPPED`** as "fragile" reads well and is wrong. Leaves and pumpkins are destroyed by
  *   pistons and are perfectly good worlds, and it kept carpets, which are not.
  * - **Stacking "has collision" with "takes no shape from its neighbours"** keeps 579 blocks and lets in
  *   carpets, trapdoors, chains, end rods, piston heads and anvils. A full cube is the simpler question and

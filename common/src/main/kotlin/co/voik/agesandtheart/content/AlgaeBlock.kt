@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.content
 
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
@@ -50,7 +49,6 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         registerDefaultState(stateDefinition.any().setValue(LIT, true))
     }
 
-    override fun codec(): MapCodec<AlgaeBlock> = CODEC
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         builder.add(LIT)
@@ -171,7 +169,6 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
     }
 
     companion object {
-        val CODEC: MapCodec<AlgaeBlock> = simpleCodec(::AlgaeBlock)
 
         /**
          * Whether a mat can lie here — **the same three facts the feature places on and the D'ni city

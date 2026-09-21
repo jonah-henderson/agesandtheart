@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.content
 
-import com.mojang.serialization.MapCodec
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockBehaviour
@@ -23,7 +22,6 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty
  */
 class AstriteBlock(properties: BlockBehaviour.Properties) : Block(properties) {
 
-    override fun codec(): MapCodec<AstriteBlock> = CODEC
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         builder.add(ALOFT)
@@ -33,7 +31,6 @@ class AstriteBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         defaultBlockState().setValue(ALOFT, isAloft(context.clickedPos.y))
 
     companion object {
-        val CODEC: MapCodec<AstriteBlock> = simpleCodec(::AstriteBlock)
 
         /**
          * Whether this block is high enough to draw a storm down on itself.

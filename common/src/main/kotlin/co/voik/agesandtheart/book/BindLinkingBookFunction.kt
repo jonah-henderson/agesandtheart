@@ -8,6 +8,8 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.storage.loot.LootContext
 import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams
+import net.minecraft.core.Holder
+import java.util.Optional
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
 import net.minecraft.world.phys.Vec3
 
@@ -27,9 +29,9 @@ import net.minecraft.world.phys.Vec3
  * the world, so a stray book is a coordinate you would otherwise never have had a reason to visit.
  */
 class BindLinkingBookFunction(
-    predicates: List<LootItemCondition>,
+    predicate: Optional<Holder<LootItemCondition>>,
     val strayChance: Float,
-) : LootItemConditionalFunction(predicates) {
+) : LootItemConditionalFunction(predicate) {
 
     override fun codec(): MapCodec<out LootItemConditionalFunction> = MAP_CODEC
 
@@ -38,7 +40,7 @@ class BindLinkingBookFunction(
         val strays = context.random.nextFloat() < strayChance
         // A stray needs to know where it is; without an origin there is nothing to bind it to, so it
         // quietly falls back to home rather than arriving blank.
-        val here = context.getOptionalParameter(LootContextParams.ORIGIN)
+        val here = context.getOptional(LootContextParams.ORIGIN)
         val target = if (strays && here != null) {
             LinkTarget(level.dimension(), here, 0.0f, level.dimension().identifier().path.replace('_', ' '))
         } else {

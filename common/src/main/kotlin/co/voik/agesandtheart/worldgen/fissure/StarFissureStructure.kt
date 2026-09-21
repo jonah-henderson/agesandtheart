@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.worldgen.fissure
 
 import co.voik.agesandtheart.content.AgeContent
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.ChunkPos
@@ -108,7 +107,6 @@ class StarFissureStructure(settings: StructureSettings) : Structure(settings) {
     override fun type(): StructureType<*> = AgeContent.STAR_FISSURE_STRUCTURE
 
     companion object {
-        val CODEC: MapCodec<StarFissureStructure> = simpleCodec(::StarFissureStructure)
 
         /**
          * How far the site may slide, and how coarsely it looks — twenty-five columns, walked nearest

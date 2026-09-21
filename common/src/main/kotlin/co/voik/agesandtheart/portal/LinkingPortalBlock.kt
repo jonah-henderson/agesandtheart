@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.portal
 
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.particles.ParticleTypes
@@ -43,7 +42,6 @@ class LinkingPortalBlock(properties: Properties) : Block(properties), Portal {
         registerDefaultState(stateDefinition.any().setValue(AXIS, Direction.Axis.X))
     }
 
-    override fun codec(): MapCodec<out Block> = CODEC
 
     override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
         SHAPES.getValue(state.getValue(AXIS))
@@ -143,7 +141,6 @@ class LinkingPortalBlock(properties: Properties) : Block(properties), Portal {
     }
 
     companion object {
-        val CODEC: MapCodec<LinkingPortalBlock> = simpleCodec(::LinkingPortalBlock)
 
         val AXIS: EnumProperty<Direction.Axis> = BlockStateProperties.HORIZONTAL_AXIS
 

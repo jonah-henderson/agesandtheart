@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.content
 
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.item.context.BlockPlaceContext
@@ -41,8 +40,6 @@ class RimeCrystalBlock(val colour: RimeColour, properties: BlockBehaviour.Proper
         registerDefaultState(defaultBlockState().setValue(BlockStateProperties.POWERED, false))
     }
 
-    // Typed as the parent's own: `codec()` is invariant, so a narrower return is not an override.
-    override fun codec(): MapCodec<AmethystClusterBlock> = CODEC
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         super.createBlockStateDefinition(builder)
@@ -84,14 +81,6 @@ class RimeCrystalBlock(val colour: RimeColour, properties: BlockBehaviour.Proper
 
     companion object {
         /**
-         * Shared by all eight, and unusable for reading one back — which is why the block is only ever
-         * built from [AgeContent] and never from a datapack. `simpleCodec` cannot carry the colour, and
-         * inventing a codec that could would be a serialisation format for something that is already
-         * decided by which block you are looking at.
-         */
-        val CODEC: MapCodec<AmethystClusterBlock> = simpleCodec { AmethystClusterBlock(CRYSTAL_HEIGHT, CRYSTAL_WIDTH, it) }
-
-        /**
          * **Deliberately larger than the amethyst cluster it is shaped like**, which is `7 × 3` — a spike
          * three sixteenths wide, standing seven out of the face.
          *
@@ -105,6 +94,7 @@ class RimeCrystalBlock(val colour: RimeColour, properties: BlockBehaviour.Proper
 
         /** What one gives off standing on a cliff, and what it gives off with a signal on it. */
         const val RESTING_GLOW = 4
+
         /**
          * **Vanilla's brightest, and it pays for the colour.** A tint is a multiply and a multiply can only
          * darken — a wall taking a strong red loses most of its green and blue, so the surface comes out

@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.content
 
-import com.mojang.serialization.MapCodec
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
@@ -24,14 +23,12 @@ class ArcCrystalBlock(properties: Properties) : Block(properties) {
         registerDefaultState(stateDefinition.any().setValue(CHARGE, FLAT))
     }
 
-    override fun codec(): MapCodec<ArcCrystalBlock> = CODEC
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         builder.add(CHARGE)
     }
 
     companion object {
-        val CODEC: MapCodec<ArcCrystalBlock> = simpleCodec(::ArcCrystalBlock)
 
         /**
          * How many discharges are left in this block.

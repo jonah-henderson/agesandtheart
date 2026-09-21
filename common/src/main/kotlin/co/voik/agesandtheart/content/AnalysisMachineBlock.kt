@@ -2,7 +2,6 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.page.Acquaintance
 import co.voik.agesandtheart.page.Acquainted
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -47,7 +46,6 @@ class AnalysisMachineBlock(properties: Properties) : BaseEntityBlock(properties)
         registerDefaultState(stateDefinition.any().setValue(DeviceStage.PROPERTY, DeviceStage.IDLE))
     }
 
-    override fun codec(): MapCodec<AnalysisMachineBlock> = CODEC
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity =
         AnalysisMachineBlockEntity(pos, state)
@@ -175,7 +173,6 @@ class AnalysisMachineBlock(properties: Properties) : BaseEntityBlock(properties)
     }
 
     companion object {
-        val CODEC: MapCodec<AnalysisMachineBlock> = simpleCodec(::AnalysisMachineBlock)
     }
 }
 

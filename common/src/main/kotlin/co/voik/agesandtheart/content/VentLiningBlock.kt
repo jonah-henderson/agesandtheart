@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.content
 
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
@@ -30,7 +29,6 @@ import net.minecraft.world.level.block.state.BlockState
  */
 class VentLiningBlock(properties: BlockBehaviour.Properties) : Block(properties) {
 
-    override fun codec(): MapCodec<VentLiningBlock> = CODEC
 
     /**
      * Occasionally, onto one face.
@@ -65,7 +63,6 @@ class VentLiningBlock(properties: BlockBehaviour.Properties) : Block(properties)
     }
 
     companion object {
-        val CODEC: MapCodec<VentLiningBlock> = simpleCodec(::VentLiningBlock)
 
         /**
          * How often a roll comes good — **and the rate is not what caps the yield**, saturation is.

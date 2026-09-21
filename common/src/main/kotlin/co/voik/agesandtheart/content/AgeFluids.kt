@@ -129,7 +129,7 @@ object AgeFluids {
             .replaceable()
             .noCollision()
             .strength(LIQUID_BLOCK_STRENGTH)
-            .pushReaction(PushReaction.DESTROY)
+            .pushReaction(PushReaction.POPPED)
             .noLootTable()
             .liquid()
             .sound(SoundType.EMPTY)

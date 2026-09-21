@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.worldgen.fissure
 
 import co.voik.agesandtheart.content.AgeContent
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
@@ -46,7 +45,6 @@ import net.minecraft.world.phys.shapes.VoxelShape
  */
 open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties) {
 
-    override fun codec(): MapCodec<out StarFissureBlock> = CODEC
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = StarFissureBlockEntity(pos, state)
 
@@ -126,7 +124,6 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
     /** No swirl: the nether's confusion is a doorway's, and this is a hole in the ground. */
 
     companion object {
-        val CODEC: MapCodec<StarFissureBlock> = simpleCodec(::StarFissureBlock)
 
         private const val FALL_OUT_ABOVE = 8.0
         private const val GENTLY_DOWN = 0.2

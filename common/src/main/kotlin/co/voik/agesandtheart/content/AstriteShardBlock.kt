@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.content
 
-import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.Registries
@@ -29,8 +28,6 @@ import net.minecraft.server.level.ServerLevel
 class AstriteShardBlock(properties: BlockBehaviour.Properties) :
     AmethystClusterBlock(SHARD_HEIGHT, SHARD_WIDTH, properties) {
 
-    // Typed as the parent's own: `codec()` is invariant, so a narrower return is not an override.
-    override fun codec(): MapCodec<AmethystClusterBlock> = CODEC
 
     /**
      * Cactus's rule exactly: touch it and it costs you, every tick you stay against it.
@@ -78,7 +75,6 @@ class AstriteShardBlock(properties: BlockBehaviour.Properties) :
     private var cutting: Pair<RegistryAccess, DamageSource>? = null
 
     companion object {
-        val CODEC: MapCodec<AmethystClusterBlock> = simpleCodec(::AstriteShardBlock)
 
         val CUTTING: ResourceKey<DamageType> =
             ResourceKey.create(Registries.DAMAGE_TYPE, "astrite_shard".location())
