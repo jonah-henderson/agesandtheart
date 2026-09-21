@@ -159,7 +159,7 @@ object ScarabHabitat {
                 val cannotBeatWhatWeHave = distance >= bestDistance && best?.wouldHoldAColony == true
                 if (cannotBeatWhatWeHave) continue
                 val column = BlockPos(from.x + x, from.y, from.z + z)
-                if (!level.hasChunkAt(column)) continue
+                if (!level.hasChunkAt(column.x, column.z)) continue
                 val mud = surfaceOf(level, column.x, column.z) ?: continue
                 if (!level.getBlockState(mud).`is`(Blocks.MUD)) continue
                 val site = Site(
@@ -187,7 +187,7 @@ object ScarabHabitat {
         for (x in -SAND_REACH..SAND_REACH) {
             for (z in -SAND_REACH..SAND_REACH) {
                 val column = BlockPos(mud.x + x, mud.y, mud.z + z)
-                if (!level.hasChunkAt(column)) continue
+                if (!level.hasChunkAt(column.x, column.z)) continue
                 val surface = surfaceOf(level, column.x, column.z) ?: continue
                 if (level.getBlockState(surface).`is`(BlockTags.SAND)) return true
             }

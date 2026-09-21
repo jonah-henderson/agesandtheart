@@ -46,7 +46,7 @@ object Acquaintance {
 
     /** The word [referent] would teach, or why it would teach nothing — the server and vocabulary asked once. */
     private fun lookUp(player: ServerPlayer, referent: Identifier): Lookup {
-        val server = (player.level() as? ServerLevel)?.server ?: return Lookup.Refused(Acquainted.Unnameable)
+        val server = player.level().server
         val vocabulary = Vocabulary.of(server)
         val word = vocabulary.word(referent.toString()) ?: return Lookup.Refused(Acquainted.Unnameable)
         if (!vocabulary.isDerived(word)) return Lookup.Refused(Acquainted.Unnameable)

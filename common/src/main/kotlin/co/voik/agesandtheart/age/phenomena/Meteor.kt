@@ -100,7 +100,8 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
 
     override fun onHitEntity(hit: EntityHitResult) {
         super.onHitEntity(hit)
-        hit.entity.hurt(damageSources().thrown(this, getOwner()), STRUCK)
+        val onTheServer = level() as? ServerLevel ?: return
+        hit.entity.hurtServer(onTheServer, damageSources().thrown(this, getOwner()), STRUCK)
     }
 
     /**

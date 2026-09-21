@@ -111,6 +111,7 @@ class ArchiveBlockEntity(pos: BlockPos, state: BlockState) :
     }
 
     /** The pages travel as the item's component, so the block's own copy of them is not written twice. */
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun removeComponentsFromTag(output: ValueOutput) {
         output.discard(PAGES_KEY)
     }

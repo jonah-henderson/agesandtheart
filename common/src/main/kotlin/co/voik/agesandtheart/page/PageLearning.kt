@@ -93,7 +93,7 @@ object PageLearning {
      * connected to another server since, and the script belongs to whichever server is serving it.
      */
     fun tellEverything(player: ServerPlayer) {
-        val vocabulary = Vocabulary.of((player.level() as ServerLevel).server)
+        val vocabulary = Vocabulary.of(player.level().server)
         Services.NETWORK.sendToPlayer(player, LexiconPayload(vocabulary.script))
         Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.whole(player.learnedWords.words))
     }

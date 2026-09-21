@@ -70,6 +70,7 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
         return Component.translatable("item.agesandtheart.linking_book.bound", target.name)
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun appendHoverText(
         stack: ItemStack,
         context: TooltipContext,

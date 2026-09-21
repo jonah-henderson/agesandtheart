@@ -48,7 +48,7 @@ data class LinkRequest(val hand: InteractionHand) : CustomPacketPayload {
 object Linking {
 
     fun handle(player: ServerPlayer, request: LinkRequest) {
-        val level = player.level() as? ServerLevel ?: return
+        val level = player.level()
         val stack = player.getItemInHand(request.hand)
         if (!LecternBooks.isOurs(stack)) return
         link(player, level, stack, request.hand)

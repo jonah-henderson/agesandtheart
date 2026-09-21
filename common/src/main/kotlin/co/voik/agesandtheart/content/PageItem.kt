@@ -32,6 +32,7 @@ class PageItem(properties: Properties) : Item(properties) {
         return InteractionResult.SUCCESS
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun appendHoverText(
         stack: ItemStack,
         context: TooltipContext,

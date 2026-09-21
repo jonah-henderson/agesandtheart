@@ -226,7 +226,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
 
     private fun onPlayerLoggedOut(event: PlayerEvent.PlayerLoggedOutEvent) {
         val player = event.entity as? ServerPlayer ?: return
-        val server = player.level().server ?: return
+        val server = player.level().server
         CommonSetup.playerLeft(server, player)
     }
 

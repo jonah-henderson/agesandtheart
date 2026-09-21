@@ -48,7 +48,7 @@ object StarFissureFall {
      * player standing in them, never takes this branch.
      */
     private fun stillUnderTheTear(player: Player): Boolean {
-        val cannotSeeTheColumn = !player.level().hasChunkAt(player.blockPosition())
+        val cannotSeeTheColumn = !player.level().hasChunkAt(player.blockX, player.blockZ)
         return cannotSeeTheColumn || tearOfTheFall(player) != null
     }
 

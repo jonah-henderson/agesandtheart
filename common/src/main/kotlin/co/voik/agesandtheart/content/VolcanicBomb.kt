@@ -47,7 +47,8 @@ class VolcanicBomb(type: EntityType<out VolcanicBomb>, level: Level) : Throwable
 
     override fun onHitEntity(hit: EntityHitResult) {
         super.onHitEntity(hit)
-        hit.entity.hurt(damageSources().thrown(this, getOwner()), CONTACT_DAMAGE)
+        val onTheServer = level() as? ServerLevel ?: return
+        hit.entity.hurtServer(onTheServer, damageSources().thrown(this, getOwner()), CONTACT_DAMAGE)
     }
 
     override fun onHit(hit: HitResult) {

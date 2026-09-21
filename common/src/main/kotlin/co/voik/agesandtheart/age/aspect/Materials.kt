@@ -72,7 +72,7 @@ object Materials {
         val state = block.defaultBlockState()
         // Nothing is a world made of nothing, and no tag may say otherwise.
         if (state.isAir) return false
-        val holder = block.builtInRegistryHolder()
+        val holder = state.typeHolder()
         // **Refusal first**, so a block written into both files is refused: a contradiction between two
         // authored lists is a mistake, and the safe way to read a mistake is the strict one.
         if (holder.`is`(INVALID_FOR_TERRAIN)) return false

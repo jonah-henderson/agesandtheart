@@ -215,8 +215,8 @@ object Storms {
      * Tickable so it can stop itself the moment the storm does, rather than playing on to the end of a
      * two-minute file in an Age that has gone quiet.
      */
-    private class Wind(val sound: SoundEvent, private val whenOpen: Boolean) :
-        AbstractTickableSoundInstance(sound, SoundSource.WEATHER, net.minecraft.util.RandomSource.create()) {
+    private class Wind(soundEvent: SoundEvent, private val whenOpen: Boolean) :
+        AbstractTickableSoundInstance(soundEvent, SoundSource.WEATHER, net.minecraft.util.RandomSource.create()) {
 
         init {
             looping = true

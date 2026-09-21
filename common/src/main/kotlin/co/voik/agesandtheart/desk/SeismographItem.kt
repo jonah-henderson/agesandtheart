@@ -19,6 +19,7 @@ import java.util.function.Consumer
  */
 class SeismographItem(block: Block, properties: Item.Properties) : BlockItem(block, properties) {
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun appendHoverText(
         stack: net.minecraft.world.item.ItemStack,
         context: Item.TooltipContext,

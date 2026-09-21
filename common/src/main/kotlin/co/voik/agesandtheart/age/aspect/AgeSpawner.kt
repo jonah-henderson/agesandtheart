@@ -160,7 +160,7 @@ class AgeSpawner(
         val reach = level.server.playerList.simulationDistance * BLOCKS_PER_CHUNK
         val x = around.x + level.random.nextInt(-reach, reach + 1)
         val z = around.z + level.random.nextInt(-reach, reach + 1)
-        if (!level.hasChunkAt(BlockPos(x, level.minY, z))) return null
+        if (!level.hasChunkAt(x, z)) return null
         return BlockPos(x, level.getHeight(chosen.surface, x, z), z)
     }
 

@@ -399,7 +399,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
     /** The first empty place above that column, or null where there is no chunk to ask. */
     private fun topOf(level: ServerLevel, atX: Int, atZ: Int): BlockPos? {
         val column = BlockPos(atX, level.minY, atZ)
-        if (!level.hasChunkAt(column)) return null
+        if (!level.hasChunkAt(column.x, column.z)) return null
         return Sampling.skyward(level, column)
     }
 

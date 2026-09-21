@@ -36,6 +36,7 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         return Component.translatable("item.agesandtheart.descriptive_book.named", title)
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun appendHoverText(
         stack: ItemStack,
         context: TooltipContext,

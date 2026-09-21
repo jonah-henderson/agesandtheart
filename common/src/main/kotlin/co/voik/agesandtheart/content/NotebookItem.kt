@@ -96,6 +96,7 @@ class NotebookItem(properties: Properties) : Item(properties) {
         return Optional.of(BundleTooltip(BundleContents(shown)))
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun appendHoverText(
         stack: ItemStack,
         context: TooltipContext,

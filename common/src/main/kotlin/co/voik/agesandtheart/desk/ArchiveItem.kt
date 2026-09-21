@@ -13,6 +13,7 @@ import java.util.function.Consumer
 /** An archive in hand, saying how many pages it is carrying. */
 class ArchiveItem(block: Block, properties: Properties) : BlockItem(block, properties) {
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun appendHoverText(
         stack: ItemStack,
         context: TooltipContext,

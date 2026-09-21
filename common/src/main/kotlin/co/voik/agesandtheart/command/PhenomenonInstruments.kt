@@ -197,7 +197,7 @@ internal object PhenomenonInstruments {
                 )
             }
 
-        val asked = Commands.argument(FURY_ARGUMENT, IntegerArgumentType.integer(0, ALL_FURY.toInt()))
+        val asked = Commands.argument(FURY_ARGUMENT, IntegerArgumentType.integer(0, ALL_FURY))
         flagged(asked, runner(given = true, slanted = false))
         val slanted = Commands.argument(
             DEGREES_ARGUMENT,

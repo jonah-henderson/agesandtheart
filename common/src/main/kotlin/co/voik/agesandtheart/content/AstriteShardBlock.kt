@@ -14,6 +14,7 @@ import net.minecraft.world.level.block.AmethystClusterBlock
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import co.voik.agesandtheart.location
+import net.minecraft.server.level.ServerLevel
 
 /**
  * A shard of astrite set into a face, which is sharp (design §7.1.2).
@@ -45,7 +46,10 @@ class AstriteShardBlock(properties: BlockBehaviour.Properties) :
         effectApplier: InsideBlockEffectApplier,
         isPrecise: Boolean,
     ) {
-        entity.hurt(cuttingIn(level), CUTS_FOR)
+        // `hurt` is `hurtServer` behind a server check and nothing else, so this is that check said
+        // out loud — see `Entity.hurt`, which 26.2 deprecates in favour of naming the level.
+        val onTheServer = level as? ServerLevel ?: return
+        entity.hurtServer(onTheServer, cuttingIn(level), CUTS_FOR)
     }
 
     /**
