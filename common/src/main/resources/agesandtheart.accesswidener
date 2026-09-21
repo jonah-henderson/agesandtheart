@@ -194,3 +194,13 @@ accessible	method	net/minecraft/client/Camera	setupPerspective	(FFFFF)V
 # renderer from the player's, which is exactly the thing that does not exist yet at construction time.
 accessible	field	net/minecraft/client/renderer/LevelRenderer	levelRenderState	Lnet/minecraft/client/renderer/state/level/LevelRenderState;
 mutable	field	net/minecraft/client/renderer/LevelRenderer	levelRenderState	Lnet/minecraft/client/renderer/state/level/LevelRenderState;
+
+# So an Age can be given the air its book wrote, after the level exists.
+#
+# A level builds its attribute system when it is built, from the dimension and its biomes, and offers no
+# way to set one afterwards -- which is exactly what an Age needs, its look being the recipe's rather than
+# a dimension file's. Vanilla has a setter, but it is `@Deprecated @VisibleForTesting`: a hook kept for
+# tests owes nobody a deprecation cycle and can go at any release. The field under it cannot, because the
+# system is read from it on every tick.
+accessible	field	net/minecraft/server/level/ServerLevel	environmentAttributes	Lnet/minecraft/world/attribute/EnvironmentAttributeSystem;
+mutable	field	net/minecraft/server/level/ServerLevel	environmentAttributes	Lnet/minecraft/world/attribute/EnvironmentAttributeSystem;

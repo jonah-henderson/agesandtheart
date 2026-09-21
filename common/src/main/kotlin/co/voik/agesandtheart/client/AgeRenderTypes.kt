@@ -107,6 +107,9 @@ object AgeRenderTypes {
      * The one exception is how many colour targets are live: a built pipeline does not say, so it is
      * counted off the array. Only the depth test is left [Optional.empty], for the builder to fill in.
      */
+    // NeoForge's own deprecation, steering to a constructor that takes a field only it has. `common`
+    // compiles against vanilla and cannot name it, and vanilla's is the shape this copies from.
+    @Suppress("DEPRECATION")
     private fun vanillasEndPortal(): RenderPipeline.Snippet {
         val portal = RenderPipelines.END_PORTAL
         val colourTargets = portal.colorTargetStates

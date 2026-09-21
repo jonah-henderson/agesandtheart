@@ -152,6 +152,7 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
     }
 
     /** Middle-click anywhere on the desk gives the desk, not a wing. */
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun getCloneItemStack(level: LevelReader, pos: BlockPos, state: BlockState, includeData: Boolean): ItemStack =
         ItemStack(AgeContent.WRITERS_DESK)
 

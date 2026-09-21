@@ -5,7 +5,6 @@ import co.voik.agesandtheart.client.ClientPayloads
 import co.voik.agesandtheart.client.ClientRegistrations
 import co.voik.agesandtheart.client.ClientSetup
 import net.fabricmc.fabric.api.client.rendering.v1.BlockColorRegistry
-import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import co.voik.agesandtheart.client.AgeLooks
 import co.voik.agesandtheart.client.AgeTints
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
@@ -21,6 +20,7 @@ import net.minecraft.client.gui.screens.inventory.MenuAccess
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
+import net.minecraft.client.renderer.entity.EntityRenderers
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.inventory.AbstractContainerMenu
@@ -49,7 +49,9 @@ fun initClient() {
 }
 
 private fun <T : Entity> registerEntityRenderer(entry: ClientRegistrations.RendererForEntity<T>) {
-    EntityRendererRegistry.register(entry.type, entry.provider)
+    // Fabric API's `EntityRendererRegistry` is retired in favour of vanilla's own registry, which its
+    // transitive access wideners open up — so there is nothing left for the helper to help with.
+    EntityRenderers.register(entry.type, entry.provider)
 }
 
 private fun <T : BlockEntity, S : BlockEntityRenderState> registerBlockEntityRenderer(

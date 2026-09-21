@@ -129,6 +129,7 @@ class LinkingPortalBlock(properties: Properties) : Block(properties), Portal {
         }
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun getCloneItemStack(level: LevelReader, pos: BlockPos, state: BlockState, includeData: Boolean): ItemStack =
         ItemStack.EMPTY
 

@@ -79,6 +79,7 @@ object FeatureShape {
      * back untouched rather than half-made. The corpus decides which patterns are worth minting from, and a
      * word naming an unmintable one is a content bug rather than a play outcome.
      */
+    @Suppress("DEPRECATION")
     fun mintedFrom(pattern: Holder<PlacedFeature>, substance: String): Holder<PlacedFeature> {
         val block = Identifier.tryParse(substance)
             ?.let { BuiltInRegistries.BLOCK.getOptional(it).orElse(null) }
@@ -104,6 +105,8 @@ object FeatureShape {
             // `LakeFeature` places the fill as plain blocks and only asks whether it is water to decide
             // about freezing it. The barrier it lines the bowl with is the pattern's and stays.
             // The three predicates are the pattern's own, as the barrier is: only the fluid is ours.
+            // Vanilla has deprecated the whole feature, but a datapack may still carry one and this
+            // only re-points its fill — so the deprecation is the pack's to answer, not ours.
             is LakeFeature.Configuration -> LakeFeature.Configuration(
                 BlockStateProvider.simple(block.defaultBlockState()),
                 configuration.barrier(),

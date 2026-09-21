@@ -13,6 +13,10 @@ import net.minecraft.resources.Identifier
  *
  * Each loader's client entrypoint pairs these with its own still and flowing fluid objects.
  */
+// NeoForge deprecates the `BlockTintSource` constructor in favour of one taking its own
+// `FluidTintSource`, which `common` compiles too far from to name. Vanilla's is not deprecated and is
+// what both loaders build from.
+@Suppress("DEPRECATION")
 object AgeFluidLooks {
 
     /**

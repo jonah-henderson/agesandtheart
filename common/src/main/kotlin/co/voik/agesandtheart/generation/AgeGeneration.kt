@@ -335,7 +335,9 @@ object AgeGeneration {
             skin,
             theirs.spawnTarget(),
             theirs.seaLevel(),
-            theirs.disableMobGeneration(),
+            // Deprecated on the record and still required by its constructor, so this hands back
+            // exactly what the settings we were given already said.
+            @Suppress("DEPRECATION") theirs.disableMobGeneration(),
             /* aquifersEnabled = */ true,
             /* oreVeinsEnabled = */ true,
             theirs.getRandomSource() == net.minecraft.world.level.levelgen.WorldgenRandom.Algorithm.LEGACY,

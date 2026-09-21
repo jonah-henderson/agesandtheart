@@ -68,6 +68,9 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         val overGround = kotlin.math.sqrt(toCentreX * toCentreX + toCentreZ * toCentreZ)
         placedYaw = Mth.wrapDegrees(Math.toDegrees(kotlin.math.atan2(toCentreZ, toCentreX)).toFloat() - QUARTER_TURN)
         placedPitch = Math.toDegrees(kotlin.math.atan2(lift, overGround)).toFloat()
+        // NeoForge wants the three-argument form, which adds roll; its two-argument one passes roll
+        // zero and nothing else, which is what a panel wants and what vanilla offers.
+        @Suppress("DEPRECATION")
         setRotation(placedYaw, placedPitch)
 
         setupPerspective(NEAR_PLANE, FAR_PLANE, FIELD_OF_VIEW, width.toFloat(), height.toFloat())

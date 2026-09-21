@@ -21,6 +21,7 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
  */
 class LootTableSwap(private val swaps: Map<Identifier, Identifier>) : StructureProcessor {
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun processBlock(
         level: LevelReader,
         targetPosition: BlockPos,

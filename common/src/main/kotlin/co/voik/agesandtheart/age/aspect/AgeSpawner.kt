@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.compat.hasChunkAtColumn
 import co.voik.agesandtheart.compat.center
+import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
@@ -197,7 +198,10 @@ class AgeSpawner(
             val mob = chosen.type.create(level, EntitySpawnReason.NATURAL) as? Mob ?: return
             mob.snapTo(at.x + HALF_A_BLOCK, at.y.toDouble(), at.z + HALF_A_BLOCK, level.random.nextFloat() * A_FULL_TURN, 0.0f)
             madeAtHome(mob, at)
-            mob.finalizeSpawn(level, difficulty, EntitySpawnReason.NATURAL, null)
+            // Through the loader, so a NeoForge mod may change what arrives or refuse it — see
+            // [co.voik.agesandtheart.platform.services.MobSpawning]. A refusal marks the mob and the line
+            // below then declines it, which is the same on both loaders.
+            Services.MOB_SPAWNING.finish(level, mob, difficulty, EntitySpawnReason.NATURAL)
             level.addFreshEntityWithPassengers(mob)
         }
     }

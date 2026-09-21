@@ -173,7 +173,12 @@ object Atmosphere {
         // **A corner of the world is a positional layer**, which is the same mechanism vanilla uses to let
         // biomes provide attributes at all — it is handed a position and asks the level what is there.
         for ((biome, air) in corners) air.forEach { it.onto(system, level, biome) }
-        level.setEnvironmentAttributes(system.build())
+        // **The field, not vanilla's setter for it.** A level builds its attributes when it is built and
+        // offers no way to set them afterwards, which is exactly what an Age needs — its look is the
+        // recipe's, not a dimension file's. The setter that would do it is `@Deprecated
+        // @VisibleForTesting`, and a hook kept for tests can go at any release; the field cannot, because
+        // the system is read off it every tick. So the widener opens the field and this writes it.
+        level.environmentAttributes = system.build()
     }
 
     /**
