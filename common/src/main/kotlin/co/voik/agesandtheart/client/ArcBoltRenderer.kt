@@ -41,7 +41,7 @@ class ArcBoltRenderer(context: EntityRendererProvider.Context) :
      * The whole arc, not just the rod it leaves from. Whoever is bitten is looking at what was bitten, and
      * culled on the rod alone the bolt vanished whenever the rod was off screen.
      */
-    override fun getBoundingBoxForCulling(entity: ArcBolt): AABB =
+    override fun getBoundingBoxForCulling(entity: ArcBolt, partialTicks: Float): AABB =
         AABB(entity.position(), entity.position().add(entity.reachesTo)).inflate(FORK_MARGIN)
 
     override fun extractRenderState(entity: ArcBolt, state: ArcBoltRenderState, partialTicks: Float) {
@@ -64,7 +64,7 @@ class ArcBoltRenderer(context: EntityRendererProvider.Context) :
             poseStack.pushPose()
             // Vanilla's bolt is drawn up the Y axis; this turns that axis onto the line to the victim.
             val heading = state.reaches.normalize()
-            poseStack.mulPose(
+            poseStack.rotate(
                 Quaternionf().rotateTo(
                     UPRIGHT.x.toFloat(), UPRIGHT.y.toFloat(), UPRIGHT.z.toFloat(),
                     heading.x.toFloat(), heading.y.toFloat(), heading.z.toFloat(),

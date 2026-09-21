@@ -95,7 +95,7 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
         if (state.halfWidth <= NOTHING || state.reach <= NOTHING) return
         poseStack.pushPose()
         // The prism turns with the column, so its faces stand square to where it is going.
-        poseStack.mulPose(Axis.YP.rotationDegrees(-state.heading))
+        poseStack.rotate(Axis.YP.rotationDegrees(-state.heading))
         // **Innermost first, in one submission, and that order is the whole of what makes it correct.**
         // Every shell writes depth, so each one drawn after is nearer, passes, and blends over what is
         // already there — which is back-to-front, the only order translucency can be composited in. It is
@@ -206,7 +206,7 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
             // The world's own light, so a column goes down with the sun instead of glowing at midnight.
             .withBindGroupLayout(
                 BindGroupLayout.builder()
-                    .withSampler("Sampler2")
+                    .withUniform("Sampler2", UniformType.COMBINED_IMAGE_SAMPLER)
                     .build(),
             )
             .withColorTargetState(ColorTargetState(BlendFunction.TRANSLUCENT))

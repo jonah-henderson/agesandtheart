@@ -84,7 +84,7 @@ object PanelRenderTypes {
         .withFragmentShader("core/position_tex_color")
         .withBindGroupLayout(
             BindGroupLayout.builder()
-                .withSampler("Sampler0")
+                .withUniform("Sampler0", UniformType.COMBINED_IMAGE_SAMPLER)
                 .build(),
         )
         .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_TEX_COLOR)
@@ -130,7 +130,7 @@ object PanelRenderTypes {
         .withFragmentShader("core/position_tex_color")
         .withBindGroupLayout(
             BindGroupLayout.builder()
-                .withSampler("Sampler0")
+                .withUniform("Sampler0", UniformType.COMBINED_IMAGE_SAMPLER)
                 .build(),
         )
         .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_TEX_COLOR)

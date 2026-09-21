@@ -50,7 +50,7 @@ class BookEntityRenderer(context: EntityRendererProvider.Context) :
         poseStack.pushPose()
         poseStack.translate(0.0f, LIFT, 0.0f)
         // Flat on its face, the way a dropped book lands.
-        poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(FLAT))
+        poseStack.rotate(com.mojang.math.Axis.XP.rotationDegrees(FLAT))
         state.item.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0)
         poseStack.popPose()
         super.submit(state, poseStack, collector, camera)

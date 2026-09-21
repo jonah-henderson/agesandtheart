@@ -81,10 +81,10 @@ object Downpours {
      */
     fun paint(level: ClientLevel, layers: EnvironmentAttributeSystem.Builder): EnvironmentAttributeSystem.Builder {
         layers.addPositionalLayer(EnvironmentAttributes.FOG_COLOR) { was, at, _ ->
-            outInIt(level, at)?.let { ARGB.srgbLerp(greyingOf(it), was, STORM_GREY.packed()) } ?: was
+            outInIt(level, at)?.let { ARGB.srgbLerp(greyingOf(it), was, STORM_GREY.rgb()) } ?: was
         }
         layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { was, at, _ ->
-            outInIt(level, at)?.let { ARGB.srgbLerp(greyingOf(it), was, STORM_GREY.packed()) } ?: was
+            outInIt(level, at)?.let { ARGB.srgbLerp(greyingOf(it), was, STORM_GREY.rgb()) } ?: was
         }
         layers.addPositionalLayer(EnvironmentAttributes.FOG_START_DISTANCE) { was, at, _ ->
             outInIt(level, at)?.let { was * seenThrough(it) * BEGINS_AT } ?: was

@@ -88,8 +88,8 @@ class LecternBookRenderer(context: BlockEntityRendererProvider.Context) : Lecter
         val ours = ourBookIn(state) ?: return super.submit(state, poseStack, collector, camera)
         poseStack.pushPose()
         poseStack.translate(HALF_A_BLOCK, LecternBookPlane.CENTRE_HEIGHT, HALF_A_BLOCK)
-        poseStack.mulPose(Axis.YP.rotationDegrees(-ours.yRot))
-        poseStack.mulPose(Axis.ZP.rotationDegrees(LecternBookPlane.TILT_DEGREES.toFloat()))
+        poseStack.rotate(Axis.YP.rotationDegrees(-ours.yRot))
+        poseStack.rotate(Axis.ZP.rotationDegrees(LecternBookPlane.TILT_DEGREES.toFloat()))
         poseStack.translate(0.0, -LecternBookPlane.DOWN_THE_SLOPE, 0.0)
         if (ours.open) {
             submitTheBook(ours, OPEN, poseStack, collector)
@@ -130,7 +130,7 @@ class LecternBookRenderer(context: BlockEntityRendererProvider.Context) : Lecter
     /** A shut book lies cover-up on the slope, its spine running up the page and itself to one side of it. */
     private fun layShut(poseStack: PoseStack) {
         poseStack.translate(SHUT_LIFT, 0.0f, SHUT_SHIFT_TOWARD_THE_LEFT)
-        poseStack.mulPose(Axis.YP.rotationDegrees(QUARTER_TURN))
+        poseStack.rotate(Axis.YP.rotationDegrees(QUARTER_TURN))
     }
 
     /**
