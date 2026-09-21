@@ -1,14 +1,15 @@
 package co.voik.agesandtheart.worldgen.field
 
 import co.voik.agesandtheart.location
-import net.minecraft.world.level.biome.Biome
-import net.minecraft.core.HolderGetter
 import net.minecraft.core.registries.Registries
-import net.minecraft.data.worldgen.SurfaceRuleData
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.levelgen.SurfaceRules
+import net.minecraft.world.level.levelgen.material.MaterialRules
+import net.minecraft.world.level.levelgen.material.condition.MaterialCondition
+import net.minecraft.world.level.levelgen.material.rule.BlockRule
+import net.minecraft.world.level.levelgen.material.rule.MaterialRule
+import net.minecraft.world.level.levelgen.material.rule.SequenceRule
 import net.minecraft.world.level.levelgen.VerticalAnchor
 import net.minecraft.world.level.levelgen.placement.CaveSurface
 import net.minecraft.world.level.levelgen.synth.NormalNoise
@@ -16,7 +17,7 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
 /**
  * **Which surface rule an Age wears** — three of them, and nothing else here is public.
  *
- * A `SurfaceRules.RuleSource` says *how* to surface a column; this says *which* rule does it, and
+ * A `MaterialRule` says *how* to surface a column; this says *which* rule does it, and
  * [co.voik.agesandtheart.age.aspect.Surface] is the aspect that decides. The three are the whole of what
  * an Age can be: the biome's own rule ([delegatedToBiomes]), one or more materials laid over the lot
  * ([laidOn]), or none at all ([NO_SKIN]), which lays only the world's floor and lets the [TerrainFill]
@@ -36,20 +37,20 @@ object SurfacingStrategy {
     // --- Structure ---
 
     /** Try each layer in turn, keeping the first that matches — the backbone of every palette. */
-    private fun layers(vararg layers: SurfaceRules.RuleSource): SurfaceRules.RuleSource = SurfaceRules.sequence(*layers)
+    private fun layers(vararg layers: MaterialRule): MaterialRule = MaterialRules.sequence(*layers)
 
     /** Always this block. Goes last in [layers], as the fallback. */
-    private fun solid(block: BlockState): SurfaceRules.RuleSource = SurfaceRules.state(block)
+    private fun solid(block: BlockState): MaterialRule = MaterialRules.state(block)
 
     /** [block] wherever [condition] holds. */
-    private fun where(condition: SurfaceRules.ConditionSource, block: BlockState): SurfaceRules.RuleSource =
-        SurfaceRules.ifTrue(condition, solid(block))
+    private fun where(condition: MaterialCondition, block: BlockState): MaterialRule =
+        MaterialRules.ifTrue(condition, solid(block))
 
     // --- Conditions ---
 
     /** Within [blocks] of the surface: the soil layer beneath the skin. */
-    private fun withinDepth(blocks: Int): SurfaceRules.ConditionSource =
-        SurfaceRules.stoneDepthCheck(blocks, false, CaveSurface.FLOOR)
+    private fun withinDepth(blocks: Int): MaterialCondition =
+        MaterialRules.stoneDepthCheck(blocks, false, CaveSurface.FLOOR)
 
     /**
      * The floor of the world — bedrock, fading out just above the bottom, as vanilla closes its own.
@@ -58,8 +59,8 @@ object SurfacingStrategy {
      * to decide, and a material least of all. Relative anchors rather than our own min-Y, so this stays
      * correct if an Age's height band moves.
      */
-    private fun worldFloor(): SurfaceRules.RuleSource = SurfaceRules.ifTrue(
-        SurfaceRules.verticalGradient(
+    private fun worldFloor(): MaterialRule = MaterialRules.ifTrue(
+        MaterialRules.verticalGradient(
             "bedrock_floor",
             VerticalAnchor.bottom(),
             VerticalAnchor.aboveBottom(BEDROCK_FADE),
@@ -74,12 +75,12 @@ object SurfacingStrategy {
      * rule rather than being part of every palette: a surface rule paints blocks that already exist, so
      * this would turn a canyon's plateau — which genuinely stands at the top of the world — into bedrock.
      */
-    private fun worldRoof(): SurfaceRules.RuleSource = SurfaceRules.ifTrue(
+    private fun worldRoof(): MaterialRule = MaterialRules.ifTrue(
         // **Negated, unlike the floor.** A vertical gradient is certainly true at its lower anchor and
         // certainly false at its upper one, so read straight it says "not the roof"; vanilla's own nether
         // roof inverts it for exactly this reason.
-        SurfaceRules.not(
-            SurfaceRules.verticalGradient(
+        MaterialRules.not(
+            MaterialRules.verticalGradient(
                 "bedrock_roof",
                 VerticalAnchor.belowTop(BEDROCK_FADE),
                 VerticalAnchor.top(),
@@ -101,22 +102,28 @@ object SurfacingStrategy {
      * the ceiling is a rock face by every test it makes, and it dressed the gaps in the world's roof with
      * grass over dirt. Nothing matching leaves the block as the generator laid it, which is the Age's rock.
      */
-    fun shutOverhead(rule: SurfaceRules.RuleSource): SurfaceRules.RuleSource =
-        layers(worldRoof(), SurfaceRules.ifTrue(SurfaceRules.not(withinTheRoof()), rule))
+    fun shutOverhead(rule: MaterialRule): MaterialRule =
+        layers(worldRoof(), MaterialRules.ifTrue(MaterialRules.not(withinTheRoof()), rule))
 
     /** The band [worldRoof] fades its bedrock through — where the palette has no business. */
-    private fun withinTheRoof(): SurfaceRules.ConditionSource =
-        SurfaceRules.yBlockCheck(VerticalAnchor.belowTop(BEDROCK_FADE), 0)
+    private fun withinTheRoof(): MaterialCondition =
+        MaterialRules.yBlockCheck(VerticalAnchor.belowTop(BEDROCK_FADE), 0)
 
     // --- The three an Age can wear ---
 
     /**
      * **Vanilla's own overworld surface**, biome for biome, standing on the [terrain] it is dressing.
      *
-     * One substitution, and it is the reason this function exists: `aboveGround = false` drops vanilla's
+     * One substitution, and it is the reason this function exists: the [skin] carries no
      * `abovePreliminarySurface` gate and [NearTheSurface] takes its place. That gate is the one thing
      * standing between a cave floor and a lawn, and vanilla's version interpolates a heightmap across a
      * 16-block cell, which our terrain outruns in both directions — see [NearTheSurface].
+     *
+     * **Which is why the overworld's skin is named `overworld_floating_islands`** rather than built from
+     * flags. 26.3 makes each tree a registry entry instead of a builder call, and that entry is exactly
+     * the composition we were asking for: the ore veins, the surface and the underground, with no gate
+     * over them — vanilla's own name for an overworld that does not sit on a continuous heightmap, which
+     * is what an Age is.
      *
      * **Its bedrock is [worldFloor], laid first and outside the gate.** Each vanilla tree carries a floor of
      * its own, but inside [NearTheSurface] that floor was only ever asked of columns near the face, which
@@ -127,23 +134,8 @@ object SurfacingStrategy {
      * 2026-08-14, walked). The nether's own tree dresses nether biomes; the overworld's does not know them
      * and falls through to its default, which is dirt with grass on top.
      */
-    fun delegatedToBiomes(terrain: TerrainField, skin: SurfaceRules.RuleSource): SurfaceRules.RuleSource =
-        layers(worldFloor(), SurfaceRules.ifTrue(NearTheSurface(terrain), skin))
-
-    /**
-     * The overworld's own dressing as an Age wears it — bedrock underfoot and none overhead, and the
-     * surface tree entered from below rather than from open air, since [NearTheSurface] has already said
-     * where the face of our rock is.
-     *
-     * Only this one is spelled with the builder: the flags exist nowhere else, and the other two worlds
-     * have a single tree each with nothing to choose.
-     */
-    fun overworldsSkin(biomes: HolderGetter<Biome>): SurfaceRules.RuleSource = SurfaceRuleData.overworldLike(
-        biomes,
-        /* aboveGround = */ false,
-        /* bedrockRoof = */ false,
-        /* bedrockFloor = */ true,
-    )
+    fun delegatedToBiomes(terrain: TerrainField, skin: MaterialRule): MaterialRule =
+        layers(worldFloor(), MaterialRules.ifTrue(NearTheSurface(terrain), skin))
 
     /**
      * A material laid over the ground instead of the biome's own skin — `Surface`'s answer when a writer
@@ -157,9 +149,9 @@ object SurfacingStrategy {
      * speckle: `noiseCondition` names a *registered* noise, so a per-Age number would need a condition
      * source of our own, the way [NearTheSurface] carries a terrain field.
      */
-    fun laidOn(terrain: TerrainField, blocks: List<BlockState>): SurfaceRules.RuleSource = layers(
+    fun laidOn(terrain: TerrainField, blocks: List<BlockState>): MaterialRule = layers(
         worldFloor(),
-        SurfaceRules.ifTrue(NearTheSurface(terrain), SurfaceRules.ifTrue(withinDepth(SKIN_DEPTH), mingled(blocks))),
+        MaterialRules.ifTrue(NearTheSurface(terrain), MaterialRules.ifTrue(withinDepth(SKIN_DEPTH), mingled(blocks))),
         deepslateFloor(),
     )
 
@@ -167,13 +159,29 @@ object SurfacingStrategy {
      * The same skin over **vanilla's** rock, which knows where its own surface is.
      *
      * [NearTheSurface] reads a `TerrainField`, and an Age wearing vanilla's terrain has none — so the face
-     * is vanilla's `ON_FLOOR` instead, which is the condition its own rules are written against.
+     * is [onTheFloor] instead, which is the condition vanilla's own rules are written against.
      */
-    fun laidOnVanilla(blocks: List<BlockState>): SurfaceRules.RuleSource = layers(
+    fun laidOnVanilla(blocks: List<BlockState>): MaterialRule = layers(
         worldFloor(),
-        SurfaceRules.ifTrue(SurfaceRules.ON_FLOOR, SurfaceRules.ifTrue(withinDepth(SKIN_DEPTH), mingled(blocks))),
+        MaterialRules.ifTrue(onTheFloor(), MaterialRules.ifTrue(withinDepth(SKIN_DEPTH), mingled(blocks))),
         deepslateFloor(),
     )
+
+    /**
+     * The first block of rock counting down from open air — vanilla's own `on_floor`.
+     *
+     * Spelled out rather than named, because 26.3 keeps it as datapack content under
+     * `VanillaMaterialConditions` and reaching a key needs a registry, which
+     * [co.voik.agesandtheart.generation.AgeGeneration.vanillasRockFor] deliberately does not have: it is
+     * pure in its settings, its composition and its fill, and is checked offline as such.
+     *
+     * **Not [withinDepth] of nought, though the two compile to the same call.** That one says "no deeper
+     * than this into the rock" and is about a skin's thickness; this says "at the face" and is about where
+     * the skin starts. Verified against vanilla's `on_floor.json`: offset 0, surface depth not added,
+     * measured from the floor.
+     */
+    private fun onTheFloor(): MaterialCondition =
+        MaterialRules.stoneDepthCheck(0, false, CaveSurface.FLOOR)
 
     /**
      * **A world's own skin, as patches over its rock rather than instead of it.**
@@ -194,13 +202,13 @@ object SurfacingStrategy {
      * statement about a world whose skin and whose rock were always the same block, and not an empty
      * sequence, which vanilla rejects.
      */
-    fun asPatchesOver(skin: SurfaceRules.RuleSource): SurfaceRules.RuleSource = when (skin) {
-        is SurfaceRules.BlockRuleSource -> SUPPRESSED
-        is SurfaceRules.SequenceRuleSource -> {
+    fun asPatchesOver(skin: MaterialRule): MaterialRule = when (skin) {
+        is BlockRule -> SUPPRESSED
+        is SequenceRule -> {
             val earlier = skin.sequence().dropLast(1)
             val tail = asPatchesOver(skin.sequence().last())
             val arms = if (tail == SUPPRESSED) earlier else earlier + tail
-            if (arms.isEmpty()) SUPPRESSED else SurfaceRules.sequence(*arms.toTypedArray())
+            if (arms.isEmpty()) SUPPRESSED else MaterialRules.sequence(*arms.toTypedArray())
         }
         else -> skin
     }
@@ -212,7 +220,7 @@ object SurfacingStrategy {
      * No skin at all — only the world's floor, which is not the palette's to decide — how "named no
      * material" is spelled.
      */
-    val NO_SKIN: SurfaceRules.RuleSource = worldFloor()
+    val NO_SKIN: MaterialRule = worldFloor()
 
     /**
      * A rule that never matches, so whatever follows it decides — what [asPatchesOver] gives back for a tree
@@ -221,8 +229,8 @@ object SurfacingStrategy {
      * Written as *below the bottom of the world*, which no block is. An empty [layers] is not available:
      * vanilla's `sequence` rejects an empty list at class-initialisation time, so it fails far from here.
      */
-    val SUPPRESSED: SurfaceRules.RuleSource = SurfaceRules.ifTrue(
-        SurfaceRules.not(SurfaceRules.yBlockCheck(VerticalAnchor.bottom(), 0)),
+    val SUPPRESSED: MaterialRule = MaterialRules.ifTrue(
+        MaterialRules.not(MaterialRules.yBlockCheck(VerticalAnchor.bottom(), 0)),
         solid(Blocks.AIR.defaultBlockState()),
     )
 
@@ -233,7 +241,7 @@ object SurfacingStrategy {
      * can want the same block — nested noise conditions would leave the second material's share
      * depending on where the first fell. Divided evenly, which is what an unqualified list should mean.
      */
-    private fun mingled(blocks: List<BlockState>): SurfaceRules.RuleSource {
+    private fun mingled(blocks: List<BlockState>): MaterialRule {
         // Nothing named is nothing said: decline, and the fill the Age was made of stands.
         val ground = blocks.lastOrNull() ?: return SUPPRESSED
         val scattered = blocks.dropLast(1)
@@ -242,7 +250,7 @@ object SurfacingStrategy {
         return layers(
             *scattered.mapIndexed { band, block ->
                 val from = MOTTLE_RANGE.first + band * bandWidth
-                where(SurfaceRules.noiseCondition2d(MINGLE_NOISE, from, from + bandWidth), block)
+                where(MaterialRules.noiseCondition2d(MINGLE_NOISE, from, from + bandWidth), block)
             }.toTypedArray(),
             solid(ground),
         )
@@ -252,17 +260,17 @@ object SurfacingStrategy {
      * Our own noise, at a deliberately tiny scale — two blocks or so, which is as close to evenly
      * intermixed as surface rules get. Registered as datapack content, so a pack can retune the scale.
      */
-    private val MINGLE_NOISE: ResourceKey<NormalNoise.NoiseParameters> =
+    private val MINGLE_NOISE: ResourceKey<NormalNoise> =
         ResourceKey.create(Registries.NOISE, "mingle".location())
 
     /** The full span of [MINGLE_NOISE]'s output, divided into one band per material. */
     private val MOTTLE_RANGE = -1.0 to 1.0
 
-    private fun deepslateFloor(): SurfaceRules.RuleSource =
+    private fun deepslateFloor(): MaterialRule =
         where(
             // A soft stratum boundary: certainly deepslate at the lower anchor and below, certainly not at
             // the upper one and above, dissolving randomly in between, so it fades into stone without a seam.
-            SurfaceRules.verticalGradient(
+            MaterialRules.verticalGradient(
                 "deepslate",
                 VerticalAnchor.absolute(DEEPSLATE_SOLID_BELOW),
                 VerticalAnchor.absolute(DEEPSLATE_ABSENT_ABOVE),

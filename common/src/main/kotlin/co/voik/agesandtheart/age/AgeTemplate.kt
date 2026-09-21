@@ -14,7 +14,9 @@ import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import com.mojang.serialization.Codec
 import net.minecraft.core.HolderGetter
-import net.minecraft.data.worldgen.SurfaceRuleData
+import net.minecraft.data.worldgen.material.EndMaterialRules
+import net.minecraft.data.worldgen.material.NetherMaterialRules
+import net.minecraft.data.worldgen.material.OverworldMaterialRules
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
@@ -27,7 +29,8 @@ import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterLists
 import net.minecraft.world.level.biome.TheEndBiomeSource
 import net.minecraft.world.level.dimension.BuiltinDimensionTypes
 import net.minecraft.world.level.dimension.DimensionType
-import net.minecraft.world.level.levelgen.SurfaceRules
+import net.minecraft.world.level.levelgen.material.MaterialRules
+import net.minecraft.world.level.levelgen.material.rule.MaterialRule
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.structure.BuiltinStructureSets
 import net.minecraft.world.level.levelgen.structure.StructureSet
@@ -62,7 +65,8 @@ enum class AgeTemplate(
         override val biomeList = MultiNoiseBiomeSourceParameterLists.OVERWORLD
         override val standingStructures = Structures.OVERWORLD_STRUCTURE_SETS
         override val dimensionType get() = BuiltinDimensionTypes.OVERWORLD
-        override fun skin(biomes: HolderGetter<Biome>) = SurfacingStrategy.overworldsSkin(biomes)
+        override fun skin(rules: HolderGetter<MaterialRule>) =
+            MaterialRules.getRule(rules, OverworldMaterialRules.OVERWORLD_FLOATING_ISLANDS)
 
         override fun world(): AgeComposition = AgeComposition(
             terrains = listOf(Terrain.VANILLA),
@@ -78,7 +82,8 @@ enum class AgeTemplate(
     INFERNAL("infernal", NoiseGeneratorSettings.NETHER) {
         override val biomeList = MultiNoiseBiomeSourceParameterLists.NETHER
         override val dimensionType get() = BuiltinDimensionTypes.NETHER
-        override fun skin(biomes: HolderGetter<Biome>) = SurfaceRuleData.nether(biomes)
+        override fun skin(rules: HolderGetter<MaterialRule>) =
+            MaterialRules.getRule(rules, NetherMaterialRules.NETHER)
         override val standingStructures = listOf(
             BuiltinStructureSets.NETHER_COMPLEXES,
             BuiltinStructureSets.NETHER_FOSSILS,
@@ -117,7 +122,8 @@ enum class AgeTemplate(
         override val biomeList: ResourceKey<MultiNoiseBiomeSourceParameterList>? = null
         override val standingStructures = listOf(BuiltinStructureSets.END_CITIES)
         override val dimensionType get() = BuiltinDimensionTypes.END
-        override fun skin(biomes: HolderGetter<Biome>) = SurfaceRuleData.end()
+        override fun skin(rules: HolderGetter<MaterialRule>) =
+            MaterialRules.getRule(rules, EndMaterialRules.END)
 
         override fun world(): AgeComposition = AgeComposition(
             terrains = listOf(Terrain.VANILLA),
@@ -180,9 +186,11 @@ enum class AgeTemplate(
      * Read only where the rock is a field of ours. Vanilla's own rock carries its own skin already, and
      * `AgeGeneration.vanillasRockFor` keeps it.
      *
-     * A getter, like [dimensionType]: these trees are built out of `Blocks`, which needs the registries.
+     * A getter, like [dimensionType], though for a different reason than it used to be: 26.3 makes each
+     * of these trees a datapack entry rather than a builder call, so what is named here is a key and the
+     * getter is what resolves it.
      */
-    abstract fun skin(biomes: HolderGetter<Biome>): SurfaceRules.RuleSource
+    abstract fun skin(rules: HolderGetter<MaterialRule>): MaterialRule
 
 
     /** Whether a book may weigh or narrow this world's biomes, which needs a table to adjust. */

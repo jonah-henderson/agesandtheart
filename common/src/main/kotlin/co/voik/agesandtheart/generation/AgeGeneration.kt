@@ -239,7 +239,7 @@ object AgeGeneration {
                     composition.optionsFor(Aspect.SURFACE, 0),
                     it.rock,
                     recipe.template,
-                    server.registryAccess().lookupOrThrow(Registries.BIOME),
+                    server.registryAccess().lookupOrThrow(Registries.MATERIAL_RULE),
                 )
                 // A landform that is its own roof closes it with bedrock, as vanilla closes the nether's.
                 if (composition.roofedByItsRock) SurfacingStrategy.shutOverhead(skin) else skin
@@ -316,7 +316,7 @@ object AgeGeneration {
             // **Patches over the rock, not instead of it** — see [SurfacingStrategy.asPatchesOver]. The
             // nether's tree and the End's each end in an unconditional arm that would repaint whatever
             // block was substituted below, and removing it changes nothing until one has been.
-            named.isEmpty() -> SurfacingStrategy.asPatchesOver(theirs.surfaceRule())
+            named.isEmpty() -> SurfacingStrategy.asPatchesOver(theirs.materialRule().value())
             named.all { it.isAir } -> SurfacingStrategy.NO_SKIN
             else -> SurfacingStrategy.laidOnVanilla(named)
         }

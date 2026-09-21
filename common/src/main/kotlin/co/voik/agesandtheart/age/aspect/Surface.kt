@@ -6,7 +6,7 @@ import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.TerrainFill
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.core.HolderGetter
-import net.minecraft.world.level.levelgen.SurfaceRules
+import net.minecraft.world.level.levelgen.material.rule.MaterialRule
 
 /**
  * What the ground wears — the skin over whatever the rock is made of (design §3.1, vanilla's
@@ -50,10 +50,10 @@ object Surface {
         options: Options,
         rock: AgeRock.Ours,
         template: AgeTemplate,
-        biomes: HolderGetter<Biome>,
-    ): SurfaceRules.RuleSource {
+        rules: HolderGetter<MaterialRule>,
+    ): MaterialRule {
         val blocks = options.materialsOf(MATERIAL)
-        if (blocks.isEmpty()) return SurfacingStrategy.delegatedToBiomes(rock.landform, template.skin(biomes))
+        if (blocks.isEmpty()) return SurfacingStrategy.delegatedToBiomes(rock.landform, template.skin(rules))
         // Air is how a writer says "no skin", the same way `open` says "no sea" — and it is only bare when
         // *everything* named is air, since air mingled with a rock is a skin full of holes and a fine thing
         // for a book to ask for.

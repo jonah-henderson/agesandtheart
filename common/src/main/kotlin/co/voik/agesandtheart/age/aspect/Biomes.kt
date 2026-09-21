@@ -3,7 +3,6 @@ package co.voik.agesandtheart.age.aspect
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.TerrainField
-import net.minecraft.world.level.levelgen.SurfaceRules
 import co.voik.agesandtheart.location
 import net.minecraft.resources.Identifier
 
