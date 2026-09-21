@@ -95,8 +95,8 @@ data class Drainage(
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         // Everything below works in warped space, the land included — see [meander].
-        val atX = worldX + warpNoise.getValue(worldX / warpStretch, 0.0, worldZ / warpStretch) * meander
-        val atZ = worldZ + warpNoise.getValue(worldZ / warpStretch, WARP_PLANE, worldX / warpStretch) * meander
+        val atX = worldX + warpNoise.get(worldX / warpStretch, 0.0, worldZ / warpStretch).toDouble() * meander
+        val atZ = worldZ + warpNoise.get(worldZ / warpStretch, WARP_PLANE, worldX / warpStretch).toDouble() * meander
         val landHere = landAt(atX, atZ)
         val cellX = floor(atX / spacing).toInt()
         val cellZ = floor(atZ / spacing).toInt()
@@ -168,7 +168,7 @@ data class Drainage(
 
     /** The land's own surface, before anything is cut into it. */
     private fun landAt(worldX: Double, worldZ: Double): Double =
-        landY + landNoise.getValue(worldX / landStretch, 0.0, worldZ / landStretch).coerceIn(-1.0, 1.0) * relief
+        landY + landNoise.get(worldX / landStretch, 0.0, worldZ / landStretch).toDouble().coerceIn(-1.0, 1.0) * relief
 
     // Both axes' jitters are hashed on the cell as (x, z).
     private fun nodeX(cellX: Int, cellZ: Int): Double = latticeNode(cellX, cellX, cellZ, X_SALT, jitter, spacing)

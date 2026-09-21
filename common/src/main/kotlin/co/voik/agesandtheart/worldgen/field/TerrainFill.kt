@@ -43,7 +43,7 @@ data class TerrainFill(
         here.singleOrNull()?.let { return it }
         if (here.isEmpty()) return STONE
         // Mottled at block scale, which is what makes two materials read as one rock rather than as layers.
-        val sample = mingle.getValue(worldX / stretch, worldY / stretch, worldZ / stretch)
+        val sample = mingle.get(worldX / stretch, worldY / stretch, worldZ / stretch).toDouble()
         val band = ((sample + 1.0) / 2.0 * here.size).toInt().coerceIn(0, here.size - 1)
         return here[band]
     }

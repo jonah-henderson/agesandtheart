@@ -139,7 +139,7 @@ data class Rift(
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         val wandered = map.blocksFromSeamAt(worldX, worldZ) +
-            rimNoise.getValue(worldX / RIM_NOISE_STRETCH, 0.0, worldZ / RIM_NOISE_STRETCH) * rimWander
+            rimNoise.get(worldX / RIM_NOISE_STRETCH, 0.0, worldZ / RIM_NOISE_STRETCH).toDouble() * rimWander
         if (wandered > halfWidth) return Spans.EMPTY
         // Deepest at the seam and rising to the rim, so the chasm comes out V-shaped rather than trenched.
         val acrossToRim = (wandered / halfWidth).coerceIn(0.0, 1.0)
@@ -238,7 +238,7 @@ data class Ridge(
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         val wandered = map.blocksFromSeamAt(worldX, worldZ) +
-            crestNoise.getValue(worldX / CREST_NOISE_STRETCH, 0.0, worldZ / CREST_NOISE_STRETCH) * crestWander
+            crestNoise.get(worldX / CREST_NOISE_STRETCH, 0.0, worldZ / CREST_NOISE_STRETCH).toDouble() * crestWander
         if (wandered > halfWidth) return Spans.EMPTY
         val outToRim = (wandered / halfWidth).coerceIn(0.0, 1.0)
         // Full height across the middle, then Hermite down to the footing. A taper that starts at the

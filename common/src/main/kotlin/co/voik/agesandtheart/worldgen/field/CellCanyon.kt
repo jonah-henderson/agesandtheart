@@ -58,7 +58,7 @@ data class CellCanyon(
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         val fromSeam = map.blocksFromSeamAt(worldX, worldZ)
         if (fromSeam.isInfinite()) return Spans.EMPTY
-        val frayed = wallNoise.getValue(worldX / WALL_STRETCH, 0.0, worldZ / WALL_STRETCH) * roughness
+        val frayed = wallNoise.get(worldX / WALL_STRETCH, 0.0, worldZ / WALL_STRETCH).toDouble() * roughness
         val fromAxis = (fromSeam + frayed).coerceAtLeast(0.0)
         val widthHere = widthAt(worldX, worldZ)
         if (fromAxis >= widthHere) return Spans.EMPTY
@@ -73,7 +73,7 @@ data class CellCanyon(
      */
     private fun widthAt(worldX: Int, worldZ: Int): Double {
         if (widthVariation <= 0.0) return halfWidth
-        val stands = widthNoise.getValue(worldX / widthStretch, 0.0, worldZ / widthStretch)
+        val stands = widthNoise.get(worldX / widthStretch, 0.0, worldZ / widthStretch).toDouble()
             .coerceIn(-1.0, 1.0) * widthVariation
         return halfWidth * (1.0 + stands).coerceAtLeast(CanyonProfile.SMALLEST_SHARE)
     }
@@ -86,7 +86,7 @@ data class CellCanyon(
         if (bedRelief <= 0.0) return 0
         val onTheBed = 1.0 - (climb / profile.gorgeRise.coerceAtLeast(CanyonProfile.SMALLEST_SHARE)).coerceIn(0.0, 1.0)
         if (onTheBed <= 0.0) return 0
-        val standing = bedNoise.getValue(worldX / BED_STRETCH, 0.0, worldZ / BED_STRETCH).coerceIn(-1.0, 1.0)
+        val standing = bedNoise.get(worldX / BED_STRETCH, 0.0, worldZ / BED_STRETCH).toDouble().coerceIn(-1.0, 1.0)
         return (standing * bedRelief * onTheBed).roundToInt()
     }
 

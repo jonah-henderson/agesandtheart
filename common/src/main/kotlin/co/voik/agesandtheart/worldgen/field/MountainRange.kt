@@ -384,7 +384,7 @@ data class MountainRange(
         // is wide and barely rising, so *horizontal* distance says "well clear of the channel" exactly where
         // the vertical truth is the opposite — and the river then stands in ribbons up the hillside.
         val room = (overTheChannel - DEEPEST_RIVER).coerceAtLeast(0.0)
-        val lumps = roughnessNoise.getValue(worldX / roughnessStretch, 0.0, worldZ / roughnessStretch)
+        val lumps = roughnessNoise.get(worldX / roughnessStretch, 0.0, worldZ / roughnessStretch).toDouble()
         val wanted = abs(lumps).coerceAtMost(1.0) * roughness * (grade / hillslopeGrade).coerceIn(0.0, 1.0)
         return minOf(wanted, room)
     }
@@ -662,7 +662,7 @@ data class RangeProfile(
      * noise is thrown away, which is why each range has two flanks rather than one.
      */
     fun nearnessAt(along: Double, across: Double): Double {
-        val network = grainNoise.getValue(along / stretchAlong, 0.0, across / stretchAcross)
+        val network = grainNoise.get(along / stretchAlong, 0.0, across / stretchAcross).toDouble()
         val offAxis = (abs(network) / rangeThreshold.coerceAtLeast(SMALLEST_SHARE)).coerceIn(0.0, 1.0)
         return (1.0 - offAxis).pow(rangeSharpness)
     }
@@ -693,10 +693,10 @@ data class RangeProfile(
     fun reliefScaleFrom(nearness: Double): Double = BASIN_RELIEF + (1.0 - BASIN_RELIEF) * nearness
 
     fun warpedX(worldX: Int, worldZ: Int): Double =
-        warpNoise.getValue(worldX / stretchWarp, 0.0, worldZ / stretchWarp) * meander
+        warpNoise.get(worldX / stretchWarp, 0.0, worldZ / stretchWarp).toDouble() * meander
 
     fun warpedZ(worldX: Int, worldZ: Int): Double =
-        warpNoise.getValue(worldZ / stretchWarp, WARP_PLANE, worldX / stretchWarp) * meander
+        warpNoise.get(worldZ / stretchWarp, WARP_PLANE, worldX / stretchWarp).toDouble() * meander
 
     private val grainNoise = fieldNoise(seed, GRAIN_OCTAVE, GRAIN_AMPLITUDES)
     private val warpNoise = fieldNoise(seed xor WARP_SALT, WARP_OCTAVE, WARP_AMPLITUDES)
@@ -883,7 +883,7 @@ data class Glaciation(
 
     /** The height summits are cut off at here — the buzzsaw, wandering by massif rather than by peak. */
     fun capAt(worldX: Int, worldZ: Int): Double =
-        snowlineY + summitNoise.getValue(worldX / stretchSummit, 0.0, worldZ / stretchSummit) * summitScatter
+        snowlineY + summitNoise.get(worldX / stretchSummit, 0.0, worldZ / stretchSummit).toDouble() * summitScatter
 
     private val summitNoise = fieldNoise(seed, SUMMIT_OCTAVE, SUMMIT_AMPLITUDES)
     private val stretchSummit = summitStretch.coerceAtLeast(SMALLEST_STRETCH)

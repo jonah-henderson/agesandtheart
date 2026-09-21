@@ -101,7 +101,7 @@ data class Density(
         if (patchiness <= NO_PATCHES) return radial
         // Added rather than scaled, and clamped: what an archipelago wants is stretches at nearly one and
         // stretches at nearly nothing, which multiplying a mid probability could never reach.
-        val patch = patches.getValue(worldX / patchStretch, 0.0, worldZ / patchStretch).coerceIn(-1.0, 1.0)
+        val patch = patches.get(worldX / patchStretch, 0.0, worldZ / patchStretch).toDouble().coerceIn(-1.0, 1.0)
         return (radial + patch * patchiness).coerceIn(0.0, 1.0)
     }
 

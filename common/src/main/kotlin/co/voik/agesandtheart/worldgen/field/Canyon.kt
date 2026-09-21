@@ -187,9 +187,9 @@ data class Canyon(
         val ownPlane = repeat * REPEAT_SEPARATION
         // The axis wanders along its own length, so the canyon snakes as a whole. Measured *before* the
         // distance is taken, which is what moves the centreline rather than merely blurring the rim.
-        val wandered = meanderNoise.getValue(alongAxis / meanderStretch, ownPlane, 0.0) * meanderReach
+        val wandered = meanderNoise.get(alongAxis / meanderStretch, ownPlane, 0.0).toDouble() * meanderReach
         val fromCentre = fromLine - repeat * spacing - wandered
-        val frayed = wallNoise.getValue(worldX / WALL_STRETCH, 0.0, worldZ / WALL_STRETCH) * roughness
+        val frayed = wallNoise.get(worldX / WALL_STRETCH, 0.0, worldZ / WALL_STRETCH).toDouble() * roughness
         val fromAxis = (abs(fromCentre) + frayed).coerceAtLeast(0.0)
         val widthHere = widthOf(fromCentre, alongAxis, ownPlane)
         if (fromAxis >= widthHere) return Spans.EMPTY
@@ -213,7 +213,7 @@ data class Canyon(
         if (onTheBed <= 0.0) return 0
         val downstream = alongAxis / bedStretch
         val across = fromCentre / (bedStretch * BED_NARROWING)
-        val standing = bedNoise.getValue(downstream, ownPlane, across).coerceIn(-1.0, 1.0)
+        val standing = bedNoise.get(downstream, ownPlane, across).toDouble().coerceIn(-1.0, 1.0)
         return (standing * bedRelief * onTheBed).roundToInt()
     }
 
@@ -224,7 +224,7 @@ data class Canyon(
      */
     private fun widthOf(fromCentre: Double, alongAxis: Double, ownPlane: Double): Double {
         val plane = if (fromCentre < 0.0) -FLANK_SEPARATION else FLANK_SEPARATION
-        val stands = meanderNoise.getValue(alongAxis / flankStretch, plane + ownPlane, 0.0) * flankVariation
+        val stands = meanderNoise.get(alongAxis / flankStretch, plane + ownPlane, 0.0).toDouble() * flankVariation
         return halfWidth * (1.0 + stands).coerceAtLeast(CanyonProfile.SMALLEST_SHARE)
     }
 

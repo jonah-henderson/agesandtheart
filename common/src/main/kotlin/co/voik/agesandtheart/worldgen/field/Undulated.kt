@@ -65,7 +65,7 @@ data class Undulated(
 
     /** How far this column's rock is moved. */
     fun liftAt(worldX: Int, worldZ: Int): Int =
-        (noise.getValue(worldX / stretchX, 0.0, worldZ / stretchZ) * amount).roundToInt()
+        (noise.get(worldX / stretchX, 0.0, worldZ / stretchZ).toDouble() * amount).roundToInt()
 
     override fun resized(factor: Double, pivotY: Int) = copy(
         base = base.resized(factor, pivotY),

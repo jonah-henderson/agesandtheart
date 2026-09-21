@@ -55,8 +55,8 @@ data class Warped(
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         val sampleX = worldX / stretch
         val sampleZ = worldZ / stretch
-        val shiftX = (alongX.getValue(sampleX, 0.0, sampleZ) * amount).roundToInt()
-        val shiftZ = (alongZ.getValue(sampleX, 0.0, sampleZ) * amount).roundToInt()
+        val shiftX = (alongX.get(sampleX, 0.0, sampleZ).toDouble() * amount).roundToInt()
+        val shiftZ = (alongZ.get(sampleX, 0.0, sampleZ).toDouble() * amount).roundToInt()
         return base.columnSpans(worldX + shiftX, worldZ + shiftZ)
     }
 

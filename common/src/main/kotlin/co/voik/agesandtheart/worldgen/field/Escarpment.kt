@@ -61,8 +61,8 @@ data class Escarpment(
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         val alongAxis = alongBearing(bearing, worldX, worldZ)
         val acrossAxis = acrossBearing(bearing, worldX, worldZ)
-        val wandered = meanderNoise.getValue(alongAxis / meanderStretch, 0.0, 0.0) * meanderReach
-        val thrown = faceNoise.getValue(worldX / FACE_STRETCH, 0.0, worldZ / FACE_STRETCH) * roughness
+        val wandered = meanderNoise.get(alongAxis / meanderStretch, 0.0, 0.0).toDouble() * meanderReach
+        val thrown = faceNoise.get(worldX / FACE_STRETCH, 0.0, worldZ / FACE_STRETCH).toDouble() * roughness
         // Zero at the foot of the face and one at its head, so the climb below is the cliff itself.
         val upTheFace = ((acrossAxis - offset - wandered + thrown) / faceWidth + HALF).coerceIn(0.0, 1.0)
         val standing = lowY + (highY - lowY) * climbedAt(upTheFace) + reliefAt(worldX, worldZ)
@@ -86,7 +86,7 @@ data class Escarpment(
      */
     private fun reliefAt(worldX: Int, worldZ: Int): Double {
         if (relief <= 0.0) return 0.0
-        val rolling = reliefNoise.getValue(worldX / RELIEF_STRETCH, 0.0, worldZ / RELIEF_STRETCH)
+        val rolling = reliefNoise.get(worldX / RELIEF_STRETCH, 0.0, worldZ / RELIEF_STRETCH).toDouble()
         return rolling.coerceIn(-1.0, 1.0) * relief
     }
 

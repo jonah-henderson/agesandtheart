@@ -94,7 +94,7 @@ data class Isle(
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         // The coast is read once for the column rather than once per island: it is what makes a shoreline
         // ragged, and two neighbouring islands have no business disagreeing about it where they meet.
-        val wandered = 1.0 + coastNoise.getValue(worldX / coastStretch, 0.0, worldZ / coastStretch)
+        val wandered = 1.0 + coastNoise.get(worldX / coastStretch, 0.0, worldZ / coastStretch).toDouble()
             .coerceIn(-1.0, 1.0) * coastRoughness
 
         if (layout == Layout.SOLITARY) {
@@ -144,7 +144,7 @@ data class Isle(
         // Hermite over the shoulder alone: flat where it meets the beach, flat again once it is up, and
         // everything further in is interior rather than more slope.
         val profile = climbing * climbing * (3.0 - 2.0 * climbing)
-        val rolling = reliefNoise.getValue(worldX / reliefStretch, 0.0, worldZ / reliefStretch)
+        val rolling = reliefNoise.get(worldX / reliefStretch, 0.0, worldZ / reliefStretch).toDouble()
             .coerceIn(-1.0, 1.0) * relief
         return shoreY + beachRise + (peakRise - beachRise) * profile + rolling * profile
     }
