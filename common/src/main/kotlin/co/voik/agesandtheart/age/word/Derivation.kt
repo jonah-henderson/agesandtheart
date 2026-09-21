@@ -336,6 +336,13 @@ object DerivedTags {
             val tags = watching(tagsOn(holder))
             val state = holder.value().defaultBlockState()
             val kinds = buildList {
+                // **The flag, not NeoForge's `getLightEmission(level, pos)`, and there is no position to
+                // give it.** This walks every block in the registry at its default state to build what a
+                // sea may be made of, and it runs with no server at all — Scrivener loads the corpus
+                // offline. A fake level would be one we handed to arbitrary mods' blocks while
+                // enumerating all of them, which is a worse risk than the one it answers: a block whose
+                // light depends on where it stands is already a guess here either way.
+                @Suppress("DEPRECATION")
                 if (state.lightEmission > 0) add("lit")
                 if (state.fluidState.isSource) add("pours")
             }

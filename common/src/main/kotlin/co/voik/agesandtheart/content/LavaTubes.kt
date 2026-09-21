@@ -202,11 +202,17 @@ object LavaTubes {
      * **Lava is not support, and letting it be was the whole bug** (Jonah, walked 2026-09-10). A pool
      * standing on a pool sounds like what a pool is, but it is what lets a tube climb: convert the block
      * resting on the source, then the one resting on *that*, and a tube laid on flat ground fills upward
-     * two and three blocks at a time. `blocksMotion` is the exact question — lava does not block motion,
-     * so rock passes and lava does not, with nothing to say about it twice.
+     * two and three blocks at a time.
+     *
+     * **A sturdy top face**, so a slab holds lava up and tall grass does not (Jonah, 2026-09-20). It says
+     * what the old `blocksMotion` was reaching for and says it about the right side: lava has no sturdy
+     * face, air has none, and neither does the dry grass that would otherwise have started counting as
+     * ground the moment the fuzzy question went away.
      */
-    private fun standingOnRock(level: ServerLevel, at: BlockPos): Boolean =
-        level.getBlockState(at.below()).blocksMotion()
+    private fun standingOnRock(level: ServerLevel, at: BlockPos): Boolean {
+        val under = at.below()
+        return level.getBlockState(under).isFaceSturdy(level, under, Direction.UP)
+    }
 
     /**
      * Throw something, if this visit is one of the ones that throws.
