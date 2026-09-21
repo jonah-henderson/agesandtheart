@@ -212,9 +212,15 @@ mutable	field	net/minecraft/server/level/ServerLevel	environmentAttributes	Lnet/
 # `protected final` with no accessor -- and the constructor that takes all ten is still public, so what is
 # missing is only the reading. Every one of them is passed straight back unchanged except the fill.
 #
-# The alternative was to drop `thickness` for patches, which is the silent kind of loss the design calls a
-# bug rather than an outcome; a codec round trip is the other way and needs registry ops this call has no
-# way to reach.
+# The alternative was to drop `thickness`, which turns nothing else, and retire `desolate` with it. That
+# was weighed and declined (Jonah, 2026-09-21): a vegetation patch is a ground layer of one block with a
+# feature growing out of it, which is a cheap and on-theme shape we do not yet author, and the dial has to
+# exist before it is worth authoring one.
+#
+# A codec round trip is the other way and needs no widening at all -- `Features.placedIn` takes a
+# `MinecraftServer`, so registry ops are reachable if threaded down. It was declined because it keys on the
+# literal `vegetation_chance`: a rename would stop applying the dial and say nothing, where a missing field
+# here fails the build.
 accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	replaceable	Lnet/minecraft/core/HolderSet;
 accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	groundState	Lnet/minecraft/core/Holder;
 accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeature	vegetationFeature	Lnet/minecraft/core/Holder;
