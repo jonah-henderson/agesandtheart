@@ -4,13 +4,13 @@ import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.TerrainFill
 import net.minecraft.core.Holder
-import net.minecraft.core.QuartPos
-import net.minecraft.world.level.levelgen.DensityFunction
-import net.minecraft.world.level.levelgen.DensityFunctions
+import net.minecraft.world.level.levelgen.densityfunction.DensityFunction
+import net.minecraft.world.level.levelgen.densityfunction.DensityFunctions
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.NoiseRouter
 import net.minecraft.world.level.levelgen.NoiseSettings
-import net.minecraft.world.level.levelgen.SurfaceRules
+import net.minecraft.world.level.levelgen.material.rule.MaterialRule
+import java.util.Optional
 
 /**
  * Our vertical layout in the shape vanilla's machinery expects — and, for a
@@ -27,33 +27,32 @@ import net.minecraft.world.level.levelgen.SurfaceRules
  */
 internal fun settingsFor(
     seaFill: SeaFill,
-    surfaceRule: SurfaceRules.RuleSource,
+    materialRule: MaterialRule,
     climate: Holder<NoiseGeneratorSettings>?,
     fill: TerrainFill,
     window: VerticalWindow,
     field: TerrainField,
     uncut: TerrainField?,
 ) = NoiseGeneratorSettings(
-    NoiseSettings.create(window.minY, window.height, NOISE_CELLS_HORIZONTAL, NOISE_CELLS_VERTICAL),
+    NoiseSettings.create(window.minY, window.height),
     // The Age's own material, not a constant, which is what makes a surface rule fire over it:
     // `SurfaceSystem` recognises rock by comparing against these settings' default block, so
     // laying blackstone while declaring stone paints no surface at all. One block for the whole
     // Age, so several materials are recognised over [TerrainFill.representative] only.
     fill.representative,
     seaFill.representative,
-    routerFor(
-        climate,
-        PreliminarySurface(field, uncut, window.minY, window.topY - 1, QuartPos.toBlock(NOISE_CELLS_VERTICAL)),
-    ),
-    surfaceRule,
+    routerFor(climate, PreliminarySurface(field, uncut, window.minY, window.topY - 1)),
+    Holder.direct(materialRule),
     emptyList(),
     // Coerced, because VOID's level is a sentinel rather than a height and this one is read as a
     // height by the superclass, by features and by the surface system.
     seaFill.level.coerceAtLeast(window.minY),
     /* disableMobGeneration = */ true,
-    /* aquifersEnabled = */ false,
-    /* oreVeinsEnabled = */ false,
+    // Our own: `WaterTable` is built and decorated by the generator, so vanilla must not build one from
+    // these settings and hand the bare thing to its own carving pass.
+    /* aquifers = */ Optional.empty(),
     /* useLegacyRandomSource = */ false,
+    NoiseGeneratorSettings.DebugFunctions.EMPTY,
 )
 
 /**
@@ -75,25 +74,20 @@ private fun routerFor(climate: Holder<NoiseGeneratorSettings>?, surface: Density
     val vanilla = climate?.value()?.noiseRouter() ?: return inertRouterOver(surface)
     val nothing = DensityFunctions.zero()
     return NoiseRouter(
-        nothing, nothing, nothing, nothing,
         vanilla.temperature(), vanilla.vegetation(), vanilla.continents(), vanilla.erosion(),
         /* depth = */ nothing,
         vanilla.ridges(),
-        /* preliminarySurfaceLevel = */ surface,
-        nothing, nothing, nothing, nothing,
+        /* chunkSurfaceLevel = */ surface,
+        /* finalDensity = */ nothing,
     )
 }
 
 /** A router describing nothing but where the rock stands — what an Age with no climate gets. */
 private fun inertRouterOver(surface: DensityFunction): NoiseRouter = DensityFunctions.zero().let { nothing ->
     NoiseRouter(
-        nothing, nothing, nothing, nothing, nothing,
-        nothing, nothing, nothing, nothing, nothing,
-        surface, nothing, nothing, nothing, nothing,
+        nothing, nothing, nothing, nothing, nothing, nothing,
+        /* chunkSurfaceLevel = */ surface,
+        /* finalDensity = */ nothing,
     )
 }
 
-// Cell sizes for the layout description handed to vanilla's machinery; they match the
-// overworld's, which is the shape all of it is tuned around.
-private const val NOISE_CELLS_HORIZONTAL = 1
-private const val NOISE_CELLS_VERTICAL = 2
