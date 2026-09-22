@@ -55,8 +55,8 @@ ephemerisRangeFabric = ">=0.1.0"
 # Declared as a dependency rather than bundled: it is a *mod* (it hooks the loader lifecycle and wants
 # Fabric API), and the ecosystem rule is that libraries are nested and mods are declared. Needed only on
 # Fabric; NeoForge has the same classes built in.
-forgeConfigApiPort = "26.2.1"
-forgeConfigApiPortRange = ">=26.2.1"
+forgeConfigApiPort = "26.3.1"
+forgeConfigApiPortRange = ">=26.3.1"
 
 [libraries]
 minecraft = { group = "com.mojang", name = "minecraft", version.ref = "minecraft" }
