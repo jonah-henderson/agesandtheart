@@ -10,7 +10,7 @@ import com.github.ajalt.mordant.rendering.TextStyles
 import com.github.ajalt.mordant.terminal.Terminal
 
 /**
- * Scrivener — **a vocabulary editor for Ages and the Art**, run from `scripts/author-word.sh`.
+ * Scrivener — **a vocabulary editor for Ages and the Art**, run from `scripts/scrivener.sh`.
  *
  * It answers offline. `Vocabulary.load` with vanilla's worldgen registries is the corpus
  * `VocabularyCheck` reads, so what a candidate reaches, what it costs, what its query keeps and what it
@@ -149,7 +149,7 @@ private fun audit(terminal: Terminal, corpus: Corpus) {
     }
     val clean = judged.count { (_, findings) -> findings.none { it.standing != Verdict.Standing.NOTED } }
     terminal.println(TextColors.gray("\n$clean of ${judged.size} words have nothing against them."))
-    terminal.println(TextColors.gray("Open one with: scripts/author-word.sh <name>\n"))
+    terminal.println(TextColors.gray("Open one with: scripts/scrivener.sh <name>\n"))
 }
 
 private fun unreadable(name: String) = listOf(
@@ -204,12 +204,12 @@ private fun refresh(terminal: Terminal, attach: String?) {
 private val USAGE = """
     |Scrivener — a vocabulary editor for Ages and the Art.
     |
-    |  scripts/author-word.sh                 begin a new word
-    |  scripts/author-word.sh <name>          open an authored one
-    |  scripts/author-word.sh --audit         every authored word, worst first
-    |  scripts/author-word.sh --rewrite       every word back in the layout this writes (see AuthoringCheck)
-    |  scripts/author-word.sh --refresh       ask a server what only it knows, and remember it
-    |  scripts/author-word.sh --refresh --attach host:port:password
+    |  scripts/scrivener.sh                   begin a new word
+    |  scripts/scrivener.sh <name>            open an authored one
+    |  scripts/scrivener.sh --audit           every authored word, worst first
+    |  scripts/scrivener.sh --rewrite         every word back in the layout this writes (see AuthoringCheck)
+    |  scripts/scrivener.sh --refresh         ask a server what only it knows, and remember it
+    |  scripts/scrivener.sh --refresh --attach host:port:password
     |
     |It works offline. The corpus, every tag table and vanilla's own biomes, features and structure sets
     |are read straight off the source tree, so what a word reaches, costs, keeps and contradicts is exact

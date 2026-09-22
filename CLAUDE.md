@@ -23,7 +23,7 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   and are a status line each, and Phase 6 is done but for its remainder; Phases 7–9 carry their full context.
 - **`notes/vocabulary-pass-plan.md`** — the pass that writes the words: property consolidation, which blocks
   may be the rock, the guided authoring tool, and the corpus audit. **Partly built, and it opens with the
-  line that says to delete it when the last item goes.** Its §5 is the tool, which is `scripts/author-word.sh`;
+  line that says to delete it when the last item goes.** Its §5 is the tool, which is `scripts/scrivener.sh`;
   §5.1 and §5.2 are what that tool refuses and nudges about. Read it before authoring a word or touching
   `art/word/` — and author with the tool rather than by hand.
 - **`notes/tag-matching-research.md`** — how a vague word's reach actually resolves into densities, measured
@@ -169,9 +169,9 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOM
 scripts/drive-server.sh scripts/checks/regions.txt
 
 # Scrivener — a vocabulary editor for Ages and the Art (see "Authoring a word" below)
-scripts/author-word.sh              # a new word
-scripts/author-word.sh colossal     # an authored one
-scripts/author-word.sh --audit      # every authored word, worst first
+scripts/scrivener.sh              # a new word
+scripts/scrivener.sh colossal     # an authored one
+scripts/scrivener.sh --audit      # every authored word, worst first
 ```
 
 **Server checks are `./gradlew :common:serverTest`, and they own their own acceptance.** A Kotest spec
@@ -211,7 +211,7 @@ hour off the timestamp, so `at-least 100` could never pass and `at-most 2000` co
 
 Run directories are `runs/` (Fabric) and `run/` (NeoForge), both git-ignored. The first build/run downloads Minecraft, mappings, and the loader toolchains — slow once, then cached.
 
-**The age workshop writes books, and opens them in the game.** `scripts/author-word.sh` → "the age
+**The age workshop writes books, and opens them in the game.** `scripts/scrivener.sh` → "the age
 workshop" composes a sentence a page at a time: what could come next is computed by running
 `Grammar.parses` over the row with a closing page on the end, so the suggestions **are** what the parser
 accepts rather than a second opinion about it — and then filtered to the pages that would actually *do*
@@ -232,7 +232,7 @@ is **read-only on purpose**: the derivation rules, where enter runs one rule *by
 what it catches. The file already states its rule perfectly and hides only its consequence —
 `notes/decisions.md` carries the split.
 
-**Authoring a word is `scripts/author-word.sh`, and it works offline.** A full-screen editor over the real
+**Authoring a word is `scripts/scrivener.sh`, and it works offline.** A full-screen editor over the real
 corpus: `Vocabulary.load(shippedData(), worldgen)` is the same call `VocabularyCheck` makes, so what a
 candidate reaches, what it costs, what its query keeps and what it contradicts are computed from the
 resolver's own code with **no server**. It refuses what the checks would refuse and names the check for

@@ -358,7 +358,7 @@ tasks.register<Test>("landformTest") {
 }
 
 /**
- * Where the word-authoring tool's launch command is written down — `scripts/author-word.sh` reads it.
+ * Where the word-authoring tool's launch command is written down — `scripts/scrivener.sh` reads it.
  *
  * **A file rather than a `JavaExec` task, because the tool wants a terminal.** Mordant needs raw mode on a
  * real TTY, and Gradle gives a `JavaExec` neither: it owns stdin and strips the control characters a
@@ -371,11 +371,16 @@ tasks.register<Test>("landformTest") {
  */
 tasks.register("exportAuthoringLaunch") {
     group = "build"
-    description = "Records how to start the word-authoring tool. scripts/author-word.sh runs it."
+    description = "Records how to start the word-authoring tool. scripts/scrivener.sh runs it."
 
     val classpath = objects.fileCollection().from(preview.runtimeClasspath)
     val launchFile = layout.buildDirectory.file("authoring-launch.txt")
     val root = rootProject.projectDir
+    // **Which JVM, written down rather than left to the script.** A shell has only whatever `java` is on
+    // PATH, which on this machine is an SDKMAN default several releases behind the toolchain — and the
+    // mismatch does not degrade, it refuses: 26.3's `--sun-misc-unsafe-memory-access` is unrecognised by
+    // 21, so the JVM will not start at all. Gradle already knows the right one, so it says so.
+    val launcher = javaToolchains.launcherFor(java.toolchain)
 
     inputs.files(classpath)
     outputs.file(launchFile)
@@ -383,6 +388,7 @@ tasks.register("exportAuthoringLaunch") {
     doLast {
         val lines = listOf(
             "workingDir\t${root.absolutePath}",
+            "java\t${launcher.get().executablePath.asFile.absolutePath}",
             "mainClass\tco.voik.agesandtheart.preview.authoring.WordAuthoringKt",
             // Measured against the checks, which need the same registries and die at Gradle's 512m default.
             "jvmArg\t-Xmx2g",
