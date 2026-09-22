@@ -1,16 +1,18 @@
 #version 330
+// SPIR-V since 26.3: every stage-crossing declaration needs a location.
+#extension GL_ARB_separate_shader_objects : require
 
-#moj_import <minecraft:dynamictransforms.glsl>
-#moj_import <minecraft:globals.glsl>
-#moj_import <minecraft:fog.glsl>
+#include <minecraft:dynamictransforms.glsl>
+#include <minecraft:globals.glsl>
+#include <minecraft:fog.glsl>
 
-in vec2 aroundAndDown;
-in vec4 layer;
-in vec4 worldLight;
-in float sphericalVertexDistance;
-in float cylindricalVertexDistance;
+layout(location = 0) in vec2 aroundAndDown;
+layout(location = 1) in vec4 layer;
+layout(location = 2) in vec4 worldLight;
+layout(location = 3) in float sphericalVertexDistance;
+layout(location = 4) in float cylindricalVertexDistance;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 const float TAU = 6.28318530718;
 

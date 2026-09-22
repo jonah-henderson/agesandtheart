@@ -1,13 +1,15 @@
 #version 330
+// SPIR-V since 26.3: every stage-crossing declaration needs a location.
+#extension GL_ARB_separate_shader_objects : require
 
-#moj_import <minecraft:dynamictransforms.glsl>
-#moj_import <minecraft:globals.glsl>
-#moj_import <ephemeris:noise.glsl>
+#include <minecraft:dynamictransforms.glsl>
+#include <minecraft:globals.glsl>
+#include <ephemeris:noise.glsl>
 
-in vec4 vertexColor;
-in vec2 acrossThePage;
+layout(location = 0) in vec4 vertexColor;
+layout(location = 1) in vec2 acrossThePage;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 // How wide a bank of mist is, in pixels of the page.
 const float BANK = 26.0;

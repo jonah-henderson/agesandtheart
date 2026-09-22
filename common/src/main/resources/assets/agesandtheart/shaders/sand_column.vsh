@@ -1,31 +1,33 @@
 #version 330
+// SPIR-V since 26.3: every stage-crossing declaration needs a location.
+#extension GL_ARB_separate_shader_objects : require
 
-#moj_import <minecraft:dynamictransforms.glsl>
-#moj_import <minecraft:projection.glsl>
-#moj_import <minecraft:fog.glsl>
-#moj_import <minecraft:sample_lightmap.glsl>
+#include <minecraft:dynamictransforms.glsl>
+#include <minecraft:projection.glsl>
+#include <minecraft:fog.glsl>
+#include <minecraft:sample_lightmap.glsl>
 
 // One face of a column's prism. Position arrives already in camera-relative world space -- the pose is
 // applied on the CPU when the geometry is written -- so nothing here can work out where on the column a
 // vertex is. That is what UV0 and Color are carrying.
-in vec3 Position;
+layout(location = 0) in vec3 Position;
 // x: how far around the prism this corner stands, in blocks, running continuously across all four faces so
 // the roil does not mirror at the corners. y: how far *below the top* it is, in blocks.
-in vec2 UV0;
+layout(location = 1) in vec2 UV0;
 // r: this column's own phase, so two standing at once do not fall in step.
 // g: which of the two nested prisms this is.  a: how solid the layer is before the roil thins it.
-in vec4 Color;
+layout(location = 3) in vec4 Color;
 // Where the column stands, in the world's own light. Without this a column is full-bright: it kept its
 // noon colour after dark and lit itself in a cave, which is what a curtain of sand emphatically does not do.
-in ivec2 UV2;
+layout(location = 2) in ivec2 UV2;
 
 uniform sampler2D Sampler2;
 
-out vec2 aroundAndDown;
-out vec4 layer;
-out vec4 worldLight;
-out float sphericalVertexDistance;
-out float cylindricalVertexDistance;
+layout(location = 0) out vec2 aroundAndDown;
+layout(location = 1) out vec4 layer;
+layout(location = 2) out vec4 worldLight;
+layout(location = 3) out float sphericalVertexDistance;
+layout(location = 4) out float cylindricalVertexDistance;
 
 void main() {
     vec4 inView = ModelViewMat * vec4(Position, 1.0);
