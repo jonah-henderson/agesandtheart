@@ -129,7 +129,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
      * make a column that buries deeper visibly stream harder.
      *
      * **Synced, and for the same reason [halfWidth] is**: it is arithmetic over the Age's parameters and a client
-     * has no datapack to read them from, so it is settled once here and the answer is sent.
+     * has no datapack to read them from, so it is worked out on the server and the answer is sent.
      */
     var pour: Float
         get() = entityData.get(POUR)
@@ -156,6 +156,12 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             return
         }
         halfWidth = behaviour.column.halfWidthAt(age, lifetime, fullHalfWidth).toFloat()
+        // Beside the width, and for the same reason: synched data is not saved, so a column reloaded from
+        // disk comes back holding the *defaults* of both. The width never showed it because this line has
+        // always put it back; the pour was settled at the spawn instead, so a column that outlived a logout
+        // came back pouring at nothing and stood there frozen. Restated every tick from the depth it is
+        // derived from — which is saved — there is one source of truth and nothing left to fall out of step.
+        pour = behaviour.column.poursAt(depth).toFloat() / ColumnBehaviour.FASTEST_POUR
         steer(behaviour.column)
         advance(level)
         bury(level, behaviour.column)
@@ -521,8 +527,8 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             column.lifetime = lifetime
             column.fullHalfWidth = fullHalfWidth
             column.depth = depth
-            column.pour = SandfallBehaviour.of(level.server).column.poursAt(depth).toFloat() /
-                ColumnBehaviour.FASTEST_POUR
+            // The pour is not set here: the first tick derives it from the depth, so a spawned column and a
+            // reloaded one arrive at it the same way.
             level.addFreshEntity(column)
             return column
         }
