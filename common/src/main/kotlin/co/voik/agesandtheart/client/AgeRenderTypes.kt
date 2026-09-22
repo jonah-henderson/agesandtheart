@@ -156,7 +156,12 @@ object AgeRenderTypes {
             RenderPipeline.builder(GLOW)
                 .withLocation("pipeline/light_through_fog".location())
                 .withColorTargetState(ColorTargetState(BlendFunction.LIGHTNING))
-                .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+                // **Nearer is GREATER on 26.3, which reversed the depth buffer.** Every comparison vanilla
+                // makes is `GREATER_THAN_OR_EQUAL` and not one is `LESS_THAN_OR_EQUAL`, so the old reading
+                // passed exactly where it should have failed: a glow behind a wall is further away, which
+                // is now the *smaller* depth, so the wall stopped hiding it. This is `DEFAULT` bar the
+                // write, which a glow must not do or it would settle the water drawn after it.
+                .withDepthStencilState(DepthStencilState(CompareOp.GREATER_THAN_OR_EQUAL, false))
                 .build(),
         )
             .setOitPipelines(SORTED_GLOW)

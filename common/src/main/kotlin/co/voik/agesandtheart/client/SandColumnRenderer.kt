@@ -229,7 +229,11 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
         private val PIPELINE: RenderPipeline = RenderPipeline.builder(SHARED)
             .withLocation(Identifier.fromNamespaceAndPath(NAMESPACE, "pipeline/sand_column"))
             .withColorTargetState(ColorTargetState(BlendFunction.TRANSLUCENT))
-            .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, true))
+            // Vanilla's own, restated for what it is: **nearer is GREATER on 26.3**, which reversed the
+            // depth buffer, so `LESS_THAN_OR_EQUAL` here was the test inverted. It only ever showed on the
+            // plain path -- a client sorting its transparency takes the OIT stages' depth state instead,
+            // which was vanilla's and right.
+            .withDepthStencilState(DepthStencilState.DEFAULT)
             .build()
 
         /**
