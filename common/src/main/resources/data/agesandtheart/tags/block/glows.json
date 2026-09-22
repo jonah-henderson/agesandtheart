@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "Blocks that give off light of their own, for a feature to be read as glowing by.",
+    "`glowstone_blob` and `sea_pickle` were feature kinds until 26.3 folded them into generic ones."
+  ],
+  "values": [
+    "minecraft:glowstone",
+    "minecraft:sea_pickle",
+    "minecraft:shroomlight"
+  ]
+}

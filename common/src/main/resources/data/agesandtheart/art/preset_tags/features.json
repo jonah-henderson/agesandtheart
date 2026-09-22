@@ -146,7 +146,7 @@
     "_comment": [
       "A quarter built, and that is the honest weight: a standing stone could be a formation or somebody's",
       "work, and nothing about it answers which. A weight under a word's threshold is no longer the same as",
-      "nothing — see notes/tag-matching-research.md."
+      "nothing \u2014 see notes/tag-matching-research.md."
     ],
     "tags": {
       "monumental": 0.7,
@@ -209,7 +209,7 @@
   "agesandtheart:arches": {
     "present_anyway": false,
     "_comment": [
-      "The least built of the four that carry it at all — an arch is what weather leaves as often as what a",
+      "The least built of the four that carry it at all \u2014 an arch is what weather leaves as often as what a",
       "mason does."
     ],
     "tags": {
@@ -257,6 +257,31 @@
       "buried": 1.0,
       "stony": 0.6,
       "hostile": 0.5
+    }
+  },
+  "minecraft:desert_well": {
+    "tags": {
+      "built": 0.8,
+      "dry": 0.8,
+      "ruined": 0.5
+    }
+  },
+  "minecraft:basalt_pillar": {
+    "tags": {
+      "sheer": 0.7,
+      "stony": 0.9
+    }
+  },
+  "minecraft:small_basalt_columns": {
+    "tags": {
+      "sheer": 0.8,
+      "stony": 0.9
+    }
+  },
+  "minecraft:large_basalt_columns": {
+    "tags": {
+      "sheer": 0.8,
+      "stony": 0.9
     }
   }
 }

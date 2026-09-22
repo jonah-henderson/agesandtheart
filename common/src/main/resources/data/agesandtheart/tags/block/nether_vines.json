@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "The hanging and climbing growth of a nether forest -- `weeping_vines` and `twisting_vines` were",
+    "feature kinds of their own until 26.3 folded them into an overlay and a block column."
+  ],
+  "values": [
+    "minecraft:weeping_vines",
+    "minecraft:weeping_vines_plant",
+    "minecraft:twisting_vines",
+    "minecraft:twisting_vines_plant"
+  ]
+}

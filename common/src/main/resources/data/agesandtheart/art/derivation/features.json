@@ -7,7 +7,14 @@
     "Anything here is overridden per member by art/preset_tags/features.json.",
     "The `c:` rules are the convention tags both loaders share, which is what a modded ore or stone",
     "carries. They match nothing in a world with no mods in it, and that is not a fault -- only",
-    "`minecraft:` and ours are insisted on (DerivedTags.weInsistOn)."
+    "`minecraft:` and ours are insisted on (DerivedTags.weInsistOn).",
+    "",
+    "**A kind is only worth keying on while it names one thing.** 26.3 folded a dozen bespoke feature",
+    "types into generic ones -- seagrass and kelp into a weighted selector and a block column, glowstone",
+    "and the nether vines into an overlay and a spread -- so eleven rules here caught nothing at all, and",
+    "the tags they carried stopped reaching what they described. Eight are keyed on blocks now, through",
+    "tags of ours that say what vanilla's mechanical ones do not; the three that the *kind* was the whole",
+    "meaning of, a basalt column being sheer where a basalt blob is not, are named per member instead."
   ],
   "by_kind": {
     "tree": {
@@ -20,11 +27,6 @@
     },
     "huge_fungus": {
       "fungal": 1.0,
-      "grown": 0.8,
-      "undergrowth": 0.8
-    },
-    "nether_forest_vegetation": {
-      "fungal": 0.8,
       "grown": 0.8,
       "undergrowth": 0.8
     },
@@ -56,29 +58,7 @@
       "watery": 0.7,
       "undergrowth": 0.8
     },
-    "seagrass": {
-      "grown": 0.7,
-      "watery": 1.0,
-      "aquatic": 0.9,
-      "undergrowth": 0.7
-    },
-    "kelp": {
-      "grown": 0.8,
-      "watery": 1.0,
-      "aquatic": 0.9,
-      "undergrowth": 0.8
-    },
-    "sea_pickle": {
-      "aquatic": 0.9,
-      "glowing": 0.6,
-      "watery": 0.9
-    },
     "coral_claw": {
-      "aquatic": 1.0,
-      "colourful": 0.9,
-      "watery": 1.0
-    },
-    "coral_mushroom": {
       "aquatic": 1.0,
       "colourful": 0.9,
       "watery": 1.0
@@ -96,16 +76,6 @@
       "grown": 0.8,
       "lush": 0.5,
       "undergrowth": 0.8
-    },
-    "weeping_vines": {
-      "grown": 0.7,
-      "fungal": 0.4,
-      "undergrowth": 0.7
-    },
-    "twisting_vines": {
-      "grown": 0.7,
-      "fungal": 0.4,
-      "undergrowth": 0.7
     },
     "chorus_plant": {
       "grown": 0.8,
@@ -144,11 +114,6 @@
       "built": 0.6,
       "cavernous": 0.7
     },
-    "desert_well": {
-      "built": 0.8,
-      "dry": 0.8,
-      "ruined": 0.5
-    },
     "spike": {
       "frozen": 0.8,
       "sheer": 0.9
@@ -164,22 +129,10 @@
     "freeze_top_layer": {
       "frozen": 0.9
     },
-    "basalt_columns": {
-      "stony": 0.9,
-      "sheer": 0.8
-    },
-    "basalt_pillar": {
-      "stony": 0.9,
-      "sheer": 0.7
-    },
     "delta_feature": {
       "molten": 0.8,
       "stony": 0.6,
       "hostile": 0.5
-    },
-    "glowstone_blob": {
-      "glowing": 1.0,
-      "bright": 0.7
     },
     "underwater_magma": {
       "molten": 0.8,
@@ -369,6 +322,26 @@
     },
     "#agesandtheart:watery": {
       "watery": 1.0
+    },
+    "#agesandtheart:aquatic_growth": {
+      "aquatic": 0.9,
+      "watery": 1.0,
+      "grown": 0.8,
+      "undergrowth": 0.8
+    },
+    "#agesandtheart:glows": {
+      "glowing": 1.0,
+      "bright": 0.7
+    },
+    "#agesandtheart:nether_roots": {
+      "fungal": 0.8,
+      "grown": 0.8,
+      "undergrowth": 0.8
+    },
+    "#agesandtheart:nether_vines": {
+      "grown": 0.7,
+      "fungal": 0.4,
+      "undergrowth": 0.7
     }
   }
 }

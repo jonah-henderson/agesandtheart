@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Things that grow in water, as blocks -- what 26.3 left to identify them by.",
+    "The `seagrass` and `kelp` feature kinds were folded into generic ones (a weighted selector and a",
+    "block column), so the kind no longer says what is being placed and the block has to. See",
+    "art/derivation/features.json."
+  ],
+  "values": [
+    "minecraft:seagrass",
+    "minecraft:tall_seagrass",
+    "minecraft:kelp",
+    "minecraft:kelp_plant"
+  ]
+}
