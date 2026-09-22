@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import net.minecraft.util.Prediction
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
@@ -201,9 +202,7 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
         val result = DeskIntake.offer(desk, itemStack)
         if (!result.took) return InteractionResult.TRY_WITH_EMPTY_HAND
         player.setItemInHand(hand, result.remainder)
-        if (!result.returned.isEmpty && !player.inventory.add(result.returned)) {
-            player.drop(result.returned, false)
-        }
+        if (!result.returned.isEmpty) player.inventory.placeItemBackInInventory(result.returned, Prediction.SERVER_ONLY)
         return InteractionResult.SUCCESS
     }
 

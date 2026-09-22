@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.book
 
+import net.minecraft.util.Prediction
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component
@@ -67,7 +68,7 @@ class BookEntity(type: EntityType<out BookEntity>, level: Level) : Entity(type, 
             discard()
             return InteractionResult.SUCCESS
         }
-        if (!player.inventory.add(held.copy())) player.drop(held.copy(), false)
+        player.inventory.placeItemBackInInventory(held.copy(), Prediction.SERVER_ONLY)
         discard()
         return InteractionResult.SUCCESS
     }

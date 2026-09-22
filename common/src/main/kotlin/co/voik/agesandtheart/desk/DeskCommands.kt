@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import net.minecraft.util.Prediction
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.grammar.Grammar
@@ -133,7 +134,7 @@ object DeskCommands {
         book.set(AgeComponents.BOOK_AUTHORED, true)
         desk.setTemplate(player.uuid, "")
         // Straight to the writer: there is no slot to lift it out of, since nothing is handled at the desk.
-        if (!player.inventory.add(book)) player.drop(book, false)
+        player.inventory.placeItemBackInInventory(book, Prediction.SERVER_ONLY)
         // The earliest an Age can be made ready: the writer is still at the desk, so the terrain is
         // generated while nobody is waiting on it.
         PanelWarming.whenBound(player.level().server, book)

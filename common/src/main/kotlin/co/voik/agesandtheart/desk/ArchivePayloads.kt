@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import net.minecraft.util.Prediction
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.content.PageItem
 import io.netty.buffer.ByteBuf
@@ -52,6 +53,6 @@ object ArchiveCommands {
         val count = wanted.coerceAtMost(archive.pages.count(payload.word))
         if (count <= 0 || !archive.take(payload.word, count)) return
         val taken = page.copyWithCount(count)
-        if (!player.inventory.add(taken)) player.drop(taken, false)
+        player.inventory.placeItemBackInInventory(taken, Prediction.SERVER_ONLY)
     }
 }

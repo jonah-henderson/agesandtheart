@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.book
 
+import net.minecraft.util.Prediction
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.client.BookScreenOpener
@@ -196,7 +197,7 @@ object LecternBooks {
         val book = lectern.book.copy()
         lectern.clearContent()
         LecternBlock.resetBookState(player, level, pos, LecternOpening.closed(state), false)
-        if (!player.inventory.add(book)) player.drop(book, false)
+        player.inventory.placeItemBackInInventory(book, Prediction.SERVER_ONLY)
         level.playSound(null, pos, SoundEvents.BOOK_PUT, SoundSource.BLOCKS, FULL_VOLUME, NATURAL_PITCH)
     }
 

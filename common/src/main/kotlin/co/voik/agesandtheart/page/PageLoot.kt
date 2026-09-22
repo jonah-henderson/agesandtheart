@@ -8,7 +8,8 @@ import net.minecraft.world.level.storage.loot.LootPool
 import net.minecraft.world.level.storage.loot.LootTable
 import net.minecraft.world.level.storage.loot.entries.NestedLootTable
 import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition
-import net.minecraft.world.level.storage.loot.providers.number.ConstantValue
+import net.minecraft.core.HolderLookup
+import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders
 
 /** One container kind that carries writing, which table it draws from, and how often. */
 data class PageLootTarget(
@@ -119,12 +120,22 @@ object PageLoot {
     /** Every target for a table, since pages and a notebook may both reach the same container. */
     fun targetsFor(table: ResourceKey<LootTable>): List<PageLootTarget> = TARGETS.filter { it.table == table }
 
-    /** A pool that rolls the target's table at its chance. */
-    fun poolFor(target: PageLootTarget): LootPool = LootPool.lootPool()
-        .setRolls(ConstantValue.exactly(1.0f))
+    /**
+     * A pool that rolls the target's table at its chance.
+     *
+     * **[registries] rather than the key alone**: 26.3 has a nested entry name a `Holder` where it named a
+     * `ResourceKey`, so the table has to be resolved rather than pointed at. Fabric's own loot-modify
+     * event hands the lookup over, which is the only caller — NeoForge injects through datapack loot
+     * modifiers instead and never reaches this.
+     */
+    fun poolFor(target: PageLootTarget, registries: HolderLookup.Provider): LootPool = LootPool.lootPool()
+        .setRolls(ContextIntProviders.exactly(ONE_ROLL))
         .`when`(LootItemRandomChanceCondition.randomChance(target.chance))
-        .add(NestedLootTable.lootTableReference(target.injected))
+        .add(NestedLootTable.lootTableReference(registries.lookupOrThrow(Registries.LOOT_TABLE).getOrThrow(target.injected)))
         .build()
+
+    /** One roll of the injected table; how often it yields anything is the chance above. */
+    private const val ONE_ROLL = 1
 
     private fun vanilla(path: String, chance: Float, injected: ResourceKey<LootTable> = PAGES) =
         PageLootTarget(

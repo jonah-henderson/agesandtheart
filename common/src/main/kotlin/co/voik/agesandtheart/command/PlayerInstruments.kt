@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.command
 
+import net.minecraft.util.Prediction
 import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.Withheld
@@ -67,7 +68,7 @@ internal object PlayerInstruments {
         // is not taken for a blank one and written over as a found book on the next tick.
         book.set(AgeComponents.BOOK_WORDS, recipe.words.map { it.location() })
         readingOf(source, recipe.words)?.let { book.set(AgeComponents.BOOK_READING, it) }
-        if (!player.addItem(book)) player.drop(book, false)
+        player.inventory.placeItemBackInInventory(book, Prediction.SERVER_ONLY)
 
         source.sendSuccess({
             Component.literal("Bound a book to Age '$name' at instability ${recipe.instability.index}")
@@ -121,7 +122,7 @@ internal object PlayerInstruments {
         }
         val notebook = ItemStack(AgeContent.NOTEBOOK)
         NotebookItem.setPages(notebook, pages + structural)
-        if (!player.inventory.add(notebook)) player.drop(notebook, false)
+        player.inventory.placeItemBackInInventory(notebook, Prediction.SERVER_ONLY)
         source.sendSuccess({
             Component.literal("A notebook of ${pages.size + structural.size} pages. Tip it into the desk.")
         }, false)

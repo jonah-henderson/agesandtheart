@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import net.minecraft.util.Prediction
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
@@ -76,9 +77,7 @@ abstract class DeskWingMenu(
                 val result = DeskIntake.offer(desk, intake.getItem(0))
                 if (result.took) {
                     intake.setItem(0, result.remainder)
-                    if (!result.returned.isEmpty && !player.inventory.add(result.returned)) {
-                        player.drop(result.returned, false)
-                    }
+                    if (!result.returned.isEmpty) player.inventory.placeItemBackInInventory(result.returned, Prediction.SERVER_ONLY)
                     DeskCommands.sync(player, desk)
                 }
             }
@@ -102,9 +101,7 @@ abstract class DeskWingMenu(
         val result = DeskIntake.offer(desk, moved)
         if (!result.took) return ItemStack.EMPTY
         slot.setByPlayer(result.remainder)
-        if (!result.returned.isEmpty && !player.inventory.add(result.returned)) {
-            player.drop(result.returned, false)
-        }
+        if (!result.returned.isEmpty) player.inventory.placeItemBackInInventory(result.returned, Prediction.SERVER_ONLY)
         DeskCommands.sync(serverPlayer, desk)
         return original
     }
@@ -117,7 +114,7 @@ abstract class DeskWingMenu(
         super.removed(player)
         access.execute { _, _ ->
             val held = intake.removeItemNoUpdate(0)
-            if (!held.isEmpty && !player.inventory.add(held)) player.drop(held, false)
+            if (!held.isEmpty) player.inventory.placeItemBackInInventory(held, Prediction.SERVER_ONLY)
         }
     }
 

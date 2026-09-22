@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import net.minecraft.util.Prediction
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.platform.Services
@@ -66,7 +67,7 @@ class ArchiveMenu(
         val result = ArchiveIntake.offer(archive, moved)
         if (!result.took) return ItemStack.EMPTY
         slot.setByPlayer(result.remainder)
-        if (!result.returned.isEmpty && !player.inventory.add(result.returned)) player.drop(result.returned, false)
+        if (!result.returned.isEmpty) player.inventory.placeItemBackInInventory(result.returned, Prediction.SERVER_ONLY)
         // Nothing more to move: returning the stack would have vanilla ask again for the same slot.
         return ItemStack.EMPTY
     }

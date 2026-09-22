@@ -128,8 +128,8 @@ fun init() {
 
     // Pages into vanilla containers. What a find yields is the `agesandtheart:inject/pages` datapack
     // table; only which containers and how often is decided here.
-    LootTableEvents.MODIFY.register { key, tableBuilder, _, _ ->
-        PageLoot.targetsFor(key).forEach { tableBuilder.pool(PageLoot.poolFor(it)) }
+    LootTableEvents.MODIFY.register { key, tableBuilder, _, registries ->
+        PageLoot.targetsFor(key).forEach { tableBuilder.pool(PageLoot.poolFor(it, registries)) }
     }
 
     // Loader-specific glue: hand the common command tree Fabric's dispatcher.

@@ -332,15 +332,16 @@ object AgeGeneration {
             fill.representative.takeUnless { fill == TerrainFill.PLAIN } ?: theirs.defaultBlock(),
             sea,
             theirs.noiseRouter(),
-            skin,
+            Holder.direct(skin),
             theirs.spawnTarget(),
             theirs.seaLevel(),
             // Deprecated on the record and still required by its constructor, so this hands back
             // exactly what the settings we were given already said.
             @Suppress("DEPRECATION") theirs.disableMobGeneration(),
-            /* aquifersEnabled = */ true,
-            /* oreVeinsEnabled = */ true,
+            // Vanilla's rock keeps vanilla's aquifer, whatever the settings we were handed carried.
+            theirs.aquifers(),
             theirs.getRandomSource() == net.minecraft.world.level.levelgen.WorldgenRandom.Algorithm.LEGACY,
+            theirs.debugFunctions(),
         )
     }
 

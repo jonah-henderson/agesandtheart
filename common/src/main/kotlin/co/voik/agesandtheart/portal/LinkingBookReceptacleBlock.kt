@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.portal
 
+import net.minecraft.util.Prediction
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
@@ -77,7 +78,7 @@ class LinkingBookReceptacleBlock(properties: Properties) : BaseEntityBlock(prope
         val book = receptacle.release()
         level.setBlock(pos, state.setValue(HAS_BOOK, false), UPDATE_ALL)
         LinkingPortals.closeAround(level, pos)
-        if (!player.inventory.add(book)) player.drop(book, false)
+        player.inventory.placeItemBackInInventory(book, Prediction.SERVER_ONLY)
         level.playSound(null, pos, SoundEvents.BOOK_PAGE_TURN, SoundSource.BLOCKS, VOLUME, PITCH)
         return InteractionResult.SUCCESS
     }

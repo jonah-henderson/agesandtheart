@@ -7,6 +7,7 @@ import net.minecraft.util.random.Weighted
 import net.minecraft.util.random.WeightedList
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
+import net.minecraft.util.valueproviders.UniformInt
 import net.minecraft.world.level.biome.MobSpawnSettings
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
@@ -240,7 +241,7 @@ object Spawns {
                     ?: return@mapNotNull null
                 val arrival = spawning.of(id)
                 if (spawnPassFor(type) != category) return@mapNotNull null
-                val entry = MobSpawnSettings.SpawnerData(type, arrival.least, arrival.most)
+                val entry = MobSpawnSettings.SpawnerData(type, UniformInt.of(arrival.least, arrival.most))
                 val ground = spawning.groundOf(id)
                 val light = spawning.lightOf(id)
                 val spacing = arrival.spacedAt(density)
