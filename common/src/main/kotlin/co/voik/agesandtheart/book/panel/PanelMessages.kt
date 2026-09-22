@@ -180,20 +180,21 @@ class PanelChunkPayload(
             CustomPacketPayload.Type("panel_chunk".location())
 
         val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, PanelChunkPayload> = StreamCodec.of(
+            // Through each packet data's own stream codec: 26.3 replaced the hand-rolled write and the
+            // read constructor with these, and the chunk no longer needs telling where it is — a block
+            // entity's position is read back against coordinates given at the point of use.
             { buffer, value ->
                 buffer.writeInt(value.x)
                 buffer.writeInt(value.z)
-                value.chunk.write(buffer)
-                value.light.write(buffer)
+                ClientboundLevelChunkPacketData.STREAM_CODEC.encode(buffer, value.chunk)
+                ClientboundLightUpdatePacketData.STREAM_CODEC.encode(buffer, value.light)
             },
             { buffer ->
-                val x = buffer.readInt()
-                val z = buffer.readInt()
                 PanelChunkPayload(
-                    x = x,
-                    z = z,
-                    chunk = ClientboundLevelChunkPacketData(buffer, x, z),
-                    light = ClientboundLightUpdatePacketData(buffer, x, z),
+                    x = buffer.readInt(),
+                    z = buffer.readInt(),
+                    chunk = ClientboundLevelChunkPacketData.STREAM_CODEC.decode(buffer),
+                    light = ClientboundLightUpdatePacketData.STREAM_CODEC.decode(buffer),
                 )
             },
         )

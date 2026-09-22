@@ -13,6 +13,7 @@ import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.EntityDimensions
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.InterpolationHandler
+import net.minecraft.world.entity.LinearInterpolationHandler
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.Pose
 import net.minecraft.world.entity.MoverType
@@ -103,7 +104,7 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
             // **The client never simulates one, it only catches up.** Both sides running the physics was
             // the jitter: the client's `deltaMovement` starts at nothing and is never sent, so the two
             // drift apart and every position packet snapped the body back. A plain `Entity` returns no
-            // interpolation handler, so a packet *is* a snap — see [getInterpolation].
+            // interpolation handler, so a packet *is* a snap — see [createInterpolationHandler].
             interpolation.interpolate()
         } else {
             // **The push first, because it is the only term that can be expensive**, and it answers zero
@@ -161,10 +162,11 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
      * is always mid-step. It rides a fraction of a block behind where the server has it, which nothing can
      * see, and it never stops.
      */
-    private val interpolation =
-        InterpolationHandler(this, AgeContent.DRIFTING_ORE_UPDATE_TICKS + CATCHING_UP_MARGIN)
-
-    override fun getInterpolation(): InterpolationHandler = interpolation
+    // **Built through the hook rather than held here**: 26.3 made InterpolationHandler an interface with
+    // `getInterpolation` final, and offers `createInterpolationHandler` in its place. A linear handler of
+    // a given length is what the class used to be.
+    override fun createInterpolationHandler(): InterpolationHandler =
+        LinearInterpolationHandler.create(this, AgeContent.DRIFTING_ORE_UPDATE_TICKS + CATCHING_UP_MARGIN)
 
     /**
      * Away from every block within reach, or nothing at all — **and the common case is nothing**.
@@ -416,7 +418,7 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         private const val SECTION_BITS = 4
 
         /**
-         * How many ticks past the sending interval a client keeps catching up over — see [interpolation].
+         * How many ticks past the sending interval a client keeps catching up over.
          *
          * One is enough: what it has to buy is that the lerp is never finished when the next word lands.
          */

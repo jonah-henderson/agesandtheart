@@ -91,7 +91,7 @@ object DniCity {
 
     private fun inFrontOfTheFrame(level: ServerLevel, centre: PoolElementStructurePiece): Ages.Arrival? {
         val element = centre.element as? SinglePoolElement ?: return null
-        val template = level.server.structureManager.getOrCreate(element.templateLocation)
+        val template = level.server.structureTemplateManager.getOrCreate(element.templateLocation)
         // A single element places with no pivot, so these are the positions its blocks land at.
         val placed = StructurePlaceSettings().setRotation(centre.rotation)
         val frame = template.filterBlocks(centre.position, placed, Blocks.REINFORCED_DEEPSLATE).map { it.pos() }

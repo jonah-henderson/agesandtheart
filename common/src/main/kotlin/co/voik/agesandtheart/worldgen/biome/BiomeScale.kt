@@ -4,7 +4,7 @@ import com.google.gson.JsonElement
 import com.mojang.serialization.JsonOps
 import net.minecraft.resources.RegistryOps
 import net.minecraft.server.MinecraftServer
-import net.minecraft.world.level.levelgen.DensityFunction
+import net.minecraft.world.level.levelgen.densityfunction.DensityFunction
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
 
 /**
