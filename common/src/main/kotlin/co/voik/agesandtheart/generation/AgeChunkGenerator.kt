@@ -860,7 +860,11 @@ class AgeChunkGenerator(
         // Ours to make and ours to apply: 26.3 has a carver write into a mask and lets the generator
         // decide afterwards what each marked block becomes. Vanilla's own application reads the aquifer
         // the NoiseChunk built, which for us is the disabled one — see [openGroundOf].
-        val carvingMask = CarvingMask(window.height, window.minY)
+        // **`(minY, maxY)`, inclusive — it took `(height, minY)` before 26.3.** Two ints, so the swap
+        // compiled and threw only when a chunk was actually carved: the mask sized itself
+        // `maxY - minY + 1` = `-64 - 384 + 1` and asked for a BitSet of -114432 bits. What made it hard to
+        // see is where the throw went — see `DelayedCrashMixin`.
+        val carvingMask = CarvingMask(window.minY, window.highestBlockY)
         // Fresh per pass: it caches a column and tracks whether the water it just placed needs to
         // settle, so it must not be shared between chunk workers.
         val aquifer = aquiferFor(randomState, ours.field)

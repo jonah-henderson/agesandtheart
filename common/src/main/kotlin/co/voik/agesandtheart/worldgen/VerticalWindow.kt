@@ -27,6 +27,14 @@ data class VerticalWindow(val minY: Int, val height: Int) {
     /** One past the topmost block, so it reads straight into a `minY..<topY` loop. */
     val topY: Int get() = minY + height
 
+    /**
+     * The topmost block itself, for the vanilla calls that want an **inclusive** ceiling.
+     *
+     * Named rather than written as `topY - 1` at the call site, because the two spellings are a silent
+     * swap apart: `CarvingMask` takes `(minY, maxY)` and used to take `(height, minY)`, and both are ints.
+     */
+    val highestBlockY: Int get() = topY - 1
+
     companion object {
         const val MIN_Y = -64
         const val HEIGHT = 384
