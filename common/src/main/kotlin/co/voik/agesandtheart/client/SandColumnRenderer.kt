@@ -193,15 +193,18 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
          * the core is only a wall you cannot see out of if its inside is drawn.
          */
         /**
-         * Everything the column's pipeline is, short of where it lives.
+         * Everything the column's pipeline is **bar how it blends and how it tests depth**, which the two
+         * users below supply for themselves.
          *
-         * **Separate from [PIPELINE] because the sorted-transparency path needs three more of it.** A
-         * client with improved transparency on draws this render type through `executeOit`, which asks the
-         * type for a pipeline per `OitStage` and throws outright where there is none — "Render type
-         * sand_column does not have OIT pipelines set up", and the frame is gone. The three are derived
-         * from this same description plus vanilla's own OIT snippet, so there is one place to change.
+         * A client with improved transparency on draws this render type through `executeOit`, which asks
+         * the type for a pipeline per `OitStage` and throws outright where there is none. Each of those
+         * three is this snippet plus vanilla's snippet for its stage — and **a stage brings its own colour
+         * target and depth test**, into buffers that are nothing like the screen. Leaving ours here would
+         * be handed to the stage alongside its own and rejected on the spot, at class-init, with "Blend
+         * functions must currently be the same for all color targets". This is the shape vanilla's own
+         * `OIT_TRANSLUCENT_BLOCK` and `OIT_LIGHTNING` are built in.
          */
-        private fun describedPipeline(): RenderPipeline.Builder = RenderPipeline.builder()
+        private val SHARED: RenderPipeline.Snippet = RenderPipeline.builder()
             .withVertexShader(Identifier.fromNamespaceAndPath(NAMESPACE, "sand_column"))
             .withFragmentShader(Identifier.fromNamespaceAndPath(NAMESPACE, "sand_column"))
             .withBindGroupLayout(
@@ -218,25 +221,26 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
                     .withUniform("Sampler2", UniformType.COMBINED_IMAGE_SAMPLER)
                     .build(),
             )
-            .withColorTargetState(ColorTargetState(BlendFunction.TRANSLUCENT))
-            .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, true))
             .withCull(false)
             .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR)
             .withPrimitiveTopology(PrimitiveTopology.QUADS)
+            .buildSnippet()
 
-        private val PIPELINE: RenderPipeline = describedPipeline()
+        private val PIPELINE: RenderPipeline = RenderPipeline.builder(SHARED)
             .withLocation(Identifier.fromNamespaceAndPath(NAMESPACE, "pipeline/sand_column"))
+            .withColorTargetState(ColorTargetState(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, true))
             .build()
 
         /**
          * The same column for a client that sorts its transparency — one pipeline per stage.
          *
-         * Vanilla derives them itself from the description above, giving each its own location and a shader
-         * define saying which stage it is; `sand_column.fsh` answers those defines the way vanilla's own
-         * particles do. Nothing here chooses when they are used: the client's setting does.
+         * Vanilla derives them itself from [SHARED], giving each its own location and a shader define
+         * saying which stage it is; `sand_column.fsh` answers those defines the way vanilla's own particles
+         * do. Nothing here chooses when they are used: the client's setting does.
          */
         private val SORTED_PIPELINES: OitPipelineSet =
-            OitPipelineSet.builder("sand_column", describedPipeline()).build()
+            OitPipelineSet.builder("sand_column", RenderPipeline.builder(SHARED)).build()
 
         /**
          * The render type every column in the Age is drawn through — one, so they batch.

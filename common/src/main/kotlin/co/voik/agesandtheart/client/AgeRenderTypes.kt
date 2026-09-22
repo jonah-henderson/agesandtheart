@@ -129,26 +129,36 @@ object AgeRenderTypes {
         )
     }
 
-    private fun describedGlow(): RenderPipeline.Builder = RenderPipeline.builder(MATRICES_AND_PROJECTION)
+    /** The glow bar how it blends and how it tests depth — see `SandColumnRenderer.SHARED` for why. */
+    private val GLOW: RenderPipeline.Snippet = RenderPipeline.builder(MATRICES_AND_PROJECTION)
         .withVertexShader("core/position_color")
         .withFragmentShader("core/position_color")
-        .withColorTargetState(ColorTargetState(BlendFunction.LIGHTNING))
         .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_COLOR)
         .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
-        .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+        .buildSnippet()
 
     /**
      * A blended render type handed to `submitCustomGeometry` is drawn in the translucent phase, and on a
      * client that sorts its transparency that phase *is* the OIT one — which asks a render type for a
-     * pipeline per `OitStage` and throws where there is none. Vanilla derives the three from the
-     * description above, and `core/position_color` already answers the defines they carry.
+     * pipeline per `OitStage` and throws where there is none.
+     *
+     * `OIT_ADDITIVE` is the define vanilla's own `OIT_LIGHTNING` carries, and for the same reason: an
+     * additive thing contributes light rather than covering what is behind it, so it is accumulated instead
+     * of weighed against the layers under it. `core/position_color` already answers every OIT define.
      */
     private val SORTED_GLOW: OitPipelineSet =
-        OitPipelineSet.builder("age_light_through_fog", describedGlow()).build()
+        OitPipelineSet.builder("age_light_through_fog", RenderPipeline.builder(GLOW).withShaderDefine("OIT_ADDITIVE"))
+            .build()
 
     val lightThroughFog: RenderType = RenderType.create(
         "age_light_through_fog",
-        RenderSetup.builder(describedGlow().withLocation("pipeline/light_through_fog".location()).build())
+        RenderSetup.builder(
+            RenderPipeline.builder(GLOW)
+                .withLocation("pipeline/light_through_fog".location())
+                .withColorTargetState(ColorTargetState(BlendFunction.LIGHTNING))
+                .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+                .build(),
+        )
             .setOitPipelines(SORTED_GLOW)
             .createRenderSetup(),
     )
