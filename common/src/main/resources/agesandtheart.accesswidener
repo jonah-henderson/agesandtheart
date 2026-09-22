@@ -4,43 +4,6 @@ accessWidener v2 official
 # so there is one namespace and Loom expects it to be called this. It says so plainly if it is not —
 # "Expected official namespace for access widener entry, found: named".
 
-# Region-aware surface painting (co.voik.agesandtheart.worldgen.field.RegionRule).
-#
-# Both of these are declared `protected` INSIDE SurfaceRules, which makes every extension point in the
-# surface system unreachable from outside Mojang's package: a custom RuleSource cannot name the type it
-# returns, and a custom ConditionSource cannot read the column it is being asked about.
-#
-# Note that `javap` reports them as public — a nested type's class file carries its own flags, while the
-# real nesting modifier lives in the outer class's InnerClasses attribute. Kotlin reads the latter.
-#
-# We only need to *name* these; no members are touched. RegionRule passes the Context straight through to
-# its children and takes its coordinates from tryApply's arguments instead.
-#
-# RETAINED ON PURPOSE, 2026-07-29: nothing constructs a RegionRule at the moment. Deleting the dressing left a
-# composed Age wearing one plain palette, and materials moved into the fill in step 4. Jonah's call is to keep
-# both the class and these two lines, because per-territory painting is expected back in the biome pass. If
-# that ever stops being true, RegionRule and these two lines go together and only the NoiseBasedChunkGenerator
-# line below is load-bearing.
-accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$Context
-accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$SurfaceRule
-
-# Writing a condition of our own (co.voik.agesandtheart.worldgen.field.NearTheSurface) — the case the note
-# above says the vocabulary is closed to.
-#
-# `Condition` is the type a ConditionSource returns, and it is package-private, so the public
-# `ConditionSource` cannot in fact be implemented from outside Mojang's package. The three fields are the
-# position the condition is being asked about; `Context` itself is already named above, but its coordinates
-# are package-private too, and a condition that cannot read them can only answer constants.
-#
-# What it buys: `abovePreliminarySurface` compares against a heightmap sampled at the corners of a 16-block
-# cell and **bilinearly interpolated** across it, which is sound for vanilla's terrain and wrong for ours —
-# a gorge floor narrower than the cell reads as far underground and loses its skin, and a cave under a
-# steep slope reads as open ground and grows grass. Ours asks the field for the column it is standing in.
-accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$Condition
-accessible	field	net/minecraft/world/level/levelgen/SurfaceRules$Context	blockX	I
-accessible	field	net/minecraft/world/level/levelgen/SurfaceRules$Context	blockY	I
-accessible	field	net/minecraft/world/level/levelgen/SurfaceRules$Context	blockZ	I
-
 # So AgeChunkGenerator can BE a noise generator rather than sit beside one.
 #
 # The class is `final`; every method we override is already public and non-final, so this one line is the
@@ -121,26 +84,6 @@ accessible	method	net/minecraft/server/level/ServerLevel	findLightningTargetArou
 # is private with no accessor. It is a plain read of a heightmap vanilla itself keeps for the purpose.
 accessible	field	net/minecraft/world/level/StructureManager	level	Lnet/minecraft/world/level/LevelAccessor;
 
-# So a world's own skin can be laid over a rock a book named, rather than instead of it
-# (co.voik.agesandtheart.worldgen.field.SurfacingStrategy.asPatchesOver).
-#
-# A surface tree is supposed to paint patches and leave the bulk to `defaultBlock`, which is what makes
-# substituting that block the way a book changes what a world is made of. Two of vanilla's three break it:
-# `SurfaceRuleData.nether()` ends in a bare `NETHERRACK` arm that takes every block its conditioned arms
-# did not, and `end()` is one unconditional `ENDSTONE` and nothing else. So a blackstone nether came out
-# netherrack (Jonah, 2026-08-25, walked).
-#
-# **Removing that tail is a no-op until the rock is substituted**, which is why it is safe to do always:
-# `SurfaceSystem.buildSurface` consults the rule only where `old == this.defaultBlock` and leaves the block
-# alone when the rule declines, so an arm painting netherrack onto netherrack is already doing nothing.
-#
-# We only need to *name* these two, to take a sequence apart and to recognise the unconditional arm at the
-# end of it. No members are touched — a record's own accessors are public. The alternatives were rebuilding
-# vanilla's ninety-line nether tree by hand, which would drift on every update, and taking the tree apart
-# through its codec as JSON, which is string-typed and would fail silently on a shape change.
-accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$SequenceRuleSource
-accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$BlockRuleSource
-
 # So a render type of ours can carry a pipeline of ours (co.voik.agesandtheart.client.SandColumnRenderer).
 #
 # **`RenderSetup.builder(RenderPipeline)` is public and this is the only thing that is not**, which is why
@@ -167,7 +110,6 @@ accessible	method	net/minecraft/client/renderer/rendertype/RenderType	create	(Lj
 # missing from the panel rather than as anything that fails.
 accessible	method	net/minecraft/client/Camera	prepareCullFrustum	(Lorg/joml/Matrix4fc;Lorg/joml/Matrix4f;Lnet/minecraft/world/phys/Vec3;)V
 accessible	method	net/minecraft/client/Camera	setupPerspective	(FFFFF)V
-
 
 # So the linking panel's renderer reads the panel's OWN render state (co.voik.agesandtheart.client.panel.PreviewLevel).
 #
