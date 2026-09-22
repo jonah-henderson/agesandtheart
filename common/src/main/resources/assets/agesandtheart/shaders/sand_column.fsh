@@ -5,6 +5,10 @@
 #include <minecraft:dynamictransforms.glsl>
 #include <minecraft:globals.glsl>
 #include <minecraft:fog.glsl>
+// **Sorted transparency compiles this same source three more times**, once per OIT stage, with a define
+// saying which. A render type that reaches the sorted path without answering for those stages is a crash
+// rather than a wrong picture — see `SandColumnRenderer`'s pipeline set.
+#include <minecraft:oit.glsl>
 
 layout(location = 0) in vec2 aroundAndDown;
 layout(location = 1) in vec4 layer;
@@ -12,7 +16,10 @@ layout(location = 2) in vec4 worldLight;
 layout(location = 3) in float sphericalVertexDistance;
 layout(location = 4) in float cylindricalVertexDistance;
 
+// The depth-bounds stage wants the alpha and nothing else, and declares no colour output of its own.
+#ifndef OIT_ALPHA_ONLY
 layout(location = 0) out vec4 fragColor;
+#endif
 
 const float TAU = 6.28318530718;
 
@@ -125,14 +132,27 @@ void main() {
     // write depth, and up there nothing is drawn behind it to lose.
     alpha *= smoothstep(0.0, ARRIVES_BY, aroundAndDown.y);
 
+#ifdef OIT_ALPHA_ONLY
+    // Nothing is shaded in this stage: it is only collecting how much of the light each fragment stops.
+    executeAlphaOnlyPhase(gl_FragCoord.z, alpha);
+#else
+    vec4 colour = vec4(tone, alpha);
+    vec4 fogged = FogColor;
+#ifdef OIT_ACCUMULATE
+    // The accumulating stage wants the colour weighted before anything is added to it, and the fog
+    // premultiplied to match — vanilla's own particles do exactly this.
+    colour = sampleColorForAccumulation(colour);
+    fogged = vec4(FogColor.rgb * colour.a, FogColor.a);
+#endif
     fragColor = apply_fog(
-        vec4(tone, alpha),
+        colour,
         sphericalVertexDistance,
         cylindricalVertexDistance,
         FogEnvironmentalStart,
         FogEnvironmentalEnd,
         FogRenderDistanceStart,
         FogRenderDistanceEnd,
-        FogColor
+        fogged
     ) * ColorModulator;
+#endif
 }

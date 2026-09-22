@@ -19,6 +19,7 @@ import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.entity.state.EntityRenderState
+import net.minecraft.client.renderer.oit.OitPipelineSet
 import net.minecraft.client.renderer.rendertype.RenderSetup
 import net.minecraft.client.renderer.rendertype.RenderType
 import net.minecraft.client.renderer.state.level.CameraRenderState
@@ -191,8 +192,16 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
          * **Neither face is culled**, because a player walks through a column rather than around it, and
          * the core is only a wall you cannot see out of if its inside is drawn.
          */
-        private val PIPELINE: RenderPipeline = RenderPipeline.builder()
-            .withLocation(Identifier.fromNamespaceAndPath(NAMESPACE, "pipeline/sand_column"))
+        /**
+         * Everything the column's pipeline is, short of where it lives.
+         *
+         * **Separate from [PIPELINE] because the sorted-transparency path needs three more of it.** A
+         * client with improved transparency on draws this render type through `executeOit`, which asks the
+         * type for a pipeline per `OitStage` and throws outright where there is none — "Render type
+         * sand_column does not have OIT pipelines set up", and the frame is gone. The three are derived
+         * from this same description plus vanilla's own OIT snippet, so there is one place to change.
+         */
+        private fun describedPipeline(): RenderPipeline.Builder = RenderPipeline.builder()
             .withVertexShader(Identifier.fromNamespaceAndPath(NAMESPACE, "sand_column"))
             .withFragmentShader(Identifier.fromNamespaceAndPath(NAMESPACE, "sand_column"))
             .withBindGroupLayout(
@@ -214,7 +223,20 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
             .withCull(false)
             .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR)
             .withPrimitiveTopology(PrimitiveTopology.QUADS)
+
+        private val PIPELINE: RenderPipeline = describedPipeline()
+            .withLocation(Identifier.fromNamespaceAndPath(NAMESPACE, "pipeline/sand_column"))
             .build()
+
+        /**
+         * The same column for a client that sorts its transparency — one pipeline per stage.
+         *
+         * Vanilla derives them itself from the description above, giving each its own location and a shader
+         * define saying which stage it is; `sand_column.fsh` answers those defines the way vanilla's own
+         * particles do. Nothing here chooses when they are used: the client's setting does.
+         */
+        private val SORTED_PIPELINES: OitPipelineSet =
+            OitPipelineSet.builder("sand_column", describedPipeline()).build()
 
         /**
          * The render type every column in the Age is drawn through — one, so they batch.
@@ -224,7 +246,10 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
          */
         private val SAND_COLUMN: RenderType = RenderType.create(
             "sand_column",
-            RenderSetup.builder(PIPELINE).useLightmap().createRenderSetup(),
+            RenderSetup.builder(PIPELINE)
+                .useLightmap()
+                .setOitPipelines(SORTED_PIPELINES)
+                .createRenderSetup(),
         )
 
         private const val NAMESPACE = "agesandtheart"

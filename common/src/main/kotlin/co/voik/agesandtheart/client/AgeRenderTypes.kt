@@ -14,6 +14,7 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.renderpearl.api.vertex.VertexFormat
 import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.client.renderer.blockentity.AbstractEndPortalRenderer
+import net.minecraft.client.renderer.oit.OitPipelineSet
 import net.minecraft.client.renderer.rendertype.RenderSetup
 import net.minecraft.client.renderer.rendertype.RenderType
 import java.util.Optional
@@ -128,19 +129,28 @@ object AgeRenderTypes {
         )
     }
 
+    private fun describedGlow(): RenderPipeline.Builder = RenderPipeline.builder(MATRICES_AND_PROJECTION)
+        .withVertexShader("core/position_color")
+        .withFragmentShader("core/position_color")
+        .withColorTargetState(ColorTargetState(BlendFunction.LIGHTNING))
+        .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_COLOR)
+        .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
+        .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+
+    /**
+     * A blended render type handed to `submitCustomGeometry` is drawn in the translucent phase, and on a
+     * client that sorts its transparency that phase *is* the OIT one — which asks a render type for a
+     * pipeline per `OitStage` and throws where there is none. Vanilla derives the three from the
+     * description above, and `core/position_color` already answers the defines they carry.
+     */
+    private val SORTED_GLOW: OitPipelineSet =
+        OitPipelineSet.builder("age_light_through_fog", describedGlow()).build()
+
     val lightThroughFog: RenderType = RenderType.create(
         "age_light_through_fog",
-        RenderSetup.builder(
-            RenderPipeline.builder(MATRICES_AND_PROJECTION)
-                .withLocation("pipeline/light_through_fog".location())
-                .withVertexShader("core/position_color")
-                .withFragmentShader("core/position_color")
-                .withColorTargetState(ColorTargetState(BlendFunction.LIGHTNING))
-                .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_COLOR)
-                .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
-                .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
-                .build(),
-        ).createRenderSetup(),
+        RenderSetup.builder(describedGlow().withLocation("pipeline/light_through_fog".location()).build())
+            .setOitPipelines(SORTED_GLOW)
+            .createRenderSetup(),
     )
 
 }
