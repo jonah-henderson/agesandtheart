@@ -55,7 +55,7 @@ fun main(args: Array<String>) {
 
     args.firstOrNull { it.startsWith("--dump=") }?.let { spelled ->
         val (s, x, z) = spelled.substringAfter('=').split(':')
-        val randomState = RandomState.create(worldgen, NoiseGeneratorSettings.OVERWORLD, s.toLong())
+        val randomState = RandomState.create(worldgen.lookupOrThrow(Registries.NOISE), s.toLong(), overworldSettings())
         val column = generator.getBaseColumn(x.toInt(), z.toInt(), world, randomState)
         println("Column at ($x, $z) on seed $s, y=100 down to y=-30:")
         for (y in 100 downTo -30) {
@@ -77,8 +77,8 @@ fun main(args: Array<String>) {
 
     for (index in 0..<seedCount) {
         val seed = FIRST_SEED + index
-        val randomState = RandomState.create(worldgen, NoiseGeneratorSettings.OVERWORLD, seed)
-        val sampler = randomState.sampler()
+        val randomState = RandomState.create(worldgen.lookupOrThrow(Registries.NOISE), seed, overworldSettings())
+        val resolver = biomes.createUncachedResolver(randomState)
         val scatter = Random(seed)
         var deepestHere: Sounding? = null
         var openHere = 0
@@ -98,7 +98,9 @@ fun main(args: Array<String>) {
             val run = column.fluidRunDownFrom(surface, world.minY)
             // Open to the sky, or a pocket with rock over it — a cave shaft full of aquifer water is not an
             // ocean, and lumping the two together is what made the heightmap version nonsense.
-            val roofed = column.getBlock(seaLevel).blocksMotion()
+            // `blocksMotion` is gone; what is left of it is `isSolid`, the cobweb and bamboo-sapling
+            // exceptions it also carried having been dropped. Neither is rock over an ocean.
+            val roofed = column.getBlock(seaLevel).isSolid
             if (roofed) {
                 enclosed += run
             } else {
@@ -107,11 +109,10 @@ fun main(args: Array<String>) {
             }
 
             if (!roofed && (deepestHere == null || run > deepestHere.depth)) {
-                val biome = biomes.getNoiseBiome(
+                val biome = resolver.getNoiseBiome(
                     QuartPos.fromBlock(x),
                     QuartPos.fromBlock(seaLevel),
                     QuartPos.fromBlock(z),
-                    sampler,
                 )
                 val named = biome.unwrapKey().orElse(null)?.identifier()?.path ?: "?"
                 deepestHere = Sounding(seed, x, z, run, named)
@@ -308,3 +309,8 @@ private const val RULE_WIDTH = 78
 
 /** What `deep` puts on a waterline: nothing, its lowest draw, its middle and its highest. */
 private val RAISES = listOf(0, 40, 61, 82)
+
+/** Vanilla's overworld noise settings, resolved — `RandomState.create` takes the value, not the key. */
+private fun overworldSettings(): NoiseGeneratorSettings =
+    MinecraftRegistries.worldgen.lookupOrThrow(Registries.NOISE_SETTINGS)
+        .getOrThrow(NoiseGeneratorSettings.OVERWORLD).value()

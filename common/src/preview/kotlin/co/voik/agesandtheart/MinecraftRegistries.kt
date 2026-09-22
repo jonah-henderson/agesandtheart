@@ -58,7 +58,7 @@ object MinecraftRegistries {
      */
     val worldgen: HolderLookup.Provider by lazy {
         ensureStoodUp()
-        VanillaRegistries.createLookup().also {
+        VanillaRegistries.createWorldLookup().also {
             check(it.lookupOrThrow(Registries.BIOME).listElements().findAny().isPresent) {
                 "the biome registry is empty, so every derived-population check would pass on nothing"
             }
