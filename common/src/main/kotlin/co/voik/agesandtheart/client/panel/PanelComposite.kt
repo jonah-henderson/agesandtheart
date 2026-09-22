@@ -17,6 +17,7 @@ import org.joml.Vector4f
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.renderer.StagedVertexBuffer
 import net.minecraft.client.renderer.ProjectionMatrixBuffer
+import net.minecraft.client.renderer.rendertype.PreparedRenderType
 import net.minecraft.client.renderer.rendertype.RenderType
 import net.minecraft.util.ARGB
 import org.joml.Matrix4f
@@ -112,13 +113,41 @@ object PanelComposite {
         val colour = requireNotNull(target.colorTextureView) { "A panel composite has no colour to lay onto" }
         val depth = requireNotNull(target.depthTextureView) { "A panel composite has no depth to lay onto" }
         PanelTexture.registerAll()
-        ontoTheComposite(colour, depth) { pass -> lay(runsOf(strokes), pass) }
+        inPagePixels {
+            val ready = stage(runsOf(strokes))
+            ontoTheComposite(colour, depth) { pass -> ready.forEach { it.draw(pass) } }
+            // `endFrame` opens with `endDraw`, so this is both halves of vanilla's teardown. It is per
+            // composite rather than per frame because nothing here has a frame hook, and the buffer pool
+            // only recycles what it was told the frame was done with — skipping it would leak a buffer a panel.
+            staged.endFrame()
+        }
         return colour
     }
 
     /**
-     * Runs [block] against a pass over the composite, measured in page-pixels, and puts back the projection
-     * it borrowed: the frame this is laid down in goes on to draw the world and the GUI with it.
+     * Runs [block] with the composite's own space in force, and puts back the projection it borrowed: the
+     * frame this is laid down in goes on to draw the world and the GUI with it.
+     *
+     * It wraps the staging as well as the pass because [RenderType.prepare] writes the transforms it is
+     * about to draw under, and reads them off this stack.
+     */
+    private fun inPagePixels(block: () -> Unit) {
+        val outerProjection = RenderSystem.getProjectionMatrixBuffer()
+        val outerProjectionType = RenderSystem.getProjectionType()
+        val modelView = RenderSystem.getModelViewStack()
+        modelView.pushMatrix()
+        try {
+            modelView.identity()
+            RenderSystem.setProjectionMatrix(projections.getBuffer(PAGE_PIXELS), ProjectionType.ORTHOGRAPHIC)
+            block()
+        } finally {
+            modelView.popMatrix()
+            outerProjection?.let { RenderSystem.setProjectionMatrix(it, outerProjectionType) }
+        }
+    }
+
+    /**
+     * Runs [block] against a pass over the composite.
      *
      * **The pass is the target now.** 26.2 pointed vanilla's immediate draws at a texture through two global
      * overrides on `RenderSystem` and let every draw find them; 26.3 has no such override and hands each draw
@@ -127,24 +156,13 @@ object PanelComposite {
      * separate call for that.
      */
     private fun ontoTheComposite(colour: GpuTextureView, depth: GpuTextureView, block: (RenderPass) -> Unit) {
-        val outerProjection = RenderSystem.getProjectionMatrixBuffer()
-        val outerProjectionType = RenderSystem.getProjectionType()
-        val modelView = RenderSystem.getModelViewStack()
-        modelView.pushMatrix()
-        try {
-            modelView.identity()
-            RenderSystem.setProjectionMatrix(projections.getBuffer(PAGE_PIXELS), ProjectionType.ORTHOGRAPHIC)
-            RenderSystem.getDevice().createCommandEncoder().createRenderPass(
-                { "Ages linking panel composite" },
-                colour,
-                Optional.of(TRANSPARENT),
-                depth,
-                OptionalDouble.of(FURTHEST_DEPTH),
-            ).use(block)
-        } finally {
-            modelView.popMatrix()
-            outerProjection?.let { RenderSystem.setProjectionMatrix(it, outerProjectionType) }
-        }
+        RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+            { "Ages linking panel composite" },
+            colour,
+            Optional.of(TRANSPARENT),
+            depth,
+            OptionalDouble.of(FURTHEST_DEPTH),
+        ).use(block)
     }
 
     /** Strokes in a row that take one render type, and so one draw. */
@@ -174,19 +192,25 @@ object PanelComposite {
         is PanelStroke.Field -> DefaultVertexFormat.POSITION_TEX_COLOR
     }
 
+    /** One run staged and ready to draw: all the buffer work behind it already done. */
+    private class Ready(private val prepared: PreparedRenderType, private val info: StagedVertexBuffer.ExecuteInfo) {
+        fun draw(pass: RenderPass) = prepared.drawFromBuffer(info, pass)
+    }
+
     /**
-     * **Written in two passes, because the upload is one call for all of them.** Every run is appended and
-     * filled first, then a single upload stages the lot, then each is executed in the order it was laid —
-     * which is what keeps the composite a painter's stack rather than a race between draws.
+     * Everything that touches a buffer, done **before** a pass is open: a pass admits pass commands and
+     * nothing else, and both halves of this were commands of the other kind. `upload` copies the staged
+     * vertices, which is a `copyToBuffer` on the encoder; `prepare` writes the dynamic transforms the draw
+     * runs under, which rotates a ring buffer. Either inside the pass is "Close the existing render pass
+     * before performing additional commands", and the panel took the crash on the first of them.
      *
-     * **`endDraw` is not "finish this draw".** It is the teardown of a whole append-upload-execute cycle:
-     * it clears the draw list and drops the uploaded buffer. Calling it per run — which is what its name
-     * invites — empties the batch before [StagedVertexBuffer.upload] ever sees it, so the upload returns
-     * early having allocated nothing and the first execute dies on "Cannot execute before upload". The
-     * order below is vanilla's own, from `GuiRenderer.render`: append everything, upload once, execute
-     * each, and only then tear down. Nothing closes a draw; the next `getVertexBuilder` does it.
+     * **Written in two sweeps, because the upload is one call for all of them.** Every run is appended and
+     * filled first, then a single upload stages the lot, and only then can a draw be asked for its
+     * [StagedVertexBuffer.ExecuteInfo] — earlier is "Cannot execute before upload". The order is vanilla's
+     * own, from `GuiRenderer.render`: prepare, upload, draw, tear down. Nothing closes a draw; the next
+     * `getVertexBuilder` does it.
      */
-    private fun lay(runs: List<Run>, pass: RenderPass) {
+    private fun stage(runs: List<Run>): List<Ready> {
         val appended = runs.map { run ->
             val draw = staged.appendDraw(run.format, PrimitiveTopology.QUADS)
             val builder = staged.getVertexBuilder(draw)
@@ -195,13 +219,9 @@ object PanelComposite {
         }
         staged.upload()
         // Null where a draw took no vertices, which is nothing to execute rather than a fault.
-        appended.forEach { (run, draw) ->
-            staged.getExecuteInfo(draw)?.let { run.renderType.prepare().drawFromBuffer(it, pass) }
+        return appended.mapNotNull { (run, draw) ->
+            staged.getExecuteInfo(draw)?.let { Ready(run.renderType.prepare(), it) }
         }
-        // `endFrame` opens with `endDraw`, so this is both halves of vanilla's teardown. It is per
-        // composite rather than per frame because nothing here has a frame hook, and the buffer pool
-        // only recycles what it was told the frame was done with — skipping it would leak a buffer a panel.
-        staged.endFrame()
     }
 
     /** A stroke's four corners, top-left round to top-right. */

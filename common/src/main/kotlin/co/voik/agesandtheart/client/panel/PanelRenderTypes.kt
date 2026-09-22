@@ -123,9 +123,17 @@ object PanelRenderTypes {
     /**
      * A finished picture on a book in the world: opaque, since the picture always is, and writing depth, since
      * it lies on the page as solidly as the page does.
+     *
+     * **[ColorTargetState.DEFAULT] is what says "opaque", and saying nothing is not the same thing.** A
+     * builder starts with *no* colour target at all, and 26.3 checks the count against the pass it is drawn
+     * in — one attachment for the level's, so a pipeline declaring none is "Render pass color attachment
+     * count must match pipeline color target state count" the first time a lectern of ours is in view.
+     * `DEFAULT` carries no blend function, which is both what opaque means and what keeps this out of the
+     * translucent phase.
      */
     private val ON_A_PAGE: RenderPipeline = RenderPipeline.builder(MATRICES_AND_PROJECTION)
         .withLocation("pipeline/linking_panel_on_a_page".location())
+        .withColorTargetState(ColorTargetState.DEFAULT)
         .withVertexShader("core/position_tex_color")
         .withFragmentShader("core/position_tex_color")
         .withBindGroupLayout(
