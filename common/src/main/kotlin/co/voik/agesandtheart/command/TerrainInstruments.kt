@@ -25,6 +25,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.biome.BiomeResolver
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.levelgen.Heightmap
@@ -603,9 +604,8 @@ internal object TerrainInstruments {
                 // vanilla draws its own uniformly between the world's floor and one above the surface.
                 for ((where, blockY) in listOf("above" to ground, "below" to (ground + level.minY) / 2)) {
                     val here = BlockPos(blockX, blockY, blockZ)
-                    val biome = level.getBiome(here)
                     for (pass in MobCategory.entries) {
-                        val list = generator.getMobsAt(biome, structures, pass, here)
+                        val list = generator.getMobsAt(level, structures, pass, here)
                         for (entry in list.unwrap()) {
                             val creature = BuiltInRegistries.ENTITY_TYPE.getKey(entry.value().type())
                             offered.getOrPut("${pass.getName()} $where") { sortedSetOf() }
@@ -775,7 +775,7 @@ internal object TerrainInstruments {
         val generator = level.chunkSource.generator
         val biomes = generator.biomeSource
         val randomState = level.chunkSource.randomState()
-        val climate = randomState.sampler()
+        val resolver = biomes.createUncachedResolver(randomState)
         val quartRadius = QuartPos.fromBlock(radiusChunks * BLOCKS_PER_CHUNK)
 
         val counts = mutableMapOf<String, Int>()
@@ -791,7 +791,7 @@ internal object TerrainInstruments {
                 val ground = generator.getBaseHeight(
                     blockX, blockZ, Heightmap.Types.WORLD_SURFACE_WG, level, randomState,
                 )
-                val here = biomeName(biomes, climate, quartX, QuartPos.fromBlock(ground), quartZ)
+                val here = biomeName(resolver, quartX, QuartPos.fromBlock(ground), quartZ)
                 counts[here] = (counts[here] ?: 0) + 1
             }
         }
@@ -818,7 +818,7 @@ internal object TerrainInstruments {
      */
     private fun surveyBiomes(level: ServerLevel, radiusChunks: Int): List<String> {
         val source = level.chunkSource.generator.biomeSource
-        val climate = level.chunkSource.randomState().sampler()
+        val resolver = source.createUncachedResolver(level.chunkSource.randomState())
         val lowestQuartY = QuartPos.fromBlock(level.minY)
         val highestQuartY = QuartPos.fromBlock(level.maxY)
 
@@ -831,11 +831,11 @@ internal object TerrainInstruments {
         for (quartX in -quartRadius..quartRadius step SURVEY_QUART_STRIDE) {
             for (quartZ in -quartRadius..quartRadius step SURVEY_QUART_STRIDE) {
                 columns++
-                val top = biomeName(source, climate, quartX, highestQuartY, quartZ)
+                val top = biomeName(resolver, quartX, highestQuartY, quartZ)
                 everywhere += top
                 var layered = false
                 for (quartY in lowestQuartY..highestQuartY) {
-                    val here = biomeName(source, climate, quartX, quartY, quartZ)
+                    val here = biomeName(resolver, quartX, quartY, quartZ)
                     everywhere += here
                     if (here != top) {
                         deepOnly += here
@@ -852,8 +852,8 @@ internal object TerrainInstruments {
         )
     }
 
-    private fun biomeName(source: BiomeSource, climate: Climate.Sampler, quartX: Int, quartY: Int, quartZ: Int): String =
-        source.getNoiseBiome(quartX, quartY, quartZ, climate).unwrapKey()
+    private fun biomeName(resolver: BiomeResolver, quartX: Int, quartY: Int, quartZ: Int): String =
+        resolver.getNoiseBiome(quartX, quartY, quartZ).unwrapKey()
             .map { it.identifier().toString() }
             .orElse("(unnamed)")
 

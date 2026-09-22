@@ -181,7 +181,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         for (caught in level.getEntitiesOfClass(LivingEntity::class.java, sweptVolume(level, standing))) {
             if (!covers(caught.x, caught.z, standing)) continue
             caught.push(NOTHING, -force, NOTHING)
-            caught.hurtMarked = true
+            caught.syncVelocity = true
         }
     }
 

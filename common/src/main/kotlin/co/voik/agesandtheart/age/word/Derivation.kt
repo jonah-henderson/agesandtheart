@@ -14,7 +14,7 @@ import net.minecraft.resources.Identifier
 import net.minecraft.resources.RegistryOps
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.level.biome.Biome
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
+import net.minecraft.world.level.levelgen.feature.Feature
 
 /**
  * How one aspect's members are tagged from what the game already states — `art/derivation/<aspect>.json`.
@@ -172,7 +172,11 @@ object DerivedTags {
             // **The path, not the whole id, and that is deliberate**: a mod placing its ore with vanilla's
             // `minecraft:ore` matches the same rule, and one that registers a `mymod:ore` of its own
             // matches it too. What a feature *is* does not depend on who wrote it.
-            val kinds = leaves.mapNotNull { BuiltInRegistries.FEATURE.getKey(it.value().feature())?.path }
+            // The *type* registry, since 26.3 folded a configuration into its feature: what a feature is
+            // is the codec it dispatches on, where it used to be the feature object the configuration was
+            // paired with. The ids themselves did not move — `ore`, `spring_feature`, `lake`,
+            // `vegetation_patch` are all still spelled the same, so `art/`'s rules go on matching.
+            val kinds = leaves.mapNotNull { BuiltInRegistries.FEATURE_TYPE.getKey(it.value().codec())?.path }
             val blocks = leaves.flatMap { blocksNamedBy(it, ops) }.distinct()
             val share = shareOfBlocksCarrying(blocks)
             watching(share.keys)
@@ -182,17 +186,18 @@ object DerivedTags {
     /**
      * The blocks a configured feature's own data names, found by **encoding it and reading the ids back**.
      *
-     * A `FeatureConfiguration` is thirty-odd unrelated shapes with no accessor in common — an ore holds
-     * target states, a tree holds trunk and foliage providers, a spring holds a fluid — so asking each in
-     * turn is thirty branches that fall behind the day Mojang adds the thirty-first. The serialised form is
-     * the one thing every configuration has, and reading it asks the data what it says rather than
-     * asserting what it must contain.
+     * A feature is thirty-odd unrelated shapes with no accessor in common — an ore holds target states, a
+     * tree holds trunk and foliage providers, a spring holds a fluid — so asking each in turn is thirty
+     * branches that fall behind the day Mojang adds the thirty-first. The serialised form is the one thing
+     * every feature has, and reading it asks the data what it says rather than asserting what it must
+     * contain. 26.3 folding the configuration into the feature changes nothing here: it is still one
+     * dispatching codec over one object.
      *
-     * A configuration that will not encode contributes nothing rather than failing the corpus: its type
-     * still speaks for it.
+     * A feature that will not encode contributes nothing rather than failing the corpus: its type still
+     * speaks for it.
      */
-    private fun blocksNamedBy(feature: Holder<ConfiguredFeature<*, *>>, ops: RegistryOps<JsonElement>): List<Identifier> =
-        ConfiguredFeature.DIRECT_CODEC.encodeStart(ops, feature.value())
+    private fun blocksNamedBy(feature: Holder<Feature>, ops: RegistryOps<JsonElement>): List<Identifier> =
+        Feature.DIRECT_CODEC.encodeStart(ops, feature.value())
             .result()
             .map(::blockIdsIn)
             .orElse(emptyList())

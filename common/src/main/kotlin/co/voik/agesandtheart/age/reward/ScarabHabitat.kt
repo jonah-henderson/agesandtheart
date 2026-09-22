@@ -115,7 +115,8 @@ object ScarabHabitat {
         val generator = level.chunkSource.generator
         val biomes = generator.biomeSource
         val randomState = level.chunkSource.randomState()
-        val climate = randomState.sampler()
+        // A resolver rather than a sampler: 26.3 asks a source for one of these and it answers by quart.
+        val resolver = biomes.createUncachedResolver(randomState)
 
         var nearest: BlockPos? = null
         var nearestDistance = Long.MAX_VALUE
@@ -128,11 +129,10 @@ object ScarabHabitat {
                 val ground = generator.getBaseHeight(
                     blockX, blockZ, Heightmap.Types.WORLD_SURFACE_WG, level, randomState,
                 )
-                val biome = biomes.getNoiseBiome(
+                val biome = resolver.getNoiseBiome(
                     QuartPos.fromBlock(blockX),
                     QuartPos.fromBlock(ground),
                     QuartPos.fromBlock(blockZ),
-                    climate,
                 )
                 if (!biome.`is`(BiomeTags.IS_JUNGLE)) continue
                 nearest = BlockPos(blockX, ground, blockZ)

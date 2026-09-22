@@ -56,7 +56,7 @@ object Toolbox {
             if (carried.item !== AgeContent.TOOLBOX) continue
             val held = carried.get(DataComponents.CONTAINER) ?: continue
             // Every compartment including the empty ones, so removing one does not shuffle the rest.
-            val compartments = held.allItemsCopyStream().toList()
+            val compartments = held.itemCopies().toList()
             val found = compartments.indexOfFirst { !it.isEmpty && it.item === broken }
             if (found < 0) continue
             val spare = compartments[found]

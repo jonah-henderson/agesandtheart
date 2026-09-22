@@ -184,7 +184,7 @@ object ChargedMetal {
         entity.push(along.scale(-sense * strength))
         // A server that moves a player has to say so, or their own client puts them straight back — the
         // same flag an explosion sets.
-        if (entity is ServerPlayer) entity.hurtMarked = true
+        if (entity is ServerPlayer) entity.syncVelocity = true
     }
 
     private fun alongOf(run: Arcs.Run): Vec3? =
