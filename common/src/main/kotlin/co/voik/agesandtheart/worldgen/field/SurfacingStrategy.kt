@@ -277,6 +277,15 @@ object SurfacingStrategy {
     /**
      * Our own noise, at a deliberately tiny scale — two blocks or so, which is as close to evenly
      * intermixed as surface rules get. Registered as datapack content, so a pack can retune the scale.
+     *
+     * **Its file says `"normalize": "legacy"`, and that is not nostalgia.** 26.3 replaced the noise
+     * parameters' `firstOctave`/`amplitudes` with `base_octave`/`octave_count`/`amplitude_modifiers` and,
+     * with them, the constant a sample is scaled by: the new default *estimates* the deviation where the
+     * old one computed it, which is why vanilla rewrote every one of its own noises with a fresh
+     * `base_amplitude` to stay where it was. Here the scale is load-bearing in a way it is not there —
+     * [MOTTLE_RANGE] cuts the output into one band per material, so a factor a few percent out moves every
+     * boundary and changes the mixture. `legacy` is vanilla's own name for the old computation, exactly,
+     * so the speckle is the one that was tuned.
      */
     private val MINGLE_NOISE: ResourceKey<NormalNoise> =
         ResourceKey.create(Registries.NOISE, "mingle".location())
