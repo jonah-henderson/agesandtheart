@@ -5,7 +5,7 @@ import co.voik.agesandtheart.content.Temperstone;
 import co.voik.agesandtheart.content.Toolbox;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -36,9 +36,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin {
 
+    /**
+     * <p><b>The broken stack, and only its item passed on.</b> 26.3 widened this parameter from
+     * {@code Item} to {@code ItemStack} — a change nothing in the build can catch, because an
+     * {@code @Inject} callback's parameters are checked when the mixin is applied and not when it is
+     * compiled. It failed at the first server boot after the port, which is the only place it could.
+     * {@link Toolbox} wants the kind of thing that broke rather than the husk of it, so the conversion
+     * belongs here at the seam.
+     */
     @Inject(method = "onEquippedItemBroken", at = @At("TAIL"))
-    private void agesandtheart$reachForASpare(Item broken, EquipmentSlot slot, CallbackInfo callback) {
-        Toolbox.replaceBroken((LivingEntity) (Object) this, broken, slot);
+    private void agesandtheart$reachForASpare(ItemStack broken, EquipmentSlot slot, CallbackInfo callback) {
+        Toolbox.replaceBroken((LivingEntity) (Object) this, broken.getItem(), slot);
     }
 
     /**
