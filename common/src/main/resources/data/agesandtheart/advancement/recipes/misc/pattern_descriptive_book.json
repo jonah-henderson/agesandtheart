@@ -17,7 +17,7 @@
     "has_the_recipe": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
-        "recipe": "agesandtheart:pattern_descriptive_book"
+        "recipes": "agesandtheart:pattern_descriptive_book"
       }
     }
   },

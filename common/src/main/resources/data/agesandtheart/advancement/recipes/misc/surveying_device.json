@@ -18,7 +18,7 @@
     "has_the_recipe": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
-        "recipe": "agesandtheart:surveying_device"
+        "recipes": "agesandtheart:surveying_device"
       }
     }
   },

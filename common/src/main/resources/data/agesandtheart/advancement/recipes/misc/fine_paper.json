@@ -29,7 +29,7 @@
     "has_the_recipe": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
-        "recipe": "agesandtheart:fine_paper"
+        "recipes": "agesandtheart:fine_paper"
       }
     }
   },
