@@ -6,9 +6,11 @@
     "position it is given, so the bones rest on the bed.",
     "",
     "The `biome` filter at the end is what confines it -- it re-checks the biome at the chosen position, so",
-    "a sea bed that pokes above the abyss line gets nothing. It is also the one thing here that can be",
-    "tightened or loosened: the abyss biome reaches from the bed up to the abyss line, and nothing else in",
-    "the Age carries this feature."
+    "a sea bed that pokes above the abyss line gets nothing.",
+    "",
+    "**Measured 2026-09-22, over 64 chunks of a basin that is 99% abyss**: without the rarity filter the",
+    "chain places in about half of them, so one in ten works out at roughly a whalefall every eighteen",
+    "chunks of open abyss. That is the density of a thing you swim between rather than one you stand among."
   ],
   "feature": "agesandtheart:whalefall",
   "placement": [
