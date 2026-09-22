@@ -122,7 +122,7 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 
 ## What this is
 
-**Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 26.2**, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
+**Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 26.3**, with 26.2 kept on the `mc-26.2-support` branch, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
 
 Current state: Phases 1–5 are done and Phase 6 (consequence) is built through its last register. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence, and the loop runs without commands — word pages, the notebook, the writer's desk, descriptive and linking books, and the two acquaintance devices that put the derived corpus within reach. An Age's instability now reaches generation: seams widen, wounds open, the wounds go on opening, and collapse tears the floor. Phase 7 (rewards) has started: an Age is scored for danger from its recipe and a book records whether a player wrote it. Phases 8 (book editing) and 9 (the asset pass, and there are no textures at all) have not started. **Runtime dimensions work on both loaders**, on **Ephemeris** — our own library, now its own project at `../ephemeris` (see "Ephemeris" below).
 
