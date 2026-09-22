@@ -12,7 +12,6 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Aquifer
-import net.minecraft.world.level.levelgen.DensityFunction
 
 /**
  * **What the water actually is, in a real hills Age, drawn as a cross-section.**
@@ -44,7 +43,7 @@ class AquiferSectionCheck : FunSpec({
     fun carvedOnlyAquifer(): Aquifer = table.aquiferOver(ground.shape)
 
     fun holdsWater(aquifer: Aquifer, worldX: Int, worldY: Int, worldZ: Int): Boolean {
-        val put = aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
+        val put = aquifer.computeSubstance(worldX, worldY, worldZ, -1.0)
         return put != null && !put.fluidState.isEmpty
     }
 
@@ -77,7 +76,7 @@ class AquiferSectionCheck : FunSpec({
         return when {
             isRock(worldX, worldZ, worldY) -> '#'
             isHollow(worldX, worldY, worldZ) -> {
-                val put = aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
+                val put = aquifer.computeSubstance(worldX, worldY, worldZ, -1.0)
                 when {
                     put == null -> 'B'
                     !put.fluidState.isEmpty -> 'W'
@@ -205,7 +204,7 @@ class AquiferSectionCheck : FunSpec({
                 val worldY = heights.first + up
                 val hollow = before.contains(worldY) && !carved.contains(worldY)
                 val put = if (hollow) {
-                    after.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
+                    after.computeSubstance(worldX, worldY, worldZ, -1.0)
                 } else {
                     Blocks.AIR.defaultBlockState()
                 }
@@ -335,7 +334,7 @@ class AquiferSectionCheck : FunSpec({
         for (y in 40 downTo -10) {
             val row = StringBuilder()
             for (worldX in VINES_X - 20..VINES_X + 20) {
-                val put = after.computeSubstance(DensityFunction.SinglePointContext(worldX, y, VINES_Z), 0.0)
+                val put = after.computeSubstance(worldX, y, VINES_Z, 0.0)
                 row.append(
                     when {
                         put == null -> 'B'

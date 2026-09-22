@@ -3,10 +3,7 @@ package co.voik.agesandtheart.worldgen.field
 import co.voik.agesandtheart.worldgen.PreliminarySurface
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import net.minecraft.world.level.levelgen.Aquifer
-import net.minecraft.world.level.levelgen.DensityFunction
-
-/** The overworld's noise cell height, which is how `findTopSurface` steps. */
-private const val DEFAULT_CELL_HEIGHT = 8
+import net.minecraft.world.level.levelgen.densityfunction.SamplerContext
 
 /**
  * The surface an aquifer reads where no generator hands it one: [PreliminarySurface] over [field] and the
@@ -14,9 +11,9 @@ private const val DEFAULT_CELL_HEIGHT = 8
  */
 fun preliminarySurfaceOf(field: TerrainField, uncut: TerrainField? = null): WaterTable.SurfaceAt {
     val window = VerticalWindow.DEFAULT
-    val surface = PreliminarySurface(field, uncut, window.minY, window.topY - 1, DEFAULT_CELL_HEIGHT)
+    val surface = PreliminarySurface(field, uncut, window.minY, window.topY - 1)
     return WaterTable.SurfaceAt { worldX, worldZ ->
-        Math.floor(surface.compute(DensityFunction.SinglePointContext(worldX, 0, worldZ))).toInt()
+        Math.floor(surface.sampleValue(SamplerContext.EMPTY_UNCACHED, worldX, 0, worldZ).toDouble()).toInt()
     }
 }
 

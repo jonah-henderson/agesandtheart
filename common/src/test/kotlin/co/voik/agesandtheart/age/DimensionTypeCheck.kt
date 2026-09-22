@@ -15,13 +15,15 @@ import co.voik.agesandtheart.worldgen.VerticalWindow
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import net.minecraft.core.registries.Registries
-import net.minecraft.data.worldgen.SurfaceRuleData
+import net.minecraft.data.worldgen.material.EndMaterialRules
+import net.minecraft.data.worldgen.material.NetherMaterialRules
+import net.minecraft.data.worldgen.material.OverworldMaterialRules
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.attribute.EnvironmentAttribute
 import net.minecraft.world.attribute.EnvironmentAttributes
 import net.minecraft.world.level.dimension.DimensionType
-import net.minecraft.world.level.levelgen.SurfaceRules
+import net.minecraft.world.level.levelgen.material.rule.MaterialRule
 import net.minecraft.world.level.dimension.BuiltinDimensionTypes
 import io.kotest.core.spec.style.FunSpec
 import java.io.File
@@ -39,6 +41,7 @@ class DimensionTypeCheck : FunSpec({
 
     /** 26.2\'s surface rules ask for the biome registry; these are vanilla\'s own. */
     val BIOMES = MinecraftRegistries.worldgen.lookupOrThrow(Registries.BIOME)
+    val RULES = MinecraftRegistries.worldgen.lookupOrThrow(Registries.MATERIAL_RULE)
 
     val shipped = File("src/main/resources/data/agesandtheart/dimension_type")
 
@@ -104,33 +107,43 @@ class DimensionTypeCheck : FunSpec({
     /**
      * **Each world dresses ground of ours in its own skin**, and no two of them share one.
      *
-     * The surface tree was `SurfaceRuleData.overworldLike` for every Age whichever template it started
-     * from, so an infernal Age grew grass on its hills — the overworld's tree does not know a nether biome
-     * and falls through to its own default, which is dirt with grass on top (Jonah, 2026-08-14, walked).
+     * The surface tree was the overworld's for every Age whichever template it started from, so an
+     * infernal Age grew grass on its hills — the overworld's tree does not know a nether biome and falls
+     * through to its own default, which is dirt with grass on top (Jonah, 2026-08-14, walked).
      *
-     * Compared by what each tree *encodes to* rather than by identity: a `RuleSource` is a tree of records
-     * built fresh on every call, so two calls to `nether()` are equal in meaning and not by reference.
+     * **Asked which tree each template names**, which is what 26.3 turned this into: each of vanilla's is
+     * a registry entry now, so a skin encodes to the id it points at rather than to ninety lines of
+     * inlined records. Comparing an encoded tree against one we built the same way would have compared
+     * `getRule(NETHER)` with `getRule(NETHER)` and been unfalsifiable — and naming the keys covers all
+     * three templates where the old shape could only reach two, the overworld's having been built from
+     * flags rather than named.
      */
     test("each template dresses our ground in its own world's skin") {
-        fun spelled(rule: SurfaceRules.RuleSource) =
-            SurfaceRules.RuleSource.CODEC.encodeStart(
+        fun spelled(rule: MaterialRule) =
+            MaterialRule.CODEC.encodeStart(
                 MinecraftRegistries.worldgen.createSerializationContext(JsonOps.INSTANCE),
                 rule,
             ).getOrThrow().toString()
 
         val theirs = mapOf(
-            AgeTemplate.INFERNAL to SurfaceRuleData.nether(BIOMES),
-            AgeTemplate.DARK_VOID to SurfaceRuleData.end(),
+            AgeTemplate.OVERWORLD to OverworldMaterialRules.OVERWORLD_FLOATING_ISLANDS,
+            AgeTemplate.INFERNAL to NetherMaterialRules.NETHER,
+            AgeTemplate.DARK_VOID to EndMaterialRules.END,
         )
-        for ((template, tree) in theirs) {
-            check(spelled(template.skin(BIOMES)) == spelled(tree)) {
-                "${template.key} dresses our ground in something that is not its own world's skin"
+        check(theirs.keys.containsAll(AgeTemplate.entries.toSet())) {
+            "${AgeTemplate.entries - theirs.keys} name no expected skin, so nothing here checks them"
+        }
+        for ((template, expected) in theirs) {
+            val named = spelled(template.skin(RULES))
+            check(expected.identifier().toString() in named) {
+                "${template.key} dresses our ground in $named rather than in ${expected.identifier()}"
             }
         }
 
-        val distinct = AgeTemplate.entries.map { spelled(it.skin(BIOMES)) }.distinct()
-        check(distinct.size == AgeTemplate.entries.size) {
-            "two templates share a skin, so at least one is wearing another world's"
+        val byTemplate = AgeTemplate.entries.associateWith { spelled(it.skin(RULES)) }
+        val shared = byTemplate.entries.groupBy({ it.value }, { it.key.key }).filterValues { it.size > 1 }
+        check(shared.isEmpty()) {
+            "these templates share a skin, so at least one is wearing another world's: $shared"
         }
     }
 

@@ -5,7 +5,6 @@ import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.levelgen.DensityFunction
 
 /**
  * What a carver finds when it cuts — the aquifer, which decides whether an opened block comes out water or
@@ -49,7 +48,7 @@ class WaterTableCheck : FunSpec({
         standing: TerrainField? = null,
     ): Boolean {
         val aquifer = table.aquiferOver(shape, seaFill = SeaFill.of(water, seaLevel).copy(wet = standing))
-        val opened = aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
+        val opened = aquifer.computeSubstance(worldX, worldY, worldZ, -1.0)
         return opened != null && !opened.fluidState.isEmpty
     }
 
@@ -141,11 +140,11 @@ class WaterTableCheck : FunSpec({
         for (worldZ in -280..280 step 53) {
             for (worldX in -280..280) {
                 for (worldY in floor..roof) {
-                    val here = aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
+                    val here = aquifer.computeSubstance(worldX, worldY, worldZ, -1.0)
                     val toldToMove = aquifer.shouldScheduleFluidUpdate()
                     if (here == null || here.fluidState.isEmpty) continue
                     for (besideX in listOf(worldX - 1, worldX + 1)) {
-                        val beside = aquifer.computeSubstance(DensityFunction.SinglePointContext(besideX, worldY, worldZ), -1.0)
+                        val beside = aquifer.computeSubstance(besideX, worldY, worldZ, -1.0)
                         when {
                             beside == null -> barriers++
                             beside.isAir -> {
@@ -177,7 +176,7 @@ class WaterTableCheck : FunSpec({
         val aquifer = tableOver(shape).aquiferOver(shape)
 
         fun answerAt(worldX: Int, worldY: Int, worldZ: Int) =
-            aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
+            aquifer.computeSubstance(worldX, worldY, worldZ, -1.0)
 
         var shelves = 0
         var onAir = 0
@@ -217,7 +216,7 @@ class WaterTableCheck : FunSpec({
         val columns = (0..2000 step 53).flatMap { worldX -> (0..2000 step 71).map { worldX to it } }
         for (under in 0..3) {
             val opened = columns.count { (worldX, worldZ) ->
-                val put = aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, surfaceY - under, worldZ), 0.0)
+                val put = aquifer.computeSubstance(worldX, surfaceY - under, worldZ, 0.0)
                 put != null && put.isAir
             }
             println("  $under under the seabed, $opened of ${columns.size} columns opened to air")

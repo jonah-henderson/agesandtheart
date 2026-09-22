@@ -12,10 +12,11 @@ import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
+import net.minecraft.world.level.levelgen.feature.Feature
+import net.minecraft.world.level.levelgen.feature.OreFeature
+import net.minecraft.world.level.levelgen.feature.SpringFeature
 import net.minecraft.world.level.material.Fluids
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
-import net.minecraft.world.level.levelgen.feature.configurations.BlockStateConfiguration
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.registries.BuiltInRegistries
@@ -23,8 +24,6 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration
-import net.minecraft.world.level.levelgen.feature.configurations.SpringConfiguration
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import java.io.File
 
@@ -120,7 +119,7 @@ class MintingCheck : FunSpec({
         check(obsidian !== pattern) { "the lake came back unminted" }
         // Through the codec, because a `BlockStateProvider`'s own `toString` is its identity and says
         // nothing about the block — which is what made the first version of this pass over a lava lake.
-        val spelled = ConfiguredFeature.DIRECT_CODEC
+        val spelled = Feature.DIRECT_CODEC
             .encodeStart(JsonOps.INSTANCE, obsidian.value().feature().value())
             .getOrThrow().toString()
         check("minecraft:obsidian" in spelled) { "the minted lake is not made of obsidian: $spelled" }
@@ -143,18 +142,18 @@ class MintingCheck : FunSpec({
             "the spill does not stand where a spring would: ${spilled.value().placement()}"
         }
         val made = spilled.value().feature().value()
-        check(made.feature() === SpilledSpring) { "a solid spring was rebuilt as ${made.feature()}" }
-        val substance = (made.config() as BlockStateConfiguration).state
+        check(made is SpilledSpring) { "a solid spring was rebuilt as $made" }
+        val substance = (made as SpilledSpring).substance
         check(substance == Blocks.GOLD_BLOCK.defaultBlockState()) { "the spill is made of $substance" }
     }
 
     /** And a fluid still runs, which is the half that must not have moved. */
     test("a spring given a fluid still runs with it") {
         val spring = placedFeature("minecraft:spring_water")
-        val running = FeatureShape.mintedFrom(spring, "minecraft:lava").value().feature().value().config()
-        check(running is SpringConfiguration) { "a lava spring stopped being a spring: $running" }
-        check((running as SpringConfiguration).state.type === Fluids.LAVA) {
-            "a lava spring runs with ${running.state.type}"
+        val running = FeatureShape.mintedFrom(spring, "minecraft:lava").value().feature().value()
+        check(running is SpringFeature) { "a lava spring stopped being a spring: $running" }
+        check((running as SpringFeature).state().type === Fluids.LAVA) {
+            "a lava spring runs with ${running.state().type}"
         }
     }
 
@@ -276,29 +275,43 @@ class MintingCheck : FunSpec({
      */
     test("a minted spring runs with the substance and keeps its shape") {
         val pattern = placedFeature("minecraft:spring_water")
-        val was = pattern.value().feature().value().config() as SpringConfiguration
+        val was = pattern.value().feature().value() as SpringFeature
         val minted = FeatureShape.mintedFrom(pattern, "minecraft:lava")
-        val now = minted.value().feature().value().config() as SpringConfiguration
+        val now = minted.value().feature().value() as SpringFeature
 
-        check(now.state.type == Blocks.LAVA.defaultBlockState().fluidState.type) { "the spring still ran with ${now.state.type}" }
-        check(now.rockCount == was.rockCount && now.holeCount == was.holeCount) { "the spring changed shape" }
-        check(now.validBlocks == was.validBlocks) { "the spring changed the rock it wants around it" }
-        check(minted.value().placement() == pattern.value().placement()) { "the spring moved" }
+        check(now.state().type == Blocks.LAVA.defaultBlockState().fluidState.type) {
+            "the spring ran with ${now.state().type} rather than lava"
+        }
+        check(now.rockCount() == was.rockCount()) {
+            "the spring wants ${now.rockCount()} blocks of rock around it where the pattern wanted ${was.rockCount()}"
+        }
+        check(now.holeCount() == was.holeCount()) {
+            "the spring punches ${now.holeCount()} holes where the pattern punched ${was.holeCount()}"
+        }
+        check(now.validBlocks() == was.validBlocks()) {
+            "the spring wants ${now.validBlocks()} around it where the pattern wanted ${was.validBlocks()}"
+        }
+        check(minted.value().placement() == pattern.value().placement()) {
+            "the spring is placed by ${minted.value().placement()} where the pattern used ${pattern.value().placement()}"
+        }
     }
 
     test("a minted vein is made of the substance and cuts the same stone") {
         val pattern = placedFeature("minecraft:ore_gold")
-        val was = pattern.value().feature().value().config() as OreConfiguration
+        val was = pattern.value().feature().value() as OreFeature
         val minted = FeatureShape.mintedFrom(pattern, "minecraft:gold_block")
-        val now = minted.value().feature().value().config() as OreConfiguration
+        val now = minted.value().feature().value() as OreFeature
 
-        check(now.targetStates.all { it.state == Blocks.GOLD_BLOCK.defaultBlockState() }) {
-            "the vein was made of ${now.targetStates.map { it.state }}"
+        check(now.targetStates().all { it.state() == Blocks.GOLD_BLOCK.defaultBlockState() }) {
+            "the vein was made of ${now.targetStates().map { it.state() }}"
         }
-        check(now.targetStates.map { it.target } == was.targetStates.map { it.target }) {
-            "the vein changed the stone it cuts into"
+        check(now.targetStates().map { it.target() } == was.targetStates().map { it.target() }) {
+            "the vein cuts into ${now.targetStates().map { it.target() }} where the pattern cut " +
+                "${was.targetStates().map { it.target() }}"
         }
-        check(now.size == was.size) { "the vein changed size" }
+        check(now.size() == was.size()) {
+            "the vein is ${now.size()} blocks where the pattern was ${was.size()}"
+        }
     }
 
 

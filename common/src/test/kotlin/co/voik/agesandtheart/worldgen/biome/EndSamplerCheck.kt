@@ -6,10 +6,12 @@ import co.voik.agesandtheart.worldgen.field.Slab
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.registries.Registries
-import net.minecraft.util.KeyDispatchDataCodec
 import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.biome.TheEndBiomeSource
-import net.minecraft.world.level.levelgen.DensityFunction
+import net.minecraft.world.level.levelgen.densityfunction.DensityBuffer
+import net.minecraft.world.level.levelgen.densityfunction.DensitySampler
+import net.minecraft.world.level.levelgen.densityfunction.DensityVolume
+import net.minecraft.world.level.levelgen.densityfunction.SamplerContext
 
 /**
  * **What the End is handed to choose its biomes with**, which has to be the sampler it was given.
@@ -43,8 +45,10 @@ class EndSamplerCheck : FunSpec({
     test("the erosion an End Age is handed is the erosion it reads") {
         val grounded = groundedEndAge()
 
-        val worn = grounded.getNoiseBiome(FAR_OUT, ABOVE_GROUND, FAR_OUT, samplerReading { _, _ -> WORN_FLAT })
-        val standing = grounded.getNoiseBiome(FAR_OUT, ABOVE_GROUND, FAR_OUT, samplerReading { _, _ -> STANDING })
+        val worn = grounded.createResolver(samplerReading { _, _ -> WORN_FLAT })
+            .getNoiseBiome(FAR_OUT, ABOVE_GROUND, FAR_OUT)
+        val standing = grounded.createResolver(samplerReading { _, _ -> STANDING })
+            .getNoiseBiome(FAR_OUT, ABOVE_GROUND, FAR_OUT)
 
         check(worn != standing) {
             "the End answered $worn for both of two erosions that name different biomes, so it is reading " +
@@ -57,8 +61,8 @@ class EndSamplerCheck : FunSpec({
         val plain = endAge()
         val grounded = groundedEndAge()
 
-        val asIs = FAR_OUT_POINTS.map { (x, z) -> plain.getNoiseBiome(x, ABOVE_GROUND, z, samplerReading(::byPlace)) }
-        val grown = FAR_OUT_POINTS.map { (x, z) -> grounded.getNoiseBiome(x, ABOVE_GROUND, z, samplerReading(::byPlace)) }
+        val asIs = FAR_OUT_POINTS.map { (x, z) -> plain.createResolver(samplerReading(::byPlace)).getNoiseBiome(x, ABOVE_GROUND, z) }
+        val grown = FAR_OUT_POINTS.map { (x, z) -> grounded.createResolver(samplerReading(::byPlace)).getNoiseBiome(x, ABOVE_GROUND, z) }
 
         // The control, and it is not ceremony: two sources that each answered one biome everywhere would
         // agree for a reason that has nothing to do with which sampler either of them read.
@@ -94,17 +98,25 @@ private fun byPlace(blockX: Int, blockZ: Int): Double = BANDS[(blockX / 16 + blo
 
 /** A sampler that answers flatly on every axis but erosion, which is the only one the End reads. */
 private fun samplerReading(erosion: (blockX: Int, blockZ: Int) -> Double): Climate.Sampler {
-    val flat = Reading { _, _ -> 0.0 }
-    return Climate.Sampler(flat, flat, flat, Reading(erosion), flat, flat, emptyList())
+    val flat = reading { _, _ -> 0.0 }
+    return Climate.Sampler(flat, flat, flat, reading(erosion), flat, flat)
 }
 
-/** One axis, answered from the place it is asked about and nothing else. */
-private class Reading(private val at: (blockX: Int, blockZ: Int) -> Double) : DensityFunction.SimpleFunction {
-    override fun compute(context: DensityFunction.FunctionContext): Double = at(context.blockX(), context.blockZ())
+/**
+ * One axis, answered from the place it is asked about and nothing else.
+ *
+ * A bound sampler rather than a density function: 26.3 split the two, and a climate sampler holds the
+ * bound half — which is all a reading ever was, so the codec that threw and the hand-written bounds are
+ * both gone.
+ */
+private fun reading(at: (blockX: Int, blockZ: Int) -> Double): DensitySampler.Bound =
+    DensitySampler.Bound(
+        object : DensitySampler {
+            override fun sampleValue(context: SamplerContext, blockX: Int, blockY: Int, blockZ: Int): Float =
+                at(blockX, blockZ).toFloat()
 
-    override fun minValue(): Double = -1.0
-    override fun maxValue(): Double = 1.0
-
-    override fun codec(): KeyDispatchDataCodec<out DensityFunction> =
-        error("a reading belongs to one check and is never written down")
-}
+            override fun sampleVolume(context: SamplerContext, into: DensityBuffer, over: DensityVolume) =
+                DensitySampler.sampleVolumeNaive(context, into, over, this)
+        },
+        SamplerContext.EMPTY_UNCACHED,
+    )
