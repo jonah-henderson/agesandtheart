@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import net.minecraft.util.valueproviders.UniformInt
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -76,10 +77,10 @@ private const val FOUR_TIMES = 4
  */
 internal fun aMeadow(): WeightedList<MobSpawnSettings.SpawnerData> {
     return WeightedList.of(
-        Weighted(MobSpawnSettings.SpawnerData(EntityTypes.COW, 4, 4), 8),
-        Weighted(MobSpawnSettings.SpawnerData(EntityTypes.SHEEP, 4, 4), 12),
-        Weighted(MobSpawnSettings.SpawnerData(EntityTypes.ZOMBIE, 4, 4), 95),
-        Weighted(MobSpawnSettings.SpawnerData(EntityTypes.SPIDER, 4, 4), 100),
+        Weighted(MobSpawnSettings.SpawnerData(EntityTypes.COW, UniformInt.of(4, 4)), 8),
+        Weighted(MobSpawnSettings.SpawnerData(EntityTypes.SHEEP, UniformInt.of(4, 4)), 12),
+        Weighted(MobSpawnSettings.SpawnerData(EntityTypes.ZOMBIE, UniformInt.of(4, 4)), 95),
+        Weighted(MobSpawnSettings.SpawnerData(EntityTypes.SPIDER, UniformInt.of(4, 4)), 100),
     )
 }
 

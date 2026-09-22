@@ -203,12 +203,30 @@ object SurfacingStrategy {
      * sequence, which vanilla rejects.
      */
     fun asPatchesOver(skin: MaterialRule): MaterialRule = when (skin) {
+        // **A reference is walked through, not past.** Every one of vanilla's trees is a registry entry in
+        // 26.3, so the skin an `AgeTemplate` names arrives as a holder and matching only on the records
+        // beneath it would strip nothing at all — which is the walked bug this exists to fix, back again
+        // and silent.
+        is MaterialRule.HolderHolder -> {
+            val named = skin.holder().value()
+            val stripped = asPatchesOver(named)
+            if (stripped === named) skin else stripped
+        }
         is BlockRule -> SUPPRESSED
         is SequenceRule -> {
-            val earlier = skin.sequence().dropLast(1)
-            val tail = asPatchesOver(skin.sequence().last())
-            val arms = if (tail == SUPPRESSED) earlier else earlier + tail
-            if (arms.isEmpty()) SUPPRESSED else MaterialRules.sequence(*arms.toTypedArray())
+            val last = skin.sequence().last()
+            val tail = asPatchesOver(last)
+            // **Rebuilt only where something was actually taken off.** A sequence whose tail survives is
+            // handed back as it stands, references and all: rebuilding it would inline every arm that was
+            // written as an id, which is a different tree saying the same thing — and the overworld, whose
+            // tail is a condition and is never stripped, would stop being recognisable as vanilla's own.
+            if (tail === last) {
+                skin
+            } else {
+                val earlier = skin.sequence().dropLast(1)
+                val arms = if (tail == SUPPRESSED) earlier else earlier + tail
+                if (arms.isEmpty()) SUPPRESSED else MaterialRules.sequence(*arms.toTypedArray())
+            }
         }
         else -> skin
     }

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import net.minecraft.util.valueproviders.UniformInt
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.word.Vocabulary
@@ -60,7 +61,7 @@ class SpawningCheck : FunSpec({
             "a snow golem is no longer misc, so this check is guarding nothing"
         }
         // Vanilla's own refusal, pinned: if this ever stops being true the bypass can go.
-        val substituted = MobSpawnSettings.SpawnerData(EntityTypes.SNOW_GOLEM, 1, 1).type()
+        val substituted = MobSpawnSettings.SpawnerData(EntityTypes.SNOW_GOLEM, UniformInt.of(1, 1)).type()
         check(substituted == EntityTypes.PIG) {
             "vanilla no longer swaps a misc entity for a pig — SpawnerDataMixin may be deleted"
         }

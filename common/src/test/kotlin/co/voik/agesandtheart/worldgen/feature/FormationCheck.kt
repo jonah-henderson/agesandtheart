@@ -13,7 +13,6 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 
 /**
@@ -40,14 +39,14 @@ class FormationCheck : FunSpec({
     fun oneAtTheOrigin() = Grid(spacing = 512.0, jitter = 0.0, density = Density.uniform())
 
     fun configured(shape: TerrainField, variation: Variation = Variation.NONE) =
-        FormationConfiguration(listOf(shape), variation, oneAtTheOrigin(), seed = 1L, substance = stone)
+        Formation(listOf(shape), variation, oneAtTheOrigin(), seed = 1L, substance = stone)
 
     /** What every chunk in a square around the origin lays, and how often each block was laid. */
-    fun laidAcross(configuration: FormationConfiguration): Map<BlockPos, Int> {
+    fun laidAcross(formation: Formation): Map<BlockPos, Int> {
         val laid = mutableMapOf<BlockPos, Int>()
         for (chunkX in -3..3) {
             for (chunkZ in -3..3) {
-                Formation.raise(configuration, WORLD_SEED, ChunkPos(chunkX, chunkZ), flatGround) { at, _ ->
+                formation.raise(WORLD_SEED, ChunkPos(chunkX, chunkZ), flatGround) { at, _ ->
                     laid[at] = (laid[at] ?: 0) + 1
                 }
             }
@@ -103,17 +102,18 @@ class FormationCheck : FunSpec({
 
     /** The other half of `gold_block obelisks`: the substance is the only thing a minting replaces. */
     test("minting swaps the substance and nothing else") {
-        val configuration = configured(wideSlab())
-        val pattern = Holder.direct(
-            PlacedFeature(Holder.direct(ConfiguredFeature(Formation, configuration)), emptyList()),
-        )
+        val formation = configured(wideSlab())
+        val pattern = Holder.direct(PlacedFeature(Holder.direct(formation), emptyList()))
         val minted = FeatureShape.mintedFrom(pattern, "minecraft:gold_block")
-        val rebuilt = minted.value().feature().value().config()
-        check(rebuilt is FormationConfiguration) { "a minted formation came back as $rebuilt" }
-        check(rebuilt.substance == Blocks.GOLD_BLOCK.defaultBlockState()) {
+        val rebuilt = minted.value().feature().value()
+        check(rebuilt is Formation) { "a minted formation came back as $rebuilt" }
+        check((rebuilt as Formation).substance == Blocks.GOLD_BLOCK.defaultBlockState()) {
             "it is made of ${rebuilt.substance} rather than gold"
         }
-        check(rebuilt.shapes == configuration.shapes) { "minting changed the shape as well as the substance" }
+        check(rebuilt.shapes == formation.shapes) {
+            "minting changed the shape as well as the substance: ${rebuilt.shapes} where it was " +
+                "${formation.shapes}"
+        }
     }
 }) {
     private companion object {

@@ -14,7 +14,10 @@ import co.voik.agesandtheart.sky.described
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
+import co.voik.ephemeris.Rgba
 import net.minecraft.core.registries.Registries
+import org.joml.Vector3f
+import org.joml.Vector3fc
 import net.minecraft.data.worldgen.material.EndMaterialRules
 import net.minecraft.data.worldgen.material.NetherMaterialRules
 import net.minecraft.data.worldgen.material.OverworldMaterialRules
@@ -216,9 +219,11 @@ class DimensionTypeCheck : FunSpec({
             EnvironmentAttributes.SKY_COLOR to "minecraft:visual/sky_color",
         )
 
-        fun vanillasIs(world: ResourceKey<DimensionType>, attribute: EnvironmentAttribute<Int>): String {
-            val packed = vanillas.getOrThrow(world).value().attributes().applyModifier(attribute, BLACK)
-            return "#%06X".format(packed and RGB)
+        // No cast: a colour attribute is typed `Vector3fc` in 26.3, where it was a packed `Int` and this
+        // had to assert the pairing the registry could not.
+        fun vanillasIs(world: ResourceKey<DimensionType>, attribute: EnvironmentAttribute<Vector3fc>): String {
+            val colour = vanillas.getOrThrow(world).value().attributes().applyModifier(attribute, BLACK)
+            return "#%06X".format(Rgba.of(colour).packed() and RGB)
         }
 
         fun oursDeclares(id: Identifier, key: String): String? =
@@ -227,8 +232,7 @@ class DimensionTypeCheck : FunSpec({
 
         for ((world, ours) in ourEquivalent) {
             for ((attribute, key) in colours) {
-                @Suppress("UNCHECKED_CAST")
-                val theirs = vanillasIs(world, attribute as EnvironmentAttribute<Int>)
+                val theirs = vanillasIs(world, attribute)
                 val declared = oursDeclares(ours, key)
                 check(declared != null) {
                     "'${ours.path}' declares no $key, so it falls to the attribute's own #000000 and is " +
@@ -277,5 +281,6 @@ class DimensionTypeCheck : FunSpec({
 })
 
 /** The value an ambient light is read against, and the channels of one. */
-private const val BLACK = 0
+/** Nothing at all, which is what an attribute falls back to — a vector now rather than a packed nought. */
+private val BLACK: Vector3fc = Vector3f(0.0f, 0.0f, 0.0f)
 private const val RGB = 0xFFFFFF

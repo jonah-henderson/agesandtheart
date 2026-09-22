@@ -2,13 +2,16 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.mojang.serialization.JsonOps
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import co.voik.agesandtheart.MinecraftRegistries
 import net.minecraft.core.registries.Registries
-import net.minecraft.world.level.levelgen.SurfaceRules
+import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.level.levelgen.material.rule.MaterialRule
 
 /**
  * **That a world's own skin is patches over its rock, and not a repaint of it.**
@@ -24,25 +27,40 @@ import net.minecraft.world.level.levelgen.SurfaceRules
  * `SurfaceSystem.buildSurface` consults the rule only where `old == this.defaultBlock` and leaves the block
  * as it found it when the rule declines. An arm painting netherrack onto netherrack was already a no-op.
  *
- * The trees are read through their own codec rather than walked. `SurfaceRules` makes its sequence and
- * block records private, and the two access-widener lines that let the strip name them are for building a
- * tree, not for taking one apart in a check — a check that read the tree the way the code does could not
- * catch the code being wrong about the shape.
+ * The trees are read through their own codec rather than walked, and that is still the point now that
+ * 26.3 makes the records public: a check that took a tree apart the way the code does could not catch the
+ * code being wrong about the shape. It reads the data instead, and the two of them agree or they do not.
+ *
+ * **What 26.3 added is that a tree's members may be references.** Vanilla's own trees are registry entries
+ * now, so an arm can encode as a bare id rather than as an object — the overworld's tail is one. [asTree]
+ * resolves those, so the walk sees the same shape whichever way an arm was written down.
  */
 @Tags(NEEDS_REGISTRIES)
 class TemplateSkinCheck : FunSpec({
 
-    /** 26.2\'s surface rules ask for the biome registry; these are vanilla\'s own. */
-    val BIOMES = MinecraftRegistries.worldgen.lookupOrThrow(Registries.BIOME)
+    /** A skin names a rule in this registry; these are vanilla's own. */
+    val RULES = MinecraftRegistries.worldgen.lookupOrThrow(Registries.MATERIAL_RULE)
 
     /**
-     * Registry-aware ops, because 26.2's surface rules may name biomes: a plain `JsonOps` cannot reach the
-     * registry those holders live in and refuses the whole tree.
+     * Registry-aware ops, because a surface rule may name biomes and may name other rules: a plain
+     * `JsonOps` cannot reach the registries those holders live in and refuses the whole tree.
      */
     val ops = MinecraftRegistries.worldgen.createSerializationContext(JsonOps.INSTANCE)
 
-    fun spelled(rule: SurfaceRules.RuleSource): JsonObject =
-        SurfaceRules.RuleSource.CODEC.encodeStart(ops, rule).getOrThrow().asJsonObject
+    /**
+     * One arm as an object, following a reference where it is one — an arm written as an id says nothing
+     * about its own shape, and the walk below is about shape.
+     */
+    fun asTree(element: JsonElement): JsonObject =
+        if (element.isJsonObject) {
+            element.asJsonObject
+        } else {
+            val named = Identifier.parse(element.asString)
+            val rule = RULES.getOrThrow(ResourceKey.create(Registries.MATERIAL_RULE, named)).value()
+            asTree(MaterialRule.CODEC.encodeStart(ops, rule).getOrThrow())
+        }
+
+    fun spelled(rule: MaterialRule): JsonObject = asTree(MaterialRule.CODEC.encodeStart(ops, rule).getOrThrow())
 
     /**
      * Whether [rule] paints something on every block it is offered.
@@ -54,13 +72,13 @@ class TemplateSkinCheck : FunSpec({
     fun paintsEveryBlock(rule: JsonObject): Boolean = when (rule.get("type").asString) {
         "minecraft:block" -> true
         "minecraft:sequence" -> rule.getAsJsonArray("sequence").lastOrNull()
-            ?.let { paintsEveryBlock(it.asJsonObject) } == true
+            ?.let { paintsEveryBlock(asTree(it)) } == true
         else -> false
     }
 
     /** How many arms a tree offers, at every depth — what a strip must not otherwise disturb. */
     fun arms(rule: JsonObject): Int = when (rule.get("type").asString) {
-        "minecraft:sequence" -> rule.getAsJsonArray("sequence").sumOf { arms(it.asJsonObject) }
+        "minecraft:sequence" -> rule.getAsJsonArray("sequence").sumOf { arms(asTree(it)) }
         else -> 1
     }
 
@@ -69,7 +87,7 @@ class TemplateSkinCheck : FunSpec({
      * nothing here to fix, and every assertion below would pass over three trees already patch-shaped.
      */
     test("two of vanilla's three worlds do paint over every block of their rock") {
-        val repainting = AgeTemplate.entries.filter { paintsEveryBlock(spelled(it.skin(BIOMES))) }
+        val repainting = AgeTemplate.entries.filter { paintsEveryBlock(spelled(it.skin(RULES))) }
         check(repainting.map { it.key } == listOf("infernal", "dark_void")) {
             "the worlds whose skin paints every block are ${repainting.map { it.key }}, and the strip was " +
                 "written for the nether and the End"
@@ -78,7 +96,7 @@ class TemplateSkinCheck : FunSpec({
 
     test("and stripped of their last arm, none of the three does") {
         for (template in AgeTemplate.entries) {
-            val patches = SurfacingStrategy.asPatchesOver(template.skin(BIOMES))
+            val patches = SurfacingStrategy.asPatchesOver(template.skin(RULES))
             check(!paintsEveryBlock(spelled(patches))) {
                 "${template.key}'s skin still paints every block, so a rock named for it cannot be seen"
             }
@@ -92,8 +110,8 @@ class TemplateSkinCheck : FunSpec({
      */
     test("and loses nothing but that arm") {
         for (template in AgeTemplate.entries) {
-            val tree = spelled(template.skin(BIOMES))
-            val stripped = SurfacingStrategy.asPatchesOver(template.skin(BIOMES))
+            val tree = spelled(template.skin(RULES))
+            val stripped = SurfacingStrategy.asPatchesOver(template.skin(RULES))
             // A world whose whole tree was one unconditional block — the End's — has no conditioned arm to
             // keep, so what is left is the rule that never matches rather than a shorter sequence.
             if (tree.get("type").asString == "minecraft:block") {
@@ -113,7 +131,7 @@ class TemplateSkinCheck : FunSpec({
 
     /** The overworld's tree already paints patches, so nothing may happen to it at all. */
     test("and a world that already painted patches is untouched") {
-        val overworld = AgeTemplate.OVERWORLD.skin(BIOMES)
+        val overworld = AgeTemplate.OVERWORLD.skin(RULES)
         check(spelled(SurfacingStrategy.asPatchesOver(overworld)) == spelled(overworld)) {
             "the overworld's own tree was rewritten, and it had no tail to take off"
         }

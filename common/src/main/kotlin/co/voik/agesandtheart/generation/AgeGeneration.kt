@@ -47,6 +47,7 @@ import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
+import net.minecraft.world.level.levelgen.material.rule.MaterialRule
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterials
@@ -312,13 +313,22 @@ object AgeGeneration {
         // *through the field tree*, and there is none here to delegate through. Silence means vanilla's own
         // rule, which is what a nether floor of netherrack is.
         val named = composition.optionsFor(Aspect.SURFACE, 0).materialsOf(Surface.MATERIAL)
-        val skin = when {
+        val skin: Holder<MaterialRule> = when {
             // **Patches over the rock, not instead of it** — see [SurfacingStrategy.asPatchesOver]. The
             // nether's tree and the End's each end in an unconditional arm that would repaint whatever
             // block was substituted below, and removing it changes nothing until one has been.
-            named.isEmpty() -> SurfacingStrategy.asPatchesOver(theirs.materialRule().value())
-            named.all { it.isAir } -> SurfacingStrategy.NO_SKIN
-            else -> SurfacingStrategy.laidOnVanilla(named)
+            //
+            // **And where nothing came off, the holder we were handed goes back untouched.** Vanilla names
+            // its trees now — the overworld's settings say `minecraft:overworld` — so re-wrapping an
+            // unstripped rule would inline that whole tree into every recipe written over this world, for
+            // a rule that is character for character the one it already pointed at.
+            named.isEmpty() -> {
+                val theirRule = theirs.materialRule()
+                val patches = SurfacingStrategy.asPatchesOver(theirRule.value())
+                if (patches === theirRule.value()) theirRule else Holder.direct(patches)
+            }
+            named.all { it.isAir } -> Holder.direct(SurfacingStrategy.NO_SKIN)
+            else -> Holder.direct(SurfacingStrategy.laidOnVanilla(named))
         }
         // **The substance alone, read off the book rather than off the fill.** A `SeaFill` answers where a
         // sea of *ours* is poured, and `Terrain.VANILLA` declares no waterline at all — vanilla's own
@@ -332,7 +342,7 @@ object AgeGeneration {
             fill.representative.takeUnless { fill == TerrainFill.PLAIN } ?: theirs.defaultBlock(),
             sea,
             theirs.noiseRouter(),
-            Holder.direct(skin),
+            skin,
             theirs.spawnTarget(),
             theirs.seaLevel(),
             // Deprecated on the record and still required by its constructor, so this hands back

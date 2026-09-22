@@ -139,14 +139,19 @@ class VanillasRockCheck : FunSpec({
     test("and the skin a book named is the rule that world wears") {
         val world = theirs(AgeTemplate.OVERWORLD)
         val silent = AgeGeneration.vanillasRockFor(world, writing(AgeTemplate.OVERWORLD), TerrainFill.PLAIN)
-        check(silent.surfaceRule() == world.surfaceRule()) { "a book that named no skin repainted the world" }
+        check(silent.materialRule() == world.materialRule()) {
+            "a book that named no skin repainted the world: it wears ${named(silent)} where the world " +
+                "wears ${named(world)}"
+        }
 
         val dressed = AgeGeneration.vanillasRockFor(
             world,
             writing(AgeTemplate.OVERWORLD, "${Aspect.SURFACE.page}.${Surface.MATERIAL.name}" to BLACKSTONE),
             TerrainFill.PLAIN,
         )
-        check(dressed.surfaceRule() != world.surfaceRule()) { "a book that named a skin was given the world's own" }
+        check(dressed.materialRule() != world.materialRule()) {
+            "a book that named $BLACKSTONE was given the world's own skin, ${named(world)}"
+        }
     }
 })
 
@@ -154,3 +159,14 @@ class VanillasRockCheck : FunSpec({
 private const val ONE_SEED = 4242L
 
 private const val BLACKSTONE = "minecraft:blackstone"
+
+/**
+ * How a settings' skin is worth naming in a failure — the id it points at, or what kind of rule it is.
+ *
+ * **Never the rule itself.** Vanilla's trees hold their density functions inline, so printing one is
+ * megabytes of nested records, and a failure nobody can read is a failure nobody diagnoses.
+ */
+private fun named(settings: NoiseGeneratorSettings): String =
+    settings.materialRule().unwrapKey()
+        .map { it.identifier().toString() }
+        .orElseGet { "a rule of our own (${settings.materialRule().value()::class.simpleName})" }

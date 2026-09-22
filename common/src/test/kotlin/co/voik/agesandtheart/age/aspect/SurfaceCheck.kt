@@ -29,7 +29,9 @@ import io.kotest.core.spec.style.FunSpec
 class SurfaceCheck : FunSpec({
 
     /** 26.2\'s surface rules ask for the biome registry; these are vanilla\'s own. */
-    val BIOMES = MinecraftRegistries.worldgen.lookupOrThrow(Registries.BIOME)
+    // The registry a skin names a rule in — 26.3's surface rules are registry entries, where 26.2's
+    // were trees built out of Blocks and wanted the biome registry instead.
+    val RULES = MinecraftRegistries.worldgen.lookupOrThrow(Registries.MATERIAL_RULE)
     val window = VerticalWindow.DEFAULT
     val land = Slab(lowY = window.minY, highY = 64)
     val sealed = AgeRock.Ours(
@@ -43,8 +45,8 @@ class SurfaceCheck : FunSpec({
 
     test("a sealed Age is dressed exactly as the same land left open") {
 
-        val underALid = Surface.ruleFor(saidNothing, sealed, AgeTemplate.INFERNAL, BIOMES)
-        val underTheSky = Surface.ruleFor(saidNothing, open, AgeTemplate.INFERNAL, BIOMES)
+        val underALid = Surface.ruleFor(saidNothing, sealed, AgeTemplate.INFERNAL, RULES)
+        val underTheSky = Surface.ruleFor(saidNothing, open, AgeTemplate.INFERNAL, RULES)
 
         check(underALid == underTheSky) {
             "a lid changed the surface rule, so the dressing hangs from the roof rather than the land"
@@ -54,8 +56,8 @@ class SurfaceCheck : FunSpec({
     test("and so is one wearing a skin the writer named") {
         val blackstone = Options(mapOf(Surface.MATERIAL.name to listOf("minecraft:blackstone")))
 
-        val underALid = Surface.ruleFor(blackstone, sealed, AgeTemplate.INFERNAL, BIOMES)
-        val underTheSky = Surface.ruleFor(blackstone, open, AgeTemplate.INFERNAL, BIOMES)
+        val underALid = Surface.ruleFor(blackstone, sealed, AgeTemplate.INFERNAL, RULES)
+        val underTheSky = Surface.ruleFor(blackstone, open, AgeTemplate.INFERNAL, RULES)
 
         check(underALid == underTheSky) { "a named skin is hung from the roof of a sealed Age" }
     }

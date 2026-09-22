@@ -23,7 +23,7 @@ import java.io.File
 @Tags(NEEDS_REGISTRIES)
 class ShippedShapesCheck : FunSpec({
 
-    val shipped = File("src/main/resources/data/agesandtheart/worldgen/configured_feature")
+    val shipped = File("src/main/resources/data/agesandtheart/worldgen/feature")
 
     /** Every shape of every formation the pack ships, by the file it came from. */
     val shapes: List<Pair<String, TerrainField>> = shipped.listFiles()
@@ -37,8 +37,10 @@ class ShippedShapesCheck : FunSpec({
             JsonParser.parseString(file.readText()).asJsonObject.get("type")?.asString == FORMATION
         }
         .flatMap { file ->
-            val config = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonObject("config")
-            config.getAsJsonArray("shapes").mapIndexed { at, shape ->
+            // Beside the type rather than under a `config`: 26.3 folded a feature's configuration into
+            // the feature, so its fields are the object's own.
+            val feature = JsonParser.parseString(file.readText()).asJsonObject
+            feature.getAsJsonArray("shapes").mapIndexed { at, shape ->
                 val decoded = TerrainField.CODEC.parse(JsonOps.INSTANCE, shape)
                     .getOrThrow { failure -> AssertionError("${file.name} shape $at: $failure") }
                 "${file.nameWithoutExtension}[$at]" to decoded
