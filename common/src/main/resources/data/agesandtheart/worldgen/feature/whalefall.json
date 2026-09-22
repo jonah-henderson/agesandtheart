@@ -1,0 +1,37 @@
+{
+  "_comment": [
+    "Bones lying on the floor of the abyss -- vanilla's own fossil templates, laid where the placement puts",
+    "them rather than buried under it.",
+    "",
+    "**This exists because `minecraft:fossil_coal` could never have shown, measured 2026-09-22.**",
+    "`FossilFeature` ignores the Y it is handed: it reads `OCEAN_FLOOR_WG` across the structure's own",
+    "footprint and places at `lowestSurface - 15 - random(10)`, so the bones always end up fifteen to",
+    "twenty-four blocks *under* the sea bed. Forced onto a real abyss floor at y=4 it laid them at y=-14..-7.",
+    "That is what a buried fossil is for and it is the opposite of a whalefall, which is something that sank",
+    "and came to rest. No placement modifier can lift it, because the feature does that arithmetic itself.",
+    "",
+    "`minecraft:template` places one template centred on the origin and does nothing else, which is exactly",
+    "the missing behaviour.",
+    "",
+    "**The templates are sparse, which is what makes this safe underwater.** Each holds only its",
+    "`bone_block` positions -- no air and no structure void anywhere in them -- so the water around the",
+    "bones is left as it was. A template carrying air would have punched a pocket into the abyss, and an air",
+    "pocket is the one thing that takes the pressure out of deep water (`DeepWater.mayStandAt`).",
+    "",
+    "**The coal went with the burial that justified it.** Vanilla lays a second `_coal` template over the",
+    "first to press some of the bone into coal ore; `minecraft:template` places one template under its own",
+    "rotation, so the two cannot be aligned. That is the right trade anyway -- coal is what happens to",
+    "something buried and compressed, and these bones are lying in open water."
+  ],
+  "type": "minecraft:template",
+  "templates": [
+    { "data": { "id": "minecraft:fossil/spine_1" }, "weight": 1 },
+    { "data": { "id": "minecraft:fossil/spine_2" }, "weight": 1 },
+    { "data": { "id": "minecraft:fossil/spine_3" }, "weight": 1 },
+    { "data": { "id": "minecraft:fossil/spine_4" }, "weight": 1 },
+    { "data": { "id": "minecraft:fossil/skull_1" }, "weight": 1 },
+    { "data": { "id": "minecraft:fossil/skull_2" }, "weight": 1 },
+    { "data": { "id": "minecraft:fossil/skull_3" }, "weight": 1 },
+    { "data": { "id": "minecraft:fossil/skull_4" }, "weight": 1 }
+  ]
+}

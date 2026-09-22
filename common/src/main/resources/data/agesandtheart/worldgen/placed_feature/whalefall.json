@@ -1,20 +1,16 @@
 {
   "_comment": [
-    "Bones on the floor of the abyss -- vanilla's fossil, sited at the sea bed instead of buried in a desert.",
+    "Where the bones of `agesandtheart:whalefall` land: on the sea bed, in the abyss and nowhere else.",
     "",
-    "**It works because of an accident worth writing down.** `FossilFeature` refuses to place where too many",
-    "corners of its bounding box are 'empty', and it counts air, lava and `minecraft:water` -- our deep water",
-    "is a different block and is therefore counted as solid ground. So a fossil laid in open abyss passes a",
-    "check that would have refused it in an ordinary ocean. If deep water ever becomes vanilla water, this",
-    "silently stops generating.",
-    "",
-    "`fossil_coal` rather than the diamond variant: the coal reads as what is left of something that died and",
-    "was pressed, which is exactly what a whalefall is.",
+    "`OCEAN_FLOOR_WG` is the first place above the floor, and `minecraft:template` builds up from the",
+    "position it is given, so the bones rest on the bed.",
     "",
     "The `biome` filter at the end is what confines it -- it re-checks the biome at the chosen position, so",
-    "a sea bed that pokes above the abyss line gets nothing."
+    "a sea bed that pokes above the abyss line gets nothing. It is also the one thing here that can be",
+    "tightened or loosened: the abyss biome reaches from the bed up to the abyss line, and nothing else in",
+    "the Age carries this feature."
   ],
-  "feature": "minecraft:fossil_coal",
+  "feature": "agesandtheart:whalefall",
   "placement": [
     { "type": "minecraft:rarity_filter", "chance": 10 },
     { "type": "minecraft:in_square" },
