@@ -26,32 +26,51 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * pass. The alternative would be a weather renderer of ours replacing vanilla's outright, which is a great
  * deal more code to end up drawing nothing.
  *
- * <p><b>Both entry points, because they are two different things.</b> {@code render} draws the falling
+ * <p><b>Both entry points, because they are two different things.</b> The drawing puts up the falling
  * columns and the particle tick spawns the splashes and the ambient flecks; suppressing only the first
- * leaves the second pattering away in a whiteout. In 26.2 the second one is no longer on this class at
+ * leaves the second pattering away in a whiteout. Since 26.2 the second one is no longer on this class at
  * all — it is {@code ClientLevel.tickWeatherEffects}, and it is suppressed by
  * {@link WeatherParticlesMixin}.
  */
 @Mixin(WeatherEffectRenderer.class)
 public abstract class WeatherEffectRendererMixin {
 
-    @Inject(method = "render(Lnet/minecraft/world/phys/Vec3;Lnet/minecraft/client/renderer/state/level/WeatherRenderState;)V", at = @At("HEAD"), cancellable = true)
-    private void agesandtheart$ourOwnSnowInstead(Vec3 cameraPos, WeatherRenderState state, CallbackInfo callback) {
-        if (Storms.drawingItsOwn()) callback.cancel();
-    }
-
     /**
-     * A deluge's rain, made heavier once vanilla has laid it out. {@code extractRenderState} is where the
-     * frame's columns are built and nothing else reads them before {@code render}, so thickening the list
-     * here is the whole of it.
+     * A blizzard's own snow instead of vanilla's, and a deluge's rain made heavier — both decided on the
+     * frame's extracted state.
+     *
+     * <p><b>Emptying the state rather than cancelling a draw, which 26.3 forced and then improved on.</b>
+     * The old seam was {@code render(Vec3, WeatherRenderState)}, one method that laid the columns out and
+     * drew them. 26.3 split it in two: {@code prepare(Vec3, WeatherRenderState)} builds the geometry into
+     * the vertex buffer, and {@code render(WeatherRenderState, RenderPass)} issues the draw — so the old
+     * descriptor matches nothing and the mixin could not be applied at all.
+     *
+     * <p>Cancelling the half that kept the old parameters would have been the natural port and would have
+     * been wrong: {@code prepare} is the *builder*, and the draw guards on the render state's column lists
+     * rather than on anything prepare sets, so a suppressed prepare leaves the draw putting the previous
+     * frame's geometry back on screen — a whiteout frozen in place. There are two public draws as well
+     * ({@code render} and {@code renderOit}), and both funnel into one private method guarded by those
+     * same lists.
+     *
+     * <p>So the columns are what to take away. An empty state is vanilla's own "no weather this frame":
+     * prepare builds nothing, both draws skip themselves, and no descriptor anybody may split again is
+     * named. It also costs less than cancelling did — the geometry is never built.
+     *
+     * <p>One injection for both jobs because they meet here: thickening a list we are about to empty would
+     * be work thrown away, and the order of two injections at the same point is not ours to rely on.
      */
     @Inject(method = "extractRenderState", at = @At("TAIL"))
-    private void agesandtheart$heavierInADeluge(
+    private void agesandtheart$ourOwnSnowInstead(
             ClientLevel level,
             float partialTicks,
             Vec3 cameraPos,
             WeatherRenderState renderState,
             CallbackInfo callback) {
+        if (Storms.drawingItsOwn()) {
+            renderState.rainColumns.clear();
+            renderState.snowColumns.clear();
+            return;
+        }
         Downpours.thicken(renderState.rainColumns);
     }
 }
