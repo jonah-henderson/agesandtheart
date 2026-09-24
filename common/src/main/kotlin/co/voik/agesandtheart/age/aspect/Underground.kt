@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.GreatHalls
+import co.voik.agesandtheart.worldgen.LatticeField
 import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.TunnelsField
 import co.voik.agesandtheart.worldgen.VerticalWindow
@@ -41,6 +42,13 @@ enum class Underground(override val key: String) : AuthoredPreset {
     TUNNELS("tunnels"),
 
     /**
+     * **Square-cut tunnels on a regular grid**, along X and Z on every storey with shafts standing where
+     * they cross — [co.voik.agesandtheart.worldgen.LatticeField]. The made counterpart to [TUNNELS]: the
+     * same wet-or-dry rock, but every passage ruled straight and the same distance from the next.
+     */
+    LATTICE("lattice"),
+
+    /**
      * Storey upon storey of pillared hall.
      *
      * A value here rather than a landform of its own, so that what stands *over* the halls can be any
@@ -64,19 +72,19 @@ enum class Underground(override val key: String) : AuthoredPreset {
     override val aspect = Aspect.UNDERGROUND
 
     /**
-     * **A vault is a thing with a name**, and so is a tunnel, so the pages that mean them are minted here
+     * **A vault is a thing with a name**, and so are a tunnel and a lattice, so the pages that mean them are minted here
      * the way a landform's is — `chambered underground` rather than a hopeful pile of adjectives. The other
      * three stay unnamed and are reached by what they are like, there being nothing to a hollow rock but
      * its quality.
      */
-    override val writtenWordFor: String? get() = key.takeIf { this == CHAMBERED || this == TUNNELS }
+    override val writtenWordFor: String? get() = key.takeIf { this in NAMED }
 
     /**
      * How big a chamber or a tunnel is — the axis every other size in the language is said on, so
      * `colossal chambered underground` is the vault a city fits in and nothing below it is.
      */
     override val parameters: List<Parameter>
-        get() = listOfNotNull(Terrain.SIZE.takeIf { this == CHAMBERED || this == TUNNELS })
+        get() = listOfNotNull(Terrain.SIZE.takeIf { this in NAMED })
 
     /**
      * This underground cut into [uncut], between [floor] and [ceiling].
@@ -103,6 +111,14 @@ enum class Underground(override val key: String) : AuthoredPreset {
             val scale = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
             Terrain.Ground(
                 Subtract(uncut, TunnelsField.tubes(floor, ceiling, TUNNEL_SEED xor salt, scale)),
+                hollows = uncut,
+            )
+        }
+        // Laid like the tunnels, between the landform's floor and ceiling and answering to its water table.
+        LATTICE -> {
+            val scale = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
+            Terrain.Ground(
+                Subtract(uncut, LatticeField.passages(floor, ceiling, LATTICE_SEED xor salt, scale)),
                 hollows = uncut,
             )
         }
@@ -151,11 +167,17 @@ enum class Underground(override val key: String) : AuthoredPreset {
     override fun getSerializedName(): String = key
 
     companion object {
+        /** The undergrounds that are things with names, and so take a page and a size. */
+        private val NAMED = setOf(CHAMBERED, TUNNELS, LATTICE)
+
         // So an Age's caves are its own, and decorrelated from the rock they are cut into.
         private const val CAVE_SEED = 0xCA_7E5L
 
         // And its tunnels, so the tubes are not laid along the noise caves.
         private const val TUNNEL_SEED = 0x7_0BE5L
+
+        // And its lattice, so the grid is not anchored off the same numbers as anything else.
+        private const val LATTICE_SEED = 0x1A_771CEL
 
         // And its halls likewise, decorrelated from both.
         private const val HALL_SEED = 0x4A_115L

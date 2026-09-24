@@ -10,6 +10,7 @@ import co.voik.agesandtheart.worldgen.ErodedField
 import co.voik.agesandtheart.worldgen.FlatlandsField
 import co.voik.agesandtheart.worldgen.GreatHalls
 import co.voik.agesandtheart.worldgen.IslandsField
+import co.voik.agesandtheart.worldgen.LatticeField
 import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.OverworldField
 import co.voik.agesandtheart.worldgen.PillarField
@@ -17,6 +18,7 @@ import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.ShatteredField
+import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.SolidField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.worldgen.TunnelsField
@@ -247,6 +249,14 @@ private val subjects: Map<String, Subject> = mapOf(
     // as a solid lattice hanging in space than as absence inside a hill, and the slices are where the
     // network's connectedness actually shows.
     "tunnels-voids" to Subject(TunnelsField.tubes(-59, 19), lowestY = VerticalWindow.MIN_Y, highestY = 30),
+    // The `lattice` underground the same way, at its unsaid and its colossal size.
+    "lattice-voids" to Subject(LatticeField.passages(-59, 19), lowestY = VerticalWindow.MIN_Y, highestY = 30),
+    "lattice-colossal-voids" to Subject(
+        LatticeField.passages(-59, 19, scale = SizeScale.COLOSSAL),
+        lowestY = VerticalWindow.MIN_Y,
+        highestY = 30,
+        radius = 400,
+    ),
     "eroded" to Subject(ErodedField.world(), lowestY = 30, highestY = 195, radius = 200),
 
     // **Read the slice across the bearing, not the plan.** From above a solid world is one flat shade with

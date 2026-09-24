@@ -16,6 +16,14 @@
       "dark": 0.7
     }
   },
+  "lattice": {
+    "readiness": 0.3,
+    "tags": {
+      "ordered": 1.0,
+      "cavernous": 0.7,
+      "dark": 0.5
+    }
+  },
   "great_halls": {
     "readiness": 0.3,
     "tags": {
