@@ -7,10 +7,11 @@
     "pointing down, so the mouth is the widest part and it narrows as it deepens -- what a pit looks like,",
     "and the reason this is a cone rather than the half-ellipsoid a bowl would be.",
     "",
-    "**Heights are measured from the ground's top block**, `sunk` making 0 that block rather than the one",
-    "above it, so the mouth IS the surface -- what makes what the pit is made of something you can walk",
-    "onto, and what the scarab medallion reads as exposed (design §7.1.2). Sizes and poses scale about 0,",
-    "so it stays flush at every size.",
+    "**Heights are measured from a block under the ground's top**, `sunk` putting 0 a step down and",
+    "clearing the step over it, so the mouth is a block below the ground around it -- flush, a pit read as",
+    "a patch of terrain (Jonah, 2026-09-24). What the pit is made of is still open to the sky, which is",
+    "what the scarab medallion reads as exposed (design §7.1.2). Sizes and poses scale about 0, so the",
+    "step is the same at every size.",
     "",
     "**`sunk`, so it is dug in the way vanilla's surface lake is.** The mouth sits on the LOWEST ground",
     "under it and the ground standing higher is cut away, so on a slope the pit is a hollow with a bank",
@@ -23,7 +24,7 @@
     "uneven. The clip keeps any column the undulation lifted from standing proud of the mouth.",
     "",
     "About sixteen across as written, between a landmark and a puddle (Jonah, 2026-09-23), and one to a",
-    "64-block cell, so `colossal` is a pond-sized one and `tiny` a puddle."
+    "64-block cell, so `colossal` is a pond-sized one and `minuscule` a puddle."
   ],
   "type": "agesandtheart:formation",
   "shapes": [

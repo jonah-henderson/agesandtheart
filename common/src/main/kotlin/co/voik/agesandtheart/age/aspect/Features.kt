@@ -158,6 +158,11 @@ object Features {
         // Scaling a biome's own feature makes a new one too, so it is memoised for the same reason —
         // keyed by the feature and the amount, which is what decides the object.
         val bent = ConcurrentHashMap<Pair<Holder<VanillaPlacedFeature>, Double>, Holder<VanillaPlacedFeature>>()
+        // Every claim confined to a biome, as that biome would want it — offered to every biome, since a
+        // confined formation is carried everywhere and asks its own origin (`Formation.onlyIn`).
+        val confined = claims.filter { it.confinedTo != null }
+            .groupBy { it.confinedTo }
+            .flatMap { (ground, there) -> PLACES.skewOf(there, ground).wanted }
         return { biome ->
             settled.computeIfAbsent(biome) {
                 // A claim confined to one biome (§4.3.1) is absent from every other, so each biome's
@@ -165,7 +170,7 @@ object Features {
                 val here = PLACES.skewOf(claims, it.unwrapKey().orElse(null)?.identifier())
                 settingsFrom(
                     it,
-                    wanted(server, here, salt, grown, shape),
+                    wanted(server, here, salt, grown, shape, confined),
                     bentWhereItGrows(here),
                     bent,
                     here.struck.mapNotNull(Identifier::tryParse).toSet(),
@@ -222,11 +227,18 @@ object Features {
         salt: Long,
         grown: ConcurrentHashMap<Claim, Holder<VanillaPlacedFeature>>,
         shape: Shape,
+        confinedElsewhere: List<Claim>,
     ): Map<Int, List<Holder<VanillaPlacedFeature>>> {
         val features = server.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
         val biomes = server.registryAccess().lookupOrThrow(Registries.BIOME)
         val byStep = mutableMapOf<Int, MutableList<Holder<VanillaPlacedFeature>>>()
-        for (claim in asked.wanted) {
+        fun placesAFormation(claim: Claim): Boolean {
+            val named = claim.id ?: return false
+            val found = features.get(ResourceKey.create(Registries.PLACED_FEATURE, named)).orElse(null)
+            return found != null && FeatureShape.isAFormation(found)
+        }
+        val formationsFromElsewhere = confinedElsewhere.filter { it !in asked.wanted && placesAFormation(it) }
+        for (claim in asked.wanted + formationsFromElsewhere) {
             // A description asks for more of what grows here, never for something that does not — see
             // [bentWhereItGrows] and `Claim.onlyWhereItGrows`.
             if (claim.onlyWhereItGrows && claim.madeOf == null) continue
@@ -256,7 +268,8 @@ object Features {
                     height = claim.height ?: shape.height,
                     rock = shape.rock,
                 )
-                FeatureDensity.applied(reshaped, claim.density)
+                val confined = claim.confinedTo?.let { FeatureShape.confinedTo(reshaped, it) } ?: reshaped
+                FeatureDensity.applied(confined, claim.density)
             }
             byStep.getOrPut(stepFor(named, found.value(), biomes)) { mutableListOf() } += laid
         }

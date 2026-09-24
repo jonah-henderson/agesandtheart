@@ -175,10 +175,11 @@ class FormationCheck : FunSpec({
 
         val standingProud = laid.filter { it.y >= gentleSlope(it.x, it.z) }
         check(standingProud.isEmpty()) { "${standingProud.size} blocks of the pit stand above the ground, e.g. ${standingProud.first()}" }
-        check(laid.maxOf { it.y } == SEA_LEVEL - 1) { "the mouth is at ${laid.maxOf { it.y }}, not the lowest ground's top" }
+        // A step under the lowest ground's top block, which is itself cleared, so the mouth is recessed.
+        check(laid.maxOf { it.y } == SEA_LEVEL - 2) { "the mouth is at ${laid.maxOf { it.y }}, not a step under the lowest ground" }
 
         val bank = cleared.filter { it.x == 10 && it.z == 0 }.map { it.y }.sorted()
-        check(bank == (SEA_LEVEL..<gentleSlope(10, 0)).toList()) { "the uphill edge cut away $bank" }
+        check(bank == (SEA_LEVEL - 1..<gentleSlope(10, 0)).toList()) { "the uphill edge cut away $bank" }
     }
 
     test("a sunk formation refuses ground too steep to cut") {

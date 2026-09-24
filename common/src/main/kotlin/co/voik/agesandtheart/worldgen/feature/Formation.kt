@@ -8,7 +8,12 @@ import co.voik.agesandtheart.worldgen.field.Variation
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
+import net.minecraft.core.QuartPos
 import net.minecraft.core.SectionPos
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
+import java.util.Optional
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.LevelHeightAccessor
 import net.minecraft.world.level.WorldGenLevel
@@ -72,6 +77,15 @@ data class Formation(
     val substances: List<BlockState>,
     /** Whether this is dug into the ground rather than stood on it — a pit. See [sinkingInto]. */
     val sunk: Boolean = false,
+    /**
+     * The one biome a formation may stand in, or null for anywhere — `pits in jungle`.
+     *
+     * **Asked of the formation, not left to the biome's feature list.** Vanilla runs a feature only in
+     * chunks with one of its biomes within a chunk of them, so a formation carried by jungle alone was
+     * laid in the chunks near the jungle and missing from the rest of itself. Carried everywhere and asked
+     * at its own origin instead, every chunk it crosses agrees about it.
+     */
+    val onlyIn: Identifier? = null,
 ) : Feature {
 
     /**
@@ -97,6 +111,7 @@ data class Formation(
             chunk,
             groundAt,
             clear = { position -> clearUpwardsFrom(level, position) },
+            standsAt = onlyIn?.let { biome -> standsIn(biome, level, generator, groundAt) } ?: ANYWHERE,
         ) { position, state ->
             if (!level.isOutsideBuildHeight(position)) level.setBlock(position, state, PLACED_BY_WORLDGEN)
         }
@@ -137,17 +152,36 @@ data class Formation(
     }
 
     /**
+     * Whether a formation standing at a column is in [biome], read from the biome source at the ground
+     * rather than from a chunk — pure, like [surfaceOf], so every chunk the formation crosses agrees.
+     */
+    private fun standsIn(
+        biome: Identifier,
+        level: WorldGenLevel,
+        generator: ChunkGenerator,
+        groundAt: (Int, Int) -> Int,
+    ): (Int, Int) -> Boolean {
+        val resolver = generator.biomeSource.createUncachedResolver(level.level.chunkSource.randomState())
+        val wanted = ResourceKey.create(Registries.BIOME, biome)
+        return { x, z ->
+            val y = groundAt(x, z) - 1
+            resolver.getNoiseBiome(QuartPos.fromBlock(x), QuartPos.fromBlock(y), QuartPos.fromBlock(z)).`is`(wanted)
+        }
+    }
+
+    /**
      * Every formation reaching [chunk], laid where it crosses it — of anything that can take a block, so
      * what it draws can be checked without a world under it, as [SpilledSpring.spill] is.
      *
      * Returns how many blocks it laid, so a caller can tell a formation from nothing at all. [clear] is
-     * where a [sunk] one cuts the ground away.
+     * where a [sunk] one cuts the ground away, and [standsAt] whether one may stand at its origin.
      */
     fun raise(
         worldSeed: Long,
         chunk: ChunkPos,
         groundAt: (Int, Int) -> Int,
         clear: (BlockPos) -> Unit = {},
+        standsAt: (Int, Int) -> Boolean = ANYWHERE,
         lay: (BlockPos, BlockState) -> Unit,
     ): Int {
         val posed = shapes.flatMap(variation::sizesOf)
@@ -180,6 +214,7 @@ data class Formation(
         // chunks a formation reaches but never actually touches. A sunk one asks each column it digs as well,
         // since its bank is that column's own ground.
         for (formation in standing) {
+            if (!standsAt(formation.originX, formation.originZ)) continue
             // Re-seeded from where the formation stands, so every chunk laying part of it turns it the same
             // way — the pose belongs to the thing, not to the column asking about it.
             fun columnOf(x: Int, z: Int): Spans {
@@ -198,11 +233,12 @@ data class Formation(
                     if (solid.ranges.isEmpty()) continue
                     val anchor = standsOn ?: break@columns
                     // `getBaseHeight` answers the first block *above* the ground. A standing shape's 0 is that
-                    // block; a sunk one's is the ground's top block itself, so its mouth is flush with the
-                    // surface at 0 — and stays flush at every size, sizes being scaled about 0.
-                    val base = if (sunk) anchor - 1 else anchor
+                    // block; a sunk one's is [RECESS] under the ground's top block, so its mouth sits a step
+                    // down from the ground around it — and stays there at every size, sizes being scaled
+                    // about 0.
+                    val base = if (sunk) anchor - 1 - RECESS else anchor
                     laid += layColumn(solid, base, x, z, lay)
-                    if (sunk) cutAway(anchor, groundAt(x, z), x, z, clear)
+                    if (sunk) cutAway(anchor - RECESS, groundAt(x, z), x, z, clear)
                 }
             }
         }
@@ -294,7 +330,10 @@ data class Formation(
                 ExtraCodecs.nonEmptyList(ExtraCodecs.compactListCodec(BlockState.CODEC)).fieldOf("substance")
                     .forGetter(Formation::substances),
                 Codec.BOOL.optionalFieldOf("sunk", false).forGetter(Formation::sunk),
-            ).apply(instance, ::Formation)
+                Identifier.CODEC.optionalFieldOf("only_in").forGetter { Optional.ofNullable(it.onlyIn) },
+            ).apply(instance) { shapes, variation, placement, seed, substances, sunk, onlyIn ->
+                Formation(shapes, variation, placement, seed, substances, sunk, onlyIn.orElse(null))
+            }
         }
 
         /** Vanilla's own flag for a block a feature lays: change it, and do not tell a neighbour. */
@@ -310,6 +349,15 @@ data class Formation(
          * with four of air over its fluid, so this is about what one of those tolerates before refusing.
          */
         private const val DEEPEST_CUT = 5
+
+        /**
+         * How far a sunk formation's mouth sits under the ground it was dug into. Flush, a pit read as a
+         * patch of the terrain; a step down, it reads as a hole (Jonah, 2026-09-24).
+         */
+        private const val RECESS = 1
+
+        /** Where a formation that names no biome may stand. */
+        private val ANYWHERE: (Int, Int) -> Boolean = { _, _ -> true }
 
         /** How finely a sunk formation's mouth is sampled for the ground under it — see [sinkingInto]. */
         private const val SAMPLES_ACROSS_A_RADIUS = 6.0

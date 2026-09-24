@@ -149,6 +149,19 @@ object FeatureShape {
         return Holder.direct(PlacedFeature(Holder.direct(rebuilt), placed.placement()))
     }
 
+    /**
+     * A formation told the one biome it may stand in — see [Formation.onlyIn] — or null for any feature that
+     * is not a formation, which stays in its biome's feature list as every other feature does.
+     */
+    fun confinedTo(feature: Holder<PlacedFeature>, biome: Identifier): Holder<PlacedFeature>? {
+        val placed = feature.value()
+        val formation = placed.feature().value() as? Formation ?: return null
+        return Holder.direct(PlacedFeature(Holder.direct(formation.copy(onlyIn = biome)), placed.placement()))
+    }
+
+    /** Whether this places a [Formation] — the one kind of feature [confinedTo] can confine. */
+    fun isAFormation(feature: Holder<PlacedFeature>): Boolean = feature.value().feature().value() is Formation
+
     fun reshaped(
         feature: Holder<PlacedFeature>,
         size: Double?,
