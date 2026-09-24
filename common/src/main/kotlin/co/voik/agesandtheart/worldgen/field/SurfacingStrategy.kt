@@ -134,8 +134,8 @@ object SurfacingStrategy {
      * 2026-08-14, walked). The nether's own tree dresses nether biomes; the overworld's does not know them
      * and falls through to its default, which is dirt with grass on top.
      */
-    fun delegatedToBiomes(terrain: TerrainField, skin: MaterialRule): MaterialRule =
-        layers(worldFloor(), MaterialRules.ifTrue(NearTheSurface(terrain), skin))
+    fun delegatedToBiomes(terrain: TerrainField, skin: MaterialRule, beneath: MaterialRule? = null): MaterialRule =
+        layers(*listOfNotNull(worldFloor(), MaterialRules.ifTrue(NearTheSurface(terrain), skin), beneath).toTypedArray())
 
     /**
      * A material laid over the ground instead of the biome's own skin — `Surface`'s answer when a writer
@@ -149,10 +149,14 @@ object SurfacingStrategy {
      * speckle: `noiseCondition` names a *registered* noise, so a per-Age number would need a condition
      * source of our own, the way [NearTheSurface] carries a terrain field.
      */
-    fun laidOn(terrain: TerrainField, blocks: List<BlockState>): MaterialRule = layers(
-        worldFloor(),
-        MaterialRules.ifTrue(NearTheSurface(terrain), MaterialRules.ifTrue(withinDepth(SKIN_DEPTH), mingled(blocks))),
-        deepslateFloor(),
+    fun laidOn(terrain: TerrainField, blocks: List<BlockState>, beneath: MaterialRule? = null): MaterialRule = layers(
+        *listOfNotNull(
+            worldFloor(),
+            MaterialRules.ifTrue(NearTheSurface(terrain), MaterialRules.ifTrue(withinDepth(SKIN_DEPTH), mingled(blocks))),
+            // Before the deepslate, as vanilla's own underground tree orders them: the first rule to apply wins.
+            beneath,
+            deepslateFloor(),
+        ).toTypedArray(),
     )
 
     /**

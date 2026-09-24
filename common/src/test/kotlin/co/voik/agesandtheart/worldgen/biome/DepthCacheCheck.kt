@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.worldgen.biome
 
-import co.voik.agesandtheart.worldgen.CavernField
+import co.voik.agesandtheart.worldgen.NoiseField
+import co.voik.agesandtheart.worldgen.TunnelsField
+import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import io.kotest.core.annotation.Isolate
 import io.kotest.core.spec.style.FunSpec
@@ -23,7 +25,8 @@ import kotlin.system.measureNanoTime
 class DepthCacheCheck : FunSpec({
 
     test("a chunk's depth queries cost about what its distinct columns do") {
-        val terrain = CavernField.world()
+        // Hills with tunnels under them, so a column holds several runs rather than one.
+        val terrain = Subtract(NoiseField.hills(), TunnelsField.tubes(TUNNELS_FROM_Y, TUNNELS_TO_Y))
         val depth = BelowTerrain(terrain)
 
         // Warm both paths together so neither is measured cold against the other.
@@ -89,6 +92,8 @@ private fun bestOfFreshChunks(work: (Int) -> Unit): Long {
     return best
 }
 
+private const val TUNNELS_FROM_Y = -56
+private const val TUNNELS_TO_Y = 64
 private const val QUART_SPAN = 4
 private const val SECTIONS = 24
 private const val COLUMNS_PER_CHUNK = QUART_SPAN * QUART_SPAN

@@ -1,8 +1,10 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Weathered
+import co.voik.agesandtheart.worldgen.field.scaledAbout
 import kotlin.math.abs
 import kotlin.math.pow
+import kotlin.math.roundToInt
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.synth.NormalNoise
 
@@ -81,7 +83,46 @@ class Weathering(
     val seed: Long,
     val firstOctave: Int,
     val amplitudes: DoubleArray,
+    /** How far this profile has been [resized] from the one [key] names, and about which height. */
+    val sizedBy: Double = SizeScale.ORDINARY,
+    val sizedAbout: Int = 0,
 ) {
+    /**
+     * The same weather for a landform [resized][co.voik.agesandtheart.worldgen.field.TerrainField.resized]
+     * by [factor] about [pivotY]: the band, the keel and the reaches move with the rock, and the noise grows
+     * with it so a smaller landform is worn at its own scale. The dials are ratios and stay.
+     */
+    fun resized(factor: Double, pivotY: Int): Weathering {
+        if (factor == SizeScale.ORDINARY) return this
+        require(sizedBy == SizeScale.ORDINARY || sizedAbout == pivotY) {
+            "'$key' was sized about $sizedAbout and cannot be sized again about $pivotY"
+        }
+        return Weathering(
+            key = key,
+            fromY = scaledAbout(fromY, factor, pivotY),
+            toY = scaledAbout(toY, factor, pivotY),
+            bite = bite,
+            keelY = scaledAbout(keelY, factor, pivotY),
+            atTheKeel = atTheKeel,
+            atTheTip = atTheTip,
+            atTheRoot = atTheRoot,
+            taper = taper,
+            taperReachAbove = (taperReachAbove * factor).roundToInt().coerceAtLeast(1),
+            taperReachBelow = (taperReachBelow * factor).roundToInt().coerceAtLeast(1),
+            scale = scale * factor,
+            verticalScale = verticalScale * factor,
+            windStretch = windStretch,
+            needleScale = needleScale * factor,
+            needleThreshold = needleThreshold,
+            needleBonus = needleBonus,
+            seed = seed,
+            firstOctave = firstOctave,
+            amplitudes = amplitudes,
+            sizedBy = sizedBy * factor,
+            sizedAbout = pivotY,
+        )
+    }
+
     // Shared and immutable: resistance is a property of the rock in a place, not of a chunk.
     private val resistance = NormalNoise.createParity(firstOctave, *amplitudes).create(XoroshiroRandomSource(seed))
 

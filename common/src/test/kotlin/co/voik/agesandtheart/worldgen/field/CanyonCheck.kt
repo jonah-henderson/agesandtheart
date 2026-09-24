@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen.field
 import co.voik.agesandtheart.age.aspect.NORTH_SOUTH
 import co.voik.agesandtheart.age.aspect.bearingAt
 import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
+import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import io.kotest.core.annotation.Tags
@@ -24,7 +25,7 @@ import kotlin.math.ceil
 class CanyonCheck : FunSpec({
 
     fun canyonAt(bearing: Double = 0.0, offset: Double = 0.0) =
-        CanyonField.canyon(bearing, salt = 0L, offset = offset)
+        CanyonField.canyon(bearing, salt = 0L, offset = offset, scale = SizeScale.COLOSSAL)
 
     /**
      * **Nothing is cut below the bed.** The wall fray is signed and is added to a distance, so a column
@@ -122,10 +123,10 @@ class CanyonCheck : FunSpec({
     test("crossing canyons cut to the deeper of the two") {
         val alongZ = canyonAt(bearing = 0.0)
         val alongX = canyonAt(bearing = PI / 2)
-        val crossed = Canyon.cut(CanyonField.ground(), listOf(alongZ, alongX))
+        val crossed = Canyon.cut(CanyonField.ground(SizeScale.COLOSSAL), listOf(alongZ, alongX))
         val here = crossed.columnSpans(0, 0).highestSolidY ?: error("the crossing cut the world away entirely")
         val eitherAlone = listOf(alongZ, alongX).map { canyon ->
-            Canyon.cut(CanyonField.ground(), listOf(canyon)).columnSpans(0, 0).highestSolidY
+            Canyon.cut(CanyonField.ground(SizeScale.COLOSSAL), listOf(canyon)).columnSpans(0, 0).highestSolidY
                 ?: error("one canyon alone cut the world away entirely")
         }
         check(here == eitherAlone.min()) { "the crossing left the ground at $here, against $eitherAlone alone" }
@@ -133,7 +134,7 @@ class CanyonCheck : FunSpec({
 
     /** Cutting nothing is not a cut. A canyon of no width must leave the shape it was handed identical. */
     test("a canyon with no width leaves the ground alone") {
-        val ground = CanyonField.ground()
+        val ground = CanyonField.ground(SizeScale.COLOSSAL)
         check(Canyon.cut(ground, emptyList()) === ground) { "an empty list still wrapped the ground" }
         val nothing = canyonAt().copy(halfWidth = 0.0)
         check(Canyon.cut(ground, listOf(nothing)) === ground) { "a canyon of no width still wrapped the ground" }
@@ -146,7 +147,7 @@ class CanyonCheck : FunSpec({
      * and features, not an accident.
      */
     test("the plateau stands solid to the ceiling") {
-        for (world in listOf(CanyonField.world(bearingAt(NORTH_SOUTH)), CanyonField.bareWorld(bearingAt(NORTH_SOUTH)))) {
+        for (world in listOf(CanyonField.world(bearingAt(NORTH_SOUTH), scale = SizeScale.COLOSSAL), CanyonField.bareWorld(bearingAt(NORTH_SOUTH), scale = SizeScale.COLOSSAL))) {
             for (worldZ in -400..400 step 53) {
                 val far = world.columnSpans(FAR_FROM_THE_AXIS, worldZ)
                 check(far.highestSolidY == VerticalWindow.HIGHEST_BLOCK_Y) {
@@ -161,8 +162,8 @@ class CanyonCheck : FunSpec({
      * whole profile reads as machined. The bare cut and the weathered one must differ where the wall is.
      */
     test("the weather works the canyon walls") {
-        val weathered = CanyonField.world(bearingAt(NORTH_SOUTH))
-        val bare = CanyonField.bareWorld(bearingAt(NORTH_SOUTH))
+        val weathered = CanyonField.world(bearingAt(NORTH_SOUTH), scale = SizeScale.COLOSSAL)
+        val bare = CanyonField.bareWorld(bearingAt(NORTH_SOUTH), scale = SizeScale.COLOSSAL)
         var worn = 0
         var walls = 0
         for (worldZ in -400..400 step 17) {
@@ -183,7 +184,7 @@ class CanyonCheck : FunSpec({
      * world's own bottom to buy.
      */
     test("the rock under the river is left whole") {
-        val world = CanyonField.world(bearingAt(NORTH_SOUTH))
+        val world = CanyonField.world(bearingAt(NORTH_SOUTH), scale = SizeScale.COLOSSAL)
         for (worldZ in -500..500 step 23) {
             for (worldX in -500..500 step 7) {
                 val lowest = world.columnSpans(worldX, worldZ).ranges.firstOrNull()?.first ?: continue
@@ -196,7 +197,7 @@ class CanyonCheck : FunSpec({
 
     /** And there is a river to be had: the gorge floor has to fall below the level the sea is poured to. */
     test("the gorge floor lies under the river level") {
-        val world = CanyonField.world(bearing = bearingAt(NORTH_SOUTH))
+        val world = CanyonField.world(bearing = bearingAt(NORTH_SOUTH), scale = SizeScale.COLOSSAL)
         val floors = (-400..400 step 7).mapNotNull { worldZ ->
             (-300..300 step 3).mapNotNull { worldX -> world.columnSpans(worldX, worldZ).highestSolidY }.min()
         }
@@ -209,7 +210,7 @@ class CanyonCheck : FunSpec({
      * **including which weathering it wears**, which is what the profile stopped being implicit for.
      */
     test("the weathered world round-trips through its codec") {
-        val written = CanyonField.world(bearingAt(DIAGONAL))
+        val written = CanyonField.world(bearingAt(DIAGONAL), scale = SizeScale.COLOSSAL)
         val encoded = TerrainField.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, written)
             .getOrThrow { failure -> error("the canyon would not encode: $failure") }
         val read = TerrainField.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, encoded)

@@ -24,7 +24,9 @@ import kotlin.math.sin
 @Tags(NEEDS_LANDFORMS)
 class CraterlandsCheck : FunSpec({
 
-    val bare = CraterlandsField.bareWorld(salt = 0L)
+    // The structure these numbers were walked at, which is `large`.
+    val tuned = CraterlandsField.Steer(size = TUNED_SIZE)
+    val bare = CraterlandsField.bareWorld(tuned, salt = 0L)
 
 
     fun surfaceAt(x: Int, z: Int): Int =
@@ -121,7 +123,7 @@ class CraterlandsCheck : FunSpec({
 
     test("the peak ring is drawn for some Ages and not for others") {
         fun hasAPeakRing(salt: Long): Boolean {
-            val ring = CraterlandsField.bareWorld(salt = salt)
+            val ring = CraterlandsField.bareWorld(tuned, salt = salt)
             return aroundTheRing(CraterlandsField.PEAK_RING_RADIUS).any { (x, z) ->
                 (ring.columnSpans(x, z).highestSolidY ?: 0) > CraterlandsField.PLAIN_Y
             }
@@ -134,7 +136,7 @@ class CraterlandsCheck : FunSpec({
     }
 
     test("the weather works the wall and spares the plain, which is what its profile claims") {
-        val weathered = CraterlandsField.world(salt = 0L)
+        val weathered = CraterlandsField.world(tuned, salt = 0L)
         fun lostAt(x: Int, z: Int): Int {
             val before = bare.columnSpans(x, z).highestSolidY ?: return 0
             val after = weathered.columnSpans(x, z).highestSolidY ?: return before
@@ -167,7 +169,7 @@ class CraterlandsCheck : FunSpec({
         // noticing — an anchor that no longer clears the plain, a bowl that no longer clears a rim.
         val ends = listOf(-1.0, 0.0, 1.0, null)
         val steers = ends.flatMap { wear ->
-            ends.flatMap { relief -> ends.map { spacing -> CraterlandsField.Steer(wear, relief, spacing) } }
+            ends.flatMap { relief -> ends.map { spacing -> CraterlandsField.Steer(wear, relief, spacing, TUNED_SIZE) } }
         }
         for (steer in steers) {
             val world = CraterlandsField.bareWorld(steer, salt = 0L)
@@ -181,6 +183,9 @@ class CraterlandsCheck : FunSpec({
 }) {
     private companion object {
         const val TWO_PI = 2.0 * Math.PI
+
+        /** `large` on `Terrain.SIZE`, which is where the impact structure was walked. */
+        const val TUNED_SIZE = 0.5
 
         /** Spanning the basin, the blanket and a good stretch of plain, on a grid no crater can hide in. */
         val COLUMNS: List<Pair<Int, Int>> =

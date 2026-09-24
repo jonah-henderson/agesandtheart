@@ -5,10 +5,11 @@ import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
+import kotlin.math.roundToInt
 
 /**
- * Rock from the bedrock to the height limit, with one canyon cut through the origin — **the world is the
- * absence**, which is the reverse of every other preset here.
+ * Rock from the bedrock to a plateau — at `colossal`, the height limit — with one canyon cut through the
+ * origin: **the world is the absence**, which is the reverse of every other preset here.
  *
  * Two consequences of filling to the ceiling, both deliberate and both visible the moment you arrive.
  * `getBaseHeight` answers truthfully, so the plateau's surface *is* [VerticalWindow.HIGHEST_BLOCK_Y]: vanilla
@@ -37,15 +38,52 @@ object CanyonField {
      */
     private const val NORTH_TO_SOUTH = 0.0
 
-    fun world(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L): TerrainField =
-        Weathered.sculpting(bareWorld(bearing, salt), Weathering.CANYON, SHELTER_REACH, VerticalWindow.HIGHEST_BLOCK_Y)
+    /**
+     * [scale] is [SizeScale]'s factor, and the canyon as tuned is `colossal`. Everything takes a quarter of
+     * the factor — width, meander, depth and the weather's grain together. The big ones keep the tuned
+     * floor and come down from the ceiling; the small ones keep a plateau at [LEAST_PLATEAU_Y] and their
+     * floor rises to meet it, so they are cut into ordinary ground rather than into the deepslate. The
+     * river follows the floor either way ([riverLevel]).
+     */
+    fun world(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField {
+        val share = scale / SizeScale.COLOSSAL
+        return Weathered.sculpting(
+            bareWorld(bearing, salt, scale),
+            Weathering.CANYON.resized(share, pivotY(scale)),
+            (SHELTER_REACH * share).roundToInt().coerceAtLeast(1),
+            plateauY(scale),
+        )
+    }
 
     /** The cut before the weather reaches it — the previewer's other half, and nothing else's. */
-    fun bareWorld(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L): TerrainField =
-        Canyon.cut(ground(), listOf(canyon(bearing, salt)))
+    fun bareWorld(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        Canyon.cut(ground(scale), listOf(canyon(bearing, salt, scale = scale)))
 
-    /** Bedrock to the ceiling, everywhere. */
-    fun ground(): TerrainField = Slab(lowY = VerticalWindow.MIN_Y, highY = VerticalWindow.HIGHEST_BLOCK_Y)
+    /** Bedrock to the plateau, everywhere — which at `colossal` is the ceiling. */
+    fun ground(scale: Double = SizeScale.ORDINARY): TerrainField =
+        Slab(lowY = VerticalWindow.MIN_Y, highY = plateauY(scale))
+
+    /** The top of the rock the canyon is cut into. */
+    fun plateauY(scale: Double): Int = maxOf(FLOOR_Y + depth(scale), LEAST_PLATEAU_Y)
+
+    /** The mean bed at the axis — [FLOOR_Y] for a canyon deep enough to reach it. */
+    fun floorY(scale: Double): Int = plateauY(scale) - depth(scale)
+
+    /** Where the river stands, which is the Age's waterline: [RIVER_LEVEL] at the tuned floor. */
+    fun riverLevel(scale: Double): Int = floorY(scale) + RIVER_DEPTH
+
+    private fun depth(scale: Double): Int =
+        ((VerticalWindow.HIGHEST_BLOCK_Y - FLOOR_Y) * scale / SizeScale.COLOSSAL).roundToInt()
+
+    /**
+     * The height the tuned canyon is resized about so that its floor lands on [floorY] — which is [FLOOR_Y]
+     * itself for every canyon deep enough to keep it.
+     */
+    private fun pivotY(scale: Double): Int {
+        val share = scale / SizeScale.COLOSSAL
+        if (share >= 1.0) return FLOOR_Y
+        return ((floorY(scale) - FLOOR_Y * share) / (1.0 - share)).roundToInt()
+    }
 
     /**
      * One canyon of this Age's size, on a [bearing] and [offset] of its own.
@@ -54,9 +92,15 @@ object CanyonField {
      * this canyon [Canyon.resized] smaller, several times over, and the numbers should not be written
      * twice to get there.
      */
-    fun canyon(bearing: Double, salt: Long = 0L, offset: Double = 0.0) = Canyon(
+    fun canyon(bearing: Double, salt: Long = 0L, offset: Double = 0.0, scale: Double = SizeScale.ORDINARY) =
+        tunedCanyon(bearing, salt)
+            .resized(scale / SizeScale.COLOSSAL, pivotY(scale))
+            // Exactly, where the resize would round: the river is set against the floor.
+            .copy(offset = offset, floorY = floorY(scale), rimY = plateauY(scale) + 1)
+
+    private fun tunedCanyon(bearing: Double, salt: Long) = Canyon(
         bearing = bearing,
-        offset = offset,
+        offset = 0.0,
         halfWidth = HALF_WIDTH,
         floorY = FLOOR_Y,
         // One past the ceiling, so the rim is met rather than shaved.
@@ -67,6 +111,12 @@ object CanyonField {
         meanderReach = HALF_WIDTH * MEANDER_SHARE_OF_WIDTH,
         meanderStretch = HALF_WIDTH * BEND_SHARE_OF_WIDTH,
     )
+
+    /**
+     * The lowest a canyon's plateau stands: a little over vanilla's ground, so a small canyon is a gorge in
+     * ordinary country. The `large` canyon is the first deep enough to need more.
+     */
+    private const val LEAST_PLATEAU_Y = 100
 
     /** How much rock is left under the deepest the river runs. */
     private const val ROOM_UNDER_THE_RIVER = 16
@@ -89,7 +139,7 @@ object CanyonField {
     const val RIVER_LEVEL = FLOOR_Y + RIVER_DEPTH
 
     /**
-     * Half the canyon's width, so about 720 blocks across against a 367-block drop — a shade under 1:2.
+     * Half a `colossal` canyon's width, so about 720 blocks across against a 367-block drop — a shade under 1:2.
      * Still far steeper than the real thing, which runs nearer 1:10: at a true ratio the far rim would sit
      * past any render distance and the canyon would read as the edge of the world rather than as a canyon.
      *

@@ -2,9 +2,7 @@ package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.CellCanyon
 import co.voik.agesandtheart.worldgen.field.RegionMap
-import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
-import co.voik.agesandtheart.worldgen.field.Weathered
 
 /**
  * A tableland cracked into cells, with a gorge down every join — mesa country as a broken plate.
@@ -19,22 +17,24 @@ import co.voik.agesandtheart.worldgen.field.Weathered
  */
 object ShatteredField {
 
-    fun world(salt: Long = 0L): TerrainField =
-        Weathered.sculpting(bareWorld(salt), Weathering.CANYONLANDS, SHELTER_REACH)
+    /** [scale] is [SizeScale]'s factor, read exactly as canyonlands reads it: see [CanyonlandsField.world]. */
+    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        CanyonlandsField.weathered(bareWorld(salt, scale), scale)
 
     /** The cracks before the weather reaches them — the previewer's other half, and nothing else's. */
-    fun bareWorld(salt: Long = 0L): TerrainField = CellCanyon.cut(ground(), cells(salt))
+    fun bareWorld(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        CellCanyon.cut(ground(scale), cells(salt, scale))
 
     /** The plate the cells are cracked out of. */
-    fun ground(): TerrainField = Slab(lowY = VerticalWindow.MIN_Y, highY = PLATEAU_Y)
+    fun ground(scale: Double = SizeScale.ORDINARY): TerrainField = CanyonlandsField.ground(scale)
 
-    fun cells(salt: Long = 0L) = CellCanyon(
+    fun cells(salt: Long = 0L, scale: Double = SizeScale.ORDINARY) = CellCanyon(
         map = mosaic(salt),
         halfWidth = HALF_WIDTH,
         floorY = FLOOR_Y,
         rimY = PLATEAU_Y + 1,
         seed = CRACK_SEED xor salt,
-    )
+    ).resized(scale / SizeScale.COLOSSAL, FLOOR_Y)
 
     /**
      * The mosaic the joins run along.
@@ -57,9 +57,6 @@ object ShatteredField {
     const val PLATEAU_Y = CanyonlandsField.PLATEAU_Y
     const val FLOOR_Y = CanyonlandsField.FLOOR_Y
     const val RIVER_LEVEL = CanyonlandsField.RIVER_LEVEL
-
-    /** And its shelter reach, because this wears `Weathering.CANYONLANDS` — one profile, one reach. */
-    private const val SHELTER_REACH = CanyonlandsField.SHELTER_REACH
 
     /**
      * How many cells the mosaic draws between. Six, so about one join in six is missing where two

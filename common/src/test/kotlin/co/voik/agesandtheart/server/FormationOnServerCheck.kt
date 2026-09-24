@@ -54,7 +54,7 @@ class FormationOnServerCheck : FunSpec({
         // whatever it happened to get. `spires` chooses `spire_islands` outright.
         server.run(
             "age write formationworld 909 age spires landmass " +
-                "colossal gold_block rings tiny blackstone obelisks",
+                "colossal gold_block rings minuscule blackstone obelisks",
         )
 
         // **A region rather than the spawn chunks.** The failure needs a biome the Age can produce but

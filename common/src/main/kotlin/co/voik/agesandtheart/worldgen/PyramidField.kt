@@ -41,11 +41,12 @@ object PyramidField {
      * The pyramids, arranged as asked. The three arrangements were three separate presets before aspects
      * existed; they are one preset and one enumerated question now, which is what §3.2 is for.
      */
-    fun world(arrangement: String, salt: Long = 0L): TerrainField = when (arrangement) {
-        "rings" -> world(rings(), Variation.NONE, salt)
-        "varied" -> world(gradientGrid(), variedPoses(), salt)
-        else -> world(gradientGrid(), Variation.NONE, salt)
-    }
+    fun world(arrangement: String, salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        when (arrangement) {
+            "rings" -> world(rings(), Variation.NONE, salt, scale)
+            "varied" -> world(gradientGrid(), variedPoses(), salt, scale)
+            else -> world(gradientGrid(), Variation.NONE, salt, scale)
+        }
 
     private fun variedPoses() = Variation(
         yawSteps = YAW_STEPS,
@@ -55,12 +56,17 @@ object PyramidField {
         pivotY = GROUND_TOP + 1,
     )
 
-    private fun world(placement: Placement, variation: Variation, salt: Long): TerrainField {
+    /**
+     * [scale] is [SizeScale]'s factor, and the whole scatter takes it about the plain: taller pyramids,
+     * further apart, thinning out over a proportionally wider country, so every size reads alike.
+     */
+    private fun world(placement: Placement, variation: Variation, salt: Long, scale: Double): TerrainField {
         val pyramids = PYRAMID_HEIGHTS.map { height ->
             // Authored around the local origin; the instancer translates each copy into place.
             Pyramid(centerX = 0, centerZ = 0, baseY = GROUND_TOP + 1, height = height, baseHalfWidth = height)
         }
         val scattered = Instanced(pyramids, placement, variation, seed = SCATTER_SEED xor salt)
+            .resized(scale, GROUND_TOP + 1)
         val ground = Slab(lowY = VerticalWindow.MIN_Y, highY = GROUND_TOP)
         return Union(listOf(ground, scattered))
     }

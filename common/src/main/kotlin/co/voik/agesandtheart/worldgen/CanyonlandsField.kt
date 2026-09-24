@@ -4,6 +4,7 @@ import co.voik.agesandtheart.worldgen.field.Canyon
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
+import kotlin.math.roundToInt
 
 /**
  * Mesa country: a tableland under open sky, cut to pieces by canyons running three ways at once.
@@ -23,14 +24,35 @@ import co.voik.agesandtheart.worldgen.field.Weathered
  */
 object CanyonlandsField {
 
-    fun world(salt: Long = 0L): TerrainField =
-        Weathered.sculpting(bareWorld(salt), Weathering.CANYONLANDS, SHELTER_REACH)
+    /**
+     * [scale] is [SizeScale]'s factor, and the country as tuned is `colossal`. The river floor stays where
+     * it is and everything above it takes a quarter of the factor — the table's height, the canyons' width
+     * and spacing, and the weather's grain — so a smaller country is the same mesas at a lower table.
+     */
+    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        weathered(bareWorld(salt, scale), scale)
+
+    /** Any table of this family's, weathered at [scale] — [ShatteredField]'s too. */
+    fun weathered(bare: TerrainField, scale: Double): TerrainField {
+        val share = scale / SizeScale.COLOSSAL
+        return Weathered.sculpting(
+            bare,
+            Weathering.CANYONLANDS.resized(share, FLOOR_Y),
+            (SHELTER_REACH * share).roundToInt().coerceAtLeast(1),
+        )
+    }
 
     /** The network before the weather reaches it — the previewer's other half, and nothing else's. */
-    fun bareWorld(salt: Long = 0L): TerrainField = Canyon.cut(ground(), families(salt))
+    fun bareWorld(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        Canyon.cut(ground(scale), families(salt, scale))
 
     /** The tableland the canyons are cut out of. */
-    fun ground(): TerrainField = Slab(lowY = VerticalWindow.MIN_Y, highY = PLATEAU_Y)
+    fun ground(scale: Double = SizeScale.ORDINARY): TerrainField =
+        Slab(lowY = VerticalWindow.MIN_Y, highY = plateauY(scale))
+
+    /** The table's surface at [scale] — [PLATEAU_Y] at `colossal`. */
+    fun plateauY(scale: Double): Int =
+        FLOOR_Y + ((PLATEAU_Y - FLOOR_Y) * scale / SizeScale.COLOSSAL).roundToInt()
 
     /** Where one family of canyons sits: which way it runs, how far apart its members are, and where it starts. */
     private data class Family(val bearing: Double, val spacing: Double, val offset: Double)
@@ -50,7 +72,11 @@ object CanyonlandsField {
     )
 
     /** One repeating family of canyons per bearing. */
-    fun families(salt: Long = 0L): List<Canyon> = FAMILIES.mapIndexed { index, family ->
+    fun families(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): List<Canyon> = FAMILIES.mapIndexed { index, family ->
+        tunedFamily(index, family, salt).resized(scale / SizeScale.COLOSSAL, FLOOR_Y)
+    }
+
+    private fun tunedFamily(index: Int, family: Family, salt: Long) =
         Canyon(
             bearing = family.bearing,
             offset = family.offset,
@@ -65,9 +91,8 @@ object CanyonlandsField {
             meanderStretch = MEANDER_STRETCH,
             bedRelief = BED_RELIEF,
         )
-    }
 
-    /** The tableland's surface, with sky over it — the whole difference from [CanyonField]. */
+    /** A `colossal` tableland's surface, with sky over it — the whole difference from [CanyonField]. */
     const val PLATEAU_Y = 185
 
     /** The mean bed the canyons cut down to, shared by every family so one waterline serves them all. */
@@ -100,11 +125,9 @@ object CanyonlandsField {
     /**
      * How far into a mesa wall the weather works. Shallower than a canyon's — the walls are shorter.
      *
-     * Not private, because `ShatteredField` wears `Weathering.CANYONLANDS` and so must wear its reach:
-     * one profile, one reach, rather than the same number written down in two files where a retune would
-     * find only one of them.
+     * At `colossal`; [weathered] scales it, and is how `ShatteredField` wears it too.
      */
-    const val SHELTER_REACH = 24
+    private const val SHELTER_REACH = 24
 
     private const val FAMILY_SEED = 0xE5A_1A0DL
 }

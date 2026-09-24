@@ -200,7 +200,11 @@ object AgeGeneration {
                         // waterline standing with nothing in it, and measuring against it drowns the map.
                         hasSea = seaFill.blocks.any { !it.isAir },
                         rivers = standing,
-                        declared = Grounding.Declared.of(composition.terrains.map { it.grounding() }),
+                        declared = Grounding.Declared.of(
+                            composition.terrains.mapIndexed { member, terrain ->
+                                terrain.grounding(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
+                            },
+                        ),
                     ),
                 )
                 // Age-wide like the shore and the treeline: the band is a pair of heights, and an Age has
@@ -212,7 +216,12 @@ object AgeGeneration {
                         if (ourGround == null) null else composition.terrains
                             .withIndex()
                             .firstNotNullOfOrNull { (member, terrain) ->
-                                terrain.undergroundBand(composition.underground, window)
+                                terrain.undergroundBand(
+                                    composition.underground,
+                                    window,
+                                    composition.optionsFor(Aspect.TERRAIN, member),
+                                    saltFor(seed, member),
+                                )
                             }
                             ?.let { band -> BiomeBand(greatHallBiome(server), band.first, band.last) },
                         // And the abyss, which is the same mechanism for the same reason: eighty blocks of
@@ -241,6 +250,7 @@ object AgeGeneration {
                     it.rock,
                     recipe.template,
                     server.registryAccess().lookupOrThrow(Registries.MATERIAL_RULE),
+                    server.registryAccess().lookupOrThrow(Registries.BIOME),
                 )
                 // A landform that is its own roof closes it with bedrock, as vanilla closes the nether's.
                 if (composition.roofedByItsRock) SurfacingStrategy.shutOverhead(skin) else skin
@@ -371,7 +381,7 @@ object AgeGeneration {
         torn: Double,
     ): TerrainField? {
         val carried = composition.terrains.mapIndexed { member, terrain ->
-            terrain.standingWater(saltFor(seed, member))
+            terrain.standingWater(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
         }
         if (carried.all { it == null }) return null
         val divided = Regions.of(carried.map { it ?: Union(emptyList()) }, ground)
@@ -473,7 +483,9 @@ object AgeGeneration {
      * decides only where shares tie (design §3.5).
      */
     private fun waterlineOf(composition: AgeComposition, seed: Long): Int? {
-        val claimed = composition.terrains.map { it.waterline }
+        val claimed = composition.terrains.mapIndexed { member, terrain ->
+            terrain.waterlineAt(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
+        }
         if (claimed.size == 1) return claimed.first()
         val shares = composition.spreadOf(Aspect.TERRAIN).shares
         val widest = shares.max()
@@ -583,7 +595,7 @@ object AgeGeneration {
         AgePreset.VANILLA_BARE -> VanillaDelegate.bareOverworld(server)
 
         AgePreset.SPIRE, AgePreset.PYRAMIDS, AgePreset.PYRINGS, AgePreset.PYRVARIED, AgePreset.HILLS,
-        AgePreset.SHAPES, AgePreset.PILLARS, AgePreset.CAVERNS, AgePreset.ERODED, AgePreset.CANYON,
+        AgePreset.SHAPES, AgePreset.PILLARS, AgePreset.TUNNELS, AgePreset.ERODED, AgePreset.CANYON,
         AgePreset.CLIFFS, AgePreset.CANYONLANDS, AgePreset.SHATTERED, AgePreset.RIVERLANDS,
         AgePreset.ISLANDS, AgePreset.ISLE, AgePreset.ALPS, AgePreset.CRATERLANDS, AgePreset.INVERSE_CAVES,
         AgePreset.HALLS, AgePreset.FLATLANDS, AgePreset.SOLID, AgePreset.CHAMBERS,

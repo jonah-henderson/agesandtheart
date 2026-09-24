@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Isle
-import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import kotlin.math.max
 
@@ -82,10 +81,16 @@ object IslandsField {
      * [size] read as a fraction of the way from the smallest island to the largest.
      *
      * A ranged parameter lives on the axis every span shares, so this is the one place that shared axis
-     * becomes this landform's own units — and null, the axis nobody spoke about, is [ORDINARY_SIZE].
+     * becomes this landform's own units. **The middle of the axis is [ORDINARY_SIZE]**, as is null, the
+     * axis nobody spoke about — so `minuscule` and `colossal` reach the ends of the ladder, and `small`
+     * and `large` sit halfway from the ordinary island to either end.
      */
     private fun betweenTheEnds(smallest: Double, largest: Double, size: Double?): Double {
-        val fraction = size?.let(Span.NATURAL::fractionOf) ?: ORDINARY_SIZE
+        val fraction = when {
+            size == null -> ORDINARY_SIZE
+            size < 0.0 -> ORDINARY_SIZE * (1.0 + size)
+            else -> ORDINARY_SIZE + (1.0 - ORDINARY_SIZE) * size
+        }
         return smallest + fraction * (largest - smallest)
     }
 

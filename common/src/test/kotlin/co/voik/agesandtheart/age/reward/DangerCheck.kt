@@ -362,7 +362,7 @@ class DangerCheck : FunSpec({
          * covering the ground its share gives it.
          */
         private fun twoTerritories(shares: List<Double>, second: String): AgeComposition =
-            AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.CAVERNS))
+            AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.ERODED))
                 .copy(spreads = Spreads().withShares(Aspect.TERRAIN, shares))
                 .withOptionsFor(Aspect.TERRAIN, 0, Terrain.STONE.name, listOf(ORDINARY_STONE))
                 .withOptionsFor(Aspect.TERRAIN, 1, Terrain.STONE.name, listOf(second))

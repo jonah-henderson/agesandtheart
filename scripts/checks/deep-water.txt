@@ -6,13 +6,14 @@
 # generation writes block states without firing block updates and that tick never runs on generated ground.
 # So what these probes check is the generator's own arithmetic, on both sides of the line.
 #
-# **`isle` is the pairing to test on, and `caverns` is the trap.** Measured with `:common:oceandepth`, a
-# raise of +61 makes 99.9% of `isle`'s columns abyssal and only 0.045% of `caverns`' — because `isle` has a
-# FLAT floor at y=28 so its whole ocean crosses the line together, where `caverns` has rock reaching y=74-89
-# that cuts every column into bodies of 30-45 blocks. Depth of *sea* is not depth of *water*, and the
-# continuity rule is what makes the difference visible.
+# **`isle` is the pairing to test on, and `hills` is the trap.** Measured with `:common:oceandepth` on the
+# since-retired `caverns` landform, a raise of +61 made 99.9% of `isle`'s columns abyssal and only 0.045% of
+# `caverns`' — because `isle` has a FLAT floor at y=28 so its whole ocean crosses the line together, where
+# rolling hills reaching y=74-89 cut every column into bodies of 30-45 blocks. `hills` is the same heightmap
+# at a lower base and has not been re-measured. Depth of *sea* is not depth of *water*, and the continuity
+# rule is what makes the difference visible.
 #
-# So: `isle` proves the positive case, `caverns` proves that a deep waterline alone is not enough, and the
+# So: `isle` proves the positive case, `hills` proves that a deep waterline alone is not enough, and the
 # plain seas at the bottom prove nothing grows an abyss without `deep`.
 
 # --- the abyss ------------------------------------------------------------------------------------
@@ -22,7 +23,7 @@ age probe abyss 600 600
 age probe abyss -900 400
 
 # --- the trap: a deep waterline over rock that cuts the column into short bodies -------------------
-age write cavernabyss 7 age caverns landmass deep water sea
+age write cavernabyss 7 age hills landmass deep water sea
 age probe cavernabyss 0 0
 age probe cavernabyss 200 200
 

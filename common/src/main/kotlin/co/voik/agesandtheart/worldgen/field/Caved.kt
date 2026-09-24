@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * [base], hollowed by **Minecraft's own noise caves** — the cheese chambers, the spaghetti tunnels, the
@@ -45,6 +46,11 @@ data class Caved(
     val cheese: Boolean = true,
     /** And whether pillars are left standing in them. Nothing to cut if there are no chambers. */
     val pillars: Boolean = true,
+    /**
+     * How big the caves are against vanilla's: every noise is read this many times coarser, so each tunnel,
+     * chamber and pillar grows by it while the band they are cut through stays the height it is.
+     */
+    val featureScale: Double = VANILLA_SCALE,
 ) : TerrainField {
     override val kind = FieldKind.CAVED
 
@@ -127,14 +133,17 @@ data class Caved(
             if (buried < entranceReach) mouthed[index] else opened[index]
 
         fun fill(worldX: Int, worldZ: Int, lowest: Int, height: Int) {
-            val x = worldX.toDouble()
-            val z = worldZ.toDouble()
+            // Where the noises are read. The height gradients stay in world blocks, so the band still spans
+            // the world however big the caves in it are.
+            val x = worldX / featureScale
+            val z = worldZ / featureScale
+            fun noiseY(index: Int) = (lowest + index) / featureScale
 
             // The walls' texture, wanted by both the tunnels and the mouths.
-            forEachSample(height) { i -> rough[i] = spaghettiRoughness.get(x, (lowest + i).toDouble(), z).toDouble() }
+            forEachSample(height) { i -> rough[i] = spaghettiRoughness.get(x, noiseY(i), z).toDouble() }
             forEachSample(height) { i ->
                 val depth = mapped(
-                    spaghettiRoughnessModulator.get(x, (lowest + i).toDouble(), z).toDouble(),
+                    spaghettiRoughnessModulator.get(x, noiseY(i), z).toDouble(),
                     ROUGHNESS_FROM,
                     ROUGHNESS_TO,
                 )
@@ -145,16 +154,16 @@ data class Caved(
             // the two cannot share a pass — but each is still one table read straight down the column.
             forEachSample(height) { i ->
                 working[i] = rarityOfFlatSpaghetti(
-                    spaghetti2dModulator.get(x * 2.0, (lowest + i).toDouble(), z * 2.0).toDouble(),
+                    spaghetti2dModulator.get(x * 2.0, noiseY(i), z * 2.0).toDouble(),
                 )
             }
             forEachSample(height) { i ->
                 val rarity = working[i]
-                tunnels[i] = rarity * abs(spaghetti2d.get(x / rarity, (lowest + i) / rarity, z / rarity).toDouble())
+                tunnels[i] = rarity * abs(spaghetti2d.get(x / rarity, noiseY(i) / rarity, z / rarity).toDouble())
             }
             forEachSample(height) { i ->
                 working[i] = mapped(
-                    spaghetti2dThickness.get(x * 2.0, (lowest + i).toDouble(), z * 2.0).toDouble(),
+                    spaghetti2dThickness.get(x * 2.0, noiseY(i), z * 2.0).toDouble(),
                     SPAGHETTI_2D_THICKNESS_FROM,
                     SPAGHETTI_2D_THICKNESS_TO,
                 )
@@ -174,21 +183,21 @@ data class Caved(
             // The tunnels that reach the surface.
             forEachSample(height) { i ->
                 working[i] = rarityOfRoundSpaghetti(
-                    spaghetti3dRarity.get(x * 2.0, (lowest + i).toDouble(), z * 2.0).toDouble(),
+                    spaghetti3dRarity.get(x * 2.0, noiseY(i), z * 2.0).toDouble(),
                 )
             }
             forEachSample(height) { i ->
                 val rarity = working[i]
-                mouths[i] = rarity * abs(spaghetti3dFirst.get(x / rarity, (lowest + i) / rarity, z / rarity).toDouble())
+                mouths[i] = rarity * abs(spaghetti3dFirst.get(x / rarity, noiseY(i) / rarity, z / rarity).toDouble())
             }
             forEachSample(height) { i ->
                 val rarity = working[i]
-                val second = rarity * abs(spaghetti3dSecond.get(x / rarity, (lowest + i) / rarity, z / rarity).toDouble())
+                val second = rarity * abs(spaghetti3dSecond.get(x / rarity, noiseY(i) / rarity, z / rarity).toDouble())
                 mouths[i] = maxOf(mouths[i], second)
             }
             forEachSample(height) { i ->
                 val thickness = mapped(
-                    spaghetti3dThickness.get(x, (lowest + i).toDouble(), z).toDouble(),
+                    spaghetti3dThickness.get(x, noiseY(i), z).toDouble(),
                     SPAGHETTI_3D_THICKNESS_FROM,
                     SPAGHETTI_3D_THICKNESS_TO,
                 )
@@ -196,7 +205,7 @@ data class Caved(
             }
             forEachSample(height) { i ->
                 val y = lowest + i
-                val mouth = caveEntrance.get(x * ENTRANCE_XZ, y * ENTRANCE_Y, z * ENTRANCE_XZ).toDouble() +
+                val mouth = caveEntrance.get(x * ENTRANCE_XZ, noiseY(i) * ENTRANCE_Y, z * ENTRANCE_XZ).toDouble() +
                     ENTRANCE_BIAS + gradient(y, ENTRANCE_FROM_Y, ENTRANCE_TO_Y, ENTRANCE_AT_FLOOR, ENTRANCE_AT_TOP)
                 mouths[i] = minOf(mouth, mouths[i])
             }
@@ -204,12 +213,12 @@ data class Caved(
             // The chambers: the cheap gate for every block, the nine-octave body only where it can matter.
             if (cheese) {
                 forEachSample(height) { i ->
-                    val layer = caveLayer.get(x, (lowest + i) * CAVE_LAYER_Y, z).toDouble()
+                    val layer = caveLayer.get(x, noiseY(i) * CAVE_LAYER_Y, z).toDouble()
                     chambers[i] = CHEESE_LAYER_WEIGHT * layer * layer
                 }
                 forEachSample(height) { i ->
                     if (chambers[i] <= CHEESE_BODY_REACH) {
-                        val body = caveCheese.get(x, (lowest + i) * CAVE_CHEESE_Y, z).toDouble()
+                        val body = caveCheese.get(x, noiseY(i) * CAVE_CHEESE_Y, z).toDouble()
                         chambers[i] += (CHEESE_BIAS + body).coerceIn(-1.0, 1.0)
                     }
                 }
@@ -224,18 +233,18 @@ data class Caved(
             if (pillars) {
                 forEachSample(height) { i ->
                     standing[i] = PILLAR_SHAFT_WEIGHT *
-                        pillar.get(x * PILLAR_XZ, (lowest + i) * PILLAR_Y, z * PILLAR_XZ).toDouble()
+                        pillar.get(x * PILLAR_XZ, noiseY(i) * PILLAR_Y, z * PILLAR_XZ).toDouble()
                 }
                 forEachSample(height) { i ->
                     standing[i] += mapped(
-                        pillarRareness.get(x, (lowest + i).toDouble(), z).toDouble(),
+                        pillarRareness.get(x, noiseY(i), z).toDouble(),
                         PILLAR_RARENESS_FROM,
                         PILLAR_RARENESS_TO,
                     )
                 }
                 forEachSample(height) { i ->
                     val thickness = mapped(
-                        pillarThickness.get(x, (lowest + i).toDouble(), z).toDouble(),
+                        pillarThickness.get(x, noiseY(i), z).toDouble(),
                         PILLAR_THICKNESS_FROM,
                         PILLAR_THICKNESS_TO,
                     )
@@ -271,16 +280,22 @@ data class Caved(
         var i = 0
         while (i < height) {
             sample(i)
-            i += SAMPLE_STRIDE
+            i += sampleStride
         }
-        if ((height - 1) % SAMPLE_STRIDE != 0) sample(height - 1)
+        if ((height - 1) % sampleStride != 0) sample(height - 1)
     }
+
+    /**
+     * [SAMPLE_STRIDE] for vanilla-sized caves, and finer for smaller ones: the lattice is only safe while
+     * the features are far larger than it, so it shrinks with them. Never coarser, whatever the size.
+     */
+    private val sampleStride = (SAMPLE_STRIDE * featureScale).roundToInt().coerceIn(FINEST_STRIDE, SAMPLE_STRIDE)
 
     /** The gaps between the samples, filled straight. */
     private fun interpolate(values: DoubleArray, height: Int) {
         var from = 0
         while (from < height - 1) {
-            val to = minOf(from + SAMPLE_STRIDE, height - 1)
+            val to = minOf(from + sampleStride, height - 1)
             val span = to - from
             val step = (values[to] - values[from]) / span
             for (offset in 1..<span) values[from + offset] = values[from] + step * offset
@@ -343,6 +358,11 @@ data class Caved(
          * four-wide cell as well, where this is exact in X and Z.
          */
         private const val SAMPLE_STRIDE = 8
+        /** Half vanilla's lattice, so the smallest caves cost at most twice the noise work. */
+        private const val FINEST_STRIDE = 4
+
+        /** Vanilla's own caves, at vanilla's own size. */
+        const val VANILLA_SCALE = 1.0
 
         /** What a cheese term reads where there is no cheese: firmly solid, so the min never picks it. */
         private const val SOLID_ENOUGH = 1.0
@@ -434,6 +454,7 @@ data class Caved(
                 Codec.INT.optionalFieldOf("entrance_reach", DEFAULT_ENTRANCE_REACH).forGetter(Caved::entranceReach),
                 Codec.BOOL.optionalFieldOf("cheese", true).forGetter(Caved::cheese),
                 Codec.BOOL.optionalFieldOf("pillars", true).forGetter(Caved::pillars),
+                Codec.DOUBLE.optionalFieldOf("feature_scale", VANILLA_SCALE).forGetter(Caved::featureScale),
             ).apply(instance, ::Caved)
         }
     }

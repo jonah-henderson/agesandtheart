@@ -20,7 +20,6 @@ import org.joml.Vector3f
 import org.joml.Vector3fc
 import net.minecraft.data.worldgen.material.EndMaterialRules
 import net.minecraft.data.worldgen.material.NetherMaterialRules
-import net.minecraft.data.worldgen.material.OverworldMaterialRules
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.attribute.EnvironmentAttribute
@@ -128,19 +127,20 @@ class DimensionTypeCheck : FunSpec({
                 rule,
             ).getOrThrow().toString()
 
+        // The overworld's is its surface tree rather than its whole floating-islands rule, which since 26.3
+        // also carries the ore veins — off on our rock, where `veins` is how a book asks for them.
         val theirs = mapOf(
-            AgeTemplate.OVERWORLD to OverworldMaterialRules.OVERWORLD_FLOATING_ISLANDS,
-            AgeTemplate.INFERNAL to NetherMaterialRules.NETHER,
-            AgeTemplate.DARK_VOID to EndMaterialRules.END,
+            AgeTemplate.OVERWORLD to "minecraft:overworld/surface",
+            AgeTemplate.INFERNAL to NetherMaterialRules.NETHER.identifier().toString(),
+            AgeTemplate.DARK_VOID to EndMaterialRules.END.identifier().toString(),
         )
         check(theirs.keys.containsAll(AgeTemplate.entries.toSet())) {
             "${AgeTemplate.entries - theirs.keys} name no expected skin, so nothing here checks them"
         }
         for ((template, expected) in theirs) {
             val named = spelled(template.skin(RULES))
-            check(expected.identifier().toString() in named) {
-                "${template.key} dresses our ground in $named rather than in ${expected.identifier()}"
-            }
+            check(expected in named) { "${template.key} dresses our ground in $named rather than in $expected" }
+            check("ore_vein" !in named) { "${template.key} lays vanilla's ore veins over our rock: $named" }
         }
 
         val byTemplate = AgeTemplate.entries.associateWith { spelled(it.skin(RULES)) }

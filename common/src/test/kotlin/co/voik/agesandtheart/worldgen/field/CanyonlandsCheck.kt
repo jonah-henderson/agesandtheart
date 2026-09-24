@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen.field
 
 import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.worldgen.CanyonlandsField
+import co.voik.agesandtheart.worldgen.SizeScale
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -16,7 +17,7 @@ import io.kotest.core.spec.style.FunSpec
 @Tags(NEEDS_LANDFORMS)
 class CanyonlandsCheck : FunSpec({
 
-    val world = CanyonlandsField.world()
+    val world = CanyonlandsField.world(scale = SizeScale.COLOSSAL)
 
     fun cutShareAround(originX: Int, originZ: Int): Double {
         var columns = 0
@@ -55,7 +56,7 @@ class CanyonlandsCheck : FunSpec({
      * the land between them comes out corrugated rather than shaped.
      */
     test("neighbouring canyons of a family do not meander in lockstep") {
-        val family = CanyonlandsField.families().first()
+        val family = CanyonlandsField.families(scale = SizeScale.COLOSSAL).first()
         fun axisNear(offset: Double, worldZ: Int): Int? =
             (-400..400 step 2).map { it + offset.toInt() }
                 .filter { family.columnSpans(it, worldZ).ranges.isNotEmpty() }
@@ -76,13 +77,13 @@ class CanyonlandsCheck : FunSpec({
 
     /** Every family shares one floor, which is what lets one waterline put a river in all of them. */
     test("all the families cut to the same floor") {
-        val floors = CanyonlandsField.families().map { it.floorY }.distinct()
+        val floors = CanyonlandsField.families(scale = SizeScale.COLOSSAL).map { it.floorY }.distinct()
         check(floors == listOf(CanyonlandsField.FLOOR_Y)) { "the families cut to $floors" }
         check(CanyonlandsField.RIVER_LEVEL > CanyonlandsField.FLOOR_Y) { "the river is under the bed" }
     }
 
     test("the world round-trips through its codec") {
-        val written = CanyonlandsField.world()
+        val written = CanyonlandsField.world(scale = SizeScale.COLOSSAL)
         val encoded = TerrainField.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, written)
             .getOrThrow { failure -> error("canyonlands would not encode: $failure") }
         val read = TerrainField.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, encoded)

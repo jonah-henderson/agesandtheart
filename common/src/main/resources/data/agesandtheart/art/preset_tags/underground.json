@@ -10,6 +10,12 @@
       "dark": 0.5
     }
   },
+  "tunnels": {
+    "tags": {
+      "cavernous": 1.0,
+      "dark": 0.7
+    }
+  },
   "great_halls": {
     "readiness": 0.3,
     "tags": {
@@ -24,7 +30,7 @@
     "tags": {
       "cavernous": 1.0,
       "watery": 0.8,
-      "monumental": 0.6,
+      "monumental": 0.4,
       "dark": 0.5
     }
   }

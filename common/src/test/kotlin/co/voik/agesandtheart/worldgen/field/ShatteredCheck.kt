@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen.field
 
 import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.worldgen.ShatteredField
+import co.voik.agesandtheart.worldgen.SizeScale
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import kotlin.math.ceil
@@ -17,8 +18,8 @@ import kotlin.math.ceil
 @Tags(NEEDS_LANDFORMS)
 class ShatteredCheck : FunSpec({
 
-    val world = ShatteredField.world()
-    val cells = ShatteredField.cells()
+    val world = ShatteredField.world(scale = SizeScale.COLOSSAL)
+    val cells = ShatteredField.cells(scale = SizeScale.COLOSSAL)
 
     fun topsAround(originX: Int, originZ: Int): List<Int> =
         (originZ - REACH..originZ + REACH step STRIDE).flatMap { worldZ ->
@@ -61,7 +62,7 @@ class ShatteredCheck : FunSpec({
 
     /** A map with one member has no join, so there is nothing to open a canyon along. */
     test("a mosaic of one cell cracks nothing") {
-        val ground = ShatteredField.ground()
+        val ground = ShatteredField.ground(SizeScale.COLOSSAL)
         val alone = cells.copy(map = cells.map.copy(members = 1))
         check(CellCanyon.cut(ground, alone) === ground) { "a one-cell mosaic still wrapped the ground" }
     }
@@ -79,7 +80,7 @@ class ShatteredCheck : FunSpec({
     }
 
     test("the world round-trips through its codec") {
-        val written = ShatteredField.world()
+        val written = ShatteredField.world(scale = SizeScale.COLOSSAL)
         val encoded = TerrainField.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, written)
             .getOrThrow { failure -> error("the plate would not encode: $failure") }
         val read = TerrainField.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, encoded)

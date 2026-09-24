@@ -1,12 +1,12 @@
 {
   "_comment": [
-    "Little, but with somewhere left to go -- the step above `tiny`, which takes the bottom of the axis.",
+    "Little, one step down the size axis: half of what was tuned, where `minuscule` is a quarter. The",
+    "axis is geometric, so the five words -- minuscule, small, unsaid, large, colossal -- are equal steps.",
     "",
-    "Same reach and no query, exactly as `enormous` is `colossal`'s band; only the band differs, which is",
-    "the whole of what a second word for little is allowed to be."
+    "No query, as `large` has none: the axis is what this word means, so the axis is all it sets."
   ],
   "tier": "exact",
   "sets": {
-    "size": "-1.0..-0.7"
+    "size": "-0.5..-0.5"
   }
 }

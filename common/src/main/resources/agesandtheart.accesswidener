@@ -186,3 +186,8 @@ accessible	field	net/minecraft/world/level/levelgen/feature/VegetationPatchFeatu
 # it drifts every version, and drift inside the terrain fill is invisible until somebody walks it.
 accessible	method	net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator	doFill	(Lnet/minecraft/world/level/levelgen/NoiseChunk;Lnet/minecraft/world/level/chunk/ChunkAccess;)V
 accessible	method	net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator	generateCarvers	(Lnet/minecraft/world/level/chunk/ChunkAccess;Lnet/minecraft/world/level/levelgen/blending/Blender;Lnet/minecraft/world/level/levelgen/NoiseChunk;Lnet/minecraft/world/level/levelgen/RandomState;Lnet/minecraft/world/level/biome/BiomeManager;Lnet/minecraft/server/level/WorldGenRegion;Lnet/minecraft/world/level/levelgen/material/rule/MaterialRule;)V
+
+# Vanilla's fluid picker -- its sea at the sea level and its lava under -54 -- for an Age on vanilla's rock.
+# Our own `NoiseChunk` is built for both rocks, and the picker it was handed read OUR sea, which vanilla's
+# terrain never declares: the fill came out dry. Widened rather than copied so the lava line cannot drift.
+accessible	method	net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator	createFluidPicker	(Lnet/minecraft/world/level/levelgen/NoiseGeneratorSettings;)Lnet/minecraft/world/level/levelgen/Aquifer$FluidPicker;

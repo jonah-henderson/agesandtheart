@@ -51,13 +51,17 @@ object Surface {
         rock: AgeRock.Ours,
         template: AgeTemplate,
         rules: HolderGetter<MaterialRule>,
+        biomes: HolderGetter<Biome>? = null,
     ): MaterialRule {
+        // What the world paints deep in its rock goes on whatever the skin is: a book naming its ground's
+        // top layer has said nothing about a sulfur cave's walls.
+        val beneath = biomes?.let { template.beneathTheSkin(rules, it) }
         val blocks = options.materialsOf(MATERIAL)
-        if (blocks.isEmpty()) return SurfacingStrategy.delegatedToBiomes(rock.landform, template.skin(rules))
+        if (blocks.isEmpty()) return SurfacingStrategy.delegatedToBiomes(rock.landform, template.skin(rules), beneath)
         // Air is how a writer says "no skin", the same way `open` says "no sea" — and it is only bare when
         // *everything* named is air, since air mingled with a rock is a skin full of holes and a fine thing
         // for a book to ask for.
         if (blocks.all { it.isAir }) return SurfacingStrategy.NO_SKIN
-        return SurfacingStrategy.laidOn(rock.landform, blocks)
+        return SurfacingStrategy.laidOn(rock.landform, blocks, beneath)
     }
 }

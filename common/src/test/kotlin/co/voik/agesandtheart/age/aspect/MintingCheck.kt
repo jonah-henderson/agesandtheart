@@ -9,7 +9,10 @@ import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.grammar.Grammar
+import co.voik.agesandtheart.worldgen.feature.FeatureDensity
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
+import co.voik.agesandtheart.worldgen.feature.OreVein
+import net.minecraft.core.Holder
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import net.minecraft.world.level.levelgen.feature.Feature
@@ -111,11 +114,42 @@ class MintingCheck : FunSpec({
         }
     }
 
+    /** The pits a book leaves in [Features.PLACES], read back as claims. */
+    fun pitsIn(vararg pages: String): List<Claim> =
+        placed(*pages).map(Claim::read).filter { it.value == "agesandtheart:pits" }
+
+    /** **Materials in a minting read as a landmass reads them**: joined with `and`, one pit of both. */
+    test("materials joined in a minting mingle into one feature, and cost nothing") {
+        val pits = pitsIn("mud", "and", "sand", "pits")
+        check(pits.size == 1) { "'mud and sand pits' left ${pits.size} pits: $pits" }
+        check(pits.single().substances == listOf("minecraft:mud", "minecraft:sand")) {
+            "'mud and sand pits' is made of ${pits.single().substances}"
+        }
+        val displaced = flawsOf("mud", "and", "sand", "pits").filter { it.register == Register.DISPLACED }
+        check(displaced.isEmpty()) { "'mud and sand pits' was charged $displaced for asking for both" }
+    }
+
+    /** Side by side without `and`, they contend: one wins and the other is charged, never silently dropped. */
+    test("materials laid side by side in a minting contend") {
+        val pits = pitsIn("mud", "sand", "pits")
+        check(pits.size == 1 && pits.single().substances.size == 1) { "'mud sand pits' left $pits" }
+        val displaced = flawsOf("mud", "sand", "pits").filter { it.register == Register.DISPLACED }
+        check(displaced.size == 1) { "'mud sand pits' charged ${flawsOf("mud", "sand", "pits")}" }
+    }
+
+    /** And two kinds of pit apart are two clauses. */
+    test("two minting clauses of one pattern are two features") {
+        val pits = pitsIn("mud", "pits", "sand", "pits")
+        check(pits.map { it.substances }.toSet() == setOf(listOf("minecraft:mud"), listOf("minecraft:sand"))) {
+            "'mud pits sand pits' left $pits"
+        }
+    }
+
     /** And the pattern is really rebuilt, rather than the claim merely spelling what was asked for. */
     test("a minted lake is filled with what the clause named") {
         val pattern = MinecraftRegistries.worldgen.lookupOrThrow(Registries.PLACED_FEATURE)
             .getOrThrow(ResourceKey.create(Registries.PLACED_FEATURE, Identifier.parse("minecraft:lake_lava_surface")))
-        val obsidian = FeatureShape.mintedFrom(pattern, "minecraft:obsidian")
+        val obsidian = FeatureShape.mintedFrom(pattern, listOf("minecraft:obsidian"))
         check(obsidian !== pattern) { "the lake came back unminted" }
         // Through the codec, because a `BlockStateProvider`'s own `toString` is its identity and says
         // nothing about the block — which is what made the first version of this pass over a lava lake.
@@ -135,7 +169,7 @@ class MintingCheck : FunSpec({
      */
     test("a spring given a solid spills it instead of running") {
         val spring = placedFeature("minecraft:spring_water")
-        val spilled = FeatureShape.mintedFrom(spring, "minecraft:gold_block")
+        val spilled = FeatureShape.mintedFrom(spring, listOf("minecraft:gold_block"))
 
         check(spilled !== spring) { "a solid spring came back as the untouched pattern" }
         check(spilled.value().placement() == spring.value().placement()) {
@@ -150,17 +184,87 @@ class MintingCheck : FunSpec({
     /** And a fluid still runs, which is the half that must not have moved. */
     test("a spring given a fluid still runs with it") {
         val spring = placedFeature("minecraft:spring_water")
-        val running = FeatureShape.mintedFrom(spring, "minecraft:lava").value().feature().value()
+        val running = FeatureShape.mintedFrom(spring, listOf("minecraft:lava")).value().feature().value()
         check(running is SpringFeature) { "a lava spring stopped being a spring: $running" }
         check((running as SpringFeature).state().type === Fluids.LAVA) {
             "a lava spring runs with ${running.state().type}"
         }
     }
 
-    /** And a pattern that never asked for a fluid takes a solid happily — `veins` is the other minting. */
-    test("a vein is made of a solid and charges nothing") {
-        val displaced = flawsOf("gold_block", "veins").filter { it.register == Register.DISPLACED }
-        check(displaced.isEmpty()) { "'gold_block veins' was charged $displaced, and a vein wants a solid" }
+    /** And a pattern that never asked for a fluid takes a solid happily — `deposits` is the other minting. */
+    test("a deposit is made of a solid and charges nothing") {
+        val displaced = flawsOf("gold_block", "deposits").filter { it.register == Register.DISPLACED }
+        check(displaced.isEmpty()) { "'gold_block deposits' was charged $displaced, and a deposit wants a solid" }
+    }
+
+    /** `veins` alone is vanilla's iron vein, and naming an ore makes it of that ore. */
+    test("veins mint an ore vein, of iron unless the clause names an ore") {
+        val alone = placed("veins").filter { it.startsWith("agesandtheart:veins") }
+        check(alone.any { "of=minecraft:deepslate_iron_ore" in it }) { "'veins' left $alone" }
+        val golden = placed("gold_ore", "veins").filter { it.startsWith("agesandtheart:veins") }
+        check(golden.any { "of=minecraft:gold_ore" in it }) { "'gold_ore veins' left $golden" }
+    }
+
+    /** **`shallow veins` says where the veins are**, and leaves the Age's other ores at the height it chose. */
+    test("a height in a minting clause is the clause's own") {
+        val veins = placed("shallow", "veins").map(Claim::read).single { it.value == "agesandtheart:veins" }
+        check((veins.height ?: 0.0) > 0.0) { "'shallow veins' carries height ${veins.height}" }
+        val ageHeight = resolved(SAMPLE_SEED, "shallow", "veins").composition
+            .optionsFor(Aspect.FEATURES, 0).of(Features.HEIGHT)
+        val untouched = resolved(SAMPLE_SEED, "veins").composition.optionsFor(Aspect.FEATURES, 0).of(Features.HEIGHT)
+        check(ageHeight == untouched) { "'shallow veins' moved the Age's own height to $ageHeight from $untouched" }
+    }
+
+    fun shippedVein(): OreVein {
+        val shipped = JsonParser.parseString(File("src/main/resources/data/agesandtheart/worldgen/feature/veins.json").readText())
+        return OreVein.CODEC.codec().parse(JsonOps.INSTANCE, shipped).getOrThrow()
+    }
+
+    fun veinOf(pattern: OreVein, height: Double?, density: Double = 1.0): OreVein {
+        val placed = Holder.direct(PlacedFeature(Holder.direct<Feature>(pattern), emptyList()))
+        val shaped = FeatureShape.reshaped(placed, null, null, height, emptyList())
+        return FeatureDensity.applied(shaped, density).value().feature().value() as OreVein
+    }
+
+    /** Above mid-column a vein is vanilla's copper one: its band, its granite, and stone ores not deepslate. */
+    test("a shallow vein takes the copper shape, and a deep one keeps the iron shape") {
+        val shallow = veinOf(shippedVein(), height = 0.75)
+        check(shallow.minY == 0 && shallow.maxY == 50) { "a shallow vein runs ${shallow.minY}..${shallow.maxY}" }
+        check(shallow.filler == Blocks.GRANITE.defaultBlockState()) { "a shallow vein is strung through ${shallow.filler}" }
+        check(shallow.ore == Blocks.IRON_ORE.defaultBlockState()) { "a shallow iron vein is of ${shallow.ore}" }
+
+        val deep = veinOf(shippedVein(), height = -0.75)
+        check(deep.minY == -60 && deep.filler == Blocks.TUFF.defaultBlockState()) { "a deep vein became $deep" }
+    }
+
+    /** A quantifier qualifies the page after it, so in `teeming gold_ore veins` it sits on the material. */
+    test("a quantifier anywhere in a minting clause counts what it mints") {
+        val veins = placed("teeming", "gold_ore", "veins").map(Claim::read).single { it.value == "agesandtheart:veins" }
+        check(veins.density > Rung.ORDINARY) { "'teeming gold_ore veins' minted veins at ${veins.density}" }
+    }
+
+    /** **More veins is more of the ground they run through**, never the same pass laid twice. */
+    test("an amount widens where veins run rather than repeating the pass") {
+        val teeming = veinOf(shippedVein(), height = null, density = 4.0)
+        check(teeming.abundance == 4.0) { "'teeming veins' has abundance ${teeming.abundance}" }
+        check(OreVein.thresholdAdmitting(0.218) in 0.39..0.41) { "vanilla's share reads back as ${OreVein.thresholdAdmitting(0.218)}" }
+        check(OreVein.thresholdAdmitting(0.218 * 4) < OreVein.thresholdAdmitting(0.218)) {
+            "four times the ground did not lower the threshold"
+        }
+    }
+
+    /** A minted vein is flecked with the raw block of its own ore, and keeps the pattern's filler and band. */
+    test("a minted vein swaps its ore and raw ore, and keeps the rest") {
+        // Ours, so not in the offline registries: read from the shipped file, which checks that it parses.
+        val shipped = JsonParser.parseString(File("src/main/resources/data/agesandtheart/worldgen/feature/veins.json").readText())
+        val was = OreVein.CODEC.codec().parse(JsonOps.INSTANCE, shipped).getOrThrow()
+        val pattern = Holder.direct(PlacedFeature(Holder.direct<Feature>(was), emptyList()))
+        val now = FeatureShape.mintedFrom(pattern, listOf("minecraft:gold_ore")).value().feature().value() as OreVein
+        check(now.ore == Blocks.GOLD_ORE.defaultBlockState()) { "the vein is of ${now.ore}" }
+        check(now.rawOre == Blocks.RAW_GOLD_BLOCK.defaultBlockState()) { "a gold vein is flecked with ${now.rawOre}" }
+        check(now.filler == was.filler && now.minY == was.minY && now.maxY == was.maxY) {
+            "minting moved the vein's filler or band: $now where it was $was"
+        }
     }
 
     test("the material does not also become the rock") {
@@ -202,13 +306,13 @@ class MintingCheck : FunSpec({
      * and colossal won for the rings as well as for the obelisks.
      */
     test("two clauses ask for two sizes and both get them") {
-        val grown = placed("colossal", "gold_block", "obelisks", "tiny", "rings")
+        val grown = placed("colossal", "gold_block", "obelisks", "minuscule", "rings")
         val obelisks = grown.single { it.startsWith("agesandtheart:obelisks") }
         val rings = grown.single { it.startsWith("agesandtheart:rings") }
 
         check("of=minecraft:gold_block" in obelisks) { "the obelisks lost their substance: $obelisks" }
         check("size=1" in obelisks) { "the obelisks were not colossal: $obelisks" }
-        check("size=-1" in rings) { "the rings were not tiny: $rings" }
+        check("size=-1" in rings) { "the rings were not minuscule: $rings" }
         check("of=#agesandtheart:formation_substance" in rings) {
             "the rings should fall back to the pool, and were $rings"
         }
@@ -258,13 +362,13 @@ class MintingCheck : FunSpec({
     /**
      * **A clause that mints nothing spends nothing.**
      *
-     * `springs`, `lakes` and `veins` all declare `mints` with no `unstated`, so a clause naming one without
+     * `springs`, `lakes` and `deposits` all declare `mints` with no `unstated`, so a clause naming one without
      * a material mints nothing at all. Charging it for the size anyway took the word away and gave nothing
-     * back: `tiny springs` cost two pages and left the Age neither a spring nor a smaller one.
+     * back: `minuscule springs` cost two pages and left the Age neither a spring nor a smaller one.
      */
     test("a size is not spent by a clause that mints nothing") {
-        check(sizeOf("tiny", "springs") == sizeOf("tiny", "trees", "features")) {
-            "'tiny springs' minted nothing and spent 'tiny' anyway: ${sizeOf("tiny", "springs")}"
+        check(sizeOf("minuscule", "springs") == sizeOf("minuscule", "trees", "features")) {
+            "'minuscule springs' minted nothing and spent 'minuscule' anyway: ${sizeOf("minuscule", "springs")}"
         }
     }
 
@@ -276,7 +380,7 @@ class MintingCheck : FunSpec({
     test("a minted spring runs with the substance and keeps its shape") {
         val pattern = placedFeature("minecraft:spring_water")
         val was = pattern.value().feature().value() as SpringFeature
-        val minted = FeatureShape.mintedFrom(pattern, "minecraft:lava")
+        val minted = FeatureShape.mintedFrom(pattern, listOf("minecraft:lava"))
         val now = minted.value().feature().value() as SpringFeature
 
         check(now.state().type == Blocks.LAVA.defaultBlockState().fluidState.type) {
@@ -299,7 +403,7 @@ class MintingCheck : FunSpec({
     test("a minted vein is made of the substance and cuts the same stone") {
         val pattern = placedFeature("minecraft:ore_gold")
         val was = pattern.value().feature().value() as OreFeature
-        val minted = FeatureShape.mintedFrom(pattern, "minecraft:gold_block")
+        val minted = FeatureShape.mintedFrom(pattern, listOf("minecraft:gold_block"))
         val now = minted.value().feature().value() as OreFeature
 
         check(now.targetStates().all { it.state() == Blocks.GOLD_BLOCK.defaultBlockState() }) {
@@ -337,7 +441,7 @@ class MintingCheck : FunSpec({
 
     test("a substance nothing answers to leaves the pattern alone") {
         val pattern = placedFeature("minecraft:spring_water")
-        check(FeatureShape.mintedFrom(pattern, "agesandtheart:no_such_block") === pattern) {
+        check(FeatureShape.mintedFrom(pattern, listOf("agesandtheart:no_such_block")) === pattern) {
             "an unknown substance built a half-made feature instead of standing aside"
         }
     }

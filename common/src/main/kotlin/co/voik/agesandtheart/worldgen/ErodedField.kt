@@ -28,7 +28,12 @@ import co.voik.agesandtheart.worldgen.field.Variation
  */
 object ErodedField {
 
-    fun world(salt: Long = 0L): TerrainField {
+    /**
+     * [scale] is [SizeScale]'s factor. The masses as tuned are the `large` step, and they are resized whole
+     * about the sea — radius, spacing, erosion and height above the water together — while the seabed
+     * stays where it is.
+     */
+    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField {
         val mass = Ellipsoid(
             centerX = 0,
             centerY = MASS_CENTER_Y,
@@ -58,8 +63,14 @@ object ErodedField {
             highY = MASS_CENTER_Y + MASS_RADIUS_Y.toInt() + 1,
         )
         val seabed = Slab(lowY = VerticalWindow.MIN_Y, highY = SEABED_TOP)
-        return Union(listOf(seabed, Intersect(listOf(masses, weathering))))
+        val weathered = Intersect(listOf(masses, weathering)).resized(scale / TUNED_SIZE, SEA_LEVEL)
+        return Union(listOf(seabed, weathered))
     }
+
+    /** The size the constants below were walked at: `large`. */
+    private const val TUNED_SIZE = 2.0
+
+    private const val SEA_LEVEL = 63
 
     private const val SEABED_TOP = 37
 

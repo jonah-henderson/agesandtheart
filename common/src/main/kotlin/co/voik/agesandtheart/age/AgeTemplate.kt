@@ -16,12 +16,13 @@ import com.mojang.serialization.Codec
 import net.minecraft.core.HolderGetter
 import net.minecraft.data.worldgen.material.EndMaterialRules
 import net.minecraft.data.worldgen.material.NetherMaterialRules
-import net.minecraft.data.worldgen.material.OverworldMaterialRules
 import net.minecraft.core.registries.Registries
+import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.util.StringRepresentable
 import net.minecraft.world.level.biome.Biome
+import net.minecraft.world.level.biome.Biomes
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList
@@ -65,8 +66,22 @@ enum class AgeTemplate(
         override val biomeList = MultiNoiseBiomeSourceParameterLists.OVERWORLD
         override val standingStructures = Structures.OVERWORLD_STRUCTURE_SETS
         override val dimensionType get() = BuiltinDimensionTypes.OVERWORLD
-        override fun skin(rules: HolderGetter<MaterialRule>) =
-            MaterialRules.getRule(rules, OverworldMaterialRules.OVERWORLD_FLOATING_ISLANDS)
+        // Vanilla's surface and underground trees and not its whole overworld rule, which since 26.3 also
+        // carries the copper and iron veins: those were off on our rock before the port, and `veins` is how a
+        // book asks for them now.
+        override fun skin(rules: HolderGetter<MaterialRule>) = MaterialRules.sequence(
+            MaterialRules.getRule(rules, overworldRule("surface")),
+            MaterialRules.getRule(rules, overworldRule("underground")),
+        )
+
+        // The sulfur caves' banded stone, which `overworld/underground` gives only to a sulfur cave, and whose
+        // spikes, springs and pools stand on it. Not the rest of that tree: its deepslate would repaint a rock
+        // of blackstone or tuff as readily as one of stone.
+        override fun beneathTheSkin(rules: HolderGetter<MaterialRule>, biomes: HolderGetter<Biome>) =
+            MaterialRules.ifTrue(
+                MaterialRules.isBiome(biomes, Biomes.SULFUR_CAVES),
+                MaterialRules.getRule(rules, overworldRule("sulfur_cave_bands")),
+            )
 
         override fun world(): AgeComposition = AgeComposition(
             terrains = listOf(Terrain.VANILLA),
@@ -192,6 +207,12 @@ enum class AgeTemplate(
      */
     abstract fun skin(rules: HolderGetter<MaterialRule>): MaterialRule
 
+    /**
+     * What this world paints **deep in the rock** rather than on its face, or null where it paints nothing
+     * there. [skin] is laid only near the top of the column, so a cave biome's own stone would never be.
+     */
+    open fun beneathTheSkin(rules: HolderGetter<MaterialRule>, biomes: HolderGetter<Biome>): MaterialRule? = null
+
 
     /** Whether a book may weigh or narrow this world's biomes, which needs a table to adjust. */
     val biomesAreChosenByClimate: Boolean get() = biomeList != null
@@ -232,3 +253,7 @@ enum class AgeTemplate(
         fun named(key: String): AgeTemplate? = entries.firstOrNull { it.key == key }
     }
 }
+
+/** One of the overworld's named material rules — `overworld/surface` — which vanilla keeps private keys for. */
+private fun overworldRule(path: String): ResourceKey<MaterialRule> =
+    ResourceKey.create(Registries.MATERIAL_RULE, Identifier.withDefaultNamespace("overworld/$path"))

@@ -3,7 +3,6 @@ package co.voik.agesandtheart.age.aspect
 import co.voik.agesandtheart.worldgen.AlpsField
 import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.CanyonlandsField
-import co.voik.agesandtheart.worldgen.CavernField
 import co.voik.agesandtheart.worldgen.CliffField
 import co.voik.agesandtheart.worldgen.CraterlandsField
 import co.voik.agesandtheart.worldgen.ErodedField
@@ -17,6 +16,7 @@ import co.voik.agesandtheart.worldgen.PyramidField
 import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.ShatteredField
+import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.SolidField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.worldgen.VerticalWindow
@@ -37,6 +37,16 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
  * object exists, and four of the entries below set their waterline from it.
  */
 private const val ORDINARY_SEA_LEVEL = 63
+
+/** [Terrain.SIZE] as [SizeScale]'s factor, which is what every landform's builder is handed. */
+private fun scaleOf(options: Options, salt: Long): Double = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
+
+private fun craterSteer(options: Options, salt: Long) = CraterlandsField.Steer(
+    wear = options.steer(Terrain.WEAR, salt),
+    relief = options.steer(Terrain.RELIEF, salt),
+    spacing = options.steer(Terrain.SPACING, salt),
+    size = options.steer(Terrain.SIZE, salt),
+)
 
 /**
  * The shape of an Age's rock: a Tier-B field preset plus its [waterline], the one fact a composer needs
@@ -65,12 +75,18 @@ enum class Terrain(
     SPIRE_ISLANDS(
         "spire_islands",
         waterline = SpireField.SEA_LEVEL,
-        build = { _, salt -> SpireField.world(salt) },
+        build = { options, salt -> SpireField.world(salt, scaleOf(options, salt)) },
+        axes = { listOf(SIZE) },
         page = "spires",
     ),
 
     /** Rolling noise hills breaking a sea — the closest thing here to ordinary ground. */
-    HILLS("hills", waterline = ORDINARY_SEA_LEVEL, build = { _, salt -> NoiseField.hills(salt) }),
+    HILLS(
+        "hills",
+        waterline = ORDINARY_SEA_LEVEL,
+        build = { options, salt -> NoiseField.hills(salt, scaleOf(options, salt)) },
+        axes = { listOf(SIZE) },
+    ),
 
     /**
      * A level plain to the horizon and no relief anywhere in it — Minecraft's own superflat. Its waterline
@@ -79,21 +95,28 @@ enum class Terrain(
      */
     FLATLANDS("flatlands", waterline = null, build = { _, _ -> FlatlandsField.world() }),
 
-    /** Rock riddled by ridged 3D noise: this Age's caves *are* its shape, not something cut from it. */
-    CAVERNS("caverns", waterline = ORDINARY_SEA_LEVEL, build = { _, salt -> CavernField.world(salt) }),
-
     /** Plain 3D noise weathered into mesa-like relief, hanging clear above the water. */
-    ERODED("eroded", waterline = ORDINARY_SEA_LEVEL, build = { _, salt -> ErodedField.world(salt) }),
+    ERODED(
+        "eroded",
+        waterline = ORDINARY_SEA_LEVEL,
+        build = { options, salt -> ErodedField.world(salt, scaleOf(options, salt)) },
+        axes = { listOf(SIZE) },
+    ),
 
-    /** Colossal rectangular monoliths on a jittered grid, standing a hundred blocks out of the sea. */
-    PILLARS("pillars", waterline = ORDINARY_SEA_LEVEL, build = { _, salt -> PillarField.world(salt) }),
+    /** Rectangular monoliths on a jittered grid — at `colossal`, standing a hundred blocks out of the sea. */
+    PILLARS(
+        "pillars",
+        waterline = ORDINARY_SEA_LEVEL,
+        build = { options, salt -> PillarField.world(salt, scaleOf(options, salt)) },
+        axes = { listOf(SIZE) },
+    ),
 
     /** Instanced pyramids on a plain, in the [ARRANGEMENT] asked for. */
     PYRAMIDS(
         "pyramids",
         waterline = null,
-        build = { options, salt -> PyramidField.world(options.of(ARRANGEMENT), salt) },
-        axes = { listOf(ARRANGEMENT) },
+        build = { options, salt -> PyramidField.world(options.of(ARRANGEMENT), salt, scaleOf(options, salt)) },
+        axes = { listOf(ARRANGEMENT, SIZE) },
     ),
 
     /**
@@ -104,8 +127,10 @@ enum class Terrain(
     CANYON(
         "canyon",
         waterline = CanyonField.RIVER_LEVEL,
-        build = { options, salt -> CanyonField.world(bearingAt(options.steer(BEARING, salt)), salt) },
-        axes = { listOf(BEARING) },
+        build = { options, salt ->
+            CanyonField.world(bearingAt(options.steer(BEARING, salt)), salt, scaleOf(options, salt))
+        },
+        axes = { listOf(BEARING, SIZE) },
     ),
 
     /**
@@ -114,15 +139,18 @@ enum class Terrain(
     CLIFFS(
         "cliffs",
         waterline = CliffField.SEA_LEVEL,
-        build = { options, salt -> CliffField.world(bearingAt(options.steer(BEARING, salt)), salt) },
-        axes = { listOf(BEARING) },
+        build = { options, salt ->
+            CliffField.world(bearingAt(options.steer(BEARING, salt)), salt, scaleOf(options, salt))
+        },
+        axes = { listOf(BEARING, SIZE) },
     ),
 
     /** Mesa country: a tableland under open sky, cut to pieces by canyons running three ways at once. */
     CANYONLANDS(
         "canyonlands",
         waterline = CanyonlandsField.RIVER_LEVEL,
-        build = { _, salt -> CanyonlandsField.world(salt) },
+        build = { options, salt -> CanyonlandsField.world(salt, scaleOf(options, salt)) },
+        axes = { listOf(SIZE) },
     ),
 
     /**
@@ -132,7 +160,8 @@ enum class Terrain(
     SHATTERED(
         "shattered",
         waterline = ShatteredField.RIVER_LEVEL,
-        build = { _, salt -> ShatteredField.world(salt) },
+        build = { options, salt -> ShatteredField.world(salt, scaleOf(options, salt)) },
+        axes = { listOf(SIZE) },
     ),
 
     /**
@@ -142,7 +171,8 @@ enum class Terrain(
     RIVERLANDS(
         "riverlands",
         waterline = RiverlandsField.WATERLINE,
-        build = { _, salt -> RiverlandsField.world(salt) },
+        build = { options, salt -> RiverlandsField.world(salt, scaleOf(options, salt)) },
+        axes = { listOf(SIZE) },
     ),
 
     /**
@@ -179,7 +209,8 @@ enum class Terrain(
     ALPS(
         "alps",
         waterline = AlpsField.WATERLINE,
-        build = { _, salt -> AlpsField.world(salt) },
+        build = { options, salt -> AlpsField.world(salt, scaleOf(options, salt)) },
+        axes = { listOf(SIZE) },
     ),
 
     /**
@@ -190,17 +221,8 @@ enum class Terrain(
     CRATERLANDS(
         "craterlands",
         waterline = CraterlandsField.WATERLINE,
-        build = { options, salt ->
-            CraterlandsField.world(
-                CraterlandsField.Steer(
-                    wear = options.steer(WEAR, salt),
-                    relief = options.steer(RELIEF, salt),
-                    spacing = options.steer(SPACING, salt),
-                ),
-                salt,
-            )
-        },
-        axes = { listOf(SPACING, WEAR, RELIEF) },
+        build = { options, salt -> CraterlandsField.world(craterSteer(options, salt), salt) },
+        axes = { listOf(SPACING, WEAR, RELIEF, SIZE) },
     ),
 
     /**
@@ -211,7 +233,8 @@ enum class Terrain(
     INVERSE_CAVES(
         "inverse_caves",
         waterline = null,
-        build = { _, salt -> InverseCavesField.world(salt) },
+        build = { options, salt -> InverseCavesField.world(salt, scaleOf(options, salt)) },
+        axes = { listOf(SIZE) },
         page = "inverted",
     ),
 
@@ -223,7 +246,8 @@ enum class Terrain(
     OVERWORLD(
         "overworld",
         waterline = OverworldField.WATERLINE,
-        build = { _, salt -> OverworldField.world(salt) },
+        build = { options, salt -> OverworldField.world(salt, scaleOf(options, salt)) },
+        axes = { listOf(SIZE) },
     ),
 
     /**
@@ -285,6 +309,15 @@ enum class Terrain(
     override val parameters: List<Parameter> get() = axes() + STONE + MINGLING
 
     /**
+     * Where this terrain's sea stands at the size asked for: [waterline], for every landform but the one
+     * whose water is a river on a floor that size moves.
+     */
+    fun waterlineAt(options: Options, salt: Long): Int? = when (this) {
+        CANYON -> CanyonField.riverLevel(scaleOf(options, salt))
+        else -> waterline
+    }
+
+    /**
      * How high an underground of this terrain's may reach, or null where there is no room for one at all —
      * **a landform's own declaration**, like [Grounding.Declared.hasSandyShores], because only the landform knows
      * where its lowest ground is and nothing general can be derived from what it does know.
@@ -299,19 +332,24 @@ enum class Terrain(
      *
      * - **[ALPS]** spends its whole vertical budget on the landform and leaves about sixteen blocks under a
      *   valley floor, so caves there would be holes in the bedrock rather than a country under the ground.
-     * - **[CAVERNS]** is the opposite case: its caves already *are* its shape, and **[INVERSE_CAVES]** is
-     *   that taken to its limit — cutting caves into the cast of a cave system would only erase it.
+     * - **[INVERSE_CAVES]** is the opposite case: it is the cast of a cave system already, and cutting caves
+     *   into it would only erase it.
      * - **[SPIRE_ISLANDS]** hangs in open air and is thin enough to be worked through by the weather alone.
      * - **[SHAPES]** is a reference for the vocabulary, not a world.
      *
      * **[CANYON] has the most room of anything here**, which is easy to get backwards: the gorge reaches
      * the world's floor, but everything either side of it is solid to the ceiling. Its underground is cut
      * off square by the gorge wall, which is a way in rather than a fault.
+     *
+     * **Size moves only the landforms whose datum moves with it**: a canyon's plateau comes down onto its
+     * underground, and a colossal crater's basin reaches below the tuned one. Everywhere else the datum is a
+     * floor or a sea that every size shares.
      */
-    fun undergroundCeiling(): Int? = when (this) {
+    fun undergroundCeiling(options: Options, salt: Long): Int? = when (this) {
         OVERWORLD -> OverworldField.SOLID_TOP - ROOM_FOR_A_ROOF
-        // Solid either side of the gorge all the way up, so this is bounded by taste rather than by rock.
-        CANYON -> VerticalWindow.HIGHEST_BLOCK_Y / 2
+        // Solid either side of the gorge all the way up, so this is bounded by taste rather than by rock —
+        // and by the plateau, once the canyon is smaller than the world.
+        CANYON -> minOf(VerticalWindow.HIGHEST_BLOCK_Y / 2, CanyonField.plateauY(scaleOf(options, salt)) - ROOM_FOR_A_ROOF)
         CANYONLANDS -> CanyonlandsField.FLOOR_Y - ROOM_FOR_A_ROOF
         SHATTERED -> ShatteredField.FLOOR_Y - ROOM_FOR_A_ROOF
         CLIFFS -> CliffField.SEABED_Y - ROOM_FOR_A_ROOF
@@ -321,7 +359,7 @@ enum class Terrain(
         FLATLANDS -> FlatlandsField.SURFACE_Y - ROOM_FOR_A_ROOF
         // The basin is already the deepest thing here, and it is dug from a plain standing well above
         // the waterline — so this datums on the crater floor rather than on the sea in it.
-        CRATERLANDS -> CraterlandsField.BOWL_FLOOR_Y - ROOM_FOR_A_ROOF
+        CRATERLANDS -> CraterlandsField.bowlFloorY(craterSteer(options, salt)) - ROOM_FOR_A_ROOF
         HILLS, ERODED, PILLARS -> ORDINARY_SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
         // A plain with no sea, so the only thing overhead is the plain itself.
         PYRAMIDS -> ORDINARY_SEA_LEVEL - ROOM_FOR_A_ROOF
@@ -329,7 +367,7 @@ enum class Terrain(
         // for an underground to open into, so this is bounded by the bedrock roof alone.
         SOLID -> SolidField.UNDERGROUND_CEILING
         // VANILLA has no shape of ours to hollow under, its rock being vanilla's to describe.
-        SPIRE_ISLANDS, CAVERNS, ALPS, SHAPES, INVERSE_CAVES, VANILLA -> null
+        SPIRE_ISLANDS, ALPS, SHAPES, INVERSE_CAVES, VANILLA -> null
     }
 
     override fun getSerializedName(): String = key
@@ -351,7 +389,7 @@ enum class Terrain(
         val uncut = build(options, salt)
         // **A landform with no room under it carries nothing**, whatever was asked for — the same shape as
         // a preset ignoring a material it cannot be made of, and the reason the ceiling is declared here.
-        val ceiling = undergroundCeiling() ?: return Ground(uncut)
+        val ceiling = undergroundCeiling(options, salt) ?: return Ground(uncut)
         return underground.carve(uncut, window.minY + BEDROCK_MARGIN, ceiling, window, undergroundOptions, salt)
     }
 
@@ -361,8 +399,8 @@ enum class Terrain(
      * Which undergrounds count as indoors is [Underground.indoorBand]'s question; this answers only whether
      * there is room under the landform at all.
      */
-    fun undergroundBand(underground: Underground, window: VerticalWindow): IntRange? =
-        undergroundCeiling()?.let { ceiling -> underground.indoorBand(window.minY + BEDROCK_MARGIN, ceiling) }
+    fun undergroundBand(underground: Underground, window: VerticalWindow, options: Options, salt: Long): IntRange? =
+        undergroundCeiling(options, salt)?.let { ceiling -> underground.indoorBand(window.minY + BEDROCK_MARGIN, ceiling) }
 
     /**
      * A terrain's rock, and what the water is to make of the space taken out of it. **The two are
@@ -411,9 +449,9 @@ enum class Terrain(
      * A river system's water follows its own beds, which run downhill everywhere, so no single level can
      * pour it — see `SeaFill.wet`. Most terrains carry none, and a new one should not have to say so.
      */
-    fun standingWater(salt: Long): TerrainField? = when (this) {
-        RIVERLANDS -> RiverlandsField.water(salt)
-        ALPS -> AlpsField.water(salt)
+    fun standingWater(options: Options, salt: Long): TerrainField? = when (this) {
+        RIVERLANDS -> RiverlandsField.water(salt, scaleOf(options, salt))
+        ALPS -> AlpsField.water(salt, scaleOf(options, salt))
         else -> null
     }
 
@@ -426,7 +464,7 @@ enum class Terrain(
      * argument, and a fourth would have been a fourth of each. What a landform knows about its own shape
      * is one subject and belongs in one table; see [Grounding.Declared] for what the facts mean.
      */
-    fun grounding(): Grounding.Declared = when (this) {
+    fun grounding(options: Options, salt: Long): Grounding.Declared = when (this) {
         ISLANDS, ISLE -> Grounding.Declared(hasSandyShores = true)
         CANYON -> Grounding.Declared(waterlineIsRiver = true)
         // Rock to the ceiling has no coast in it anywhere, and vanilla's continentalness curve has no
@@ -441,7 +479,7 @@ enum class Terrain(
         // topped at the rim crest — a hundred blocks of climb that would otherwise pass through no
         // country at all, the same argument `alps` makes.
         CRATERLANDS -> Grounding.Declared(
-            elevation = Elevation(fromY = CraterlandsField.PLAIN_Y, toY = CraterlandsField.RIM_CREST_Y),
+            elevation = Elevation(fromY = CraterlandsField.PLAIN_Y, toY = CraterlandsField.rimCrestY(craterSteer(options, salt))),
         )
         else -> Grounding.Declared()
     }
@@ -536,9 +574,10 @@ enum class Terrain(
         )
 
         /**
-         * How big an island is — its shore, its height and how far apart they stand, which move together.
-         * Words rather than a distance, §3.2 keeping numbers away from a writer, and the largest is
-         * deliberately short of anywhere you could lose a coastline on.
+         * How big the landform is, on five geometric steps from a quarter of what was tuned to four times it
+         * ([SizeScale]). **What grows is each landform's own business**: an island's footprint more than its
+         * height, a cave system's noise, a canyon's depth and width over a floor that stays put, a range's
+         * spacing with the ice still capping its peaks. The builders say which.
          *
          * **`size`, the same name a sun and a feature use**, because it is the size of the whole thing and
          * not one dimension of it: `colossal islands landmass` is the word a writer would reach for and it
@@ -547,13 +586,13 @@ enum class Terrain(
          */
         val SIZE = Parameter.ranged(
             "size",
-            help = "How big an island is: shore, height and spacing move together.",
-            // Words anybody knows. A skerry is a rock in the sea and the right word for the low end, and
-            // a landmark nobody can read is a landmark that says nothing.
+            help = "How big the landform is, each in its own way: an island's shore, a canyon's depth, a cave's span.",
             landmarks = listOf(
-                Parameter.Landmark(-1.0, "tiny"),
-                Parameter.Landmark(0.0, "an island"),
-                Parameter.Landmark(1.0, "a continent"),
+                Parameter.Landmark(-1.0, "minuscule"),
+                Parameter.Landmark(-0.5, "small"),
+                Parameter.Landmark(0.0, "ordinary"),
+                Parameter.Landmark(0.5, "large"),
+                Parameter.Landmark(1.0, "colossal"),
             ),
         )
 

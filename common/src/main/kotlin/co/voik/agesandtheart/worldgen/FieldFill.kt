@@ -85,8 +85,12 @@ internal class FieldFill(
 
                 for (y in window.minY..<window.topY) {
                     // The field decides, unless a structure standing here has an opinion of its own.
-                    val isRock = adaptation?.verdictAt(worldX, y, worldZ) ?: spans.contains(y)
-                    val askedTheAquifer = !isRock && band.carried(at, y) == null && band.hollow(at, y)
+                    val fieldHasRock = spans.contains(y)
+                    val verdict = adaptation?.verdictAt(worldX, y, worldZ)
+                    val isRock = verdict ?: fieldHasRock
+                    val clearedByAStructure = verdict == false && fieldHasRock
+                    val askedTheAquifer = !isRock && !clearedByAStructure && band.carried(at, y) == null &&
+                        band.hollow(at, y)
                     val state = when {
                         // What the rock *is*, which is vanilla's `default_block` and now ours — the surface
                         // system paints its skin over this afterwards, exactly as it does for vanilla.
@@ -97,6 +101,10 @@ internal class FieldFill(
                             moltenBeside = couldLine && band.moltenBeside(localX, localZ, y),
                             otherwise = fill.blockAt(worldX, y, worldZ),
                         )
+                        // Room a structure cut out of solid rock is the structure's, so it stays air. Below the
+                        // waterline and outside anything marked dry, the sea would otherwise pour into it — in a
+                        // chambered Age that is every piece of a D'ni city dug into the island or the wall.
+                        clearedByAStructure -> null
                         // A body the shape carries, which answers before either of the two below it: a
                         // caldera's lava is neither groundwater nor the sea, and both of those would take
                         // the space and put the wrong substance in it.

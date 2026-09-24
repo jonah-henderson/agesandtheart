@@ -23,11 +23,15 @@ import co.voik.agesandtheart.worldgen.field.Union
  */
 object OverworldField {
 
-    fun world(salt: Long = 0L): TerrainField = Union(
+    /**
+     * [scale] is [SizeScale]'s factor, and it is the land's breadth: continents and the seas between them
+     * grow across, while the band they rise through stays the height it is.
+     */
+    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField = Union(
         listOf(
             // Whole, not noisy: this is the rock the halls are taken out of.
             Slab(lowY = VerticalWindow.MIN_Y, highY = SOLID_TOP),
-            surface(salt),
+            surface(salt, scale),
         ),
     )
 
@@ -35,15 +39,15 @@ object OverworldField {
      * The part of the world that has a shape. Public because the preview draws it alone — over the slab it
      * is only the top hundred blocks that show, and it is the only half worth reading.
      */
-    fun surface(salt: Long = 0L): Noise3D = Noise3D(
+    fun surface(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): Noise3D = Noise3D(
         seed = LAND_SEED xor salt,
         // Detail at roughly 256 down to 32 blocks: continents, then coasts, then something on a hillside.
         firstOctave = -8,
         amplitudes = listOf(1.0, 0.6, 0.35, 0.2),
         // Broader across than up, so the land comes out layered and benched rather than knobbly.
-        scaleX = HORIZONTAL_SCALE,
+        scaleX = HORIZONTAL_SCALE * scale,
         scaleY = VERTICAL_SCALE,
-        scaleZ = HORIZONTAL_SCALE,
+        scaleZ = HORIZONTAL_SCALE * scale,
         character = NoiseCharacter.PLAIN,
         // Almost everything solid where the band meets the slab, so the two join without a seam.
         threshold = SOLID_AT_THE_BOTTOM,

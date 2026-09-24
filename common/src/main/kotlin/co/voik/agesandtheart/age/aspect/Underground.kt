@@ -2,6 +2,8 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.GreatHalls
+import co.voik.agesandtheart.worldgen.SizeScale
+import co.voik.agesandtheart.worldgen.TunnelsField
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.Subtract
@@ -32,6 +34,13 @@ enum class Underground(override val key: String) : AuthoredPreset {
     NOISE_CAVES("noise_caves"),
 
     /**
+     * **A network of even, winding tubes** from one ridged noise — [co.voik.agesandtheart.worldgen.TunnelsField].
+     * Nothing like vanilla's chambers and spaghetti, and kept under the ground: it has no entrances, so
+     * the way in is a carver, a cliff or a pick.
+     */
+    TUNNELS("tunnels"),
+
+    /**
      * Storey upon storey of pillared hall.
      *
      * A value here rather than a landform of its own, so that what stands *over* the halls can be any
@@ -55,18 +64,19 @@ enum class Underground(override val key: String) : AuthoredPreset {
     override val aspect = Aspect.UNDERGROUND
 
     /**
-     * **A vault is a thing with a name**, so the page that means it is minted here the way a landform's is
-     * — `chambered underground` rather than a hopeful pile of adjectives. The other three stay unnamed and
-     * are reached by what they are like, there being nothing to a hollow rock but its quality.
+     * **A vault is a thing with a name**, and so is a tunnel, so the pages that mean them are minted here
+     * the way a landform's is — `chambered underground` rather than a hopeful pile of adjectives. The other
+     * three stay unnamed and are reached by what they are like, there being nothing to a hollow rock but
+     * its quality.
      */
-    override val writtenWordFor: String? get() = key.takeIf { this == CHAMBERED }
+    override val writtenWordFor: String? get() = key.takeIf { this == CHAMBERED || this == TUNNELS }
 
     /**
-     * How big a chamber is — the axis every other size in the language is said on, so `colossal chambered
-     * underground` is the vault a city fits in and nothing below it is.
+     * How big a chamber or a tunnel is — the axis every other size in the language is said on, so
+     * `colossal chambered underground` is the vault a city fits in and nothing below it is.
      */
     override val parameters: List<Parameter>
-        get() = listOfNotNull(Terrain.SIZE.takeIf { this == CHAMBERED })
+        get() = listOfNotNull(Terrain.SIZE.takeIf { this == CHAMBERED || this == TUNNELS })
 
     /**
      * This underground cut into [uncut], between [floor] and [ceiling].
@@ -87,6 +97,15 @@ enum class Underground(override val key: String) : AuthoredPreset {
             // A carved cave meets the water table on its way out of the rock, so it answers to one.
             hollows = uncut,
         )
+        // Cut between the landform's own floor and ceiling, so the tubes stay under whatever stands over
+        // them; wet or dry by the water table, as a noise cave is.
+        TUNNELS -> {
+            val scale = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
+            Terrain.Ground(
+                Subtract(uncut, TunnelsField.tubes(floor, ceiling, TUNNEL_SEED xor salt, scale)),
+                hollows = uncut,
+            )
+        }
         GREAT_HALLS -> {
             // A ceiling has to be named here, unlike [NOISE_CAVES] where the band is the whole world —
             // `Caved` only ever walks rock the base actually has and its own entrance rule keeps the cut
@@ -134,6 +153,9 @@ enum class Underground(override val key: String) : AuthoredPreset {
     companion object {
         // So an Age's caves are its own, and decorrelated from the rock they are cut into.
         private const val CAVE_SEED = 0xCA_7E5L
+
+        // And its tunnels, so the tubes are not laid along the noise caves.
+        private const val TUNNEL_SEED = 0x7_0BE5L
 
         // And its halls likewise, decorrelated from both.
         private const val HALL_SEED = 0x4A_115L

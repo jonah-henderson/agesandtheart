@@ -383,7 +383,7 @@ class RecipeCheck : FunSpec({
      * shape — so it is the part most likely to round-trip as *something*, just not the same something.
      */
     test("a set-valued landform round-trips") {
-        val composition = AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.PILLARS, Terrain.CAVERNS))
+        val composition = AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.PILLARS, Terrain.ERODED))
             .withPresets(Aspect.SEA, listOf(Sea.WATER.key))
             .withPresets(Aspect.SEA, listOf(Sea.WATER.key, Sea.LAVA.key))
             .withPresets(Aspect.CARVERS, listOf(Carvers.CAVES.key, Carvers.SOLID.key))
@@ -404,7 +404,7 @@ class RecipeCheck : FunSpec({
         }
 
         val spelling = composition.toString()
-        check("landmass=hills,pillars,caverns" in spelling) { "A set should print comma-joined, got '$spelling'" }
+        check("landmass=hills,pillars,eroded" in spelling) { "A set should print comma-joined, got '$spelling'" }
         check("rock=caves,solid" in spelling) { "So should a carving set, got '$spelling'" }
         // Ids, because the sea aspect is open (design §3.1) — the referent is the value, not a preset naming it.
         check("sea=minecraft:water,minecraft:lava" in spelling) { "And a sea set, got '$spelling'" }

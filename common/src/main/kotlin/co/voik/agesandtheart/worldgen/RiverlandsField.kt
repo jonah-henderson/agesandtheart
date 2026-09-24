@@ -22,8 +22,8 @@ import co.voik.agesandtheart.worldgen.field.Weathered
 object RiverlandsField {
 
     /** The ground, weathered — a light hand, unlike the canyon's. See [Weathering.RIVERLANDS]. */
-    fun world(salt: Long = 0L): TerrainField =
-        Weathered.sculpting(network(salt), Weathering.RIVERLANDS, SHELTER_REACH)
+    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        Weathered.sculpting(network(salt, scale), Weathering.RIVERLANDS, SHELTER_REACH)
 
     /**
      * The water standing in the rivers, for `SeaFill.wet`.
@@ -32,17 +32,26 @@ object RiverlandsField {
      * downhill everywhere, so a plane wets the lowest trunks and leaves every headwater dry. Handing the
      * fill a field instead lets each reach carry its own surface.
      */
-    fun water(salt: Long = 0L): TerrainField = network(salt).copy(describes = FieldYield.WATER)
+    fun water(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        network(salt, scale).copy(describes = FieldYield.WATER)
 
-    /** The bare network, before the weather and without its water. */
-    fun network(salt: Long = 0L): Drainage = Drainage(
+    /**
+     * The bare network, before the weather and without its water.
+     *
+     * [scale] is [SizeScale]'s factor, and it is the river system's reach: valleys further apart, wider and
+     * more winding, at the same height over the same water — so the rivers run wet at every size and a
+     * big system reads as a broad one rather than a deep one.
+     */
+    fun network(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): Drainage = Drainage(
         floorY = VerticalWindow.MIN_Y,
         landY = LAND_Y,
         relief = RELIEF,
-        landStretch = LAND_STRETCH,
-        spacing = SPACING,
+        landStretch = LAND_STRETCH * scale,
+        spacing = SPACING * scale,
         jitter = JITTER,
         seed = LAND_SEED xor salt,
+        halfWidth = Drainage.DEFAULT_HALF_WIDTH * scale,
+        meander = Drainage.DEFAULT_MEANDER * scale,
         // Fewer benches than a canyon's, and a wider bed: a river valley is a trough with a floodplain,
         // where a canyon is strata worn back at different rates.
         profile = CanyonProfile(benches = 2, riserShare = 0.45, floorShare = 0.22, gorgeShare = 0.45, gorgeRise = 0.4),

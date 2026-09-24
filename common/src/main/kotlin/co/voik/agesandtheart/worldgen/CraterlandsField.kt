@@ -20,6 +20,7 @@ import co.voik.agesandtheart.worldgen.field.Undulated
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
 import co.voik.agesandtheart.worldgen.field.Weathered
+import co.voik.agesandtheart.worldgen.field.scaledAbout
 import net.minecraft.core.Direction
 import kotlin.math.roundToInt
 
@@ -63,7 +64,13 @@ object CraterlandsField {
      * drawn; nothing outside can address those separately, and nothing inside has to be told what a block
      * is by the vocabulary.
      */
-    data class Steer(val wear: Double? = null, val relief: Double? = null, val spacing: Double? = null) {
+    data class Steer(
+        val wear: Double? = null,
+        val relief: Double? = null,
+        val spacing: Double? = null,
+        /** `Terrain.SIZE`, which is the impact structure's alone: see [structureShare]. */
+        val size: Double? = null,
+    ) {
         companion object {
             /** No word bent anything: every dial reads as this landform tuned it. */
             val UNSAID = Steer()
@@ -95,28 +102,68 @@ object CraterlandsField {
      * *over* the cratered plain instead and the raised ground simply buries the craters it covers, which
      * is what a blanket of ejecta does to the country it lands on anyway.
      */
-    fun world(steer: Steer = Steer.UNSAID, salt: Long = 0L): TerrainField =
-        Weathered.sculpting(bareWorld(steer, salt), Weathering.CRATERLANDS, SHELTER_REACH)
+    fun world(steer: Steer = Steer.UNSAID, salt: Long = 0L): TerrainField {
+        val covering = coveringShare(steer)
+        return Weathered.sculpting(
+            bareWorld(steer, salt),
+            Weathering.CRATERLANDS.resized(covering, WATERLINE),
+            (SHELTER_REACH * covering).roundToInt(),
+        )
+    }
 
-    /** The structure before the weather reaches it — the previewer's other half, and the checks'. */
+    /**
+     * The structure before the weather reaches it — the previewer's other half, and the checks'.
+     *
+     * The scalloping is taken from what the impact raised rather than from the whole world, which is the
+     * same thing at the tuned size — its floor stands over the plain and every crater in it — and stays the
+     * same thing when the structure is resized under a plain that is not.
+     */
     fun bareWorld(steer: Steer = Steer.UNSAID, salt: Long = 0L): TerrainField {
+        val share = structureShare(steer)
+        fun sized(field: TerrainField) = field.resized(share, WATERLINE)
         val secondaries = craters(steer, salt)
-        val hole = excavation(steer, salt)
-        val laid = Union(
+        val hole = sized(excavation(steer, salt))
+        // What the impact threw out, with the same hole taken out of it.
+        val raised = Union(
+            listOf(
+                Subtract(sized(apron()), hole),
+                sized(outerRings(steer, salt)),
+                sized(rebound(steer, salt)),
+            ),
+        )
+        return Union(
             listOf(
                 // The old country and everything that has cratered it, with the basin taken out of it.
                 Subtract(
                     Union(listOf(plain(salt), secondaries.rims)),
                     Union(listOf(hole, secondaries.bowls)),
                 ),
-                // What the impact threw out, with the same hole taken out of it.
-                Subtract(apron(), hole),
-                outerRings(steer, salt),
-                rebound(steer, salt),
+                Subtract(raised, sized(scalloping(steer, salt))),
             ),
         )
-        return Subtract(laid, scalloping(steer, salt))
     }
+
+    /**
+     * How big the impact structure is against the one these constants were walked at, which is `large` —
+     * [SizeScale]'s factor halved. The structure is resized whole about the waterline, so the basin's sea,
+     * the island's shore and the peaks keep their relations to the water; the cratered plain around it is
+     * the same country at every size. Below the tuned size the rim sinks into the plain, so the smallest
+     * are drowned pits rather than ringed basins.
+     */
+    fun structureShare(steer: Steer): Double = SizeScale.factorAt(steer.size) / TUNED_SIZE
+
+    /**
+     * The same, never below the tuned size — for what has to **cover** the structure rather than be it:
+     * the weather's band, and the depths a landform datums on. A smaller structure lies inside the tuned
+     * one's, so those stand as they were.
+     */
+    fun coveringShare(steer: Steer): Double = structureShare(steer).coerceAtLeast(1.0)
+
+    /** The height the rim crest reaches at [steer]'s size, for anything that has to reach over it. */
+    fun rimCrestY(steer: Steer): Int = scaledAbout(RIM_CREST_Y, coveringShare(steer), WATERLINE)
+
+    /** And the basin floor, for anything that has to stay under it. */
+    fun bowlFloorY(steer: Steer): Int = scaledAbout(BOWL_FLOOR_Y, coveringShare(steer), WATERLINE)
 
     /**
      * What stops the rim being a circle: a noisy ceiling laid across the world, shaving everything that
@@ -776,6 +823,9 @@ object CraterlandsField {
 
     /** How far into an exposed face the weather works. Read against a rim wall a hundred blocks tall. */
     private const val SHELTER_REACH = 16
+
+    /** The size the impact structure was walked at: `large`. */
+    private const val TUNED_SIZE = 2.0
 
     // Each node draws its own numbers: two handed one seed agree every time, which reads as coincidence.
     private const val PLAIN_SEED = 0x91A_1DL

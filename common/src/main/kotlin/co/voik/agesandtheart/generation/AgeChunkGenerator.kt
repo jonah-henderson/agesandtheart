@@ -534,11 +534,11 @@ class AgeChunkGenerator(
                 WorldGenerationContext(this, chunk.heightAccessorForGeneration),
                 chunk,
                 noiseChunk,
-                surfaceRule,
+                surfacedBy,
                 biomes,
             )
             if (ours == null) {
-                region?.let { generateCarvers(chunk, blender, noiseChunk, randomState, biomeManager, it, surfaceRule) }
+                region?.let { generateCarvers(chunk, blender, noiseChunk, randomState, biomeManager, it, surfacedBy) }
             } else {
                 region?.let { carveOurGround(ours, chunk, randomState, biomeManager, noiseChunk, it) }
             }
@@ -800,9 +800,24 @@ class AgeChunkGenerator(
         carvers.indices.filter { territory -> carvers[territory].size() == 0 }.toSet()
     }
 
-    // Only ever consulted by the NoiseChunk's own (disabled, unused) aquifer — carving uses [aquifer].
-    private val ambientFluid =
-        Aquifer.FluidPicker { x, _, z -> Aquifer.FluidStatus(seaLevel, writtenSea.blockAt(x, z)) }
+    /**
+     * What the `NoiseChunk`'s aquifer fills with. On vanilla's rock that aquifer is the real one and this is
+     * vanilla's own sea and lava — our sea is never declared over vanilla's terrain, so reading it poured air.
+     * On ours the aquifer is disabled and unused; carving uses [aquifer].
+     */
+    private val ambientFluid: Aquifer.FluidPicker = when (rock) {
+        is AgeRock.Vanillas -> createFluidPicker(generationSettings)
+        is AgeRock.Ours -> Aquifer.FluidPicker { x, _, z -> Aquifer.FluidStatus(seaLevel, writtenSea.blockAt(x, z)) }
+    }
+
+    /**
+     * The rule the fill is surfaced and carved by: vanilla's own on vanilla's rock — its skin, and in 26.3
+     * its ore veins too — and the Surface aspect's on ours. [surfaceRule] is only ever the latter.
+     */
+    private val surfacedBy: MaterialRule = when (rock) {
+        is AgeRock.Vanillas -> generationSettings.materialRule().value()
+        is AgeRock.Ours -> surfaceRule
+    }
 
     /**
      * One per `buildTerrain`, closed when it is done — 26.3 stopped caching these on the chunk and made

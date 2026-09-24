@@ -4,6 +4,7 @@ import co.voik.agesandtheart.worldgen.field.Escarpment
 import co.voik.agesandtheart.worldgen.field.Weathered
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import kotlin.math.roundToInt
 
 /**
  * A world cut in two: open ocean one way, a plateau the other, and one cliff between them running from
@@ -36,18 +37,35 @@ object CliffField {
      */
     private const val NORTH_TO_SOUTH = 0.0
 
-    fun world(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L): TerrainField =
-        Weathered.sculpting(bareWorld(bearing, salt), Weathering.CLIFFS, SHELTER_REACH)
+    /**
+     * [scale] is [SizeScale]'s factor, and the cliff as tuned is `colossal`. The drop over the sea and
+     * everything that runs along the face — its wander, its roughness, the weather's grain — take a
+     * quarter of the factor, while the sea and the seabed stay where they are.
+     */
+    fun world(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField {
+        val share = scale / SizeScale.COLOSSAL
+        return Weathered.sculpting(
+            bareWorld(bearing, salt, scale),
+            Weathering.CLIFFS.resized(share, SEA_LEVEL),
+            (SHELTER_REACH * share).roundToInt().coerceAtLeast(1),
+        )
+    }
 
     /** The face before the weather reaches it — the previewer's other half, and nothing else's. */
-    fun bareWorld(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L): TerrainField = Escarpment(
-        bearing = bearing,
-        offset = 0.0,
-        lowY = SEABED_Y,
-        highY = PLATEAU_Y,
-        floorY = VerticalWindow.MIN_Y,
-        seed = COAST_SEED xor salt,
-    )
+    fun bareWorld(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        Escarpment(
+            bearing = bearing,
+            offset = 0.0,
+            lowY = SEABED_Y,
+            highY = PLATEAU_Y,
+            floorY = VerticalWindow.MIN_Y,
+            seed = COAST_SEED xor salt,
+        )
+            .resized(scale / SizeScale.COLOSSAL, SEA_LEVEL)
+            .copy(lowY = SEABED_Y, floorY = VerticalWindow.MIN_Y)
+
+    /** The top of the tableland, [DROP_TO_THE_SEA] over the water at `colossal`. */
+    fun plateauY(scale: Double): Int = SEA_LEVEL + (DROP_TO_THE_SEA * scale / SizeScale.COLOSSAL).roundToInt()
 
     /** The convention every shape wanting a sea keeps to. */
     const val SEA_LEVEL = 63
@@ -56,7 +74,7 @@ object CliffField {
     const val SEABED_Y = 32
 
     /**
-     * How far the plateau stands over the sea.
+     * How far a `colossal` plateau stands over the sea.
      *
      * Sized against vanilla's default twelve-chunk render distance, which fades out somewhere under two
      * hundred blocks: the water directly below the edge is comfortably inside that, and water a hundred
@@ -64,7 +82,7 @@ object CliffField {
      */
     const val DROP_TO_THE_SEA = 142
 
-    /** The tableland's own level, [DROP_TO_THE_SEA] blocks over the water. */
+    /** A `colossal` tableland's level, [DROP_TO_THE_SEA] blocks over the water. */
     const val PLATEAU_Y = SEA_LEVEL + DROP_TO_THE_SEA
 
     /**

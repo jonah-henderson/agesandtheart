@@ -22,7 +22,12 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
  */
 object InverseCavesField {
 
-    fun world(salt: Long): TerrainField {
+    /**
+     * [scale] is [SizeScale]'s factor, and it is the caves' own: the noise they are cast from is read that
+     * much coarser, so every ridge, plateau and shaft grows while the cast still fills the world top to
+     * bottom. Stretching the finished shape instead would squash or lose half of it against the ceiling.
+     */
+    fun world(salt: Long, scale: Double = SizeScale.ORDINARY): TerrainField {
         // The whole band: the cave noises keep producing all the way up, nine columns in ten past y=280.
         val everything = Slab(lowY = VerticalWindow.MIN_Y, highY = VerticalWindow.TOP_Y)
         val hollowed = Caved(
@@ -31,6 +36,7 @@ object InverseCavesField {
             fromY = VerticalWindow.MIN_Y,
             toY = VerticalWindow.TOP_Y,
             entranceReach = ENTRANCE_REACH,
+            featureScale = scale,
         )
         return Subtract(everything, hollowed)
     }

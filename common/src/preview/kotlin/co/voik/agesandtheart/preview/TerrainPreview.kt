@@ -4,7 +4,6 @@ import co.voik.agesandtheart.age.aspect.SpireSky
 import co.voik.agesandtheart.worldgen.AlpsField
 import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.CanyonlandsField
-import co.voik.agesandtheart.worldgen.CavernField
 import co.voik.agesandtheart.worldgen.CliffField
 import co.voik.agesandtheart.worldgen.CraterlandsField
 import co.voik.agesandtheart.worldgen.ErodedField
@@ -20,6 +19,7 @@ import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.SolidField
 import co.voik.agesandtheart.worldgen.SpireField
+import co.voik.agesandtheart.worldgen.TunnelsField
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.VolcanoField
 import co.voik.agesandtheart.worldgen.field.Union
@@ -243,10 +243,10 @@ private val subjects: Map<String, Subject> = mapOf(
     "hills" to Subject(NoiseField.hills(), lowestY = 20, highestY = 120),
     "pillars" to Subject(PillarField.world(), lowestY = 30, highestY = 185),
     "shapes" to Subject(ShapesField.world(), lowestY = 55, highestY = 130, radius = 200),
-    "caverns" to Subject(CavernField.world(), lowestY = VerticalWindow.MIN_Y, highestY = 110),
-    // The tunnels on their own. A cave system reads far better as a solid lattice hanging in space than
-    // as absence inside a hill, and the slices are where the network's connectedness actually shows.
-    "caverns-voids" to Subject(CavernField.caves(), lowestY = VerticalWindow.MIN_Y, highestY = 70),
+    // The `tunnels` underground on its own, in the band a hills Age gives it. A cave system reads far better
+    // as a solid lattice hanging in space than as absence inside a hill, and the slices are where the
+    // network's connectedness actually shows.
+    "tunnels-voids" to Subject(TunnelsField.tubes(-59, 19), lowestY = VerticalWindow.MIN_Y, highestY = 30),
     "eroded" to Subject(ErodedField.world(), lowestY = 30, highestY = 195, radius = 200),
 
     // **Read the slice across the bearing, not the plan.** From above a solid world is one flat shade with
@@ -566,7 +566,7 @@ private val subjects: Map<String, Subject> = mapOf(
     ),
 
     // The vaults on their own, which is far easier to read than absence inside a slab — the same reason
-    // `CavernField.caves` is public.
+    // `TunnelsField.tubes` is public.
     "chambers-void" to Subject(
         Chambers.voidBetween(-59, SolidField.UNDERGROUND_CEILING, size = Span.NATURAL_MOST),
         lowestY = VerticalWindow.MIN_Y,

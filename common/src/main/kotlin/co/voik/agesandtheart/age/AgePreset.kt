@@ -30,8 +30,8 @@ enum class AgePreset(val key: String) : StringRepresentable {
     /** Colossal rectangular monoliths over an ocean. */
     PILLARS("pillars"),
 
-    /** Ridged 3D noise riddled with caverns; its caves are the field itself, not carvers. */
-    CAVERNS("caverns"),
+    /** Hills over a network of ridged-noise tunnels — the `tunnels` underground. */
+    TUNNELS("tunnels"),
 
     /** Plain 3D noise, weathered into mesa-like relief. */
     ERODED("eroded"),

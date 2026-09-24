@@ -35,7 +35,7 @@ age compose hillcaves landmass=hills sea=water rock=flooded_caves sky=storm stru
 
 # --- Others nobody wrote, to stress the aspect list ---------------------------------------------
 age compose lavapillar landmass=pillars sea=lava rock=solid sky=plain
-age compose deepcavern landmass=caverns sea=water sea.depth=0.9..1.0 rock=porous sky=plain
+age compose deepcavern landmass=hills sea=water sea.depth=0.9..1.0 rock=porous underground=tunnels sky=plain
 
 # A terrain that stands in open air, told to have a sea anyway. The terrain's contract must win:
 # expect it to be created and to generate dry, not to crash.

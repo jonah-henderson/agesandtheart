@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.Weathering
+import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import com.mojang.serialization.MapCodec
@@ -153,6 +155,19 @@ data class Weathered(
     override fun resized(factor: Double, pivotY: Int): TerrainField =
         copy(base = base.resized(factor, pivotY))
 
+    /**
+     * The whole weathered landform at another size: the rock, and the weather with it — its band, its grain,
+     * and every depth it measures shelter and crowns by. For a landform whose size *is* a resize of itself.
+     */
+    fun sized(factor: Double, pivotY: Int): Weathered = copy(
+        base = base.resized(factor, pivotY),
+        weathering = weathering.resized(factor, pivotY),
+        coreThickness = scaled(coreThickness, factor).coerceAtLeast(1),
+        crownReach = scaled(crownReach, factor).coerceAtLeast(1),
+        shelterReach = if (shelterReach <= NO_SHELTER) shelterReach else scaled(shelterReach, factor).coerceAtLeast(1),
+        roofY = if (roofY >= Spans.HIGHEST_Y) roofY else scaledAbout(roofY, factor, pivotY),
+    )
+
     companion object {
         private const val EXPECTED_RUNS = 8
 
@@ -220,12 +235,29 @@ data class Weathered(
          * a recipe naming them all would be a copy of ours that could never be retuned. The dispatch is
          * what its being implicit was always waiting on — a second curated profile.
          */
-        private val WEATHERING_CODEC: Codec<Weathering> = Codec.STRING.comapFlatMap(
+        private val NAMED_CODEC: Codec<Weathering> = Codec.STRING.comapFlatMap(
             { key ->
                 val profile = Weathering.named(key)
                 if (profile == null) DataResult.error { "no weathering called '$key'" } else DataResult.success(profile)
             },
             Weathering::key,
+        )
+
+        /** A named profile [resized][Weathering.resized] with its landform, said as the name and the resize. */
+        private val SIZED_CODEC: Codec<Weathering> = RecordCodecBuilder.create<Pair<Weathering, Pair<Double, Int>>> { instance ->
+            instance.group(
+                NAMED_CODEC.fieldOf("key").forGetter { it.first },
+                Codec.DOUBLE.fieldOf("sized_by").forGetter { it.second.first },
+                Codec.INT.fieldOf("sized_about").forGetter { it.second.second },
+            ).apply(instance) { named, sizedBy, sizedAbout -> named to (sizedBy to sizedAbout) }
+        }.xmap(
+            { (named, resize) -> named.resized(resize.first, resize.second) },
+            { sized -> sized to (sized.sizedBy to sized.sizedAbout) },
+        )
+
+        private val WEATHERING_CODEC: Codec<Weathering> = Codec.either(NAMED_CODEC, SIZED_CODEC).xmap(
+            { either -> either.map({ it }, { it }) },
+            { profile -> if (profile.sizedBy == SizeScale.ORDINARY) Either.left(profile) else Either.right(profile) },
         )
 
         fun codec(self: Codec<TerrainField>): MapCodec<Weathered> = RecordCodecBuilder.mapCodec { instance ->

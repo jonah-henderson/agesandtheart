@@ -34,23 +34,30 @@ object AlpsField {
      * The ground, weathered — a firmer hand than a river country's and a much lighter one than a canyon's.
      * The shape already has its large forms; what this adds is frost damage on the high faces.
      */
-    fun world(salt: Long = 0L): TerrainField =
-        Weathered.sculpting(bareWorld(salt), Weathering.ALPS, SHELTER_REACH)
+    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        Weathered.sculpting(bareWorld(salt, scale), Weathering.ALPS, SHELTER_REACH)
 
-    /** The range before the weather reaches it — the previewer's other half, and nothing else's. */
-    fun bareWorld(salt: Long = 0L): MountainRange = MountainRange(
+    /**
+     * The range before the weather reaches it — the previewer's other half, and nothing else's.
+     *
+     * [scale] is [SizeScale]'s factor, and it is the range's **footprint**: massifs further apart, broader
+     * troughs and cirques, longer strike. Every height stays, and the grade with it, so the drainage decides
+     * how tall the peaks get — a small range tops out low because its hillslopes meet early, and a big one
+     * climbs until the ice caps it, which is where the tuned range already stands.
+     */
+    fun bareWorld(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): MountainRange = MountainRange(
         // Where the rock starts, not where the valleys bottom out: any higher leaves void under the Age.
         floorY = VerticalWindow.MIN_Y,
-        profile = profile(salt),
-        glaciation = glaciation(salt),
-        spacing = SPACING,
+        profile = profile(salt, scale),
+        glaciation = glaciation(salt, scale),
+        spacing = SPACING * scale,
         jitter = JITTER,
         seed = RANGE_SEED xor salt,
         hillslopeGrade = HILLSLOPE_GRADE,
         incision = INCISION,
         incisionPerOrder = INCISION_PER_ORDER,
         roughness = ROUGHNESS,
-        roughnessStretch = ROUGHNESS_STRETCH,
+        roughnessStretch = ROUGHNESS_STRETCH * scale,
         waterDepth = WATER_DEPTH,
     )
 
@@ -59,7 +66,8 @@ object AlpsField {
      * a river country's is. A single waterline cannot pour an alpine drainage: its trunks run at y≈70 in
      * the core and reach the foreland at y≈40, so a plane meets it only where it happens to cross.
      */
-    fun water(salt: Long = 0L): TerrainField = bareWorld(salt).copy(describes = FieldYield.WATER)
+    fun water(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        bareWorld(salt, scale).copy(describes = FieldYield.WATER)
 
     /**
      * Where the ranges lie and how they climb.
@@ -70,31 +78,31 @@ object AlpsField {
      * wedge. [RangeProfile.grainAlong] against [RangeProfile.grainAcross] draws those cells out along the
      * strike, which is what makes a range a *range* rather than one wall of a honeycomb.
      */
-    fun profile(salt: Long = 0L): RangeProfile = RangeProfile(
+    fun profile(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): RangeProfile = RangeProfile(
         bearing = BEARING,
         basinY = BASIN_FLOOR,
         crestY = CREST_Y,
         riseShape = RISE_SHAPE,
         rangeThreshold = RANGE_THRESHOLD,
         rangeSharpness = RANGE_SHARPNESS,
-        grainAcross = GRAIN_ACROSS,
-        grainAlong = GRAIN_ALONG,
-        meander = MEANDER,
-        warpStretch = WARP_STRETCH,
+        grainAcross = GRAIN_ACROSS * scale,
+        grainAlong = GRAIN_ALONG * scale,
+        meander = MEANDER * scale,
+        warpStretch = WARP_STRETCH * scale,
         seed = PROFILE_SEED xor salt,
     )
 
     /** What the ice did — see [Glaciation], and the note on [SNOWLINE_Y] for what it is worth. */
-    fun glaciation(salt: Long = 0L): Glaciation = Glaciation(
+    fun glaciation(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): Glaciation = Glaciation(
         snowlineY = SNOWLINE_Y,
         summitScatter = SUMMIT_SCATTER,
-        summitStretch = SUMMIT_STRETCH,
+        summitStretch = SUMMIT_STRETCH * scale,
         summitRounding = SUMMIT_ROUNDING,
-        troughBase = TROUGH_BASE,
-        troughPerOrder = TROUGH_PER_ORDER,
+        troughBase = TROUGH_BASE * scale,
+        troughPerOrder = TROUGH_PER_ORDER * scale,
         troughPower = TROUGH_POWER,
         glacialOrder = GLACIAL_ORDER,
-        cirqueRadius = CIRQUE_RADIUS,
+        cirqueRadius = CIRQUE_RADIUS * scale,
         cirqueDeepening = CIRQUE_DEEPENING,
         headwallSteepening = HEADWALL_STEEPENING,
         cirqueLowestY = CIRQUE_LOWEST_Y,

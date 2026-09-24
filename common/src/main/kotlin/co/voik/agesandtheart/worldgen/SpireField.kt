@@ -15,6 +15,7 @@ import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
 import co.voik.agesandtheart.worldgen.field.Weathered
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * The Spire archipelago: **blocky masses pared back by erosion** rather than assembled from ellipsoids
@@ -37,8 +38,16 @@ object SpireField {
      * unweathered one does not read as a plainer island, it reads as a blob. Every other landform here
      * says this in its own field; the Spire said it through a `weathered` *carving* for as long as
      * carvers were taken to mean "take rock away", and that was a misconception rather than a design.
+     *
+     * [scale] is [SizeScale]'s factor, and the archipelago takes **a root of it**, resized whole about the
+     * deck: islands, spacing and weather together. The tuned islands already hang from past the ceiling to
+     * fifty blocks over the sea, so they have far more room to shrink than to grow.
      */
-    fun world(salt: Long = 0L): TerrainField = Weathered.spire(bareWorld(salt))
+    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        Weathered.spire(bareWorld(salt)).sized(archipelagoShare(scale), DECK_Y)
+
+    /** Half at `minuscule`, and only √2 at `colossal`, where the undersides would otherwise reach the sea. */
+    private fun archipelagoShare(scale: Double): Double = if (scale < SizeScale.ORDINARY) sqrt(scale) else sqrt(sqrt(scale))
 
     /**
      * The masses before the wind reaches them — the previewer's other half, and nothing else's.
