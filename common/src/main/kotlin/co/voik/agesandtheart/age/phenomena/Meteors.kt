@@ -21,10 +21,10 @@ import kotlin.math.sin
  * that happens once one is up happens on the entity, which is what lets this stay a couple of rolls a tick
  * however long a storm runs — the same division `Sandfall` makes, and for the same reason.
  *
- * **Its three dials are all instability's** (Jonah, 2026-09-06), which is one more than any other
- * phenomenon here has: how *often* a storm gathers, how *long* it lasts, and how *hard* the bodies come
- * in. A rung raises all three, so `teeming meteors` is not merely more storms but worse ones — which is
- * what stops the top of the ramp reading as the bottom repeated.
+ * **Three dials** ([MeteorDials]): how *often* a storm gathers, how *long* it lasts, and how *hard* the
+ * bodies come in. Instability buys each apart; a written rung raises the first two, and where both are
+ * true they compound. How many bodies a storm drops follows how long it lasts and nothing else, since
+ * every body is a light drawn in the sky.
  */
 object Meteors {
 
@@ -35,14 +35,14 @@ object Meteors {
      * two at once over the same country would read as weather rather than as an arrival — so the count is
      * what a rung raises first.
      */
-    fun fall(level: ServerLevel, density: Double, fury: Double) {
+    fun fall(level: ServerLevel, density: Double, dials: MeteorDials) {
         if (Sampling.watchers(level).isEmpty()) return
         // **Rolled at the quickened rate, and thinned back out again when nothing drew it.** A lure
         // shortens the wait, but asking whether one exists is a scan — so doing it on every tick to
         // decide whether to roll would cost a thousand times what it saves. Rolling at the faster rate
         // and letting three in four through without a lure comes to the same two rates and asks the
         // question about three times an hour instead.
-        if (level.random.nextInt(quickenedFor(density)) != NOW) return
+        if (level.random.nextInt(quickenedFor(asIfTeeming(density, dials.often))) != NOW) return
         // **Counted after the roll, not before it.** This walks the level's whole entity list, and asking
         // it on every tick of every meteoric Age is thousands of class checks twenty times a second for an
         // answer that is nearly always the same. Behind the roll it is asked about three times an hour,
@@ -51,7 +51,7 @@ object Meteors {
         val somebody = Sampling.somebody(level) ?: return
         val drawn = drawnNear(level, somebody.position())
         if (drawn == null && level.random.nextDouble() > WITHOUT_A_LURE) return
-        gatherOneNearSomebody(level, somebody, drawn, density, fury)
+        gatherOneNearSomebody(level, somebody, drawn, density, dials)
     }
 
     /**
@@ -157,14 +157,14 @@ object Meteors {
         somebody: Player,
         drawn: Lures.Drawn?,
         density: Double,
-        fury: Double,
+        dials: MeteorDials,
     ) {
         val random = level.random
         val bearing = random.nextDouble() * FULL_TURN
         val room = roomFor(level)
         val away = room * (NEAREST_SHARE + random.nextDouble() * (FURTHEST_SHARE - NEAREST_SHARE))
         val spot = BlockPos.containing(somebody.x + cos(bearing) * away, somebody.y, somebody.z + sin(bearing) * away)
-        raise(level, spot, density, fury, drawn)
+        raise(level, spot, density, dials, drawn)
     }
 
     /**
@@ -182,7 +182,7 @@ object Meteors {
         level: ServerLevel,
         otherwise: BlockPos,
         density: Double,
-        fury: Double,
+        dials: MeteorDials,
         drawn: Lures.Drawn?,
         slant: Double? = null,
         lasting: Int? = null,
@@ -198,9 +198,9 @@ object Meteors {
         val falling = lasting ?: lengthenedBy(
             MeteorStorm.SHORTEST_FALL +
                 level.random.nextInt(MeteorStorm.ORDINARY_FALL - MeteorStorm.SHORTEST_FALL + ONE),
-            density,
+            asIfTeeming(density, dials.long),
         )
-        return MeteorStorm.gatherAt(level, where, bodiesFor(fury, falling), falling, fury, slant, reach)
+        return MeteorStorm.gatherAt(level, where, bodiesFor(falling), falling, dials.power, slant, reach)
     }
 
     /**
@@ -231,23 +231,12 @@ object Meteors {
         Lures.nearest(level, around, roomFor(level))
 
     /**
-     * How many bodies a storm drops over the whole of its life, which is also what the sky promises.
-     *
-     * **Worked out from how long it falls for**, so a longer storm is not a denser one: what a rung buys
-     * is the *rate*, and the length is bought separately by [lengthenedBy]. Every one of these is a light
-     * in the sky before it is a rock on the ground, so this number is what a player actually counts — and
-     * it is a third dial the instability already had rather than a fourth.
-     *
-     * **Thinned, and the rung widened to make up for it** (Jonah, walked). A forty-five-second storm at
-     * the old rate was three hundred bodies, which is three hundred lights drawn every frame; and the
-     * impact disc is four times the area it was, so the same count over it was never going to read as the
-     * same pounding anyway. An ordinary storm is now a body every quarter-second and a ruined Age's is
-     * back past where this started.
+     * How many bodies a storm drops over the whole of its life, which is also what the sky promises: **a
+     * body every quarter-second, for as long as it falls**, and nothing else changes it (Jonah,
+     * 2026-09-23). Every one is a light in the sky before it is a rock on the ground, so a longer storm is
+     * more of them and a harder one is not.
      */
-    private fun bodiesFor(fury: Double, falling: Int): Int =
-        (falling / EVERY * (ONE_WHOLE + fury * THICKER_WHEN_FIERCE))
-            .roundToInt()
-            .coerceIn(ONE, falling / CLOSEST_TOGETHER)
+    private fun bodiesFor(falling: Int): Int = (falling / EVERY).coerceAtLeast(ONE)
 
     /**
      * A storm's own length — **ten seconds at the low end, a full minute at the high** (Jonah).
@@ -303,12 +292,8 @@ object Meteors {
      */
     private const val MOST_AT_ONCE = 1
 
-    /** A body every this many ticks in an Age at rest — four a second. */
+    /** A body every this many ticks — four a second. */
     private const val EVERY = 5
-
-    /** What being fierce adds to that, and how close together bodies may get however fierce it is. */
-    private const val THICKER_WHEN_FIERCE = 2.2
-    private const val CLOSEST_TOGETHER = 2
 
     /** What a rung adds to a storm's length: an ordinary Age ten seconds, a teeming one a minute. */
     private const val LONGER_WHEN_TEEMING = 1.0

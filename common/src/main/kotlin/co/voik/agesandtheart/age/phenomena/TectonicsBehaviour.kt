@@ -44,13 +44,13 @@ data class TectonicsBehaviour(
     val fury: TectonicsFury = TectonicsFury.ORDINARY,
 ) {
 
-    /** How far a swathe reaches in an Age this far into [co.voik.agesandtheart.age.Manifestation.TECTONICS]. */
-    fun reachAt(fury: Double): Int =
-        lerp(reach.toDouble(), this.fury.reach.toDouble(), fury).roundToInt().coerceAtLeast(SMALLEST_REACH)
+    /** How far a swathe reaches in an Age this far into [TectonicsDials.size]. */
+    fun reachAt(size: Double): Int =
+        lerp(reach.toDouble(), this.fury.reach.toDouble(), size).roundToInt().coerceAtLeast(SMALLEST_REACH)
 
-    /** And how fast it falls. */
-    fun paceAt(fury: Double): Double =
-        lerp(pace, this.fury.pace, fury).coerceAtLeast(QUICKEST_PACE)
+    /** And how fast it falls, this far into [TectonicsDials.speed]. */
+    fun paceAt(speed: Double): Double =
+        lerp(pace, this.fury.pace, speed).coerceAtLeast(QUICKEST_PACE)
 
     /**
      * Which shape a cave-in of this seed takes.

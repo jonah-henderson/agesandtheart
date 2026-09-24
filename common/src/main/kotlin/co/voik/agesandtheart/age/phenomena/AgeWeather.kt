@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.ORDINARY_SHARE
+import co.voik.agesandtheart.age.aspect.ORDINARY_SPELL
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.WeatherConditions
 import net.minecraft.server.level.ServerLevel
@@ -97,6 +98,7 @@ object AgeWeather {
     fun steer(level: ServerLevel, wants: WeatherConditions) {
         if (wants.saysNothing || beingHumoured(level)) return
         val weather = level.dataStorage.computeIfAbsent(WeatherData.TYPE)
+        lengthenANewSpell(level, weather, wants.spellLength)
         val rainTime = capped(wants.rainfall, weather.isRaining, weather.rainTime, ORDINARY_RAIN)
         val thunderTime = capped(wants.thunder, weather.isThundering, weather.thunderTime, ORDINARY_THUNDER)
         if (rainTime == weather.rainTime && thunderTime == weather.thunderTime) return
@@ -106,6 +108,29 @@ object AgeWeather {
         if (wants.rainfall > ORDINARY_SHARE) weather.clearWeatherTime = 0
         weather.setDirty()
     }
+
+    /**
+     * **The one place a timer is raised, and only once a spell.** [steer] must never raise a timer tick by
+     * tick, or it and `advanceWeatherCycle` push one value back and forth forever. Raising it once, the
+     * first tick a spell is seen, is a spell that was drawn longer — the cycle then counts it down as it
+     * would any other.
+     */
+    private fun lengthenANewSpell(level: ServerLevel, weather: WeatherData, spellLength: Double) {
+        if (!weather.isRaining) {
+            lengthened.remove(level)
+            return
+        }
+        if (spellLength <= ORDINARY_SPELL || lengthened.containsKey(level)) return
+        lengthened[level] = true
+        val atLeast = (ORDINARY_RAIN * spellLength).toInt()
+        if (weather.rainTime < atLeast) {
+            weather.rainTime = atLeast
+            weather.setDirty()
+        }
+    }
+
+    /** The Ages whose current spell of rain has already been lengthened — see [lengthenANewSpell]. */
+    private val lengthened = WeakHashMap<ServerLevel, Boolean>()
 
     /** [timeLeft], never raised — see [steer] for why only one direction is safe. */
     private fun capped(wants: Double, happening: Boolean, timeLeft: Int, ordinary: Int): Int {

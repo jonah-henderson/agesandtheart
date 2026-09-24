@@ -55,21 +55,22 @@ object Blizzard {
      * Does nothing at all unless the Age is actually in weather: a blizzard *is* the storm, so what makes
      * it come and go is [shareOfTheTime] steering the Age's own weather rather than anything decided here.
      */
-    fun blow(level: ServerLevel, density: Double, fury: Double) {
+    fun blow(level: ServerLevel, density: Double, dials: BlizzardDials) {
         if (!level.isRaining) return
         // How *hard*, not how often: by the time this runs the storm is already here, and what is left to
-        // decide is what it does while it lasts.
-        val severity = hardnessIn(level, fury)
+        // decide is what it does while it lasts — how thick it blows, and how fast it bites.
+        val thickness = visibilityIn(level, dials.visibility)
+        val biting = frostbiteIn(level, dials.frostbite)
         val bearing = bearingIn(level)
         val cursor = BlockPos.MutableBlockPos()
         for (player in Sampling.watchers(level)) {
             val around = BlockPos.containing(player.position())
-            repeat(driftsPerTick(severity)) {
+            repeat(driftsPerTick(thickness)) {
                 val x = around.x + level.random.nextInt(-REACH, REACH)
                 val z = around.z + level.random.nextInt(-REACH, REACH)
-                driftAt(level, cursor, x, z, bearing, severity)
+                driftAt(level, cursor, x, z, bearing, thickness)
             }
-            chill(level, around, severity)
+            chill(level, around, biting)
         }
     }
 
@@ -108,9 +109,7 @@ object Blizzard {
      * How much of the storm is on this spot, from none of it to all of it — **the one definition**, read
      * by the cold here and by the wind's crossfade on the client.
      *
-     * **Cover, and graded** (Jonah, 2026-09-07). Sky light is the answer because it walks round an overhang
-     * and down through a canopy, so a lip of rock slows the cold, a stand of trees halves it and a cave or
-     * a roofed room stops it. There is nothing here about what a roof *is*; the lighting engine knows.
+     * **Cover, and graded** — [Sampling.exposureAt], which an inferno's burn is taken off by too.
      *
      * **Block light is deliberately not consulted, and that is a change.** It used to stop the freezing
      * outright, on the argument that what keeps the drift off your ground keeps the cold off you — but a
@@ -118,8 +117,7 @@ object Blizzard {
      * still keeps your *ground*; see [driftAt], which is vanilla's own rule and keeps it. What answers the
      * cold is cover, a real fire, or the leather the design always meant to be the portable answer.
      */
-    fun exposureAt(level: Level, at: BlockPos): Float =
-        (level.getBrightness(LightLayer.SKY, at).toFloat() / OPEN_TO_THE_SKY).coerceIn(NOTHING, ALL_OF_IT)
+    fun exposureAt(level: Level, at: BlockPos): Float = Sampling.exposureAt(level, at)
 
     /**
      * How much a real fire nearby takes off the cold, from none of it to [MOST_A_FIRE_GIVES].
@@ -179,42 +177,39 @@ object Blizzard {
         val telling = if (density == null) {
             BlizzardPayload.noneIn(age)
         } else {
-            val severity = hardnessIn(level, Happenings.furyOf(spending, Phenomenon.BLIZZARD))
-            BlizzardPayload(age, severity, bearingIn(level).get2DDataValue())
+            // The client draws the whiteout, so it is told how thick the storm is and nothing about the cold.
+            val thickness = visibilityIn(level, BlizzardDials.of(spending).visibility)
+            BlizzardPayload(age, thickness, bearingIn(level).get2DDataValue())
         }
         // Every player rather than [Sampling.watchers]: a spectator draws no storm but still sees it.
         for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
     }
 
     /**
-     * How much of the time an Age at this severity is in a storm, as
-     * [co.voik.agesandtheart.age.aspect.WeatherConditions] wants it.
-     *
-     * **One of the two things severity drives**, and the one that decides how much of your life is spent
-     * in a storm: an ordinary blizzard comes about as often as vanilla's rain and passes in a few minutes,
-     * where a furious Age is scarcely ever out of one.
-     *
-     * The other is how hard it blows while it is here — [driftsPerTick] and [inTheLee] on this side, and
-     * the visibility, the wind and the speed of the snow on the client's. A blizzard bought with
-     * instability or asked for at a rung is fiercer *and* more constant, because a storm that came more
-     * often without getting worse would only be tedious.
+     * How much of the time an Age this often in a storm spends in one, as
+     * [co.voik.agesandtheart.age.aspect.WeatherConditions] wants it — an ordinary blizzard comes about as
+     * often as vanilla's rain, where one bought in full is scarcely ever gone. How *long* each lasts is its
+     * own dial, [BlizzardDials.long], and reaches the weather as a spell length rather than through this.
      */
     fun shareOfTheTime(howOften: Double): Double =
         (AS_OFTEN_AS_RAIN + (howOften - Rung.ORDINARY) * MORE_OF_THE_TIME)
             .coerceIn(AS_OFTEN_AS_RAIN, ALMOST_ALWAYS)
 
     /**
-     * A fierceness set by hand, for looking at one — `/age weather blizzard <intensity>`.
+     * A storm set by hand, for looking at one — `/age weather blizzard <visibility> [<frostbite>]`.
      *
      * **Transient and per level.** It is a debug tool, so it is written nowhere, and weakly keyed on the
      * level so it goes when the level does — with its server, or with the Age. It *summons* a blizzard as
      * well as setting its strength, because the alternative is finding an Age that already has one before
      * you can look at the thing you are tuning.
      */
-    private val forced: MutableMap<ServerLevel, Double> = Collections.synchronizedMap(WeakHashMap())
+    private val forced: MutableMap<ServerLevel, Forced> = Collections.synchronizedMap(WeakHashMap())
 
-    fun force(level: ServerLevel, hardness: Double) {
-        forced[level] = hardness
+    /** How thick and how cold a storm was set by hand, each on [hardnessAt]'s scale. */
+    data class Forced(val visibility: Double, val frostbite: Double)
+
+    fun force(level: ServerLevel, visibility: Double, frostbite: Double = visibility) {
+        forced[level] = Forced(visibility, frostbite)
     }
 
     fun release(level: ServerLevel) {
@@ -222,30 +217,31 @@ object Blizzard {
     }
 
     /** What was set by hand here, or null where nothing was. */
-    fun forcedIn(level: ServerLevel): Double? = forced[level]
+    fun forcedIn(level: ServerLevel): Forced? = forced[level]
 
-    /** How hard it blows here: what somebody asked for, else what the Age's own instability bought. */
-    fun hardnessIn(level: ServerLevel, fury: Double): Double = forcedIn(level) ?: howHardOf(fury)
+    /** How thick it blows here: what somebody asked for, else what [BlizzardDials.visibility] bought. */
+    fun visibilityIn(level: ServerLevel, reach: Double): Double = forcedIn(level)?.visibility ?: hardnessAt(reach)
+
+    /** And how fast it bites: what somebody asked for, else what [BlizzardDials.frostbite] bought. */
+    fun frostbiteIn(level: ServerLevel, reach: Double): Double = forcedIn(level)?.frostbite ?: hardnessAt(reach)
 
     /**
-     * **How often it blows** — the rung and the instability together.
+     * **How often it blows** — the rung and [BlizzardDials.often] together.
      *
      * A rung is *how much of a thing there is* (`Rung`), which for weather is how much of the time it is
      * happening: `teeming blizzard` is an Age that is often in one, not an Age whose storms are worse.
      * That distinction is Jonah's (2026-09-05) and it is what keeps the quantifiers meaning one thing
      * across every aspect they reach.
      */
-    fun howOftenOf(density: Double, fury: Double): Double =
-        (density / Rung.ORDINARY) + fury * FURY_ALSO_LINGERS
+    fun howOftenOf(density: Double, often: Double): Double =
+        (density / Rung.ORDINARY) + often * FURY_ALSO_LINGERS
 
     /**
-     * **How hard it blows while it is here** — instability, and nothing a quantifier can say.
-     *
-     * Deliberately not the rung: asking for *more* blizzard is asking for more of the time in one. What
-     * makes a storm worse is an Age coming apart — and, when there is a word for it, a modifier of its own
-     * (`fierce`, `strong`; Jonah, 2026-09-05, not yet written). Both would raise this and nothing else.
+     * **How hard a storm is on one of its two harsh dials** — how thick it blows, or how fast it bites — at
+     * this far into that dial. Instability's, and nothing a quantifier can say: asking for *more* blizzard is
+     * asking for more of the time in one.
      */
-    fun howHardOf(fury: Double): Double = Rung.ORDINARY + fury * FURY_DRIVES
+    fun hardnessAt(reach: Double): Double = Rung.ORDINARY + reach * FURY_DRIVES
 
     /**
      * Which way the wind blows here today — the same answer for everyone, from nothing written down.
@@ -489,9 +485,6 @@ object Blizzard {
     /** How far from a player the storm is worked, in blocks. */
     private const val REACH = 48
 
-    /** The sky light of open ground, so the first block of cover is already worth something. */
-    private const val OPEN_TO_THE_SKY = 15.0f
-
     /**
      * What may warm you, as a tag — genuinely hot things, never merely bright ones.
      *
@@ -532,13 +525,13 @@ object Blizzard {
     /** How much of the axis a full rung or a full fury covers. */
     private const val MORE_OF_THE_TIME = 0.34
 
-    /** What a full reach of the manifestation adds to how hard a storm blows. */
+    /** What a dial bought in full adds to how thick a storm blows, or how fast it bites. */
     private const val FURY_DRIVES = 2.0
 
-    /** And how much it adds to how often one comes, on top of whatever rung was written. */
+    /** And what [BlizzardDials.often] in full adds to how often one comes, on top of whatever rung was written. */
     private const val FURY_ALSO_LINGERS = 2.0
 
-    /** The hardest storm an Age can earn: [howHardOf] at the whole of its fury. */
+    /** The hardest storm an Age can earn: [hardnessAt] at the whole of a dial. */
     const val HARDEST_EARNED = Rung.ORDINARY + FURY_DRIVES
 
     /** The hardest storm `/age weather blizzard` will force, past anything an Age can earn. */

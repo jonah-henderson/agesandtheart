@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.ORDINARY_SHARE
+import co.voik.agesandtheart.age.aspect.ORDINARY_SPELL
 import co.voik.agesandtheart.age.aspect.WeatherConditions
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.generation.Ages
@@ -55,7 +56,7 @@ object Happenings {
         }
         AgeWeather.steer(level, wanted(composition, befalls, spending))
         for ((phenomenon, density) in befalls) {
-            befall(level, phenomenon, density, furyOf(spending, phenomenon))
+            befall(level, phenomenon, density, spending)
         }
         // What the client cannot work out for itself — see [BlizzardPayload]. Sent on a slow beat
         // rather than on change, because "changed" would need a memory per player and the message is
@@ -80,17 +81,23 @@ object Happenings {
     }
 
     /**
-     * What this Age's own instability makes of [phenomenon], nought to one — and nought for anywhere that
-     * is not an Age.
+     * What this Age's own instability bought — and nothing, for anywhere that is not an Age.
      *
      * The same answer `AgeTick.tick` works out for itself, offered to anything that wants to *imitate* what an Age
      * would do rather than wait for it. A debug command that raised storms at a fierceness the Age had
      * never bought was showing something the game does not contain.
      */
-    fun furyIn(level: ServerLevel, phenomenon: Phenomenon): Double {
-        val recipe = Ages.recipeOf(level) ?: return NOTHING_INFLICTED
-        return furyOf(Spending.of(level.server, recipe), phenomenon)
+    fun spendingIn(level: ServerLevel): Spending {
+        val recipe = Ages.recipeOf(level) ?: return Spending.NOTHING
+        return Spending.of(level.server, recipe)
     }
+
+    /**
+     * Whether [phenomenon] befalls [level] at all — **written, or inflicted by its instability** — for
+     * something that has to answer what the world did rather than the clock, as a bolt landing does.
+     */
+    fun befalls(level: ServerLevel, phenomenon: Phenomenon): Boolean =
+        claimFor(level, phenomenon) != null || furyOf(spendingIn(level), phenomenon) > NOTHING_INFLICTED
 
     /**
      * Everything that befalls the Age and how hard, from **both** directions (design §7.7).
@@ -162,8 +169,11 @@ object Happenings {
      */
     private fun Phenomenon.insistsAt(density: Double, spending: Spending): WeatherConditions = when (this) {
         Phenomenon.BLIZZARD -> {
-            val howOften = Blizzard.howOftenOf(density, furyOf(spending, this))
-            WeatherConditions(rainfall = Blizzard.shareOfTheTime(howOften))
+            val dials = BlizzardDials.of(spending)
+            WeatherConditions(
+                rainfall = Blizzard.shareOfTheTime(Blizzard.howOftenOf(density, dials.often)),
+                spellLength = asIfTeeming(ORDINARY_SPELL, dials.long),
+            )
         }
         Phenomenon.DELUGE -> WeatherConditions(rainfall = Deluge.risingOf(density, spending).rainShare)
         Phenomenon.TEMPEST, Phenomenon.INFERNO, Phenomenon.AURORA, Phenomenon.RAINBOW,
@@ -177,10 +187,10 @@ object Happenings {
      * `teeming tempest` and `scarce tempest` are the same phenomenon at different strengths, and no
      * phenomenon needs a parameter of its own to be dialled.
      */
-    private fun befall(level: ServerLevel, phenomenon: Phenomenon, density: Double, fury: Double) {
+    private fun befall(level: ServerLevel, phenomenon: Phenomenon, density: Double, spending: Spending) {
         when (phenomenon) {
-            Phenomenon.TEMPEST -> Tempest.strike(level, density)
-            Phenomenon.INFERNO -> Inferno.burn(level, density)
+            Phenomenon.TEMPEST -> Tempest.strike(level, density, TempestDials.of(spending))
+            Phenomenon.INFERNO -> Inferno.burn(level, density, InfernoDials.of(spending))
             // **Nothing, deliberately.** An aurora is seen rather than done: it is drawn on the client from
             // arithmetic every client does for itself, so there is no tick of it to run here and no state
             // for one to keep. See [Phenomenon.AURORA].
@@ -189,10 +199,10 @@ object Happenings {
             // the weather is `Phenomenon.RAINBOW.insistsOn`, which the Age was built with rather than
             // something to arrange here. See [Phenomenon.RAINBOW].
             Phenomenon.RAINBOW -> Unit
-            Phenomenon.SANDFALL -> Sandfall.wander(level, density, fury)
-            Phenomenon.TECTONICS -> CaveIns.stir(level, density, fury)
-            Phenomenon.BLIZZARD -> Blizzard.blow(level, density, fury)
-            Phenomenon.METEORS -> Meteors.fall(level, density, fury)
+            Phenomenon.SANDFALL -> Sandfall.wander(level, density, SandfallDials.of(spending))
+            Phenomenon.TECTONICS -> CaveIns.stir(level, density, TectonicsDials.of(spending))
+            Phenomenon.BLIZZARD -> Blizzard.blow(level, density, BlizzardDials.of(spending))
+            Phenomenon.METEORS -> Meteors.fall(level, density, MeteorDials.of(spending))
             // **The rise is not here**, and that is the one thing to know about this phenomenon's shape:
             // the sea's level is a counted number advanced in `AgeTick.tick`, where these two are the
             // near-player block work that makes it visible. See [Deluge].

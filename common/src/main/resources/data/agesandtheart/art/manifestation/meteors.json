@@ -1,13 +1,17 @@
 {
   "_comment": [
-    "What an inflicted meteor storm costs an Age's instability budget, and how far it can reach (design 5.0, 5.2).",
+    "What an inflicted meteor storm costs an Age's instability budget, dial by dial (design 5.0, 5.2).",
     "",
     "Difficulty you can answer: anything in `agesandtheart:seals_wounds` is immune to a blast worth using,",
-    "and being properly indoors is free. A step buys all three of its dials at once -- how often a storm",
-    "gathers, how long it lasts, and how hard the bodies come in -- which want splitting into dials of",
-    "their own. Opens at 16 with the other phenomena."
+    "and being properly indoors is free. So two of its three dials are cheap, as the deluge's are: `often` is",
+    "how often a storm gathers and `long` how long it lasts, and how many bodies it drops follows `long`",
+    "alone, since every body is a light drawn in the sky. `power` is how hard they land -- speed and blast --",
+    "which is what can take a roof off, and it is dear. A dial bought in full is worth what `teeming` is to a",
+    "written storm. All three open at 16 with the other phenomena. Every number here waits on the tuning pass."
   ],
   "dials": {
-    "fury": { "costs": 7, "most": 4, "opens_at": 16 }
+    "often": { "costs": 3, "most": 4, "opens_at": 16 },
+    "long": { "costs": 3, "most": 4, "opens_at": 16 },
+    "power": { "costs": 7, "most": 4, "opens_at": 16 }
   }
 }

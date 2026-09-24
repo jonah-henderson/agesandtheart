@@ -236,13 +236,49 @@ internal val SHIPPED_PRICES = mapOf(
     Manifestation.TORN_SEAMS to Price.flat(Manifestation.TORN_SEAMS, costs = 2, most = 4),
     Manifestation.WOUNDS to Price.flat(Manifestation.WOUNDS, costs = 5, most = 4, opensAt = 10),
     Manifestation.WORSENING_WOUNDS to Price.flat(Manifestation.WORSENING_WOUNDS, costs = 9, most = 3, opensAt = 120),
-    Manifestation.SANDFALL to Price.flat(Manifestation.SANDFALL, costs = 7, most = 4, opensAt = 16),
-    Manifestation.BLIZZARD to Price.flat(Manifestation.BLIZZARD, costs = 7, most = 4, opensAt = 16),
-    Manifestation.METEORS to Price.flat(Manifestation.METEORS, costs = 7, most = 4, opensAt = 16),
+    Manifestation.SANDFALL to Price(
+        mapOf(
+            Manifestation.COLUMNS_OFTEN to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
+            Manifestation.COLUMNS_LONG to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
+            Manifestation.COLUMNS_SIZE to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+            Manifestation.COLUMNS_DEPTH to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+        ),
+    ),
+    Manifestation.BLIZZARD to Price(
+        mapOf(
+            Manifestation.SNOWSTORMS_OFTEN to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
+            Manifestation.SNOWSTORMS_LONG to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
+            Manifestation.SNOWSTORMS_VISIBILITY to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
+            Manifestation.SNOWSTORMS_FROSTBITE to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+        ),
+    ),
+    Manifestation.METEORS to Price(
+        mapOf(
+            Manifestation.STORMS_OFTEN to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
+            Manifestation.STORMS_LONG to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
+            Manifestation.STORMS_POWER to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+        ),
+    ),
     // At 200 with `collapse`, not 16 with the phenomena: given time it takes the whole Age.
-    Manifestation.TECTONICS to Price.flat(Manifestation.TECTONICS, costs = 7, most = 4, opensAt = 200),
-    // One step rather than four: an inferno has no designed ramp — see `Manifestation.INFERNO`.
-    Manifestation.INFERNO to Price.flat(Manifestation.INFERNO, costs = 7, most = 1, opensAt = 16),
+    Manifestation.TECTONICS to Price(
+        mapOf(
+            Manifestation.CAVE_IN_SIZE to DialPrice.flat(costs = 7, most = 4, opensAt = 200),
+            Manifestation.CAVE_IN_SPEED to DialPrice.flat(costs = 7, most = 4, opensAt = 200),
+        ),
+    ),
+    Manifestation.TEMPEST to Price(
+        mapOf(
+            Manifestation.BOLTS_OFTEN to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
+            Manifestation.BOLTS_BLAST to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+            Manifestation.BOLTS_FIRE to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+        ),
+    ),
+    Manifestation.INFERNO to Price(
+        mapOf(
+            Manifestation.BURN_DAMAGE to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+            Manifestation.LIGHT_INTENSITY to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+        ),
+    ),
     Manifestation.DELUGE to Price(
         mapOf(
             Manifestation.RISE_RATE to DialPrice.flat(costs = 3, most = 10, opensAt = 16),

@@ -3,10 +3,12 @@ package co.voik.agesandtheart.command
 import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.phenomena.Happenings
+import co.voik.agesandtheart.age.phenomena.MeteorDials
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.agesandtheart.age.phenomena.Meteors
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.phenomena.Sandfall
+import co.voik.agesandtheart.age.phenomena.SandfallDials
 import co.voik.agesandtheart.age.phenomena.Tempest
 import co.voik.agesandtheart.age.aspect.WeatherConditions
 import co.voik.agesandtheart.age.phenomena.AgeWeather
@@ -75,19 +77,27 @@ internal object PhenomenonInstruments {
 
     private const val SECONDS_ARGUMENT = "seconds"
 
-    /** `/age sandfall <distance> <seconds> <fury>` — how far into what instability could buy, as a percent. */
-    private const val FURY_ARGUMENT = "fury"
+    /** `/age sandfall <distance> <seconds> <size> [<depth>]` — how far into each dial, as a percent. */
+    private const val SIZE_ARGUMENT = "size"
+    private const val DEPTH_ARGUMENT = "depth"
 
-    private const val NO_FURY = 0
+    /** `/age meteors <distance> <seconds> <power>` — how far into the storms' `power` dial, as a percent. */
+    private const val POWER_ARGUMENT = "power"
 
-    private const val ALL_FURY = 100
+    private const val NONE_OF_A_DIAL = 0
+
+    private const val ALL_OF_A_DIAL = 100
 
     private const val MOST_SANDFALL_SECONDS = 3600
 
     private const val TICKS_PER_SECOND = 20
 
-    /** `/age weather blizzard <intensity>` — how hard, where one is ordinary and three is fully bought. */
-    private const val INTENSITY_ARGUMENT = "intensity"
+    /**
+     * `/age weather blizzard <visibility> [<frostbite>]` — how thick it blows and how fast it bites, where one
+     * is ordinary and three is fully bought. Frostbite left out follows visibility.
+     */
+    private const val VISIBILITY_ARGUMENT = "visibility"
+    private const val FROSTBITE_ARGUMENT = "frostbite"
 
     /**
      * `/age weather <clear|rain|thunder>` — set the weather of **the Age you are standing in**.
@@ -104,21 +114,27 @@ internal object PhenomenonInstruments {
         Commands.literal("weather").apply {
             for ((name, wants) in AgeWeather.asked()) {
                 val branch = Commands.literal(name)
-                    .executes { context -> runWeather(context, name, wants, hardness = null) }
+                    .executes { context -> runWeather(context, name, wants, forced = null) }
                 // **Only the blizzard takes a strength**, because it is the only phenomenon whose weather
-                // and whose fierceness are two different dials — everything else either wants a condition
-                // or does not. One is ordinary and three is everything instability can buy.
+                // and whose fierceness are different dials — everything else either wants a condition or
+                // does not. One is ordinary and three is everything instability can buy.
                 if (name == Phenomenon.BLIZZARD.key) {
+                    fun hardness() = DoubleArgumentType.doubleArg(Rung.ORDINARY, Blizzard.HARDEST_FORCED)
                     branch.then(
-                        Commands.argument(INTENSITY_ARGUMENT, DoubleArgumentType.doubleArg(Rung.ORDINARY, Blizzard.HARDEST_FORCED))
+                        Commands.argument(VISIBILITY_ARGUMENT, hardness())
                             .executes { context ->
-                                runWeather(
-                                    context,
-                                    name,
-                                    wants,
-                                    DoubleArgumentType.getDouble(context, INTENSITY_ARGUMENT),
-                                )
-                            },
+                                val visibility = DoubleArgumentType.getDouble(context, VISIBILITY_ARGUMENT)
+                                runWeather(context, name, wants, Blizzard.Forced(visibility, visibility))
+                            }
+                            .then(
+                                Commands.argument(FROSTBITE_ARGUMENT, hardness()).executes { context ->
+                                    val forced = Blizzard.Forced(
+                                        visibility = DoubleArgumentType.getDouble(context, VISIBILITY_ARGUMENT),
+                                        frostbite = DoubleArgumentType.getDouble(context, FROSTBITE_ARGUMENT),
+                                    )
+                                    runWeather(context, name, wants, forced)
+                                },
+                            ),
                     )
                 }
                 then(branch)
@@ -129,7 +145,7 @@ internal object PhenomenonInstruments {
         context: CommandContext<CommandSourceStack>,
         name: String,
         wants: WeatherConditions,
-        hardness: Double?,
+        forced: Blizzard.Forced?,
     ): Int {
         val source = context.source
         val level = source.level
@@ -141,7 +157,7 @@ internal object PhenomenonInstruments {
         // Asking for a plain blizzard puts the Age back on its own fierceness, so the override is never
         // something a walk can leave switched on without meaning to.
         if (name == Phenomenon.BLIZZARD.key) {
-            if (hardness == null) Blizzard.release(level) else Blizzard.force(level, hardness)
+            if (forced == null) Blizzard.release(level) else Blizzard.force(level, forced.visibility, forced.frostbite)
         }
         // A deluge asked for pools its rain whatever the Age was written with; any other weather ends that.
         if (name == Phenomenon.DELUGE.key) Deluge.force(level) else Deluge.release(level)
@@ -170,7 +186,11 @@ internal object PhenomenonInstruments {
             )
 
     /**
-     * `/age meteors [<distance>] [<seconds>] [<fury>] [look]` — gather a storm ahead of you, now.
+     * `/age meteors [<distance>] [<seconds>] [<power>] [look]` — gather a storm ahead of you, now.
+     *
+     * Each of a storm's dials has its lever here: `seconds` is how long it lasts and `power` how hard its
+     * bodies land, and either left out is what this Age's own instability bought. How often one gathers has
+     * none, a storm raised now being the answer to that.
      *
      * **A storm is thirty seconds of sky before it is anything at all**, which is exactly what makes it
      * unwalkable without this: waiting for one to happen by itself, in the right Age, close enough to see
@@ -190,14 +210,14 @@ internal object PhenomenonInstruments {
                     context,
                     if (given) IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT) else null,
                     if (given) IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT) else null,
-                    if (given) IntegerArgumentType.getInteger(context, FURY_ARGUMENT) else null,
+                    if (given) IntegerArgumentType.getInteger(context, POWER_ARGUMENT) else null,
                     if (slanted) IntegerArgumentType.getInteger(context, DEGREES_ARGUMENT) else null,
                     look,
                     ignoreLure,
                 )
             }
 
-        val asked = Commands.argument(FURY_ARGUMENT, IntegerArgumentType.integer(0, ALL_FURY))
+        val asked = Commands.argument(POWER_ARGUMENT, IntegerArgumentType.integer(0, ALL_OF_A_DIAL))
         flagged(asked, runner(given = true, slanted = false))
         val slanted = Commands.argument(
             DEGREES_ARGUMENT,
@@ -251,7 +271,7 @@ internal object PhenomenonInstruments {
         context: CommandContext<CommandSourceStack>,
         distance: Int?,
         seconds: Int?,
-        furyPercent: Int?,
+        powerPercent: Int?,
         degrees: Int?,
         look: Boolean,
         ignoreLure: Boolean,
@@ -259,11 +279,12 @@ internal object PhenomenonInstruments {
         val source = context.source
         val level = source.level
         // **A bare `/age meteors` imitates what this Age would raise on its own** (Jonah), rather than
-        // inventing a storm the game does not contain: the rung its book claimed and the fury its
+        // inventing a storm the game does not contain: the rung its book claimed and the dials its
         // instability actually bought. Anything passed is an override on top of that.
         val density = Happenings.claimFor(level, Phenomenon.METEORS)?.density ?: Rung.ORDINARY
-        // toDouble FIRST: ALL_FURY is an Int, so dividing without it makes every fury under a hundred nought.
-        val fury = furyPercent?.let { it.toDouble() / ALL_FURY } ?: Happenings.furyIn(level, Phenomenon.METEORS)
+        val bought = MeteorDials.of(Happenings.spendingIn(level))
+        // toDouble FIRST: ALL_OF_A_DIAL is an Int, so dividing without it makes every power under a hundred nought.
+        val dials = powerPercent?.let { bought.copy(power = it.toDouble() / ALL_OF_A_DIAL) } ?: bought
         val facing = Vec3.directionFromRotation(source.rotation)
         val ahead = source.position.add(facing.scale(distance?.toDouble() ?: Meteors.gathersAway(level)))
         val spot = BlockPos.containing(ahead.x, source.position.y, ahead.z)
@@ -271,7 +292,7 @@ internal object PhenomenonInstruments {
         // point of this command is that it does what a storm does.
         val drawn = if (ignoreLure) null else Meteors.drawnNear(level, source.position)
         val slant = degrees?.let { Math.toRadians(it.toDouble()) }
-        val storm = Meteors.raise(level, spot, density, fury, drawn, slant, seconds?.times(TICKS_PER_SECOND))
+        val storm = Meteors.raise(level, spot, density, dials, drawn, slant, seconds?.times(TICKS_PER_SECOND))
         // Turned to the *light*, which is thousands of blocks out along the storm's entry line and nowhere
         // near the storm itself. Facing the storm left a walk staring at empty sky (Jonah, walked).
         if (look) {
@@ -282,7 +303,7 @@ internal object PhenomenonInstruments {
         Report.prose(source).say {
             val drawnIn = drawn?.let { "drawn in by ${it.blocks} aloft, ${storm.reach.toInt()} wide" }
                 ?: "${storm.reach.toInt()} wide, nothing drawing it"
-            "A storm gathers, $drawnIn, ${(fury * ALL_FURY).toInt()}% fierce, " +
+            "A storm gathers, $drawnIn, ${(dials.power * ALL_OF_A_DIAL).toInt()}% power, " +
                 "${storm.bodies} bodies over ${storm.falling / TICKS_PER_SECOND}s. " +
                 "It falls in ${MeteorStorm.APPROACHING / TICKS_PER_SECOND}s."
         }
@@ -306,7 +327,7 @@ internal object PhenomenonInstruments {
      */
     private fun sandfallSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("sandfall")
-            .executes { context -> runSandfall(context, DEFAULT_SANDFALL_DISTANCE, null, NO_FURY) }
+            .executes { context -> runSandfall(context, DEFAULT_SANDFALL_DISTANCE, null, NONE_OF_A_DIAL) }
             .then(
                 Commands.argument(DISTANCE_ARGUMENT, IntegerArgumentType.integer(0, MAX_SANDFALL_DISTANCE))
                     .executes { context ->
@@ -314,7 +335,7 @@ internal object PhenomenonInstruments {
                             context,
                             IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT),
                             null,
-                            NO_FURY,
+                            NONE_OF_A_DIAL,
                         )
                     }
                     .then(
@@ -324,19 +345,31 @@ internal object PhenomenonInstruments {
                                     context,
                                     IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT),
                                     IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT),
-                                    NO_FURY,
+                                    NONE_OF_A_DIAL,
                                 )
                             }
                             .then(
-                                Commands.argument(FURY_ARGUMENT, IntegerArgumentType.integer(0, ALL_FURY))
+                                Commands.argument(SIZE_ARGUMENT, IntegerArgumentType.integer(0, ALL_OF_A_DIAL))
                                     .executes { context ->
                                         runSandfall(
                                             context,
                                             IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT),
                                             IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT),
-                                            IntegerArgumentType.getInteger(context, FURY_ARGUMENT),
+                                            IntegerArgumentType.getInteger(context, SIZE_ARGUMENT),
                                         )
-                                    },
+                                    }
+                                    .then(
+                                        Commands.argument(DEPTH_ARGUMENT, IntegerArgumentType.integer(0, ALL_OF_A_DIAL))
+                                            .executes { context ->
+                                                runSandfall(
+                                                    context,
+                                                    IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT),
+                                                    IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT),
+                                                    IntegerArgumentType.getInteger(context, SIZE_ARGUMENT),
+                                                    IntegerArgumentType.getInteger(context, DEPTH_ARGUMENT),
+                                                )
+                                            },
+                                    ),
                             ),
                     ),
             )
@@ -361,10 +394,16 @@ internal object PhenomenonInstruments {
         context: CommandContext<CommandSourceStack>,
         distance: Int,
         seconds: Int?,
-        furyPercent: Int,
+        sizePercent: Int,
+        depthPercent: Int = NONE_OF_A_DIAL,
     ): Int {
         val source = context.source
         val level = source.level
+        // toDouble FIRST: ALL_OF_A_DIAL is an Int, so dividing without it makes every percent under a hundred nought.
+        val dials = SandfallDials.NONE.copy(
+            size = sizePercent.toDouble() / ALL_OF_A_DIAL,
+            depth = depthPercent.toDouble() / ALL_OF_A_DIAL,
+        )
         val facing = Vec3.directionFromRotation(source.rotation)
         val at = source.position.add(facing.scale(distance.toDouble()))
         val column = Sandfall.raise(
@@ -373,7 +412,7 @@ internal object PhenomenonInstruments {
             atZ = at.z,
             // Turned around to walk back at you, so a column stood up ahead is one you then have to answer.
             headingDegrees = source.rotation.y + HALF_COMPASS,
-            fury = furyPercent.toDouble() / ALL_FURY,
+            dials = dials,
             lifetime = seconds?.times(TICKS_PER_SECOND),
         )
         if (column == null) {

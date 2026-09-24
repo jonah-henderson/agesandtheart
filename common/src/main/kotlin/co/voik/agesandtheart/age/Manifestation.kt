@@ -24,6 +24,26 @@ private const val DELUGE_RATE = "rate"
 private const val DELUGE_DOWNPOUR = "downpour"
 private const val DELUGE_HEIGHT = "height"
 
+// A meteor storm's dials and a collapse's, for the same reason.
+private const val METEORS_OFTEN = "often"
+private const val METEORS_LONG = "long"
+private const val METEORS_POWER = "power"
+private const val TECTONICS_SIZE = "size"
+private const val TECTONICS_SPEED = "speed"
+private const val SANDFALL_OFTEN = "often"
+private const val SANDFALL_SIZE = "size"
+private const val SANDFALL_LONG = "long"
+private const val SANDFALL_DEPTH = "depth"
+private const val BLIZZARD_OFTEN = "often"
+private const val BLIZZARD_LONG = "long"
+private const val BLIZZARD_VISIBILITY = "visibility"
+private const val BLIZZARD_FROSTBITE = "frostbite"
+private const val TEMPEST_OFTEN = "often"
+private const val TEMPEST_BLAST = "blast"
+private const val TEMPEST_FIRE = "fire"
+private const val INFERNO_BURN_DAMAGE = "burn_damage"
+private const val INFERNO_LIGHT_INTENSITY = "light_intensity"
+
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
  *
@@ -66,38 +86,54 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
      * **Puts a *phenomenon* into an Age nobody wrote one into, and that is the point rather than a leak**
      * (Jonah, 2026-08-31): a column walking a world that never asked for one is exactly what the index is
      * for (§7.7). Where the Age already has a sandfall, the two **compound**.
+     *
+     * **Four dials** (Jonah, 2026-09-23): how often a column comes and how many may stand at once, how long
+     * one lives, how wide it grows, and how deep it buries. The first two are nuisance and cheap; the last
+     * two are what takes a base and are dear.
      */
-    SANDFALL("sandfall", "fury"),
+    SANDFALL("sandfall", SANDFALL_OFTEN, SANDFALL_LONG, SANDFALL_SIZE, SANDFALL_DEPTH),
 
     /**
-     * The Age is driven under snow (design §5.2's blizzard). **What a step buys is weather, not violence** —
-     * how often a blizzard blows and how long it stays.
+     * The Age is driven under snow (design §5.2's blizzard). **Four dials** (Jonah, 2026-09-23): how often a
+     * storm comes, how long each lasts, how far you can see in one (and how hard the snow drifts), and how
+     * fast the cold gets into you. Only the last one hurts, and it is the dear one.
      */
-    BLIZZARD("blizzard", "fury"),
+    BLIZZARD("blizzard", BLIZZARD_OFTEN, BLIZZARD_LONG, BLIZZARD_VISIBILITY, BLIZZARD_FROSTBITE),
 
     /**
-     * The sky falls on the Age in showers (design §5.2). A step buys more storms, longer ones, and bodies
-     * coming in harder, all at once.
+     * The sky falls on the Age in showers (design §5.2). **Three dials, priced apart** (Jonah, 2026-09-23):
+     * how often a storm gathers and how long it lasts are cheap, and how hard its bodies land is dear. How
+     * many bodies a storm drops follows how long it lasts and nothing else, which is what keeps the sky's
+     * lights affordable.
      */
-    METEORS("meteors", "fury"),
+    METEORS("meteors", METEORS_OFTEN, METEORS_LONG, METEORS_POWER),
 
     /**
      * The ground gives way under itself (design §5.2, §5.3's collapse asked of one hillside at a time).
      *
-     * **What a step buys is size and speed, never the warning.** The warning is the mechanism rather than
-     * a difficulty setting: a collapse that arrived unannounced would not be harder, it would be a
-     * different and worse thing.
+     * **Two dials, size and speed, and never the warning.** The warning is the mechanism rather than a
+     * difficulty setting: a collapse that arrived unannounced would not be harder, it would be a different
+     * and worse thing.
      */
-    TECTONICS("tectonics", "fury"),
+    TECTONICS("tectonics", TECTONICS_SIZE, TECTONICS_SPEED),
+
+    /**
+     * The Age is struck (design §5.2) — a storm that does not end, bolts coming down far more often than
+     * weather alone would bring them, and cratering the ground where they land. **Three dials** (Jonah,
+     * 2026-09-23): how often bolts come is cheap; how big a crater one digs and how much it sets alight are
+     * dear. A lightning rod still grounds a bolt, whatever was bought.
+     */
+    TEMPEST("tempest", TEMPEST_OFTEN, TEMPEST_BLAST, TEMPEST_FIRE),
 
     /**
      * The Age is set alight (design §5.2) — the sun scours frost off the ground and lights whatever will
      * burn, in a world that was never written to be fiery.
      *
-     * **One step and no ramp** (Jonah, 2026-09-09): what a written inferno does is a fact about the sun,
-     * not a dial, so instability either sets the Age alight or it does not.
+     * **Two dials** (Jonah, 2026-09-23), which replace the single step it had: how much it hurts to stand
+     * out under open light, and how dim that light may get before the burning stops — bought in full, the
+     * moon burns too. Either one bought sets the Age alight.
      */
-    INFERNO("inferno", "alight"),
+    INFERNO("inferno", INFERNO_BURN_DAMAGE, INFERNO_LIGHT_INTENSITY),
 
     /**
      * The sea comes up under a downpour that will not stop (design §5.2's deluge).
@@ -136,6 +172,60 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
         /** How far over its written level a deluge's sea is carried. */
         const val RISE_HEIGHT = DELUGE_HEIGHT
+
+        /** How often a meteor storm gathers. */
+        const val STORMS_OFTEN = METEORS_OFTEN
+
+        /** How long a meteor storm lasts, and so how many bodies it drops. */
+        const val STORMS_LONG = METEORS_LONG
+
+        /** How hard a meteor storm's bodies land. */
+        const val STORMS_POWER = METEORS_POWER
+
+        /** How much ground one cave-in takes. */
+        const val CAVE_IN_SIZE = TECTONICS_SIZE
+
+        /** How fast a cave-in goes once its warning is over. */
+        const val CAVE_IN_SPEED = TECTONICS_SPEED
+
+        /** How often a sand column comes, and how many may stand at once. */
+        const val COLUMNS_OFTEN = SANDFALL_OFTEN
+
+        /** How long a sand column lives. */
+        const val COLUMNS_LONG = SANDFALL_LONG
+
+        /** How wide a sand column grows. */
+        const val COLUMNS_SIZE = SANDFALL_SIZE
+
+        /** How deep one pass of a sand column buries. */
+        const val COLUMNS_DEPTH = SANDFALL_DEPTH
+
+        /** How often a blizzard comes. */
+        const val SNOWSTORMS_OFTEN = BLIZZARD_OFTEN
+
+        /** How long a blizzard lasts. */
+        const val SNOWSTORMS_LONG = BLIZZARD_LONG
+
+        /** How far you can see in a blizzard, and how hard its snow drifts. */
+        const val SNOWSTORMS_VISIBILITY = BLIZZARD_VISIBILITY
+
+        /** How fast a blizzard's cold gets into you. */
+        const val SNOWSTORMS_FROSTBITE = BLIZZARD_FROSTBITE
+
+        /** How often a tempest's bolts come. */
+        const val BOLTS_OFTEN = TEMPEST_OFTEN
+
+        /** How big a crater a tempest's bolt digs. */
+        const val BOLTS_BLAST = TEMPEST_BLAST
+
+        /** How much a tempest's bolt sets alight. */
+        const val BOLTS_FIRE = TEMPEST_FIRE
+
+        /** How much an inferno hurts anything out under open light. */
+        const val BURN_DAMAGE = INFERNO_BURN_DAMAGE
+
+        /** How dim the light may be before an inferno stops burning. */
+        const val LIGHT_INTENSITY = INFERNO_LIGHT_INTENSITY
     }
 }
 

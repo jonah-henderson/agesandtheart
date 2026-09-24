@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.LevelReader
+import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.Heightmap
 
@@ -71,6 +72,20 @@ object Sampling {
      */
     fun skyward(level: LevelReader, at: BlockPos): BlockPos =
         at.atY(level.getHeight(Heightmap.Types.MOTION_BLOCKING, at.x, at.z))
+
+    /**
+     * How exposed [at] is to the sky, from none of it to all of it — **the one definition of cover** a blizzard's
+     * cold and an inferno's burn are both taken off by.
+     *
+     * **Graded, and off sky light** (Jonah, 2026-09-07), because sky light walks round an overhang and down
+     * through a canopy: a lip of rock takes some of it, a stand of trees about half, and a cave or a roofed
+     * room all of it. Nothing here knows what a roof *is*; the lighting engine does.
+     */
+    fun exposureAt(level: LevelReader, at: BlockPos): Float =
+        (level.getBrightness(LightLayer.SKY, at).toFloat() / OPEN_TO_THE_SKY).coerceIn(0.0f, 1.0f)
+
+    /** Sky light where nothing covers a place at all. */
+    private const val OPEN_TO_THE_SKY = 15.0f
 
     /** Whether nothing at all covers [at] — the same comparison, asked about a position rather than a column. */
     fun openToTheSky(level: LevelReader, at: BlockPos): Boolean =

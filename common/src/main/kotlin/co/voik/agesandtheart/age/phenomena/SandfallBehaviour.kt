@@ -335,8 +335,8 @@ data class SandfallBehaviour(
      * whatever the rung asks, because this is the axis that costs: six columns at their widest measured at
      * about a third of a millisecond each, against a fifty-millisecond tick.
      */
-    fun atMostFor(density: Double, fury: Double): Int {
-        val furious = lerp(atMost.toDouble(), this.fury.atOnce.toDouble(), fury)
+    fun atMostFor(density: Double, often: Double): Int {
+        val furious = lerp(atMost.toDouble(), this.fury.atOnce.toDouble(), often)
         return Happenings.timesFor(density, furious.roundToInt()).coerceAtMost(this.fury.atOnce)
     }
 
@@ -349,27 +349,27 @@ data class SandfallBehaviour(
      * with the same one column at the same interval as an ordinary one. Both are honest functions of the
      * density instead, and the one that can still move is the one that moves.
      */
-    fun betweenSpawnsFor(density: Double, fury: Double): Int {
-        val furious = lerp(betweenSpawns.toDouble(), this.fury.betweenSpawns.toDouble(), fury)
+    fun betweenSpawnsFor(density: Double, often: Double): Int {
+        val furious = lerp(betweenSpawns.toDouble(), this.fury.betweenSpawns.toDouble(), often)
         if (density <= NO_CLAIM) return furious.roundToInt().coerceAtLeast(AT_ONCE)
         return (furious / (density / Rung.ORDINARY)).roundToInt().coerceAtLeast(AT_ONCE)
     }
 
-    /** How wide a column may grow, at this much fury — the range's far end. */
-    fun widestHalfWidthAt(fury: Double): Double = lerp(column.widestHalfWidth, this.fury.halfWidth, fury)
+    /** How wide a column may grow, this far into [SandfallDials.size] — the range's far end. */
+    fun widestHalfWidthAt(size: Double): Double = lerp(column.widestHalfWidth, this.fury.halfWidth, size)
 
     /** And its near end, kept in proportion so a fierce Age still sends columns of differing sizes. */
-    fun narrowestHalfWidthAt(fury: Double): Double =
-        column.narrowestHalfWidth * (widestHalfWidthAt(fury) / column.widestHalfWidth)
+    fun narrowestHalfWidthAt(size: Double): Double =
+        column.narrowestHalfWidth * (widestHalfWidthAt(size) / column.widestHalfWidth)
 
-    /** How deep one pass deposits, at this much fury. */
-    fun depthAt(fury: Double): Double = lerp(column.depth, this.fury.depth, fury)
+    /** How deep one pass deposits, this far into [SandfallDials.depth]. */
+    fun depthAt(depth: Double): Double = lerp(column.depth, this.fury.depth, depth)
 
-    /** How long a column lives, at this much fury — both ends of the range, kept in proportion. */
-    fun longestLifeAt(fury: Double): Int = lerp(column.longestLife.toDouble(), this.fury.life.toDouble(), fury).roundToInt()
+    /** How long a column lives, this far into [SandfallDials.long] — both ends of the range, kept in proportion. */
+    fun longestLifeAt(long: Double): Int = lerp(column.longestLife.toDouble(), this.fury.life.toDouble(), long).roundToInt()
 
-    fun shortestLifeAt(fury: Double): Int =
-        (column.shortestLife.toDouble() * longestLifeAt(fury) / column.longestLife).roundToInt()
+    fun shortestLifeAt(long: Double): Int =
+        (column.shortestLife.toDouble() * longestLifeAt(long) / column.longestLife).roundToInt()
 
     companion object {
         /** Straight between the ordinary number and the furious one; [howFar] is clamped by its caller. */

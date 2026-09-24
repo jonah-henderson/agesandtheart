@@ -68,7 +68,7 @@ enum class Phenomenon(
      * **A lightning rod grounds it**, which is the answer §5.2 asks a process to have: the storm is
      * inexorable and it can be lived with, by a writer who brings copper to the Age they wrote.
      */
-    TEMPEST("tempest", WeatherConditions(rainfall = MOSTLY, thunder = MOSTLY)),
+    TEMPEST("tempest", WeatherConditions(rainfall = MOSTLY, thunder = MOSTLY), Manifestation.TEMPEST),
 
     /**
      * A world that burns: what can see the sky catches light, and what stands in the open burns by day.

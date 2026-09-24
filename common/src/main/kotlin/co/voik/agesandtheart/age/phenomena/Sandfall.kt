@@ -35,15 +35,15 @@ object Sandfall {
      * often, `scarce sandfall` is one arriving four times as rarely — and the phenomenon needs no parameter of
      * its own to be dialled.
      */
-    fun wander(level: ServerLevel, density: Double, fury: Double) {
+    fun wander(level: ServerLevel, density: Double, dials: SandfallDials) {
         val behaviour = SandfallBehaviour.of(level.server)
         // A pack that wants an Age with none says so by writing none, and is not overruled by a rung.
         if (behaviour.atMost <= NONE) return
 
-        if (standingIn(level) >= behaviour.atMostFor(density, fury)) return
-        if (level.random.nextInt(behaviour.betweenSpawnsFor(density, fury)) != NOW) return
+        if (standingIn(level) >= behaviour.atMostFor(density, dials.often)) return
+        if (level.random.nextInt(behaviour.betweenSpawnsFor(density, dials.often)) != NOW) return
 
-        raiseOneNearSomebody(level, behaviour, fury)
+        raiseOneNearSomebody(level, behaviour, dials)
     }
 
     /** How many are already out. Bounded by [SandfallBehaviour.atMost], so this is a walk over a handful. */
@@ -61,7 +61,7 @@ object Sandfall {
      * **Several bearings are tried because the far side of the spawn ring may not be loaded**, and a column
      * may only be raised where there is already a chunk to stand it on ([SandColumn.raise]).
      */
-    private fun raiseOneNearSomebody(level: ServerLevel, behaviour: SandfallBehaviour, fury: Double) {
+    private fun raiseOneNearSomebody(level: ServerLevel, behaviour: SandfallBehaviour, dials: SandfallDials) {
         val watcher = Sampling.somebody(level) ?: return
         val random = level.random
         val spread = behaviour.furthestSpawn - behaviour.nearestSpawn
@@ -74,32 +74,32 @@ object Sandfall {
                 atX = watcher.x - sin(bearing * Mth.DEG_TO_RAD) * away,
                 atZ = watcher.z + cos(bearing * Mth.DEG_TO_RAD) * away,
                 headingDegrees = heading.toFloat(),
-                fury = fury,
+                dials = dials,
             )
             if (raised != null) return
         }
     }
 
     /**
-     * **The one place a column is rolled**, whoever asked for one: its speed, width, depth and lifetime at
-     * this much [fury]. A [lifetime] in ticks replaces the rolled one.
+     * **The one place a column is rolled**, whoever asked for one: its speed, and its width, depth and
+     * lifetime at these [dials]. A [lifetime] in ticks replaces the rolled one.
      */
     fun raise(
         level: ServerLevel,
         atX: Double,
         atZ: Double,
         headingDegrees: Float,
-        fury: Double,
+        dials: SandfallDials,
         lifetime: Int? = null,
     ): SandColumn? {
         val behaviour = SandfallBehaviour.of(level.server)
         val column = behaviour.column
         val random = level.random
-        // Every dial the Age's instability reaches, read at this much of it — see [SandfallBehaviour].
-        val narrowest = behaviour.narrowestHalfWidthAt(fury)
-        val widest = behaviour.widestHalfWidthAt(fury)
-        val shortest = behaviour.shortestLifeAt(fury)
-        val longest = behaviour.longestLifeAt(fury)
+        // Each read at its own dial — see [SandfallBehaviour].
+        val narrowest = behaviour.narrowestHalfWidthAt(dials.size)
+        val widest = behaviour.widestHalfWidthAt(dials.size)
+        val shortest = behaviour.shortestLifeAt(dials.long)
+        val longest = behaviour.longestLifeAt(dials.long)
         return SandColumn.raise(
             level = level,
             atX = atX,
@@ -109,7 +109,7 @@ object Sandfall {
             lifetime = lifetime ?: (shortest + random.nextInt((longest - shortest).coerceAtLeast(AT_ONCE))),
             // No two quite alike, which is the whole of why this is a range rather than a number.
             fullHalfWidth = narrowest + random.nextDouble() * (widest - narrowest),
-            depth = behaviour.depthAt(fury),
+            depth = behaviour.depthAt(dials.depth),
         )
     }
 

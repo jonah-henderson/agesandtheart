@@ -4,10 +4,10 @@
     "(design 5.0, 5.2).",
     "",
     "Difficulty you can answer: what it asks of a player is to read the floor, and three seconds of",
-    "unmistakable fracture is a long time to get off a piece of ground. A step buys size and speed -- how",
-    "much ground one collapse takes, and how fast it goes once the warning is over -- which want splitting",
-    "into dials of their own. It never buys the warning: a collapse that arrived unannounced would not be a",
-    "harder version of this, it would be a different and worse thing.",
+    "unmistakable fracture is a long time to get off a piece of ground. Two dials, priced apart: `size` is",
+    "how much ground one collapse takes, and `speed` how fast it goes once the warning is over. Neither buys",
+    "the warning: a collapse that arrived unannounced would not be a harder version of this, it would be a",
+    "different and worse thing.",
     "",
     "Not the same register as `collapse`, which tears the world floor and ends the Age. This one only ever",
     "takes the hillside you are standing on -- but given long enough it takes every hillside, which is an Age",
@@ -15,6 +15,7 @@
     "phenomena (Jonah, 2026-09-17)."
   ],
   "dials": {
-    "fury": { "costs": 7, "most": 4, "opens_at": 200 }
+    "size": { "costs": 7, "most": 4, "opens_at": 200 },
+    "speed": { "costs": 7, "most": 4, "opens_at": 200 }
   }
 }

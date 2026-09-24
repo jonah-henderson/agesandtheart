@@ -13,6 +13,7 @@ import net.minecraft.world.phys.Vec3
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.BaseFireBlock
 import net.minecraft.world.level.block.LightningRodBlock
+import kotlin.math.roundToInt
 
 /**
  * An Age in permanent storm, struck far more often than weather alone would strike it — and hit, where it
@@ -35,7 +36,7 @@ import net.minecraft.world.level.block.LightningRodBlock
  */
 object Tempest {
 
-    fun strike(level: ServerLevel, density: Double) {
+    fun strike(level: ServerLevel, density: Double, dials: TempestDials) {
         val watching = Sampling.watchers(level)
         if (watching.isEmpty()) return
 
@@ -43,7 +44,7 @@ object Tempest {
         // Read once per pass rather than per roll: this runs hundreds of times a tick.
         val behaviour = PhenomenonBehaviour.of(level.server)
         val reach = behaviour.reach
-        repeat(Happenings.timesFor(density, behaviour.rolls)) {
+        repeat(Happenings.timesFor(asIfTeeming(density, dials.often), behaviour.rolls)) {
             val near = watching[random.nextInt(watching.size)].chunkPosition()
             val chunk = level.chunkSource.getChunkNow(
                 near.x + random.nextInt(reach * 2 + 1) - reach,
@@ -79,8 +80,8 @@ object Tempest {
      * (`co.voik.agesandtheart.mixin.LightningBoltMixin`). In a tempest it lands like a creeper.
      *
      * **Offered every bolt in the game**, so the first thing it does is decline: the level has to be an Age
-     * ([Happenings.claimFor] settles that on a string comparison) and the Age has to have been written with
-     * a tempest. Lightning anywhere else is left exactly as vanilla made it.
+     * and a tempest has to befall it, written or inflicted ([Happenings.befalls]). Lightning anywhere else is
+     * left exactly as vanilla made it.
      *
      * **A rod catches the strike and grounds it.** `findLightningTargetAround` already redirects any bolt
      * within 128 blocks onto a lightning rod, so a roof of copper is how a writer answers an Age they wrote
@@ -94,8 +95,10 @@ object Tempest {
      */
     @JvmStatic
     fun struck(level: ServerLevel, bolt: LightningBolt, struckPosition: BlockPos) {
-        if (Happenings.claimFor(level, Phenomenon.TEMPEST) == null) return
+        if (!Happenings.befalls(level, Phenomenon.TEMPEST)) return
         if (level.getBlockState(struckPosition).block is LightningRodBlock) return
+        val dials = TempestDials.of(Happenings.spendingIn(level))
+        val blast = PhenomenonBehaviour.of(level.server).blast * (ONE_WHOLE + dials.blast * BIGGER_WHEN_BOUGHT).toFloat()
         level.explode(
             bolt,
             null,
@@ -103,13 +106,13 @@ object Tempest {
             bolt.x,
             bolt.y,
             bolt.z,
-            PhenomenonBehaviour.of(level.server).blast,
+            blast,
             true,
             // Not `MOB`, which is a creeper's and which `mobGriefing` switches off. An Age is written on
             // purpose and a tempest in it was asked for, so it is not a setting.
             Level.ExplosionInteraction.BLOCK,
         )
-        setFiresAround(level, bolt.blockPosition(), level.random)
+        setFiresAround(level, bolt.blockPosition(), level.random, dials.fire)
     }
 
     /**
@@ -120,15 +123,14 @@ object Tempest {
      * write. `canSpreadFireAround` is asked once, as vanilla asks it: 26.1 fences lightning fire to
      * `fire_spread_radius_around_player` blocks of somebody, which a strike this near a player passes.
      */
-    private fun setFiresAround(level: ServerLevel, around: BlockPos, random: RandomSource) {
+    private fun setFiresAround(level: ServerLevel, around: BlockPos, random: RandomSource, fire: Double) {
         if (!level.canSpreadFireAround(around)) return
         val behaviour = PhenomenonBehaviour.of(level.server)
-        repeat(behaviour.fireAttempts) {
-            val at = around.offset(
-                scatter(random, behaviour.fireReach),
-                scatter(random, behaviour.fireReach),
-                scatter(random, behaviour.fireReach),
-            )
+        // [TempestDials.fire] in full is as many tries again as `teeming` would be, over twice the ring.
+        val attempts = asIfTeeming(behaviour.fireAttempts.toDouble(), fire).roundToInt()
+        val reach = (behaviour.fireReach * (ONE_WHOLE + fire * FURTHER_WHEN_BOUGHT)).roundToInt()
+        repeat(attempts) {
+            val at = around.offset(scatter(random, reach), scatter(random, reach), scatter(random, reach))
             if (!level.getBlockState(at).isAir) return@repeat
             val fire = BaseFireBlock.getState(level, at)
             if (fire.canSurvive(level, at)) level.setBlockAndUpdate(at, fire)
@@ -137,4 +139,11 @@ object Tempest {
 
     private fun scatter(random: RandomSource, reach: Int): Int = random.nextInt(reach * 2 + 1) - reach
 
+    private const val ONE_WHOLE = 1.0
+
+    /** What [TempestDials.fire] in full adds to how far its fires reach: as far again. */
+    private const val FURTHER_WHEN_BOUGHT = 1.0
+
+    /** What [TempestDials.blast] in full adds to a bolt's blast: as much again, a charged creeper's. */
+    private const val BIGGER_WHEN_BOUGHT = 1.0
 }

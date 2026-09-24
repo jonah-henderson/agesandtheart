@@ -114,10 +114,10 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
         val undrawn = form == null || reach <= UNDRAWN || pace <= UNDRAWN
         if (!undrawn) return
         val behaviour = TectonicsBehaviour.of(level.server)
-        val fury = Happenings.furyIn(level, Phenomenon.TECTONICS)
+        val dials = TectonicsDials.of(Happenings.spendingIn(level))
         if (form == null) form = behaviour.shapeDrawnFrom(shape)
-        if (reach <= UNDRAWN) reach = behaviour.reachAt(fury)
-        if (pace <= UNDRAWN) pace = behaviour.paceAt(fury)
+        if (reach <= UNDRAWN) reach = behaviour.reachAt(dials.size)
+        if (pace <= UNDRAWN) pace = behaviour.paceAt(dials.speed)
     }
 
     private fun swathe(): Swathe =

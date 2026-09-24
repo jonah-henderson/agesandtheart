@@ -1,11 +1,13 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.platform.Services
+import co.voik.ephemeris.sky.LevelLooks
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.tags.BlockTags
+import net.minecraft.util.Mth
 import net.minecraft.world.level.block.BaseFireBlock
 import net.minecraft.world.level.block.IceBlock
 import net.minecraft.world.level.block.state.BlockState
@@ -30,11 +32,36 @@ import net.minecraft.world.level.block.state.BlockState
  */
 object Inferno {
 
-    /** One tick of it, at whatever strength the claim's rung asked for. */
-    fun burn(level: ServerLevel, density: Double) {
+    /** One tick of it, at whatever strength the claim's rung asked for and the [dials] instability bought. */
+    fun burn(level: ServerLevel, density: Double, dials: InfernoDials) {
         val intensity = Intensity.of(level.server)
-        scourTheSurface(level, intensity, density)
-        scorchTheOpen(level, intensity)
+        val sun = sunStrength(level, dials.lightIntensity)
+        scourTheSurface(level, intensity, density, sun)
+        scorchTheOpen(level, intensity, sun, dials.burnDamage)
+    }
+
+    /**
+     * **How much burn the sun may apply**, from none to all of it — the one number both halves share, so the
+     * fires and the burning in the open never disagree about when the sun is doing it (Jonah, 2026-09-23).
+     *
+     * **Suns only, never moons.** So it is asked of the sky's own bodies rather than of how bright the sky
+     * is — a full moon lights a night, and a night must stay the relief. Any sun will do, and the highest one
+     * decides; an Age with no sun has nothing overhead to burn it.
+     *
+     * Nothing until a sun reaches the lowest height it burns from, then climbing to all of it at
+     * [FULL_STRENGTH_AT]. Unbought, that lowest height is the horizon, which is about where vanilla's
+     * `isBrightOutside` falls; [InfernoDials.lightIntensity] carries it past sunset into the sun's afterglow,
+     * twelve degrees down when bought in full. Where the burn lands, cover takes it off again — see
+     * [scorchTheOpen].
+     *
+     * A level Ephemeris holds no sky for is not an Age, and keeps vanilla's own daytime at full strength.
+     */
+    private fun sunStrength(level: ServerLevel, lightIntensity: Double): Double {
+        if (level.dimensionType().hasFixedTime()) return NONE_OF_IT
+        val sky = LevelLooks.anywhere(level) ?: return if (level.isBrightOutside) ALL_OF_IT else NONE_OF_IT
+        val highest = sky.readAt(level.defaultClockTime).suns.maxOfOrNull { it.altitudeDegrees } ?: return NONE_OF_IT
+        val lowestThatBurns = OVER_THE_HORIZON + (IN_ITS_AFTERGLOW - OVER_THE_HORIZON) * lightIntensity
+        return Mth.clampedMap(highest.toDouble(), lowestThatBurns, FULL_STRENGTH_AT, NONE_OF_IT, ALL_OF_IT)
     }
 
     /**
@@ -63,9 +90,8 @@ object Inferno {
      * `ignitedByLava` is vanilla's own declarative "this catches", set on wood, leaves, wool and the rest,
      * which is why nothing here carries a list that could fall out of step with the blocks a pack adds.
      */
-    private fun scourTheSurface(level: ServerLevel, intensity: Intensity, density: Double) {
+    private fun scourTheSurface(level: ServerLevel, intensity: Intensity, density: Double, sun: Double) {
         val sweeps = Happenings.timesFor(density, intensity.sweeps)
-        val sunIsUp = level.isBrightOutside
         Sampling.sweep(level, sweeps) { _, column ->
             if (level.random.nextDouble() >= intensity.chance) return@sweep
             val above = Sampling.skyward(level, column)
@@ -73,7 +99,8 @@ object Inferno {
             // it, where a snow block or ice is the top of the column. Both places have to be looked at or a
             // dusting would be the one thing that survives a burning world.
             if (thaw(level, above) || thaw(level, above.below())) return@sweep
-            if (sunIsUp) light(level, above)
+            // The top of a column is open by definition, so the sun's strength alone is how likely it catches.
+            if (level.random.nextDouble() < sun) light(level, above)
         }
     }
 
@@ -152,29 +179,58 @@ object Inferno {
      * thing was on fire when it died. Fire resistance still answers the whole of it, since the damage is
      * vanilla's own.
      */
-    private fun scorchTheOpen(level: ServerLevel, intensity: Intensity) {
+    private fun scorchTheOpen(level: ServerLevel, intensity: Intensity, sun: Double, burnDamage: Double) {
         if (intensity.betweenHarms <= 0 || level.gameTime % intensity.betweenHarms != 0L) return
-        if (!level.isBrightOutside || level.isRaining) return
+        if (sun <= NONE_OF_IT || level.isRaining) return
         // A little longer than the gap between passes, so standing in the open is a continuous burn and
         // stepping under a roof lets it go out on its own rather than being put out by us.
-        val alight = intensity.harm.toFloat() * intensity.betweenHarms / TICKS_PER_SECOND
-        for (living in caughtInTheOpen(level)) living.igniteForSeconds(alight)
+        val alight = intensity.harm * intensity.betweenHarms / TICKS_PER_SECOND
+        // [InfernoDials.burnDamage] on top of vanilla's burning, and still fire damage: fire resistance
+        // answers it, and a thing that dies of it still drops its meat cooked.
+        val extra = burnDamage * MOST_EXTRA_BURN_PER_SECOND * intensity.betweenHarms / TICKS_PER_SECOND
+        for (living in nearSomebody(level)) {
+            // **The sun says how much burn there may be, and cover takes it off** (Jonah, 2026-09-23), as it
+            // takes off a blizzard's cold: a lip of rock shortens it, a cave or a roof ends it.
+            val burn = sun * Sampling.exposureAt(level, living.blockPosition())
+            if (burn < LEAST_WORTH_A_BURN) continue
+            living.igniteForSeconds((alight * burn).toFloat())
+            if (extra > NONE_OF_IT) living.hurtServer(level, level.damageSources().onFire(), (extra * burn).toFloat())
+        }
     }
 
     /**
-     * Everything near somebody with nothing over it.
+     * Everything near somebody that fire can hurt.
      *
      * **A set, because a box is asked around each player** rather than around all of them at once: a union
      * of two distant players' boxes is a query over everything between them, and something standing near
      * both would otherwise be burnt twice in one tick.
      */
-    private fun caughtInTheOpen(level: ServerLevel): Set<LivingEntity> =
+    private fun nearSomebody(level: ServerLevel): Set<LivingEntity> =
         Sampling.watchers(level)
             .flatMapTo(HashSet()) { level.getEntitiesOfClass(LivingEntity::class.java, it.boundingBox.inflate(ABOUT)) }
-            .filterNotTo(HashSet()) { it.fireImmune() || !Sampling.openToTheSky(level, it.blockPosition()) }
+            .filterNotTo(HashSet()) { it.fireImmune() }
 
     /** How far around a person the open air burns, in blocks — a little past what they can see happening. */
     private const val ABOUT = 64.0
 
-    private const val TICKS_PER_SECOND = 20.0f
+    private const val TICKS_PER_SECOND = 20.0
+
+    /** How high a sun has to stand to burn, in degrees: over the horizon unbought, into its afterglow in full. */
+    private const val OVER_THE_HORIZON = 0.0
+    private const val IN_ITS_AFTERGLOW = -12.0
+
+    /** How high a sun stands when it burns with all it has, in degrees — see [sunStrength]. */
+    private const val FULL_STRENGTH_AT = 45.0
+
+    private const val NONE_OF_IT = 0.0
+    private const val ALL_OF_IT = 1.0
+
+    /**
+     * Less burn than this sets nothing alight — deep under cover, where a trickle of sky light gets in, a burn
+     * of a tick or two would be a flicker of flame rather than any shelter being too little.
+     */
+    private const val LEAST_WORTH_A_BURN = 0.1
+
+    /** What [InfernoDials.burnDamage] in full adds, in health a second — a heart, on top of vanilla's burn. */
+    private const val MOST_EXTRA_BURN_PER_SECOND = 2.0
 }

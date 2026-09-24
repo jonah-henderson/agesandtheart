@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "What an inflicted tempest costs an Age's instability budget, dial by dial (design 5.0, 5.2).",
+    "",
+    "Difficulty you can answer: a lightning rod grounds any bolt within its reach and nothing here changes",
+    "that, so copper on the roof is the whole answer whatever was bought. `often` (how often bolts come) is",
+    "cheap; `blast` (how big a crater one digs) and `fire` (how much it sets alight) are dear. Opens at 16",
+    "with the other phenomena. The numbers wait on the tuning pass."
+  ],
+  "dials": {
+    "often": { "costs": 3, "most": 4, "opens_at": 16 },
+    "blast": { "costs": 7, "most": 4, "opens_at": 16 },
+    "fire": { "costs": 7, "most": 4, "opens_at": 16 }
+  }
+}
