@@ -86,6 +86,7 @@ enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<ou
     DRAINAGE({ Drainage.CODEC }),
     MOUNTAIN_RANGE({ MountainRange.CODEC }),
     CAVED({ self -> Caved.codec(self) }),
+    HOLLOWED_OUT({ self -> HollowedOut.codec(self) }),
     ISLE({ Isle.CODEC }),
     ESCARPMENT({ Escarpment.CODEC }),
     CHANCE({ self -> Chance.codec(self) }),

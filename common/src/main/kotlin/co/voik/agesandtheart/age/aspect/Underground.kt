@@ -7,6 +7,7 @@ import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.TunnelsField
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.field.Caved
+import co.voik.agesandtheart.worldgen.field.HollowedOut
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
 
@@ -49,6 +50,13 @@ enum class Underground(override val key: String) : AuthoredPreset {
     LATTICE("lattice"),
 
     /**
+     * **No rock at all** between the floor and a crust under the surface: the world is a shell over one
+     * void — [co.voik.agesandtheart.worldgen.field.HollowedOut]. Unlike every other underground it reaches
+     * up to the surface rather than stopping at the ceiling, which is the point of it. Never wet.
+     */
+    HOLLOW("hollow"),
+
+    /**
      * Storey upon storey of pillared hall.
      *
      * A value here rather than a landform of its own, so that what stands *over* the halls can be any
@@ -77,14 +85,14 @@ enum class Underground(override val key: String) : AuthoredPreset {
      * three stay unnamed and are reached by what they are like, there being nothing to a hollow rock but
      * its quality.
      */
-    override val writtenWordFor: String? get() = key.takeIf { this in NAMED }
+    override val writtenWordFor: String? get() = key.takeIf { this in SIZED }
 
     /**
      * How big a chamber or a tunnel is — the axis every other size in the language is said on, so
      * `colossal chambered underground` is the vault a city fits in and nothing below it is.
      */
     override val parameters: List<Parameter>
-        get() = listOfNotNull(Terrain.SIZE.takeIf { this in NAMED })
+        get() = listOfNotNull(Terrain.SIZE.takeIf { this in SIZED })
 
     /**
      * This underground cut into [uncut], between [floor] and [ceiling].
@@ -121,6 +129,10 @@ enum class Underground(override val key: String) : AuthoredPreset {
                 Subtract(uncut, LatticeField.passages(floor, ceiling, LATTICE_SEED xor salt, scale)),
                 hollows = uncut,
             )
+        }
+        HOLLOW -> {
+            val shell = HollowedOut(uncut, CRUST_THICKNESS, floor)
+            Terrain.Ground(shell, dry = Subtract(uncut, shell))
         }
         GREAT_HALLS -> {
             // A ceiling has to be named here, unlike [NOISE_CAVES] where the band is the whole world —
@@ -167,8 +179,11 @@ enum class Underground(override val key: String) : AuthoredPreset {
     override fun getSerializedName(): String = key
 
     companion object {
-        /** The undergrounds that are things with names, and so take a page and a size. */
-        private val NAMED = setOf(CHAMBERED, TUNNELS, LATTICE)
+        /** The undergrounds that take a size and a page minted for them. `hollow`'s page is authored. */
+        private val SIZED = setOf(CHAMBERED, TUNNELS, LATTICE)
+
+        // Deep enough to hold a surface's dirt and a tree's roots over the void.
+        private const val CRUST_THICKNESS = 8
 
         // So an Age's caves are its own, and decorrelated from the rock they are cut into.
         private const val CAVE_SEED = 0xCA_7E5L

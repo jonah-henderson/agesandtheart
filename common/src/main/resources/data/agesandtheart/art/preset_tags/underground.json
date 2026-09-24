@@ -24,6 +24,13 @@
       "dark": 0.5
     }
   },
+  "hollow": {
+    "readiness": 0.2,
+    "tags": {
+      "cavernous": 1.0,
+      "dark": 0.8
+    }
+  },
   "great_halls": {
     "readiness": 0.3,
     "tags": {
