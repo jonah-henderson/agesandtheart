@@ -10,11 +10,9 @@
           "name": "agesandtheart:surveying_device"
         }
       ],
-      "conditions": [
-        {
-          "condition": "minecraft:survives_explosion"
-        }
-      ]
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
     }
   ],
   "random_sequence": "agesandtheart:blocks/surveying_device"

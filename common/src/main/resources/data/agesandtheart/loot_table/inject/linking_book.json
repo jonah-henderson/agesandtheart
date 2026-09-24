@@ -14,9 +14,9 @@
         {
           "type": "minecraft:item",
           "name": "agesandtheart:linking_book",
-          "functions": [
+          "modifier": [
             {
-              "function": "agesandtheart:bind_linking_book",
+              "type": "agesandtheart:bind_linking_book",
               "stray_chance": 0.1
             }
           ]

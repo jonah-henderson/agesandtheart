@@ -13,13 +13,13 @@
         {
           "type": "minecraft:item",
           "name": "agesandtheart:page",
-          "functions": [
+          "modifier": [
             {
-              "function": "minecraft:set_count",
+              "type": "minecraft:set_count",
               "count": { "type": "minecraft:uniform", "min": 1, "max": 2 }
             },
             {
-              "function": "agesandtheart:roll_page_word"
+              "type": "agesandtheart:roll_page_word"
             }
           ]
         }

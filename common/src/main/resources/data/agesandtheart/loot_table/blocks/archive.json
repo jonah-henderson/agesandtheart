@@ -9,9 +9,9 @@
         {
           "type": "minecraft:item",
           "name": "agesandtheart:archive",
-          "functions": [
+          "modifier": [
             {
-              "function": "minecraft:copy_components",
+              "type": "minecraft:copy_components",
               "source": "block_entity",
               "include": ["agesandtheart:archive_pages"]
             }

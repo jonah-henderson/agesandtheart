@@ -72,72 +72,19 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "minecraft:book",
-          "weight": 6,
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": { "type": "minecraft:uniform", "min": 2, "max": 6 }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "minecraft:paper",
-          "weight": 5,
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": { "type": "minecraft:uniform", "min": 3, "max": 8 }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
           "name": "agesandtheart:ink_bottle",
           "weight": 4
         },
         {
           "type": "minecraft:item",
-          "name": "minecraft:bookshelf",
-          "weight": 3,
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": { "type": "minecraft:uniform", "min": 1, "max": 3 }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
-          "name": "minecraft:candle",
-          "weight": 3,
-          "functions": [
-            {
-              "function": "minecraft:set_count",
-              "count": { "type": "minecraft:uniform", "min": 1, "max": 4 }
-            }
-          ]
-        },
-        {
-          "type": "minecraft:item",
           "name": "agesandtheart:fine_paper",
           "weight": 1,
-          "functions": [
+          "modifier": [
             {
-              "function": "minecraft:set_count",
+              "type": "minecraft:set_count",
               "count": { "type": "minecraft:uniform", "min": 1, "max": 2 }
             }
           ]
-        }
-      ]
-    },
-    {
-      "rolls": 1,
-      "entries": [
-        {
-          "type": "minecraft:loot_table",
-          "value": "agesandtheart:chests/dni_city/salvage"
         }
       ]
     }

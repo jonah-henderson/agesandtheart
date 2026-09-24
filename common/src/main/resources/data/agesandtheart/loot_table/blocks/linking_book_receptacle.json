@@ -6,7 +6,7 @@
       "rolls": 1.0,
       "bonus_rolls": 0.0,
       "entries": [{ "type": "minecraft:item", "name": "agesandtheart:linking_book_receptacle" }],
-      "conditions": [{ "condition": "minecraft:survives_explosion" }]
+      "condition": { "type": "minecraft:survives_explosion" }
     }
   ],
   "random_sequence": "agesandtheart:blocks/linking_book_receptacle"

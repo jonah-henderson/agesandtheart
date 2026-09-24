@@ -1,7 +1,7 @@
 {
   "_comment": [
     "A chest in a D'ni city room that has no character of its own -- the fallback, and what every room was",
-    "filled from before the rooms were told apart. Books and pages over the ancient city's salvage.",
+    "filled from before the rooms were told apart. Books and pages, and nothing of vanilla's.",
     "The rooms that DO have a character are chests/dni_city/<room>, routed by a processor list per pool",
     "element (see worldgen/processor_list/dni_city_*); what they are meant to hold is design 7.6."
   ],
@@ -59,15 +59,6 @@
         {
           "type": "minecraft:empty",
           "weight": 9
-        }
-      ]
-    },
-    {
-      "rolls": 1,
-      "entries": [
-        {
-          "type": "minecraft:loot_table",
-          "value": "agesandtheart:chests/dni_city/salvage"
         }
       ]
     }

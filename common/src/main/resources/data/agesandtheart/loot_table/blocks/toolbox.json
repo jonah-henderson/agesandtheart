@@ -9,16 +9,16 @@
         {
           "type": "minecraft:item",
           "name": "agesandtheart:toolbox",
-          "functions": [
+          "modifier": [
             {
-              "function": "minecraft:copy_components",
+              "type": "minecraft:copy_components",
               "source": "block_entity",
               "include": ["minecraft:custom_name", "minecraft:container"]
             }
           ]
         }
       ],
-      "conditions": [{ "condition": "minecraft:survives_explosion" }]
+      "condition": { "type": "minecraft:survives_explosion" }
     }
   ],
   "random_sequence": "agesandtheart:blocks/toolbox"

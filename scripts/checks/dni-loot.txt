@@ -12,7 +12,6 @@ age write dniloottest 7 age isle landmass deep water sea
 execute in agesandtheart:dniloottest run forceload add -16 -16 16 16
 # Ten rolls each, so a rare entry has a chance to be drawn and to fail if it is going to.
 execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/salvage
 execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/library
 execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/library
 execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/library

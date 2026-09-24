@@ -15,8 +15,8 @@
         {
           "type": "minecraft:item",
           "name": "agesandtheart:descriptive_book",
-          "functions": [
-            { "function": "agesandtheart:write_found_book" }
+          "modifier": [
+            { "type": "agesandtheart:write_found_book" }
           ]
         }
       ]

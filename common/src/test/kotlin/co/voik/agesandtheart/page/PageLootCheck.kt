@@ -22,9 +22,9 @@ class PageLootCheck : FunSpec({
         val fromData = modifierDirectory.listFiles { file -> file.extension == "json" }.orEmpty()
             .map { file ->
                 val root = JsonParser.parseString(file.readText()).asJsonObject
-                val conditions = root.getAsJsonArray("conditions").map { it.asJsonObject }
-                val table = conditions.first { it["condition"].asString == "neoforge:loot_table_id" }
-                val chance = conditions.first { it["condition"].asString == "minecraft:random_chance" }
+                val conditions = root.getAsJsonObject("condition").getAsJsonArray("terms").map { it.asJsonObject }
+                val table = conditions.first { it["type"].asString == "neoforge:loot_table_id" }
+                val chance = conditions.first { it["type"].asString == "minecraft:random_chance" }
                 Triple(
                     table["loot_table_id"].asString,
                     chance["chance"].asFloat,
