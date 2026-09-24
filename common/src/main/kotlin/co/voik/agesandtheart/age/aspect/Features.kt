@@ -17,6 +17,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.placement.PlacedFeature as VanillaPlacedFeature
+import co.voik.agesandtheart.worldgen.feature.Formation
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -164,7 +165,7 @@ object Features {
                 val here = PLACES.skewOf(claims, it.unwrapKey().orElse(null)?.identifier())
                 settingsFrom(
                     it,
-                    wanted(server, here, salt, grown),
+                    wanted(server, here, salt, grown, shape),
                     bentWhereItGrows(here),
                     bent,
                     here.struck.mapNotNull(Identifier::tryParse).toSet(),
@@ -207,13 +208,8 @@ object Features {
     }
 
     /**
-     * One thing the sentence asked to grow, and whether the clause said how big it is — a claim carrying
-     * its own size has already been built at that size, so the Age's dial must not be applied over it.
-     */
-    private data class Grown(val feature: Holder<VanillaPlacedFeature>, val atItsOwnSize: Boolean)
-
-    /**
-     * The features the sentence asked for, each with the step it belongs in.
+     * The features the sentence asked for, each with the step it belongs in, **already shaped**: a clause's
+     * own size and height win over the Age's dials, and the Age's rock reaches every one.
      *
      * **A placed feature does not know its own step** — the step is the *index* of the list it sits in, so
      * it is a fact about the biome rather than about the feature. So a named feature is given the step it
@@ -225,10 +221,11 @@ object Features {
         asked: Skew,
         salt: Long,
         grown: ConcurrentHashMap<Claim, Holder<VanillaPlacedFeature>>,
-    ): Map<Int, List<Grown>> {
+        shape: Shape,
+    ): Map<Int, List<Holder<VanillaPlacedFeature>>> {
         val features = server.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
         val biomes = server.registryAccess().lookupOrThrow(Registries.BIOME)
-        val byStep = mutableMapOf<Int, MutableList<Grown>>()
+        val byStep = mutableMapOf<Int, MutableList<Holder<VanillaPlacedFeature>>>()
         for (claim in asked.wanted) {
             // A description asks for more of what grows here, never for something that does not — see
             // [bentWhereItGrows] and `Claim.onlyWhereItGrows`.
@@ -248,16 +245,20 @@ object Features {
             val laid = grown.computeIfAbsent(claim) {
                 // A tag names a small pool the pattern is made of when the clause said nothing; a bare id
                 // is one answer. Drawn against the Age's own salt, so a world rebuilds identically.
-                val substance = claim.madeOf?.let { drawnSubstance(server, it, salt, claim.value) }
-                val shaped = substance?.let { one -> FeatureShape.mintedFrom(found, one) } ?: found
-                // **The clause's own size, applied before the amount**, so what is scaled is the shape and
-                // not the placement the amount prepends to.
-                val sized = claim.size?.let { FeatureShape.reshaped(shaped, it, null, null, emptyList()) }
-                    ?: shaped
-                FeatureDensity.applied(sized, claim.density)
+                val substances = claim.substances.mapNotNull { drawnSubstance(server, it, salt, claim.value) }
+                val shaped = if (substances.isEmpty()) found else FeatureShape.mintedFrom(found, substances)
+                // **Shaped before the amount**, so what is scaled is the shape and not the placement the
+                // amount prepends to.
+                val reshaped = FeatureShape.reshaped(
+                    shaped,
+                    size = claim.size ?: shape.size,
+                    thickness = shape.thickness,
+                    height = claim.height ?: shape.height,
+                    rock = shape.rock,
+                )
+                FeatureDensity.applied(reshaped, claim.density)
             }
-            byStep.getOrPut(stepFor(named, biomes)) { mutableListOf() } +=
-                Grown(laid, atItsOwnSize = claim.size != null)
+            byStep.getOrPut(stepFor(named, found.value(), biomes)) { mutableListOf() } += laid
         }
         return byStep
     }
@@ -298,8 +299,12 @@ object Features {
 
     private const val TAG_MARK = '#'
 
-    /** Which step a feature sits in wherever this pack already uses it — see [wanted]. */
-    private fun stepFor(feature: Identifier, biomes: HolderLookup<Biome>): Int {
+    /**
+     * Which step a feature sits in wherever this pack already uses it — see [wanted] — or, for a formation
+     * that digs, [DIGGING_STEP].
+     */
+    private fun stepFor(feature: Identifier, placed: VanillaPlacedFeature, biomes: HolderLookup<Biome>): Int {
+        if ((placed.feature().value() as? Formation)?.sunk == true) return DIGGING_STEP
         for (biome in biomes.listElements()) {
             biome.value().generationSettings.features().forEachIndexed { step, atStep ->
                 if (atStep.any { it.unwrapKey().orElse(null)?.identifier() == feature }) return step
@@ -315,6 +320,12 @@ object Features {
     private val ORPHAN_STEP = GenerationStep.Decoration.VEGETAL_DECORATION.ordinal
 
     /**
+     * Where a pit is dug: vanilla's own surface lakes' step, **before anything grows**. Among the vegetation
+     * it cut the ground from under trees, grass and flowers already standing on it and left them hanging.
+     */
+    private val DIGGING_STEP = GenerationStep.Decoration.LAKES.ordinal
+
+    /**
      * One biome's settings with the sentence applied: everything named added at the step it belongs in,
      * everything struck out dropped, and the biome's own list left out entirely where the writer said
      * `only` or [Pool.NOTHING].
@@ -325,7 +336,7 @@ object Features {
      */
     private fun settingsFrom(
         biome: Holder<Biome>,
-        added: Map<Int, List<Grown>>,
+        added: Map<Int, List<Holder<VanillaPlacedFeature>>>,
         bendingWhereItGrows: Map<Identifier, Double>,
         bent: ConcurrentHashMap<Pair<Holder<VanillaPlacedFeature>, Double>, Holder<VanillaPlacedFeature>>,
         struck: Set<Identifier>,
@@ -353,10 +364,8 @@ object Features {
                 }
         }
         for ((step, features) in added) {
-            features.forEach { grownHere ->
-                val asAsked = if (grownHere.atItsOwnSize) grownHere.feature else shape.applied(grownHere.feature)
-                built.addFeature(step, asAsked)
-            }
+            // Already shaped by [wanted], with the clause's own dials over the Age's.
+            features.forEach { built.addFeature(step, it) }
         }
         return built.build()
     }

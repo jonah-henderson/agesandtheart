@@ -1,12 +1,12 @@
 {
   "_comment": [
-    "A vein of something that is not an ore. Shaped like vanilla's gold -- its size, its depth, the",
-    "stone it cuts into -- and made of whatever the clause names: `gold block veins`, `ancient debris",
-    "veins`.",
+    "An ore vein as vanilla lays its big iron ones: a ribbon of ore and raw ore strung through tuff for",
+    "tens of blocks, deep in the rock. Made of whatever the clause names -- `gold ore veins`, `diamond ore",
+    "veins` -- and of iron when nothing is named, which is vanilla's own.",
     "",
-    "Gold is the pattern because it is middling in both size and depth, so what a writer gets is a vein",
-    "rather than a seam or a curiosity."
+    "The small clusters ores ordinarily come in are `deposits`."
   ],
   "tier": "exact",
-  "mints": "minecraft:ore_gold"
+  "mints": "agesandtheart:veins",
+  "unstated": "minecraft:deepslate_iron_ore"
 }

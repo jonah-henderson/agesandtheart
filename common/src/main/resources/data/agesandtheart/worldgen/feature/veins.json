@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "Vanilla's iron vein, as a feature so it reaches our rock and can be minted -- see OreVein. Its band,",
+    "its blocks and its raw-ore chance are vanilla's iron vein's. `cuts` is the overworld's base stone;",
+    "an Age made of anything else has its own rock added to it when the vein is placed."
+  ],
+  "type": "agesandtheart:ore_vein",
+  "ore": "minecraft:deepslate_iron_ore",
+  "raw_ore": "minecraft:raw_iron_block",
+  "filler": "minecraft:tuff",
+  "raw_ore_chance": 0.02,
+  "min_y": -60,
+  "max_y": -8,
+  "cuts": "#minecraft:base_stone_overworld",
+  "seed": 318520977
+}

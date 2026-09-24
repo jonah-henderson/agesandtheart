@@ -38,7 +38,7 @@ enum class Holds {
      * structures, the creatures.
      *
      * Members are usually named from a registry, and may also be brought into being by description
-     * (`gold block veins`). Never counted: `teeming jungles` is a weight, since there is one jungle and the
+     * (`gold block deposits`). Never counted: `teeming jungles` is a weight, since there is one jungle and the
      * world has more or less of it.
      */
     WEIGHTED_SET,

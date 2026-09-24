@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.worldgen.SizeScale
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.world.level.levelgen.VerticalAnchor
@@ -68,8 +69,11 @@ object FeatureShape {
         Holder.direct(PlacedFeature(Holder.direct(SpilledSpring(block.defaultBlockState())), placement))
 
     /**
-     * [pattern] made of [substance] instead of whatever it was made of — how a writer asks for a thing the
+     * [pattern] made of [substances] instead of whatever it was made of — how a writer asks for a thing the
      * game does not have (world model §2).
+     *
+     * Only a formation mingles several (`mud and sand pits`), as a landmass's rock does. Every other pattern
+     * is made of the first: a spring runs with one fluid, and a lake or a vein mixed block by block is noise.
      *
      * The shape, the placement, the rarity and the step are all the pattern's; only the substance changes.
      * A spring keeps the rock it wants around it and the holes it punches, and simply runs with something
@@ -80,10 +84,11 @@ object FeatureShape {
      * word naming an unmintable one is a content bug rather than a play outcome.
      */
     @Suppress("DEPRECATION")
-    fun mintedFrom(pattern: Holder<PlacedFeature>, substance: String): Holder<PlacedFeature> {
-        val block = Identifier.tryParse(substance)
-            ?.let { BuiltInRegistries.BLOCK.getOptional(it).orElse(null) }
-            ?: return pattern
+    fun mintedFrom(pattern: Holder<PlacedFeature>, substances: List<String>): Holder<PlacedFeature> {
+        val blocks = substances.mapNotNull { substance ->
+            Identifier.tryParse(substance)?.let { BuiltInRegistries.BLOCK.getOptional(it).orElse(null) }
+        }
+        val block = blocks.firstOrNull() ?: return pattern
         val placed = pattern.value()
         val rebuilt = when (val feature = placed.feature().value()) {
             is SpringFeature -> {
@@ -126,8 +131,19 @@ object FeatureShape {
                 feature.size(),
                 feature.discardChanceOnAirExposure(),
             )
-            // A formation is a shape and a substance and nothing else, so this is the whole of minting one.
-            is Formation -> feature.copy(substance = block.defaultBlockState())
+            // A formation is a shape and a substance and nothing else, so this is the whole of minting one —
+            // bar the seed, which it places from: without it `mud pits` and `sand pits` land on the same spots.
+            is Formation -> feature.copy(
+                substances = blocks.map { it.defaultBlockState() },
+                seed = feature.seed xor substances.hashCode().toLong(),
+            )
+            // The ore is what a writer names; the filler rock it is strung through stays the pattern's, and so
+            // does where it runs, bar the seed for the same reason a formation's moves.
+            is OreVein -> feature.copy(
+                ore = block.defaultBlockState(),
+                rawOre = OreVein.rawBlockOf(block).defaultBlockState(),
+                seed = feature.seed xor substances.hashCode().toLong(),
+            )
             else -> return pattern
         }
         return Holder.direct(PlacedFeature(Holder.direct(rebuilt), placed.placement()))
@@ -141,7 +157,7 @@ object FeatureShape {
         rock: List<BlockState>,
     ): Holder<PlacedFeature> {
         val placed = feature.value()
-        val shaped = withShape(placed.feature(), size, thickness, rock)
+        val shaped = withShape(placed.feature(), size, thickness, height, rock)
         val placement = withHeight(placed.placement(), height)
         if (shaped === placed.feature() && placement === placed.placement()) return feature
         return Holder.direct(PlacedFeature(shaped, placement))
@@ -152,11 +168,13 @@ object FeatureShape {
      *
      * Both are one number in a class with a public constructor. Anything else is returned as it stands:
      * thirty-odd feature types exist and guessing at one we did not survey would be worse than declining.
+     * [height] reaches only a vein here — everything else carries it in its placement ([withHeight]).
      */
     private fun withShape(
         held: Holder<Feature>,
         size: Double?,
         thickness: Double?,
+        height: Double?,
         rock: List<BlockState>,
     ): Holder<Feature> {
         val rebuilt = when (val feature = held.value()) {
@@ -185,6 +203,23 @@ object FeatureShape {
                         targets ?: feature.targetStates(),
                         veins ?: feature.size(),
                         feature.discardChanceOnAirExposure(),
+                    )
+                }
+            }
+
+            // A vein cuts the Age's own rock as an ore does, and a bigger one is its noise stretched — by the
+            // root of the factor, since stretching makes a vein longer and thicker at once. Sitting above the
+            // middle of the column, it takes vanilla's copper band and filler in place of its iron ones.
+            is OreVein -> {
+                val unreached = rock.map { it.block }.filterNot { it.defaultBlockState().`is`(feature.cuts) }.distinct()
+                val sitsShallow = height != null && height > MID_COLUMN
+                if (unreached.isEmpty() && size == null && !sitsShallow) {
+                    null
+                } else {
+                    val banded = if (sitsShallow) feature.inTheCopperBand() else feature
+                    banded.copy(
+                        alsoCuts = (feature.alsoCuts + unreached).distinct(),
+                        stretch = size?.let { feature.stretch * sqrt(sizeFactor(it)) } ?: feature.stretch,
                     )
                 }
             }
@@ -296,15 +331,13 @@ object FeatureShape {
         (ordinary * sizeFactor(dial)).roundToInt().coerceIn(1, most)
 
     /** What a dial at [dial] multiplies a size by — a quarter at the bottom of the axis, four at the top. */
-    private fun sizeFactor(dial: Double): Double =
-        FAINTEST + Span.NATURAL.fractionOf(dial) * (RICHEST - FAINTEST)
+    private fun sizeFactor(dial: Double): Double = SizeScale.factorAt(dial)
 
     /** A formation is authored with its base at the origin, and the ground is where it is put. */
     private const val STANDING_ON_THE_GROUND = 0
 
-    /** A parameter at the bottom of its axis leaves a quarter of what there was; at the top, four times. */
-    private const val FAINTEST = 0.25
-    private const val RICHEST = 4.0
+    /** `Features.HEIGHT`'s "mid-column": above it a thing sits shallow, at or below it deep. */
+    private const val MID_COLUMN = 0.0
 
     /** Vanilla's largest vein is 20-odd blocks, so this is generous rather than a real bound. */
     private const val MOST_OF_A_VEIN = 64

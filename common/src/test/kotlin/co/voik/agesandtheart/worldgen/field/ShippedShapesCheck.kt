@@ -52,16 +52,17 @@ class ShippedShapesCheck : FunSpec({
     }
 
     /**
-     * **`colossal` is a hundred blocks, whatever the shape is measured across.**
+     * **`colossal` is on the order of a hundred blocks, whatever the shape is measured across.**
+     *
+     * A guideline and not a constraint (Jonah, 2026-09-23): absent any other design a colossal thing is
+     * about a hundred blocks, and each feature may choose a smaller or larger natural size, as a pit does.
+     * What this catches is a shape authored at a scale nobody chose — ten blocks colossal, or a thousand.
      *
      * The governing dimension differs — height for an obelisk, a spike and an arch; diameter for a ring
      * and a boulder; the base for a pyramid — but every one of them is the *largest* dimension the shape
      * has, so one rule covers them all without this having to know which is which.
-     *
-     * A standard nobody checks is a standard that drifts: the shapes were authored at four different
-     * scales before it was one (Jonah, 2026-09-03).
      */
-    test("a colossal formation is about a hundred blocks") {
+    test("a colossal formation is on the order of a hundred blocks") {
         for ((name, shape) in shapes) {
             val huge = shape.resized(COLOSSAL, 0)
             val reach = kotlin.math.ceil(huge.horizontalReach).toInt()
@@ -83,7 +84,7 @@ class ShippedShapesCheck : FunSpec({
             val governing = maxOf(tall, across)
             check(governing in SMALLEST..LARGEST) {
                 "$name is $governing blocks across its longest side when colossal ($tall tall, $across " +
-                    "wide), where the standard is about $ABOUT"
+                    "wide), which is not on the order of $ABOUT"
             }
         }
     }
@@ -116,9 +117,10 @@ class ShippedShapesCheck : FunSpec({
         /** What `colossal` multiplies a size by — `FeatureShape.sizeFactor` at the top of the axis. */
         const val COLOSSAL = 4.0
 
+        // An order of magnitude either side of the guideline rather than a tolerance around it.
         const val ABOUT = 100
-        const val SMALLEST = 80
-        const val LARGEST = 120
+        const val SMALLEST = 30
+        const val LARGEST = 300
 
         const val FORMATION = "agesandtheart:formation"
     }

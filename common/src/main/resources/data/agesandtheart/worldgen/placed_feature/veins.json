@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "**One position per chunk and no modifier that moves it**, as a formation is placed: a vein is read off",
+    "noise over the whole world, so it runs once per chunk and lays the part that crosses this one.",
+    "",
+    "No biome carries it, so nothing is veined until a book asks."
+  ],
+  "feature": "agesandtheart:veins",
+  "placement": []
+}

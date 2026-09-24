@@ -340,8 +340,8 @@ data class Word(
      * The **pattern this word mints from** — a placed feature the game already has, whose shape a new one
      * borrows (world model §2). Null for every word that is not one of the few.
      *
-     * `springs` mints from vanilla's water spring and `veins` from an ore, so `ink springs` and `gold block
-     * veins` are that shape carrying a substance the game never puts there. The material comes from the
+     * `springs` mints from vanilla's water spring and `deposits` from an ore, so `ink springs` and `gold
+     * block deposits` are that shape carrying a substance the game never puts there. The material comes from the
      * same clause, which is the one thing about it a writer says.
      *
      * **A minting word aims**, because it closes the clause the material qualifies — the same shape `sun`
@@ -691,6 +691,21 @@ data class Word(
     fun withoutItsSize(): Word = if (SIZE_PARAMETER in sets) copy(sets = sets - SIZE_PARAMETER) else this
 
     /**
+     * How deep in the column this word asks a thing to sit, or null where it says nothing — read as
+     * [sizeAsked] is, and for the same reason: `shallow veins` says where the veins are, and read as a word
+     * about the features aspect it would also have moved every ore in the Age.
+     */
+    val heightAsked: Double? get() = everySet[HEIGHT_PARAMETER]
+        ?.let(Span::read)
+        ?.let { (it.least + it.most) / 2.0 }
+
+    /** The same word with its height taken away — [withoutItsSize]'s twin, for a height a minting spent. */
+    fun withoutItsHeight(): Word {
+        val kept = sets.filterKeys { parameterIn(it) != HEIGHT_PARAMETER }
+        return if (kept.size == sets.size) this else copy(sets = kept)
+    }
+
+    /**
      * **How many places this page may be laid** — the second half of what it costs (world model §9).
      *
      * An evocative word is one: it may only ever be written on the Age itself, which is what makes it the
@@ -772,6 +787,7 @@ data class Word(
     companion object {
         /** The parameter a size word sets — `Features.SIZE`'s name, and every other axis that shares it. */
         private const val SIZE_PARAMETER = "size"
+        private const val HEIGHT_PARAMETER = "height"
 
         /** What choosing a member outright is worth, against a tag weight, which never exceeds one. */
         private const val CHOSEN_OUTRIGHT = 1.0
@@ -827,7 +843,7 @@ data class Word(
             }
             // **Minting is the features' own.** `Resolver.mintedFeatures` is the only reader of `mints`
             // and it makes a placed feature out of the pattern, so a word that mints is a word about
-            // them — `lakes`, `springs` and `veins` claim nothing else at all.
+            // them — `lakes`, `springs` and `deposits` claim nothing else at all.
             val mints = if (minted == null) emptySet() else setOf(Aspect.FEATURES)
             return (steered + meant + weighted + mints).toSet()
         }

@@ -47,6 +47,13 @@ object FeatureDensity {
     fun applied(feature: Holder<PlacedFeature>, density: Double): Holder<PlacedFeature> {
         if (Rung.isOrdinary(density)) return feature
         val placed = feature.value()
+        // A vein is read off noise over the whole world, so laying it twice lays the same blocks twice.
+        // More of it is more of the ground it runs through.
+        val vein = placed.feature().value() as? OreVein
+        if (vein != null) {
+            val richer = vein.copy(abundance = vein.abundance * density)
+            return Holder.direct(PlacedFeature(Holder.direct(richer), placed.placement()))
+        }
         val asOftenAsAsked = CountPlacement.of(timesOver(density))
         return Holder.direct(PlacedFeature(placed.feature(), listOf(asOftenAsAsked) + placed.placement()))
     }

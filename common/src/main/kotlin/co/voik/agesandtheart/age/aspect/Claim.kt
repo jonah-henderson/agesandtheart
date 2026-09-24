@@ -46,7 +46,8 @@ data class Claim(
      *
      * `minecraft:spring_water[of=agesandtheart:ink]` is a spring shaped exactly like vanilla's and running
      * with ink: the value names the pattern and this names the substance. A writer says `ink springs`, and
-     * the two halves of that are these two fields.
+     * the two halves of that are these two fields. Materials the clause joined with `and` are all named,
+     * separated by [MINGLED] — see [substances].
      */
     val madeOf: String? = null,
     /**
@@ -71,6 +72,8 @@ data class Claim(
      * *this* member rather than about the part of the world it belongs to.
      */
     val size: Double? = null,
+    /** How deep in the column this one sits, or null to take the Age's own — [size]'s twin. */
+    val height: Double? = null,
 ) {
     /**
      * Whether this could not bring its member about — a **description** ([onlyWhereItGrows]) asking for no
@@ -86,6 +89,15 @@ data class Claim(
     /** The value read as a registry id, or null where it is not one. */
     val id: Identifier? get() = Identifier.tryParse(value)
 
+    /**
+     * What this brings into the Age, for telling two claims apart: `mud pits` and `sand pits` are two
+     * things, where two mentions of `slime` are one.
+     */
+    val member: Pair<String, String?> get() = value to madeOf
+
+    /** Every substance [madeOf] names: several where a clause mingled them, `mud and sand pits`. */
+    val substances: List<String> get() = madeOf?.split(MINGLED).orEmpty()
+
     /** Whether this claim has anything to say where [biome] is what the ground holds. */
     fun appliesIn(biome: Identifier?): Boolean = confinedTo == null || confinedTo == biome
 
@@ -93,6 +105,7 @@ data class Claim(
     fun spelled(): String {
         // Held first: inside `buildList` the list's own `size` shadows this claim's.
         val ownSize = size
+        val ownHeight = height
         val parts = buildList {
             when (polarity) {
                 Polarity.ASSERTED -> Unit
@@ -103,6 +116,7 @@ data class Claim(
             if (!Rung.isOrdinary(density)) add("$AMOUNT$SETS${Rung.spelled(density)}")
             madeOf?.let { add("$OF$SETS$it") }
             ownSize?.let { add("$SIZE$SETS${Rung.spelled(it)}") }
+            ownHeight?.let { add("$HEIGHT$SETS${Rung.spelled(it)}") }
             confinedTo?.let { add("$IN$SETS$it") }
         }
         if (parts.isEmpty()) return value
@@ -125,6 +139,10 @@ data class Claim(
         const val IN = "in"
         const val OF = "of"
         const val SIZE = "size"
+        const val HEIGHT = "height"
+
+        /** Between the substances of one mingled minting: `of=minecraft:mud+minecraft:sand`. */
+        const val MINGLED = '+'
 
         /** The claim [spelled] describes: asserted, ordinary, everywhere, unless it says otherwise. */
         fun read(spelled: String): Claim {
@@ -151,6 +169,7 @@ data class Claim(
                 valueOf(parts, OF),
                 onlyWhereItGrows = parts.any { it == WHERE_IT_GROWS },
                 size = valueOf(parts, SIZE)?.toDoubleOrNull(),
+                height = valueOf(parts, HEIGHT)?.toDoubleOrNull(),
             )
         }
 
@@ -204,14 +223,14 @@ data class Skew(
          */
         fun of(claims: List<Claim>, biome: Identifier? = null, emptiedBy: String? = null): Skew {
             val here = claims.filter { it.appliesIn(biome) }
-            fun claimsAt(polarity: Polarity) = here.filter { it.polarity == polarity }.distinctBy { it.value }
+            fun claimsAt(polarity: Polarity) = here.filter { it.polarity == polarity }.distinctBy { it.member }
             val singledOut = claimsAt(Polarity.ONLY)
             val removed = claimsAt(Polarity.EXCEPT).map { it.value }
             // **Removals apply last** (§3.5), so a member one word named and another struck out is struck
             // out. Said here rather than in each reader: `Spawns.narrowed` dropped it and `Spawns.added` put
             // it straight back, which is the shape a rule kept in two places takes.
             val named = (singledOut + claimsAt(Polarity.ASSERTED))
-                .distinctBy { it.value }
+                .distinctBy { it.member }
                 .filterNot { it.value in removed }
             fun isTheEmptier(claim: Claim) = emptiedBy != null && claim.value == emptiedBy
             return Skew(

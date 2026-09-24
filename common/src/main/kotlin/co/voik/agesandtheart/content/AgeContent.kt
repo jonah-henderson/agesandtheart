@@ -95,6 +95,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.material.MapColor
 import net.minecraft.world.level.material.PushReaction
 import co.voik.agesandtheart.worldgen.feature.Formation
+import co.voik.agesandtheart.worldgen.feature.OreVein
 import co.voik.agesandtheart.worldgen.feature.Algae
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
@@ -1757,6 +1758,7 @@ object AgeContent {
         "algae".location() to Algae.CODEC,
         "spilled_spring".location() to SpilledSpring.CODEC,
         "formation".location() to Formation.CODEC,
+        "ore_vein".location() to OreVein.CODEC,
         "rime_crystal".location() to RimeCrystal.CODEC,
         "tempered_ground".location() to TemperedGround.CODEC,
         // One kind now: the body of lava is a field, so the two an Age may carry are two entries in

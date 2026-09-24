@@ -7,52 +7,102 @@
     "pointing down, so the mouth is the widest part and it narrows as it deepens -- what a pit looks like,",
     "and the reason this is a cone rather than the half-ellipsoid a bowl would be.",
     "",
-    "**Heights are measured from the ground, and `baseY` is -1 rather than 0.** `Formation` anchors on",
-    "`getBaseHeight`, which answers the first block ABOVE the ground, so 0 would lay the mouth in the air",
-    "and leave the surface block capping it. At -1 the mouth IS the surface, which is what makes what the",
-    "pit is made of something you can walk onto -- and what the scarab medallion reads as exposed",
-    "(design §7.1.2).",
+    "**Heights are measured from the ground's top block**, `sunk` making 0 that block rather than the one",
+    "above it, so the mouth IS the surface -- what makes what the pit is made of something you can walk",
+    "onto, and what the scarab medallion reads as exposed (design §7.1.2). Sizes and poses scale about 0,",
+    "so it stays flush at every size.",
     "",
-    "Twenty-two across as written, the standard the rest of the family shares, so `colossal` is a hundred",
-    "and `tiny` is a puddle. Three depths to draw from, and the undulation breaks the rim: a perfect",
-    "circle in the ground reads as a crater, where a ragged one reads as a place that wore open."
+    "**`sunk`, so it is dug in the way vanilla's surface lake is.** The mouth sits on the LOWEST ground",
+    "under it and the ground standing higher is cut away, so on a slope the pit is a hollow with a bank",
+    "on its uphill side instead of standing proud of the ground below; a site too steep to cut is",
+    "refused, as a lake refuses one its bowl would be open to.",
+    "",
+    "**Warped, then undulated, then clipped at the mouth**, and each does one thing. Warping moves the",
+    "outline sideways, so the footprint is lobed rather than a circle -- undulating alone never changes",
+    "which columns a cone covers, which is why the first pits read as perfect. Undulating makes the floor",
+    "uneven. The clip keeps any column the undulation lifted from standing proud of the mouth.",
+    "",
+    "About sixteen across as written, between a landmark and a puddle (Jonah, 2026-09-23), and one to a",
+    "64-block cell, so `colossal` is a pond-sized one and `tiny` a puddle."
   ],
   "type": "agesandtheart:formation",
   "shapes": [
     {
-      "type": "undulated",
-      "base": { "type": "cone", "base_x": 0, "base_z": 0, "base_radius": 11.0, "base_y": -1, "tip_y": -9 },
-      "seed": 61879,
-      "first_octave": -3,
-      "amplitudes": [1.0, 0.5],
-      "scale_x": 5.0,
-      "scale_z": 5.0,
-      "amount": 2.0
+      "type": "intersect",
+      "fields": [
+        { "type": "slab", "low_y": -64, "high_y": 0 },
+        {
+          "type": "undulated",
+          "base": {
+            "type": "warped",
+            "base": { "type": "cone", "base_x": 0, "base_z": 0, "base_radius": 8.0, "base_y": 0, "tip_y": -7 },
+            "seed": 51277,
+            "first_octave": -2,
+            "amplitudes": [1.0, 0.5],
+            "scale": 6.0,
+            "amount": 3.0
+          },
+          "seed": 61879,
+          "first_octave": -3,
+          "amplitudes": [1.0, 0.5],
+          "scale_x": 3.0,
+          "scale_z": 3.0,
+          "amount": 1.5
+        }
+      ]
     },
     {
-      "type": "undulated",
-      "base": { "type": "cone", "base_x": 0, "base_z": 0, "base_radius": 10.0, "base_y": -1, "tip_y": -6 },
-      "seed": 15083,
-      "first_octave": -3,
-      "amplitudes": [1.0, 0.5],
-      "scale_x": 5.0,
-      "scale_z": 5.0,
-      "amount": 2.5
+      "type": "intersect",
+      "fields": [
+        { "type": "slab", "low_y": -64, "high_y": 0 },
+        {
+          "type": "undulated",
+          "base": {
+            "type": "warped",
+            "base": { "type": "cone", "base_x": 0, "base_z": 0, "base_radius": 7.5, "base_y": 0, "tip_y": -5 },
+            "seed": 20411,
+            "first_octave": -2,
+            "amplitudes": [1.0, 0.6],
+            "scale": 5.0,
+            "amount": 3.5
+          },
+          "seed": 15083,
+          "first_octave": -3,
+          "amplitudes": [1.0, 0.5],
+          "scale_x": 3.0,
+          "scale_z": 3.0,
+          "amount": 1.5
+        }
+      ]
     },
     {
-      "type": "undulated",
-      "base": { "type": "cone", "base_x": 0, "base_z": 0, "base_radius": 12.0, "base_y": -1, "tip_y": -13 },
-      "seed": 30011,
-      "first_octave": -3,
-      "amplitudes": [1.0, 0.6, 0.3],
-      "scale_x": 6.0,
-      "scale_z": 6.0,
-      "amount": 2.0
+      "type": "intersect",
+      "fields": [
+        { "type": "slab", "low_y": -64, "high_y": 0 },
+        {
+          "type": "undulated",
+          "base": {
+            "type": "warped",
+            "base": { "type": "cone", "base_x": 0, "base_z": 0, "base_radius": 9.0, "base_y": 0, "tip_y": -9 },
+            "seed": 77323,
+            "first_octave": -2,
+            "amplitudes": [1.0, 0.5, 0.25],
+            "scale": 7.0,
+            "amount": 3.0
+          },
+          "seed": 30011,
+          "first_octave": -3,
+          "amplitudes": [1.0, 0.6, 0.3],
+          "scale_x": 3.5,
+          "scale_z": 3.5,
+          "amount": 1.5
+        }
+      ]
     }
   ],
   "variation": {
     "yaw_steps": 8,
-    "min_scale": 0.6,
+    "min_scale": 0.7,
     "max_scale": 1.3,
     "scale_steps": 3,
     "pivot_y": 0,
@@ -62,7 +112,7 @@
   },
   "placement": {
     "type": "scatter",
-    "cell_size": 128.0,
+    "cell_size": 64.0,
     "least_per_cell": 0,
     "most_per_cell": 1,
     "at_origin": 1.0,
@@ -70,5 +120,6 @@
     "falloff_radius": 1.0
   },
   "seed": 774431905,
-  "substance": "minecraft:sand"
+  "substance": "minecraft:sand",
+  "sunk": true
 }

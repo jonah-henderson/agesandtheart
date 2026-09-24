@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "A deposit of something that is not an ore: the small clusters ores come in underground. Shaped like",
+    "vanilla's gold -- its size, its depth, the stone it cuts into -- and made of whatever the clause",
+    "names: `gold block deposits`, `ancient debris deposits`.",
+    "",
+    "Gold is the pattern because it is middling in both size and depth, so what a writer gets is a",
+    "deposit rather than a seam or a curiosity. The long ribbons of ore vanilla strings through tuff and",
+    "granite are `veins`."
+  ],
+  "tier": "exact",
+  "mints": "minecraft:ore_gold"
+}

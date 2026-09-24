@@ -136,7 +136,7 @@ class VocabularyOnServerCheck : FunSpec({
  * added and this was not, so the check had been failing since (found 2026-08-29, while adding an aspect).
  */
 private val MINTING_PATTERNS = listOf(
-    "lakes", "springs", "veins",
+    "lakes", "springs", "deposits", "veins", "pits",
     // The formations, which are one feature carrying a shape rather than six.
     "arches", "boulders", "obelisks", "pyramids", "rings", "spikes",
 )

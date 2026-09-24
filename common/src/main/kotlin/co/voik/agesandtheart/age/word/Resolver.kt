@@ -224,18 +224,21 @@ object Resolver {
         // By identity rather than by equality, and taken before the draw copies each constraint: two
         // `colossal` pages in one book are equal, and only the one inside the minting is spent.
         //
-        // **Only where the clause really mints**, which is `substanceOf` and not merely a subject that
-        // could: `springs`, `lakes` and `veins` all declare `mints` with no `unstated`, so `tiny springs`
+        // **Only where the clause really mints**, which is `materialsOf` and not merely a subject that
+        // could: `springs`, `lakes` and `deposits` all declare `mints` with no `unstated`, so `tiny springs`
         // mints nothing — and charging it for the size anyway took the word away and gave nothing back.
         //
         // **And only the size**, never the whole claim. `colossal` also restricts the landmass to
         // `monumental`; `rich` admits two ores and biases three tags. Dropping the constraint spent all of
         // that to pay for one parameter.
-        val spent = sentence.phrases
-            .filter { substanceOf(it, draw) != null }
-            .flatMap { phrase -> phrase.modifiers.filter { it.word.sizeAsked != null } }
+        //
+        // **A height is spent the same way**: `shallow veins` puts the veins near the surface and leaves
+        // every other ore where the Age put it.
+        val minting = sentence.phrases.filter { materialsOf(it, draw) != null }.flatMap { it.modifiers }
+        fun isSpentIn(constraint: Constraint) = minting.any { it === constraint }
         val kept = sentence.constraints.map { constraint ->
-            if (spent.any { it === constraint }) constraint.copy(word = constraint.word.withoutItsSize()) else constraint
+            if (!isSpentIn(constraint)) constraint
+            else constraint.copy(word = constraint.word.withoutItsSize().withoutItsHeight())
         }
         val said = offered(vocabulary, kept.map { it.drawnAt(draw) }, draw)
         val flaws = mutableListOf<Flaw>()
@@ -255,6 +258,7 @@ object Resolver {
         val spokenTo = said.flatMap { reachOf(vocabulary, it) }.toSet()
         val composition = mintedFeatures(resolved, sentence, draw).laidOver(template.world(), spokenTo)
         flaws += mintingsThatCannotHold(vocabulary, sentence, draw)
+        flaws += materialsDisplacedInMintings(vocabulary, sentence, draw)
         // **Last**, so it can see everything the mechanisms above already charged and never price one
         // disagreement twice. Steering adds flaws of its own, so this cannot be hoisted.
         flaws += oppositions(vocabulary, said, flaws.toList())
@@ -289,10 +293,8 @@ object Resolver {
     private fun mintingsThatCannotHold(vocabulary: Vocabulary, sentence: Sentence, draw: Long): List<Flaw> =
         sentence.phrases.mapNotNull { phrase ->
             val minting = phrase.subject?.takeIf { it.word.mintsSomethingThatFlows } ?: return@mapNotNull null
-            // Drawn before it is read, exactly as the minting itself draws it: a material carrying a pool
-            // chooses here too, and charging the undrawn word would price a page nobody was given.
-            val substance = phrase.modifiers.map { it.drawnAt(draw) }
-                .firstOrNull { it.word.material != null } ?: return@mapNotNull null
+            // The material that won the clause, drawn exactly as the minting draws it.
+            val substance = materialsOf(phrase, draw)?.leading ?: return@mapNotNull null
             if (flows(substance.word.material)) return@mapNotNull null
             // The material first: it is the word that lost, and `describe` names the first as displaced
             // and the second as what displaced it.
@@ -322,7 +324,7 @@ object Resolver {
      *
      * **One answer, asked in two places**, because they disagreed and that was the bug: `resolve` charged a
      * clause for spending its size wherever the *subject* could mint, where this decides whether anything
-     * is actually minted. A pattern with no material and no [Word.unstated] — `springs`, `lakes`, `veins`
+     * is actually minted. A pattern with no material and no [Word.unstated] — `springs`, `lakes`, `deposits`
      * — mints nothing, so `tiny springs` lost `tiny` and gained no spring.
      *
      * Drawn, like every other reader of a word's claims: a material carrying a pool chooses here too.
@@ -331,16 +333,53 @@ object Resolver {
      * nothing in the ground, which reads as the word not working; [Word.unstated] is what the pattern is
      * made of when nobody says, and a tag there is a small pool the seed draws from where a bare id is one
      * answer.
+     *
+     * **Several materials are read as a landmass reads them** (Jonah, 2026-09-22): joined with `and` they
+     * mingle into one thing, `mud and sand pits`; laid side by side they contend, the most precise wins,
+     * the seed breaks a tie, and the rest are [Materials.displaced]. Two kinds of pit apart are two clauses,
+     * `mud pits sand pits`.
      */
-    private fun substanceOf(phrase: Phrase, draw: Long): String? {
+    private fun materialsOf(phrase: Phrase, draw: Long): Materials? {
         val subject = phrase.subject ?: return null
         if (subject.word.mints == null) return null
-        return phrase.modifiers.firstNotNullOfOrNull { it.drawnAt(draw).word.material } ?: subject.word.unstated
+        val named = phrase.modifiers.map { it.drawnAt(draw) }.filter { it.word.material != null }
+        if (named.isEmpty()) {
+            return subject.word.unstated?.let { Materials(listOf(it), leading = null, displaced = emptyList()) }
+        }
+        val leading = named.sortedWith(
+            compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, Aspect.FEATURES, it.word) },
+        ).first()
+        fun minglesWithTheLeader(said: Constraint): Boolean {
+            val isTheLeader = said === leading
+            val asksForTheSameMaterial = said.word.material == leading.word.material
+            return isTheLeader || wereJoined(said, leading) || asksForTheSameMaterial
+        }
+        val (mingled, displaced) = named.partition(::minglesWithTheLeader)
+        return Materials(mingled.mapNotNull { it.word.material }.distinct(), leading, displaced)
     }
 
     /**
+     * What one minting clause is made of: [kept] in written order, the [leading] material the rest were
+     * measured against (null where the pattern's own unstated substance stands in), and what lost to it.
+     */
+    private class Materials(val kept: List<String>, val leading: Constraint?, val displaced: List<Constraint>)
+
+    /**
+     * A [Register.DISPLACED] for each material a minting clause laid beside the winner without joining it —
+     * `mud sand pits` is one pit asked to be two things, where `mud and sand pits` is one pit of both.
+     */
+    private fun materialsDisplacedInMintings(vocabulary: Vocabulary, sentence: Sentence, draw: Long): List<Flaw> =
+        sentence.phrases.flatMap { phrase ->
+            val materials = materialsOf(phrase, draw) ?: return@flatMap emptyList()
+            val leading = materials.leading ?: return@flatMap emptyList()
+            materials.displaced.map { loser ->
+                flaw(vocabulary, Register.DISPLACED, listOf(loser, leading), Aspect.FEATURES, emptyList(), loser.word.tier)
+            }
+        }
+
+    /**
      * [composition] with every feature the sentence **minted** added to what the Age places — `ink springs`,
-     * `gold block veins` (world model §2).
+     * `gold block deposits` (world model §2).
      *
      * **Read off the clauses rather than off the flat claims**, and that is the one place in the resolver
      * that is: minting is a fact about a clause, being a pattern and a substance said together, and the
@@ -353,14 +392,18 @@ object Resolver {
         val minted = sentence.phrases.mapNotNull { phrase ->
             val subject = phrase.subject ?: return@mapNotNull null
             val pattern = subject.word.mints ?: return@mapNotNull null
-            val substance = substanceOf(phrase, draw) ?: return@mapNotNull null
+            val materials = materialsOf(phrase, draw) ?: return@mapNotNull null
+            // **Every quantifier in the clause counts the thing it mints.** One qualifies the page after
+            // it, so `teeming gold_ore veins` hung its amount on the material and the veins never saw it.
+            val amount = phrase.modifiers.fold(subject.density) { standing, said -> standing * said.density }
             Claim(
                 pattern,
                 subject.polarity,
-                Rung.legible(subject.density),
+                Rung.legible(amount),
                 subject.confinedTo,
-                madeOf = substance,
+                madeOf = materials.kept.joinToString(Claim.MINGLED.toString()),
                 size = phrase.modifiers.firstNotNullOfOrNull { it.word.sizeAsked },
+                height = phrase.modifiers.firstNotNullOfOrNull { it.word.heightAsked },
             )
         }
         if (minted.isEmpty()) return composition

@@ -9,7 +9,8 @@
 age write inkspring 4242 age ink springs
 age write inksea 4242 age ink sea
 age write lavaspring 4242 age lava springs
-age write goldvein 4242 age gold_block veins
+age write golddeposit 4242 age gold_block deposits
+age write goldvein 4242 age gold_ore veins
 age write solidspring 4242 age gold_block springs
 age list
 

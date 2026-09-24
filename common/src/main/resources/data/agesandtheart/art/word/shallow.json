@@ -10,7 +10,11 @@
     "**Gentler than `deep` is, on purpose, and the asymmetry is the honest bit.** -0.7..-0.5 is about twelve",
     "to thirty-three blocks down -- roughly half its usual level at the far end, which is what a drained sea",
     "reads as. Matching `deep`'s reach downward would take the waterline under most landform floors and",
-    "leave no sea at all, which is a different word than this one."
+    "leave no sea at all, which is a different word than this one.",
+    "",
+    "**Said of features, it is where they sit: near the surface**, `buried`'s mirror. `shallow veins` are",
+    "vanilla's copper veins -- its band and its granite -- where a vein left alone is its deep iron one.",
+    "Inside a minting clause the height is that clause's own, as a size is, so the Age's other ores stay put."
   ],
   "tier": "exact",
   "biases": {
@@ -19,6 +23,7 @@
     }
   },
   "sets": {
-    "depth": "-0.7..-0.5"
+    "depth": "-0.7..-0.5",
+    "features.height": "0.5..1.0"
   }
 }

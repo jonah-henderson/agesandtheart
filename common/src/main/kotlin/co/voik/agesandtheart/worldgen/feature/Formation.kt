@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen.feature
 import co.voik.agesandtheart.worldgen.field.Placement
 import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.worldgen.field.Variation
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -11,16 +12,19 @@ import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.LevelHeightAccessor
 import net.minecraft.world.level.WorldGenLevel
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.feature.Feature
 import com.mojang.serialization.MapCodec
+import net.minecraft.util.ExtraCodecs
 import net.minecraft.util.RandomSource
 
 /**
- * A shape standing on the ground, made of one substance — an obelisk, a boulder, a ring of stones.
+ * A shape standing on the ground, made of one substance or several mingled — an obelisk, a boulder, a ring
+ * of stones.
  *
  * **The shape is a [TerrainField], which is the whole reason this is one feature and not six.** The field
  * toolkit already describes solids as spans and already serialises, so an obelisk is a box under a
@@ -64,8 +68,18 @@ data class Formation(
     val placement: Placement,
     /** Keeps one kind of formation's layout from being another's. */
     val seed: Long,
-    val substance: BlockState,
+    /** What it is made of. Several mingle as a landmass's rock does — `mud and sand pits`. */
+    val substances: List<BlockState>,
+    /** Whether this is dug into the ground rather than stood on it — a pit. See [sinkingInto]. */
+    val sunk: Boolean = false,
 ) : Feature {
+
+    /**
+     * The landmass's own mingling, so two materials read as one ground — but finer than the rock's, a
+     * formation being a few dozen blocks across rather than a territory, where the rock's patches came out
+     * as a stripe of each (Jonah, 2026-09-23).
+     */
+    private val material = TerrainFill(blocks = listOf(substances), mingleStretch = FORMATION_MINGLING)
 
     override fun codec(): MapCodec<out Feature> = CODEC
 
@@ -78,10 +92,32 @@ data class Formation(
         // The chunk being decorated, which is the only one this call may write into.
         val chunk = ChunkPos(SectionPos.blockToSectionCoord(origin.x), SectionPos.blockToSectionCoord(origin.z))
         val groundAt = surfaceOf(level, generator)
-        val laid = raise(level.seed, chunk, groundAt) { position, state ->
+        val laid = raise(
+            level.seed,
+            chunk,
+            groundAt,
+            clear = { position -> clearUpwardsFrom(level, position) },
+        ) { position, state ->
             if (!level.isOutsideBuildHeight(position)) level.setBlock(position, state, PLACED_BY_WORLDGEN)
         }
         return laid > 0
+    }
+
+    /**
+     * Air where a sunk formation cut the ground away, and whatever grew on that ground with it — grass and
+     * flowers stood on a block that is no longer there. The same column, so still inside the chunk.
+     */
+    private fun clearUpwardsFrom(level: WorldGenLevel, position: BlockPos) {
+        if (level.isOutsideBuildHeight(position)) return
+        level.setBlock(position, AIR, PLACED_BY_WORLDGEN)
+        val above = position.mutable().move(0, 1, 0)
+        while (!level.isOutsideBuildHeight(above)) {
+            val standing = level.getBlockState(above)
+            val grewOnTheGround = !standing.isAir && standing.fluidState.isEmpty && standing.canBeReplaced()
+            if (!grewOnTheGround) return
+            level.setBlock(above, AIR, PLACED_BY_WORLDGEN)
+            above.move(0, 1, 0)
+        }
     }
 
     /**
@@ -104,12 +140,14 @@ data class Formation(
      * Every formation reaching [chunk], laid where it crosses it — of anything that can take a block, so
      * what it draws can be checked without a world under it, as [SpilledSpring.spill] is.
      *
-     * Returns how many blocks it laid, so a caller can tell a formation from nothing at all.
+     * Returns how many blocks it laid, so a caller can tell a formation from nothing at all. [clear] is
+     * where a [sunk] one cuts the ground away.
      */
     fun raise(
         worldSeed: Long,
         chunk: ChunkPos,
         groundAt: (Int, Int) -> Int,
+        clear: (BlockPos) -> Unit = {},
         lay: (BlockPos, BlockState) -> Unit,
     ): Int {
         val posed = shapes.flatMap(variation::sizesOf)
@@ -139,26 +177,72 @@ data class Formation(
         // **A formation at a time, so the ground under it is asked for at most once.** `getBaseHeight`
         // runs a whole noise column, and a formation is anchored by every chunk that lays part of it — so
         // asked per column it was the entire cost of this feature, and asked eagerly it was paid even by
-        // chunks a formation reaches but never actually touches.
+        // chunks a formation reaches but never actually touches. A sunk one asks each column it digs as well,
+        // since its bank is that column's own ground.
         for (formation in standing) {
-            var ground: Int? = null
-            for (x in chunk.minBlockX..chunk.maxBlockX) {
+            // Re-seeded from where the formation stands, so every chunk laying part of it turns it the same
+            // way — the pose belongs to the thing, not to the column asking about it.
+            fun columnOf(x: Int, z: Int): Spans {
+                val turning = origins.at(formation.originX, 0, formation.originZ)
+                turning.nextInt(posed.size)
+                return variation.sample(formation.template, x - formation.originX, z - formation.originZ, turning)
+            }
+            // Null where a sunk formation declined its site.
+            val standsOn by lazy {
+                if (sunk) sinkingInto(formation, groundAt, ::columnOf) else groundAt(formation.originX, formation.originZ)
+            }
+            columns@ for (x in chunk.minBlockX..chunk.maxBlockX) {
                 for (z in chunk.minBlockZ..chunk.maxBlockZ) {
                     if (!formation.couldReach(x, z)) continue
-                    // Re-seeded from where the formation stands, so every chunk laying part of it turns it
-                    // the same way — the pose belongs to the thing, not to the column asking about it.
-                    val turning = origins.at(formation.originX, 0, formation.originZ)
-                    turning.nextInt(posed.size)
-                    val solid = variation.sample(
-                        formation.template, x - formation.originX, z - formation.originZ, turning,
-                    )
+                    val solid = columnOf(x, z)
                     if (solid.ranges.isEmpty()) continue
-                    val standsOn = ground ?: groundAt(formation.originX, formation.originZ).also { ground = it }
-                    laid += layColumn(solid, standsOn, x, z, substance, lay)
+                    val anchor = standsOn ?: break@columns
+                    // `getBaseHeight` answers the first block *above* the ground. A standing shape's 0 is that
+                    // block; a sunk one's is the ground's top block itself, so its mouth is flush with the
+                    // surface at 0 — and stays flush at every size, sizes being scaled about 0.
+                    val base = if (sunk) anchor - 1 else anchor
+                    laid += layColumn(solid, base, x, z, lay)
+                    if (sunk) cutAway(anchor, groundAt(x, z), x, z, clear)
                 }
             }
         }
         return laid
+    }
+
+    /**
+     * Where a sunk formation's mouth goes, or null where the ground is too steep to dig it — vanilla's
+     * surface lake, in the shape of a formation.
+     *
+     * The **lowest** ground under the mouth, with the ground standing higher cut away over it ([cutAway]),
+     * so on a hillside the pit is a hollow dug into the slope with a bank on its uphill side rather than
+     * standing proud of the ground below. A lake refuses a spot where its bowl would be open to the side;
+     * this refuses one where the bank would be taller than [DEEPEST_CUT].
+     *
+     * Sampled on a coarse grid, since every chunk the formation crosses asks and all of them must reach the
+     * same answer.
+     */
+    private fun sinkingInto(formation: Standing, groundAt: (Int, Int) -> Int, columnOf: (Int, Int) -> Spans): Int? {
+        val step = maxOf(LEAST_SAMPLE_STEP, (formation.reach / SAMPLES_ACROSS_A_RADIUS).toInt())
+        val reach = formation.reach.toInt()
+        var lowest = Int.MAX_VALUE
+        var highest = Int.MIN_VALUE
+        for (dx in -reach..reach step step) {
+            for (dz in -reach..reach step step) {
+                val x = formation.originX + dx
+                val z = formation.originZ + dz
+                if (!formation.couldReach(x, z) || columnOf(x, z).ranges.isEmpty()) continue
+                val ground = groundAt(x, z)
+                lowest = minOf(lowest, ground)
+                highest = maxOf(highest, ground)
+            }
+        }
+        if (lowest == Int.MAX_VALUE) return null
+        return lowest.takeIf { highest - lowest <= DEEPEST_CUT }
+    }
+
+    /** The ground over a sunk formation's mouth, from [anchor] up to where this column's own ground stood. */
+    private fun cutAway(anchor: Int, ground: Int, x: Int, z: Int, clear: (BlockPos) -> Unit) {
+        for (y in anchor..<ground) clear(BlockPos(x, y, z))
     }
 
     /** One copy of a formation: where it stands, and which shape it drew. */
@@ -182,13 +266,13 @@ data class Formation(
         ground: Int,
         x: Int,
         z: Int,
-        substance: BlockState,
         put: (BlockPos, BlockState) -> Unit,
     ): Int {
         var laid = 0
         for (range in solid.ranges) {
             for (height in range) {
-                put(BlockPos(x, ground + height, z), substance)
+                val y = ground + height
+                put(BlockPos(x, y, z), material.blockAt(x, y, z))
                 laid++
             }
         }
@@ -207,12 +291,29 @@ data class Formation(
                     .forGetter(Formation::variation),
                 Placement.CODEC.fieldOf("placement").forGetter(Formation::placement),
                 Codec.LONG.fieldOf("seed").forGetter(Formation::seed),
-                BlockState.CODEC.fieldOf("substance").forGetter(Formation::substance),
+                ExtraCodecs.nonEmptyList(ExtraCodecs.compactListCodec(BlockState.CODEC)).fieldOf("substance")
+                    .forGetter(Formation::substances),
+                Codec.BOOL.optionalFieldOf("sunk", false).forGetter(Formation::sunk),
             ).apply(instance, ::Formation)
         }
 
         /** Vanilla's own flag for a block a feature lays: change it, and do not tell a neighbour. */
         private const val PLACED_BY_WORLDGEN = 2
+
+        private val AIR: BlockState = Blocks.AIR.defaultBlockState()
+
+        /** How wide a patch of one material runs in a formation — half the rock's `PATCHY_MINGLING`. */
+        private const val FORMATION_MINGLING = 3.5
+
+        /**
+         * The tallest bank a sunk formation will cut on its uphill side. A surface lake's bowl is eight deep
+         * with four of air over its fluid, so this is about what one of those tolerates before refusing.
+         */
+        private const val DEEPEST_CUT = 5
+
+        /** How finely a sunk formation's mouth is sampled for the ground under it — see [sinkingInto]. */
+        private const val SAMPLES_ACROSS_A_RADIUS = 6.0
+        private const val LEAST_SAMPLE_STEP = 2
 
         private const val HALF_A_CHUNK = 8
 

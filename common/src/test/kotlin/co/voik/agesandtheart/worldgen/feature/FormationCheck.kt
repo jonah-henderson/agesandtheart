@@ -13,6 +13,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 
 /**
@@ -39,7 +40,7 @@ class FormationCheck : FunSpec({
     fun oneAtTheOrigin() = Grid(spacing = 512.0, jitter = 0.0, density = Density.uniform())
 
     fun configured(shape: TerrainField, variation: Variation = Variation.NONE) =
-        Formation(listOf(shape), variation, oneAtTheOrigin(), seed = 1L, substance = stone)
+        Formation(listOf(shape), variation, oneAtTheOrigin(), seed = 1L, substances = listOf(stone))
 
     /** What every chunk in a square around the origin lays, and how often each block was laid. */
     fun laidAcross(formation: Formation): Map<BlockPos, Int> {
@@ -100,20 +101,90 @@ class FormationCheck : FunSpec({
         check(doubled > ordinary * 4) { "doubled, a $ordinary-block shape came out $doubled" }
     }
 
-    /** The other half of `gold_block obelisks`: the substance is the only thing a minting replaces. */
-    test("minting swaps the substance and nothing else") {
-        val formation = configured(wideSlab())
+    fun mintedOf(formation: Formation, vararg substances: String): Formation {
         val pattern = Holder.direct(PlacedFeature(Holder.direct(formation), emptyList()))
-        val minted = FeatureShape.mintedFrom(pattern, "minecraft:gold_block")
-        val rebuilt = minted.value().feature().value()
+        val rebuilt = FeatureShape.mintedFrom(pattern, substances.toList()).value().feature().value()
         check(rebuilt is Formation) { "a minted formation came back as $rebuilt" }
-        check((rebuilt as Formation).substance == Blocks.GOLD_BLOCK.defaultBlockState()) {
-            "it is made of ${rebuilt.substance} rather than gold"
+        return rebuilt
+    }
+
+    /** The other half of `gold_block obelisks`: the substance is what a minting replaces, not the shape. */
+    test("minting swaps the substance and keeps the shape") {
+        val formation = configured(wideSlab())
+        val rebuilt = mintedOf(formation, "minecraft:gold_block")
+        check(rebuilt.substances == listOf(Blocks.GOLD_BLOCK.defaultBlockState())) {
+            "it is made of ${rebuilt.substances} rather than gold"
         }
         check(rebuilt.shapes == formation.shapes) {
             "minting changed the shape as well as the substance: ${rebuilt.shapes} where it was " +
                 "${formation.shapes}"
         }
+    }
+
+    /** `mud pits` and `sand pits` in one book: two layouts, or one lays exactly over the other. */
+    test("two substances minted from one pattern stand in different places") {
+        val formation = configured(wideSlab())
+        val mud = mintedOf(formation, "minecraft:mud")
+        val sand = mintedOf(formation, "minecraft:sand")
+        check(mud.seed != sand.seed) { "mud and sand minted from one pattern share the seed ${mud.seed}" }
+    }
+
+    /** `mud and sand pits`: one formation, both materials mingled through it. */
+    test("a formation minted of two substances lays both") {
+        val mingled = mintedOf(configured(wideSlab()), "minecraft:mud", "minecraft:sand")
+        val laid = mutableSetOf<BlockState>()
+        for (chunkX in -2..1) {
+            for (chunkZ in -2..1) {
+                mingled.raise(WORLD_SEED, ChunkPos(chunkX, chunkZ), flatGround) { _, state -> laid += state }
+            }
+        }
+        check(laid == setOf(Blocks.MUD.defaultBlockState(), Blocks.SAND.defaultBlockState())) {
+            "a mud-and-sand formation laid $laid"
+        }
+    }
+
+    /** A pit twenty-one across and four deep, dug in rather than stood on — its mouth at 0, the ground's top. */
+    fun pit(): Formation = Formation(
+        listOf(Box(minX = -10, minY = -3, minZ = -10, maxX = 10, maxY = 0, maxZ = 10)),
+        Variation.NONE,
+        oneAtTheOrigin(),
+        seed = 1L,
+        substances = listOf(stone),
+        sunk = true,
+    )
+
+    /** What every chunk around the origin lays and clears, digging [formation] into [ground]. */
+    fun dugAcross(formation: Formation, ground: (Int, Int) -> Int): Pair<Set<BlockPos>, Set<BlockPos>> {
+        val laid = mutableSetOf<BlockPos>()
+        val cleared = mutableSetOf<BlockPos>()
+        for (chunkX in -2..2) {
+            for (chunkZ in -2..2) {
+                formation.raise(WORLD_SEED, ChunkPos(chunkX, chunkZ), ground, clear = { cleared += it }) { at, _ ->
+                    laid += at
+                }
+            }
+        }
+        return laid to cleared
+    }
+
+    /** **A pit on a slope is dug into it, never stood out of it**: its uphill side is a bank. */
+    test("a sunk formation on a slope is dug in from its lowest ground") {
+        val gentleSlope: (Int, Int) -> Int = { x, _ -> SEA_LEVEL + (x + 10) / 8 }
+        val (laid, cleared) = dugAcross(pit(), gentleSlope)
+        check(laid.isNotEmpty()) { "a pit on a gentle slope was refused" }
+
+        val standingProud = laid.filter { it.y >= gentleSlope(it.x, it.z) }
+        check(standingProud.isEmpty()) { "${standingProud.size} blocks of the pit stand above the ground, e.g. ${standingProud.first()}" }
+        check(laid.maxOf { it.y } == SEA_LEVEL - 1) { "the mouth is at ${laid.maxOf { it.y }}, not the lowest ground's top" }
+
+        val bank = cleared.filter { it.x == 10 && it.z == 0 }.map { it.y }.sorted()
+        check(bank == (SEA_LEVEL..<gentleSlope(10, 0)).toList()) { "the uphill edge cut away $bank" }
+    }
+
+    test("a sunk formation refuses ground too steep to cut") {
+        val cliff: (Int, Int) -> Int = { x, _ -> SEA_LEVEL + x.coerceAtLeast(0) }
+        val (laid, cleared) = dugAcross(pit(), cliff)
+        check(laid.isEmpty() && cleared.isEmpty()) { "a pit against a cliff laid ${laid.size} and cut ${cleared.size}" }
     }
 }) {
     private companion object {
