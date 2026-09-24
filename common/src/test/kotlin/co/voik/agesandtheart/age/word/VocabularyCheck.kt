@@ -277,6 +277,22 @@ class VocabularyCheck : FunSpec({
         }
     }
 
+    /**
+     * An authored word replaces a derived one of the same id outright, so a page minted for a preset that
+     * shares its name with an authored word is silently lost unless the authored word makes the same choice.
+     */
+    test("no authored word hides the page minted for a preset") {
+        val authoredById = vocabulary.authoredWords.associateBy { it.id }
+        for (minted in DerivedWords.designs()) {
+            val authored = authoredById[minted.id] ?: continue
+            val lost = minted.chooses.filter { (aspect, preset) -> authored.chooses[aspect] != preset }
+            check(lost.isEmpty()) {
+                "the authored '${authored.name}' hides the page minted for ${lost.entries.joinToString()} — " +
+                    "give it that choice too, or name the preset something else"
+            }
+        }
+    }
+
     /** Every aspect has at least one word about it, or part of the world is unwritable. */
     test("every slot has words") {
         for (aspect in Aspect.entries) {

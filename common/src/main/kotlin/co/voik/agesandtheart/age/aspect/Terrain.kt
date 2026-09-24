@@ -117,6 +117,8 @@ enum class Terrain(
         waterline = null,
         build = { options, salt -> PyramidField.world(options.of(ARRANGEMENT), salt, scaleOf(options, salt)) },
         axes = { listOf(ARRANGEMENT, SIZE) },
+        // `pyramids` is the feature pattern's page.
+        page = "pyramidal",
     ),
 
     /**
