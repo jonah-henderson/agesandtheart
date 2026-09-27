@@ -1,14 +1,13 @@
 {
   "_comment": [
-    "How often a found page carries one of these words. Weight is this bucket's share against its",
-    "siblings; `derived` is the weight of the ENTIRE derived corpus as one entry inside it, which is",
-    "what keeps some hundreds of block and biome words from drowning the authored ones.",
-    "catch_all: an authored word listed in no bucket lands here, so adding art/word/<name>.json is",
-    "enough to make a word findable."
+    "Found pages roll a bucket by weight, then a word within it uniformly, so `weight` is this bucket's share",
+    "of pages whatever it lists. `default`: every word no bucket lists is common, authored and derived alike,",
+    "so this list only ever needs the words moved OUT of it. The four weights are 66/20/12/2: two pages in",
+    "three are filler, one in five a staple, one in eight uncommon and one in fifty rare. A loot table may",
+    "narrow the roll with `\"rarity\": \"rare\"` or a list, on `roll_page_word` and `fill_notebook` alike."
   ],
-  "weight": 60,
-  "catch_all": true,
-  "derived": 40,
+  "weight": 66,
+  "default": true,
   "words": [
     "arid",
     "atmosphere",
@@ -19,6 +18,7 @@
     "icy",
     "landmass",
     "open",
+    "parched",
     "sea",
     "structures",
     "worn"

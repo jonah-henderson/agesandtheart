@@ -27,6 +27,7 @@ object TagFile {
     private const val DROP = "drop"
     private const val REPLACE = "replace"
     private const val READINESS = "readiness"
+    private const val AVAILABLE_TO_BROAD_WORDS = "available_to_broad_words"
 
     /** The three fields of a word file a tag can be written in — see [spellings]. */
     private const val RESTRICTS = "restricts"
@@ -41,6 +42,7 @@ object TagFile {
         val dropped: Set<String> = emptySet(),
         val replaces: Boolean = false,
         val readiness: Double? = null,
+        val availableToBroadWords: Boolean = true,
     )
 
     /** Which aspects have a table at all — file names, which are aspect *pages*. */
@@ -72,6 +74,7 @@ object TagFile {
             dropped = body.getAsJsonArray(DROP)?.map { it.asString }?.toSet().orEmpty(),
             replaces = body.get(REPLACE)?.asBoolean ?: false,
             readiness = body.get(READINESS)?.asDouble,
+            availableToBroadWords = body.get(AVAILABLE_TO_BROAD_WORDS)?.asBoolean ?: true,
         )
     }
 
@@ -88,6 +91,10 @@ object TagFile {
     /** Whether [preset] takes [tag] back off whatever the derivation gave it. */
     fun setDropped(page: String, preset: String, tag: String, dropped: Boolean) =
         write(page, withDropped(read(page), preset, tag, dropped))
+
+    /** Whether a vague word may land on [preset], or only a word naming it — `available_to_broad_words`. */
+    fun setAvailableToBroadWords(page: String, preset: String, available: Boolean) =
+        write(page, withAvailableToBroadWords(read(page), preset, available))
 
     /**
      * The edits themselves, **as transformations of the table rather than of the file.**
@@ -112,10 +119,19 @@ object TagFile {
         return tidied(table, preset, entry)
     }
 
-    /** An entry that now says nothing is taken out, so an edit and its undo leave the file as it was. */
+    /** True is the default and so is written as nothing, which keeps the undo of `false` exact. */
+    fun withAvailableToBroadWords(table: JsonObject, preset: String, available: Boolean): JsonObject {
+        val entry = table.getAsJsonObject(preset) ?: JsonObject().also { table.add(preset, it) }
+        if (available) entry.remove(AVAILABLE_TO_BROAD_WORDS) else entry.addProperty(AVAILABLE_TO_BROAD_WORDS, false)
+        return tidied(table, preset, entry)
+    }
+
+    /**
+     * An entry that now says nothing is taken out, so an edit and its undo leave the file as it was.
+     * Anything left in it — a comment, `present_anyway`, a flag — is something said, and keeps it.
+     */
     private fun tidied(table: JsonObject, preset: String, entry: JsonObject): JsonObject {
-        val saysNothing = entry.keySet().none { it in setOf(TAGS, DROP, REPLACE, READINESS) }
-        if (saysNothing) table.remove(preset)
+        if (entry.size() == 0) table.remove(preset)
         return table
     }
 

@@ -37,7 +37,7 @@ private fun reportHowManyOneWordLifts(vocabulary: Vocabulary) {
     for (word in narrowingWords(vocabulary)) {
         for (aspect in weightedSets) {
             if (word.restrictsIn(aspect).isEmpty()) continue
-            val members = vocabulary.askableIn(aspect)
+            val members = vocabulary.availableToBroadWordsIn(aspect)
             if (members.isEmpty()) continue
             val standings = members.map { it to Resolver.standingOf(vocabulary, word, aspect, it) }
             val lifted = standings.filter { (_, standing) -> standing.kept && standing.strength > 1.0 }
@@ -99,7 +99,7 @@ private fun reportExclusionIsWeightBlind(vocabulary: Vocabulary) {
     println("=== What a striking word removes, and at what carried weight ===")
     for (word in vocabulary.words.filter { it.unwanted.isNotEmpty() && it.tier.narrows }.sortedBy { it.name }) {
         for (aspect in weightedSets) {
-            val members = vocabulary.askableIn(aspect)
+            val members = vocabulary.availableToBroadWordsIn(aspect)
             val struck = members.filter { member -> word.excludes(member, vocabulary.tagsOf(member)) }
             if (struck.isEmpty()) continue
             val weights = struck.map { member ->
@@ -126,7 +126,7 @@ private fun reportTagsNobodyAsksAfter(vocabulary: Vocabulary) {
     println("=== Tags carried by members, and whether any word reads them ===")
     val carried = sortedSetOf<String>()
     for (aspect in weightedSets) {
-        for (member in vocabulary.askableIn(aspect)) carried += vocabulary.tagsOf(member).keys
+        for (member in vocabulary.availableToBroadWordsIn(aspect)) carried += vocabulary.tagsOf(member).keys
     }
     val read = mutableSetOf<String>()
     for (word in vocabulary.words.filter { it.tier.narrows }) {
@@ -153,7 +153,7 @@ private fun reportMarginalCarriers(vocabulary: Vocabulary) {
     for (word in vocabulary.words.filter { it.tier.narrows }.sortedBy { it.name }) {
         for (aspect in weightedSets) {
             if (word.restrictsIn(aspect).isEmpty()) continue
-            val marginal = vocabulary.askableIn(aspect).mapNotNull { member ->
+            val marginal = vocabulary.availableToBroadWordsIn(aspect).mapNotNull { member ->
                 val pull = word.pullIn(aspect, vocabulary.tagsOf(member))
                 if (pull > 0.0 && pull < word.tier.threshold) member to pull else null
             }

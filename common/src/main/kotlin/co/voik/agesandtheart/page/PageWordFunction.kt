@@ -13,7 +13,9 @@ import net.minecraft.core.Holder
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
 import java.util.Optional
 import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.CannotAppearInLoot
 import co.voik.agesandtheart.age.word.Withheld
+import co.voik.agesandtheart.age.word.WordRarity
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.WriterStock
 
@@ -27,16 +29,20 @@ import co.voik.agesandtheart.age.word.WriterStock
  *
  * `pool` names a [WriterStock] pool by its tag id, and the draw is **uniform** within it: a curated pool
  * is already a statement about what should turn up, and weighting it again would say the same thing
- * twice. Without one the whole corpus is drawn by rarity, which is what a found page does.
+ * twice. Without one the whole corpus is drawn by rarity, which is what a found page does, and `rarity`
+ * narrows that roll to the buckets named — a secret room's rare pages.
  *
  * ```json
  * { "function": "agesandtheart:roll_page_word" }
+ * { "function": "agesandtheart:roll_page_word", "rarity": ["uncommon", "rare"] }
  * { "function": "agesandtheart:roll_page_word", "pool": "agesandtheart:writer_stock/master" }
  * ```
  */
 class PageWordFunction(
     predicate: Optional<Holder<LootItemCondition>>,
     val pool: Identifier?,
+    /** The rarity buckets to roll among, or null for all of them. Ignored with a [pool]. */
+    val rarity: Set<String>?,
 ) : LootItemConditionalFunction(predicate) {
 
     override fun codec(): MapCodec<out LootItemConditionalFunction> = MAP_CODEC
@@ -45,7 +51,9 @@ class PageWordFunction(
         val vocabulary = Vocabulary.of(context.level.server)
         val registries = context.level.registryAccess()
         val word = if (pool == null) {
-            vocabulary.rarity.draw(vocabulary, context.random) { !Withheld.holdsBack(it, registries) }
+            vocabulary.rarity.draw(vocabulary, context.random, rarity) { word ->
+                !Withheld.holdsBack(word, registries) && !CannotAppearInLoot.keepsOut(word, vocabulary, registries)
+            }
         } else {
             drawFromStock(vocabulary, registries, context)
         }
@@ -71,7 +79,13 @@ class PageWordFunction(
                     Identifier.CODEC.optionalFieldOf("pool")
                         .forGetter { Optional.ofNullable(it.pool) },
                 )
-                .apply(instance) { predicate, pool -> PageWordFunction(predicate, pool.orElse(null)) }
+                .and(
+                    WordRarity.BUCKET_NAMES_CODEC.optionalFieldOf("rarity")
+                        .forGetter { Optional.ofNullable(it.rarity) },
+                )
+                .apply(instance) { predicate, pool, rarity ->
+                    PageWordFunction(predicate, pool.orElse(null), rarity.orElse(null))
+                }
         }
     }
 }

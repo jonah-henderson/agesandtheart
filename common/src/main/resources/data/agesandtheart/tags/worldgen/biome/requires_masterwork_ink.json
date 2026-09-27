@@ -3,13 +3,9 @@
   "replace": false,
   "values": [
     "minecraft:mushroom_fields",
-    "minecraft:deep_dark",
     "minecraft:the_end",
     "minecraft:end_highlands",
     "minecraft:end_midlands",
-    "minecraft:end_barrens",
-    "minecraft:small_end_islands",
-    "minecraft:the_void",
-    "minecraft:pale_garden"
+    "minecraft:small_end_islands"
   ]
 }

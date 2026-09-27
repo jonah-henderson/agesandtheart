@@ -19,7 +19,9 @@ import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.Identifier
 import java.util.Optional
 import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.CannotAppearInLoot
 import co.voik.agesandtheart.age.word.Withheld
+import co.voik.agesandtheart.age.word.WordRarity
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.WriterStock
 import co.voik.agesandtheart.content.PageItem
@@ -40,13 +42,16 @@ import co.voik.agesandtheart.content.PageItem
  *
  * `pool` names a [WriterStock] pool instead, for a notebook somebody assembled to sell rather than kept.
  * It **replaces** `derived_only` rather than narrowing it: a pool is already a decision about what
- * belongs, so asking a second question of it could only contradict the first.
+ * belongs, so asking a second question of it could only contradict the first. `rarity` narrows the
+ * corpus to the buckets named, as it does for a loose page.
  */
 class FillNotebookFunction(
     predicate: Optional<Holder<LootItemCondition>>,
     val pages: Holder<ContextIntProvider>,
     val derivedOnly: Boolean,
     val pool: Identifier?,
+    /** The rarity buckets a page may come from, or null for any. Ignored with a [pool]. */
+    val rarity: Set<String>?,
 ) : LootItemConditionalFunction(predicate) {
 
     override fun codec(): MapCodec<out LootItemConditionalFunction> = MAP_CODEC
@@ -83,11 +88,14 @@ class FillNotebookFunction(
     private fun sourceWords(vocabulary: Vocabulary, registries: RegistryAccess): List<Word> =
         if (pool != null) {
             vocabulary.stock.words(pool, vocabulary, registries)
-        } else if (derivedOnly) {
-            vocabulary.derivedWords
         } else {
-            vocabulary.words
+            val corpus = if (derivedOnly) vocabulary.derivedWords else vocabulary.words
+            corpus.filter { word -> isInAskedRarity(word, vocabulary) }
+                .filterNot { CannotAppearInLoot.keepsOut(it, vocabulary, registries) }
         }
+
+    private fun isInAskedRarity(word: Word, vocabulary: Vocabulary): Boolean =
+        rarity == null || vocabulary.rarity.bucketOf(word)?.name in rarity
 
     companion object {
         /** How many draws to allow past the target before settling for a shorter notebook. */
@@ -115,8 +123,12 @@ class FillNotebookFunction(
                     Identifier.CODEC.optionalFieldOf("pool")
                         .forGetter { Optional.ofNullable(it.pool) },
                 )
-                .apply(instance) { predicate, pages, derivedOnly, pool ->
-                    FillNotebookFunction(predicate, pages, derivedOnly, pool.orElse(null))
+                .and(
+                    WordRarity.BUCKET_NAMES_CODEC.optionalFieldOf("rarity")
+                        .forGetter { Optional.ofNullable(it.rarity) },
+                )
+                .apply(instance) { predicate, pages, derivedOnly, pool, rarity ->
+                    FillNotebookFunction(predicate, pages, derivedOnly, pool.orElse(null), rarity.orElse(null))
                 }
         }
     }

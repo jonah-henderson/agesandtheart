@@ -32,7 +32,7 @@ object Preview {
             add(Line("ink ${word.price}", Palette.value) + Line("  = $spent", Palette.faint))
             add(Line.BLANK)
             for (aspect in word.aspects.sortedBy { it.ordinal }) {
-                val askable = corpus.vocabulary.askableIn(aspect)
+                val availableToBroadWords = corpus.vocabulary.availableToBroadWordsIn(aspect)
                 val kept = corpus.vocabulary.carriersOf(word, aspect)
                 val narrows = word.constrainsPresetsIn(aspect)
                 // **A weight is not a setting, and saying so hid what it does.** It never narrows, so this
@@ -43,8 +43,8 @@ object Preview {
                     Line(aspect.page.padEnd(12), Palette.heading) +
                         Line(
                             when {
-                                narrows && askable.isEmpty() -> "nothing to pick between"
-                                narrows -> "keeps ${kept.size} of ${askable.size}"
+                                narrows && availableToBroadWords.isEmpty() -> "nothing to pick between"
+                                narrows -> "keeps ${kept.size} of ${availableToBroadWords.size}"
                                 // A word may narrow in one aspect and only turn a parameter in another, and
                                 // having no carrier here is then no fault at all — `arid` narrows the
                                 // ground on tags and bounds the climate's axes with spans, two real jobs.
@@ -55,7 +55,7 @@ object Preview {
                         ) +
                         Line(rememberedFor(aspect, word, corpus), Palette.faint),
                 )
-                if (kept.isEmpty() && narrows && askable.isNotEmpty()) {
+                if (kept.isEmpty() && narrows && availableToBroadWords.isNotEmpty()) {
                     add(Line("    nothing here is tagged strongly enough", Palette.warned))
                 }
                 if (!narrows && !leansHere) continue

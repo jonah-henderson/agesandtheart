@@ -216,7 +216,7 @@ internal object CorpusInstruments {
         val aspect = Aspect.byPage(named)
             ?: return report.fail("No aspect called '$named'. Try: ${Aspect.entries.joinToString(" ") { it.page }}")
         val vocabulary = Vocabulary.of(source.server)
-        val reachable = vocabulary.askableIn(aspect)
+        val reachable = vocabulary.availableToBroadWordsIn(aspect)
         report.fact("aspect", aspect.page) { "${aspect.page}: ${reachable.size} reachable by description." }
         if (tag == null) {
             val counted = reachable.flatMap { vocabulary.tagsOf(it).keys }.groupingBy { it }.eachCount()

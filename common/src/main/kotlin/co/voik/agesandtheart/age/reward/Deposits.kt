@@ -21,9 +21,8 @@ import kotlin.math.roundToInt
 /**
  * What a dangerous Age has in the ground (design §7.7) — deretheni, at a density its danger scales.
  *
- * **Not a feature a writer can ask for**, and that is the fence the whole reward rests on: the ore blocks
- * carry `#agesandtheart:forbidden`, so no word is ever derived for them, and the only way to an Age full of
- * this is to write an Age that earns it. You cause the conditions; you cannot name the outcome.
+ * **Not a feature a writer can ask for.** The ore blocks have words, but they demand masterwork ink
+ * (`#agesandtheart:requires_masterwork_ink`), so an Age made of the stuff is priced rather than free.
  *
  * **Laid over whatever the sentence already asked for**, rather than built into [Features]. What a book
  * asked to grow and what an Age owes its writer are different questions, and keeping them apart is what

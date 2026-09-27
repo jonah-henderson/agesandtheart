@@ -1,0 +1,8 @@
+{
+  "_comment": [
+    "Authored words no found page or found notebook may carry, by name. A word naming a block, biome,",
+    "creature or feature is kept out by `#agesandtheart:cannot_appear_in_loot` on the thing instead.",
+    "Books and writer stock are separate channels and still carry these."
+  ],
+  "words": []
+}

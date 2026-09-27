@@ -22,14 +22,16 @@ interface Taggable : StringRepresentable {
 
 
     /**
-     * Whether a sentence may ask for this, as opposed to only a pinned recipe naming it outright.
+     * Whether a broad word — a vague query, or the draw for an aspect nobody spoke to — may land on this,
+     * as opposed to only a word or a pinned recipe naming it outright.
      *
-     * Almost every preset is askable and `VocabularyCheck` insists on it, since one no word can reach is
-     * content nobody can use. Declared here rather than inferred from a missing `preset_tags` entry,
+     * Almost every preset is, and `VocabularyCheck` insists on it, since one no word can reach is content
+     * nobody can use. A registry entry is kept from broad words by `available_to_broad_words` in its
+     * `preset_tags` entry instead — see [co.voik.agesandtheart.age.word.Vocabulary.isAvailableToBroadWords]. Declared here rather than inferred from a missing `preset_tags` entry,
      * because an omission and an intention look identical — the check separately insists that anything
      * answering `false` really is pinned somewhere.
      */
-    val askableInASentence: Boolean get() = true
+    val availableToBroadWords: Boolean get() = true
 
     /**
      * Whether this preset would actually *do* anything with [parameter], as opposed to recognising the

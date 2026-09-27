@@ -2,6 +2,8 @@ package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
+import co.voik.agesandtheart.age.word.CannotAppearInLoot
+import co.voik.agesandtheart.age.word.DerivedWords
 import co.voik.agesandtheart.age.word.InkRequirement
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordRarity
@@ -27,6 +29,12 @@ object WordFile {
     private const val JSON_SUFFIX = ".json"
 
     private const val TAGS = "tags"
+
+    /** What the rarity column shows for a word in `#agesandtheart:cannot_appear_in_loot`. */
+    const val NO_LOOT = "no loot"
+
+    /** What the word lists show for a thing in `#agesandtheart:does_not_have_a_word`. */
+    const val NO_WORD = "no word"
 
     /** The pack's resources in the source tree, as [MinecraftRegistries.resourceRoot] finds them. */
     val resources: File by lazy {
@@ -149,6 +157,7 @@ object WordFile {
         if (from == to) return
         val listing = listingFor(from)
         val called = displayOf(from)
+        val wasKeptOut = from in authoredKeptOutOfLoot()
         // Moved rather than dropped: the caller writes the word out afterwards, but a rename that only
         // deleted would lose it outright if that write then failed.
         fileFor(from).renameTo(fileFor(to))
@@ -158,11 +167,16 @@ object WordFile {
         listing.rarity?.let { list(rarityLists, to, it) }
         listing.ink?.let { list(inkLists, to, it) }
         called?.let { setDisplay(to, it) }
+        if (wasKeptOut) {
+            keepAuthoredOutOfLoot(from, false)
+            keepAuthoredOutOfLoot(to, true)
+        }
     }
 
     /** A word and every trace of it — the file, its rarity, its ink and what it was shown as. */
     fun deleteWord(name: String) {
         fileFor(name).delete()
+        keepAuthoredOutOfLoot(name, false)
         list(rarityLists, name, null)
         list(inkLists, name, null)
         setDisplay(name, null)
@@ -220,38 +234,36 @@ object WordFile {
     )
 
     /**
-     * The rarity buckets, **commonest first** — by the weight each one carries, not by file name.
-     *
-     * Alphabetical put them in common, rare, uncommon order, which is nobody's idea of a scale and made
-     * stepping through them in the tool read as random.
+     * The rarity buckets a word can be **listed** in, commonest first — by weight, not by file name. The
+     * default bucket is left out: listing a word there says nothing an unlisted word does not.
      */
     fun rarityBuckets(): List<String> {
-        val directory = rarityLists
-        return bucketNames(directory).sortedByDescending { name ->
-            runCatching {
-                JsonParser.parseString(directory.resolve("$name$JSON_SUFFIX").readText())
-                    .asJsonObject.get("weight").asDouble
-            }.getOrDefault(0.0)
-        }
+        val standings = rarityStandings()
+        return standings.keys.filter { it != defaultBucket() }.sortedByDescending { standings.getValue(it).weight }
+    }
+
+    /** The bucket every unlisted word is in, which the tool shows for a word with no rarity set. */
+    fun defaultBucket(): String? = bucketNames(rarityLists).firstOrNull { name ->
+        bucketJson(name)?.get("default")?.asBoolean == true
     }
 
     /**
-     * How likely each bucket is to be drawn, and how many words are already in it.
+     * How likely each bucket is to be drawn, and how many words are listed in it.
      *
-     * **The weight is what a bucket means**, and the pick used to offer three names with nothing to
-     * choose between them. `common` at 60 against `rare` at 10 is the whole difference, and it is one
-     * number sitting in the file the picker is about to write to.
+     * **The weight is what a bucket means**: a found page rolls a bucket by weight before it picks a word,
+     * so a bucket's share of pages is its weight over the sum, whatever it lists.
      */
-    fun rarityStandings(): Map<String, Pair<Double, Int>> {
-        val directory = rarityLists
-        return bucketNames(directory).associateWith { name ->
-            val json = runCatching {
-                JsonParser.parseString(directory.resolve("$name$JSON_SUFFIX").readText()).asJsonObject
-            }.getOrNull()
-            val weight = json?.get("weight")?.asDouble ?: 0.0
-            weight to (json?.getAsJsonArray("words")?.size() ?: 0)
+    fun rarityStandings(): Map<String, Standing> =
+        bucketNames(rarityLists).associateWith { name ->
+            val json = bucketJson(name)
+            Standing(json?.get("weight")?.asDouble ?: 0.0, json?.getAsJsonArray("words")?.size() ?: 0)
         }
-    }
+
+    data class Standing(val weight: Double, val listed: Int)
+
+    private fun bucketJson(name: String): JsonObject? = runCatching {
+        JsonParser.parseString(rarityLists.resolve("$name$JSON_SUFFIX").readText()).asJsonObject
+    }.getOrNull()
 
     /** The ink qualities, cheapest first — [InkTier]'s own order, which is what "better" means. */
     fun inkTiers(): List<String> {
@@ -262,12 +274,95 @@ object WordFile {
     /** Lists [key] — a [Candidate.listingKey] — under the rarity [bucket], or in none. */
     fun setRarity(key: String, bucket: String?) = list(rarityLists, key, bucket)
 
+    /** The rarities a word may be listed in, commonest first, and then [NO_LOOT]. */
+    fun rarityChoices(): List<String> = rarityBuckets() + NO_LOOT
+
+    /** [listingFor], with a word kept out of loot reading as [NO_LOOT] whatever bucket it is also in. */
+    fun listingOf(candidate: Candidate): Listing {
+        val listing = listingFor(candidate.listingKey)
+        return if (isKeptOutOfLoot(candidate)) listing.copy(rarity = NO_LOOT) else listing
+    }
+
+    /**
+     * Sets [candidate]'s rarity to a bucket, to [NO_LOOT], or to neither — neither, and the default
+     * bucket, being the same thing. The two are exclusive: a word kept out of loot is taken out of its
+     * bucket, so leaving [NO_LOOT] finds it in none.
+     *
+     * Kept out by a tag on the thing a word names, and by name where it names nothing, as ink is.
+     */
+    fun setRarity(candidate: Candidate, choice: String?) {
+        val keptOut = choice == NO_LOOT
+        val directory = candidate.tagDirectory
+        if (directory == null) {
+            keepAuthoredOutOfLoot(candidate.name, keptOut)
+        } else {
+            putInTag(tagFile(directory, CannotAppearInLoot.TAG_NAME), candidate.id.toString(), keptOut)
+        }
+        val bucket = choice.takeUnless { keptOut || it == defaultBucket() }
+        setRarity(candidate.listingKey, bucket)
+    }
+
+    private fun isKeptOutOfLoot(candidate: Candidate): Boolean = when (candidate.tagDirectory) {
+        null -> candidate.name in authoredKeptOutOfLoot()
+        else -> carries(candidate, CannotAppearInLoot.TAG_NAME)
+    }
+
+    private val keptOutOfLootList: File
+        get() = art.parentFile.resolve(WordRarity.KEPT_OUT_OF_LOOT_FILE)
+
+    /** The authored words listed in [WordRarity.KEPT_OUT_OF_LOOT_FILE]. */
+    fun authoredKeptOutOfLoot(): Set<String> {
+        val file = keptOutOfLootList
+        if (!file.isFile) return emptySet()
+        val words = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("words")
+        return words?.map { it.asString }.orEmpty().toSet()
+    }
+
+    private fun keepAuthoredOutOfLoot(name: String, keptOut: Boolean) {
+        val file = keptOutOfLootList
+        if (!file.isFile && !keptOut) return
+        val json = if (file.isFile) JsonParser.parseString(file.readText()).asJsonObject else JsonObject()
+        val listed = authoredKeptOutOfLoot()
+        if (keptOut == (name in listed)) return
+        val kept = if (keptOut) (listed + name).sorted() else (listed - name).sorted()
+        json.add("words", JsonArray().apply { kept.forEach(::add) })
+        file.writeText(GSON.toJson(json) + "\n")
+    }
+
+    /**
+     * Whether the thing [candidate] names is tagged to never become a word. The offline corpus binds no
+     * tags, so the word is still here to be seen and untagged.
+     */
+    fun hasNoWord(candidate: Candidate) = carries(candidate, DerivedWords.DOES_NOT_HAVE_A_WORD)
+
+    /** Tags or untags the thing [candidate] names; a word naming no registry entry has nothing to tag. */
+    fun setHasNoWord(candidate: Candidate, hasNoWord: Boolean) {
+        val directory = candidate.tagDirectory ?: return
+        putInTag(tagFile(directory, DerivedWords.DOES_NOT_HAVE_A_WORD), candidate.id.toString(), hasNoWord)
+    }
+
+    private fun carries(candidate: Candidate, tag: Identifier): Boolean {
+        val directory = candidate.tagDirectory ?: return false
+        return candidate.id.toString() in tagValuesIn(tagFile(directory, tag))
+    }
+
+    /** Every id [tag] holds, by tag directory — [everyInkTag]'s saving for a whole table. */
+    fun everyIdTagged(tag: Identifier): Map<String, Set<String>> {
+        val namespace = art.parentFile
+        val fileName = "${tag.path}$JSON_SUFFIX"
+        return namespace.resolve(TAGS).walkTopDown()
+            .filter { it.isFile && it.name == fileName }
+            .associate { file ->
+                file.parentFile.relativeTo(namespace).invariantSeparatorsPath to tagValuesIn(file).toSet()
+            }
+    }
+
     /**
      * Which ink [candidate] demands, asked as `InkRequirement.tierFor` asks it: a tag on the entry it names
      * first, then its name in `art/ink/`.
      */
     fun inkOf(candidate: Candidate): String? {
-        val tagged = candidate.inkTagDirectory?.let { inkTagOn(candidate.id.toString(), it) }
+        val tagged = candidate.tagDirectory?.let { inkTagOn(candidate.id.toString(), it) }
         return tagged ?: bucketNaming(inkLists, candidate.name)
     }
 
@@ -280,7 +375,7 @@ object WordFile {
      * without anybody editing our files. An authored word names nothing and has to be listed.
      */
     fun setInk(candidate: Candidate, tier: String?) {
-        val directory = candidate.inkTagDirectory
+        val directory = candidate.tagDirectory
         if (directory == null) {
             list(inkLists, candidate.name, tier)
         } else {
@@ -306,27 +401,28 @@ object WordFile {
 
     /** Puts [id] in the ink tag for [tier] under [directory] and takes it out of the others. */
     private fun inkTagFor(id: String, directory: String, tier: String?) {
-        for ((each, tag) in InkRequirement.TAG_NAMES) {
-            val file = inkTagFile(directory, tag)
-            val wanted = each.key == tier
-            if (!file.isFile && !wanted) continue
-            val json = if (file.isFile) JsonParser.parseString(file.readText()).asJsonObject else JsonObject()
-            val values = tagValuesIn(file)
-            if (wanted == (id in values)) continue
-            val kept = if (wanted) (values + id).sorted() else values - id
-            json.add("values", JsonArray().apply { kept.forEach(::add) })
-            if (!json.has("replace")) json.addProperty("replace", false)
-            file.parentFile.mkdirs()
-            file.writeText(GSON.toJson(json) + "\n")
-        }
+        for ((each, tag) in InkRequirement.TAG_NAMES) putInTag(tagFile(directory, tag), id, wanted = each.key == tier)
+    }
+
+    /** Puts [id] in the tag [file] or takes it out, writing the file only where that changes it. */
+    private fun putInTag(file: File, id: String, wanted: Boolean) {
+        if (!file.isFile && !wanted) return
+        val json = if (file.isFile) JsonParser.parseString(file.readText()).asJsonObject else JsonObject()
+        val values = tagValuesIn(file)
+        if (wanted == (id in values)) return
+        val kept = if (wanted) (values + id).sorted() else values - id
+        json.add("values", JsonArray().apply { kept.forEach(::add) })
+        if (!json.has("replace")) json.addProperty("replace", false)
+        file.parentFile.mkdirs()
+        file.writeText(GSON.toJson(json) + "\n")
     }
 
     /** The dearest ink tag under [directory] holding [id], or null where none does. */
     private fun inkTagOn(id: String, directory: String): String? =
-        InkRequirement.TAG_NAMES.entries.firstOrNull { (_, tag) -> id in tagValuesIn(inkTagFile(directory, tag)) }
+        InkRequirement.TAG_NAMES.entries.firstOrNull { (_, tag) -> id in tagValuesIn(tagFile(directory, tag)) }
             ?.let { (tier, _) -> tier.key }
 
-    private fun inkTagFile(directory: String, tag: Identifier): File =
+    private fun tagFile(directory: String, tag: Identifier): File =
         art.parentFile.resolve("$directory/${tag.path}$JSON_SUFFIX")
 
     private fun tagValuesIn(file: File): List<String> {

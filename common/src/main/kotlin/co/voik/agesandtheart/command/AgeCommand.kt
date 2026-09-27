@@ -395,7 +395,7 @@ object AgeCommand {
         // bound, which offline is exactly where they are not (`notes/the-tag-layer.md` §4). A pool far
         // larger than the hand-authored table is the derivation having fired.
         for (aspect in Aspect.entries) {
-            val reachable = vocabulary.askableIn(aspect).size
+            val reachable = vocabulary.availableToBroadWordsIn(aspect).size
             if (reachable == 0) continue
             report.entry("reach", mapOf("aspect" to aspect.page, "reachable" to reachable)) {
                 "  ${aspect.page}: $reachable reachable by description"

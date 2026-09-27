@@ -525,7 +525,7 @@ class Parts(private val corpus: Corpus) {
         if (word == null) {
             return listOf(Row(Handle.Said, listOf(Ink("this word will not load", Palette.refused))))
         }
-        val listing = WordFile.listingFor(candidate.listingKey)
+        val listing = WordFile.listingOf(candidate)
         // **A section at a time.** One measurement for the whole page makes every value column as wide as
         // the longest thing any section puts there, so a temperature of `0.5..1.0` sits alone in the width
         // of a tag query with its aside pushed off the end.
@@ -1292,11 +1292,11 @@ class Parts(private val corpus: Corpus) {
     }
 
     private fun keptIn(word: Word, aspect: Aspect): String {
-        val askable = corpus.vocabulary.askableIn(aspect).size
+        val availableToBroadWords = corpus.vocabulary.availableToBroadWordsIn(aspect).size
         val kept = corpus.vocabulary.carriersOf(word, aspect).size
         val remembered = corpus.snapshot?.reachOf(aspect, word.wanted.firstOrNull().orEmpty())
         val onAServer = remembered?.let { " (${it.found} of ${it.carriers} on a server)" }.orEmpty()
-        return "$kept/$askable$onAServer"
+        return "$kept/$availableToBroadWords$onAServer"
     }
 
     /**
@@ -1346,7 +1346,7 @@ class Parts(private val corpus: Corpus) {
     }
 
     private fun listingRows(candidate: Candidate): List<Row> {
-        val listing = WordFile.listingFor(candidate.listingKey)
+        val listing = WordFile.listingOf(candidate)
         val ink = WordFile.inkOf(candidate)
         val labels = listOf("rarity", "required ink quality")
         val wide = labels.maxOf { it.length } + LABEL_GUTTER
@@ -1355,7 +1355,7 @@ class Parts(private val corpus: Corpus) {
             Row(
                 handle = Handle.InkQuality,
                 shown = field(labels[1], ink, wide),
-                note = if (candidate.inkTagDirectory != null) "written as a tag on ${candidate.id}" else "",
+                note = if (candidate.tagDirectory != null) "written as a tag on ${candidate.id}" else "",
             ),
         )
     }

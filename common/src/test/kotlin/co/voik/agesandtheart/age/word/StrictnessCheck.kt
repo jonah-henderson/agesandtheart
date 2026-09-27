@@ -39,7 +39,7 @@ class StrictnessCheck : FunSpec({
             vocabulary.words.filter { it.tier.narrows && it.restrictsIn(aspect).isNotEmpty() }
                 .sortedBy { it.name }
                 .firstNotNullOfOrNull { word ->
-                    val members = vocabulary.askableIn(aspect)
+                    val members = vocabulary.availableToBroadWordsIn(aspect)
                     val pulls = members.map { it to word.pullIn(aspect, vocabulary.tagsOf(it)) }
                     val marginal = pulls.filter { (_, pull) -> pull > 0.0 && pull < word.tier.threshold }
                     val outright = pulls.filter { (_, pull) -> pull >= word.tier.threshold }.map { it.first }

@@ -177,10 +177,8 @@ object AgeContent {
      * material directly and it is crafted into a block, which is quartz's shape rather than iron's. There is
      * no smelting step because there is nothing to smelt out — it is stone all the way down.
      *
-     * **Fenced out of the vocabulary by `#agesandtheart:forbidden`**, and that fence is load-bearing rather
-     * than tidy: a writer who could ask for an Age full of this would have §8.4's duplication exploit with
-     * no danger required, which inverts the whole reward. You cause the conditions; you cannot name the
-     * outcome.
+     * **Writable, but only in masterwork ink** (`#agesandtheart:requires_masterwork_ink`): an Age full of
+     * this is priced like a sea of diamonds rather than refused.
      */
     val PITCHSTONE: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, PITCHSTONE_ID)))
 

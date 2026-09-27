@@ -367,12 +367,13 @@ class ResolverCheck : FunSpec({
      */
     test("vagueness varies and precision narrows") {
         val vague = spread(vocabulary, "beautiful")
-        val precise = spread(vocabulary, "floating stormy arid riddled")
+        // Exact words, since restrictive ones each open a variety of their own and do not narrow reliably.
+        val precise = spread(vocabulary, "flat molten clear lifeless")
         check(vague > precise) { "precision narrowed nothing: vague $vague, precise $precise" }
         check(precise > 0) { "a precise sentence resolved to nothing at all" }
         println(
             "  \"beautiful\" gives $vague distinct Ages over $SEEDS_FOR_A_SPREAD seeds; " +
-                "four precise words give $precise.",
+                "four exact words give $precise.",
         )
     }
 
@@ -724,34 +725,52 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * **A preset that opted out of being askable never arrives by chance**, which is the whole of what
-     * opting out is worth. `askableInASentence` was read by `VocabularyCheck` and by nothing that resolves,
-     * so `sky=spire` — reachable by no word, and carrying the Spire's own dimension type — was still in the
-     * bag an unconstrained aspect drew from, and came up on about one Age in three. Unaskable made it rare
-     * rather than unreachable, which is the worst of the two.
+     * **Nothing kept from broad words arrives by chance**, which is the whole of what the flag is worth.
+     * It was once read by `VocabularyCheck` and by nothing that resolves, so `sky=spire` — reachable by no
+     * word, and carrying the Spire's own dimension type — was still in the bag an unconstrained aspect drew
+     * from, and came up on about one Age in three.
      *
-     * Every sentence, because the leak was in the draw an aspect takes when *nothing* speaks to it, and
-     * which aspect that is depends on what the sentence happened to be about.
+     * Every sentence, because the leak was in the draw an aspect takes when *nothing* speaks to it; and
+     * the vague words that query what the flagged things carry, because those are what the flag is for.
+     * A population member counts as arrived only where a claim asserts it — striking one is not reaching it.
      */
-    test("nothing unaskable is ever drawn") {
+    test("nothing kept from broad words is ever drawn by one") {
         // **What a template supplies is not a draw.** `landmass=vanilla` arrives in every Age whose writer
         // named no landform, which is the template answering rather than the resolver reaching for
         // something no page can name. What this forbids is the *drawing* of one.
         val fromATemplate = AgeTemplate.entries.flatMap { it.world().presets }
-        val unaskable = Aspect.entries
+        val keptFromBroadWords = Aspect.entries
             .flatMap { aspect -> vocabulary.candidatesFor(aspect) }
-            .filterNot { it.askableInASentence || it in fromATemplate }
-        check(unaskable.isNotEmpty()) { "nothing opts out of being askable, so this check asserts nothing" }
-        for (sentence in SENTENCES) {
+            .filterNot { vocabulary.isAvailableToBroadWords(it) || it in fromATemplate }
+        check(keptFromBroadWords.isNotEmpty()) { "nothing is kept from broad words, so this check asserts nothing" }
+        val keys = keptFromBroadWords.map { it.key }.toSet()
+
+        fun reachedIn(composition: AgeComposition): List<String> {
+            val presets = composition.presets.filter { it in keptFromBroadWords }.map { it.key }
+            val members = Aspect.entries.mapNotNull { aspect -> aspect.pool?.let { aspect to it } }
+                .flatMap { (aspect, pool) -> composition.options.allOf(aspect).flatMap { it.claimsOn(pool) } }
+                .filter { it.polarity != Polarity.EXCEPT && it.value in keys }
+                .map { it.value }
+            return presets + members
+        }
+
+        // `rich` admits ancient debris by name, and a word naming a thing is exactly what may reach it.
+        fun namedBy(sentence: String): Set<String> = sentence.split(" ").mapNotNull(vocabulary::word)
+            .flatMap { word -> Aspect.entries.flatMap { word.admitsIn(it) + listOfNotNull(word.choiceIn(it)?.key) } }
+            .toSet()
+
+        for (sentence in SENTENCES + BROAD_WORDS_AIMED_AT_THE_KEPT) {
+            val named = namedBy(sentence)
             for (seed in 1L..SEEDS_SAMPLED) {
-                val arrived = resolve(vocabulary, sentence, seed).composition.presets.filter { it in unaskable }
+                val arrived = reachedIn(resolve(vocabulary, sentence, seed).composition) - named
                 check(arrived.isEmpty()) {
-                    "\"$sentence\" at seed $seed drew ${arrived.joinToString { it.key }}, " +
-                        "which no sentence can ask for"
+                    "\"$sentence\" at seed $seed reached ${arrived.distinct().joinToString()}, " +
+                        "which only a word naming it may"
                 }
             }
         }
-        println("  ${unaskable.joinToString { it.key }} stayed out of ${SENTENCES.size * SEEDS_SAMPLED} draws.")
+        val sentences = SENTENCES.size + BROAD_WORDS_AIMED_AT_THE_KEPT.size
+        println("  ${keptFromBroadWords.size} kept from broad words stayed out of ${sentences * SEEDS_SAMPLED} Ages.")
     }
 
     /**
@@ -1482,6 +1501,16 @@ private val SENTENCES = listOf(
     "savage wondrous colossal",
     "homely open",
     "worn arid clear",
+)
+
+/** Vague words querying what the things kept from broad words carry: hostile, frozen, buried, monumental. */
+private val BROAD_WORDS_AIMED_AT_THE_KEPT = listOf(
+    "savage foreboding",
+    "icy",
+    "rich buried",
+    "ancient colossal wondrous",
+    "floating uncanny",
+    "desolate arid",
 )
 
 private const val SAMPLE_SEED = 20260727L

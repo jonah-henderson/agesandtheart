@@ -70,5 +70,20 @@
       "dark": 0.6,
       "stony": 0.6
     }
+  },
+  "minecraft:the_end": {
+    "available_to_broad_words": false
+  },
+  "minecraft:end_highlands": {
+    "available_to_broad_words": false
+  },
+  "minecraft:end_midlands": {
+    "available_to_broad_words": false
+  },
+  "minecraft:small_end_islands": {
+    "available_to_broad_words": false
+  },
+  "minecraft:the_void": {
+    "available_to_broad_words": false
   }
 }

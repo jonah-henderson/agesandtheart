@@ -16,7 +16,7 @@ import net.minecraft.resources.Identifier
  * write it; what this closes is the two doors knowledge comes through. Once the colony is breeding the
  * word is granted by the rung itself and works like any other.
  *
- * Deliberately *not* [DerivedWords.FORBIDDEN]: that tag is a pack author's hard fence, and these stay
+ * Deliberately *not* [DerivedWords.DOES_NOT_HAVE_A_WORD]: that tag is a pack author's hard fence, and these stay
  * writable as the summit reward.
  */
 object Withheld {

@@ -80,12 +80,12 @@ class TagCoverageCheck : FunSpec({
      * pool, so an untagged member is reachable only by a word that names it outright — which for a landform
      * or a sky is a word we would have had to write and did not.
      */
-    test("nothing askable in a closed aspect is untagged") {
+    test("nothing available to broad words in a closed aspect is untagged") {
         val untagged = Aspect.entries.filter { !it.open }
-            .flatMap { aspect -> vocabulary.askableIn(aspect).map { aspect to it } }
+            .flatMap { aspect -> vocabulary.availableToBroadWordsIn(aspect).map { aspect to it } }
             .filter { (_, preset) -> vocabulary.tagsOf(preset).isEmpty() }
         check(untagged.isEmpty()) {
-            "these are askable and carry no tags, so no vague word can find them: " +
+            "these are available to broad words and carry no tags, so no vague word can find them: " +
                 untagged.joinToString(", ") { (aspect, preset) -> "${aspect.key}.${preset.key}" }
         }
     }
@@ -106,20 +106,20 @@ class TagCoverageCheck : FunSpec({
             Aspect.TERRAIN to 19,
             Aspect.CARVERS to 4,
             Aspect.SKY to 2,
-            Aspect.STRUCTURES to 17,
-            Aspect.SPAWNS to 86,
-            // **Forty-one, not forty-three.** Two biomes used to sit here because `beautiful` weighed them
-            // by name and a weight admitted its subject to the pool for the whole corpus. Admitting is a
-            // sentence's own business now, so those two are in the bag when `beautiful` is in the book and
-            // not otherwise — which is §8.2's promise kept rather than coverage lost.
-            Aspect.BIOMES to 41,
-            Aspect.FEATURES to 191,
+            // The four below each lost what `preset_tags` keeps from broad words — only a word naming one reaches it.
+            Aspect.STRUCTURES to 12,
+            Aspect.SPAWNS to 78,
+            // Biomes also lost two earlier that `beautiful` weighs by name: admitting is a sentence's own
+            // business, so those are in the bag when `beautiful` is in the book and not otherwise — §8.2's
+            // promise kept rather than coverage lost.
+            Aspect.BIOMES to 36,
+            Aspect.FEATURES to 183,
             Aspect.SEA to 3,
         )
-        val shortfall = floors.filter { (aspect, floor) -> vocabulary.askableIn(aspect).size < floor }
+        val shortfall = floors.filter { (aspect, floor) -> vocabulary.availableToBroadWordsIn(aspect).size < floor }
         check(shortfall.isEmpty()) {
             "these reach fewer presets than they used to:\n" + shortfall.entries.joinToString("\n") { (aspect, floor) ->
-                "  ${aspect.key}: ${vocabulary.askableIn(aspect).size}, was ${floor}"
+                "  ${aspect.key}: ${vocabulary.availableToBroadWordsIn(aspect).size}, was ${floor}"
             }
         }
     }
@@ -139,7 +139,7 @@ class TagCoverageCheck : FunSpec({
     test("every structure set the Art can reach is built") {
         val emptying = vocabulary.words.filter { it.excludes[Aspect.STRUCTURES].orEmpty().isNotEmpty() }
         check(emptying.isNotEmpty()) { "no word strikes structure sets, so this checks nothing" }
-        val reachable = vocabulary.askableIn(Aspect.STRUCTURES)
+        val reachable = vocabulary.availableToBroadWordsIn(Aspect.STRUCTURES)
         val unstruck = reachable.filterNot { set ->
             val tags = vocabulary.tagsOf(set)
             emptying.any { word -> word.excludes(set, tags) }
@@ -164,7 +164,7 @@ class TagCoverageCheck : FunSpec({
      * all" quietly leaving one kind in, which is precisely the fault `untouched` had.
      */
     test("every creature the Art can reach is a mob") {
-        val reachable = vocabulary.askableIn(Aspect.SPAWNS)
+        val reachable = vocabulary.availableToBroadWordsIn(Aspect.SPAWNS)
         check(reachable.isNotEmpty()) { "no creature is reachable, so this checks nothing" }
         val untagged = reachable.filterNot { MOBS in vocabulary.tagsOf(it) }
         check(untagged.isEmpty()) {

@@ -266,7 +266,8 @@ class Editor(
         Part.DELETE -> ""
         // No mark when it is empty: a word without a comment is not a fault.
         Part.COMMENT -> if (candidate.commentLines.isEmpty()) "" else Glyph.TICK
-        Part.LISTING -> if (WordFile.listingFor(candidate.listingKey).rarity == null) Glyph.WARN else Glyph.TICK
+        // Unlisted is the default bucket rather than a fault, so no mark rather than a warning.
+        Part.LISTING -> if (WordFile.listingOf(candidate).rarity == null) "" else Glyph.TICK
     }
 
     private fun partLines(width: Int, room: Int): List<Line> {
@@ -1407,7 +1408,7 @@ class Editor(
             return
         }
         val options = whole + holding.mapIndexed { at, aspect ->
-            val many = corpus.vocabulary.askableIn(aspect).size
+            val many = corpus.vocabulary.availableToBroadWordsIn(aspect).size
             Picker.Option(
                 value = aspect.page,
                 label = aspect.page,
@@ -1685,7 +1686,7 @@ class Editor(
             Picker.Option(
                 value = aspect.page,
                 label = aspect.page,
-                note = "${corpus.vocabulary.askableIn(aspect).size} to choose between",
+                note = "${corpus.vocabulary.availableToBroadWordsIn(aspect).size} to choose between",
                 startsGroup = at == 0,
             )
         }
@@ -1936,22 +1937,40 @@ class Editor(
     }
 
     private fun relist() {
-        val standing = WordFile.listingFor(candidate.listingKey).rarity
+        val default = WordFile.defaultBucket()
+        val standing = WordFile.listingOf(candidate).rarity.takeUnless { it == default }
         val standings = WordFile.rarityStandings()
-        val total = standings.values.sumOf { (weight, _) -> weight }
+        val total = standings.values.sumOf { it.weight }
+        fun shareOf(bucket: String?): String {
+            val weight = standings[bucket]?.weight ?: 0.0
+            return if (total <= 0) "" else "%.0f%% of pages".format(weight / total * 100)
+        }
+        fun current(isCurrent: Boolean) = if (isCurrent) "  ${Glyph.BULLET} current" else ""
         val buckets = WordFile.rarityBuckets().map { bucket ->
-            val (weight, listed) = standings[bucket] ?: (0.0 to 0)
-            val share = if (total <= 0) "" else "%.0f%% of pages".format(weight / total * 100)
+            val listed = standings[bucket]?.listed ?: 0
             Picker.Option(
                 value = bucket,
                 label = bucket,
-                note = "$share ${Glyph.BULLET} $listed words" + if (bucket == standing) "  ${Glyph.BULLET} current" else "",
+                note = "${shareOf(bucket)} ${Glyph.BULLET} $listed words" + current(bucket == standing),
                 marked = bucket == standing,
             )
         }
+        val isKeptOut = standing == WordFile.NO_LOOT
+        val keptOut = Picker.Option(
+            value = WordFile.NO_LOOT,
+            label = WordFile.NO_LOOT,
+            note = "never on a found page or in a found notebook" + current(isKeptOut),
+            marked = isKeptOut,
+        )
+        val unset = Picker.Option(
+            value = Parts.UNSET,
+            label = default ?: Parts.UNSET,
+            note = "${shareOf(default)} ${Glyph.BULLET} every word listed nowhere else" + current(standing == null),
+            marked = standing == null,
+        )
         overlay = Picker(
             title = "Which rarity?",
-            options = unsetFirst("in no bucket, and drawn with the rest", standing == null) + buckets,
+            options = listOf(unset) + buckets + keptOut,
             onPick = { picked -> writeRarity(picked.value.takeIf { it != Parts.UNSET }) },
             onClear = { writeRarity(null) },
         )
@@ -1968,10 +1987,12 @@ class Editor(
     )
 
     private fun writeRarity(bucket: String?) {
-        // A derived word is named by its full id, which is how `WordRarity` finds it and how it stops
-        // being drawn from the anonymous derived mass.
-        WordFile.setRarity(candidate.listingKey, bucket)
-        message = bucket?.let { "rarity set to $it" } ?: "rarity cleared"
+        WordFile.setRarity(candidate, bucket)
+        message = when (bucket) {
+            null -> "rarity set to ${WordFile.defaultBucket() ?: "the default"}"
+            WordFile.NO_LOOT -> "kept out of loot"
+            else -> "rarity set to $bucket"
+        }
         judged = null
     }
 

@@ -50,7 +50,8 @@
       "watery": 1.0,
       "monumental": 0.9,
       "hostile": 0.6
-    }
+    },
+    "available_to_broad_words": false
   },
   "minecraft:woodland_mansions": {
     "tags": {
@@ -59,7 +60,8 @@
       "hostile": 0.7,
       "inhabited": 0.6,
       "dark": 0.5
-    }
+    },
+    "available_to_broad_words": false
   },
   "minecraft:ancient_cities": {
     "tags": {
@@ -69,7 +71,8 @@
       "hostile": 0.9,
       "cavernous": 0.8,
       "ruined": 0.8
-    }
+    },
+    "available_to_broad_words": false
   },
   "minecraft:strongholds": {
     "tags": {
@@ -78,7 +81,8 @@
       "monumental": 0.7,
       "ordered": 0.7,
       "cavernous": 0.6
-    }
+    },
+    "available_to_broad_words": false
   },
   "minecraft:trial_chambers": {
     "tags": {
@@ -87,7 +91,8 @@
       "ordered": 0.8,
       "cavernous": 0.7,
       "monumental": 0.5
-    }
+    },
+    "available_to_broad_words": false
   },
   "minecraft:mineshafts": {
     "tags": {
@@ -121,7 +126,8 @@
       "built": 1.0,
       "buried": 1.0,
       "watery": 0.5
-    }
+    },
+    "available_to_broad_words": false
   },
   "minecraft:ruined_portals": {
     "tags": {

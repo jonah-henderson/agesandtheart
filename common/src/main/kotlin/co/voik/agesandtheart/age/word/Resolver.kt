@@ -513,7 +513,7 @@ object Resolver {
         val speaking = sentence.filter { aspect in reachOf(vocabulary, it) }
         // **What the sentence put into the pool**, which is the one step that can widen it. Per sentence
         // rather than per corpus: a member one word admits is in *this* Age's draw and nobody else's.
-        val pool = vocabulary.askableIn(aspect) +
+        val pool = vocabulary.availableToBroadWordsIn(aspect) +
             speaking.flatMap { it.word.admitsIn(aspect) }.distinct().mapNotNull(aspect::presetFor)
         // Most precise first; where precision ties the seed decides, never word order. A word that only
         // sets a parameter narrows nothing, having no opinion about *which* preset fills the aspect.
@@ -799,7 +799,7 @@ object Resolver {
         if (word.tier.narrows) return word.aspects.sortedBy { it.ordinal }
         // Spanning aspects is what makes a word evocative.
         return Aspect.entries.filter { aspect ->
-            val likesSomethingThere = vocabulary.askableIn(aspect)
+            val likesSomethingThere = vocabulary.availableToBroadWordsIn(aspect)
                 .any { word.biasOn(it, vocabulary.tagsOf(it)) > 0.0 }
             // **And it reaches an aspect whose parameters it bends**, which is the only way into one with no
             // candidates to like. The declaration is both the mechanism and the evidence, so §4.4's charge
@@ -1300,7 +1300,7 @@ object Resolver {
         // alone, and curation is exactly what a writer naming a biome outright is reaching past.
         fun namedBy(said: Constraint) =
             said.word.admitsIn(aspect) + listOfNotNull(said.word.choiceIn(aspect)?.key)
-        val curated = vocabulary.askableIn(aspect)
+        val curated = vocabulary.availableToBroadWordsIn(aspect)
         val drawnFrom = (
             curated + speaking.flatMap(::namedBy).distinct().mapNotNull(aspect::presetFor)
             ).distinct()
@@ -1436,7 +1436,7 @@ object Resolver {
                 strength = strengthOf(vocabulary, member, said, aspect),
                 kept = word.acceptsOn(member, vocabulary.tagsOf(member)),
             )
-        val claim = claimForMember(vocabulary, member, pool, said, aspect, member in vocabulary.askableIn(aspect), draw = null)
+        val claim = claimForMember(vocabulary, member, pool, said, aspect, member in vocabulary.availableToBroadWordsIn(aspect), draw = null)
             ?: return Standing(Rung.ORDINARY, kept = true)
         return Standing(claim.density, kept = claim.polarity != Polarity.EXCEPT)
     }
@@ -1554,7 +1554,7 @@ object Resolver {
         //
         // **Both conditions, and each was learned by getting it wrong the same afternoon.**
         //
-        // - Without `isPresentAnyway`: `alreadyInThePool` means *askable*, which a volcano is, so the
+        // - Without `isPresentAnyway`: `alreadyInThePool` means *available to broad words*, which a volcano is, so the
         //   moment naming one stopped carrying [A_MENTION_IS_WORTH] it landed at exactly ordinary and was
         //   dropped as saying nothing — `age volcano features` resolved to an Age with no volcano in it.
         // - Without `namedOutright`: every member that is not there anyway stopped being silence *at all*,

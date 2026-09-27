@@ -1,0 +1,24 @@
+{
+  "values": [
+    "minecraft:end_gateway_return",
+    "minecraft:monster_room",
+    "minecraft:monster_room_deep",
+    "minecraft:ore_coal_lower",
+    "minecraft:ore_coal_upper",
+    "minecraft:ore_gold",
+    "minecraft:ore_gold_deltas",
+    "minecraft:ore_gold_extra",
+    "minecraft:ore_gold_lower",
+    "minecraft:ore_gold_nether",
+    "minecraft:ore_iron_middle",
+    "minecraft:ore_iron_small",
+    "minecraft:ore_iron_upper",
+    "minecraft:ore_lapis",
+    "minecraft:ore_lapis_buried",
+    "minecraft:ore_quartz_deltas",
+    "minecraft:ore_quartz_nether",
+    "minecraft:ore_redstone",
+    "minecraft:ore_redstone_lower"
+  ],
+  "replace": false
+}

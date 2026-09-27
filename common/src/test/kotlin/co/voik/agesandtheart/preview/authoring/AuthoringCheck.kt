@@ -1,9 +1,11 @@
 package co.voik.agesandtheart.preview.authoring
 
+import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.word.CannotAppearInLoot
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.Draws
@@ -328,20 +330,102 @@ class AuthoringCheck : FunSpec({
         checkNotNull(alps) { "no page means the alps — is DerivedWords.designs running?" }
         val page = Candidate.of(alps)
         check(page.isDerived) { "the alps page is not derived, so this check is testing nothing" }
-        check(page.inkTagDirectory == null) {
+        check(page.tagDirectory == null) {
             "the alps page would be inked by tagging '${page.id}', which is in no registry"
         }
 
         val ice = corpus.vocabulary.word("minecraft:ice")
         checkNotNull(ice) { "no derived word for ice" }
-        check(Candidate.of(ice).inkTagDirectory == "tags/block") { "a block's word must be inked by tagging the block" }
+        check(Candidate.of(ice).tagDirectory == "tags/block") { "a block's word must be inked by tagging the block" }
 
         val grove = corpus.vocabulary.word("minecraft:cherry_grove")
         checkNotNull(grove) { "no derived word for cherry_grove" }
         val biome = Candidate.of(grove)
-        check(biome.inkTagDirectory == "tags/worldgen/biome") { "a biome's word must be inked by tagging the biome" }
+        check(biome.tagDirectory == "tags/worldgen/biome") { "a biome's word must be inked by tagging the biome" }
         check(WordFile.inkOf(biome) == "fine") {
             "the pack tags cherry_grove fine and the screen says ${WordFile.inkOf(biome)}"
+        }
+    }
+
+    /** "no loot" is a rarity on screen and a tag on disk, and a word is in it or in a bucket, never both. */
+    test("keeping a word out of loot tags the thing and takes it out of its bucket") {
+        val dirt = corpus.vocabulary.word("minecraft:dirt")
+        checkNotNull(dirt) { "no derived word for dirt" }
+        val page = Candidate.of(dirt)
+        val fence = WordFile.resources.resolve("data/${Constants.MOD_ID}/tags/block/cannot_appear_in_loot.json")
+        val fenceBefore = fence.takeIf { it.isFile }?.readText()
+        val rarityBefore = WordFile.listingFor(page.listingKey).rarity
+        try {
+            WordFile.setRarity(page, "rare")
+            WordFile.setRarity(page, WordFile.NO_LOOT)
+
+            check(WordFile.listingOf(page).rarity == WordFile.NO_LOOT) { "the screen does not read it back" }
+            check(WordFile.listingFor(page.listingKey).rarity == null) { "it is still listed as rare" }
+            val fenced = WordFile.everyIdTagged(CannotAppearInLoot.TAG_NAME)["tags/block"].orEmpty()
+            check(dirt.id.toString() in fenced) {
+                "the block tag does not hold ${dirt.id}"
+            }
+
+            WordFile.setRarity(page, null)
+            check(WordFile.listingOf(page).rarity == null) { "clearing it left it kept out of loot" }
+        } finally {
+            if (fenceBefore == null) fence.delete() else fence.writeText(fenceBefore)
+            WordFile.setRarity(page.listingKey, rarityBefore)
+        }
+    }
+
+    /** The tag unmakes the word on a server; offline it is still here, so it can be untagged again. */
+    test("marking a thing as having no word tags it, and unmarking takes the tag away") {
+        val dirt = corpus.vocabulary.word("minecraft:dirt")
+        checkNotNull(dirt) { "no derived word for dirt" }
+        val page = Candidate.of(dirt)
+        val tag = WordFile.resources.resolve("data/${Constants.MOD_ID}/tags/block/does_not_have_a_word.json")
+        val before = tag.readText()
+        try {
+            WordFile.setHasNoWord(page, hasNoWord = true)
+            check(WordFile.hasNoWord(page)) { "the block tag does not hold ${dirt.id}" }
+            check(Corpus.load().vocabulary.word("minecraft:dirt") != null) {
+                "the offline corpus dropped the word, so Scrivener could never untag it"
+            }
+            WordFile.setHasNoWord(page, hasNoWord = false)
+            check(!WordFile.hasNoWord(page)) { "unmarking left ${dirt.id} in the tag" }
+        } finally {
+            tag.writeText(before)
+        }
+    }
+
+    /** An authored word names nothing a tag could hold, so it is kept out by name, and a rename carries it. */
+    test("keeping an authored word out of loot lists it by name, and a rename takes it along") {
+        val from = "probe_kept_out"
+        val to = "probe_kept_out_renamed"
+        try {
+            WordFile.write(Candidate.blank(from).copy(sets = mapOf("colour" to "red")))
+            WordFile.setRarity(Candidate.blank(from), WordFile.NO_LOOT)
+            check(WordFile.listingOf(Candidate.blank(from)).rarity == WordFile.NO_LOOT) { "it did not read back" }
+            check(from in WordFile.authoredKeptOutOfLoot()) { "the name list does not hold it" }
+
+            WordFile.renameWord(from, to)
+            check(from !in WordFile.authoredKeptOutOfLoot()) { "the old name was left on the list" }
+            check(to in WordFile.authoredKeptOutOfLoot()) { "the new name is not on the list" }
+        } finally {
+            WordFile.deleteWord(from)
+            WordFile.deleteWord(to)
+        }
+        check(to !in WordFile.authoredKeptOutOfLoot()) { "deleting the word left it on the list" }
+    }
+
+    /** Listing a word in the default bucket says nothing an unlisted word does not, so it unlists it. */
+    test("setting a word to the default bucket unlists it") {
+        val name = "probe_default"
+        val default = checkNotNull(WordFile.defaultBucket()) { "no rarity bucket is the default" }
+        try {
+            WordFile.write(Candidate.blank(name).copy(sets = mapOf("colour" to "red")))
+            WordFile.setRarity(Candidate.blank(name), "rare")
+            WordFile.setRarity(Candidate.blank(name), default)
+            check(WordFile.listingFor(name).rarity == null) { "it is still listed as ${WordFile.listingFor(name).rarity}" }
+            check(default !in WordFile.rarityChoices()) { "the default bucket is offered as something to list in" }
+        } finally {
+            WordFile.deleteWord(name)
         }
     }
 

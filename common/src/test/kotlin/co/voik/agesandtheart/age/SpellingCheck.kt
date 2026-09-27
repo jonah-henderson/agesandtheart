@@ -61,7 +61,7 @@ class SpellingCheck : FunSpec({
 
 
     /** What a generated Age is made of — enough shapes to reach every branch of the spelling. */
-    val landforms = Arb.element(Terrain.entries.filter { it.askableInASentence })
+    val landforms = Arb.element(Terrain.entries.filter { it.availableToBroadWords })
     val seas = Arb.element(Sea.WATER, Sea.LAVA, Sea.NONE)
     val undergrounds = Arb.element(Carvers.entries.toList())
     val skies = Arb.element(Sky.entries.toList())

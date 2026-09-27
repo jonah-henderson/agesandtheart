@@ -197,16 +197,21 @@ data class Vocabulary(
     }
 
     /**
-     * The curated pool less everything that opted out of being asked for — **what a sentence may actually
-     * reach**, and so what a draw for an aspect nobody spoke to draws from.
+     * The curated pool less everything kept from broad words — **what a vague word may land on**, and so
+     * what a draw for an aspect nobody spoke to draws from. A word naming a member outright still reaches
+     * it ([carriersOf]).
      *
      * The two pools are separate because [candidatesFor] answers "what is there", which `VocabularyCheck`
-     * needs in order to notice a preset that is neither askable nor pinned. Saying `askableInASentence =
-     * false` and then leaving the preset in the bag a vague word draws from made it *rarer*, not
-     * unreachable: the Spire's sky came up on one Age in three and took its dimension type with it.
+     * needs in order to notice a preset that is neither available to broad words nor pinned. Leaving such a
+     * preset in the bag a vague word draws from made it *rarer*, not unreachable: the Spire's sky came up
+     * on one Age in three and took its dimension type with it.
      */
-    fun askableIn(aspect: Aspect): List<Taggable> =
-        candidatesFor(aspect).filter { it.askableInASentence }
+    fun availableToBroadWordsIn(aspect: Aspect): List<Taggable> =
+        candidatesFor(aspect).filter(::isAvailableToBroadWords)
+
+    /** Whether [preset] and its `preset_tags` entry both allow a broad word to land on it. */
+    fun isAvailableToBroadWords(preset: Taggable): Boolean =
+        preset.availableToBroadWords && profileOf(preset).availableToBroadWords
 
     /**
      * Whether anything in [aspect] answers [word] at all, either way — the question a **population** asks
@@ -230,11 +235,11 @@ data class Vocabulary(
     /**
      * The presets in [aspect] this word would keep, at its tier's strictness. A word that **means one
      * outright** never searches, which is what keeps derived vocabulary free at resolve time (§8.2) — and
-     * is the one way to reach something [askableIn] leaves out, so a deliberate word still can.
+     * is the one way to reach something [availableToBroadWordsIn] leaves out, so a deliberate word still can.
      */
     fun carriersOf(word: Word, aspect: Aspect): List<Taggable> {
         word.choiceIn(aspect)?.let { return listOf(it) }
-        val pool = askableIn(aspect) + word.admitsIn(aspect).mapNotNull(aspect::presetFor)
+        val pool = availableToBroadWordsIn(aspect) + word.admitsIn(aspect).mapNotNull(aspect::presetFor)
         return pool.distinct().filter { word.acceptsOn(it, tagsOf(it)) }
     }
 

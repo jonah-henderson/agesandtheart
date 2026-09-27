@@ -33,7 +33,7 @@ object PoolChart {
                     Line(" is the answer; ${aspect.page} is never searched", Palette.faint),
             )
         }
-        val curated = vocabulary.askableIn(aspect)
+        val curated = vocabulary.availableToBroadWordsIn(aspect)
         val named = word.admitsIn(aspect).mapNotNull(aspect::presetFor) + listOfNotNull(chosen)
         val added = named.filterNot { it in curated }
         val pool = curated + added

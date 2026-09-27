@@ -196,7 +196,7 @@ class Help(
             keyRow("← →", "between columns"),
             keyRow("- =", "step the value under the cursor down or up"),
             keyRow("enter", "open the word, or step a value where you are on one"),
-            keyRow("F1 F2 F3", "rarity, ink, specificity"),
+            keyRow("F1 F2 F3 F4", "rarity, ink, specificity, whether it has a word at all"),
             keyRow("tab", "sort by the column you are on; again reverses"),
             keyRow("home end", "first and last row"),
             keyRow("pgup pgdn", "a page, or to the ends where it all fits"),

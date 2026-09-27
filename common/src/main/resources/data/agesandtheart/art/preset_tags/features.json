@@ -2,12 +2,14 @@
   "minecraft:ore_diamond": {
     "tags": {
       "hostile": 0.3
-    }
+    },
+    "available_to_broad_words": false
   },
   "minecraft:ore_emerald": {
     "tags": {
       "mountainous": 0.5
-    }
+    },
+    "available_to_broad_words": false
   },
   "minecraft:flower_meadow": {
     "tags": {
@@ -117,7 +119,8 @@
       "frozen": 1.0,
       "bright": 0.5,
       "colourful": 0.4
-    }
+    },
+    "available_to_broad_words": false
   },
   "minecraft:ice_spike": {
     "tags": {
@@ -283,5 +286,32 @@
       "sheer": 0.8,
       "stony": 0.9
     }
+  },
+  "minecraft:amethyst_geode": {
+    "available_to_broad_words": false
+  },
+  "minecraft:ore_diamond_buried": {
+    "available_to_broad_words": false
+  },
+  "minecraft:ore_diamond_large": {
+    "available_to_broad_words": false
+  },
+  "minecraft:ore_diamond_medium": {
+    "available_to_broad_words": false
+  },
+  "minecraft:ore_ancient_debris_large": {
+    "available_to_broad_words": false
+  },
+  "minecraft:ore_debris_small": {
+    "available_to_broad_words": false
+  },
+  "minecraft:iceberg_blue": {
+    "available_to_broad_words": false
+  },
+  "minecraft:end_spike": {
+    "available_to_broad_words": false
+  },
+  "minecraft:end_gateway_return": {
+    "available_to_broad_words": false
   }
 }

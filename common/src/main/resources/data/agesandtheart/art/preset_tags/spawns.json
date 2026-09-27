@@ -178,7 +178,8 @@
       "dark": 1.0,
       "hostile": 1.0,
       "cavernous": 0.9
-    }
+    },
+    "available_to_broad_words": false
   },
   "minecraft:donkey": {
     "tags": {
@@ -229,5 +230,29 @@
     "tags": {
       "grazing": 0.6
     }
+  },
+  "minecraft:wither": {
+    "available_to_broad_words": false
+  },
+  "minecraft:ender_dragon": {
+    "available_to_broad_words": false
+  },
+  "minecraft:elder_guardian": {
+    "available_to_broad_words": false
+  },
+  "minecraft:evoker": {
+    "available_to_broad_words": false
+  },
+  "minecraft:shulker": {
+    "available_to_broad_words": false
+  },
+  "minecraft:allay": {
+    "available_to_broad_words": false
+  },
+  "minecraft:giant": {
+    "available_to_broad_words": false
+  },
+  "minecraft:illusioner": {
+    "available_to_broad_words": false
   }
 }

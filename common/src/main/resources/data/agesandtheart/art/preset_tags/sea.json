@@ -37,7 +37,8 @@
     "tags": {
       "frozen": 1.0,
       "solid": 0.9
-    }
+    },
+    "available_to_broad_words": false
   },
   "minecraft:blue_ice": {
     "readiness": 0.15,
@@ -45,6 +46,7 @@
       "frozen": 1.0,
       "solid": 1.0,
       "bright": 0.5
-    }
+    },
+    "available_to_broad_words": false
   }
 }

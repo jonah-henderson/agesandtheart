@@ -1,0 +1,23 @@
+{
+  "values": [
+    "minecraft:allay",
+    "minecraft:axolotl",
+    "minecraft:blaze",
+    "minecraft:breeze",
+    "minecraft:creaking",
+    "minecraft:elder_guardian",
+    "minecraft:evoker",
+    "minecraft:giant",
+    "minecraft:happy_ghast",
+    "minecraft:illusioner",
+    "minecraft:phantom",
+    "minecraft:ravager",
+    "minecraft:shulker",
+    "minecraft:sniffer",
+    "minecraft:vex",
+    "minecraft:wither_skeleton",
+    "minecraft:zombie_horse",
+    "minecraft:zombie_villager"
+  ],
+  "replace": false
+}

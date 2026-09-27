@@ -47,6 +47,24 @@ class TagLayerCheck : FunSpec({
         check(after.getAsJsonObject("canyon")?.get("readiness")?.asDouble == 0.5) { "lost the readiness: $after" }
     }
 
+    /** An entry holding only the flag, or a comment, is not empty — tidying it away would undo the flag. */
+    test("clearing the last tag keeps an entry kept from broad words") {
+        val before = table("""{"minecraft:wither": {"available_to_broad_words": false, "tags": {"hostile": 0.9}}}""")
+        val after = TagFile.withWeight(before, "minecraft:wither", "hostile", null)
+        check(after.getAsJsonObject("minecraft:wither")?.get("available_to_broad_words")?.asBoolean == false) {
+            "lost the flag: $after"
+        }
+    }
+
+    test("keeping a member from broad words and letting it back leaves the table as it was") {
+        val kept = TagFile.withAvailableToBroadWords(JsonObject(), "minecraft:wither", available = false)
+        check(kept.getAsJsonObject("minecraft:wither").get("available_to_broad_words").asBoolean == false) {
+            "wrote $kept"
+        }
+        val back = TagFile.withAvailableToBroadWords(kept, "minecraft:wither", available = true)
+        check(back.entrySet().isEmpty()) { "letting it back left something behind: $back" }
+    }
+
     test("a tag dropped and restored leaves the table as it was") {
         val dropped = TagFile.withDropped(JsonObject(), "badlands", "lush", dropped = true)
         check(dropped.getAsJsonObject("badlands").getAsJsonArray("drop").map { it.asString } == listOf("lush")) {

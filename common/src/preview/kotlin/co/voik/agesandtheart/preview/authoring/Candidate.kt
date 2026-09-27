@@ -73,14 +73,15 @@ data class Candidate(
      */
     val derivedFrom: Identifier? = null,
     /**
-     * Where this word's ink is a **tag on the thing itself** — the tag directory of the registry holding
-     * it, such as `tags/worldgen/biome` — or null where it is a name in `art/ink/`.
+     * Where this word's ink and loot fence are **tags on the thing itself** — the tag directory of the
+     * registry holding it, such as `tags/worldgen/biome` — or null where the ink is a name in `art/ink/`
+     * and there is nothing to fence.
      *
      * Read off [Word.referentRegistries], the registries `InkRequirement` asks. **Null for some derived
      * words**: a landform's page is minted from the landform (`AuthoredPreset.writtenWordFor`) and names no
      * registry entry, so it is listed by name exactly as an authored word is.
      */
-    val inkTagDirectory: String? = null,
+    val tagDirectory: String? = null,
 ) {
 
     val id: Identifier get() = derivedFrom ?: Identifier.fromNamespaceAndPath(Constants.MOD_ID, name)
@@ -243,7 +244,7 @@ data class Candidate(
             unstated = word.unstated,
             mintsSomethingThatFlows = word.mintsSomethingThatFlows,
             derivedFrom = word.id,
-            inkTagDirectory = word.referentRegistries.firstOrNull()?.let(Registries::tagsDirPath),
+            tagDirectory = word.referentRegistries.firstOrNull()?.let(Registries::tagsDirPath),
         )
 
         /** A blank word, which is what `--new` starts from. */

@@ -149,7 +149,10 @@ class Tags(
         var named = tag
         // **The way to add one is a row**, above what is already there. It filters away as soon as
         // anything is typed, which is right: while you are searching you are looking, not adding.
-        val rowsOf = { listOf(addingRow(named)) + layer.membersTagged(named, grouped).map(::memberRow) }
+        val rowsOf = {
+            val keptFromBroadWords = keptFromBroadWords()
+            listOf(addingRow(named)) + layer.membersTagged(named, grouped).map { memberRow(it, keptFromBroadWords) }
+        }
         val table = Table(
             title = "what is in '$tag'",
             columns = listOf(
@@ -222,6 +225,10 @@ class Tags(
                         table.withRows(rowsOf())
                     }
                     key.ctrl && key.key == "w" -> showWhatAsks(named)
+                    key.ctrl && key.key == "b" -> {
+                        memberFor(row, named)?.let(::toggleAvailableToBroadWords)
+                        rebuild()
+                    }
                     key.ctrl && key.key == "x" -> if (deleted(named)) return
                     else -> table.tookTheKey(key)
                 }
@@ -324,6 +331,17 @@ class Tags(
         }
         val wanted = member.weight + by * STEP
         TagFile.setWeight(member.aspect.page, member.preset, tag, wanted.coerceAtMost(1.0).takeIf { wanted >= STEP / 2 })
+    }
+
+    /** Every member only a word naming it may reach, as `page/preset` — read once per table. */
+    private fun keptFromBroadWords(): Set<String> = TagFile.pages().flatMap { page ->
+        TagFile.authored(page).filterValues { !it.availableToBroadWords }.keys.map { "$page/$it" }
+    }.toSet()
+
+    private fun toggleAvailableToBroadWords(member: TagLayer.Member) {
+        val page = member.aspect.page
+        val available = TagFile.authored(page)[member.preset]?.availableToBroadWords ?: true
+        TagFile.setAvailableToBroadWords(page, member.preset, available = !available)
     }
 
     /** One member taken out of a set a rule put it in, or put back — `drop`, never deletion. */
@@ -434,14 +452,17 @@ class Tags(
      * the number is what backspace would put back. An authored weight stands on nothing and a derived one
      * *is* the rule, so for both the column is empty rather than restating the weight beside it.
      */
-    private fun memberRow(member: TagLayer.Member) = Table.Row(
+    private fun memberRow(member: TagLayer.Member, keptFromBroadWords: Set<String>) = Table.Row(
         key = keyOf(member),
         cells = listOf(
             member.aspect.page,
             member.preset,
             if (member.source == TagLayer.Source.DROPPED) "—" else "%.2f".format(member.weight),
             member.source.title,
-            member.under?.let { "original value %.2f".format(it) }.orEmpty(),
+            listOfNotNull(
+                member.under?.let { "original value %.2f".format(it) },
+                KEPT_FROM_BROAD_WORDS.takeIf { keyOf(member) in keptFromBroadWords },
+            ).joinToString(" ${Glyph.BULLET} "),
         ),
         tone = when (member.source) {
             TagLayer.Source.DROPPED -> Palette.warned
@@ -517,6 +538,7 @@ class Tags(
                     "^d" to "drop or restore",
                     "^r" to "rename the set",
                     "^w" to "what asks",
+                    "^b" to "broad words on or off",
                     "^x" to "delete the set",
                     "←" to "back",
                     searching(table.filter),
@@ -526,6 +548,8 @@ class Tags(
     }
 
     private companion object {
+        /** A member's note where only a word naming it may reach it. */
+        const val KEPT_FROM_BROAD_WORDS = "only by name"
         const val TAG_WIDTH = 18
         const val COUNT_WIDTH = 10
         const val WHERE_WIDTH = 30

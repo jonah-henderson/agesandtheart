@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
+import co.voik.agesandtheart.age.word.CannotAppearInLoot
+import co.voik.agesandtheart.age.word.DerivedWords
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.preview.authoring.Candidate
@@ -12,6 +14,9 @@ import com.github.ajalt.mordant.input.KeyboardEvent
 import com.github.ajalt.mordant.input.MouseTracking
 import com.github.ajalt.mordant.input.enterRawMode
 import com.github.ajalt.mordant.terminal.Terminal
+import net.minecraft.core.Registry
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
 
 /**
  * Where the tool starts when nobody said what to do — **everything it can do, as a list.**
@@ -94,14 +99,15 @@ class Menu(
     private fun openOne() {
         val rowsOf = {
             val listings = WordFile.everyListing()
-            WordFile.authoredNames().map { authoredRow(it, listings[it]) }
+            val keptOut = WordFile.authoredKeptOutOfLoot()
+            WordFile.authoredNames().map { authoredRow(it, listings[it], isKeptOutOfLoot = it in keptOut) }
         }
         val table = Table(
             title = "${WordFile.authoredNames().size} authored words",
             columns = listOf(
                 Table.Column("word", NAME_WIDTH),
                 Table.Column("specificity", TIER_WIDTH, TIER, Tier.NAMED.keys.toList()),
-                Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityBuckets()),
+                Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityChoices()),
                 Table.Column("ink", INK_WIDTH, INK, WordFile.inkTiers()),
                 Table.Column("parameters", HALF_A_SUMMARY),
                 Table.Column("populations", HALF_A_SUMMARY),
@@ -138,14 +144,14 @@ class Menu(
         }
     }
 
-    private fun authoredRow(name: String, listing: WordFile.Listing?): Table.Row {
+    private fun authoredRow(name: String, listing: WordFile.Listing?, isKeptOutOfLoot: Boolean): Table.Row {
         val word = corpus.vocabulary.word(name)
         return Table.Row(
             key = name,
             cells = listOf(
                 name,
                 word?.tier?.key.orEmpty(),
-                listing?.rarity.orEmpty(),
+                if (isKeptOutOfLoot) WordFile.NO_LOOT else listing?.rarity.orEmpty(),
                 listing?.ink.orEmpty(),
                 word?.let(::parametersIn).orEmpty(),
                 word?.let(::populationsIn).orEmpty(),
@@ -204,17 +210,21 @@ class Menu(
         val rowsOf = {
             val listings = WordFile.everyListing()
             val inkTags = WordFile.everyInkTag()
-            derived.map { derivedRow(it, listings, inkTags) }
+            val lootFence = WordFile.everyIdTagged(CannotAppearInLoot.TAG_NAME)
+            val wordless = WordFile.everyIdTagged(DerivedWords.DOES_NOT_HAVE_A_WORD)
+            derived.map { derivedRow(it, listings, inkTags, lootFence, wordless) }
         }
         val table = Table(
             title = "${derived.size} auto-generated words",
             columns = listOf(
                 Table.Column("word", NAME_WIDTH),
+                Table.Column("kind", KIND_WIDTH),
                 // Read-only here: an auto-generated word is exact because it names one thing exactly, and
                 // there is no file in which to say otherwise.
                 Table.Column("specificity", TIER_WIDTH, order = Tier.NAMED.keys.toList()),
-                Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityBuckets()),
+                Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityChoices()),
                 Table.Column("ink", INK_WIDTH, INK, WordFile.inkTiers()),
+                Table.Column("in game", IN_GAME_WIDTH, IN_GAME, listOf(WordFile.NO_WORD)),
                 Table.Column("from", EFFECTS_WIDTH),
             ),
             rows = canvas.whileBusy(work = rowsOf),
@@ -226,20 +236,52 @@ class Menu(
         }
     }
 
+    /** What an auto-generated word names: the registry it is an entry of, or the aspect whose preset it means. */
+    private fun kindOf(word: Word): String {
+        word.entryOf?.let { return registryCalled(it) }
+        val aspect = word.chooses.keys.firstOrNull() ?: return ""
+        return aspect.presetsAreEntriesOf?.let(::registryCalled) ?: "${aspect.page} preset"
+    }
+
+    private fun registryCalled(registry: ResourceKey<out Registry<*>>): String = when (registry) {
+        Registries.PLACED_FEATURE -> "feature"
+        Registries.ENTITY_TYPE -> "mob"
+        Registries.STRUCTURE_SET -> "structure"
+        else -> registry.identifier().path.substringAfterLast('/').replace('_', ' ')
+    }
+
     /** The same reading [WordFile.inkOf] makes of one word, made of the whole table's files read once. */
     private fun derivedRow(
         word: Word,
         listings: Map<String, WordFile.Listing>,
         inkTags: Map<String, Map<String, String>>,
+        lootFence: Map<String, Set<String>>,
+        wordless: Map<String, Set<String>>,
     ): Table.Row {
         val page = Candidate.of(word)
-        val rarity = listings[page.listingKey]?.rarity
-        val tagged = page.inkTagDirectory?.let { inkTags[it]?.get(word.id.toString()) }
+        fun isIn(tagged: Map<String, Set<String>>) =
+            page.tagDirectory?.let { word.id.toString() in tagged[it].orEmpty() } == true
+        val isKeptOutOfLoot = isIn(lootFence)
+        val hasNoWord = isIn(wordless)
+        val rarity = if (isKeptOutOfLoot) WordFile.NO_LOOT else listings[page.listingKey]?.rarity
+        val tagged = page.tagDirectory?.let { inkTags[it]?.get(word.id.toString()) }
         val ink = tagged ?: listings[word.name]?.ink
         return Table.Row(
             key = word.name,
-            cells = listOf(word.name, word.tier.key, rarity.orEmpty(), ink.orEmpty(), word.id.toString()),
-            tone = if (rarity == null && ink == null) null else Palette.settled,
+            cells = listOf(
+                word.name,
+                kindOf(word),
+                word.tier.key,
+                rarity.orEmpty(),
+                ink.orEmpty(),
+                if (hasNoWord) WordFile.NO_WORD else "",
+                word.id.toString(),
+            ),
+            tone = when {
+                hasNoWord -> Palette.faint
+                rarity == null && ink == null -> null
+                else -> Palette.settled
+            },
         )
     }
 
@@ -251,11 +293,12 @@ class Menu(
         val standing = row.cells.getOrElse(at) { "" }.ifEmpty { null }
         when (kind) {
             RARITY -> WordFile.setRarity(
-                candidate.listingKey,
-                cycled(listOf(null) + WordFile.rarityBuckets(), standing, by),
+                candidate,
+                cycled(listOf(null) + WordFile.rarityChoices(), standing, by),
             )
             INK -> WordFile.setInk(candidate, cycled(listOf(null) + WordFile.inkTiers(), standing, by))
             TIER -> retier(row.key, standing, by)
+            IN_GAME -> WordFile.setHasNoWord(candidate, hasNoWord = standing == null)
         }
     }
 
@@ -526,13 +569,13 @@ class Menu(
                 hints(
                     "- =" to "change",
                     "enter" to "change",
-                    "F1" to "rarity", "F2" to "ink", "F3" to "specificity",
+                    "F1" to "rarity", "F2" to "ink", "F3" to "specificity", "F4" to "no word",
                     searching(table.filter),
                 )
             } else {
                 hints(
                     "enter" to "open",
-                    "F1" to "rarity", "F2" to "ink", "F3" to "specificity",
+                    "F1" to "rarity", "F2" to "ink", "F3" to "specificity", "F4" to "no word",
                     searching(table.filter),
                 )
             },
@@ -625,6 +668,9 @@ class Menu(
         /** What a chooser answers with when `?` was asked rather than a row chosen. */
         const val WANTS_HELP = "\u0000help"
         const val NAME_WIDTH = 24
+
+        /** Room for the longest kind, `underground preset`. */
+        const val KIND_WIDTH = 19
         const val RARITY_WIDTH = 9
         const val INK_WIDTH = 11
         const val EFFECTS_WIDTH = 60
@@ -636,9 +682,11 @@ class Menu(
         const val RARITY = "rarity"
         const val INK = "ink"
         const val TIER = "tier"
+        const val IN_GAME = "in game"
+        const val IN_GAME_WIDTH = 9
 
         /** Which column each function key reaches, by kind rather than by position. */
-        val HOTKEYS = mapOf("F1" to RARITY, "F2" to INK, "F3" to TIER)
+        val HOTKEYS = mapOf("F1" to RARITY, "F2" to INK, "F3" to TIER, "F4" to IN_GAME)
 
         /** Where a word stops being ordinarily untidy and starts being worth looking at. */
         const val SOME = 2

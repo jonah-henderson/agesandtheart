@@ -294,10 +294,10 @@ enum class Terrain(
     ;
 
     /**
-     * [VANILLA] is not askable, and being so is the point of it: it is what an Age wears when the writer
+     * [VANILLA] is kept from broad words, and being so is the point of it: it is what an Age wears when the writer
      * named no landform at all, never something they can reach for.
      */
-    override val askableInASentence: Boolean get() = this != VANILLA
+    override val availableToBroadWords: Boolean get() = this != VANILLA
 
     /**
      * Every landform a writer can reach for has a page that means it, and the page is minted from here —

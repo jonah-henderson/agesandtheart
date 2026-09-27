@@ -31,17 +31,18 @@ import net.minecraft.world.level.block.Block
 object DerivedWords {
     /**
      * A pack author's hard fence (§8.4): anything carrying this tag never becomes a word at all. Checked
-     * at *derivation* — a forbidden thing refused at resolution would be §3.3's silent drop wearing a
-     * diagnostic, where one never derived is honestly absent. Shipped empty.
+     * at *derivation* — a thing refused at resolution would be §3.3's silent drop wearing a diagnostic,
+     * where one never derived is honestly absent. Keeping a word off found pages is
+     * [CannotAppearInLoot]'s, which leaves it writable.
      */
-    val FORBIDDEN: Identifier = "forbidden".location()
+    val DOES_NOT_HAVE_A_WORD: Identifier = "does_not_have_a_word".location()
 
-    private val FORBIDDEN_BLOCKS: TagKey<Block> = TagKey.create(Registries.BLOCK, FORBIDDEN)
+    private val WORDLESS_BLOCKS: TagKey<Block> = TagKey.create(Registries.BLOCK, DOES_NOT_HAVE_A_WORD)
 
     /**
      * **A word for every block in the pack** — what a writer points at to say "made of that" or "a sea of
-     * that". No filter beyond [FORBIDDEN]: any filter we invented would exclude somebody's obvious choice,
-     * since "spikes made of copper blocks" is not a stone and a sea of packed ice is not a fluid.
+     * that". No filter beyond [DOES_NOT_HAVE_A_WORD]: any filter we invented would exclude somebody's
+     * obvious choice, since "spikes made of copper blocks" is not a stone and a sea of packed ice is not a fluid.
      *
      * One word carries every capability — it is an entry of the block registry ([Word.entryOf]), which is
      * what lets it *be* the sea, an open aspect whose value is a block; and it [Word.sets] the material on
@@ -55,7 +56,7 @@ object DerivedWords {
      * Blocks are registered at class-init, so unlike [biomes] this needs no server.
      */
     fun materials(): List<Word> = BuiltInRegistries.BLOCK.listElements()
-        .filter { holder -> !holder.`is`(FORBIDDEN_BLOCKS) }
+        .filter { holder -> !holder.`is`(WORDLESS_BLOCKS) }
         .map { holder -> substance(holder.key().identifier(), pours = holder.value().defaultBlockState().fluidState.isSource) }
         .toList()
 
@@ -113,7 +114,7 @@ object DerivedWords {
     fun features(registries: HolderLookup.Provider): List<Word> =
         choosingEachEntryOf(registries, Registries.PLACED_FEATURE, Aspect.FEATURES)
 
-    private val FORBIDDEN_SPAWNS: TagKey<EntityType<*>> = TagKey.create(Registries.ENTITY_TYPE, FORBIDDEN)
+    private val WORDLESS_SPAWNS: TagKey<EntityType<*>> = TagKey.create(Registries.ENTITY_TYPE, DOES_NOT_HAVE_A_WORD)
 
     /**
      * **A word for every creature in the pack** — `zombie`, `axolotl`, `piglin_brute`. The fourth
@@ -123,7 +124,7 @@ object DerivedWords {
      * beside the others because a corpus is loaded once.
      */
     fun spawns(writable: Set<Identifier> = emptySet()): List<Word> = BuiltInRegistries.ENTITY_TYPE.listElements()
-        .filter { holder -> !holder.`is`(FORBIDDEN_SPAWNS) }
+        .filter { holder -> !holder.`is`(WORDLESS_SPAWNS) }
         .filter { holder -> livesSomewhere(holder.value()) || holder.key().identifier() in writable }
         .map { holder -> choosing(holder.key().identifier(), Aspect.SPAWNS) }
         .toList()
@@ -150,14 +151,14 @@ object DerivedWords {
     fun structures(registries: HolderLookup.Provider): List<Word> =
         choosingEachEntryOf(registries, Registries.STRUCTURE_SET, Aspect.STRUCTURES)
 
-    /** A word [choosing] each entry of [registry] in [aspect], but the ones the pack tags [FORBIDDEN]. */
+    /** A word [choosing] each entry of [registry] in [aspect], but the ones tagged [DOES_NOT_HAVE_A_WORD]. */
     private fun <T : Any> choosingEachEntryOf(
         registries: HolderLookup.Provider,
         registry: ResourceKey<out Registry<T>>,
         aspect: Aspect,
     ): List<Word> {
         val lookup = registries.lookupOrThrow(registry)
-        val struckOut = lookup.struckOutBy(TagKey.create(registry, FORBIDDEN))
+        val struckOut = lookup.struckOutBy(TagKey.create(registry, DOES_NOT_HAVE_A_WORD))
         return lookup.listElements()
             .filter { holder -> holder.key() !in struckOut }
             .map { holder -> choosing(holder.key().identifier(), aspect) }
@@ -203,7 +204,7 @@ object DerivedWords {
     }
 
     /**
-     * Every entry a pack struck out with `agesandtheart:forbidden` (§8.4).
+     * Every entry a pack struck out with `agesandtheart:does_not_have_a_word` (§8.4).
      *
      * Asked of the **lookup's** tag list rather than of each holder's back-reference. `Holder.is(TagKey)`
      * needs the holder's tag set bound, which a provider built without a server never does — it threw

@@ -303,7 +303,7 @@ class VocabularyCheck : FunSpec({
 
     /**
      * Every preset can be reached by some word. One no sentence can ask for is content nobody can use: it
-     * cannot be written for, and since [Vocabulary.askableIn] keeps it out of the draw it cannot arrive by
+     * cannot be written for, and since [Vocabulary.availableToBroadWordsIn] keeps it out of the draw it cannot arrive by
      * chance either, so nothing in the game would ever produce it.
      */
     test("every preset can be asked for") {
@@ -317,10 +317,10 @@ class VocabularyCheck : FunSpec({
             // The curated pool, not the registry: a derived word reaches every referent by construction, so
             // the only presets that can go unreachable are the ones somebody chose to curate (design §8.2).
             for (preset in vocabulary.candidatesFor(aspect)) {
-                // A preset that says it is unaskable is exempt from needing a word — but not from scrutiny: the
+                // A preset kept from broad words is exempt from needing a word — but not from scrutiny: the
                 // pinned-preset check below insists it really is pinned somewhere, so a careless `false` still
                 // fails.
-                if (!preset.askableInASentence) continue
+                if (!preset.availableToBroadWords) continue
                 // A referent is reachable by name by construction — §8.1 mints a word per registry entry —
                 // so demanding one here asks the wrong question, and asks it of a corpus that cannot answer:
                 // biomes are datapack content, so their words exist only once a server has loaded.
@@ -336,19 +336,19 @@ class VocabularyCheck : FunSpec({
                 check(reachable) {
                     "No word can ask for ${aspect.key}=${preset.key}, so it can only ever arrive by chance. " +
                         "Its tags are ${vocabulary.tagsOf(preset)}. If that is deliberate — a preset only a pinned " +
-                        "recipe names — say so with `askableInASentence = false` rather than adding a word for it."
+                        "recipe names — say so with `availableToBroadWords = false` rather than adding a word for it."
                 }
             }
         }
     }
 
     /**
-     * Every preset that opted out of being askable is actually **pinned by a recipe** — the other half of
+     * Every preset kept from broad words is actually **pinned by a recipe** — the other half of
      * the exemption above, and what makes it safe. An omission and an intention look identical from
-     * outside, so `askableInASentence = false` buys an exemption from one check and immediately owes this
-     * one. Neither askable nor pinned is dead content that can still be drawn.
+     * outside, so `availableToBroadWords = false` buys an exemption from one check and immediately owes this
+     * one. Neither available to broad words nor pinned is dead content that can still be drawn.
      */
-    test("every unaskable preset is pinned by a recipe") {
+    test("every preset kept from broad words is pinned by a recipe") {
         // Two ways to reach one deliberately: a pinned recipe, or a **template**, which is how
         // `landmass=vanilla` arrives — an Age whose writer named no landform gets the rock its world
         // came with.
@@ -358,9 +358,9 @@ class VocabularyCheck : FunSpec({
             .flatMap { composition -> composition.presets }
             .toSet()
         for (aspect in Aspect.entries) {
-            for (preset in vocabulary.candidatesFor(aspect).filterNot { it.askableInASentence }) {
+            for (preset in vocabulary.candidatesFor(aspect).filterNot { it.availableToBroadWords }) {
                 check(preset in pinned) {
-                    "${aspect.key}=${preset.key} says it is unaskable, but no pinned recipe names it either — so " +
+                    "${aspect.key}=${preset.key} is kept from broad words, but no pinned recipe names it either — so " +
                         "nothing can reach it deliberately. Pin it in `AgeRecipe.worldFor`, put it in a template, " +
                         "or give it a word."
                 }
@@ -549,7 +549,7 @@ class VocabularyCheck : FunSpec({
      */
     test("every landform a writer can reach for has a page that means it") {
         val unsayable = Aspect.TERRAIN.authored
-            .filter { it.askableInASentence }
+            .filter { it.availableToBroadWords }
             .filter { preset -> vocabulary.words.none { it.choiceIn(Aspect.TERRAIN)?.key == preset.key } }
         check(unsayable.isEmpty()) { "no page means ${unsayable.map { it.key }}" }
     }

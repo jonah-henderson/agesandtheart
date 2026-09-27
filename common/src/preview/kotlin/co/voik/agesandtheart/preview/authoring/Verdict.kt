@@ -420,17 +420,8 @@ object Verdict {
     // -- the third currency --------------------------------------------------------------------------
 
     private fun listingGaps(candidate: Candidate): List<Finding> = buildList {
-        val listing = WordFile.listingFor(candidate.listingKey)
-        if (listing.rarity == null) {
-            add(
-                Finding(
-                    Standing.WARNED,
-                    "no rarity set",
-                    "how hard this is to find has not been decided",
-                ),
-            )
-        }
-        // **Not a gap.** Requiring the common ink is requiring nothing (`InkTier.satisfies` is an ordinal
+        // **Neither unlisted rarity nor common ink is a gap.** An unlisted word is in the default bucket,
+        // which is a decision. Requiring the common ink is requiring nothing (`InkTier.satisfies` is an ordinal
         // comparison and common is the lowest), so an unlisted word and one listed as common are the same
         // word — and reading "common by default" beside a list that does not offer common sent a writer
         // looking for a bucket the model has no room for.

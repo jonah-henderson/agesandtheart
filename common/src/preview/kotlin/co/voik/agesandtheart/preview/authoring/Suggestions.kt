@@ -166,7 +166,7 @@ class Suggestions(private val vocabulary: Vocabulary) {
         // **Only where it claims something here.** `acceptsOn` keeps every member of an aspect the word
         // restricted nothing in, so asking it unguarded offered `arthropods` for a landmass clause.
         if (word.constrainsPresetsIn(aspect) &&
-            askableIn(aspect).any { word.acceptsOn(it, vocabulary.tagsOf(it)) }
+            availableToBroadWordsIn(aspect).any { word.acceptsOn(it, vocabulary.tagsOf(it)) }
         ) {
             return true
         }
@@ -247,13 +247,13 @@ class Suggestions(private val vocabulary: Vocabulary) {
 
     /** `candidatesFor` sorts a list of a couple of hundred, and this asks it for every page offered. */
     private val candidates = mutableMapOf<Aspect, List<Taggable>>()
-    private val askable = mutableMapOf<Aspect, List<Taggable>>()
+    private val availableToBroadWords = mutableMapOf<Aspect, List<Taggable>>()
 
     private fun candidatesIn(aspect: Aspect): List<Taggable> =
         candidates.getOrPut(aspect) { vocabulary.candidatesFor(aspect) }
 
-    private fun askableIn(aspect: Aspect): List<Taggable> =
-        askable.getOrPut(aspect) { vocabulary.askableIn(aspect) }
+    private fun availableToBroadWordsIn(aspect: Aspect): List<Taggable> =
+        availableToBroadWords.getOrPut(aspect) { vocabulary.availableToBroadWordsIn(aspect) }
 
     private val parameters = mutableMapOf<Pair<Aspect, String>, Boolean>()
 

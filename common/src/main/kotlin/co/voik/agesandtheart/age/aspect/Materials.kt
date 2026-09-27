@@ -67,7 +67,7 @@ object Materials {
      *
      * **Both tags are empty offline**, since a tag binds on a server: the shape rule is the whole of what
      * an offline check sees, and holding the exceptions honest is a server check's job. That is the same
-     * bargain `DerivedWords.FORBIDDEN` already makes.
+     * bargain `DerivedWords.DOES_NOT_HAVE_A_WORD` already makes.
      */
     fun makesAWorld(block: Block): Boolean {
         val state = block.defaultBlockState()

@@ -1015,6 +1015,12 @@ data class PresetProfile(
      * (Jonah).
      */
     val presentAnyway: Boolean = true,
+    /**
+     * Whether a vague word, or the draw for an aspect nobody spoke to, may land on this member. False keeps
+     * it for words that name it outright — how a rare thing stays out of cheap writing without losing its
+     * word or its tags.
+     */
+    val availableToBroadWords: Boolean = true,
 ) {
     /** This profile with [later] laid over it — a higher-priority pack retuning some of it. */
     fun mergedWith(later: PresetProfile): PresetProfile =
@@ -1025,6 +1031,7 @@ data class PresetProfile(
             replaces || later.replaces,
             // A later pack saying nothing about this leaves the earlier answer standing, as `readiness` does.
             later.presentAnyway && presentAnyway,
+            later.availableToBroadWords && availableToBroadWords,
         )
 
     /**
@@ -1052,8 +1059,12 @@ data class PresetProfile(
                     .forGetter { it.dropped.toList() },
                 Codec.BOOL.optionalFieldOf("replace", false).forGetter(PresetProfile::replaces),
                 Codec.BOOL.optionalFieldOf("present_anyway", true).forGetter(PresetProfile::presentAnyway),
-            ).apply(instance) { tags, readiness, dropped, replaces, presentAnyway ->
-                PresetProfile(tags, readiness.orElse(null), dropped.toSet(), replaces, presentAnyway)
+                Codec.BOOL.optionalFieldOf("available_to_broad_words", true)
+                    .forGetter(PresetProfile::availableToBroadWords),
+            ).apply(instance) { tags, readiness, dropped, replaces, presentAnyway, availableToBroadWords ->
+                PresetProfile(
+                    tags, readiness.orElse(null), dropped.toSet(), replaces, presentAnyway, availableToBroadWords,
+                )
             }
         }
     }

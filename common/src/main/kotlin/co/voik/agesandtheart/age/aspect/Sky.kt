@@ -38,8 +38,8 @@ enum class Sky(override val key: String) : AuthoredPreset {
 
     override val aspect = Aspect.SKY
 
-    /** Only [SPIRE] is unaskable, and being so is the point of it — see [Taggable.askableInASentence]. */
-    override val askableInASentence: Boolean get() = this != SPIRE
+    /** Only [SPIRE] is kept from broad words, and being so is the point of it — see [Taggable.availableToBroadWords]. */
+    override val availableToBroadWords: Boolean get() = this != SPIRE
 
     /**
      * **None.** The bodies overhead are the sun's, the moon's and the stars' — their own aspects — and the

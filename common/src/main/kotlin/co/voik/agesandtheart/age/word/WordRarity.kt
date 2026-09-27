@@ -4,6 +4,7 @@ import co.voik.agesandtheart.datapack.ResourceParsing
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.server.packs.resources.ResourceManager
+import net.minecraft.util.ExtraCodecs
 import net.minecraft.util.RandomSource
 
 /**
@@ -15,107 +16,80 @@ import net.minecraft.util.RandomSource
 data class RarityBucket(
     /** The file's name. */
     val name: String,
-    /** This bucket's share of a draw, against its siblings'. */
+    /** This bucket's share of found pages, against its siblings'. */
     val weight: Double,
+    /** Words listed here, by name or — for a derived word — by full id. */
     val words: Set<String>,
-    /**
-     * Weight of the *entire* derived corpus as one entry here. One entry because there are hundreds of
-     * them: listed individually they would drown every authored word in the bucket.
-     */
-    val derived: Double,
-    /** Whether authored words no bucket lists land here. Exactly one bucket should say yes. */
-    val catchAll: Boolean,
+    /** Whether every word no bucket lists lands here. Exactly one bucket should say yes. */
+    val isDefault: Boolean,
 ) {
     /** This bucket with [later] laid over it — a higher-priority pack retuning it. */
     fun mergedWith(later: RarityBucket): RarityBucket = RarityBucket(
         name = name,
         weight = later.weight,
         words = words + later.words,
-        derived = later.derived,
-        catchAll = later.catchAll,
+        isDefault = later.isDefault,
     )
 
-    companion object {
-        private const val NO_DERIVED = 0.0
+    fun lists(word: Word): Boolean = word.name in words || word.id.toString() in words
 
+    companion object {
         fun codec(name: String): Codec<RarityBucket> = RecordCodecBuilder.create { instance ->
             instance.group(
                 Codec.DOUBLE.fieldOf("weight").forGetter(RarityBucket::weight),
                 Codec.STRING.listOf().optionalFieldOf("words", emptyList())
                     .forGetter { it.words.toList() },
-                Codec.DOUBLE.optionalFieldOf("derived", NO_DERIVED).forGetter(RarityBucket::derived),
-                Codec.BOOL.optionalFieldOf("catch_all", false).forGetter(RarityBucket::catchAll),
-            ).apply(instance) { weight, words, derived, catchAll ->
-                RarityBucket(name, weight, words.toSet(), derived, catchAll)
+                Codec.BOOL.optionalFieldOf("default", false).forGetter(RarityBucket::isDefault),
+            ).apply(instance) { weight, words, isDefault ->
+                RarityBucket(name, weight, words.toSet(), isDefault)
             }
         }
     }
 }
 
 /**
- * How likely each word is to turn up on a found page.
+ * How likely each word is to turn up on a found page: a bucket is rolled by weight, then a word within it
+ * uniformly. Every word is in exactly one bucket — the one listing it, or else the default.
  *
  * A different axis from [Tier]: tier is what a word costs to write, rarity is how hard it is to come by.
  * A word may be evocative and rare, or exact and common.
  */
-data class WordRarity(val buckets: List<RarityBucket>) {
+data class WordRarity(
+    val buckets: List<RarityBucket>,
+    /** Authored words kept off found pages, by name — see [CannotAppearInLoot]. */
+    val keptOutOfLoot: Set<String> = emptySet(),
+) {
+    private val default: RarityBucket? get() = buckets.firstOrNull { it.isDefault }
 
-    /** Which bucket [word] belongs to, for the page to say so. A derived word may be listed by its full id. */
-    fun bucketOf(vocabulary: Vocabulary, word: Word): RarityBucket? {
-        buckets.firstOrNull { word.name in it.words || word.id.toString() in it.words }?.let { return it }
-        if (vocabulary.isDerived(word)) return buckets.filter { it.derived > 0.0 }.maxByOrNull { it.derived }
-        return buckets.firstOrNull { it.catchAll }
-    }
+    /** Which bucket [word] belongs to, for the page to say so. */
+    fun bucketOf(word: Word): RarityBucket? = buckets.firstOrNull { it.lists(word) } ?: default
 
     /**
      * A word for a fresh page, or null if no bucket can offer one.
      *
-     * Bucket first, then within it. A single flat table would make a bucket's share depend on how many
-     * words it lists, so adding a rare word would make every other rare word rarer.
+     * Bucket first, then within it, so a bucket's share of pages is its weight whatever it lists. [only]
+     * narrows the roll to the buckets named, which is how a loot table asks for rare pages. [keep] is
+     * asked only of the bucket rolled, and a bucket it empties is dropped and the roll made again.
      */
-    fun draw(vocabulary: Vocabulary, random: RandomSource, keep: (Word) -> Boolean = { true }): Word? {
-        val resolved = buckets.mapNotNull { bucket -> resolve(bucket, vocabulary, keep)?.let { bucket to it } }
-        val bucket = pick(resolved, random) { (_, entries) -> entries.weight } ?: return null
-        return bucket.second.draw(random)
+    fun draw(
+        vocabulary: Vocabulary,
+        random: RandomSource,
+        only: Set<String>? = null,
+        keep: (Word) -> Boolean = { true },
+    ): Word? {
+        val byBucket = vocabulary.words.groupBy(::bucketOf)
+        val offered = buckets.filter { only == null || it.name in only }.toMutableList()
+        while (true) {
+            val bucket = pick(offered, random, RarityBucket::weight) ?: return null
+            val words = byBucket[bucket].orEmpty().filter(keep)
+            if (words.isNotEmpty()) return words[random.nextInt(words.size)]
+            offered -= bucket
+        }
     }
 
-    /** What a bucket can actually offer on this server, or null if that is nothing. */
-    private fun resolve(bucket: RarityBucket, vocabulary: Vocabulary, keep: (Word) -> Boolean): Entries? {
-        val spokenFor = buckets.flatMap { it.words }.toSet()
-        val listed = bucket.words.mapNotNull(vocabulary::word).filter(keep).toMutableList()
-        if (bucket.catchAll) {
-            listed += vocabulary.authoredWords.filter { it.name !in spokenFor && keep(it) }
-        }
-        // **A word named in a bucket leaves the anonymous mass**, exactly as an authored one does. The
-        // derived half was unguarded, so naming `diamond_ore` rare made it drawable as rare *and* as an
-        // ordinary derived page — which is not what setting a rarity means.
-        val derived = if (bucket.derived > 0.0) {
-            vocabulary.derivedWords.filter { it.name !in spokenFor && it.id.toString() !in spokenFor && keep(it) }
-        } else {
-            emptyList()
-        }
-        if (listed.isEmpty() && derived.isEmpty()) return null
-        // A bucket listing nothing this server has must not still win its full share.
-        val share = if (listed.isEmpty()) bucket.derived else bucket.weight
-        return Entries(share, listed.distinct(), derived, bucket.derived)
-    }
-
-    private data class Entries(
-        val weight: Double,
-        val listed: List<Word>,
-        val derived: List<Word>,
-        val derivedWeight: Double,
-    ) {
-        fun draw(random: RandomSource): Word? {
-            val derivedShare = if (derived.isEmpty()) 0.0 else derivedWeight
-            val total = listed.size + derivedShare
-            if (total <= 0.0) return null
-            // The derived mass sits past the listed words, so one roll settles which kind it is.
-            val roll = random.nextDouble() * total
-            if (roll >= listed.size) return derived[random.nextInt(derived.size)]
-            return listed[roll.toInt().coerceAtMost(listed.size - 1)]
-        }
-    }
+    /** What [bucket] can actually offer on this server. */
+    fun wordsIn(bucket: RarityBucket, vocabulary: Vocabulary): List<Word> =
+        vocabulary.words.filter { bucketOf(it) == bucket }
 
     private fun <T> pick(from: List<T>, random: RandomSource, weight: (T) -> Double): T? {
         val total = from.sumOf(weight)
@@ -132,6 +106,17 @@ data class WordRarity(val buckets: List<RarityBucket>) {
         /** Where a pack puts rarity buckets, one file per rarity. */
         const val RARITY_DIRECTORY = "art/rarity"
 
+        /** The authored words no found page may carry, which a tag cannot hold since they name nothing. */
+        const val KEPT_OUT_OF_LOOT_FILE = "art/cannot_appear_in_loot.json"
+
+        /** A loot function's `rarity`: one bucket's name, or a list of them. */
+        val BUCKET_NAMES_CODEC: Codec<Set<String>> =
+            ExtraCodecs.compactListCodec(Codec.STRING).xmap({ it.toSet() }, { it.toList() })
+
+        private val KEPT_OUT_CODEC: Codec<List<String>> = RecordCodecBuilder.create { instance ->
+            instance.group(Codec.STRING.listOf().fieldOf("words").forGetter { it }).apply(instance) { it }
+        }
+
         /** The buckets in [resources], stacked so a pack may retune a weight without reprinting the file. */
         fun load(resources: ResourceManager, problems: MutableList<String>): WordRarity {
             val merged = mutableMapOf<String, RarityBucket>()
@@ -146,10 +131,20 @@ data class WordRarity(val buckets: List<RarityBucket>) {
                 }
             }
             val buckets = merged.values.sortedByDescending { it.weight }
-            if (buckets.none { it.catchAll }) {
-                problems += "no rarity bucket is the catch_all, so an authored word listed in none is unobtainable"
+            val defaults = buckets.count { it.isDefault }
+            if (defaults != 1) {
+                problems += "$defaults rarity buckets say `default`, and exactly one should: it is where every " +
+                    "word no bucket lists is found"
             }
-            return WordRarity(buckets)
+            return WordRarity(buckets, keptOutOfLoot(resources, problems))
+        }
+
+        /** Every pack's list, together — a pack may keep its own words out but not let ours back in. */
+        private fun keptOutOfLoot(resources: ResourceManager, problems: MutableList<String>): Set<String> {
+            val files = resources.listResourceStacks("art") { it.path == KEPT_OUT_OF_LOOT_FILE }
+            return files.flatMap { (file, layers) ->
+                layers.flatMap { layer -> ResourceParsing.parse(layer, file, KEPT_OUT_CODEC, problems).orEmpty() }
+            }.toSet()
         }
     }
 }

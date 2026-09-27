@@ -36,10 +36,9 @@ age danger score burning
 age write hellish 11 infernal age
 age danger score hellish
 
-# **The fence, which fails silently and can fail no other way.** Deretheni must never be a word: an Age a
-# writer could ask to be full of it is 8.4's duplication exploit with no danger required. The forbidden tag
-# is empty offline, so no offline check can see this -- only a bound registry can, which is here.
-# Expect NO pitchstone line in the corpus.
+# **The price, which fails silently and can fail no other way.** Deretheni is a word, but one that demands
+# masterwork ink (`requires_masterwork_ink`, 2026-09-06). The tag is empty offline, so only a bound registry
+# can show it, which is here. Expect pitchstone lines in the corpus.
 age words json
 
 # The deposit itself. Generate the hellish Age, then count what is actually in the ground: `fill ... replace`
