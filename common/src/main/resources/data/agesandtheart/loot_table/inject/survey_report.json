@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "One of the three D'ni survey reports (design 7.6), each an Age the Guild of Maintainers turned down for",
+    "missing one thing a D'ni city needs, found with that Age's descriptive book so the reader can go and see",
+    "why. Each is a table of its own, because a pool draws one entry however they are grouped, and a nested",
+    "table drops everything it rolls. Their home is the lost library; until it exists they are scattered",
+    "into the vanilla chests nearest to one in spirit, rarely. Even odds between the three."
+  ],
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:loot_table", "value": "agesandtheart:inject/survey_report/sunlit_age_survey" },
+        { "type": "minecraft:loot_table", "value": "agesandtheart:inject/survey_report/lightless_age_survey" },
+        { "type": "minecraft:loot_table", "value": "agesandtheart:inject/survey_report/cramped_age_survey" }
+      ]
+    }
+  ]
+}

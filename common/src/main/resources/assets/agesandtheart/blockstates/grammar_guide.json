@@ -1,0 +1,4 @@
+{
+  "_comment": "A bookshelf stands in until the model pass, since a bookshelf was the grammar guide until it had a block.",
+  "variants": { "": { "model": "minecraft:block/bookshelf" } }
+}

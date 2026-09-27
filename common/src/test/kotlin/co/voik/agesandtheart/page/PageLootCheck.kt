@@ -45,7 +45,7 @@ class PageLootCheck : FunSpec({
 
     /** Every modifier adds one of ours, never something that happens to parse. */
     test("every modifier adds a shipped table") {
-        val ours = setOf(PageLoot.PAGES, PageLoot.NOTEBOOK, PageLoot.LINKING_BOOK, PageLoot.DESCRIPTIVE_BOOK)
+        val ours = setOf(PageLoot.PAGES, PageLoot.NOTEBOOK, PageLoot.LINKING_BOOK, PageLoot.DESCRIPTIVE_BOOK, PageLoot.SURVEY_REPORT)
             .map { it.identifier().toString() }
         val tables = modifierDirectory.listFiles { file -> file.extension == "json" }.orEmpty()
             .map { JsonParser.parseString(it.readText()).asJsonObject["table"].asString }

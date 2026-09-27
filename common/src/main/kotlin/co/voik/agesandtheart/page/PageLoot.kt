@@ -61,6 +61,13 @@ object PageLoot {
         ResourceKey.create(Registries.LOOT_TABLE, "inject/descriptive_book".location())
 
     /**
+     * One of the three D'ni survey reports (design §7.6). Their home is the lost library, and until it
+     * exists they are scattered into the chests nearest one in spirit, all of them rarely.
+     */
+    val SURVEY_REPORT: ResourceKey<LootTable> =
+        ResourceKey.create(Registries.LOOT_TABLE, "inject/survey_report".location())
+
+    /**
      * Chosen for places someone once wrote in: libraries and temples over mineshafts, and nothing that
      * would make pages a mob drop. Chances are per-container, not per-chest-slot.
      */
@@ -115,6 +122,14 @@ object PageLoot {
         vanilla("chests/jungle_temple", 0.08f, LINKING_BOOK),
         vanilla("chests/village/village_cartographer", 0.08f, LINKING_BOOK),
         vanilla("chests/simple_dungeon", 0.05f, LINKING_BOOK),
+
+        // Survey reports: a library's papers, so a library first and places a scholar kept things after.
+        vanilla("chests/stronghold_library", 0.15f, SURVEY_REPORT),
+        vanilla("chests/woodland_mansion", 0.06f, SURVEY_REPORT),
+        vanilla("chests/ancient_city", 0.06f, SURVEY_REPORT),
+        vanilla("chests/village/village_cartographer", 0.04f, SURVEY_REPORT),
+        vanilla("chests/desert_pyramid", 0.03f, SURVEY_REPORT),
+        vanilla("chests/jungle_temple", 0.03f, SURVEY_REPORT),
     )
 
     /** Every target for a table, since pages and a notebook may both reach the same container. */

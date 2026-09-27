@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.word.generation.AgeName
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.content.AgeComponents
+import co.voik.agesandtheart.content.SurveyReport
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.item.ItemStack
 import kotlin.random.Random
@@ -33,12 +34,25 @@ object FoundBook {
     fun write(stack: ItemStack, server: MinecraftServer, seed: Long) {
         val vocabulary = Vocabulary.of(server)
         val pages = vocabulary.generation.grammar(GRAMMAR)?.expand(Random(seed)).orEmpty()
+        writePages(stack, vocabulary, pages) { AgeName.drawn(vocabulary, seed)?.read ?: UNNAMED }
+    }
+
+    /**
+     * [stack] written as the book of the Age [report] surveyed (design §7.6) — its name, its sentence, and
+     * its seed, so every copy of it leads to the same world.
+     */
+    fun writeSurveyed(stack: ItemStack, server: MinecraftServer, report: SurveyReport) {
+        writePages(stack, Vocabulary.of(server), report.sentence) { report.ageName }
+        stack.set(AgeComponents.BOOK_SEED, report.ageSeed)
+    }
+
+    private fun writePages(stack: ItemStack, vocabulary: Vocabulary, pages: List<String>, title: () -> String) {
         val words = pages.mapNotNull { page -> vocabulary.word(page)?.id ?: vocabulary.grammarWord(page)?.id }
         stack.set(AgeComponents.BOOK_WORDS, words)
         if (words.isEmpty()) return
-        stack.set(AgeComponents.BOOK_TITLE, AgeName.drawn(vocabulary, seed)?.read ?: UNNAMED)
-        // A generation grammar that dropped the `age` page has written something no player could bind, so
-        // the book goes out unread rather than carrying a reading of a sentence it does not spell.
+        stack.set(AgeComponents.BOOK_TITLE, title())
+        // A sentence that dropped the `age` page is something no player could bind, so the book goes out
+        // unread rather than carrying a reading of a sentence it does not spell.
         val read = Grammar.read(vocabulary, pages) ?: return
         stack.set(AgeComponents.BOOK_READING, Readout.columnsOf(read))
     }

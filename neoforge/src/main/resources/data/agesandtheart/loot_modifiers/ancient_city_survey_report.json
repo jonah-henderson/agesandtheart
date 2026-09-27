@@ -1,0 +1,14 @@
+{
+  "type": "neoforge:add_table",
+  "condition": { "type": "minecraft:all_of", "terms": [
+    {
+      "type": "neoforge:loot_table_id",
+      "loot_table_id": "minecraft:chests/ancient_city"
+    },
+    {
+      "type": "minecraft:random_chance",
+      "chance": 0.06
+    }
+  ] },
+  "table": "agesandtheart:inject/survey_report"
+}

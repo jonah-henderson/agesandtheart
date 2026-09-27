@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "The three D'ni survey reports and six pages (design 7.4). The reports are what hint at a D'ni city's",
+    "requirements, so the guide is built out of having read about them. The pages were meant to be six",
+    "DIFFERENT ones; a shapeless recipe cannot ask that, and repeats are accepted for now (Jonah, 2026-09-24)."
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "agesandtheart:sunlit_age_survey",
+    "agesandtheart:lightless_age_survey",
+    "agesandtheart:cramped_age_survey",
+    "agesandtheart:page",
+    "agesandtheart:page",
+    "agesandtheart:page",
+    "agesandtheart:page",
+    "agesandtheart:page",
+    "agesandtheart:page"
+  ],
+  "result": { "id": "agesandtheart:grammar_guide" }
+}

@@ -1,0 +1,20 @@
+{
+  "_comment": "One survey report and the descriptive book of the Age it turned down, always together (design 7.6).",
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:lightless_age_survey" }]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:descriptive_book",
+          "modifier": [{ "type": "agesandtheart:write_surveyed_book", "survey": "lightless_age_survey" }]
+        }
+      ]
+    }
+  ]
+}

@@ -1,8 +1,9 @@
 {
-  "_comment": "Both cases are joinery; an axe is what takes one apart.",
+  "_comment": "Joinery, the two cases and the guide's shelf; an axe is what takes one apart.",
   "replace": false,
   "values": [
     "agesandtheart:toolbox",
-    "agesandtheart:geologists_tools"
+    "agesandtheart:geologists_tools",
+    "agesandtheart:grammar_guide"
   ]
 }

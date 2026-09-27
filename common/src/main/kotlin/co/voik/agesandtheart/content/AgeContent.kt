@@ -6,6 +6,7 @@ import co.voik.agesandtheart.page.PageWordFunction
 import co.voik.agesandtheart.age.consequence.WoundBlock
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
+import co.voik.agesandtheart.book.WriteSurveyedBookFunction
 import co.voik.agesandtheart.portal.LinkingBookReceptacleBlock
 import co.voik.agesandtheart.portal.LinkingBookReceptacleBlockEntity
 import co.voik.agesandtheart.portal.LinkingPortalBlock
@@ -969,6 +970,34 @@ object AgeContent {
             .stacksTo(1),
     )
 
+    /** The three D'ni survey reports, one item each so a plain recipe can ask for all three. */
+    val SURVEY_REPORTS: Map<SurveyReport, Item> = SurveyReport.entries.associateWith { report ->
+        SurveyReportItem(
+            Item.Properties()
+                .setId(ResourceKey.create(Registries.ITEM, report.id))
+                .stacksTo(SURVEY_REPORT_STACK),
+            report,
+        )
+    }
+
+    private const val SURVEY_REPORT_STACK = 16
+
+    private val GRAMMAR_GUIDE_ID: Identifier = "grammar_guide".location()
+
+    /** The D'ni grammar guide (design §7.4), an implement the desk counts; built from the survey reports. */
+    val GRAMMAR_GUIDE_BLOCK: Block = Block(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, GRAMMAR_GUIDE_ID))
+            .mapColor(MapColor.WOOD)
+            .strength(WOODEN_STRENGTH)
+            .sound(SoundType.WOOD),
+    )
+
+    val GRAMMAR_GUIDE: Item = BlockItem(
+        GRAMMAR_GUIDE_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, GRAMMAR_GUIDE_ID)).useBlockDescriptionPrefix(),
+    )
+
     private val LINKING_BOOK_ID: Identifier = "linking_book".location()
 
     /** Unstackable: each one is a different door, even before it is written in. */
@@ -1558,6 +1587,7 @@ object AgeContent {
         TOOLBOX_ID to TOOLBOX_BLOCK,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_BLOCK,
         SEISMOGRAPH_ID to SEISMOGRAPH_BLOCK,
+        GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE_BLOCK,
     )
 
     /**
@@ -1665,6 +1695,8 @@ object AgeContent {
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE,
         SURVEYING_DEVICE_ID to SURVEYING_DEVICE,
         SCARAB_MEDALLION_ID to SCARAB_MEDALLION,
+        *SURVEY_REPORTS.map { (report, item) -> report.id to item }.toTypedArray(),
+        GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE,
         PITCHSTONE_ID to PITCHSTONE,
         PITCHSTONE_ORE_ID to PITCHSTONE_ORE,
         DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE,
@@ -1700,6 +1732,7 @@ object AgeContent {
         "fill_notebook".location() to FillNotebookFunction.MAP_CODEC,
         "bind_linking_book".location() to BindLinkingBookFunction.MAP_CODEC,
         "write_found_book".location() to WriteFoundBookFunction.MAP_CODEC,
+        "write_surveyed_book".location() to WriteSurveyedBookFunction.MAP_CODEC,
     )
 
     /**
