@@ -15,6 +15,10 @@ import net.minecraft.util.random.WeightedList
 import net.minecraft.world.level.levelgen.feature.SimpleBlockFeature
 import net.minecraft.world.level.levelgen.feature.BlockPileFeature
 import net.minecraft.world.level.levelgen.feature.IcebergFeature
+import net.minecraft.world.level.levelgen.placement.CountPlacement
+import net.minecraft.world.level.levelgen.placement.OffsetPlacement
+import net.minecraft.util.valueproviders.IntProvider
+import net.minecraft.util.valueproviders.TrapezoidInt
 import net.minecraft.world.level.block.Block
 
 import net.minecraft.world.level.levelgen.feature.AbstractOreFeature
@@ -154,6 +158,7 @@ object FeatureShape {
             // lands is not placed, exactly as a flower on sand is not.
             is SimpleBlockFeature -> SimpleBlockFeature(mingled(blocks), feature.scheduleTick())
             is BlockPileFeature -> BlockPileFeature(mingled(blocks))
+            is Heap -> feature.copy(stateProvider = mingled(blocks))
             is IcebergFeature -> IcebergFeature(block.defaultBlockState())
             else -> return pattern
         }
@@ -190,10 +195,52 @@ object FeatureShape {
     ): Holder<PlacedFeature> {
         val placed = feature.value()
         val shaped = withShape(placed.feature(), size, thickness, height, rock)
-        val placement = withHeight(placed.placement(), height)
+        val isAPatch = placed.feature().value() is SimpleBlockFeature
+        val spread = if (isAPatch) withSpread(placed.placement(), size) else placed.placement()
+        val placement = withHeight(spread, height)
         if (shaped === placed.feature() && placement === placed.placement()) return feature
         return Holder.direct(PlacedFeature(shaped, placement))
     }
+
+    /**
+     * **A patch's size is its placement**: the tries clustered around one spot, each a single block. A
+     * bigger patch spreads them over a wider square and makes more of them, by the area, so it is as dense
+     * as an ordinary one and not a thin scatter. The tries are the count placed directly before the offset;
+     * a placement without that pair is left as it stands.
+     */
+    private fun withSpread(placement: List<PlacementModifier>, size: Double?): List<PlacementModifier> {
+        if (size == null) return placement
+        val offsetAt = placement.indexOfFirst { it is OffsetPlacement }
+        val tries = placement.getOrNull(offsetAt - 1) as? CountPlacement ?: return placement
+        val offset = placement[offsetAt] as OffsetPlacement
+        val factor = sizeFactor(size)
+        val wanted = (tries.count().maxInclusive() * factor * factor).roundToInt().coerceIn(1, MOST_TRIES)
+        val spread = OffsetPlacement(widened(offset.x(), factor), offset.y(), widened(offset.z(), factor))
+        return placement.take(offsetAt - 1) + triesOf(wanted) + spread + placement.drop(offsetAt + 1)
+    }
+
+    /** A horizontal spread widened by [factor]; a spread of another shape is left alone. */
+    private fun widened(spread: IntProvider, factor: Double): IntProvider {
+        val trapezoid = spread as? TrapezoidInt ?: return spread
+        val reach = (trapezoid.maxInclusive() * factor).roundToInt().coerceIn(0, MOST_PATCH_REACH)
+        return TrapezoidInt.of(-reach, reach, trapezoid.plateau())
+    }
+
+    /** [wanted] tries as counts a placement can hold, each of which is capped at 256. */
+    private fun triesOf(wanted: Int): List<PlacementModifier> {
+        val outer = (wanted + MOST_PER_COUNT - 1) / MOST_PER_COUNT
+        return if (outer <= 1) listOf(CountPlacement.of(wanted))
+        else listOf(CountPlacement.of(outer), CountPlacement.of(wanted / outer))
+    }
+
+    /** `CountPlacement`'s own ceiling. */
+    private const val MOST_PER_COUNT = 256
+
+    /** Sixteen times vanilla's tries, which is what a colossal patch asks for. */
+    private const val MOST_TRIES = 1024
+
+    /** A patch reaches no farther than the chunk next door, where worldgen may still write. */
+    private const val MOST_PATCH_REACH = 24
 
     /**
      * The feature with its own shape rebuilt — an ore's vein size, a patch's fill.
@@ -305,6 +352,8 @@ object FeatureShape {
                     placement = feature.placement.resized(sqrt(factor)),
                 )
             }
+
+            is Heap -> size?.let { feature.copy(scale = feature.scale * sizeFactor(it)) }
 
             else -> null
         } ?: return held

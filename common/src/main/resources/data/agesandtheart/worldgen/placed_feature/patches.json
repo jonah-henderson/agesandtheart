@@ -1,9 +1,10 @@
 {
   "_comment": [
-    "Vanilla's patch placement -- a cluster of tries fifteen blocks across, each kept only where the",
-    "spot is open air -- at about four times the flowers' frequency, so a patch a writer asked for is one",
-    "they meet. And never over a fluid: a flower cannot stand on the sea anyway, but a patch of solid blocks",
-    "would float on it."
+    "Vanilla's patch -- a cluster of tries fifteen blocks across -- at about four times the flowers'",
+    "frequency, so a patch a writer asked for is one they meet. Each try is snapped back to the surface and",
+    "kept only where the spot is open over solid ground, rather than jittered three blocks up and down as",
+    "vanilla's are: a flower that lands in the air cannot survive and a block of gold can, and a colossal",
+    "patch (`FeatureShape.withSpread`) crosses far more ground than three blocks can follow."
   ],
   "feature": "agesandtheart:patches",
   "placement": [
@@ -33,18 +34,17 @@
         "min": -7,
         "plateau": 0
       },
-      "y": {
-        "type": "minecraft:trapezoid",
-        "max": 3,
-        "min": -3,
-        "plateau": 0
-      },
+      "y": 0,
       "z": {
         "type": "minecraft:trapezoid",
         "max": 7,
         "min": -7,
         "plateau": 0
       }
+    },
+    {
+      "type": "minecraft:heightmap",
+      "heightmap": "MOTION_BLOCKING_NO_LEAVES"
     },
     {
       "type": "minecraft:block_predicate_filter",
@@ -56,19 +56,12 @@
             "tag": "minecraft:air"
           },
           {
-            "type": "minecraft:not",
-            "predicate": {
-              "type": "minecraft:matching_fluids",
-              "offset": [
-                0,
-                -1,
-                0
-              ],
-              "fluids": [
-                "minecraft:water",
-                "minecraft:lava"
-              ]
-            }
+            "type": "minecraft:solid",
+            "offset": [
+              0,
+              -1,
+              0
+            ]
           }
         ]
       }

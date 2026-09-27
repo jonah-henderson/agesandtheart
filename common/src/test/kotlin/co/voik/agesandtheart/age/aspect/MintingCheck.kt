@@ -30,6 +30,12 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import java.io.File
+import co.voik.agesandtheart.worldgen.feature.Heap
+import net.minecraft.core.BlockPos
+import net.minecraft.util.RandomSource
+import net.minecraft.world.level.levelgen.placement.PlacementModifier
+import net.minecraft.world.level.levelgen.placement.OffsetPlacement
+import net.minecraft.world.level.levelgen.placement.CountPlacement
 
 /**
  * **A pattern made of something it is never made of** (world model §2) — `ink springs`, `gold block
@@ -440,16 +446,32 @@ class MintingCheck : FunSpec({
         }
     }
 
-    /** Ours, so not in the offline registries: read from the shipped files, which checks that they parse. */
+    /**
+     * Ours, so not in the offline registries: read from the shipped files, which checks that they parse. A
+     * feature type of our own is not registered offline either, so a heap is read through its own codec.
+     */
     fun shippedPattern(name: String): Holder<PlacedFeature> {
         val file = File("src/main/resources/data/agesandtheart/worldgen/feature/$name.json")
-        val feature = Feature.DIRECT_CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(file.readText())).getOrThrow()
+        val json = JsonParser.parseString(file.readText())
+        val isOurs = json.asJsonObject.get("type").asString == "agesandtheart:heap"
+        val feature: Feature = if (isOurs) {
+            Heap.CODEC.codec().parse(JsonOps.INSTANCE, json).getOrThrow()
+        } else {
+            Feature.DIRECT_CODEC.parse(JsonOps.INSTANCE, json).getOrThrow()
+        }
         return Holder.direct(PlacedFeature(Holder.direct(feature), emptyList()))
     }
 
     /** What a minted feature is made of, through the codec — a provider's `toString` names nothing. */
-    fun spelled(minted: Holder<PlacedFeature>): String =
-        Feature.DIRECT_CODEC.encodeStart(JsonOps.INSTANCE, minted.value().feature().value()).getOrThrow().toString()
+    fun spelled(minted: Holder<PlacedFeature>): String {
+        val feature = minted.value().feature().value()
+        val encoded = if (feature is Heap) {
+            Heap.CODEC.codec().encodeStart(JsonOps.INSTANCE, feature)
+        } else {
+            Feature.DIRECT_CODEC.encodeStart(JsonOps.INSTANCE, feature)
+        }
+        return encoded.getOrThrow().toString()
+    }
 
     /** The umbrella words: each named alone is made of its own fallback, and each takes any block. */
     test("patches, piles and icebergs named alone fall back to what they say they are made of") {
@@ -481,6 +503,76 @@ class MintingCheck : FunSpec({
         check("minecraft:pumpkin" in piled && "minecraft:melon" in piled && "hay_block" !in piled) {
             "'pumpkin and melon piles' is $piled"
         }
+    }
+
+    /** The minted claim of [pattern] a book leaves, read back. */
+    fun mintedIn(pattern: String, vararg pages: String): Claim =
+        placed(*pages).map(Claim::read).single { it.value == pattern }
+
+    /** **The amount and the size in a minting clause are the minted thing's own**, for the umbrellas too. */
+    test("teeming colossal tnt piles and scarce minuscule wither_rose patches keep both on the claim") {
+        val piles = mintedIn("agesandtheart:piles", "teeming", "colossal", "tnt", "piles")
+        check(piles.substances == listOf("minecraft:tnt")) { "the piles are of ${piles.substances}" }
+        check(piles.density > Rung.ORDINARY && (piles.size ?: 0.0) > 0.0) {
+            "'teeming colossal tnt piles' is $piles"
+        }
+
+        val patches = mintedIn("agesandtheart:patches", "scarce", "minuscule", "wither_rose", "patches")
+        check(patches.substances == listOf("minecraft:wither_rose")) { "the patches are of ${patches.substances}" }
+        check(patches.density < Rung.ORDINARY && (patches.size ?: 0.0) < 0.0) {
+            "'scarce minuscule wither_rose patches' is $patches"
+        }
+    }
+
+    test("a colossal pile is a heap four times the scale") {
+        val colossal = FeatureShape.reshaped(shippedPattern("piles"), 1.0, null, null, emptyList())
+        val heap = colossal.value().feature().value()
+        check(heap is Heap && heap.scale == 4.0) { "a colossal pile became $heap" }
+    }
+
+    /** A patch's size is its spread and its tries, read off the placement the pack ships. */
+    test("a colossal patch spreads four times as far with sixteen times the tries, and a minuscule one shrinks") {
+        val file = File("src/main/resources/data/agesandtheart/worldgen/placed_feature/patches.json")
+        val placement = PlacementModifier.CODEC.listOf()
+            .parse(JsonOps.INSTANCE, JsonParser.parseString(file.readText()).asJsonObject.get("placement"))
+            .getOrThrow()
+        val pattern = Holder.direct(PlacedFeature(shippedPattern("patches").value().feature(), placement))
+
+        fun spreadAndTries(size: Double?): Pair<Int, Int> {
+            val reshaped = FeatureShape.reshaped(pattern, size, null, null, emptyList()).value().placement()
+            val offset = reshaped.filterIsInstance<OffsetPlacement>().single()
+            val atOffset = reshaped.indexOf(offset)
+            val tries = reshaped.take(atOffset).takeLastWhile { it is CountPlacement }
+                .fold(1) { total, count -> total * (count as CountPlacement).count().maxInclusive() }
+            return offset.x().maxInclusive() to tries
+        }
+        check(spreadAndTries(null) == (7 to 64)) { "an ordinary patch is ${spreadAndTries(null)}" }
+        check(spreadAndTries(1.0) == (24 to 1024)) { "a colossal patch is ${spreadAndTries(1.0)}" }
+        val minuscule = spreadAndTries(-1.0)
+        check(minuscule.first < 7 && minuscule.second < 64) { "a minuscule patch is $minuscule" }
+    }
+
+    /** On flat ground: an ordinary heap is vanilla's, a colossal one a mound, a minuscule one a block or two. */
+    test("a heap grows from vanilla's pile into a mound with its scale") {
+        fun heapOn(scale: Double): Pair<Int, Int> {
+            val laid = mutableSetOf<BlockPos>()
+            Heap.heap(
+                origin = BlockPos.ZERO,
+                scale = scale,
+                random = RandomSource.create(SAMPLE_SEED),
+                isOpen = { it.y >= 0 && it !in laid },
+                holdsUp = { it.y == -1 || it in laid },
+            ) { laid += it }
+            return laid.size to (laid.maxOfOrNull { it.y + 1 } ?: 0)
+        }
+        val (ordinary, ordinaryHeight) = heapOn(1.0)
+        check(ordinary in 5..50 && ordinaryHeight <= 2) { "an ordinary heap is $ordinary blocks, $ordinaryHeight high" }
+        val (colossal, colossalHeight) = heapOn(4.0)
+        check(colossal > ordinary * 10 && colossalHeight in 5..8) {
+            "a colossal heap is $colossal blocks, $colossalHeight high"
+        }
+        val (minuscule, _) = heapOn(0.25)
+        check(minuscule in 1..5) { "a minuscule heap is $minuscule blocks" }
     }
 
     test("a minted iceberg is made of the substance and stands where vanilla's would") {

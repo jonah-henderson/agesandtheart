@@ -1,9 +1,9 @@
 {
   "_comment": [
-    "Vanilla's block pile, the heaps a village leaves by its farms. Hay is only what the feature holds",
-    "when nothing mints it; `piles` always names what it is made of."
+    "A heap of loose blocks (`Heap`): at its ordinary scale the pile a village leaves by its farms, larger",
+    "a mound. Hay is only what it holds when nothing mints it; `piles` always names what it is made of."
   ],
-  "type": "minecraft:block_pile",
+  "type": "agesandtheart:heap",
   "state_provider": {
     "id": "minecraft:hay_block"
   }

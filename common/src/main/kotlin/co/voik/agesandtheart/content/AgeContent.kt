@@ -96,6 +96,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.material.MapColor
 import net.minecraft.world.level.material.PushReaction
 import co.voik.agesandtheart.worldgen.feature.Formation
+import co.voik.agesandtheart.worldgen.feature.Heap
 import co.voik.agesandtheart.worldgen.feature.OreVein
 import co.voik.agesandtheart.worldgen.feature.Algae
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
@@ -1821,6 +1822,7 @@ object AgeContent {
         "algae".location() to Algae.CODEC,
         "spilled_spring".location() to SpilledSpring.CODEC,
         "formation".location() to Formation.CODEC,
+        "heap".location() to Heap.CODEC,
         "ore_vein".location() to OreVein.CODEC,
         "rime_crystal".location() to RimeCrystal.CODEC,
         "tempered_ground".location() to TemperedGround.CODEC,
