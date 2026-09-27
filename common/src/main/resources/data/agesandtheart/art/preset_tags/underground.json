@@ -40,6 +40,14 @@
       "dark": 0.6
     }
   },
+  "fissured": {
+    "readiness": 0.3,
+    "tags": {
+      "cavernous": 0.8,
+      "sheer": 0.9,
+      "dark": 0.7
+    }
+  },
   "chambered": {
     "readiness": 0.3,
     "tags": {

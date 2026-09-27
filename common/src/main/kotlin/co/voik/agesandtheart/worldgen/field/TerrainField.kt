@@ -73,6 +73,7 @@ enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<ou
     CYLINDER({ Cylinder.CODEC }),
     BOX({ Box.CODEC }),
     LATTICE({ Lattice.CODEC }),
+    FISSURES({ Fissures.CODEC }),
     NOISE_HEIGHTMAP({ NoiseHeightmap.CODEC }),
     NOISE_3D({ Noise3D.CODEC }),
     WEATHERED({ self -> Weathered.codec(self) }),

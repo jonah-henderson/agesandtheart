@@ -17,6 +17,7 @@ import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.Chambers
+import co.voik.agesandtheart.worldgen.FissuresField
 import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.SolidField
@@ -255,6 +256,19 @@ private val subjects: Map<String, Subject> = mapOf(
         LatticeField.passages(-59, 19, scale = SizeScale.COLOSSAL),
         lowestY = VerticalWindow.MIN_Y,
         highestY = 30,
+        radius = 400,
+    ),
+    // The `fissured` underground in solid rock's band, at its unsaid and its colossal size.
+    "fissures-voids" to Subject(
+        FissuresField.openings(-59, 288, size = null),
+        lowestY = VerticalWindow.MIN_Y,
+        highestY = 300,
+        radius = 300,
+    ),
+    "fissures-colossal-voids" to Subject(
+        FissuresField.openings(-59, 288, size = 1.0),
+        lowestY = VerticalWindow.MIN_Y,
+        highestY = 300,
         radius = 400,
     ),
     "eroded" to Subject(ErodedField.world(), lowestY = 30, highestY = 195, radius = 200),

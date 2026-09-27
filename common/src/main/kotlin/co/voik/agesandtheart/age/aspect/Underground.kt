@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.worldgen.Chambers
+import co.voik.agesandtheart.worldgen.FissuresField
 import co.voik.agesandtheart.worldgen.GreatHalls
 import co.voik.agesandtheart.worldgen.LatticeField
 import co.voik.agesandtheart.worldgen.SizeScale
@@ -75,12 +76,19 @@ enum class Underground(override val key: String) : AuthoredPreset {
      */
     CHAMBERED("chambered"),
 
+    /**
+     * **Tall, narrow fissures** crossing at every heading, each closing to a point above and below —
+     * [co.voik.agesandtheart.worldgen.FissuresField]. The chambers turned on end: as much open rock, and
+     * nowhere wide enough to build on. Wet or dry by the water table, as a tunnel is.
+     */
+    FISSURED("fissured"),
+
     ;
 
     override val aspect = Aspect.UNDERGROUND
 
     /**
-     * **A vault is a thing with a name**, and so are a tunnel and a lattice, so the pages that mean them are minted here
+     * **A vault is a thing with a name**, and so are a tunnel, a lattice and a fissure, so the pages that mean them are minted here
      * the way a landform's is — `chambered underground` rather than a hopeful pile of adjectives. The other
      * three stay unnamed and are reached by what they are like, there being nothing to a hollow rock but
      * its quality.
@@ -156,6 +164,10 @@ enum class Underground(override val key: String) : AuthoredPreset {
                 wet = Chambers.lakesIn(floor, ceiling, size, CHAMBER_SEED xor salt),
             )
         }
+        FISSURED -> Terrain.Ground(
+            Subtract(uncut, FissuresField.openings(floor, ceiling, options.steer(Terrain.SIZE, salt), FISSURE_SEED xor salt)),
+            hollows = uncut,
+        )
         NONE -> Terrain.Ground(uncut)
     }
 
@@ -180,7 +192,7 @@ enum class Underground(override val key: String) : AuthoredPreset {
 
     companion object {
         /** The undergrounds that take a size and a page minted for them. `hollow`'s page is authored. */
-        private val SIZED = setOf(CHAMBERED, TUNNELS, LATTICE)
+        private val SIZED = setOf(CHAMBERED, TUNNELS, LATTICE, FISSURED)
 
         // Deep enough to hold a surface's dirt and a tree's roots over the void.
         private const val CRUST_THICKNESS = 8
@@ -190,6 +202,9 @@ enum class Underground(override val key: String) : AuthoredPreset {
 
         // And its tunnels, so the tubes are not laid along the noise caves.
         private const val TUNNEL_SEED = 0x7_0BE5L
+
+        // And its fissures, so they are not laid where anything else was.
+        private const val FISSURE_SEED = 0xF1_55EDL
 
         // And its lattice, so the grid is not anchored off the same numbers as anything else.
         private const val LATTICE_SEED = 0x1A_771CEL
