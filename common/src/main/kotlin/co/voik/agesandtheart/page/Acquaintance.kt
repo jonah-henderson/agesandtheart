@@ -6,6 +6,7 @@ import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.BucketItem
 import net.minecraft.world.item.ItemStack
@@ -29,9 +30,10 @@ import co.voik.agesandtheart.age.word.learnedWords
  * would gut the discovery economy and the self-illustrating grammar at a stroke. [Vocabulary.isDerived]
  * is the check, so the boundary is one question rather than a list.
  *
- * Two devices share this because the difference between them is only which registry the referent comes
+ * Three devices share this because the difference between them is only which registry the referent comes
  * out of: the analysis machine is a station the sample is brought to, the surveying device is one carried
- * to the place and set down there. See [Withheld] for the one thing neither may name.
+ * to the place and set down there, and the observation device studies a creature held in a cage. See
+ * [Withheld] for the one thing none of them may name.
  */
 object Acquaintance {
 
@@ -85,14 +87,27 @@ object Acquaintance {
         else -> null
     }
 
+    /** The referent a creature names: its kind's id, which is what [DerivedWords.spawns] names words by. */
+    fun kindOf(creature: Entity): Identifier = BuiltInRegistries.ENTITY_TYPE.getKey(creature.type)
+
     /** Learns the word for [referent], or says why not. */
-    fun teach(player: ServerPlayer, referent: Identifier): Acquainted {
-        val word = when (val found = lookUp(player, referent)) {
-            is Lookup.Refused -> return found.why
-            is Lookup.Teaches -> found.word
+    fun teach(player: ServerPlayer, referent: Identifier): Acquainted = teachEach(player, listOf(referent)).single()
+
+    /**
+     * Learns the word for each of [referents], or says why not, in the order asked. The words learned are
+     * confirmed together, so a cage of several creatures raises one toast rather than a stack of them.
+     */
+    fun teachEach(player: ServerPlayer, referents: List<Identifier>): List<Acquainted> {
+        val lookups = referents.map { lookUp(player, it) }
+        val teachable = lookups.filterIsInstance<Lookup.Teaches>().map { it.word.id }
+        val learned = PageLearning.teach(player, teachable).toSet()
+        return lookups.map { lookup ->
+            when (lookup) {
+                is Lookup.Refused -> lookup.why
+                is Lookup.Teaches ->
+                    if (lookup.word.id in learned) Acquainted.Learned(lookup.word) else Acquainted.AlreadyKnown(lookup.word)
+            }
         }
-        val learned = PageLearning.teach(player, listOf(word.id))
-        return if (learned.isEmpty()) Acquainted.AlreadyKnown(word) else Acquainted.Learned(word)
     }
 
     /**

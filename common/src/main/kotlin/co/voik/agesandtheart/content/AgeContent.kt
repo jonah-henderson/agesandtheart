@@ -958,6 +958,29 @@ object AgeContent {
     /** Lighter than the machine: an instrument you expect to pick up and carry on is worth less digging. */
     private const val SURVEYING_DEVICE_STRENGTH = 2.5f
 
+    private val OBSERVATION_DEVICE_ID: Identifier = "observation_device".location()
+
+    /** See [ObservationDeviceBlock] — set on a phasmium cage, it names the creatures inside. */
+    val OBSERVATION_DEVICE_BLOCK: ObservationDeviceBlock = ObservationDeviceBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, OBSERVATION_DEVICE_ID))
+            .mapColor(MapColor.COLOR_PURPLE)
+            .strength(ANALYSIS_MACHINE_STRENGTH)
+            .sound(SoundType.METAL)
+            .requiresCorrectToolForDrops(),
+    )
+
+    val OBSERVATION_DEVICE: Item = BlockItem(
+        OBSERVATION_DEVICE_BLOCK,
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, OBSERVATION_DEVICE_ID))
+            .useBlockDescriptionPrefix(),
+    )
+
+    /** The study in progress — see [ObservationDeviceBlockEntity]. */
+    val OBSERVATION_DEVICE_ENTITY: BlockEntityType<ObservationDeviceBlockEntity> =
+        BlockEntityType({ pos, state -> ObservationDeviceBlockEntity(pos, state) }, setOf(OBSERVATION_DEVICE_BLOCK))
+
     private val SCARAB_MEDALLION_ID: Identifier = "scarab_medallion".location()
 
     /**
@@ -1423,6 +1446,11 @@ object AgeContent {
     private const val GUARDIAN_WIDTH = 0.85f
     private const val GUARDIAN_HEIGHT = 0.85f
 
+    private val HADALFISH_LURE_ID: Identifier = "hadalfish_lure".location()
+
+    /** The light a hadalfish hunts by, dropped when one dies; the observation device is built around it. */
+    val HADALFISH_LURE: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, HADALFISH_LURE_ID)))
+
     val entities: List<Pair<Identifier, EntityType<*>>> = listOf(
         ASTRITE_GOLEM_ID to ASTRITE_GOLEM,
         HADALFISH_ID to HADALFISH,
@@ -1571,6 +1599,7 @@ object AgeContent {
         COLLAPSING_FISSURE_ID to COLLAPSING_FISSURE_BLOCK,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_BLOCK,
         SURVEYING_DEVICE_ID to SURVEYING_DEVICE_BLOCK,
+        OBSERVATION_DEVICE_ID to OBSERVATION_DEVICE_BLOCK,
         PITCHSTONE_ORE_ID to PITCHSTONE_ORE_BLOCK,
         DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE_BLOCK,
         PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
@@ -1609,6 +1638,7 @@ object AgeContent {
         ARCHIVE_ID to ARCHIVE_ENTITY,
         STAR_FISSURE_ID to STAR_FISSURE_ENTITY,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,
+        OBSERVATION_DEVICE_ID to OBSERVATION_DEVICE_ENTITY,
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_ENTITY,
     )
 
@@ -1694,6 +1724,8 @@ object AgeContent {
         MASTERWORK_PAPER_ID to MASTERWORK_PAPER,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE,
         SURVEYING_DEVICE_ID to SURVEYING_DEVICE,
+        OBSERVATION_DEVICE_ID to OBSERVATION_DEVICE,
+        HADALFISH_LURE_ID to HADALFISH_LURE,
         SCARAB_MEDALLION_ID to SCARAB_MEDALLION,
         *SURVEY_REPORTS.map { (report, item) -> report.id to item }.toTypedArray(),
         GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE,

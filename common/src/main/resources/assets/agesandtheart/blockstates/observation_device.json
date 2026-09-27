@@ -1,0 +1,14 @@
+{
+  "_comment": "An observer stands in until the model pass, for a device that watches; the working and ready glows are the respawn anchor's, as they are on the other two acquaintance devices, so the three read as one family across a room.",
+  "variants": {
+    "stage=idle": {
+      "model": "minecraft:block/observer"
+    },
+    "stage=working": {
+      "model": "minecraft:block/respawn_anchor_2"
+    },
+    "stage=ready": {
+      "model": "minecraft:block/respawn_anchor_4"
+    }
+  }
+}

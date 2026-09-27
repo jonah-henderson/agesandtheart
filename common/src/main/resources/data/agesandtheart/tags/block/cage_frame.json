@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "What a cage for the observation device is built of. Nara belongs here and does not exist yet",
+    "(design 7.1.2); this tag is the seam that lets it arrive without any code changing."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:phasmium_block"
+  ]
+}

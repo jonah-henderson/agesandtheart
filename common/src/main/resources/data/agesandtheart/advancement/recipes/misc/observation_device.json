@@ -1,0 +1,33 @@
+{
+  "_comment": "Gated on the lure, which is the one part that has to be fought for.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_hadalfish_lure": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:hadalfish_lure"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:observation_device"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_hadalfish_lure",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:observation_device"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "The lure is the device's eye, and a spyglass the instrument behind it. Rime crystals are the lenses, as",
+    "on the crystal viewer; phasmium because the device is set on a phasmium cage; pitchstone plate for the",
+    "casing. Ratios are unbalanced."
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "PLP",
+    "RSR",
+    "DDD"
+  ],
+  "key": {
+    "P": "agesandtheart:phasmium",
+    "L": "agesandtheart:hadalfish_lure",
+    "R": "#agesandtheart:rime_crystals",
+    "S": "minecraft:spyglass",
+    "D": "agesandtheart:pitchstone_plate"
+  },
+  "result": {
+    "id": "agesandtheart:observation_device",
+    "count": 1
+  }
+}
