@@ -19,6 +19,7 @@ import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.age.word.grammar.Sentence
+import co.voik.agesandtheart.worldgen.dni.DniCity
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
@@ -280,6 +281,7 @@ object AgeCommand {
         report.only("age", id)
         report.only("recipe", recipe.world)
         report.only("seed", chosenSeed)
+        report.only("dniCity", recipe.composition?.let(DniCity::qualifies) == true)
         report.fact("cost", resolution.cost) { "  cost ${resolution.cost}, ${resolution.instability}" }
         report.only("instability", resolution.instability.index)
         for (flaw in resolution.instability.flaws) {

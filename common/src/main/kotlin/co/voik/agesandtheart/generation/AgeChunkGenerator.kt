@@ -934,7 +934,8 @@ class AgeChunkGenerator(
      * the bare aquifer would lose the decorator that lets water the shape poured answer first, and a carver
      * cutting into a river would stop finding the river.
      *
-     * The rest is vanilla's line for line, including the part that is easy to miss: a cut that takes a
+     * The rest is vanilla's line for line, but that a block already air is left alone, and including the
+     * part that is easy to miss: a cut that takes a
      * grass block or mycelium re-dresses the dirt beneath it, which is what stops a carved hillside
      * showing a band of bare earth along its lip.
      */
@@ -957,7 +958,10 @@ class AgeChunkGenerator(
             for (worldY in highY downTo lowY) {
             here.set(worldX, worldY, worldZ)
             val standing = chunk.getBlockState(here)
-            if (!standing.`is`(BlockTags.UNCARVABLE)) {
+            // Where the carver ran through space the fill already left open, there was nothing to cut. Vanilla
+            // asks its aquifer even here, which is harmless when that aquifer is what opened the space; ours
+            // does not know a chamber or a hollow is dry, and would pour a tunnel of water through the air.
+            if (!standing.isAir && !standing.`is`(BlockTags.UNCARVABLE)) {
                 val wasTurf = standing.`is`(Blocks.GRASS_BLOCK) || standing.`is`(Blocks.MYCELIUM)
                 val cut = aquifer.computeSubstance(worldX, worldY, worldZ, NO_CAVE_DENSITY)
                 if (cut != null) {

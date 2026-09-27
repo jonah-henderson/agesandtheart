@@ -2,8 +2,12 @@ package co.voik.agesandtheart.worldgen.dni
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Underground
 import co.voik.agesandtheart.generation.AgeChunkGenerator
 import co.voik.agesandtheart.generation.Ages
@@ -38,16 +42,24 @@ object DniCity {
     private val ALGAE = "algae".location()
 
     /**
-     * A sealed world carved into chambers, with the algae named — read off the recipe, since the chambers
-     * guarantee the lakes.
+     * A sealed world carved into colossal chambers, with the algae named — read off the recipe, since the
+     * chambers guarantee the lakes.
+     *
+     * The size must be asked here: [DniCitySite] needs only one island column with room over it, and
+     * `beard_box` carves the rest, so a smaller chamber would take a city too.
      *
      * Not yet asked: `Danger.allowsRuins` and `AgeRecipe.authored`, both of which the design says withhold
      * the ruins.
      */
     fun qualifies(composition: AgeComposition): Boolean =
         composition.underground == Underground.CHAMBERED &&
+            isColossal(composition.optionsFor(Aspect.UNDERGROUND)) &&
             Sky.isRoofed(composition) &&
             Features.claimNaming(composition, ALGAE) != null
+
+    /** The size axis held at its top — `colossal`, and nothing a writer could reach below it. */
+    private fun isColossal(options: Options): Boolean =
+        Span.read(options.of(Terrain.SIZE))?.let { it.least >= Span.NATURAL_MOST } == true
 
     /**
      * The city as a set only this Age can place, or nothing. Built here rather than shipped as a
