@@ -264,6 +264,8 @@ enum class Terrain(
         "solid",
         waterline = SolidField.WATERLINE,
         build = { _, _ -> SolidField.world() },
+        // The Age it makes is all underground; `solid` is also the name of an uncut rock.
+        page = "subterranean",
     ),
 
     /** A walkable sampler of the shape vocabulary and its combinators — a reference, not a world. */
