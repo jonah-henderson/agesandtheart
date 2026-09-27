@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "A heap of whatever the clause names, shaped like the piles a village leaves by its farms --",
+    "`hay_block piles`, `pumpkin and melon piles`, `gold_block piles`. Any block, mingled with `and`.",
+    "",
+    "The umbrella for vanilla's `pile_*` features, which have no words of their own."
+  ],
+  "tier": "exact",
+  "mints": "agesandtheart:piles",
+  "unstated": "#agesandtheart:pile_substance"
+}

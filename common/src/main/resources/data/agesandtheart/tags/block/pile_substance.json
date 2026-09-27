@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "What a pile nobody named a material for is heaped from: what a farm or a hard winter leaves."
+  ],
+  "replace": false,
+  "values": [
+    "minecraft:hay_block",
+    "minecraft:pumpkin",
+    "minecraft:melon",
+    "minecraft:snow_block",
+    "minecraft:packed_ice"
+  ]
+}

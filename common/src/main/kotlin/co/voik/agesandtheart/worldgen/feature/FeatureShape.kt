@@ -10,6 +10,11 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.levelgen.feature.LakeFeature
 import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider
+import net.minecraft.world.level.levelgen.feature.stateproviders.WeightedStateProvider
+import net.minecraft.util.random.WeightedList
+import net.minecraft.world.level.levelgen.feature.SimpleBlockFeature
+import net.minecraft.world.level.levelgen.feature.BlockPileFeature
+import net.minecraft.world.level.levelgen.feature.IcebergFeature
 import net.minecraft.world.level.block.Block
 
 import net.minecraft.world.level.levelgen.feature.AbstractOreFeature
@@ -72,8 +77,9 @@ object FeatureShape {
      * [pattern] made of [substances] instead of whatever it was made of — how a writer asks for a thing the
      * game does not have (world model §2).
      *
-     * Only a formation mingles several (`mud and sand pits`), as a landmass's rock does. Every other pattern
-     * is made of the first: a spring runs with one fluid, and a lake or a vein mixed block by block is noise.
+     * A formation, a patch and a pile mingle several (`mud and sand pits`, `poppy and dandelion patches`), as
+     * a landmass's rock does. Every other pattern is made of the first: a spring runs with one fluid, and a
+     * lake, a vein or an iceberg mixed block by block is noise.
      *
      * The shape, the placement, the rarity and the step are all the pattern's; only the substance changes.
      * A spring keeps the rock it wants around it and the holes it punches, and simply runs with something
@@ -144,9 +150,22 @@ object FeatureShape {
                 rawOre = OreVein.rawBlockOf(block).defaultBlockState(),
                 seed = feature.seed xor substances.hashCode().toLong(),
             )
+            // A patch is a block tried at many spots, and anything may be tried: what cannot stand where it
+            // lands is not placed, exactly as a flower on sand is not.
+            is SimpleBlockFeature -> SimpleBlockFeature(mingled(blocks), feature.scheduleTick())
+            is BlockPileFeature -> BlockPileFeature(mingled(blocks))
+            is IcebergFeature -> IcebergFeature(block.defaultBlockState())
             else -> return pattern
         }
         return Holder.direct(PlacedFeature(Holder.direct(rebuilt), placed.placement()))
+    }
+
+    /** [blocks] as one provider, drawn evenly where there are several. */
+    private fun mingled(blocks: List<Block>): Holder<BlockStateProvider> {
+        val states = blocks.map { it.defaultBlockState() }
+        val single = states.singleOrNull()
+            ?: return Holder.direct(WeightedStateProvider(WeightedList.of(*states.toTypedArray())))
+        return BlockStateProvider.holderOf(single)
     }
 
     /**

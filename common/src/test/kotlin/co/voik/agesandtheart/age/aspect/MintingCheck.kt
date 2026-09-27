@@ -18,6 +18,7 @@ import com.mojang.serialization.JsonOps
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.feature.OreFeature
 import net.minecraft.world.level.levelgen.feature.SpringFeature
+import net.minecraft.world.level.levelgen.feature.IcebergFeature
 import net.minecraft.world.level.material.Fluids
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
 import io.kotest.core.annotation.Tags
@@ -436,6 +437,61 @@ class MintingCheck : FunSpec({
                 Identifier.tryParse(block)?.let { BuiltInRegistries.BLOCK.getOptional(it).isPresent } == true
             }
             check(missing.isEmpty()) { "'${word.name}' would be made of blocks nothing has: $missing" }
+        }
+    }
+
+    /** Ours, so not in the offline registries: read from the shipped files, which checks that they parse. */
+    fun shippedPattern(name: String): Holder<PlacedFeature> {
+        val file = File("src/main/resources/data/agesandtheart/worldgen/feature/$name.json")
+        val feature = Feature.DIRECT_CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(file.readText())).getOrThrow()
+        return Holder.direct(PlacedFeature(Holder.direct(feature), emptyList()))
+    }
+
+    /** What a minted feature is made of, through the codec — a provider's `toString` names nothing. */
+    fun spelled(minted: Holder<PlacedFeature>): String =
+        Feature.DIRECT_CODEC.encodeStart(JsonOps.INSTANCE, minted.value().feature().value()).getOrThrow().toString()
+
+    /** The umbrella words: each named alone is made of its own fallback, and each takes any block. */
+    test("patches, piles and icebergs named alone fall back to what they say they are made of") {
+        val fallbacks = mapOf(
+            "patches" to "of=#agesandtheart:patch_substance",
+            "piles" to "of=#agesandtheart:pile_substance",
+            "icebergs" to "of=minecraft:packed_ice",
+        )
+        for ((word, fallback) in fallbacks) {
+            val grown = placed(word)
+            check(grown.any { fallback in it }) { "'$word' alone left $grown" }
+        }
+        for (word in fallbacks.keys) {
+            val displaced = flawsOf("gold_block", word).filter { it.register == Register.DISPLACED }
+            check(displaced.isEmpty()) { "'gold_block $word' was charged $displaced, and it takes any block" }
+        }
+    }
+
+    test("a patch is made of what the clause names, and several mingle in one") {
+        val pumpkins = spelled(FeatureShape.mintedFrom(shippedPattern("patches"), listOf("minecraft:pumpkin")))
+        check("minecraft:pumpkin" in pumpkins && "short_grass" !in pumpkins) { "'pumpkin patches' is $pumpkins" }
+        val flowers = FeatureShape.mintedFrom(shippedPattern("patches"), listOf("minecraft:poppy", "minecraft:dandelion"))
+        val both = spelled(flowers)
+        check("minecraft:poppy" in both && "minecraft:dandelion" in both) { "'poppy and dandelion patches' is $both" }
+    }
+
+    test("a pile is made of what the clause names, and several mingle in one") {
+        val piled = spelled(FeatureShape.mintedFrom(shippedPattern("piles"), listOf("minecraft:pumpkin", "minecraft:melon")))
+        check("minecraft:pumpkin" in piled && "minecraft:melon" in piled && "hay_block" !in piled) {
+            "'pumpkin and melon piles' is $piled"
+        }
+    }
+
+    test("a minted iceberg is made of the substance and stands where vanilla's would") {
+        val pattern = placedFeature("minecraft:iceberg_packed")
+        val minted = FeatureShape.mintedFrom(pattern, listOf("minecraft:obsidian"))
+        val now = minted.value().feature().value()
+        check(now is IcebergFeature && now.state() == Blocks.OBSIDIAN.defaultBlockState()) {
+            "'obsidian icebergs' built $now"
+        }
+        check(minted.value().placement() == pattern.value().placement()) {
+            "the iceberg is placed by ${minted.value().placement()} where vanilla's used ${pattern.value().placement()}"
         }
     }
 

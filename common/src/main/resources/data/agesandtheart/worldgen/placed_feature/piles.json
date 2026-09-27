@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "Vanilla places its piles only inside villages and gives them no placement of their own, so this",
+    "is ours: a pile on the surface in about one chunk in six. It is heaped before the vegetation",
+    "(`Features.stepFor`), since a pile only lands on an open spot over a sturdy block."
+  ],
+  "feature": "agesandtheart:piles",
+  "placement": [
+    {
+      "type": "minecraft:rarity_filter",
+      "chance": 6
+    },
+    {
+      "type": "minecraft:in_square"
+    },
+    {
+      "type": "minecraft:heightmap",
+      "heightmap": "MOTION_BLOCKING_NO_LEAVES"
+    },
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

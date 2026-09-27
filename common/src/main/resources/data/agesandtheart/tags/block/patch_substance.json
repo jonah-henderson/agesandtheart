@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "What a patch nobody named a plant for is made of: the ordinary cover of open ground."
+  ],
+  "replace": false,
+  "values": [
+    "minecraft:short_grass",
+    "minecraft:fern",
+    "minecraft:poppy",
+    "minecraft:dandelion",
+    "minecraft:cornflower",
+    "minecraft:oxeye_daisy",
+    "minecraft:pumpkin",
+    "minecraft:melon",
+    "minecraft:sweet_berry_bush"
+  ]
+}

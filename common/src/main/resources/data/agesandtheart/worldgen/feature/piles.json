@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "Vanilla's block pile, the heaps a village leaves by its farms. Hay is only what the feature holds",
+    "when nothing mints it; `piles` always names what it is made of."
+  ],
+  "type": "minecraft:block_pile",
+  "state_provider": {
+    "id": "minecraft:hay_block"
+  }
+}

@@ -15,6 +15,7 @@ import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeGenerationSettings
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.GenerationStep
+import net.minecraft.world.level.levelgen.feature.BlockPileFeature
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.placement.PlacedFeature as VanillaPlacedFeature
 import co.voik.agesandtheart.worldgen.feature.Formation
@@ -318,6 +319,7 @@ object Features {
      */
     private fun stepFor(feature: Identifier, placed: VanillaPlacedFeature, biomes: HolderLookup<Biome>): Int {
         if ((placed.feature().value() as? Formation)?.sunk == true) return DIGGING_STEP
+        if (placed.feature().value() is BlockPileFeature) return BARE_GROUND_STEP
         for (biome in biomes.listElements()) {
             biome.value().generationSettings.features().forEachIndexed { step, atStep ->
                 if (atStep.any { it.unwrapKey().orElse(null)?.identifier() == feature }) return step
@@ -337,6 +339,12 @@ object Features {
      * it cut the ground from under trees, grass and flowers already standing on it and left them hanging.
      */
     private val DIGGING_STEP = GenerationStep.Decoration.LAKES.ordinal
+
+    /**
+     * Where a pile is heaped: on the ground **before the grass grows over it**. A pile only lands on an open
+     * spot above a sturdy block, and among the vegetation nearly every spot on a plain already held a tuft.
+     */
+    private val BARE_GROUND_STEP = GenerationStep.Decoration.LOCAL_MODIFICATIONS.ordinal
 
     /**
      * One biome's settings with the sentence applied: everything named added at the step it belongs in,

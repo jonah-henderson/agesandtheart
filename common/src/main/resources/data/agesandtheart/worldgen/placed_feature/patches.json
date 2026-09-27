@@ -1,0 +1,77 @@
+{
+  "_comment": [
+    "Vanilla's patch placement -- a cluster of tries fifteen blocks across, each kept only where the",
+    "spot is open air -- at about four times the flowers' frequency, so a patch a writer asked for is one",
+    "they meet. And never over a fluid: a flower cannot stand on the sea anyway, but a patch of solid blocks",
+    "would float on it."
+  ],
+  "feature": "agesandtheart:patches",
+  "placement": [
+    {
+      "type": "minecraft:rarity_filter",
+      "chance": 8
+    },
+    {
+      "type": "minecraft:in_square"
+    },
+    {
+      "type": "minecraft:heightmap",
+      "heightmap": "MOTION_BLOCKING_NO_LEAVES"
+    },
+    {
+      "type": "minecraft:biome"
+    },
+    {
+      "type": "minecraft:count",
+      "count": 64
+    },
+    {
+      "type": "minecraft:offset",
+      "x": {
+        "type": "minecraft:trapezoid",
+        "max": 7,
+        "min": -7,
+        "plateau": 0
+      },
+      "y": {
+        "type": "minecraft:trapezoid",
+        "max": 3,
+        "min": -3,
+        "plateau": 0
+      },
+      "z": {
+        "type": "minecraft:trapezoid",
+        "max": 7,
+        "min": -7,
+        "plateau": 0
+      }
+    },
+    {
+      "type": "minecraft:block_predicate_filter",
+      "predicate": {
+        "type": "minecraft:all_of",
+        "predicates": [
+          {
+            "type": "minecraft:matching_block_tag",
+            "tag": "minecraft:air"
+          },
+          {
+            "type": "minecraft:not",
+            "predicate": {
+              "type": "minecraft:matching_fluids",
+              "offset": [
+                0,
+                -1,
+                0
+              ],
+              "fluids": [
+                "minecraft:water",
+                "minecraft:lava"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

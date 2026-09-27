@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "An iceberg of whatever the clause names, shaped and placed like vanilla's packed-ice ones: raised",
+    "from the sea level, as often as a frozen ocean has them -- `blue_ice icebergs`, `obsidian",
+    "icebergs`. Packed ice when the clause names nothing.",
+    "",
+    "The umbrella for vanilla's `iceberg_packed` and `iceberg_blue`, which have no words of their own."
+  ],
+  "tier": "exact",
+  "mints": "minecraft:iceberg_packed",
+  "unstated": "minecraft:packed_ice"
+}

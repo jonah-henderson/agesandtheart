@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "A patch of whatever the clause names: vanilla's scatter of one plant, a cluster of tries fifteen",
+    "blocks across -- `pumpkin patches`, `poppy and dandelion patches`, `gold_block patches`. It takes",
+    "any block, and joined with `and` the blocks mingle in one patch. What cannot stand where it lands",
+    "is simply not placed, as vanilla's own flowers are not.",
+    "",
+    "The umbrella for vanilla's `patch_*` and `flower_*` features, which have no words of their own."
+  ],
+  "tier": "exact",
+  "mints": "agesandtheart:patches",
+  "unstated": "#agesandtheart:patch_substance"
+}

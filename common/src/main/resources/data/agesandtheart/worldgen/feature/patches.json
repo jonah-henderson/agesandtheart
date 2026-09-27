@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "A patch is vanilla's own shape for a scatter of one plant: a block tried at many spots in a",
+    "cluster. Grass here is only what the feature holds when nothing mints it; `patches` always names",
+    "what it is made of, from the clause or from `#patch_substance`."
+  ],
+  "type": "minecraft:simple_block",
+  "to_place": {
+    "id": "minecraft:short_grass"
+  }
+}
