@@ -28,12 +28,15 @@
     "StateDefinitionBuilderMixin"
   ],
   "client": [
+    "client.CameraMixin",
     "client.ClientLevelMixin",
     "client.GameRendererMixin",
     "client.LevelRendererMixin",
     "client.LiquidBlockMixin",
     "client.MainRenderTargetMixin",
     "client.ModelBlockRendererMixin",
+    "client.SectionCompilerMixin",
+    "client.SectionOcclusionGraphMixin",
     "client.WeatherEffectRendererMixin",
     "client.WeatherParticlesMixin"
   ],

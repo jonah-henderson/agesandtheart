@@ -54,7 +54,16 @@ object StarFissureVeil {
                 ?.takeIf { StarFissureFall.eyesInside(player, it) }
                 ?.let { Showing(it, StarFissureFall.openingAround(player, it)) }
         }
+        BelowTheLid.changeTo(showing?.let(::cutOf), minecraft)
     }
+
+    private fun cutOf(shown: Showing): BelowTheLid.Cut = BelowTheLid.Cut(
+        lidY = shown.tear.y + 1,
+        leastX = shown.opening.leastX,
+        mostX = shown.opening.mostX,
+        leastZ = shown.opening.leastZ,
+        mostZ = shown.opening.mostZ,
+    )
 
     /**
      * Whether a tear is being fallen through, which is [StarFissureRenderer]'s cue to draw none of them.
@@ -67,6 +76,7 @@ object StarFissureVeil {
     /** Leaving a server — what this holds means nothing on the next one. */
     fun forget() {
         showing = null
+        BelowTheLid.forget()
     }
 
     /** Draw it, at the seam the wounds are drawn from — the pose is camera-relative and untranslated. */

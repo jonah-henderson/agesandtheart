@@ -340,7 +340,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Twenty-six Mixins and one accessor in `common`, one more in `fabric`, all Java.**
+**4. Thirty-three Mixins and one accessor in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -365,6 +365,13 @@ When shared code needs something loader-specific, it goes through an interface, 
   stops collisions and block effects but not `baseTick`'s fluid scan, so water in the tear's column turned
   the fall into sinking. A null `getFluidInteractionBox` empties every fluid reading at once; neither loader
   has an event for it.
+- **`client/SectionOcclusionGraphMixin`**, **`client/SectionCompilerMixin`** and **`client/CameraMixin`** —
+  what a fall through a tear does not draw (`client/BelowTheLid`). The veil covers every direction but the
+  hole, so the cave ceilings between the eye and the opening were all that showed through it: the first
+  drops every section wholly under the lid from the frame, the second rebuilds the section the lid cuts
+  through without the blocks under it, and the third answers no fluid for the camera, whose water fog and
+  narrowed field of view the player's own readings never reached. Neither loader has an event for any of
+  the three. **Vanilla's section list and mesher only** — Sodium replaces both (`notes/before-release.md`).
 - **`BubbleColumnBlockMixin`** — in a level with an abyss, every bubble column is `DeepBubbleColumnBlock`'s, so one column runs on through ordinary water and deep water, each block keeping the water it replaced. In 26.1 a column is raised by the liquid over magma or soul sand calling the static `updateColumn`; neither loader has an event for it, and vanilla places its blocks without notifying anything, so a column stopped at the abyss had nothing to tell the deep water above to carry it on. Only vanilla's own column, only where there is an abyss.
 
 The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.
