@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.page
 
+import co.voik.agesandtheart.content.PageItem
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.content.AgeComponents
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.RegistryAccess
@@ -61,7 +61,7 @@ class PageWordFunction(
             Constants.LOG.warn("No word to write on a page (pool={}); is art/rarity empty?", pool)
             return itemStack
         }
-        itemStack.set(AgeComponents.PAGE_WORD, word.id)
+        PageItem.write(itemStack, word, vocabulary)
         return itemStack
     }
 

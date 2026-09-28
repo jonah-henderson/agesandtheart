@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import net.minecraft.world.item.Rarity
 import co.voik.agesandtheart.datapack.ResourceParsing
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -22,6 +23,8 @@ data class RarityBucket(
     val words: Set<String>,
     /** Whether every word no bucket lists lands here. Exactly one bucket should say yes. */
     val isDefault: Boolean,
+    /** The vanilla rarity a page of this bucket carries, which is what colours its name. */
+    val itemRarity: Rarity = Rarity.COMMON,
 ) {
     /** This bucket with [later] laid over it — a higher-priority pack retuning it. */
     fun mergedWith(later: RarityBucket): RarityBucket = RarityBucket(
@@ -29,6 +32,7 @@ data class RarityBucket(
         weight = later.weight,
         words = words + later.words,
         isDefault = later.isDefault,
+        itemRarity = later.itemRarity,
     )
 
     fun lists(word: Word): Boolean = word.name in words || word.id.toString() in words
@@ -40,8 +44,9 @@ data class RarityBucket(
                 Codec.STRING.listOf().optionalFieldOf("words", emptyList())
                     .forGetter { it.words.toList() },
                 Codec.BOOL.optionalFieldOf("default", false).forGetter(RarityBucket::isDefault),
-            ).apply(instance) { weight, words, isDefault ->
-                RarityBucket(name, weight, words.toSet(), isDefault)
+                Rarity.CODEC.optionalFieldOf("item_rarity", Rarity.COMMON).forGetter(RarityBucket::itemRarity),
+            ).apply(instance) { weight, words, isDefault, itemRarity ->
+                RarityBucket(name, weight, words.toSet(), isDefault, itemRarity)
             }
         }
     }

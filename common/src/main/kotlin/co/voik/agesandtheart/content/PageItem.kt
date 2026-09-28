@@ -1,5 +1,8 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.Word
+import net.minecraft.core.component.DataComponents
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.PageScreen
 import net.minecraft.ChatFormatting
@@ -55,5 +58,21 @@ class PageItem(properties: Properties) : Item(properties) {
          */
         fun writtenWith(word: Identifier): ItemStack =
             ItemStack(AgeContent.PAGE).also { it.set(AgeComponents.PAGE_WORD, word) }
+
+        /** The same, with the name coloured by the rarity of [word]'s bucket — what every server path makes. */
+        fun writtenWith(word: Word, vocabulary: Vocabulary): ItemStack =
+            ItemStack(AgeContent.PAGE).also { write(it, word, vocabulary) }
+
+        /**
+         * [word] written on [stack] in place, as a loot function writes the page it is handed.
+         *
+         * **Every server path must stamp the rarity**, or two pages of one word carry different components
+         * and will not stack.
+         */
+        fun write(stack: ItemStack, word: Word, vocabulary: Vocabulary) {
+            stack.set(AgeComponents.PAGE_WORD, word.id)
+            val bucket = vocabulary.rarity.bucketOf(word) ?: return
+            stack.set(DataComponents.RARITY, bucket.itemRarity)
+        }
     }
 }

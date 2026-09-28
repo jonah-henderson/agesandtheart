@@ -47,7 +47,7 @@ object StockedItems {
         when {
             stack.`is`(AgeContent.PAGE) -> {
                 val word = vocabulary.stock.draw(pool, vocabulary, registries, random) ?: return
-                stack.set(AgeComponents.PAGE_WORD, word.id)
+                PageItem.write(stack, word, vocabulary)
             }
             stack.`is`(AgeContent.NOTEBOOK) -> {
                 val wanted = FEWEST_PAGES + random.nextInt(MOST_PAGES - FEWEST_PAGES + 1)
@@ -56,7 +56,7 @@ object StockedItems {
                     // A notebook somebody kept would not hold the same word twice.
                     .distinctBy { it.id }
                     .map { word ->
-                        PageItem.writtenWith(word.id)
+                        PageItem.writtenWith(word, vocabulary)
                     }
                 if (pages.isEmpty()) return
                 NotebookItem.setPages(stack, pages)

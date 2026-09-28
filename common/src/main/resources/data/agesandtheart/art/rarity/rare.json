@@ -1,5 +1,6 @@
 {
   "weight": 2,
+  "item_rarity": "epic",
   "words": [
     "beautiful",
     "colossal",
@@ -145,5 +146,8 @@
     "uncanny",
     "untouched",
     "wondrous"
+  ],
+  "_comment": [
+    "item_rarity: Purple, vanilla's epic."
   ]
 }

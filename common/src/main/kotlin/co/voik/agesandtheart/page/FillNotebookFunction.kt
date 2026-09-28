@@ -75,7 +75,7 @@ class FillNotebookFunction(
         while (chosen.size < wanted && attempts < wanted * ATTEMPT_HEADROOM) {
             attempts++
             val word = available[context.random.nextInt(available.size)]
-            val page = PageItem.writtenWith(word.id)
+            val page = PageItem.writtenWith(word, vocabulary)
             if (chosen.none { it.get(AgeComponents.PAGE_WORD) == word.id }) chosen += page
         }
         // Through `NotebookItem`, which is what everything else reads a notebook by. Set as vanilla's

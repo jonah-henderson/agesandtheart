@@ -113,7 +113,7 @@ internal object PlayerInstruments {
         if (words.isEmpty()) return FAILURE.also { source.sendFailure(Component.literal("No words to write")) }
 
         val pages = words.map { word ->
-            PageItem.writtenWith(word.id)
+            PageItem.writtenWith(word, vocabulary)
         }
         // The structural words go in beside them: `and`, `only` and the rungs are pages a writer lays like
         // any other, and a book cannot be tested for structure without them.

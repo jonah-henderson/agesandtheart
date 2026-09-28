@@ -1,5 +1,6 @@
 {
   "weight": 12,
+  "item_rarity": "rare",
   "words": [
     "agesandtheart:chambered",
     "agesandtheart:lattice",
@@ -149,5 +150,8 @@
     "towering",
     "tropical",
     "verdant"
+  ],
+  "_comment": [
+    "item_rarity: Aqua, vanilla's rare -- the vanilla names run one step ahead of ours."
   ]
 }

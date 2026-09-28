@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.age.word.Vocabulary
 import net.minecraft.util.Prediction
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.content.PageItem
@@ -48,7 +49,10 @@ object ArchiveCommands {
     fun withdraw(player: ServerPlayer, payload: ArchiveWithdrawPayload) {
         val menu = player.containerMenu as? ArchiveMenu ?: return
         val archive = menu.archiveOf() ?: return
-        val page = PageItem.writtenWith(payload.word)
+        val vocabulary = Vocabulary.of(player.level().server)
+        // A structural page has no rarity to stamp, and is made as every other structural page is.
+        val word = vocabulary.word(payload.word.toString()) ?: vocabulary.word(payload.word.path)
+        val page = if (word != null) PageItem.writtenWith(word, vocabulary) else PageItem.writtenWith(payload.word)
         val wanted = if (payload.wholeStack) page.maxStackSize else 1
         val count = wanted.coerceAtMost(archive.pages.count(payload.word))
         if (count <= 0 || !archive.take(payload.word, count)) return

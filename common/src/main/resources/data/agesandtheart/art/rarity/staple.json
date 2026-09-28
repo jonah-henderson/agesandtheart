@@ -1,8 +1,10 @@
 {
   "_comment": [
     "Words that should turn up often and have no other way to be learned -- the landforms and their kind.",
-    "Their own bucket so a thousand common blocks cannot drown them."
+    "Their own bucket so a thousand common blocks cannot drown them.",
+    "item_rarity: Yellow, vanilla's uncommon."
   ],
   "weight": 20,
+  "item_rarity": "uncommon",
   "words": []
 }

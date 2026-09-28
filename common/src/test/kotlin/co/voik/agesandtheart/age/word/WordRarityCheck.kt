@@ -6,6 +6,7 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.RegistryAccess
 import net.minecraft.util.RandomSource
+import net.minecraft.world.item.Rarity
 
 /**
  * How hard a page is to find: a bucket is rolled by weight, then a word within it, and every word is in
@@ -28,6 +29,18 @@ class WordRarityCheck : FunSpec({
     test("the shipped buckets have exactly one default") {
         val defaults = vocabulary.rarity.buckets.filter { it.isDefault }
         check(defaults.size == 1) { "expected one default bucket, found ${defaults.map { it.name }}" }
+    }
+
+    /** A page's name is coloured by its bucket: white, yellow, aqua and purple, commonest first (Jonah). */
+    test("each shipped bucket colours its pages as vanilla colours its rarities") {
+        val coloured = vocabulary.rarity.buckets.associate { it.name to it.itemRarity }
+        val wanted = mapOf(
+            "common" to Rarity.COMMON,
+            "staple" to Rarity.UNCOMMON,
+            "uncommon" to Rarity.RARE,
+            "rare" to Rarity.EPIC,
+        )
+        check(coloured == wanted) { "the buckets colour their pages $coloured" }
     }
 
     /** Authored and derived alike: nothing about where a word came from decides its rarity. */
