@@ -133,14 +133,35 @@ class TagLayer(private val corpus: Corpus) {
      */
     private fun remembered(): Map<String, List<Member>> {
         val snapshot = corpus.snapshot ?: return emptyMap()
-        return snapshot.serverOnly.mapValues { (tag, members) ->
+        val ofServerOnlyTags = snapshot.serverOnly.mapValues { (tag, members) ->
             val aspects = Aspect.entries.filter { snapshot.reachOf(it, tag) != null }
             members.mapNotNull { id ->
                 val aspect = aspects.firstOrNull { it.presetFor(id) != null } ?: return@mapNotNull null
                 Member(aspect, id, granted(aspect, tag), Source.REMEMBERED)
             }
+        }
+        val ofTagRules = caughtByTagRules(snapshot)
+        return (ofServerOnlyTags.keys + ofTagRules.keys).associateWith { tag ->
+            (ofServerOnlyTags[tag].orEmpty() + ofTagRules[tag].orEmpty()).distinctBy { it.aspect to it.preset }
         }.filterValues { it.isNotEmpty() }
     }
+
+    /**
+     * What each rule keyed on a registry tag caught on the server, as members of every tag it grants.
+     *
+     * Offline such a rule catches nothing, so a tag that also has members offline would otherwise show
+     * only those and hide every member a tag rule adds — `molten` hid `lava_cauldron` that way.
+     */
+    private fun caughtByTagRules(snapshot: ServerSnapshot): Map<String, List<Member>> =
+        buildMap<String, MutableList<Member>> {
+            for (rule in DerivationRules.of(corpus).filter { it.byTag }) {
+                for (id in snapshot.caught[rule.id].orEmpty()) {
+                    for ((tag, weight) in rule.fills) {
+                        getOrPut(tag) { mutableListOf() } += Member(rule.aspect, id, weight, Source.REMEMBERED)
+                    }
+                }
+            }
+        }
 
     /** The strongest weight any rule of [aspect] grants [tag] — what the server's own merge came to. */
     private fun granted(aspect: Aspect, tag: String): Double {

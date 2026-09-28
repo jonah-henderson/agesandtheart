@@ -43,6 +43,20 @@ class WritingCheck : FunSpec({
     }
 
     /**
+     * `wondrous` leans every aspect towards glowing, and the derived sea once took any glowing block — a
+     * sea of lava cauldrons or of fire, which a client cannot draw. The sea keeps the rock's rule now.
+     */
+    test("a vague glowing sea is never one a world cannot be made of") {
+        val refused = listOf("minecraft:lava_cauldron", "minecraft:fire", "minecraft:soul_fire", "minecraft:frosted_ice")
+        val seas = (1..GLOWING_SEA_SEEDS).map { seed ->
+            val said = server.run("age write glowingsea$seed $seed wondrous age")
+            Regex("""sea=(\S+)""").find(said)?.groupValues?.get(1).orEmpty()
+        }
+        val wrong = seas.filter { it in refused }
+        check(wrong.isEmpty()) { "these seas were written: $wrong, of $seas" }
+    }
+
+    /**
      * **Describing asks for more of what is here; naming asks for the thing.**
      *
      * `trees` reaches some seventy features through a tag. Read as seventy namings it put acacia, bamboo
@@ -190,6 +204,9 @@ private data class Quantifier(val said: String, val written: String)
  * where a mention is a claim on the world rather than a page waiting for a quantifier to give it one.
  */
 private const val A_MENTION = "2"
+
+/** Enough draws that a sea turning up in one in five would show; the leak was worse than that. */
+private const val GLOWING_SEA_SEEDS = 16
 
 private val TEEMING = Quantifier("teeming", "8")
 private val SCARCE = Quantifier("scarce", "0.5")

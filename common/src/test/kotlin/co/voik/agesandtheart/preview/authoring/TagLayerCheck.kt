@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
+import java.time.Instant
 
 /**
  * The tag layer as Scrivener shows it.
@@ -210,6 +211,26 @@ class TagLayerCheck : FunSpec({
         check("lush" in said && "minecraft:jungle" in said) { "it took something else with it: $said" }
         // An exclusion list with nothing left in it goes, rather than sitting there striking nothing.
         check("sea" !in said) { "an emptied exclusion was left behind: $said" }
+    }
+
+    /**
+     * A rule keyed on a block tag catches nothing offline, so what it caught is the snapshot's to say —
+     * even for a tag with members offline too, which is how `molten` hid a lava cauldron from the screen.
+     */
+    test("what a tag rule caught on a server is listed beside a tag's offline members") {
+        val offline = Corpus.load()
+        val snapshot = ServerSnapshot(
+            taken = Instant.EPOCH,
+            loader = "fabric",
+            words = 0,
+            reach = emptyMap(),
+            serverOnly = emptyMap(),
+            caught = mapOf("sea/tag/#agesandtheart:molten" to listOf("minecraft:lava_cauldron")),
+        )
+        val molten = TagLayer(Corpus(offline.vocabulary, snapshot)).membersTagged("molten")
+        val cauldron = molten.firstOrNull { it.aspect == Aspect.SEA && it.preset == "minecraft:lava_cauldron" }
+        check(cauldron?.source == TagLayer.Source.REMEMBERED) { "the cauldron is not listed: $molten" }
+        check(molten.any { it.source != TagLayer.Source.REMEMBERED }) { "the offline members went missing" }
     }
 
 })

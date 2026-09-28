@@ -37,7 +37,7 @@ object DerivedWords {
      */
     val DOES_NOT_HAVE_A_WORD: Identifier = "does_not_have_a_word".location()
 
-    private val WORDLESS_BLOCKS: TagKey<Block> = TagKey.create(Registries.BLOCK, DOES_NOT_HAVE_A_WORD)
+    val WORDLESS_BLOCKS: TagKey<Block> = TagKey.create(Registries.BLOCK, DOES_NOT_HAVE_A_WORD)
 
     /**
      * **A word for every block in the pack** — what a writer points at to say "made of that" or "a sea of

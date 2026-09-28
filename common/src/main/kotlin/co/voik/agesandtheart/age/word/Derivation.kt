@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Materials
 import com.google.gson.JsonElement
 import com.mojang.serialization.Codec
 import com.mojang.serialization.JsonOps
@@ -260,9 +261,9 @@ object DerivedTags {
             // make a word of one — so a vague word must not find one either.
             .filter { it.value().category != MobCategory.MISC }
             .associate { holder ->
-            val kinds = listOf(holder.value().category.getName())
-            holder.key().identifier().toString() to rules.profileFor(watching(tagsOn(holder)), kinds)
-        }.filterValues { it.isNotEmpty() }
+                val kinds = listOf(holder.value().category.getName())
+                holder.key().identifier().toString() to rules.profileFor(watching(tagsOn(holder)), kinds)
+            }.filterValues { it.isNotEmpty() }
 
     /**
      * A biome is its tags — `is_forest`, `is_ocean` — and the **bands its own climate falls in**, which are
@@ -332,27 +333,32 @@ object DerivedTags {
      * What a **block** may be as a sea: its tags, and two facts about it — whether it gives light, and
      * whether it pours. Only a block some rule speaks to gets a profile, which is what keeps the sea's
      * candidate pool the handful a writer might mean rather than every block in the game.
+     *
+     * **Only a block a world can be made of, and one with a word**: the rock's rule ([Materials]), which
+     * keeps out a sea of lava cauldrons or of fire — lit, never culled, and millions of them.
      */
     private fun blocks(
         rules: Derivation,
         watching: (Collection<String>) -> Collection<String>,
     ): Map<String, Map<String, Double>> =
-        BuiltInRegistries.BLOCK.listElements().toList().associate { holder ->
-            val tags = watching(tagsOn(holder))
-            val state = holder.value().defaultBlockState()
-            val kinds = buildList {
-                // **The flag, not NeoForge's `getLightEmission(level, pos)`, and there is no position to
-                // give it.** This walks every block in the registry at its default state to build what a
-                // sea may be made of, and it runs with no server at all — Scrivener loads the corpus
-                // offline. A fake level would be one we handed to arbitrary mods' blocks while
-                // enumerating all of them, which is a worse risk than the one it answers: a block whose
-                // light depends on where it stands is already a guess here either way.
-                @Suppress("DEPRECATION")
-                if (state.lightEmission > 0) add("lit")
-                if (state.fluidState.isSource) add("pours")
-            }
-            holder.key().identifier().toString() to rules.profileFor(tags, kinds)
-        }.filterValues { it.isNotEmpty() }
+        BuiltInRegistries.BLOCK.listElements().toList()
+            .filter { holder -> Materials.makesAWorld(holder.value()) && !holder.`is`(DerivedWords.WORDLESS_BLOCKS) }
+            .associate { holder ->
+                val tags = watching(tagsOn(holder))
+                val state = holder.value().defaultBlockState()
+                val kinds = buildList {
+                    // **The flag, not NeoForge's `getLightEmission(level, pos)`, and there is no position to
+                    // give it.** This walks every block in the registry at its default state to build what a
+                    // sea may be made of, and it runs with no server at all — Scrivener loads the corpus
+                    // offline. A fake level would be one we handed to arbitrary mods' blocks while
+                    // enumerating all of them, which is a worse risk than the one it answers: a block whose
+                    // light depends on where it stands is already a guess here either way.
+                    @Suppress("DEPRECATION")
+                    if (state.lightEmission > 0) add("lit")
+                    if (state.fluidState.isSource) add("pours")
+                }
+                holder.key().identifier().toString() to rules.profileFor(tags, kinds)
+            }.filterValues { it.isNotEmpty() }
 
     /** A tag as a rule spells it: `#minecraft:logs`, which is how a datapack writes one. */
     private fun spelled(id: Identifier): String = "#$id"
