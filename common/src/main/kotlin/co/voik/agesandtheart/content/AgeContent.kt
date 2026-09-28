@@ -42,6 +42,7 @@ import co.voik.agesandtheart.location
 import co.voik.agesandtheart.station.Station
 import co.voik.agesandtheart.station.StationBlock
 import co.voik.agesandtheart.station.StationBlockEntity
+import co.voik.agesandtheart.station.StationMenu
 import co.voik.agesandtheart.station.StationRecipes
 import co.voik.agesandtheart.worldgen.carver.Porosity
 import com.mojang.serialization.MapCodec
@@ -1752,6 +1753,12 @@ object AgeContent {
         FeatureFlags.VANILLA_SET,
     )
 
+    /** Both stations', which differ only in what their block entity works. */
+    val STATION_MENU: MenuType<StationMenu> = MenuType(
+        { containerId, inventory -> StationMenu(containerId, inventory) },
+        FeatureFlags.VANILLA_SET,
+    )
+
     val menus: List<Pair<Identifier, MenuType<*>>> = listOf(
         WRITERS_DESK_ID to WRITERS_DESK_MENU,
         "ink_case".location() to INK_CASE_MENU,
@@ -1760,6 +1767,7 @@ object AgeContent {
         SEISMOGRAPH_ID to SEISMOGRAPH_MENU,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_MENU,
         ARCHIVE_ID to ARCHIVE_MENU,
+        STATION_ID to STATION_MENU,
     )
 
     val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =

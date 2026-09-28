@@ -1,5 +1,10 @@
 package co.voik.agesandtheart.station
 
+import net.minecraft.world.inventory.ContainerData
+import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.entity.player.Inventory
+import net.minecraft.world.MenuProvider
+import net.minecraft.network.chat.Component
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -22,11 +27,11 @@ import net.minecraft.world.level.storage.ValueOutput
 /**
  * A station's two slots, and how far through a run it is.
  *
- * **A container with no menu**, on the jukebox's model: right-click in and out, and hoppers work on it.
- * Input goes in through the top and sides and the result comes out of the bottom, as a furnace's does.
+ * **A furnace without the fuel**: a screen with an input and a result ([StationMenu]), and hoppers feed the
+ * top and sides and take from the bottom, as a furnace's do.
  */
 class StationBlockEntity(pos: BlockPos, state: BlockState) :
-    BlockEntity(AgeContent.STATION_ENTITY, pos, state), WorldlyContainer {
+    BlockEntity(AgeContent.STATION_ENTITY, pos, state), WorldlyContainer, MenuProvider {
 
     val station: Station = (state.block as? StationBlock)?.station ?: error("A station entity on ${state.block}")
 
@@ -89,11 +94,32 @@ class StationBlockEntity(pos: BlockPos, state: BlockState) :
 
     override fun removeItemNoUpdate(slot: Int): ItemStack = ContainerHelper.takeItem(items, slot)
 
+    /** A different input starts the run again; more of the same one does not, as in a furnace. */
     override fun setItem(slot: Int, itemStack: ItemStack) {
+        val isAnotherInput = slot == INPUT && !ItemStack.isSameItemSameComponents(items[INPUT], itemStack)
         items[slot] = itemStack
         itemStack.limitSize(getMaxStackSize(itemStack))
-        if (slot == INPUT) progress = 0
+        if (isAnotherInput) progress = 0
         setChanged()
+    }
+
+    override fun getDisplayName(): Component = blockState.block.name
+
+    override fun createMenu(containerId: Int, inventory: Inventory, player: Player): AbstractContainerMenu =
+        StationMenu(containerId, inventory, this, runSoFar)
+
+    /** What the screen's arrow is drawn from. Read live, so it needs no syncing of its own. */
+    private val runSoFar = object : ContainerData {
+        override fun get(index: Int): Int = when (index) {
+            StationMenu.PROGRESS -> progress
+            else -> station.workTicks
+        }
+
+        override fun set(index: Int, value: Int) {
+            if (index == StationMenu.PROGRESS) progress = value
+        }
+
+        override fun getCount(): Int = StationMenu.DATA_COUNT
     }
 
     override fun stillValid(player: Player): Boolean = Container.stillValidBlockEntity(this, player)
@@ -132,7 +158,7 @@ class StationBlockEntity(pos: BlockPos, state: BlockState) :
     companion object {
         const val INPUT = 0
         const val OUTPUT = 1
-        private const val SLOT_COUNT = 2
+        const val SLOT_COUNT = 2
 
         private val SLOTS_FOR_BOTTOM = intArrayOf(OUTPUT)
         private val SLOTS_FOR_TOP_AND_SIDES = intArrayOf(INPUT)
