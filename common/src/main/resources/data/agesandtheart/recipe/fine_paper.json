@@ -1,30 +1,22 @@
 {
   "_comment": [
-    "Fine paper at last -- it had no recipe at all before this and could only be bought from a writer.",
-    "",
-    "Pulp, water and two minerals, and **the wood is the reason the minerals are there**. Fine paper was",
-    "never wood in our own world: it was linen and cotton rag, and wood pulp is what newsprint is made of",
-    "-- lignin-rich and acid, so it yellows, it embrittles, and it feathers a line. What turns pulp into",
-    "writing paper is a mineral loading, chalk in the real craft, which buys three things at once: opacity,",
-    "a surface smooth enough to take a fine line, and the alkaline reserve that lets a sheet last centuries.",
-    "Astrite is that loading, and the fiction is the seismograph's own argument -- a page meant to hold a",
-    "world is buffered with the one thing that is of no world.",
+    "Pulp pressed with deretheni. The pulper did the work a recipe cannot: stripping, cooking and beating",
+    "the wood, and the water a sheet is laid from, which is why there is no bucket here any more.",
     "",
     "Deretheni is the danger material, which design 7.1.1 asks both mid-tier rungs to carry so that it stays",
-    "load-bearing rather than a midgame reward the endgame walks past.",
+    "load-bearing rather than a midgame reward the endgame walks past. It is whole here and ground in the",
+    "ink, so each ladder spends it the way its own station leaves it.",
     "",
-    "Stripped logs rather than logs: bark comes off before pulping, being mostly lignin and specks.",
-    "The bucket comes back empty on its own -- vanilla gives it as the crafting remainder.",
-    "Shapeless, because this is a vat and an arrangement would imply otherwise.",
-    "Ratios have had no balancing thought."
+    "One pulp to a sheet. Shapeless, because this is a vat and an arrangement would imply otherwise.",
+    "Ratios are unbalanced."
   ],
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "group": "agesandtheart_paper",
   "ingredients": [
-    "#agesandtheart:stripped_logs",
-    "minecraft:water_bucket",
-    "agesandtheart:astrite_shard",
+    "agesandtheart:pulp",
+    "agesandtheart:pulp",
+    "agesandtheart:pulp",
     "agesandtheart:pitchstone"
   ],
   "result": {

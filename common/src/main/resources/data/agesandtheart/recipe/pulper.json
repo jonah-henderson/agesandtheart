@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Design 7.1.2: the paper ladder's station, a vat with a hollow centre. Phasmium walls hold it, as",
+    "phasmium frames the portal and the cage; the temperstone is the heating plate with blaze powder under",
+    "it, since pulping is cooking; the sticky piston is the beater driving down into the vat. Arc crystal",
+    "is not here because the pulper needs a block of it beside it, and a cauldron of water.",
+    "Ratios are unbalanced."
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "S": "minecraft:sticky_piston",
+    "P": "agesandtheart:phasmium",
+    "T": "agesandtheart:temperstone",
+    "F": "minecraft:blaze_powder"
+  },
+  "pattern": [
+    "ISI",
+    "P P",
+    "FTF"
+  ],
+  "result": {
+    "id": "agesandtheart:pulper"
+  }
+}

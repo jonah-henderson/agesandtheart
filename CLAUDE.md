@@ -269,7 +269,7 @@ word. `--rewrite` puts the whole corpus back in that layout and is run by hand, 
 ./gradlew :common:serverTest -Pon=sky      # the sky checks that need a server, and nothing else
 ```
 
-Features are `aspects consequence desk levels phenomena sky terrain words`, and the map lives in
+Features are `aspects consequence desk levels phenomena rewards sky stations terrain words`, and the map lives in
 `common/build.gradle.kts`. **They are named after where the specs already live**, because the packages
 already mirror the code they check — so this is a name for a directory rather than a second taxonomy to
 keep in step. A feature with nothing in a given task runs nothing rather than failing, so `-Pon=desk` is a

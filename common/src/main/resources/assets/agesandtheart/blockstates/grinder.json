@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "activity=idle": {
+      "model": "agesandtheart:block/grinder"
+    },
+    "activity=working": {
+      "model": "agesandtheart:block/grinder_working"
+    },
+    "activity=stalled": {
+      "model": "agesandtheart:block/grinder_stalled"
+    }
+  }
+}

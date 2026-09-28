@@ -1,8 +1,8 @@
 {
   "_comment": [
     "A recipe with no advancement is only unlocked by vanilla's fallback -- obtaining the result -- so it",
-    "appears in the book *after* you have made one, which is useless. This is what makes it show up when",
-    "you first hold an ink bottle instead."
+    "appears in the book *after* you have made one, which is useless. This shows it when you first hold an",
+    "ink bottle or the deretheni dust a grinder makes."
   ],
   "parent": "minecraft:recipes/root",
   "criteria": {
@@ -12,6 +12,16 @@
         "items": [
           {
             "items": "agesandtheart:ink_bottle"
+          }
+        ]
+      }
+    },
+    "has_pitchstone_dust": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:pitchstone_dust"
           }
         ]
       }
@@ -26,6 +36,7 @@
   "requirements": [
     [
       "has_ink_bottle",
+      "has_pitchstone_dust",
       "has_the_recipe"
     ]
   ],

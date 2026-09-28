@@ -91,6 +91,10 @@ fun init() {
     AgeContent.recipeSerializers.forEach { (id, serializer) ->
         Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id, serializer)
     }
+    AgeContent.recipeTypes.forEach { (id, type) -> Registry.register(BuiltInRegistries.RECIPE_TYPE, id, type) }
+    AgeContent.recipeBookCategories.forEach { (id, category) ->
+        Registry.register(BuiltInRegistries.RECIPE_BOOK_CATEGORY, id, category)
+    }
     WorldgenCodecs.chunkGeneratorCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id, codec) }
     WorldgenCodecs.biomeSourceCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.BIOME_SOURCE, id, codec) }
     // The *_TYPE registries, not MATERIAL_RULE/MATERIAL_CONDITION: 26.3 gave those names to the datapack

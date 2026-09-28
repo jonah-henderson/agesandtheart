@@ -1,16 +1,13 @@
 {
-  "_comment": [
-    "Unlocked by holding pulp or deretheni, so the recipe is in the book before the first sheet is",
-    "made rather than after -- which is what vanilla's obtain-the-result fallback would give."
-  ],
+  "_comment": "Shown on holding a block of astrite, or the deretheni it grinds.",
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_pulp": {
+    "has_astrite_block": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
         "items": [
           {
-            "items": "agesandtheart:pulp"
+            "items": "agesandtheart:astrite_block"
           }
         ]
       }
@@ -28,20 +25,20 @@
     "has_the_recipe": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
-        "recipes": "agesandtheart:fine_paper"
+        "recipes": "agesandtheart:grinder"
       }
     }
   },
   "requirements": [
     [
-      "has_pulp",
+      "has_astrite_block",
       "has_pitchstone",
       "has_the_recipe"
     ]
   ],
   "rewards": {
     "recipes": [
-      "agesandtheart:fine_paper"
+      "agesandtheart:grinder"
     ]
   }
 }

@@ -1,26 +1,23 @@
 {
-  "_comment": [
-    "Unlocked by holding pulp or deretheni, so the recipe is in the book before the first sheet is",
-    "made rather than after -- which is what vanilla's obtain-the-result fallback would give."
-  ],
+  "_comment": "Shown on holding either of the Ages' materials it is built from.",
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_pulp": {
+    "has_phasmium": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
         "items": [
           {
-            "items": "agesandtheart:pulp"
+            "items": "agesandtheart:phasmium"
           }
         ]
       }
     },
-    "has_pitchstone": {
+    "has_temperstone": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
         "items": [
           {
-            "items": "agesandtheart:pitchstone"
+            "items": "agesandtheart:temperstone"
           }
         ]
       }
@@ -28,20 +25,20 @@
     "has_the_recipe": {
       "trigger": "minecraft:recipe_unlocked",
       "conditions": {
-        "recipes": "agesandtheart:fine_paper"
+        "recipes": "agesandtheart:pulper"
       }
     }
   },
   "requirements": [
     [
-      "has_pulp",
-      "has_pitchstone",
+      "has_phasmium",
+      "has_temperstone",
       "has_the_recipe"
     ]
   ],
   "rewards": {
     "recipes": [
-      "agesandtheart:fine_paper"
+      "agesandtheart:pulper"
     ]
   }
 }

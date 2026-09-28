@@ -1,0 +1,9 @@
+{
+  "_comment": "Stripped, because bark comes off before pulping. Each run drains a level of the pulper's cauldron.",
+  "type": "agesandtheart:pulping",
+  "ingredient": "#agesandtheart:stripped_logs",
+  "result": {
+    "id": "agesandtheart:pulp",
+    "count": 2
+  }
+}

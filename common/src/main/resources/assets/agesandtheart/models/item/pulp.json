@@ -1,0 +1,1 @@
+{ "_comment": "Sugar tinted to wood stands in until the model pass.", "parent": "minecraft:item/generated", "textures": { "layer0": "minecraft:item/sugar" } }

@@ -1,14 +1,13 @@
 {
   "_comment": [
-    "The stub's shape kept -- 'ordinary ink plus something semi-rare' -- with the second ingredient decided.",
-    "",
     "An ink is a pigment carried in a vehicle, so what it wants is a grit, and gloomgrit is one: a drab",
-    "powder scraped off a vent's lining whose whole interest is in what it becomes. This is its second use,",
-    "and it takes the grit rather than the phasmium grains it otherwise makes on purpose -- the grains are",
-    "meant to have exactly one purpose, which is to stop being grains.",
+    "powder scraped off a vent's lining whose whole interest is in what it becomes. It takes the grit rather",
+    "than the phasmium grains it otherwise makes on purpose -- the grains are meant to have exactly one",
+    "purpose, which is to stop being grains.",
     "",
-    "Deretheni is the danger material, which design 7.1.1 asks both mid-tier rungs to carry. It earns its",
-    "place twice over here: being jet-black it is also the colourant, which nothing else in the pack is.",
+    "Deretheni is the danger material, which design 7.1.1 asks both mid-tier rungs to carry, and being",
+    "jet-black it is also the colourant, which nothing else in the pack is. A pigment has to be ground, so",
+    "it comes from the grinder as dust.",
     "",
     "Two gloomgrit because refining should cost more than the ink itself, not less."
   ],
@@ -19,7 +18,7 @@
     "agesandtheart:ink_bottle",
     "agesandtheart:gloomgrit",
     "agesandtheart:gloomgrit",
-    "agesandtheart:pitchstone"
+    "agesandtheart:pitchstone_dust"
   ],
   "result": {
     "id": "agesandtheart:fine_ink_bottle",

@@ -1,0 +1,9 @@
+{
+  "_comment": "What a hot Age's spoiled band is good for. Ratios are unbalanced.",
+  "type": "agesandtheart:grinding",
+  "ingredient": "agesandtheart:scorched_temperstone",
+  "result": {
+    "id": "minecraft:gunpowder",
+    "count": 2
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "_comment": [
+    "Design 7.1.2: the ink ladder's station. Rime is the chill, since a tough thing frozen shatters rather",
+    "than smears; the astrite block is the flywheel, the same inertia the seismograph hangs it for; the blaze",
+    "rod is the drive shaft, the diamonds the abrasive edge and the blackstone the heavy housing. The Nether",
+    "parts are the midgame vanilla a fine-rung machine asks for. Arc crystal is not here because the grinder",
+    "needs a block of it beside it, and a grindstone.",
+    "Ratios are unbalanced."
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "R": "#agesandtheart:rime_crystals",
+    "S": "minecraft:blaze_rod",
+    "D": "minecraft:diamond",
+    "A": "agesandtheart:astrite_block",
+    "B": "minecraft:polished_blackstone"
+  },
+  "pattern": [
+    "RSR",
+    "DAD",
+    "BBB"
+  ],
+  "result": {
+    "id": "agesandtheart:grinder"
+  }
+}

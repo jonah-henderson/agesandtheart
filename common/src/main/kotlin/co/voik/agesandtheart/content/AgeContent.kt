@@ -39,6 +39,10 @@ import co.voik.agesandtheart.desk.GeologistsToolsMenu
 import co.voik.agesandtheart.desk.SeismographMenu
 import co.voik.agesandtheart.desk.WritersDeskMenu
 import co.voik.agesandtheart.location
+import co.voik.agesandtheart.station.Station
+import co.voik.agesandtheart.station.StationBlock
+import co.voik.agesandtheart.station.StationBlockEntity
+import co.voik.agesandtheart.station.StationRecipes
 import co.voik.agesandtheart.worldgen.carver.Porosity
 import com.mojang.serialization.MapCodec
 import co.voik.agesandtheart.worldgen.fissure.StarFissurePiece
@@ -73,7 +77,9 @@ import net.minecraft.world.entity.npc.villager.VillagerProfession
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Items
+import net.minecraft.world.item.crafting.RecipeBookCategory
 import net.minecraft.world.item.crafting.RecipeSerializer
+import net.minecraft.world.item.crafting.RecipeType
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.EquipmentSlotGroup
 import net.minecraft.world.entity.ai.attributes.AttributeModifier
@@ -982,6 +988,57 @@ object AgeContent {
     val OBSERVATION_DEVICE_ENTITY: BlockEntityType<ObservationDeviceBlockEntity> =
         BlockEntityType({ pos, state -> ObservationDeviceBlockEntity(pos, state) }, setOf(OBSERVATION_DEVICE_BLOCK))
 
+    private val GRINDER_ID: Identifier = "grinder".location()
+    private val PULPER_ID: Identifier = "pulper".location()
+    private val STATION_ID: Identifier = "station".location()
+
+    /** See [StationBlock] — grinds deretheni to dust for fine ink, and scorched temperstone to gunpowder. */
+    val GRINDER_BLOCK: StationBlock = StationBlock(
+        Station.GRINDER,
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, GRINDER_ID))
+            .mapColor(MapColor.COLOR_BLACK)
+            .strength(STATION_STRENGTH)
+            .sound(SoundType.METAL)
+            .requiresCorrectToolForDrops(),
+    )
+
+    val GRINDER: Item = BlockItem(
+        GRINDER_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, GRINDER_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /** See [StationBlock] — pulps stripped logs for fine paper. */
+    val PULPER_BLOCK: StationBlock = StationBlock(
+        Station.PULPER,
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, PULPER_ID))
+            .mapColor(MapColor.METAL)
+            .strength(STATION_STRENGTH)
+            .sound(SoundType.METAL)
+            .requiresCorrectToolForDrops(),
+    )
+
+    val PULPER: Item = BlockItem(
+        PULPER_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, PULPER_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /** One type for both stations; each entity reads its [Station] off its block. */
+    val STATION_ENTITY: BlockEntityType<StationBlockEntity> =
+        BlockEntityType({ pos, state -> StationBlockEntity(pos, state) }, setOf(GRINDER_BLOCK, PULPER_BLOCK))
+
+    private const val STATION_STRENGTH = 3.5f
+
+    private val PITCHSTONE_DUST_ID: Identifier = "pitchstone_dust".location()
+    private val PULP_ID: Identifier = "pulp".location()
+
+    /** What the grinder makes of deretheni, and what fine ink is coloured with. */
+    val PITCHSTONE_DUST: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, PITCHSTONE_DUST_ID)))
+
+    /** What the pulper makes of a stripped log, and what fine paper is pressed from. */
+    val PULP: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, PULP_ID)))
+
     private val SCARAB_MEDALLION_ID: Identifier = "scarab_medallion".location()
 
     /**
@@ -1601,6 +1658,8 @@ object AgeContent {
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_BLOCK,
         SURVEYING_DEVICE_ID to SURVEYING_DEVICE_BLOCK,
         OBSERVATION_DEVICE_ID to OBSERVATION_DEVICE_BLOCK,
+        GRINDER_ID to GRINDER_BLOCK,
+        PULPER_ID to PULPER_BLOCK,
         PITCHSTONE_ORE_ID to PITCHSTONE_ORE_BLOCK,
         DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE_BLOCK,
         PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
@@ -1640,6 +1699,7 @@ object AgeContent {
         STAR_FISSURE_ID to STAR_FISSURE_ENTITY,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,
         OBSERVATION_DEVICE_ID to OBSERVATION_DEVICE_ENTITY,
+        STATION_ID to STATION_ENTITY,
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_ENTITY,
     )
 
@@ -1703,7 +1763,11 @@ object AgeContent {
     )
 
     val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =
-        listOf("repattern_descriptive_book".location() to RepatternBookRecipe.SERIALIZER)
+        listOf("repattern_descriptive_book".location() to RepatternBookRecipe.SERIALIZER) + StationRecipes.serializers
+
+    val recipeTypes: List<Pair<Identifier, RecipeType<*>>> = StationRecipes.types
+
+    val recipeBookCategories: List<Pair<Identifier, RecipeBookCategory>> = StationRecipes.bookCategories
 
     val items: List<Pair<Identifier, Item>> = listOf(
         VENT_LINING_ID to VENT_LINING_ITEM,
@@ -1727,6 +1791,10 @@ object AgeContent {
         SURVEYING_DEVICE_ID to SURVEYING_DEVICE,
         OBSERVATION_DEVICE_ID to OBSERVATION_DEVICE,
         HADALFISH_LURE_ID to HADALFISH_LURE,
+        GRINDER_ID to GRINDER,
+        PULPER_ID to PULPER,
+        PITCHSTONE_DUST_ID to PITCHSTONE_DUST,
+        PULP_ID to PULP,
         SCARAB_MEDALLION_ID to SCARAB_MEDALLION,
         *SURVEY_REPORTS.map { (report, item) -> report.id to item }.toTypedArray(),
         GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE,

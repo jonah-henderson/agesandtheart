@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "activity=idle": {
+      "model": "agesandtheart:block/pulper"
+    },
+    "activity=working": {
+      "model": "agesandtheart:block/pulper_working"
+    },
+    "activity=stalled": {
+      "model": "agesandtheart:block/pulper_stalled"
+    }
+  }
+}
