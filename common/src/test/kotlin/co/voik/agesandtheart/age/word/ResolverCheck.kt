@@ -554,13 +554,13 @@ class ResolverCheck : FunSpec({
      * **A template brings vanilla's rock, and naming a landform takes it away** — the either/or the whole
      * hybrid rests on (`the-art-implementation-plan.md`, "Vanilla's own terrain under an Age").
      *
-     * `landmass=vanilla` says the rock is not ours; the recipe's template says which vanilla. A writer who
-     * names any shape of ours replaces it and the field tree answers instead — aquifers and preliminary
+     * The template's world wears its own rock — `landmass=nether` for an infernal one. A writer who names
+     * any shape of ours replaces it and the field tree answers instead — aquifers and preliminary
      * surface included, because vanilla's router answers for all three together or none of them.
      */
     test("a template brings vanilla's rock, and a landform takes it away") {
         val nether = Resolver.resolve(vocabulary, read(listOf("infernal", "age")), SAMPLE_SEED)
-        check(nether.composition.terrains == listOf(Terrain.VANILLA)) {
+        check(nether.composition.terrains == listOf(Terrain.NETHER)) {
             "an unshaped infernal Age came out on ${nether.composition.terrains}"
         }
         check(nether.template.rock == NoiseGeneratorSettings.NETHER) {
@@ -575,6 +575,28 @@ class ResolverCheck : FunSpec({
         check(shaped.composition.seas == listOf(Sea.LAVA)) {
             "shaping the land took the nether's sea with it: ${shaped.composition.seas}"
         }
+    }
+
+    /** **Any world's rock under any template**: the nether's own, under the overworld's sky and biomes. */
+    test("a writer may name another world's rock") {
+        val written = Resolver.resolve(vocabulary, read(listOf("age", "nether", "landmass")), SAMPLE_SEED)
+        check(written.composition.terrains == listOf(Terrain.NETHER)) {
+            "'nether landmass' came out on ${written.composition.terrains}"
+        }
+        check(written.template == AgeTemplate.OVERWORLD) { "naming the rock moved the template to ${written.template}" }
+    }
+
+    /**
+     * **Vanilla's rock answers for the whole world or for none of it**, so named beside a landform of ours
+     * it keeps the world and the other is charged — the pen never refuses, and nothing goes missing silently.
+     */
+    test("vanilla's rock beside a landform of ours keeps the world and charges the rest") {
+        val written = Resolver.resolve(vocabulary, read(listOf("age", "overworld", "and", "hills", "landmass")), SAMPLE_SEED)
+        check(written.composition.terrains == listOf(Terrain.OVERWORLD)) {
+            "'overworld and hills' came out on ${written.composition.terrains}"
+        }
+        val displaced = written.instability.flaws.filter { it.register == Register.DISPLACED && "hills" in it.words }
+        check(displaced.isNotEmpty()) { "the hills went unmentioned: ${written.instability.flaws}" }
     }
 
     /**

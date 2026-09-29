@@ -23,7 +23,7 @@ object CompositionSpelling {
      * A composition and the world it was written over, which is the whole of what `/age compose` can say.
      *
      * The template is on the *recipe* rather than in the composition, so a spelling that only carried the
-     * composition could not round-trip an infernal Age: `landmass=vanilla` says the rock is not ours, and
+     * composition could not round-trip an infernal Age: `landmass=nether` says whose rock it is, and
      * only the template says which vanilla it is.
      */
     data class Written(
@@ -51,7 +51,7 @@ object CompositionSpelling {
     fun read(specification: String): Result<Written> = runCatching {
         // A stand-in, so options may be read in any order relative to the presets they steer. Either
         // the sentence names a terrain over the top of it, or it is rejected below for naming none.
-        var composition = AgeComposition(terrains = listOf(Terrain.SHAPES))
+        var composition = AgeComposition(terrains = listOf(Terrain.OVERWORLD))
         var template = AgeTemplate.ORDINARY
         var instability = Instability.NONE
         var namedALandform = false
@@ -104,11 +104,11 @@ object CompositionSpelling {
         // Vanilla's rock answers for the whole world or for none of it — the field tree and vanilla's
         // router are either/or — so it cannot stand as one territory among several. Said here rather
         // than left to the generator, which has no way to report it and used to throw instead.
-        val ourOwnRockBeside = composition.terrains.filter { it != Terrain.VANILLA }
-        val sharesTheWorld = Terrain.VANILLA in composition.terrains && ourOwnRockBeside.isNotEmpty()
+        val vanillas = composition.terrains.filter { it.isVanillas }
+        val sharesTheWorld = vanillas.isNotEmpty() && composition.terrains.size > 1
         require(!sharesTheWorld) {
-            "`${Aspect.TERRAIN.page}=${Terrain.VANILLA.key}` is the whole world's rock and cannot " +
-                "divide it with ${ourOwnRockBeside.joinToString(" ") { it.key }}"
+            "`${Aspect.TERRAIN.page}=${vanillas.first().key}` is the whole world's rock and cannot divide it " +
+                "with ${(composition.terrains - vanillas.first()).joinToString(" ") { it.key }}"
         }
         Written(composition, template, instability)
     }

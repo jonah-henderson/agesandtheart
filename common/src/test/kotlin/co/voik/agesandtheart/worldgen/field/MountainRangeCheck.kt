@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.worldgen.field
 
 import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
-import co.voik.agesandtheart.worldgen.AlpsField
+import co.voik.agesandtheart.worldgen.MountainousField
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -11,7 +11,7 @@ import kotlin.math.abs
 /**
  * Properties of a range built from its own drainage — the things a render cannot settle.
  *
- * The pictures answer whether it looks like mountains (`./gradlew :common:preview --args=alps`, and read
+ * The pictures answer whether it looks like mountains (`./gradlew :common:preview --args=mountainous`, and read
  * the cross-section before the plan). What they cannot answer is whether the surface is **continuous**,
  * which matters more here than for any other field in the toolkit: the ground is the lower envelope of
  * hillslopes rising from reaches drawn out of a *local* scan, so a reach that leaves the scan while it is
@@ -22,8 +22,8 @@ import kotlin.math.abs
 @Tags(NEEDS_LANDFORMS)
 class MountainRangeCheck : FunSpec({
 
-    val range = AlpsField.bareWorld()
-    val water = AlpsField.water() as MountainRange
+    val range = MountainousField.bareWorld()
+    val water = MountainousField.water() as MountainRange
 
     /**
      * How deep water may stand over its own floor, **derived from the range rather than chosen** so it
@@ -140,7 +140,7 @@ class MountainRangeCheck : FunSpec({
         // to a constant meant to describe where the basins sit is circular — the two are estimates of the
         // same quantity, so the test can only ever be marginal. What is worth asserting is that most of the
         // ground lies in the *lower part* of the range from basin floor to crest.
-        val mostlyLow = AlpsField.BASIN_FLOOR + (AlpsField.CREST_Y - AlpsField.BASIN_FLOOR) * LOW_SHARE
+        val mostlyLow = MountainousField.BASIN_FLOOR + (MountainousField.CREST_Y - MountainousField.BASIN_FLOOR) * LOW_SHARE
         check(at(THE_MIDDLE) < mostlyLow) {
             "half the ground stands over y=${at(THE_MIDDLE)} against a basin-to-crest quarter at $mostlyLow, " +
                 "so the cells have filled in and the basins are gone"
@@ -285,7 +285,7 @@ class MountainRangeCheck : FunSpec({
     private companion object {
         /**
          * The steepest honest one-block change. A headwall is the steepest surface here — a hillslope's grade
-         * times [AlpsField]'s headwall steepening, which is under one and a half blocks per block — the warp
+         * times [MountainousField]'s headwall steepening, which is under one and a half blocks per block — the warp
          * roughly doubles every gradient by moving the sampled point faster than the world, and the gullying
          * cuts at its own scale on top of both. **Measured at three**, so six is a bound with room rather
          * than a number tuned to pass.

@@ -21,7 +21,7 @@ import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
  * is by substitution into `NoiseGeneratorSettings` — one block, one fluid, one surface rule. Everything
  * else about that world is vanilla's, deliberately.
  *
- * The sea went missing down that path and nothing said so: `Terrain.VANILLA` declares no waterline,
+ * The sea went missing down that path and nothing said so: vanilla's rocks declare no waterline,
  * because vanilla's router pours its own fluid and there is nothing for a `SeaFill` of ours to fill. So the
  * fill came out `NONE` for every Age wearing this rock, and reading the sea off it meant a book could ask
  * for lava over the overworld and get water (Jonah, 2026-08-25, walked). It is read off the composition
@@ -37,7 +37,7 @@ class VanillasRockCheck : FunSpec({
     /** A book over [template] saying exactly [said] and nothing else — the shape `/age compose` builds. */
     fun writing(template: AgeTemplate, vararg said: Pair<String, String>): AgeComposition {
         val spelled = said.joinToString(" ") { (parameter, value) -> "$parameter=$value" }
-        return AgeComposition.parse("template=${template.key} landmass=vanilla $spelled")
+        return AgeComposition.parse("template=${template.key} landmass=${template.ownRock.key} $spelled")
             .getOrElse { error("'$spelled' over ${template.key} is not a composition this build parses: $it") }
     }
 

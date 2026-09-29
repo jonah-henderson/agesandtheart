@@ -24,9 +24,6 @@ enum class AgePreset(val key: String) : StringRepresentable {
     /** A level plain to the horizon, with caves under it — our superflat. */
     FLATLANDS("flatlands"),
 
-    /** A walkable sampler of the shape vocabulary and its combinators. */
-    SHAPES("shapes"),
-
     /** Colossal rectangular monoliths over an ocean. */
     PILLARS("pillars"),
 
@@ -58,7 +55,7 @@ enum class AgePreset(val key: String) : StringRepresentable {
     ISLE("isle"),
 
     /** An alpine range: a foreland plain, foothills, and a glaciated crest behind them. */
-    ALPS("alps"),
+    MOUNTAINOUS("mountainous"),
 
     /** One colossal impact basin at the origin, with an ordinary cratered plain beyond its ejecta. */
     CRATERLANDS("craterlands"),

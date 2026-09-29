@@ -29,12 +29,12 @@ import kotlin.math.roundToInt
  * cratered plain beyond its reach.
  *
  * **The one landform here with a centre.** Every other world in this toolkit is either the same
- * everywhere ([NoiseField], [PillarField], [IslandsField], [AlpsField]) or the same along a bearing
+ * everywhere ([NoiseField], [PillarField], [IslandsField], [MountainousField]) or the same along a bearing
  * ([CanyonField], [CliffField]), so walking away from the origin tells you nothing. Here distance from
  * the origin is the only thing that matters: you arrive on the central peak, in a round sea, inside a
  * ring wall, and the country relaxes back into plain over the next two kilometres.
  *
- * **And the one built by removal at a single stroke** rather than by erosion. `alps` raises ground up
+ * **And the one built by removal at a single stroke** rather than by erosion. `mountainous` raises ground up
  * from its own drainage and the canyons cut theirs away over time; this excavates once and then rebounds.
  * The order is the geology and it is the shape of [world]: the peak stands *because* it came up after the
  * hole was dug, so putting it inside the cut would only bury it.

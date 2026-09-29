@@ -7,7 +7,14 @@
       "scattered": 0.6
     }
   },
-  "overworld": {
+  "skylands": {
+    "tags": {
+      "floating": 1.0,
+      "scattered": 0.7,
+      "sheer": 0.4
+    }
+  },
+  "continents": {
     "tags": {
       "lush": 0.6,
       "mountainous": 0.4,
@@ -62,7 +69,7 @@
       "solid": 0.9
     }
   },
-  "alps": {
+  "mountainous": {
     "tags": {
       "mountainous": 1.0,
       "sheer": 0.7,
@@ -124,13 +131,6 @@
       "flat": 0.7,
       "monumental": 0.7,
       "solid": 0.5
-    }
-  },
-  "shapes": {
-    "readiness": 0.15,
-    "tags": {
-      "ordered": 0.8,
-      "flat": 0.5
     }
   },
   "inverse_caves": {

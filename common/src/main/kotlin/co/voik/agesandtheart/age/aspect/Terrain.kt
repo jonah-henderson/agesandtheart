@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.worldgen.AlpsField
+import co.voik.agesandtheart.worldgen.MountainousField
 import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CliffField
@@ -14,10 +14,10 @@ import co.voik.agesandtheart.worldgen.OverworldField
 import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.PyramidField
 import co.voik.agesandtheart.worldgen.RiverlandsField
-import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.SolidField
+import co.voik.agesandtheart.worldgen.SkylandsField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.biome.Elevation
@@ -77,7 +77,19 @@ enum class Terrain(
         waterline = SpireField.SEA_LEVEL,
         build = { options, salt -> SpireField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
-        page = "spires",
+        // The Spire's own rock, reached by its preset and never by a writer.
+        page = null,
+    ),
+
+    /**
+     * Islands floating in nothing at about one height, the End's arrangement: broad tops over tapering
+     * undersides, near enough to cross between. No waterline and nothing below them but the void.
+     */
+    SKYLANDS(
+        "skylands",
+        waterline = null,
+        build = { options, salt -> SkylandsField.world(salt, scaleOf(options, salt)) },
+        axes = { listOf(SIZE) },
     ),
 
     /** Rolling noise hills breaking a sea — the closest thing here to ordinary ground. */
@@ -95,7 +107,7 @@ enum class Terrain(
      */
     FLATLANDS("flatlands", waterline = null, build = { _, _ -> FlatlandsField.world() }),
 
-    /** Plain 3D noise weathered into mesa-like relief, hanging clear above the water. */
+    /** Weathered rock country rising out of the sea: sheer-walled buttes, arches and overhangs. */
     ERODED(
         "eroded",
         waterline = ORDINARY_SEA_LEVEL,
@@ -208,10 +220,10 @@ enum class Terrain(
      * landform here whose surface is built **up from its own drainage** rather than cut into a given one —
      * every ridge is where two hillslopes met.
      */
-    ALPS(
-        "alps",
-        waterline = AlpsField.WATERLINE,
-        build = { options, salt -> AlpsField.world(salt, scaleOf(options, salt)) },
+    MOUNTAINOUS(
+        "mountainous",
+        waterline = MountainousField.WATERLINE,
+        build = { options, salt -> MountainousField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
     ),
 
@@ -243,10 +255,10 @@ enum class Terrain(
     /**
      * Continents, seas and hills — ordinary ground, with the overhangs a volumetric field can say and a
      * heightmap cannot. Minecraft's own overworld approximated rather than reproduced, and it sits high
-     * so that there is room for an [Underground] beneath it.
+     * so that there is room for an [Underground] beneath it, which vanilla's own [OVERWORLD] has not.
      */
-    OVERWORLD(
-        "overworld",
+    CONTINENTS(
+        "continents",
         waterline = OverworldField.WATERLINE,
         build = { options, salt -> OverworldField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
@@ -268,38 +280,49 @@ enum class Terrain(
         page = "subterranean",
     ),
 
-    /** A walkable sampler of the shape vocabulary and its combinators — a reference, not a world. */
-    SHAPES("shapes", waterline = null, build = { _, salt -> ShapesField.world(salt) }),
-
     /**
-     * **The rock this Age's template brings** — vanilla's own nether, end or overworld — rather than a
-     * shape of ours.
+     * **Vanilla's own rock, one per world** — its overworld, its nether and its end — rather than a shape of
+     * ours, and each under any template: nether rock under an overworld sky, or the end's islands under a
+     * blue one. Which noise settings each wears is [AgeTemplate.ofRock]'s to say.
      *
-     * *Which* vanilla is the recipe's to say ([co.voik.agesandtheart.age.AgeRecipe.template]), so this
-     * names the fact and nothing more. Naming any other landform replaces it, which is how a writer leaves
-     * a template's rock behind: the two are either/or, vanilla's router answering for the rock, the
-     * aquifers and the preliminary surface together where the field tree answers for all three.
+     * A template's own world wears its own ([AgeTemplate.world]), which is what an Age that named no
+     * landform gets. They are either/or with a landform of ours, vanilla's router answering for the rock,
+     * the aquifers and the preliminary surface together where the field tree answers for all three — so a
+     * book naming one beside a shape of ours keeps the vanilla rock and is charged for the other.
      *
-     * **It builds no field, and asking it for one is unreachable rather than merely wrong.**
-     * `AgeGeneration.ourGround` is the only caller of [ground], and it is entered only where this is absent
-     * from the composition; `AgeComposition.parse` refuses it beside a landform of ours. The throw records
-     * the invariant rather than guarding a live path.
+     * **They build no field, and asking one for it is unreachable rather than merely wrong.**
+     * `AgeGeneration.ourGround` is the only caller of [ground], and it is entered only where none of these
+     * is in the composition. The throw records the invariant rather than guarding a live path.
      */
-    VANILLA(
-        "vanilla",
-        waterline = null,
-        build = { _, _ ->
-            error("the template's own rock has no field of ours; AgeGeneration.ourGround is not reached for it")
-        },
-        page = null,
-    ),
+    OVERWORLD("overworld", waterline = null, build = { _, _ -> error(NO_FIELD_OF_OURS) }),
+    NETHER("nether", waterline = null, build = { _, _ -> error(NO_FIELD_OF_OURS) }),
+    END("end", waterline = null, build = { _, _ -> error(NO_FIELD_OF_OURS) }),
     ;
 
+    /** Whether this is vanilla's own rock rather than a shape of ours — see [OVERWORLD]. */
+    val isVanillas: Boolean get() = this == OVERWORLD || this == NETHER || this == END
+
     /**
-     * [VANILLA] is kept from broad words, and being so is the point of it: it is what an Age wears when the writer
-     * named no landform at all, never something they can reach for.
+     * Vanilla's rocks are kept from broad words: named, they are reached by their page, but an evocative
+     * word drawing one into a world divided with a shape of ours would draw a world that cannot be built.
+     * [SPIRE_ISLANDS] is the Spire's, an Age recreated rather than written, so no word reaches it at all.
      */
-    override val availableToBroadWords: Boolean get() = this != VANILLA
+    override val availableToBroadWords: Boolean get() = !isVanillas && this != SPIRE_ISLANDS
+
+    override val takesTheWholeAspect: Boolean get() = isVanillas
+
+    /**
+     * Whether there is rock under this landform's land all the way down — false for the ones hanging in
+     * the void, where anything vanilla builds at a fixed depth (`Structures.BUILT_UNDERGROUND`) would hang
+     * there too.
+     */
+    val hasGroundBeneath: Boolean get() = this !in HANGING_IN_THE_VOID
+
+    /**
+     * Where this landform's clouds sit when the book says nothing about them, or null for the sky's own
+     * height. Only islands in the void ask: their clouds belong under them.
+     */
+    val cloudsAtY: Int? get() = if (this == SKYLANDS) SkylandsField.CLOUDS_Y else null
 
     /**
      * Every landform a writer can reach for has a page that means it, and the page is minted from here —
@@ -328,19 +351,18 @@ enum class Terrain(
      *
      * The height is what matters: an underground has to stop under the deepest thing the surface cuts, or
      * it opens into it. That is a different question per landform and each answers from its own datum —
-     * [CANYONLANDS] from the floor its gorges reach, [CLIFFS] from its seabed, [OVERWORLD] from the level
+     * [CANYONLANDS] from the floor its gorges reach, [CLIFFS] from its seabed, [CONTINENTS] from the level
      * it stops shaping at. There is no rule behind them and there was never going to be; a waterline stood
      * in for one here for a while and was wrong for [CANYON] in exactly the way a stand-in is.
      *
      * What is excluded is only what could not carry an underground or would make no sense of one:
      *
-     * - **[ALPS]** spends its whole vertical budget on the landform and leaves about sixteen blocks under a
+     * - **[MOUNTAINOUS]** spends its whole vertical budget on the landform and leaves about sixteen blocks under a
      *   valley floor, so caves there would be holes in the bedrock rather than a country under the ground.
      * - **[INVERSE_CAVES]** is the opposite case: it is the cast of a cave system already, and cutting caves
      *   into it would only erase it.
      * - **[SPIRE_ISLANDS]** hangs in open air and is thin enough to be worked through by the weather alone.
-     * - **[SHAPES]** is a reference for the vocabulary, not a world.
-     *
+         *
      * **[CANYON] has the most room of anything here**, which is easy to get backwards: the gorge reaches
      * the world's floor, but everything either side of it is solid to the ceiling. Its underground is cut
      * off square by the gorge wall, which is a way in rather than a fault.
@@ -350,7 +372,7 @@ enum class Terrain(
      * floor or a sea that every size shares.
      */
     fun undergroundCeiling(options: Options, salt: Long): Int? = when (this) {
-        OVERWORLD -> OverworldField.SOLID_TOP - ROOM_FOR_A_ROOF
+        CONTINENTS -> OverworldField.SOLID_TOP - ROOM_FOR_A_ROOF
         // Solid either side of the gorge all the way up, so this is bounded by taste rather than by rock —
         // and by the plateau, once the canyon is smaller than the world.
         CANYON -> minOf(VerticalWindow.HIGHEST_BLOCK_Y / 2, CanyonField.plateauY(scaleOf(options, salt)) - ROOM_FOR_A_ROOF)
@@ -364,14 +386,18 @@ enum class Terrain(
         // The basin is already the deepest thing here, and it is dug from a plain standing well above
         // the waterline — so this datums on the crater floor rather than on the sea in it.
         CRATERLANDS -> CraterlandsField.bowlFloorY(craterSteer(options, salt)) - ROOM_FOR_A_ROOF
-        HILLS, ERODED, PILLARS -> ORDINARY_SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
+        HILLS, PILLARS -> ORDINARY_SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
+        // Its seabed is the band's foot, which a larger country carries deeper.
+        ERODED -> ErodedField.seabedY(scaleOf(options, salt)) - ROOM_FOR_A_ROOF
         // A plain with no sea, so the only thing overhead is the plain itself.
         PYRAMIDS -> ORDINARY_SEA_LEVEL - ROOM_FOR_A_ROOF
         // **The most room of anything here, and for once nothing is being cleared.** There is no surface
         // for an underground to open into, so this is bounded by the bedrock roof alone.
         SOLID -> SolidField.UNDERGROUND_CEILING
-        // VANILLA has no shape of ours to hollow under, its rock being vanilla's to describe.
-        SPIRE_ISLANDS, ALPS, SHAPES, INVERSE_CAVES, VANILLA -> null
+        // Islands in the void have no ground under them to hollow.
+        SPIRE_ISLANDS, SKYLANDS, MOUNTAINOUS, INVERSE_CAVES -> null
+        // Vanilla's rock carries its own caves, and there is no shape of ours to hollow under it.
+        OVERWORLD, NETHER, END -> null
     }
 
     override fun getSerializedName(): String = key
@@ -442,10 +468,11 @@ enum class Terrain(
      * A physical fact about the Age, which is what `sky.sealed` already claims to be — so it is read
      * beside it rather than instead of it (`AgeComposition.isRoofed`), and everything that follows from
      * being roofed follows here too: the dimension type, where a visitor arrives, and what is painted
-     * overhead. [CANYON] is the one that looks like it belongs here and does not: its plateau reaches the
+     * overhead. [NETHER] is here because vanilla's nether rock lays a bedrock ceiling of its own, so no
+     * book can open it to the sky. [CANYON] is the one that looks like it belongs here and does not: its plateau reaches the
      * ceiling, but the gorge is open to the sky and that is the whole landform.
      */
-    val roofsTheWorld: Boolean get() = this == SOLID
+    val roofsTheWorld: Boolean get() = this == SOLID || this == NETHER
 
     /**
      * Water this terrain carries **itself**, or null where a waterline is all it needs.
@@ -455,7 +482,7 @@ enum class Terrain(
      */
     fun standingWater(options: Options, salt: Long): TerrainField? = when (this) {
         RIVERLANDS -> RiverlandsField.water(salt, scaleOf(options, salt))
-        ALPS -> AlpsField.water(salt, scaleOf(options, salt))
+        MOUNTAINOUS -> MountainousField.water(salt, scaleOf(options, salt))
         else -> null
     }
 
@@ -478,10 +505,10 @@ enum class Terrain(
         // Measured from the basin's *shoulder* rather than its floor: the floor is the bottom of a hollow
         // in the middle of a cell, so datuming there chills the whole country by the depth of its lowest
         // hole and the basins come out snowy. The shoulder is where the plains actually sit.
-        ALPS -> Grounding.Declared(elevation = Elevation(fromY = AlpsField.PLAIN_Y, toY = ALPINE_CREST_Y))
+        MOUNTAINOUS -> Grounding.Declared(elevation = Elevation(fromY = MountainousField.PLAIN_Y, toY = ALPINE_CREST_Y))
         // Datumed on the plain the basin was struck into, which is where the ordinary country is, and
         // topped at the rim crest — a hundred blocks of climb that would otherwise pass through no
-        // country at all, the same argument `alps` makes.
+        // country at all, the same argument `mountainous` makes.
         CRATERLANDS -> Grounding.Declared(
             elevation = Elevation(fromY = CraterlandsField.PLAIN_Y, toY = CraterlandsField.rimCrestY(craterSteer(options, salt))),
         )
@@ -505,6 +532,12 @@ enum class Terrain(
     fun fillBlocks(options: Options): List<BlockState> = options.materialsOf(STONE)
 
     companion object {
+        /** The landforms with nothing beneath their land — see [hasGroundBeneath]. */
+        private val HANGING_IN_THE_VOID by lazy { setOf(SKYLANDS, SPIRE_ISLANDS, INVERSE_CAVES, END) }
+
+        private const val NO_FIELD_OF_OURS =
+            "vanilla's own rock has no field of ours; AgeGeneration.ourGround is not reached for it"
+
         /**
          * **The three axes a word may bend a landform along**, and the reason they are ranged rather than
          * named steps: a word carries the *band* it means, so `sparse` and `scattered` can sit on
@@ -651,7 +684,7 @@ enum class Terrain(
         private const val EVENLY_MINGLED = 0.0
 
         /**
-         * The height a column in [ALPS] reads as fully a summit at — around the crest rather than above the
+         * The height a column in [MOUNTAINOUS] reads as fully a summit at — around the crest rather than above the
          * tallest massif, so the peak biomes reach the whole crest line and not only its exceptions.
          */
         private const val ALPINE_CREST_Y = 262

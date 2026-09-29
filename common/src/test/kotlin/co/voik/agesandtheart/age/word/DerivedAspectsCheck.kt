@@ -140,7 +140,7 @@ class DerivedAspectsCheck : FunSpec({
      * A preset meant outright places a word exactly, which is what lets the seventeen landform pages be
      * minted from the landforms themselves.
      *
-     * **The aspect comes from the key it is written under, not from a search.** `Biome.named("alps")`
+     * **The aspect comes from the key it is written under, not from a search.** `Biome.named("mountainous")`
      * succeeds — a bare path is a valid identifier — so a bare name offered to every open aspect would
      * widen a terrain word into the biomes, spawns, features and structures at once.
      */

@@ -180,7 +180,7 @@ class RecipeCheck : FunSpec({
      * names nobody recognises, and this name is spelled perfectly.
      */
     test("a rock vanilla cannot mingle is called out") {
-        val mingled = AgeComposition(terrains = listOf(Terrain.VANILLA))
+        val mingled = AgeComposition(terrains = listOf(Terrain.OVERWORLD))
             .withOptions(Aspect.TERRAIN, Terrain.STONE.name, listOf("minecraft:blackstone", "minecraft:tuff"))
         val overVanillas = AgeRecipe(
             AgeWorld.Composed(mingled),
@@ -213,7 +213,7 @@ class RecipeCheck : FunSpec({
      */
     test("a carving vanilla's own rock will not take is called out") {
         fun over(template: AgeTemplate, carving: Carvers) = AgeRecipe(
-            AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.VANILLA), carvers = listOf(carving))),
+            AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.OVERWORLD), carvers = listOf(carving))),
             seed = SAMPLE_SEED,
             template = template,
         ).unhonoured
@@ -245,11 +245,11 @@ class RecipeCheck : FunSpec({
      * generator, where there is nobody to tell.
      */
     test("vanilla's rock cannot divide the world with ours") {
-        val alone = AgeComposition.parse("landmass=vanilla sea=water")
-        check(alone.isSuccess) { "`landmass=vanilla` alone was refused: ${alone.exceptionOrNull()?.message}" }
+        val alone = AgeComposition.parse("landmass=overworld sea=water")
+        check(alone.isSuccess) { "`landmass=overworld` alone was refused: ${alone.exceptionOrNull()?.message}" }
 
-        val shared = AgeComposition.parse("landmass=vanilla,hills sea=water")
-        check(shared.isFailure) { "`landmass=vanilla,hills` was composed rather than refused" }
+        val shared = AgeComposition.parse("landmass=overworld,hills sea=water")
+        check(shared.isFailure) { "`landmass=overworld,hills` was composed rather than refused" }
         check(Terrain.HILLS.key in shared.exceptionOrNull()?.message.orEmpty()) {
             "the refusal does not say what it clashed with: ${shared.exceptionOrNull()?.message}"
         }

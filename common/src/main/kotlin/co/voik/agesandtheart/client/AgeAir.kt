@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Motes
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.CloudDeck
@@ -171,7 +172,8 @@ object AgeAir {
         }
         look.starBrightness?.let { add(Painted(EnvironmentAttributes.STAR_BRIGHTNESS, it)) }
         look.ceiling?.let {
-            add(Painted(EnvironmentAttributes.CLOUD_HEIGHT, LOWEST_CLOUD + it * (HIGHEST_CLOUD - LOWEST_CLOUD)))
+            val band = Atmosphere.HIGHEST_CLOUD - Atmosphere.LOWEST_CLOUD
+            add(Painted(EnvironmentAttributes.CLOUD_HEIGHT, Atmosphere.LOWEST_CLOUD + it * band))
         }
     }
 
@@ -203,8 +205,4 @@ object AgeAir {
      * than as two unrelated greys, and a third deck needs nothing added.
      */
     private const val UNDER_EACH_DECK = 0.62f
-
-    /** The band the cloud deck moves through, in blocks. */
-    private const val LOWEST_CLOUD = 96f
-    private const val HIGHEST_CLOUD = 256f
 }

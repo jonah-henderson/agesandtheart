@@ -28,14 +28,14 @@ import co.voik.agesandtheart.worldgen.field.Weathered
  * player who sets out for the crest arrives. See [MountainRange] for how the landform is derived at all,
  * and `notes/terrain-architecture.md` for the models behind it.
  */
-object AlpsField {
+object MountainousField {
 
     /**
      * The ground, weathered — a firmer hand than a river country's and a much lighter one than a canyon's.
      * The shape already has its large forms; what this adds is frost damage on the high faces.
      */
     fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
-        Weathered.sculpting(bareWorld(salt, scale), Weathering.ALPS, SHELTER_REACH)
+        Weathered.sculpting(bareWorld(salt, scale), Weathering.MOUNTAINOUS, SHELTER_REACH)
 
     /**
      * The range before the weather reaches it — the previewer's other half, and nothing else's.

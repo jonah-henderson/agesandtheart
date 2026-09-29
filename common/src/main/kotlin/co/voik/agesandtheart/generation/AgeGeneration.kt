@@ -121,7 +121,7 @@ object AgeGeneration {
         // **Built once and shared**, so the rock, the bodies the sea carries and the generator's own copy
         // are all the same object — see the note on `ourGround`'s parameter.
         val overlay = volcanicOverlay(composition, seed)
-        val ourGround = if (Terrain.VANILLA in composition.terrains) null
+        val ourGround = if (composition.terrains.any { it.isVanillas }) null
         else ourGround(composition, landmass, ground, window, seed, torn, overlay)
 
         val chasm = ourGround?.chasm
@@ -146,9 +146,13 @@ object AgeGeneration {
         // stone for every Age. A surface tree paints *patches* — nylium, soul soil, gravel — and leaves the
         // rest to the world's default block, so an infernal Age's hills came out bare grey stone under the
         // nether's own dressing, which then had nothing it recognised to dress (Jonah, 2026-08-14, walked).
-        val theirRockSettings = server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS)
-            .getOrThrow(recipe.template.rock)
+        val noiseSettings = server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS)
+        val theirRockSettings = noiseSettings.getOrThrow(recipe.template.rock)
         val theirRock = theirRockSettings.value().defaultBlock()
+        // **The rock's own world, not the template's**, where the Age wears vanilla's: nether rock under an
+        // overworld sky is the nether's settings with the overworld's biomes over them.
+        val vanillasWorld = composition.terrains.firstNotNullOfOrNull(AgeTemplate::ofRock) ?: recipe.template
+        val vanillasRockSettings = noiseSettings.getOrThrow(vanillasWorld.rock)
         val fill = TerrainFill(
             composition.terrains.mapIndexed { member, terrain ->
                 terrain.fillBlocks(terrainOptions(member)).ifEmpty { listOf(theirRock) }
@@ -236,7 +240,7 @@ object AgeGeneration {
                             },
                     ),
                 ),
-            ourGround?.rock ?: AgeRock.Vanillas(Holder.direct(vanillasRockFor(theirRockSettings.value(), composition, fill))),
+            ourGround?.rock ?: AgeRock.Vanillas(Holder.direct(vanillasRockFor(vanillasRockSettings.value(), composition, fill))),
             seaFill,
             // The Surface aspect's answer, not a constant: vanilla's tree paints grass over dirt above
             // water without consulting the biome, so there has to be a way to say "no skin" and a way to
@@ -267,11 +271,13 @@ object AgeGeneration {
                 composition.optionsFor(Aspect.STRUCTURES, 0),
                 recipe.template.standingStructures,
                 if (abyssLineOf(seaFill, window) == null) emptyMap() else WRECKAGE_ON_AN_ABYSS_FLOOR,
+                withoutWhatIsBuiltUnderground = composition.hasNothingBeneathIt,
             ) + DniCity.structureSets(server, composition),
             // **The climate the biomes are looked up by, and it comes from the same world they do.** This
             // was the overworld's for every Age, so a landform of ours over the infernal template chose
             // nether biomes with overworld noise — and over the dark void, where the End picks by distance
             // from the centre and reads that off `erosion`, it scattered the islands' biomes at random.
+            // The template's even under another world's rock, since the table is the template's too.
             theirRockSettings,
             fill,
             window,
@@ -341,7 +347,7 @@ object AgeGeneration {
             else -> Holder.direct(SurfacingStrategy.laidOnVanilla(named))
         }
         // **The substance alone, read off the book rather than off the fill.** A `SeaFill` answers where a
-        // sea of *ours* is poured, and `Terrain.VANILLA` declares no waterline at all — vanilla's own
+        // sea of *ours* is poured, and vanilla's rocks declare no waterline at all — vanilla's own
         // router places its fluid, so there is nothing here for a fill to pour. That made the fill `NONE`
         // for every Age wearing this rock however the book was written, and reading the sea off it dropped
         // every `sea=` one of them ever named: lava asked for over the overworld came out water, and water
@@ -595,9 +601,9 @@ object AgeGeneration {
         AgePreset.VANILLA_BARE -> VanillaDelegate.bareOverworld(server)
 
         AgePreset.SPIRE, AgePreset.PYRAMIDS, AgePreset.PYRINGS, AgePreset.PYRVARIED, AgePreset.HILLS,
-        AgePreset.SHAPES, AgePreset.PILLARS, AgePreset.TUNNELS, AgePreset.ERODED, AgePreset.CANYON,
+        AgePreset.PILLARS, AgePreset.TUNNELS, AgePreset.ERODED, AgePreset.CANYON,
         AgePreset.CLIFFS, AgePreset.CANYONLANDS, AgePreset.SHATTERED, AgePreset.RIVERLANDS,
-        AgePreset.ISLANDS, AgePreset.ISLE, AgePreset.ALPS, AgePreset.CRATERLANDS, AgePreset.INVERSE_CAVES,
+        AgePreset.ISLANDS, AgePreset.ISLE, AgePreset.MOUNTAINOUS, AgePreset.CRATERLANDS, AgePreset.INVERSE_CAVES,
         AgePreset.HALLS, AgePreset.FLATLANDS, AgePreset.SOLID, AgePreset.CHAMBERS,
         -> error("'${preset.key}' names a composition, so AgeRecipe.worldFor should never have sent it here")
     }
@@ -749,12 +755,12 @@ object AgeGeneration {
      * to any landform reaching below y=0 that drew the Spire's sky by chance.
      */
     fun dimensionType(recipe: AgeRecipe): Identifier = when (val world = recipe.world) {
-        is AgeWorld.Composed -> typeFor(world.composition, recipe.template)
+        is AgeWorld.Composed -> typeFor(world.composition)
         is AgeWorld.Bespoke -> Sky.AGE_DIMENSION_TYPE
     }
 
     /**
-     * **A world wearing another's rock wears its type too.**
+     * **A world wearing vanilla's rock wears that rock's world's type too.**
      *
      * Ours are three re-statements of vanilla's three, and every number in them is one somebody had to
      * write down — which is how an infernal Age came to have fog reaching to an overworld horizon, a flat
@@ -765,14 +771,23 @@ object AgeGeneration {
      * that is the case ours are still for. The test is whether the Age's own facts still describe the world
      * it was written over, rather than whether any word was said.
      */
-    private fun typeFor(composition: AgeComposition, template: AgeTemplate): Identifier {
+    private fun typeFor(composition: AgeComposition): Identifier {
         val ours = Sky.dimensionType(composition)
-        // Only where the rock is the template's: a landform of ours generates into our own vertical band,
-        // and vanilla's nether is a hundred and twenty-eight blocks tall.
-        if (Terrain.VANILLA !in composition.terrains) return ours
-        val world = template.world()
-        val theirs = Sky.dimensionType(world)
-        return if (ours == theirs) template.dimensionType.identifier() else ours
+        // Only where the rock is vanilla's: a landform of ours generates into our own vertical band, and
+        // vanilla's nether is a hundred and twenty-eight blocks tall. **The rock's world, not the
+        // template's**, since the band is the rock's to need.
+        val rocksWorld = composition.terrains.firstNotNullOfOrNull(AgeTemplate::ofRock) ?: return ours
+        val theirs = Sky.dimensionType(rocksWorld.world())
+        return if (ours == theirs) rocksWorld.dimensionType.identifier() else ours
+    }
+
+    /**
+     * Whether any of this Age's land hangs over the void — which is what keeps its sky blue below the
+     * horizon (`RuntimeLevelConfig.horizonAtTheFloor`) and its buried structures unbuilt.
+     */
+    fun hasNothingBeneathIt(recipe: AgeRecipe): Boolean = when (val world = recipe.world) {
+        is AgeWorld.Composed -> world.composition.hasNothingBeneathIt
+        is AgeWorld.Bespoke -> false
     }
 
     /** The sky an Age has, as data the client can be told. A pure function of the recipe. */

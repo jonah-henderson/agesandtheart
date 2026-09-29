@@ -43,7 +43,7 @@ age compose drypyramid landmass=pyramids landmass.arrangement=rings sea=water sk
 
 # An option no preset understands. Expect it kept, ignored, and reported by /age list below —
 # never silently dropped, because the recipe is the only record of an Age.
-age compose typoage landmass=shapes landmass.elevation=towering
+age compose typoage landmass=hills landmass.elevation=towering
 
 # --- Structures as a population: add, emphasise, exclude ----------------------------------------
 # Values are structure *sets*. `!` is only, `-` is except, `@rung` is density (see Claim and Density).

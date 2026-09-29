@@ -48,12 +48,12 @@ class FormationOnServerCheck : FunSpec({
      */
     test("an Age full of formations generates without throwing") {
         val before = server.saidSoFar().length
-        // **`spires` rather than leaving the landform to the draw.** The failure this was written for only
+        // **`pillars` rather than leaving the landform to the draw.** The failure this was written for only
         // appears over a landform of *ours* — `AgeBiomeSource` rather than the template's — and which
         // landform a sentence draws depends on the sentence, so a book that does not name one tests
-        // whatever it happened to get. `spires` chooses `spire_islands` outright.
+        // whatever it happened to get. `pillars` chooses one outright.
         server.run(
-            "age write formationworld 909 age spires landmass " +
+            "age write formationworld 909 age pillars landmass " +
                 "colossal gold_block rings minuscule blackstone obelisks",
         )
 

@@ -102,8 +102,8 @@ class TagCoverageCheck : FunSpec({
      */
     test("no aspect reaches less than it did") {
         val floors = mapOf(
-            // Nineteen since `caverns` was retired into the `tunnels` underground.
-            Aspect.TERRAIN to 19,
+            // Seventeen since `shapes` was deleted and `spire_islands` kept for the Spire alone.
+            Aspect.TERRAIN to 17,
             Aspect.CARVERS to 4,
             Aspect.SKY to 2,
             // The four below each lost what `preset_tags` keeps from broad words — only a word naming one reaches it.

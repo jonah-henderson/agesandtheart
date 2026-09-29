@@ -8,7 +8,7 @@ import io.kotest.core.spec.style.FunSpec
 import kotlin.math.ceil
 
 /**
- * Properties of a plate cracked into cells.
+ * Properties of a plate broken into fault blocks.
  *
  * The mosaic is noise, so its density is uniform by construction rather than by care — what these ask is
  * mostly that the cut keeps to its bounds and that the plate is cracked rather than eaten. The look is
@@ -21,12 +21,18 @@ class ShatteredCheck : FunSpec({
     val world = ShatteredField.world(scale = SizeScale.COLOSSAL)
     val cells = ShatteredField.cells(scale = SizeScale.COLOSSAL)
 
-    fun topsAround(originX: Int, originZ: Int): List<Int> =
+    fun columnsAround(originX: Int, originZ: Int): List<Pair<Int, Int>> =
         (originZ - REACH..originZ + REACH step STRIDE).flatMap { worldZ ->
-            (originX - REACH..originX + REACH step STRIDE).mapNotNull { worldX ->
-                world.columnSpans(worldX, worldZ).highestSolidY
-            }
+            (originX - REACH..originX + REACH step STRIDE).map { worldX -> worldX to worldZ }
         }
+
+    /** Whether a gorge runs through this column — asked of the cut, since the blocks stand at many heights. */
+    fun isCracked(column: Pair<Int, Int>) = cells.columnSpans(column.first, column.second).ranges.isNotEmpty()
+
+    fun crackedShare(originX: Int, originZ: Int): Double {
+        val columns = columnsAround(originX, originZ)
+        return columns.count(::isCracked).toDouble() / columns.size
+    }
 
     /** **Nothing is cut below the bed**, the bed's own relief being the one thing allowed under the floor. */
     test("the cut stays between the bed and the rim") {
@@ -42,18 +48,24 @@ class ShatteredCheck : FunSpec({
 
     /** The plate is cracked, not eaten: most of the ground has to survive as cell. */
     test("cells are left standing between the joins") {
-        val tops = topsAround(0, 0)
-        val standing = tops.count { it >= ShatteredField.PLATEAU_Y - RIM_MARGIN }.toDouble() / tops.size
+        val standing = 1.0 - crackedShare(0, 0)
         check(standing > LEAST_STANDING) { "only ${"%.0f%%".format(standing * 100)} of the ground was cell" }
         check(standing < MOST_STANDING) { "${"%.0f%%".format(standing * 100)} was cell, so it is barely cracked" }
     }
 
+    /**
+     * **The blocks stand at different heights**, which is the whole of what tells this from canyonlands on
+     * the ground: a slot between two tables at one height reads the same whichever plan it was cut to.
+     */
+    test("the blocks stand at several heights") {
+        val tops = columnsAround(0, 0).filterNot(::isCracked)
+            .mapNotNull { (worldX, worldZ) -> world.columnSpans(worldX, worldZ).highestSolidY }
+        val levels = tops.groupingBy { it / LEVEL_BAND }.eachCount().filterValues { it >= tops.size / LEVEL_SHARE }
+        check(levels.size >= FEWEST_LEVELS) { "the blocks stood at only ${levels.size} heights: ${levels.keys.map { it * LEVEL_BAND }}" }
+    }
+
     /** And a mosaic is a mosaic everywhere, not only where the render happened to look. */
     test("the plate is as cracked far from the origin as at it") {
-        fun crackedShare(originX: Int, originZ: Int): Double {
-            val tops = topsAround(originX, originZ)
-            return tops.count { it < ShatteredField.PLATEAU_Y - RIM_MARGIN }.toDouble() / tops.size
-        }
         val here = crackedShare(0, 0)
         val farAway = crackedShare(FAR, -FAR)
         check(here in LEAST_CRACKED..MOST_CRACKED) { "at the origin the joins took ${"%.0f%%".format(here * 100)}" }
@@ -96,7 +108,13 @@ class ShatteredCheck : FunSpec({
         /** Far enough out that anything anchored to the origin would have thinned to nothing. */
         const val FAR = 20_000
 
-        const val RIM_MARGIN = 24
+        /** Heights within this many blocks count as one level, which is less than the step between two. */
+        const val LEVEL_BAND = 16
+
+        /** A level must hold at least one column in this many to count, so weathering's scraps do not. */
+        const val LEVEL_SHARE = 20
+
+        const val FEWEST_LEVELS = 4
         const val LEAST_STANDING = 0.3
         const val MOST_STANDING = 0.9
         const val LEAST_CRACKED = 0.1

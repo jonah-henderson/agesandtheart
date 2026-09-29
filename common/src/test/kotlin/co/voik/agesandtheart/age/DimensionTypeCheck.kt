@@ -91,9 +91,9 @@ class DimensionTypeCheck : FunSpec({
     }
 
     /** And the landform is what says so, rather than the fact being asserted about a flag. */
-    test("solid is the landform that roofs the world, and the only one") {
+    test("solid and the nether's rock are the landforms that roof the world, and the only ones") {
         val roofing = Terrain.entries.filter { it.roofsTheWorld }
-        check(roofing == listOf(Terrain.SOLID)) { "these landforms claim to roof the world: $roofing" }
+        check(roofing.toSet() == setOf(Terrain.SOLID, Terrain.NETHER)) { "these landforms claim to roof the world: $roofing" }
     }
 
     test("each set of facts picks its own type") {

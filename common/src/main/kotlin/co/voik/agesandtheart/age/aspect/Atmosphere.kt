@@ -88,6 +88,13 @@ object Atmosphere {
             ),
         )
 
+    /** The band the cloud deck moves through, in blocks — what [CEILING]'s nought and one stand for. */
+    const val LOWEST_CLOUD = 96f
+    const val HIGHEST_CLOUD = 256f
+
+    /** A cloud height as a share of the band, which may fall outside it for a deck laid below the band. */
+    fun ceilingAt(cloudsY: Int): Float = (cloudsY - LOWEST_CLOUD) / (HIGHEST_CLOUD - LOWEST_CLOUD)
+
     /** How high the clouds sit, on the same argument: one number a word bends. */
     val CEILING = Parameter.ranged(
         "ceiling",
@@ -200,7 +207,8 @@ object Atmosphere {
             motes = air.of(MOTES, biome).takeUnless { it == Parameter.DEFAULT },
             murk = band(water, MURK),
             haze = band(air, HAZE),
-            ceiling = band(vault, CEILING),
+            // The book's word on it first, then wherever the shape of the Age puts its clouds.
+            ceiling = band(vault, CEILING) ?: parts.cloudsAtY?.let(::ceilingAt),
             grass = colourOf(parts.optionsFor(Aspect.GRASS), GRASSCOLOUR, biome),
             // **One word for every leaf.** Litter and dead brush are leaves that have dried, and a world
             // with purple trees over green leaf litter is the same mistake as purple grass under green

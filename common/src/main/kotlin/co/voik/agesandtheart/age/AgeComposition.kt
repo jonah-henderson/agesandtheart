@@ -79,6 +79,13 @@ data class AgeComposition(
     override val roofedByItsRock: Boolean get() =
         terrains.isNotEmpty() && terrains.all { it.roofsTheWorld }
 
+    /** Whether any territory's land hangs over the void — see [Terrain.hasGroundBeneath]. */
+    val hasNothingBeneathIt: Boolean get() = terrains.any { !it.hasGroundBeneath }
+
+    /** Every territory's, for the same reason as [roofedByItsRock]: an Age has one cloud deck. */
+    override val cloudsAtY: Int? get() =
+        terrains.map { it.cloudsAtY }.distinct().singleOrNull()
+
     /**
      * How many territories [aspect] divides into. Presets answer for themselves; an aspect whose answer is
      * a set of parameters counts its own values, there being no preset to count.
@@ -309,7 +316,7 @@ data class AgeComposition(
 
         val MAP_CODEC: MapCodec<AgeComposition> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
-                setOrSingle(enumCodec<Terrain>(), Terrain.SHAPES)
+                setOrSingle(enumCodec<Terrain>(), Terrain.OVERWORLD)
                     .fieldOf("terrain").forGetter(AgeComposition::terrains),
                 setOrSingle(presetCodec<Sea>(Aspect.SEA), Sea.NONE)
                     .optionalFieldOf("sea", listOf(Sea.NONE)).forGetter(AgeComposition::seas),

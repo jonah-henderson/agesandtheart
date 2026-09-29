@@ -15,8 +15,8 @@ age write solidspring 4242 age gold_block springs
 age list
 
 # --- the sea half, against a control at the same seed ----------------------------------------------
-age compose seawater 4242 landmass=vanilla sea=minecraft:water
-age compose seaink 4242 landmass=vanilla sea=agesandtheart:ink
+age compose seawater 4242 landmass=overworld sea=minecraft:water
+age compose seaink 4242 landmass=overworld sea=agesandtheart:ink
 age compare seawater seaink 1
 
 # --- lakes, which our own ink can only be checked against on a server -------------------------------

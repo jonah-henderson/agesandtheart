@@ -106,8 +106,8 @@ class SpellingCheck : FunSpec({
 
     /**
      * **And the world it was written over survives too**, which the composition alone cannot say: the
-     * template is the recipe's, so `landmass=vanilla` says the rock is not ours and only this says which
-     * vanilla it is. Without the token, no hand-composed Age could ever be infernal.
+     * template is the recipe's, and the rock may be another world's, so only this says which world the
+     * book was written over. Without the token, no hand-composed Age could ever be infernal.
      */
     test("the world an Age was written over reads back as well") {
         for (template in AgeTemplate.entries) {

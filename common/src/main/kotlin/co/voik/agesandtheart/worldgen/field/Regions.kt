@@ -38,10 +38,14 @@ data class Regions(
         fun of(members: List<TerrainField>, map: RegionMap): TerrainField =
             members.singleOrNull() ?: Regions(members, map)
 
+        /**
+         * The map is **nested under a key**, as [CellCanyon] nests its own: a `RegionMap` writes a `members`
+         * count, and inlined beside this node's `members` list the two share a name and nothing reads back.
+         */
         fun codec(self: Codec<TerrainField>): MapCodec<Regions> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 self.listOf().fieldOf("members").forGetter(Regions::members),
-                RegionMap.MAP_CODEC.forGetter(Regions::map),
+                RegionMap.MAP_CODEC.codec().fieldOf("map").forGetter(Regions::map),
             ).apply(instance, ::Regions)
         }
     }

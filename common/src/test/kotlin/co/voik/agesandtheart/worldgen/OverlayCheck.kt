@@ -180,8 +180,8 @@ class OverlayCheck : FunSpec({
             // the aspect's value set and `claimsOn(PLACES)` never sees it.
             val slot = "${Aspect.FEATURES.page}.${Features.PLACES.name}"
             val spelled = if (placed.isEmpty()) "" else " $slot=${placed.joinToString(",")}"
-            return AgeComposition.parse("landmass=vanilla$spelled").getOrElse {
-                error("'landmass=vanilla$spelled' is not a composition this build parses: $it")
+            return AgeComposition.parse("landmass=overworld$spelled").getOrElse {
+                error("'landmass=overworld$spelled' is not a composition this build parses: $it")
             }
         }
 

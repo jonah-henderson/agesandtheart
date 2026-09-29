@@ -19,7 +19,7 @@
 age compose warmup 7 landmass=hills sea=water rock=caves underground=noise_caves sky=plain
 age bench warmup 3
 # Vanilla's rock, carvers and aquifer.
-age compose vbase 4242 landmass=vanilla sea=water rock=caves sky=plain
+age compose vbase 4242 landmass=overworld sea=water rock=caves sky=plain
 age bench vbase 4
 # w6b's recipe exactly: our hills, noise caves handed to our aquifer, and vanilla's carvers asking it too.
 age compose hbase 4242 landmass=hills sea=water rock=caves underground=noise_caves sky=plain

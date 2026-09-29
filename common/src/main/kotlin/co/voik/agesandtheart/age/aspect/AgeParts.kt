@@ -31,6 +31,12 @@ interface AgeParts {
      */
     val roofedByItsRock: Boolean get() = false
 
+    /**
+     * Where the **shape** of this Age puts its clouds when the book says nothing about them, or null for
+     * the sky's own height — see [Terrain.cloudsAtY].
+     */
+    val cloudsAtY: Int? get() = null
+
     companion object {
         /**
          * An Age with no parts to ask about — what a **bespoke** world is, being a whole generator with a

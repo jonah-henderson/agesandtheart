@@ -10,6 +10,7 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
+import net.minecraft.tags.TagKey
 import net.minecraft.world.level.levelgen.structure.BuiltinStructureSets
 import net.minecraft.world.level.levelgen.structure.StructureSet as VanillaStructureSet
 
@@ -73,6 +74,12 @@ object Structures {
          * the world must not talk over one.
          */
         thickened: Map<Identifier, Double> = emptyMap(),
+        /**
+         * Whether to leave [BUILT_UNDERGROUND] out of [standing] — for an Age with no ground beneath some of
+         * its land, where a set built at a fixed depth would hang in the void. A set the writer names is
+         * still built; the pen never refuses.
+         */
+        withoutWhatIsBuiltUnderground: Boolean = false,
     ): List<Holder<VanillaStructureSet>> {
         val sets = server.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET)
         val asked = options.skewOn(BUILT)
@@ -80,7 +87,11 @@ object Structures {
         // Sets a writer named, which [thickened] may not talk over.
         val spokenFor = HashSet<Identifier>()
         if (!asked.startsFromNothing) {
-            for (key in standing) seated[key.identifier()] = sets.get(key).orElse(null) ?: continue
+            for (key in standing) {
+                val set = sets.get(key).orElse(null) ?: continue
+                if (withoutWhatIsBuiltUnderground && set.`is`(BUILT_UNDERGROUND)) continue
+                seated[key.identifier()] = set
+            }
         }
         for (claim in asked.wanted) {
             val named = claim.id ?: continue
@@ -134,6 +145,9 @@ object Structures {
      * emptied, a world nobody ever built in being a world (`leastKept`), where every column must have
      * some biome whatever a word thinks of it.
      */
+    /** Sets vanilla builds deep in the rock at fixed heights — `#agesandtheart:built_underground`. */
+    val BUILT_UNDERGROUND: TagKey<VanillaStructureSet> = TagKey.create(Registries.STRUCTURE_SET, "built_underground".location())
+
     val BUILT = Pool(
         "built",
         // `built=nothing` drops the base whatever vanilla adds to it later, and a word striking out every

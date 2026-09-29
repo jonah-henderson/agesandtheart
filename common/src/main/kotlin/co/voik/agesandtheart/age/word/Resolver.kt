@@ -552,11 +552,16 @@ object Resolver {
             }
         }
 
+        // **A preset that can only be the whole aspect takes it alone**, and whatever else was asked for is
+        // displaced by it: vanilla's rock beside a landform of ours keeps the rock.
+        fun takesTheWhole(territory: Territory) = territory.candidates.all { it.takesTheWholeAspect }
+        val whole = territories.firstOrNull(::takesTheWhole)
+        val ordered = if (whole == null) territories else listOf(whole) + (territories - whole)
         // A spatial aspect can honour several answers by giving each its own ground; a singular one has
         // nowhere to put a second, which is where the harsher register earns its place (§3.4).
-        val room = if (aspect.spatial) MOST_TERRITORIES else 1
-        val kept = territories.take(room)
-        chargeForContention(vocabulary, aspect, kept, territories.drop(room), flaws)
+        val room = if (aspect.spatial && whole == null) MOST_TERRITORIES else 1
+        val kept = ordered.take(room)
+        chargeForContention(vocabulary, aspect, kept, ordered.drop(room), flaws)
 
         val chosen = mutableListOf<Taggable>()
         for ((index, territory) in kept.withIndex()) {
@@ -932,7 +937,7 @@ object Resolver {
      * aspect that *has* presets holds at least one — and exists only because a composition needs one.
      */
     private fun compose(filled: Map<Aspect, List<Filling>>): AgeComposition {
-        var composition = AgeComposition(terrains = listOf(Terrain.SHAPES))
+        var composition = AgeComposition(terrains = listOf(Terrain.OVERWORLD))
         for ((aspect, filling) in filled) {
             // An aspect with nothing to choose between fills nothing here and is not missing: its answer is
             // written by the parameter pass, which runs next. Only an aspect that *could* seat a preset and

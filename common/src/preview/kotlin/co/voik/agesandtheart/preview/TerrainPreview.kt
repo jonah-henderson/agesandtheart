@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.preview
 
 import co.voik.agesandtheart.age.aspect.SpireSky
-import co.voik.agesandtheart.worldgen.AlpsField
+import co.voik.agesandtheart.worldgen.MountainousField
 import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CliffField
@@ -15,12 +15,12 @@ import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.OverworldField
 import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.RiverlandsField
-import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.FissuresField
 import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.SolidField
+import co.voik.agesandtheart.worldgen.SkylandsField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.worldgen.TunnelsField
 import co.voik.agesandtheart.worldgen.VerticalWindow
@@ -245,7 +245,6 @@ private val subjects: Map<String, Subject> = mapOf(
     "spire-nowind" to Subject(SpireField.bareWorld(), lowestY = -8, highestY = 319, radius = 300),
     "hills" to Subject(NoiseField.hills(), lowestY = 20, highestY = 120),
     "pillars" to Subject(PillarField.world(), lowestY = 30, highestY = 185),
-    "shapes" to Subject(ShapesField.world(), lowestY = 55, highestY = 130, radius = 200),
     // The `tunnels` underground on its own, in the band a hills Age gives it. A cave system reads far better
     // as a solid lattice hanging in space than as absence inside a hill, and the slices are where the
     // network's connectedness actually shows.
@@ -271,6 +270,7 @@ private val subjects: Map<String, Subject> = mapOf(
         highestY = 300,
         radius = 400,
     ),
+    "skylands" to Subject(SkylandsField.world(), lowestY = 40, highestY = 180, radius = 300),
     "eroded" to Subject(ErodedField.world(), lowestY = 30, highestY = 195, radius = 200),
 
     // **Read the slice across the bearing, not the plan.** From above a solid world is one flat shade with
@@ -326,6 +326,14 @@ private val subjects: Map<String, Subject> = mapOf(
         lowestY = VerticalWindow.MIN_Y,
         highestY = ShatteredField.PLATEAU_Y + 16,
         radius = 900,
+    ),
+    // At full height, where the blocks stand far enough apart for the slices to show the steps.
+    "shattered-colossal" to Subject(
+        ShatteredField.world(scale = SizeScale.COLOSSAL),
+        lowestY = VerticalWindow.MIN_Y,
+        highestY = ShatteredField.PLATEAU_Y + 16,
+        radius = 900,
+        step = 2,
     ),
 
     // **Read the slices, and only the slices.** Caves are absence inside rock: from above a hollowed
@@ -406,8 +414,8 @@ private val subjects: Map<String, Subject> = mapOf(
     // The range runs north–south, so `view-z.png` is the transect that matters.
     //
     // Wide enough to hold the axis and one whole flank out to the foreland, which is what the wedge is.
-    "alps" to Subject(
-        AlpsField.world(),
+    "mountainous" to Subject(
+        MountainousField.world(),
         // Already inside the field, as a canyon's is — passing it again would weather the range twice.
         lowestY = VerticalWindow.MIN_Y,
         highestY = 300,
@@ -423,8 +431,8 @@ private val subjects: Map<String, Subject> = mapOf(
 
     // The same range before the frost reaches it. The pair says whether the weathering is doing anything at
     // this scale, and on a landform whose shape is already made of planes that is a real question.
-    "alps-nowind" to Subject(
-        AlpsField.bareWorld(),
+    "mountainous-nowind" to Subject(
+        MountainousField.bareWorld(),
         lowestY = VerticalWindow.MIN_Y,
         highestY = 300,
         radius = 2600,
@@ -436,8 +444,8 @@ private val subjects: Map<String, Subject> = mapOf(
     // since the ranges became a network lands in a basin as often as not. The wide subject shows where the
     // country's mountains are; this shows what one is made of: trough cross-sections, cirques at the heads,
     // and whether the hillslopes really do meet in a crest rather than a dome.
-    "alps-core" to Subject(
-        AlpsField.world(),
+    "mountainous-core" to Subject(
+        MountainousField.world(),
         lowestY = VerticalWindow.MIN_Y,
         highestY = 300,
         radius = 1150,

@@ -200,7 +200,7 @@ private fun List<Int>.printBands() {
 /**
  * And the half of the question vanilla cannot answer: how deep are the seas in **our own** landforms?
  *
- * **This is the fence that actually matters.** An Age using `landmass=vanilla` gets vanilla's oceans, so
+ * **This is the fence that actually matters.** An Age using `landmass=overworld` gets vanilla's oceans, so
  * the numbers above are a real constraint — but every other Age gets one of these, and an ordinary sea in
  * an Age nobody wrote as an abyss must not grow deep water.
  *

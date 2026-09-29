@@ -55,14 +55,14 @@ import net.minecraft.world.level.levelgen.structure.StructureSet
 enum class AgeTemplate(
     val key: String,
     /**
-     * This world's rock, read twice: as the rock itself where the book named no landform, and — whether it
-     * did or not — as the climate its biomes are looked up by, since a table and the noise it is keyed on
-     * have to come from the same world.
+     * This world's rock: what its [ownRock] generates wherever an Age wears it, and what a landform of ours
+     * is made of under this template where the book named no material.
      */
     val rock: ResourceKey<NoiseGeneratorSettings>,
 ) : StringRepresentable {
     /** What a world is like when nobody said otherwise. No word names it; it is what you get. */
     OVERWORLD("overworld", NoiseGeneratorSettings.OVERWORLD) {
+        override val ownRock = Terrain.OVERWORLD
         override val biomeList = MultiNoiseBiomeSourceParameterLists.OVERWORLD
         override val standingStructures = Structures.OVERWORLD_STRUCTURE_SETS
         override val dimensionType get() = BuiltinDimensionTypes.OVERWORLD
@@ -84,7 +84,7 @@ enum class AgeTemplate(
             )
 
         override fun world(): AgeComposition = AgeComposition(
-            terrains = listOf(Terrain.VANILLA),
+            terrains = listOf(ownRock),
             seas = listOf(Sea.WATER),
             carvers = listOf(Carvers.CAVES),
             underground = Underground.NOISE_CAVES,
@@ -95,6 +95,7 @@ enum class AgeTemplate(
      * A world that burns, sealed over and lit by nothing — vanilla's own nether rock under it.
      */
     INFERNAL("infernal", NoiseGeneratorSettings.NETHER) {
+        override val ownRock = Terrain.NETHER
         override val biomeList = MultiNoiseBiomeSourceParameterLists.NETHER
         override val dimensionType get() = BuiltinDimensionTypes.NETHER
         override fun skin(rules: HolderGetter<MaterialRule>) =
@@ -106,7 +107,7 @@ enum class AgeTemplate(
         )
 
         override fun world(): AgeComposition = AgeComposition(
-            terrains = listOf(Terrain.VANILLA),
+            terrains = listOf(ownRock),
             seas = listOf(Sea.LAVA),
             carvers = listOf(Carvers.SOLID),
             // The nether's own rock is riddled enough; nothing of ours is cut into it.
@@ -132,6 +133,7 @@ enum class AgeTemplate(
      * the nether's and one the derived rules keep apart (`Sky.dimensionType`).
      */
     DARK_VOID("dark_void", NoiseGeneratorSettings.END) {
+        override val ownRock = Terrain.END
         // **The one world whose biomes are not chosen by climate.** The End picks by distance from the
         // centre, so there is no table to weigh and no climate to bend — see [biomesOf].
         override val biomeList: ResourceKey<MultiNoiseBiomeSourceParameterList>? = null
@@ -141,7 +143,7 @@ enum class AgeTemplate(
             MaterialRules.getRule(rules, EndMaterialRules.END)
 
         override fun world(): AgeComposition = AgeComposition(
-            terrains = listOf(Terrain.VANILLA),
+            terrains = listOf(ownRock),
             seas = listOf(Sea.NONE),
             carvers = listOf(Carvers.SOLID),
             underground = Underground.NONE,
@@ -158,6 +160,12 @@ enum class AgeTemplate(
 
     /** The world this starts from. Built on demand, so no two Ages can share a mutable one. */
     abstract fun world(): AgeComposition
+
+    /**
+     * The landform that is **this world's rock** — [rock], as a page a writer can name under any template.
+     * An Age that names no landform wears it.
+     */
+    abstract val ownRock: Terrain
 
     /**
      * The list this world's biomes are chosen from by climate, or null where they are chosen by a rule of
@@ -248,6 +256,9 @@ enum class AgeTemplate(
 
         /** The template a book that named none starts from. */
         val ORDINARY = OVERWORLD
+
+        /** The world whose rock [terrain] is, or null where it is a shape of ours. */
+        fun ofRock(terrain: Terrain): AgeTemplate? = entries.firstOrNull { it.ownRock == terrain }
 
         /** The template [key] names, or null where it names none. */
         fun named(key: String): AgeTemplate? = entries.firstOrNull { it.key == key }

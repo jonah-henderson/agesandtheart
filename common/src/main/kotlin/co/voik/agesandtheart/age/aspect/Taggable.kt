@@ -34,6 +34,13 @@ interface Taggable : StringRepresentable {
     val availableToBroadWords: Boolean get() = true
 
     /**
+     * Whether this preset can only be the whole of its aspect, never one territory among several — vanilla's
+     * rock, whose router answers for every column or for none. A sentence naming one beside something else
+     * keeps it and is charged for the rest.
+     */
+    val takesTheWholeAspect: Boolean get() = false
+
+    /**
      * Whether this preset would actually *do* anything with [parameter], as opposed to recognising the
      * name.
      *

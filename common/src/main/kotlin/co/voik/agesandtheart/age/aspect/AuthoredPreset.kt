@@ -26,7 +26,7 @@ interface AuthoredPreset : Taggable {
     /**
      * The word a writer says for this, where it is a **thing with a name** rather than a quality of one.
      *
-     * A landform is a proper noun: `alps` is the alps and no description reaches it, so the corpus needs a
+     * A landform is a proper noun: `craterlands` is one place and no description reaches it, so the corpus needs a
      * page that means it outright and `DerivedWords` mints one from here. A carve pattern is not —
      * `solid`, `porous` and `caves` are qualities of the rock, already reached by `unbroken`, `riddled`
      * and `flooded`, and an exact page beside each of those would only compete with the right word.

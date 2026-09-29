@@ -93,7 +93,7 @@ class LifelessAgeCheck : FunSpec({
         check(ground.values.distinct().size == 1) {
             "the two Ages were not shaped alike, so this compares two worlds: $ground"
         }
-        check(ground.values.all { "landmass=vanilla" in it }) {
+        check(ground.values.all { "landmass=overworld" in it }) {
             "not on vanilla's rock, so the pass this guards never runs: $ground"
         }
 

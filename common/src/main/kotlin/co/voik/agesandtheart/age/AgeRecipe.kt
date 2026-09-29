@@ -40,7 +40,7 @@ data class AgeRecipe(
      * **The world this Age was written over** (`the-world-model.md` §4) — the base of the recipe.
      *
      * On the recipe rather than merged away, because a template supplies a thing the composition cannot
-     * spell: `landmass=vanilla` says the rock is not ours, and *which* vanilla is this. Everything else a
+     * spell: `landmass=nether` says whose rock it is, and which world it was written over is this. Everything else a
      * template gives is merged into the composition and does not come back here, so what persists is still
      * the answer rather than the words (§4.6) — this is simply part of that answer.
      */
@@ -98,7 +98,7 @@ data class AgeRecipe(
     private val rockUnhonoured: List<String>
         get() {
             val written = composition ?: return emptyList()
-            if (Terrain.VANILLA !in written.terrains) return emptyList()
+            if (written.terrains.none { it.isVanillas }) return emptyList()
             return listOfNotNull(oneMaterialOnly(written), oneSeaOnly(written), whateverItCutsItself(written))
         }
 
@@ -166,7 +166,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 61
+        const val CURRENT_GENERATOR_VERSION = 64
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -300,7 +300,6 @@ data class AgeRecipe(
                 AgePreset.PYRAMIDS -> pyramids("grid")
                 AgePreset.PYRINGS -> pyramids("rings")
                 AgePreset.PYRVARIED -> pyramids("varied")
-                AgePreset.SHAPES -> AgeComposition(terrains = listOf(Terrain.SHAPES))
                 AgePreset.PILLARS -> AgeComposition(terrains = listOf(Terrain.PILLARS), seas = listOf(Sea.WATER))
                 AgePreset.ERODED -> AgeComposition(terrains = listOf(Terrain.ERODED), seas = listOf(Sea.WATER))
                 // The sea is the river: there is no open ground for anything else to stand on. Grounded so
@@ -356,9 +355,9 @@ data class AgeRecipe(
                 // Grounded, and it is the strongest case for it yet: without biomes that agree with the
                 // shape a range has no treeline and no snowline, and two hundred blocks of climb pass
                 // through no country at all. See `Elevation`.
-                AgePreset.ALPS -> grounded(
+                AgePreset.MOUNTAINOUS -> grounded(
                     AgeComposition(
-                        terrains = listOf(Terrain.ALPS),
+                        terrains = listOf(Terrain.MOUNTAINOUS),
                         seas = listOf(Sea.WATER),
                         carvers = listOf(Carvers.CAVES),
                     ),
@@ -416,7 +415,7 @@ data class AgeRecipe(
                 // and a hall you cannot find from above is a hall nobody visits.
                 AgePreset.HALLS -> grounded(
                     AgeComposition(
-                        terrains = listOf(Terrain.OVERWORLD),
+                        terrains = listOf(Terrain.CONTINENTS),
                         seas = listOf(Sea.WATER),
                         carvers = listOf(Carvers.CAVES),
                         underground = Underground.GREAT_HALLS,

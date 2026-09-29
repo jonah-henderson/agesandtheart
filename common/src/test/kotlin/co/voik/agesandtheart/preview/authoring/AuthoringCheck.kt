@@ -273,11 +273,11 @@ class AuthoringCheck : FunSpec({
         val second = Candidate(
             name = "probe",
             tier = Tier.EXACT,
-            chooses = mapOf(Aspect.TERRAIN to "alps"),
+            chooses = mapOf(Aspect.TERRAIN to "mountainous"),
         )
         val said = Verdict.refusals(Verdict.on(second, corpus))
-        check(said.any { it.says.contains("alps") }) {
-            "a second page meaning the alps was not refused: ${said.joinToString { it.says }}"
+        check(said.any { it.says.contains("mountainous") }) {
+            "a second page meaning mountainous was not refused: ${said.joinToString { it.says }}"
         }
     }
 
@@ -326,12 +326,12 @@ class AuthoringCheck : FunSpec({
      * entry, and a screen that took only blocks for entries showed no ink on a biome the pack tags.
      */
     test("a word's ink is a tag exactly where the game reads one") {
-        val alps = corpus.vocabulary.words.distinct().firstOrNull { it.name == "alps" }
-        checkNotNull(alps) { "no page means the alps — is DerivedWords.designs running?" }
-        val page = Candidate.of(alps)
-        check(page.isDerived) { "the alps page is not derived, so this check is testing nothing" }
+        val mountainous = corpus.vocabulary.words.distinct().firstOrNull { it.name == "mountainous" }
+        checkNotNull(mountainous) { "no page means mountainous — is DerivedWords.designs running?" }
+        val page = Candidate.of(mountainous)
+        check(page.isDerived) { "the mountainous page is not derived, so this check is testing nothing" }
         check(page.tagDirectory == null) {
-            "the alps page would be inked by tagging '${page.id}', which is in no registry"
+            "the mountainous page would be inked by tagging '${page.id}', which is in no registry"
         }
 
         val ice = corpus.vocabulary.word("minecraft:ice")
@@ -488,7 +488,7 @@ class AuthoringCheck : FunSpec({
      * value longer than somebody's guess was cut on every terminal and a short one left a gutter.
      */
     test("columns are measured off their contents") {
-        val rows = listOf(listOf("sea", "minecraft:water"), listOf("landmass", "vanilla"))
+        val rows = listOf(listOf("sea", "minecraft:water"), listOf("landmass", "overworld"))
         val plain = listOf(Columns.Column(), Columns.Column())
         val roomy = Columns.widths(rows, plain, room = 60, gap = 2)
         check(roomy == listOf("landmass".length, "minecraft:water".length)) {

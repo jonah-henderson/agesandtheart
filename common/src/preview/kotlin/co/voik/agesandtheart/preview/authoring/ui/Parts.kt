@@ -736,7 +736,7 @@ class Parts(private val corpus: Corpus) {
     /**
      * All four slots in one list, under a heading each.
      *
-     * They were three separate sections and that was the wrong cut: `alps` does its whole job with a
+     * They were three separate sections and that was the wrong cut: `mountainous` does its whole job with a
      * named preset, so every effects screen read as empty until you found `more` several sections down.
      * One list means what a word does is in one place, whatever shape it took.
      */
@@ -1233,7 +1233,7 @@ class Parts(private val corpus: Corpus) {
      * The page that already means this preset outright, or null where none does.
      *
      * **Landforms all have one now** — `AuthoredPreset.writtenWordFor` mints a page from the landform
-     * itself — so offering `alps` again would author a second word meaning what `alps` already means, and
+     * itself — so offering `mountainous` again would author a second word meaning what `mountainous` already means, and
      * nothing downstream would catch it: `Verdict.duplicates` skips derived words deliberately, since a
      * derived word *is* the thing it means and every one of them read as a synonym of itself.
      */

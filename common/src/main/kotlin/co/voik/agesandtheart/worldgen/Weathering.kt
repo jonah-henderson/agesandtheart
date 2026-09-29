@@ -399,21 +399,21 @@ class Weathering(
          * off the frost while its ridge is cut down around it is a gendarme, which is a thing alpine ridges
          * are actually made of.
          */
-        val ALPS = Weathering(
-            key = "alps",
+        val MOUNTAINOUS = Weathering(
+            key = "mountainous",
             fromY = VerticalWindow.MIN_Y + BAND_MARGIN,
-            toY = AlpsField.SNOWLINE_Y + AlpsField.SUMMITS_ABOVE_THE_SNOWLINE,
+            toY = MountainousField.SNOWLINE_Y + MountainousField.SUMMITS_ABOVE_THE_SNOWLINE,
             // Firmer than a river country's and far gentler than a canyon's: the shape already has its
             // large forms, and what is wanted is damage rather than sculpture.
             bite = -0.05,
-            keelY = AlpsField.VALLEY_FLOOR,
+            keelY = MountainousField.VALLEY_FLOOR,
             atTheKeel = 0.5,
             atTheTip = 0.0,
             atTheRoot = 0.5,
             taper = 2.0,
             // Long above and short below, because the climb is where the subject is. A symmetric reach
             // would spend half of itself on bedrock nobody sees.
-            taperReachAbove = AlpsField.SNOWLINE_Y - AlpsField.VALLEY_FLOOR,
+            taperReachAbove = MountainousField.SNOWLINE_Y - MountainousField.VALLEY_FLOOR,
             taperReachBelow = 40,
             // Gully-and-buttress scale: ribs and couloirs some tens of blocks across, not a sanded face.
             scale = 1.0,
@@ -440,7 +440,7 @@ class Weathering(
          * is worked differently at every bearing and stops reading as a circle without anything having to
          * know it was one.
          *
-         * The vertical profile is [ALPS]' — a keel low down and the punishment landing at the top —
+         * The vertical profile is [MOUNTAINOUS]' — a keel low down and the punishment landing at the top —
          * because the subject is the high ground. The plain keeps its craters, the basin floor keeps its
          * shore, and the hundred and twenty blocks of wall between them is what gets ribbed.
          *
@@ -496,7 +496,7 @@ class Weathering(
         )
 
         /** The profiles a recipe may name, which is what makes [Weathered] serialisable. */
-        private val BY_KEY = listOf(SPIRE, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, ALPS, CRATERLANDS)
+        private val BY_KEY = listOf(SPIRE, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, MOUNTAINOUS, CRATERLANDS)
             .associateBy(Weathering::key)
 
         /** The profile [key] names, or null for one this version does not have. */

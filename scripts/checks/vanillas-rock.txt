@@ -10,21 +10,21 @@
 # is easiest to see.
 
 # --- the rock ------------------------------------------------------------------------------------
-age compose plainrock 4242 landmass=vanilla sea=water
-age compose blackrock 4242 landmass=vanilla sea=water landmass.stone=minecraft:blackstone
+age compose plainrock 4242 landmass=overworld sea=water
+age compose blackrock 4242 landmass=overworld sea=water landmass.stone=minecraft:blackstone
 age compare plainrock blackrock 1
 
 # --- the sea, over a world whose own is the other one ---------------------------------------------
-age compose lavaoverworld 4242 landmass=vanilla sea=lava
+age compose lavaoverworld 4242 landmass=overworld sea=lava
 age compare plainrock lavaoverworld 1
 
-age compose drynether 4242 template=infernal landmass=vanilla sea=water
-age compose wetnether 4242 template=infernal landmass=vanilla sea=lava
+age compose drynether 4242 template=infernal landmass=overworld sea=water
+age compose wetnether 4242 template=infernal landmass=overworld sea=lava
 age compare drynether wetnether 1
 
 # --- mingling, which this rock cannot do: one is laid and the second is reported -------------------
-age compose nethercontrol 4242 template=infernal landmass=vanilla sea=lava
-age compose mingled 4242 template=infernal landmass=vanilla sea=lava landmass.stone=minecraft:blackstone,minecraft:tuff
+age compose nethercontrol 4242 template=infernal landmass=overworld sea=lava
+age compose mingled 4242 template=infernal landmass=overworld sea=lava landmass.stone=minecraft:blackstone,minecraft:tuff
 age compare nethercontrol mingled 1
 
 age list
@@ -35,21 +35,21 @@ age list
 # off, which is a no-op until a rock has been substituted -- `SurfaceSystem` consults the rule only where
 # the block is already `defaultBlock`. Both halves are below: `stoneonly` must now move the whole rock,
 # and `nethercontrol` against an unaltered nether must not move at all.
-age compose stoneonly 4242 template=infernal landmass=vanilla sea=lava landmass.stone=minecraft:blackstone
+age compose stoneonly 4242 template=infernal landmass=overworld sea=lava landmass.stone=minecraft:blackstone
 age compare nethercontrol stoneonly 1
 
-age compose skinonly 4242 template=infernal landmass=vanilla sea=lava surface.material=minecraft:blackstone
+age compose skinonly 4242 template=infernal landmass=overworld sea=lava surface.material=minecraft:blackstone
 age compare nethercontrol skinonly 1
 
-age compose stoneandskin 4242 template=infernal landmass=vanilla sea=lava landmass.stone=minecraft:blackstone surface.material=minecraft:blackstone
+age compose stoneandskin 4242 template=infernal landmass=overworld sea=lava landmass.stone=minecraft:blackstone surface.material=minecraft:blackstone
 age compare nethercontrol stoneandskin 1
 
 age list
 
 # The no-op half, said out loud: an Age that named no rock must be the world it was written over, exactly.
-age compose netherasis 4242 template=infernal landmass=vanilla sea=lava
+age compose netherasis 4242 template=infernal landmass=overworld sea=lava
 age compare nethercontrol netherasis 1
 
-age compose voidasis 4242 template=dark_void landmass=vanilla sea=none
-age compose voidstone 4242 template=dark_void landmass=vanilla sea=none landmass.stone=minecraft:blackstone
+age compose voidasis 4242 template=dark_void landmass=overworld sea=none
+age compose voidstone 4242 template=dark_void landmass=overworld sea=none landmass.stone=minecraft:blackstone
 age compare voidasis voidstone 1

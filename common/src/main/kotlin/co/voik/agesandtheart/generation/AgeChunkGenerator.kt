@@ -15,6 +15,13 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
+import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool
+import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer
+import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece
+import net.minecraft.world.level.levelgen.structure.StructurePiece
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager
+import net.minecraft.world.level.levelgen.structure.StructureStart
+import net.minecraft.core.RegistryAccess
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.HolderSet
@@ -528,6 +535,7 @@ class AgeChunkGenerator(
             if (ours == null) doFill(noiseChunk, chunk) else fillOurGround(ours, chunk, randomState, structureManager)
             // Only where the rock is vanilla's: an Age of ours folds its overlay into the field tree.
             if (ours == null) layOverlayInto(chunk)
+            val empty = emptyColumnsOf(chunk)
             randomState.surfaceSystem().buildSurface(
                 randomState,
                 biomeManager,
@@ -537,6 +545,7 @@ class AgeChunkGenerator(
                 surfacedBy,
                 biomes,
             )
+            clearWhatTheSurfaceStoodIn(chunk, empty)
             if (ours == null) {
                 region?.let { generateCarvers(chunk, blender, noiseChunk, randomState, biomeManager, it, surfacedBy) }
             } else {
@@ -545,6 +554,126 @@ class AgeChunkGenerator(
         }
         chunk
     }, Util.backgroundExecutor())
+
+    /**
+     * The columns of [chunk] the fill left holding nothing at all — the void under an island, or beside one —
+     * as `x + z * 16` in chunk-local coordinates.
+     */
+    private fun emptyColumnsOf(chunk: ChunkAccess): List<Int> =
+        (0..<CHUNK_COLUMNS).filter { column ->
+            val height = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, column % CHUNK_WIDTH, column / CHUNK_WIDTH)
+            height <= chunk.minY
+        }
+
+    /**
+     * Takes back whatever the surface pass stood up in a column the fill left empty.
+     *
+     * **One thing puts it there**: vanilla's eroded-badlands hoodoos scan down a column for the world's rock
+     * and fill every air block until they find some, so over the void they run from the island's height to
+     * the bottom of the world. No surface rule has anything else to lay in a column with nothing in it, so
+     * emptying it again is exact rather than a guess at which blocks were the pillar.
+     */
+    private fun clearWhatTheSurfaceStoodIn(chunk: ChunkAccess, empty: List<Int>) {
+        if (empty.isEmpty()) return
+        val air = Blocks.AIR.defaultBlockState()
+        val position = BlockPos.MutableBlockPos()
+        for (column in empty) {
+            val localX = column % CHUNK_WIDTH
+            val localZ = column / CHUNK_WIDTH
+            val top = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, localX, localZ)
+            for (y in chunk.minY..top) {
+                position.set(localX, y, localZ)
+                if (!chunk.getBlockState(position).isAir) chunk.setBlockState(position, air)
+            }
+        }
+    }
+
+    /**
+     * Vanilla's structure starts, **settled where their land hangs over the void**.
+     *
+     * Vanilla places a surface piece on the heightmap under it, and over a column with nothing in it that is
+     * the bottom of the world: a village beside an island left its town centre and houses lying on the
+     * floor of the void. So a start standing over the void is dropped, and a start on the ground keeps what
+     * it can of what reaches past the edge — see [settledOverTheVoid]. Asked through this generator's own
+     * [getBaseHeight] and [getBaseColumn], so it holds for vanilla's rock as for ours, and changes nothing
+     * where there is ground.
+     */
+    override fun createStructures(
+        registryAccess: RegistryAccess,
+        state: ChunkGeneratorStructureState,
+        structureManager: StructureManager,
+        centerChunk: ChunkAccess,
+        structureTemplateManager: StructureTemplateManager,
+        level: ResourceKey<Level>,
+    ) {
+        super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
+        for ((structure, start) in centerChunk.allStarts) {
+            if (!start.isValid) continue
+            val settled = settledOverTheVoid(start, centerChunk, state.randomState())
+            if (settled !== start) centerChunk.setStartForStructure(structure, settled)
+        }
+    }
+
+    /**
+     * [start] with its pieces over the void dealt with, or [start] itself where none is.
+     *
+     * - **The start's own piece over the void** drops the whole structure: there is no ground to build from.
+     * - **A rigid piece** — a house — is carried up to the nearest ground within [SUPPORT_REACH] of it, so it
+     *   projects out from the island's edge at the island's height, and the structure's beard pads rock
+     *   under it as it would on a hillside. Where there is no ground that near, it goes.
+     * - **A terrain-matching piece** — a street — goes, being laid block by block onto whatever is under it,
+     *   and over the void that is nothing.
+     */
+    private fun settledOverTheVoid(start: StructureStart, chunk: ChunkAccess, randomState: RandomState): StructureStart {
+        fun groundAt(x: Int, z: Int): Int? =
+            getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, chunk, randomState).takeIf { it > chunk.minY }
+        fun nothingInTheColumnUpTo(top: Int, x: Int, z: Int): Boolean {
+            val column = getBaseColumn(x, z, chunk, randomState)
+            return (chunk.minY..top).all { column.getBlock(it).isAir }
+        }
+        // Under an island as well as beside one: a ruined portal whose corners find no rock is walked down
+        // to the floor of the void, under a centre that still has the island over it.
+        fun standsOverTheVoid(piece: StructurePiece): Boolean {
+            val box = piece.boundingBox
+            val centre = box.center
+            val ground = groundAt(centre.x, centre.z) ?: return true
+            val standsOnTheTopOfItsColumn = ground <= box.maxY()
+            return !standsOnTheTopOfItsColumn && nothingInTheColumnUpTo(box.maxY(), centre.x, centre.z)
+        }
+        val pieces = start.pieces
+        val anchor = pieces.firstOrNull() ?: return start
+        if (standsOverTheVoid(anchor)) return StructureStart.INVALID_START
+        val overTheVoid = pieces.filter(::standsOverTheVoid)
+        if (overTheVoid.isEmpty()) return start
+        val kept = pieces.mapNotNull { piece ->
+            if (piece !in overTheVoid) piece else carriedToTheEdge(piece, ::groundAt)
+        }
+        return StructureStart(start.structure, start.chunkPos, start.references, PiecesContainer(kept))
+    }
+
+    /** [piece] moved up to the ground nearest it, or null where it should not be built — see [settledOverTheVoid]. */
+    private fun carriedToTheEdge(piece: StructurePiece, groundAt: (Int, Int) -> Int?): StructurePiece? {
+        val poolPiece = piece as? PoolElementStructurePiece
+        val isLaidOnTheGround = poolPiece?.element?.projection == StructureTemplatePool.Projection.TERRAIN_MATCHING
+        if (isLaidOnTheGround) return null
+        val box = piece.boundingBox
+        val centre = box.center
+        val reached = box.inflatedBy(SUPPORT_REACH, 0, SUPPORT_REACH)
+        val around = listOf(
+            reached.minX() to reached.minZ(), reached.maxX() to reached.minZ(),
+            reached.minX() to reached.maxZ(), reached.maxX() to reached.maxZ(),
+            centre.x to reached.minZ(), centre.x to reached.maxZ(),
+            reached.minX() to centre.z, reached.maxX() to centre.z,
+        )
+        fun distanceFromCentre(column: Pair<Int, Int>) =
+            (column.first - centre.x).toLong().let { it * it } + (column.second - centre.z).toLong().let { it * it }
+        val nearest = around.sortedBy(::distanceFromCentre)
+            .firstNotNullOfOrNull { (x, z) -> groundAt(x, z) } ?: return null
+        // The piece's floor stands its ground-level delta above its box, and belongs on the ground's surface.
+        val floorAboveBox = poolPiece?.groundLevelDelta ?: ORDINARY_GROUND_LEVEL_DELTA
+        piece.move(0, nearest - floorAboveBox - box.minY(), 0)
+        return piece
+    }
 
     /** The field tree's own fill — [FieldFill], which knows nothing of density functions. */
     private fun fillOurGround(
@@ -1037,6 +1166,31 @@ class AgeChunkGenerator(
         // And then whatever the Age's instability bought, which is the register's own pass rather than
         // this hook's: the order those steps run in is a fact about §5, not about chunk generation.
         consequence.writeInto(level, chunk)
+        clearWhatFellToTheFloor(chunk)
+    }
+
+    /**
+     * Takes up anything lying on the floor of the void with nothing over it — a street's edge laid over an
+     * empty column, which terrain matching drapes onto the bottom of the world.
+     *
+     * **Exact rather than a guess**: in a column with ground there is always something higher, so only a
+     * column holding nothing but a few blocks at the floor can match, and in an Age with ground beneath all
+     * of its land no column ever does.
+     */
+    private fun clearWhatFellToTheFloor(chunk: ChunkAccess) {
+        val air = Blocks.AIR.defaultBlockState()
+        val position = BlockPos.MutableBlockPos()
+        for (column in 0..<CHUNK_COLUMNS) {
+            val localX = column % CHUNK_WIDTH
+            val localZ = column / CHUNK_WIDTH
+            val firstFree = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, localX, localZ)
+            val holdsOnlyWhatFell = firstFree > chunk.minY && firstFree <= chunk.minY + FALLEN_BAND
+            if (!holdsOnlyWhatFell) continue
+            for (y in chunk.minY..firstFree) {
+                position.set(localX, y, localZ)
+                chunk.setBlockState(position, air)
+            }
+        }
     }
 
     /**
@@ -1103,6 +1257,18 @@ class AgeChunkGenerator(
     // *coerced* sea level, so a void sea answers the world floor rather than `Int.MIN_VALUE`.
 
     companion object {
+        private const val CHUNK_WIDTH = 16
+        private const val CHUNK_COLUMNS = CHUNK_WIDTH * CHUNK_WIDTH
+
+        /** How far past a piece hanging over the void there may be ground for it to be carried to. */
+        private const val SUPPORT_REACH = 8
+
+        /** Vanilla's own for a pool element that does not say: its floor stands a block above its box. */
+        private const val ORDINARY_GROUND_LEVEL_DELTA = 1
+
+        /** How near the floor of the void a block has to lie, with nothing over it, to count as fallen. */
+        private const val FALLEN_BAND = 4
+
         /** What a place is taken as when there is no level to ask — nothing is refused for its light. */
         private const val FULLY_LIT = 15
 

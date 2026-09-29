@@ -13,7 +13,7 @@
 #   dry hills, seed 4242 ........................ 21222 blocks, 81 of 81 chunks
 #   the same, with the game's structures in it ... 21636 blocks, 81 of 81 -- the gate costs nothing
 #   the noise floor, one composition twice .......... 904 blocks, 13 of 81
-#   landmass=vanilla, water, seed 4242 ........... 18062 blocks (measured apart from this file)
+#   landmass=overworld, water, seed 4242 ........... 18062 blocks (measured apart from this file)
 #   dry hills, seed 5150028736327257943 ........... 1552 blocks, every example pitchstone ore
 #
 # **Read the chunk count as well as the block count.** Craters touch every chunk of the square; the noise

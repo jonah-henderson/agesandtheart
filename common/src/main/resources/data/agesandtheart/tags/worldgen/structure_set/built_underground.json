@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Structure sets vanilla builds deep in the rock at fixed heights, whatever stands above them. An Age whose",
+    "landform has no ground beneath it leaves them out of what it builds by default, or they hang in the void",
+    "under its islands (Terrain.hasGroundBeneath). A pack adds its own buried structures here."
+  ],
+  "replace": false,
+  "values": [
+    "minecraft:ancient_cities",
+    "minecraft:trial_chambers",
+    "minecraft:strongholds",
+    "minecraft:mineshafts"
+  ]
+}

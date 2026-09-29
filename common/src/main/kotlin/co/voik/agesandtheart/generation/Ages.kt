@@ -113,6 +113,7 @@ object Ages {
                 generator = AgeGeneration.chunkGenerator(server, recipe),
                 seed = recipe.seed,
                 customSpawners = AgeGeneration.spawnersFor(server, recipe),
+                horizonAtTheFloor = AgeGeneration.hasNothingBeneathIt(recipe),
             ),
         )
     }

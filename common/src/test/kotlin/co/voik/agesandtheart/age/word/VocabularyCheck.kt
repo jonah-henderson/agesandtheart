@@ -350,7 +350,7 @@ class VocabularyCheck : FunSpec({
      */
     test("every preset kept from broad words is pinned by a recipe") {
         // Two ways to reach one deliberately: a pinned recipe, or a **template**, which is how
-        // `landmass=vanilla` arrives — an Age whose writer named no landform gets the rock its world
+        // vanilla's rocks arrive — an Age whose writer named no landform gets the rock its world
         // came with.
         val pinned = AgePreset.entries
             .mapNotNull { preset -> (AgeRecipe.worldFor(preset) as? AgeWorld.Composed)?.composition }

@@ -16,7 +16,7 @@ private val AIR: BlockState by lazy { Blocks.AIR.defaultBlockState() }
 /**
  * Shape of **ours** laid over whatever rock an Age happens to wear (design §3.4).
  *
- * **The problem this exists for: an Age that names no landform wears `Terrain.VANILLA`, and everything of
+ * **The problem this exists for: an Age that names no landform wears vanilla's rock, and everything of
  * ours that is a *shape* was silently absent from it.** A writer could say `volcano`, the Art would take
  * the word, charge for it, score it for danger — and the mountains would never arrive, because the field
  * tree they are unioned into is only built for a landform of ours. The word was accepted and ignored,
