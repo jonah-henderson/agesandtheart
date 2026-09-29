@@ -30,16 +30,16 @@
 
 # --- The two combinations the implementation plan names by name -------------------------------
 # Spire islands over real water rather than plasma, and hills with something going on underneath.
-age compose spireocean landmass=spire_islands sea=water rock=flooded_caves sky=storm
-age compose hillcaves landmass=hills sea=water rock=flooded_caves sky=storm structures=vanilla
+age compose spireocean landmass=spire_islands sea=water rock=flooded_caves
+age compose hillcaves landmass=hills sea=water rock=flooded_caves structures=vanilla
 
 # --- Others nobody wrote, to stress the aspect list ---------------------------------------------
-age compose lavapillar landmass=pillars sea=lava rock=solid sky=plain
-age compose deepcavern landmass=hills sea=water sea.depth=0.9..1.0 rock=porous underground=tunnels sky=plain
+age compose lavapillar landmass=pillars sea=lava rock=solid
+age compose deepcavern landmass=hills sea=water sea.depth=0.9..1.0 rock=porous underground=tunnels
 
 # A terrain that stands in open air, told to have a sea anyway. The terrain's contract must win:
 # expect it to be created and to generate dry, not to crash.
-age compose drypyramid landmass=pyramids landmass.arrangement=rings sea=water sky=storm
+age compose drypyramid landmass=pyramids landmass.arrangement=rings sea=water
 
 # An option no preset understands. Expect it kept, ignored, and reported by /age list below —
 # never silently dropped, because the recipe is the only record of an Age.
@@ -83,8 +83,8 @@ age gen typoage
 #
 # So read a small count rather than zero, and read it against a control the way generator-parity.txt says
 # to. That file carries the measured per-Age control band; this is the same method at a smaller radius.
-age compose bareA 777 landmass=eroded sea=water rock=caves sky=plain
-age compose bareB 777 landmass=eroded sea=water rock=caves sky=plain
+age compose bareA 777 landmass=eroded sea=water rock=caves
+age compose bareB 777 landmass=eroded sea=water rock=caves
 age compare bareA bareB 2
 
 # The one true zero left in the mod: a bespoke Tier-B generator on a biome of its own, which decorates

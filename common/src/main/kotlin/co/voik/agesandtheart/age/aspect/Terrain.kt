@@ -325,6 +325,12 @@ enum class Terrain(
     val cloudsAtY: Int? get() = if (this == SKYLANDS) SkylandsField.CLOUDS_Y else null
 
     /**
+     * Whether this landform brings the Spire's own sky ([SpireSky]) — its two cloud decks are measured off
+     * these islands, so the sky rides with them. Only [SPIRE_ISLANDS] does.
+     */
+    val bringsTheSpiresSky: Boolean get() = this == SPIRE_ISLANDS
+
+    /**
      * Every landform a writer can reach for has a page that means it, and the page is minted from here —
      * a landform is a thing with a name, where a carve pattern is a quality of the rock and is reached by
      * `unbroken`, `riddled` and `flooded` instead.

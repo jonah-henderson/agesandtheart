@@ -32,17 +32,17 @@
 # outright (Jonah, 2026-09-16).
 
 # Two terrains, one sea: the shape splits and nothing else does.
-age compose ground 7 landmass=hills,pillars sea=water rock=solid sky=plain
+age compose ground 7 landmass=hills,pillars sea=water rock=solid
 age gen ground
 
 # Two climates over one terrain: the *character* of the place splits where the shape does not. This is the
 # modern counterpart of two dressings — climate drives the biome table, so expect a hot stretch and a cold
 # one over continuous hills, with the biome change carrying fog, grass colour and mobs along with it.
-age compose cover 7 landmass=hills sea=water rock=solid climate=member[temperature=0.7..0.9],member[temperature=-0.9..-0.5] sky=plain
+age compose cover 7 landmass=hills sea=water rock=solid climate=member[temperature=0.7..0.9],member[temperature=-0.9..-0.5]
 age gen cover
 
 # Both at once, so two independent territory maps are live together and must not be confused for each other.
-age compose bothways 7 landmass=hills,pillars sea=water rock=caves climate=member[humidity=0.5..0.9],member[humidity=-0.9..-0.5] sky=storm
+age compose bothways 7 landmass=hills,pillars sea=water rock=caves climate=member[humidity=0.5..0.9],member[humidity=-0.9..-0.5]
 age gen bothways
 age bench bothways 4
 
@@ -61,7 +61,7 @@ age list
 # --- The two divisions with no vanilla equivalent at all ---------------------------------------
 # An ocean of water meeting an ocean of lava at the same level, with no barrier and no obsidian between
 # them. This is the one worth walking to, because nothing in Minecraft can show it.
-age compose twoseas 11 landmass=hills sea=water,lava rock=solid sky=plain
+age compose twoseas 11 landmass=hills sea=water,lava rock=solid
 age gen twoseas
 
 # Caves in some territories and solid rock in others — `solid` holding ground of its own rather than
@@ -71,12 +71,12 @@ age gen twoseas
 # **`underground=none` is said outright here**, because this one is walked rather than measured and the
 # slot defaults to `noise_caves`: without it the solid territories are riddled with noise caves and there
 # is nothing left to look at (Jonah, 2026-09-16).
-age compose halfhollow 11 landmass=hills sea=water rock=caves,solid underground=none sky=plain
+age compose halfhollow 11 landmass=hills sea=water rock=caves,solid underground=none
 age gen halfhollow
 age bench halfhollow 4
 
 # All four positional aspects dividing one world at once; only sky and structures stay whole.
-age compose everything 11 landmass=hills,pillars sea=water,lava rock=caves,solid climate=member[temperature=0.6..0.9],member[temperature=-0.9..-0.6] sky=storm
+age compose everything 11 landmass=hills,pillars sea=water,lava rock=caves,solid climate=member[temperature=0.6..0.9],member[temperature=-0.9..-0.6]
 age gen everything
 age compare everything everything 1
 age list

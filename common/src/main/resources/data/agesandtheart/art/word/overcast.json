@@ -1,8 +1,12 @@
 {
+  "_comment": [
+    "A low grey lid and a little haze under it, and no rain asked for. Milder than `smothered` on",
+    "both dials, which is where the two words are told apart."
+  ],
   "tier": "restrictive",
-  "restricts": {
-    "sky": {
-      "dark": 1.0
-    }
+  "sets": {
+    "sky.ceiling": "-0.6..-0.2",
+    "air.haze": "0.1..0.4",
+    "clouds.colour": "grey"
   }
 }

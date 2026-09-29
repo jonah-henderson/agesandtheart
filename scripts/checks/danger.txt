@@ -15,14 +15,14 @@
 # Age, which is a fine way to think you have found a bug in the scoring.
 
 # The floor: an Age nobody said anything dangerous about.
-age compose quiet 11 landmass=hills sea=water rock=solid sky=plain
+age compose quiet 11 landmass=hills sea=water rock=solid
 age danger score quiet
 
 # What the Age is made of, over the whole of it, and then over half of it — the averaging rule on real
 # recipes. Read the two together: the same lava, half the ground, half the materials score.
-age compose alllava 11 landmass=hills sea=lava rock=solid sky=plain
+age compose alllava 11 landmass=hills sea=lava rock=solid
 age danger score alllava
-age compose halflava 11 landmass=hills sea=lava,water rock=solid sky=plain
+age compose halflava 11 landmass=hills sea=lava,water rock=solid
 age danger score halflava
 
 # What lives here, and what happens here.
@@ -69,7 +69,7 @@ age danger json score hellish
 # the index *before the Age opens*, which is the only moment anything reaching generation can be steered —
 # `/age decay` rewrites a recipe that is already open and so never reaches the deposit.
 # Measured 2026-09-05: 3794 against 0 in the same band.
-age compose doomed 11 unstable=400 landmass=hills sea=lava rock=solid sky=plain
+age compose doomed 11 unstable=400 landmass=hills sea=lava rock=solid
 age danger score doomed
 age gen doomed
 execute in agesandtheart:doomed run forceload add 0 0 15 15

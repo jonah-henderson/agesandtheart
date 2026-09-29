@@ -23,7 +23,7 @@ class AuroraAuthoringCheck : FunSpec({
 
     val seed = 4242L
 
-    fun sky(vararg parts: Pair<Aspect, Options>) = Sky.PLAIN.specFor(Described(options = parts.toMap()), seed)
+    fun sky(vararg parts: Pair<Aspect, Options>) = Sky.specFor(Described(options = parts.toMap()), seed)
 
     fun options(vararg chosen: Pair<String, List<String>>) = Options(chosen.toMap())
 
@@ -116,9 +116,9 @@ class AuroraAuthoringCheck : FunSpec({
 
     test("a curtain reproduces from its Age's seed") {
         val said = arrayOf(happens("aurora"))
-        val first = Sky.PLAIN.specFor(Described(options = said.toMap()), 99L).aurora
-        val again = Sky.PLAIN.specFor(Described(options = said.toMap()), 99L).aurora
-        val elsewhere = Sky.PLAIN.specFor(Described(options = said.toMap()), 100L).aurora
+        val first = Sky.specFor(Described(options = said.toMap()), 99L).aurora
+        val again = Sky.specFor(Described(options = said.toMap()), 99L).aurora
+        val elsewhere = Sky.specFor(Described(options = said.toMap()), 100L).aurora
         check(first == again) { "One Age gave two curtains" }
         check(first?.bearingDegrees != elsewhere?.bearingDegrees) { "Two Ages' curtains cross the same way" }
     }

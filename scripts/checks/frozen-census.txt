@@ -7,7 +7,7 @@
 # under these oceans is ice in a cave, and should count zero.
 #
 # `fill ... replace` DESTROYS what it counts, which does not matter in a throwaway world.
-age compose icehills 4242 landmass=hills sea=water rock=caves underground=noise_caves sky=plain climate.temperature=-1.0..-0.6
+age compose icehills 4242 landmass=hills sea=water rock=caves underground=noise_caves climate.temperature=-1.0..-0.6
 execute in agesandtheart:icehills run forceload add -64 -64 -1 -1
 execute in agesandtheart:icehills run forceload add 48 16 79 47
 # Around the deep frozen ocean at (-32, -32).

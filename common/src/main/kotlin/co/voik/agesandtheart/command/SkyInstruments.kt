@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.SkyParameters
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.ephemeris.sky.Aurora
 import co.voik.ephemeris.sky.AuroraGroundRule
 import co.voik.ephemeris.sky.Blending
@@ -549,7 +550,8 @@ internal object SkyInstruments {
         // **A line with no words turns the Age's own sky**, and that is the only way a parameter reaches a sky
         // the words made: a preview spec resolves one sun and one moon whatever it says, bodies being
         // minted by clauses that a `sky.…` line cannot carry. Naming any word restates the sky in full, as
-        // it always did — so `path=polar` alone tips the Age's own suns and `sky=plain path=polar` tips one.
+        // it always did — so `path=polar` alone tips the Age's own suns and `sky path=polar` tips one, a bare
+        // `sky` being the sky as nothing describes it.
         val asWritten = if (words.isEmpty()) {
             LevelAppearance.of(level.dimension())?.sky ?: run {
                 source.sendFailure(Component.literal("Nothing has said what '$name' looks like"))
@@ -611,7 +613,7 @@ internal object SkyInstruments {
             source.sendFailure(
                 Component.literal(
                     "`/age sky` previews the sky only, but you named ${strayAspects.joinToString(" ")}. " +
-                        "Write it as `sky=plain sun.size=0.6..1.0`, and use `/age compose` for the rest. " +
+                        "Write it as `sky.size=0.6..1.0`, and use `/age compose` for the rest. " +
                         "The library's own parameters are ${SkyParameters.describeOffered()}.",
                 ),
             )
@@ -651,7 +653,7 @@ internal object SkyInstruments {
         // overhead `sky.…` because it is one instrument over one picture, but the bodies are the sun's, the
         // moon's and the stars' aspects — so a `sky.colour` left as written is stored on the vault and
         // looked for on the sun, which is to say accepted and then ignored.
-        val aimed = preview.split(' ').filter(String::isNotBlank).joinToString(" ") { token ->
+        val aimed = preview.split(' ').filter { it.isNotBlank() && it != SKY_ASPECT }.joinToString(" ") { token ->
             val name = token.substringBefore('=').removePrefix("$SKY_ASPECT.")
             val owner = ownerOfParameter[name]
             if (!token.startsWith("$SKY_ASPECT.") || owner == null) token
@@ -663,7 +665,7 @@ internal object SkyInstruments {
             return null
         }
         // The Age's own seed, so a preview differs from the real sky only where the words differ.
-        return composition.sky.specFor(composition, seed)
+        return Sky.specFor(composition, seed)
     }
 
 }

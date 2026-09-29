@@ -1,10 +1,5 @@
 {
   "tier": "restrictive",
-  "restricts": {
-    "sky": {
-      "dark": 1.0
-    }
-  },
   "sets": {
     "haze": "0.7..1.0",
     "ceiling": "-1.0..-0.5"

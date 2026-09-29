@@ -160,17 +160,14 @@ class DerivedAspectsCheck : FunSpec({
      *
      * A flat query never can — `stormy` means `gloomy`, `gloomy` is also on `caverns` — but an author who
      * writes the tag *under an aspect* has said it outright, which is a different statement and a safe one.
-     * `clear` is the word that wanted it: clear water is the `murk` dial and a clear sky is `bright` asked
-     * only of the sky, so between them it declares no aspects at all.
+     * `ashen` is one: its barrenness is asked only of the biomes, and nothing else it says names them.
      */
     test("a query asked of one aspect reaches it") {
-        val clear = vocabulary.word("clear") ?: error("the corpus lost 'clear'")
-        check(clear.aspects == setOf(Aspect.SKY, Aspect.WATERS)) {
-            "'clear' derived ${clear.aspects} from a keyed query and a murk dial"
-        }
-        check(clear.restrictsIn(Aspect.SKY).containsKey("bright")) { "the restriction did not reach the sky" }
-        check(!clear.restrictsIn(Aspect.SEA).containsKey("bright")) {
-            "a restriction asked only of the sky went looking for something bright in the sea"
+        val ashen = vocabulary.word("ashen") ?: error("the corpus lost 'ashen'")
+        check(Aspect.BIOMES in ashen.aspects) { "'ashen' derived ${ashen.aspects} without the biomes it asks of" }
+        check(ashen.restrictsIn(Aspect.BIOMES).containsKey("barren")) { "the restriction did not reach the biomes" }
+        check(!ashen.restrictsIn(Aspect.TERRAIN).containsKey("barren")) {
+            "a restriction asked only of the biomes went looking for something barren in the rock"
         }
     }
 

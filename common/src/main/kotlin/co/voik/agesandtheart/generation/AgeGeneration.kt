@@ -792,13 +792,13 @@ object AgeGeneration {
 
     /** The sky an Age has, as data the client can be told. A pure function of the recipe. */
     fun skySpec(recipe: AgeRecipe): SkySpec = when (val world = recipe.world) {
-        is AgeWorld.Composed -> world.composition.sky.specFor(world.composition, recipe.seed)
+        is AgeWorld.Composed -> Sky.specFor(world.composition, recipe.seed)
         is AgeWorld.Bespoke -> SkySpec.VANILLA
     }
 
-    /** The look an Age's sky preset paints under whatever its sentence asked for. */
-    fun presetLook(recipe: AgeRecipe): Look = when (val world = recipe.world) {
-        is AgeWorld.Composed -> world.composition.sky.look()
+    /** The look an Age paints under whatever its sentence asked for — the Spire's palette, or nothing. */
+    fun lookUnderTheSentence(recipe: AgeRecipe): Look = when (val world = recipe.world) {
+        is AgeWorld.Composed -> Sky.lookUnder(world.composition)
         is AgeWorld.Bespoke -> Look.NOTHING
     }
 }

@@ -31,7 +31,7 @@ class BiomeFootingCheck : FunSpec({
      * biome in a world with no water in it is wrong at any percentage.
      */
     test("an Age with no sea grows no ocean biomes") {
-        server.run("age compose sealess 4242 landmass=pyramids sea=minecraft:air sky=plain")
+        server.run("age compose sealess 4242 landmass=pyramids sea=minecraft:air")
         val oceanic = surfaceBiomes(server, "sealess", radius = 6).filter { "ocean" in it.key }
         check(oceanic.isEmpty()) {
             "an Age with an air sea grew ocean biomes over dry ground: " +
@@ -41,7 +41,7 @@ class BiomeFootingCheck : FunSpec({
 
     /** The control: the same axis under water still reaches the sea, or the check above proves nothing. */
     test("an Age that does have a sea still grows ocean over it") {
-        server.run("age compose seabound 4242 landmass=islands sea=minecraft:water sky=plain")
+        server.run("age compose seabound 4242 landmass=islands sea=minecraft:water")
         val oceanic = surfaceBiomes(server, "seabound", radius = 6).filter { "ocean" in it.key }
         check(oceanic.isNotEmpty()) {
             "an Age of islands in a water sea grew no ocean biome anywhere, so the reading above is vacuous"
@@ -64,7 +64,7 @@ class BiomeFootingCheck : FunSpec({
     test("no column is both kept dry and answered for by the aquifer") {
         server.run(
             "age compose riftdry 1543517247 landmass=hills,pillars landmass.seam=rift " +
-                "sea=minecraft:water rock=solid sky=plain",
+                "sea=minecraft:water rock=solid",
         )
         val contradictions = SAMPLED_COLUMNS.mapNotNull { (x, z) ->
             val probe = server.ask("probe", "riftdry $x $z")

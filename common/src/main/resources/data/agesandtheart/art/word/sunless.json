@@ -4,17 +4,9 @@
     "",
     "`sun.absent` names the aspect in the parameter because the sun and the moon share the switch, and",
     "`Word.reaching` only ever widens: an unqualified `absent` would reach both bodies, and a sunless",
-    "Age would lose its moon as well (Jonah, 2026-08-31).",
-    "",
-    "The query is what makes it evocative as well as exact: an Age with no sun is a dark one, and the",
-    "word leans the rest of the draw that way rather than only blanking the body."
+    "Age would lose its moon as well (Jonah, 2026-08-31)."
   ],
   "tier": "exact",
-  "restricts": {
-    "sun": {
-      "dark": 1.0
-    }
-  },
   "sets": {
     "sun.absent": "true"
   }

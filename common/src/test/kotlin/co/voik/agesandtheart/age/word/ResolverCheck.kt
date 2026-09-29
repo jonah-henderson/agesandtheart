@@ -325,15 +325,16 @@ class ResolverCheck : FunSpec({
      * exists. A world has one sky over it and no second place to put another (§3.4), which makes this the
      * one aspect where a contradiction genuinely cannot be honoured.
      */
-    test("a sky cannot divide") {
-        val resolution = resolve(vocabulary, "stormy clear")
-        // That the sky is one sky needs no assertion — `AgeComposition.sky` is a single field where every
-        // positional aspect is a list, which is §3.4's "technically impossible" made structural. What wants
-        // checking is that the word which lost is *said out loud* rather than quietly absent.
+    test("an underground cannot divide") {
+        val resolution = resolve(vocabulary, "tunnels lattice")
+        // That the underground is one underground needs no assertion — `AgeComposition.underground` is a
+        // single field where every positional aspect is a list, which is §3.4's "technically impossible"
+        // made structural. What wants checking is that the word which lost is *said out loud* rather than
+        // quietly absent.
         val displaced = resolution.instability.flaws.firstOrNull { it.register == Register.DISPLACED }
-        checkNotNull(displaced) { "a word lost the sky and nothing said so: ${resolution.instability.flaws}" }
-        check(displaced.aspect == Aspect.SKY) { "the loss was sited in ${displaced.aspect}, not the sky" }
-        check(displaced.words.containsAll(listOf("stormy", "clear"))) {
+        checkNotNull(displaced) { "a word lost the underground and nothing said so: ${resolution.instability.flaws}" }
+        check(displaced.aspect == Aspect.UNDERGROUND) { "the loss was sited in ${displaced.aspect}, not the underground" }
+        check(displaced.words.containsAll(listOf("tunnels", "lattice"))) {
             "the loss does not name both words: ${displaced.words}"
         }
         // Two exact words against each other is the design's dangerous case, so it must not come cheap.
@@ -348,16 +349,16 @@ class ResolverCheck : FunSpec({
      * shipping, and this checks what happens if one ever does.
      */
     test("an unbacked word is reported, not dropped") {
-        val moonless = Word(
-            Identifier.fromNamespaceAndPath("test", "moonless"),
+        val bottomless = Word(
+            Identifier.fromNamespaceAndPath("test", "bottomless"),
             Tier.EXACT,
-            setOf(Aspect.SKY),
-            restricts = mapOf(Aspect.SKY to mapOf("moonless" to 1.0)),
+            setOf(Aspect.UNDERGROUND),
+            restricts = mapOf(Aspect.UNDERGROUND to mapOf("bottomless" to 1.0)),
         )
-        val resolution = Resolver.resolve(vocabulary, flatSentence(listOf(moonless)), SAMPLE_SEED)
+        val resolution = Resolver.resolve(vocabulary, flatSentence(listOf(bottomless)), SAMPLE_SEED)
         val unbacked = resolution.instability.flaws.firstOrNull { it.register == Register.UNBACKED }
         checkNotNull(unbacked) { "an impossible word passed in silence, which is the one thing forbidden" }
-        check(unbacked.words == listOf("moonless")) { "the report does not name the word: ${unbacked.words}" }
+        check(unbacked.words == listOf("bottomless")) { "the report does not name the word: ${unbacked.words}" }
         check(resolution.instability.index > 0) { "an impossible word cost nothing at all" }
     }
 
@@ -624,7 +625,7 @@ class ResolverCheck : FunSpec({
         check(second.of(SkyBodies.RISING) == "southwest") { "the second sun rises ${second.of(SkyBodies.RISING)}" }
 
         // And it reaches the sky the renderer is handed, which is the half a writer actually sees.
-        val drawn = composition.sky.specFor(composition, SAMPLE_SEED)
+        val drawn = Sky.specFor(composition, SAMPLE_SEED)
         val suns = drawn.bodies.filter { it.phase == null }
         check(suns.size == 2) { "the spec drew ${suns.size} suns" }
         val horizons = suns.map { (it.path as Orbit).ascendingNodeDegrees }
@@ -639,7 +640,7 @@ class ResolverCheck : FunSpec({
     test("colossal is a colossal landform and a colossal sun") {
         val overhead = read(listOf("age", "colossal", "sun"))
         val sky = Resolver.resolve(vocabulary, overhead, SAMPLE_SEED).composition
-        val sun = sky.sky.specFor(sky, SAMPLE_SEED).bodies.first { it.phase == null }
+        val sun = Sky.specFor(sky, SAMPLE_SEED).bodies.first { it.phase == null }
         check(sun.appearance.angularSize > SkySpec.VANILLA_SUN_SIZE) {
             "'colossal sun' drew a sun of ${sun.appearance.angularSize}, no larger than vanilla's"
         }
@@ -647,7 +648,7 @@ class ResolverCheck : FunSpec({
         // And laid on the land it is the rock that is colossal, the sun keeping whatever was drawn.
         val ground = read(listOf("age", "colossal", "landmass"))
         val rock = Resolver.resolve(vocabulary, ground, SAMPLE_SEED).composition
-        val itsSun = rock.sky.specFor(rock, SAMPLE_SEED).bodies.first { it.phase == null }
+        val itsSun = Sky.specFor(rock, SAMPLE_SEED).bodies.first { it.phase == null }
         check(itsSun.appearance.angularSize == SkySpec.VANILLA_SUN_SIZE) {
             "'colossal landmass' reached the sun as well, at ${itsSun.appearance.angularSize}"
         }
@@ -1189,7 +1190,7 @@ class ResolverCheck : FunSpec({
     test("a sky word lands where it says") {
         fun skyOf(sentence: String): SkySpec {
             val composition = resolve(vocabulary, sentence).composition
-            return composition.sky.specFor(composition, SAMPLE_SEED)
+            return Sky.specFor(composition, SAMPLE_SEED)
         }
 
         val ordinary = skyOf("stormy")
@@ -1223,7 +1224,7 @@ class ResolverCheck : FunSpec({
         // thing (world model §2).
         val twoSuns = read(listOf("age", "sun", "sun"))
         val minted = Resolver.resolve(vocabulary, twoSuns, SAMPLE_SEED).composition
-        val drawn = minted.sky.specFor(minted, SAMPLE_SEED)
+        val drawn = Sky.specFor(minted, SAMPLE_SEED)
         check(drawn.bodies.count { it.phase == null } == TWO_SUNS) {
             "two `sun` clauses drew ${drawn.bodies.count { it.phase == null }} suns"
         }

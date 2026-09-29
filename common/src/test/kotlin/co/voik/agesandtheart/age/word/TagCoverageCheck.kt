@@ -105,7 +105,6 @@ class TagCoverageCheck : FunSpec({
             // Seventeen since `shapes` was deleted and `spire_islands` kept for the Spire alone.
             Aspect.TERRAIN to 17,
             Aspect.CARVERS to 4,
-            Aspect.SKY to 2,
             // The four below each lost what `preset_tags` keeps from broad words — only a word naming one reaches it.
             Aspect.STRUCTURES to 12,
             Aspect.SPAWNS to 78,

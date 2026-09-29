@@ -7,7 +7,7 @@
 # **Counting packed ice proves nothing on its own**: vanilla's icebergs reach well below sea level in open
 # water. What tells the fault apart is ice below a column's *uncut* seabed, which can only be standing in a
 # cave. `age probe` prints both -- the runs of blocks, and "aquifer answers for", which is the uncut rock.
-age compose icehills 4242 landmass=hills sea=water rock=caves underground=noise_caves sky=plain climate.temperature=-1.0..-0.6
+age compose icehills 4242 landmass=hills sea=water rock=caves underground=noise_caves climate.temperature=-1.0..-0.6
 # Around the deep frozen ocean.
 age probe icehills -48 -48
 age probe icehills -40 -48

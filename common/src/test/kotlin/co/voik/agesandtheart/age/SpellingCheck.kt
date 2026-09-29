@@ -4,7 +4,6 @@ import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Carvers
 import co.voik.agesandtheart.age.aspect.Sea
-import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import io.kotest.core.annotation.Tags
@@ -64,7 +63,6 @@ class SpellingCheck : FunSpec({
     val landforms = Arb.element(Terrain.entries.filter { it.availableToBroadWords })
     val seas = Arb.element(Sea.WATER, Sea.LAVA, Sea.NONE)
     val undergrounds = Arb.element(Carvers.entries.toList())
-    val skies = Arb.element(Sky.entries.toList())
     val materials = Arb.of("minecraft:andesite", "minecraft:copper_block", "minecraft:tuff")
 
     test("every composition reads back as what it spelled") {
@@ -72,16 +70,14 @@ class SpellingCheck : FunSpec({
             Arb.list(landforms, 1..3),
             Arb.list(seas, 1..2),
             undergrounds,
-            skies,
             Arb.list(materials, 0..2),
             Arb.int(0..3),
             Arb.boolean(),
-        ) { shapes, water, below, overhead, stone, suns, divided ->
+        ) { shapes, water, below, stone, suns, divided ->
             var written = AgeComposition(
                 terrains = shapes,
                 seas = water,
                 carvers = listOf(below),
-                sky = overhead,
             )
             // Mingled materials on the first territory, which is the case the punctuation bug broke.
             if (stone.isNotEmpty()) {

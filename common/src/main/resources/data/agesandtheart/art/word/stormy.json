@@ -1,8 +1,13 @@
 {
+  "_comment": [
+    "Rain most of the time and thunder in most of it, under low grey cloud. A tempest is the",
+    "phenomenon, and asking for this does not bring one."
+  ],
   "tier": "exact",
-  "restricts": {
-    "sky": {
-      "dark": 1.0
-    }
+  "sets": {
+    "rainfall": "0.6..1.0",
+    "thunder": "0.6..1.0",
+    "sky.ceiling": "-0.7..-0.3",
+    "clouds.colour": "grey"
   }
 }

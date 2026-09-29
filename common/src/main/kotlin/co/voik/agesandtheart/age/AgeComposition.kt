@@ -41,8 +41,6 @@ data class AgeComposition(
      * world, and an Age has one set of heights however many territories divide its rock.
      */
     val underground: Underground = Underground.NOISE_CAVES,
-    /** Which biomes it grows. Singular — one climate table spans the world however many terrains carve it. */
-    val sky: Sky = Sky.PLAIN,
     val options: AspectOptions = AspectOptions(),
     /**
      * How each spatial population is laid across the map — the ground its members cover and the boundary
@@ -86,6 +84,10 @@ data class AgeComposition(
     override val cloudsAtY: Int? get() =
         terrains.map { it.cloudsAtY }.distinct().singleOrNull()
 
+    /** Every territory's, for the same reason as [roofedByItsRock]: an Age has one sky. */
+    override val underTheSpiresSky: Boolean get() =
+        terrains.isNotEmpty() && terrains.all { it.bringsTheSpiresSky }
+
     /**
      * How many territories [aspect] divides into. Presets answer for themselves; an aspect whose answer is
      * a set of parameters counts its own values, there being no preset to count.
@@ -110,7 +112,7 @@ data class AgeComposition(
 
     /** Every preset this composition names, in aspect order — for listing, costing and diagnosis. */
     val presets: List<Taggable>
-        get() = terrains + seas + carvers + listOf(underground, sky)
+        get() = terrains + seas + carvers + listOf(underground)
 
     /**
      * Options no preset here understands, spelled `terrain.arrangment` — a typo, or a parameter a later version
@@ -185,10 +187,9 @@ data class AgeComposition(
         Aspect.SEA -> copy(seas = listOf(named<Sea>(aspect, key)))
         Aspect.CARVERS -> copy(carvers = listOf(named<Carvers>(aspect, key)))
         Aspect.UNDERGROUND -> copy(underground = named<Underground>(aspect, key))
-        Aspect.SKY -> copy(sky = named<Sky>(aspect, key))
-        // None of these seats anything: a biome and a structure set are weighed, and a climate and a
-        // surface are where their parameters were left.
-        Aspect.BIOMES, Aspect.STRUCTURES, Aspect.SURFACE, Aspect.FEATURES, Aspect.SPAWNS,
+        // None of these seats anything: a biome and a structure set are weighed, and a climate, a surface
+        // and the vault are where their parameters were left.
+        Aspect.SKY, Aspect.BIOMES, Aspect.STRUCTURES, Aspect.SURFACE, Aspect.FEATURES, Aspect.SPAWNS,
         Aspect.PHENOMENA, Aspect.AIR, Aspect.WATERS, Aspect.WEATHER, Aspect.CLIMATE,
         Aspect.SUN, Aspect.MOON, Aspect.STARS, Aspect.GRASS, Aspect.LEAVES, Aspect.CLOUD,
         Aspect.AURORA, Aspect.RAINBOW,
@@ -265,7 +266,6 @@ data class AgeComposition(
             seas = seated(Aspect.SEA, seas, template.seas).filterIsInstance<Sea>(),
             carvers = seated(Aspect.CARVERS, carvers, template.carvers).filterIsInstance<Carvers>(),
             underground = if (Aspect.UNDERGROUND in spokenTo) underground else template.underground,
-            sky = if (Aspect.SKY in spokenTo) sky else template.sky,
         )
         return Aspect.entries.fold(merged) { held, aspect ->
             val boughtItsOwnMembers = aspect.holds == Holds.POPULATION && described(aspect) > 0
@@ -325,7 +325,6 @@ data class AgeComposition(
                     .forGetter(AgeComposition::carvers),
                 enumCodec<Underground>().optionalFieldOf("underground", Underground.NOISE_CAVES)
                     .forGetter(AgeComposition::underground),
-                enumCodec<Sky>().optionalFieldOf("sky", Sky.PLAIN).forGetter(AgeComposition::sky),
                 AspectOptions.CODEC.optionalFieldOf("options", AspectOptions()).forGetter(AgeComposition::options),
                 Spreads.CODEC.optionalFieldOf("spread", Spreads()).forGetter(AgeComposition::spreads),
             ).apply(instance, ::AgeComposition)

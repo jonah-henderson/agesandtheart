@@ -52,10 +52,10 @@ object Skies {
         // One reader over the whole composition, because the look is assembled from several aspects now —
         // the water's clarity, the air's fog and tint, the vault's colour and cloud.
         val parts = recipe.composition ?: AgeParts.NONE
-        // The sky preset's own palette goes **underneath**: it is what the Age looks like before anyone said
+        // The Spire's palette goes **underneath**: it is what the Age looks like before anyone said
         // anything, so a writer who repaints one colour of a Spire-skied Age keeps the rest. And under *that*
         // whatever the Age's own switches insist on — a lightless Age is dark to look at as well as to stand in.
-        val painted = AgeGeneration.presetLook(recipe).over(Atmosphere.unlitLook(parts, recipe.template))
+        val painted = AgeGeneration.lookUnderTheSentence(recipe).over(Atmosphere.unlitLook(parts, recipe.template))
         return LevelLook(
             AgeGeneration.skySpec(recipe),
             Atmosphere.lookIn(parts, recipe.seed).over(painted),

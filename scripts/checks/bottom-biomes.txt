@@ -7,7 +7,7 @@
 # unless the climate picks deep dark. Ours measures depth to the rock overhead over 128 blocks, so under a
 # seabed near y 40 it reads about 0.8 -- inside the cave biomes' span, where lush caves need only humidity.
 # If the bottom reads lush caves where the surface reads frozen ocean, icebergs and sea ice skip that column.
-age compose icehills 4242 landmass=hills sea=water rock=caves underground=noise_caves sky=plain climate.temperature=-1.0..-0.6
+age compose icehills 4242 landmass=hills sea=water rock=caves underground=noise_caves climate.temperature=-1.0..-0.6
 execute in agesandtheart:icehills run forceload add -48 -48 -16 -16
 execute in agesandtheart:icehills run forceload add 48 16 80 48
 # Around the deep frozen ocean: the surface, then the bottom of the world.

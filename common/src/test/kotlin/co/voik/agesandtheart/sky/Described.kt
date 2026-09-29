@@ -14,6 +14,7 @@ internal class Described(
     private val options: Map<Aspect, Options> = emptyMap(),
     private val cast: Map<Aspect, Int> = emptyMap(),
     override val roofedByItsRock: Boolean = false,
+    override val underTheSpiresSky: Boolean = false,
 ) : AgeParts {
     override fun optionsFor(aspect: Aspect, member: Int): Options = options[aspect] ?: Options.NONE
     override fun membersIn(aspect: Aspect): Int = cast[aspect] ?: 0

@@ -37,6 +37,9 @@ interface AgeParts {
      */
     val cloudsAtY: Int? get() = null
 
+    /** Whether the **shape** of this Age brings the Spire's own sky — see [Terrain.bringsTheSpiresSky]. */
+    val underTheSpiresSky: Boolean get() = false
+
     companion object {
         /**
          * An Age with no parts to ask about — what a **bespoke** world is, being a whole generator with a

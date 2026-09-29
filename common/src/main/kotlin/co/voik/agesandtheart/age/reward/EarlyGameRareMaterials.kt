@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.age.aspect.Sea
@@ -127,7 +128,7 @@ object EarlyGameRareMaterials {
         theCurtainsAreConstant(composition, seed)
 
     private fun theCurtainsAreConstant(composition: AgeComposition, seed: Long): Boolean {
-        val curtain = composition.sky.specFor(composition, seed).aurora ?: return false
+        val curtain = Sky.specFor(composition, seed).aurora ?: return false
         return curtain.frequency >= MOST_NIGHTS && curtain.glow >= FIERCE_CURTAIN
     }
 

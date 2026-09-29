@@ -19,18 +19,18 @@ class SkyParametersCheck : FunSpec({
     val age = "skyparameters"
 
     beforeSpec {
-        server.run("age compose $age 5 landmass=hills sea=minecraft:water rock=caves sky=plain")
+        server.run("age compose $age 5 landmass=hills sea=minecraft:water rock=caves")
     }
 
     test("a parameter is acted on and said back") {
-        val report = server.run("age sky $age sky=plain path=polar")
+        val report = server.run("age sky $age sky path=polar")
         check("turned path=polar" in report) { "The parameter was not reported as turned:\n$report" }
     }
 
     test("a polar path really never sets") {
         // The report describes a non-circle by what it *does*, so the altitude range is readable here — and
         // a path that never sets has a lowest above the horizon.
-        val report = server.run("age sky $age sky=plain path=polar")
+        val report = server.run("age sky $age sky path=polar")
         val lowest = Regex("""reaching\s+([+-][\d.]+)°""").find(report)?.groupValues?.get(1)?.toFloatOrNull()
         // A polar path is an Orbit, so it reports in angles rather than in a range; either way it must not
         // read as vanilla's untilted circle.
@@ -40,7 +40,7 @@ class SkyParametersCheck : FunSpec({
     }
 
     test("an epicycle is described as the shape it is, not as a circle") {
-        val report = server.run("age sky $age sky=plain path=epicycle")
+        val report = server.run("age sky $age sky path=epicycle")
         check("motions" in report) {
             "An epicycling body was not described as a motion stack, so the path was not replaced:\n$report"
         }
@@ -59,13 +59,13 @@ class SkyParametersCheck : FunSpec({
             "rainbow=banded",
         )
         for (parameter in each) {
-            val report = server.run("age sky $age sky=plain $parameter")
+            val report = server.run("age sky $age sky $parameter")
             check("turned $parameter" in report) { "'$parameter' was not accepted:\n$report" }
         }
     }
 
     test("several parameters at once, alongside the Art's own words") {
-        val report = server.run("age sky $age sky=plain sky.size=0.5..0.9 path=epicycle glow=nearest deck=solid")
+        val report = server.run("age sky $age sky sky.size=0.5..0.9 path=epicycle glow=nearest deck=solid")
         check("turned" in report) { "A mixed line was refused:\n$report" }
         check("sun" in report) { "A mixed line lost the Art's own words:\n$report" }
     }
@@ -78,22 +78,22 @@ class SkyParametersCheck : FunSpec({
      * the sun's parameters, stored on the vault, and then looked for on the sun. Accepted, and ignored.
      */
     test("a body parameter on a sky line changes the sky") {
-        val plain = server.run("age sky $age sky=plain")
-        val sized = server.run("age sky $age sky=plain sky.size=0.9..1.0")
+        val plain = server.run("age sky $age sky")
+        val sized = server.run("age sky $age sky sky.size=0.9..1.0")
         check(described(sized) != described(plain)) {
             "'sky.size' was accepted and changed nothing:\n$sized"
         }
     }
 
     test("a mistyped parameter says what it should have been") {
-        val report = server.run("age sky $age sky=plain glow=lurid")
+        val report = server.run("age sky $age sky glow=lurid")
         check("blended" in report) {
             "A bad parameter value did not offer the values it accepts:\n$report"
         }
     }
 
     test("a parameter that is not one is still told apart from an aspect") {
-        val report = server.run("age sky $age sky=plain landmass=hills")
+        val report = server.run("age sky $age sky landmass=hills")
         check("compose" in report) {
             "Naming a real aspect no longer points at `/age compose`:\n$report"
         }

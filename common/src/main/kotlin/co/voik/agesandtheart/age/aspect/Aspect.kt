@@ -127,7 +127,7 @@ enum class Aspect(
     BIOMES("biomes", Holds.WEIGHTED_SET, open = true),
 
     /** The vault itself: what colour it is, what cloud hangs in it, how much light it lets down. */
-    SKY("sky", Holds.CATALOGUE),
+    SKY("sky"),
 
     /** What may be built here. */
     STRUCTURES("structures", Holds.WEIGHTED_SET, open = true, madeOfSomething = true),
@@ -261,11 +261,10 @@ enum class Aspect(
             TERRAIN -> Terrain.entries
             CARVERS -> Carvers.entries
             UNDERGROUND -> Underground.entries
-            SKY -> Sky.entries
             // Nothing to choose between: a climate and a surface are where their parameters were left, and a
             // biome or a structure set is weighed rather than chosen. See [parameters] and [Holds.WEIGHTED_SET].
             PHENOMENA -> Phenomenon.entries
-            SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, AIR, WATERS, WEATHER,
+            SEA, SKY, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, AIR, WATERS, WEATHER,
             SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW,
             -> emptyList()
         }
@@ -309,10 +308,9 @@ enum class Aspect(
                 RainbowAspect.RAINBOWFREQUENCY,
                 RainbowAspect.RAINBOWRAIN,
             )
-            // A preset aspect with parameters: the two switches that pick the Age's dimension type. They sit
-            // here rather than on `Atmosphere` because they are chosen when the Age is *made* and baked
-            // into a pre-authored file, where every atmosphere dial is laid over a level that is already
-            // open — which is also why these two alone cannot be confined to a biome.
+            // `sealed` picks the Age's dimension type, so it sits here rather than on `Atmosphere`: it is
+            // chosen when the Age is *made* and baked into a pre-authored file, where every atmosphere dial
+            // is laid over a level that is already open — which is also why it cannot be confined to a biome.
             SKY -> listOf(
                 Atmosphere.SKY,
                 Atmosphere.CEILING,

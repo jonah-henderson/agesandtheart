@@ -22,7 +22,7 @@ class RainbowAuthoringCheck : FunSpec({
 
     val seed = 4242L
 
-    fun sky(vararg parts: Pair<Aspect, Options>) = Sky.PLAIN.specFor(Described(options = parts.toMap()), seed)
+    fun sky(vararg parts: Pair<Aspect, Options>) = Sky.specFor(Described(options = parts.toMap()), seed)
 
     fun options(vararg chosen: Pair<String, List<String>>) = Options(chosen.toMap())
 

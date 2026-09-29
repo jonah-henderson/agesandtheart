@@ -197,24 +197,19 @@ class SkyCheck : FunSpec({
     }
 
     /**
-     * **The one that decides whether plain Ages regress.** The Sky aspect's four defaults must draw exactly
+     * **The one that decides whether plain Ages regress.** The sky's defaults must draw exactly
      * vanilla's sky, which is what makes `Sky.dimensionType` hand an unremarkable Age back to vanilla's own
      * renderer. Reordering any option list breaks it silently.
      */
     test("the sky aspect's defaults draw an ordinary sky") {
-        // SPIRE is exempt because it resolves nothing: its sky is written down in `SpireSky`, so its
-        // options never reach `SkySpec.drawn` and it cannot say anything about their defaults. The check
-        // below holds it to being bespoke, so the exemption is not a hole to hide a regression in.
-        for (sky in Sky.entries.filter { it != Sky.SPIRE }) {
-            for (seed in SEEDS) {
-                val spec = sky.specFor(NOTHING_SAID, seed)
-                check(spec.isOrdinary) {
-                    "$sky's defaults do not draw an ordinary sky at seed $seed — a book that minted no " +
-                        "body and bent no axis must keep the overworld's own sky. Drawn: $spec"
-                }
+        for (seed in SEEDS) {
+            val spec = Sky.specFor(NOTHING_SAID, seed)
+            check(spec.isOrdinary) {
+                "the sky's defaults do not draw an ordinary sky at seed $seed — a book that minted no " +
+                    "body and bent no axis must keep the overworld's own sky. Drawn: $spec"
             }
         }
-        // The bodies are the sun's, the moon's and the stars' rather than any sky preset's, so it is the
+        // The bodies are the sun's, the moon's and the stars' rather than the vault's, so it is the
         // aspects that must hold their parameters — one nothing declares is a request silently dropped.
         for (parameter in listOf(SkyBodies.ABSENT, SkyBodies.SUNSIZE, SkyBodies.SUNCOLOUR)) {
             check(parameter in Aspect.SUN.parameters) { "the sun does not hold ${parameter.name}" }
@@ -227,14 +222,14 @@ class SkyCheck : FunSpec({
      * is asked of it — no seed and no option may move it, because it is written rather than resolved.
      */
     test("the Spire's sky is bespoke and unmoved by what is asked of it") {
-        val spec = Sky.SPIRE.specFor(NOTHING_SAID, seed = 0L)
+        val spec = Sky.specFor(UNDER_THE_SPIRE, seed = 0L)
         check(!spec.isOrdinary) { "The Spire's sky reads as ordinary, so vanilla would draw it instead" }
         check(spec.decks.size == 2) { "The Spire has ${spec.decks.size} cloud decks, and its sky is two" }
         check(spec.bodies.isEmpty()) { "The Spire has never had a sun or a moon, but drew ${spec.bodies.size}" }
         check(spec.stars.reveal != null) { "The Spire's stars must be hidden until you climb above its deck" }
 
         for (seed in SEEDS) {
-            check(Sky.SPIRE.specFor(NOTHING_SAID, seed) == spec) {
+            check(Sky.specFor(UNDER_THE_SPIRE, seed) == spec) {
                 "The Spire's sky moved at seed $seed, so something about it is being resolved after all"
             }
         }
@@ -245,7 +240,7 @@ class SkyCheck : FunSpec({
      * always out. Cheap to get backwards when retuning a deck.
      */
     test("a star reveal fades upward across a real band") {
-        val reveal = Sky.SPIRE.specFor(NOTHING_SAID, seed = 0L).stars.reveal ?: error("The Spire has no reveal")
+        val reveal = Sky.specFor(UNDER_THE_SPIRE, seed = 0L).stars.reveal ?: error("The Spire has no reveal")
         check(reveal.fullyShownAbove > reveal.hiddenBelow) {
             "The Spire's reveal band does not rise: ${reveal.hiddenBelow}..${reveal.fullyShownAbove}"
         }
@@ -259,10 +254,10 @@ class SkyCheck : FunSpec({
     test("anything unusual does not read as ordinary") {
         val unusual = listOf(
             // Two suns is two clauses that minted one, which is the cast rather than any option.
-            "two suns" to Sky.PLAIN.specFor(Described(cast = mapOf(Aspect.SUN to 2)), A_SEED),
-            "no suns" to Sky.PLAIN.specFor(steering(Aspect.SUN, SkyBodies.ABSENT, Parameter.TRUE), A_SEED),
-            "no stars" to Sky.PLAIN.specFor(steering(Aspect.STARS, SkyBodies.STARS, EMPTIEST), A_SEED),
-            "dense stars" to Sky.PLAIN.specFor(steering(Aspect.STARS, SkyBodies.STARS, FULLEST), A_SEED),
+            "two suns" to Sky.specFor(Described(cast = mapOf(Aspect.SUN to 2)), A_SEED),
+            "no suns" to Sky.specFor(steering(Aspect.SUN, SkyBodies.ABSENT, Parameter.TRUE), A_SEED),
+            "no stars" to Sky.specFor(steering(Aspect.STARS, SkyBodies.STARS, EMPTIEST), A_SEED),
+            "dense stars" to Sky.specFor(steering(Aspect.STARS, SkyBodies.STARS, FULLEST), A_SEED),
         )
         for ((described, spec) in unusual) {
             check(!spec.isOrdinary) { "\"$described\" reads as an ordinary sky, so no Age would ever draw it" }
@@ -278,7 +273,7 @@ class SkyCheck : FunSpec({
      */
     test("a sealed world draws nothing overhead") {
         val sealed = Described(mapOf(Aspect.SKY to Options(mapOf(Sky.SEALED.name to listOf(Parameter.TRUE)))))
-        val spec = Sky.PLAIN.specFor(sealed, A_SEED)
+        val spec = Sky.specFor(sealed, A_SEED)
         check(spec.bodies.isEmpty()) { "a sealed world drew ${spec.bodies.size} bodies through its ceiling" }
         check(spec.stars.count == 0) { "a sealed world drew ${spec.stars.count} stars through its ceiling" }
     }
@@ -290,7 +285,7 @@ class SkyCheck : FunSpec({
      */
     test("a sunless world is not a moonless one") {
         val sunless = Described(mapOf(Aspect.SUN to Options(mapOf(SkyBodies.ABSENT.name to listOf(Parameter.TRUE)))))
-        val spec = Sky.PLAIN.specFor(sunless, A_SEED)
+        val spec = Sky.specFor(sunless, A_SEED)
         check(spec.bodies.none { it.phase == null }) { "a sunless world kept a sun" }
         check(spec.bodies.any { it.phase != null }) { "a sunless world lost its moon as well" }
     }
@@ -298,6 +293,9 @@ class SkyCheck : FunSpec({
 
 /** An Age nobody said anything about, which is what most of these ask about. */
 private val NOTHING_SAID = Described()
+
+/** The Spire's islands, which bring its sky with them, and nothing said about it. */
+private val UNDER_THE_SPIRE = Described(underTheSpiresSky = true)
 
 /** One aspect steered and nothing else said. */
 private fun steering(aspect: Aspect, parameter: Parameter, value: String) =

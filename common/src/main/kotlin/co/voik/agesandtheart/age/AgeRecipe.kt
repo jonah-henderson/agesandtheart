@@ -10,7 +10,6 @@ import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Pool
-import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Carvers
@@ -449,7 +448,6 @@ data class AgeRecipe(
             terrains = listOf(Terrain.SPIRE_ISLANDS),
             seas = listOf(Sea.WATER),
             carvers = listOf(Carvers.SOLID),
-            sky = Sky.SPIRE,
             options = AspectOptions()
                 .with(
                     Aspect.STRUCTURES,
