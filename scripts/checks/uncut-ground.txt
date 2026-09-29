@@ -26,8 +26,8 @@
 # from these lines (2026-07-29). Both Ages now decorate, which puts a small non-zero floor under every
 # comparison here — irrelevant at this scale, since the signal is ~249,000 blocks against a floor in the
 # tens, but worth knowing before reading the control pair as exact.
-age compose riddledonly 7 landmass=hills sea=minecraft:water rock=caves
-age compose riddledsolid 7 landmass=hills sea=minecraft:water rock=caves,solid
+age compose riddledonly 7 landmass=gentle sea=minecraft:water rock=caves
+age compose riddledsolid 7 landmass=gentle sea=minecraft:water rock=caves,solid
 
 # THE NUMBER. Two blocks means the union is still swallowing `solid`; a large count means uncut ground
 # exists. Expect the difference to be air-versus-stone rather than water, which is what tells uncut ground
@@ -64,7 +64,7 @@ age compare riddledonly riddledsolid 6
 # would say porosity stopped adding anything; a count up near the uncut-ground reading — 174,329 over all
 # 169 chunks at this radius — would say the two cutting carvers had stopped unioning and started dividing
 # territory, which is the bug next door. The ceiling sits between the two readings.
-age compose riddledporous 7 landmass=hills sea=minecraft:water rock=caves,porous
+age compose riddledporous 7 landmass=gentle sea=minecraft:water rock=caves,porous
 # WAS `#? at-least 1000` and `#? at-most 150000 block(s) differ`, and neither could fire — see the note
 # above. Both bounds mean something here, so read the count by eye: below a thousand says porosity stopped
 # adding anything, and up near 174,329 says the two cutting carvers began dividing territory instead.

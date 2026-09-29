@@ -6,18 +6,18 @@
 # roofed without anybody writing `sealed`, and is there a chamber with water in it at the origin.
 
 # The bare rock: no surface anywhere, and the caves are the underground's rather than the landform's.
-age compose rock 7 landmass=solid underground=none
+age compose rock 7 landmass=subterranean underground=none
 age gen rock
 
 # The same with vanilla's own caves through the whole build height, which is the ordinary way to write it.
-age compose warren 7 landmass=solid sea=water underground=noise_caves
+age compose warren 7 landmass=subterranean sea=water underground=noise_caves
 age gen warren
 age biomes warren
 
 # And chambered, at the size the formula asks for. What to read: the arrival should be UNDER the roof
 # rather than on top of it, which is `Ages.footingIn` taking its roofed branch — and that branch is only
 # taken because the landform declares it roofs the world, since nothing here says `sealed`.
-age compose vaults 7 landmass=solid sea=water underground=chambered[size=1.0..1.0]
+age compose vaults 7 landmass=subterranean sea=water underground=chambered[size=1.0..1.0]
 age gen vaults
 age biomes vaults
 
@@ -27,11 +27,11 @@ age gen dni
 
 # The same chambers under an ordinary surface world, since the point of putting them on the underground
 # aspect rather than in a landform is that they go anywhere with room for them.
-age compose undercanyon 7 landmass=canyon sea=water underground=chambered
+age compose undercanyon 7 landmass=cleft sea=water underground=chambered
 age gen undercanyon
 
 # Cost against a same-session reference.
-age compose reference 7 landmass=hills sea=water rock=caves
+age compose reference 7 landmass=gentle sea=water rock=caves
 age gen reference
 age bench reference 4
 age bench warren 4
@@ -40,8 +40,8 @@ age bench vaults 4
 # The algae, which is the fourth criterion and the last of step 4. What to read: the two Ages below are
 # the same world bar the algae, so `/age compare` counts the mats it grew -- and they can only have gone
 # on the face of the vault's lake, since a `solid` Age has no open sky in it anywhere.
-age compose bare 7 landmass=solid sea=water underground=chambered[size=1.0..1.0]
-age compose grown 7 landmass=solid sea=water underground=chambered[size=1.0..1.0] features.grows=agesandtheart:algae
+age compose bare 7 landmass=subterranean sea=water underground=chambered[size=1.0..1.0]
+age compose grown 7 landmass=subterranean sea=water underground=chambered[size=1.0..1.0] features.grows=agesandtheart:algae
 age gen bare
 age gen grown
 age compare bare grown 3

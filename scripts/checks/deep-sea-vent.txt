@@ -37,7 +37,7 @@
 # so the floor is y=29 and the whole 106-block column clears `DeepWater.DEEPEST_VANILLA_SEA`. The abyss
 # line sits at 54. **(0, 0) is the island itself** and refuses the vent correctly -- worth knowing before
 # reading a "Failed to place feature" as a fault.
-age write ventage 7 age isle landmass deep water sea
+age write ventage 7 age insular landmass deep water sea
 age probe ventage 2000 2000
 execute in agesandtheart:ventage run forceload add 1968 1968 2032 2032
 execute in agesandtheart:ventage run place feature agesandtheart:deep_sea_vent 2000 40 2000

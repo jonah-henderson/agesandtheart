@@ -53,7 +53,7 @@ class FormationOnServerCheck : FunSpec({
         // landform a sentence draws depends on the sentence, so a book that does not name one tests
         // whatever it happened to get. `pillars` chooses one outright.
         server.run(
-            "age write formationworld 909 age pillars landmass " +
+            "age write formationworld 909 age pillared landmass " +
                 "colossal gold_block rings minuscule blackstone obelisks",
         )
 

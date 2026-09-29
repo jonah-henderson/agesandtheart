@@ -23,7 +23,7 @@ import net.minecraft.resources.Identifier
  * ```
  *
  * **Every clause ends with the thing it is about**, which is the whole shape of the language: *a beautiful
- * floating Age*, *pillars and hills landmass*, *in jungles, an end stone surface*. Modifiers lead and the
+ * floating Age*, *pillared and gentle landmass*, *in jungles, an end stone surface*. Modifiers lead and the
  * page they modify closes the clause, the way an English noun phrase does.
  *
  * That is a reversal (§4.3.1, 2026-08-07). Sections used to be *opened* by their aiming page with modifiers

@@ -110,7 +110,7 @@ class TempestCheck : FunSpec({
 
     beforeSpec {
         server.run("age write tempestuous age tempest")
-        server.run("age write untroubled age hills")
+        server.run("age write untroubled age gentle")
         server.run("execute in $stormy run forceload add 0 0")
         server.run("execute in $calm run forceload add 0 0")
         waitUntilStriking()

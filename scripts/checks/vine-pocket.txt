@@ -4,7 +4,7 @@
 # A cave under the seabed there: rock to y 61 over a room from y -3 to 18. At stamp 46 the aquifer answered
 # water at y 12..18 over air from -3 to 11 in that room -- water standing on air, which fell in the moment
 # the chunk ticked. From stamp 47 a shelf of stone should hold the water up, the pocket beneath dry.
-age write w6b 4242 age hills landmass
+age write w6b 4242 age gentle landmass
 age probe w6b 101 10
 age probe w6b 102 10
 age probe w6b 103 10

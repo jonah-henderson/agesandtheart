@@ -64,7 +64,8 @@ enum class Terrain(
     // Deferred like [build], because a Parameter is a companion value and an entry is built before the
     // companion is.
     private val axes: () -> List<Parameter> = { emptyList() },
-    // The page that means this landform. Defaults to the key, which is already a noun for the thing.
+    // The page that means this landform, which is its key: an adjective, since a book writes
+    // `<landform> landmass`.
     private val page: String? = key,
 ) : AuthoredPreset {
     /**
@@ -86,7 +87,7 @@ enum class Terrain(
      * undersides, near enough to cross between. No waterline and nothing below them but the void.
      */
     SKYLANDS(
-        "skylands",
+        "skyborne",
         waterline = null,
         build = { options, salt -> SkylandsField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
@@ -94,7 +95,7 @@ enum class Terrain(
 
     /** Rolling noise hills breaking a sea — the closest thing here to ordinary ground. */
     HILLS(
-        "hills",
+        "gentle",
         waterline = ORDINARY_SEA_LEVEL,
         build = { options, salt -> NoiseField.hills(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
@@ -105,7 +106,7 @@ enum class Terrain(
      * is null for the same reason [PYRAMIDS]' is: ground this even has nowhere to hold a sea, and a
      * phantom level under it would file the whole world as coast (see [Grounding.hasSea]).
      */
-    FLATLANDS("flatlands", waterline = null, build = { _, _ -> FlatlandsField.world() }),
+    FLATLANDS("flat", waterline = null, build = { _, _ -> FlatlandsField.world() }),
 
     /** Weathered rock country rising out of the sea: sheer-walled buttes, arches and overhangs. */
     ERODED(
@@ -117,7 +118,7 @@ enum class Terrain(
 
     /** Rectangular monoliths on a jittered grid — at `colossal`, standing a hundred blocks out of the sea. */
     PILLARS(
-        "pillars",
+        "pillared",
         waterline = ORDINARY_SEA_LEVEL,
         build = { options, salt -> PillarField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
@@ -125,12 +126,10 @@ enum class Terrain(
 
     /** Instanced pyramids on a plain, in the [ARRANGEMENT] asked for. */
     PYRAMIDS(
-        "pyramids",
+        "pyramidal",
         waterline = null,
         build = { options, salt -> PyramidField.world(options.of(ARRANGEMENT), salt, scaleOf(options, salt)) },
         axes = { listOf(ARRANGEMENT, SIZE) },
-        // `pyramids` is the feature pattern's page.
-        page = "pyramidal",
     ),
 
     /**
@@ -139,7 +138,7 @@ enum class Terrain(
      * gorge, not a sea: there is no open ground for a sea to stand on.
      */
     CANYON(
-        "canyon",
+        "cleft",
         waterline = CanyonField.RIVER_LEVEL,
         build = { options, salt ->
             CanyonField.world(bearingAt(options.steer(BEARING, salt)), salt, scaleOf(options, salt))
@@ -151,7 +150,7 @@ enum class Terrain(
      * A world cut in two on the [BEARING] asked for: ocean one way, plateau the other, one cliff between.
      */
     CLIFFS(
-        "cliffs",
+        "sheer",
         waterline = CliffField.SEA_LEVEL,
         build = { options, salt ->
             CliffField.world(bearingAt(options.steer(BEARING, salt)), salt, scaleOf(options, salt))
@@ -161,7 +160,7 @@ enum class Terrain(
 
     /** Mesa country: a tableland under open sky, cut to pieces by canyons running three ways at once. */
     CANYONLANDS(
-        "canyonlands",
+        "canyoned",
         waterline = CanyonlandsField.RIVER_LEVEL,
         build = { options, salt -> CanyonlandsField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
@@ -183,7 +182,7 @@ enum class Terrain(
      * running wet and the headwaters dry. The one landform here with a drainage *hierarchy*.
      */
     RIVERLANDS(
-        "riverlands",
+        "riverine",
         waterline = RiverlandsField.WATERLINE,
         build = { options, salt -> RiverlandsField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
@@ -195,7 +194,7 @@ enum class Terrain(
      * a tuning.
      */
     ISLANDS(
-        "islands",
+        "archipelagic",
         waterline = IslandsField.SEA_LEVEL,
         build = { options, salt -> IslandsField.world(options.steer(SIZE, salt), salt) },
         axes = { listOf(SIZE) },
@@ -209,7 +208,7 @@ enum class Terrain(
      * to fit around it, so it may be a continent or a rock, neither of which an archipelago can draw.
      */
     ISLE(
-        "isle",
+        "insular",
         waterline = IslandsField.SEA_LEVEL,
         build = { options, salt -> IslandsField.lone(options.steer(SIZE, salt), salt) },
         axes = { listOf(SIZE) },
@@ -233,7 +232,7 @@ enum class Terrain(
      * away from the origin is the whole of what happens in it.
      */
     CRATERLANDS(
-        "craterlands",
+        "cratered",
         waterline = CraterlandsField.WATERLINE,
         build = { options, salt -> CraterlandsField.world(craterSteer(options, salt), salt) },
         axes = { listOf(SPACING, WEAR, RELIEF, SIZE) },
@@ -245,11 +244,10 @@ enum class Terrain(
      * under anything.
      */
     INVERSE_CAVES(
-        "inverse_caves",
+        "tangled",
         waterline = null,
         build = { options, salt -> InverseCavesField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
-        page = "inverted",
     ),
 
     /**
@@ -258,7 +256,7 @@ enum class Terrain(
      * so that there is room for an [Underground] beneath it, which vanilla's own [OVERWORLD] has not.
      */
     CONTINENTS(
-        "continents",
+        "continental",
         waterline = OverworldField.WATERLINE,
         build = { options, salt -> OverworldField.world(salt, scaleOf(options, salt)) },
         axes = { listOf(SIZE) },
@@ -273,11 +271,9 @@ enum class Terrain(
      * ground for a sea to stand on.
      */
     SOLID(
-        "solid",
+        "subterranean",
         waterline = SolidField.WATERLINE,
         build = { _, _ -> SolidField.world() },
-        // The Age it makes is all underground; `solid` is also the name of an uncut rock.
-        page = "subterranean",
     ),
 
     /**
@@ -623,7 +619,7 @@ enum class Terrain(
          * spacing with the ice still capping its peaks. The builders say which.
          *
          * **`size`, the same name a sun and a feature use**, because it is the size of the whole thing and
-         * not one dimension of it: `colossal islands landmass` is the word a writer would reach for and it
+         * not one dimension of it: `colossal archipelagic landmass` is the word a writer would reach for and it
          * costs no word of its own. [MINGLING] keeps its own name for the opposite reason — how finely two
          * rocks speckle together is not how big anything is.
          */

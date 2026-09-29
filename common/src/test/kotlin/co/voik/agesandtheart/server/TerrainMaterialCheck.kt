@@ -19,7 +19,7 @@ class TerrainMaterialCheck : FunSpec({
     val server = DrivenServer.shared
 
     fun rockOf(name: String, block: String): String {
-        server.run("age compose $name 4242 landmass=hills landmass.stone=$block")
+        server.run("age compose $name 4242 landmass=gentle landmass.stone=$block")
         return server.run("age list")
     }
 

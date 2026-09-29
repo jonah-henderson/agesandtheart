@@ -35,9 +35,9 @@
 # **Every line must name the SAME sea.** The first version of this group left `sea=water` off the two pinned
 # Ages, so they defaulted to `Sea.NONE` and the "control" was comparing a watered world with a dry one — 1526
 # blocks of difference that had nothing to do with faults. An aspect left unsaid is not an aspect held equal.
-age compose lonelevel 4242 landmass=hills sea=water
-age compose lonescarp 4242 landmass=hills sea=water landmass.seam=scarp
-age compose lonerift 4242 landmass=hills sea=water landmass.seam=rift
+age compose lonelevel 4242 landmass=gentle sea=water
+age compose lonescarp 4242 landmass=gentle sea=water landmass.seam=scarp
+age compose lonerift 4242 landmass=gentle sea=water landmass.seam=rift
 age gen lonelevel
 age gen lonescarp
 age gen lonerift
@@ -61,11 +61,11 @@ age compare lonelevel lonerift 2
 # `fuzzed` to be nearly indistinguishable from `sheared` — the two sides are the same shape, and interlocking
 # a shape with itself reproduces it. That last is expected, not a bug; see the `mixed` group below for a fuzz
 # that shows.
-age compose seamsheared 4242 landmass=hills,hills sea=water landmass.seam=sheared
-age compose seamscarp 4242 landmass=hills,hills sea=water landmass.seam=scarp
-age compose seamrift 4242 landmass=hills,hills sea=water landmass.seam=rift
-age compose seamwall 4242 landmass=hills,hills sea=water landmass.seam=wall
-age compose seamfuzzed 4242 landmass=hills,hills sea=water landmass.seam=fuzzed
+age compose seamsheared 4242 landmass=gentle,gentle sea=water landmass.seam=sheared
+age compose seamscarp 4242 landmass=gentle,gentle sea=water landmass.seam=scarp
+age compose seamrift 4242 landmass=gentle,gentle sea=water landmass.seam=rift
+age compose seamwall 4242 landmass=gentle,gentle sea=water landmass.seam=wall
+age compose seamfuzzed 4242 landmass=gentle,gentle sea=water landmass.seam=fuzzed
 age gen seamsheared
 age gen seamscarp
 age gen seamrift
@@ -89,7 +89,7 @@ age compare seamsheared seamfuzzed 8
 # be told from noise. MEASURED 2026-07-29 with it: control 5335 / 61, fuzzed 3103 / 58 — BELOW the control, so
 # a fuzz between two identical shapes does nothing at all — rift 81699 / 108, and `mixedfuzzed` 72890 / 79.
 # Read every radius-8 number against the control, never against zero.
-age compose seamtwin 4242 landmass=hills,hills sea=water landmass.seam=sheared
+age compose seamtwin 4242 landmass=gentle,gentle sea=water landmass.seam=sheared
 age gen seamtwin
 age compare seamsheared seamtwin 8
 
@@ -99,10 +99,10 @@ age compare seamsheared seamtwin 8
 #
 # EXPECT `mixedfuzzed` to be the one that finally shows a dissolve, and to differ substantially from
 # `mixedsheared`: this is the pairing the fuzz needs.
-age compose mixedsheared 4242 landmass=hills,pillars sea=water landmass.seam=sheared
-age compose mixedscarp 4242 landmass=hills,pillars sea=water landmass.seam=scarp
-age compose mixedrift 4242 landmass=hills,pillars sea=water landmass.seam=rift
-age compose mixedfuzzed 4242 landmass=hills,pillars sea=water landmass.seam=fuzzed
+age compose mixedsheared 4242 landmass=gentle,pillared sea=water landmass.seam=sheared
+age compose mixedscarp 4242 landmass=gentle,pillared sea=water landmass.seam=scarp
+age compose mixedrift 4242 landmass=gentle,pillared sea=water landmass.seam=rift
+age compose mixedfuzzed 4242 landmass=gentle,pillared sea=water landmass.seam=fuzzed
 age gen mixedsheared
 age gen mixedscarp
 age gen mixedrift
@@ -119,10 +119,10 @@ age compare mixedsheared mixedrift 8
 # EXPECT each to generate, and their origin surfaces to differ from one another in ways only the drawn form
 # explains — and the `age list` at the end names the form each of them drew, so read that first and then go
 # and look at the one it names.
-age compose drawnA 1 landmass=hills,pillars sea=water
-age compose drawnB 2 landmass=hills,pillars sea=water
-age compose drawnC 3 landmass=hills,pillars sea=water
-age compose drawnD 4 landmass=hills,pillars sea=water
+age compose drawnA 1 landmass=gentle,pillared sea=water
+age compose drawnB 2 landmass=gentle,pillared sea=water
+age compose drawnC 3 landmass=gentle,pillared sea=water
+age compose drawnD 4 landmass=gentle,pillared sea=water
 age gen drawnA
 age gen drawnB
 age gen drawnC
@@ -136,7 +136,7 @@ age gen drawnD
 # probe it: there is no vanilla command that PRINTS a block, so candidates have to be tested one at a time.
 #   execute in agesandtheart:seamrift run forceload add 0 0
 #   execute in agesandtheart:seamrift if block 0 50 0 minecraft:water run say FLOODED
-age compose riftlava 4242 landmass=hills,hills sea=lava landmass.seam=rift
+age compose riftlava 4242 landmass=gentle,gentle sea=lava landmass.seam=rift
 age gen riftlava
 
 # --- What got written ----------------------------------------------------------------------------

@@ -42,28 +42,28 @@
 # Both were got wrong when this file was first written; the forms below are the ones the server accepts.
 
 # The baseline: the terrain's own waterline, with nothing steering it.
-age write seaplain 7 age hills landmass water sea
+age write seaplain 7 age gentle landmass water sea
 age probe seaplain 0 0
 
 # Shallow: coastlines walk out, basins keep a little water.
-age write seashallow 7 age hills landmass shallow water sea
+age write seashallow 7 age gentle landmass shallow water sea
 age probe seashallow 0 0
 
 # Deep: an abyss over drowned land.
-age write seadeep 7 age hills landmass deep water sea
+age write seadeep 7 age gentle landmass deep water sea
 age probe seadeep 0 0
 
 # And the curve's middle, which is what the old flat lever used to be the whole of. `depth=0.5` should come
 # out at about 12 blocks up — if this reads as 40-odd, the cubic was applied twice or not at all.
-age compose seanudge 7 landmass=hills sea=water sea.depth=0.5..0.5 underground=none
+age compose seanudge 7 landmass=gentle sea=water sea.depth=0.5..0.5 underground=none
 age probe seanudge 0 0
 
 # The mirror: -0.5 should be about 12 down.
-age compose seadip 7 landmass=hills sea=water sea.depth=-0.5..-0.5 underground=none
+age compose seadip 7 landmass=gentle sea=water sea.depth=-0.5..-0.5 underground=none
 age probe seadip 0 0
 
 # And that the pair genuinely contradict each other. Both words set one parameter opposite ways, so
 # `Vocabulary.antonym` should find them with nothing written into `art/antonyms/` — the write itself is
 # what reports the flaw, there being no subcommand that reads a recipe back.
-age write seaboth 7 age hills landmass shallow deep water sea
+age write seaboth 7 age gentle landmass shallow deep water sea
 age list

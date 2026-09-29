@@ -12,9 +12,9 @@
 #     drenched      deep sea and a deluge        grows gloomgrit
 #     shallows      a deluge over an ordinary    grows none of the early materials
 #                   sea
-age write abyssonly 7 age isle landmass deep water sea
+age write abyssonly 7 age insular landmass deep water sea
 age danger score abyssonly
-age write drenched 7 age isle landmass deep water sea deluge phenomena
+age write drenched 7 age insular landmass deep water sea deluge phenomena
 age danger score drenched
-age write shallows 7 age isle landmass water sea deluge phenomena
+age write shallows 7 age insular landmass water sea deluge phenomena
 age danger score shallows

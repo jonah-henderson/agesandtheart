@@ -1,4 +1,4 @@
-# W6: what stands either side of the wall of water walked on 2026-09-13, in `age hills landmass` at seed
+# W6: what stands either side of the wall of water walked on 2026-09-13, in `age gentle landmass` at seed
 # 4242. Run with: scripts/drive-server.sh scripts/checks/hills-wall.txt
 #
 # `age probe` prints what the fields intend and then what actually stands in the column, as runs. The
@@ -10,7 +10,7 @@
 # open side against y 10..23 on the roofed one. MEASURED at stamp 43: y 10..23 on both sides; at stamp 44,
 # with the nudge stepped by three, y 10..22 on both sides; at stamp 45 the same.
 # AquiferSectionCheck draws the same section offline, with the terrain salted as a real Age salts it.
-age write w6b 4242 age hills landmass
+age write w6b 4242 age gentle landmass
 age probe w6b -24 -20
 age probe w6b -23 -20
 age probe w6b -22 -20

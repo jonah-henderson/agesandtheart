@@ -248,8 +248,8 @@ class RecipeCheck : FunSpec({
         val alone = AgeComposition.parse("landmass=overworld sea=water")
         check(alone.isSuccess) { "`landmass=overworld` alone was refused: ${alone.exceptionOrNull()?.message}" }
 
-        val shared = AgeComposition.parse("landmass=overworld,hills sea=water")
-        check(shared.isFailure) { "`landmass=overworld,hills` was composed rather than refused" }
+        val shared = AgeComposition.parse("landmass=overworld,gentle sea=water")
+        check(shared.isFailure) { "`landmass=overworld,gentle` was composed rather than refused" }
         check(Terrain.HILLS.key in shared.exceptionOrNull()?.message.orEmpty()) {
             "the refusal does not say what it clashed with: ${shared.exceptionOrNull()?.message}"
         }
@@ -335,7 +335,7 @@ class RecipeCheck : FunSpec({
         }
 
         val spelling = divided.toString()
-        check("landmass=spire_islands[stone=minecraft:copper_block],hills[stone=minecraft:andesite]" in spelling) {
+        check("landmass=spire_islands[stone=minecraft:copper_block],gentle[stone=minecraft:andesite]" in spelling) {
             "Two steered territories spell themselves wrong: '$spelling'"
         }
         check(AgeComposition.parse(spelling).getOrThrow() == divided) { "'$spelling' does not read back as itself" }
@@ -404,7 +404,7 @@ class RecipeCheck : FunSpec({
         }
 
         val spelling = composition.toString()
-        check("landmass=hills,pillars,eroded" in spelling) { "A set should print comma-joined, got '$spelling'" }
+        check("landmass=gentle,pillared,eroded" in spelling) { "A set should print comma-joined, got '$spelling'" }
         check("rock=caves,solid" in spelling) { "So should a carving set, got '$spelling'" }
         // Ids, because the sea aspect is open (design §3.1) — the referent is the value, not a preset naming it.
         check("sea=minecraft:water,minecraft:lava" in spelling) { "And a sea set, got '$spelling'" }

@@ -54,7 +54,7 @@ class AuthoringCheck : FunSpec({
             aspects = setOf(Aspect.SKY),
             leansEverywhere = mapOf("#solid" to 1.0),
             restricts = mapOf(Aspect.SKY to mapOf("bright" to 1.0)),
-            chooses = mapOf(Aspect.TERRAIN to "hills"),
+            chooses = mapOf(Aspect.TERRAIN to "gentle"),
             admits = mapOf(Aspect.BIOMES to setOf("minecraft:plains")),
             excludes = mapOf(Aspect.SEA to setOf("#watery")),
             biases = mapOf(Aspect.BIOMES to mapOf("minecraft:plains" to 1.0)),

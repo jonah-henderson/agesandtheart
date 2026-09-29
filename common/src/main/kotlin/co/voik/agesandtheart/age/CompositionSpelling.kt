@@ -7,7 +7,7 @@ import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Terrain
 
 /**
- * **How a composition is written down for a person** — `landmass=hills landmass.arrangement=grid sea=water`.
+ * **How a composition is written down for a person** — `landmass=gentle landmass.arrangement=grid sea=water`.
  *
  * A grammar of its own, and kept apart from [AgeComposition] because it is one: the composition is a record
  * with a codec, and this is a hand-written format read and written by two debug commands. Living in the tail
@@ -83,9 +83,9 @@ object CompositionSpelling {
                 composition.withOptions(aspect, key.substringAfter('.'), outsideBrackets(value))
             } else {
                 namedALandform = namedALandform || aspect == Aspect.TERRAIN
-                // Commas are how a set-valued aspect is written: `landmass=hills,pillars`. An `@` after
+                // Commas are how a set-valued aspect is written: `landmass=gentle,pillared`. An `@` after
                 // a preset is how much ground it covers: `rock=caves,porous@0.25`. Brackets after
-                // that steer that territory alone: `landmass=spires[stone=copper],hills`.
+                // that steer that territory alone: `landmass=spire_islands[stone=copper],gentle`.
                 val filling = outsideBrackets(value)
                 val named = filling.map { it.substringBefore(STEER_OPEN) }
                 composition

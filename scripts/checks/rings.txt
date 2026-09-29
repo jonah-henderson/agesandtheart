@@ -4,7 +4,7 @@
 #
 # AquiferSectionCheck draws what the aquifer answers here; this is what actually stands, carvers and
 # features included, which the offline picture cannot show.
-age write w6b 4242 age hills landmass
+age write w6b 4242 age gentle landmass
 # Across x at z=-65.
 age probe w6b -111 -65
 age probe w6b -107 -65

@@ -15,7 +15,7 @@ import kotlin.random.Random
  * Two questions are being asked of two different things and both have to hold. **Can** this page be laid
  * is the parser's, and it is asked by running it; **would it do anything** is the resolver's, and it has
  * to be asked separately because the grammar admits more than the world does. `belongsHere` is checked
- * once per run of modifiers rather than per term, so `pillars and arthropods landmass` parses perfectly
+ * once per run of modifiers rather than per term, so `pillared and arthropods landmass` parses perfectly
  * well and does nothing with `arthropods` at all.
  *
  * The filter is the dangerous half: hiding a page that would have worked is worse than showing one that
@@ -34,7 +34,7 @@ class SuggestionsCheck : FunSpec({
     val suggesting by lazy { Suggestions(vocabulary) }
 
     /** A book off the front of the design, laid one page at a time the way the screen lays it. */
-    val book = listOf("beautiful", "floating", "age", "pillars", "and", "hills", "landmass")
+    val book = listOf("beautiful", "floating", "age", "pillared", "and", "gentle", "landmass")
 
     test("a book can be written a page at a time, always from the list") {
         val missed = book.indices.filterNot { at ->
@@ -48,14 +48,14 @@ class SuggestionsCheck : FunSpec({
 
     /** The case this filter exists for, named so it cannot quietly come back. */
     test("a word carried into a clause it says nothing about is kept off the list") {
-        val row = listOf("age", "pillars", "and")
+        val row = listOf("age", "pillared", "and")
         val offered = suggesting.after(row)
         check(Grammar.parses(vocabulary, row + "arthropods" + "landmass")) {
             "the grammar no longer admits this, so the filter is guarding nothing"
         }
         check(offered.bearing.none { it.page == "arthropods" }) { "'arthropods' was offered for a landmass clause" }
         check(offered.inert.any { it.page == "arthropods" }) { "'arthropods' was dropped rather than set aside" }
-        check(offered.bearing.any { it.page == "hills" }) { "'hills' was filtered out of a landmass clause" }
+        check(offered.bearing.any { it.page == "gentle" }) { "'gentle' was filtered out of a landmass clause" }
     }
 
     /**
@@ -92,7 +92,7 @@ class SuggestionsCheck : FunSpec({
     test("the finished book reads as laid, and the half-written ones do not") {
         check(suggesting.isASentence(book)) { "the whole book is not a sentence" }
         check(!suggesting.isASentence(book.dropLast(1))) { "a clause with no close read as a book" }
-        check(!suggesting.isASentence(listOf("pillars"))) { "a row with no `age` page read as a book" }
+        check(!suggesting.isASentence(listOf("pillared"))) { "a row with no `age` page read as a book" }
     }
 
     /**
@@ -101,7 +101,7 @@ class SuggestionsCheck : FunSpec({
      * laying every one of seventeen hundred pages and asking again is minutes.
      */
     test("nothing offered leaves a row with nowhere to go") {
-        for (row in listOf(emptyList(), listOf("age"), listOf("age", "pillars"), book)) {
+        for (row in listOf(emptyList(), listOf("age"), listOf("age", "pillared"), book)) {
             val offers = suggesting.after(row).bearing
             check(offers.isNotEmpty()) { "nothing at all follows [${row.joinToString(" ")}]" }
             val cornered = offers.shuffled(Random(1)).take(12).filter { offer ->
@@ -148,7 +148,7 @@ class SuggestionsCheck : FunSpec({
         check(suggesting.closersAfter(emptyList()) == listOf("age")) {
             "before the nucleus, only `age` can close: ${suggesting.closersAfter(emptyList())}"
         }
-        val afterPillars = suggesting.closersAfter(listOf("age", "pillars"))
+        val afterPillars = suggesting.closersAfter(listOf("age", "pillared"))
         check(afterPillars == listOf("landmass")) { "a landform clause closed with $afterPillars" }
         check(suggesting.closersAfter(book).size > 1) { "a finished book closed nothing further" }
     }

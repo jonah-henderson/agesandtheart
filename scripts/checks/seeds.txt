@@ -4,8 +4,8 @@ age compose seedB 999 landmass=overworld sea=water
 age compare seedA seedB 1
 
 # And the same question of a landform of ours, which builds its fields from the recipe's seed directly.
-age compose hillsA 111 landmass=hills sea=water
-age compose hillsB 999 landmass=hills sea=water
+age compose hillsA 111 landmass=gentle sea=water
+age compose hillsB 999 landmass=gentle sea=water
 age compare hillsA hillsB 1
 
 # And the invariant the whole recipe model rests on: the same seed builds the same world, twice.

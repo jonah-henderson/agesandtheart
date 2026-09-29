@@ -1,8 +1,0 @@
-{
-  "tier": "exact",
-  "restricts": {
-    "landmass": {
-      "flat": 1.0
-    }
-  }
-}

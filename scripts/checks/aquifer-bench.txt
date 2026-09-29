@@ -16,11 +16,11 @@
 # At stamp 52 -- vanilla's aquifer ported (49), the abyss's edges settled at generation (50..52) -- vbase 82,
 # hbase 172: 2.10x, at the budget. With the skin search under rock switched off, vbase 85 and hbase 172 again,
 # so the search costs nothing measurable and the rise since 45 lies in 46..51, most likely the port.
-age compose warmup 7 landmass=hills sea=water rock=caves underground=noise_caves
+age compose warmup 7 landmass=gentle sea=water rock=caves underground=noise_caves
 age bench warmup 3
 # Vanilla's rock, carvers and aquifer.
 age compose vbase 4242 landmass=overworld sea=water rock=caves
 age bench vbase 4
 # w6b's recipe exactly: our hills, noise caves handed to our aquifer, and vanilla's carvers asking it too.
-age compose hbase 4242 landmass=hills sea=water rock=caves underground=noise_caves
+age compose hbase 4242 landmass=gentle sea=water rock=caves underground=noise_caves
 age bench hbase 4

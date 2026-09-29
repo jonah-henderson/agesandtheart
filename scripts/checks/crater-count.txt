@@ -24,18 +24,18 @@
 # every chunk; one without differs by the ore alone. If a pockmarked seed ever comes back near the noise
 # floor, the craters have stopped being placed and `craters.txt` will not tell you so.
 
-age compose crateredA 4242 landmass=hills sea=minecraft:air rock=caves underground=noise_caves sun=member moon=member structures.built=nothing climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1 phenomena.happens=meteors[amount=8]
-age compose crateredB 4242 landmass=hills sea=minecraft:air rock=caves underground=noise_caves sun=member moon=member structures.built=nothing climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1
+age compose crateredA 4242 landmass=gentle sea=minecraft:air rock=caves underground=noise_caves sun=member moon=member structures.built=nothing climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1 phenomena.happens=meteors[amount=8]
+age compose crateredB 4242 landmass=gentle sea=minecraft:air rock=caves underground=noise_caves sun=member moon=member structures.built=nothing climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1
 age compare crateredA crateredB 4
 
 # The noise floor: the SAME composition twice under two names. Whatever this reads is what decoration does
 # not reproduce between two worlds, and the numbers above are only worth reading against it.
-age compose sameA 4242 landmass=hills sea=minecraft:air rock=caves underground=noise_caves sun=member moon=member structures.built=nothing climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1 phenomena.happens=meteors[amount=8]
-age compose sameB 4242 landmass=hills sea=minecraft:air rock=caves underground=noise_caves sun=member moon=member structures.built=nothing climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1 phenomena.happens=meteors[amount=8]
+age compose sameA 4242 landmass=gentle sea=minecraft:air rock=caves underground=noise_caves sun=member moon=member structures.built=nothing climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1 phenomena.happens=meteors[amount=8]
+age compose sameB 4242 landmass=gentle sea=minecraft:air rock=caves underground=noise_caves sun=member moon=member structures.built=nothing climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1 phenomena.happens=meteors[amount=8]
 age compare sameA sameB 4
 
 # The first pair again with the game's own structures in the Age, which is what the surface-structure gate
 # reads. A gate that refused everything would show up here as a collapse against the pair above.
-age compose structuredA 4242 landmass=hills sea=minecraft:air rock=caves underground=noise_caves sun=member moon=member climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1 phenomena.happens=meteors[amount=8]
-age compose structuredB 4242 landmass=hills sea=minecraft:air rock=caves underground=noise_caves sun=member moon=member climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1
+age compose structuredA 4242 landmass=gentle sea=minecraft:air rock=caves underground=noise_caves sun=member moon=member climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1 phenomena.happens=meteors[amount=8]
+age compose structuredB 4242 landmass=gentle sea=minecraft:air rock=caves underground=noise_caves sun=member moon=member climate.humidity=-0.95..-0.45 climate.temperature=0.4..0.9 stars.density=1..1
 age compare structuredA structuredB 4

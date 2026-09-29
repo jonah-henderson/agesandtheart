@@ -23,7 +23,7 @@ class RainbowCommandCheck : FunSpec({
 
     beforeSpec {
         server.run("age write $bowed 7 rainbows age")
-        server.run("age compose $bare 5 landmass=hills sea=minecraft:water")
+        server.run("age compose $bare 5 landmass=gentle sea=minecraft:water")
     }
 
     test("an Age with no bow says so, and says how to get one") {

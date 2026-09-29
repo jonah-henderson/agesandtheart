@@ -20,7 +20,7 @@ class DeletionCheck : FunSpec({
     val server = DrivenServer.shared
 
     test("a deleted Age takes its saved chunks with it") {
-        server.run("age write gone age hills landmass")
+        server.run("age write gone age gentle landmass")
         // Generated on purpose: an Age nobody has visited has nothing on disk, so deleting one proves
         // nothing about deleting one that does.
         server.run("age gen gone")
@@ -36,13 +36,13 @@ class DeletionCheck : FunSpec({
     }
 
     test("the name comes free again, and the new Age is a new world") {
-        server.run("age write reused age hills landmass")
+        server.run("age write reused age gentle landmass")
         server.run("age gen reused")
         server.run("age delete reused")
 
         // The same name, written again. What is being guarded is that this is not quietly the old one:
         // re-opening on top of orphaned region files is the failure the check above is really about.
-        val written = server.run("age write reused age pillars landmass")
+        val written = server.run("age write reused age pillared landmass")
         check(written.contains("reused")) { "the name did not come free after deletion:\n$written" }
         check(server.run("age list").contains("reused")) { "the rewritten Age is not listed" }
     }

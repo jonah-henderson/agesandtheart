@@ -12,7 +12,7 @@
 #
 # `summon item` and `setblock` are the registration half, and they want no player. An unregistered id is a
 # parse failure on both, which reads loudly.
-age write phasmiumtest 7 age isle landmass deep water sea
+age write phasmiumtest 7 age insular landmass deep water sea
 # Without this the setblocks answer "That position is not loaded" -- which still proves the id parsed,
 # but proves nothing about the block standing.
 execute in agesandtheart:phasmiumtest run forceload add -16 -16 16 16

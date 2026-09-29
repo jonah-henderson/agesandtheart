@@ -54,7 +54,7 @@ class SpellingCheck : FunSpec({
     }
 
     test("an instability that is not a number is refused rather than ignored") {
-        val bad = CompositionSpelling.read("unstable=badly landmass=hills")
+        val bad = CompositionSpelling.read("unstable=badly landmass=gentle")
         check(bad.isFailure) { "'unstable=badly' was accepted" }
     }
 

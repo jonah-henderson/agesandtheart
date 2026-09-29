@@ -19,7 +19,7 @@ class SkyParametersCheck : FunSpec({
     val age = "skyparameters"
 
     beforeSpec {
-        server.run("age compose $age 5 landmass=hills sea=minecraft:water rock=caves")
+        server.run("age compose $age 5 landmass=gentle sea=minecraft:water rock=caves")
     }
 
     test("a parameter is acted on and said back") {
@@ -93,7 +93,7 @@ class SkyParametersCheck : FunSpec({
     }
 
     test("a parameter that is not one is still told apart from an aspect") {
-        val report = server.run("age sky $age sky landmass=hills")
+        val report = server.run("age sky $age sky landmass=gentle")
         check("compose" in report) {
             "Naming a real aspect no longer points at `/age compose`:\n$report"
         }

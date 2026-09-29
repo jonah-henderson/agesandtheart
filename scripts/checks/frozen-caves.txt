@@ -7,7 +7,7 @@
 # **Counting packed ice proves nothing on its own**: vanilla's icebergs reach well below sea level in open
 # water. What tells the fault apart is ice below a column's *uncut* seabed, which can only be standing in a
 # cave. `age probe` prints both -- the runs of blocks, and "aquifer answers for", which is the uncut rock.
-age compose icehills 4242 landmass=hills sea=water rock=caves underground=noise_caves climate.temperature=-1.0..-0.6
+age compose icehills 4242 landmass=gentle sea=water rock=caves underground=noise_caves climate.temperature=-1.0..-0.6
 # Around the deep frozen ocean.
 age probe icehills -48 -48
 age probe icehills -40 -48
@@ -61,5 +61,5 @@ age probe icehills 64 48
 age probe icehills 72 48
 age probe icehills 80 48
 # Cave vines against water, in the temperate hills Jonah walks: where lush caves are, to probe next.
-age write w6b 4242 age hills landmass
+age write w6b 4242 age gentle landmass
 execute in agesandtheart:w6b run locate biome minecraft:lush_caves

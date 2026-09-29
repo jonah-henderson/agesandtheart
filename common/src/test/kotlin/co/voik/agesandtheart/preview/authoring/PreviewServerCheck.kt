@@ -19,7 +19,7 @@ import java.io.File
 class PreviewServerCheck : FunSpec({
 
     test("a book becomes an Age you could stand in, and the world goes away after") {
-        val draft = AgeDraft("workshop_preview", listOf("age", "hills", "landmass"))
+        val draft = AgeDraft("workshop_preview", listOf("age", "gentle", "landmass"))
         val world: File
         PreviewServer.boot { }.use { server ->
             world = worldOf()

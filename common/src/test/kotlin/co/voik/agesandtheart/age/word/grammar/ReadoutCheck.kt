@@ -110,8 +110,8 @@ class ReadoutCheck : FunSpec({
      * which is the ordinary case the rule above must not reach.
      */
     test("a material still attaches to what turns no dial") {
-        val reading = readingOf("cliffs", "basalt", "landmass")
-        check(reading == "cliffs, basalt landmass.") { "read back as '$reading'" }
+        val reading = readingOf("sheer", "basalt", "landmass")
+        check(reading == "sheer, basalt landmass.") { "read back as '$reading'" }
     }
 
     /** `only` and `except` are pages the writer laid down, and the reading has to show them. */

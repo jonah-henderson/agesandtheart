@@ -15,7 +15,7 @@
 # 410 waterloggable blocks; the property doubles those to 41,952, half
 # of them logged. **If that line is absent, read no further -- nothing below means anything.**
 
-age write abyss 72 age colossal cliffs landmass deep water sea
+age write abyss 72 age colossal sheer landmass deep water sea
 
 # --- the property exists, and is NOT the default --------------------------------------------------
 # `BooleanProperty` orders its values `true, false` and `StateDefinition.any()` takes the first, so

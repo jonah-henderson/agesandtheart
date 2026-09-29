@@ -75,7 +75,7 @@ class ResolverCheck : FunSpec({
      * also how both bugs in it were found while this suite stayed green.
      */
     test("naming a biome asks for more of it") {
-        val forest = claimsOn(Aspect.BIOMES, Biomes.GROWN, "age hills landmass forest biomes")
+        val forest = claimsOn(Aspect.BIOMES, Biomes.GROWN, "age gentle landmass forest biomes")
             .single { it.value == "minecraft:forest" }
         check(forest.density > Rung.ORDINARY) {
             "naming a biome asked for ${forest.density} of it, where being named is meant to ask for more"
@@ -91,7 +91,7 @@ class ResolverCheck : FunSpec({
      * it had never mentioned.
      */
     test("a sentence that never mentioned a feature of ours does not claim one") {
-        val claimed = claimsOn(Aspect.FEATURES, Features.PLACES, "age hills landmass ore_diamond features")
+        val claimed = claimsOn(Aspect.FEATURES, Features.PLACES, "age gentle landmass ore_diamond features")
         check(claimed.map { it.value } == listOf("minecraft:ore_diamond")) {
             "a sentence naming one feature claimed ${claimed.map { it.value }}"
         }
@@ -411,7 +411,7 @@ class ResolverCheck : FunSpec({
         check(nether.template == AgeTemplate.INFERNAL) { "'infernal' started from ${nether.template}" }
         check(nether.composition.seas == listOf(Sea.LAVA)) { "the nether's sea is ${nether.composition.seas}" }
 
-        val hills = Resolver.resolve(vocabulary, read(listOf("infernal", "age", "hills", "landmass")), SAMPLE_SEED)
+        val hills = Resolver.resolve(vocabulary, read(listOf("infernal", "age", "gentle", "landmass")), SAMPLE_SEED)
         check(hills.composition.terrains == listOf(Terrain.HILLS)) {
             "the writer's landform lost to the template's: ${hills.composition.terrains}"
         }
@@ -568,7 +568,7 @@ class ResolverCheck : FunSpec({
             "the infernal template points at ${nether.template.rock}"
         }
 
-        val shaped = Resolver.resolve(vocabulary, read(listOf("infernal", "age", "hills", "landmass")), SAMPLE_SEED)
+        val shaped = Resolver.resolve(vocabulary, read(listOf("infernal", "age", "gentle", "landmass")), SAMPLE_SEED)
         check(shaped.composition.terrains == listOf(Terrain.HILLS)) {
             "naming a landform did not take the template's rock away: ${shaped.composition.terrains}"
         }
@@ -592,11 +592,11 @@ class ResolverCheck : FunSpec({
      * it keeps the world and the other is charged — the pen never refuses, and nothing goes missing silently.
      */
     test("vanilla's rock beside a landform of ours keeps the world and charges the rest") {
-        val written = Resolver.resolve(vocabulary, read(listOf("age", "overworld", "and", "hills", "landmass")), SAMPLE_SEED)
+        val written = Resolver.resolve(vocabulary, read(listOf("age", "overworld", "and", "gentle", "landmass")), SAMPLE_SEED)
         check(written.composition.terrains == listOf(Terrain.OVERWORLD)) {
-            "'overworld and hills' came out on ${written.composition.terrains}"
+            "'overworld and gentle' came out on ${written.composition.terrains}"
         }
-        val displaced = written.instability.flaws.filter { it.register == Register.DISPLACED && "hills" in it.words }
+        val displaced = written.instability.flaws.filter { it.register == Register.DISPLACED && "gentle" in it.words }
         check(displaced.isNotEmpty()) { "the hills went unmentioned: ${written.instability.flaws}" }
     }
 

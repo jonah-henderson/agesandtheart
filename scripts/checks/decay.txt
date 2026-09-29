@@ -12,7 +12,7 @@
 # downstream measures from — so there is no separate debug path that could disagree with the real one.
 
 # --- A coherent Age, which must never decay however long it stands -----------------------------------
-/age write calm age hills landmass
+/age write calm age gentle landmass
 /age decay calm
 /age decay calm age 3650
 /age decay calm

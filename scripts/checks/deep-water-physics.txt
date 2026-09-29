@@ -30,7 +30,7 @@
 # the output**; a clean headless read needs the checks spaced further apart than a command round trip.
 
 gamerule randomTickSpeed 400
-age write physics 7 age isle landmass deep water sea
+age write physics 7 age insular landmass deep water sea
 execute in agesandtheart:physics run forceload add -912 388 -888 412
 
 # --- before: the abyss is there ------------------------------------------------------------------

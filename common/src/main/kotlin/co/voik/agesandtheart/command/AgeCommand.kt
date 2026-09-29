@@ -48,7 +48,7 @@ import net.minecraft.server.level.ServerLevel
  * ```
  * /age create <name> [seed]           — author a new Age (Spire preset) and persist it
  * /age create <preset> <name> [seed]  — the same, from any preset: hills, caverns, …
- * /age compose <name> [seed] <spec>   — author one out of aspects: terrain=hills sea=water
+ * /age compose <name> [seed] <spec>   — author one out of aspects: landmass=gentle sea=water
  * /age write <name> [seed] <words>    — author one out of *words*: beautiful floating riddled
  * /age words                          — the vocabulary the Art currently knows
  * /age tp <name>                      — travel to an Age

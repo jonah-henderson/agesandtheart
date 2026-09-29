@@ -21,8 +21,8 @@
 # **`age compose phenomena=deluge` does NOT do this** and came out at 134 — the compose route sets the
 # aspect by a different path than the written claim `phenomena.happens=deluge` that `Happenings` reads.
 # Worth knowing before reaching for compose to test a phenomenon; it is not a fault in the deluge.
-age write plainsea 7 age isle landmass deep water sea
+age write plainsea 7 age insular landmass deep water sea
 age probe plainsea 2000 2000
-age write drowning 7 age isle landmass deep water sea deluge phenomena
+age write drowning 7 age insular landmass deep water sea deluge phenomena
 age list
 age probe drowning 2000 2000

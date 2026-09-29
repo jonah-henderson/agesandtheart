@@ -413,7 +413,7 @@ pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope
   port answers: whether a row reads **as laid**, with nothing repaired — `read` cannot say, because it
   refuses only a missing `age` page and repairs everything else. `Grammar.reading` is the same question
   with the row classified once, for a screen asking it of a thousand candidates against one row. **Every clause ends with the page it is about** and modifiers lead it —
-  `pillars and hills landmass`, and a book with no aiming page closes with `age`. A clause is closed by an
+  `pillared and gentle landmass`, and a book with no aiming page closes with `age`. A clause is closed by an
   **aiming page** (`landmass`, `weather`, `sky` — one per aspect, synthesised from `Aspect.page`) and never by a word that fills something —
   presets are ours, not the player's. `Readout.of(sentence)` says the parse back as prose, which is how attachment is visible at
   all.

@@ -1,4 +1,4 @@
-# W6c: the pool Jonah walked around (1, -47) in `age hills landmass` at seed 4242, stamp 43 -- water at one
+# W6c: the pool Jonah walked around (1, -47) in `age gentle landmass` at seed 4242, stamp 43 -- water at one
 # level, mounds of water along its edge, and a long drop on the far side.
 # Run with: scripts/drive-server.sh scripts/checks/hills-edge.txt
 #
@@ -7,7 +7,7 @@
 # at 62 -- standing a block or two of air above the grassed slope beneath it.
 # MEASURED at stamp 45: the same pool, and the dam solid from the floor up -- no air left under it at x=0..2,
 # ore generated through the barrier as through any rock (copper at y 38..39 in x=2), dirt and grass on top.
-age write w6b 4242 age hills landmass
+age write w6b 4242 age gentle landmass
 # Across x at z=-47.
 age probe w6b -8 -47
 age probe w6b -6 -47

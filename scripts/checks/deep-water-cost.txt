@@ -25,9 +25,9 @@
 # the induction is not firing and interior blocks are paying for full scans.
 
 # Generate both first, so neither measurement carries the other's terrain cost.
-age write costabyss 7 age isle landmass deep water sea
+age write costabyss 7 age insular landmass deep water sea
 age gen costabyss
-age write costplain 7 age isle landmass water sea
+age write costplain 7 age insular landmass water sea
 age gen costplain
 
 # --- the abyss ------------------------------------------------------------------------------------

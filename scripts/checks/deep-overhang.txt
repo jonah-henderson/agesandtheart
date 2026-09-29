@@ -2,7 +2,7 @@
 # walked 2026-09-14.
 # Run with: scripts/drive-server.sh scripts/checks/deep-overhang.txt
 #
-# A pool built inside the abyss of `isle landmass deep water sea` at seed 7, where the line is 53: a stone
+# A pool built inside the abyss of `insular landmass deep water sea` at seed 7, where the line is 53: a stone
 # block from y 30 to 50 with a cavity from 35 to 45, deep water from 35 to 40, a stone overhang at y 41
 # over the west half, lying on the water, and a stone shelf at y 39 inside the water of the east half. The
 # east half is open to air.
@@ -34,7 +34,7 @@
 #
 # THE COUNTS run with random ticks off and `strict`, so a fill that takes away what it counts wakes nothing
 # and leaves every later count reading what the pools settled to.
-age write overhang 7 age isle landmass deep water sea
+age write overhang 7 age insular landmass deep water sea
 execute in agesandtheart:overhang run forceload add 1984 1984 2047 2015
 execute in agesandtheart:overhang run fill 1990 30 1990 2010 50 2010 minecraft:stone
 execute in agesandtheart:overhang run fill 1993 35 1993 2007 45 2007 minecraft:air

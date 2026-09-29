@@ -30,7 +30,7 @@
 #       execute in agesandtheart:volc run summon agesandtheart:lava_droplet 8 110 8
 #     then check for lava one block above the rock. Measured: rock top y=72, lava left at y=73.
 
-age compose volc 11 landmass=hills sea=water rock=solid features.grows=agesandtheart:volcano
+age compose volc 11 landmass=gentle sea=water rock=solid features.grows=agesandtheart:volcano
 
 # The caldera the previewer puts at (622, -269); its floor sits around y=100.
 execute in agesandtheart:volc run forceload add 590 -300 660 -240

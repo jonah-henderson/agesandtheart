@@ -523,7 +523,7 @@ object Resolver {
         val territories = mutableListOf<Territory>()
         // **A word that also steers this aspect settles last, and never fractures it** (Jonah,
         // 2026-09-01). A reusable word carries several senses and only has to land one of them: where
-        // `colossal islands landmass` cannot have both the monumental landform its query asks for and the
+        // `colossal archipelagic landmass` cannot have both the monumental landform its query asks for and the
         // islands the writer named, the answer is the size it sets and not two territories and a charge
         // for a contradiction nobody wrote. Settling after the words that *only* choose is what makes that
         // independent of the order they were laid in.

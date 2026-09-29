@@ -9,7 +9,7 @@
 #
 # TWO THINGS THIS FILE LEARNED THE HARD WAY, both of which made an earlier version of it assert nothing:
 #   - **`rock=` takes a PRESET, not a block.** `rock=temperstone` is not a refusal, it is a parse failure,
-#     and it prints nothing at all. Naming an Age's stone is `landmass=hills[stone=<id>]`, which is what
+#     and it prints nothing at all. Naming an Age's stone is `landmass=gentle[stone=<id>]`, which is what
 #     appears in the recipe as `landmass.stone=`.
 #   - **`/age compose` bypasses the vocabulary entirely**, being an operator command. So it can never test
 #     a word fence either way; `/age words` is what says whether a block became sayable.
@@ -17,19 +17,19 @@
 # --- the Age the gate describes ------------------------------------------------------------------
 # Hot enough that every climate sits at or above the desert (0.55), standing in lava. Composed rather
 # than written because no word reaches a numeric temperature span — the gate sentence is still open.
-age compose baked 11 landmass=hills sea=lava rock=solid climate.temperature=0.6..0.9
+age compose baked 11 landmass=gentle sea=lava rock=solid climate.temperature=0.6..0.9
 age danger score baked
 
 # --- its two halves alone, which the offline gate check says must grow nothing ---------------------
-age compose dryheat 11 landmass=hills sea=water rock=solid climate.temperature=0.6..0.9
-age compose coldlava 11 landmass=hills sea=lava rock=solid climate.temperature=-0.9..-0.6
+age compose dryheat 11 landmass=gentle sea=water rock=solid climate.temperature=0.6..0.9
+age compose coldlava 11 landmass=gentle sea=lava rock=solid climate.temperature=-0.9..-0.6
 
 # --- an Age made OF the stuff, which is now allowed and priced rather than forbidden ---------------
 # Deretheni and temperstone were both in `#agesandtheart:forbidden` until 2026-09-06 and are now in
 # `#agesandtheart:requires_masterwork_ink` instead: writable, and braked by costing the rarest ink there
 # is. These must all succeed.
-age compose stonetemper 11 landmass=hills[stone=agesandtheart:temperstone] sea=water rock=solid
-age compose stonederetheni 11 landmass=hills[stone=agesandtheart:pitchstone_block] sea=water rock=solid
+age compose stonetemper 11 landmass=gentle[stone=agesandtheart:temperstone] sea=water rock=solid
+age compose stonederetheni 11 landmass=gentle[stone=agesandtheart:pitchstone_block] sea=water rock=solid
 
 # --- and that they are sayable at all, which the fence used to prevent ------------------------------
 # Grep the output for `temperstone`, `scorched_temperstone` and `pitchstone_block`. All three must appear

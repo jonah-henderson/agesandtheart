@@ -11,7 +11,7 @@
 # What a pass looks like: "Test passed" everywhere under the line and "Test failed" above it. A failure
 # everywhere means the band is never consulted, which is a different bug from a band in the wrong place.
 
-age write abyss 72 age colossal cliffs landmass deep water sea
+age write abyss 72 age colossal sheer landmass deep water sea
 
 # --- where the line actually falls in the walked column -------------------------------------------
 age probe abyss -35 -8

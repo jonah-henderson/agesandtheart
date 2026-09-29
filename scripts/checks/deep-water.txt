@@ -17,18 +17,18 @@
 # plain seas at the bottom prove nothing grows an abyss without `deep`.
 
 # --- the abyss ------------------------------------------------------------------------------------
-age write abyss 7 age isle landmass deep water sea
+age write abyss 7 age insular landmass deep water sea
 age probe abyss 0 0
 age probe abyss 600 600
 age probe abyss -900 400
 
 # --- the trap: a deep waterline over rock that cuts the column into short bodies -------------------
-age write cavernabyss 7 age hills landmass deep water sea
+age write cavernabyss 7 age gentle landmass deep water sea
 age probe cavernabyss 0 0
 age probe cavernabyss 200 200
 
 # --- and an ordinary sea over the same rock, which must grow none at all --------------------------
-age write plainsea 7 age isle landmass water sea
+age write plainsea 7 age insular landmass water sea
 age probe plainsea 0 0
 age probe plainsea 600 600
 age probe plainsea -900 400

@@ -1,10 +1,10 @@
-# Cave vines against water in the lush caves of `age hills landmass` at seed 4242 -- walked 2026-09-14:
+# Cave vines against water in the lush caves of `age gentle landmass` at seed 4242 -- walked 2026-09-14:
 # where water meets glow berry vines, an empty column of air under them.
 # Run with: scripts/drive-server.sh scripts/checks/lush-vines.txt
 #
 # frozen-caves.txt located lush caves at (-160, 4, -128). A grid of probes around it, read for any column
 # holding cave vines, and for what stands under them.
-age write w6b 4242 age hills landmass
+age write w6b 4242 age gentle landmass
 age probe w6b -172 -140
 age probe w6b -166 -140
 age probe w6b -160 -140

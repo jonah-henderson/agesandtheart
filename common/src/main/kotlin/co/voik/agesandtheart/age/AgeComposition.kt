@@ -69,7 +69,7 @@ data class AgeComposition(
      * Solid to the ceiling, and so shut overhead whether or not a book said the word.
      *
      * **Every territory, not any of them** — being roofed is one fact for the whole Age, since a dimension
-     * type is one file and a lid is one field. `solid and hills landmass` divides the world between rock
+     * type is one file and a lid is one field. `subterranean and gentle landmass` divides the world between rock
      * to the ceiling and open hills, and reading `any` there put a bedrock roof and no skylight over the
      * hills as well. Where only part of the world closes itself, the Age has a sky, and a writer who wants
      * it shut says so — which then lays `CeilingField` over the half that needs one.
@@ -295,7 +295,7 @@ data class AgeComposition(
     }
 
     /**
-     * How a writer would have said it — `landmass=hills landmass.arrangement=grid sea=water …`.
+     * How a writer would have said it — `landmass=gentle landmass.arrangement=grid sea=water …`.
      *
      * The format itself is [CompositionSpelling], which owns both halves of it. This is here because a
      * composition prints in a report and in `/age list`, and it cannot say which world it was written over:

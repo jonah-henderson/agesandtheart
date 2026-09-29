@@ -170,7 +170,7 @@ object Readout {
      * **No particle attaches a modifier to its subject any more**, and that is the reversal paying for
      * itself (§4.3.1). A trailing modifier needed one — `landmass of pillars`, a word the writer never
      * laid and the readout had to decide when to spend — where a leading one simply stands in front of
-     * what it modifies, the way an English noun phrase does. `pillars and hills landmass` is the pages
+     * what it modifies, the way an English noun phrase does. `pillared and gentle landmass` is the pages
      * back in their own order, and everything that chose between `of` and `with` and nothing is gone.
      */
     private fun clauseOf(phrase: Phrase, opensTheSentence: Boolean): List<Said> {

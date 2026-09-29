@@ -37,7 +37,7 @@ enum class SurveyReport(
         pageCount = 3,
         teaches = listOf("subterranean"),
         ageName = "Taleen",
-        sentence = "age hills landmass teeming trees features",
+        sentence = "age gentle landmass teeming trees features",
         ageSeed = 0x7A1EE4L,
     ),
     LIGHTLESS_AGE(

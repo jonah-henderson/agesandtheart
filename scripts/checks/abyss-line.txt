@@ -11,7 +11,7 @@
 # The counts run with random ticks off and `strict`, so a fill that takes away what it counts wakes nothing:
 # without it, taking the whirlpool out above the line put air over the three blocks below it, and they
 # settled ordinary before the next count read them.
-age write lineage 7 age isle landmass deep water sea
+age write lineage 7 age insular landmass deep water sea
 age probe lineage 2000 2000
 execute in agesandtheart:lineage run forceload add 1984 1984 2015 2015
 execute in agesandtheart:lineage run place feature agesandtheart:deep_sea_vent 2000 40 2000

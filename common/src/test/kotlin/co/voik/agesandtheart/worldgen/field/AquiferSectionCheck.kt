@@ -16,7 +16,7 @@ import net.minecraft.world.level.levelgen.Aquifer
 /**
  * **What the water actually is, in a real hills Age, drawn as a cross-section.**
  *
- * So this prints rather than asserts. It builds the landform `age hills landmass` gets at seed 4242 — the
+ * So this prints rather than asserts. It builds the landform `age gentle landmass` gets at seed 4242 — the
  * terrain salted as [AgeGeneration.saltFor] salts it, which is what makes this the world a walk stands in
  * rather than a neighbour of it — and reads the same aquifer the fill and the carvers ask. Vanilla's carvers
  * cut after the fill, so drawing the water alone shows none of their caves, where the verdict is what both
@@ -389,7 +389,7 @@ class AquiferSectionCheck : FunSpec({
         private val TERRAIN_SALT = AgeGeneration.saltFor(SEED, 0)
         private const val SEA_LEVEL = 63
 
-        /** The wall walk W6 found in `age hills landmass` at seed 4242, after stamp 41. */
+        /** The wall walk W6 found in `age gentle landmass` at seed 4242, after stamp 41. */
         private const val WALL_X = -20
         private const val WALL_Z = -20
 

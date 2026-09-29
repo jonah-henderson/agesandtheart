@@ -52,7 +52,7 @@ class DniCityOnServerCheck : FunSpec({
     }
 
     test("a report is found with its Age's book") {
-        server.run("age write surveyloot 7 age hills landmass")
+        server.run("age write surveyloot 7 age gentle landmass")
         server.run("execute in agesandtheart:surveyloot run forceload add -16 -16 16 16")
         // Several rolls, so each of the three reports is likely to have been drawn.
         val rolls = List(ROLLS) {

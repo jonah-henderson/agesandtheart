@@ -7,21 +7,21 @@
       "scattered": 0.6
     }
   },
-  "skylands": {
+  "skyborne": {
     "tags": {
       "floating": 1.0,
       "scattered": 0.7,
       "sheer": 0.4
     }
   },
-  "continents": {
+  "continental": {
     "tags": {
       "lush": 0.6,
       "mountainous": 0.4,
       "sheer": 0.3
     }
   },
-  "hills": {
+  "gentle": {
     "tags": {
       "flat": 0.7,
       "lush": 0.3
@@ -38,7 +38,7 @@
       "eroded"
     ]
   },
-  "canyon": {
+  "cleft": {
     "readiness": 0.5,
     "tags": {
       "eroded": 1.0,
@@ -49,20 +49,20 @@
       "dry": 0.4
     }
   },
-  "islands": {
+  "archipelagic": {
     "tags": {
       "scattered": 1.0,
       "lush": 0.5
     }
   },
-  "isle": {
+  "insular": {
     "readiness": 0.6,
     "tags": {
       "watery": 0.9,
       "lush": 0.5
     }
   },
-  "flatlands": {
+  "flat": {
     "readiness": 0.35,
     "tags": {
       "flat": 1.0,
@@ -77,7 +77,7 @@
       "lush": 0.4
     }
   },
-  "riverlands": {
+  "riverine": {
     "tags": {
       "lush": 0.6,
       "watery": 0.6,
@@ -98,7 +98,7 @@
       "dry": 0.5
     }
   },
-  "canyonlands": {
+  "canyoned": {
     "tags": {
       "eroded": 1.0,
       "barren": 0.7,
@@ -107,7 +107,7 @@
       "monumental": 0.5
     }
   },
-  "cliffs": {
+  "sheer": {
     "tags": {
       "sheer": 1.0,
       "flat": 0.6,
@@ -115,7 +115,7 @@
       "barren": 0.4
     }
   },
-  "pillars": {
+  "pillared": {
     "tags": {
       "monumental": 1.0,
       "sheer": 0.9,
@@ -125,7 +125,7 @@
       "scattered": 0.4
     }
   },
-  "pyramids": {
+  "pyramidal": {
     "tags": {
       "ordered": 1.0,
       "flat": 0.7,
@@ -133,14 +133,14 @@
       "solid": 0.5
     }
   },
-  "inverse_caves": {
+  "tangled": {
     "readiness": 0.15,
     "tags": {
       "sheer": 0.7,
       "scattered": 0.55
     }
   },
-  "craterlands": {
+  "cratered": {
     "readiness": 0.5,
     "tags": {
       "monumental": 0.8,
@@ -151,7 +151,7 @@
       "ordered": 0.5
     }
   },
-  "solid": {
+  "subterranean": {
     "readiness": 0.3,
     "tags": {
       "solid": 1.0,
