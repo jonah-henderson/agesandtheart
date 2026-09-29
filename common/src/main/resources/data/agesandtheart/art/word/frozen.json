@@ -10,12 +10,22 @@
     "One word rather than four, and no rule anywhere had to say so.",
     "",
     "`colour` and `size` are one name each across every aspect that has one, so the pale draw reaches the",
-    "vault, the air and the clouds together, and the small draw reaches whichever body the clause is about.",
-    "A size is at the bottom of its axis rather than below it, which is as small as a sun goes: it starts at",
-    "vanilla's own and only grows (see Sky.sunSizeAt), because a small sun is a distant one and distance is",
-    "a path's business."
+    "vault, the air and the clouds together, and the small draw reaches whichever body the clause is about:",
+    "a sun a quarter to a third of vanilla's, which is a far one.",
+    "",
+    "The ground may be frozen too, drawn by tag from whatever a world can be made of that is -- snow and ice,",
+    "never the packed or blue ice a broad word is fenced from. The rock is only offered, since a world built",
+    "of ice is a stronger thing to have said than a world dressed in snow. The sea and biomes lean cold."
   ],
   "tier": "restrictive",
+  "biases": {
+    "sea": {
+      "#frozen": 0.5
+    },
+    "biomes": {
+      "#frozen": 0.5
+    }
+  },
   "sets": {
     "temperature": "-0.95..-0.45"
   },
@@ -26,8 +36,21 @@
         "humidity": "-0.3..0.3",
         "colour": "white|grey",
         "size": "-1.0..-0.7",
-        "haze": "0.2..0.6"
+        "haze": "0.2..0.6",
+        "material": "#frozen"
       }
     }
-  ]
+  ],
+  "requests": {
+    "pools": [
+      {
+        "draws": "1",
+        "facets": {
+          "stone": "#frozen",
+          "motes": "snow",
+          "stars.glow": "+0.2"
+        }
+      }
+    ]
+  }
 }

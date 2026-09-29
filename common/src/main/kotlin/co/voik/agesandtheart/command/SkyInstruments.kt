@@ -177,7 +177,7 @@ internal object SkyInstruments {
         if (aurora == null) {
             report.say { "Nothing hangs a curtain in ${level.dimension().identifier()}." }
             report.fact("hasAurora", false) {
-                "  Write one with `auroral`, or describe one — `green aurora`. `beautiful` sometimes does too."
+                "  Describe one — `green aurora`, `restless aurora`. `beautiful` sometimes brings one too."
             }
             report.finish()
             return SUCCESS
@@ -269,8 +269,8 @@ internal object SkyInstruments {
     private fun whyThereIsNoCurtain(level: ServerLevel, notAnAge: Boolean): String {
         val where = level.dimension().identifier()
         if (notAnAge) return "$where is not an Age, so no book wrote a curtain over it."
-        return "Nothing hangs a curtain over $where. Write one with `auroral phenomena`, or describe one " +
-            "and mean it — `green and red aurora`. Then `/age showing aurora` says why it is or is not up."
+        return "Nothing hangs a curtain over $where. Describe one — `green and red aurora`. " +
+            "Then `/age showing aurora` says why it is or is not up."
     }
 
     /** Where to stand looking, given a curtain crossing the sky at [bearingDegrees]. */

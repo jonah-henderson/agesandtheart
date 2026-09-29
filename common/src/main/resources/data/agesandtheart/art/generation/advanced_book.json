@@ -4,20 +4,20 @@
   "terminals": "word",
   "rules": {
     "book": [
-      {"produce":["<mingled_age>"]},
-      {"produce":["<spared_age>"]},
-      {"produce":["<thronged_age>"]},
-      {"produce":["<sited_age>"]}
+      {"produce":["[mingled_age]"]},
+      {"produce":["[spared_age]"]},
+      {"produce":["[thronged_age]"]},
+      {"produce":["[sited_age]"]}
     ],
     "mingled_age": [
-      {"produce":["<bleak_mood>","age","patchy","<hot_stone>","and","<dark_stone>","landmass","molten","sea"]},
-      {"produce":["age","patchy","<cold_stone>","and","<pale_stone>","landmass","frozen","climate"]}
+      {"produce":["[bleak_mood]","age","patchy","[hot_stone]","and","[dark_stone]","landmass","molten","sea"]},
+      {"produce":["age","patchy","[cold_stone]","and","[pale_stone]","landmass","frozen","climate"]}
     ],
     "spared_age": [
-      {"produce":["age","except","<monster>","spawns","temperate","climate"]}
+      {"produce":["age","except","[monster]","spawns","temperate","climate"]}
     ],
     "thronged_age": [
-      {"produce":["age","teeming","<beast>","spawns","verdant","biomes"]}
+      {"produce":["age","teeming","[beast]","spawns","verdant","biomes"]}
     ],
     "sited_age": [
       {"produce":["age","torchflowers","features","in","jungle"]}
@@ -28,7 +28,7 @@
       {"produce":["foreboding"]}
     ],
     "hot_stone": [
-      {"produce":["basalt"]},
+      {"produce":["netherrack"]},
       {"produce":["magma_block"]}
     ],
     "dark_stone": [

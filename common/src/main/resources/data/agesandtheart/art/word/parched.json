@@ -1,12 +1,47 @@
 {
+  "_comment": [
+    "Drought seen from overhead, where `arid` is drought underfoot: the two share the dry climate and part",
+    "company over what it looks like. Two of a hard white-gold sun, a bleached sky, heat haze and no rain",
+    "at all are drawn for every parched Age; a golden light is only offered."
+  ],
   "tier": "restrictive",
-  "restricts": {
-    "climate": {
-      "dry": 1.0
+  "biases": {
+    "sea": {
+      "#empty": 0.4
+    },
+    "biomes": {
+      "#dry": 0.8,
+      "#barren": 0.5
     }
   },
   "sets": {
-    "temperature": "0.4..0.9",
-    "humidity": "-0.95..-0.45"
+    "temperature": "0.2..0.9",
+    "humidity": "-0.95..-0.3",
+    "weather.rainfall": "-1..-0.5"
+  },
+  "pools": [
+    {
+      "draws": "3",
+      "facets": {
+        "sun.colour": "white|yellow",
+        "sky.colour": "white|yellow",
+        "haze": "0.2..0.5",
+        "grass.colour": "yellow|orange|grey",
+        "climate.evaporation": "true",
+        "sun.size": "+0.3",
+        "leaves.colour": "grey|yellow|orange|black",
+        "air.tint": "yellow|red|orange|grey"
+      }
+    }
+  ],
+  "requests": {
+    "pools": [
+      {
+        "draws": "1",
+        "facets": {
+          "sea.depth": "-0.5..-0.2"
+        }
+      }
+    ]
   }
 }

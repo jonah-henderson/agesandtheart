@@ -126,6 +126,7 @@ object Resolver {
     private const val ASPECT_STRIDE = 0x1F3B_5D79L
     private const val TERRITORY_STRIDE = 0x4C9E_1A2BL
     private const val COMPANY_SALT = 0x600D_C0A1L
+    private const val MATERIAL_SALT = 0x3A7E_41A1L
     private const val STRICTNESS_SALT = 0x5721_C7L
     private const val WORD_MIXER = -0x61c8_8646_80b5_83ebL
 
@@ -152,6 +153,38 @@ object Resolver {
                 requests = word.requests.copy(sets = word.requestsDrawnAt(draw)),
             ),
         )
+
+    /** [drawnAt], and then every material asked for by tag settled to a block — see [materialsDrawn]. */
+    private fun Constraint.materialisedAt(vocabulary: Vocabulary, draw: Long): Constraint {
+        val drawn = drawnAt(draw)
+        val built = drawn.word.copy(
+            sets = materialsDrawn(vocabulary, drawn.word, drawn.word.sets, draw),
+            requests = drawn.word.requests.copy(
+                sets = materialsDrawn(vocabulary, drawn.word, drawn.word.requests.sets, draw),
+            ),
+        )
+        return if (built == drawn.word) drawn else drawn.copy(word = built)
+    }
+
+    /**
+     * [parameters] with every material asked for by tag — `"stone": "#frozen"` — settled to one block for
+     * this Age ([MaterialTable.drawFor]), after the alternatives have been, so `#frozen|#pale` first picks
+     * which tag. A query nothing may answer asks for nothing, the same as an unreadable value, and the
+     * checks keep one from shipping.
+     */
+    private fun materialsDrawn(
+        vocabulary: Vocabulary,
+        word: Word,
+        parameters: Map<String, String>,
+        draw: Long,
+    ): Map<String, String> {
+        if (parameters.none { (parameter, value) -> MaterialTable.asksByTag(parameter, value) }) return parameters
+        return parameters.mapNotNull { (parameter, value) ->
+            if (!MaterialTable.asksByTag(parameter, value)) return@mapNotNull parameter to value
+            val seed = draw xor word.id.hashCode().toLong() xor parameter.hashCode().toLong() xor MATERIAL_SALT
+            vocabulary.materials.drawFor(value, seed)?.let { parameter to it }
+        }.toMap()
+    }
 
     /**
      * The sentence with every word's surviving **requests** folded into what it demands — the whole of how
@@ -240,7 +273,7 @@ object Resolver {
             if (!isSpentIn(constraint)) constraint
             else constraint.copy(word = constraint.word.withoutItsSize().withoutItsHeight())
         }
-        val said = offered(vocabulary, kept.map { it.drawnAt(draw) }, draw)
+        val said = offered(vocabulary, kept.map { it.materialisedAt(vocabulary, draw) }, draw)
         val flaws = mutableListOf<Flaw>()
         flaws += rehomings(vocabulary, sentence)
         flaws += impossibilities(vocabulary, sentence)
@@ -902,6 +935,12 @@ object Resolver {
             // "Keep both" is not a contradiction, here for the same reason it is not one in [tensions].
             if (wereJoined(first, second)) continue
             val opposition = vocabulary.disagreement(first.word, second.word) ?: continue
+            // **Opposite meanings are opposed wherever they land; two bands on one name only where they
+            // share it.** `lush` against `barren` is a contradiction however far apart the two were laid, which
+            // is this register's whole point. A size is a name every sized aspect owns, and `small landmass`
+            // beside `colossal rainbow` bounds two different ones (Jonah, 2026-09-29).
+            val parameter = opposition.onParameter
+            if (parameter != null && !boundTogether(vocabulary, first, second, parameter)) continue
             val bothNamed = listOf(first.word.name, second.word.name)
             val alreadyPaidFor = charged.any { it.words.containsAll(bothNamed) } ||
                 any { it.words.containsAll(bothNamed) }
@@ -916,6 +955,15 @@ object Resolver {
                     opposition.severity,
                 ),
             )
+        }
+    }
+
+    /** Whether [first] and [second] both set [parameter] in some one aspect both of them reach. */
+    private fun boundTogether(vocabulary: Vocabulary, first: Constraint, second: Constraint, parameter: String): Boolean {
+        val shared = reachOf(vocabulary, first) intersect reachOf(vocabulary, second).toSet()
+        fun setsItIn(said: Constraint, aspect: Aspect) = parameter in said.word.setsIn(aspect)
+        return shared.any { aspect ->
+            aspect.ownsParameterNamed(parameter) && setsItIn(first, aspect) && setsItIn(second, aspect)
         }
     }
 

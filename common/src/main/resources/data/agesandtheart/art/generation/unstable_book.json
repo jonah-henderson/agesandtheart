@@ -4,11 +4,11 @@
   "terminals": "word",
   "rules": {
     "book": [
-      {"produce":["<torn_climate>"]},
-      {"produce":["<flooded_desert>"]}
+      {"produce":["[torn_climate]"]},
+      {"produce":["[flooded_desert]"]}
     ],
     "torn_climate": [
-      {"produce":["age","<cold_stone>","landmass","frozen","scorching","climate"]}
+      {"produce":["age","[cold_stone]","landmass","frozen","scorching","climate"]}
     ],
     "flooded_desert": [
       {"produce":["age","arid","landmass","flooded","rock"]}

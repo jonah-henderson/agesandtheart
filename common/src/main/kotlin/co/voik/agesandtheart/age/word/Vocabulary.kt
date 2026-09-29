@@ -6,11 +6,13 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Spawning
 import co.voik.agesandtheart.age.word.generation.GenerationGrammars
 import co.voik.agesandtheart.age.word.grammar.GrammarWord
+import com.google.gson.JsonParser
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.HolderLookup
@@ -51,7 +53,16 @@ data class Antonym(val first: String, val second: String, val severity: Int) {
  * [over] is what the reading says they argued about: two tags where the table named them, and the one
  * parameter or tag where the words' own settings gave it away.
  */
-data class Disagreement(val over: List<String>, val severity: Int)
+data class Disagreement(
+    val over: List<String>,
+    val severity: Int,
+    /**
+     * The parameter the two words bound to bands that cannot both be met, where that is what they disagree
+     * over. A name several aspects share (`size`) is only a disagreement where both words reach the same one,
+     * which is the resolver's to ask: `small landmass` and `colossal rainbow` never meet.
+     */
+    val onParameter: String? = null,
+)
 
 /** One antonym file: a list, so a pack may add pairs without reprinting ours. */
 private data class AntonymPage(val pairs: List<Antonym>) {
@@ -111,6 +122,8 @@ data class Vocabulary(
     private val derivedIds: Set<Identifier>,
     /** How the world's own tags and facts become ours, per aspect — see [Derivation]. */
     val derivation: Map<Aspect, Derivation>,
+    /** What a block may be as the rock or the ground, for a word asking for one by tag — see [MaterialTable]. */
+    val materials: MaterialTable,
     /** How a creature the world never offered arrives in one — see [Spawning]. */
     val spawning: Spawning,
     /** Names of worldgen a pack ships that the registries this was loaded over did not hold. See [awaitsAServer]. */
@@ -221,6 +234,18 @@ data class Vocabulary(
     fun availableToBroadWordsIn(aspect: Aspect): List<Taggable> =
         candidatesFor(aspect).filter(::isAvailableToBroadWords)
 
+    /**
+     * The members [word] admits that broad words are kept from — empty for any word that may admit what it
+     * does. Only a word that narrows may reach past the fence by name, since admitting is otherwise the one
+     * way a nudge could hand out what the fence exists to keep back.
+     */
+    fun admittedPastTheFence(word: Word): List<String> {
+        if (word.tier.narrows) return emptyList()
+        return word.admits.flatMap { (aspect, members) ->
+            members.filter { member -> aspect.presetFor(member)?.let(::isAvailableToBroadWords) == false }
+        }
+    }
+
     /** Whether [preset] and its `preset_tags` entry both allow a broad word to land on it. */
     fun isAvailableToBroadWords(preset: Taggable): Boolean =
         preset.availableToBroadWords && profileOf(preset).availableToBroadWords
@@ -312,7 +337,7 @@ data class Vocabulary(
             val asked = listOfNotNull(Setting.read(mine), Setting.read(theirs))
             val bothAreBands = asked.size == 2
             if (bothAreBands && Setting.settle(asked) == null) {
-                Disagreement(listOf(parameter), Antonym.ORDINARY_SEVERITY)
+                Disagreement(listOf(parameter), Antonym.ORDINARY_SEVERITY, onParameter = parameter)
             } else {
                 null
             }
@@ -333,6 +358,12 @@ data class Vocabulary(
 
         /** Where a pack puts the rules that read tags off the world itself, one file per aspect. */
         const val DERIVATION_DIRECTORY = "art/derivation"
+
+        /**
+         * The one file in [PRESET_TAGS_DIRECTORY] and [DERIVATION_DIRECTORY] that names no aspect: the
+         * blocks a rock or ground may be made of ([MaterialTable]).
+         */
+        const val MATERIALS = "materials"
 
         /** Where a pack puts antonym pages. */
         const val ANTONYM_DIRECTORY = "art/antonyms"
@@ -385,6 +416,7 @@ data class Vocabulary(
             val described = Aspect.entries.associateWith { aspect ->
                 (tags[aspect] ?: PresetTags(emptyMap())).over(derivedTags[aspect].orEmpty())
             }.filterValues { it.described.isNotEmpty() }
+            val materials = materialTable(resources, registries, problems)
             val words = derived(fromContent) + authored + pages
             val structural = readGrammarWords(resources, problems)
             val script = Script.load(resources, problems)
@@ -405,9 +437,75 @@ data class Vocabulary(
             val charges = readCharges(resources, problems)
             return Vocabulary(
                 words, structural, described, antonyms, script, rarity, ink, stock, generation, charges,
-                derivedIds, rules, spawning, shippedButNotLoaded, problems,
+                derivedIds, rules, materials, spawning, shippedButNotLoaded, problems,
             )
         }
+
+        /**
+         * The material table: what the pack authored in `preset_tags/materials.json`, laid over what
+         * `derivation/materials.json` reads off every block. An authored block a world cannot be made of is
+         * reported rather than kept, since a query drawing it would build an Age nobody can stand in.
+         */
+        private fun materialTable(
+            resources: ResourceManager,
+            registries: HolderLookup.Provider?,
+            problems: MutableList<String>,
+        ): MaterialTable {
+            val authored = readStacked(resources, PRESET_TAGS_DIRECTORY, PresetTags.CODEC, problems)
+                .fold(PresetTags(emptyMap())) { standing, layer -> standing.stackedWith(layer) }
+            for (block in authored.described.filterNot(Materials::makesAWorld)) {
+                problems += "$PRESET_TAGS_DIRECTORY/$MATERIALS.json tags '$block', which no world can be made of"
+            }
+            val rules = readStacked(resources, DERIVATION_DIRECTORY, MaterialDerivation.CODEC, problems)
+                .fold(MaterialDerivation.EMPTY, MaterialDerivation::over)
+            val (derived, withheldWhereTagsAreBound) =
+                if (registries == null) emptyMap<String, Map<String, Double>>() to emptySet()
+                else DerivedTags.materials(rules, problems)
+            // **The fence holds offline too.** Tags are bound only on a server, but a fence tag this pack
+            // ships is a file it can read — so Scrivener and the offline checks withhold what the game does.
+            val withheldByFile = rules.withheldFromBroadWords.flatMap { blocksListedBy(resources, it) }
+            val kept = PresetTags(authored.described.filter(Materials::makesAWorld).associateWith(authored::byKey))
+            return MaterialTable(kept.over(derived), withheldWhereTagsAreBound + withheldByFile)
+        }
+
+        /**
+         * Every block id a block tag file lists, following the tags it includes — read from the files rather
+         * than from a bound registry. A tag no pack here ships lists nothing, which is right offline: it
+         * belongs to content that is not installed.
+         */
+        private fun blocksListedBy(
+            resources: ResourceManager,
+            tag: String,
+            seen: MutableSet<String> = mutableSetOf(),
+        ): List<String> {
+            if (!seen.add(tag)) return emptyList()
+            val id = Identifier.tryParse(tag.removePrefix(Materials.QUERY_MARK)) ?: return emptyList()
+            val file = Identifier.fromNamespaceAndPath(id.namespace, "$BLOCK_TAGS_DIRECTORY/${id.path}.json")
+            return resources.getResourceStack(file).flatMap { layer ->
+                val values = layer.openAsReader().use { JsonParser.parseReader(it) }.asJsonObject
+                    .getAsJsonArray(TAG_VALUES)?.toList().orEmpty()
+                values.flatMap { value ->
+                    // An entry is an id, `#` and a tag, or `{ "id": …, "required": false }`.
+                    val spelled = if (value.isJsonObject) value.asJsonObject.get(TAG_ENTRY_ID).asString else value.asString
+                    if (spelled.startsWith(Materials.QUERY_MARK)) blocksListedBy(resources, spelled, seen)
+                    else listOf(spelled)
+                }
+            }
+        }
+
+        private const val BLOCK_TAGS_DIRECTORY = "tags/block"
+        private const val TAG_VALUES = "values"
+        private const val TAG_ENTRY_ID = "id"
+
+        /** Every layer of `<directory>/materials.json` across the packs, lowest priority first. */
+        private fun <T : Any> readStacked(
+            resources: ResourceManager,
+            directory: String,
+            codec: Codec<T>,
+            problems: MutableList<String>,
+        ): List<T> = resources.listResourceStacks(directory, ResourceParsing::isJson)
+            .filterKeys { ResourceParsing.nameUnder(it, directory) == MATERIALS }
+            .flatMap { (file, layers) -> layers.mapNotNull { ResourceParsing.parse(it, file, codec, problems) } }
 
         /**
          * Every name — full id and bare path — of worldgen in [resources] that [registries] does not hold.
@@ -553,6 +651,7 @@ data class Vocabulary(
             val stacks = resources.listResourceStacks(DERIVATION_DIRECTORY, ResourceParsing::isJson)
             val rules = mutableMapOf<Aspect, Derivation>()
             for ((file, layers) in stacks) {
+                if (ResourceParsing.nameUnder(file, DERIVATION_DIRECTORY) == MATERIALS) continue
                 val aspect = aspectNamedBy(file, DERIVATION_DIRECTORY, problems) ?: continue
                 for (layer in layers) {
                     val read = ResourceParsing.parse(layer, file, Derivation.CODEC, problems) ?: continue
@@ -576,6 +675,7 @@ data class Vocabulary(
             val stacks = resources.listResourceStacks(PRESET_TAGS_DIRECTORY, ResourceParsing::isJson)
             val bySlot = mutableMapOf<Aspect, MutableMap<String, PresetProfile>>()
             for ((file, layers) in stacks) {
+                if (ResourceParsing.nameUnder(file, PRESET_TAGS_DIRECTORY) == MATERIALS) continue
                 val aspect = aspectNamedBy(file, PRESET_TAGS_DIRECTORY, problems) ?: continue
                 val merged = bySlot.getOrPut(aspect) { mutableMapOf() }
                 for (layer in layers) {

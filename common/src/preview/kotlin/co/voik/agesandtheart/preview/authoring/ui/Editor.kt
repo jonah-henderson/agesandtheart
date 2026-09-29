@@ -16,13 +16,16 @@ import co.voik.agesandtheart.preview.authoring.Into
 import co.voik.agesandtheart.preview.authoring.drawing
 import co.voik.agesandtheart.preview.authoring.dropping
 import co.voik.agesandtheart.preview.authoring.everythingOn
+import co.voik.agesandtheart.preview.authoring.heldElsewhere
 import co.voik.agesandtheart.preview.authoring.holding
 import co.voik.agesandtheart.preview.authoring.leaning
 import co.voik.agesandtheart.preview.authoring.poolsOn
 import co.voik.agesandtheart.preview.authoring.putting
 import co.voik.agesandtheart.preview.authoring.puttingInPool
 import co.voik.agesandtheart.preview.authoring.restricting
+import co.voik.agesandtheart.preview.authoring.saying
 import co.voik.agesandtheart.preview.authoring.without
+import co.voik.agesandtheart.preview.authoring.withoutAnywhere
 import co.voik.agesandtheart.preview.authoring.withoutInPool
 import co.voik.agesandtheart.preview.authoring.withoutOffer
 import co.voik.agesandtheart.preview.authoring.withoutPool
@@ -1010,6 +1013,15 @@ class Editor(
     private var building: Into? = null
 
     /**
+     * A setting on its way from wherever the word held it — a pool, or the other half — to where the
+     * parameter flow is putting it. A field for [building]'s reason; cleared when a new pick starts.
+     */
+    private var moving: Moving? = null
+
+    /** The key a moved setting was held under, and what it said there, which the new place starts from. */
+    private data class Moving(val spelled: String, val said: String)
+
+    /**
      * A pool, built in one pass — **the facets and then the count.**
      *
      * The count is what makes a pool a pool: without it the whole thing is more `sets`, and with it at
@@ -1316,10 +1328,19 @@ class Editor(
     }
 
     private fun pickAParameter(into: Into, only: Aspect? = null) {
-        // **What the word already turns is not on offer.** A parameter holds one value, so adding it again
-        // either overwrites what is there or lands in the other half — and required and requested on one
-        // parameter is a contradiction, the requested one giving way to a demand it can never outlive.
+        moving = null
+        // **What the word already turns here is not on offer**, and what it turns anywhere else is offered as
+        // a move. A parameter holds one value, so adding it beside itself either overwrites what is there or
+        // lands in the other half — and required and requested on one parameter is a contradiction, the
+        // requested one giving way to a demand it can never outlive. Hiding the second kind as well made a
+        // move from a pool into a guarantee look like the parameter did not exist (Jonah, 2026-09-29).
+        fun spelledHere(parameter: String) = if (only == null) parameter else qualified(parameter, only.page)
+        fun heldAs(parameter: String): String? =
+            listOf(parameter, spelledHere(parameter)).distinct().firstOrNull { spelled ->
+                spelled in candidate.holding(into) || candidate.heldElsewhere(spelled, into) != null
+            }
         val alreadyTurned = Insistence.entries.flatMap { candidate.everythingOn(it).keys }.toSet()
+            .filter { it in candidate.holding(into) }.toSet()
         // **Nor is a cast, on the demanded half** (world model §2): a population's members are the writer's
         // to describe, so a word that *insisted* on three suns would overrule them and no charge makes that
         // fair. Offering it here only to refuse it in the strip below is a question with a wrong answer on
@@ -1338,9 +1359,15 @@ class Editor(
             // world it belongs to, and where it was not — "every parameter" — a parameter owned by
             // several asks which on a screen of its own. Either way the pages after the help answered a
             // question nobody was still holding.
-            Picker.Option(value = parameter, label = parameter, note = said)
+            val held = heldAs(parameter)?.let { candidate.heldElsewhere(it, into) }
+            val label = if (held == null) parameter else "$parameter (${held.said})"
+            Picker.Option(value = parameter, label = label, note = said)
         }
         overlay = Picker("Which value?", options) { picked ->
+            // Taken out of where it was only once its new value is set, so backing out moves nothing.
+            moving = heldAs(picked.value)
+                ?.takeIf { candidate.heldElsewhere(it, into) != null }
+                ?.let { spelled -> Moving(spelled, candidate.saying(spelled)) }
             val aspects = owners[picked.value].orEmpty()
             when {
                 aspects.size > 1 -> qualify(picked.value, aspects, into)
@@ -1760,7 +1787,7 @@ class Editor(
                 title = "Set '$bare' to what?",
                 parameter = parameter,
                 presets = parts.wordsSaying(parameter),
-                said = candidate.holding(into)[parameters.first()].orEmpty(),
+                said = candidate.holding(into)[parameters.first()] ?: moving?.said.orEmpty(),
                 onDone = { said -> setParameters(parameters, into, said) },
             )
             return
@@ -1812,7 +1839,12 @@ class Editor(
 
     private fun setParameters(parameters: List<String>, into: Into, value: String) {
         overlay = null
-        edit { at -> parameters.fold(at) { word, parameter -> word.putting(into, parameter, value) } }
+        val movedOut = moving?.spelled
+        moving = null
+        edit { at ->
+            val left = movedOut?.let(at::withoutAnywhere) ?: at
+            parameters.fold(left) { word, parameter -> word.putting(into, parameter, value) }
+        }
         // **A setting that joined a group is asked about the group**, not about the pool: a group of one
         // is indistinguishable from a lone facet and has no heading yet, so ending here would leave a
         // writer who had just said "add a group" with a group they could not get back into.
@@ -1853,7 +1885,7 @@ class Editor(
                 said.ifEmpty { null },
                 "one value, or several separated by | to draw one per Age",
             ).joinToString("  ${Glyph.BULLET}  "),
-            typed = starting ?: candidate.holding(into)[parameters.first()].orEmpty(),
+            typed = starting ?: candidate.holding(into)[parameters.first()] ?: moving?.said.orEmpty(),
             complaint = { typed -> if (typed.isBlank()) "needs a value" else null },
             onDone = { typed ->
                 edit { at -> parameters.fold(at) { word, parameter -> word.putting(into, parameter, typed) } }

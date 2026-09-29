@@ -35,12 +35,15 @@ class TagCoverageCheck : FunSpec({
      * be describing the world, and only the second is forbidden. Deleting those queries as dead cost the
      * fracture its provenance and `ResolverCheck` caught it.
      *
-     * Carriers are asked of the word's *effective* reach (`Word.reaching` widens it by the parameters it
-     * sets), and **an empty declaration means everywhere, not nowhere** ([Word.aspects]) — which is every
-     * evocative word, since spanning aspects is what makes one evocative.
+     * Carriers are asked of the word's *effective* reach: a narrowing word's declared aspects, and an evocative
+     * word's purchase, which is what the resolver reads for one ([Resolver.purchaseFor]). Reading "declares no
+     * aspect" as "everywhere" held only until an evocative word could declare one — by offering a sky colour,
+     * say — and then it judged the word by the sky alone.
      */
     test("every query does something") {
-        fun reachOf(word: Word) = word.aspects.ifEmpty { Aspect.entries.toSet() }
+        fun reachOf(word: Word): Collection<Aspect> =
+            if (word.tier.narrows) word.aspects.ifEmpty { Aspect.entries.toSet() }
+            else Resolver.purchaseFor(vocabulary, word)
         fun opposable(tag: String) = vocabulary.antonyms.any { it.first == tag || it.second == tag }
         val onlyAServerKnows = vocabulary.tagsOnlyAServerGrants
         val inert = vocabulary.authoredWords

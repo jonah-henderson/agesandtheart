@@ -60,17 +60,36 @@ enum class Carvers(override val key: String) : AuthoredPreset {
         return HolderSet.direct(keys.map(carvers::getOrThrow))
     }
 
-    /** Where water stands in the rock. Null wants no table at all. [seed] varies it per Age. */
-    fun waterTable(seaFill: SeaFill, seed: Long): WaterTable? = when (this) {
-        SOLID -> null
-        // Dry enough to walk, with wet pockets. A world with no sea has no waterline to hang a table on.
-        CAVES, POROUS -> seaFill.surfaceY?.let { WaterTable.matching(seaFill, seaLevel = seaFill.level, seed = seed) }
-        FLOODED_CAVES -> seaFill.surfaceY?.let {
-            WaterTable.matching(seaFill, seaLevel = seaFill.level, seed = seed).copy(floods = true)
+    /**
+     * **Whether the rock is dry** ([DRY]) is every pattern's but the flooded one's, since a flooded rock that
+     * holds no water is the one thing it cannot be — so a book asking both is charged rather than obeyed.
+     */
+    override val parameters: List<Parameter> get() = if (this == FLOODED_CAVES) emptyList() else listOf(DRY)
+
+    /**
+     * Where water stands in the rock. Null wants no table at all. [seed] varies it per Age.
+     *
+     * A dry rock has a table even where it would otherwise have none: the hollows an underground cuts answer
+     * to the rock's table, and falling back to the sea's would put its groundwater back.
+     */
+    fun waterTable(seaFill: SeaFill, seed: Long, options: Options = Options.NONE): WaterTable? {
+        val ordinary = WaterTable.matching(seaFill, seaLevel = seaFill.level, seed = seed)
+        if (this != FLOODED_CAVES && options.isTrue(DRY)) return ordinary.copy(dry = true)
+        return when (this) {
+            SOLID -> null
+            // Dry enough to walk, with wet pockets. A world with no sea has no waterline to hang a table on.
+            CAVES, POROUS -> seaFill.surfaceY?.let { ordinary }
+            FLOODED_CAVES -> seaFill.surfaceY?.let { ordinary.copy(floods = true) }
         }
     }
 
     companion object {
+        /** No groundwater anywhere in the rock — no aquifers, no wet pockets, no perched pools. */
+        val DRY = Parameter.flag(
+            "dry",
+            help = "Whether the rock holds no groundwater: no aquifers, no wet pockets, no perched pools.",
+        )
+
         private val UNDERGROUND_CARVERS = listOf("cave", "cave_extra_underground", "canyon")
         private val POROSITY: Identifier = "porosity".location()
 

@@ -3,7 +3,9 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
+import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.aspect.RANGED_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.math.mix64
 import net.minecraft.core.Registry
@@ -495,6 +497,26 @@ data class Word(
         facetsDrawnAt(claims, draw, salt).mapValues { (parameter, value) -> oneOf(value, draw, parameter) }
 
     /**
+     * **What this word decides rather than suggests** — the fields as its file spells them, and for `sets`
+     * and `pools` the parameters.
+     *
+     * A tier that does not narrow is one whose words only nudge: they tilt a draw ([biases]), offer what
+     * nothing else demanded ([requests]), put members in a pool ([admits]) that may or may not be picked,
+     * and bend a range towards where they would like it, which is all the resolver lets such a word do to
+     * one. Anything here settles part of the world outright, which is the narrowing tiers' business
+     * (Jonah, 2026-09-29).
+     */
+    val decidesOutright: List<String> get() = buildList {
+        if (chooses.isNotEmpty()) add("chooses")
+        if (excludes.isNotEmpty()) add("excludes")
+        if (restricts.isNotEmpty()) add("restricts")
+        if (template != null) add("template")
+        if (mints != null) add("mints")
+        val required = sets.keys + pools.flatMap { it.facets.keys }
+        addAll(required.map(::parameterIn).filterNot { it in RANGED_PARAMETERS }.distinct().sorted())
+    }
+
+    /**
      * Whether anything about this word is left to the Age — a pool to draw from, or a value with
      * alternatives in it. A word with neither is the same word in every world it appears in.
      */
@@ -659,13 +681,15 @@ data class Word(
 
     /**
      * The block this word names, or null where it names none — every derived block word sets one, and
-     * nothing authored does.
+     * no authored word does. An authored word may *ask* for a material by tag (`#sandy`), and that names
+     * no block: it is a word about what the ground is like, not a page that is a block.
      *
      * Asked of [Parameter.material] rather than of a parameter by name. Two readers wanted this and both
      * looked for `Terrain.STONE` by name: `Grammar` to decide a page is a material at all, and `Resolver`
      * to find what a minted pattern is made of. One aspect's parameter was standing in for "a block".
      */
-    val material: String? get() = sets.entries.firstOrNull { it.key in MATERIAL_PARAMETERS }?.value
+    val material: String? get() = sets.entries
+        .firstOrNull { it.key in MATERIAL_PARAMETERS && !Materials.isQuery(it.value) }?.value
 
     /**
      * The size this word asks for, or null where it says nothing about size — read the same way
@@ -1082,6 +1106,19 @@ data class PresetTags(private val byPreset: Map<String, PresetProfile>) {
 
     /** Every tag anything here carries, which bounds what any word can meaningfully ask for. */
     val carried: Set<String> get() = byPreset.values.flatMap { it.tags.keys }.toSet()
+
+    /** This table with a higher-priority pack's [later] laid on it, preset by preset. */
+    fun stackedWith(later: PresetTags): PresetTags = PresetTags(
+        (described + later.described).associateWith { key ->
+            val mine = byPreset[key]
+            val theirs = later.byPreset[key]
+            when {
+                mine == null -> later.byKey(key)
+                theirs == null -> mine
+                else -> mine.mergedWith(theirs)
+            }
+        },
+    )
 
     /**
      * This table laid over what was **derived** — every member some rule spoke to, plus every member the

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.ephemeris.sky.Appearance
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.Orbit
@@ -49,8 +50,8 @@ object SkyBodies {
      * says there are more of them and this says the ones there are blaze, and a sky may be either
      * without being the other.
      *
-     * **Never fainter than vanilla's**, for the reason [SUNSIZE] is never smaller: a sky with less
-     * light in it overhead is a *sparser* one, and that is [STARS] to say.
+     * **Never fainter than vanilla's**: a sky with less light in it overhead is a *sparser* one, and that
+     * is [STARS] to say.
      */
     val STARGLOW = Parameter.ranged(
         "glow",
@@ -72,11 +73,12 @@ object SkyBodies {
     val SUNSIZE = Parameter.ranged(
         "size",
         help = "How large the suns are.",
-        // The bottom is vanilla's own and the top is LARGEST_SUN times it, evenly between.
+        // [SizeScale]'s steps, as every other size: vanilla's in the middle, a quarter to four times it.
         landmarks = listOf(
-                Parameter.Landmark(-1.0, "vanilla's", isVanilla = true),
-                Parameter.Landmark(-1.0 / 3.0, "twice"),
-                Parameter.Landmark(1.0 / 3.0, "three times"),
+                Parameter.Landmark(-1.0, "a quarter"),
+                Parameter.Landmark(-0.5, "half"),
+                Parameter.Landmark(0.0, "vanilla's", isVanilla = true),
+                Parameter.Landmark(0.5, "twice"),
                 Parameter.Landmark(1.0, "four times"),
             ),
     )
@@ -180,16 +182,12 @@ object SkyBodies {
     /**
      * Vanilla's sun where the axis is unsaid, so an ordinary sky is untouched — which `SkyCheck` holds.
      *
-     * Never smaller than vanilla's: the bottom of the axis is an ordinary sun rather than a pinprick,
-     * because "small sun" is a distant one, and distance is the path's business rather than the size's.
+     * On [SizeScale]'s steps like every other size (Jonah, 2026-09-29): vanilla's at the middle of the axis,
+     * four times it at the top, a quarter at the bottom. The bottom used to be vanilla's own, so no sun could
+     * be smaller than the overworld's.
      */
-    private fun sunSizeAt(largeness: Double?): Float {
-        val fraction = largeness?.let(Span.NATURAL::fractionOf) ?: return SkySpec.VANILLA_SUN_SIZE
-        return SkySpec.VANILLA_SUN_SIZE * (1.0 + fraction * (LARGEST_SUN - 1.0)).toFloat()
-    }
-
-    /** How many times vanilla's own sun the top of [SUNSIZE] reaches — filling a good part of the sky. */
-    private const val LARGEST_SUN = 4.0
+    private fun sunSizeAt(largeness: Double?): Float =
+        (SkySpec.VANILLA_SUN_SIZE * SizeScale.factorAt(largeness)).toFloat()
 
     /**
      * How far a named colour is pushed from its own grey before a sun wears it (Jonah, 2026-08-08).

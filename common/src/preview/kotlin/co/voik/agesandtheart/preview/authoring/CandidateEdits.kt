@@ -135,6 +135,37 @@ fun Candidate.withoutOffer(insistence: Insistence, at: Int, which: Int): Candida
     }
 }
 
+/**
+ * Where this word turns [spelled], outside [into]: in a pool of either half, or set in the half [into] is
+ * not. Null where it turns it nowhere else — including where it is already right where [into] points.
+ */
+fun Candidate.heldElsewhere(spelled: String, into: Into): Held? {
+    if (spelled in holding(into)) return null
+    val inAPool = Insistence.entries.any { half -> poolsOn(half).any { spelled in it.facets } }
+    if (inAPool) return Held.IN_A_POOL
+    return Insistence.entries.firstOrNull { half -> half != into.insistence && spelled in settingOn(half) }
+        ?.let { if (it.required) Held.REQUIRED else Held.REQUESTED }
+}
+
+/** Where a setting being moved came from, as the picker says it. */
+enum class Held(val said: String) {
+    IN_A_POOL("move out of pool"),
+    REQUIRED("move out of required"),
+    REQUESTED("move out of requested"),
+}
+
+/** What this word says [spelled] is, wherever it holds it — empty where it holds it nowhere. */
+fun Candidate.saying(spelled: String): String =
+    Insistence.entries.firstNotNullOfOrNull { everythingOn(it)[spelled] }.orEmpty()
+
+/** This word without [spelled] anywhere it is claimed — both halves, and every pool of either. */
+fun Candidate.withoutAnywhere(spelled: String): Candidate = Insistence.entries.fold(this) { word, half ->
+    // Last pool first, since a pool left empty goes and would move every index after it. Only the pools
+    // holding it: taking something out of a pool also re-caps its draw, which the others must keep.
+    val holding = word.poolsOn(half).indices.filter { spelled in word.poolsOn(half)[it].facets }.reversed()
+    holding.fold(word.without(half, spelled)) { held, at -> held.withoutInPool(half, at, spelled) }
+}
+
 /** This word with a pool added to [insistence] — one facet and a count of one, which is the least a pool is. */
 fun Candidate.addingAPool(insistence: Insistence, parameter: String, value: String): Candidate =
     withClaims(insistence, claimsOn(insistence).let {

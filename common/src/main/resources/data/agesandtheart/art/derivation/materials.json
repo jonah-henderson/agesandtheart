@@ -1,0 +1,40 @@
+{
+  "_comment": [
+    "What a block may be as an Age's rock or ground, for a word asking for one by what it is like:",
+    "`\"stone\": \"#frozen\"`. Every block a world can be made of is read; only one some rule speaks to is",
+    "drawable at all.",
+    "",
+    "`by_kind` is the half that survives offline: `lit` is a block that gives light. Map colours are not read",
+    "(Jonah, 2026-09-29) -- they are the roughest guess at how a block looks and say nothing about what it is",
+    "like; `dark` and `bright` are hand-tagged in preset_tags/materials.json instead.",
+    "",
+    "`withheld_from_broad_words` is the fence (Jonah, 2026-09-29): a block in any of these tags is never",
+    "drawn by a query, however well it answers one. A world of blue ice or of diamond is reached by",
+    "learning its word. The two ink tags are our own statement of what a block is worth -- a word for one",
+    "needs fine or masterwork ink, so a broad word handing it out would walk round the ink -- and they are",
+    "read from their files offline, so the fence is the same with or without a server. The last two catch",
+    "what a mod adds, where tags are bound."
+  ],
+  "by_tag": {
+    "#minecraft:ice": { "frozen": 1.0, "bright": 0.5 },
+    "#minecraft:snow": { "frozen": 1.0, "bright": 0.8 },
+    "#minecraft:base_stone_overworld": { "stony": 1.0 },
+    "#minecraft:base_stone_nether": { "stony": 0.8, "hostile": 0.3 },
+    "#minecraft:sand": { "sandy": 1.0, "dry": 0.6 },
+    "#minecraft:terracotta": { "sandy": 0.6, "dry": 0.7, "colourful": 0.5 },
+    "#minecraft:logs": { "wooded": 1.0 },
+    "#minecraft:nylium": { "fungal": 1.0 },
+    "#minecraft:wart_blocks": { "fungal": 1.0, "colourful": 0.4 },
+    "#minecraft:coral_blocks": { "aquatic": 1.0, "colourful": 0.9 },
+    "#agesandtheart:molten": { "molten": 1.0, "hostile": 0.6 }
+  },
+  "by_kind": {
+    "lit": { "glowing": 1.0 }
+  },
+  "withheld_from_broad_words": [
+    "#agesandtheart:requires_masterwork_ink",
+    "#agesandtheart:requires_fine_ink",
+    "#minecraft:beacon_base_blocks",
+    "#c:ores"
+  ]
+}

@@ -23,9 +23,22 @@ class GrammarNotationCheck : FunSpec({
 
     /** An alternative that says nothing about its weight is worth one, which is what [Alternative] says. */
     test("an unweighted alternative weighs one") {
-        val read = readOrFail("a = b | c x3 | d x0.5")
+        val read = readOrFail("a = b | c@3 | d@0.5")
         val weights = read.rules.getValue("a").map { it.weight }
         check(weights == listOf(1.0, 3.0, 0.5)) { "read the weights as $weights" }
+    }
+
+    /**
+     * A weight may ride on the last symbol or stand apart, and weighs the **whole** alternative either
+     * way — never only the symbol it is attached to.
+     */
+    test("a weight attached and a weight apart read the same") {
+        val attached = readOrFail("a = b [c]@2 | d").rules.getValue("a")
+        val apart = readOrFail("a = b [c] @2 | d").rules.getValue("a")
+        check(attached == apart) { "attached read as $attached, apart as $apart" }
+        check(attached.first().weight == 2.0) { "the weight read as ${attached.first().weight}" }
+        val produced = attached.first().produces.map { it.written }
+        check(produced == listOf("b", "[c]")) { "the weight was left on the symbol: $produced" }
     }
 
     /**
@@ -34,15 +47,22 @@ class GrammarNotationCheck : FunSpec({
      * have spent on the rule operator — so borrowing `.g4`'s shape wholesale would have made this unsayable.
      */
     test("a terminal may carry a namespace") {
-        val read = readOrFail("a = minecraft:jungle <b>\nb = minecraft:villages")
+        val read = readOrFail("a = minecraft:jungle [b]\nb = minecraft:villages")
         val produced = read.rules.getValue("a").single().produces.map { it.written }
-        check(produced == listOf("minecraft:jungle", "<b>")) { "read the alternative as $produced" }
+        check(produced == listOf("minecraft:jungle", "[b]")) { "read the alternative as $produced" }
     }
 
     /** A rule may be joined across lines, which is the whole reason a long one is readable. */
     test("a rule continues across lines") {
-        val read = readOrFail("a = b\n    | c\n    | d x2")
+        val read = readOrFail("a = b\n    | c\n    | d@2")
         check(read.rules.getValue("a").size == 3) { "read ${read.rules.getValue("a").size} alternatives" }
+    }
+
+    /** And its first alternative may sit on the next line, indented, which is how a long rule is written. */
+    test("a rule may open on the line after its equals") {
+        val read = readOrFail("a =\n    b [c]\n    | d@2\nc = e")
+        check(read.rules.getValue("a").size == 2) { "read ${read.rules.getValue("a")}" }
+        check(read.rules.keys == setOf("a", "c")) { "an unindented rule was swallowed: ${read.rules.keys}" }
     }
 
     /** `#` opens a comment, and only where it opens the line — so a terminal carrying one is still a word. */
@@ -101,7 +121,7 @@ private val SAMPLE = GenerationGrammar(
     terminals = TerminalKind.WORD,
     rules = mapOf(
         "book" to listOf(
-            Alternative(2.0, listOf(Symbol.of("age"), Symbol.of("<mood>"))),
+            Alternative(2.0, listOf(Symbol.of("age"), Symbol.of("[mood]"))),
             Alternative(1.0, listOf(Symbol.of("age"), Symbol.of("minecraft:jungle"))),
         ),
         "mood" to listOf(

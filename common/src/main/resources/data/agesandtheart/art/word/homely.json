@@ -1,4 +1,9 @@
 {
+  "_comment": [
+    "Lived in, level and green, and the weather of a good summer: three of a blue sky, white cloud, green",
+    "grass, green or turning leaves, fireflies, and the odd rainbow are offered to every homely Age, each",
+    "yielding to anything the book says."
+  ],
   "tier": "evocative",
   "biases": {
     "all": {
@@ -9,5 +14,20 @@
       "#hostile": -0.8,
       "#sheer": -0.5
     }
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "3",
+        "facets": {
+          "sky.colour": "blue",
+          "clouds.colour": "white",
+          "grass.colour": "green",
+          "leaves.colour": "green|orange",
+          "motes": "firefly",
+          "rainbow.frequency": "0.3..0.6"
+        }
+      }
+    ]
   }
 }

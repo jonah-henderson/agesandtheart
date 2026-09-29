@@ -1,4 +1,9 @@
 {
+  "_comment": [
+    "Drought underfoot, where `parched` is drought overhead: dry, bare country, and the ground it is made",
+    "of. Every arid Age is dressed in something sandy -- sand, red sand, sandstone, gravel, terracotta --",
+    "drawn by tag, and its rock is offered the same; the rain is offered away."
+  ],
   "tier": "restrictive",
   "restricts": {
     "landmass": {
@@ -10,8 +15,24 @@
       "barren": 0.6
     }
   },
+  "biases": {
+    "biomes": {
+      "#dry": 0.7000000000000001,
+      "#sandy": 0.7
+    },
+    "features": {
+      "#dry": 0.7000000000000001
+    }
+  },
   "sets": {
     "temperature": "0.2..0.8",
-    "humidity": "-0.95..-0.5"
+    "humidity": "-0.95..-0.5",
+    "material": "#sandy"
+  },
+  "requests": {
+    "sets": {
+      "stone": "#sandy",
+      "rainfall": "-1.0..-0.5"
+    }
   }
 }

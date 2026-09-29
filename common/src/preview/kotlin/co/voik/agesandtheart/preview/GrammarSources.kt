@@ -86,7 +86,7 @@ private fun jsonOf(grammar: GenerationGrammar, name: String): String {
         .encodeStart(JsonOps.INSTANCE, grammar)
         .getOrThrow { complaint -> IllegalStateException("$name would not write: $complaint") }
         .asJsonObject
-    // HTML escaping would spell every `<reference>` as `<`, which parses and cannot be read.
+    // HTML escaping would spell a `'` or `=` in a terminal as a `\u` escape, which parses and cannot be read.
     val gson = GsonBuilder().disableHtmlEscaping().create()
     // Laid out field by field below, so a field added to the codec would be dropped in silence. Rather than
     // trust that nobody will, say so — and print it the dull way, which is wordy but never wrong.

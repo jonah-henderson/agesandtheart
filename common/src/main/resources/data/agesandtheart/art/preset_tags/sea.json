@@ -21,7 +21,7 @@
       "hostile": 0.95,
       "glowing": 0.9,
       "bright": 0.4,
-      "dry": 0.3
+      "dry": 0.1
     }
   },
   "minecraft:ice": {

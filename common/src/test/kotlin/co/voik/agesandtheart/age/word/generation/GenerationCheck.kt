@@ -23,7 +23,7 @@ class GenerationCheck : FunSpec({
     test("an expansion reproduces from its seed") {
         val grammar = grammarOf(
             "start",
-            "start" to listOf(produces("<a>", "<a>", "<a>")),
+            "start" to listOf(produces("[a]", "[a]", "[a]")),
             "a" to listOf(produces("x", weight = 3.0), produces("y"), produces("z")),
         )
         for (seed in 1L..50L) {
@@ -51,7 +51,7 @@ class GenerationCheck : FunSpec({
     test("a recursive grammar terminates") {
         val grammar = grammarOf(
             "start",
-            "start" to listOf(produces("<start>", "<start>", weight = 99.0), produces("end")),
+            "start" to listOf(produces("[start]", "[start]", weight = 99.0), produces("end")),
         )
         for (seed in 1L..200L) {
             val produced = grammar.expand(Random(seed))
@@ -62,7 +62,7 @@ class GenerationCheck : FunSpec({
 
     /** A rule nobody defined produces nothing — the fault is reported at load, never improvised here. */
     test("a missing rule produces nothing rather than failing") {
-        val grammar = grammarOf("start", "start" to listOf(produces("a", "<nowhere>", "b")))
+        val grammar = grammarOf("start", "start" to listOf(produces("a", "[nowhere]", "b")))
         val produced = grammar.expand(Random(1))
         check(produced == listOf("a", "b")) { "read back as $produced" }
     }
@@ -74,20 +74,20 @@ class GenerationCheck : FunSpec({
         test("a start symbol no rule defines") {
             val grammar = grammarOf("book", "opening" to listOf(produces("age")))
             val problems = problemsIn(grammar)
-            check(problems.any { "starts at <book>" in it }) { "went unreported: $problems" }
+            check(problems.any { "starts at [book]" in it }) { "went unreported: $problems" }
         }
 
         test("a reference to a rule that does not exist") {
-            val grammar = grammarOf("start", "start" to listOf(produces("<mising_typo>")))
+            val grammar = grammarOf("start", "start" to listOf(produces("[mising_typo]")))
             val problems = problemsIn(grammar)
-            check(problems.any { "<mising_typo>" in it }) { "went unreported: $problems" }
+            check(problems.any { "[mising_typo]" in it }) { "went unreported: $problems" }
         }
 
         /** The one fault the runtime guard can only paper over, so it has to be caught at load. */
         test("a rule with no way to reach terminals") {
-            val grammar = grammarOf("start", "start" to listOf(produces("<start>", "<start>")))
+            val grammar = grammarOf("start", "start" to listOf(produces("[start]", "[start]")))
             val problems = problemsIn(grammar)
-            check(problems.any { "can never finish <start>" in it }) { "went unreported: $problems" }
+            check(problems.any { "can never finish [start]" in it }) { "went unreported: $problems" }
         }
 
         test("a rule nothing asks for") {
@@ -97,7 +97,7 @@ class GenerationCheck : FunSpec({
                 "orphan" to listOf(produces("y")),
             )
             val problems = problemsIn(grammar)
-            check(problems.any { "<orphan>" in it }) { "went unreported: $problems" }
+            check(problems.any { "[orphan]" in it }) { "went unreported: $problems" }
         }
 
         /** A word grammar producing a word the corpus never heard of is a page that would drop, silently. */

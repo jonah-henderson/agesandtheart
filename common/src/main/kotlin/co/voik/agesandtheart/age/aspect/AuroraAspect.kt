@@ -73,8 +73,8 @@ object AuroraAspect {
      * The curtain this Age wears, or null where nothing asked for one.
      *
      * **Two ways in, and they are the same statement made twice** — which is the shape §7.7 says this aspect
-     * has. A writer may *name* the phenomenon (`auroral`, or an evocative word the tag layer carried there)
-     * or *describe* it (`red and green aurora`), and either is having said the Age has one. Nothing mints a
+     * has. The phenomenon may be *drawn* (an evocative word the tag layer carried there) or the curtain
+     * *described* (`red and green aurora`), and either is having said the Age has one. Nothing mints a
      * member here the way a clause mints a sun, the aspect holding nothing, so a dial with anything on it is
      * the description.
      *
@@ -85,11 +85,11 @@ object AuroraAspect {
         val claim = Phenomena.claimFor(parts.optionsFor(Aspect.PHENOMENA, 0), Phenomenon.AURORA)
         if (claim == null && own.chosen.isEmpty()) return null
         // **The rung is how hard it comes**, which is the populative machinery doing the job it already
-        // does: `teeming auroral` is more nights and a brighter curtain, and no dial had to be invented for
-        // it. Ordinary is one, so a word that named no quantity changes nothing.
+        // does: a phenomenon claimed strongly is more nights and a brighter curtain, and no dial had to be
+        // invented for it. Ordinary is one, so a claim that named no quantity changes nothing.
         val insistence = (claim?.density ?: Rung.ORDINARY) / Rung.ORDINARY
-        // **Drawn where nothing said, rather than defaulted.** `auroral` names the phenomenon and nothing
-        // else, so without this every undescribed curtain in every Age would be the same curtain. The seed
+        // **Drawn where nothing said, rather than defaulted.** A curtain drawn in by a word's lean says
+        // nothing about itself, so without this every undescribed curtain in every Age would be the same. The seed
         // is where the bearing already came from, and an aurora nobody described should still differ
         // between Ages without a writer having to buy the difference.
         val size = own.steer(AURORASIZE, seed) ?: Sky.drawn(seed, SIZE_SALT, DRAWN_BAND)

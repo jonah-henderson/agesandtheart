@@ -7,18 +7,237 @@ terminals word
 # Modifiers lead, the page they modify closes the clause (design §4.3.1): "a desolate Age with packed ice
 # landmass, frozen air" rather than "landmass packed_ice".
 
-book = <frozen_age> | <molten_age>
+# One book in six is a rare material's onramp: nothing else says ahead of time what grows one, so these are
+# how a player finds out. The rest are curiosities. LootBookCheck holds both halves -- every material book
+# grows its material, and no curiosity grows any.
 
-frozen_age = <bleak_mood> age <cold_stone> landmass frozen climate x2
-    | age <cold_stone> landmass frozen climate <cold_sky>
+book = [curiosity_age]@5 | [rare_material_age]
 
-molten_age = <bleak_mood> age <hot_stone> landmass molten sea x2
-    | age <hot_stone> landmass riddled rock molten sea
+rare_material_age =
+  [arc_crystal_age]
+  | [phasmium_age]
+  | [rime_crystal_age]
+  | [temperstone_age]
+  | [astrite_age]
 
-bleak_mood = desolate x2 | ancient | foreboding
+# Curiosity ages
+# Meant to show what the mod can do and encourage experimentation without directly giving too much
+# progression: a landmass worth looking at, and two or three things to look at in it. They never name a
+# phenomenon kept for the materials and instability, nor a lava sea, so no curiosity passes a gate.
 
-cold_stone = packed_ice x2 | blue_ice | snow_block
+# One thing to look at and one thing to find, each drawn from its own group so no two say the same part of
+# the world twice -- two leaf colours, or a tropical and an arid climate, is a book arguing with itself. A
+# climate is only ever the third, and never beside a mood, which leans the climate its own way.
+# What there is to look at is overhead, so only a landmass open to the sky gets one: an aurora in a roofed
+# world is a page nobody can see.
+curiosity_age =
+    [mood] age [open_curious_landmass] [look]
+    | [mood] age [curious_landmass] [thing]
+    | age [open_curious_landmass] [look] [thing]@4
+    | age [open_curious_landmass] [look] [landed_thing] [climate]@2
+    | age [curious_landmass] [landed_thing] [sea]
 
-cold_sky = overcast sky | starlit stars
+curious_landmass = [typical_landmass] landmass@3 | [size] [typical_landmass] landmass@2 | [stone] [typical_landmass] landmass
 
-hot_stone = basalt x2 | blackstone | magma_block
+open_curious_landmass = [open_landmass] landmass@3 | [size] [open_landmass] landmass@2 | [stone] [open_landmass] landmass
+
+look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground]@2
+
+thing = [landed_thing]@4 | [sea]
+
+# Without the sea, for beside a climate: a drowned sea and an arid climate are watery against dry.
+landed_thing = [formation]@3 | [underground]@3 | [life]@2
+
+# Arc crystals: a tempest, and an aurora most nights and fierce.
+arc_crystal_age =
+    age [arc_crystal_landmasses] landmass [tempest_options] [aurora_options]
+    | age [arc_crystal_landmasses] landmass [tempest_options] [aurora_options] [flavour]@2
+
+# Open to the sky: a roofed world has no curtains to stand in it.
+arc_crystal_landmasses = [open_landmass]@3 | skyborne | end | tangled
+
+tempest_options = tempest phenomena@3 | teeming tempest phenomena
+
+# Described rather than named: a curtain with anything said of it is one, and this says it comes every
+# night and burns bright, which is the gate's half.
+aurora_options =
+    restless glimmering aurora@3
+    | restless glimmering [aurora_colour] aurora@2
+    | restless glimmering colossal aurora
+
+# Phasmium: a water sea raised to an abyss, and a deluge. The shapes whose seas are broad and flat-floored,
+# since those are where the abyss grows.
+phasmium_age =
+    age [phasmium_landmasses] landmass deep water sea deluge phenomena
+    | age [phasmium_landmasses] landmass deep water sea deluge phenomena [flavour]@2
+
+phasmium_landmasses = insular@3 | archipelagic@3 | eroded@2 | sheer@2 | continental | gentle | pillared
+
+# Rime crystal: cold enough that nothing thaws, and a blizzard. The cold is said to the climate, since
+# `blizzard phenomena` keeps the blizzard's own cold on the phenomena.
+rime_crystal_age =
+    age [rime_crystal_landmasses] landmass [cold] blizzard phenomena
+    | age [rime_crystal_landmasses] landmass [cold] blizzard phenomena [flavour]@2
+
+# Sheer ground first: rime is won by climbing, and ramps with height.
+rime_crystal_landmasses = [typical_landmass]@3 | mountainous@2 | sheer@2 | pillared | cleft | shattered
+
+cold = frozen climate@2 | icy climate
+
+# Temperstone: every climate as hot as a desert, and a lava sea. Named `lava` rather than `molten`, which
+# could draw a sea of magma and pass no gate.
+temperstone_age =
+    age [seaworthy_landmass] landmass scorching climate lava sea
+    | age [seaworthy_landmass] landmass scorching climate lava sea volcanic features
+    | age [seaworthy_landmass] landmass scorching climate lava sea [flavour]@2
+
+# Astrite: meteors. Cratered country and a dark night are drawn beside it, since that is what it looks like.
+astrite_age =
+    age [astrite_landmasses] landmass meteors phenomena
+    | age [astrite_landmasses] landmass meteors phenomena [night]@2
+    | moonless age [astrite_landmasses] landmass meteors phenomena
+    | age [astrite_landmasses] landmass meteors phenomena [flavour]@2
+
+astrite_landmasses = [open_landmass]@3 | cratered@3 | flat | pyramidal
+
+night = starlit stars | glimmering stars | [sky_colour] sky
+
+# Reusable components
+
+typical_landmass = [standard_landmasses]@10 | [uncommon_landmasses]@5 | [exotic_landmasses]
+
+standard_landmasses =
+    overworld
+    | continental
+    | archipelagic
+    | canyoned
+    | eroded
+    | gentle
+    | insular
+    | mountainous
+    | riverine
+
+uncommon_landmasses =
+    cleft
+    | cratered
+    | nether
+    | pillared
+    | shattered
+    | sheer
+    | subterranean
+
+exotic_landmasses =
+    end
+    | flat
+    | pyramidal
+    | skyborne
+    | tangled
+
+# A sea to be poured: nothing hanging in the void, nothing with no waterline, and none of vanilla's own
+# rock, which brings its own sea and would not take ours.
+seaworthy_landmass =
+    continental@3
+    | archipelagic@3
+    | canyoned@2
+    | eroded@2
+    | gentle@3
+    | insular@3
+    | mountainous@2
+    | riverine@2
+    | cleft
+    | cratered
+    | pillared
+    | shattered
+    | sheer
+
+# Open to the sky, for what falls out of it.
+open_landmass =
+    [standard_landmasses]@10
+    | cleft@2
+    | cratered@2
+    | pillared@2
+    | shattered@2
+    | sheer@2
+    | end
+    | flat
+    | pyramidal
+    | skyborne
+    | tangled
+
+# What a material book may carry beside its gate: nothing that touches a climate, a sea or a phenomenon,
+# which are the things a gate is made of.
+flavour = [sky]@4 | [formation]@3 | [underground]@2 | [ground] | [life]
+
+# Said of the whole Age, so written before its page.
+# Evocative only: a narrowing word here (`uncanny` narrows the landmass) fractures against the one named.
+# And none that leans towards a phenomenon a gate is made of: broad words reach every phenomenon, so
+# `savage` (hostile) draws meteors and tempests and `beautiful` (bright) meteors, and a curiosity must not
+# pass a gate. `foreboding` leans hostile too.
+mood = wondrous | ancient | looming | desolate | pristine | homely | moonless
+
+size = minuscule | small | large | colossal
+
+stone = blackstone | calcite | deepslate | tuff | sandstone | red_sandstone | andesite | granite | diorite
+
+colour = red | orange | yellow | green | blue | purple | black | white | grey
+
+sky_colour = [colour]
+
+aurora_colour = green@3 | blue@2 | purple@2 | red | white
+
+# The sky: its colour, its bodies, and what hangs in the air under it.
+sky =
+    [sky_colour] sky@3
+    | [colour] sun@2
+    | colossal sun
+    | small sun
+    | [colour] sun [colour] sun
+    | [rising] sun
+    | [colour] clouds
+    | overcast sky
+    | starlit stars
+    | glimmering stars
+    | [colour] air@2
+    | inky air
+    | clear air
+
+rising = rising_east | rising_north | rising_northeast | rising_northwest | rising_south | rising_southeast | rising_southwest | rising_west
+
+# A curtain is had by describing it. Never both restless and glimmering here, which with a tempest drawn in
+# by a mood would be the arc crystal's gate.
+aurora =
+    [aurora_colour] aurora@3
+    | restless aurora
+    | glimmering [aurora_colour] aurora
+    | colossal [aurora_colour] aurora
+
+rainbow =
+    rainbows phenomena@2
+    | rainbows phenomena [colour] rainbow
+    | rainbows phenomena colossal rainbow
+    | rainbows phenomena prismatic rainbow
+
+formation = [formation_shape] features@2 | [stone] [formation_shape] features@2 | [size] [formation_shape] features
+
+formation_shape = arches | boulders | obelisks | pyramids | rings | spikes
+
+# The dramatic undergrounds are the rare end of this: halls, the hollow and the lattice.
+underground =
+    tunnels underground@4
+    | fissured underground@4
+    | chambered underground@3
+    | riddled rock@3
+    | dry rock
+    | [size] tunnels underground@2
+    | delved underground
+    | hollow underground
+    | lattice underground
+
+# The ground and what grows on it, which is mostly colour.
+ground = [colour] grass@2 | [colour] leaves@2 | [colour] grass [colour] leaves | flowers features | trees features
+
+sea = drowned sea@2 | open sea | shallow water sea | murky waters | clear waters
+
+life = teeming herds spawns | fish spawns | fliers spawns | beasts spawns | ruins structures | settled structures | untouched structures
+
+climate = temperate climate@2 | warm climate | tropical climate | verdant biomes | parched climate | arid climate

@@ -13,8 +13,11 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.RegistryOps
+import net.minecraft.resources.ResourceKey
+import net.minecraft.tags.TagKey
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.level.biome.Biome
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.levelgen.feature.Feature
 
 /**
@@ -178,7 +181,7 @@ object DerivedTags {
             // paired with. The ids themselves did not move — `ore`, `spring_feature`, `lake`,
             // `vegetation_patch` are all still spelled the same, so `art/`'s rules go on matching.
             val kinds = leaves.mapNotNull { BuiltInRegistries.FEATURE_TYPE.getKey(it.value().codec())?.path }
-            val blocks = leaves.flatMap { blocksNamedBy(it, ops) }.distinct()
+            val blocks = leaves.flatMap { blocksNamedBy(it, ops, registries) }.distinct()
             val share = shareOfBlocksCarrying(blocks)
             watching(share.keys)
             holder.key().identifier().toString() to rules.profileFor(share, kinds.distinct())
@@ -196,26 +199,59 @@ object DerivedTags {
      *
      * A feature that will not encode contributes nothing rather than failing the corpus: its type still
      * speaks for it.
+     *
+     * **Two things in that data are names rather than blocks, and both are followed** — 26.3's corals are
+     * the case for each. A block set spelled as a tag (`"blocks": "#minecraft:corals"`) is every block in the
+     * tag, where it was once a list of blocks. And a feature that names another registered feature by id
+     * (`"feature": "minecraft:coral/tube_block"`) places what that one places: `getSubFeatures` would say
+     * so, but a feature type that never overrides it — `coral_tree`, `coral_claw` — hides its contents.
      */
-    private fun blocksNamedBy(feature: Holder<Feature>, ops: RegistryOps<JsonElement>): List<Identifier> =
-        Feature.DIRECT_CODEC.encodeStart(ops, feature.value())
-            .result()
-            .map(::blockIdsIn)
-            .orElse(emptyList())
-
-    private fun blockIdsIn(json: JsonElement): List<Identifier> = buildList {
-        fun walk(element: JsonElement) {
-            when {
-                element.isJsonObject -> element.asJsonObject.entrySet().forEach { walk(it.value) }
-                element.isJsonArray -> element.asJsonArray.forEach(::walk)
-                element.isJsonPrimitive && element.asJsonPrimitive.isString -> {
-                    val id = Identifier.tryParse(element.asString) ?: return
-                    if (BuiltInRegistries.BLOCK.containsKey(id)) add(id)
+    private fun blocksNamedBy(
+        feature: Holder<Feature>,
+        ops: RegistryOps<JsonElement>,
+        registries: HolderLookup.Provider,
+    ): List<Identifier> {
+        val features = registries.lookupOrThrow(Registries.FEATURE)
+        val followed = mutableSetOf<Identifier>()
+        fun encoded(of: Feature): JsonElement? = Feature.DIRECT_CODEC.encodeStart(ops, of).result().orElse(null)
+        return buildList {
+            fun walk(element: JsonElement) {
+                when {
+                    element.isJsonObject -> element.asJsonObject.entrySet().forEach { walk(it.value) }
+                    element.isJsonArray -> element.asJsonArray.forEach(::walk)
+                    element.isJsonPrimitive && element.asJsonPrimitive.isString -> {
+                        val spelled = element.asString
+                        if (spelled.startsWith(TAG_MARK)) {
+                            addAll(blocksInTag(spelled.removePrefix(TAG_MARK)))
+                            return
+                        }
+                        val id = Identifier.tryParse(spelled) ?: return
+                        if (BuiltInRegistries.BLOCK.containsKey(id)) {
+                            add(id)
+                            return
+                        }
+                        val named = features.get(ResourceKey.create(Registries.FEATURE, id)).orElse(null) ?: return
+                        if (followed.add(id)) encoded(named.value())?.let(::walk)
+                    }
                 }
             }
+            encoded(feature.value())?.let(::walk)
         }
-        walk(json)
     }
+
+    /** Every block in the block tag [tag], or none where the tag is unknown or nothing has bound tags. */
+    private fun blocksInTag(tag: String): List<Identifier> {
+        val id = Identifier.tryParse(tag) ?: return emptyList()
+        return try {
+            BuiltInRegistries.BLOCK.get(TagKey.create(Registries.BLOCK, id))
+                .map { members -> members.mapNotNull { it.unwrapKey().orElse(null)?.identifier() } }
+                .orElse(emptyList())
+        } catch (tagsAreNotBound: IllegalStateException) {
+            emptyList()
+        }
+    }
+
+    private const val TAG_MARK = "#"
 
     /**
      * For each tag any of [blocks] carries, **how much of the feature it speaks for** — the share of the
@@ -341,24 +377,66 @@ object DerivedTags {
         rules: Derivation,
         watching: (Collection<String>) -> Collection<String>,
     ): Map<String, Map<String, Double>> =
+        worldBlocks().associate { holder ->
+            holder.key().identifier().toString() to rules.profileFor(watching(tagsOn(holder)), kindsOf(holder))
+        }.filterValues { it.isNotEmpty() }
+
+    /**
+     * **What a block may be as an Age's rock or ground** ([MaterialTable]), and which blocks are withheld
+     * from broad words — a block carrying any tag [MaterialDerivation.withheldFromBroadWords] names.
+     *
+     * The same blocks and the same facts as a sea's, since both ask what a world can be made of. The fence
+     * is only knowable where tags are bound, which is why `preset_tags/materials.json` withholds the
+     * vanilla prizes by hand as well: offline, that is all there is.
+     */
+    fun materials(rules: MaterialDerivation, problems: MutableList<String>): Pair<Map<String, Map<String, Double>>, Set<String>> {
+        val seen = mutableSetOf<String>()
+        val withheld = mutableSetOf<String>()
+        val tagged = worldBlocks().associate { holder ->
+            val id = holder.key().identifier().toString()
+            val tags = tagsOn(holder)
+            seen += tags
+            if (tags.any { it in rules.withheldFromBroadWords }) withheld += id
+            id to rules.rules.profileFor(tags, kindsOf(holder))
+        }.filterValues { it.isNotEmpty() }
+        val tagsAreBound = seen.isNotEmpty()
+        if (tagsAreBound) {
+            val unmatched = (rules.rules.byTag.keys + rules.withheldFromBroadWords)
+                .filterNot { it in seen }
+                .filter(::weInsistOn)
+                .sorted()
+            if (unmatched.isNotEmpty()) {
+                problems += "art/derivation/materials.json keys on tags nothing carries: ${unmatched.joinToString(" ")}"
+            }
+        }
+        return tagged to withheld
+    }
+
+    /** Every block a world can be made of and that has a word — the rock's rule ([Materials]). */
+    private fun worldBlocks(): List<Holder.Reference<Block>> =
         BuiltInRegistries.BLOCK.listElements().toList()
             .filter { holder -> Materials.makesAWorld(holder.value()) && !holder.`is`(DerivedWords.WORDLESS_BLOCKS) }
-            .associate { holder ->
-                val tags = watching(tagsOn(holder))
-                val state = holder.value().defaultBlockState()
-                val kinds = buildList {
-                    // **The flag, not NeoForge's `getLightEmission(level, pos)`, and there is no position to
-                    // give it.** This walks every block in the registry at its default state to build what a
-                    // sea may be made of, and it runs with no server at all — Scrivener loads the corpus
-                    // offline. A fake level would be one we handed to arbitrary mods' blocks while
-                    // enumerating all of them, which is a worse risk than the one it answers: a block whose
-                    // light depends on where it stands is already a guess here either way.
-                    @Suppress("DEPRECATION")
-                    if (state.lightEmission > 0) add("lit")
-                    if (state.fluidState.isSource) add("pours")
-                }
-                holder.key().identifier().toString() to rules.profileFor(tags, kinds)
-            }.filterValues { it.isNotEmpty() }
+
+    /**
+     * The facts a block states about itself, which survive offline where its tags do not: whether it gives
+     * light, and whether it pours.
+     *
+     * **Not its map colour** (Jonah, 2026-09-29): a map colour is the roughest guess at how a block looks and
+     * says nothing about what it is like to stand on. Read as `dim`, it put magma under `#dark`.
+     */
+    private fun kindsOf(holder: Holder.Reference<Block>): List<String> {
+        val state = holder.value().defaultBlockState()
+        return buildList {
+            // **The flag, not NeoForge's `getLightEmission(level, pos)`, and there is no position to
+            // give it.** This walks every block in the registry at its default state, and it runs with no
+            // server at all — Scrivener loads the corpus offline. A fake level would be one we handed to
+            // arbitrary mods' blocks while enumerating all of them, which is a worse risk than the one it
+            // answers: a block whose light depends on where it stands is already a guess here either way.
+            @Suppress("DEPRECATION")
+            if (state.lightEmission > 0) add("lit")
+            if (state.fluidState.isSource) add("pours")
+        }
+    }
 
     /** A tag as a rule spells it: `#minecraft:logs`, which is how a datapack writes one. */
     private fun spelled(id: Identifier): String = "#$id"

@@ -1,5 +1,12 @@
 {
-  "_comment": "Tags carry the broad strokes and reach biomes nobody here has heard of. The weights say what the tag set is too coarse for: a sunflower plain is lovely and no tag in the table says so, and a jungle is magnificent without being pretty.",
+  "_comment": [
+    "Tags carry the broad strokes and reach biomes nobody here has heard of. The weights say what the tag set",
+    "is too coarse for: a sunflower plain is lovely and no tag in the table says so, and a jungle is",
+    "magnificent without being pretty.",
+    "",
+    "And three of a clear blue sky, white cloud, green grass, autumn leaves, drifting petals, frequent",
+    "rainbows and brighter stars are offered to every beautiful Age, each yielding to anything the book says."
+  ],
   "tier": "evocative",
   "admits": {
     "biomes": [
@@ -24,5 +31,21 @@
   "sets": {
     "temperature": "-0.2..0.5",
     "humidity": "0..0.7"
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "3",
+        "facets": {
+          "sky.colour": "blue",
+          "clouds.colour": "white",
+          "grass.colour": "green",
+          "leaves.colour": "red|orange|yellow",
+          "motes": "cherry_petals|spore_blossom|firefly",
+          "rainbow.frequency": "0.5..1.0",
+          "stars.glow": "+0.3"
+        }
+      }
+    ]
   }
 }

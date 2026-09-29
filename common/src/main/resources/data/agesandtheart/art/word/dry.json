@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "Rock with no water in it: no aquifers, no wet pockets, no perched pools, and no springs running out of",
+    "the cave walls. The rock's own water table is switched dry (Carvers.DRY), which is also what the",
+    "hollows an underground cuts answer to, so `dry rock` dries a great hall as well as a cave. A cave",
+    "under a sea still meets the sea, and the lava at the bottom of the world stays.",
+    "",
+    "It refuses wet rock as well as drying what is left, so `dry flooded rock` is two words that cannot",
+    "both hold and is charged as the contradiction it is -- flooded rock has no dry to be set, and would",
+    "otherwise simply have won. Laid on the whole Age it also offers a drier air, which yields to anything",
+    "that says more about the climate."
+  ],
+  "tier": "restrictive",
+  "excludes": {
+    "rock": [
+      "#watery"
+    ],
+    "features": [
+      "minecraft:spring_water"
+    ]
+  },
+  "sets": {
+    "dry": "true"
+  },
+  "requests": {
+    "sets": {
+      "humidity": "-0.3"
+    }
+  }
+}

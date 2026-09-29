@@ -1,4 +1,10 @@
 {
+  "_comment": [
+    "Dark and hostile, and what that looks like overhead: three of a black, grey or blood sky, a bruised",
+    "light, black cloud, closing fog, souls in the air, and fewer stars are offered to every foreboding Age,",
+    "and the rock is offered dark. All offers, since the word only suggests: anything the book says about",
+    "the sky or the rock wins."
+  ],
   "tier": "evocative",
   "biases": {
     "all": {
@@ -7,5 +13,21 @@
       "#bright": -0.6,
       "#flowering": -0.4
     }
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "3",
+        "facets": {
+          "sky.colour": "black|grey|red",
+          "air.tint": "purple|grey|red",
+          "clouds.colour": "black|grey",
+          "haze": "+0.3",
+          "motes": "souls|sculk",
+          "stars.density": "-0.4",
+          "stone": "#dark"
+        }
+      }
+    ]
   }
 }

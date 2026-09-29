@@ -1,12 +1,12 @@
 start     name
 terminals text
 
-name = <syllable> <syllable> x3 | <syllable> <syllable> <syllable> x2 | <syllable>
+name = [syllable] [syllable]@3 | [syllable] [syllable] [syllable]@2 | [syllable]
 
-syllable = <onset> <nucleus> x3 | <onset> <nucleus> <coda> x2
+syllable = [onset] [nucleus]@3 | [onset] [nucleus] [coda]@2
 
-onset = r x3 | t x3 | n x3 | k x2 | g x2 | s x2 | m x2 | l x2 | d | b | v | sh | th | ts
+onset = r@3 | t@3 | n@3 | k@2 | g@2 | s@2 | m@2 | l@2 | d | b | v | sh | th | ts
 
-nucleus = a x4 | e x3 | i x3 | o x2 | u x2 | ee | oo | ah
+nucleus = a@4 | e@3 | i@3 | o@2 | u@2 | ee | oo | ah
 
-coda = n x3 | r x3 | l x2 | s x2 | t x2 | m | th | sh
+coda = n@3 | r@3 | l@2 | s@2 | t@2 | m | th | sh

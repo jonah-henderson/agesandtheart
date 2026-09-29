@@ -52,6 +52,12 @@ data class WaterTable(
      * rather than an extreme of the same one, and exactly vanilla's aquifer with aquifers disabled.
      */
     val floods: Boolean = false,
+    /**
+     * Whether the rock holds **no groundwater at all** — [floods]' opposite, and the same kind of switch: every
+     * point is dry, so there are no wet pockets and nothing perched. A cave under a sea still meets the sea,
+     * and the lava vanilla keeps at the bottom of the world stays, being no part of what makes rock wet.
+     */
+    val dry: Boolean = false,
 ) {
     // Vanilla's four aquifer noises, at vanilla's octaves, each on its own seed from this table's.
     private val floodedness = fieldNoise(seed xor FLOODEDNESS_SALT, FLOODEDNESS_FIRST_OCTAVE, listOf(1.0))
@@ -328,7 +334,7 @@ data class WaterTable(
             lowestSurface: Int,
             underTheSea: Boolean,
         ): Int {
-            if (isDeepDark?.isDeepDark(pointX, pointY, pointZ) == true) return DimensionType.WAY_BELOW_MIN_Y
+            if (dry || isDeepDark?.isDeepDark(pointX, pointY, pointZ) == true) return DimensionType.WAY_BELOW_MIN_Y
             val belowTheSurface = (lowestSurface + SURFACE_MARGIN - pointY).toDouble()
             val nearness = if (underTheSea) Mth.clampedMap(belowTheSurface, 0.0, FLOODEDNESS_MAX_DEPTH, 1.0, 0.0) else 0.0
             val wetness = Mth.clamp(
@@ -551,6 +557,7 @@ data class WaterTable(
                 Codec.INT.fieldOf("sea_level").forGetter(WaterTable::seaLevel),
                 Codec.LONG.fieldOf("seed").forGetter(WaterTable::seed),
                 Codec.BOOL.optionalFieldOf("floods", false).forGetter(WaterTable::floods),
+                Codec.BOOL.optionalFieldOf("dry", false).forGetter(WaterTable::dry),
             ).apply(instance, ::WaterTable)
         }
     }

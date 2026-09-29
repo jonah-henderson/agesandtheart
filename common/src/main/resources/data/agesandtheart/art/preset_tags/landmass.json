@@ -30,7 +30,7 @@
   "eroded": {
     "tags": {
       "barren": 0.6,
-      "dry": 0.6,
+      "dry": 0.5,
       "mountainous": 0.6,
       "sheer": 0.5
     },
@@ -46,7 +46,7 @@
       "solid": 0.9,
       "monumental": 0.6,
       "barren": 0.5,
-      "dry": 0.4
+      "dry": 0.2
     }
   },
   "archipelagic": {
@@ -102,7 +102,7 @@
     "tags": {
       "eroded": 1.0,
       "barren": 0.7,
-      "dry": 0.7,
+      "dry": 0.2,
       "sheer": 0.7,
       "monumental": 0.5
     }

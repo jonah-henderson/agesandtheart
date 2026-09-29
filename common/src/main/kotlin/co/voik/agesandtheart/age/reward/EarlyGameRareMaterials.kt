@@ -319,7 +319,7 @@ object EarlyGameRareMaterials {
      *
      * An undescribed curtain is drawn around a quarter to three fifths of nights at an ordinary glow of
      * one, so these sit above anything an Age gets by accident and below what `electromagnetic` asks for.
-     * A writer who reaches them by leaning on `auroral` instead has earned the same reward, which is the
+     * A writer who reaches them by describing the curtain instead has earned the same reward, which is the
      * gate working rather than leaking.
      */
     private const val MOST_NIGHTS = 0.75f

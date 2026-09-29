@@ -1,4 +1,9 @@
 {
+  "_comment": [
+    "Hostile and sheer, and burning at the edges: two of a red, orange or black sky, a red light, embers or",
+    "ash in the air, haze, more thunder, and a dark rock are offered to every savage Age, each yielding to",
+    "anything the book says."
+  ],
   "tier": "evocative",
   "biases": {
     "all": {
@@ -7,5 +12,20 @@
       "#inhabited": -0.8,
       "#flat": -0.5
     }
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "2",
+        "facets": {
+          "sky.colour": "red|orange|black",
+          "air.tint": "red|orange",
+          "motes": "embers|ash",
+          "haze": "+0.3",
+          "thunder": "+0.3",
+          "stone": "#dark"
+        }
+      }
+    ]
   }
 }

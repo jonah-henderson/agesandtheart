@@ -1,7 +1,33 @@
 {
-  "_comment": "A floor rather than a band: warm says 'at least this' and yields to anything already hotter, so it sharpens a temperate Age and costs a scorching one nothing.",
+  "_comment": [
+    "A floor rather than a band: warm says 'at least this' and yields to anything already hotter, so it",
+    "sharpens a temperate Age and costs a scorching one nothing.",
+    "",
+    "Everything past the temperature is only offered, since warm is the mildest thing a writer can say about",
+    "heat and should leave the rest of the world to whoever says more: a golden light, a yellower sun, a",
+    "little haze, and a lean towards what grows."
+  ],
   "tier": "restrictive",
+  "biases": {
+    "biomes": {
+      "#lush": 0.3,
+      "#frozen": -0.6
+    }
+  },
   "sets": {
     "temperature": ">0.15"
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "2",
+        "facets": {
+          "air.tint": "yellow|orange",
+          "sun.colour": "yellow|orange",
+          "haze": "+0.1",
+          "humidity": "+0.1"
+        }
+      }
+    ]
   }
 }

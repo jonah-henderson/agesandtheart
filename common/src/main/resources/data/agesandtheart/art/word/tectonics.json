@@ -11,8 +11,8 @@
     "",
     "**One aspect, and no climate or weather bound.** Rock does not care what the sky is doing, and a",
     "narrowing word is priced in its lowest-ordinal aspect (`Resolver.pricedIn`) with phenomena last, so a",
-    "bound here would quietly reprice this as a word about the weather. `sandfall.json` and `auroral.json`",
-    "both record that trap."
+    "bound here would quietly reprice this as a word about the weather. `sandfall.json` records",
+    "that trap."
   ],
   "tier": "exact",
   "chooses": {

@@ -4,13 +4,13 @@
   "terminals": "text",
   "rules": {
     "name": [
-      {"weight":3.0,"produce":["<syllable>","<syllable>"]},
-      {"weight":2.0,"produce":["<syllable>","<syllable>","<syllable>"]},
-      {"produce":["<syllable>"]}
+      {"weight":3.0,"produce":["[syllable]","[syllable]"]},
+      {"weight":2.0,"produce":["[syllable]","[syllable]","[syllable]"]},
+      {"produce":["[syllable]"]}
     ],
     "syllable": [
-      {"weight":3.0,"produce":["<onset>","<nucleus>"]},
-      {"weight":2.0,"produce":["<onset>","<nucleus>","<coda>"]}
+      {"weight":3.0,"produce":["[onset]","[nucleus]"]},
+      {"weight":2.0,"produce":["[onset]","[nucleus]","[coda]"]}
     ],
     "onset": [
       {"weight":3.0,"produce":["r"]},

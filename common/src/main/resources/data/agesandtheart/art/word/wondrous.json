@@ -1,4 +1,9 @@
 {
+  "_comment": [
+    "Great, sheer, floating, lit and coloured, and a sky to match: two of a second sun, a purple or deep blue",
+    "vault, starlight in the air, brighter and denser stars, and a colourful rock are offered to every",
+    "wondrous Age, each yielding to anything the book says."
+  ],
   "tier": "evocative",
   "biases": {
     "all": {
@@ -8,5 +13,20 @@
       "#glowing": 0.5,
       "#colourful": 0.4
     }
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "2",
+        "facets": {
+          "sun.cast": "2",
+          "sky.colour": "purple|blue",
+          "motes": "starlight|glimmer",
+          "stars.glow": "+0.4",
+          "stars.density": "+0.3",
+          "stone": "#colourful"
+        }
+      }
+    ]
   }
 }

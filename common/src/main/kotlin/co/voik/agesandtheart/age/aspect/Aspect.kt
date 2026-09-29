@@ -19,6 +19,18 @@ val MATERIAL_PARAMETERS: Set<String> by lazy {
         .toSet()
 }
 
+/**
+ * Every parameter name that is a **range** wherever it is understood — the ones a word bends rather than
+ * decides when it does not narrow (`Resolver.spannedIn`). Lazy for [MATERIAL_PARAMETERS]' reason.
+ */
+val RANGED_PARAMETERS: Set<String> by lazy {
+    Aspect.entries
+        .flatMap { it.understood }
+        .groupBy { it.name }
+        .filterValues { sharing -> sharing.all { it.holds == Holds.RANGE } }
+        .keys
+}
+
 /** What an aspect that cannot divide has, there being nothing to be companionable with. */
 private const val NO_APPETITE = 0.0
 

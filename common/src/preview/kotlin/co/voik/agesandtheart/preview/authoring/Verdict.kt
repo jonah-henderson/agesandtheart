@@ -213,7 +213,7 @@ object Verdict {
         val offered = word.aspects.flatMap { parametersNamed(it, parameter, corpus) }
         if (offered.isEmpty()) return@buildList
         val alternatives = value.split('|').map(String::trim).filter(String::isNotEmpty)
-        for (one in alternatives.filterNot { one -> offered.any { it.accepts(one) } }) {
+        for (one in alternatives.filterNot { one -> offered.any { it.acceptsFromAWord(one) } }) {
             val wouldFallThrough = offered.any { it.holdsYouUp && it.open && namesARegistryEntry(one) }
             add(
                 Finding(
@@ -360,18 +360,9 @@ object Verdict {
      * deliberately.
      */
     private fun meaningFaults(candidate: Candidate, word: Word, corpus: Corpus): List<Finding> = buildList {
+        addAll(nudgeOnlyFaults(word, corpus))
         for ((aspect, key) in word.chooses) {
-            if (!word.tier.narrows) {
-                add(
-                    Finding(
-                        Standing.ERROR,
-                        "an evocative word cannot choose '$key' outright",
-                        "only a narrowing word chooses a member; here it would lose the lean as well",
-                        "VocabularyCheck",
-                    ),
-                )
-                continue
-            }
+            if (!word.tier.narrows) continue
             val already = corpus.vocabulary.words.distinct()
                 .firstOrNull { it.choiceIn(aspect)?.key == key && it.name != candidate.name }
                 ?: continue
@@ -380,6 +371,31 @@ object Verdict {
                     Standing.ERROR,
                     "'${already.name}' already chooses '$key'",
                     "a member has one page, and ${aspect.page}'s '$key' has that one",
+                    "VocabularyCheck",
+                ),
+            )
+        }
+    }
+
+    /** A word that does not narrow may only suggest — `VocabularyCheck`'s "a word that does not narrow only nudges". */
+    private fun nudgeOnlyFaults(word: Word, corpus: Corpus): List<Finding> = buildList {
+        if (word.tier.narrows) return@buildList
+        for (field in word.decidesOutright) {
+            add(
+                Finding(
+                    Standing.ERROR,
+                    "an evocative word cannot decide `$field`",
+                    "it only suggests: bias with `biases`, bend a range, and offer anything else in `requests`",
+                    "VocabularyCheck",
+                ),
+            )
+        }
+        for (member in corpus.vocabulary.admittedPastTheFence(word)) {
+            add(
+                Finding(
+                    Standing.ERROR,
+                    "an evocative word cannot admit '$member'",
+                    "broad words are kept from it; only a narrowing word reaches it by name",
                     "VocabularyCheck",
                 ),
             )

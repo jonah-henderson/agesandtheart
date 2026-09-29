@@ -1,4 +1,9 @@
 {
+  "_comment": [
+    "Barren and empty, and bleached: three of grey or yellowed grass, grey or black leaves, a white or grey",
+    "sky, ash on the wind, haze, and bare sandy ground are offered to every desolate Age, each yielding to",
+    "anything the book says."
+  ],
   "tier": "evocative",
   "biases": {
     "all": {
@@ -11,5 +16,20 @@
   },
   "sets": {
     "thickness": "-1.0..-0.4"
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "3",
+        "facets": {
+          "grass.colour": "grey|yellow",
+          "leaves.colour": "grey|black",
+          "sky.colour": "white|grey",
+          "motes": "ash",
+          "haze": "+0.2",
+          "material": "#sandy"
+        }
+      }
+    ]
   }
 }

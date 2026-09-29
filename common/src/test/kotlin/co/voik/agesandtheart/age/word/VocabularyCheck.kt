@@ -129,7 +129,7 @@ class VocabularyCheck : FunSpec({
                         // and every one of them has to be a value the parameter takes. Asked of the whole
                         // string, the bar and all, an offer of three good colours read as one bad one.
                         val alternatives = option.split('|').map(String::trim).filter(String::isNotEmpty)
-                        val unacceptable = alternatives.filterNot { one -> offered.any { it.accepts(one) } }
+                        val unacceptable = alternatives.filterNot { one -> offered.any { it.acceptsFromAWord(one) } }
                         check(unacceptable.isEmpty()) {
                             "'${word.name}' sets ${aspect.key}.$parameter to " +
                                 "'${unacceptable.joinToString("|")}', which it does not take"
@@ -509,18 +509,25 @@ class VocabularyCheck : FunSpec({
     }
 
     /**
-     * **Only a narrowing word means a preset outright.**
+     * **A word that does not narrow only nudges** (Jonah, 2026-09-29): it biases, offers what nothing else
+     * demanded, and admits what a broad word may reach. Deciding anything outright is the narrowing tiers'
+     * business ([Word.decidesOutright]).
      *
-     * `Resolver.fill` asks `carriersOf` of narrowing words alone, so an evocative word's meaning is never
-     * read — and `weighed` then *excludes* a word that means a member, on the grounds that it arrived with
-     * its answer in hand. So the preset is not chosen and the lean the word was written for is dropped
-     * beside it: two claims lost for one that could never have landed.
+     * One case of it was a fault before it was a rule: `Resolver.fill` asks `carriersOf` of narrowing words
+     * alone, so an evocative word's `chooses` was never read — and `weighed` then *excluded* the word for
+     * arriving with its answer in hand, dropping the lean it was written for as well.
      */
-    test("only a narrowing word means a preset outright") {
-        val leaning = vocabulary.words.distinct()
-            .filter { !it.tier.narrows && it.chooses.isNotEmpty() }
-        check(leaning.isEmpty()) {
-            "${leaning.map { it.name }} lean the Age and also mean a preset outright, which is never read"
+    test("a word that does not narrow only nudges") {
+        val deciding = vocabulary.authoredWords
+            .filter { !it.tier.narrows && it.decidesOutright.isNotEmpty() }
+            .map { "${it.name} (${it.decidesOutright.joinToString(", ")})" }
+        check(deciding.isEmpty()) {
+            "these are ${Tier.EVOCATIVE.key} and decide outright, where they may only suggest: $deciding"
+        }
+        val pastTheFence = vocabulary.authoredWords
+            .mapNotNull { word -> vocabulary.admittedPastTheFence(word).takeIf { it.isNotEmpty() }?.let { word.name to it } }
+        check(pastTheFence.isEmpty()) {
+            "these only nudge and admit what broad words are kept from: $pastTheFence"
         }
     }
 

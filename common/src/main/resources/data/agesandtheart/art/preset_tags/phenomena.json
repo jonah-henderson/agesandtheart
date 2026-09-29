@@ -9,8 +9,7 @@
   "inferno": {
     "_comment": "Fire as the world's condition rather than an event in it, so `molten` carries the whole of what it is and `hostile` is what that comes to for anybody standing in it. `dry` because the Age it wants is one the rain has left -- which is a fact about the phenomenon and not the weather it happens to arrive with.",
     "tags": {
-      "hostile": 0.8,
-      "dry": 0.6
+      "hostile": 0.8
     },
     "drop": [
       "molten"
@@ -37,7 +36,7 @@
     "tags": {
       "sandy": 1.0,
       "hostile": 0.7,
-      "dry": 0.6
+      "dry": 0.3
     }
   },
   "meteors": {

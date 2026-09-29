@@ -89,6 +89,16 @@ object Materials {
         return Block.isShapeFullBlock(state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO))
     }
 
+    /** What opens a material query: `#frozen` asks for a frozen block, where `minecraft:ice` names one. */
+    const val QUERY_MARK = "#"
+
+    /**
+     * Whether [value] asks for a material by what it is like rather than by name. Our tags carry no
+     * namespace, which is what tells `#frozen` from a block tag such as `#minecraft:ice`.
+     */
+    fun isQuery(value: String): Boolean =
+        value.startsWith(QUERY_MARK) && ':' !in value && value.length > QUERY_MARK.length
+
     /** The same, of whatever a writer named — false where the pack has no such block. */
     fun makesAWorld(named: String): Boolean {
         val id = Identifier.tryParse(named) ?: return false

@@ -1,4 +1,9 @@
 {
+  "_comment": [
+    "Green and growing, and a narrowing word about all three places growth lives: the biomes, the climate",
+    "and what is placed in them. Two of steady rain, green grass, green leaves and what drifts off growing",
+    "things are drawn for every verdant Age; a rainbow is only offered."
+  ],
   "tier": "restrictive",
   "restricts": {
     "biomes": {
@@ -15,5 +20,21 @@
     "temperature": "0.0..0.6",
     "humidity": "0.3..0.9",
     "thickness": "0.5..1.0"
+  },
+  "pools": [
+    {
+      "draws": "2",
+      "facets": {
+        "rainfall": "0.3..0.8",
+        "grass.colour": "green",
+        "leaves.colour": "green",
+        "motes": "spore_blossom|cherry_petals|firefly"
+      }
+    }
+  ],
+  "requests": {
+    "sets": {
+      "rainbow.frequency": "0.4..0.8"
+    }
   }
 }

@@ -3,8 +3,14 @@
   "item_rarity": "rare",
   "words": [
     "agesandtheart:chambered",
+    "agesandtheart:fissured",
+    "agesandtheart:flat",
     "agesandtheart:lattice",
+    "agesandtheart:mountainous",
+    "agesandtheart:nether",
+    "agesandtheart:pyramidal",
     "agesandtheart:subterranean",
+    "agesandtheart:tunnels",
     "ancient",
     "burning",
     "delved",
@@ -15,6 +21,7 @@
     "frozen",
     "hollow",
     "homely",
+    "minecraft:abandoned_camp",
     "minecraft:armadillo",
     "minecraft:barrel",
     "minecraft:bee",
@@ -125,6 +132,7 @@
     "minecraft:tadpole",
     "minecraft:target",
     "minecraft:torchflower",
+    "minecraft:trail_ruins",
     "minecraft:trapped_chest",
     "minecraft:tropical_fish",
     "minecraft:turtle",
@@ -148,6 +156,7 @@
     "temperate",
     "towering",
     "tropical",
+    "veins",
     "verdant"
   ],
   "_comment": [

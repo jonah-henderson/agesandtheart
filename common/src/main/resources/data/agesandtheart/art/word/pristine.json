@@ -1,4 +1,8 @@
 {
+  "_comment": [
+    "Unworn and laid out, and clean: two of clear air, clear water, a blue sky, white cloud and bright stars",
+    "are offered to every pristine Age, each yielding to anything the book says."
+  ],
   "tier": "evocative",
   "biases": {
     "all": {
@@ -10,5 +14,19 @@
   },
   "sets": {
     "wear": "-1.0..-0.55"
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "2",
+        "facets": {
+          "air.haze": "-1.0..-0.5",
+          "murk": "-1.0..-0.55",
+          "sky.colour": "blue",
+          "clouds.colour": "white",
+          "stars.glow": "+0.3"
+        }
+      }
+    ]
   }
 }

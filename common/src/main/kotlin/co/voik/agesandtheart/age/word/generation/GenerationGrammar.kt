@@ -9,15 +9,15 @@ import net.minecraft.util.StringRepresentable
 import kotlin.random.Random
 
 /**
- * One element of a right-hand side. `<name>` expands the rule called `name`; anything else is produced as
- * it stands, which means a terminal may never be written in angle brackets.
+ * One element of a right-hand side. `[name]` expands the rule called `name`; anything else is produced as
+ * it stands, which means a terminal may never be written in square brackets.
  */
 sealed interface Symbol {
     /** How it is written in a grammar file. */
     val written: String
 
     data class Reference(val rule: String) : Symbol {
-        override val written: String get() = "<$rule>"
+        override val written: String get() = "$OPENS$rule$CLOSES"
     }
 
     data class Terminal(val text: String) : Symbol {
@@ -25,8 +25,8 @@ sealed interface Symbol {
     }
 
     companion object {
-        private const val OPENS = "<"
-        private const val CLOSES = ">"
+        private const val OPENS = "["
+        private const val CLOSES = "]"
 
         fun of(written: String): Symbol {
             val namesARule = written.startsWith(OPENS) && written.endsWith(CLOSES) && written.length > 2
@@ -156,18 +156,18 @@ data class GenerationGrammar(
             val problems = mutableListOf<String>()
             val grammarSaid = "generation grammar '${grammar.name}'"
             if (grammar.start !in grammar.rules) {
-                problems += "$grammarSaid starts at <${grammar.start}>, which no rule defines"
+                problems += "$grammarSaid starts at [${grammar.start}], which no rule defines"
             }
             for ((rule, alternatives) in grammar.rules.entries.sortedBy { it.key }) {
                 if (alternatives.sumOf { it.weight } <= 0.0) {
-                    problems += "$grammarSaid gives <$rule> nothing it can produce"
+                    problems += "$grammarSaid gives [$rule] nothing it can produce"
                 }
                 for (symbol in alternatives.flatMap { it.produces }) {
                     problems += problemWith(symbol, rule, grammar, isAWord) ?: continue
                 }
             }
-            problems += unfinishable(grammar).map { "$grammarSaid can never finish <$it>" }
-            problems += unreachable(grammar).map { "$grammarSaid defines <$it> and never asks for it" }
+            problems += unfinishable(grammar).map { "$grammarSaid can never finish [$it]" }
+            problems += unreachable(grammar).map { "$grammarSaid defines [$it] and never asks for it" }
             return problems
         }
 
@@ -181,11 +181,11 @@ data class GenerationGrammar(
             return when (symbol) {
                 is Symbol.Reference ->
                     if (symbol.rule in grammar.rules) null
-                    else "$grammarSaid has <$rule> ask for <${symbol.rule}>, which no rule defines"
+                    else "$grammarSaid has [$rule] ask for [${symbol.rule}], which no rule defines"
 
                 is Symbol.Terminal ->
                     if (grammar.terminals != TerminalKind.WORD || isAWord(symbol.text)) null
-                    else "$grammarSaid has <$rule> produce '${symbol.text}', which is no word of the Art"
+                    else "$grammarSaid has [$rule] produce '${symbol.text}', which is no word of the Art"
             }
         }
 

@@ -1,7 +1,42 @@
 {
+  "_comment": [
+    "Hot and wet, and the rain is the point: two of the storm, the thunder, the close air and the lit",
+    "insects are drawn for every tropical Age, so no two are quite alike and none is dry. What grows leans",
+    "wooded, flowering and lush, and the water leans towards being water."
+  ],
   "tier": "restrictive",
+  "biases": {
+    "sea": {
+      "#watery": 0.5
+    },
+    "biomes": {
+      "#lush": 0.8,
+      "#wooded": 0.5
+    },
+    "features": {
+      "#wooded": 0.6,
+      "#flowering": 0.5
+    }
+  },
   "sets": {
     "temperature": "0.45..0.9",
     "humidity": "0.4..0.9"
+  },
+  "pools": [
+    {
+      "draws": "2",
+      "facets": {
+        "rainfall": "0.5..1.0",
+        "thunder": "0.3..0.8",
+        "haze": "0.2..0.5",
+        "motes": "firefly|spore_blossom"
+      }
+    }
+  ],
+  "requests": {
+    "sets": {
+      "grass.colour": "green",
+      "leaves.colour": "green"
+    }
   }
 }

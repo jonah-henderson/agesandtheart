@@ -109,6 +109,12 @@ data class Parameter(
     }
 
     /**
+     * Whether a **word** may write [option] here: anything the world [accepts], and for a material a query
+     * by tag (`#frozen`), which the resolver settles to one block before the world ever sees it.
+     */
+    fun acceptsFromAWord(option: String): Boolean = accepts(option) || (material && Materials.isQuery(option))
+
+    /**
      * A point on an axis, and what the game does there.
      *
      * [isVanilla] marks the one that is **the game's own value** — where the axis sits for a world nobody

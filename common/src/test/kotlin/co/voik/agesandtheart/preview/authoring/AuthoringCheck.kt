@@ -300,6 +300,29 @@ class AuthoringCheck : FunSpec({
     }
 
     /**
+     * **A setting held in a pool is offered as a move, not hidden** — `parched`'s rainfall looked like a
+     * parameter that did not exist when it was wanted in the guarantee (Jonah, 2026-09-29). Moving takes it
+     * out of the pool it was in and leaves every other pool's count alone.
+     */
+    test("a setting in a pool can be moved out of it") {
+        val parched = Candidate(name = "probe", tier = Tier.RESTRICTIVE)
+            .addingAPool(Insistence.REQUIRED, "rainfall", "-1.0..-0.7")
+            .puttingInPool(Insistence.REQUIRED, 0, null, "haze", "0.2..0.5")
+            .addingAPool(Insistence.REQUIRED, "motes", "ash|embers")
+            .puttingInPool(Insistence.REQUIRED, 1, null, "murk", "0.1..0.4")
+            .drawing(Insistence.REQUIRED, 1, Draws("1..2"))
+        val guaranteed = Into(Insistence.REQUIRED)
+        check(parched.heldElsewhere("rainfall", guaranteed) == Held.IN_A_POOL) { "the pool's rainfall was not offered as a move" }
+        check(parched.heldElsewhere("temperature", guaranteed) == null) { "a parameter held nowhere was called a move" }
+
+        val moved = parched.withoutAnywhere("rainfall").putting(guaranteed, "rainfall", parched.saying("rainfall"))
+        check(moved.settingOn(Insistence.REQUIRED)["rainfall"] == "-1.0..-0.7") { "the move lost the band: ${moved.sets}" }
+        check(moved.poolsOn(Insistence.REQUIRED).none { "rainfall" in it.facets }) { "the rainfall stayed in its pool" }
+        check(moved.poolsOn(Insistence.REQUIRED)[1].draws == Draws("1..2")) { "a pool the move never touched lost its count" }
+        check(moved.heldElsewhere("rainfall", guaranteed) == null) { "once moved, it is still offered as a move" }
+    }
+
+    /**
      * **A pool per thing being varied**, which is what one flat pool could never say: an inferno drawing
      * three of five could roll every sun facet and no sky at all.
      */

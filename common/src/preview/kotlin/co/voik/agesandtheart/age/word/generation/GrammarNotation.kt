@@ -9,7 +9,7 @@ package co.voik.agesandtheart.age.word.generation
  * `./gradlew :common:grammars`, and `GrammarSourceCheck` fails the build if the two have drifted.
  *
  * Rule names and terminals are both lowercase, and a terminal may be a full id like `minecraft:jungle`, so
- * case and `:` cannot tell them apart. Hence `<angle>` marks a reference and `=` opens a rule.
+ * case and `:` cannot tell them apart. Hence `[square]` marks a reference and `=` opens a rule.
  *
  * The notation entire:
  *
@@ -18,14 +18,16 @@ package co.voik.agesandtheart.age.word.generation
  * start     book
  * terminals word
  *
- * book = age <frozen_age> | age <molten_age>
+ * book = age [frozen_age] | age [molten_age]
  *
- * frozen_age = <bleak_mood> landmass <cold_stone> climate frozen x2
- *     | landmass <cold_stone> climate frozen sky <cold_sky>
+ * frozen_age = [bleak_mood] landmass [cold_stone] climate frozen@2
+ *     | landmass [cold_stone] climate frozen sky [cold_sky]
  * ```
  *
- * `|` separates alternatives and may open a continuation line; `xN` on the end of one gives it a weight,
- * one being the weight of an alternative that says nothing.
+ * `|` separates alternatives and may open a continuation line; any indented line under a rule continues it,
+ * so a rule's first alternative may sit on the line after its `=`. `@N` on the end of an alternative gives the
+ * **whole alternative** a weight, one being the weight of one that says nothing; it may be attached to the
+ * last symbol (`frozen@2`) or stand apart (`frozen @2`).
  */
 object GrammarNotation {
 
@@ -50,7 +52,10 @@ object GrammarNotation {
             val said = raw.trim()
             if (said.isEmpty() || said.startsWith(COMMENT)) continue
 
-            if (said.startsWith(CONTINUES)) {
+            // An indented line under an open rule carries it on, `|` or not, so a rule may open with its
+            // first alternative on the line after the `=`.
+            val indentedUnderARule = raw.first().isWhitespace() && openRule != null && RULE.matchEntire(said) == null
+            if (said.startsWith(CONTINUES) || indentedUnderARule) {
                 val carrying = rules[openRule]
                 if (carrying == null) complain(line, "an alternative with no rule above it")
                 else carrying += alternativesIn(said.removePrefix(CONTINUES), line, ::complain)
@@ -76,7 +81,7 @@ object GrammarNotation {
                 continue
             }
             val (rule, tail) = opening.destructured
-            if (rule in rules) complain(line, "<$rule> is opened twice; write one rule and join it with |")
+            if (rule in rules) complain(line, "[$rule] is opened twice; write one rule and join it with |")
             openRule = rule
             rules.getOrPut(rule) { mutableListOf() } += alternativesIn(tail, line, ::complain)
         }
@@ -142,13 +147,19 @@ object GrammarNotation {
             alternativeOf(written) ?: null.also { complain(line, "'$written' produces nothing") }
         }
 
-    /** One right-hand side: the symbols it produces, and the weight `xN` on the end gives it. */
+    /** One right-hand side: the symbols it produces, and the weight `@N` on the end gives it. */
     private fun alternativeOf(written: String): Alternative? {
         val tokens = written.split(WHITESPACE).filter { it.isNotEmpty() }
-        val weighing = tokens.lastOrNull()?.let(WEIGHT::matchEntire)
-        val produced = if (weighing == null) tokens else tokens.dropLast(1)
+        val weighing = tokens.lastOrNull()?.let(WEIGHED::matchEntire)
+        val produced = when {
+            weighing == null -> tokens
+            // `frozen @2`: the weight is a token of its own.
+            weighing.groupValues[1].isEmpty() -> tokens.dropLast(1)
+            // `frozen@2`: the weight rides on the last symbol.
+            else -> tokens.dropLast(1) + weighing.groupValues[1]
+        }
         if (produced.isEmpty()) return null
-        val weight = weighing?.groupValues?.get(1)?.toDoubleOrNull() ?: ORDINARY_WEIGHT
+        val weight = weighing?.groupValues?.get(2)?.toDoubleOrNull() ?: ORDINARY_WEIGHT
         return Alternative(weight, produced.map(Symbol::of))
     }
 
@@ -156,9 +167,9 @@ object GrammarNotation {
         val produced = alternative.produces.joinToString(" ") { it.written }
         if (alternative.weight == ORDINARY_WEIGHT) return produced
         val weight = alternative.weight
-        // Whole weights are the ordinary case and `x2` is what an author writes; `x0.5` survives unrounded.
+        // Whole weights are the ordinary case and `@2` is what an author writes; `@0.5` survives unrounded.
         val said = if (weight == weight.toLong().toDouble()) weight.toLong().toString() else weight.toString()
-        return "$produced $WEIGHS$said"
+        return "$produced$WEIGHS$said"
     }
 
     /** What an alternative weighs when it does not say — [Alternative]'s own default, spelled once here. */
@@ -171,7 +182,7 @@ object GrammarNotation {
     private const val COMMENT = "#"
     private const val CONTINUES = "|"
     private const val OPENS = "="
-    private const val WEIGHS = "x"
+    private const val WEIGHS = "@"
     private const val START = "start"
     private const val TERMINALS = "terminals"
     private const val CONTINUATION_INDENT = "    "
@@ -181,6 +192,7 @@ object GrammarNotation {
 
     private val HEADER = Regex("($START|$TERMINALS)\\s+(\\S+)")
     private val RULE = Regex("([A-Za-z_][A-Za-z0-9_]*)\\s*$OPENS\\s*(.*)")
-    private val WEIGHT = Regex("$WEIGHS(\\d+(?:\\.\\d+)?)")
+    /** A last token carrying a weight: what it produces, if anything, then the weight. */
+    private val WEIGHED = Regex("(.*)$WEIGHS(\\d+(?:\\.\\d+)?)")
     private val WHITESPACE = Regex("\\s+")
 }

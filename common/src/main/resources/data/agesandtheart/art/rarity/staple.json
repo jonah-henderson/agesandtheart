@@ -6,5 +6,19 @@
   ],
   "weight": 20,
   "item_rarity": "uncommon",
-  "words": []
+  "words": [
+    "agesandtheart:archipelagic",
+    "agesandtheart:canyoned",
+    "agesandtheart:cleft",
+    "agesandtheart:continental",
+    "agesandtheart:cratered",
+    "agesandtheart:eroded",
+    "agesandtheart:gentle",
+    "agesandtheart:insular",
+    "agesandtheart:overworld",
+    "agesandtheart:pillared",
+    "agesandtheart:riverine",
+    "agesandtheart:shattered",
+    "agesandtheart:sheer"
+  ]
 }

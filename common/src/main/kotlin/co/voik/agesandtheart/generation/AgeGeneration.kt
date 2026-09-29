@@ -478,8 +478,9 @@ object AgeGeneration {
      * the territory map index for index.
      */
     private fun waterTablesOf(composition: AgeComposition, seaFill: SeaFill, seed: Long): List<WaterTable> =
-        composition.carvers.map { carving ->
-            carving.waterTable(seaFill, seed) ?: WaterTable.matching(seaFill, seaFill.level, seed)
+        composition.carvers.mapIndexed { member, carving ->
+            carving.waterTable(seaFill, seed, composition.optionsFor(Aspect.CARVERS, member))
+                ?: WaterTable.matching(seaFill, seaFill.level, seed)
         }
 
     /**
