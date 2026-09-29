@@ -1,0 +1,57 @@
+{
+  "_comment": "Generated from src/main/generation/advanced_book.gen — edit that, not this.",
+  "start": "book",
+  "terminals": "word",
+  "rules": {
+    "book": [
+      {"produce":["<mingled_age>"]},
+      {"produce":["<spared_age>"]},
+      {"produce":["<thronged_age>"]},
+      {"produce":["<sited_age>"]}
+    ],
+    "mingled_age": [
+      {"produce":["<bleak_mood>","age","patchy","<hot_stone>","and","<dark_stone>","landmass","molten","sea"]},
+      {"produce":["age","patchy","<cold_stone>","and","<pale_stone>","landmass","frozen","climate"]}
+    ],
+    "spared_age": [
+      {"produce":["age","except","<monster>","spawns","temperate","climate"]}
+    ],
+    "thronged_age": [
+      {"produce":["age","teeming","<beast>","spawns","verdant","biomes"]}
+    ],
+    "sited_age": [
+      {"produce":["age","torchflowers","features","in","jungle"]}
+    ],
+    "bleak_mood": [
+      {"produce":["desolate"]},
+      {"produce":["ancient"]},
+      {"produce":["foreboding"]}
+    ],
+    "hot_stone": [
+      {"produce":["basalt"]},
+      {"produce":["magma_block"]}
+    ],
+    "dark_stone": [
+      {"produce":["blackstone"]},
+      {"produce":["deepslate"]}
+    ],
+    "cold_stone": [
+      {"produce":["packed_ice"]},
+      {"produce":["blue_ice"]}
+    ],
+    "pale_stone": [
+      {"produce":["snow_block"]},
+      {"produce":["calcite"]}
+    ],
+    "monster": [
+      {"produce":["zombie"]},
+      {"produce":["skeleton"]},
+      {"produce":["creeper"]}
+    ],
+    "beast": [
+      {"produce":["sheep"]},
+      {"produce":["rabbit"]},
+      {"produce":["horse"]}
+    ]
+  }
+}

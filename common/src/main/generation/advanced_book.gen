@@ -1,0 +1,35 @@
+start     book
+terminals word
+
+# The D'ni's own books (design §4.2), and the only place a modifier is taught. Every book here should use
+# one where the Age it makes shows what it did (§4.5): an `except` should leave out something the world
+# would otherwise have. BookCheck fails any book that uses no grammatical word but `age`.
+
+book = <mingled_age> | <spared_age> | <thronged_age> | <sited_age>
+
+# `and`: two stones laid together, so the rock visibly holds both.
+mingled_age = <bleak_mood> age patchy <hot_stone> and <dark_stone> landmass molten sea
+    | age patchy <cold_stone> and <pale_stone> landmass frozen climate
+
+# `except`: the creatures a world would grow, less one a visitor would miss.
+spared_age = age except <monster> spawns temperate climate
+
+# A quantifier: one creature, far more often than the world would grow it.
+thronged_age = age teeming <beast> spawns verdant biomes
+
+# `in`: a feature confined to one biome. Torchflowers are the pack's own, so this is judged on a server.
+sited_age = age torchflowers features in jungle
+
+bleak_mood = desolate | ancient | foreboding
+
+hot_stone = basalt | magma_block
+
+dark_stone = blackstone | deepslate
+
+cold_stone = packed_ice | blue_ice
+
+pale_stone = snow_block | calcite
+
+monster = zombie | skeleton | creeper
+
+beast = sheep | rabbit | horse

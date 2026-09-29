@@ -5,6 +5,8 @@ import co.voik.agesandtheart.ShippedCorpus.read
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.word.generation.GenerationGrammar
 import co.voik.agesandtheart.age.word.grammar.Production
+import co.voik.agesandtheart.book.FoundBookDraft
+import co.voik.agesandtheart.book.FoundBookKind
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import kotlin.random.Random
@@ -12,7 +14,7 @@ import kotlin.random.Random
 /**
  * The whole pipeline, at scale, from both ends.
  *
- * **Books the Art writes** come out of the shipped `book` grammar (§4.5), and they are content: a found book
+ * **Books the Art writes** come out of the shipped grammar for each [FoundBookKind] (§4.5), and they are content: a found book
  * is a worked example a player calibrates against, so one that arrived unreadable or self-contradictory
  * would teach exactly the wrong lesson and its reader would have no way to tell. Coherence is a property of
  * *how the grammar is authored* rather than of anything code does — the alternatives an author writes hang
@@ -27,28 +29,33 @@ import kotlin.random.Random
  * instability, and contradicting yourself must cost instability and never a parse error. Those are the
  * design's promise, and they are only checkable by damaging a book that was known good first.
  *
- * Offline the corpus is blocks and the authored words. Biomes and structure sets arrive with a server's
- * dynamic registries, so the populative half of the language — and with it `only`, `except` and the rungs —
- * is exercised by `scripts/checks/quantifiers.txt` rather than here.
+ * Offline the corpus carries vanilla's worldgen, so biomes, structure sets and vanilla's placed features are
+ * all words here, and `in`, `only`, `except` and the rungs over them are checked like anything else. What it
+ * lacks is the pack's own worldgen — `torchflowers`, `algae` — which only a server loads.
  */
 @Tags(NEEDS_REGISTRIES)
 class BookCheck : FunSpec({
 
-    val bookGrammar: GenerationGrammar by lazy {
-        vocabulary.generation.grammar(BOOK_GRAMMAR) ?: error("the pack ships no '$BOOK_GRAMMAR' grammar")
-    }
+    fun grammarFor(kind: FoundBookKind): GenerationGrammar =
+        vocabulary.generation.grammar(kind.grammar) ?: error("the pack ships no '${kind.grammar}' grammar")
 
     /**
      * Written once and read by every property below. Generating and resolving are the whole cost of this
      * spec, and doing either per property multiplies a four-minute-loop saving away for nothing.
      */
-    val written by lazy { (1L..BOOKS_DRAWN).map { seed -> seed to bookGrammar.expand(Random(seed)) } }
-    val resolved by lazy {
-        written.map { (seed, pages) ->
-            val read = read(pages)
-            Triple(seed, pages, runCatching { Resolver.resolve(vocabulary, read, seed) })
+    val drafts by lazy {
+        FoundBookKind.entries.flatMap { kind ->
+            (1L..BOOKS_DRAWN).map { seed ->
+                FoundBookDraft.drawn(vocabulary, kind, seed) ?: error("the pack ships no '${kind.grammar}' grammar")
+            }
         }
     }
+
+    /**
+     * The books this corpus can judge. One naming the pack's own worldgen is judged by `BookOnServerCheck`
+     * instead, since offline those pages are not words at all.
+     */
+    val judgeable by lazy { drafts.filterNot { draft -> draft.pages.any(vocabulary::awaitsAServer) } }
 
     /** Rows of pages drawn from the whole corpus — nonsense on purpose, and never meant to be otherwise. */
     val fuzzed by lazy {
@@ -66,70 +73,27 @@ class BookCheck : FunSpec({
         }
     }
 
-    /**
-     * A book the Art writes says something. The failure this guards is the quiet one — a grammar that
-     * expanded to nothing would pass every property below by never testing anything.
-     */
-    test("a book the Art writes is a book") {
-        // Two pages is the floor and it is a real one: an aiming page with nothing after it changes no
-        // world, so a book at that length has spent ink to say nothing at all.
-        val silent = written.filter { (_, pages) -> pages.size < 2 }
-        check(silent.isEmpty()) { "${silent.size} of $BOOKS_DRAWN books said nothing: $silent" }
-        // Deterministic, or a failing seed could not be reproduced — the first thing anyone will want.
-        check(bookGrammar.expand(Random(1L)) == bookGrammar.expand(Random(1L))) {
-            "the same seed wrote two different books"
-        }
-        // The nucleus is structure rather than content, so no property below would notice it missing —
-        // and a found book without one is the one shape of book a player must never be taught to copy.
-        val headless = written.filterNot { (_, pages) -> pages.any { vocabulary.grammarWord(it)?.production == Production.NUCLEUS } }
-        check(headless.isEmpty()) { "${headless.size} books had no Age to hang on: ${headless.take(3)}" }
-    }
-
-    /**
-     * **Well-formed means read whole, and read as written.** A found book is what *teaches* the grammar
-     * (§4.5), so a page the Art had to move or supply is a lesson in nonsense — and repair makes that
-     * invisible from `dropped` alone, since it places what it can and drops nothing.
-     */
-    test("every book the Art writes is read whole and needs no repair") {
-        for ((seed, pages) in written) {
-            val read = read(pages)
-            check(read.dropped.isEmpty()) {
-                "seed $seed wrote '${pages.joinToString(" ")}', and the Art could not place " +
-                    read.dropped.joinToString(" ")
-            }
-            val supplied = read.constraints.filter { it.latent }.map { it.word.name }
-            check(supplied.isEmpty()) {
-                "seed $seed wrote '${pages.joinToString(" ")}', which would not parse — the Art had to " +
-                    "supply ${supplied.joinToString(" ")}"
+    /** Deterministic, or a failing seed could not be reproduced — the first thing anyone will want. */
+    test("the same seed writes the same book") {
+        for (kind in FoundBookKind.entries) {
+            val grammar = grammarFor(kind)
+            check(grammar.expand(Random(1L)) == grammar.expand(Random(1L))) {
+                "the same seed wrote two different ${kind.key} books"
             }
         }
     }
 
     /**
-     * And it resolves into a world without throwing, at a cost greater than nothing — a book that cost
-     * nothing said nothing, whatever its page count.
+     * **Every book the Art writes is a good found book** — read whole, resolved, coherent unless it is
+     * meant not to be, and teaching a modifier if it is advanced. `FoundBookRules` is what that means, and
+     * the server's half of this check asks the same of the books only a server can read.
      */
-    test("every book the Art writes resolves") {
-        for ((seed, pages, resolution) in resolved) {
-            val resolved = resolution
-                .getOrElse { failure -> error("seed $seed ('${pages.joinToString(" ")}') would not resolve: $failure") }
-            check(resolved.cost > 0) { "seed $seed ('${pages.joinToString(" ")}') cost nothing" }
-        }
-    }
-
-    /**
-     * **A book the Art writes coheres**, which is what makes it content rather than noise. It is a property
-     * of the grammar file: an author who puts `frozen` and `molten` in one alternative writes an exemplar
-     * that argues with itself, and nothing downstream can rescue it.
-     */
-    test("every book the Art writes coheres") {
-        for ((seed, pages, resolution) in resolved) {
-            val instability = resolution.getOrThrow().instability
-            check(instability.isCoherent) {
-                "seed $seed wrote '${pages.joinToString(" ")}', which came out at " +
-                    "$instability: ${instability.flaws.joinToString("; ")}"
-            }
-        }
+    test("every book the Art writes is one worth finding") {
+        // The instrument has to be measuring something: a grammar that had gone wholly server-only would
+        // pass here by never being asked.
+        check(judgeable.isNotEmpty()) { "every found book names worldgen only a server has" }
+        val problems = judgeable.flatMap { draft -> problemsWith(JudgedBook.of(draft)) }
+        check(problems.isEmpty()) { "${problems.size} problems, the first of them:\n  ${problems.take(10).joinToString("\n  ")}" }
     }
 
     /**
@@ -139,20 +103,21 @@ class BookCheck : FunSpec({
      * write.
      */
     test("garbling a book costs vagueness, never instability") {
-        for ((seed, pages) in written) {
-            val garbled = pages + "zzzznotaword$seed"
-            val read = read(garbled)
-            check(read.unreadable == listOf("zzzznotaword$seed")) {
-                "garbling seed $seed reported ${read.unreadable} rather than the one page nobody can read"
+        for (book in judgeable) {
+            val junk = "zzzznotaword${book.seed}"
+            val read = read(book.pages + junk)
+            check(read.unreadable == listOf(junk)) {
+                "garbling $book reported ${read.unreadable} rather than the one page nobody can read"
             }
             // The other channel must stay empty: an unreadable page is vagueness, and charging it as
             // something no sentence has room for would be the two channels collapsed into one (§4.3).
             check(read.impossible.isEmpty()) {
-                "garbling seed $seed was read as an impossibility: ${read.impossible}"
+                "garbling $book was read as an impossibility: ${read.impossible}"
             }
-            val resolution = Resolver.resolve(vocabulary, read, seed)
-            check(resolution.instability.isCoherent) {
-                "an unreadable page made seed $seed unstable: ${resolution.instability.flaws.joinToString("; ")}"
+            // Against the book as written rather than against nothing, since an unstable one starts flawed.
+            val garbled = Resolver.resolve(vocabulary, read, book.seed).instability
+            check(garbled == book.instability) {
+                "an unreadable page changed $book from ${book.instability} to $garbled: ${garbled.flaws.joinToString("; ")}"
             }
         }
     }
@@ -267,9 +232,7 @@ private fun nucleusPage(vocabulary: Vocabulary): String =
 /** The one page every book must carry, without which a row is refused rather than read (§4.3.1). */
 private const val NUCLEUS_PAGE = "age"
 
-private const val BOOK_GRAMMAR = "book"
-
-/** More seeds than the shipped grammar has distinct expansions, so every alternative is drawn. */
+/** More seeds than any shipped book grammar has distinct expansions, so every alternative is drawn. */
 private const val BOOKS_DRAWN = 500L
 
 /** Enough that a rare combination of pages turns up, quick enough to stay in the offline suite. */

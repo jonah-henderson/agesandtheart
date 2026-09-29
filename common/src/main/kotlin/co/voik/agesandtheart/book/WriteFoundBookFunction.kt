@@ -13,8 +13,10 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
  * Writes a found descriptive book, so it arrives already describing somewhere.
  *
  * ```json
- * { "function": "agesandtheart:write_found_book" }
+ * { "function": "agesandtheart:write_found_book", "kind": "advanced" }
  * ```
+ *
+ * `kind` is a [FoundBookKind] and defaults to `basic`.
  *
  * **This is how the grammar is taught** (design §4.5). `and`, `only`, `except` and the rungs are structure
  * rather than content, so no page loot hands them out and no device derives one — a writer meets them in a
@@ -22,7 +24,7 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
  * ([co.voik.agesandtheart.page.PageLearning.study], called when the book is opened). A player who has only
  * ever found *pages* has a vocabulary and no sentences.
  *
- * What it writes is the `book` generation grammar (`art/generation/book.json`), which is why a found book
+ * What it writes is the kind's generation grammar (`art/generation/<kind>_book.json`), which is why a found book
  * reads as something a person would write rather than as a heap of words — and why retuning what turns up
  * is a datapack edit rather than a code one.
  *
@@ -32,20 +34,25 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
  * that happened rather than from the chest's own generation. A found book should be a *thing already
  * written*, and reading its cover is half of what makes finding one worth anything.
  */
-class WriteFoundBookFunction(predicate: Optional<Holder<LootItemCondition>>) : LootItemConditionalFunction(predicate) {
+class WriteFoundBookFunction(
+    predicate: Optional<Holder<LootItemCondition>>,
+    private val kind: FoundBookKind,
+) : LootItemConditionalFunction(predicate) {
 
     override fun codec(): MapCodec<out LootItemConditionalFunction> = MAP_CODEC
 
     override fun run(itemStack: ItemStack, context: LootContext): ItemStack {
         // The loot context's own randomness, so a chest generates the same book each time it is rolled
         // from the same seed — the same promise every other found thing here makes.
-        FoundBook.write(itemStack, context.level.server, context.random.nextLong())
+        FoundBook.write(itemStack, context.level.server, context.random.nextLong(), kind)
         return itemStack
     }
 
     companion object {
         val MAP_CODEC: MapCodec<WriteFoundBookFunction> = RecordCodecBuilder.mapCodec { instance ->
-            commonFields(instance).apply(instance, ::WriteFoundBookFunction)
+            commonFields(instance)
+                .and(FoundBookKind.CODEC.optionalFieldOf("kind", FoundBookKind.BASIC).forGetter { it.kind })
+                .apply(instance, ::WriteFoundBookFunction)
         }
     }
 }

@@ -14,6 +14,9 @@ import co.voik.agesandtheart.age.word.grammar.GrammarWord
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.HolderLookup
+import net.minecraft.core.Registry
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.packs.resources.ResourceManager
@@ -110,6 +113,8 @@ data class Vocabulary(
     val derivation: Map<Aspect, Derivation>,
     /** How a creature the world never offered arrives in one — see [Spawning]. */
     val spawning: Spawning,
+    /** Names of worldgen a pack ships that the registries this was loaded over did not hold. See [awaitsAServer]. */
+    private val shippedButNotLoaded: Set<String>,
     /** What could not be read, in the words a content author needs to hear. Empty in a healthy pack. */
     val problems: List<String>,
 ) {
@@ -118,6 +123,13 @@ data class Vocabulary(
 
     /** The word a writer means by [name], or null if the corpus has never heard of it. */
     fun word(name: String): Word? = byName[name]
+
+    /**
+     * Whether [name] would be a word on a server and is not one here: a placed feature, biome or structure
+     * set a pack ships as worldgen JSON, over registries that never loaded it. Offline that is exactly the
+     * pack's own worldgen; on a server it is nothing.
+     */
+    fun awaitsAServer(name: String): Boolean = name !in byName && name in shippedButNotLoaded
 
     /**
      * Whether this word was read off a block, biome or structure rather than authored (§8.1).
@@ -380,9 +392,10 @@ data class Vocabulary(
             val ink = InkRequirement.load(resources, problems)
             val stock = WriterStock.load(resources, problems)
             // After the words, since a grammar naming one that does not exist is the fault worth reporting.
+            val shippedButNotLoaded = worldgenShippedButNotLoaded(resources, registries)
             val generation = GenerationGrammars.load(
                 resources,
-                isAWord = { it in words || it in structural },
+                isAWord = { it in words || it in structural || it in shippedButNotLoaded },
                 problems,
             )
             for (problem in problems) Constants.LOG.error("Art vocabulary: {}", problem)
@@ -392,8 +405,35 @@ data class Vocabulary(
             val charges = readCharges(resources, problems)
             return Vocabulary(
                 words, structural, described, antonyms, script, rarity, ink, stock, generation, charges,
-                derivedIds, rules, spawning, problems,
+                derivedIds, rules, spawning, shippedButNotLoaded, problems,
             )
+        }
+
+        /**
+         * Every name — full id and bare path — of worldgen in [resources] that [registries] does not hold.
+         * A grammar may name one without it being reported as no word, since it is a word wherever the pack
+         * is really loaded.
+         */
+        private fun worldgenShippedButNotLoaded(resources: ResourceManager, registries: HolderLookup.Provider?): Set<String> =
+            // The three registries [DerivedWords] makes words of.
+            (
+                shippedButNotLoaded(resources, registries, Registries.PLACED_FEATURE) +
+                    shippedButNotLoaded(resources, registries, Registries.BIOME) +
+                    shippedButNotLoaded(resources, registries, Registries.STRUCTURE_SET)
+                ).toSet()
+
+        private fun <T : Any> shippedButNotLoaded(
+            resources: ResourceManager,
+            registries: HolderLookup.Provider?,
+            registry: ResourceKey<out Registry<T>>,
+        ): List<String> {
+            val directory = Registries.elementsDirPath(registry)
+            val loaded = registries?.lookup(registry)?.orElse(null)
+            fun isLoaded(id: Identifier) = loaded?.get(ResourceKey.create(registry, id))?.isPresent == true
+            return resources.listResources(directory, ResourceParsing::isJson).keys
+                .map { file -> idOf(file, directory) }
+                .filterNot(::isLoaded)
+                .flatMap { id -> listOf(id.toString(), id.path) }
         }
 
         /**

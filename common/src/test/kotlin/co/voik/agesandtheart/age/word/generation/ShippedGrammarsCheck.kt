@@ -14,7 +14,7 @@ import kotlin.random.Random
  * The generation grammars we actually ship, as **content**: they are data files, so what is wrong with one
  * is wrong in a place no stack trace points at.
  *
- * What the `book` grammar's output has to survive is asked by `BookCheck`, which takes it all the way
+ * What the book grammars' output has to survive is asked by `BookCheck`, which takes it all the way
  * through the resolver. What is left here is the properties each grammar owes for being the grammar it is —
  * chiefly the repair grammar's tameness, which is a rule about *which words are in the file* and nothing
  * downstream can enforce.

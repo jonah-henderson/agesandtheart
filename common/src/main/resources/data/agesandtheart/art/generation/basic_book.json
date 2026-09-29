@@ -1,5 +1,5 @@
 {
-  "_comment": "Generated from src/main/generation/book.gen — edit that, not this.",
+  "_comment": "Generated from src/main/generation/basic_book.gen — edit that, not this.",
   "start": "book",
   "terminals": "word",
   "rules": {

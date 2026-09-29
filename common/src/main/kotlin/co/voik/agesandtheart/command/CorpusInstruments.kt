@@ -14,7 +14,10 @@ import co.voik.agesandtheart.age.word.generation.TerminalKind
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.location
-import co.voik.agesandtheart.book.FoundBook
+import co.voik.agesandtheart.book.FoundBookDraft
+import co.voik.agesandtheart.book.FoundBookKind
+import co.voik.agesandtheart.age.word.Resolver
+import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
@@ -37,6 +40,7 @@ internal object CorpusInstruments {
             .then(dimensionsSubcommand())
             .then(holdingsSubcommand())
             .then(bookSubcommand())
+            .then(booksSubcommand())
             .then(draftSubcommand())
     }
 
@@ -48,6 +52,13 @@ internal object CorpusInstruments {
     private const val TAGS_LITERAL = "tags"
 
     private const val TAG_ARGUMENT = "tag"
+
+    private const val KIND_ARGUMENT = "kind"
+
+    private const val COUNT_ARGUMENT = "count"
+
+    /** More books than any check needs, and few enough that one answer stays a reasonable size. */
+    private const val MOST_BOOKS_AT_ONCE = 1000
 
     /**
      * **Every dimension this server has**, ours and everyone else's.
@@ -244,13 +255,67 @@ internal object CorpusInstruments {
         return SUCCESS
     }
 
+    /** `/age book [<kind>] [<seed>]`, where leaving the kind out means a basic book. */
     private fun bookSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("book")
-            .executes { context -> runBook(context, seed = context.source.level.gameTime) }
-            .then(
-                Commands.argument(SEED_ARGUMENT, LongArgumentType.longArg())
-                    .executes { context -> runBook(context, LongArgumentType.getLong(context, SEED_ARGUMENT)) },
+        FoundBookKind.entries.fold(bookSeeds(Commands.literal("book"), FoundBookKind.BASIC)) { command, kind ->
+            command.then(bookSeeds(Commands.literal(kind.key), kind))
+        }
+
+    private fun bookSeeds(
+        command: LiteralArgumentBuilder<CommandSourceStack>,
+        kind: FoundBookKind,
+    ): LiteralArgumentBuilder<CommandSourceStack> = command
+        .executes { context -> runBook(context, kind, seed = context.source.level.gameTime) }
+        .then(
+            Commands.argument(SEED_ARGUMENT, LongArgumentType.longArg())
+                .executes { context -> runBook(context, kind, LongArgumentType.getLong(context, SEED_ARGUMENT)) },
+        )
+
+    /**
+     * `/age books <kind> <count>` — the [kind] of book at seeds one to [count], each with what the Art made
+     * of it. For the server's half of `BookCheck`, which is why it is a document first and prose second: a
+     * pack's own worldgen is only words on a server, and books naming it can only be judged here.
+     */
+    private fun booksSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("books") { reportFor ->
+            Commands.argument(KIND_ARGUMENT, StringArgumentType.word())
+                .suggests { _, builder -> SharedSuggestionProvider.suggest(FoundBookKind.entries.map { it.key }, builder) }
+                .then(
+                    Commands.argument(COUNT_ARGUMENT, IntegerArgumentType.integer(1, MOST_BOOKS_AT_ONCE))
+                        .executes { context -> runBooks(context, reportFor(context)) },
+                )
+        }
+
+    private fun runBooks(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val key = StringArgumentType.getString(context, KIND_ARGUMENT)
+        val kind = FoundBookKind.entries.firstOrNull { it.key == key }
+            ?: return report.fail("No kind of book called '$key'. Known: ${FoundBookKind.entries.joinToString(" ") { it.key }}")
+        val vocabulary = Vocabulary.of(context.source.server)
+        val count = IntegerArgumentType.getInteger(context, COUNT_ARGUMENT)
+        val drafts = (1L..count).map { seed ->
+            FoundBookDraft.drawn(vocabulary, kind, seed)
+                ?: return report.fail("This pack ships no '${kind.grammar}' grammar, so the Art writes none")
+        }
+        report.fact("books", drafts.size) { "${drafts.size} ${kind.key} books:" }
+        for (draft in drafts) {
+            val fields = mapOf(
+                "seed" to draft.seed,
+                "pages" to draft.pages,
+                "unplaced" to draft.unplaced,
+                "supplied" to draft.supplied,
+                "modifiers" to draft.modifiers,
+                "has_an_age" to draft.hasAnAge,
+                "resolved" to (draft.cost != null),
+                "cost" to (draft.cost ?: 0),
+                "instability" to (draft.instability?.index ?: 0),
+                "flaws" to draft.instability?.flaws.orEmpty().map { it.toString() },
+                "failure" to draft.failure,
             )
+            report.entry("book", fields) { "  ${draft.seed}: ${draft.pages.joinToString(" ")} — ${draft.instability ?: draft.failure}" }
+        }
+        report.finish()
+        return SUCCESS
+    }
 
     private fun draftSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("draft").then(
@@ -263,24 +328,24 @@ internal object CorpusInstruments {
         )
 
     /**
-     * `/age book [<seed>]` — a book the Art could have written, read back rather than handed over.
+     * `/age book [<kind>] [<seed>]` — a book the Art could have written, read back rather than handed over.
      *
      * **Deliberately not the item.** A real one is what `/give agesandtheart:descriptive_book` produces, so
      * what this is for is *looking at what the grammar writes* — pages and reading, at a seed you can name,
      * from a console that has nobody to hand anything to.
      */
-    private fun runBook(context: CommandContext<CommandSourceStack>, seed: Long): Int {
+    private fun runBook(context: CommandContext<CommandSourceStack>, kind: FoundBookKind, seed: Long): Int {
         val source = context.source
         val vocabulary = Vocabulary.of(source.server)
-        val grammar = vocabulary.generation.grammar(FoundBook.GRAMMAR)
+        val grammar = vocabulary.generation.grammar(kind.grammar)
         if (grammar == null) {
             source.sendFailure(
-                Component.literal("This pack ships no '${FoundBook.GRAMMAR}' grammar, so the Art writes none"),
+                Component.literal("This pack ships no '${kind.grammar}' grammar, so the Art writes none"),
             )
             return FAILURE
         }
         val pages = grammar.expand(Random(seed))
-        source.sendSuccess({ Component.literal("A book at seed $seed, ${pages.size} pages:") }, false)
+        source.sendSuccess({ Component.literal("${kind.key.replaceFirstChar(Char::uppercase)} book at seed $seed, ${pages.size} pages:") }, false)
         source.sendSuccess({ Component.literal("  ${pages.joinToString(" ")}") }, false)
         // Said back through the readout, so what it *means* is visible beside what it says — which is the
         // only way to judge whether a generated book is a good one.
@@ -289,6 +354,12 @@ internal object CorpusInstruments {
         val sentence = Grammar.read(vocabulary, pages)
         val reading = sentence?.let(Readout::of) ?: "nothing — this book has no Age page, so it is not a book"
         source.sendSuccess({ Component.literal("  reads as: $reading") }, false)
+        // Said because an unstable book is meant to be flawed, and a coherent one is meant not to be.
+        if (sentence != null) {
+            val instability = Resolver.resolve(vocabulary, sentence, seed).instability
+            source.sendSuccess({ Component.literal("  $instability") }, false)
+            for (flaw in instability.flaws) source.sendSuccess({ Component.literal("    $flaw") }, false)
+        }
         source.sendSuccess({
             Component.literal("  write it with: /age write book$seed $seed ${pages.joinToString(" ")}")
         }, false)

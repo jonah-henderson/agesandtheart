@@ -46,7 +46,7 @@ object PageLoot {
         ResourceKey.create(Registries.LOOT_TABLE, "inject/linking_book".location())
 
     /**
-     * A book somebody wrote, and **the only place the grammar is taught** (§4.5).
+     * A basic book somebody wrote (§4.2), and **the only place the grammar is taught** (§4.5).
      *
      * `and`, `only`, `except` and the rungs are structure rather than content, so no page loot hands one
      * out and no device derives one — a writer meets them in a book somebody else wrote, and reading it is
@@ -57,8 +57,8 @@ object PageLoot {
      * a lesson nobody gets taught — so for now it turns up wherever a page does, at a rate chosen for
      * walking rather than for play. [WHILE_UNPLACED] is the one number to drop when the structure lands.
      */
-    val DESCRIPTIVE_BOOK: ResourceKey<LootTable> =
-        ResourceKey.create(Registries.LOOT_TABLE, "inject/descriptive_book".location())
+    val BASIC_BOOK: ResourceKey<LootTable> =
+        ResourceKey.create(Registries.LOOT_TABLE, "inject/basic_book".location())
 
     /**
      * One of the three D'ni survey reports (design §7.6). Their home is the lost library, and until it
@@ -86,7 +86,7 @@ object PageLoot {
     private fun everywherePagesAre(): List<PageLootTarget> = PLACED
         .map { it.table }
         .distinct()
-        .map { PageLootTarget(it, WHILE_UNPLACED, DESCRIPTIVE_BOOK) }
+        .map { PageLootTarget(it, WHILE_UNPLACED, BASIC_BOOK) }
 
     private val PLACED: List<PageLootTarget> = listOf(
         vanilla("chests/stronghold_library", 0.85f),

@@ -1,0 +1,21 @@
+{
+  "_comment": "Generated from src/main/generation/unstable_book.gen — edit that, not this.",
+  "start": "book",
+  "terminals": "word",
+  "rules": {
+    "book": [
+      {"produce":["<torn_climate>"]},
+      {"produce":["<flooded_desert>"]}
+    ],
+    "torn_climate": [
+      {"produce":["age","<cold_stone>","landmass","frozen","scorching","climate"]}
+    ],
+    "flooded_desert": [
+      {"produce":["age","arid","landmass","flooded","rock"]}
+    ],
+    "cold_stone": [
+      {"produce":["packed_ice"]},
+      {"produce":["snow_block"]}
+    ]
+  }
+}

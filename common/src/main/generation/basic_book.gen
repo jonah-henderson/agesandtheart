@@ -1,6 +1,9 @@
 start     book
 terminals word
 
+# What turns up in the world's chests and the lost library (design §4.2): short, flat, plainly attached, and
+# from common words. It stokes curiosity rather than teaching structure, which is the advanced book's job.
+
 # Modifiers lead, the page they modify closes the clause (design §4.3.1): "a desolate Age with packed ice
 # landmass, frozen air" rather than "landmass packed_ice".
 
@@ -16,8 +19,6 @@ bleak_mood = desolate x2 | ancient | foreboding
 
 cold_stone = packed_ice x2 | blue_ice | snow_block
 
-# Each closes its own page: `overcast` is about the vault and `starlit` is about the field behind it, and
-# since the world model split the two they are siblings rather than one page holding the other.
 cold_sky = overcast sky | starlit stars
 
 hot_stone = basalt x2 | blackstone | magma_block

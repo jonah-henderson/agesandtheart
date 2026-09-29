@@ -427,10 +427,16 @@ pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope
 > against `sun`, `moon` and `stars`, and `in <biome>` (§4.3.1) is built. Read that document before changing
 > anything under `age/aspect/` or `age/word/`; it is normative and current, not a plan.
 - **`age/word/generation/`** — the grammars the Art writes *out* of, which are **datapack content**
-  (`art/generation/<name>.json`): `book` writes the found Descriptive Books a player learns structure from,
-  `repair` writes the sentence a book that does not parse is filled into, `name` draws an Age's syllables. A
-  weighted context-free grammar read forwards, and it shares no machinery with the parser on purpose.
-  `BookCheck` runs `book`'s output through the whole pipeline and fuzzes 2000 random page rows beside it.
+  (`art/generation/<name>.json`, authored as `src/main/generation/<name>.gen` and exported by
+  `:common:grammars`): `basic_book`, `advanced_book` and `unstable_book` write the three kinds of found
+  Descriptive Book (`FoundBookKind`, named by `write_found_book`'s `kind`), `repair` writes the sentence a
+  book that does not parse is filled into, `name` draws an Age's syllables. A weighted context-free grammar
+  read forwards, and it shares no machinery with the parser on purpose. `BookCheck` runs every book grammar's
+  output through the whole pipeline against the rules in `FoundBookRules` — the unstable one must come out
+  flawed and the advanced one must use a modifier — and fuzzes 2000 random page rows beside it. A book
+  naming the pack's own worldgen (`algae`, `torchflowers`) is skipped offline, where those are not words
+  (`Vocabulary.awaitsAServer`), and judged by the same rules in `BookOnServerCheck` through `/age books json`.
+  `/age book [<kind>] [<seed>]` reads one back.
 - **`Instability`** — how far an Age is at odds with itself, in six registers, each `Flaw` naming the words,
   slot and tags involved. Provenance is the point: a flaw has to be diagnosable, and §5's consequences read
   this long after the book was written. Part of the recipe.

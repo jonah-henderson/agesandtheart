@@ -6,9 +6,38 @@ import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.SurveyReport
+import com.mojang.serialization.Codec
 import net.minecraft.server.MinecraftServer
+import net.minecraft.util.StringRepresentable
 import net.minecraft.world.item.ItemStack
 import kotlin.random.Random
+
+/**
+ * Which kind of book somebody else wrote, each written from its own generation grammar (design §4.2).
+ *
+ * [isCoherent] is what `BookCheck` holds each grammar to: an unstable book is somebody's mistake on
+ * purpose, and every other kind is an exemplar that must not argue with itself.
+ */
+enum class FoundBookKind(val key: String, val isCoherent: Boolean) : StringRepresentable {
+    /** Short and plain, from common words — what the scatter and the lost library hold. */
+    BASIC("basic", isCoherent = true),
+
+    /** Structurally rich and rarer-worded — the D'ni's own, and where the modifiers are taught. */
+    ADVANCED("advanced", isCoherent = true),
+
+    /** A book put away as unfit, kept in the city's quarantine chamber. */
+    UNSTABLE("unstable", isCoherent = false),
+    ;
+
+    /** The generation grammar it is written from — `art/generation/<key>_book.json`. */
+    val grammar: String get() = "${key}_book"
+
+    override fun getSerializedName(): String = key
+
+    companion object {
+        val CODEC: Codec<FoundBookKind> = StringRepresentable.fromEnum(FoundBookKind::values)
+    }
+}
 
 /**
  * A book somebody else already wrote (design §4.5).
@@ -18,22 +47,19 @@ import kotlin.random.Random
  * moment the two differ, testing either says nothing about it.
  */
 object FoundBook {
-    /** The generation grammar a found book is written from — `art/generation/book.json`. */
-    const val GRAMMAR = "book"
-
     /** What a book is called where the pack ships no name grammar to draw one from. */
     private const val UNNAMED = "Untitled"
 
     /**
-     * [stack] written as a book somebody once wrote, at [seed].
+     * [stack] written as a [kind] of book somebody once wrote, at [seed].
      *
      * **Writes the words even where there is nothing to write**, so a blank book is blank *once*: the
      * caller's cue to try is the words being absent, and a pack with no book grammar would otherwise have
      * every book in the world re-reading the corpus for as long as it existed.
      */
-    fun write(stack: ItemStack, server: MinecraftServer, seed: Long) {
+    fun write(stack: ItemStack, server: MinecraftServer, seed: Long, kind: FoundBookKind) {
         val vocabulary = Vocabulary.of(server)
-        val pages = vocabulary.generation.grammar(GRAMMAR)?.expand(Random(seed)).orEmpty()
+        val pages = vocabulary.generation.grammar(kind.grammar)?.expand(Random(seed)).orEmpty()
         writePages(stack, vocabulary, pages) { AgeName.drawn(vocabulary, seed)?.read ?: UNNAMED }
     }
 

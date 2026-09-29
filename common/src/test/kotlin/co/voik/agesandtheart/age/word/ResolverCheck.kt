@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus
 import co.voik.agesandtheart.ShippedCorpus.read
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.AgeComposition
@@ -1345,6 +1346,15 @@ class ResolverCheck : FunSpec({
      * second is charged (§3.2) rather than refused: the pen never rejects, and ignoring one of the two
      * would be exactly the silent drop §3.3 forbids.
      */
+    /** The page an `only` clause closes with is the clause's subject, not a second thing asked for. */
+    test("only is not crowded by the page it is aimed at") {
+        for (written in listOf(listOf("only", "slime", "spawns"), listOf("only", "jungle", "biomes"))) {
+            val displaced = ShippedCorpus.resolved(SAMPLE_SEED, *written.toTypedArray())
+                .instability.flaws.filter { it.register == Register.DISPLACED }
+            check(displaced.isEmpty()) { "'${written.joinToString(" ")}' was charged: $displaced" }
+        }
+    }
+
     test("only beside an unjoined mention is a contradiction") {
         fun spoken(joined: Boolean): Resolution {
             val group = if (joined) Group(1) else null

@@ -1,0 +1,14 @@
+start     book
+terminals word
+
+# A book somebody put away as unfit, kept in the D'ni city's quarantine chamber (design §4.2). The one
+# found book allowed to argue with itself: BookCheck fails any book here that comes out coherent. Each
+# alternative should be a mistake a reader can see in the world and learn to recognise in their own.
+
+book = <torn_climate> | <flooded_desert>
+
+torn_climate = age <cold_stone> landmass frozen scorching climate
+
+flooded_desert = age arid landmass flooded rock
+
+cold_stone = packed_ice | snow_block

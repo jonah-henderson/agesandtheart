@@ -1,0 +1,28 @@
+{
+  "_comment": [
+    "A basic book somebody wrote (design 4.2): short, flat, from common words, and the start of how the",
+    "grammar is taught -- structure is never a page, so a writer meets it here and learns it by reading (4.5).",
+    "Rarer than a linking book on purpose. A linking book is a way home and you want one early; this is a",
+    "lesson, and finding a second before you have understood the first is worth much less than finding",
+    "one at a time. What it says comes from `art/generation/basic_book.json`, so retuning is a datapack edit.",
+    "The advanced and unstable kinds are inject/advanced_book and inject/unstable_book, and the D'ni city's."
+  ],
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:descriptive_book",
+          "modifier": [
+            {
+              "type": "agesandtheart:write_found_book",
+              "kind": "basic"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

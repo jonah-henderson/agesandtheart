@@ -25,7 +25,7 @@
       "entries": [
         {
           "type": "minecraft:loot_table",
-          "value": "agesandtheart:inject/descriptive_book",
+          "value": "agesandtheart:inject/advanced_book",
           "weight": 1
         },
         {

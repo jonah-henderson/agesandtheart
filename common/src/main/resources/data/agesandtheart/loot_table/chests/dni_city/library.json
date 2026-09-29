@@ -1,7 +1,7 @@
 {
   "_comment": [
     "A D'ni library: what people wrote, kept together. Descriptive books at odds no other container comes",
-    "close to, since reading one is how the grammar is learned (inject/descriptive_book), and linking books",
+    "close to, since reading one is how the grammar is learned (inject/advanced_book), and linking books",
     "because a library is where a route to somewhere else was filed.",
     "Pages here draw the whole corpus by rarity -- the nicer words are the writer's workshop's, so that the",
     "two rooms are worth telling apart."
@@ -26,7 +26,7 @@
       "entries": [
         {
           "type": "minecraft:loot_table",
-          "value": "agesandtheart:inject/descriptive_book",
+          "value": "agesandtheart:inject/advanced_book",
           "weight": 2
         },
         {

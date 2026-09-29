@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "An advanced book (design 4.2): the D'ni's own, structurally rich and rarer-worded, and the only",
+    "place a modifier is taught (4.5). Found in the D'ni city; written from art/generation/advanced_book.json."
+  ],
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:descriptive_book",
+          "modifier": [
+            {
+              "type": "agesandtheart:write_found_book",
+              "kind": "advanced"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

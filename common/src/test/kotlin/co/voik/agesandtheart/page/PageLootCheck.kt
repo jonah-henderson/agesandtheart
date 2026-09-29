@@ -45,7 +45,7 @@ class PageLootCheck : FunSpec({
 
     /** Every modifier adds one of ours, never something that happens to parse. */
     test("every modifier adds a shipped table") {
-        val ours = setOf(PageLoot.PAGES, PageLoot.NOTEBOOK, PageLoot.LINKING_BOOK, PageLoot.DESCRIPTIVE_BOOK, PageLoot.SURVEY_REPORT)
+        val ours = setOf(PageLoot.PAGES, PageLoot.NOTEBOOK, PageLoot.LINKING_BOOK, PageLoot.BASIC_BOOK, PageLoot.SURVEY_REPORT)
             .map { it.identifier().toString() }
         val tables = modifierDirectory.listFiles { file -> file.extension == "json" }.orEmpty()
             .map { JsonParser.parseString(it.readText()).asJsonObject["table"].asString }
@@ -57,13 +57,13 @@ class PageLootCheck : FunSpec({
      *
      * **Found books are exempt while they have nowhere to live.** They are scattered everywhere and
      * generously on purpose, because the grammar cannot be walked if the only thing that teaches it is
-     * rare (`PageLoot.DESCRIPTIVE_BOOK`). When the library structure gives them a home the exemption goes
+     * rare (`PageLoot.BASIC_BOOK`). When the library structure gives them a home the exemption goes
      * with the scatter — and this check is what will say so, by failing.
      */
     test("notebooks and linking books are rarer than pages wherever both appear") {
         val pages = PageLoot.TARGETS.filter { it.injected == PageLoot.PAGES }.associate { it.table to it.chance }
         val tooCommon = PageLoot.TARGETS
-            .filter { it.injected != PageLoot.PAGES && it.injected != PageLoot.DESCRIPTIVE_BOOK }
+            .filter { it.injected != PageLoot.PAGES && it.injected != PageLoot.BASIC_BOOK }
             .filter { rarer -> pages[rarer.table]?.let { rarer.chance >= it } ?: false }
         check(tooCommon.isEmpty()) {
             "These are no rarer than pages: ${tooCommon.map { it.table.identifier() to it.injected.identifier() }}"

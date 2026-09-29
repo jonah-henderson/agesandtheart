@@ -90,12 +90,13 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
     companion object {
         /**
          * Writes [stack] if nothing has, answering whether it did — on the book's inventory tick, and as it is
-         * opened on a lectern, which runs none (design §7.8.2).
+         * opened on a lectern, which runs none (design §7.8.2). A blank is always written as a basic book,
+         * which is what the writer's trade sells.
          */
         @JvmStatic
         fun writeIfBlank(stack: ItemStack, level: ServerLevel): Boolean {
             if (stack.has(AgeComponents.BOOK_WORDS)) return false
-            FoundBook.write(stack, level.server, level.random.nextLong())
+            FoundBook.write(stack, level.server, level.random.nextLong(), FoundBookKind.BASIC)
             // Writing itself is a found book's binding — nothing else ever binds one — so this is the
             // moment its Age is decided, and the earliest it can be made ready.
             PanelWarming.whenBound(level.server, stack)

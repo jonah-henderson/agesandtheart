@@ -1,9 +1,10 @@
 {
   "_comment": [
     "Vanilla's ancient_city/structures, with each element's processor list saying what the room was FOR.",
-    "Of these templates only ten hold a chest at all, and they are the four rooms of design 7.6 plus the",
-    "ice box: chamber_1..3 are the library, sauna_1 the ink and paper workshop, barracks the writer's",
-    "workshop, tall_ruin_1..4 the maintenance hall. Everything else keeps the generic list.",
+    "Of these templates only ten hold a chest at all, and they are the four rooms of design 7.6 and the",
+    "quarantine chamber of 4.2: chamber_1..3 are the library, sauna_1 the ink and paper workshop, barracks",
+    "the writer's workshop, tall_ruin_1..4 the maintenance hall, and ice_box_1 the quarantine chamber.",
+    "Everything else keeps the generic list.",
     "Pairing a ROOM with a vanilla template is the placeholder half -- when the rooms are authored the",
     "same loot tables are pointed at by the new elements and nothing else moves."
   ],
@@ -201,7 +202,7 @@
           {
             "element_type": "minecraft:single_pool_element",
             "location": "minecraft:ancient_city/structures/ice_box_1",
-            "processors": "agesandtheart:dni_city_generic_degradation",
+            "processors": "agesandtheart:dni_city_quarantine",
             "projection": "rigid"
           }
         ],
