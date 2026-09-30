@@ -8,6 +8,7 @@ import co.voik.ephemeris.sky.LevelLooks
 import co.voik.ephemeris.sky.SkyReading
 import co.voik.ephemeris.sky.SkySpec
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Blocks
@@ -225,7 +226,7 @@ object Tide {
                 val isTheSea = here.type == seaFluid || here.type == flowingSea
                 if (!isTheSea) continue
                 when {
-                    top > band.standing -> ebb(level, BlockPos(x, top, z))
+                    top > band.standing -> ebb(level, BlockPos(x, top, z), seaFluid)
                     top < band.standing -> flood(level, chunk, BlockPos(x, top, z), band.standing, sea, here.isSource)
                 }
             }
@@ -233,12 +234,41 @@ object Tide {
     }
 
     /**
-     * The sea above the tide goes, **a source or a flow alike**. Taking only the sources left the flow that ran
-     * back into each gap standing, and the next pass passed it over, so the shore never drained; a flow taken
-     * pass after pass is gone once the sources that fed it are, since none can be made again here ([holdsBack]).
+     * The sea above the tide goes, **a source or a flow alike**, and with it **the sea it reached under cover**.
+     *
+     * Taking only the sources left the flow that ran back into each gap standing, and the next pass passed it
+     * over, so the shore never drained; a flow taken pass after pass is gone once the sources that fed it are,
+     * since none can be made again here ([holdsBack]).
+     *
+     * High water runs in under an overhang or a tree's crown, where a column's top is the cover rather than
+     * the sea, so no column's top ever shows it — and a source left there spilled into the open for every
+     * pass to mop up. So the ebb follows the sea sideways at this height into the covered places beside it,
+     * [COVERED_REACH] blocks at most, and drains them too (Jonah: a covered pool that adjoins the ocean is part
+     * of it). Only covered places are followed; open ones are drained by their own columns, so this costs
+     * nothing along a coast with nothing over it.
      */
-    private fun ebb(level: ServerLevel, at: BlockPos) {
+    private fun ebb(level: ServerLevel, at: BlockPos, sea: Fluid) {
         level.setBlockAndUpdate(at, Blocks.AIR.defaultBlockState())
+        drainUnderCover(level, at, sea)
+    }
+
+    private fun drainUnderCover(level: ServerLevel, from: BlockPos, sea: Fluid) {
+        fun isCoveredSea(at: BlockPos): Boolean {
+            if (!level.isLoaded(at) || !level.getFluidState(at).type.isSame(sea)) return false
+            return at.y < level.getHeight(Heightmap.Types.MOTION_BLOCKING, at.x, at.z) - 1
+        }
+        val seen = mutableSetOf(from)
+        val frontier = ArrayDeque(listOf(from))
+        while (frontier.isNotEmpty()) {
+            val at = frontier.removeFirst()
+            for (side in Direction.Plane.HORIZONTAL) {
+                val next = at.relative(side)
+                val isWithinReach = maxOf(Math.abs(next.x - from.x), Math.abs(next.z - from.z)) <= COVERED_REACH
+                if (!isWithinReach || !seen.add(next) || !isCoveredSea(next)) continue
+                level.setBlockAndUpdate(next, Blocks.AIR.defaultBlockState())
+                frontier.addLast(next)
+            }
+        }
     }
 
     /** The deluge's own rule, stopped at the tide: a flow becomes a source, a source rises to the line. */
@@ -285,6 +315,9 @@ object Tide {
     private const val EVERY_MOON_ALIKE = 1.0
 
     private const val NARROWEST_REACH = 1
+
+    /** How far under cover the ebb follows the sea from the open water beside it. */
+    private const val COVERED_REACH = 8
 
     /**
      * The furthest a tide reaches either side of mid, however hard its moons pull — **one block for now**
