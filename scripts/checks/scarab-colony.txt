@@ -36,7 +36,7 @@ execute in agesandtheart:scarabcolony positioned 0 200 0 run data get entity @e[
 execute in agesandtheart:scarabcolony positioned 0 200 0 run data get entity @e[type=agesandtheart:scarab,sort=furthest,limit=1] home
 execute in agesandtheart:scarabcolony if entity @e[type=agesandtheart:scarab]
 
-# Night: every housed scarab should go into its pillar at the top, and the count fall to none. Then
+# Night: every housed scarab should go into its pillar beside the chamber, and the count fall to none. Then
 # morning, when they come out where they went in.
 execute in agesandtheart:scarabcolony run time set midnight
 tick sprint 1200

@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.Heightmap
@@ -232,9 +233,13 @@ object Tide {
                 val x = originX + offsetX
                 val z = originZ + offsetZ
                 cursor.set(x, top, z)
-                val here = chunk.getBlockState(cursor).fluidState
+                val state = chunk.getBlockState(cursor)
+                val here = state.fluidState
                 val isTheSea = here.type == seaFluid || here.type == flowingSea
-                if (!isTheSea) continue
+                if (!isTheSea) {
+                    if (top <= band.standing) soak(level, BlockPos(x, top, z), state, seaFluid)
+                    continue
+                }
                 when {
                     top > band.standing -> ebb(level, BlockPos(x, top, z), seaFluid)
                     top < band.standing -> flood(level, chunk, BlockPos(x, top, z), band.standing, sea, here.isSource)
@@ -258,8 +263,31 @@ object Tide {
      * nothing along a coast with nothing over it.
      */
     private fun ebb(level: ServerLevel, at: BlockPos, sea: Fluid) {
-        level.setBlockAndUpdate(at, Blocks.AIR.defaultBlockState())
+        dryOut(level, at)
         drainUnderCover(level, at, sea)
+    }
+
+    /**
+     * The sea taken out of [at]: water goes, and **a block standing in it is only dried** — a waterlogged
+     * root or a player's slab is not the sea, and taking it with the water left a yema's roots in pieces.
+     */
+    private fun dryOut(level: ServerLevel, at: BlockPos) {
+        val state = level.getBlockState(at)
+        val isStandingInIt = state.getOptionalValue(BlockStateProperties.WATERLOGGED).orElse(false)
+        val dried = if (isStandingInIt) state.setValue(BlockStateProperties.WATERLOGGED, false) else AIR
+        level.setBlockAndUpdate(at, dried)
+    }
+
+    /** A dry block that could stand in water, at or under the tide with the sea beside it, waterlogged again. */
+    private fun soak(level: ServerLevel, at: BlockPos, state: BlockState, sea: Fluid) {
+        val isDryButCouldStandInIt = state.getOptionalValue(BlockStateProperties.WATERLOGGED).map { !it }.orElse(false)
+        if (!isDryButCouldStandInIt) return
+        fun isSeaBeside(side: Direction): Boolean {
+            val beside = level.getFluidState(at.relative(side))
+            return beside.isSource && beside.type.isSame(sea)
+        }
+        if (Direction.Plane.HORIZONTAL.none(::isSeaBeside)) return
+        level.setBlockAndUpdate(at, state.setValue(BlockStateProperties.WATERLOGGED, true))
     }
 
     private fun drainUnderCover(level: ServerLevel, from: BlockPos, sea: Fluid) {
@@ -275,7 +303,7 @@ object Tide {
                 val next = at.relative(side)
                 val isWithinReach = maxOf(Math.abs(next.x - from.x), Math.abs(next.z - from.z)) <= COVERED_REACH
                 if (!isWithinReach || !seen.add(next) || !isCoveredSea(next)) continue
-                level.setBlockAndUpdate(next, Blocks.AIR.defaultBlockState())
+                dryOut(level, next)
                 frontier.addLast(next)
             }
         }
@@ -318,6 +346,8 @@ object Tide {
     private const val CHUNKS_A_TICK = 32
 
     private const val CHUNK_WIDTH = 16
+
+    private val AIR: BlockState = Blocks.AIR.defaultBlockState()
 
     private const val NO_PULL = 0.0
 

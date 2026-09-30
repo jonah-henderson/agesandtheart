@@ -7,7 +7,9 @@ import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.worldgen.field.Variation
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import co.voik.agesandtheart.age.phenomena.Tide
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.core.QuartPos
 import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
@@ -18,6 +20,8 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.LevelHeightAccessor
 import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.VineBlock
+import net.minecraft.world.level.levelgen.PositionalRandomFactory
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.Heightmap
@@ -25,6 +29,7 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.feature.Feature
 import com.mojang.serialization.MapCodec
 import net.minecraft.util.ExtraCodecs
+import net.minecraft.util.Mth
 import net.minecraft.util.RandomSource
 
 /**
@@ -112,6 +117,7 @@ data class Formation(
             groundAt,
             clear = { position -> clearUpwardsFrom(level, position) },
             standsAt = onlyIn?.let { biome -> standsIn(biome, level, generator, groundAt) } ?: ANYWHERE,
+            seaTop = Tide.seaOf(generator)?.top,
         ) { position, state ->
             if (!level.isOutsideBuildHeight(position)) level.setBlock(position, state, PLACED_BY_WORLDGEN)
         }
@@ -125,6 +131,7 @@ data class Formation(
     private fun clearUpwardsFrom(level: WorldGenLevel, position: BlockPos) {
         if (level.isOutsideBuildHeight(position)) return
         level.setBlock(position, AIR, PLACED_BY_WORLDGEN)
+        loosenVinesOn(level, position)
         val above = position.mutable().move(0, 1, 0)
         while (!level.isOutsideBuildHeight(above)) {
             val standing = level.getBlockState(above)
@@ -132,6 +139,22 @@ data class Formation(
             if (!grewOnTheGround) return
             level.setBlock(above, AIR, PLACED_BY_WORLDGEN)
             above.move(0, 1, 0)
+        }
+    }
+
+    /**
+     * The vines beside [cut] that hung on it, let go of it — they were laid by a neighbouring chunk's trees
+     * before this one dug its pit, and would otherwise hang on nothing. A vine with no face left goes.
+     */
+    private fun loosenVinesOn(level: WorldGenLevel, cut: BlockPos) {
+        for (side in Direction.Plane.HORIZONTAL) {
+            val beside = cut.relative(side)
+            val state = level.getBlockState(beside)
+            val face = VineBlock.getPropertyForFace(side.opposite)
+            if (!state.`is`(Blocks.VINE) || !state.getValue(face)) continue
+            val loosened = state.setValue(face, false)
+            val holdsOnElsewhere = VineBlock.PROPERTY_BY_DIRECTION.values.any(loosened::getValue)
+            level.setBlock(beside, if (holdsOnElsewhere) loosened else AIR, PLACED_BY_WORLDGEN)
         }
     }
 
@@ -174,7 +197,8 @@ data class Formation(
      * what it draws can be checked without a world under it, as [SpilledSpring.spill] is.
      *
      * Returns how many blocks it laid, so a caller can tell a formation from nothing at all. [clear] is
-     * where a [sunk] one cuts the ground away, and [standsAt] whether one may stand at its origin.
+     * where a [sunk] one cuts the ground away, [standsAt] whether one may stand at its origin, and [seaTop]
+     * the top block of the sea, which a sunk one's cut may not reach.
      */
     fun raise(
         worldSeed: Long,
@@ -182,6 +206,7 @@ data class Formation(
         groundAt: (Int, Int) -> Int,
         clear: (BlockPos) -> Unit = {},
         standsAt: (Int, Int) -> Boolean = ANYWHERE,
+        seaTop: Int? = null,
         lay: (BlockPos, BlockState) -> Unit,
     ): Int {
         val posed = shapes.flatMap(variation::sizesOf)
@@ -200,12 +225,22 @@ data class Formation(
         val centreX = chunk.minBlockX + HALF_A_CHUNK
         val centreZ = chunk.minBlockZ + HALF_A_CHUNK
         val anywhereInTheChunk = furthest + CORNER_OF_A_CHUNK
+        fun standingAt(x: Int, z: Int): Standing {
+            val template = posed[origins.at(x, 0, z).nextInt(posed.size)]
+            return Standing(x, z, template, template.horizontalReach)
+        }
         placement.forEachInstanceNear(centreX, centreZ, anywhereInTheChunk, origins) { x, z, _ ->
-            val pose = origins.at(x, 0, z)
-            val template = posed[pose.nextInt(posed.size)]
-            standing += Standing(x, z, template, template.horizontalReach)
+            standing += standingAt(x, z)
         }
         if (standing.isEmpty()) return 0
+
+        // Re-seeded from where the formation stands, so every chunk laying part of it turns it the same way —
+        // the pose belongs to the thing, not to the column asking about it.
+        fun columnOf(formation: Standing, x: Int, z: Int): Spans {
+            val turning = origins.at(formation.originX, 0, formation.originZ)
+            turning.nextInt(posed.size)
+            return variation.sample(formation.template, x - formation.originX, z - formation.originZ, turning)
+        }
 
         var laid = 0
         // **A formation at a time, so the ground under it is asked for at most once.** `getBaseHeight`
@@ -215,16 +250,17 @@ data class Formation(
         // since its bank is that column's own ground.
         for (formation in standing) {
             if (!standsAt(formation.originX, formation.originZ)) continue
-            // Re-seeded from where the formation stands, so every chunk laying part of it turns it the same
-            // way — the pose belongs to the thing, not to the column asking about it.
-            fun columnOf(x: Int, z: Int): Spans {
-                val turning = origins.at(formation.originX, 0, formation.originZ)
-                turning.nextInt(posed.size)
-                return variation.sample(formation.template, x - formation.originX, z - formation.originZ, turning)
-            }
+            fun columnOf(x: Int, z: Int): Spans = columnOf(formation, x, z)
             // Null where a sunk formation declined its site.
             val standsOn by lazy {
-                if (sunk) sinkingInto(formation, groundAt, ::columnOf) else groundAt(formation.originX, formation.originZ)
+                when {
+                    !sunk -> groundAt(formation.originX, formation.originZ)
+                    givesWayToAnother(formation, furthest, origins, ::standingAt, ::columnOf) { other ->
+                        standsAt(other.originX, other.originZ) &&
+                            sinkingInto(other, groundAt, { x, z -> columnOf(other, x, z) }, seaTop) != null
+                    } -> null
+                    else -> sinkingInto(formation, groundAt, ::columnOf, seaTop)
+                }
             }
             columns@ for (x in chunk.minBlockX..chunk.maxBlockX) {
                 for (z in chunk.minBlockZ..chunk.maxBlockZ) {
@@ -254,10 +290,20 @@ data class Formation(
      * standing proud of the ground below. A lake refuses a spot where its bowl would be open to the side;
      * this refuses one where the bank would be taller than [tallestBankFor] its width.
      *
+     * **Never down to the sea**: where the lowest ground is at the water, the mouth is raised to a block over
+     * it, since a cut beside the sea stood the sea against air. Every block the cut clears is at or above the
+     * mouth, so a mouth over the sea exposes none, and a pit on a shore is a shallow basin above the water.
+     * One whose middle is under the water is refused outright.
+     *
      * Sampled on a coarse grid, since every chunk the formation crosses asks and all of them must reach the
      * same answer.
      */
-    private fun sinkingInto(formation: Standing, groundAt: (Int, Int) -> Int, columnOf: (Int, Int) -> Spans): Int? {
+    private fun sinkingInto(
+        formation: Standing,
+        groundAt: (Int, Int) -> Int,
+        columnOf: (Int, Int) -> Spans,
+        seaTop: Int?,
+    ): Int? {
         val step = maxOf(LEAST_SAMPLE_STEP, (formation.reach / SAMPLES_ACROSS_A_RADIUS).toInt())
         val reach = formation.reach.toInt()
         var lowest = Int.MAX_VALUE
@@ -273,7 +319,62 @@ data class Formation(
             }
         }
         if (lowest == Int.MAX_VALUE) return null
-        return lowest.takeIf { highest - lowest <= tallestBankFor(formation.reach) }
+        val overTheSea = seaTop?.let { it + RECESS + 1 } ?: lowest
+        val isInTheSea = seaTop != null && groundAt(formation.originX, formation.originZ) <= seaTop
+        val mouth = maxOf(lowest, overTheSea)
+        val isTooSteep = highest - mouth > tallestBankFor(formation.reach)
+        return mouth.takeUnless { isTooSteep || isInTheSea }
+    }
+
+    /**
+     * Whether a sunk formation gives way to another it overlaps, so two pits dug to different depths never
+     * cut into each other: **the wider keeps its site**, and between two alike the one its origin's hash
+     * puts first. A hash rather than a direction, since "the one further west" chained across a crowded
+     * field and gave the whole of it to its westernmost pit.
+     *
+     * Only one [wouldBeDug] by its own site is given way to, so a pit does not stand aside for one that is
+     * then too steep or at the sea and leave neither. Whether that one gives way in its turn is not asked,
+     * which would chain every overlap into the next; asked last, since it is the costly question.
+     */
+    private fun givesWayToAnother(
+        formation: Standing,
+        furthest: Double,
+        origins: PositionalRandomFactory,
+        standingAt: (Int, Int) -> Standing,
+        columnOf: (Standing, Int, Int) -> Spans,
+        wouldBeDug: (Standing) -> Boolean,
+    ): Boolean {
+        var givesWay = false
+        placement.forEachInstanceNear(formation.originX, formation.originZ, formation.reach + furthest, origins) { x, z, _ ->
+            val isItself = x == formation.originX && z == formation.originZ
+            if (givesWay || isItself) return@forEachInstanceNear
+            val other = standingAt(x, z)
+            val isInTheWay = other.comesBefore(formation) && digsIntoTheSameGround(formation, other, columnOf)
+            if (isInTheWay && wouldBeDug(other)) givesWay = true
+        }
+        return givesWay
+    }
+
+    /**
+     * Whether two formations cover some column in common — sampled on the coarse grid [sinkingInto] uses,
+     * over where their reaches meet, since a reach bounds a warped shape generously and two reaches overlap
+     * long before the pits inside them do.
+     */
+    private fun digsIntoTheSameGround(one: Standing, other: Standing, columnOf: (Standing, Int, Int) -> Spans): Boolean {
+        if (!one.overlaps(other)) return false
+        val step = maxOf(LEAST_SAMPLE_STEP, (minOf(one.reach, other.reach) / SAMPLES_ACROSS_A_RADIUS).toInt())
+        val fromX = maxOf(one.originX - one.reach.toInt(), other.originX - other.reach.toInt())
+        val toX = minOf(one.originX + one.reach.toInt(), other.originX + other.reach.toInt())
+        val fromZ = maxOf(one.originZ - one.reach.toInt(), other.originZ - other.reach.toInt())
+        val toZ = minOf(one.originZ + one.reach.toInt(), other.originZ + other.reach.toInt())
+        fun coversIt(formation: Standing, x: Int, z: Int) =
+            formation.couldReach(x, z) && columnOf(formation, x, z).ranges.isNotEmpty()
+        for (x in fromX..toX step step) {
+            for (z in fromZ..toZ step step) {
+                if (coversIt(one, x, z) && coversIt(other, x, z)) return true
+            }
+        }
+        return false
     }
 
     /** A wider pit cuts a taller bank, so a colossal one is not refused by every slope under it. */
@@ -297,6 +398,20 @@ data class Formation(
             val awayX = (x - originX).toDouble()
             val awayZ = (z - originZ).toDouble()
             return awayX * awayX + awayZ * awayZ <= reach * reach
+        }
+
+        fun overlaps(other: Standing): Boolean {
+            val apartX = (other.originX - originX).toDouble()
+            val apartZ = (other.originZ - originZ).toDouble()
+            val touching = reach + other.reach
+            return apartX * apartX + apartZ * apartZ < touching * touching
+        }
+
+        private val priority: Long get() = Mth.getSeed(originX, 0, originZ)
+
+        fun comesBefore(other: Standing): Boolean = when {
+            reach != other.reach -> reach > other.reach
+            else -> priority < other.priority
         }
     }
 

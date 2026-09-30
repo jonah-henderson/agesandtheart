@@ -90,6 +90,26 @@ class PaperTreeCheck : FunSpec({
         }
     }
 
+    test("every root is joined to the tree by a face or an edge") {
+        fun touchesByAFaceOrAnEdge(one: BlockPos, other: BlockPos): Boolean {
+            val apart = listOf(one.x - other.x, one.y - other.y, one.z - other.z).map(Math::abs)
+            return apart.all { it <= 1 } && apart.count { it == 1 } in 1..2
+        }
+        for (seed in SEEDS) {
+            val shape = PaperTreeShape.grownFrom(HEART, seed)
+            val tree = shape.logs.map { it.at }.toSet() + HEART
+            val joined = tree.toMutableSet()
+            var grew = true
+            while (grew) {
+                val reached = shape.roots.filter { root -> root !in joined && joined.any { touchesByAFaceOrAnEdge(root, it) } }
+                joined += reached
+                grew = reached.isNotEmpty()
+            }
+            val loose = shape.roots.filterNot { it in joined }
+            check(loose.isEmpty()) { "seed $seed: roots at $loose touch the tree only at a corner, or not at all" }
+        }
+    }
+
     test("every leaf is close enough to a log to hold, and none is inside one") {
         for (seed in SEEDS) {
             val shape = PaperTreeShape.grownFrom(HEART, seed)

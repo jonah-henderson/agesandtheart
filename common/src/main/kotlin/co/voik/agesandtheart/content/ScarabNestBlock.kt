@@ -2,6 +2,7 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.Constants
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.core.UUIDUtil
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.sounds.SoundEvents
@@ -125,8 +126,26 @@ class ScarabNestBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeC
         setChanged()
     }
 
-    /** Where the next block of the pillar goes, which is also where a scarab goes in and comes out. */
+    /** Where the next block of the pillar goes. */
     fun topOfThePillar(level: Level): BlockPos = blockPos.above(pillarHeight(level) + 1)
+
+    /**
+     * Where a scarab goes in and comes out: **beside the chamber**, on an open side of it, as a bee goes into
+     * the face of its hive (Jonah, 2026-09-30). Until the pillar has grown as far as its chamber, and where
+     * every side of it is shut, the top of the pillar, which is the one way in a pillar always has.
+     */
+    fun doorOf(level: Level): BlockPos {
+        val chamber = blockPos.above(chamberAt)
+        val hasItsChamber = chamberAt > 0 && level.getBlockState(chamber).`is`(Blocks.PACKED_MUD)
+        if (!hasItsChamber) return topOfThePillar(level)
+        // Turned by where the nest stands, so a colony's doors do not all face one way.
+        val sides = Direction.Plane.HORIZONTAL.toList()
+        val turn = Math.floorMod(blockPos.x * SIDE_MIXER_X + blockPos.z * SIDE_MIXER_Z, sides.size)
+        val beside = sides.indices.map { sides[(it + turn) % sides.size] }.map(chamber::relative)
+        return beside.firstOrNull { isOpen(level, it) } ?: topOfThePillar(level)
+    }
+
+    private fun isOpen(level: Level, at: BlockPos): Boolean = level.getBlockState(at).getCollisionShape(level, at).isEmpty
 
     fun isPillarFinished(level: Level): Boolean = pillarHeight(level) >= pillarGoal
 
@@ -145,14 +164,13 @@ class ScarabNestBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeC
     }
 
     /**
-     * Sends the sleeper out at the top of the pillar. **In an emergency**, which is the nest being broken,
-     * whatever the hour and whatever is standing there.
+     * Sends the sleeper out of its door. **In an emergency**, which is the nest being broken, whatever the
+     * hour and whatever is standing there.
      */
     fun letOut(level: ServerLevel, emergency: Boolean) {
         val data = sleeper ?: return
-        val door = topOfThePillar(level)
-        val doorIsOpen = level.getBlockState(door).getCollisionShape(level, door).isEmpty
-        if (!emergency && !doorIsOpen) return
+        val door = doorOf(level)
+        if (!emergency && !isOpen(level, door)) return
         val scarab = awake(level, data) ?: return abandon()
         scarab.snapTo(door.x + HALF, door.y + CLEAR_OF_THE_TOP, door.z + HALF, scarab.yRot, scarab.xRot)
         scarab.wokeAfter(sleptFor)
@@ -246,6 +264,9 @@ class ScarabNestBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeC
 
         private const val HALF = 0.5
         private const val CLEAR_OF_THE_TOP = 0.1
+
+        private const val SIDE_MIXER_X = 31
+        private const val SIDE_MIXER_Z = 17
 
         private const val SOUND_VOLUME = 0.6f
         private const val SOUND_PITCH = 1.3f

@@ -24,9 +24,14 @@ data class PaperTreeShape(
     /** Every log, in the order it grows: the trunk from the root up, each terrace's branches after it. */
     val logs: List<Log>,
     val terraces: List<Terrace>,
-    /** The roots that spread from the heart, which are what feel the water. */
-    val roots: List<BlockPos>,
+    /**
+     * The roots that spread from the heart, which are what feel the water: each a run outwards from the foot
+     * of the trunk, every block of it touching the one before by a face or an edge.
+     */
+    val rootRuns: List<List<BlockPos>>,
 ) {
+    val roots: List<BlockPos> = rootRuns.flatten().distinct()
+
     /** One log, and the index of the log it grows from, or [FROM_THE_ROOT]. */
     data class Log(val at: BlockPos, val axis: Direction.Axis, val grownFrom: Int)
 
@@ -223,14 +228,17 @@ data class PaperTreeShape(
         /**
          * Roots arching out from the foot of the trunk and down into the ground, as a mangrove's do: the first
          * block of each beside the trunk above ground, the last a level below it.
+         *
+         * A step that would move on all three axes at once touches the one before only at a corner, so a
+         * block is put between them — a root reads as one root rather than beads.
          */
-        private fun roots(heart: BlockPos, random: RandomSource, taken: Set<BlockPos>): List<BlockPos> {
+        private fun roots(heart: BlockPos, random: RandomSource, taken: Set<BlockPos>): List<List<BlockPos>> {
             val count = random.nextIntBetweenInclusive(FEWEST_ROOTS, MOST_ROOTS)
             val start = random.nextFloat() * Mth.TWO_PI
-            val roots = linkedSetOf<BlockPos>()
-            for (root in 0..<count) {
+            return (0..<count).map { root ->
                 val angle = start + root * Mth.TWO_PI / count + (random.nextFloat() - 0.5f) * ROOT_SPREAD
                 val length = random.nextIntBetweenInclusive(SHORTEST_ROOT, LONGEST_ROOT)
+                val run = mutableListOf<BlockPos>()
                 for (step in 1..length) {
                     val drop = (ROOT_DESCENT * (step - 1)) / (length - 1)
                     val at = BlockPos(
@@ -238,10 +246,14 @@ data class PaperTreeShape(
                         heart.y + 1 - drop,
                         heart.z + (sin(angle.toDouble()) * step).roundToInt(),
                     )
-                    if (at != heart && at !in taken) roots += at
+                    val before = run.lastOrNull()
+                    val touchesOnlyAtACorner = before != null &&
+                        before.x != at.x && before.y != at.y && before.z != at.z
+                    if (touchesOnlyAtACorner) run += BlockPos(at.x, before.y, at.z)
+                    run += at
                 }
+                run.filter { it != heart && it !in taken }
             }
-            return roots.toList()
         }
 
         /** A two-terrace tree's trunk, which a third terrace grows taller by one more gap. */

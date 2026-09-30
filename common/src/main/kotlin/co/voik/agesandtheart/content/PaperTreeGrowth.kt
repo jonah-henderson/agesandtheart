@@ -21,7 +21,7 @@ object PaperTreeGrowth {
      *
      * The heart replaces the ground it stands in; the trunk and its branches must each find open air, or
      * leaves or plants to push aside; leaves go only where there is room; roots go into open air, water or
-     * soft ground, and stop at rock.
+     * soft ground, and a root stops where it meets rock, so none is laid beyond it cut off from the tree.
      */
     fun grow(level: WorldGenLevel, heart: BlockPos, seed: Long, moisture: Int, flags: Int): Boolean {
         val shape = PaperTreeShape.grownFrom(heart, seed)
@@ -33,7 +33,7 @@ object PaperTreeGrowth {
         for ((at, distance) in shape.leaves) {
             if (isRoomFor(level, at)) level.setBlock(at, livingLeaf(distance), flags)
         }
-        for (at in shape.roots) rootInto(level, at, flags)
+        for (run in shape.rootRuns) run.takeWhile { at -> rootInto(level, at, flags) }
         return true
     }
 
@@ -54,15 +54,19 @@ object PaperTreeGrowth {
         return state.isAir || isGrowth
     }
 
-    /** One root, waterlogged where it grows into water, and not at all into anything harder than earth. */
-    private fun rootInto(level: WorldGenLevel, at: BlockPos, flags: Int) {
+    /**
+     * One root, waterlogged where it grows into water, and not at all into anything harder than earth —
+     * false there, where the root stops.
+     */
+    private fun rootInto(level: WorldGenLevel, at: BlockPos, flags: Int): Boolean {
         val state = level.getBlockState(at)
         val isWater = state.`is`(Blocks.WATER)
-        if (!isRoomFor(level, at) && !isWater && !isSoftGround(state)) return
+        if (!isRoomFor(level, at) && !isWater && !isSoftGround(state)) return false
         val waterlogged = isWater && state.fluidState.isSource
         val root = AgeContent.PAPER_TREE_ROOTS_BLOCK.defaultBlockState()
             .setValue(BlockStateProperties.WATERLOGGED, waterlogged)
         level.setBlock(at, root, flags)
+        return true
     }
 
     /**

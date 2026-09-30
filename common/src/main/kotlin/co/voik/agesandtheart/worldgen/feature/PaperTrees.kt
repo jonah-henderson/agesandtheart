@@ -6,6 +6,7 @@ import co.voik.agesandtheart.content.PaperTreeShape
 import co.voik.agesandtheart.age.phenomena.Tide
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
+import net.minecraft.core.QuartPos
 import net.minecraft.tags.FluidTags
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.WorldGenLevel
@@ -38,8 +39,8 @@ object PaperTree : Feature {
 /**
  * A paper tree where one would grow of itself: **in the intertidal band** (design §7.1.2), its heart set so
  * that **every root ends at mid tide** and water within reach of them, so they are wet at high and mid water
- * and dry at low — a tree that keeps itself, rather than one a tide drowns. Laid only in an Age whose window
- * is met — see `PaperTreeWindow`.
+ * and dry at low — a tree that keeps itself, rather than one a tide drowns. Never where the sea ices over.
+ * Laid only in an Age whose window is met — see `PaperTreeWindow`.
  */
 object PaperTreeGrove : Feature {
 
@@ -56,8 +57,18 @@ object PaperTreeGrove : Feature {
         val mid = Tide.midOf(generator) ?: return false
         val heart = origin.below()
         val rootsEndAtMidTide = heart.y - PaperTreeShape.ROOT_TIPS_UNDER_THE_HEART == mid
-        if (!rootsEndAtMidTide || !waterWithinReach(level, heart, mid)) return false
+        if (!rootsEndAtMidTide || waterFreezesAt(level, heart.atY(mid))) return false
+        if (!waterWithinReach(level, heart, mid)) return false
         return PaperTreeGrowth.grow(level, heart, random.nextLong(), PaperTreeHealth.SETTLED, Block.UPDATE_CLIENTS)
+    }
+
+    /**
+     * Whether the biome at [at] is cold enough to ice the sea over. Read off the chunk's own biomes at the
+     * quart, since `getBiome` blends in neighbours that may lie outside what a feature can read.
+     */
+    private fun waterFreezesAt(level: WorldGenLevel, at: BlockPos): Boolean {
+        val biome = level.getNoiseBiome(QuartPos.fromBlock(at.x), QuartPos.fromBlock(at.y), QuartPos.fromBlock(at.z))
+        return biome.value().coldEnoughToSnow(at, level.seaLevel)
     }
 
     /** Whether the sea at mid tide lies within a root's reach of [heart]. */

@@ -5,11 +5,8 @@ import net.minecraft.world.phys.Vec3
 import java.util.EnumSet
 
 /**
- * A scarab going into its pillar for the night, as a bee goes into its hive (design §7.1.2).
- *
- * It goes in at the top, which is where the next block of the pillar would be laid: the nest itself is at
- * the foot, and the ground around a column's base is usually solid, so the top is the one way in that a
- * pillar of any height always has.
+ * A scarab going into its pillar for the night, as a bee goes into its hive (design §7.1.2), by the door
+ * beside the chamber ([ScarabNestBlockEntity.doorOf]).
  */
 class ScarabRoost(private val scarab: Scarab) : Goal() {
 
@@ -41,7 +38,7 @@ class ScarabRoost(private val scarab: Scarab) : Goal() {
     override fun tick() {
         travelling++
         val nest = nestWithRoom() ?: return
-        val door = Vec3.atBottomCenterOf(nest.topOfThePillar(scarab.level()))
+        val door = Vec3.atBottomCenterOf(nest.doorOf(scarab.level()))
         scarab.headFor(door)
         if (scarab.isNear(door, GOES_IN_WITHIN)) nest.admit(scarab)
     }
