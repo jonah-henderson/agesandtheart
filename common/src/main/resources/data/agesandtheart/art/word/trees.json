@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "features": {
-      "wooded": 1.0
+      "wooded": ">0.3"
     }
   }
 }

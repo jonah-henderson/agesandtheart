@@ -250,8 +250,10 @@ data class Word(
      */
     val excludes: Map<Aspect, Set<String>> = emptyMap(),
     /**
-     * Tags the pool is **narrowed to**: only members answering these well enough survive, at this word's
-     * tier's threshold.
+     * **A bar per tag** the pool is narrowed by — how strongly a member must carry it (world model §3,
+     * "Retiring tier"). Spelled `">0.6"` in a file and held here as the signed number: positive is *at least*
+     * that much, negative *at most* its size. At-least bars are alternatives, so a member qualifies by
+     * clearing any one; at-most bars all bind, so it is out for breaking any one. See [Bars].
      *
      * The other half of the third step, and the one nearly every narrowing word is written with —
      * `riddled` keeps what is cavernous and drops the rest. A removal by complement, where [excludes]
@@ -671,8 +673,7 @@ data class Word(
      * recognises a word the world cannot satisfy (§3.3), and a lean can never empty one.
      */
     fun constrainsPresetsIn(aspect: Aspect): Boolean =
-        choiceIn(aspect) != null || excludes[aspect].orEmpty().isNotEmpty() ||
-            restrictsIn(aspect).values.any { it > 0.0 }
+        choiceIn(aspect) != null || excludes[aspect].orEmpty().isNotEmpty() || restrictsIn(aspect).isNotEmpty()
 
     /**
      * The tags this word narrows on, which are the ones that must have a carrier somewhere (§3.3).
@@ -812,13 +813,21 @@ data class Word(
     val price: Int get() = (tier.cost * versatility).roundToInt().coerceAtLeast(0)
 
     /**
-     * How well [tags] answers what this word narrowed [aspect] to — the number a narrowing word
-     * thresholds. The strongest single term rather than a sum, because a word restricting on two tags
-     * asks for either.
+     * How well [tags] answers what this word narrowed [aspect] to: **how far past its bar the member's best
+     * wanted tag lands**, one being exactly at the bar. The strongest single term rather than a sum, because
+     * a word restricting on two tags asks for either.
+     *
+     * Scaled by the tier's threshold for now, which makes it exactly the weight × carried it replaces for
+     * every converted word; the scale goes with the tier.
      */
     fun pullIn(aspect: Aspect, tags: Map<String, Double>): Double =
-        restrictsIn(aspect).filterValues { it > 0.0 }
-            .maxOfOrNull { (tag, weight) -> weight * (tags[tag] ?: 0.0) } ?: 0.0
+        restrictsIn(aspect).filterValues(Bars::isAtLeast)
+            .maxOfOrNull { (tag, bar) -> (tags[tag] ?: 0.0) / bar }
+            ?.let { it * tier.threshold } ?: 0.0
+
+    /** Whether [tags] breaks none of the at-most bars this word set on [aspect]. Read strictly, always. */
+    fun withinItsLimitsIn(aspect: Aspect, tags: Map<String, Double>): Boolean =
+        restrictsIn(aspect).filterValues(Bars::isAtMost).all { (tag, bar) -> (tags[tag] ?: 0.0) <= -bar }
 
     /**
      * How strongly this word claims [preset] — **absolute where it chose it**, else how well the member
@@ -836,19 +845,27 @@ data class Word(
      * Excluded members are out however they got in. What is left has to clear [strictness] on whatever the
      * word restricted to; a word that restricted nothing removes nobody, since a lean is never a filter.
      *
-     * **[strictness] defaults to the tier's own threshold, which is the strict reading** — every member
-     * that answers this word whatever the Age. An Age may be more generous than that and pass its own
-     * lower cut (`Resolver.strictnessOf`); nothing may be stricter, so what this answers by default is
-     * what a word is *guaranteed* to reach, which is what every check and every screen wants of it.
+     * **[share] is how much of each at-least bar must be cleared, and defaults to all of it, which is the
+     * strict reading** — every member that answers this word whatever the Age. An Age may be more generous
+     * and pass its own lower share (`Resolver.strictnessOf`); nothing may be stricter, so what this answers
+     * by default is what a word is *guaranteed* to reach, which is what every check and every screen wants
+     * of it. At-most bars are never eased: a limit is an instruction, not a preference.
      */
-    fun acceptsOn(preset: Taggable, tags: Map<String, Double>, strictness: Double = tier.threshold): Boolean {
+    fun acceptsOn(preset: Taggable, tags: Map<String, Double>, share: Double = Bars.STRICT): Boolean {
         // **A choice answers for the whole aspect.** The pipeline ends there, so nothing else this word
         // says about that part of the world is asked — and every other member is out, not merely unranked.
         choiceIn(preset.aspect)?.let { return it.key == preset.key }
         if (excludes(preset, tags)) return false
-        if (restrictsIn(preset.aspect).isEmpty()) return true
-        val strength = pullIn(preset.aspect, tags)
-        return strength > 0.0 && strength >= strictness
+        val bars = restrictsIn(preset.aspect)
+        if (bars.isEmpty()) return true
+        if (!withinItsLimitsIn(preset.aspect, tags)) return false
+        val wanted = bars.filterValues(Bars::isAtLeast)
+        if (wanted.isEmpty()) return true
+        fun clears(tag: String, bar: Double): Boolean {
+            val carried = tags[tag] ?: 0.0
+            return carried > 0.0 && carried >= bar * share
+        }
+        return wanted.any { (tag, bar) -> clears(tag, bar) }
     }
 
     override fun toString(): String = name
@@ -959,7 +976,7 @@ data class Word(
                 Codec.unboundedMap(ASPECT_CODEC, Codec.STRING.listOf())
                     .optionalFieldOf("excludes", emptyMap())
                     .forGetter { word -> word.excludes.mapValues { it.value.toList() } },
-                Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
+                Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Bars.CODEC))
                     .optionalFieldOf("restricts", emptyMap()).forGetter(Word::restricts),
                 // **One field for both**, keyed by aspect page or by `all` — a key that names neither is a
                 // parse error rather than a silently dropped lean.
@@ -1187,4 +1204,39 @@ data class PresetTags(private val byPreset: Map<String, PresetProfile>) {
         val CODEC: Codec<PresetTags> = Codec.unboundedMap(Codec.STRING, PresetProfile.CODEC)
             .xmap(::PresetTags, PresetTags::byPreset)
     }
+}
+
+/**
+ * **A bar on a tag, as a filter states it** — `">0.6"`, at least 0.6, or `"<0.2"`, at most 0.2 — held as one
+ * signed number, positive for at least and negative for at most. The sign is this object's to read and
+ * nobody else's; a bar is never zero, since at most nothing is an [Word.excludes] and at least nothing
+ * asks for nothing.
+ */
+object Bars {
+    /** The whole of every at-least bar — the strict reading, what a word reaches in every Age. */
+    const val STRICT = 1.0
+
+    fun isAtLeast(bar: Double): Boolean = bar > 0.0
+
+    fun isAtMost(bar: Double): Boolean = bar < 0.0
+
+    /** How the bar is spelled in a word file. */
+    fun spell(bar: Double): String = if (isAtLeast(bar)) "$AT_LEAST$bar" else "$AT_MOST${-bar}"
+
+    /** The bar [spelled] states, or a complaint saying how a bar is spelled. */
+    fun read(spelled: String): DataResult<Double> {
+        val direction = spelled.firstOrNull()
+        val level = spelled.drop(1).toDoubleOrNull()
+        val isSpelledRight = (direction == AT_LEAST || direction == AT_MOST) && level != null && level > 0.0 &&
+            level <= 1.0
+        if (!isSpelledRight || level == null) {
+            return DataResult.error { "'$spelled' is no bar: write '>0.6' for at least 0.6, '<0.2' for at most 0.2" }
+        }
+        return DataResult.success(if (direction == AT_LEAST) level else -level)
+    }
+
+    val CODEC: Codec<Double> = Codec.STRING.comapFlatMap(::read, ::spell)
+
+    private const val AT_LEAST = '>'
+    private const val AT_MOST = '<'
 }

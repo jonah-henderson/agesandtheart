@@ -135,7 +135,7 @@ object Gaps {
         Kind.TAG -> Candidate(
             name = gap.what,
             tier = Tier.RESTRICTIVE,
-            restricts = gap.where.associateWith { mapOf(gap.what to 1.0) },
+            restricts = gap.where.associateWith { mapOf(gap.what to GAP_BAR) },
         )
         // A parameter names the aspects that own it, so setting one is all the reach the word needs.
         Kind.PARAMETER -> Candidate(
@@ -163,4 +163,7 @@ object Gaps {
 
     /** A band a writer would plausibly have meant, for a parameter whose values are an axis. */
     private const val WHOLE_TOP = "0.5..1.0"
+
+    /** Today's restrictive bar: what a word reaching a tag starts out asking of it. */
+    private const val GAP_BAR = 0.3
 }

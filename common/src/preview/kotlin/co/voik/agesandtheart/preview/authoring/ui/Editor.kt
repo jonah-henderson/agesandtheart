@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Taggable
+import co.voik.agesandtheart.age.word.Bars
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
@@ -1622,10 +1623,10 @@ class Editor(
     private fun retypeRestriction(aspect: Aspect, tag: String) {
         overlay = Prompt(
             title = "How well must a ${aspect.page} carry '$tag'?",
-            hint = "what it has to clear is the tier's threshold; 1.0 asks for it outright",
-            typed = candidate.restricts[aspect]?.get(tag)?.toString() ?: "1.0",
-            complaint = { typed -> if (typed.toDoubleOrNull() == null) "a number between -1 and 1" else null },
-            onDone = { typed -> edit { it.restricting(aspect, tag, typed.toDouble()) } },
+            hint = ">0.6 is at least 0.6, and any one such bar will do; <0.2 is at most 0.2, and every one binds",
+            typed = candidate.restricts[aspect]?.get(tag)?.let(Bars::spell) ?: DEFAULT_BAR,
+            complaint = { typed -> Bars.read(typed).error().map { it.message() }.orElse(null) },
+            onDone = { typed -> edit { it.restricting(aspect, tag, Bars.read(typed).getOrThrow()) } },
         )
     }
 
@@ -1655,8 +1656,11 @@ class Editor(
             }
             Step.KEEP -> aspect?.let { where ->
                 edit { at ->
-                    val standing = at.restricts[where]?.get(named) ?: 0.0
-                    at.restricting(where, named, (standing + by).coerceIn(-1.0, 1.0))
+                    val standing = at.restricts[where]?.get(named) ?: Bars.read(DEFAULT_BAR).getOrThrow()
+                    // A bar keeps its direction; stepping moves how high it sits, never through zero.
+                    val direction = if (Bars.isAtLeast(standing)) 1.0 else -1.0
+                    val level = (Math.abs(standing) + by).coerceIn(LOWEST_BAR, 1.0)
+                    at.restricting(where, named, direction * level)
                 }
             }
             Step.CHOOSE, Step.ADD, Step.REMOVE -> Unit
@@ -2121,6 +2125,12 @@ class Editor(
     }
 
     private companion object {
+        /** What a new restriction starts at: today's restrictive bar. */
+        const val DEFAULT_BAR = ">0.3"
+
+        /** The lowest a stepped bar sits; a bar of nothing asks for nothing. */
+        const val LOWEST_BAR = 0.05
+
         /**
          * Where a section's status mark sits — **one column past the longest name there is.**
          *

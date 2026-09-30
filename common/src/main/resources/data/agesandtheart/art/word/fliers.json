@@ -15,7 +15,7 @@
   "tier": "restrictive",
   "restricts": {
     "spawns": {
-      "aloft": 1.0
+      "aloft": ">0.3"
     }
   }
 }

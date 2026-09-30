@@ -2,10 +2,10 @@
   "tier": "restrictive",
   "restricts": {
     "rock": {
-      "cavernous": 1.0
+      "cavernous": ">0.3"
     },
     "underground": {
-      "cavernous": 1.0
+      "cavernous": ">0.3"
     }
   }
 }

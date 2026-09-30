@@ -6,7 +6,7 @@
   "tier": "restrictive",
   "restricts": {
     "features": {
-      "ore": 1.0
+      "ore": ">0.3"
     }
   }
 }

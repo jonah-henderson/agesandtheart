@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "spawns": {
-      "arthropod": 1.0
+      "arthropod": ">0.3"
     }
   }
 }

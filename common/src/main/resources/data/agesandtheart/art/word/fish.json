@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "spawns": {
-      "aquatic": 1.0
+      "aquatic": ">0.3"
     }
   }
 }

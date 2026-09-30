@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "spawns": {
-      "undead": 1.0
+      "undead": ">0.3"
     }
   }
 }

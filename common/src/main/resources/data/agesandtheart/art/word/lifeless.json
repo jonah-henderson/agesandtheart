@@ -2,7 +2,7 @@
   "tier": "exact",
   "restricts": {
     "climate": {
-      "barren": 1.0
+      "barren": ">0.7"
     }
   },
   "sets": {

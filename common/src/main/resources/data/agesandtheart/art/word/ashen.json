@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "biomes": {
-      "barren": 0.8
+      "barren": ">0.37"
     }
   },
   "sets": {

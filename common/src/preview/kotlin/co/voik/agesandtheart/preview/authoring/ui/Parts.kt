@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.word.Bars
 import co.voik.agesandtheart.age.word.Claims
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Facets
@@ -708,8 +709,9 @@ class Parts(private val corpus: Corpus) {
                 candidate.admits[aspect]?.sorted()?.forEach {
                     add(told(page, "adds $it", "into the pool"))
                 }
-                candidate.restricts[aspect]?.entries?.sortedByDescending { it.value }?.forEach { (tag, weight) ->
-                    add(told(page, "keeps only $TAG_MARK$tag", "%+.2f".format(weight)))
+                candidate.restricts[aspect]?.entries?.sortedByDescending { it.value }?.forEach { (tag, bar) ->
+                    val keeps = if (Bars.isAtLeast(bar)) "keeps what carries" else "keeps what carries little"
+                    add(told(page, "$keeps $TAG_MARK$tag", Bars.spell(bar)))
                 }
                 candidate.excludes[aspect]?.sorted()?.forEach {
                     add(told(page, "removes $it", "out of the pool"))

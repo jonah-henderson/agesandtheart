@@ -3,7 +3,7 @@
   "tier": "restrictive",
   "restricts": {
     "features": {
-      "undergrowth": 1.0
+      "undergrowth": ">0.3"
     }
   }
 }

@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "features": {
-      "flowering": 1.0
+      "flowering": ">0.3"
     }
   }
 }

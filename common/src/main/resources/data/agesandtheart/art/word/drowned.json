@@ -2,10 +2,10 @@
   "tier": "restrictive",
   "restricts": {
     "sea": {
-      "watery": 1.0
+      "watery": ">0.3"
     },
     "rock": {
-      "watery": 1.0
+      "watery": ">0.3"
     }
   }
 }

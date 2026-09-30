@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "features": {
-      "buried": 1.0
+      "buried": ">0.3"
     }
   },
   "sets": {

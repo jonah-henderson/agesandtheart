@@ -20,8 +20,8 @@
   "tier": "restrictive",
   "restricts": {
     "climate": {
-      "molten": 1.0,
-      "dry": 0.6
+      "molten": ">0.3",
+      "dry": ">0.5"
     }
   },
   "sets": {

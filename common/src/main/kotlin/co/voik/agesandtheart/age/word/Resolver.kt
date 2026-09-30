@@ -1543,7 +1543,10 @@ object Resolver {
         // **A word that takes a member out takes it out.** Excluding is the pipeline's own removal, so it
         // does not have to argue the weight down to nothing — which is the only way `untouched` can mean
         // anything, there being no tag for the absence of a thing to put on the members that are present.
-        if (speaking.any { it.word.tier.narrows && it.word.excludes(member, tags) }) {
+        // And an at-most bar is an exclusion with a level: a member carrying more than it allows is struck.
+        fun strikes(said: Constraint) =
+            said.word.excludes(member, tags) || !said.word.withinItsLimitsIn(aspect, tags)
+        if (speaking.any { it.word.tier.narrows && strikes(it) }) {
             return Claim(member.key, Polarity.EXCEPT, confinedTo = ground)
         }
         // **Claiming something here is the price of insisting.** A word that only leans restricts nothing,
@@ -1554,7 +1557,7 @@ object Resolver {
         // own threshold however generous the Age: a preference may be lucky, an instruction may not.
         fun strictnessFor(said: Constraint): Double =
             if (draw == null || said.polarity != Polarity.ASSERTED) {
-                said.word.tier.threshold
+                Bars.STRICT
             } else {
                 strictnessOf(draw, aspect, said.word)
             }
@@ -1907,10 +1910,10 @@ object Resolver {
      * same amounts in every Age that ever said it; the seed decided the ground under them and nothing
      * about what stood on it.
      *
-     * **Only the uncertain carriers move.** A member answering at or above the tier's threshold is
-     * admitted whatever is drawn — a world of built things still gets the villages — while one answering
-     * at half of it arrives in half of Ages. So the rule reads plainly: the threshold is where a member
-     * *always* turns up, and below it a member turns up in proportion to how close it came.
+     * **Only the uncertain carriers move.** A member at or above its bar is admitted whatever is drawn — a
+     * world of built things still gets the villages — while one carrying half of it arrives in half of
+     * Ages. So the rule reads plainly: the bar is where a member *always* turns up, and below it a member
+     * turns up in proportion to how close it came. What is drawn is the share of every bar this Age asks.
      *
      * **One cut for the whole aspect, not one per member**, which is what makes the variation read as
      * character rather than as confetti: this Age's `settled` was generous and took the odd ruin with it,
@@ -1922,7 +1925,7 @@ object Resolver {
     private fun strictnessOf(draw: Long, aspect: Aspect, word: Word): Double {
         val key = draw xor (aspect.ordinal * ASPECT_STRIDE) xor
             (word.id.hashCode().toLong() * WORD_MIXER) xor STRICTNESS_SALT
-        return XoroshiroRandomSource(key).nextDouble() * word.tier.threshold
+        return XoroshiroRandomSource(key).nextDouble() * Bars.STRICT
     }
 
     /** A stable, unpredictable ordering key — how the seed arbitrates between equally precise words. */

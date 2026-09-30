@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "features": {
-      "fungal": 1.0
+      "fungal": ">0.3"
     }
   }
 }

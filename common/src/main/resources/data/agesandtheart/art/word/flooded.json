@@ -2,7 +2,7 @@
   "tier": "exact",
   "restricts": {
     "rock": {
-      "watery": 1.0
+      "watery": ">0.7"
     }
   }
 }

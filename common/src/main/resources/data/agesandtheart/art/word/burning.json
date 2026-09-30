@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "sea": {
-      "molten": 1.0
+      "molten": ">0.3"
     }
   }
 }

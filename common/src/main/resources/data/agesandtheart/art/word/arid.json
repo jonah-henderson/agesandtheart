@@ -7,12 +7,12 @@
   "tier": "restrictive",
   "restricts": {
     "landmass": {
-      "dry": 1.0,
-      "barren": 0.6
+      "dry": ">0.3",
+      "barren": ">0.5"
     },
     "climate": {
-      "dry": 1.0,
-      "barren": 0.6
+      "dry": ">0.3",
+      "barren": ">0.5"
     }
   },
   "biases": {

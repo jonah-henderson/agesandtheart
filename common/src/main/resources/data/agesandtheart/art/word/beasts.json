@@ -6,7 +6,7 @@
   "tier": "restrictive",
   "restricts": {
     "spawns": {
-      "fauna": 1.0
+      "fauna": ">0.3"
     }
   }
 }

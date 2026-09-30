@@ -19,7 +19,7 @@
   "tier": "exact",
   "restricts": {
     "landmass": {
-      "monumental": 1.0
+      "monumental": ">0.7"
     }
   },
   "sets": {

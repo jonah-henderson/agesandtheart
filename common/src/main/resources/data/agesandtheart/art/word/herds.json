@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "spawns": {
-      "grazing": 1.0
+      "grazing": ">0.3"
     }
   }
 }

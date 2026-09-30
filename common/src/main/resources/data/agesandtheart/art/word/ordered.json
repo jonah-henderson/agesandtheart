@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "landmass": {
-      "ordered": 1.0
+      "ordered": ">0.3"
     }
   }
 }

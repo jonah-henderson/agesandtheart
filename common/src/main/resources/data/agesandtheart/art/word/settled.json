@@ -2,8 +2,8 @@
   "tier": "restrictive",
   "restricts": {
     "structures": {
-      "inhabited": 1.0,
-      "built": 0.5
+      "inhabited": ">0.3",
+      "built": ">0.6"
     }
   }
 }

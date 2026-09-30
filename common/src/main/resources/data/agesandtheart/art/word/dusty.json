@@ -2,8 +2,8 @@
   "tier": "restrictive",
   "restricts": {
     "biomes": {
-      "barren": 1.0,
-      "dry": 0.7
+      "barren": ">0.3",
+      "dry": ">0.43"
     }
   },
   "sets": {

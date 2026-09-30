@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "landmass": {
-      "eroded": 1.0
+      "eroded": ">0.3"
     }
   }
 }

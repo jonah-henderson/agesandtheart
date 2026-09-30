@@ -58,7 +58,7 @@ private fun reportHowManyOneWordLifts(vocabulary: Vocabulary) {
  * **The question a content author actually has**: if I tag a new member `monumental`, who comes for it?
  *
  * Per tag, the words that would reach a member carrying it — and at what carried weight each begins to,
- * which is `Tier.threshold` divided by the word's own weight on that tag.
+ * which is the word's own bar on that tag.
  */
 private fun reportWhoComesForATag(vocabulary: Vocabulary) {
     println("=== If a new member carries this tag, these words reach it ===")
@@ -67,10 +67,10 @@ private fun reportWhoComesForATag(vocabulary: Vocabulary) {
     val wanters = mutableMapOf<String, MutableList<Triple<Word, Aspect, Double>>>()
     for (word in vocabulary.words.filter { it.tier.narrows }) {
         for (aspect in Aspect.entries) {
-            for ((tag, weight) in word.restrictsIn(aspect)) {
-                if (weight <= 0.0) continue
-                // The carried weight at which this word starts to qualify the member.
-                wanters.getOrPut(tag) { mutableListOf() } += Triple(word, aspect, word.tier.threshold / weight)
+            for ((tag, bar) in word.restrictsIn(aspect)) {
+                // An at-least bar is the carried weight at which this word starts to qualify the member.
+                if (bar <= 0.0) continue
+                wanters.getOrPut(tag) { mutableListOf() } += Triple(word, aspect, bar)
             }
         }
     }

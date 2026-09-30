@@ -6,7 +6,7 @@
   "tier": "restrictive",
   "restricts": {
     "structures": {
-      "ruined": 1.0
+      "ruined": ">0.3"
     }
   }
 }

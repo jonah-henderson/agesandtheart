@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "landmass": {
-      "scattered": 1.0
+      "scattered": ">0.3"
     }
   }
 }

@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "features": {
-      "watery": 1.0
+      "watery": ">0.3"
     }
   },
   "sets": {

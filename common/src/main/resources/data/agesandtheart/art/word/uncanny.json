@@ -2,10 +2,10 @@
   "tier": "restrictive",
   "restricts": {
     "landmass": {
-      "fungal": 0.7,
-      "glowing": 0.7,
-      "floating": 0.6,
-      "dark": 0.4
+      "fungal": ">0.43",
+      "glowing": ">0.43",
+      "floating": ">0.5",
+      "dark": ">0.75"
     }
   }
 }

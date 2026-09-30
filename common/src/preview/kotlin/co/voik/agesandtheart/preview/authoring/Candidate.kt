@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.word.Claims
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Facets
 import co.voik.agesandtheart.age.word.Tier
+import co.voik.agesandtheart.age.word.Bars
 import co.voik.agesandtheart.age.word.Word
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
@@ -138,7 +139,7 @@ data class Candidate(
         if (chooses.isNotEmpty()) add("chooses", aspectTexts(chooses))
         if (admits.isNotEmpty()) add("admits", aspectLists(admits))
         if (excludes.isNotEmpty()) add("excludes", aspectLists(excludes))
-        if (restricts.isNotEmpty()) add("restricts", perAspect(restricts))
+        if (restricts.isNotEmpty()) add("restricts", barsPerAspect(restricts))
         // One field, keyed by aspect page or by `all` — the whole of what a word leans by.
         //
         // **A lean of nothing is not a lean.** Zero is how the screen says a member has not been leaned,
@@ -218,6 +219,13 @@ data class Candidate(
         byAspect.entries.sortedBy { it.key.ordinal }.forEach { (aspect, key) -> addProperty(aspect.page, key) }
     }
 
+    /** A bar per tag per aspect, in the file's own spelling — `">0.6"`, not the signed number [Bars] holds. */
+    private fun barsPerAspect(byAspect: Map<Aspect, Map<String, Double>>) = JsonObject().apply {
+        byAspect.entries.sortedBy { it.key.ordinal }.forEach { (aspect, bars) ->
+            add(aspect.page, JsonObject().apply { bars.forEach { (tag, bar) -> addProperty(tag, Bars.spell(bar)) } })
+        }
+    }
+
     private fun perAspect(byAspect: Map<Aspect, Map<String, Double>>) = JsonObject().apply {
         byAspect.entries.sortedBy { it.key.ordinal }.forEach { (aspect, weights) ->
             add(aspect.page, numbers(weights))
@@ -280,7 +288,7 @@ data class Candidate(
                 chooses = json.getAsJsonObject("chooses")?.let(::readAspectTexts).orEmpty(),
                 admits = json.getAsJsonObject("admits")?.let(::readAspectLists).orEmpty(),
                 excludes = json.getAsJsonObject("excludes")?.let(::readAspectLists).orEmpty(),
-                restricts = json.getAsJsonObject("restricts")?.let(::readPerAspect).orEmpty(),
+                restricts = json.getAsJsonObject("restricts")?.let(::readBarsPerAspect).orEmpty(),
                 leansEverywhere = json.getAsJsonObject("biases")
                     ?.getAsJsonObject(Word.EVERYWHERE)?.let(::readNumbers).orEmpty(),
                 biases = json.getAsJsonObject("biases")?.let(::readPerAspect).orEmpty(),
@@ -341,6 +349,14 @@ data class Candidate(
             json.entrySet().associate { (page, key) -> aspectPaged(page) to key.asString }
 
         // `all` is not an aspect — it is read separately, into `everywhere`.
+        /** Through [Bars], so a bar the game would refuse is refused here in the same words. */
+        private fun readBarsPerAspect(json: JsonObject) =
+            json.entrySet().associate { (page, bars) ->
+                aspectPaged(page) to bars.asJsonObject.entrySet().associate { (tag, spelled) ->
+                    tag to Bars.read(spelled.asString).getOrThrow { IllegalArgumentException(it) }
+                }
+            }
+
         private fun readPerAspect(json: JsonObject) =
             json.entrySet().filterNot { (page, _) -> page == Word.EVERYWHERE }
                 .associate { (page, weights) -> aspectPaged(page) to readNumbers(weights.asJsonObject) }

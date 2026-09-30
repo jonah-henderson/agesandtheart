@@ -2,8 +2,8 @@
   "tier": "restrictive",
   "restricts": {
     "landmass": {
-      "mountainous": 1.0,
-      "sheer": 0.6
+      "mountainous": ">0.3",
+      "sheer": ">0.5"
     }
   }
 }

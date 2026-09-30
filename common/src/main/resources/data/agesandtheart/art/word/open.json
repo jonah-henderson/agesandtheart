@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "restricts": {
     "sea": {
-      "empty": 1.0
+      "empty": ">0.3"
     }
   }
 }

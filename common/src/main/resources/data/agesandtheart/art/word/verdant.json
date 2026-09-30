@@ -7,13 +7,13 @@
   "tier": "restrictive",
   "restricts": {
     "biomes": {
-      "lush": 1.0
+      "lush": ">0.3"
     },
     "climate": {
-      "lush": 1.0
+      "lush": ">0.3"
     },
     "features": {
-      "lush": 1.0
+      "lush": ">0.3"
     }
   },
   "sets": {
