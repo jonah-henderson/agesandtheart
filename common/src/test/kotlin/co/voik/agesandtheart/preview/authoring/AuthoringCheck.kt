@@ -129,7 +129,7 @@ class AuthoringCheck : FunSpec({
     test("what the tool writes loads as what it showed") {
         for (name in WordFile.authoredNames()) {
             val candidate = WordFile.read(name).getOrThrow()
-            val fromTheTool = candidate.asWord().getOrElse { failure ->
+            val fromTheTool = candidate.asWord().map(corpus.vocabulary::reached).getOrElse { failure ->
                 error("'$name' would not load as a word: ${failure.message}")
             }
             val fromThePack = corpus.vocabulary.word(name)

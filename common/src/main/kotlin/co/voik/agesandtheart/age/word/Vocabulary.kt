@@ -235,15 +235,16 @@ data class Vocabulary(
         candidatesFor(aspect).filter(::isAvailableToBroadWords)
 
     /**
-     * The members [word] admits that broad words are kept from — empty for any word that may admit what it
-     * does. Only a mood is kept from reaching past the fence by name, since admitting is otherwise the one
-     * way a lean on everything could hand out what the fence exists to keep back.
+     * [word] with every part its lean on everything ([Word.leansEverywhere]) likes something in added to
+     * its reach. That lean is the one claim naming no part of the world, so its reach is read against the
+     * corpus rather than off the word; the codec cannot see the corpus, so the load does it once here.
      */
-    fun admittedPastTheFence(word: Word): List<String> {
-        if (!word.isAMood) return emptyList()
-        return word.admits.flatMap { (aspect, members) ->
-            members.filter { member -> aspect.presetFor(member)?.let(::isAvailableToBroadWords) == false }
-        }
+    fun reached(word: Word): Word {
+        if (word.leansEverywhere.isEmpty()) return word
+        fun likesSomethingIn(aspect: Aspect) =
+            availableToBroadWordsIn(aspect).any { word.biasOn(it, tagsOf(it)) > 0.0 }
+        val widened = word.aspects + Aspect.entries.filter(::likesSomethingIn)
+        return if (widened == word.aspects) word else word.copy(aspects = widened)
     }
 
     /** Whether [preset] and its `preset_tags` entry both allow a broad word to land on it. */
@@ -435,10 +436,11 @@ data class Vocabulary(
             // in `words` and must not be counted derived.
             val derivedIds = fromContent.map { it.id }.toSet() - authored.values.map { it.id }.toSet()
             val charges = readCharges(resources, problems)
-            return Vocabulary(
+            val read = Vocabulary(
                 words, structural, described, antonyms, script, rarity, ink, stock, generation, charges,
                 derivedIds, rules, materials, spawning, shippedButNotLoaded, problems,
             )
+            return read.copy(byName = read.byName.mapValues { (_, word) -> read.reached(word) })
         }
 
         /**

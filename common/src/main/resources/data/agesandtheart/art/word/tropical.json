@@ -9,12 +9,12 @@
       "#watery": 0.5
     },
     "biomes": {
-      "#lush": 0.8,
-      "#wooded": 0.5
+      "#lush": 1.0,
+      "#wooded": 0.7
     },
     "features": {
-      "#wooded": 0.6,
-      "#flowering": 0.5
+      "#wooded": 1.0,
+      "#flowering": 0.9
     }
   },
   "sets": {

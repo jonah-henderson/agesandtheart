@@ -25,30 +25,30 @@
       "#frozen": 0.5
     },
     "biomes": {
-      "#frozen": 0.6,
-      "minecraft:snowy_plains": 0.5,
-      "minecraft:frozen_ocean": 0.4,
-      "minecraft:ice_spikes": 0.3
+      "#frozen": 0.8,
+      "minecraft:snowy_plains": 0.7,
+      "minecraft:frozen_ocean": 0.6,
+      "minecraft:ice_spikes": 0.4
     },
     "structures": {
-      "minecraft:igloos": 0.6
+      "minecraft:igloos": 0.8
     },
     "features": {
-      "minecraft:iceberg_packed": 0.8,
-      "minecraft:ice_spike": 0.3,
-      "minecraft:freeze_top_layer": 0.5
+      "minecraft:iceberg_packed": 1.0,
+      "minecraft:ice_spike": 0.5,
+      "minecraft:freeze_top_layer": 0.8
     },
     "spawns": {
-      "minecraft:polar_bear": 0.9,
-      "minecraft:stray": 0.6,
-      "minecraft:fox": 0.5,
-      "minecraft:rabbit": 0.5,
-      "minecraft:wolf": 0.3,
-      "minecraft:goat": 0.2
+      "minecraft:polar_bear": 1.0,
+      "minecraft:stray": 0.8,
+      "minecraft:fox": 0.7,
+      "minecraft:rabbit": 0.7,
+      "minecraft:wolf": 0.5,
+      "minecraft:goat": 0.3
     },
     "phenomena": {
-      "aurora": 0.9,
-      "blizzard": 0.3
+      "aurora": 1.0,
+      "blizzard": 0.4
     }
   },
   "bends": {

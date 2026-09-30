@@ -206,15 +206,15 @@ data class Word(
      * That is also why there is no offered half of this: a tilt has nothing to yield, so a required bias
      * and an offered one would behave identically.
      *
-     * **[EVERYWHERE] is allowed here and nowhere else**, and leaning everything is what makes a word a
-     * mood ([isAMood]); `beautiful` leans the whole world green and rules nothing out.
+     * **[EVERYWHERE] is allowed here and nowhere else**: `beautiful` leans the whole world green and rules
+     * nothing out.
      */
     val biases: Map<Aspect, Map<String, Double>> = emptyMap(),
     /**
      * The same, leaned on **every part of the world at once** — spelled `biases: { all: … }`.
      *
-     * Laid bare, it leans wherever the word finds purchase, and `Constraint.aimedAt` is empty; aimed, it
-     * leans on the part it was aimed at and nowhere else.
+     * It reaches every part it likes something in (`Vocabulary.reached`); aimed, it leans on the part it
+     * was aimed at and nowhere else.
      */
     val leansEverywhere: Map<String, Double> = emptyMap(),
     /**
@@ -403,13 +403,6 @@ data class Word(
 
     /** Whether this word narrows anything at all, as opposed to only leaning, offering and bending. */
     val narrows: Boolean get() = firmness != Firmness.LEANS
-
-    /**
-     * Whether this word leans on **every** part of the world ([leansEverywhere]) — a mood, like `beautiful`
-     * or `foreboding`, whose reach laid bare is wherever it likes something, and whose lifts an Age draws
-     * a few of rather than taking them all ([Resolver]).
-     */
-    val isAMood: Boolean get() = leansEverywhere.isNotEmpty()
 
     /** The highest at-least bar this word sets anywhere — what breaks a tie between two words that bar. */
     val highestBar: Double get() = restricts.values.flatMap { it.values }.filter(Bars::isAtLeast).maxOrNull() ?: 0.0
@@ -875,11 +868,11 @@ data class Word(
          * the sky pinned the *terrain* to caverns and discarded `floating` in silence (§4.4, the spike's
          * single most important finding). A query says what a word likes, never where it belongs.
          *
-         * **A mood decides what claiming nowhere means.** A word leaning everywhere means *anywhere*, because
-         * tilting everywhere is what makes it a mood: `beautiful` bends the climate axes and weights the
-         * biomes, and shutting it into those two would stop it being beautiful anywhere else. A narrowing
-         * word that lands nowhere is left empty on purpose, so `DerivedAspectsCheck` can refuse it — a word
-         * that removes candidates and is aimed at nothing removes them everywhere.
+         * **A lean on everything is read against the corpus**, not here: it reaches every part it likes
+         * something in, which only the tag tables know, so `Vocabulary.reached` widens the word once the
+         * corpus is loaded. A narrowing word that lands nowhere is left empty on purpose, so
+         * `DerivedAspectsCheck` can refuse it — a word that removes candidates and is aimed at nothing
+         * removes them everywhere.
          *
          * There used to be a declared set of aspects laid alongside, and its only real job was aiming a
          * flat query: every other claim already names the parts of the world it touches, so declaring was

@@ -35,8 +35,8 @@ class ChargedSkyCheck : FunSpec({
      */
     test("a tempestuous electromagnetic Age is charged") {
         for (seed in SEEDS) {
-            check(charges(seed, "electromagnetic", "tempest", "phenomena")) {
-                "`electromagnetic tempest phenomena` put no ore in the sky at seed $seed"
+            check(charges(seed, "electromagnetic", "tempest", "age")) {
+                "`electromagnetic tempest age` put no ore in the sky at seed $seed"
             }
         }
     }
@@ -44,7 +44,7 @@ class ChargedSkyCheck : FunSpec({
     /** And the storms on their own are not it, or the word this is all named after would be decorative. */
     test("tempests alone are not a charged sky") {
         for (seed in SEEDS) {
-            check(!charges(seed, "tempest", "phenomena")) {
+            check(!charges(seed, "tempest", "age")) {
                 "a plain tempest Age counted as charged at seed $seed"
             }
         }

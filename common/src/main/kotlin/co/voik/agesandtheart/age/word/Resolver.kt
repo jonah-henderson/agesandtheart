@@ -107,10 +107,6 @@ object Resolver {
     // never zero, since a word that merely sets a parameter must not eliminate a preset (§3.2).
     private const val INCAPABLE_FACTOR = 0.04
 
-    // How much harder a lean from a word about one part bears on a population than a mood's — see
-    // [claimForMember].
-    private const val A_PARTS_OWN_LEAN_WEIGHS = 2.0
-
     /** Precedence between words claiming one part, firmest first — see [Word.PRECEDENCE]. */
     private val FIRMEST_FIRST: Comparator<Constraint> = compareByDescending(Word.PRECEDENCE) { it.word }
 
@@ -224,7 +220,7 @@ object Resolver {
         if (requesting.isEmpty()) return said
         val kept = mutableMapOf<Constraint, MutableMap<String, String>>()
         for (aspect in Aspect.entries) {
-            val here = said.filter { aspect in reachOf(vocabulary, it) }
+            val here = said.filter { aspect in reachOf(it) }
             val demanded = here.flatMap { it.word.setsIn(aspect).keys }.toSet()
             val asked = here.filter { it in requesting }
             for (parameter in asked.flatMap { it.word.requestsIn(aspect).keys }.distinct()) {
@@ -295,7 +291,7 @@ object Resolver {
         // is what decides where the seam falls, so it is asked of the claims rather than of the answer —
         // an aspect a word reached and left at its default still belongs to the writer.
         val template = templateOf(said)
-        val spokenTo = said.flatMap { reachOf(vocabulary, it) }.toSet()
+        val spokenTo = said.flatMap { reachOf(it) }.toSet()
         val composition = mintedFeatures(resolved, sentence, draw).laidOver(template.world(), spokenTo)
         flaws += mintingsThatCannotHold(vocabulary, sentence, draw)
         flaws += materialsDisplacedInMintings(vocabulary, sentence, draw)
@@ -497,10 +493,8 @@ object Resolver {
      * one part of the world, and because the aspect it names is where the page ended up.
      */
     private fun rehomings(vocabulary: Vocabulary, sentence: Sentence): List<Flaw> =
-        // **A mood Repair laid on the Age is free**: it has no aim, so there was no aiming to get wrong, and
-        // what it means there is what a mood laid bare always means.
-        sentence.written.filter { it.rehomed && !(it.word.isAMood && it.aimedAt.isEmpty()) }.map { said ->
-            val landedIn = reachOf(vocabulary, said).firstOrNull()
+        sentence.written.filter { it.rehomed }.map { said ->
+            val landedIn = reachOf(said).firstOrNull()
             flaw(vocabulary, Register.REHOMED, listOf(said), landedIn, tags = emptyList(), firmness = said.word.firmness)
         }
 
@@ -540,12 +534,11 @@ object Resolver {
         }
 
     /**
-     * Which aspects a constraint speaks to — the grammar's answer, not a search (§4.3.1). "Anywhere"
-     * resolves against [purchaseFor], which is where a word finds purchase.
+     * Which aspects a constraint speaks to — the grammar's answer, not a search (§4.3.1): where its clause
+     * aimed, or the word's own reach where nothing did.
      */
-    private fun reachOf(vocabulary: Vocabulary, constraint: Constraint): List<Aspect> =
-        if (constraint.aimedAt.isNotEmpty()) constraint.aimedAt.sortedBy { it.ordinal }
-        else purchaseFor(vocabulary, constraint.word)
+    private fun reachOf(constraint: Constraint): List<Aspect> =
+        constraint.aimedAt.ifEmpty { constraint.word.aspects }.sortedBy { it.ordinal }
 
     /**
      * What fills one aspect: one preset, or several where the sentence left it no way to be one thing.
@@ -565,7 +558,7 @@ object Resolver {
         // invent an answer neither kind has.
         if (aspect.holds != Holds.CATALOGUE) return emptyList()
 
-        val speaking = sentence.filter { aspect in reachOf(vocabulary, it) }
+        val speaking = sentence.filter { aspect in reachOf(it) }
         // **What the sentence put into the pool**, which is the one step that can widen it. Per sentence
         // rather than per corpus: a member one word admits is in *this* Age's draw and nobody else's.
         val pool = vocabulary.availableToBroadWordsIn(aspect) +
@@ -844,26 +837,6 @@ object Resolver {
     }
 
     /**
-     * Where [word] finds purchase laid bare — the aspects it is about, or for a mood every one it likes
-     * something in. A word aimed somewhere never asks: [Constraint.aimedAt] carries the answer.
-     */
-    fun purchaseFor(vocabulary: Vocabulary, word: Word): List<Aspect> {
-        // **Being a mood decides, not an empty reach.** The reach is derived, so `beautiful` reaches the
-        // climate it bends and the biomes it weighs, and reading that as its whole purchase stopped it
-        // being beautiful anywhere else — one Age over fifty seeds.
-        if (!word.isAMood) return word.aspects.sortedBy { it.ordinal }
-        return Aspect.entries.filter { aspect ->
-            val likesSomethingThere = vocabulary.availableToBroadWordsIn(aspect)
-                .any { word.biasOn(it, vocabulary.tagsOf(it)) > 0.0 }
-            // **And it reaches an aspect whose parameters it bends**, which is the only way into one with no
-            // candidates to like. The declaration is both the mechanism and the evidence, so §4.4's charge
-            // per aspect constrained stays honest with no tag table propping it up.
-            val bendsADialThere = aspect.parameters.any { it.name in word.canSet }
-            likesSomethingThere || bendsADialThere
-        }
-    }
-
-    /**
      * One preset from [candidates], drawn in proportion to how strongly the sentence claims each — the
      * same [strengthOf] that decides shares, so a well-liked preset is both likelier and larger.
      */
@@ -901,7 +874,7 @@ object Resolver {
         for ((first, second) in sentence.pairs()) {
             // Joined words are not in tension: a writer who said "keep both" was not contradicting himself.
             if (wereJoined(first, second)) continue
-            val shared = reachOf(vocabulary, first).intersect(reachOf(vocabulary, second).toSet())
+            val shared = reachOf(first).intersect(reachOf(second).toSet())
             for (aspect in shared) {
                 val chosen = filled[aspect].orEmpty()
                 if (chosen.none { first.word.acceptsOn(it, vocabulary.tagsOf(it)) }) continue
@@ -965,7 +938,7 @@ object Resolver {
 
     /** Whether [first] and [second] both set [parameter] in some one aspect both of them reach. */
     private fun boundTogether(vocabulary: Vocabulary, first: Constraint, second: Constraint, parameter: String): Boolean {
-        val shared = reachOf(vocabulary, first) intersect reachOf(vocabulary, second).toSet()
+        val shared = reachOf(first) intersect reachOf(second).toSet()
         fun setsItIn(said: Constraint, aspect: Aspect) = parameter in said.word.setsIn(aspect)
         return shared.any { aspect ->
             aspect.ownsParameterNamed(parameter) && setsItIn(first, aspect) && setsItIn(second, aspect)
@@ -1018,7 +991,7 @@ object Resolver {
     ): AgeComposition {
         var steered = composition
         for (aspect in Aspect.entries) {
-            val setting = sentence.filter { it.word.canSet.isNotEmpty() && aspect in reachOf(vocabulary, it) }
+            val setting = sentence.filter { it.word.canSet.isNotEmpty() && aspect in reachOf(it) }
             if (setting.isEmpty()) continue
             // Every ranged axis at once, before the rest: a fragment is a whole climate, not a temperature.
             // One at a time, `tropical frozen` fractured on temperature and then displaced humidity,
@@ -1329,7 +1302,7 @@ object Resolver {
         var weighed = composition
         for (aspect in Aspect.entries.filter { it.holds == Holds.WEIGHTED_SET }) {
             val pool = aspect.pool ?: continue
-            val speaking = sentence.filter { aspect in reachOf(vocabulary, it) }
+            val speaking = sentence.filter { aspect in reachOf(it) }
             if (speaking.isEmpty()) continue
             // **Each ground is weighed on its own**, as a ranged axis already is ([spanned]). A claim
             // confined to a biome is a second claim about the same member rather than a rival for the one
@@ -1386,24 +1359,24 @@ object Resolver {
     }
 
     /**
-     * **What an atmosphere brings about, drawn rather than taken whole.**
+     * **What a sentence's leans bring about, drawn rather than taken whole.**
      *
-     * A mood leans on tags and a tag reaches dozens of members, so lifting every one of them is
+     * A lean on a tag reaches dozens of members, so lifting every one of them is
      * how a single `foreboding` page wrote forty-nine creatures and seven phenomena into one Age (Jonah,
      * 2026-09-17, the Age Tsi — hadalfish, ghasts, piglins and a wither in a basalt world, with a tempest,
      * a blizzard, an inferno and a deluge running at once). A word meaning dread should make an Age
      * *dreadful*, which is a few of the right things rather than the catalogue.
      *
-     * So the lifts an atmosphere made are drawn among, **weighted by how hard it leaned**, so the few that
+     * So the lifts the leans made are drawn among, **weighted by how hard they leaned**, so the few that
      * survive are still the fitting few — and off the Age's own seed, so two Ages written from the same
      * word are unalike. That second property is the one worth having: `foreboding` now means something
      * different each time it is written.
      *
      * **Only where a lift introduces**, which is [INTRODUCES_WHAT_IT_LIFTS] — everywhere else a lift
      * reweighs what the biome already grows, and bending all fifty-nine of a desolate Age's features is
-     * exactly what an atmosphere is for. **Only upward**, since asking for less of something brings
-     * nothing about. And **only a mood** ([Word.isAMood]): a word about one part — `undead`, `villagers`,
-     * `volcanic` — means every member it reaches and is left whole.
+     * exactly what a lean is for. **Only upward**, since asking for less of something brings nothing about.
+     * A word naming a handful — `polar`'s six creatures — lifts no more than [INTRODUCES_WHAT_IT_LIFTS]
+     * allows, and so is left whole.
      */
     private fun drawnAmong(
         vocabulary: Vocabulary,
@@ -1414,16 +1387,12 @@ object Resolver {
         draw: Long,
     ): List<Claim> {
         val allowed = INTRODUCES_WHAT_IT_LIFTS[aspect] ?: return reached
-        // **An atmosphere is a mood**, the same test [purchaseFor] reads — a word aimed at one part by what
-        // it claims, like `volcanic`, means every member it reaches.
-        val atmospheres = speaking.filter { it.word.isAMood }
-        if (atmospheres.isEmpty()) return reached
         val byKey = drawnFrom.associateBy(Taggable::key)
 
         fun leanedOn(claim: Claim): Double {
             val member = byKey[claim.value] ?: return NO_LEAN
             val tags = vocabulary.tagsOf(member)
-            return atmospheres.sumOf { it.word.biasOn(member, tags) }
+            return speaking.sumOf { it.word.biasOn(member, tags) }
         }
 
         val lifted = reached
@@ -1578,12 +1547,8 @@ object Resolver {
         // back. See [PresetProfile.presentAnyway].
         val mentions = speaking.count { it.word.choiceIn(aspect)?.key == member.key }
         val mentioned = if (vocabulary.isPresentAnyway(member)) mentions * A_MENTION_IS_WORTH else NOTHING_MORE
-        // **Every word leans**, as it does for a catalogue — and a word about one part leans on it harder
-        // than a mood, whose lean is spread over everything.
-        val leaned = speaking.sumOf { said ->
-            val by = said.word.biasOn(member, tags)
-            if (said.word.isAMood) by else by * A_PARTS_OWN_LEAN_WEIGHS
-        }
+        // **Every word leans**, as it does for a catalogue.
+        val leaned = speaking.sumOf { it.word.biasOn(member, tags) }
         val wanting = insisting + speaking.filter {
             it !in insisting && it.word.biasOn(member, tags) > 0.0
         }

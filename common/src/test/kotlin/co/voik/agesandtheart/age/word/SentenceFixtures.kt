@@ -8,9 +8,9 @@ import co.voik.agesandtheart.age.word.grammar.Sentence
 fun sentenceOf(constraints: List<Constraint>, unreadable: List<String> = emptyList()): Sentence =
     Sentence(constraints.map { Phrase(modifiers = listOf(it)) }, unreadable)
 
-/** A book with no structure — every word standing alone, aimed at its own aspects unless it is a mood. */
+/** A book with no structure — every word standing alone, aimed at its own aspects. */
 fun flatSentence(words: List<Word>): Sentence = sentenceOf(
     words.map { word ->
-        Constraint(word, if (word.isAMood) emptySet() else word.aspects)
+        Constraint(word, word.aspects)
     },
 )

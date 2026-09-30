@@ -145,8 +145,6 @@ class Suggestions(private val vocabulary: Vocabulary) {
         // all: `a floating age` then `landmass` is the same Age with a page spent on it.
         if (offer.closes) return clauseIsOpen
         if (aims == null) return true
-        // A mood leans on everything, so it bears wherever it may stand.
-        if (word.isAMood) return true
         return aims.any { bears(word, it) }
     }
 

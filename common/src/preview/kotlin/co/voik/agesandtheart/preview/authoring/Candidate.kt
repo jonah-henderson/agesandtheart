@@ -46,7 +46,7 @@ data class Candidate(
     val restricts: Map<Aspect, Map<String, Double>> = emptyMap(),
     /** What the draw is leaned toward or away from, by key or `#tag` — step four. See [Word.biases]. */
     val biases: Map<Aspect, Map<String, Double>> = emptyMap(),
-    /** The same, leaned on every part of the world at once — what makes a word a mood. */
+    /** The same, leaned on every part of the world at once — `biases: { all: … }`. */
     val leansEverywhere: Map<String, Double> = emptyMap(),
     /** Ranged parameters bent toward a span or nudged, rather than bounded. See [Word.bends]. */
     val bends: Map<String, String> = emptyMap(),

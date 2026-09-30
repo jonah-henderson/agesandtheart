@@ -36,9 +36,9 @@
       "#frozen": 0.5
     },
     "biomes": {
-      "#frozen": 0.5,
-      "minecraft:ice_spikes": 0.6,
-      "minecraft:frozen_ocean": 0.1
+      "#frozen": 0.8,
+      "minecraft:ice_spikes": 1.0,
+      "minecraft:frozen_ocean": 0.2
     }
   },
   "sets": {

@@ -6,7 +6,7 @@
   },
   "biases": {
     "features": {
-      "#lush": -0.8
+      "#lush": -1.0
     }
   }
 }

@@ -28,8 +28,8 @@
   },
   "biases": {
     "phenomena": {
-      "tempest": 0.9,
-      "aurora": 0.9
+      "tempest": 1.0,
+      "aurora": 1.0
     }
   },
   "requests": {

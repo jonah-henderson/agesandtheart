@@ -76,7 +76,7 @@ class DescribingCheck : FunSpec({
         Phenomena.claimsIn(composed(*pages).optionsFor(Aspect.PHENOMENA, 0)).map(Claim::value).toSet()
 
     test("a description does not stock a menu with what it asks less of") {
-        val stocked = stocks("beautiful")
+        val stocked = stocks("beautiful", "age")
         val hostile = stocked.filter { it in NOTHING_BEAUTIFUL_ABOUT_THEM }
         check(hostile.isEmpty()) { "a beautiful Age was given $hostile to spawn" }
     }
@@ -100,15 +100,19 @@ class DescribingCheck : FunSpec({
      */
     test("a description raises no landform, however much of it it asks for") {
         fun raises(vararg pages: String) = Volcanoes.amountIn(composed(*pages))
-        check(raises("desolate") == null) { "a desolate Age raised volcanoes at ${raises("desolate")}" }
-        check(raises("foreboding") == null) { "a foreboding Age raised volcanoes at ${raises("foreboding")}" }
+        val desolate = raises("desolate", "age")
+        check(desolate == null) { "a desolate Age raised volcanoes at $desolate" }
+        val foreboding = raises("foreboding", "age")
+        check(foreboding == null) { "a foreboding Age raised volcanoes at $foreboding" }
         // And the word that means them still does, or the fix has taken the feature away instead.
         check(raises("volcanic", "features") != null) { "naming volcanic features no longer raises one" }
     }
 
     test("summoning takes naming, whatever a query brushed") {
-        check(summons("beautiful").isEmpty()) { "a beautiful Age summoned ${summons("beautiful")}" }
-        check(summons("foreboding").isEmpty()) { "a foreboding Age summoned ${summons("foreboding")}" }
+        val admiring = summons("beautiful", "age")
+        check(admiring.isEmpty()) { "a beautiful Age summoned $admiring" }
+        val dreading = summons("foreboding", "age")
+        check(dreading.isEmpty()) { "a foreboding Age summoned $dreading" }
         check("minecraft:ender_dragon" in summons("teeming", "minecraft:ender_dragon")) {
             "naming the dragon outright no longer summons one"
         }
@@ -118,13 +122,13 @@ class DescribingCheck : FunSpec({
     val SIGHTS = setOf("aurora", "rainbow")
 
     test("a description brings about only the phenomenon it asks more of") {
-        val admired = happens("beautiful")
+        val admired = happens("beautiful", "age")
         check(admired.isNotEmpty()) { "a beautiful Age had no weather at all" }
         check(admired.all { it in SIGHTS }) { "a beautiful Age was given a hazard: $admired" }
         // **By kind rather than by name.** Which hazards exist is a list that grows — a blizzard joined it
         // in 2026-09-05 and read as a failure here — where the rule that matters is that a dread word
         // reaches hazards and never sights.
-        val dreaded = happens("foreboding")
+        val dreaded = happens("foreboding", "age")
         check(dreaded.isNotEmpty()) { "a foreboding Age had no weather at all" }
         check(SIGHTS.none { it in dreaded }) { "a foreboding Age was given something to look at: $dreaded" }
         check(happens("tempest") == setOf("tempest")) { "naming a tempest no longer brings one" }
@@ -158,7 +162,7 @@ class DescribingCheck : FunSpec({
     }
 
     test("a description never introduces a biome, and a naming still does") {
-        val preferences = Biomes.preferencesIn(composed("beautiful").optionsFor(Aspect.BIOMES, 0))
+        val preferences = Biomes.preferencesIn(composed("beautiful", "age").optionsFor(Aspect.BIOMES, 0))
         val introduced = preferences.filterNot { it.onlyWhereItGrows }.map { it.biome.toString() }.toSet()
         check(introduced == setOf("minecraft:sunflower_plains", "minecraft:jungle")) {
             "'beautiful' names exactly the two biomes no tag can reach, and introduced $introduced"

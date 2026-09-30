@@ -147,7 +147,7 @@ class Editor(
     /** The verdict, recomputed only when the word changed — moving a cursor must not cost a corpus sweep. */
     private fun judge() {
         if (judged == candidate) return
-        word = candidate.asWord().getOrNull()
+        word = candidate.asWord().getOrNull()?.let(corpus.vocabulary::reached)
         findings = Verdict.on(candidate, corpus)
         judged = candidate
     }
@@ -1368,7 +1368,7 @@ class Editor(
             Picker.Option(
                 Word.EVERYWHERE,
                 "the whole Age",
-                "leaning on everything makes the word a mood, felt wherever it is laid",
+                "leans on every part at once, and reaches wherever it likes something",
             ),
         )
         val holding = Aspect.entries.filter { it.holds != Holds.NOTHING }

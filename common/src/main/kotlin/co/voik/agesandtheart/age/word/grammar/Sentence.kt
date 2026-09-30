@@ -26,8 +26,7 @@ data class Constraint(
      * The parts of the world this claim reaches — where the clause aimed, or the word's own where nobody
      * aimed it (`the-world-model.md` §3, §5).
      *
-     * **Empty for a mood laid bare**, which reaches wherever it finds purchase instead
-     * (`Resolver.purchaseFor`).
+     * Empty only where an `unaimed` roll took every part the word reached (`Resolver.rolledBare`).
      */
     val aimedAt: Set<Aspect> = emptySet(),
     val polarity: Polarity = Polarity.ASSERTED,
@@ -99,8 +98,8 @@ data class Phrase(
     /**
      * Everything said about the subject, **in the order it was written and ahead of it** (§4.3.1).
      *
-     * One list rather than the old mood-then-subject-then-rest. A mood had a position of its own because
-     * leaning on something unnamed was only possible in front of it; everything leads now, and keeping one
+     * One list rather than the old evocative-then-subject-then-rest. An evocative word had a position of its
+     * own because leaning on something unnamed was only possible in front of it; everything leads now, and keeping one
      * list is what stops a reading reordering the pages a writer laid.
      */
     val modifiers: List<Constraint> = emptyList(),

@@ -37,7 +37,7 @@ object Verdict {
     )
 
     fun on(candidate: Candidate, corpus: Corpus): List<Finding> {
-        val word = candidate.asWord().getOrElse { failure ->
+        val word = candidate.asWord().map(corpus.vocabulary::reached).getOrElse { failure ->
             return listOf(Finding(Standing.ERROR, "this word will not load", failure.message, "Vocabulary.load"))
         }
         return buildList {
@@ -313,7 +313,7 @@ object Verdict {
             )
             return@buildList
         }
-        if (Resolver.purchaseFor(corpus.vocabulary, word).isEmpty() && word.template == null) {
+        if (word.aspects.isEmpty() && word.template == null) {
             add(
                 Finding(
                     Standing.ERROR,
@@ -355,7 +355,7 @@ object Verdict {
      * deliberately.
      */
     private fun meaningFaults(candidate: Candidate, word: Word, corpus: Corpus): List<Finding> = buildList {
-        addAll(leanFaults(word, corpus))
+        addAll(leanFaults(word))
         for ((aspect, key) in word.chooses) {
             val already = corpus.vocabulary.words.distinct()
                 .firstOrNull { it.choiceIn(aspect)?.key == key && it.name != candidate.name }
@@ -371,28 +371,14 @@ object Verdict {
         }
     }
 
-    /** What a lean cannot do — `VocabularyCheck`'s "a bend has a range" and "a mood stays behind the fence". */
-    private fun leanFaults(word: Word, corpus: Corpus): List<Finding> = buildList {
-        for (parameter in word.bendsNothingRanged) {
-            add(
-                Finding(
-                    Standing.ERROR,
-                    "`$parameter` has no range to bend",
-                    "bend only a ranged parameter; settle the rest in `sets`, or offer it in `requests`",
-                    "VocabularyCheck",
-                ),
-            )
-        }
-        for (member in corpus.vocabulary.admittedPastTheFence(word)) {
-            add(
-                Finding(
-                    Standing.ERROR,
-                    "a mood cannot admit '$member'",
-                    "broad words are kept from it; only a word about one part reaches it by name",
-                    "VocabularyCheck",
-                ),
-            )
-        }
+    /** What a lean cannot do — `VocabularyCheck`'s "a bend has a range". */
+    private fun leanFaults(word: Word): List<Finding> = word.bendsNothingRanged.map { parameter ->
+        Finding(
+            Standing.ERROR,
+            "`$parameter` has no range to bend",
+            "bend only a ranged parameter; settle the rest in `sets`, or offer it in `requests`",
+            "VocabularyCheck",
+        )
     }
 
     /** Whether the word has anything to do in one aspect it declares — mirroring `VocabularyCheck`'s gate. */

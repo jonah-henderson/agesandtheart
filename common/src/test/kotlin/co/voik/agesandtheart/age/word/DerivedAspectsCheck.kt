@@ -104,7 +104,10 @@ class DerivedAspectsCheck : FunSpec({
             word.chooses.isNotEmpty() || word.entryOf != null || word.excludes.isNotEmpty() ||
                 word.restricts.values.any { tags -> tags.values.any { it > 0.0 } }
         val setsAndNothingElse = vocabulary.authoredWords
-            .filter { !constrainsPresets(it) && it.biases.isEmpty() && it.canSet.isNotEmpty() }
+            .filter { word ->
+                val leans = word.biases.isNotEmpty() || word.leansEverywhere.isNotEmpty()
+                !constrainsPresets(word) && !leans && word.canSet.isNotEmpty()
+            }
         for (word in setsAndNothingElse) {
             // A **lean** names its aspect and means something there, exactly as a restriction does —
             // `inferno` leans the sea toward lava and turns no parameter of the sea at all.
@@ -201,31 +204,21 @@ class DerivedAspectsCheck : FunSpec({
     }
 
     /**
-     * **A mood laid bare still means anywhere**, and leaning everywhere is what says so.
+     * **A lean on everything reaches everywhere it likes something**, read against the corpus.
      *
-     * `beautiful` nudges the climate and asks tags of everything, and shutting it into the climate would
-     * stop it being beautiful anywhere else. That used to be held by the derivation refusing to widen a
-     * word that declared nothing; with the declaration gone it is held where it always belonged — a mood
-     * laid bare carries no aim at all, so nothing consults the reach.
+     * `beautiful` bends the climate and asks tags of everything, and shutting it into the climate would
+     * stop it being beautiful anywhere else. The codec cannot see the tag tables, so `Vocabulary.reached`
+     * widens such a word once the corpus loads, and laid bare it is aimed at all of it.
      */
-    test("a mood laid bare carries no aim, whatever it reaches") {
-        val warm = Word.reaching(mapOf("temperature" to "0.5..1.0"), setOf(Aspect.TERRAIN), setOf(Aspect.BIOMES))
-        check(warm.isNotEmpty()) { "the derivation found nothing to check against" }
-
+    test("a lean on everything reaches everywhere it likes something") {
+        val beautiful = vocabulary.word("beautiful") ?: error("no 'beautiful'")
+        val keyed = setOf(Aspect.CLIMATE, Aspect.BIOMES)
+        check(beautiful.aspects.containsAll(keyed) && beautiful.aspects.size > keyed.size + 2) {
+            "'beautiful' reaches only ${beautiful.aspects}"
+        }
         val read = Grammar.read(vocabulary, listOf("beautiful", "age"))
         checkNotNull(read) { "'beautiful age' is not a book" }
-        val laid = read.phrases.flatMap { it.modifiers }.filter { it.word.name == "beautiful" }
-        check(laid.isNotEmpty()) { "'beautiful' was not laid at all" }
-        check(laid.all { it.aimedAt.isEmpty() }) {
-            "a mood laid bare was aimed at ${laid.map { it.aimedAt }}"
-        }
-
-        // And the words the rule exists for are still the shape it was written about.
-        val tilting = vocabulary.authoredWords
-            .filter { it.isAMood }
-            .map { it.name }
-        check(tilting.containsAll(listOf("beautiful", "desolate", "rich"))) {
-            "the words this rule exists for are gone, so the rule wants re-arguing: $tilting"
-        }
+        val laid = read.phrases.flatMap { it.modifiers }.single { it.word.name == "beautiful" }
+        check(laid.aimedAt == beautiful.aspects) { "'beautiful' laid bare was aimed at ${laid.aimedAt}" }
     }
 })

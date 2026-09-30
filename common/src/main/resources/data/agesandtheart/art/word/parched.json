@@ -9,8 +9,8 @@
       "#empty": 0.4
     },
     "biomes": {
-      "#dry": 0.8,
-      "#barren": 0.5
+      "#dry": 1.0,
+      "#barren": 0.7
     }
   },
   "sets": {

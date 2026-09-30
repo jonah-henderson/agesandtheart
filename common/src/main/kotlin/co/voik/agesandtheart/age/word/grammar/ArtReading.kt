@@ -31,8 +31,8 @@ import net.minecraft.resources.Identifier
  * modifiers cost nothing to parse — the clause is terminated by its own subject rather than by the next
  * one starting — and the reading is then simply the pages in the order they were written.
  *
- * **It also removed a production.** A mood used to have a slot of its own before the subject, because
- * that was the only way to lean on something that had not been named yet. Everything leads now, so there is
+ * **It also removed a production.** An evocative word used to have a slot of its own before the subject,
+ * because that was the only way to lean on something that had not been named yet. Everything leads now, so there is
  * one run of modifiers, and whether a word tilts or narrows is read off what it claims.
  *
  * **Why this and not a parser generator** (settled in advance, `decisions.md`). A generated grammar had to
@@ -295,9 +295,6 @@ internal object ArtReading {
             // Structure carries no aspect of its own; what it joins or qualifies is checked on its own.
             if (page.word == null) return page.kind != null
             val word = page.word
-            // **A mood belongs to whatever it is aimed at**, and leans there and nowhere else — `beautiful sky`
-            // is a beautiful sky. Not to a place: a mood confined to a biome has no reading.
-            if (word.isAMood) return !sited
             // Where nothing was aimed, every term answers for itself — which is what lets a word naming one
             // registry object need no page after it: `teeming igloos` is a sentence and `igloos structures`
             // says the same thing twice.
@@ -330,8 +327,6 @@ internal object ArtReading {
      * would keep every solid out of a sea it was pointed straight at, and `ice sea` would stop being a sentence.
      */
     private fun scopeFor(word: co.voik.agesandtheart.age.word.Word, aim: Set<Aspect>): Set<Aspect> {
-        // A mood laid bare reaches wherever it finds purchase, which the resolver reads off an empty scope.
-        if (word.isAMood) return aim
         return aim.ifEmpty { word.aspects }
     }
 }

@@ -178,22 +178,22 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * §4.3.1: a mood on the nucleus is laid bare, so `beautiful age` reads and still reaches the whole
+     * §4.3.1: a word on the nucleus is laid bare, so `beautiful age` reads and still reaches the whole
      * world. This is the beginner's sentence and the commonest thing anyone writes.
      */
-    test("a mood on the nucleus is global") {
+    test("a lean on everything, on the nucleus, is global") {
         val read = read(listOf("beautiful", "age"))
         val beautiful = read.constraints.first { it.word.name == "beautiful" }
-        check(beautiful.aimedAt.isEmpty()) {
-            "'beautiful' was confined to ${beautiful.aimedAt} on the nucleus"
+        check(beautiful.aimedAt == beautiful.word.aspects) {
+            "'beautiful' on the nucleus reached ${beautiful.aimedAt}, not all of ${beautiful.word.aspects}"
         }
     }
 
     /**
-     * The other half: a mood laid in an aimed clause belongs to what it is aimed at, and leans there and
-     * nowhere else — `beautiful floating landmass` is a beautiful landmass.
+     * The other half: a lean on everything laid in an aimed clause belongs to what it is aimed at, and leans
+     * there and nowhere else — `beautiful floating landmass` is a beautiful landmass.
      */
-    test("a mood laid in an aimed clause is aimed there") {
+    test("a lean on everything laid in an aimed clause is aimed there") {
         val read = read(listOf("age", "beautiful", "floating", "landmass"))
         check(read.dropped.isEmpty() && read.impossible.isEmpty()) { "the book did not read as laid" }
         val beautiful = read.constraints.first { it.word.name == "beautiful" }
@@ -203,13 +203,15 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * **And a stray mood goes on the Age.** `age beautiful` put it after the nucleus with nothing to aim
-     * it; the Art's own clauses are not an aim the writer gave, so `Repair` lays it bare.
+     * **A word laid after the nucleus is one the writer meant to aim**, so the Art invents the clause it
+     * was missing rather than dragging it back to the front — `age beautiful` becomes a beautiful *part*.
      */
-    test("a mood with nothing to aim it is laid on the Age") {
+    test("a word laid after the nucleus is given a clause") {
         val read = read(listOf("age", "beautiful"))
         val beautiful = read.constraints.first { it.word.name == "beautiful" }
-        check(beautiful.aimedAt.isEmpty()) { "a stray 'beautiful' was aimed at ${beautiful.aimedAt}" }
+        check(beautiful.aimedAt.size == 1) {
+            "a stray 'beautiful' should be aimed at one part the Art chose, and aims at ${beautiful.aimedAt}"
+        }
     }
 
     /**
@@ -266,13 +268,13 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * §4.3.1: an evocative word describes the whole Age, so it cannot be sited in one biome. A sited clause
-     * aims at a place exactly as a subject aims at a part, and both are a refusal.
+     * §4.3.1: a lean on everything is sited like any other word — it reaches the spawns, which vanilla
+     * resolves through the biome, so `beautiful zombie in jungle` is a beautiful jungle's zombies.
      */
-    test("an evocative word cannot be sited") {
+    test("a lean on everything is sited like any word") {
         val read = read(listOf("age", "beautiful", "zombie", "in", "jungle"))
         val beautiful = read.constraints.first { it.word.name == "beautiful" }
-        check(beautiful.confinedTo == null) { "'beautiful' was sited in ${beautiful.confinedTo}" }
+        check(beautiful.confinedTo?.path == "jungle") { "'beautiful' was sited in ${beautiful.confinedTo}" }
     }
 
     /** The other half: a word that narrows candidates narrows where it speaks. */

@@ -65,14 +65,14 @@ class VocabularyCheck : FunSpec({
             check(unknownTags.isEmpty()) {
                 "'${word.name}' asks for ${unknownTags.joinToString(" ")}, which nothing in the world carries"
             }
-            val aspects = Resolver.purchaseFor(vocabulary, word)
+            val aspects = word.aspects
             // A word that names a template has a say in no aspect *and* does the largest thing a single
             // page can: it changes the world the book starts from. Every other word has to reach one.
             check(aspects.isNotEmpty() || word.template != null) {
                 "'${word.name}' has a say in no aspect at all, so writing it would do nothing and cost nothing"
             }
-            // A word that named its aspects must be satisfiable in **each** of them; a mood named none, and
-            // having found purchase anywhere is what it promised.
+            // A word must be satisfiable in **each** part it reaches — including every part a lean on
+            // everything found purchase in, which is what it promised.
             val declared = word.aspects.sortedBy { it.ordinal }
             for (aspect in declared) {
                 // "Backed" means something different for a word that *steers* rather than *chooses* (§3.2):
@@ -523,20 +523,14 @@ class VocabularyCheck : FunSpec({
     }
 
     /**
-     * **What a lean cannot do.** A bend moves a range, so one naming a parameter with no range is inert —
-     * a page charged for and doing nothing. And a mood may not admit what broad words are kept from, since
-     * leaning on everything and reaching past the fence would hand out what the fence keeps back.
+     * **A bend has a range.** A bend moves a range, so one naming a parameter with no range is inert — a
+     * page charged for and doing nothing.
      */
-    test("a bend has a range, and a mood stays behind the fence") {
+    test("a bend has a range") {
         val bendingNothing = vocabulary.authoredWords
             .filter { it.bendsNothingRanged.isNotEmpty() }
             .map { "${it.name} (${it.bendsNothingRanged.joinToString(", ")})" }
         check(bendingNothing.isEmpty()) { "these bend what has no range: $bendingNothing" }
-        val pastTheFence = vocabulary.authoredWords
-            .mapNotNull { word -> vocabulary.admittedPastTheFence(word).takeIf { it.isNotEmpty() }?.let { word.name to it } }
-        check(pastTheFence.isEmpty()) {
-            "these are moods and admit what broad words are kept from: $pastTheFence"
-        }
     }
 
     /**

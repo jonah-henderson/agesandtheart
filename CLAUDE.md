@@ -392,8 +392,8 @@ feature, and keeping them in one package made a cycle of each. Opening a level i
 - **`Ages`** (in `generation/`) — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (calling `RuntimeLevels.open` / `RuntimeLevels.delete` with the recipe and dimension type, which are ours) and `reloadSaved` (replay on boot).
 - **`age/word/`** — **the Art's language.** `Word` (what it chooses, bars, sets, bends and leans on,
   keyed by aspect — **a word does not declare where it speaks**, its reach is derived from those claims;
-  a lean keyed `all` makes a word a mood, the one that tilts the whole Age when laid bare; how firmly it
-  claims, and what it costs, are read off the same claims),
+  a lean keyed `all` reaches every part it likes something in, read against the corpus at load; how
+  firmly it claims, and what it costs, are read off the same claims),
   `PresetProfile`/`PresetTags` (what the world is like — hung on `Taggable`, which is an `AuthoredPreset`
   this pack wrote or a `RegistryReference` into one of the game's registries; being describable by tag is
   the only thing the two share, so the interface is named for it), `Vocabulary` (the corpus, **loaded from datapack

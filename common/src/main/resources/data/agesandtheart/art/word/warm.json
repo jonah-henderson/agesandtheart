@@ -9,8 +9,8 @@
   ],
   "biases": {
     "biomes": {
-      "#lush": 0.3,
-      "#frozen": -0.6
+      "#lush": 0.6,
+      "#frozen": -1.0
     }
   },
   "sets": {
