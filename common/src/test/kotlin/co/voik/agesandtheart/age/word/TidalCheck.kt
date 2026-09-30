@@ -27,6 +27,11 @@ class TidalCheck : FunSpec({
         check(pulls("tidal", "sea").none(Tide::isTidal)) { "a tidal sea pulled: ${pulls("tidal", "sea")}" }
     }
 
+    test("a tidal sea is water") {
+        val seas = SEEDS.map { seed -> resolved(seed, "tidal", "sea").composition.seas.map { it.key } }
+        check(seas.all { it == listOf(WATER) }) { "a tidal sea came out $seas" }
+    }
+
     test("a pull with no moon to pull with is a contradiction") {
         val flaws = resolved(SEEDS.first(), "tidal", "moonless", "moon").instability.flaws
         check(flaws.any { it.register == Register.TENSION && "tidal" in it.words }) {
@@ -36,5 +41,6 @@ class TidalCheck : FunSpec({
 }) {
     private companion object {
         val SEEDS = listOf(1L, 2L, 3L, 4L)
+        const val WATER = "minecraft:water"
     }
 }

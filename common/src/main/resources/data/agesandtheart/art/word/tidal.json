@@ -4,17 +4,20 @@
     "but the moon is what moves it, so the tide is the moon's -- a pull (`SkyBodies.PULL`) nothing else sets.",
     "`tidal moon` is the one way to write a tide; it also offers the moon a little larger.",
     "",
-    "Anywhere else it is only the shore. `tidal sea` leans the sea to water; `tidal age` leans the sea, the",
-    "beaches and the mangroves, and **never reaches the moon** (`unaimed`, nought), so laying it bare does",
+    "Anywhere else it is only the shore. `tidal sea` is a sea of water, barred rather than leaned (Jonah): a",
+    "tidal sea of open air reads as the word failing. `tidal age` bars the sea too and leans the beaches and",
+    "the mangroves, and **never reaches the moon** (`unaimed`, nought), so laying it bare does",
     "not solve the puzzle -- a writer who wants the paper tree's window has to work out that the moon is",
     "the thing to aim at. Playtest decides whether nought is too hard.",
     "",
     "A moon taken away (`moonless`) leaves the pull nothing to pull with, which is charged mildly."
   ],
-  "biases": {
+  "restricts": {
     "sea": {
-      "#watery": 1.0
-    },
+      "watery": ">0.5"
+    }
+  },
+  "biases": {
     "biomes": {
       "minecraft:beach": 0.6,
       "minecraft:mangrove_swamp": 0.4,
