@@ -6,14 +6,30 @@ import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Facets
 
 /**
- * **How hard a word claims a property** — whether it insists, or merely offers and gives way to the book.
+ * **How hard a word claims a property** — whether it insists, merely offers and gives way to the book, or
+ * only bends a range toward where it would like it.
  *
  * Only properties have this: a claim on a population cannot fail, or is a removal, and neither has
  * anything to yield (`Word.biases`). The population's own steps are `ui.Step`, which only the screens read.
  */
-enum class Insistence(val required: Boolean, val title: String, val about: String) {
+enum class Insistence(
+    val required: Boolean,
+    val title: String,
+    val about: String,
+    /** Whether this half may hold pools — a bend is always felt, so there is nothing to draw. */
+    val holdsPools: Boolean = true,
+    /** Whether this half takes only a ranged parameter, a bend having nothing else to lean. */
+    val onlyRanges: Boolean = false,
+) {
     REQUIRED(true, "required", "always applies, and overrides anything else"),
     REQUESTED(false, "requested", "applies only where the book said nothing"),
+    BENT(
+        false,
+        "bent",
+        "leans a range toward where it would like it; takes nothing away, so it never fails",
+        holdsPools = false,
+        onlyRanges = true,
+    ),
 }
 
 /**
@@ -57,8 +73,11 @@ fun Candidate.leaning(aspect: Aspect?, named: String, weight: Double): Candidate
 }
 
 /** The half of this word [insistence] names, whole — what it always does, and every pool it draws from. */
-fun Candidate.claimsOn(insistence: Insistence): Claims =
-    if (insistence.required) Claims(sets, pools) else requests
+fun Candidate.claimsOn(insistence: Insistence): Claims = when (insistence) {
+    Insistence.REQUIRED -> Claims(sets, pools)
+    Insistence.REQUESTED -> requests
+    Insistence.BENT -> Claims(sets = bends)
+}
 
 /** What that half always does, drawn or not. */
 fun Candidate.settingOn(insistence: Insistence): Map<String, String> = claimsOn(insistence).sets
@@ -70,9 +89,11 @@ fun Candidate.poolsOn(insistence: Insistence): List<Facets> = claimsOn(insistenc
 fun Candidate.everythingOn(insistence: Insistence): Map<String, String> = claimsOn(insistence).everything
 
 /** This word with [insistence]'s claims replaced — the one funnel every edit below goes through. */
-fun Candidate.withClaims(insistence: Insistence, claims: Claims): Candidate =
-    if (insistence.required) copy(sets = claims.sets, pools = claims.pools)
-    else copy(requests = requests.copy(sets = claims.sets, pools = claims.pools))
+fun Candidate.withClaims(insistence: Insistence, claims: Claims): Candidate = when (insistence) {
+    Insistence.REQUIRED -> copy(sets = claims.sets, pools = claims.pools)
+    Insistence.REQUESTED -> copy(requests = requests.copy(sets = claims.sets, pools = claims.pools))
+    Insistence.BENT -> copy(bends = claims.sets)
+}
 
 /** This word with [parameter] claimed at [insistence] and always, rather than drawn from a pool. */
 fun Candidate.putting(insistence: Insistence, parameter: String, value: String): Candidate =
@@ -144,7 +165,13 @@ fun Candidate.heldElsewhere(spelled: String, into: Into): Held? {
     val inAPool = Insistence.entries.any { half -> poolsOn(half).any { spelled in it.facets } }
     if (inAPool) return Held.IN_A_POOL
     return Insistence.entries.firstOrNull { half -> half != into.insistence && spelled in settingOn(half) }
-        ?.let { if (it.required) Held.REQUIRED else Held.REQUESTED }
+        ?.let { half ->
+            when (half) {
+                Insistence.REQUIRED -> Held.REQUIRED
+                Insistence.REQUESTED -> Held.REQUESTED
+                Insistence.BENT -> Held.BENT
+            }
+        }
 }
 
 /** Where a setting being moved came from, as the picker says it. */
@@ -152,6 +179,7 @@ enum class Held(val said: String) {
     IN_A_POOL("move out of pool"),
     REQUIRED("move out of required"),
     REQUESTED("move out of requested"),
+    BENT("move out of bent"),
 }
 
 /** What this word says [spelled] is, wherever it holds it — empty where it holds it nowhere. */

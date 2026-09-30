@@ -611,7 +611,9 @@ class Parts(private val corpus: Corpus) {
             // the question these used to open with, so putting one pair in each group asks it by where
             // you are standing — and a word with a dozen effects does not bury the way to add another.
             add(Row(Handle.AddEffect(insistence), listOf(Ink("    + add an effect", Palette.faint))))
-            add(Row(Handle.AddPool(insistence), listOf(Ink("    + add a pool, drawn per Age", Palette.faint))))
+            if (insistence.holdsPools) {
+                add(Row(Handle.AddPool(insistence), listOf(Ink("    + add a pool, drawn per Age", Palette.faint))))
+            }
             for ((parameter, value) in candidate.settingOn(insistence).entries.sortedBy { it.key }) {
                 add(facetRow(Into(insistence), parameter, value, word))
             }

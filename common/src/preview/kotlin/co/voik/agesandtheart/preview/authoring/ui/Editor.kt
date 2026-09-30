@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.aspect.RANGED_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.word.Bars
@@ -1288,10 +1289,12 @@ class Editor(
         // it — and now that the half is chosen by which group you added from, this is where it is asked.
         fun countsAMemberWeMayNotDemand(parameter: String) =
             into.insistence.required && parameter.substringAfterLast('.') == Parameter.CAST
+        // A bend leans a range, so only a ranged parameter can take one.
+        fun cannotBeBent(parameter: String) = into.insistence.onlyRanges && parameter !in RANGED_PARAMETERS
         val owners = Aspect.entries.filter { only == null || it == only }
             .flatMap { aspect -> parameterNamesIn(aspect).map { it to aspect } }
             .groupBy({ it.first }, { it.second })
-            .filterKeys { it !in alreadyTurned && !countsAMemberWeMayNotDemand(it) }
+            .filterKeys { it !in alreadyTurned && !countsAMemberWeMayNotDemand(it) && !cannotBeBent(it) }
         val options = owners.entries.sortedBy { it.key }.map { (parameter, aspects) ->
             val said = aspects.firstNotNullOfOrNull { aspect ->
                 Verdict.parametersNamed(aspect, parameter, corpus).firstOrNull { it.help.isNotBlank() }?.help

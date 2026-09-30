@@ -322,6 +322,7 @@ class Suggestions(private val vocabulary: Vocabulary) {
 
     /** What it leans the draw by, once the pool is settled — the last step, and the only one that cannot fail. */
     private fun leanedBy(word: Word): List<Claim> = buildList {
+        addAll(word.bends.map { (parameter, value) -> Claim("bends $parameter toward $value") })
         val leaning = word.biases.entries.sortedBy { it.key.ordinal }
             .map { (aspect, by) -> aspect.page to by } +
             listOfNotNull(word.leansEverywhere.takeIf { it.isNotEmpty() }?.let { Word.EVERYWHERE to it })

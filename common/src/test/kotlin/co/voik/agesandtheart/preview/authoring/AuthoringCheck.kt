@@ -252,6 +252,17 @@ class AuthoringCheck : FunSpec({
      * The two ways a meaning goes wrong, both refused rather than merely shown — see `Verdict.meaningFaults`
      * and the two `VocabularyCheck` tests it names.
      */
+    /** **The bent half is `bends`**, and a word written there leans a range rather than bounding one. */
+    test("a bend written in the editor is a bend in the file") {
+        val bending = Candidate(name = "probe").putting(Into(Insistence.BENT), "temperature", "0.2..0.6")
+        check(bending.bends == mapOf("temperature" to "0.2..0.6") && bending.sets.isEmpty()) {
+            "the bent half wrote sets ${bending.sets} and bends ${bending.bends}"
+        }
+        val word = bending.asWord().getOrThrow()
+        check(word.bends == bending.bends && !word.narrows) { "the file read back as ${word.bends}, narrowing ${word.narrows}" }
+        check(!Insistence.BENT.holdsPools) { "a bend is always felt, so the bent half has no pools" }
+    }
+
     test("a bend with no range is refused") {
         val bending = Candidate(
             name = "probe",
