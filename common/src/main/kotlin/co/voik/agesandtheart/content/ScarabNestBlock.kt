@@ -107,9 +107,22 @@ class ScarabNestBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeC
     }
 
     /** What the next course laid is: the chamber where it has got to, mud everywhere else. */
-    fun nextCourse(level: Level): BlockState {
-        val isTheChamber = pillarHeight(level) + 1 == chamberAt
-        return if (isTheChamber) Blocks.PACKED_MUD.defaultBlockState() else Blocks.MUD.defaultBlockState()
+    fun nextCourse(level: Level): BlockState = courseAt(pillarHeight(level) + 1)
+
+    /** What the course [height] up the pillar is: the chamber, or mud. */
+    fun courseAt(height: Int): BlockState =
+        if (height == chamberAt) Blocks.PACKED_MUD.defaultBlockState() else Blocks.MUD.defaultBlockState()
+
+    /**
+     * A nest the Age grew with its colony: claimed for [scarab], who is **asleep inside it** as if it had
+     * slept the night, so a colony a chunk was generated with comes out at the first daylight after it loads.
+     * The scarab was never in the world, which is why it is kept as data and never discarded.
+     */
+    fun grownWith(scarab: Scarab, random: RandomSource) {
+        claimFor(scarab, random)
+        sleeper = asleep(scarab)
+        sleptFor = SHORTEST_SLEEP + 1
+        setChanged()
     }
 
     /** Where the next block of the pillar goes, which is also where a scarab goes in and comes out. */

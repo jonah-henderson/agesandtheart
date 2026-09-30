@@ -8,8 +8,10 @@ import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
+import co.voik.agesandtheart.worldgen.feature.ScarabColony
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
+import net.minecraft.core.HolderLookup
 import net.minecraft.core.QuartPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
@@ -21,7 +23,9 @@ import net.minecraft.world.entity.ai.village.poi.PoiManager
 import net.minecraft.world.entity.ai.village.poi.PoiRecord
 import net.minecraft.world.entity.ai.village.poi.PoiType
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.world.level.levelgen.placement.PlacedFeature
 
 /**
  * Whether an Age will hold a scarab colony, and where the ground that would hold one lies (design §7.1.2).
@@ -60,6 +64,26 @@ object ScarabHabitat {
         /** Whether everything but the ground is there. */
         val wouldHoldAColony: Boolean get() = writtenByAPlayer && isWarmEnough && anyJungle && growsTorchflowersWild
     }
+
+    /**
+     * **The colonies an Age is generated with**, as a decoration layer — or null where no colony would live in
+     * it (design §7.1.2). Asked of the recipe, as [readAge] is less the jungle, which [ScarabColony] finds on
+     * the patch itself: a patch under no jungle holds none.
+     */
+    fun colonyLayer(registries: HolderLookup.Provider, recipe: AgeRecipe): Decoration.Layer? {
+        val composition = recipe.composition ?: return null
+        val torchflowers = torchflowersIn(composition) { biome -> isJungle(registries, biome) }
+        val wouldLiveHere = recipe.authored && warmthOf(composition) == Warmth.SUITS &&
+            torchflowers == Torchflowers.WILD_IN_THE_JUNGLE
+        if (!wouldLiveHere) return null
+        return Decoration.layerOf(GenerationStep.Decoration.TOP_LAYER_MODIFICATION, listOf(COLONIES))
+    }
+
+    /**
+     * **One placed feature for every Age**, as the grove is (`PaperTreeWindow`): the colony scans the chunk it
+     * is placed in for itself, so it asks nothing of where it is put.
+     */
+    private val COLONIES: Holder<PlacedFeature> = Holder.direct(PlacedFeature(Holder.direct(ScarabColony), emptyList()))
 
     /** The Age half of the habitat, or null where [recipe] names a bespoke world with no composition to read. */
     fun readAge(level: ServerLevel, recipe: AgeRecipe): AgeReading? {
@@ -249,8 +273,10 @@ object ScarabHabitat {
             .toList()
 
     /** Whether a biome id names a jungle, for the confinement a book may have written on the flowers. */
-    fun isJungle(level: ServerLevel, biome: Identifier): Boolean =
-        level.registryAccess()
+    fun isJungle(level: ServerLevel, biome: Identifier): Boolean = isJungle(level.registryAccess(), biome)
+
+    fun isJungle(registries: HolderLookup.Provider, biome: Identifier): Boolean =
+        registries
             .lookupOrThrow(Registries.BIOME)
             .get(ResourceKey.create(Registries.BIOME, biome))
             .map { holder -> holder.`is`(BiomeTags.IS_JUNGLE) }

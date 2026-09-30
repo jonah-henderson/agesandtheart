@@ -114,6 +114,7 @@ import co.voik.agesandtheart.worldgen.feature.ImpactCrater
 import co.voik.agesandtheart.worldgen.feature.DeepSeaVent
 import co.voik.agesandtheart.worldgen.feature.PaperTree
 import co.voik.agesandtheart.worldgen.feature.PaperTreeGrove
+import co.voik.agesandtheart.worldgen.feature.ScarabColony
 import net.minecraft.world.level.block.RotatedPillarBlock
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument
 import co.voik.agesandtheart.worldgen.feature.LavaPuddles
@@ -2125,5 +2126,6 @@ object AgeContent {
         "deep_sea_vent".location() to DeepSeaVent.CODEC,
         "paper_tree".location() to PaperTree.CODEC,
         "paper_tree_grove".location() to PaperTreeGrove.CODEC,
+        "scarab_colony".location() to ScarabColony.CODEC,
     )
 }

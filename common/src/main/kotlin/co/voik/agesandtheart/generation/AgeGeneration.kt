@@ -56,6 +56,7 @@ import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.age.reward.Decoration
 import co.voik.agesandtheart.age.reward.Deposits
 import co.voik.agesandtheart.age.reward.PaperTreeWindow
+import co.voik.agesandtheart.age.reward.ScarabHabitat
 import co.voik.agesandtheart.age.aspect.AgeSpawner
 import co.voik.agesandtheart.content.DriftingOreSpawner
 import net.minecraft.world.level.CustomSpawner
@@ -299,6 +300,8 @@ object AgeGeneration {
                     Craters.layer(composition, seed),
                     // The paper tree's grove, where its window is met (design §7.1.2).
                     PaperTreeWindow.layer(recipe, skySpec(recipe)),
+                    // The scarab colonies an Age that would hold one is found with (design §7.1.2).
+                    ScarabHabitat.colonyLayer(server.registryAccess(), recipe),
                 ) + EarlyGameRareMaterials.layers(EarlyGameRareMaterials.grownIn(composition, seed, spending)),
             ),
             // What lives here, narrowing what vanilla resolves per biome and per structure.
