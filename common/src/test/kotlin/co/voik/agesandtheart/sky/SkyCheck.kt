@@ -211,7 +211,7 @@ class SkyCheck : FunSpec({
         }
         // The bodies are the sun's, the moon's and the stars' rather than the vault's, so it is the
         // aspects that must hold their parameters — one nothing declares is a request silently dropped.
-        for (parameter in listOf(SkyBodies.ABSENT, SkyBodies.SUNSIZE, SkyBodies.SUNCOLOUR)) {
+        for (parameter in listOf(SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.SUNCOLOUR)) {
             check(parameter in Aspect.SUN.parameters) { "the sun does not hold ${parameter.name}" }
         }
         check(SkyBodies.STARS in Aspect.STARS.parameters) { "the stars do not hold their own density" }

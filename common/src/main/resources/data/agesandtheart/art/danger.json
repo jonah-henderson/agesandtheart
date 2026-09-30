@@ -121,8 +121,7 @@
     "deluge": 0.75,
     "tempest": 0.7,
     "aurora": 0.0,
-    "rainbow": 0.0,
-    "tidal": 0.0
+    "rainbow": 0.0
   },
   "lighting": {
     "sealed": 0.55,

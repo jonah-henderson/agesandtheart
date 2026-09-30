@@ -1,5 +1,8 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.generation.AgeChunkGenerator
 import co.voik.ephemeris.sky.LevelLooks
 import co.voik.ephemeris.sky.SkyReading
@@ -15,15 +18,18 @@ import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.material.FlowingFluid
 import java.util.Collections
 import java.util.WeakHashMap
+import kotlin.math.ceil
 
 /**
  * The sea rising and falling with the moons — `tidal`, the flood cycle the paper tree's root lives by
  * (design §7.1.2).
  *
- * **A three-block band**: low, mid and high, with mid wherever the sea stands now — the written sea, or the
- * deluge's where one is raising it, so a rising sea still tides. **The moons set it**: the average altitude
- * of every moon in the sky, high tide with them well up and low with them well down, so a second moon
- * deepens, flattens or skews the cycle by where it is. With no moon there is no tide.
+ * **The moons raise it, and only a moon that pulls** (`SkyBodies.PULL`, which `tidal` sets): a moon nobody
+ * wrote a pull for raises nothing, so an Age tides only where a book said so. The pulling moons' altitudes,
+ * weighed by how hard each pulls, set how high it stands — high with them well up, low with them well
+ * down — and their pull together sets how far it reaches either side of mid, held for now at one block
+ * ([WIDEST_REACH]): **a three-block band**, low, mid and high, with mid wherever the sea stands now — the
+ * written sea, or the deluge's where one is raising it, so a rising sea still tides.
  *
  * **The level is a pure function of the clock**, with nothing stored, so a chunk nobody has seen catches up
  * on the one pass that reaches it.
@@ -41,8 +47,8 @@ object Tide {
     enum class Stage(val offset: Int) { LOW(-1), MID(0), HIGH(1) }
 
     /**
-     * Ages where `/age weather tidal` has set a tide running, and what it is pinned at — null to follow the
-     * moons. Not saved: a walk should not leave a tide behind.
+     * Ages where `/age tide` has set a tide running, and what it is pinned at — null to follow the moons,
+     * every one of them pulling. Not saved: a walk should not leave a tide behind.
      */
     private val forced: MutableMap<ServerLevel, Stage?> = Collections.synchronizedMap(WeakHashMap())
 
@@ -57,23 +63,50 @@ object Tide {
     fun isForcedIn(level: ServerLevel): Boolean = level in forced
 
     /**
-     * Where the tide stands in [level] now, or null where there is no tide: no sea to move, or no moon
-     * to move it.
+     * How hard each moon [composition] describes pulls the sea, nought to one, in the order the sky draws
+     * them. Empty where the Age has no moon, and nought for a moon nothing gave a pull.
      */
-    fun stageIn(level: ServerLevel): Stage? {
-        forced[level]?.let { return it }
-        val sky = LevelLooks.anywhere(level)?.sky ?: SkySpec.VANILLA
-        return stageFor(SkyReading.of(sky, level.defaultClockTime))
+    fun pullsIn(composition: AgeComposition, seed: Long): List<Double> {
+        if (composition.optionsFor(Aspect.MOON).isTrue(SkyBodies.ABSENT)) return emptyList()
+        return (0..<composition.membersIn(Aspect.MOON)).map { moon ->
+            SkyBodies.pullOf(composition.optionsFor(Aspect.MOON, moon), seed)
+        }
     }
 
-    /** The stage a sky sets, or null where it has no moon. Pure, so it can be asked without a world. */
-    fun stageFor(reading: SkyReading): Stage? {
-        val moons = reading.moons
-        if (moons.isEmpty()) return null
-        val pull = moons.map { it.altitudeDegrees }.average()
+    /** Whether any moon of [pulls] raises a tide at all. */
+    fun isTidal(pulls: List<Double>): Boolean = pulls.any { it > NO_PULL }
+
+    /**
+     * How many blocks either side of mid a tide with [pulls] reaches — their pull together, at least one
+     * and at most [WIDEST_REACH].
+     */
+    fun reachOf(pulls: List<Double>): Int =
+        ceil(pulls.sum() * WIDEST_REACH).toInt().coerceIn(NARROWEST_REACH, WIDEST_REACH)
+
+    /**
+     * Where the tide stands in [level] now, or null where there is no tide: no moon to move it. [pulls] is
+     * each moon's, or null for every moon pulling alike, as a tide forced by hand does.
+     */
+    fun stageIn(level: ServerLevel, pulls: List<Double>? = null): Stage? {
+        forced[level]?.let { return it }
+        val sky = LevelLooks.anywhere(level)?.sky ?: SkySpec.VANILLA
+        return stageFor(SkyReading.of(sky, level.defaultClockTime), pulls)
+    }
+
+    /**
+     * The stage a sky sets, or null where no moon in it pulls. [pulls] is each moon's, in the sky's order,
+     * or null for every moon pulling alike. Pure, so it can be asked without a world.
+     */
+    fun stageFor(reading: SkyReading, pulls: List<Double>? = null): Stage? {
+        val pulling = reading.moons.mapIndexedNotNull { at, moon ->
+            val pull = if (pulls == null) EVERY_MOON_ALIKE else pulls.getOrNull(at) ?: NO_PULL
+            if (pull > NO_PULL) moon.altitudeDegrees to pull else null
+        }
+        if (pulling.isEmpty()) return null
+        val altitude = pulling.sumOf { (altitude, pull) -> altitude * pull } / pulling.sumOf { it.second }
         return when {
-            pull >= HIGH_WITH_THE_MOONS_ABOVE -> Stage.HIGH
-            pull <= LOW_WITH_THE_MOONS_BELOW -> Stage.LOW
+            altitude >= HIGH_WITH_THE_MOONS_ABOVE -> Stage.HIGH
+            altitude <= LOW_WITH_THE_MOONS_BELOW -> Stage.LOW
             else -> Stage.MID
         }
     }
@@ -97,15 +130,21 @@ object Tide {
     /** The y of the top of the sea at mid tide in [level], which is where it stands now. */
     fun midIn(level: ServerLevel): Int? = seaOf(level.chunkSource.generator)?.top
 
-    /** The tide's block work, over every chunk anybody can see, a few chunks a tick. */
-    fun flow(level: ServerLevel) {
+    /**
+     * The tide's block work, over every chunk anybody can see, a few chunks a tick — where some moon of
+     * [pulls] pulls, or a tide was forced by hand.
+     */
+    fun flow(level: ServerLevel, pulls: List<Double>) {
+        val written = pulls.takeIf(::isTidal)
+        if (written == null && !isForcedIn(level)) return
         val standing = seaOf(level.chunkSource.generator) ?: return
         val mid = standing.top
         val sea = standing.block
-        val stage = stageIn(level) ?: return
+        val stage = stageIn(level, written) ?: return
         val inView = Sampling.inViewNearestFirst(level)
         if (inView.isEmpty()) return
-        val band = Band(low = mid + Stage.LOW.offset, standing = mid + stage.offset, high = mid + Stage.HIGH.offset)
+        val reach = written?.let(::reachOf) ?: WIDEST_REACH
+        val band = Band(low = mid - reach, standing = mid + stage.offset * reach, high = mid + reach)
         // As the deluge does it: where a pass starts is derived from the clock, so nothing holds a cursor.
         val from = ((level.gameTime * CHUNKS_A_TICK) % inView.size).toInt()
         for (step in 0..<CHUNKS_A_TICK) {
@@ -184,4 +223,17 @@ object Tide {
     private const val CHUNKS_A_TICK = 32
 
     private const val CHUNK_WIDTH = 16
+
+    private const val NO_PULL = 0.0
+
+    /** What every moon pulls where nothing wrote one each — a tide forced by hand, or a check. */
+    private const val EVERY_MOON_ALIKE = 1.0
+
+    private const val NARROWEST_REACH = 1
+
+    /**
+     * The furthest a tide reaches either side of mid, however hard its moons pull — **one block for now**
+     * (Jonah, 2026-09-30), a three-block band, until playing it says a wider tide is not too hard to keep.
+     */
+    const val WIDEST_REACH = 1
 }

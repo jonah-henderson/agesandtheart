@@ -195,8 +195,6 @@ internal object PhenomenonInstruments {
         }
         // A deluge asked for pools its rain whatever the Age was written with; any other weather ends that.
         if (name == Phenomenon.DELUGE.key) Deluge.force(level) else Deluge.release(level)
-        // And a tide, which runs on the moons whatever the weather, until any other weather is asked for.
-        if (name == Phenomenon.TIDAL.key) Tide.force(level) else Tide.release(level)
         AgeWeather.set(level, own, wants)
         source.sendSuccess({ Component.translatable("commands.agesandtheart.weather.set", name) }, true)
         return 1

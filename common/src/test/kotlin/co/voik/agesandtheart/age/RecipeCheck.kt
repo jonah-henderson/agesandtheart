@@ -87,7 +87,7 @@ class RecipeCheck : FunSpec({
         // A parameter that exists, on an aspect with no preset, given a value its axis cannot read. The
         // expectation is spelled from the parameter rather than repeated, so renaming one cannot leave a
         // check asserting the old name against the new behaviour.
-        val size = SkyBodies.SUNSIZE.name
+        val size = SkyBodies.BODYSIZE.name
         check(saidOf(Aspect.SUN, size, "huge") == listOf("sun.$size=huge")) {
             "a value the axis cannot read went unreported: ${saidOf(Aspect.SUN, size, "huge")}"
         }

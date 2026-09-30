@@ -16,6 +16,7 @@ import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.word.grammar.Phrase
@@ -295,6 +296,7 @@ object Resolver {
         val composition = mintedFeatures(resolved, sentence, draw).laidOver(template.world(), spokenTo)
         flaws += mintingsThatCannotHold(vocabulary, sentence, draw)
         flaws += materialsDisplacedInMintings(vocabulary, sentence, draw)
+        flaws += tidesWithNoMoon(vocabulary, said, composition)
         // **Last**, so it can see everything the mechanisms above already charged and never price one
         // disagreement twice. Steering adds flaws of its own, so this cannot be hoisted.
         flaws += oppositions(vocabulary, said, flaws.toList())
@@ -336,6 +338,25 @@ object Resolver {
             // and the second as what displaced it.
             flaw(vocabulary, Register.DISPLACED, listOf(substance, minting), Aspect.FEATURES, emptyList(), substance.word.firmness)
         }
+
+    /**
+     * A **pull asked of a moon in an Age with no moon** — `tidal moon` beside `moonless moon`. The tide cannot
+     * happen and the book asked for one, which is a mild contradiction (design §7.1.2), charged to the word
+     * that pulled and naming whatever took the moons away.
+     */
+    private fun tidesWithNoMoon(
+        vocabulary: Vocabulary,
+        said: List<Constraint>,
+        composition: AgeComposition,
+    ): List<Flaw> {
+        if (!composition.optionsFor(Aspect.MOON).isTrue(SkyBodies.ABSENT)) return emptyList()
+        fun setsOnTheMoon(constraint: Constraint, parameter: Parameter) =
+            Aspect.MOON in reachOf(constraint) && parameter.name in constraint.word.setsIn(Aspect.MOON)
+        val removing = said.filter { setsOnTheMoon(it, SkyBodies.ABSENT) }
+        return said.filter { setsOnTheMoon(it, SkyBodies.PULL) }.map { pulling ->
+            flaw(vocabulary, Register.TENSION, listOf(pulling) + removing, Aspect.MOON, emptyList(), pulling.word.firmness)
+        }
+    }
 
     /**
      * Whether a block a sentence named has a fluid in it, which is the whole of what a spring asks of its
@@ -812,9 +833,14 @@ object Resolver {
      * A tilt rather than a filter: parameter-setting words do not choose presets, so this leans the draw
      * without forbidding anything. "Cherry grove floating" still gets floating islands, and their having
      * no biomes is then a real contradiction for [wordsNothingHonours] to charge.
+     *
+     * **Only what this part of the world owns is asked.** A word reaching several parts sets things none of
+     * this part's presets could hold — `tidal`'s moon pull, `polar`'s temperature — and counting those
+     * floored every candidate alike, which flattened the word's own lean on this part to nothing.
      */
     private fun capabilityFactor(preset: Taggable, speaking: List<Constraint>): Double {
         val parametersAsked = speaking.flatMap { it.word.setsIn(preset.aspect).keys }.distinct()
+            .filter(preset.aspect::ownsParameterNamed)
         if (parametersAsked.isEmpty()) return FULLY_CAPABLE
         val honoured = parametersAsked.count(preset::honoursParameterNamed)
         val share = honoured.toDouble() / parametersAsked.size

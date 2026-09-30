@@ -73,12 +73,5 @@
       "dark": 0.5,
       "eroded": 0.4
     }
-  },
-  "tidal": {
-    "_comment": "The sea rising and falling with the moons, so `watery` is the whole of it. **Kept from broad words until the vocabulary pass** gives it a word of its own (design 7.1.2): a vague page reaching the paper tree's window by accident is a decision that pass should make, not this file.",
-    "tags": {
-      "watery": 0.8
-    },
-    "available_to_broad_words": false
   }
 }

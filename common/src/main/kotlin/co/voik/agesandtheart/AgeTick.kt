@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.phenomena.Deluge
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.phenomena.Sampling
+import co.voik.agesandtheart.age.phenomena.Tide
 import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.content.Dragons
 import co.voik.agesandtheart.content.ScarabArrivals
@@ -48,6 +49,8 @@ object AgeTick {
             if (Sampling.watchers(level).isEmpty()) continue
             if (rising != null && level.isRaining) saved.spendATickIn(age)
             Happenings.befallAll(level, composition, happening, spending)
+            // Not a phenomenon either: the sea following whichever moons pull it — see [Tide].
+            Tide.flow(level, Tide.pullsIn(composition, recipe.seed))
             // Not a phenomenon — a wound is what the Age could not hold rather than something it does — but
             // it wants the same walk, and the walk is the expensive part.
             Hostility.stir(level)

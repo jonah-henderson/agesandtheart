@@ -64,7 +64,7 @@ class OfferCheck : FunSpec({
         for (composition in lit) {
             val bodies = (0..<composition.membersIn(Aspect.SUN)).map { composition.optionsFor(Aspect.SUN, it) }
             val colours = bodies.map { it.of(SkyBodies.SUNCOLOUR) }.distinct()
-            val sizes = bodies.map { it.of(SkyBodies.SUNSIZE) }.distinct()
+            val sizes = bodies.map { it.of(SkyBodies.BODYSIZE) }.distinct()
             check(colours.size == 1 && sizes.size == 1) {
                 "an inferno's suns did not agree — colours $colours, sizes $sizes"
             }

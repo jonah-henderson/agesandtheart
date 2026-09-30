@@ -1,0 +1,38 @@
+{
+  "_comment": [
+    "The sea rising and falling with the moon, and a little puzzle (Jonah, 2026-09-30): the sea is what moves,",
+    "but the moon is what moves it, so the tide is the moon's -- a pull (`SkyBodies.PULL`) nothing else sets.",
+    "`tidal moon` is the one way to write a tide; it also offers the moon a little larger.",
+    "",
+    "Anywhere else it is only the shore. `tidal sea` leans the sea to water; `tidal age` leans the sea, the",
+    "beaches and the mangroves, and **never reaches the moon** (`unaimed`, nought), so laying it bare does",
+    "not solve the puzzle -- a writer who wants the paper tree's window has to work out that the moon is",
+    "the thing to aim at. Playtest decides whether nought is too hard.",
+    "",
+    "A moon taken away (`moonless`) leaves the pull nothing to pull with, which is charged mildly."
+  ],
+  "biases": {
+    "sea": {
+      "#watery": 1.0
+    },
+    "biomes": {
+      "minecraft:beach": 0.6,
+      "minecraft:mangrove_swamp": 0.4,
+      "minecraft:stony_shore": 0.3
+    },
+    "features": {
+      "#watery": 0.4
+    }
+  },
+  "sets": {
+    "pull": "0..1"
+  },
+  "requests": {
+    "sets": {
+      "moon.size": "0.1..0.3"
+    }
+  },
+  "unaimed": {
+    "moon": 0.0
+  }
+}

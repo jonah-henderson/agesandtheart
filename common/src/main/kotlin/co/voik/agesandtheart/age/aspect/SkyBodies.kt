@@ -65,15 +65,15 @@ object SkyBodies {
     )
 
     /**
-     * How large the suns are, against vanilla's — [LARGEST_SUN] times it at the top of the axis.
+     * How large a sun or a moon is, against vanilla's own of its kind.
      *
      * **The renderer could always draw this and nothing could say it.** `Appearance.Sprite` has carried
      * an `angularSize` since the sky was built, and [SkySpec.drawn] already varied it for the *extra*
      * suns; what was missing was a writer's way to ask, and a way for the ask to reach the first one.
      */
-    val SUNSIZE = Parameter.ranged(
+    val BODYSIZE = Parameter.ranged(
         "size",
-        help = "How large the suns are.",
+        help = "How large this body is.",
         // [SizeScale]'s steps, as every other size: vanilla's in the middle, a quarter to four times it.
         landmarks = listOf(
                 Parameter.Landmark(-1.0, "a quarter"),
@@ -132,6 +132,21 @@ object SkyBodies {
     )
 
     /**
+     * **How hard a moon pulls the sea** — nothing where unsaid, so a moon raises no tide unless a word says
+     * it does (design §7.1.2, `tidal`). Every pulling moon's pull adds to how far the tide reaches, and
+     * where the moons stand sets how high it is (`Tide`).
+     */
+    val PULL = Parameter.ranged(
+        "pull",
+        help = "How hard this moon pulls the sea: a tide wherever there is one.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "none", isVanilla = true),
+            Parameter.Landmark(0.0, "a tide"),
+            Parameter.Landmark(1.0, "the strongest"),
+        ),
+    )
+
+    /**
      * The shape of a body's path, or [Parameter.DEFAULT] for the one it was drawn with.
      *
      * **`polar`**: a circle held at one height just over the horizon, never setting and never climbing —
@@ -153,7 +168,8 @@ object SkyBodies {
      * said anything about keeps exactly what was drawn, so an unremarkable sky stays vanilla's.
      */
     fun described(body: CelestialBody, own: Options, seed: Long): CelestialBody {
-        val sized = own.steer(SUNSIZE, seed)?.let(::sunSizeAt)
+        val isAMoon = body.phase != null
+        val sized = own.steer(BODYSIZE, seed)?.let { sizeAt(it, isAMoon) }
         val tinted = Colour.named(own.of(SUNCOLOUR))?.saturated(SUN_IS_LOOKED_AT)
         val rising = bearingOf(own.of(RISING))
         val sprite = body.appearance as? Appearance.Sprite
@@ -217,14 +233,22 @@ object SkyBodies {
     }
 
     /**
-     * Vanilla's sun where the axis is unsaid, so an ordinary sky is untouched — which `SkyCheck` holds.
+     * A body [largeness] large, against vanilla's own of its kind — the sun's or the moon's.
      *
      * On [SizeScale]'s steps like every other size (Jonah, 2026-09-29): vanilla's at the middle of the axis,
      * four times it at the top, a quarter at the bottom. The bottom used to be vanilla's own, so no sun could
      * be smaller than the overworld's.
      */
-    private fun sunSizeAt(largeness: Double?): Float =
-        (SkySpec.VANILLA_SUN_SIZE * SizeScale.factorAt(largeness)).toFloat()
+    private fun sizeAt(largeness: Double, isAMoon: Boolean): Float {
+        val vanilla = if (isAMoon) SkySpec.VANILLA_MOON_SIZE else SkySpec.VANILLA_SUN_SIZE
+        return (vanilla * SizeScale.factorAt(largeness)).toFloat()
+    }
+
+    /** How hard a moon described [own] pulls the sea, nought to one — nought where nothing said so. */
+    fun pullOf(own: Options, seed: Long): Double =
+        own.steer(PULL, seed)?.let(Span.NATURAL::fractionOf) ?: NO_PULL
+
+    private const val NO_PULL = 0.0
 
     /**
      * How far a named colour is pushed from its own grey before a sun wears it (Jonah, 2026-08-08).

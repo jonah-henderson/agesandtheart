@@ -475,7 +475,7 @@ class ResolverCheck : FunSpec({
         fun sizes(vararg pages: String): List<Set<String>> {
             val composition = Resolver.resolve(vocabulary, read(listOf("age", *pages)), SAMPLE_SEED).composition
             return (0..<composition.membersIn(Aspect.SUN)).map {
-                composition.optionsFor(Aspect.SUN, it).allSpelled(SkyBodies.SUNSIZE.name)
+                composition.optionsFor(Aspect.SUN, it).allSpelled(SkyBodies.BODYSIZE.name)
             }
         }
         // A clause that demands nothing still mints a body, and the size belongs to the other one — which

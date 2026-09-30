@@ -1,8 +1,7 @@
 package co.voik.agesandtheart.age.reward
 
 import co.voik.agesandtheart.age.AgeRecipe
-import co.voik.agesandtheart.age.aspect.Phenomenon
-import co.voik.agesandtheart.age.phenomena.Happenings
+import co.voik.agesandtheart.age.phenomena.Tide
 import co.voik.agesandtheart.worldgen.feature.PaperTreeGrove
 import co.voik.ephemeris.sky.SkySpec
 import net.minecraft.core.Holder
@@ -23,9 +22,8 @@ import net.minecraft.world.level.levelgen.placement.RarityFilter
  * bootstrap: write the world, and if it is right the grove is there when you arrive.
  *
  * **Read off the recipe**, so generation can ask it: the sun off the sky the recipe describes, the tide off
- * what the book says befalls the Age. **Neither can be written yet** — the sun needs a path parameter and a
- * word, and `tidal` a word — so this is written against how they will be read, and holds nowhere until the
- * vocabulary pass gives them their words.
+ * whether any moon it describes pulls the sea — `polar sun` and `tidal moon`, the two things a writer has
+ * to aim.
  */
 object PaperTreeWindow {
 
@@ -36,8 +34,7 @@ object PaperTreeWindow {
     /** The window in [recipe], whose sky is [sky] — `AgeGeneration.skySpec`, handed in from above. */
     fun read(recipe: AgeRecipe, sky: SkySpec): Reading {
         val composition = recipe.composition
-        val tidal = composition != null &&
-            Happenings.claimsIn(composition).any { it.value == Phenomenon.TIDAL.key }
+        val tidal = composition != null && Tide.isTidal(Tide.pullsIn(composition, recipe.seed))
         return Reading(recipe.authored, isPolar(sky), tidal)
     }
 
