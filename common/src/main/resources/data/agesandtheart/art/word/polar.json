@@ -1,14 +1,19 @@
 {
   "_comment": [
-    "Of the poles, and the first word written to be felt differently laid bare than aimed (`unaimed`, the",
-    "readings spike, 2026-09-30). It claims two things -- a cold temperature and a polar path, a circle held",
-    "just over the horizon -- and attachment decides which lands: `polar climate` the cold, `polar sun` and",
-    "`polar moon` the path. Laid bare, the sun and the moon each feel it one Age in four, so a polar Age is",
-    "always cold, leans to the frozen biomes, may have an aurora, and now and then has a polar sun: the",
-    "paper tree's sky (design 7.1.2), stumbled into.",
+    "Of the poles, and the first word written to be felt differently laid bare than aimed (`unaimed`). It",
+    "decides two things -- a cold temperature and a polar path, a circle held just over the horizon -- and",
+    "attachment decides which lands: `polar climate` the cold, `polar sun` and `polar moon` the path. Laid",
+    "bare, the sun and the moon each feel it one Age in four, so a polar Age is always cold and now and then",
+    "has a polar sun: the paper tree's sky (design 7.1.2), stumbled into.",
     "",
-    "Lean on purpose. A word that narrows is charged for every part it reaches, so the snow, the stars and",
-    "the pale vault `frozen` offers are left to `frozen`."
+    "Everything else is leaned, bent or offered, so it costs nothing and gives way to the book. The aurora is",
+    "the pole's own light, offered whole rather than drawn and stronger than `frozen`'s. The creatures are the",
+    "ones a snowfield holds -- the bear first, the stray, the fox and the hare, the wolf, a goat off the",
+    "slopes. The sea and the biomes lean frozen, the coasts to icebergs and igloos, and a blizzard now and",
+    "then. The humidity is bent dry, because a pole is a desert: cold air holds no water.",
+    "",
+    "**No refusal of a molten sea** (Jonah, 2026-09-30): a polar Age with a lava sea is fine so long as the",
+    "rest of it is plainly polar, and the refusal is `frozen`'s to make."
   ],
   "admits": {
     "phenomena": [
@@ -16,13 +21,60 @@
     ]
   },
   "biases": {
-    "biomes": {
+    "sea": {
       "#frozen": 0.5
+    },
+    "biomes": {
+      "#frozen": 0.6,
+      "minecraft:snowy_plains": 0.5,
+      "minecraft:frozen_ocean": 0.4,
+      "minecraft:ice_spikes": 0.3
+    },
+    "structures": {
+      "minecraft:igloos": 0.6
+    },
+    "features": {
+      "minecraft:iceberg_packed": 0.8,
+      "minecraft:ice_spike": 0.3,
+      "minecraft:freeze_top_layer": 0.5
+    },
+    "spawns": {
+      "minecraft:polar_bear": 0.9,
+      "minecraft:stray": 0.6,
+      "minecraft:fox": 0.5,
+      "minecraft:rabbit": 0.5,
+      "minecraft:wolf": 0.3,
+      "minecraft:goat": 0.2
+    },
+    "phenomena": {
+      "aurora": 0.9,
+      "blizzard": 0.3
     }
+  },
+  "bends": {
+    "humidity": "-0.8..-0.2"
   },
   "sets": {
     "temperature": "-0.95..-0.45",
     "path": "polar"
+  },
+  "requests": {
+    "sets": {
+      "aurora.frequency": "0.85..1",
+      "aurora.glow": "+0.8",
+      "aurora.size": "0.85..1"
+    },
+    "pools": [
+      {
+        "draws": "2",
+        "facets": {
+          "air.motes": "snow",
+          "sky.colour": "default|blue|white",
+          "stars.glow": "+0.3",
+          "clouds.colour": "white"
+        }
+      }
+    ]
   },
   "unaimed": {
     "sun": 0.25,
