@@ -226,6 +226,16 @@ enum class Phenomenon(
      * instability adds is worked out where the weather is steered.
      */
     DELUGE("deluge", WeatherConditions(rainfall = OFTEN), inflictedBy = Manifestation.DELUGE),
+
+    /**
+     * The sea rising and falling with the moons ([co.voik.agesandtheart.age.phenomena.Tide]) — the flood
+     * cycle the paper tree's root lives by (design §7.1.2).
+     *
+     * **No word yet**, deliberately: it is written in with the vocabulary pass, and until then only
+     * `/age weather tidal` brings it. It insists on no weather, a tide caring nothing for the rain, and
+     * nothing inflicts it: a tide is a rhythm, not a way an Age comes apart.
+     */
+    TIDAL("tidal"),
     ;
 
     override val aspect = Aspect.PHENOMENA

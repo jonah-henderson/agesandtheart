@@ -2,6 +2,7 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.page.FillNotebookFunction
 import co.voik.agesandtheart.age.word.InkTier
+import co.voik.agesandtheart.age.reward.ScarabHabitat
 import co.voik.agesandtheart.page.PageWordFunction
 import co.voik.agesandtheart.age.consequence.WoundBlock
 import co.voik.agesandtheart.book.BindLinkingBookFunction
@@ -111,6 +112,10 @@ import co.voik.agesandtheart.worldgen.feature.SpilledSpring
 import co.voik.agesandtheart.worldgen.feature.TemperedGround
 import co.voik.agesandtheart.worldgen.feature.ImpactCrater
 import co.voik.agesandtheart.worldgen.feature.DeepSeaVent
+import co.voik.agesandtheart.worldgen.feature.PaperTree
+import co.voik.agesandtheart.worldgen.feature.PaperTreeGrove
+import net.minecraft.world.level.block.RotatedPillarBlock
+import net.minecraft.world.level.block.state.properties.NoteBlockInstrument
 import co.voik.agesandtheart.worldgen.feature.LavaPuddles
 import co.voik.agesandtheart.worldgen.feature.VolcanoVents
 import net.minecraft.world.level.levelgen.feature.Feature
@@ -1052,6 +1057,191 @@ object AgeContent {
             .stacksTo(1),
     )
 
+    private val SCARAB_ID: Identifier = "scarab".location()
+
+    /**
+     * The beetle D'ni ink was made from — see [Scarab]. `CREATURE`, being an animal, though no biome lists
+     * it: [ScarabArrivals] places every one, so the category decides only what caps and pauses it.
+     */
+    val SCARAB: EntityType<Scarab> = EntityType.Builder
+        .of({ type, level -> Scarab(type, level) }, MobCategory.CREATURE)
+        .sized(BEE_WIDTH, BEE_HEIGHT)
+        .clientTrackingRange(SCARAB_TRACKING_CHUNKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, SCARAB_ID))
+
+    /** A bee's footprint, since it is drawn as one. */
+    private const val BEE_WIDTH = 0.7f
+    private const val BEE_HEIGHT = 0.6f
+    private const val SCARAB_TRACKING_CHUNKS = 8
+
+    private val SCARAB_NEST_ID: Identifier = ScarabHabitat.NEST.identifier()
+
+    /**
+     * The claimed base of a scarab's pillar — see [ScarabNestBlock]. Packed mud's feel, and **mud's drop**:
+     * breaking a nest gives back the mud it was made from rather than a nest, which only a scarab makes.
+     */
+    val SCARAB_NEST_BLOCK: ScarabNestBlock = ScarabNestBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, SCARAB_NEST_ID))
+            .mapColor(MapColor.DIRT)
+            .strength(NEST_STRENGTH, NEST_RESISTANCE)
+            .sound(SoundType.PACKED_MUD),
+    )
+
+    private const val NEST_STRENGTH = 1.0f
+    private const val NEST_RESISTANCE = 3.0f
+
+    val SCARAB_NEST_ENTITY: BlockEntityType<ScarabNestBlockEntity> =
+        BlockEntityType({ pos, state -> ScarabNestBlockEntity(pos, state) }, setOf(SCARAB_NEST_BLOCK))
+
+    /** One scarab to a nest, and it must be at the nest to be home — a bed's numbers. */
+    val SCARAB_NEST_POI: PoiType =
+        PoiType(SCARAB_NEST_BLOCK.stateDefinition.possibleStates.toSet(), ONE_SCARAB_TO_A_NEST, AT_THE_NEST)
+
+    private const val ONE_SCARAB_TO_A_NEST = 1
+    private const val AT_THE_NEST = 1
+
+    private val GRAZED_TORCHFLOWER_ID: Identifier = "grazed_torchflower".location()
+
+    /** A torchflower a scarab ate, growing back — see [GrazedTorchflowerBlock]. The torchflower crop's feel. */
+    val GRAZED_TORCHFLOWER_BLOCK: GrazedTorchflowerBlock = GrazedTorchflowerBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, GRAZED_TORCHFLOWER_ID))
+            .mapColor(MapColor.PLANT)
+            .noCollision()
+            .randomTicks()
+            .instabreak()
+            .sound(SoundType.CROP)
+            .pushReaction(PushReaction.POPPED),
+    )
+
+    private val SCARAB_CARAPACE_ID: Identifier = "scarab_carapace".location()
+    private val ROASTED_CARAPACE_ID: Identifier = "roasted_carapace".location()
+    private val CARAPACE_POWDER_ID: Identifier = "carapace_powder".location()
+
+    /**
+     * The top rung's chain (design §7.1.2): a scarab killed for its carapace, the carapace smelted, the
+     * roasted shell ground to powder. What the powder goes into is the masterwork ink, whose other
+     * ingredients are still open.
+     */
+    val SCARAB_CARAPACE: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, SCARAB_CARAPACE_ID)))
+    val ROASTED_CARAPACE: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, ROASTED_CARAPACE_ID)))
+    val CARAPACE_POWDER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, CARAPACE_POWDER_ID)))
+
+    private val PAPER_TREE_LOG_ID: Identifier = "paper_tree_log".location()
+    private val STRIPPED_PAPER_TREE_LOG_ID: Identifier = "stripped_paper_tree_log".location()
+    private val DEAD_PAPER_TREE_LOG_ID: Identifier = "dead_paper_tree_log".location()
+    private val PAPER_TREE_LEAVES_ID: Identifier = "paper_tree_leaves".location()
+    private val PAPER_TREE_ROOTS_ID: Identifier = "paper_tree_roots".location()
+    private val PAPER_TREE_ROOT_ID: Identifier = "paper_tree_root".location()
+    private val PAPER_TREE_SAPLING_ID: Identifier = "paper_tree_sapling".location()
+    private val YEMA_PULP_ID: Identifier = "yema_pulp".location()
+
+    /** Wood's feel, on vanilla's own numbers for a log. */
+    private fun woodProperties(id: Identifier, colour: MapColor): BlockBehaviour.Properties =
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, id))
+            .mapColor(colour)
+            .instrument(NoteBlockInstrument.BASS)
+            .strength(LOG_STRENGTH)
+            .sound(SoundType.WOOD)
+            .ignitedByLava()
+
+    private const val LOG_STRENGTH = 2.0f
+
+    /** Stripped yema — what the pulper makes yema pulp of, the top rung of the paper ladder. */
+    val STRIPPED_PAPER_TREE_LOG_BLOCK: RotatedPillarBlock =
+        RotatedPillarBlock(woodProperties(STRIPPED_PAPER_TREE_LOG_ID, MapColor.WOOL))
+
+    /** Living yema — see [PaperTreeLogBlock], which knows whether the tree grew it. */
+    val PAPER_TREE_LOG_BLOCK: PaperTreeLogBlock =
+        PaperTreeLogBlock(woodProperties(PAPER_TREE_LOG_ID, MapColor.COLOR_LIGHT_GRAY)) { STRIPPED_PAPER_TREE_LOG_BLOCK }
+
+    /** Dead yema: building wood and nothing else. It will not pulp into masterwork paper (design §7.1.2). */
+    val DEAD_PAPER_TREE_LOG_BLOCK: RotatedPillarBlock =
+        RotatedPillarBlock(woodProperties(DEAD_PAPER_TREE_LOG_ID, MapColor.COLOR_GRAY))
+
+    /** See [PaperTreeLeavesBlock] — vanilla's leaves, that turn as the tree fails. */
+    val PAPER_TREE_LEAVES_BLOCK: PaperTreeLeavesBlock = PaperTreeLeavesBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, PAPER_TREE_LEAVES_ID))
+            .mapColor(MapColor.PLANT)
+            .strength(LEAVES_STRENGTH)
+            .randomTicks()
+            .sound(SoundType.GRASS)
+            .noOcclusion()
+            .isSuffocating { _, _, _ -> false }
+            .isViewBlocking { _, _, _, _ -> false }
+            .ignitedByLava()
+            .pushReaction(PushReaction.POPPED)
+            .isRedstoneConductor { _, _, _ -> false },
+    )
+
+    private const val LEAVES_STRENGTH = 0.2f
+
+    /** A pale, silvered green over vanilla's mangrove leaves, so a grove reads apart from the jungle. */
+    const val YEMA_LEAF_TINT = 0x9CC08A
+
+    /** See [PaperTreeRootsBlock] — the spread of roots that feels the water. Mangrove roots' feel. */
+    val PAPER_TREE_ROOTS_BLOCK: PaperTreeRootsBlock = PaperTreeRootsBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, PAPER_TREE_ROOTS_ID))
+            .mapColor(MapColor.PODZOL)
+            .instrument(NoteBlockInstrument.BASS)
+            .strength(ROOTS_STRENGTH)
+            .sound(SoundType.MANGROVE_ROOTS)
+            .noOcclusion()
+            .isSuffocating { _, _, _ -> false }
+            .isViewBlocking { _, _, _, _ -> false }
+            .ignitedByLava(),
+    )
+
+    private const val ROOTS_STRENGTH = 0.7f
+
+    /**
+     * The heart — see [PaperTreeRootBlock]. **No item**: the root is the plant and stays where it grew, and
+     * breaking it gives back a root, not a heart.
+     */
+    val PAPER_TREE_ROOT_BLOCK: PaperTreeRootBlock = PaperTreeRootBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, PAPER_TREE_ROOT_ID))
+            .mapColor(MapColor.PODZOL)
+            .instrument(NoteBlockInstrument.BASS)
+            .strength(LOG_STRENGTH)
+            .sound(SoundType.MUDDY_MANGROVE_ROOTS),
+    )
+
+    val PAPER_TREE_ROOT_ENTITY: BlockEntityType<PaperTreeRootBlockEntity> =
+        BlockEntityType({ pos, state -> PaperTreeRootBlockEntity(pos, state) }, setOf(PAPER_TREE_ROOT_BLOCK))
+
+    /** See [PaperTreeSaplingBlock] — cheap to lose, and it keeps the root's rule from the day it is planted. */
+    val PAPER_TREE_SAPLING_BLOCK: PaperTreeSaplingBlock = PaperTreeSaplingBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, PAPER_TREE_SAPLING_ID))
+            .mapColor(MapColor.PLANT)
+            .noCollision()
+            .randomTicks()
+            .instabreak()
+            .sound(SoundType.GRASS)
+            .pushReaction(PushReaction.POPPED),
+    )
+
+    private fun blockItem(block: Block, id: Identifier): Item =
+        BlockItem(block, Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)).useBlockDescriptionPrefix())
+
+    val PAPER_TREE_LOG: Item = blockItem(PAPER_TREE_LOG_BLOCK, PAPER_TREE_LOG_ID)
+    val STRIPPED_PAPER_TREE_LOG: Item = blockItem(STRIPPED_PAPER_TREE_LOG_BLOCK, STRIPPED_PAPER_TREE_LOG_ID)
+    val DEAD_PAPER_TREE_LOG: Item = blockItem(DEAD_PAPER_TREE_LOG_BLOCK, DEAD_PAPER_TREE_LOG_ID)
+    val PAPER_TREE_LEAVES: Item = blockItem(PAPER_TREE_LEAVES_BLOCK, PAPER_TREE_LEAVES_ID)
+    val PAPER_TREE_ROOTS: Item = blockItem(PAPER_TREE_ROOTS_BLOCK, PAPER_TREE_ROOTS_ID)
+    val PAPER_TREE_SAPLING: Item = blockItem(PAPER_TREE_SAPLING_BLOCK, PAPER_TREE_SAPLING_ID)
+
+    /**
+     * What the pulper makes of stripped yema: the top rung's pulp, as a carapace's powder is the ink's. The
+     * masterwork paper it is pressed into waits on its other ingredients (design §7.1.2, "Open").
+     */
+    val YEMA_PULP: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, YEMA_PULP_ID)))
+
     /** The three D'ni survey reports, one item each so a plain recipe can ask for all three. */
     val SURVEY_REPORTS: Map<SurveyReport, Item> = SurveyReport.entries.associateWith { report ->
         SurveyReportItem(
@@ -1513,6 +1703,7 @@ object AgeContent {
     val entities: List<Pair<Identifier, EntityType<*>>> = listOf(
         ASTRITE_GOLEM_ID to ASTRITE_GOLEM,
         HADALFISH_ID to HADALFISH,
+        SCARAB_ID to SCARAB,
         "cave_in".location() to CAVE_IN,
         "crumbling_column".location() to CRUMBLING_COLUMN,
         "descriptive_book".location() to BOOK_ENTITY,
@@ -1533,6 +1724,7 @@ object AgeContent {
     val mobAttributes: List<Pair<EntityType<out LivingEntity>, () -> AttributeSupplier.Builder>> = listOf(
         ASTRITE_GOLEM to { AstriteGolem.createAttributes() },
         HADALFISH to { Hadalfish.createAttributes() },
+        SCARAB to { Scarab.createAttributes() },
     )
 
     /**
@@ -1546,8 +1738,9 @@ object AgeContent {
      *
      * **A visitor rather than a list of tuples**, because the registration is generic in the mob's own type
      * and the loaders reach it differently: Fabric calls `SpawnPlacements.register` and NeoForge has an
-     * event that must be used instead. Only [ASTRITE_GOLEM] is absent, and deliberately — the Age places
-     * it itself rather than offering it to a biome, so no placement of vanilla's is ever consulted.
+     * event that must be used instead. Only [ASTRITE_GOLEM] and [SCARAB] are absent, and deliberately — we
+     * place both ourselves ([ScarabArrivals] the scarab) rather than offering them to a biome, so no
+     * placement of vanilla's is ever consulted.
      */
     fun placeWhereTheyBelong(placing: SpawnPlacing) {
         placing.of(
@@ -1678,6 +1871,15 @@ object AgeContent {
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_BLOCK,
         SEISMOGRAPH_ID to SEISMOGRAPH_BLOCK,
         GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE_BLOCK,
+        SCARAB_NEST_ID to SCARAB_NEST_BLOCK,
+        GRAZED_TORCHFLOWER_ID to GRAZED_TORCHFLOWER_BLOCK,
+        PAPER_TREE_LOG_ID to PAPER_TREE_LOG_BLOCK,
+        STRIPPED_PAPER_TREE_LOG_ID to STRIPPED_PAPER_TREE_LOG_BLOCK,
+        DEAD_PAPER_TREE_LOG_ID to DEAD_PAPER_TREE_LOG_BLOCK,
+        PAPER_TREE_LEAVES_ID to PAPER_TREE_LEAVES_BLOCK,
+        PAPER_TREE_ROOTS_ID to PAPER_TREE_ROOTS_BLOCK,
+        PAPER_TREE_ROOT_ID to PAPER_TREE_ROOT_BLOCK,
+        PAPER_TREE_SAPLING_ID to PAPER_TREE_SAPLING_BLOCK,
     )
 
     /**
@@ -1687,6 +1889,7 @@ object AgeContent {
      */
     val poiTypes: List<Pair<Identifier, PoiType>> = listOf(
         WriterProfession.ID to WRITERS_DESK_POI,
+        SCARAB_NEST_ID to SCARAB_NEST_POI,
     )
 
     val villagerProfessions: List<Pair<Identifier, VillagerProfession>> = listOf(
@@ -1700,6 +1903,8 @@ object AgeContent {
         STAR_FISSURE_ID to STAR_FISSURE_ENTITY,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,
         OBSERVATION_DEVICE_ID to OBSERVATION_DEVICE_ENTITY,
+        SCARAB_NEST_ID to SCARAB_NEST_ENTITY,
+        PAPER_TREE_ROOT_ID to PAPER_TREE_ROOT_ENTITY,
         STATION_ID to STATION_ENTITY,
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_ENTITY,
     )
@@ -1804,6 +2009,16 @@ object AgeContent {
         PITCHSTONE_DUST_ID to PITCHSTONE_DUST,
         PULP_ID to PULP,
         SCARAB_MEDALLION_ID to SCARAB_MEDALLION,
+        SCARAB_CARAPACE_ID to SCARAB_CARAPACE,
+        ROASTED_CARAPACE_ID to ROASTED_CARAPACE,
+        CARAPACE_POWDER_ID to CARAPACE_POWDER,
+        PAPER_TREE_LOG_ID to PAPER_TREE_LOG,
+        STRIPPED_PAPER_TREE_LOG_ID to STRIPPED_PAPER_TREE_LOG,
+        DEAD_PAPER_TREE_LOG_ID to DEAD_PAPER_TREE_LOG,
+        PAPER_TREE_LEAVES_ID to PAPER_TREE_LEAVES,
+        PAPER_TREE_ROOTS_ID to PAPER_TREE_ROOTS,
+        PAPER_TREE_SAPLING_ID to PAPER_TREE_SAPLING,
+        YEMA_PULP_ID to YEMA_PULP,
         *SURVEY_REPORTS.map { (report, item) -> report.id to item }.toTypedArray(),
         GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE,
         PITCHSTONE_ID to PITCHSTONE,
@@ -1908,5 +2123,7 @@ object AgeContent {
         "lava_puddles".location() to LavaPuddles.CODEC,
         "impact_crater".location() to ImpactCrater.CODEC,
         "deep_sea_vent".location() to DeepSeaVent.CODEC,
+        "paper_tree".location() to PaperTree.CODEC,
+        "paper_tree_grove".location() to PaperTreeGrove.CODEC,
     )
 }

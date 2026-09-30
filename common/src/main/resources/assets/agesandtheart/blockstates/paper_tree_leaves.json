@@ -1,0 +1,8 @@
+{
+  "_comment": "One model for every state: how far the leaves have turned is a tint (AgeTints), not a texture.",
+  "variants": {
+    "": {
+      "model": "agesandtheart:block/paper_tree_leaves"
+    }
+  }
+}

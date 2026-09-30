@@ -1,0 +1,8 @@
+{
+  "_comment": [
+    "One paper tree, for `/place feature agesandtheart:paper_tree`. **There is deliberately no placed feature",
+    "of the same name**: every placed feature is a word, and the tree is earned by its window rather than named --",
+    "`PaperTreeWindow` lays the grove through a placement held in code, as the deep-sea vent's is."
+  ],
+  "type": "agesandtheart:paper_tree"
+}

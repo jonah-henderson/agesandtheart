@@ -53,6 +53,8 @@ object Happenings {
             if (Blizzard.forcedIn(level) != null) putIfAbsent(Phenomenon.BLIZZARD, Rung.ORDINARY)
             // And a deluge likewise — see [Deluge.force].
             if (Deluge.isForcedIn(level)) putIfAbsent(Phenomenon.DELUGE, Rung.ORDINARY)
+            // And a tide — see [Tide.force].
+            if (Tide.isForcedIn(level)) putIfAbsent(Phenomenon.TIDAL, Rung.ORDINARY)
         }
         AgeWeather.steer(level, wanted(composition, befalls, spending))
         for ((phenomenon, density) in befalls) {
@@ -177,7 +179,7 @@ object Happenings {
         }
         Phenomenon.DELUGE -> WeatherConditions(rainfall = Deluge.risingOf(density, spending).rainShare)
         Phenomenon.TEMPEST, Phenomenon.INFERNO, Phenomenon.AURORA, Phenomenon.RAINBOW,
-        Phenomenon.SANDFALL, Phenomenon.METEORS, Phenomenon.TECTONICS -> insistsOn
+        Phenomenon.SANDFALL, Phenomenon.METEORS, Phenomenon.TECTONICS, Phenomenon.TIDAL -> insistsOn
     }
 
     /**
@@ -210,6 +212,7 @@ object Happenings {
                 Deluge.raise(level)
                 Deluge.pool(level)
             }
+            Phenomenon.TIDAL -> Tide.flow(level)
         }
     }
 

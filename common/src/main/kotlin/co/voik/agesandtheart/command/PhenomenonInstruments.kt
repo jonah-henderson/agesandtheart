@@ -14,6 +14,7 @@ import co.voik.agesandtheart.age.aspect.WeatherConditions
 import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.phenomena.Deluge
+import co.voik.agesandtheart.age.phenomena.Tide
 import com.mojang.brigadier.arguments.DoubleArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.builder.ArgumentBuilder
@@ -37,6 +38,39 @@ internal object PhenomenonInstruments {
             .then(sandfallSubcommand())
             .then(meteorsSubcommand())
             .then(weatherSubcommand())
+            .then(tideSubcommand())
+    }
+
+    /** `/age tide moon` — the moons' tide again, after a stage was pinned. */
+    private const val FOLLOW_THE_MOONS = "moon"
+
+    /**
+     * `/age tide <low|mid|high|moon>` — a tide running in the Age you stand in, pinned at one stage or left
+     * to the moons.
+     *
+     * **The whole of the tide, not its level alone**: it runs the same flood and ebb a written one does, so
+     * pinning it high floods the band and pinning it low drains it, which is how a paper tree's roots are
+     * walked without waiting out a moon. `/age weather` asked for anything else ends it, as it ends a deluge.
+     */
+    private fun tideSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("tide").apply {
+            for (stage in Tide.Stage.entries) {
+                then(Commands.literal(stage.name.lowercase()).executes { context -> runTide(context, stage) })
+            }
+            then(Commands.literal(FOLLOW_THE_MOONS).executes { context -> runTide(context, pinned = null) })
+        }
+
+    private fun runTide(context: CommandContext<CommandSourceStack>, pinned: Tide.Stage?): Int {
+        val source = context.source
+        val level = source.level
+        val mid = Tide.midIn(level) ?: return FAILURE.also {
+            source.sendFailure(Component.literal("This Age has no sea for a tide to move"))
+        }
+        Tide.force(level, pinned)
+        val now = Tide.stageIn(level)
+        val said = if (now == null) "no moon to raise it" else "at ${now.name.lowercase()}, ${mid + now.offset}"
+        source.sendSuccess({ Component.literal("A tide runs here, mid at $mid, $said") }, true)
+        return SUCCESS
     }
 
     private const val DISTANCE_ARGUMENT = "distance"
@@ -161,6 +195,8 @@ internal object PhenomenonInstruments {
         }
         // A deluge asked for pools its rain whatever the Age was written with; any other weather ends that.
         if (name == Phenomenon.DELUGE.key) Deluge.force(level) else Deluge.release(level)
+        // And a tide, which runs on the moons whatever the weather, until any other weather is asked for.
+        if (name == Phenomenon.TIDAL.key) Tide.force(level) else Tide.release(level)
         AgeWeather.set(level, own, wants)
         source.sendSuccess({ Component.translatable("commands.agesandtheart.weather.set", name) }, true)
         return 1

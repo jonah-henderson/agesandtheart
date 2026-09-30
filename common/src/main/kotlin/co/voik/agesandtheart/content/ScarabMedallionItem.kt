@@ -4,10 +4,7 @@ import co.voik.agesandtheart.age.reward.ScarabHabitat
 import co.voik.agesandtheart.generation.Ages
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
-import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
-import net.minecraft.resources.Identifier
-import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
@@ -60,32 +57,29 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
     private fun read(level: ServerLevel, player: ServerPlayer) {
         // The overworld can never qualify, and this is where that is true rather than in the conditions. A
         // bespoke Age has no composition to read either, and reads as cold for the same reason.
-        val composition = Ages.recipeOf(level)?.composition
-        if (composition == null) {
+        val reading = Ages.recipeOf(level)?.let { recipe -> ScarabHabitat.readAge(level, recipe) }
+        if (reading == null) {
             say(player, UNWRITTEN)
             chime(level, player, promising = false)
             return
         }
 
         say(player, READING)
-        val warmth = ScarabHabitat.warmthOf(composition)
-        say(player, lineFor(warmth))
+        say(player, lineFor(reading.warmth))
 
         // Whether the Age has a jungle is a fact about the Age; where the nearest one is, is a fact about
         // here. They were one question until a walk caught the sweep declaring an Age jungleless with a
         // jungle in it, so the condition now reads the Age and only the direction reads the sweep.
-        val anyJungle = ScarabHabitat.anyJungle(level)
-        val jungle = if (anyJungle) ScarabHabitat.nearestJungle(level, player.blockPosition()) else null
-        say(player, if (anyJungle) JUNGLE_SOMEWHERE else NO_JUNGLE)
+        val jungle = if (reading.anyJungle) ScarabHabitat.nearestJungle(level, player.blockPosition()) else null
+        say(player, if (reading.anyJungle) JUNGLE_SOMEWHERE else NO_JUNGLE)
 
-        val torchflowers = ScarabHabitat.torchflowersIn(composition) { biome -> isJungle(level, biome) }
-        say(player, lineFor(torchflowers))
+        say(player, lineFor(reading.torchflowers))
 
-        val written = warmth == ScarabHabitat.Warmth.SUITS &&
-            anyJungle &&
-            torchflowers == ScarabHabitat.Torchflowers.WILD_IN_THE_JUNGLE
-        chime(level, player, promising = written)
-        if (!written) return
+        // Last among the Age's conditions because it is the one no rewriting of this book can fix.
+        if (!reading.writtenByAPlayer) say(player, ANOTHER_HAND)
+
+        chime(level, player, promising = reading.wouldHoldAColony)
+        if (!reading.wouldHoldAColony) return
 
         sayWhereTheJungleIs(level, player, jungle)
         sayWhatTheGroundHolds(level, player)
@@ -123,7 +117,14 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
         val here = player.blockPosition()
         val site = ScarabHabitat.siteNear(level, here)
         if (site == null) {
-            say(player, NO_MUD)
+            // A colony that has taken every column is not a place with no mud, and saying so would send a
+            // player away from the one place that is working.
+            val colony = ScarabHabitat.nestsNear(level, here, COLONY_REACH).firstOrNull()
+            if (colony == null) {
+                say(player, NO_MUD)
+            } else {
+                say(player, COLONY, bearingFrom(here, colony), howFar(here, colony))
+            }
             return
         }
         val bearing = bearingFrom(here, site.mud)
@@ -147,14 +148,6 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
         ScarabHabitat.Torchflowers.AWAY_FROM_THE_JUNGLE -> TORCHFLOWERS_AWAY
         ScarabHabitat.Torchflowers.NONE -> NO_TORCHFLOWERS
     }
-
-    /** Whether a biome id names a jungle, for the confinement a book may have written on the flowers. */
-    private fun isJungle(level: ServerLevel, biome: Identifier): Boolean =
-        level.registryAccess()
-            .lookupOrThrow(Registries.BIOME)
-            .get(ResourceKey.create(Registries.BIOME, biome))
-            .map { holder -> holder.`is`(BiomeTags.IS_JUNGLE) }
-            .orElse(false)
 
     private fun say(player: ServerPlayer, key: String, vararg parts: Component) {
         player.sendSystemMessage(Component.translatable(key, *parts).withStyle(ChatFormatting.GRAY))
@@ -218,6 +211,11 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
         const val NO_MUD = "$ITEM.no_mud"
         const val MUD_WITHOUT_SAND = "$ITEM.mud_without_sand"
         const val MUD_AWAY_FROM_THE_JUNGLE = "$ITEM.mud_away_from_the_jungle"
+        const val COLONY = "$ITEM.colony"
+        const val ANOTHER_HAND = "$ITEM.another_hand"
+
+        /** About the ground sweep's own reach, so a colony it would have walked over is one it names. */
+        const val COLONY_REACH = 96
 
         const val WARM_ENOUGH = "$ITEM.warm_enough"
         const val TOO_COLD = "$ITEM.too_cold"

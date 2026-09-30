@@ -8,7 +8,6 @@ import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.generation.AgeChunkGenerator
 import co.voik.agesandtheart.platform.Services
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
@@ -189,7 +188,7 @@ object Deluge {
     fun raise(level: ServerLevel) {
         val sea = level.seaBlock() ?: return
         val standing = level.seaSurfaceY() ?: return
-        val inView = inViewNearestFirst(level)
+        val inView = Sampling.inViewNearestFirst(level)
         if (inView.isEmpty()) return
         // **Where a pass starts is derived from the clock rather than remembered**, so nothing has to hold a
         // cursor. The list is sorted near to far, so each cycle through it sweeps outward from the player —
@@ -239,34 +238,6 @@ object Deluge {
                 }
             }
         }
-    }
-
-    /**
-     * Every chunk anybody in this Age can see, closest first.
-     *
-     * **The view distance rather than a bubble of our own**, because the guarantee worth making is about
-     * what can be *seen*: a chunk beyond it may be as stale as it likes and nobody can tell. `getChunkNow`
-     * returning null is what filters the rest, so this never loads anything.
-     *
-     * Closest first is the animation: the near chunks come up on the first tick of a step and the far ones
-     * over the second or so after, which reads as the water rushing outward from where you stand.
-     */
-    private fun inViewNearestFirst(level: ServerLevel): List<Long> {
-        val reach = level.server.playerList.viewDistance
-        val standing = Sampling.watchers(level).map { it.chunkPosition() }
-        if (standing.isEmpty()) return emptyList()
-        // Packed, and gathered into a set before it is sorted: two players a hundred blocks apart share
-        // most of what they can see, and a `ChunkPos` apiece per tick is a few hundred objects a second
-        // for a list that is thrown away again.
-        val seen = LongOpenHashSet()
-        for (eye in standing) {
-            for (x in eye.x - reach..eye.x + reach) {
-                for (z in eye.z - reach..eye.z + reach) {
-                    seen.add(ChunkPos.pack(x, z))
-                }
-            }
-        }
-        return seen.toLongArray().sortedBy { packed -> standing.minOf { it.distanceSquared(packed) } }
     }
 
     /**

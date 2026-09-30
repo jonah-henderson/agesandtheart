@@ -1,0 +1,13 @@
+{
+  "_comment": "A seed, as the torchflower crop it looks like gives one.",
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "bonus_rolls": 0,
+      "entries": [{ "type": "minecraft:item", "name": "minecraft:torchflower_seeds" }],
+      "condition": { "type": "minecraft:survives_explosion" }
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/grazed_torchflower"
+}

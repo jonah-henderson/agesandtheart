@@ -24,3 +24,31 @@ age gen scarabwide
 # Where the jungle actually is in that Age, and how much of it there is — the medallion sweeps for the
 # same thing, so a census with no jungle in it means the medallion will say so too.
 age biomes scarabwide 16
+
+# The colony: does what it is made of load?
+# Each of these fails quietly on a bad file — a loot table or recipe that does not parse is dropped at
+# datapack load — so read the output for errors rather than for numbers.
+
+# Nothing is loaded on a server nobody has joined, so the corner these go in is loaded by hand.
+forceload add 0 0 16 16
+
+# The creature, somewhere loaded. Summoned rather than arrived, which is fine for this: the arrivals need
+# a player, and `/age scarab` is how a walk forces one.
+summon agesandtheart:scarab 0 120 0
+
+# Its carapace, off its own loot table.
+loot spawn 0 120 0 loot agesandtheart:entities/scarab
+
+# A nest, and what the block entity holds; then what it drops, which should be mud.
+setblock 0 110 0 agesandtheart:scarab_nest
+data get block 0 110 0
+loot spawn 0 120 0 mine 0 110 0
+
+# A grazed flower on grass, which is what it stands on.
+setblock 2 110 0 minecraft:grass_block
+setblock 2 111 0 agesandtheart:grazed_torchflower[age=1]
+loot spawn 0 120 0 mine 2 111 0
+
+# A colony-ready Age: warm by default, jungle, flowers and the two loose grounds all sited there.
+age write scarabcolony 7 age jungle biomes torchflowers in jungle mud pits in jungle sand pits in jungle
+age list

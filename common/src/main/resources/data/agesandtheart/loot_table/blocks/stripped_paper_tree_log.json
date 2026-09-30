@@ -1,0 +1,20 @@
+{
+  "_comment": "Itself.",
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "bonus_rolls": 0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:stripped_paper_tree_log"
+        }
+      ],
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      }
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/stripped_paper_tree_log"
+}

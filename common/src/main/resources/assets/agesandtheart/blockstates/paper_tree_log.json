@@ -1,0 +1,29 @@
+{
+  "_comment": "Vanilla's poplar stands in until the asset pass: a pale bark, as a paper tree's should be. Grown or placed looks alike.",
+  "variants": {
+    "axis=x,of_the_tree=false": {
+      "model": "minecraft:block/poplar_log_horizontal",
+      "x": 90,
+      "y": 90
+    },
+    "axis=y,of_the_tree=false": {
+      "model": "minecraft:block/poplar_log"
+    },
+    "axis=z,of_the_tree=false": {
+      "model": "minecraft:block/poplar_log_horizontal",
+      "x": 90
+    },
+    "axis=x,of_the_tree=true": {
+      "model": "minecraft:block/poplar_log_horizontal",
+      "x": 90,
+      "y": 90
+    },
+    "axis=y,of_the_tree=true": {
+      "model": "minecraft:block/poplar_log"
+    },
+    "axis=z,of_the_tree=true": {
+      "model": "minecraft:block/poplar_log_horizontal",
+      "x": 90
+    }
+  }
+}

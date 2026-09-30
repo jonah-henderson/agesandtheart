@@ -1,0 +1,9 @@
+{
+  "_comment": "Stripped yema, and only living yema: dead yema will not pulp (design 7.1.2). Its own recipe, and stripped yema kept out of #agesandtheart:stripped_logs, so it never pulps to the ordinary grade.",
+  "type": "agesandtheart:pulping",
+  "ingredient": "agesandtheart:stripped_paper_tree_log",
+  "result": {
+    "id": "agesandtheart:yema_pulp",
+    "count": 2
+  }
+}

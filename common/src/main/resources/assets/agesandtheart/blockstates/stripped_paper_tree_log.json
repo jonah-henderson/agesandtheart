@@ -1,0 +1,17 @@
+{
+  "_comment": "Stripped poplar stands in until the asset pass.",
+  "variants": {
+    "axis=x": {
+      "model": "minecraft:block/stripped_poplar_log_horizontal",
+      "x": 90,
+      "y": 90
+    },
+    "axis=y": {
+      "model": "minecraft:block/stripped_poplar_log"
+    },
+    "axis=z": {
+      "model": "minecraft:block/stripped_poplar_log_horizontal",
+      "x": 90
+    }
+  }
+}

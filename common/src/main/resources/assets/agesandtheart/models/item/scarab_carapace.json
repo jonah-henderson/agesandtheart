@@ -1,0 +1,1 @@
+{ "_comment": "A turtle's scute in the scarab's green stands in until the model pass.", "parent": "minecraft:item/generated", "textures": { "layer0": "minecraft:item/turtle_scute" } }

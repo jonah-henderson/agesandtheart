@@ -5,7 +5,11 @@ import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.client.color.block.BlockTintSource
 import net.minecraft.client.color.block.BlockTintSources
+import co.voik.agesandtheart.content.PaperTreeHealth
+import co.voik.agesandtheart.content.PaperTreeLeavesBlock
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.properties.Property
 
 /**
  * The colours our blocks are drawn in that their textures do not carry.
@@ -48,7 +52,49 @@ object AgeTints {
             listOf(BlockTintSources.constant(opaque(AgeContent.GLOOMGRIT_TINT))),
             AgeContent.GLOOMGRIT_CLUSTER,
         )
+        // A paper tree says how it is: the leaves by how far they have turned, the heart and a sapling by
+        // which side of their band the moisture is on (design §7.1.2).
+        registrar(listOf(ByBlight), AgeContent.PAPER_TREE_LEAVES_BLOCK)
+        registrar(listOf(ByMoisture), AgeContent.PAPER_TREE_ROOT_BLOCK)
+        registrar(listOf(ByMoisture), AgeContent.PAPER_TREE_SAPLING_BLOCK)
     }
+
+    /** A paper tree's leaf, by [PaperTreeLeavesBlock.BLIGHT]. */
+    private object ByBlight : BlockTintSource {
+        override fun color(state: BlockState): Int = opaque(
+            when (state.getValue(PaperTreeLeavesBlock.BLIGHT)) {
+                PaperTreeLeavesBlock.Blight.HEALTHY -> AgeContent.YEMA_LEAF_TINT
+                PaperTreeLeavesBlock.Blight.BROWNING -> SERE_LEAF
+                PaperTreeLeavesBlock.Blight.YELLOWING -> DROWNING_LEAF
+                PaperTreeLeavesBlock.Blight.BLACKENED -> DROWNED_LEAF
+            },
+        )
+
+        override fun relevantProperties(): Set<Property<*>> = setOf(PaperTreeLeavesBlock.BLIGHT)
+    }
+
+    /** A paper tree's heart or sapling, by the band its [PaperTreeHealth.MOISTURE] is in. */
+    private object ByMoisture : BlockTintSource {
+        override fun color(state: BlockState): Int = opaque(
+            when (PaperTreeHealth.bandOf(state.getValue(PaperTreeHealth.MOISTURE))) {
+                PaperTreeHealth.Band.SERE -> PARCHED
+                PaperTreeHealth.Band.SUITS -> UNTINTED
+                PaperTreeHealth.Band.DROWNED -> SODDEN
+            },
+        )
+
+        override fun relevantProperties(): Set<Property<*>> = setOf(PaperTreeHealth.MOISTURE)
+    }
+
+    /** Brown for sere, yellow going to black for drowned — the order §7.1.2 gives them. */
+    private const val SERE_LEAF = 0x8B6A3E
+    private const val DROWNING_LEAF = 0xC9B23A
+    private const val DROWNED_LEAF = 0x2E2B22
+
+    /** Pale and dusty dry, dark and cold soaked, and the root's own colour in between. */
+    private const val PARCHED = 0xD8C49A
+    private const val UNTINTED = 0xFFFFFF
+    private const val SODDEN = 0x5B6B78
 
     /**
      * [rgb] with a full alpha byte on it — **and without this a tinted block is invisible**, which is a

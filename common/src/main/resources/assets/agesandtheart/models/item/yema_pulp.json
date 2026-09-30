@@ -1,0 +1,7 @@
+{
+  "_comment": "Pulp's stand-in, silvered, until the model pass.",
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/sugar"
+  }
+}

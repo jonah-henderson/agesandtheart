@@ -1,0 +1,32 @@
+# The paper tree: does it grow, does it load, and does a tree with no water die as it should?
+# Run with: scripts/drive-server.sh scripts/checks/yema.txt
+#
+# A tree on dry ground high over the overworld, with no water anywhere near its roots: its heart should
+# read sere within a quarter of an hour of game time, turn its leaves brown from the outside in, drop them,
+# and then kill its logs from the top down into dead yema. Counted at the end by replacing.
+
+forceload add -32 -32 32 32
+fill -12 100 -12 12 100 12 minecraft:dirt
+place feature agesandtheart:paper_tree 0 101 0
+execute positioned 0 101 0 run age yema
+
+# Ten minutes: still in its band, the memory of wet and dry it was grown with not yet worn off.
+tick sprint 12000
+execute positioned 0 101 0 run age yema
+
+# Twenty more: well past sere, the leaves gone and the wood dying.
+tick sprint 24000
+execute positioned 0 101 0 run age yema
+fill -12 101 -12 12 125 12 minecraft:air replace agesandtheart:dead_paper_tree_log
+fill -12 101 -12 12 125 12 minecraft:air replace agesandtheart:paper_tree_log
+
+# What each loaded, off its own loot table.
+loot spawn 0 130 0 loot agesandtheart:blocks/paper_tree_leaves
+loot spawn 0 130 0 loot agesandtheart:blocks/paper_tree_root
+
+# A tide in an Age: the command answers with where mid stands and where the tide is now. Its flood and ebb
+# need somebody in the Age to see them, so they are walked, not driven.
+age write yematide 7 age ocean biomes
+execute in agesandtheart:yematide run age tide high
+execute in agesandtheart:yematide run age tide moon
+execute in agesandtheart:yematide run age yema

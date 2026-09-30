@@ -1,9 +1,11 @@
 {
-  "_comment": "Joinery, the two cases and the guide's shelf; an axe is what takes one apart.",
+  "_comment": "Joinery, the two cases and the guide's shelf; an axe is what takes one apart. And a paper tree's roots, as mangrove roots are.",
   "replace": false,
   "values": [
     "agesandtheart:toolbox",
     "agesandtheart:geologists_tools",
-    "agesandtheart:grammar_guide"
+    "agesandtheart:grammar_guide",
+    "agesandtheart:paper_tree_roots",
+    "agesandtheart:paper_tree_root"
   ]
 }

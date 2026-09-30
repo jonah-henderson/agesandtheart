@@ -2,17 +2,24 @@ package co.voik.agesandtheart.age.reward
 
 import co.voik.agesandtheart.compat.hasChunkAtColumn
 import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Holder
 import net.minecraft.core.QuartPos
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.BiomeTags
 import net.minecraft.tags.BlockTags
+import net.minecraft.world.entity.ai.village.poi.PoiManager
+import net.minecraft.world.entity.ai.village.poi.PoiRecord
+import net.minecraft.world.entity.ai.village.poi.PoiType
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Heightmap
 
@@ -24,13 +31,46 @@ import net.minecraft.world.level.levelgen.Heightmap
  * medallion has to say *which* thing is missing.
  *
  * The Age's half is read off the recipe and so can be answered anywhere in it; the ground's half is read
- * off blocks, and only in loaded chunks. The colony's own claim test asks what [siteNear] asks, so the
- * instrument and the creature cannot disagree about what good ground is.
+ * off blocks, and only in loaded chunks. The colony claims ground by [freeSiteAt], which is the test
+ * [siteNear] sweeps with, so the instrument and the creature cannot disagree about what good ground is.
  */
 object ScarabHabitat {
 
     /** The patch of `worldgen/placed_feature/torchflowers.json`, which is the only thing that grows them. */
     val TORCHFLOWERS: Identifier = "torchflowers".location()
+
+    /** A claimed column: the nest a scarab turned its mud into, one scarab to a nest. */
+    val NEST: ResourceKey<PoiType> = ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, "scarab_nest".location())
+
+    /**
+     * Everything about the Age itself that a colony asks, rather than about any ground in it.
+     *
+     * [writtenByAPlayer] is the provenance every reward reads (design §7.7): a found book's Age can meet the
+     * other three and still never hold a colony.
+     */
+    data class AgeReading(
+        val writtenByAPlayer: Boolean,
+        val warmth: Warmth,
+        val anyJungle: Boolean,
+        val torchflowers: Torchflowers,
+    ) {
+        val isWarmEnough: Boolean get() = warmth == Warmth.SUITS
+        val growsTorchflowersWild: Boolean get() = torchflowers == Torchflowers.WILD_IN_THE_JUNGLE
+
+        /** Whether everything but the ground is there. */
+        val wouldHoldAColony: Boolean get() = writtenByAPlayer && isWarmEnough && anyJungle && growsTorchflowersWild
+    }
+
+    /** The Age half of the habitat, or null where [recipe] names a bespoke world with no composition to read. */
+    fun readAge(level: ServerLevel, recipe: AgeRecipe): AgeReading? {
+        val composition = recipe.composition ?: return null
+        return AgeReading(
+            writtenByAPlayer = recipe.authored,
+            warmth = warmthOf(composition),
+            anyJungle = anyJungle(level),
+            torchflowers = torchflowersIn(composition) { biome -> isJungle(level, biome) },
+        )
+    }
 
     /** Whether the air suits a beetle, and which way it is wrong where it does not. */
     enum class Warmth { SUITS, TOO_COLD, TOO_HOT }
@@ -159,14 +199,13 @@ object ScarabHabitat {
                 val distance = squaredDistance(x, z)
                 val cannotBeatWhatWeHave = distance >= bestDistance && best?.wouldHoldAColony == true
                 if (cannotBeatWhatWeHave) continue
-                val column = BlockPos(from.x + x, from.y, from.z + z)
-                if (!level.hasChunkAtColumn(column.x, column.z)) continue
-                val mud = surfaceOf(level, column.x, column.z) ?: continue
-                if (!level.getBlockState(mud).`is`(Blocks.MUD)) continue
+                val mud = openMudAt(level, from.x + x, from.z + z) ?: continue
+                // Ground a colony already holds is no site, however good, and not a lack either.
+                if (touchesAClaim(level, mud)) continue
                 val site = Site(
                     mud = mud,
                     sandWithinReach = sandNear(level, mud),
-                    underTheJungle = level.getBiome(mud).`is`(BiomeTags.IS_JUNGLE),
+                    underTheJungle = isUnderTheJungle(level, mud),
                 )
                 val held = best
                 val better = when {
@@ -181,6 +220,52 @@ object ScarabHabitat {
             }
         }
         return best
+    }
+
+    /**
+     * The mud a scarab could claim in the column at [x], [z], or null where it could not: open to the sky,
+     * under the jungle, sand within reach, and **at least a column clear of every claimed one**, diagonals
+     * included (design §7.1.2).
+     *
+     * The ground half only; whether the Age would hold a colony at all is [AgeReading.wouldHoldAColony].
+     */
+    fun freeSiteAt(level: ServerLevel, x: Int, z: Int): BlockPos? {
+        val mud = openMudAt(level, x, z) ?: return null
+        val isGoodGround = isUnderTheJungle(level, mud) && sandNear(level, mud)
+        return if (isGoodGround && !touchesAClaim(level, mud)) mud else null
+    }
+
+    /** Whether a nest stands in [column] or in any of the eight around it, at any height. */
+    fun touchesAClaim(level: ServerLevel, column: BlockPos): Boolean =
+        level.poiManager.getInSquare(::isNest, column, NEIGHBOURING_COLUMNS, PoiManager.Occupancy.ANY)
+            .findAny()
+            .isPresent
+
+    /** Every nest within [radius] of [from], nearest first. */
+    fun nestsNear(level: ServerLevel, from: BlockPos, radius: Int): List<BlockPos> =
+        level.poiManager.getInRange(::isNest, from, radius, PoiManager.Occupancy.ANY)
+            .map(PoiRecord::getPos)
+            .sorted(Comparator.comparingDouble { nest -> nest.distSqr(from) })
+            .toList()
+
+    /** Whether a biome id names a jungle, for the confinement a book may have written on the flowers. */
+    fun isJungle(level: ServerLevel, biome: Identifier): Boolean =
+        level.registryAccess()
+            .lookupOrThrow(Registries.BIOME)
+            .get(ResourceKey.create(Registries.BIOME, biome))
+            .map { holder -> holder.`is`(BiomeTags.IS_JUNGLE) }
+            .orElse(false)
+
+    private fun isNest(poi: Holder<PoiType>): Boolean = poi.`is`(NEST)
+
+    private fun isUnderTheJungle(level: ServerLevel, at: BlockPos): Boolean =
+        level.getBiome(at).`is`(BiomeTags.IS_JUNGLE)
+
+    /** The top of the column at [x], [z] where it is mud and loaded, and null otherwise. */
+    private fun openMudAt(level: ServerLevel, x: Int, z: Int): BlockPos? {
+        if (!level.hasChunkAtColumn(x, z)) return null
+        val top = surfaceOf(level, x, z) ?: return null
+        return if (level.getBlockState(top).`is`(Blocks.MUD)) top else null
     }
 
     /** Whether the colony would find sand to carry from [mud] — what a pillar is actually built of. */
@@ -202,7 +287,7 @@ object ScarabHabitat {
      * `WORLD_SURFACE` rather than a motion-blocking heightmap, because "exposed at the surface" (§7.1.2) is
      * the top of the column: mud under a floor is not exposed, and mud under a leaf still is.
      */
-    private fun surfaceOf(level: ServerLevel, x: Int, z: Int): BlockPos? {
+    fun surfaceOf(level: ServerLevel, x: Int, z: Int): BlockPos? {
         val top = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
         return if (top <= level.minY) null else BlockPos(x, top - 1, z)
     }
@@ -235,5 +320,8 @@ object ScarabHabitat {
     private const val MUD_SWEEP = 96
 
     /** How far a colony will carry sand to its pillar. */
-    private const val SAND_REACH = 12
+    const val SAND_REACH = 12
+
+    /** A claim keeps the columns beside it, diagonals included, clear of other claims. */
+    private const val NEIGHBOURING_COLUMNS = 1
 }

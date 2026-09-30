@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "agesandtheart:item/yema_pulp",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 15134448
+      }
+    ]
+  }
+}

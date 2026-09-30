@@ -33,7 +33,8 @@
     "classifies every creature, so only the ones that are not ordinary for a monster need an entry.",
     "",
     "`phenomena` lists the two sights at nothing rather than leaving them out, so that a missing entry",
-    "reads as an oversight and this reads as a ruling.",
+    "reads as an oversight and this reads as a ruling. The tide is at nothing too: it takes a band of shore",
+    "and gives it back, which is a rhythm rather than a hazard.",
     "",
     "`lighting` counts only insofar as it drives mob pressure. Sealed is worse than merely sunless: a roof",
     "means what walks under it walks at noon as well.",
@@ -120,7 +121,8 @@
     "deluge": 0.75,
     "tempest": 0.7,
     "aurora": 0.0,
-    "rainbow": 0.0
+    "rainbow": 0.0,
+    "tidal": 0.0
   },
   "lighting": {
     "sealed": 0.55,

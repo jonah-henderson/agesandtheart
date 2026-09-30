@@ -1,0 +1,8 @@
+{
+  "_comment": "Mangrove roots stand in until the asset pass.",
+  "variants": {
+    "": {
+      "model": "minecraft:block/mangrove_roots"
+    }
+  }
+}

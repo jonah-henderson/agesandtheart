@@ -54,6 +54,7 @@ object ClientRegistrations {
         // Vanilla's lightning, turned to point at what was bitten — see [ArcBoltRenderer].
         RendererForEntity(AgeContent.ARC_BOLT) { ArcBoltRenderer(it) },
         RendererForEntity(AgeContent.ASTRITE_GOLEM, ::AstriteGolemRenderer),
+        RendererForEntity(AgeContent.SCARAB, ::ScarabRenderer),
         // The storm is a clock standing in the sky and is drawn by the sky, not as an entity.
         RendererForEntity(AgeContent.METEOR_STORM) { NoopRenderer(it) },
         RendererForEntity(AgeContent.CAVE_IN) { NoopRenderer(it) },

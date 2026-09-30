@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "agesandtheart:item/paper_tree_sapling",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 10272906
+      }
+    ]
+  }
+}

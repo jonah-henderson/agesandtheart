@@ -3,9 +3,17 @@
     "Referents no channel may hand a word for. A timing fence, not a prohibition -- these stay writable",
     "once you can reproduce them (design 8.3), which is a rung no device can stand in for. Read by the",
     "page loot and by the analysis machine, so neither skips it.",
-    "Shipped empty: the scarab, the paper tree and nara arrive in Phase 6, and this is here so the",
-    "exclusion is built in rather than retrofitted."
+    "",
+    "The living paper tree is here (design 7.1.2): its wood, leaves, roots and sapling. Dead yema is not --",
+    "building wood, and a found page naming it is a fair first hint that such a tree exists. The scarab is",
+    "the entity half, in `tags/entity_type/withheld.json`."
   ],
   "replace": false,
-  "values": []
+  "values": [
+    "agesandtheart:paper_tree_log",
+    "agesandtheart:stripped_paper_tree_log",
+    "agesandtheart:paper_tree_leaves",
+    "agesandtheart:paper_tree_roots",
+    "agesandtheart:paper_tree_sapling"
+  ]
 }

@@ -1,0 +1,7 @@
+{
+  "_comment": "Vanilla's poplar sapling until the asset pass.",
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:block/poplar_sapling"
+  }
+}

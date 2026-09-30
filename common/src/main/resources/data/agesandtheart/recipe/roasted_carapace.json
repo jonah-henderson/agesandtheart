@@ -1,0 +1,9 @@
+{
+  "_comment": "The smelt in the kill-smelt-grind chain (design 7.1.2). Food's numbers rather than ore's: it is cooked, not refined.",
+  "type": "minecraft:smelting",
+  "category": "misc",
+  "cookingtime": 200,
+  "experience": 0.35,
+  "ingredient": "agesandtheart:scarab_carapace",
+  "result": { "id": "agesandtheart:roasted_carapace" }
+}

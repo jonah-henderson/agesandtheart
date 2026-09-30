@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "The carapace: the scarab is livestock (design 7.1.2), leather from a cow rather than a boss's drop, and",
+    "a colony renewed by breeding is what pays for it. A young one drops nothing, as every baby does."
+  ],
+  "type": "minecraft:entity",
+  "pools": [
+    {
+      "rolls": 1,
+      "bonus_rolls": 0,
+      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:scarab_carapace" }]
+    }
+  ],
+  "random_sequence": "agesandtheart:entities/scarab"
+}

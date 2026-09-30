@@ -1,0 +1,8 @@
+{
+  "_comment": "Every yema wood, living, stripped and dead, so each is a log to vanilla: an axe takes it, it burns, and leaves beside it hold.",
+  "values": [
+    "agesandtheart:paper_tree_log",
+    "agesandtheart:stripped_paper_tree_log",
+    "agesandtheart:dead_paper_tree_log"
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "_comment": "Packed mud stands in until the asset pass, so a claimed base reads apart from the plain mud of its pillar.",
+  "variants": { "": { "model": "minecraft:block/packed_mud" } }
+}

@@ -1,0 +1,6 @@
+{
+  "_comment": "One to one, unlike deretheni's two: the top rung is meant to cost a scarab a measure.",
+  "type": "agesandtheart:grinding",
+  "ingredient": "agesandtheart:roasted_carapace",
+  "result": { "id": "agesandtheart:carapace_powder" }
+}

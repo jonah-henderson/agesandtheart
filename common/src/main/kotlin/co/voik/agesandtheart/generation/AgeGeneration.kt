@@ -55,6 +55,7 @@ import co.voik.agesandtheart.age.reward.Craters
 import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.age.reward.Decoration
 import co.voik.agesandtheart.age.reward.Deposits
+import co.voik.agesandtheart.age.reward.PaperTreeWindow
 import co.voik.agesandtheart.age.aspect.AgeSpawner
 import co.voik.agesandtheart.content.DriftingOreSpawner
 import net.minecraft.world.level.CustomSpawner
@@ -296,6 +297,8 @@ object AgeGeneration {
                     // which also gets them the Age's own rock in their ore targets — something a layer
                     // built by hand never had.
                     Craters.layer(composition, seed),
+                    // The paper tree's grove, where its window is met (design §7.1.2).
+                    PaperTreeWindow.layer(recipe, skySpec(recipe)),
                 ) + EarlyGameRareMaterials.layers(EarlyGameRareMaterials.grownIn(composition, seed, spending)),
             ),
             // What lives here, narrowing what vanilla resolves per biome and per structure.

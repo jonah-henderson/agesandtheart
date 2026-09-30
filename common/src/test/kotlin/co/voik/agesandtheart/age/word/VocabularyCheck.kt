@@ -10,7 +10,9 @@ import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Holds
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Setting
+import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.namesARegistryEntry
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -321,6 +323,8 @@ class VocabularyCheck : FunSpec({
                 // pinned-preset check below insists it really is pinned somewhere, so a careless `false` still
                 // fails.
                 if (!preset.availableToBroadWords) continue
+                // Built ahead of its word, and held to having none by the test after this one.
+                if (preset in AWAITING_A_WORD) continue
                 // A referent is reachable by name by construction — §8.1 mints a word per registry entry —
                 // so demanding one here asks the wrong question, and asks it of a corpus that cannot answer:
                 // biomes are datapack content, so their words exist only once a server has loaded.
@@ -338,6 +342,22 @@ class VocabularyCheck : FunSpec({
                         "Its tags are ${vocabulary.tagsOf(preset)}. If that is deliberate — a preset only a pinned " +
                         "recipe names — say so with `availableToBroadWords = false` rather than adding a word for it."
                 }
+            }
+        }
+    }
+
+    /**
+     * **A preset built ahead of its word has none yet** — the other half of [AWAITING_A_WORD], so the
+     * exemption above cannot outlive its reason: the day a word reaches one, this fails until it leaves the
+     * list and the check above holds it like any other.
+     */
+    test("a preset awaiting a word has none yet") {
+        for (preset in AWAITING_A_WORD) {
+            val reachedBy = vocabulary.words.filter { word ->
+                preset.aspect in word.aspects && preset in vocabulary.carriersOf(word, preset.aspect)
+            }
+            check(reachedBy.isEmpty()) {
+                "${preset.key} has a word now (${reachedBy.map { it.id }}): take it off AWAITING_A_WORD"
             }
         }
     }
@@ -566,3 +586,9 @@ class VocabularyCheck : FunSpec({
 private const val POOL_ALTERNATIVES = '|'
 
 private const val INFERNO = "inferno"
+
+/**
+ * Presets built before the vocabulary pass gives them their words, exempt from needing one until then.
+ * `tidal` is the paper tree's flood cycle (design §7.1.2), reachable today only by `/age weather tidal`.
+ */
+private val AWAITING_A_WORD: Set<Taggable> = setOf(Phenomenon.TIDAL)

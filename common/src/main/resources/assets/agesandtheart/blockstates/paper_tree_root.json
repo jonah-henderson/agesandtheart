@@ -1,0 +1,8 @@
+{
+  "_comment": "One model; which side of its band the heart is on is a tint (AgeTints).",
+  "variants": {
+    "": {
+      "model": "agesandtheart:block/paper_tree_root"
+    }
+  }
+}

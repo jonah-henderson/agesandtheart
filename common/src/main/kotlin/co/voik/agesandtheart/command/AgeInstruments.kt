@@ -30,5 +30,6 @@ object AgeInstruments {
         PhenomenonInstruments.addTo(age)
         ConsequenceInstruments.addTo(age)
         PlayerInstruments.addTo(age)
+        RewardInstruments.addTo(age)
     }
 }

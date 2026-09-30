@@ -1,0 +1,8 @@
+{
+  "_comment": "One model; its band is a tint, as the heart's is.",
+  "variants": {
+    "": {
+      "model": "agesandtheart:block/paper_tree_sapling"
+    }
+  }
+}

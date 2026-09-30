@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "Referents no channel may hand a word for -- the entity half of `tags/block/withheld.json`, and the same",
+    "timing fence (design 8.3). The scarab stays writable (design 8.4); what this closes is a caged one",
+    "teaching its name at the observation device before its colony is breeding."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:scarab"
+  ]
+}

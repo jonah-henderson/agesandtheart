@@ -1,0 +1,7 @@
+{
+  "_comment": "Vanilla's poplar sapling, tinted by its band, until the asset pass.",
+  "parent": "minecraft:block/tinted_cross",
+  "textures": {
+    "cross": "minecraft:block/poplar_sapling"
+  }
+}

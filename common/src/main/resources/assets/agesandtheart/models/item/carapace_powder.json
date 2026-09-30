@@ -1,0 +1,1 @@
+{ "_comment": "Glowstone dust in the carapace's darkened green stands in until the model pass.", "parent": "minecraft:item/generated", "textures": { "layer0": "minecraft:item/glowstone_dust" } }
