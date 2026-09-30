@@ -3,7 +3,6 @@
     "Two senses: a cavernous landmass, and the hollow underground, a crust over one void. The underground",
     "one is a choice rather than a page minted off the preset, because a minted page would share this id."
   ],
-  "tier": "restrictive",
   "chooses": {
     "underground": "hollow"
   },

@@ -7,7 +7,6 @@
     "Due east is vanilla's own, so `an east-rising sun` is a sun where the sun has always been. It is",
     "still worth a page: a writer who has moved one sun wants to say where the others are."
   ],
-  "tier": "exact",
   "sets": {
     "rising": "east"
   }

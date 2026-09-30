@@ -32,8 +32,8 @@ class Suggestions(private val vocabulary: Vocabulary) {
         val page: String,
         val says: String,
         val authored: Boolean,
-        /** How specific the page is — its own column, because it is the first thing a writer sorts by. */
-        val tier: String,
+        /** How firmly the page claims — its own column, because it is the first thing a writer sorts by. */
+        val firmness: String,
         /**
          * The parts of an Age this page speaks to, as their pages — a column of its own so a search for
          * `structures` finds every word that touches them.
@@ -145,8 +145,8 @@ class Suggestions(private val vocabulary: Vocabulary) {
         // all: `a floating age` then `landmass` is the same Age with a page spent on it.
         if (offer.closes) return clauseIsOpen
         if (aims == null) return true
-        // An evocative word tilts the whole Age rather than a part, so it bears wherever it may stand.
-        if (!word.tier.narrows) return true
+        // A mood leans on everything, so it bears wherever it may stand.
+        if (word.isAMood) return true
         return aims.any { bears(word, it) }
     }
 
@@ -237,11 +237,11 @@ class Suggestions(private val vocabulary: Vocabulary) {
      * A few pages standing for the many, for the one place a sample is safe.
      *
      * Used only to find the *second* page of a two-page tail, so a signature that missed a distinction
-     * costs a suggestion that is not offered — never one offered wrongly. One page per tier and aspect
+     * costs a suggestion that is not offered — never one offered wrongly. One page per firmness and aspect
      * set, which is what the parser can see about a page at all.
      */
     private fun spreadOver(pages: List<String>): List<String> =
-        pages.groupBy { page -> vocabulary.word(page)?.let { it.tier to it.aspects } }
+        pages.groupBy { page -> vocabulary.word(page)?.let { it.firmness to it.aspects } }
             .values.map { it.first() }
             .take(FILLERS)
 
@@ -268,7 +268,7 @@ class Suggestions(private val vocabulary: Vocabulary) {
             page = page,
             says = summaryOf(word, required, requested),
             authored = word != null && !vocabulary.isDerived(word),
-            tier = word?.tier?.key.orEmpty(),
+            firmness = word?.firmness?.key.orEmpty(),
             targets = word?.aspects.orEmpty().sortedBy { it.ordinal }.joinToString(" ") { it.page },
             isMaterial = word?.material != null,
             required = required,

@@ -8,7 +8,6 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.grammar.Said
 import net.minecraft.commands.SharedSuggestionProvider
 import co.voik.agesandtheart.age.word.DerivationRules
-import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.TerminalKind
 import co.voik.agesandtheart.age.word.grammar.Grammar
@@ -46,6 +45,9 @@ internal object CorpusInstruments {
 
     /** `/age tags <aspect> [tag]`. */
     private const val ASPECT_ARGUMENT = "aspect"
+
+    /** The bar a carrier must clear to count as found by a word that bars on its tag. */
+    private const val AN_ORDINARY_BAR = 0.3
 
     private const val REGISTRY_ARGUMENT = "registry"
 
@@ -241,11 +243,11 @@ internal object CorpusInstruments {
             vocabulary.tagsOf(preset)[tag]?.let { preset to it }
         }.sortedByDescending { it.second }
         // **Two numbers, because only one of them is what a word finds.** Anything above nothing is
-        // carried; only what clears a restrictive word's threshold is *reachable* by one, and a tail of
-        // tenth-weight carriers otherwise reads as coverage it is not.
-        val found = carrying.count { it.second >= Tier.RESTRICTIVE.threshold }
+        // carried; only what clears an ordinary bar is *reachable* by one, and a tail of tenth-weight
+        // carriers otherwise reads as coverage it is not.
+        val found = carrying.count { it.second >= AN_ORDINARY_BAR }
         report.fact("carriers", carrying.size) { "'$tag' is carried by ${carrying.size} of them:" }
-        report.fact("found", found) { "  $found of those a restrictive word would keep." }
+        report.fact("found", found) { "  $found of those a bar of $AN_ORDINARY_BAR would keep." }
         for ((preset, weight) in carrying) {
             report.entry("carrying", mapOf("member" to preset.key, "weight" to weight)) {
                 "  %-44s %.2f".format(preset.key, weight)

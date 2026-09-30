@@ -3,7 +3,7 @@
     "The creatures that fly, as `fish` is the ones that swim.",
     "",
     "A ninth umbrella word, and the first to ask `aloft` -- a tag the derivation has carried since the tag pass",
-    "and no word had reached for. The shape is the one every umbrella word has: restrictive, aimed at the",
+    "and no word had reached for. The shape is the one every umbrella word has: a bar, aimed at the",
     "spawns, one tag and nothing else, so what it finds moves with the derivation rather than with a list here.",
     "",
     "It finds two offline -- the bat and the phantom -- and that is a fact about `aloft` rather than about",
@@ -12,7 +12,6 @@
     "usual shape of a rule that is nearly the fact it stands for, and the answer is the one `grazing` already",
     "took: the category says what it can, and the rest is hand-authored. It belongs to the tag pass."
   ],
-  "tier": "restrictive",
   "restricts": {
     "spawns": {
       "aloft": ">0.3"

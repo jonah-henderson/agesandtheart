@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.age.word.grammar
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Word
 
@@ -168,9 +167,8 @@ object Grammar {
      * no preset and sets no parameter says nothing except which part of the world it is about, and that is
      * exactly what a subject page *is*.
      *
-     * **An evocative word has no class of its own.** It used to, because it sat in a slot before the
-     * subject and everything else sat after — and now that every modifier leads, the position is the same
-     * one and [Tier] alone decides whether a word tilts or narrows (§4.3.1).
+     * **A mood has no class of its own.** It used to, because it sat in a slot before the subject and
+     * everything else sat after — and now that every modifier leads, the position is the same one (§4.3.1).
      */
     private val Word.pageClass: PageClass
         get() = when {

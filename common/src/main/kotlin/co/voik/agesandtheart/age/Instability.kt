@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.word.Tier
+import co.voik.agesandtheart.age.word.Firmness
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -94,14 +94,14 @@ enum class Register(
     ;
 
     /**
-     * What a flaw of this kind costs when the word that caused it was written at [tier] — flat where the
-     * page carried no word, since a structural page has no precision to scale by.
+     * What a flaw of this kind costs when the word that caused it claimed as firmly as [firmness] — flat
+     * where the page carried no word, since a structural page claims nothing.
      *
      * [earns] is what a pack says this register is worth, defaulting to [base]. Read from the corpus at
      * resolution rather than at generation, because the charge is frozen onto the `Flaw` — retuning it
      * moves what the *next* Age costs and can never rewrite one already written.
      */
-    fun charge(tier: Tier?, earns: Int = base): Int = earns * (tier?.weight ?: 1)
+    fun charge(firmness: Firmness?, earns: Int = base): Int = earns * (firmness?.weight ?: 1)
 
     override fun getSerializedName(): String = key
 

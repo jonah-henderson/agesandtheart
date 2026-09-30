@@ -79,8 +79,8 @@ data class Facets(val offers: List<Map<String, String>>, val draws: Draws) {
          * **A map where every setting stands alone, a list of maps where some of them go together.**
          *
          * Written back the same way round, so a pool of ordinary facets still reads as the object it
-         * always was and only one holding a group spells its groups out. The same shape `Tier` takes, and
-         * for the same reason: the common case should not pay for the one that needed more room.
+         * always was and only one holding a group spells its groups out. The common case should not pay
+         * for the one that needed more room.
          */
         private val OFFERS: Codec<List<Map<String, String>>> =
             Codec.either(ONE_EACH, ONE_EACH.listOf()).xmap(

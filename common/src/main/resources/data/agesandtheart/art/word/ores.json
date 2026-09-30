@@ -3,7 +3,6 @@
     "A deposit of ore, and nothing about whether it is worth having: which ore is a prize is a fact about",
     "the game's economy rather than about the rock, and `rich` is the word that means it."
   ],
-  "tier": "restrictive",
   "restricts": {
     "features": {
       "ore": ">0.3"

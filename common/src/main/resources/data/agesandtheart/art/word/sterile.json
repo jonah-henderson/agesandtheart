@@ -1,5 +1,4 @@
 {
-  "tier": "restrictive",
   "excludes": {
     "features": [
       "#grown"

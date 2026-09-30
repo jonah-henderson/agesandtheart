@@ -3,7 +3,6 @@
     "Unworn and laid out, and clean: two of clear air, clear water, a blue sky, white cloud and bright stars",
     "are offered to every pristine Age, each yielding to anything the book says."
   ],
-  "tier": "evocative",
   "biases": {
     "all": {
       "#ordered": 0.9,
@@ -12,7 +11,7 @@
       "#eroded": -0.9
     }
   },
-  "sets": {
+  "bends": {
     "wear": "-1.0..-0.55"
   },
   "requests": {

@@ -10,7 +10,6 @@ import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.math.mix64
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceKey
-import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import kotlin.math.roundToInt
@@ -42,7 +41,7 @@ private val ASPECT_CODEC: Codec<Aspect> = Codec.STRING.comapFlatMap(
  * strength may be a plain claim or a pool drawn from.
  *
  * Flat at the top level rather than under a `required` block of its own, because a word that only demands
- * is nearly every word there is: `{"tier": "exact", "sets": {"colour": "red"}}` should not have to say so.
+ * is nearly every word there is: `{"sets": {"colour": "red"}}` should not have to say so.
  */
 data class Claims(
     val sets: Map<String, String> = emptyMap(),
@@ -71,120 +70,54 @@ data class Claims(
 }
 
 /**
- * **How precisely a word speaks, what a failure of it costs, and what writing it costs** — one of the
- * three the Art names, or a set of numbers a word states for itself.
+ * **How firmly a word claims the world**, read off what it claims rather than stated beside it (world model
+ * §3, "Retiring tier") — what a failure of it costs the Age, and which of two words wins a part.
  *
- * A value rather than an enum, and the reason is that a name cannot be enforced. Nothing stops an author
- * calling a word `evocative` and then having it choose four members outright and set eight parameters, so
- * the name was a label the word could contradict while still being priced by it. The three remain the
- * defaults and suit nearly every word; stating the numbers is how one that does not fit them is priced
- * honestly rather than mislabelled.
- *
- * One mechanism still serves all of them: every word scores every candidate, and these numbers decide how
- * hard that score bites. Nothing branches on *which* tier a word has — only on what it says.
+ * Weakest first, so the natural order is the order of precedence.
  */
-data class Tier(
-    /** Fine inks per part of the world constrained, before [Word.versatility]. */
-    val cost: Int,
-    /**
-     * How strongly a preset must answer a word for the word to keep it. Zero rather than absent where a
-     * word only tilts, so "does this preset qualify?" needs no special case.
-     */
-    val threshold: Double,
-    /**
-     * How much a *failure* at this precision costs the Age. Separate from [cost]: cost is ink spent to say
-     * something precisely, weight is what it means for that thing not to happen.
-     */
+enum class Firmness(
+    /** How many times over a failure of a claim this firm is charged — `Register.charge`. */
     val weight: Int,
-    /** Whether it narrows the candidates, as opposed to merely tilting the draw between them. */
-    val narrows: Boolean,
-    /**
-     * How many times over each part of the world this word reaches counts towards its price —
-     * [Word.versatility].
-     *
-     * One is the ordinary answer and gives world model §9's rule exactly: a page usable in four places
-     * costs four times a page usable in one, because it is that much better a page to own. Zero prices the
-     * page flat, for a word whose whole point is that it says the same small thing wherever it is laid;
-     * the numbers between are how much a pack thinks reach is worth.
-     */
-    val versatilityMultiplier: Double,
-) : Comparable<Tier> {
+) {
+    /** Leans, offers and bends only: removes no freedom, so it can never fail. */
+    LEANS(weight = 1),
 
-    /** What to call it: the name of the one it matches, or [CUSTOM] where a word states its own. */
-    val key: String get() = NAMED.entries.firstOrNull { it.value == this }?.key ?: CUSTOM
+    /** Narrows a pool by bars or by what it strikes out. */
+    BARS(weight = 2),
 
-    /**
-     * Whether a word this precise leaves no room for a second answer beside its own (`Resolver.company`).
-     *
-     * Read off the threshold rather than off a name, which is the whole of what a value tier buys: a word
-     * stating [EXACT]'s strictness in numbers behaves as one, and always did — it simply could not say so.
-     */
-    val leavesNoRoomForCompany: Boolean get() = narrows && threshold >= EXACT.threshold
+    /** Chooses a member, settles a value, mints a pattern or picks the template. */
+    DECIDES(weight = 3),
+    ;
 
-    /**
-     * Least precise first. **Narrowing outranks tilting whatever the numbers say**, since a word that only
-     * tilts never removes a candidate and so can never be the one that wins a contention.
-     */
-    override fun compareTo(other: Tier): Int = BY_PRECISION.compare(this, other)
+    /** What a screen or a report calls it. */
+    val key: String get() = name.lowercase()
 
     companion object {
-        /** Shifts the weights over whatever survived. Removes no freedom, so it can never fail. */
-        val EVOCATIVE = Tier(cost = 1, threshold = 0.0, weight = 1, narrows = false, versatilityMultiplier = FLAT)
-
-        /** Narrows the candidates to those that carry the tag at all. */
-        val RESTRICTIVE = Tier(cost = 2, threshold = 0.3, weight = 2, narrows = true, versatilityMultiplier = BY_REACH)
-
-        /** Pins: only a strong carrier will do. */
-        val EXACT = Tier(cost = 4, threshold = 0.7, weight = 3, narrows = true, versatilityMultiplier = BY_REACH)
-
-        /** The three the Art names, in the order they grow stricter — what a screen offers and a file spells. */
-        val NAMED: Map<String, Tier> = linkedMapOf(
-            "evocative" to EVOCATIVE,
-            "restrictive" to RESTRICTIVE,
-            "exact" to EXACT,
-        )
-
-        /** What a tier matching none of the three is called, there being nothing else to call it. */
-        const val CUSTOM = "custom"
-
-        /** The same price wherever the page is laid. */
-        const val FLAT = 0.0
-
-        /** World model §9's rule: a page usable in four places costs four times one usable in one. */
-        const val BY_REACH = 1.0
-
-        private val BY_PRECISION = compareBy<Tier>({ it.narrows }, { it.threshold }, { it.weight })
-
-        /** The named tier called [key], or a complaint naming the three there are. */
-        fun named(key: String): DataResult<Tier> = NAMED[key]?.let { DataResult.success(it) }
-            ?: DataResult.error { "no specificity is called '$key' — try ${NAMED.keys.joinToString(", ")}" }
-
-        private val WRITTEN_OUT: Codec<Tier> = RecordCodecBuilder.create { instance ->
-            instance.group(
-                Codec.INT.fieldOf("ink").forGetter(Tier::cost),
-                Codec.DOUBLE.optionalFieldOf("threshold", EVOCATIVE.threshold).forGetter(Tier::threshold),
-                Codec.INT.optionalFieldOf("weight", EVOCATIVE.weight).forGetter(Tier::weight),
-                Codec.BOOL.optionalFieldOf("narrows", true).forGetter(Tier::narrows),
-                Codec.DOUBLE.optionalFieldOf("versatility_multiplier", BY_REACH)
-                    .forGetter(Tier::versatilityMultiplier),
-            ).apply(instance, ::Tier)
+        /** The firmest thing any of these claims does. */
+        fun of(
+            chooses: Map<Aspect, String>,
+            entryOf: ResourceKey<out Registry<*>>?,
+            excludes: Map<Aspect, Set<String>>,
+            restricts: Map<Aspect, Map<String, Double>>,
+            sets: Map<String, String>,
+            pools: List<Facets>,
+            template: String?,
+            mints: String?,
+        ): Firmness {
+            val decides = chooses.isNotEmpty() || entryOf != null || sets.isNotEmpty() || pools.isNotEmpty() ||
+                template != null || mints != null
+            val bars = excludes.isNotEmpty() || restricts.isNotEmpty()
+            return when {
+                decides -> DECIDES
+                bars -> BARS
+                else -> LEANS
+            }
         }
-
-        /**
-         * A name where one of the three fits, and the numbers where none does.
-         *
-         * Written back the same way round, so a word saying `"exact"` still says `"exact"` after a
-         * round trip and only a word that really has its own numbers spells them out.
-         */
-        val CODEC: Codec<Tier> = Codec.either(Codec.STRING, WRITTEN_OUT).comapFlatMap(
-            { either -> either.map({ named(it) }, { DataResult.success(it) }) },
-            { tier -> if (tier.key == CUSTOM) Either.right(tier) else Either.left(tier.key) },
-        )
     }
 }
 
 /**
- * One word of the Art: a query over tag space, at a precision, about some part of the world.
+ * One word of the Art: a query over tag space about some part of the world.
  *
  * A word is *not* a tag — "beautiful" names a *region* of tag space where a tag is a property the world
  * carries, and keeping the two apart is what lets synonyms be a design lever (§3.3).
@@ -195,7 +128,6 @@ data class Tier(
 data class Word(
     /** Where the word was defined. Its path is what a writer says: `agesandtheart:floating` → "floating". */
     val id: Identifier,
-    val tier: Tier,
     /**
      * The aspects this word may fill — **empty meaning anywhere**.
      *
@@ -274,17 +206,15 @@ data class Word(
      * That is also why there is no offered half of this: a tilt has nothing to yield, so a required bias
      * and an offered one would behave identically.
      *
-     * **[EVERYWHERE] is allowed here and nowhere else.** A word that does not narrow is written on the Age
-     * rather than on a part of it, and leaning everything is what makes it evocative; `beautiful` leans the
-     * whole world green and rules nothing out.
+     * **[EVERYWHERE] is allowed here and nowhere else**, and leaning everything is what makes a word a
+     * mood ([isAMood]); `beautiful` leans the whole world green and rules nothing out.
      */
     val biases: Map<Aspect, Map<String, Double>> = emptyMap(),
     /**
      * The same, leaned on **every part of the world at once** — spelled `biases: { all: … }`.
      *
-     * Only an evocative word may have one, and for it the global reach is the whole point: it is written
-     * on the Age rather than on a part of it, and `Constraint.aimedAt` is empty for one because nothing
-     * consults it.
+     * Laid bare, it leans wherever the word finds purchase, and `Constraint.aimedAt` is empty; aimed, it
+     * leans on the part it was aimed at and nowhere else.
      */
     val leansEverywhere: Map<String, Double> = emptyMap(),
     /**
@@ -295,6 +225,12 @@ data class Word(
      * grammar. The set arrives at [co.voik.agesandtheart.age.aspect.Options], which does hold several.
      */
     val sets: Map<String, String> = emptyMap(),
+    /**
+     * Ranged parameters this word **bends** toward a span or nudges, by name — a lean on a parameter, where
+     * [sets] bounds one. `beautiful` bends the temperature temperate without taking any of it away, so it
+     * removes no freedom and can never fail.
+     */
+    val bends: Map<String, String> = emptyMap(),
     /**
      * Parameters this word **might** choose — the breadth of what it means, drawn from per Age (§4.4).
      *
@@ -414,6 +350,12 @@ data class Word(
      * a fact about the word written, the same wherever it is laid (Jonah, 2026-09-30).
      */
     val unaimed: Map<Aspect, Double> = emptyMap(),
+    /**
+     * How firmly this word claims the world, **fixed when the word is made**: a working copy the resolver
+     * makes of it — its requests granted, its size spent, its pool drawn — is still the word that was
+     * written, and claims as firmly as it did.
+     */
+    val firmness: Firmness = Firmness.of(chooses, entryOf, excludes, restricts, sets, pools, template, mints),
 ) {
     /** What a writer says to use it. */
     val name: String get() = id.path
@@ -424,7 +366,8 @@ data class Word(
      *
      * A parameter goes where it names a missed part, or where it names none and every part of this word
      * owning it was missed. One owned by a missed part and a kept one stays, and a word that narrows is kept
-     * off the missed part by its scope, which [Resolver.resolve] shrinks beside this.
+     * off the missed part by its scope, which [Resolver.resolve] shrinks beside this. Its [firmness] is read
+     * again, since what is left may claim less firmly.
      */
     fun withoutAspects(missed: Set<Aspect>): Word {
         if (missed.isEmpty()) return this
@@ -438,7 +381,7 @@ data class Word(
             val offers = pool.offers.map { offer -> offer.filterKeys(::stillLands) }.filter { it.isNotEmpty() }
             return if (offers.isEmpty()) null else pool.copy(offers = offers)
         }
-        return copy(
+        val left = copy(
             aspects = kept,
             chooses = chooses - missed,
             admits = admits - missed,
@@ -446,10 +389,30 @@ data class Word(
             restricts = restricts - missed,
             biases = biases - missed,
             sets = sets.filterKeys(::stillLands),
+            bends = bends.filterKeys(::stillLands),
             pools = pools.mapNotNull(::keptOf),
             requests = Claims(requests.sets.filterKeys(::stillLands), requests.pools.mapNotNull(::keptOf)),
         )
+        return left.copy(
+            firmness = Firmness.of(
+                left.chooses, left.entryOf, left.excludes, left.restricts, left.sets, left.pools, left.template,
+                left.mints,
+            ),
+        )
     }
+
+    /** Whether this word narrows anything at all, as opposed to only leaning, offering and bending. */
+    val narrows: Boolean get() = firmness != Firmness.LEANS
+
+    /**
+     * Whether this word leans on **every** part of the world ([leansEverywhere]) — a mood, like `beautiful`
+     * or `foreboding`, whose reach laid bare is wherever it likes something, and whose lifts an Age draws
+     * a few of rather than taking them all ([Resolver]).
+     */
+    val isAMood: Boolean get() = leansEverywhere.isNotEmpty()
+
+    /** The highest at-least bar this word sets anywhere — what breaks a tie between two words that bar. */
+    val highestBar: Double get() = restricts.values.flatMap { it.values }.filter(Bars::isAtLeast).maxOrNull() ?: 0.0
 
     /**
      * Every registry this word names an entry of: its own ([entryOf]), and each open aspect it [chooses] in.
@@ -468,7 +431,7 @@ data class Word(
      * miss the parameter that would have landed is a writer paying for a coin they did not toss.
      */
     val canSet: Map<String, String>
-        get() = everySet + bare(required.everything) + bare(requests.everything)
+        get() = everySet + bare(bends) + bare(required.everything) + bare(requests.everything)
 
     /** The demanded half, as one record — the shape [requests] already has, for the code that asks both. */
     val required: Claims get() = Claims(sets, pools)
@@ -481,7 +444,8 @@ data class Word(
      * that method hands back the map it already has and allocates nothing.
      */
     private val someParameterNamesItsAspect: Boolean =
-        (sets.keys + pools.flatMap { it.facets.keys } + requests.everything.keys).any { it.contains(PARAMETER_MARK) }
+        (sets.keys + bends.keys + pools.flatMap { it.facets.keys } + requests.everything.keys)
+            .any { it.contains(PARAMETER_MARK) }
 
     /**
      * What this word sets on [aspect] — what it sets everywhere, and what it sets **only** here.
@@ -499,6 +463,9 @@ data class Word(
 
     /** What this word *requests* on [aspect] — [setsIn] for the half that yields rather than demands. */
     fun requestsIn(aspect: Aspect): Map<String, String> = meantFor(aspect, requests.sets)
+
+    /** What this word bends on [aspect] — [setsIn] for the half that leans rather than bounds. */
+    fun bendsIn(aspect: Aspect): Map<String, String> = meantFor(aspect, bends)
 
     private fun meantFor(aspect: Aspect, parameters: Map<String, String>): Map<String, String> =
         if (!someParameterNamesItsAspect) parameters else parameters.mapNotNull { (spelled, value) ->
@@ -519,7 +486,7 @@ data class Word(
      * a page, sets nothing, and says so nowhere.
      */
     val unreadableParameters: List<String>
-        get() = (required.everything.keys + requests.everything.keys)
+        get() = (required.everything.keys + bends.keys + requests.everything.keys)
             .filter { it.contains(PARAMETER_MARK) && aspectNamedBy(it) == null }
 
     /**
@@ -543,25 +510,9 @@ data class Word(
     private fun settled(claims: Claims, draw: Long, salt: Long): Map<String, String> =
         facetsDrawnAt(claims, draw, salt).mapValues { (parameter, value) -> oneOf(value, draw, parameter) }
 
-    /**
-     * **What this word decides rather than suggests** — the fields as its file spells them, and for `sets`
-     * and `pools` the parameters.
-     *
-     * A tier that does not narrow is one whose words only nudge: they tilt a draw ([biases]), offer what
-     * nothing else demanded ([requests]), put members in a pool ([admits]) that may or may not be picked,
-     * and bend a range towards where they would like it, which is all the resolver lets such a word do to
-     * one. Anything here settles part of the world outright, which is the narrowing tiers' business
-     * (Jonah, 2026-09-29).
-     */
-    val decidesOutright: List<String> get() = buildList {
-        if (chooses.isNotEmpty()) add("chooses")
-        if (excludes.isNotEmpty()) add("excludes")
-        if (restricts.isNotEmpty()) add("restricts")
-        if (template != null) add("template")
-        if (mints != null) add("mints")
-        val required = sets.keys + pools.flatMap { it.facets.keys }
-        addAll(required.map(::parameterIn).filterNot { it in RANGED_PARAMETERS }.distinct().sorted())
-    }
+    /** What this word bends that has no range to bend — inert, since only a ranged parameter can lean. */
+    val bendsNothingRanged: List<String> get() =
+        bends.keys.map(::parameterIn).filterNot { it in RANGED_PARAMETERS }.distinct().sorted()
 
     /**
      * Whether anything about this word is left to the Age — a pool to draw from, or a value with
@@ -785,7 +736,6 @@ data class Word(
      * nothing and costs the floor.
      */
     val narrowedParts: Int get() {
-        if (!tier.narrows) return 0
         fun settlesIn(aspect: Aspect) = sets.keys.any { landsOn(it, aspect) }
         val narrowed = aspects.filter { constrainsPresetsIn(it) || settlesIn(it) }.toSet()
         val minted = if (mints != null && Aspect.FEATURES !in narrowed) ONE_PLACE else 0
@@ -812,17 +762,20 @@ data class Word(
     val price: Int get() = if (narrowedParts == 0) FLOOR_PRICE else INK_PER_NARROWED_PART * narrowedParts
 
     /**
-     * How well [tags] answers what this word narrowed [aspect] to: **how far past its bar the member's best
-     * wanted tag lands**, one being exactly at the bar. The strongest single term rather than a sum, because
-     * a word restricting on two tags asks for either.
-     *
-     * Scaled by the tier's threshold for now, which makes it exactly the weight × carried it replaces for
-     * every converted word; the scale goes with the tier.
+     * How well [tags] answers what this word narrowed [aspect] to: **how strongly the member carries its
+     * best wanted tag**, [PULL_PER_CARRIED] times over. The bar decides who qualifies and nothing more, so a
+     * member carrying more takes more ground and a stricter word neither gains nor loses by being strict.
+     * The strongest single term rather than a sum, because a word restricting on two tags asks for either.
      */
     fun pullIn(aspect: Aspect, tags: Map<String, Double>): Double =
+        restrictsIn(aspect).filterValues(Bars::isAtLeast).keys
+            .maxOfOrNull { tag -> tags[tag] ?: 0.0 }
+            ?.let { it * PULL_PER_CARRIED } ?: 0.0
+
+    /** How far past its bar the member's best wanted tag lands — one exactly at it, nothing where none is set. */
+    fun gradeIn(aspect: Aspect, tags: Map<String, Double>): Double =
         restrictsIn(aspect).filterValues(Bars::isAtLeast)
-            .maxOfOrNull { (tag, bar) -> (tags[tag] ?: 0.0) / bar }
-            ?.let { it * tier.threshold } ?: 0.0
+            .maxOfOrNull { (tag, bar) -> (tags[tag] ?: 0.0) / bar } ?: 0.0
 
     /** Whether [tags] breaks none of the at-most bars this word set on [aspect]. Read strictly, always. */
     fun withinItsLimitsIn(aspect: Aspect, tags: Map<String, Double>): Boolean =
@@ -874,8 +827,20 @@ data class Word(
         private const val SIZE_PARAMETER = "size"
         private const val HEIGHT_PARAMETER = "height"
 
-        /** What choosing a member outright is worth, against a tag weight, which never exceeds one. */
-        private const val CHOSEN_OUTRIGHT = 1.0
+        /** What choosing a member outright is worth, against [pullIn]. */
+        private const val CHOSEN_OUTRIGHT = 3.0
+
+        /**
+         * What carrying a wanted tag fully pulls by — what a restrictive word's did under the tiers at the
+         * ordinary bar, `>0.3`, which is most of the bars there are.
+         */
+        private const val PULL_PER_CARRIED = 2.0
+
+        /**
+         * Precedence between two words claiming one part: the firmer, then the higher bar. What is left
+         * the seed breaks.
+         */
+        val PRECEDENCE: Comparator<Word> = compareBy<Word>({ it.firmness }, { it.highestBar })
 
         /** What separates one alternative from the next inside a single value. */
         private const val ALTERNATIVE = '|'
@@ -910,11 +875,11 @@ data class Word(
          * the sky pinned the *terrain* to caverns and discarded `floating` in silence (§4.4, the spike's
          * single most important finding). A query says what a word likes, never where it belongs.
          *
-         * **[Tier] decides what claiming nowhere means.** An evocative word means *anywhere*, because
-         * tilting everywhere is what makes it evocative: `beautiful` nudges the climate axes and weights
-         * the biomes, and shutting it into those two would stop it being beautiful anywhere else. A
-         * narrowing word that lands nowhere is left empty on purpose, so `DerivedAspectsCheck` can refuse
-         * it — a word that removes candidates and is aimed at nothing removes them everywhere.
+         * **A mood decides what claiming nowhere means.** A word leaning everywhere means *anywhere*, because
+         * tilting everywhere is what makes it a mood: `beautiful` bends the climate axes and weights the
+         * biomes, and shutting it into those two would stop it being beautiful anywhere else. A narrowing
+         * word that lands nowhere is left empty on purpose, so `DerivedAspectsCheck` can refuse it — a word
+         * that removes candidates and is aimed at nothing removes them everywhere.
          *
          * There used to be a declared set of aspects laid alongside, and its only real job was aiming a
          * flat query: every other claim already names the parts of the world it touches, so declaring was
@@ -975,7 +940,6 @@ data class Word(
         /** A word as its file says it, the id coming from where the file *is*, like every vanilla registry. */
         fun mapCodec(id: Identifier): MapCodec<Word> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
-                Tier.CODEC.fieldOf("tier").forGetter(Word::tier),
                 Codec.unboundedMap(ASPECT_CODEC, Codec.STRING).optionalFieldOf("chooses", emptyMap())
                     .forGetter(Word::chooses),
                 Codec.unboundedMap(ASPECT_CODEC, Codec.STRING.listOf())
@@ -994,6 +958,8 @@ data class Word(
                 },
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Word::sets),
+                Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("bends", emptyMap())
+                    .forGetter(Word::bends),
                 Facets.CODEC.listOf().optionalFieldOf("pools", emptyList()).forGetter(Word::pools),
                 Claims.CODEC.optionalFieldOf("requests", Claims.NOTHING).forGetter(Word::requests),
                 Codec.STRING.optionalFieldOf("template").forGetter { Optional.ofNullable(it.template) },
@@ -1004,7 +970,7 @@ data class Word(
                 Codec.unboundedMap(ASPECT_CODEC, Codec.doubleRange(0.0, 1.0)).optionalFieldOf("unaimed", emptyMap())
                     .forGetter(Word::unaimed),
             ).apply(instance) {
-                tier, chooses, admits, excludes, restricts, leanings, sets, pools, requests, template,
+                chooses, admits, excludes, restricts, leanings, sets, bends, pools, requests, template,
                 mints, flows, unstated, unaimed,
                 ->
                 val everywhere = leanings[EVERYWHERE].orEmpty()
@@ -1014,14 +980,14 @@ data class Word(
                 // **Both halves widen the reach.** A word that only *offers* to redden a sun is still a
                 // word about the sun, and one that reached nowhere would have its offer skipped in the
                 // only aspect it meant it — which is the silent drop §3.3 exists to forbid.
-                val steers = sets + Claims(sets, pools).everything + requests.everything
+                val steers = sets + bends + Claims(sets, pools).everything + requests.everything
                 // `all` deliberately adds nothing: a global tilt is not a claim on any one part.
                 val aimed = admits.keys + excludes.keys + restricts.keys + leaned.keys
                 val reaches = reaching(steers, chooses.keys, aimed, mints.orElse(null))
                 Word(
-                    id, tier, reaches, chooses, admits.mapValues { it.value.toSet() },
+                    id, reaches, chooses, admits.mapValues { it.value.toSet() },
                     excludes.mapValues { it.value.toSet() }, restricts, leaned, everywhere,
-                    sets, pools, requests, template.orElse(null), mints.orElse(null),
+                    sets, bends, pools, requests, template.orElse(null), mints.orElse(null),
                     unstated.orElse(null), flows, unaimed = unaimed,
                 )
             }

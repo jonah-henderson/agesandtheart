@@ -310,7 +310,7 @@ object AgeCommand {
         report.fact("readout", Readout.of(read)) { "  “${Readout.of(read)}”" }
         for (said in read.constraints) {
             val aimed =
-                if (said.word.tier.narrows) said.aimedAt.joinToString(" ") { it.page } else "everywhere"
+                if (said.aimedAt.isNotEmpty()) said.aimedAt.joinToString(" ") { it.page } else "everywhere"
             val joined = said.group?.let { " (joined)" } ?: ""
             // Marked rather than hidden: the Age is built from the Art's own pages too, so a reader owed a
             // diagnosis has to see them — and they were never in the book, so they must not read as though
@@ -382,11 +382,11 @@ object AgeCommand {
             val asks = (word.wanted.sorted() + word.unwanted.sorted().map { "-$it" }).joinToString(" ")
             val fields = mapOf(
                 "word" to word.name,
-                "tier" to word.tier.key,
+                "firmness" to word.firmness.key,
                 "aspects" to word.aspects.map { it.page },
                 "aims" to word.aims,
             )
-            report.entry("authoredWords", fields) { "  ${word.name} — ${word.tier.key}, $about: $asks" }
+            report.entry("authoredWords", fields) { "  ${word.name} — ${word.firmness.key}, $about: $asks" }
         }
         val structural = vocabulary.grammarWords
         report.only("structural", structural.map { it.name })

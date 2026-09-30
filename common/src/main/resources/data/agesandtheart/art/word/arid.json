@@ -4,7 +4,6 @@
     "of. Every arid Age is dressed in something sandy -- sand, red sand, sandstone, gravel, terracotta --",
     "drawn by tag, and its rock is offered the same; the rain is offered away."
   ],
-  "tier": "restrictive",
   "restricts": {
     "landmass": {
       "dry": ">0.3",

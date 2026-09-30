@@ -1,5 +1,4 @@
 {
-  "tier": "restrictive",
   "restricts": {
     "features": {
       "flowering": ">0.3"

@@ -42,8 +42,8 @@ class TagCoverageCheck : FunSpec({
      */
     test("every query does something") {
         fun reachOf(word: Word): Collection<Aspect> =
-            if (word.tier.narrows) word.aspects.ifEmpty { Aspect.entries.toSet() }
-            else Resolver.purchaseFor(vocabulary, word)
+            if (word.isAMood) Resolver.purchaseFor(vocabulary, word)
+            else word.aspects.ifEmpty { Aspect.entries.toSet() }
         fun opposable(tag: String) = vocabulary.antonyms.any { it.first == tag || it.second == tag }
         val onlyAServerKnows = vocabulary.tagsOnlyAServerGrants
         val inert = vocabulary.authoredWords

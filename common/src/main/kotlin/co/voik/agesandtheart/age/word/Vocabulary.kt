@@ -81,7 +81,7 @@ private data class AntonymPage(val pairs: List<Antonym>) {
  *
  * | path | holds |
  * |---|---|
- * | `word/<name>.json` | one word — its tier, the aspects it may fill, its tag query |
+ * | `word/<name>.json` | one word — what it chooses, bars, sets and leans on |
  * | `preset_tags/<aspect>.json` | the tags every preset in that aspect carries |
  * | `antonyms/<page>.json` | pairs of tags that mean opposite things |
  * | `grammar/<name>.json` | one structural word, naming a production |
@@ -236,11 +236,11 @@ data class Vocabulary(
 
     /**
      * The members [word] admits that broad words are kept from — empty for any word that may admit what it
-     * does. Only a word that narrows may reach past the fence by name, since admitting is otherwise the one
-     * way a nudge could hand out what the fence exists to keep back.
+     * does. Only a mood is kept from reaching past the fence by name, since admitting is otherwise the one
+     * way a lean on everything could hand out what the fence exists to keep back.
      */
     fun admittedPastTheFence(word: Word): List<String> {
-        if (word.tier.narrows) return emptyList()
+        if (!word.isAMood) return emptyList()
         return word.admits.flatMap { (aspect, members) ->
             members.filter { member -> aspect.presetFor(member)?.let(::isAvailableToBroadWords) == false }
         }
@@ -270,7 +270,7 @@ data class Vocabulary(
     }
 
     /**
-     * The presets in [aspect] this word would keep, at its tier's strictness. A word that **means one
+     * The presets in [aspect] this word would keep, clearing its bars in full. A word that **means one
      * outright** never searches, which is what keeps derived vocabulary free at resolve time (§8.2) — and
      * is the one way to reach something [availableToBroadWordsIn] leaves out, so a deliberate word still can.
      */
@@ -603,7 +603,6 @@ data class Vocabulary(
                 }
                 aspect.page to Word(
                     id = aspect.page.location(),
-                    tier = Tier.RESTRICTIVE,
                     aspects = setOf(aspect),
                 )
             }

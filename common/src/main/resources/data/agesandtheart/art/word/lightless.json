@@ -3,7 +3,6 @@
     "A world nothing shines on. It used to set the two dimension-type switches directly; those are game",
     "rules and follow the facts now, so what is left is the two facts: sealed overhead, and no sun."
   ],
-  "tier": "exact",
   "sets": {
     "sealed": "true",
     "sun.absent": "true",

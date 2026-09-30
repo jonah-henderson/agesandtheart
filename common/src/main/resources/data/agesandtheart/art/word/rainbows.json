@@ -12,13 +12,11 @@
     "same reason: a bow is the one thing this word means, so it arrives with its answer in hand where a tag",
     "query would also have found whatever else was bright and colourful.",
     "",
-    "**It says one thing and touches one aspect, deliberately.** A narrowing word is priced in its",
-    "lowest-ordinal aspect (`Resolver.pricedIn`) and phenomena are last, so the obvious second thing to",
-    "want here -- a rainfall bound, a bow needing rain -- would quietly reprice this as a word about the",
-    "weather. That is why the rain lives on `Phenomenon.RAINBOW.insistsOn` instead: a floor on the Age's",
+    "**It says one thing and touches one aspect, deliberately.** The obvious second thing to want here --",
+    "a rainfall bound, a bow needing rain -- would make this a word about the weather as well. That is why",
+    "the rain lives on `Phenomenon.RAINBOW.insistsOn` instead: a floor on the Age's",
     "own weather, and the one phenomenon for which a floor is the right shape rather than the wrong one."
   ],
-  "tier": "exact",
   "chooses": {
     "phenomena": "rainbow"
   }

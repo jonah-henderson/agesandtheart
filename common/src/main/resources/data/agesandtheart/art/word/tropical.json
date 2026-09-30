@@ -4,7 +4,6 @@
     "insects are drawn for every tropical Age, so no two are quite alike and none is dry. What grows leans",
     "wooded, flowering and lush, and the water leans towards being water."
   ],
-  "tier": "restrictive",
   "biases": {
     "sea": {
       "#watery": 0.5

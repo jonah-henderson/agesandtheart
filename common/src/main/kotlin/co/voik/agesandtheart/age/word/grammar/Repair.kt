@@ -44,6 +44,9 @@ internal object Repair {
     private const val A_CLAUSE_THE_ART_OPENED = -1
     private const val NO_CLAUSE_AT_ALL = -2
 
+    /** The pages that end a clause — see [ArtReading]. */
+    private val CLOSERS = setOf(PageClass.NUCLEUS, PageClass.SUBJECT, PageClass.CONFINER)
+
     /** [laid] filled into a sentence the Art wrote for itself. */
     fun of(vocabulary: Vocabulary, laid: List<Page>): Sentence =
         Filling(skeletonFor(vocabulary, laid)).fill(laid)
@@ -162,6 +165,7 @@ internal object Repair {
 
         fun fill(written: List<Page>): Sentence {
             for ((wroteAt, page) in written.withIndex()) lay(page, wroteAt)
+            layStrayMoodsOnTheAge(written)
             markWhatMoved(written)
             val read = ArtReading.parse(pages())
             // Every placement was accepted by the parser and marking a move changes only whose page a page
@@ -190,6 +194,33 @@ internal object Repair {
                 return
             }
             impossible += page.written
+        }
+
+        /**
+         * Every mood of the writer's that reading on left in a clause they did not write it into, moved onto
+         * the Age.
+         *
+         * A mood belongs to whatever it is aimed at, and only the writer aims: `age beautiful` means a
+         * beautiful Age, not a beautiful whichever part came next. Done once every page is down, since a mood
+         * laid before the writer's own subject is only known to be aimed by it once that subject is laid.
+         */
+        private fun layStrayMoodsOnTheAge(written: List<Page>) {
+            for (entry in laid.filter { it.wroteAt != null && it.page.word?.isAMood == true }) {
+                val at = laid.indexOf(entry)
+                val closer = laid.drop(at).firstOrNull { it.page.kind in CLOSERS } ?: continue
+                if (closer.page.kind == PageClass.NUCLEUS) continue
+                val wroteItBefore = entry.wroteAt?.let { wroteAt ->
+                    (wroteAt..written.lastIndex).firstOrNull { written[it].kind in CLOSERS }
+                }
+                if (closer.wroteAt != null && closer.wroteAt == wroteItBefore) continue
+                val without = laid.filterIndexed { index, _ -> index != at }
+                val nucleus = without.indexOfFirst { it.page.kind == PageClass.NUCLEUS }
+                if (nucleus < 0) continue
+                val moved = without.take(nucleus) + entry + without.drop(nucleus)
+                if (ArtReading.parse(moved.map { it.page }) == null) continue
+                laid.clear()
+                laid.addAll(moved)
+            }
         }
 
         /** Every position a page could take: on from the anchor, and only then back towards the front. */

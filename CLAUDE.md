@@ -237,9 +237,8 @@ corpus: `Vocabulary.load(shippedData(), worldgen)` is the same call `VocabularyC
 candidate reaches, what it costs, what its query keeps and what it contradicts are computed from the
 resolver's own code with **no server**. It refuses what the checks would refuse and names the check for
 each; it nudges towards the rulings in `notes/vocabulary-pass-plan.md` §5.2 without barring them. It also
-**does not offer what it would have to refuse** — a count cannot be demanded, an evocative word is offered
-no preset to mean, a preset a page already means is off the list — while what is merely unwise is said
-rather than hidden (`decisions.md`). What
+**does not offer what it would have to refuse** — a count cannot be demanded, a preset a page already
+means is off the list — while what is merely unwise is said rather than hidden (`decisions.md`). What
 offline cannot know is datapack content — a tag only a bound registry grants (`ore`), the pack's own placed
 features, the game's block tags — and `--refresh` drives `/age tags` and `/age holdings` over RCON into
 `.authoring/server-snapshot.json` for every later run to read. A server is an errand, never a condition.
@@ -391,9 +390,10 @@ feature, and keeping them in one package made a cycle of each. Opening a level i
 - **`AgeGeneration`** (in `generation/`) — turns a recipe into a `ChunkGenerator`, in an exhaustive `when` over `AgePreset`. A pure function of the recipe (plus the server, for registries), because an Age must rebuild identically on every open.
 - **`AgeSavedData`** — vanilla `SavedData` on the overworld's data storage, persisting each Age's recipe. Runtime-dimension libraries do **not** auto-restore dimensions on restart, so we track them ourselves.
 - **`Ages`** (in `generation/`) — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (calling `RuntimeLevels.open` / `RuntimeLevels.delete` with the recipe and dimension type, which are ours) and `reloadSaved` (replay on boot).
-- **`age/word/`** — **the Art's language.** `Word` (tier, a signed tag query keyed by aspect, and the
-  claims its reach is derived from — **a word does not declare where it speaks**; `queries` is keyed by
-  aspect page, or by `all` for an evocative word, which is the one that tilts the whole Age),
+- **`age/word/`** — **the Art's language.** `Word` (what it chooses, bars, sets, bends and leans on,
+  keyed by aspect — **a word does not declare where it speaks**, its reach is derived from those claims;
+  a lean keyed `all` makes a word a mood, the one that tilts the whole Age when laid bare; how firmly it
+  claims, and what it costs, are read off the same claims),
   `PresetProfile`/`PresetTags` (what the world is like — hung on `Taggable`, which is an `AuthoredPreset`
   this pack wrote or a `RegistryReference` into one of the game's registries; being describable by tag is
   the only thing the two share, so the interface is named for it), `Vocabulary` (the corpus, **loaded from datapack

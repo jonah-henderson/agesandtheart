@@ -3,7 +3,6 @@ package co.voik.agesandtheart.desk
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.word.InkTier
-import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.BuiltInRegistries
@@ -93,19 +92,19 @@ class WriteCostCheck : FunSpec({
     }
 
     /**
-     * **And the ladder the whole design rests on holds**: an evocative word is the cheapest thing in the
-     * language, and a versatile page is dearer than a narrow one (world model §9). Read off the corpus
+     * **And the ladder the whole design rests on holds**: a word that only leans is the cheapest thing in
+     * the language, and a versatile page is dearer than a narrow one (world model §9). Read off the corpus
      * rather than off the constants, since it is the corpus a writer meets.
      */
-    test("an evocative page is the cheapest and a versatile one is dearest") {
-        val evocative = vocabulary.authoredWords.filter { it.tier == Tier.EVOCATIVE }
+    test("a page that only leans is the cheapest and a versatile one is dearest") {
+        val leaning = vocabulary.authoredWords.filter { !it.narrows }
         val cheapest = vocabulary.authoredWords.minOf { it.price }
-        check(evocative.isNotEmpty() && evocative.all { it.price == cheapest }) {
-            "an evocative word is not the cheapest thing in the language: " +
-                evocative.map { "${it.name}@${it.price}" }
+        check(leaning.isNotEmpty() && leaning.all { it.price == cheapest }) {
+            "a word that only leans is not the cheapest thing in the language: " +
+                leaning.map { "${it.name}@${it.price}" }
         }
-        val narrow = vocabulary.words.first { it.tier == Tier.EXACT && it.versatility == 1.0 }
-        val broad = vocabulary.words.first { it.tier == Tier.EXACT && it.versatility > 1 }
+        val narrow = vocabulary.words.first { it.narrows && it.versatility == 1.0 }
+        val broad = vocabulary.words.first { it.narrows && it.versatility > 1 }
         check(broad.price > narrow.price) {
             "'${broad.name}' reaches more places than '${narrow.name}' and costs no more"
         }

@@ -17,7 +17,6 @@
     "All of it is requested rather than set: a writer who describes a sun of their own gets exactly that",
     "one, and is charged nothing for having disagreed with a word that was only offering."
   ],
-  "tier": "restrictive",
   "restricts": {
     "climate": {
       "molten": ">0.3",

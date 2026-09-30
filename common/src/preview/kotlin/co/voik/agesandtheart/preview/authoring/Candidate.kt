@@ -5,7 +5,6 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Claims
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Facets
-import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Bars
 import co.voik.agesandtheart.age.word.Word
 import com.google.gson.JsonArray
@@ -29,7 +28,6 @@ import net.minecraft.resources.Identifier
  */
 data class Candidate(
     val name: String,
-    val tier: Tier,
     /**
      * `_comment`, exactly as the file carried it — a string, an array of lines, or absent.
      *
@@ -48,8 +46,10 @@ data class Candidate(
     val restricts: Map<Aspect, Map<String, Double>> = emptyMap(),
     /** What the draw is leaned toward or away from, by key or `#tag` — step four. See [Word.biases]. */
     val biases: Map<Aspect, Map<String, Double>> = emptyMap(),
-    /** The same, leaned on every part of the world at once, and only ever on a word that does not narrow. */
+    /** The same, leaned on every part of the world at once — what makes a word a mood. */
     val leansEverywhere: Map<String, Double> = emptyMap(),
+    /** Ranged parameters bent toward a span or nudged, rather than bounded. See [Word.bends]. */
+    val bends: Map<String, String> = emptyMap(),
     val sets: Map<String, String> = emptyMap(),
     /** Groups of facets an Age takes some of — see [Facets], and [Draws] for how many. */
     val pools: List<Facets> = emptyList(),
@@ -132,9 +132,6 @@ data class Candidate(
      */
     fun asJson(): JsonObject = JsonObject().apply {
         comment?.let { add(COMMENT, it) }
-        // Encoded rather than spelled: a named tier writes its name and a word with its own numbers writes
-        // them, and which of the two it is is the codec's answer rather than a second one kept in step.
-        add("tier", Tier.CODEC.encodeStart(JsonOps.INSTANCE, tier).getOrThrow { IllegalStateException(it) })
         // In pipeline order, which is the order they are read in and the order the screen shows them.
         if (chooses.isNotEmpty()) add("chooses", aspectTexts(chooses))
         if (admits.isNotEmpty()) add("admits", aspectLists(admits))
@@ -152,6 +149,7 @@ data class Candidate(
         if (leaning.isNotEmpty()) {
             add("biases", JsonObject().apply { leaning.forEach { (key, by) -> add(key, numbers(by)) } })
         }
+        if (bends.isNotEmpty()) add("bends", texts(bends))
         if (sets.isNotEmpty()) add("sets", texts(sets))
         if (pools.isNotEmpty()) add("pools", poolsOf(pools))
         if (!requests.isEmpty) add("requests", claimsOf(requests))
@@ -243,7 +241,7 @@ data class Candidate(
          * which is the failure `GrammarSources` guards the same way and for the same reason.
          */
         val KNOWN_FIELDS = setOf(
-            "tier", "chooses", "admits", "excludes", "restricts", "biases", "sets", "pools", "requests",
+            "chooses", "admits", "excludes", "restricts", "biases", "bends", "sets", "pools", "requests",
             "template", "mints", "unstated", "mints_something_that_flows", UNAIMED,
         )
 
@@ -252,13 +250,13 @@ data class Candidate(
         /** A word the game gave us, opened so its rarity and ink can be set. */
         fun of(word: Word) = Candidate(
             name = word.name,
-            tier = word.tier,
             chooses = word.chooses,
             admits = word.admits,
             excludes = word.excludes,
             restricts = word.restricts,
             biases = word.biases,
             leansEverywhere = word.leansEverywhere,
+            bends = word.bends,
             sets = word.sets,
             pools = word.pools,
             requests = word.requests,
@@ -272,7 +270,7 @@ data class Candidate(
         )
 
         /** A blank word, which is what `--new` starts from. */
-        fun blank(name: String) = Candidate(name = name, tier = Tier.EXACT)
+        fun blank(name: String) = Candidate(name = name)
 
         /**
          * The candidate [json] describes — **read off the file rather than off a loaded [Word]**, so what
@@ -283,7 +281,6 @@ data class Candidate(
             require(unknown.isEmpty()) { "'$name' carries fields nothing reads: ${unknown.joinToString()}" }
             Candidate(
                 name = name,
-                tier = tierRead(json.get("tier")),
                 comment = json.get(COMMENT),
                 chooses = json.getAsJsonObject("chooses")?.let(::readAspectTexts).orEmpty(),
                 admits = json.getAsJsonObject("admits")?.let(::readAspectLists).orEmpty(),
@@ -292,6 +289,7 @@ data class Candidate(
                 leansEverywhere = json.getAsJsonObject("biases")
                     ?.getAsJsonObject(Word.EVERYWHERE)?.let(::readNumbers).orEmpty(),
                 biases = json.getAsJsonObject("biases")?.let(::readPerAspect).orEmpty(),
+                bends = json.getAsJsonObject("bends")?.let(::readTexts).orEmpty(),
                 sets = json.getAsJsonObject("sets")?.let(::readTexts).orEmpty(),
                 pools = json.getAsJsonArray("pools")?.let(::readPools).orEmpty(),
                 requests = json.getAsJsonObject("requests")?.let(::readClaims) ?: Claims.NOTHING,
@@ -302,15 +300,6 @@ data class Candidate(
                 unaimed = json.getAsJsonObject(UNAIMED)?.let(::readNumbers).orEmpty()
                     .mapKeys { (page, _) -> aspectPaged(page) },
             )
-        }
-
-        /**
-         * **Through the codec**, since a tier is a name or a set of numbers now and the tool must not own
-         * a second reading of which. What the game would refuse is refused here, in the same words.
-         */
-        private fun tierRead(said: JsonElement?): Tier {
-            requireNotNull(said) { "a word must say what it costs" }
-            return Tier.CODEC.parse(JsonOps.INSTANCE, said).getOrThrow { IllegalArgumentException(it) }
         }
 
         private fun aspectPaged(page: String): Aspect =

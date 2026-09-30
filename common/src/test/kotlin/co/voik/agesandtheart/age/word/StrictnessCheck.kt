@@ -36,13 +36,13 @@ class StrictnessCheck : FunSpec({
     val subject: Subject by lazy {
         val weightedSets = Aspect.entries.filter { it.holds == Holds.WEIGHTED_SET && it.pool != null }
         val found = weightedSets.firstNotNullOfOrNull { aspect ->
-            vocabulary.words.filter { it.tier.narrows && it.restrictsIn(aspect).isNotEmpty() }
+            vocabulary.words.filter { it.narrows && it.restrictsIn(aspect).isNotEmpty() }
                 .sortedBy { it.name }
                 .firstNotNullOfOrNull { word ->
                     val members = vocabulary.availableToBroadWordsIn(aspect)
-                    val pulls = members.map { it to word.pullIn(aspect, vocabulary.tagsOf(it)) }
-                    val marginal = pulls.filter { (_, pull) -> pull > 0.0 && pull < word.tier.threshold }
-                    val outright = pulls.filter { (_, pull) -> pull >= word.tier.threshold }.map { it.first }
+                    val grades = members.map { it to word.gradeIn(aspect, vocabulary.tagsOf(it)) }
+                    val marginal = grades.filter { (_, grade) -> grade > 0.0 && grade < AT_THE_BAR }
+                    val outright = grades.filter { (_, grade) -> grade >= AT_THE_BAR }.map { it.first }
                     if (marginal.isEmpty() || outright.isEmpty()) null
                     else Subject(word, aspect, marginal, outright)
                 }
@@ -94,11 +94,11 @@ class StrictnessCheck : FunSpec({
      * not that a sample is a distribution.
      */
     test("how often it arrives is how close it came") {
-        for ((member, pull) in subject.marginal.take(MEASURED)) {
-            val expected = pull / subject.word.tier.threshold
+        for ((member, grade) in subject.marginal.take(MEASURED)) {
+            val expected = grade
             val seen = SEEDS.count { seed -> reached(member, claimedAt(seed)) }.toDouble() / SEEDS.size
             check(abs(seen - expected) < TOLERANCE) {
-                "${member.key} answers '${subject.word.name}' at $pull of ${subject.word.tier.threshold}, " +
+                "${member.key} answers '${subject.word.name}' at $grade of its bar, " +
                     "so it should arrive in ${"%.0f".format(expected * 100)}% of Ages and arrived in " +
                     "${"%.0f".format(seen * 100)}%"
             }
@@ -134,5 +134,8 @@ class StrictnessCheck : FunSpec({
         const val MEASURED = 3
 
         const val TOLERANCE = 0.15
+
+        /** A member's grade exactly at a word's bar — see `Word.gradeIn`. */
+        const val AT_THE_BAR = 1.0
     }
 }

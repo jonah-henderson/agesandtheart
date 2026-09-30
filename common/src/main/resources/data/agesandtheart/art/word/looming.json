@@ -3,7 +3,6 @@
     "Sheer and high, and pressing down: two of low cloud, grey or black cloud, closing fog and a grey sky are",
     "offered to every looming Age, each yielding to anything the book says."
   ],
-  "tier": "evocative",
   "biases": {
     "all": {
       "#sheer": 1.0,
@@ -12,7 +11,7 @@
       "#flat": -0.7
     }
   },
-  "sets": {
+  "bends": {
     "relief": "0.35..1.0"
   },
   "requests": {

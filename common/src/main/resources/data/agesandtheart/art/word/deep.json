@@ -24,7 +24,6 @@
     "records the same reasoning from the other side). Nothing here restricts, so the word never eliminates",
     "a preset it merely dislikes."
   ],
-  "tier": "exact",
   "biases": {
     "sea": {
       "#empty": -0.8,

@@ -1,5 +1,4 @@
 {
-  "tier": "evocative",
   "biases": {
     "all": {
       "#flat": 1.0,
@@ -7,7 +6,7 @@
       "#mountainous": -0.5
     }
   },
-  "sets": {
+  "bends": {
     "relief": "-1.0..-0.4"
   }
 }

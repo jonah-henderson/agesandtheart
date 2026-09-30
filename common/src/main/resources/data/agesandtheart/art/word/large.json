@@ -6,7 +6,6 @@
     "No query, where `colossal` restricts the landmass to `monumental`: a large thing is still an",
     "ordinary one, and only the end of the axis should pull the draw towards the landforms built big."
   ],
-  "tier": "exact",
   "sets": {
     "size": "0.5..0.5"
   }

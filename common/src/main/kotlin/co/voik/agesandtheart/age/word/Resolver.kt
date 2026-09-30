@@ -68,7 +68,7 @@ data class Standing(val strength: Double, val kept: Boolean)
 /**
  * Words in, a world out. Every word scores every preset in the aspects it may fill; precise words
  * *narrow* the candidates, vague words *tilt* the draw between whatever survived, and the seed picks.
- * There is no per-tier code path and no geometry anywhere.
+ * There is no per-kind code path and no geometry anywhere.
  *
  * Four rules the rest of this file implements:
  *
@@ -90,7 +90,7 @@ object Resolver {
      */
     private const val MOST_TERRITORIES = 3
 
-    // A floor under every candidate, so an evocative word tilts the draw rather than deciding it.
+    // A floor under every candidate, so a lean tilts the draw rather than deciding it.
     private const val BASE_WEIGHT = 0.35
 
     // No candidate's chance reaches zero, or a word pushing hard against something could eliminate it.
@@ -106,6 +106,13 @@ object Resolver {
     // the wrong shape: a flat bonus only has to beat one rival at a time and there are three. Small but
     // never zero, since a word that merely sets a parameter must not eliminate a preset (§3.2).
     private const val INCAPABLE_FACTOR = 0.04
+
+    // How much harder a lean from a word about one part bears on a population than a mood's — see
+    // [claimForMember].
+    private const val A_PARTS_OWN_LEAN_WEIGHS = 2.0
+
+    /** Precedence between words claiming one part, firmest first — see [Word.PRECEDENCE]. */
+    private val FIRMEST_FIRST: Comparator<Constraint> = compareByDescending(Word.PRECEDENCE) { it.word }
 
     // How much more of the world naming a member asks for, on top of the ordinary share it already had.
     private const val A_MENTION_IS_WORTH = 1.0
@@ -200,8 +207,8 @@ object Resolver {
      * fracturing, contention, siting and charging all work on it unchanged and none of them had to learn a
      * second kind of claim.
      *
-     * **At most one request survives per parameter**, taken in the order two demands would be taken — tier
-     * first, then the seed. Two offers on one parameter are not a quarrel the writer can be charged for, and
+     * **At most one request survives per parameter**, taken in the order two demands would be taken —
+     * precedence first, then the seed. Two offers on one parameter are not a quarrel the writer can be charged for, and
      * collapsing them here is what stops the fold from manufacturing one: `scorching inferno` both offer a
      * sun a colour, and the Age gets one of them rather than an instability.
      *
@@ -224,7 +231,7 @@ object Resolver {
                 if (parameter in demanded) continue
                 val winner = asked.filter { parameter in it.word.requestsIn(aspect) }
                     .sortedWith(
-                        compareByDescending<Constraint> { it.word.tier }
+                        FIRMEST_FIRST
                             .thenBy { tieBreak(draw, aspect, it.word) },
                     )
                     .first()
@@ -331,7 +338,7 @@ object Resolver {
             if (flows(substance.word.material)) return@mapNotNull null
             // The material first: it is the word that lost, and `describe` names the first as displaced
             // and the second as what displaced it.
-            flaw(vocabulary, Register.DISPLACED, listOf(substance, minting), Aspect.FEATURES, emptyList(), substance.word.tier)
+            flaw(vocabulary, Register.DISPLACED, listOf(substance, minting), Aspect.FEATURES, emptyList(), substance.word.firmness)
         }
 
     /**
@@ -380,7 +387,7 @@ object Resolver {
             return subject.word.unstated?.let { Materials(listOf(it), leading = null, displaced = emptyList()) }
         }
         val leading = named.sortedWith(
-            compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, Aspect.FEATURES, it.word) },
+            FIRMEST_FIRST.thenBy { tieBreak(draw, Aspect.FEATURES, it.word) },
         ).first()
         fun minglesWithTheLeader(said: Constraint): Boolean {
             val isTheLeader = said === leading
@@ -406,7 +413,7 @@ object Resolver {
             val materials = materialsOf(phrase, draw) ?: return@flatMap emptyList()
             val leading = materials.leading ?: return@flatMap emptyList()
             materials.displaced.map { loser ->
-                flaw(vocabulary, Register.DISPLACED, listOf(loser, leading), Aspect.FEATURES, emptyList(), loser.word.tier)
+                flaw(vocabulary, Register.DISPLACED, listOf(loser, leading), Aspect.FEATURES, emptyList(), loser.word.firmness)
             }
         }
 
@@ -490,12 +497,11 @@ object Resolver {
      * one part of the world, and because the aspect it names is where the page ended up.
      */
     private fun rehomings(vocabulary: Vocabulary, sentence: Sentence): List<Flaw> =
-        // **A moved evocative page is free** (§4.3.1). `rehomed` charges for an aiming a writer could not
-        // see was wrong; an evocative word has exactly one place it can go, so there was no choice to get
-        // wrong and nothing to diagnose.
-        sentence.written.filter { it.rehomed && it.word.tier.narrows }.map { said ->
+        // **A mood Repair laid on the Age is free**: it has no aim, so there was no aiming to get wrong, and
+        // what it means there is what a mood laid bare always means.
+        sentence.written.filter { it.rehomed && !(it.word.isAMood && it.aimedAt.isEmpty()) }.map { said ->
             val landedIn = reachOf(vocabulary, said).firstOrNull()
-            flaw(vocabulary, Register.REHOMED, listOf(said), landedIn, tags = emptyList(), tier = said.word.tier)
+            flaw(vocabulary, Register.REHOMED, listOf(said), landedIn, tags = emptyList(), firmness = said.word.firmness)
         }
 
     /**
@@ -523,13 +529,13 @@ object Resolver {
      */
     private fun impossibilities(vocabulary: Vocabulary, sentence: Sentence): List<Flaw> =
         sentence.impossible.map { page ->
-            val tier = vocabulary.word(page)?.tier
+            val firmness = vocabulary.word(page)?.firmness
             Flaw(
                 Register.IMPOSSIBLE,
                 listOf(page),
                 aspect = null,
                 tags = emptyList(),
-                Register.IMPOSSIBLE.charge(tier, vocabulary.earnedBy(Register.IMPOSSIBLE)),
+                Register.IMPOSSIBLE.charge(firmness, vocabulary.earnedBy(Register.IMPOSSIBLE)),
             )
         }
 
@@ -538,14 +544,14 @@ object Resolver {
      * resolves against [purchaseFor], which is where a word finds purchase.
      */
     private fun reachOf(vocabulary: Vocabulary, constraint: Constraint): List<Aspect> =
-        if (constraint.word.tier.narrows) constraint.aimedAt.sortedBy { it.ordinal }
+        if (constraint.aimedAt.isNotEmpty()) constraint.aimedAt.sortedBy { it.ordinal }
         else purchaseFor(vocabulary, constraint.word)
 
     /**
      * What fills one aspect: one preset, or several where the sentence left it no way to be one thing.
      *
      * Three steps. Ask each narrowing word which presets it would keep; gather those into **territories**,
-     * groups of words satisfiable together; then draw one preset per territory, tilted by evocative words.
+     * groups of words satisfiable together; then draw one preset per territory, tilted by every lean.
      */
     private fun fill(
         vocabulary: Vocabulary,
@@ -566,8 +572,8 @@ object Resolver {
             speaking.flatMap { it.word.admitsIn(aspect) }.distinct().mapNotNull(aspect::presetFor)
         // Most precise first; where precision ties the seed decides, never word order. A word that only
         // sets a parameter narrows nothing, having no opinion about *which* preset fills the aspect.
-        val narrowing = speaking.filter { it.word.tier.narrows && it.word.constrainsPresetsIn(aspect) }
-            .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
+        val narrowing = speaking.filter { it.word.narrows && it.word.constrainsPresetsIn(aspect) }
+            .sortedWith(FIRMEST_FIRST.thenBy { tieBreak(draw, aspect, it.word) })
 
         val territories = mutableListOf<Territory>()
         // **A word that also steers this aspect settles last, and never fractures it** (Jonah,
@@ -586,7 +592,7 @@ object Resolver {
                 if (steersInstead(vocabulary, aspect, said)) continue
                 // Word against world: nothing in the aspect can be this, so no arrangement of the others is
                 // to blame. A content bug per §3.3, reported rather than dropped.
-                flaws += flaw(vocabulary, Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.tier)
+                flaws += flaw(vocabulary, Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.firmness)
                 continue
             }
             val home = territories.indexOfFirst { it.candidates.any { candidate -> candidate in carriers } }
@@ -658,7 +664,7 @@ object Resolver {
                 listOf(said, leading),
                 aspect,
                 opposedTags(vocabulary, said, leading),
-                said.word.tier,
+                said.word.firmness,
             )
         }
     }
@@ -686,7 +692,7 @@ object Resolver {
             listOf(contender, leading),
             aspect,
             opposedTags(vocabulary, contender, leading),
-            maxOf(contender.word.tier, leading.word.tier),
+            maxOf(contender.word.firmness, leading.word.firmness),
         )
     }
 
@@ -717,10 +723,9 @@ object Resolver {
         if (!aspect.spatial || seated.size >= room) return emptyList()
         // Nothing narrowed this aspect, so nothing *chose* here and there is no harmony to find.
         if (territories.isEmpty()) return emptyList()
-        // A word this exact about *the preset* forbids company; one that merely sets a parameter does not,
-        // or naming a material would quietly suppress harmony everywhere. Asked of the tier's own
-        // strictness rather than of its name, so a word stating those numbers behaves as one.
-        val pinned = speaking.any { it.word.tier.leavesNoRoomForCompany && it.word.constrainsPresetsIn(aspect) }
+        // A word choosing *the preset* forbids company; one that bars or merely sets a parameter does not,
+        // or naming a material would quietly suppress harmony everywhere.
+        val pinned = speaking.any { it.word.choiceIn(aspect) != null }
         if (pinned) return emptyList()
 
         // Whatever the narrowing words left — company can only be something the sentence would have
@@ -778,9 +783,9 @@ object Resolver {
         aspect: Aspect,
     ): Double {
         val tags = vocabulary.tagsOf(preset)
-        val claimed = speaking.filter { it.word.tier.narrows }
-            .maxOfOrNull { it.word.claimOn(preset, tags) * it.word.tier.weight } ?: 0.0
-        // **Every tier leans**, which is the whole of the last step: a lean is not a filter, so nothing
+        val claimed = speaking.filter { it.word.narrows }
+            .maxOfOrNull { it.word.claimOn(preset, tags) } ?: 0.0
+        // **Every word leans**, which is the whole of the last step: a lean is not a filter, so nothing
         // about it depends on whether the word that made it also narrowed.
         val leaned = speaking.sumOf { it.word.biasOn(preset, tags) }
         return (claimed + leaned).coerceAtLeast(0.0)
@@ -790,9 +795,8 @@ object Resolver {
      * How strong a claim the sentence makes on one preset — the number that decides which preset is drawn.
      *
      * Three terms: a **base** scaled by readiness, so an unasked-for draw prefers the ordinary (§3.3); the
-     * strongest **pull** of any narrowing word, weighted by precision; and the summed **affinity** of the
-     * evocative words, which may be negative, so "beautiful" pushes lava away as surely as it pulls
-     * flowers in.
+     * strongest **pull** of any narrowing word; and the summed **leans** of every word, which may be
+     * negative, so "beautiful" pushes lava away as surely as it pulls flowers in.
      */
     private fun strengthOf(
         vocabulary: Vocabulary,
@@ -801,8 +805,8 @@ object Resolver {
         aspect: Aspect,
     ): Double {
         val tags = vocabulary.tagsOf(preset)
-        val claimed = speaking.filter { it.word.tier.narrows }
-            .maxOfOrNull { it.word.claimOn(preset, tags) * it.word.tier.weight } ?: 0.0
+        val claimed = speaking.filter { it.word.narrows }
+            .maxOfOrNull { it.word.claimOn(preset, tags) } ?: 0.0
         val leaned = speaking.sumOf { it.word.biasOn(preset, tags) }
         val wanted = BASE_WEIGHT * vocabulary.readinessOf(preset) + claimed + leaned
         return (wanted * capabilityFactor(preset, speaking)).coerceAtLeast(FAINTEST_CHANCE)
@@ -840,18 +844,14 @@ object Resolver {
     }
 
     /**
-     * Where [word] finds purchase — the aspects it is about, or every one it likes something in.
-     *
-     * A narrowing word never asks this: the section its page was laid in already decided, and
-     * [Constraint.aimedAt] carries the answer. So this is the evocative half alone.
+     * Where [word] finds purchase laid bare — the aspects it is about, or for a mood every one it likes
+     * something in. A word aimed somewhere never asks: [Constraint.aimedAt] carries the answer.
      */
     fun purchaseFor(vocabulary: Vocabulary, word: Word): List<Aspect> {
-        // **The tier decides, not an empty reach.** This used to read "declares no aspect" as "means
-        // everywhere", which held only while a word could declare one at all: now that the reach is
-        // derived, `beautiful` reaches the climate it bends and the biomes it weighs, and reading that as
-        // its whole purchase stopped it being beautiful anywhere else — one Age over fifty seeds.
-        if (word.tier.narrows) return word.aspects.sortedBy { it.ordinal }
-        // Spanning aspects is what makes a word evocative.
+        // **Being a mood decides, not an empty reach.** The reach is derived, so `beautiful` reaches the
+        // climate it bends and the biomes it weighs, and reading that as its whole purchase stopped it
+        // being beautiful anywhere else — one Age over fifty seeds.
+        if (!word.isAMood) return word.aspects.sortedBy { it.ordinal }
         return Aspect.entries.filter { aspect ->
             val likesSomethingThere = vocabulary.availableToBroadWordsIn(aspect)
                 .any { word.biasOn(it, vocabulary.tagsOf(it)) > 0.0 }
@@ -862,17 +862,6 @@ object Resolver {
             likesSomethingThere || bendsADialThere
         }
     }
-
-    /**
-     * Which aspects [word] is **charged for** (§4.4) — a different question from where it reaches, and the
-     * one that was being answered by the same function.
-     *
-     * A narrowing word has its say in one part of the world at a time, so it is priced in one however many
-     * it is at home in; an evocative word is priced across everything it found purchase in.
-     */
-    fun pricedIn(vocabulary: Vocabulary, word: Word): List<Aspect> =
-        if (word.tier.narrows) listOfNotNull(word.aspects.minByOrNull { it.ordinal })
-        else purchaseFor(vocabulary, word)
 
     /**
      * One preset from [candidates], drawn in proportion to how strongly the sentence claims each — the
@@ -993,8 +982,8 @@ object Resolver {
         said: List<Constraint>,
         aspect: Aspect?,
         tags: List<String>,
-        tier: Tier,
-    ) = Flaw(register, said.map { it.word.name }, aspect, tags, register.charge(tier, vocabulary.earnedBy(register)))
+        firmness: Firmness,
+    ) = Flaw(register, said.map { it.word.name }, aspect, tags, register.charge(firmness, vocabulary.earnedBy(register)))
 
     /**
      * The composition these fillings describe. The stand-in terrain is overwritten immediately — every
@@ -1042,7 +1031,7 @@ object Resolver {
                 // let them disagree. [cast] read it before any of this ran.
                 .filter { it != Parameter.CAST && it !in settled && holds(steered, aspect, it) }) {
                 val contenders = setting.filter { parameter in it.word.setsIn(aspect) }
-                    .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
+                    .sortedWith(FIRMEST_FIRST.thenBy { tieBreak(draw, aspect, it.word) })
                 // **A body is steered on its own.** Each clause that minted one carries its index, so what
                 // was said about the second sun never reaches the first — the one place a claim is written
                 // to a member rather than across the aspect.
@@ -1115,14 +1104,20 @@ object Resolver {
         flaws: MutableList<Flaw>,
     ): AgeComposition {
         val axes = rangedNames(this, aspect)
-        val speaking = setting.filter { said -> axes.any { it in said.word.setsIn(aspect) } }
-            .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
+        fun asksOfAnAxis(said: Constraint) = axes.any { it in said.word.setsIn(aspect) || it in said.word.bendsIn(aspect) }
+        val speaking = setting.filter(::asksOfAnAxis)
+            .sortedWith(FIRMEST_FIRST.thenBy { tieBreak(draw, aspect, it.word) })
         if (speaking.isEmpty()) return this
 
-        /** What a word *demands* of each axis — the only form that can put two words at odds. */
-        fun boundsIn(said: Constraint): Map<String, Span> = axes.mapNotNull { axis ->
-            (said.word.setsIn(aspect)[axis]?.let(Setting::read) as? Setting.Fixed)?.let { axis to it.span }
+        fun spansIn(parameters: Map<String, String>): Map<String, Span> = axes.mapNotNull { axis ->
+            (parameters[axis]?.let(Setting::read) as? Setting.Fixed)?.let { axis to it.span }
         }.toMap()
+
+        /** What a word *demands* of each axis — the only form that can put two words at odds. */
+        fun boundsIn(said: Constraint): Map<String, Span> = spansIn(said.word.setsIn(aspect))
+
+        /** Where a word would like each axis to sit, without demanding it. */
+        fun bendsIn(said: Constraint): Map<String, Span> = spansIn(said.word.bendsIn(aspect))
 
         /**
          * Everything a word asks that is *not* a demand — its limits, nudges and spreads.
@@ -1131,9 +1126,11 @@ object Resolver {
          * decide who agrees with whom and who fractures a world; a floor yields to any band already inside
          * it and a nudge cannot fail at all. These settle onto whatever the demands left (see [Setting]).
          */
-        fun askingIn(said: Constraint): List<Pair<String, Setting>> = axes.mapNotNull { axis ->
-            val asked = said.word.setsIn(aspect)[axis]?.let(Setting::read) ?: return@mapNotNull null
-            if (asked is Setting.Fixed) null else axis to asked
+        fun askingIn(said: Constraint): List<Pair<String, Setting>> = axes.flatMap { axis ->
+            listOfNotNull(said.word.setsIn(aspect)[axis], said.word.bendsIn(aspect)[axis])
+                .mapNotNull(Setting::read)
+                .filterNot { it is Setting.Fixed }
+                .map { axis to it }
         }
 
         fun agree(one: Constraint, other: Constraint): Boolean {
@@ -1152,25 +1149,24 @@ object Resolver {
             }
         }
 
-        // **Narrowing words bound; evocative words bend** (§4.4). Only the first kind may divide a world:
-        // an evocative word removes no freedom, so it can never fail, and a fracture is a failure.
-        val bounding = speaking.filter { it.word.tier.narrows }
-        val bending = speaking.filter { !it.word.tier.narrows }
+        // **`sets` bounds; `bends` leans** (§4.4). Only a bound may divide a world: a bend removes no
+        // freedom, so it can never fail, and a fracture is a failure.
+        val bounding = speaking.filter { axes.any { axis -> axis in it.word.setsIn(aspect) } }
 
-        /** Where the evocative words would like [axis] to sit, in the axis's own terms. */
+        /** Where the bends would like [axis] to sit, in the axis's own terms. */
         fun preferred(axis: String): Double? {
-            val wants = bending.mapNotNull { boundsIn(it)[axis] }
+            val wants = speaking.mapNotNull { bendsIn(it)[axis] }
             if (wants.isEmpty()) return null
             return wants.map { (it.least + it.most) / 2.0 }.average()
         }
 
         /**
-         * [bounds] with each axis's middle pulled toward what the evocative words asked for — including an
+         * [bounds] with each axis's middle pulled toward what the bends asked for — including an
          * axis nobody bounded, which is then the whole natural range with its weight moved rather than a
          * stretch of it. That is what lets `beautiful` lean an Age temperate without narrowing it at all.
          */
         fun bentTo(bounds: Map<String, Span>): Map<String, Span> {
-            val touched = bounds.keys + bending.flatMap { boundsIn(it).keys }
+            val touched = bounds.keys + speaking.flatMap { bendsIn(it).keys }
             return touched.associateWith { axis ->
                 val stretch = bounds[axis] ?: Span.NATURAL
                 val want = preferred(axis) ?: return@associateWith stretch
@@ -1182,7 +1178,7 @@ object Resolver {
         /** Which member each group describes, or null for a group of words aimed at nothing in particular. */
         fun memberOf(group: List<Constraint>): Int? = group.firstNotNullOfOrNull { it.describes }
         // **Written in the writer's order where every group is a member of its own.** Groups come out
-        // ordered by tier, which is nobody's intent; a clause's ranged axes have to land on the same member
+        // ordered by precedence, which is nobody's intent; a clause's ranged axes have to land on the same member
         // its ordinary parameters do, and those are written against `Constraint.describes` by [steer].
         val described = gathered.map(::memberOf)
         // Vacuously true of no groups at all, which is an Age whose only ranged words *bend* rather than
@@ -1224,7 +1220,7 @@ object Resolver {
         /**
          * [bounds] with every limit and nudge in the sentence settled onto it.
          *
-         * After the bend, so an evocative word's pull on the middle survives a nudge to the ends, and
+         * After the bend, so a bend's pull on the middle survives a nudge to the ends, and
          * after the grouping, so a word that only leans never divided anything.
          *
          * **A demand is passed on as a demand and the natural range is not**, which is the whole of
@@ -1280,7 +1276,7 @@ object Resolver {
             if (climates.size > 1) {
                 val leading = groups.first().first()
                 for (group in groups.drop(1)) {
-                    flaws += flaw(vocabulary, Register.DISPLACED, listOf(group.first(), leading), aspect, emptyList(), group.first().word.tier)
+                    flaws += flaw(vocabulary, Register.DISPLACED, listOf(group.first(), leading), aspect, emptyList(), group.first().word.firmness)
                 }
             }
             val agreed = settledWith(bentTo(climates.first()))
@@ -1392,7 +1388,7 @@ object Resolver {
     /**
      * **What an atmosphere brings about, drawn rather than taken whole.**
      *
-     * An evocative word leans on tags and a tag reaches dozens of members, so lifting every one of them is
+     * A mood leans on tags and a tag reaches dozens of members, so lifting every one of them is
      * how a single `foreboding` page wrote forty-nine creatures and seven phenomena into one Age (Jonah,
      * 2026-09-17, the Age Tsi — hadalfish, ghasts, piglins and a wither in a basalt world, with a tempest,
      * a blizzard, an inferno and a deluge running at once). A word meaning dread should make an Age
@@ -1406,8 +1402,8 @@ object Resolver {
      * **Only where a lift introduces**, which is [INTRODUCES_WHAT_IT_LIFTS] — everywhere else a lift
      * reweighs what the biome already grows, and bending all fifty-nine of a desolate Age's features is
      * exactly what an atmosphere is for. **Only upward**, since asking for less of something brings
-     * nothing about. And **only a word that does not narrow**: one aimed at an aspect — `undead`,
-     * `villagers`, `volcanic` — means every member it reaches and is left whole.
+     * nothing about. And **only a mood** ([Word.isAMood]): a word about one part — `undead`, `villagers`,
+     * `volcanic` — means every member it reaches and is left whole.
      */
     private fun drawnAmong(
         vocabulary: Vocabulary,
@@ -1418,11 +1414,9 @@ object Resolver {
         draw: Long,
     ): List<Claim> {
         val allowed = INTRODUCES_WHAT_IT_LIFTS[aspect] ?: return reached
-        // **An atmosphere is a word that does not narrow**, which is the same test [purchaseFor] reads to
-        // decide whether a word aims itself. Leaning everywhere is *not* the test and was tried: a
-        // restrictive word's own tag reach lands in the same map, so `undead` read as an atmosphere and was
-        // drawn down to six of them.
-        val atmospheres = speaking.filterNot { it.word.tier.narrows }
+        // **An atmosphere is a mood**, the same test [purchaseFor] reads — a word aimed at one part by what
+        // it claims, like `volcanic`, means every member it reaches.
+        val atmospheres = speaking.filter { it.word.isAMood }
         if (atmospheres.isEmpty()) return reached
         val byKey = drawnFrom.associateBy(Taggable::key)
 
@@ -1517,11 +1511,10 @@ object Resolver {
      * How much of the world one member of a population should have, against what it would have had anyway
      * — or null where the sentence said nothing that reaches it.
      *
-     * Three tiers, three readings, and the difference between them is the design's own (§3.3): an
-     * **evocative** word tilts by how well the member answers it, signed, so "beautiful" thins the ash
-     * flats as surely as it thickens the flower meadows; a **restrictive** word bears down on the members
-     * that qualify at its threshold; and a member is never *removed* by either, since a word that merely
-     * likes something is not an instruction to delete anything
+     * Two readings, and the difference between them is the design's own (§3.3): a **lean** tilts by how
+     * well the member answers it, signed, so "beautiful" thins the ash flats as surely as it thickens the
+     * flower meadows; a **bar** bears down on the members that clear it; and a member is never *removed*
+     * by either, since a word that merely likes something is not an instruction to delete anything
      * ([co.voik.agesandtheart.worldgen.biome.BiomePreference.LEAST_KEPT]).
      *
      * `only` and `except` are the exception, and deliberately so: those are the writer saying outright
@@ -1546,15 +1539,15 @@ object Resolver {
         // And an at-most bar is an exclusion with a level: a member carrying more than it allows is struck.
         fun strikes(said: Constraint) =
             said.word.excludes(member, tags) || !said.word.withinItsLimitsIn(aspect, tags)
-        if (speaking.any { it.word.tier.narrows && strikes(it) }) {
+        if (speaking.any { it.word.narrows && strikes(it) }) {
             return Claim(member.key, Polarity.EXCEPT, confinedTo = ground)
         }
         // **Claiming something here is the price of insisting.** A word that only leans restricts nothing,
         // and `acceptsOn` keeps every member where nothing was restricted — read as insistence that would
         // be a word demanding the whole population it merely had a preference within.
         // **How strict this Age is being, which only a plain mention is subject to.** `only` and `except`
-        // are the writer saying outright what to keep and what to strike, so they are read at the tier's
-        // own threshold however generous the Age: a preference may be lucky, an instruction may not.
+        // are the writer saying outright what to keep and what to strike, so they are read at the full bar
+        // however generous the Age: a preference may be lucky, an instruction may not.
         fun strictnessFor(said: Constraint): Double =
             if (draw == null || said.polarity != Polarity.ASSERTED) {
                 Bars.STRICT
@@ -1562,13 +1555,13 @@ object Resolver {
                 strictnessOf(draw, aspect, said.word)
             }
         val insisting = speaking.filter { said ->
-            val narrowsHere = said.word.tier.narrows && said.word.constrainsPresetsIn(aspect)
+            val narrowsHere = said.word.narrows && said.word.constrainsPresetsIn(aspect)
             narrowsHere && said.word.acceptsOn(member, tags, strictnessFor(said))
         }
-        // **What a tier weighs is a tag query.** Naming a member is step one and stands on its own, so
+        // **What a bar weighs is a tag query.** Naming a member is step one and stands on its own, so
         // scoring it here too made every named member arrive at the ceiling — a share no rung could move
         // and no second word could add to.
-        val insisted = insisting.sumOf { it.word.pullIn(aspect, tags) * it.word.tier.weight }
+        val insisted = insisting.sumOf { it.word.pullIn(aspect, tags) }
         // **Naming a member asks for more of it — but only where it was going to be there anyway**, which
         // is the whole of what naming one does to a *population*: a biome is present unless something
         // strikes it, so a mention that claimed only the ordinary share would be a page read, charged for,
@@ -1585,12 +1578,11 @@ object Resolver {
         // back. See [PresetProfile.presentAnyway].
         val mentions = speaking.count { it.word.choiceIn(aspect)?.key == member.key }
         val mentioned = if (vocabulary.isPresentAnyway(member)) mentions * A_MENTION_IS_WORTH else NOTHING_MORE
-        // **Every tier leans**, as it does for a catalogue. This counted an evocative word's lean and a
-        // narrowing word's *dislike*, and dropped a narrowing word's liking on the floor — so `rich`
-        // leaning the ores toward diamond did nothing at all while its dislike of barren bit.
+        // **Every word leans**, as it does for a catalogue — and a word about one part leans on it harder
+        // than a mood, whose lean is spread over everything.
         val leaned = speaking.sumOf { said ->
             val by = said.word.biasOn(member, tags)
-            if (said.word.tier.narrows) by * said.word.tier.weight else by
+            if (said.word.isAMood) by else by * A_PARTS_OWN_LEAN_WEIGHS
         }
         val wanting = insisting + speaking.filter {
             it !in insisting && it.word.biasOn(member, tags) > 0.0
@@ -1771,7 +1763,7 @@ object Resolver {
             said.polarity == Polarity.ASSERTED && !said.word.aims && !joinedToAnythingSingledOut(said)
         val crowdedOut = contenders.filter(::couldBeCrowdedOut)
         return crowdedOut.map { said ->
-            flaw(vocabulary, Register.DISPLACED, listOf(said, singledOut.first()), aspect, emptyList(), said.word.tier)
+            flaw(vocabulary, Register.DISPLACED, listOf(said, singledOut.first()), aspect, emptyList(), said.word.firmness)
         }
     }
 
@@ -1800,7 +1792,7 @@ object Resolver {
                 said.word.setsIn(aspect)[parameter] == winner.word.setsIn(aspect)[parameter]
             val mingled = rivals.filter { it == winner || wereJoined(it, winner) || asksWhatTheWinnerAsks(it) }
             for (loser in rivals - mingled.toSet()) {
-                flaws += flaw(vocabulary, Register.DISPLACED, listOf(loser, winner), aspect, emptyList(), loser.word.tier)
+                flaws += flaw(vocabulary, Register.DISPLACED, listOf(loser, winner), aspect, emptyList(), loser.word.firmness)
             }
             return ordered(mingled, parameter, aspect, asWritten)
         }
@@ -1825,7 +1817,7 @@ object Resolver {
      * The mingled contenders in the order they should be *stored* — as ranked, or as the writer wrote them.
      *
      * **Every mingling parameter but one holds a set**, where two rocks in a wall are both in it and neither is
-     * first, and ranking them by tier and then by a seeded tie-break is right: it spreads two Ages written
+     * first, and ranking them by precedence and then by a seeded tie-break is right: it spreads two Ages written
      * alike. **One holds a sequence.** An aurora's colours run from its crown to its hem, and which is the
      * crown is the one thing the writer stated outright — so `red and green aurora` and `green and red
      * aurora` are two different skies and must stay so.
@@ -1891,7 +1883,7 @@ object Resolver {
         // And only where the word addressed this aspect's parameters at all — see [holds].
         val addressing = setting.filter { said -> said.word.canSet.keys.any { holds(composition, aspect, it) } }
         val wentUnheeded = addressing.filter { said -> said.word.canSet.keys.none(::anythingSeatedHonours) }
-        return wentUnheeded.map { said -> flaw(vocabulary, Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.tier) }
+        return wentUnheeded.map { said -> flaw(vocabulary, Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.firmness) }
     }
 
     /**
@@ -1903,7 +1895,7 @@ object Resolver {
 
     /**
      * **How strict this Age is being about one word in one aspect** — a cut drawn once, somewhere between
-     * nothing and the tier's own threshold, and applied to every member the word is weighed against.
+     * nothing and the word's own bars, and applied to every member the word is weighed against.
      *
      * What it buys is that the same word written twice gives two different worlds. A tag query was a pure
      * function of the word and the corpus, so `settled` reached the same eighteen structure sets at the

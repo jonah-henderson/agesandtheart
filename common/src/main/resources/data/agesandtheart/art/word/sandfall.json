@@ -9,12 +9,9 @@
     "plainer one on the right phenomenon.",
     "",
     "**One aspect, and the climate is not touched.** A sandfall wants a dry Age and it is not going to ask",
-    "for one here: a narrowing word is priced in its lowest-ordinal aspect (`Resolver.pricedIn`) and",
-    "phenomena are last, so a rainfall bound in this file would quietly reprice this as a word about",
-    "weather. `auroral` drafted with a second parameter and had to lose it for the same reason. A writer who",
-    "wants a desert has `arid`."
+    "for one here: a rainfall bound in this file would make it a word about the weather as well, and a",
+    "second part narrowed is a second part paid for. A writer who wants a desert has `arid`."
   ],
-  "tier": "exact",
   "chooses": {
     "phenomena": "sandfall"
   }

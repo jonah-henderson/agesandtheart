@@ -1,8 +1,8 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.word.Firmness
 import co.voik.agesandtheart.age.word.Resolution
-import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
@@ -350,7 +350,7 @@ class Workshop(
             rows = listed().map { offer ->
                 Table.Row(
                     key = offer.page,
-                    cells = listOf(offer.page, offer.tier, offer.targets, offer.says),
+                    cells = listOf(offer.page, offer.firmness, offer.targets, offer.says),
                     tone = when {
                         offer.closes -> Palette.chosen
                         offer.authored -> Palette.value
@@ -471,9 +471,9 @@ class Workshop(
         // spend and no width to waste, and the targets are the half a writer actually reads here — the
         // column beside them cuts at two aspect pages and a word reaching nine says so nowhere else.
         val head = Line("  ") + Line(offer.page, if (offer.closes) Palette.chosen else Palette.value) +
-            Line(if (offer.tier.isEmpty()) "" else "  ${offer.tier}", Palette.parameter) +
+            Line(if (offer.firmness.isEmpty()) "" else "  ${offer.firmness}", Palette.parameter) +
             Line(if (offer.closes) "  closes the clause" else "", Palette.chosen) +
-            Line(if (offer.authored || offer.tier.isEmpty()) "" else "  auto-generated", Palette.faint)
+            Line(if (offer.authored || offer.firmness.isEmpty()) "" else "  auto-generated", Palette.faint)
         val aimedAt = if (offer.targets.isEmpty()) emptyList() else {
             (Line("    ") + Line("targets  ", Palette.faint) + Line(offer.targets, Palette.tag))
                 .wrapped(width, "             ")
@@ -857,7 +857,7 @@ class Workshop(
         const val PAGE_WIDTH = 26
 
         /** `restrictive` is the longest of the three. */
-        const val TIER_WIDTH = 12
+        const val FIRMNESS_WIDTH = 9
 
         /**
          * Enough for two aspect pages before the cut.
@@ -876,7 +876,7 @@ class Workshop(
          */
         val COLUMNS: List<Table.Column> = listOf(
             Table.Column("page", PAGE_WIDTH),
-            Table.Column("specificity", TIER_WIDTH, order = Tier.NAMED.keys.toList()),
+            Table.Column("claims", FIRMNESS_WIDTH, order = Firmness.entries.map { it.key }),
             Table.Column("targets", TARGETS_WIDTH),
             Table.Column("what it does", MINIMUM_SAYS, grows = true),
         )
@@ -885,7 +885,7 @@ class Workshop(
         const val INDENT = 4
 
         /** Everything a list row spends before `what it does` takes what is left. */
-        const val COLUMNS_SPENT = INDENT + PAGE_WIDTH + Frame.GUTTER + TIER_WIDTH + Frame.GUTTER +
+        const val COLUMNS_SPENT = INDENT + PAGE_WIDTH + Frame.GUTTER + FIRMNESS_WIDTH + Frame.GUTTER +
             TARGETS_WIDTH + Frame.GUTTER
 
         /**

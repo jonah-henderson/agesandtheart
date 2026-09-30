@@ -31,10 +31,9 @@ import net.minecraft.resources.Identifier
  * modifiers cost nothing to parse — the clause is terminated by its own subject rather than by the next
  * one starting — and the reading is then simply the pages in the order they were written.
  *
- * **It also removed a production.** An evocative word used to have a slot of its own before the subject,
- * because that was the only way to lean on something that had not been named yet. Everything leads now, so
- * there is one run of modifiers and [co.voik.agesandtheart.age.word.Tier] alone decides whether a word tilts
- * or narrows — which is what decided it all along.
+ * **It also removed a production.** A mood used to have a slot of its own before the subject, because
+ * that was the only way to lean on something that had not been named yet. Everything leads now, so there is
+ * one run of modifiers, and whether a word tilts or narrows is read off what it claims.
  *
  * **Why this and not a parser generator** (settled in advance, `decisions.md`). A generated grammar had to
  * name every aspect four times over — a token pair, a section alternative, a modifier rule and a term rule
@@ -296,12 +295,9 @@ internal object ArtReading {
             // Structure carries no aspect of its own; what it joins or qualifies is checked on its own.
             if (page.word == null) return page.kind != null
             val word = page.word
-            // **An evocative word is written where nothing was aimed at** (§4.3.1) — the `age` clause, and
-            // nowhere else. It used to be laid anywhere and stay global, tilting hardest at the part it sat
-            // under: a factor of two on a weighted draw, which produces no signal a reader can check and so
-            // is the one thing the readout could never show. A clause aimed at a part or sited in a place is
-            // both a refusal, and `Repair` moves the page to the front at no charge.
-            if (!word.tier.narrows) return aim.isEmpty() && !sited
+            // **A mood belongs to whatever it is aimed at**, and leans there and nowhere else — `beautiful sky`
+            // is a beautiful sky. Not to a place: a mood confined to a biome has no reading.
+            if (word.isAMood) return !sited
             // Where nothing was aimed, every term answers for itself — which is what lets a word naming one
             // registry object need no page after it: `teeming igloos` is a sentence and `igloos structures`
             // says the same thing twice.
@@ -334,7 +330,8 @@ internal object ArtReading {
      * would keep every solid out of a sea it was pointed straight at, and `ice sea` would stop being a sentence.
      */
     private fun scopeFor(word: co.voik.agesandtheart.age.word.Word, aim: Set<Aspect>): Set<Aspect> {
-        if (!word.tier.narrows) return emptySet()
+        // A mood laid bare reaches wherever it finds purchase, which the resolver reads off an empty scope.
+        if (word.isAMood) return aim
         return aim.ifEmpty { word.aspects }
     }
 }

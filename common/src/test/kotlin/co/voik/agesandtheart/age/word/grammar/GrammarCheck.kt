@@ -178,33 +178,38 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * §4.3.1: an evocative word is written on the nucleus and nowhere else, so `beautiful age` reads and
-     * still reaches the whole world. This is the beginner's sentence and the commonest thing anyone writes.
+     * §4.3.1: a mood on the nucleus is laid bare, so `beautiful age` reads and still reaches the whole
+     * world. This is the beginner's sentence and the commonest thing anyone writes.
      */
-    test("an evocative word on the nucleus is global") {
+    test("a mood on the nucleus is global") {
         val read = read(listOf("beautiful", "age"))
         val beautiful = read.constraints.first { it.word.name == "beautiful" }
         check(beautiful.aimedAt.isEmpty()) {
-            "'beautiful' was confined to ${beautiful.aimedAt}, which demotes it to restrictive"
+            "'beautiful' was confined to ${beautiful.aimedAt} on the nucleus"
         }
     }
 
     /**
-     * The other half of the same rule: an evocative word laid in an aimed clause no longer parses there. It
-     * used to stay global and lean twice as hard on the part it sat under, which is a weight nothing in the
-     * readout can show — so `Repair` moves the page to the nucleus instead. What that *costs* is
-     * `RepairCheck`'s to assert, this being the parser's own check.
+     * The other half: a mood laid in an aimed clause belongs to what it is aimed at, and leans there and
+     * nowhere else — `beautiful floating landmass` is a beautiful landmass.
      */
-    test("an evocative word laid in an aimed clause is moved off it") {
+    test("a mood laid in an aimed clause is aimed there") {
         val read = read(listOf("age", "beautiful", "floating", "landmass"))
+        check(read.dropped.isEmpty() && read.impossible.isEmpty()) { "the book did not read as laid" }
         val beautiful = read.constraints.first { it.word.name == "beautiful" }
-        check(beautiful.aimedAt.isEmpty()) {
-            "'beautiful' should have been moved out of the landmass clause, but aims at ${beautiful.aimedAt}"
+        check(beautiful.aimedAt == setOf(Aspect.TERRAIN) && !beautiful.rehomed) {
+            "'beautiful' should aim at the landmass it was laid under, and aims at ${beautiful.aimedAt}"
         }
-        val landmass = read.phrases.first { phrase -> phrase.subject?.word?.name == "landmass" }
-        check(landmass.modifiers.none { it.word.name == "beautiful" }) {
-            "'beautiful' was left in the landmass clause: ${landmass.modifiers.map { it.word.name }}"
-        }
+    }
+
+    /**
+     * **And a stray mood goes on the Age.** `age beautiful` put it after the nucleus with nothing to aim
+     * it; the Art's own clauses are not an aim the writer gave, so `Repair` lays it bare.
+     */
+    test("a mood with nothing to aim it is laid on the Age") {
+        val read = read(listOf("age", "beautiful"))
+        val beautiful = read.constraints.first { it.word.name == "beautiful" }
+        check(beautiful.aimedAt.isEmpty()) { "a stray 'beautiful' was aimed at ${beautiful.aimedAt}" }
     }
 
     /**

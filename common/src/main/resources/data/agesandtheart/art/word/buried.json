@@ -1,5 +1,4 @@
 {
-  "tier": "restrictive",
   "restricts": {
     "features": {
       "buried": ">0.3"

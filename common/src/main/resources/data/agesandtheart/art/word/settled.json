@@ -1,5 +1,4 @@
 {
-  "tier": "restrictive",
   "restricts": {
     "structures": {
       "inhabited": ">0.3",

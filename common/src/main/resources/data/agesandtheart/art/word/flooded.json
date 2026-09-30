@@ -1,5 +1,4 @@
 {
-  "tier": "exact",
   "restricts": {
     "rock": {
       "watery": ">0.7"

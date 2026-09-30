@@ -9,7 +9,6 @@
     "",
     "`mints_something_that_flows` is what lets the resolver charge for `gold_block springs`: a spring runs with a fluid, and a solid holds none, so the pattern is left alone and the writer paid for a page that did nothing. Reading it off the pattern would mean handing the resolver a registry."
   ],
-  "tier": "exact",
   "mints": "minecraft:spring_water",
   "mints_something_that_flows": true
 }

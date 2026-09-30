@@ -6,7 +6,6 @@
     "No query: brilliance is a fact about the field and there is no preset it could prefer, which is why",
     "this sets and never narrows."
   ],
-  "tier": "exact",
   "sets": {
     "glow": "1.0..1.0"
   }

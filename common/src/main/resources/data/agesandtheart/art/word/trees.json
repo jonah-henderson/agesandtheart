@@ -1,5 +1,4 @@
 {
-  "tier": "restrictive",
   "restricts": {
     "features": {
       "wooded": ">0.3"

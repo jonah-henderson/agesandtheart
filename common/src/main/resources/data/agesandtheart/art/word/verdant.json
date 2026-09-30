@@ -4,7 +4,6 @@
     "and what is placed in them. Two of steady rain, green grass, green leaves and what drifts off growing",
     "things are drawn for every verdant Age; a rainbow is only offered."
   ],
-  "tier": "restrictive",
   "restricts": {
     "biomes": {
       "lush": ">0.3"

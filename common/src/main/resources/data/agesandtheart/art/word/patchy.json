@@ -10,7 +10,6 @@
     "It declares the landmass because mingling is a landform's parameter and nothing else has one; when",
     "something else grows a mixture, this word reaches it with no edit."
   ],
-  "tier": "exact",
   "sets": {
     "mingling": "0.1..0.7"
   }

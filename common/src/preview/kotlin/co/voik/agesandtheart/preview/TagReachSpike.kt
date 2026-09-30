@@ -28,7 +28,7 @@ fun main() {
 private val weightedSets get() = Aspect.entries.filter { it.holds == Holds.WEIGHTED_SET && it.pool != null }
 
 private fun narrowingWords(vocabulary: Vocabulary): List<Word> =
-    vocabulary.words.filter { it.tier.narrows && it.wanted.isNotEmpty() }.sortedBy { it.name }
+    vocabulary.words.filter { it.narrows && it.wanted.isNotEmpty() }.sortedBy { it.name }
 
 /** How wide a net each narrowing word casts, per aspect it reaches. */
 private fun reportHowManyOneWordLifts(vocabulary: Vocabulary) {
@@ -65,7 +65,7 @@ private fun reportWhoComesForATag(vocabulary: Vocabulary) {
     // **Every aspect, and the aspect is named** — reach is per aspect, so a word wanting `monumental`
     // of the landmass says nothing whatever about a feature carrying the same tag.
     val wanters = mutableMapOf<String, MutableList<Triple<Word, Aspect, Double>>>()
-    for (word in vocabulary.words.filter { it.tier.narrows }) {
+    for (word in vocabulary.words.filter { it.narrows }) {
         for (aspect in Aspect.entries) {
             for ((tag, bar) in word.restrictsIn(aspect)) {
                 // An at-least bar is the carried weight at which this word starts to qualify the member.
@@ -75,7 +75,7 @@ private fun reportWhoComesForATag(vocabulary: Vocabulary) {
         }
     }
     val strikers = mutableMapOf<String, MutableList<Word>>()
-    for (word in vocabulary.words.filter { it.tier.narrows }) {
+    for (word in vocabulary.words.filter { it.narrows }) {
         for (tag in word.unwanted) strikers.getOrPut(tag) { mutableListOf() } += word
     }
     for (tag in (wanters.keys + strikers.keys).sorted()) {
@@ -97,7 +97,7 @@ private fun reportWhoComesForATag(vocabulary: Vocabulary) {
  */
 private fun reportExclusionIsWeightBlind(vocabulary: Vocabulary) {
     println("=== What a striking word removes, and at what carried weight ===")
-    for (word in vocabulary.words.filter { it.unwanted.isNotEmpty() && it.tier.narrows }.sortedBy { it.name }) {
+    for (word in vocabulary.words.filter { it.unwanted.isNotEmpty() && it.narrows }.sortedBy { it.name }) {
         for (aspect in weightedSets) {
             val members = vocabulary.availableToBroadWordsIn(aspect)
             val struck = members.filter { member -> word.excludes(member, vocabulary.tagsOf(member)) }
@@ -129,7 +129,7 @@ private fun reportTagsNobodyAsksAfter(vocabulary: Vocabulary) {
         for (member in vocabulary.availableToBroadWordsIn(aspect)) carried += vocabulary.tagsOf(member).keys
     }
     val read = mutableSetOf<String>()
-    for (word in vocabulary.words.filter { it.tier.narrows }) {
+    for (word in vocabulary.words.filter { it.narrows }) {
         read += word.wanted
         read += word.unwanted
     }
@@ -145,20 +145,20 @@ private fun reportTagsNobodyAsksAfter(vocabulary: Vocabulary) {
 }
 
 /**
- * **The members a word almost reaches** — carried above nothing and below the tier's threshold. Under a
- * fixed threshold these are invisible; under a drawn one they are what varies from Age to Age.
+ * **The members a word almost reaches** — carried above nothing and below its bar. Under a fixed bar these
+ * are invisible; under a drawn strictness they are what varies from Age to Age.
  */
 private fun reportMarginalCarriers(vocabulary: Vocabulary) {
-    println("=== Members a word almost reaches (0 < pull < threshold) ===")
-    for (word in vocabulary.words.filter { it.tier.narrows }.sortedBy { it.name }) {
+    println("=== Members a word almost reaches (0 < grade < its bar) ===")
+    for (word in vocabulary.words.filter { it.narrows }.sortedBy { it.name }) {
         for (aspect in weightedSets) {
             if (word.restrictsIn(aspect).isEmpty()) continue
             val marginal = vocabulary.availableToBroadWordsIn(aspect).mapNotNull { member ->
-                val pull = word.pullIn(aspect, vocabulary.tagsOf(member))
-                if (pull > 0.0 && pull < word.tier.threshold) member to pull else null
+                val grade = word.gradeIn(aspect, vocabulary.tagsOf(member))
+                if (grade > 0.0 && grade < AT_THE_BAR) member to grade else null
             }
             if (marginal.isEmpty()) continue
-            val chances = marginal.map { (_, pull) -> pull / word.tier.threshold }
+            val chances = marginal.map { (_, grade) -> grade }
             println(
                 "%-12s %-11s %2d almost-carriers, arriving in %.0f%%..%.0f%% of Ages".format(
                     word.name, aspect.name.lowercase(), marginal.size,
@@ -169,3 +169,6 @@ private fun reportMarginalCarriers(vocabulary: Vocabulary) {
     }
     println()
 }
+
+/** A member's grade exactly at a word's bar — see `Word.gradeIn`. */
+private const val AT_THE_BAR = 1.0

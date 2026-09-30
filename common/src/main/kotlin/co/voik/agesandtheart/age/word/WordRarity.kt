@@ -12,7 +12,7 @@ import net.minecraft.util.RandomSource
  * One rarity of word, which is one `art/rarity/<name>.json`.
  *
  * The file names the words rather than words declaring their own rarity, so how hard a word is to *find*
- * stays separate from what it *does* — [Tier] keeps meaning precision and nothing else.
+ * stays separate from what it *does*.
  */
 data class RarityBucket(
     /** The file's name. */
@@ -56,7 +56,7 @@ data class RarityBucket(
  * How likely each word is to turn up on a found page: a bucket is rolled by weight, then a word within it
  * uniformly. Every word is in exactly one bucket — the one listing it, or else the default.
  *
- * A different axis from [Tier]: tier is what a word costs to write, rarity is how hard it is to come by.
+ * A different axis from [Word.price]: price is what a word costs to write, rarity is how hard it is to come by.
  * A word may be evocative and rare, or exact and common.
  */
 data class WordRarity(

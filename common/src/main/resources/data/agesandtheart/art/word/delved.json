@@ -1,5 +1,4 @@
 {
-  "tier": "exact",
   "chooses": {
     "underground": "great_halls"
   }

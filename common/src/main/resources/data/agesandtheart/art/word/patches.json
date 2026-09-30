@@ -7,7 +7,6 @@
     "",
     "The umbrella for vanilla's `patch_*` and `flower_*` features, which have no words of their own."
   ],
-  "tier": "exact",
   "mints": "agesandtheart:patches",
   "unstated": "#agesandtheart:patch_substance"
 }

@@ -1,5 +1,4 @@
 {
-  "tier": "restrictive",
   "restricts": {
     "rock": {
       "cavernous": ">0.3"

@@ -101,7 +101,6 @@ class MaterialQueryCheck : FunSpec({
 
 private fun query(name: String, setting: Pair<String, String>) = Word(
     id = Identifier.fromNamespaceAndPath(Constants.MOD_ID, name),
-    tier = Tier.RESTRICTIVE,
     aspects = setOf(if (setting.first == Surface.MATERIAL.name) Aspect.SURFACE else Aspect.TERRAIN),
     sets = mapOf(setting),
 )

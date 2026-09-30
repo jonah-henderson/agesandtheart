@@ -18,7 +18,6 @@
     "",
     "Pairs with `deep` for the deep-ocean material, and neither alone pays."
   ],
-  "tier": "exact",
   "chooses": {
     "phenomena": "deluge"
   },

@@ -6,7 +6,6 @@
     "`Word.reaching` only ever widens: an unqualified `absent` would reach both bodies, and a sunless",
     "Age would lose its moon as well (Jonah, 2026-08-31)."
   ],
-  "tier": "exact",
   "sets": {
     "sun.absent": "true"
   }

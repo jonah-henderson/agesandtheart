@@ -37,7 +37,6 @@
     "settled, so only what is *written* can charge -- an inferno the Art inflicted on a broken Age cannot",
     "make it more broken."
   ],
-  "tier": "exact",
   "chooses": {
     "phenomena": "inferno"
   },

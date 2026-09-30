@@ -1,5 +1,4 @@
 {
-  "tier": "restrictive",
   "sets": {
     "haze": "0.7..1.0",
     "ceiling": "-1.0..-0.5"

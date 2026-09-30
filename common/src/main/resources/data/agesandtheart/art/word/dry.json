@@ -10,7 +10,6 @@
     "otherwise simply have won. Laid on the whole Age it also offers a drier air, which yields to anything",
     "that says more about the climate."
   ],
-  "tier": "restrictive",
   "excludes": {
     "rock": [
       "#watery"

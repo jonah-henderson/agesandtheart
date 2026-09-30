@@ -6,7 +6,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.word.CannotAppearInLoot
-import co.voik.agesandtheart.age.word.Tier
+import co.voik.agesandtheart.age.word.Firmness
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Facets
@@ -50,7 +50,6 @@ class AuthoringCheck : FunSpec({
     test("the writer knows every field the codec reads") {
         val everything = Word(
             id = Identifier.fromNamespaceAndPath("agesandtheart", "probe"),
-            tier = Tier.EXACT,
             aspects = setOf(Aspect.SKY),
             leansEverywhere = mapOf("#solid" to 1.0),
             restricts = mapOf(Aspect.SKY to mapOf("bright" to 1.0)),
@@ -166,7 +165,7 @@ class AuthoringCheck : FunSpec({
      * the half that was not being asked.
      */
     test("a parameter nothing turns is refused, in the core and in the pool") {
-        val base = Candidate(name = "probe", tier = Tier.EXACT, )
+        val base = Candidate(name = "probe", )
         for (invented in listOf(base.copy(sets = mapOf("suns" to "1")), base.copy(pools = listOf(poolOfSingleSettings(mapOf("suns" to "1"), Draws.of(1)))))) {
             val said = Verdict.refusals(Verdict.on(invented, corpus))
             check(said.any { it.says.contains("suns") }) {
@@ -179,7 +178,6 @@ class AuthoringCheck : FunSpec({
     test("a parameter qualified with a part of the world that does not exist is refused") {
         val invented = Candidate(
             name = "probe",
-            tier = Tier.EXACT,
             sets = mapOf("firmament.colour" to "red"),
         )
         val said = Verdict.refusals(Verdict.on(invented, corpus))
@@ -192,7 +190,6 @@ class AuthoringCheck : FunSpec({
     test("a value the parameter refuses is refused") {
         val invented = Candidate(
             name = "probe",
-            tier = Tier.EXACT,
             sets = mapOf("rising" to "widdershins"),
         )
         val said = Verdict.refusals(Verdict.on(invented, corpus))
@@ -205,7 +202,6 @@ class AuthoringCheck : FunSpec({
     test("a tag nothing carries is refused") {
         val invented = Candidate(
             name = "probe",
-            tier = Tier.EVOCATIVE,
             leansEverywhere = mapOf("#wondrous" to 1.0),
         )
         val said = Verdict.refusals(Verdict.on(invented, corpus))
@@ -221,7 +217,6 @@ class AuthoringCheck : FunSpec({
     test("a rock you would fall through is refused") {
         val invented = Candidate(
             name = "probe",
-            tier = Tier.EXACT,
             sets = mapOf("stone" to "minecraft:oak_sign"),
         )
         val said = Verdict.refusals(Verdict.on(invented, corpus))
@@ -257,22 +252,20 @@ class AuthoringCheck : FunSpec({
      * The two ways a meaning goes wrong, both refused rather than merely shown — see `Verdict.meaningFaults`
      * and the two `VocabularyCheck` tests it names.
      */
-    test("a meaning only a narrowing word could carry is refused") {
-        val leaning = Candidate(
+    test("a bend with no range is refused") {
+        val bending = Candidate(
             name = "probe",
-            tier = Tier.EVOCATIVE,
-            chooses = mapOf(Aspect.CARVERS to "caves"),
+            bends = mapOf("sky.colour" to "red"),
         )
-        val said = Verdict.refusals(Verdict.on(leaning, corpus))
-        check(said.any { it.says.contains("evocative") }) {
-            "an evocative word meaning a preset outright was not refused: ${said.joinToString { it.says }}"
+        val said = Verdict.refusals(Verdict.on(bending, corpus))
+        check(said.any { it.says.contains("no range to bend") }) {
+            "a bend on a parameter with no range was not refused: ${said.joinToString { it.says }}"
         }
     }
 
     test("meaning a preset another page already means is refused") {
         val second = Candidate(
             name = "probe",
-            tier = Tier.EXACT,
             chooses = mapOf(Aspect.TERRAIN to "mountainous"),
         )
         val said = Verdict.refusals(Verdict.on(second, corpus))
@@ -286,7 +279,7 @@ class AuthoringCheck : FunSpec({
      * pool drawing none of itself, a count over an empty pool — can be reached by editing at all.
      */
     test("a pool carries its own count in and out") {
-        val empty = Candidate(name = "probe", tier = Tier.EXACT)
+        val empty = Candidate(name = "probe")
         val one = empty.addingAPool(Insistence.REQUIRED, "temperature", "0.5..1.0")
         check(one.poolsOn(Insistence.REQUIRED).single().draws.most == 1) { "a first facet left the pool drawing none" }
 
@@ -305,7 +298,7 @@ class AuthoringCheck : FunSpec({
      * out of the pool it was in and leaves every other pool's count alone.
      */
     test("a setting in a pool can be moved out of it") {
-        val parched = Candidate(name = "probe", tier = Tier.RESTRICTIVE)
+        val parched = Candidate(name = "probe")
             .addingAPool(Insistence.REQUIRED, "rainfall", "-1.0..-0.7")
             .puttingInPool(Insistence.REQUIRED, 0, null, "haze", "0.2..0.5")
             .addingAPool(Insistence.REQUIRED, "motes", "ash|embers")
@@ -329,7 +322,6 @@ class AuthoringCheck : FunSpec({
     test("pools are drawn one at a time and never decide each other") {
         val word = Word(
             id = Identifier.fromNamespaceAndPath("agesandtheart", "probe"),
-            tier = Tier.RESTRICTIVE,
             aspects = setOf(Aspect.SUN),
             pools = listOf(
                 poolOfSingleSettings(mapOf("sun.colour" to "red", "sun.size" to "0.7..1.0"), Draws.of(1)),
@@ -695,7 +687,7 @@ class AuthoringCheck : FunSpec({
      * **A pool of ordinary settings writes as the object it always was.**
      *
      * Every pool in the corpus is that shape, so a list of one-entry maps would have been noise added to
-     * every word to serve the one that needed the room — the same bargain `Tier` strikes.
+     * every word to serve the one that needed the room.
      */
     test("only a pool with a group spells its groups out") {
         val plain = poolOfSingleSettings(mapOf("haze" to "0.4", "tint" to "blue"), Draws.of(1))
@@ -710,24 +702,27 @@ class AuthoringCheck : FunSpec({
     }
 
     /**
-     * **A tier is its numbers, and its name is derived from them.**
-     *
-     * The three the Art names still write and read as names, so nothing in the corpus moves; a word that
-     * states its own writes them out and comes back the same. Without the first half every word in the
-     * pack would have gained five lines it did not ask for.
+     * **How firmly a word claims is read off what it claims** (world model §3, "Retiring tier") — and
+     * fixed when it is made, so a working copy the resolver makes of it claims as firmly as the word written.
      */
-    test("a named tier stays a name and its own numbers stay numbers") {
-        for ((named, tier) in Tier.NAMED) {
-            val written = Tier.CODEC.encodeStart(JsonOps.INSTANCE, tier).getOrThrow()
-            check(written.isJsonPrimitive && written.asString == named) {
-                "'$named' should still write as its name, and wrote $written"
-            }
-        }
-        val ownNumbers = Tier(cost = 6, threshold = 0.55, weight = 2, narrows = true, versatilityMultiplier = Tier.FLAT)
-        check(ownNumbers.key == Tier.CUSTOM) { "a tier matching none of the three called itself '${ownNumbers.key}'" }
-        val written = Tier.CODEC.encodeStart(JsonOps.INSTANCE, ownNumbers).getOrThrow()
-        val read = Tier.CODEC.parse(JsonOps.INSTANCE, written).getOrThrow()
-        check(read == ownNumbers) { "its own numbers did not come back: $written became $read" }
+    test("a word claims as firmly as what it claims") {
+        val leaning = Word(
+            id = Identifier.fromNamespaceAndPath("test", "leaning"),
+            aspects = setOf(Aspect.BIOMES),
+            biases = mapOf(Aspect.BIOMES to mapOf("#frozen" to 1.0)),
+            bends = mapOf("temperature" to "-1.0..-0.5"),
+        )
+        check(leaning.firmness == Firmness.LEANS) { "leans and bends claimed ${leaning.firmness}" }
+        val barred = Word(
+            id = leaning.id,
+            aspects = leaning.aspects,
+            restricts = mapOf(Aspect.BIOMES to mapOf("frozen" to 0.3)),
+        )
+        check(barred.firmness == Firmness.BARS) { "a bar claimed ${barred.firmness}" }
+        val setting = Word(id = leaning.id, aspects = setOf(Aspect.CLIMATE), sets = mapOf("temperature" to "-1.0..-0.5"))
+        check(setting.firmness == Firmness.DECIDES) { "a settled value claimed ${setting.firmness}" }
+        val granted = leaning.copy(sets = mapOf("sky.colour" to "blue"))
+        check(granted.firmness == Firmness.LEANS) { "a working copy claimed ${granted.firmness}, not what was written" }
     }
 
     /**
@@ -738,13 +733,11 @@ class AuthoringCheck : FunSpec({
     test("a page costs the parts it narrows, and never nothing") {
         val wide = Word(
             id = Identifier.fromNamespaceAndPath("test", "wide"),
-            tier = Tier.RESTRICTIVE,
             aspects = setOf(Aspect.SEA, Aspect.SKY, Aspect.TERRAIN),
             restricts = mapOf(Aspect.SEA to mapOf("#molten" to 1.0)),
         )
         check(wide.price == Word.INK_PER_NARROWED_PART) { "one barred part of three cost ${wide.price}" }
         val leaning = wide.copy(
-            tier = Tier.EVOCATIVE,
             restricts = emptyMap(),
             biases = mapOf(Aspect.SEA to mapOf("#molten" to 1.0)),
         )

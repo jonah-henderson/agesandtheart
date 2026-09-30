@@ -1,5 +1,4 @@
 {
-  "tier": "exact",
   "restricts": {
     "rock": {
       "solid": ">0.7"

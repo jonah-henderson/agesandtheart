@@ -1,6 +1,5 @@
 {
   "_comment": "Clear water, clear air and a high sky: the murk dial, the haze and the cloud ceiling. Between them they say where the word belongs, so it declares no aspects.",
-  "tier": "exact",
   "sets": {
     "murk": "-1.0..-0.55",
     "air.haze": "-1.0..-0.5",

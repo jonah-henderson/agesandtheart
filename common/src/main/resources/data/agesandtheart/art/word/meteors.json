@@ -5,11 +5,9 @@
     "also have found whatever else fell on you.",
     "",
     "**One aspect, and the sky is not touched.** What a meteor storm actually wants is a clear night to be",
-    "seen against, and it is deliberately not asking for one here: a narrowing word is priced in its",
-    "lowest-ordinal aspect (`Resolver.pricedIn`) and phenomena are last, so a sky bound in this file would",
-    "quietly reprice this as a word about the sky. `sandfall` and `auroral` both paid for that lesson."
+    "seen against, and it is deliberately not asking for one here: a sky bound in this file would make it",
+    "a word about the sky as well, and a second part narrowed is a second part paid for."
   ],
-  "tier": "exact",
   "chooses": {
     "phenomena": "meteors"
   }

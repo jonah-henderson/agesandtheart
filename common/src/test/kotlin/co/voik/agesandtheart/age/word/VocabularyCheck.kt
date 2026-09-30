@@ -65,18 +65,14 @@ class VocabularyCheck : FunSpec({
             check(unknownTags.isEmpty()) {
                 "'${word.name}' asks for ${unknownTags.joinToString(" ")}, which nothing in the world carries"
             }
-            val aspects = Resolver.pricedIn(vocabulary, word)
+            val aspects = Resolver.purchaseFor(vocabulary, word)
             // A word that names a template has a say in no aspect *and* does the largest thing a single
             // page can: it changes the world the book starts from. Every other word has to reach one.
             check(aspects.isNotEmpty() || word.template != null) {
                 "'${word.name}' has a say in no aspect at all, so writing it would do nothing and cost nothing"
             }
-            // A word that named its aspects must be satisfiable in **each** of them; an evocative word named
-            // none, and having found purchase anywhere is what it promised.
-            //
-            // Read off the word rather than off `pricedIn`, which answers what a word *costs* — one
-            // aspect, for a narrowing word, however many it is at home in. Asking that here left every
-            // declaration after the first unchecked, which was invisible while they were also unreachable.
+            // A word that named its aspects must be satisfiable in **each** of them; a mood named none, and
+            // having found purchase anywhere is what it promised.
             val declared = word.aspects.sortedBy { it.ordinal }
             for (aspect in declared) {
                 // "Backed" means something different for a word that *steers* rather than *chooses* (§3.2):
@@ -148,15 +144,15 @@ class VocabularyCheck : FunSpec({
                         word.wanted.all(onlyAServerKnows::contains)
                     if (onlyAServerCouldAnswer) continue
                     check(vocabulary.answersIn(word, aspect)) {
-                        "'${word.name}' is ${word.tier.key} about ${aspect.key}, and nothing there answers " +
+                        "'${word.name}' narrows ${aspect.key}, and nothing there answers " +
                             "${word.everyTagAsked.keys.joinToString(" ")} at all"
                     }
                     continue
                 }
                 val carriers = vocabulary.carriersOf(word, aspect)
                 check(carriers.isNotEmpty()) {
-                    "'${word.name}' is ${word.tier.key} about ${aspect.key}, but no ${aspect.key} carries " +
-                        "${word.wanted.joinToString(" ")} strongly enough (needs ${word.tier.threshold})"
+                    "'${word.name}' narrows ${aspect.key}, but no ${aspect.key} carries " +
+                        "${word.wanted.joinToString(" ")} up to its bar"
                 }
             }
             // A parameter may name the aspect it is meant for — `sun.absent` — and a prefix naming no aspect at
@@ -245,9 +241,9 @@ class VocabularyCheck : FunSpec({
      * touch, so `stormy` pins the terrain to caverns and throws `floating` away in silence.
      */
     test("every narrowing word says what it is about") {
-        for (word in vocabulary.words.filter { it.tier.narrows && it.template == null }) {
+        for (word in vocabulary.words.filter { it.narrows && it.template == null }) {
             check(word.aspects.isNotEmpty()) {
-                "'${word.name}' is ${word.tier.key} but names no aspect, so it would narrow every aspect its tags " +
+                "'${word.name}' narrows but names no aspect, so it would narrow every aspect its tags " +
                     "reach — which is how a word about the sky ends up choosing the ground"
             }
         }
@@ -329,12 +325,10 @@ class VocabularyCheck : FunSpec({
                 // so demanding one here asks the wrong question, and asks it of a corpus that cannot answer:
                 // biomes are datapack content, so their words exist only once a server has loaded.
                 if (namesARegistryEntry(preset.key)) continue
-                // **Where the word reaches, not where it is charged.** `Resolver.pricedIn` answers a
-                // different question by design — a narrowing word is priced in one aspect however many it
-                // is at home in — so asking it here said `unbroken` could not ask for a solid underground,
-                // when a clause aimed there is exactly how it does.
+                // **Where the word reaches**, every aspect of it: a clause aimed at any one is how a word
+                // narrows there — `unbroken` asks for a solid underground.
                 val reachable = vocabulary.words.any { word ->
-                    aspect in word.aspects && word.tier.narrows &&
+                    aspect in word.aspects && word.narrows &&
                         preset in vocabulary.carriersOf(word, aspect)
                 }
                 check(reachable) {
@@ -429,7 +423,7 @@ class VocabularyCheck : FunSpec({
                 // member into one sentence's pool on purpose; the promise is about what a vague word draws
                 // from having *said* nothing, which is curation and nothing else.
                 val reachable = vocabulary.words.any { vague ->
-                    !vague.tier.narrows && vague.admitsIn(aspect).isEmpty() &&
+                    !vague.narrows && vague.admitsIn(aspect).isEmpty() &&
                         meant in vocabulary.carriersOf(vague, aspect).map { it.key }
                 }
                 check(!reachable || meant in curated) {
@@ -529,25 +523,19 @@ class VocabularyCheck : FunSpec({
     }
 
     /**
-     * **A word that does not narrow only nudges** (Jonah, 2026-09-29): it biases, offers what nothing else
-     * demanded, and admits what a broad word may reach. Deciding anything outright is the narrowing tiers'
-     * business ([Word.decidesOutright]).
-     *
-     * One case of it was a fault before it was a rule: `Resolver.fill` asks `carriersOf` of narrowing words
-     * alone, so an evocative word's `chooses` was never read — and `weighed` then *excluded* the word for
-     * arriving with its answer in hand, dropping the lean it was written for as well.
+     * **What a lean cannot do.** A bend moves a range, so one naming a parameter with no range is inert —
+     * a page charged for and doing nothing. And a mood may not admit what broad words are kept from, since
+     * leaning on everything and reaching past the fence would hand out what the fence keeps back.
      */
-    test("a word that does not narrow only nudges") {
-        val deciding = vocabulary.authoredWords
-            .filter { !it.tier.narrows && it.decidesOutright.isNotEmpty() }
-            .map { "${it.name} (${it.decidesOutright.joinToString(", ")})" }
-        check(deciding.isEmpty()) {
-            "these are ${Tier.EVOCATIVE.key} and decide outright, where they may only suggest: $deciding"
-        }
+    test("a bend has a range, and a mood stays behind the fence") {
+        val bendingNothing = vocabulary.authoredWords
+            .filter { it.bendsNothingRanged.isNotEmpty() }
+            .map { "${it.name} (${it.bendsNothingRanged.joinToString(", ")})" }
+        check(bendingNothing.isEmpty()) { "these bend what has no range: $bendingNothing" }
         val pastTheFence = vocabulary.authoredWords
             .mapNotNull { word -> vocabulary.admittedPastTheFence(word).takeIf { it.isNotEmpty() }?.let { word.name to it } }
         check(pastTheFence.isEmpty()) {
-            "these only nudge and admit what broad words are kept from: $pastTheFence"
+            "these are moods and admit what broad words are kept from: $pastTheFence"
         }
     }
 

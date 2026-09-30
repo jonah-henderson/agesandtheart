@@ -3,7 +3,6 @@
     "Rain most of the time and thunder in most of it, under low grey cloud. A tempest is the",
     "phenomenon, and asking for this does not bring one."
   ],
-  "tier": "exact",
   "sets": {
     "rainfall": "0.6..1.0",
     "thunder": "0.6..1.0",

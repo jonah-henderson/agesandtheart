@@ -1,5 +1,4 @@
 {
-  "tier": "restrictive",
   "restricts": {
     "landmass": {
       "floating": ">0.3"

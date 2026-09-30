@@ -7,7 +7,6 @@
     "And three of a clear blue sky, white cloud, green grass, autumn leaves, drifting petals, frequent",
     "rainbows and brighter stars are offered to every beautiful Age, each yielding to anything the book says."
   ],
-  "tier": "evocative",
   "admits": {
     "biomes": [
       "minecraft:sunflower_plains",
@@ -28,7 +27,7 @@
       "#dark": -0.4
     }
   },
-  "sets": {
+  "bends": {
     "temperature": "-0.2..0.5",
     "humidity": "0..0.7"
   },

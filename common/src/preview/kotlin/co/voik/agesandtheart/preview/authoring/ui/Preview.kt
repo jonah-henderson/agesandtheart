@@ -20,15 +20,13 @@ object Preview {
      * What the word would actually keep, aspect by aspect.
      *
      * **Two numbers per aspect, for the reason `/age tags` reports two**: everything above nothing carries
-     * a tag, and only what clears the tier's threshold is reachable — a tail of tenth-weight carriers
+     * a tag, and only what clears the word's bar is reachable — a tail of tenth-weight carriers
      * otherwise reads as coverage it is not.
      */
     fun carriers(candidate: Candidate, word: Word?, corpus: Corpus): Reader {
         if (word == null) return Reader("Preview", listOf(Line("this word will not load", Palette.refused)))
         val lines = buildList {
-            val spent = "%s %d × %.2f for %d aspect(s)".format(
-                word.tier.key, word.tier.cost, word.versatility, word.aspects.size,
-            )
+            val spent = "${Word.INK_PER_NARROWED_PART} × ${word.narrowedParts} part(s) narrowed"
             add(Line("ink ${word.price}", Palette.value) + Line("  = $spent", Palette.faint))
             add(Line.BLANK)
             for (aspect in word.aspects.sortedBy { it.ordinal }) {

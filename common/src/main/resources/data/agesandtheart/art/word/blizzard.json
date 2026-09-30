@@ -18,7 +18,6 @@
     "this word says how hard it was asked for, and Blizzard.shareOfTheTime turns that into weather.",
     "Nothing about the snow itself gets fiercer, which is the register 5.2 asks for."
   ],
-  "tier": "exact",
   "chooses": {
     "phenomena": "blizzard"
   },

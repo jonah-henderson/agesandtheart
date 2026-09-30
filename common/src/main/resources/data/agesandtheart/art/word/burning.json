@@ -1,5 +1,4 @@
 {
-  "tier": "restrictive",
   "restricts": {
     "sea": {
       "molten": ">0.3"

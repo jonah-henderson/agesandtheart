@@ -21,7 +21,7 @@ import java.util.Optional
 enum class Production(
     val key: String,
     /**
-     * Fine inks this page costs, the way [co.voik.agesandtheart.age.word.Tier] prices an ordinary word.
+     * Fine inks this page costs, the way [co.voik.agesandtheart.age.word.Word.price] prices an ordinary word.
      * Two by default; the [NUCLEUS] is the floor at one. Literals rather than named constants because an
      * enum constructor cannot see its own companion.
      */
@@ -85,8 +85,8 @@ enum class Production(
 
 /**
  * A word whose whole meaning is structural — `and`, `only`, `except`. Apart from
- * [co.voik.agesandtheart.age.word.Word] because they share nothing: an ordinary word carries a precision
- * tier and a tag query, and a structural one carries neither.
+ * [co.voik.agesandtheart.age.word.Word] because they share nothing: an ordinary word carries claims about
+ * the world, and a structural one carries none.
  *
  * Datapack content (`data/<namespace>/art/grammar/<name>.json`), so a pack may rename or translate the
  * joining word while the *productions* stay ours.

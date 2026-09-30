@@ -68,7 +68,6 @@ object DerivedWords {
      */
     private fun substance(id: Identifier, pours: Boolean) = Word(
         id = id,
-        tier = Tier.EXACT,
         // Where it speaks when nobody aimed it: the rock, and the sea for something that actually pours.
         // Every block can still *be* the sea or the skin, but naming a paving slab should not flood the
         // world, and naming a rock should say what the world is made of rather than what it is painted
@@ -174,7 +173,6 @@ object DerivedWords {
      */
     private fun choosing(id: Identifier, aspect: Aspect) = Word(
         id = id,
-        tier = Tier.EXACT,
         aspects = setOf(aspect),
         chooses = mapOf(aspect to id.toString()),
     )
@@ -196,8 +194,7 @@ object DerivedWords {
             val said = preset.writtenWordFor ?: return@mapNotNull null
             Word(
                 id = said.location(),
-                tier = Tier.EXACT,
-                aspects = setOf(aspect),
+                        aspects = setOf(aspect),
                     chooses = mapOf(aspect to preset.key),
             )
         }

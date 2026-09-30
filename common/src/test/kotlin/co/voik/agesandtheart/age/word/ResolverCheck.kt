@@ -337,9 +337,9 @@ class ResolverCheck : FunSpec({
         check(displaced.words.containsAll(listOf("tunnels", "lattice"))) {
             "the loss does not name both words: ${displaced.words}"
         }
-        // Two exact words against each other is the design's dangerous case, so it must not come cheap.
-        check(resolution.instability.index >= Register.DISPLACED.charge(Tier.EXACT)) {
-            "exact against exact in a singular aspect cost only ${resolution.instability.index}"
+        // Two words deciding against each other is the design's dangerous case, so it must not come cheap.
+        check(resolution.instability.index >= Register.DISPLACED.charge(Firmness.DECIDES)) {
+            "deciding against deciding in a singular aspect cost only ${resolution.instability.index}"
         }
     }
 
@@ -351,7 +351,6 @@ class ResolverCheck : FunSpec({
     test("an unbacked word is reported, not dropped") {
         val bottomless = Word(
             Identifier.fromNamespaceAndPath("test", "bottomless"),
-            Tier.EXACT,
             setOf(Aspect.UNDERGROUND),
             restricts = mapOf(Aspect.UNDERGROUND to mapOf("bottomless" to 1.0)),
         )
@@ -825,9 +824,9 @@ class ResolverCheck : FunSpec({
             }
         }
 
-        // Then the behaviour, over seeds, because which preset is drawn varies: whenever bare rock (pinned
-        // exactly, and the strongest claim there is) shares a world, it must never be the lesser territory —
-        // and an uneven division has to actually happen sometimes, or shares would be decoration.
+        // Then the behaviour, over seeds, because which preset is drawn varies: whenever bare rock (carrying
+        // `solid` fully, the strongest claim there is) shares a world, it must never be the lesser territory
+        // — and an uneven division has to actually happen sometimes, or shares would be decoration.
         var uneven = 0
         for (seed in 1L..HARMONY_SEEDS) {
             // The **carving** stands in for the dressing this used to use, and for a specific reason:
@@ -840,7 +839,7 @@ class ResolverCheck : FunSpec({
             val pinned = composition.carvers.indexOf(Carvers.SOLID)
             if (pinned >= 0) {
                 check(shares[pinned] >= shares.max()) {
-                    "the exactly-pinned carving took less ground than its neighbour: " +
+                    "the fully carried carving took less ground than its neighbour: " +
                         "${composition.carvers} $shares"
                 }
             }
@@ -922,7 +921,7 @@ class ResolverCheck : FunSpec({
      */
     test("a derived word means its referent") {
         val lava = vocabulary.word("lava") ?: error("no derived word 'lava' — is derivation running?")
-        check(lava.tier == Tier.EXACT) { "a derived word must be exact, not ${lava.tier.key}" }
+        check(lava.firmness == Firmness.DECIDES) { "a derived word must decide, not ${lava.firmness.key}" }
         val meant = lava.choiceIn(Aspect.SEA)
         check(meant == Sea.LAVA) { "'lava' means $meant in the sea, not ${Sea.LAVA.key}" }
         check(vocabulary.word("minecraft:lava") == lava) { "a derived word must also answer to its full id" }
@@ -1112,7 +1111,7 @@ class ResolverCheck : FunSpec({
         val charged = Resolver.resolve(vocabulary, nonsense, SAMPLE_SEED)
         val flaws = charged.instability.flaws.filter { it.register == Register.IMPOSSIBLE }
         check(flaws.single().words == listOf("age")) { "an impossible page gave ${charged.instability.flaws}" }
-        check(flaws.single().severity > Register.REHOMED.charge(Tier.EXACT)) {
+        check(flaws.single().severity > Register.REHOMED.charge(Firmness.DECIDES)) {
             "an impossibility cost ${flaws.single().severity}, no more than the cheapest way to be wrong"
         }
     }
@@ -1134,15 +1133,13 @@ class ResolverCheck : FunSpec({
 
         val leaning = Word(
             Identifier.fromNamespaceAndPath("test", "leaning"),
-            Tier.EXACT,
             setOf(Aspect.SPAWNS),
             biases = mapOf(Aspect.SPAWNS to mapOf(zombie to 1.0)),
         )
-        check(living(leaning).isNotEmpty()) { "a narrowing word's lean reached the spawns not at all" }
+        check(living(leaning).isNotEmpty()) { "a lean reached the spawns not at all" }
 
         val choosing = Word(
             Identifier.fromNamespaceAndPath("test", "choosing"),
-            Tier.EXACT,
             setOf(Aspect.SPAWNS),
             chooses = mapOf(Aspect.SPAWNS to zombie),
         )
@@ -1498,7 +1495,6 @@ private fun spread(vocabulary: Vocabulary, sentence: String): Int =
 /** A word that only sets the terrain's stone — what §3.2 calls a material. */
 private fun material(name: String, block: String) = Word(
     id = Identifier.fromNamespaceAndPath(Constants.MOD_ID, name),
-    tier = Tier.EXACT,
     aspects = setOf(Aspect.TERRAIN),
     sets = mapOf(Terrain.STONE.name to block),
 )
@@ -1509,7 +1505,6 @@ private fun material(name: String, block: String) = Word(
  */
 private fun choosingWord(path: String, aspect: Aspect) = Word(
     id = Identifier.withDefaultNamespace(path),
-    tier = Tier.EXACT,
     aspects = setOf(aspect),
     chooses = mapOf(aspect to "minecraft:$path"),
 )

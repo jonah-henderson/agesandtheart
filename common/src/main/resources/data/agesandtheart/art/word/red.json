@@ -14,7 +14,6 @@
     "The light is deliberately *not* among them, which is why `tint` is still named apart. Saying the light",
     "here is red is a different claim from saying the sky is, and `witchlight` is the idiom that makes it."
   ],
-  "tier": "exact",
   "sets": {
     "colour": "red"
   }

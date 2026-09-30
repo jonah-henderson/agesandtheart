@@ -1,5 +1,4 @@
 {
-  "tier": "restrictive",
   "restricts": {
     "spawns": {
       "arthropod": ">0.3"

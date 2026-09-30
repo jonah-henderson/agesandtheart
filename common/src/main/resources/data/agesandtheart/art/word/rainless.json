@@ -1,5 +1,4 @@
 {
-  "tier": "exact",
   "sets": {
     "rainfall": "-1.0..-0.7",
     "thunder": "-1.0..-0.7"

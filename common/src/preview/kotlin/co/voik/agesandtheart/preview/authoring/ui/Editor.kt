@@ -8,7 +8,6 @@ import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.word.Bars
 import co.voik.agesandtheart.age.word.Draws
-import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.preview.authoring.Candidate
 import co.voik.agesandtheart.preview.authoring.Corpus
@@ -195,7 +194,7 @@ class Editor(
         val reach = word?.aspects.orEmpty().sortedBy { it.ordinal }.joinToString(" ") { it.page }
         val left = Line("  ") +
             Line(candidate.name.ifBlank { "(unnamed)" }, Palette.heading) +
-            Line("  ${candidate.tier.key}", Palette.faint) +
+            Line(word?.let { "  ${it.firmness.key}" }.orEmpty(), Palette.faint) +
             Line(if (unsaved) "  ${Glyph.BULLET} unsaved" else "", Palette.warned)
         val right = Line(reach.ifEmpty { "reaches nothing" }, Palette.chosen) +
             Line(price?.let { "   ink $it" } ?: "   —", Palette.value) + Line("  ")
@@ -257,7 +256,7 @@ class Editor(
     /** A glance at how much of each part has been said, so nothing is forgotten by not being visited. */
     private fun filledness(entry: Part): String = when (entry) {
         Part.NAME -> if (candidate.name.isBlank()) "" else Glyph.TICK
-        Part.TIER -> Glyph.TICK
+        Part.COST -> Glyph.TICK
         Part.REVIEW -> word?.price?.toString().orEmpty()
         Part.SAVE, Part.SAVE_AND_LEAVE -> if (unsaved) Glyph.WARN else Glyph.TICK
         Part.PROPERTIES -> Insistence.entries.sumOf { candidate.everythingOn(it).size }
@@ -845,8 +844,6 @@ class Editor(
             is Handle.Heading, Handle.Said -> Unit
             Handle.Name -> renameTo()
             Handle.Display -> retitle()
-            is Handle.NamedTier -> takeATier(handle.named)
-            is Handle.Cost -> retypeACost(handle.field)
             Handle.BaseDimension -> pickABaseDimension()
             Handle.Rarity -> relist()
             Handle.InkQuality -> reink()
@@ -887,62 +884,6 @@ class Editor(
             Step.KEEP -> aspect?.let { retypeRestriction(it, claim.named) }
             Step.BIAS -> retypeLean(aspect, claim.named)
         }
-    }
-
-    /** One of the three names, which fills all five numbers in, or `custom`, which opens them. */
-    private fun takeATier(named: String) {
-        parts.openTheCost(named == Tier.CUSTOM)
-        Tier.NAMED[named]?.let { tier -> edit { it.copy(tier = tier) } }
-    }
-
-    /**
-     * One of a tier's numbers, typed — or a switch, turned rather than asked about, since a question with
-     * two answers, one of which is already on screen, is a keystroke spent on nothing.
-     */
-    private fun retypeACost(field: CostField) {
-        // The numbers are there to be read under a named tier, and only a word saying its own may move them.
-        if (!parts.statingItsOwnCost(candidate)) return
-        when (field) {
-            CostField.BASE_INK_COST -> retypeCost(
-                field.label,
-                "${candidate.tier.cost}",
-                "fine inks, before its reach is counted",
-            ) { tier, said -> said.toIntOrNull()?.takeIf { it >= 0 }?.let { tier.copy(cost = it) } }
-            CostField.VERSATILITY_MULTIPLIER -> retypeCost(
-                field.label,
-                "%.2f".format(candidate.tier.versatilityMultiplier),
-                "one charges every further aspect in full; zero prices the page flat",
-            ) { tier, said ->
-                said.toDoubleOrNull()?.takeIf { it >= 0.0 }?.let { tier.copy(versatilityMultiplier = it) }
-            }
-            CostField.TAG_MATCH_THRESHOLD -> retypeCost(
-                field.label,
-                "%.2f".format(candidate.tier.threshold),
-                "how well a tag must align to be considered matching — 0 keeps everything, 1 only a perfect carrier",
-            ) { tier, said -> said.toDoubleOrNull()?.takeIf { it in 0.0..1.0 }?.let { tier.copy(threshold = it) } }
-            CostField.INSTABILITY_COST -> retypeCost(
-                field.label,
-                "${candidate.tier.weight}",
-                "points penalised when this word is used in a contradiction",
-            ) { tier, said -> said.toIntOrNull()?.takeIf { it >= 0 }?.let { tier.copy(weight = it) } }
-            CostField.RESTRICTS -> edit { it.copy(tier = it.tier.copy(narrows = !it.tier.narrows)) }
-        }
-    }
-
-    /** One of a tier's numbers, typed. [reading] returns null for anything the field cannot take. */
-    private fun retypeCost(
-        field: String,
-        standing: String,
-        hint: String,
-        reading: (Tier, String) -> Tier?,
-    ) {
-        overlay = Prompt(
-            title = "What is this word's $field?",
-            hint = hint,
-            typed = standing,
-            complaint = { said -> if (reading(candidate.tier, said) == null) "not a $field this can take" else null },
-            onDone = { said -> edit { at -> reading(at.tier, said)?.let { at.copy(tier = it) } ?: at } },
-        )
     }
 
     /**
@@ -1181,8 +1122,7 @@ class Editor(
             Handle.Mints -> edit { it.copy(mints = null, unstated = null) }
             Handle.Unstated -> edit { it.copy(unstated = null) }
             is Handle.Claim -> removeAClaim(handle)
-            is Handle.Heading, Handle.Said, Handle.Name, Handle.Display, is Handle.NamedTier, is Handle.Cost,
-            Handle.BaseDimension, Handle.Rarity, Handle.InkQuality, is Handle.AddEffect, is Handle.AddPool,
+            is Handle.Heading, Handle.Said, Handle.Name, Handle.Display, Handle.BaseDimension, Handle.Rarity, Handle.InkQuality, is Handle.AddEffect, is Handle.AddPool,
             is Handle.AddToPool, is Handle.AddGroup, is Handle.AddToGroup, Handle.AddMints, Handle.Flows,
             Handle.AddUnstated, is Handle.AddClaim, Handle.Comment, is Handle.Save, Handle.Delete -> Unit
         }
@@ -1421,11 +1361,11 @@ class Editor(
      * from, so what is left to ask is where the claim lands and what it lands on.
      */
     private fun pickAPopulation(step: Step) {
-        val whole = if (step != Step.BIAS || candidate.tier.narrows) emptyList() else listOf(
+        val whole = if (step != Step.BIAS) emptyList() else listOf(
             Picker.Option(
                 Word.EVERYWHERE,
                 "the whole Age",
-                "an evocative word leans everything and rules nothing out",
+                "leaning on everything makes the word a mood, felt wherever it is laid",
             ),
         )
         val holding = Aspect.entries.filter { it.holds != Holds.NOTHING }
@@ -1633,12 +1573,8 @@ class Editor(
     /** One step of the value under the cursor, where the row carries one. */
     private fun step(by: Double) {
         when (val handle = rows().getOrNull(row())?.handle ?: return) {
-            // The cost section's numbers step too, which is what the two switches beside them already do
-            // with enter — a threshold in tenths, ink and a failure weight one at a time.
-            is Handle.Cost -> stepACost(handle.field, by)
             is Handle.Claim -> stepAClaim(handle, by)
-            is Handle.Heading, Handle.Said, Handle.Name, Handle.Display, is Handle.NamedTier,
-            Handle.BaseDimension, Handle.Rarity, Handle.InkQuality, is Handle.AddEffect, is Handle.AddPool,
+            is Handle.Heading, Handle.Said, Handle.Name, Handle.Display, Handle.BaseDimension, Handle.Rarity, Handle.InkQuality, is Handle.AddEffect, is Handle.AddPool,
             is Handle.Facet, is Handle.DrawCount, is Handle.AddToPool, is Handle.AddGroup, is Handle.Group,
             is Handle.AddToGroup, Handle.AddMints, Handle.Mints, Handle.Flows, Handle.AddUnstated,
             Handle.Unstated, is Handle.AddClaim, Handle.Comment, is Handle.Save, Handle.Delete -> Unit
@@ -1664,25 +1600,6 @@ class Editor(
                 }
             }
             Step.CHOOSE, Step.ADD, Step.REMOVE -> Unit
-        }
-    }
-
-    /** One of a tier's numbers nudged: a threshold in tenths, ink and a failure weight one at a time. */
-    private fun stepACost(field: CostField, by: Double) {
-        if (!parts.statingItsOwnCost(candidate)) return
-        val whole = if (by > 0) 1 else -1
-        edit { at ->
-            val tier = when (field) {
-                CostField.BASE_INK_COST -> at.tier.copy(cost = (at.tier.cost + whole).coerceAtLeast(0))
-                CostField.INSTABILITY_COST -> at.tier.copy(weight = (at.tier.weight + whole).coerceAtLeast(0))
-                CostField.TAG_MATCH_THRESHOLD ->
-                    at.tier.copy(threshold = (at.tier.threshold + by).coerceIn(0.0, 1.0))
-                CostField.VERSATILITY_MULTIPLIER -> at.tier.copy(
-                    versatilityMultiplier = (at.tier.versatilityMultiplier + by).coerceAtLeast(0.0),
-                )
-                CostField.RESTRICTS -> at.tier
-            }
-            at.copy(tier = tier)
         }
     }
 

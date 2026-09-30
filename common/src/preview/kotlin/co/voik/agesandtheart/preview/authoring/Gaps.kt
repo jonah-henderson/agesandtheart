@@ -4,7 +4,6 @@ import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Parameter
-import co.voik.agesandtheart.age.word.Tier
 
 /**
  * What the Art cannot yet say — **the parts of the world no word reaches.**
@@ -134,18 +133,15 @@ object Gaps {
         // the only thing that gives it any reach at all now that a word cannot declare one.
         Kind.TAG -> Candidate(
             name = gap.what,
-            tier = Tier.RESTRICTIVE,
             restricts = gap.where.associateWith { mapOf(gap.what to GAP_BAR) },
         )
         // A parameter names the aspects that own it, so setting one is all the reach the word needs.
         Kind.PARAMETER -> Candidate(
             name = gap.what,
-            tier = Tier.EXACT,
             sets = mapOf(gap.what to suggestedValue(gap, corpus)),
         )
         Kind.VALUE -> Candidate(
             name = gap.what,
-            tier = Tier.EXACT,
             sets = mapOf(gap.parameter to gap.what),
         )
     }

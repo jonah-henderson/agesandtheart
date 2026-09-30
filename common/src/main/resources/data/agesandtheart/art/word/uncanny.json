@@ -1,5 +1,4 @@
 {
-  "tier": "restrictive",
   "restricts": {
     "landmass": {
       "fungal": ">0.43",

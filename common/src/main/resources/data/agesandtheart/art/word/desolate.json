@@ -4,7 +4,6 @@
     "sky, ash on the wind, haze, and bare sandy ground are offered to every desolate Age, each yielding to",
     "anything the book says."
   ],
-  "tier": "evocative",
   "biases": {
     "all": {
       "#barren": 1.0,
@@ -14,7 +13,7 @@
       "#lush": -0.8
     }
   },
-  "sets": {
+  "bends": {
     "thickness": "-1.0..-0.4"
   },
   "requests": {

@@ -17,9 +17,8 @@ import net.minecraft.resources.Identifier
  */
 class WordPoolCheck : FunSpec({
 
-    fun wordAt(tier: Tier, sets: Map<String, String>, pool: Map<String, String>, draws: String) = Word(
+    fun wordAt(sets: Map<String, String>, pool: Map<String, String>, draws: String) = Word(
         id = Identifier.fromNamespaceAndPath("agesandtheart", "scorching"),
-        tier = tier,
         aspects = setOf(Aspect.AIR),
         leansEverywhere = mapOf("#dry" to 1.0),
         sets = sets,
@@ -27,7 +26,6 @@ class WordPoolCheck : FunSpec({
     )
 
     val broad = wordAt(
-        Tier.RESTRICTIVE,
         sets = mapOf("sunburn" to "always"),
         pool = mapOf("evaporation" to "true", "motes" to "embers", "haze" to "0.15..0.45", "murk" to "0.1..0.4"),
         draws = "2",
@@ -57,7 +55,6 @@ class WordPoolCheck : FunSpec({
      */
     test("a ranged count varies and a weighted one leans") {
         val ranged = wordAt(
-            Tier.RESTRICTIVE,
             sets = emptyMap(),
             pool = mapOf("a" to "1", "b" to "2", "c" to "3"),
             draws = "1..3",
@@ -130,7 +127,6 @@ class WordPoolCheck : FunSpec({
         // whether the facet appears and the roll that decides which value it takes are drawn from related
         // seeds. Tested apart, each looked fine; together they handed fourteen consecutive Ages one answer.
         val offering = wordAt(
-            Tier.RESTRICTIVE,
             sets = mapOf("sunburn" to "always", "temperature" to "0.55..1.0"),
             pool = mapOf(
                 "evaporation" to "true",
@@ -149,7 +145,7 @@ class WordPoolCheck : FunSpec({
 
     /** A word with no pool is exactly the word it was before any of this existed. */
     test("a word with no pool is untouched") {
-        val plain = wordAt(Tier.EXACT, sets = mapOf("temperature" to "0.4..0.9"), pool = emptyMap(), draws = "0")
+        val plain = wordAt(sets = mapOf("temperature" to "0.4..0.9"), pool = emptyMap(), draws = "0")
         for (draw in DRAWS) {
             check(plain.setsDrawnAt(draw) == plain.sets) { "a pool-less word moved at draw $draw" }
         }

@@ -10,7 +10,6 @@
     "No query: this is a fact about the bow and there is no preset it could prefer, which is why it sets",
     "and never narrows. The shape is `brilliant`'s exactly."
   ],
-  "tier": "exact",
   "sets": {
     "rain": "-1.0..-1.0"
   }

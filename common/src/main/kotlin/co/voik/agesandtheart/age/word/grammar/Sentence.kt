@@ -26,10 +26,8 @@ data class Constraint(
      * The parts of the world this claim reaches — where the clause aimed, or the word's own where nobody
      * aimed it (`the-world-model.md` §3, §5).
      *
-     * **Read only for a word that narrows.** An evocative word is written on the Age and reaches wherever
-     * it finds purchase, so this is empty for one and nothing consults it. That asymmetry used to be a
-     * sealed `Scope` with two cases; the tier already decides which case applies, so the type said it
-     * twice.
+     * **Empty for a mood laid bare**, which reaches wherever it finds purchase instead
+     * (`Resolver.purchaseFor`).
      */
     val aimedAt: Set<Aspect> = emptySet(),
     val polarity: Polarity = Polarity.ASSERTED,
@@ -101,10 +99,9 @@ data class Phrase(
     /**
      * Everything said about the subject, **in the order it was written and ahead of it** (§4.3.1).
      *
-     * One list rather than the old evocative-then-subject-then-rest. An evocative word had a position of
-     * its own because leaning on something unnamed was only possible in front of it; everything leads now,
-     * so [co.voik.agesandtheart.age.word.Tier] alone decides whether a word tilts or narrows — and keeping
-     * one list is what stops a reading reordering the pages a writer laid.
+     * One list rather than the old mood-then-subject-then-rest. A mood had a position of its own because
+     * leaning on something unnamed was only possible in front of it; everything leads now, and keeping one
+     * list is what stops a reading reordering the pages a writer laid.
      */
     val modifiers: List<Constraint> = emptyList(),
     /** Null where the writer named no subject — a run that only steers, like `blackstone` standing alone. */

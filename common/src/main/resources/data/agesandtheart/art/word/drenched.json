@@ -1,5 +1,4 @@
 {
-  "tier": "restrictive",
   "restricts": {
     "features": {
       "watery": ">0.3"

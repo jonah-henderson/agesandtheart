@@ -16,7 +16,6 @@
     "The query is flat rather than keyed because `monumental` means the same thing everywhere it is",
     "carried; a sun carries no tags at all, so asking it costs nothing and finds nothing."
   ],
-  "tier": "exact",
   "restricts": {
     "landmass": {
       "monumental": ">0.7"

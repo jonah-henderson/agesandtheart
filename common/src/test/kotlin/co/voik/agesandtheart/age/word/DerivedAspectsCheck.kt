@@ -194,21 +194,21 @@ class DerivedAspectsCheck : FunSpec({
         // anywhere: it replaces the world the book starts from, which is a different job from removing
         // answers within one, so having no aspect is what it *is* rather than a declaration left off.
         val unaimed = vocabulary.authoredWords
-            .filter { it.tier.narrows && it.aspects.isEmpty() && it.template == null }
+            .filter { it.narrows && it.aspects.isEmpty() && it.template == null }
         check(unaimed.isEmpty()) {
-            "these narrow candidates in every aspect at once: ${unaimed.map { "${it.name} (${it.tier})" }}"
+            "these narrow candidates in every aspect at once: ${unaimed.map { "${it.name} (${it.firmness.key})" }}"
         }
     }
 
     /**
-     * **An evocative word still means anywhere**, and the tier is what says so.
+     * **A mood laid bare still means anywhere**, and leaning everywhere is what says so.
      *
      * `beautiful` nudges the climate and asks tags of everything, and shutting it into the climate would
      * stop it being beautiful anywhere else. That used to be held by the derivation refusing to widen a
-     * word that declared nothing; with the declaration gone it is held where it always belonged — a
-     * constraint carries no aim at all unless its word narrows, so nothing consults the reach.
+     * word that declared nothing; with the declaration gone it is held where it always belonged — a mood
+     * laid bare carries no aim at all, so nothing consults the reach.
      */
-    test("an evocative word carries no aim, whatever it reaches") {
+    test("a mood laid bare carries no aim, whatever it reaches") {
         val warm = Word.reaching(mapOf("temperature" to "0.5..1.0"), setOf(Aspect.TERRAIN), setOf(Aspect.BIOMES))
         check(warm.isNotEmpty()) { "the derivation found nothing to check against" }
 
@@ -217,12 +217,12 @@ class DerivedAspectsCheck : FunSpec({
         val laid = read.phrases.flatMap { it.modifiers }.filter { it.word.name == "beautiful" }
         check(laid.isNotEmpty()) { "'beautiful' was not laid at all" }
         check(laid.all { it.aimedAt.isEmpty() }) {
-            "an evocative word was aimed at ${laid.map { it.aimedAt }}"
+            "a mood laid bare was aimed at ${laid.map { it.aimedAt }}"
         }
 
         // And the words the rule exists for are still the shape it was written about.
         val tilting = vocabulary.authoredWords
-            .filter { !it.tier.narrows && it.leansEverywhere.isNotEmpty() }
+            .filter { it.isAMood }
             .map { it.name }
         check(tilting.containsAll(listOf("beautiful", "desolate", "rich"))) {
             "the words this rule exists for are gone, so the rule wants re-arguing: $tilting"

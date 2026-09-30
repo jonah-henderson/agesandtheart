@@ -1,7 +1,6 @@
 {
   "_comment": "A nudge, not a claim. Leans an Age warm and wet without demanding any band of either, so it composes with whatever else was said about them.",
-  "tier": "evocative",
-  "sets": {
+  "bends": {
     "temperature": "+0.25",
     "humidity": "+0.3"
   }

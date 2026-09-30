@@ -5,7 +5,6 @@
     "and the rock is offered dark. All offers, since the word only suggests: anything the book says about",
     "the sky or the rock wins."
   ],
-  "tier": "evocative",
   "biases": {
     "all": {
       "#dark": 1.0,

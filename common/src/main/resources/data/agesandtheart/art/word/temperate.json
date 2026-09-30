@@ -4,7 +4,6 @@
     "core; what it offers is the weather of an ordinary spring -- showers, white cloud, a blue sky, the odd",
     "rainbow -- and a lean towards green country and away from the extremes."
   ],
-  "tier": "restrictive",
   "biases": {
     "biomes": {
       "#lush": 0.4,

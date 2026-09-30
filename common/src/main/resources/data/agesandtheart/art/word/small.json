@@ -5,7 +5,6 @@
     "",
     "No query, as `large` has none: the axis is what this word means, so the axis is all it sets."
   ],
-  "tier": "exact",
   "sets": {
     "size": "-0.5..-0.5"
   }

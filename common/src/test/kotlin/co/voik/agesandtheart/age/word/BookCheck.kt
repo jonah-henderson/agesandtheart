@@ -137,7 +137,7 @@ class BookCheck : FunSpec({
      * notice when a new dial quietly separates two words that should still disagree.
      */
     test("contradicting yourself costs instability, never a parse error") {
-        fun wordAsking(tag: String) = vocabulary.words.firstOrNull { it.tier.narrows && tag in it.wanted }
+        fun wordAsking(tag: String) = vocabulary.words.firstOrNull { it.narrows && tag in it.wanted }
         val writable = vocabulary.antonyms.mapNotNull { antonym ->
             val first = wordAsking(antonym.first) ?: return@mapNotNull null
             val second = wordAsking(antonym.second) ?: return@mapNotNull null

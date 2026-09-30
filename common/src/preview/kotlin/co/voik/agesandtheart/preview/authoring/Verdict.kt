@@ -292,7 +292,7 @@ object Verdict {
         // **A narrowing word has to reach somewhere**, and now that the reach is derived that means it
         // has to claim something: a parameter, a named preset, a keyed query, a pattern to mint. A word that
         // claims nothing is not a word that narrows everything, it is a word that does nothing at all.
-        if (word.tier.narrows && word.template == null && word.aspects.isEmpty()) {
+        if (word.narrows && word.template == null && word.aspects.isEmpty()) {
             // **Say which claim failed to place it.** "Reaches nowhere" is the consequence; a parameter no
             // aspect owns is the cause, and the more specific complaints below never run because they
             // work aspect by aspect and there are none.
@@ -303,7 +303,7 @@ object Verdict {
                 Finding(
                     Standing.ERROR,
                     if (homeless.isEmpty()) {
-                        "a ${word.tier.key} word that reaches nowhere"
+                        "a word that narrows and reaches nowhere"
                     } else {
                         "no aspect owns ${homeless.sorted().joinToString(" ")}, so the word reaches nowhere"
                     },
@@ -313,7 +313,7 @@ object Verdict {
             )
             return@buildList
         }
-        if (Resolver.pricedIn(corpus.vocabulary, word).isEmpty() && word.template == null) {
+        if (Resolver.purchaseFor(corpus.vocabulary, word).isEmpty() && word.template == null) {
             add(
                 Finding(
                     Standing.ERROR,
@@ -348,21 +348,15 @@ object Verdict {
     }
 
     /**
-     * What only a narrowing word may mean, and what only one page may mean.
+     * What a lean cannot do, and what only one page may mean.
      *
-     * **An evocative word's meaning is never read.** `Resolver.fill` asks `carriersOf` of narrowing words
-     * alone, so the preset is not chosen — and the tag pass then *excludes* a word that means a member,
-     * on the grounds that it arrived with its answer in hand, so the tilt the word was written for goes
-     * with it. Two claims lost for one that was never going to land.
-     *
-     * **And a preset has one page.** Every landform mints its own now, so a word meaning one is a synonym
+     * **A preset has one page.** Every landform mints its own now, so a word meaning one is a synonym
      * for a page that already exists — which `duplicates` cannot see, since it skips derived words
      * deliberately.
      */
     private fun meaningFaults(candidate: Candidate, word: Word, corpus: Corpus): List<Finding> = buildList {
-        addAll(nudgeOnlyFaults(word, corpus))
+        addAll(leanFaults(word, corpus))
         for ((aspect, key) in word.chooses) {
-            if (!word.tier.narrows) continue
             val already = corpus.vocabulary.words.distinct()
                 .firstOrNull { it.choiceIn(aspect)?.key == key && it.name != candidate.name }
                 ?: continue
@@ -377,15 +371,14 @@ object Verdict {
         }
     }
 
-    /** A word that does not narrow may only suggest — `VocabularyCheck`'s "a word that does not narrow only nudges". */
-    private fun nudgeOnlyFaults(word: Word, corpus: Corpus): List<Finding> = buildList {
-        if (word.tier.narrows) return@buildList
-        for (field in word.decidesOutright) {
+    /** What a lean cannot do — `VocabularyCheck`'s "a bend has a range" and "a mood stays behind the fence". */
+    private fun leanFaults(word: Word, corpus: Corpus): List<Finding> = buildList {
+        for (parameter in word.bendsNothingRanged) {
             add(
                 Finding(
                     Standing.ERROR,
-                    "an evocative word cannot decide `$field`",
-                    "it only suggests: bias with `biases`, bend a range, and offer anything else in `requests`",
+                    "`$parameter` has no range to bend",
+                    "bend only a ranged parameter; settle the rest in `sets`, or offer it in `requests`",
                     "VocabularyCheck",
                 ),
             )
@@ -394,8 +387,8 @@ object Verdict {
             add(
                 Finding(
                     Standing.ERROR,
-                    "an evocative word cannot admit '$member'",
-                    "broad words are kept from it; only a narrowing word reaches it by name",
+                    "a mood cannot admit '$member'",
+                    "broad words are kept from it; only a word about one part reaches it by name",
                     "VocabularyCheck",
                 ),
             )
@@ -427,7 +420,7 @@ object Verdict {
             Finding(
                 Standing.ERROR,
                 "nothing in ${aspect.page} is tagged strongly enough",
-                "${word.tier.key} needs ${word.wanted.joinToString(" ")} at ${word.tier.threshold} or better",
+                "nothing there carries ${word.wanted.joinToString(" ")} up to its bar",
                 "VocabularyCheck",
             ),
         )
@@ -497,8 +490,9 @@ object Verdict {
                 // **The reach is part of what a word is**, and leaving it out said `fish` duplicated
                 // `reefs`: both are restrictive and want `aquatic`, and one chooses creatures where the
                 // other chooses features.
-                other.tier == word.tier && other.aspects == word.aspects &&
-                    other.everySet == word.everySet && other.leansEverywhere == word.leansEverywhere &&
+                other.firmness == word.firmness && other.aspects == word.aspects &&
+                    other.everySet == word.everySet && other.bends == word.bends &&
+                    other.leansEverywhere == word.leansEverywhere &&
                     other.biases == word.biases && other.restricts == word.restricts &&
                     other.chooses == word.chooses && other.admits == word.admits &&
                     other.excludes == word.excludes && other.template == word.template &&

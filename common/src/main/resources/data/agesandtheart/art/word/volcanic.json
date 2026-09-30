@@ -32,15 +32,13 @@
     "Age could not get it this way either, because leaning can only amplify. See the implementation plan,",
     "\"Wanted -- a route for nether content into an ordinary Age\".",
     "",
-    "**It touches one aspect**, which is the rule `sandfall.json` records and `electromagnetic.json` follows:",
-    "a narrowing word is priced in its lowest-ordinal aspect, so a climate nudge here would quietly reprice",
-    "it as a word about the weather. A writer who wants the heat as well writes `scorching` beside it, and",
-    "words composing is how the Art says a compound thing.",
+    "**It touches one aspect**, which is the rule `sandfall.json` records and `electromagnetic.json` follows.",
+    "A writer who wants the heat as well writes `scorching` beside it, and words composing is how the Art",
+    "says a compound thing.",
     "",
-    "It narrows nothing despite its tier: with no `restricts`, no `excludes` and no `chooses` on features,",
+    "It narrows nothing, so it costs the floor: with no `restricts`, no `excludes` and no `chooses` on features,",
     "`constrainsPresetsIn` is false there, so this adds and lifts without striking a single tree."
   ],
-  "tier": "restrictive",
   "admits": {
     "features": [
       "agesandtheart:volcano",

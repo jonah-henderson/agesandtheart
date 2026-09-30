@@ -1,5 +1,4 @@
 {
-  "tier": "evocative",
   "biases": {
     "all": {
       "#eroded": 1.0,
@@ -8,7 +7,7 @@
       "#ordered": -0.6
     }
   },
-  "sets": {
+  "bends": {
     "wear": "0.45..1.0",
     "spacing": "-1.0..-0.3"
   }

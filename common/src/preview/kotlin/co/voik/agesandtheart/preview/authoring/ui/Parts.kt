@@ -10,7 +10,7 @@ import co.voik.agesandtheart.age.word.Bars
 import co.voik.agesandtheart.age.word.Claims
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Facets
-import co.voik.agesandtheart.age.word.Tier
+import co.voik.agesandtheart.age.word.Firmness
 import com.github.ajalt.mordant.rendering.TextStyle
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
@@ -32,8 +32,8 @@ import co.voik.agesandtheart.preview.authoring.Verdict
 import co.voik.agesandtheart.preview.authoring.WordFile
 
 /**
- * The sections of the word screen, in the order the decisions fall: what it is called, how specific it
- * is, what it affects, what it does, then the tags, the comment and the rarity.
+ * The sections of the word screen, in the order the decisions fall: what it is called, what it costs,
+ * what it affects, what it does, then the tags, the comment and the rarity.
  *
  * Each is a list of rows. What a row means differs per section, so they are built here and the editor
  * only moves a cursor over them.
@@ -47,14 +47,10 @@ enum class Part(
 ) {
     NAME("word", ""),
     /**
-     * **What a word costs, and how precisely it speaks** — five numbers, of which the three the Art names
-     * are a filling-in rather than a category.
-     *
-     * It was `specificity` and offered the three alone, which made a name a claim nothing could hold an
-     * author to: a word called `evocative` that chooses four members outright is precise, and was priced
-     * as though it were vague. The name is derived from the numbers now, so it can only ever be true.
+     * **What a word costs, and how firmly it claims** — read off what it claims, and so read-only: the
+     * sections below are how it changes.
      */
-    TIER("cost", ""),
+    COST("cost", ""),
     TEMPLATE("base dimension", ""),
     LISTING("rarity", ""),
 
@@ -110,15 +106,6 @@ enum class Step(val title: String, val about: String, val adds: String) {
     BIAS("bias", "leans the draw between whatever is left; it never removes anything", "lean toward or away"),
 }
 
-/** The five numbers a tier is, as the cost section labels them. */
-enum class CostField(val label: String) {
-    BASE_INK_COST("base ink cost"),
-    RESTRICTS("restricts"),
-    TAG_MATCH_THRESHOLD("tag match threshold"),
-    INSTABILITY_COST("instability cost"),
-    VERSATILITY_MULTIPLIER("versatility multiplier"),
-}
-
 /**
  * One line of a section: what it says, and the handle the editor acts on.
  *
@@ -148,12 +135,6 @@ sealed interface Handle {
     data object Name : Handle
 
     data object Display : Handle
-
-    /** One of the tiers the Art names, or `custom`, which opens the numbers. */
-    data class NamedTier(val named: String) : Handle
-
-    /** One of a tier's numbers — passed over like a heading unless the word states its own ([open]). */
-    data class Cost(val field: CostField, val open: Boolean) : Handle
 
     data object BaseDimension : Handle
 
@@ -227,24 +208,9 @@ class Parts(private val corpus: Corpus) {
      */
     var helpAspect: Int = 0
 
-    /**
-     * Whether the cost section's numbers have been opened to editing.
-     *
-     * **A state of the screen, not of the word.** A tier *is* its five numbers, so one still matching
-     * `restrictive` is restrictive whatever was picked, and writing `custom` beside restrictive's own
-     * numbers into a file would be a label the file could not honour. Taking a named tier closes it again.
-     */
-    private var costWasOpened = false
-
-    /** Whether this word says its cost in numbers rather than by name. */
-    fun statingItsOwnCost(candidate: Candidate) = costWasOpened || candidate.tier.key == Tier.CUSTOM
-
-    /** What the `custom` row does, and what taking one of the three undoes. */
-    fun openTheCost(open: Boolean) { costWasOpened = open }
-
     fun rowsOf(part: Part, candidate: Candidate, word: Word?, width: Int): List<Row> = when (part) {
         Part.NAME -> nameRows(candidate)
-        Part.TIER -> tierRows(candidate, width)
+        Part.COST -> costRows(word, width)
         Part.TEMPLATE -> templateRows(candidate)
         Part.PROPERTIES -> effectRows(candidate, word)
         Part.POPULATIONS -> pickRows(candidate, word)
@@ -271,10 +237,6 @@ class Parts(private val corpus: Corpus) {
     fun keysFor(row: Row?): List<Pair<String, String>> = when (val handle = row?.handle) {
         null, is Handle.Heading, Handle.Said -> emptyList()
         Handle.Name, Handle.Display -> listOf("enter" to "rename it")
-        is Handle.NamedTier -> listOf("enter" to "take these numbers")
-        is Handle.Cost ->
-            if (handle.open) listOf("enter" to "type it", "- =" to "step it")
-            else listOf("" to "take `custom` above to change these")
         Handle.BaseDimension, Handle.Rarity, Handle.InkQuality -> listOf("enter" to "choose one")
         is Handle.AddEffect, is Handle.AddPool, is Handle.AddToPool, is Handle.AddGroup, is Handle.AddToGroup,
         Handle.AddMints, Handle.AddUnstated, is Handle.AddClaim -> listOf("enter" to "do it")
@@ -296,15 +258,12 @@ class Parts(private val corpus: Corpus) {
     }
 
     /** Whether the cursor may rest on this row at all — a heading names what is under it and does nothing. */
-    fun isAHeading(row: Row): Boolean {
-        val isACostNotOpen = row.handle is Handle.Cost && !row.handle.open
-        return row.handle is Handle.Heading || isACostNotOpen
-    }
+    fun isAHeading(row: Row): Boolean = row.handle is Handle.Heading
 
     /** A line of air between two groups. A heading, so the cursor passes over it rather than into it. */
     private fun spacer() = Row(Handle.Heading(), emptyList())
 
-    // -- word and specificity ------------------------------------------------------------------------
+    // -- word and cost ------------------------------------------------------------------------
 
     private fun nameRows(candidate: Candidate): List<Row> {
         val id = candidate.listingKey
@@ -329,123 +288,39 @@ class Parts(private val corpus: Corpus) {
     }
 
     /**
-     * **The three the Art names, then a fourth that is the numbers themselves, then the numbers.**
-     *
-     * A name is a filling-in rather than a category: taking one sets all five at once, and the row that is
-     * filled in is whichever the numbers match. `custom` is what opens them to editing, and a word already
-     * stating its own arrives with them open — the numbers are shown either way, because what `exact`
-     * actually means is worth being able to read without having to change anything to see it.
+     * **What the word costs and how firmly it claims, worked through** — live, and in the arithmetic's own
+     * signs, so the effect of adding a claim below is read here without computing it.
      */
-    private fun tierRows(candidate: Candidate, width: Int): List<Row> = buildList {
-        val own = statingItsOwnCost(candidate)
-        val named = Tier.NAMED.map { (named, tier) ->
-            Celled(
-                Handle.NamedTier(named),
-                listOf(
-                    Ink(named, if (!own && candidate.tier == tier) Palette.value else Palette.faint),
-                    Ink("ink ${tier.cost}", Palette.faint),
-                    Ink(whatATierMeans(named), Palette.faint),
-                ),
-                mark = !own && candidate.tier == tier,
-            )
-        } + Celled(
-            Handle.NamedTier(Tier.CUSTOM),
-            listOf(
-                Ink(Tier.CUSTOM, if (own) Palette.value else Palette.faint),
-                Ink("", Palette.faint),
-                Ink("", Palette.faint),
-            ),
-            mark = own,
+    private fun costRows(word: Word?, width: Int): List<Row> {
+        if (word == null) return listOf(Row(Handle.Said, listOf(Ink("this word will not load", Palette.refused))))
+        fun row(label: String, said: String, about: String) = Celled(
+            handle = Handle.Said,
+            cells = listOf(Ink(label, Palette.parameter), Ink(said, Palette.value), Ink(about, Palette.faint)),
         )
-        addAll(laidInColumns(named, TIER_CHOICES, width, marked = true))
-        add(spacer())
-        addAll(costRows(candidate, own, width))
-    }
-
-    private fun whatATierMeans(named: String) = when (named) {
-        "evocative" -> "steers and biases but imposes no hard constraints"
-        "restrictive" -> "narrows available options to a specific set, like hot temperatures"
-        "exact" -> "sets a parameter precisely"
-        else -> ""
-    }
-
-    /**
-     * The five numbers a tier is — **shown always, reachable only where the word states its own.**
-     *
-     * Grey and unfocusable under a named tier, which is the whole of how a reader tells the two apart: the
-     * numbers are there to be read, and reading `exact`'s threshold is what tells you what `exact` means.
-     */
-    private fun costRows(candidate: Candidate, own: Boolean, width: Int): List<Row> {
-        val tier = candidate.tier
-        // **No note under the pane**: the third column already says what each number does, and a footer
-        // repeating it in other words is the same sentence twice with the cursor between them.
-        //
-        // **Under a named tier the cursor passes over them**, a cost that is not open being read as a
-        // heading. They are there to be read — reading `exact`'s threshold is what tells you what `exact`
-        // means — and a row that stops the cursor without taking an edit reads as one that broke.
-        fun row(field: CostField, said: String, about: String) = Celled(
-            handle = Handle.Cost(field, open = own),
-            cells = listOf(
-                Ink(field.label, if (own) Palette.parameter else Palette.faint),
-                Ink(said, if (own) Palette.value else Palette.faint),
-                Ink(about, Palette.faint),
-            ),
-        )
-        // **`restricts` on screen, `narrows` in the code**, since `Word.restricts` is already the tag query
-        // and one word for two things is worse in the file than a second word for one thing is on a list.
-        val restricting = if (tier.narrows) {
-            "parameter values and population members that conflict will not be selected"
-        } else {
-            "parameter values and population members that conflict will be unlikely, but still selectable"
-        }
-        // **The multiplier last, and the sum under it.** The worked example is the longest thing on this
-        // page and it belongs to the row above it, which reads as a crowd when there are three more rows
-        // beneath. `base ink cost` says what it is, so it is left to.
         val rows = listOf(
-            row(CostField.BASE_INK_COST, "${tier.cost}", ""),
-            row(CostField.RESTRICTS, yesOrNo(tier.narrows), restricting),
+            row("claims", word.firmness.key, whatAFirmnessMeans(word.firmness)),
+            row("ink", "${word.price}", inkSpelledOut(word)),
             row(
-                CostField.TAG_MATCH_THRESHOLD,
-                "%.2f".format(tier.threshold),
-                "how well a tag must align to be considered matching",
-            ),
-            row(
-                CostField.INSTABILITY_COST,
-                "${tier.weight}",
-                "how many instability points are penalised when this word is used in a contradiction",
-            ),
-            row(
-                CostField.VERSATILITY_MULTIPLIER,
-                "%.2f".format(tier.versatilityMultiplier),
-                "scales the versatility cost by this amount",
+                "instability",
+                "× ${word.firmness.weight}",
+                "what a contradiction this word is part of is charged, over the register's own cost",
             ),
         )
-        val laid = laidInColumns(rows, TIER_NUMBERS, width).toMutableList()
-        // Anchored on the row rather than on its position, so moving one does not silently move the sum.
-        val multiplier = laid.indexOfFirst { (it.handle as? Handle.Cost)?.field == CostField.VERSATILITY_MULTIPLIER }
-        val sum = Row(Handle.Heading(), listOf(Ink("        ${inkSpelledOut(candidate)}", Palette.faint)))
-        laid.add(multiplier + 1, sum)
-        return laid
+        return laidInColumns(rows, COST_COLUMNS, width)
     }
 
-    /**
-     * The ink this word costs, worked through — **live, and in the arithmetic's own signs.**
-     *
-     * A multiplier is a number whose effect nobody should have to compute, least of all while choosing it.
-     * The floor is said only where it bites, since `× 0.00 = 2` reads as a mistake until something
-     * explains it.
-     */
-    private fun inkSpelledOut(candidate: Candidate): String {
-        val word = candidate.asWord().getOrNull() ?: return ""
-        val tier = word.tier
-        val reach = word.aspects.size.coerceAtLeast(1)
-        val floored = reach * tier.versatilityMultiplier < 1.0
-        val sum = "${tier.cost} base ink × $reach aspect(s) × %.2f versatility = ${word.price} ink"
-            .format(tier.versatilityMultiplier)
-        return if (floored) "$sum  ${Glyph.BULLET} never below the base cost" else sum
+    private fun whatAFirmnessMeans(firmness: Firmness) = when (firmness) {
+        Firmness.LEANS -> "leans, offers and bends; removes nothing, so it can never fail"
+        Firmness.BARS -> "narrows a pool by bars or by what it strikes out"
+        Firmness.DECIDES -> "chooses a member, settles a value, mints a pattern or picks the template"
     }
 
-    private fun yesOrNo(said: Boolean) = if (said) "yes" else "no"
+    private fun inkSpelledOut(word: Word): String =
+        if (word.narrowedParts == 0) {
+            "narrows nothing, so the least a page costs"
+        } else {
+            "${Word.INK_PER_NARROWED_PART} ink × ${word.narrowedParts} part(s) narrowed"
+        }
 
     /**
      * A parameter key as a row shows it — **the part of the world first**, where the key names one.
@@ -463,37 +338,23 @@ class Parts(private val corpus: Corpus) {
         val handle: Handle,
         val cells: List<Ink>,
         val note: String = "",
-        val mark: Boolean = false,
     )
 
     /**
      * [rows] laid in columns measured across them, rather than padded to a width somebody guessed.
      *
-     * The same arithmetic the review page uses ([Columns]); it is here because the cost section has two
-     * groups of rows whose columns have nothing to do with each other and each wants its own measurement.
+     * The same arithmetic the review page uses ([Columns]).
      */
-    private fun laidInColumns(
-        rows: List<Celled>,
-        columns: List<Columns.Column>,
-        width: Int,
-        marked: Boolean = false,
-    ): List<Row> {
-        val lead = if (marked) MARKER_ROOM else REVIEW_INDENT
+    private fun laidInColumns(rows: List<Celled>, columns: List<Columns.Column>, width: Int): List<Row> {
         val widths = Columns.widths(
             rows.map { row -> row.cells.map { it.text } },
             columns,
-            (width - lead).coerceAtLeast(MINIMUM_ROOM),
+            (width - REVIEW_INDENT).coerceAtLeast(MINIMUM_ROOM),
             gap = REVIEW_GAP,
         )
         val gap = Line(" ".repeat(REVIEW_GAP))
-        return rows.map { row ->
-            val marker = when {
-                !marked -> Ink(" ".repeat(REVIEW_INDENT))
-                row.mark -> Ink("${Glyph.FILLED} ", Palette.chosen)
-                else -> Ink("${Glyph.HOLLOW} ", Palette.chosen)
-            }
-            Row(row.handle, listOf(marker) + Columns.laid(row.cells, widths, gap).inks, row.note)
-        }
+        val indent = Ink(" ".repeat(REVIEW_INDENT))
+        return rows.map { row -> Row(row.handle, listOf(indent) + Columns.laid(row.cells, widths, gap).inks, row.note) }
     }
 
     // -- review --------------------------------------------------------------------------------------
@@ -615,13 +476,7 @@ class Parts(private val corpus: Corpus) {
     private fun said(line: String) = Told.Whole(Handle.Said, listOf(Ink("    "), Ink(line, Palette.faint)))
 
     private fun costTold(candidate: Candidate, word: Word, listing: WordFile.Listing) = buildList {
-        val reach = if (word.versatility > 1.0) {
-            "${word.tier.cost} × %.2f for reaching ${word.aspects.size} part(s) of the world"
-                .format(word.versatility)
-        } else {
-            "${word.tier.cost} flat, whatever it reaches"
-        }
-        add(told("ink", "${word.price}", "${word.tier.key} ${Glyph.BULLET} $reach"))
+        add(told("ink", "${word.price}", "${word.firmness.key} ${Glyph.BULLET} ${inkSpelledOut(word)}"))
         listing.rarity?.let { add(told("rarity", it, "how hard it is to find")) }
         WordFile.inkOf(candidate)?.let { add(told("ink quality", it, "what it takes to write")) }
         candidate.template?.let {
@@ -1424,15 +1279,8 @@ class Parts(private val corpus: Corpus) {
         const val REVIEW_INDENT = 4
         const val REVIEW_GAP = 2
 
-        /**
-         * The cost section's two groups of columns, each measured against its own rows: a name, its ink
-         * and what it means; then a field, its value and what it does.
-         */
-        val TIER_CHOICES = listOf(Columns.Column(), Columns.Column(), Columns.Column(grows = true))
-        val TIER_NUMBERS = listOf(Columns.Column(), Columns.Column(), Columns.Column(grows = true))
-
-        /** The `● ` a chosen row wears, which every row in that group is indented by. */
-        const val MARKER_ROOM = 2
+        /** The cost section's columns: what is counted, its value, and what it means. */
+        val COST_COLUMNS = listOf(Columns.Column(), Columns.Column(), Columns.Column(grows = true))
 
         /** The gap between a label and the value it labels, wherever the two share a row. */
         const val LABEL_GUTTER = 2

@@ -3,7 +3,6 @@
     "Somebody built here and is gone. `built` is the fact that a thing was made; this is the one that says",
     "nobody is keeping it up, which is why it sits beside `settled` rather than under it."
   ],
-  "tier": "restrictive",
   "restricts": {
     "structures": {
       "ruined": ">0.3"

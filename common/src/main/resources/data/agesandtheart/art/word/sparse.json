@@ -1,5 +1,4 @@
 {
-  "tier": "evocative",
   "biases": {
     "all": {
       "#barren": 0.8,
@@ -8,7 +7,7 @@
       "#lush": -0.5
     }
   },
-  "sets": {
+  "bends": {
     "spacing": "0.4..1.0"
   }
 }

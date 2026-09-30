@@ -3,7 +3,6 @@
     "A wall with a way through it, facing wherever it happens to face. The opening reaches the",
     "ground, so it is a thing you walk under rather than a porthole."
   ],
-  "tier": "exact",
   "mints": "agesandtheart:arches",
   "unstated": "#agesandtheart:formation_substance"
 }

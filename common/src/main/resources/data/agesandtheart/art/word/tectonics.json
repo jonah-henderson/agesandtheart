@@ -10,11 +10,8 @@
     "three seconds, so the counterplay is reading the floor -- which nothing else here asks of a player.",
     "",
     "**One aspect, and no climate or weather bound.** Rock does not care what the sky is doing, and a",
-    "narrowing word is priced in its lowest-ordinal aspect (`Resolver.pricedIn`) with phenomena last, so a",
-    "bound here would quietly reprice this as a word about the weather. `sandfall.json` records",
-    "that trap."
+    "bound here would make this a word about the weather as well. `sandfall.json` records the rule."
   ],
-  "tier": "exact",
   "chooses": {
     "phenomena": "tectonics"
   }

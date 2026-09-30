@@ -2,7 +2,7 @@ package co.voik.agesandtheart.preview.authoring.ui
 
 import co.voik.agesandtheart.age.word.CannotAppearInLoot
 import co.voik.agesandtheart.age.word.DerivedWords
-import co.voik.agesandtheart.age.word.Tier
+import co.voik.agesandtheart.age.word.Firmness
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.preview.authoring.Candidate
 import co.voik.agesandtheart.preview.authoring.Corpus
@@ -106,7 +106,8 @@ class Menu(
             title = "${WordFile.authoredNames().size} authored words",
             columns = listOf(
                 Table.Column("word", NAME_WIDTH),
-                Table.Column("specificity", TIER_WIDTH, TIER, Tier.NAMED.keys.toList()),
+                // Read-only: how firmly a word claims is read off what it claims.
+                Table.Column("claims", FIRMNESS_WIDTH, order = FIRMNESSES),
                 Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityChoices()),
                 Table.Column("ink", INK_WIDTH, INK, WordFile.inkTiers()),
                 Table.Column("parameters", HALF_A_SUMMARY),
@@ -150,7 +151,7 @@ class Menu(
             key = name,
             cells = listOf(
                 name,
-                word?.tier?.key.orEmpty(),
+                word?.firmness?.key.orEmpty(),
                 if (isKeptOutOfLoot) WordFile.NO_LOOT else listing?.rarity.orEmpty(),
                 listing?.ink.orEmpty(),
                 word?.let(::parametersIn).orEmpty(),
@@ -219,9 +220,7 @@ class Menu(
             columns = listOf(
                 Table.Column("word", NAME_WIDTH),
                 Table.Column("kind", KIND_WIDTH),
-                // Read-only here: an auto-generated word is exact because it names one thing exactly, and
-                // there is no file in which to say otherwise.
-                Table.Column("specificity", TIER_WIDTH, order = Tier.NAMED.keys.toList()),
+                Table.Column("claims", FIRMNESS_WIDTH, order = FIRMNESSES),
                 Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityChoices()),
                 Table.Column("ink", INK_WIDTH, INK, WordFile.inkTiers()),
                 Table.Column("in game", IN_GAME_WIDTH, IN_GAME, listOf(WordFile.NO_WORD)),
@@ -271,7 +270,7 @@ class Menu(
             cells = listOf(
                 word.name,
                 kindOf(word),
-                word.tier.key,
+                word.firmness.key,
                 rarity.orEmpty(),
                 ink.orEmpty(),
                 if (hasNoWord) WordFile.NO_WORD else "",
@@ -297,35 +296,8 @@ class Menu(
                 cycled(listOf(null) + WordFile.rarityChoices(), standing, by),
             )
             INK -> WordFile.setInk(candidate, cycled(listOf(null) + WordFile.inkTiers(), standing, by))
-            TIER -> retier(row.key, standing, by)
             IN_GAME -> WordFile.setHasNoWord(candidate, hasNoWord = standing == null)
         }
-    }
-
-    /**
-     * How specific a word is, changed in place — **which rewrites the word file**, unlike rarity and ink.
-     *
-     * It is still only a value on a line, and the audit will say if the new tier leaves the word making a
-     * claim nothing can answer. Better that than making somebody open a word to change one field.
-     */
-    private fun retier(name: String, standing: String?, by: Int) {
-        val candidate = WordFile.read(name).getOrNull() ?: return
-        // **A word with its own numbers is not cycled past them.** Stepping it onto a named tier would
-        // throw away five values to save opening the word, and there is nowhere here to put them back.
-        if (candidate.tier.key == Tier.CUSTOM) {
-            Dialogs.read(
-                terminal,
-                canvas,
-                Reader(
-                    "'$name' states its own cost",
-                    listOf(Line("Open the word to change one of its numbers.", Palette.faint)),
-                ),
-            )
-            return
-        }
-        val wanted = cycled(Tier.NAMED.keys.toList(), standing, by) ?: return
-        val tier = Tier.NAMED[wanted] ?: return
-        runCatching { WordFile.write(candidate.copy(tier = tier)) }
     }
 
     /**
@@ -569,13 +541,13 @@ class Menu(
                 hints(
                     "- =" to "change",
                     "enter" to "change",
-                    "F1" to "rarity", "F2" to "ink", "F3" to "specificity", "F4" to "no word",
+                    "F1" to "rarity", "F2" to "ink", "F3" to "no word",
                     searching(table.filter),
                 )
             } else {
                 hints(
                     "enter" to "open",
-                    "F1" to "rarity", "F2" to "ink", "F3" to "specificity", "F4" to "no word",
+                    "F1" to "rarity", "F2" to "ink", "F3" to "no word",
                     searching(table.filter),
                 )
             },
@@ -677,16 +649,18 @@ class Menu(
 
         /** Either summary column's floor — the two divide what the named columns left. */
         const val HALF_A_SUMMARY = 26
-        const val TIER_WIDTH = 12
+        const val FIRMNESS_WIDTH = 9
+
+        /** The firmnesses weakest first, which is how the claims column sorts. */
+        val FIRMNESSES = Firmness.entries.map { it.key }
         const val GAP_KIND_WIDTH = 7
         const val RARITY = "rarity"
         const val INK = "ink"
-        const val TIER = "tier"
         const val IN_GAME = "in game"
         const val IN_GAME_WIDTH = 9
 
         /** Which column each function key reaches, by kind rather than by position. */
-        val HOTKEYS = mapOf("F1" to RARITY, "F2" to INK, "F3" to TIER, "F4" to IN_GAME)
+        val HOTKEYS = mapOf("F1" to RARITY, "F2" to INK, "F3" to IN_GAME)
 
         /** Where a word stops being ordinarily untidy and starts being worth looking at. */
         const val SOME = 2
