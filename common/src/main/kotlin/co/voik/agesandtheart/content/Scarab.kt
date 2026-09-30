@@ -114,8 +114,11 @@ class Scarab(type: EntityType<out Scarab>, level: Level) : Animal(type, level) {
 
     val isHungry: Boolean get() = satiety <= 0
 
-    /** Whether a meal would not be wasted on it. */
-    val hasRoomToEat: Boolean get() = satiety <= MOST_SATIETY - MEAL
+    /**
+     * Whether it would eat now: only once its last meal is spent. It does not stock up, so a colony eats
+     * twice a day — at dawn, waking hungry, and at dusk, when the morning's meal runs out.
+     */
+    val hasRoomToEat: Boolean get() = satiety <= 0
 
     val isMushroomFed: Boolean get() = mushroomFedFor > 0
 
@@ -159,7 +162,7 @@ class Scarab(type: EntityType<out Scarab>, level: Level) : Animal(type, level) {
     }
 
     fun eat(meal: Meal) {
-        satiety = minOf(MOST_SATIETY, satiety + MEAL)
+        satiety = MEAL
         if (meal == Meal.MUSHROOM) mushroomFedFor = MUSHROOM_BOOST
         playSound(SoundEvents.GENERIC_EAT.value(), EATING_VOLUME, EATING_PITCH)
     }
@@ -167,6 +170,8 @@ class Scarab(type: EntityType<out Scarab>, level: Level) : Animal(type, level) {
     /** Let out of its nest after [ticks] asleep: it has grown up by as much, as a bee does in a hive. */
     fun wokeAfter(ticks: Int) {
         stayOutOfTheNestFor = STAY_OUT_AFTER_WAKING
+        // A night's sleep spends the evening's meal, so it comes out at dawn looking for its breakfast.
+        satiety = 0
         if (isAgeLocked) return
         val grownBy = if (age < 0) minOf(0, age + ticks) else maxOf(0, age - ticks)
         age = grownBy
@@ -347,13 +352,11 @@ class Scarab(type: EntityType<out Scarab>, level: Level) : Animal(type, level) {
             .add(Attributes.MOVEMENT_SPEED, WALKING_SPEED)
 
         /**
-         * How long one meal keeps it fed: three minutes. With [GrazedTorchflowerBlock]'s regrowth this is what
-         * decides how many flowers a colony needs, and it is for playtest to tune.
+         * How long one meal keeps it fed: half a day, so the meal it takes at dawn runs out about dusk and it
+         * eats twice a day (Jonah, 2026-09-30). With [GrazedTorchflowerBlock]'s regrowth this decides how
+         * many flowers a colony needs, and it is for playtest to tune.
          */
-        const val MEAL = 3600
-
-        /** Four meals' worth, so a scarab stuffed by hand goes on working through a lean spell. */
-        private const val MOST_SATIETY = MEAL * 4
+        const val MEAL = 12000
 
         /** How long a mushroom quickens it, and by how much. */
         private const val MUSHROOM_BOOST = 2400

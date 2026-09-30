@@ -27,6 +27,13 @@ class ScarabGraze(private val scarab: Scarab) : Goal() {
     private var travelling = 0
     private var lookAgainAfter = 0L
 
+    /** How close it has got to what it is going for, and how long since it last got closer. */
+    private var closest = Double.MAX_VALUE
+    private var sinceCloser = 0
+
+    /** Food it could not reach, and until when it is left alone — a flower under a bush, a cap behind a wall. */
+    private val outOfReach = mutableMapOf<BlockPos, Long>()
+
     init {
         flags = EnumSet.of(Flag.MOVE)
     }
@@ -46,6 +53,8 @@ class ScarabGraze(private val scarab: Scarab) : Goal() {
     override fun start() {
         eatingFor = 0
         travelling = 0
+        closest = Double.MAX_VALUE
+        sinceCloser = 0
     }
 
     override fun stop() {
@@ -79,12 +88,30 @@ class ScarabGraze(private val scarab: Scarab) : Goal() {
         }
         val over = Vec3.atBottomCenterOf(at).add(0.0, HOVERS_OVER_A_FLOWER, 0.0)
         scarab.headFor(over)
-        if (!scarab.isNear(over, EATS_WITHIN)) return
+        if (!scarab.isNear(over, EATS_WITHIN)) return keepGettingCloser(level, at, over)
         scarab.lookControl.setLookAt(Vec3.atCenterOf(at))
         eatingFor++
         if (eatingFor < EATING_TICKS) return
         eat(level, at, state)
         food = null
+    }
+
+    /**
+     * Gives up on [at] once it has stopped getting any closer to it, and leaves it alone a while — or a
+     * flower it cannot get at holds it forever, since the nearest food is the one it always picks.
+     */
+    private fun keepGettingCloser(level: ServerLevel, at: BlockPos, over: Vec3) {
+        val distance = scarab.position().distanceTo(over)
+        if (distance < closest - PROGRESS) {
+            closest = distance
+            sinceCloser = 0
+            return
+        }
+        if (++sinceCloser < NO_CLOSER_FOR) return
+        outOfReach[at] = level.gameTime + LEFT_ALONE_FOR
+        food = null
+        closest = Double.MAX_VALUE
+        sinceCloser = 0
     }
 
     private fun eat(level: ServerLevel, at: BlockPos, state: BlockState) {
@@ -101,12 +128,20 @@ class ScarabGraze(private val scarab: Scarab) : Goal() {
     private fun patchWorthReturningTo(): BlockPos? =
         scarab.lastMeal?.takeUnless { scarab.isNear(Vec3.atCenterOf(it), NEAR) }
 
-    /** The nearest thing it would eat, torchflowers and — where it may disturb the world — mushrooms. */
-    private fun foodNear(level: ServerLevel, from: BlockPos): BlockPos? =
-        level.findBlocksInBoxByManhattanDistance(from, SEARCH_REACH, SEARCH_DEPTH)
+    /**
+     * The nearest thing it would eat that it can get at — torchflowers, and where it may disturb the world,
+     * mushrooms — with **open air over it**, since it eats hovering, and nothing it has lately given up on.
+     */
+    private fun foodNear(level: ServerLevel, from: BlockPos): BlockPos? {
+        outOfReach.values.removeIf { it <= level.gameTime }
+        fun hasRoomOver(at: BlockPos) = level.getBlockState(at.above()).getCollisionShape(level, at.above()).isEmpty
+        fun isWithinReach(at: BlockPos) = at !in outOfReach && hasRoomOver(at)
+        return level.findBlocksInBoxByManhattanDistance(from, SEARCH_REACH, SEARCH_DEPTH)
             .filterState { state -> isFood(level, state) }
+            .filterPos(::isWithinReach)
             .findFirst()
             .orElse(null)
+    }
 
     private fun isFood(level: ServerLevel, state: BlockState): Boolean {
         val isMushroom = MUSHROOMS.any(state::`is`)
@@ -128,5 +163,12 @@ class ScarabGraze(private val scarab: Scarab) : Goal() {
         const val EATING_TICKS = 40
         const val GIVES_UP_AFTER = 1200
         const val LOOK_AGAIN_AFTER = 100L
+
+        /** How much closer counts as getting closer, and how long without it before it gives up — five seconds. */
+        const val PROGRESS = 0.25
+        const val NO_CLOSER_FOR = 100
+
+        /** Three minutes, and then it may try the flower again: a bush may have been cleared. */
+        const val LEFT_ALONE_FOR = 3600L
     }
 }

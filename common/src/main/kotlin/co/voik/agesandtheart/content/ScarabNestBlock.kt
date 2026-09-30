@@ -28,11 +28,12 @@ import java.util.UUID
 
 /**
  * The base of a scarab's pillar: the mud a scarab claimed, become a nest that is its own, as a bed is a
- * villager's (design §7.1.2).
+ * villager's (design §7.1.2). It looks like the mud it was.
  *
  * A point of interest with one ticket, so a colony finds its columns without every mud block being
- * indexed. The pillar standing on it is plain mud, and how high it has got is counted rather than stored,
- * so a pillar somebody quarries is simply built again.
+ * indexed. The pillar standing on it is mud with **one course of packed mud partway up — the chamber, which
+ * is what a player sees of a nest** (Jonah, 2026-09-30) — and how high it has got is counted rather than
+ * stored, so a pillar somebody quarries is simply built again.
  */
 class ScarabNestBlock(properties: Properties) : BaseEntityBlock(properties) {
 
@@ -65,6 +66,12 @@ class ScarabNestBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeC
     var pillarGoal: Int = 0
         private set
 
+    /**
+     * Which course of the pillar is the chamber, counted up from the nest: never the first nor the last,
+     * drawn when it was claimed.
+     */
+    private var chamberAt: Int = 0
+
     private var sleeper: TypedEntityData<EntityType<*>>? = null
     private var sleptFor: Int = 0
 
@@ -77,6 +84,7 @@ class ScarabNestBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeC
     fun claimFor(scarab: Scarab, random: RandomSource) {
         owner = scarab.uuid
         pillarGoal = random.nextIntBetweenInclusive(SHORTEST_PILLAR, TALLEST_PILLAR)
+        chamberAt = random.nextIntBetweenInclusive(LOWEST_CHAMBER, pillarGoal - 1)
         setChanged()
     }
 
@@ -87,11 +95,21 @@ class ScarabNestBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeC
         setChanged()
     }
 
-    /** How many blocks of mud stand on the nest, counted up from it. */
+    /** How many courses of the pillar stand on the nest, counted up from it — mud, and the chamber. */
     fun pillarHeight(level: Level): Int {
+        fun isACourse(height: Int): Boolean {
+            val state = level.getBlockState(blockPos.above(height))
+            return state.`is`(Blocks.MUD) || state.`is`(Blocks.PACKED_MUD)
+        }
         var height = 0
-        while (height < TALLEST_PILLAR && level.getBlockState(blockPos.above(height + 1)).`is`(Blocks.MUD)) height++
+        while (height < TALLEST_PILLAR && isACourse(height + 1)) height++
         return height
+    }
+
+    /** What the next course laid is: the chamber where it has got to, mud everywhere else. */
+    fun nextCourse(level: Level): BlockState {
+        val isTheChamber = pillarHeight(level) + 1 == chamberAt
+        return if (isTheChamber) Blocks.PACKED_MUD.defaultBlockState() else Blocks.MUD.defaultBlockState()
     }
 
     /** Where the next block of the pillar goes, which is also where a scarab goes in and comes out. */
@@ -149,6 +167,7 @@ class ScarabNestBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeC
         super.loadAdditional(input)
         owner = input.read(OWNER_KEY, UUIDUtil.CODEC).orElse(null)
         pillarGoal = input.getIntOr(PILLAR_GOAL_KEY, 0)
+        chamberAt = input.getIntOr(CHAMBER_AT_KEY, 0)
         sleeper = input.read(SLEEPER_KEY, SLEEPER_CODEC).orElse(null)
         sleptFor = input.getIntOr(SLEPT_FOR_KEY, 0)
     }
@@ -157,6 +176,7 @@ class ScarabNestBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeC
         super.saveAdditional(output)
         owner?.let { output.store(OWNER_KEY, UUIDUtil.CODEC, it) }
         output.putInt(PILLAR_GOAL_KEY, pillarGoal)
+        output.putInt(CHAMBER_AT_KEY, chamberAt)
         sleeper?.let { output.store(SLEEPER_KEY, SLEEPER_CODEC, it) }
         if (sleeper != null) output.putInt(SLEPT_FOR_KEY, sleptFor)
     }
@@ -165,6 +185,9 @@ class ScarabNestBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeC
         /** Design §7.1.2's starting range, to be tuned by playtest. */
         const val SHORTEST_PILLAR = 4
         const val TALLEST_PILLAR = 7
+
+        /** The chamber sits at least this far up, so the first course is always plain mud. */
+        private const val LOWEST_CHAMBER = 2
 
         fun tick(level: Level, pos: BlockPos, state: BlockState, nest: ScarabNestBlockEntity) {
             val serverLevel = level as? ServerLevel ?: return
@@ -216,6 +239,7 @@ class ScarabNestBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeC
 
         private const val OWNER_KEY = "owner"
         private const val PILLAR_GOAL_KEY = "pillar_goal"
+        private const val CHAMBER_AT_KEY = "chamber_at"
         private const val SLEEPER_KEY = "sleeper"
         private const val SLEPT_FOR_KEY = "slept_for"
     }

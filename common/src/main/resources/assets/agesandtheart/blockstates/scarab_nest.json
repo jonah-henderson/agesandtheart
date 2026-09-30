@@ -1,4 +1,4 @@
 {
-  "_comment": "Packed mud stands in until the asset pass, so a claimed base reads apart from the plain mud of its pillar.",
-  "variants": { "": { "model": "minecraft:block/packed_mud" } }
+  "_comment": "Plain mud: the claimed base is the foot of the pillar, and what a player sees of a nest is its chamber, the course of packed mud partway up.",
+  "variants": { "": { "model": "minecraft:block/mud" } }
 }

@@ -4,8 +4,8 @@
 #
 # The site is built on a raised block of ground, so it is the top of every column in it:
 # mud in the middle, sand around it, torchflowers on grass beyond, all under a jungle `fillbiome` makes. A
-# scarab should claim a mud column (it becomes `agesandtheart:scarab_nest`, packed mud to look at), stack
-# mud on it out of the sand, and graze the flowers. Read `home`, `satiety` and `carried` off each.
+# scarab should claim a mud column (it becomes `agesandtheart:scarab_nest`, mud to look at), stack
+# mud on it out of the sand with one course of packed mud partway up, and graze the flowers. Read `home`, `satiety` and `carried` off each.
 
 age write scarabcolony 7 age jungle biomes torchflowers in jungle mud pits in jungle sand pits in jungle
 execute in agesandtheart:scarabcolony run forceload add -64 -64 64 64
@@ -49,4 +49,5 @@ execute in agesandtheart:scarabcolony if entity @e[type=agesandtheart:scarab]
 # how much pillar, and how much of the sand is left.
 execute in agesandtheart:scarabcolony run fill -2 200 -2 2 200 2 minecraft:dirt replace agesandtheart:scarab_nest
 execute in agesandtheart:scarabcolony run fill -2 201 -2 2 208 2 minecraft:dirt replace minecraft:mud
+execute in agesandtheart:scarabcolony run fill -2 201 -2 2 208 2 minecraft:dirt replace minecraft:packed_mud
 execute in agesandtheart:scarabcolony run fill -6 200 -6 6 200 6 minecraft:dirt replace minecraft:sand

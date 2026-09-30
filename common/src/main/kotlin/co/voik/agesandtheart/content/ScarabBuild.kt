@@ -7,7 +7,6 @@ import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.tags.BlockTags
 import net.minecraft.world.entity.ai.goal.Goal
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
 import java.util.EnumSet
@@ -105,7 +104,7 @@ class ScarabBuild(private val scarab: Scarab) : Goal() {
         val over = Vec3.atBottomCenterOf(course.above())
         scarab.headFor(over)
         if (!scarab.isNear(over, WITHIN_REACH)) return
-        level.setBlockAndUpdate(course, Blocks.MUD.defaultBlockState())
+        level.setBlockAndUpdate(course, nest.nextCourse(level))
         level.playSound(null, course, SoundEvents.MUD_PLACE, SoundSource.NEUTRAL, VOLUME, PITCH)
         scarab.carry(null)
         restUntil = level.gameTime + PAUSE_BETWEEN_LOADS
