@@ -1135,7 +1135,7 @@ object AgeContent {
     private val PAPER_TREE_ROOTS_ID: Identifier = "paper_tree_roots".location()
     private val PAPER_TREE_ROOT_ID: Identifier = "paper_tree_root".location()
     private val PAPER_TREE_SAPLING_ID: Identifier = "paper_tree_sapling".location()
-    private val YEMA_PULP_ID: Identifier = "yema_pulp".location()
+    private val PAPER_TREE_PULP_ID: Identifier = "paper_tree_pulp".location()
 
     /** Wood's feel, on vanilla's own numbers for a log. */
     private fun woodProperties(id: Identifier, colour: MapColor): BlockBehaviour.Properties =
@@ -1240,7 +1240,7 @@ object AgeContent {
      * What the pulper makes of stripped yema: the top rung's pulp, as a carapace's powder is the ink's. The
      * masterwork paper it is pressed into waits on its other ingredients (design §7.1.2, "Open").
      */
-    val YEMA_PULP: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, YEMA_PULP_ID)))
+    val PAPER_TREE_PULP: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, PAPER_TREE_PULP_ID)))
 
     /** The three D'ni survey reports, one item each so a plain recipe can ask for all three. */
     val SURVEY_REPORTS: Map<SurveyReport, Item> = SurveyReport.entries.associateWith { report ->
@@ -2018,7 +2018,7 @@ object AgeContent {
         PAPER_TREE_LEAVES_ID to PAPER_TREE_LEAVES,
         PAPER_TREE_ROOTS_ID to PAPER_TREE_ROOTS,
         PAPER_TREE_SAPLING_ID to PAPER_TREE_SAPLING,
-        YEMA_PULP_ID to YEMA_PULP,
+        PAPER_TREE_PULP_ID to PAPER_TREE_PULP,
         *SURVEY_REPORTS.map { (report, item) -> report.id to item }.toTypedArray(),
         GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE,
         PITCHSTONE_ID to PITCHSTONE,

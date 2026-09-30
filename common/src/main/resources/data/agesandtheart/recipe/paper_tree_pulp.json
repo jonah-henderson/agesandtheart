@@ -3,7 +3,7 @@
   "type": "agesandtheart:pulping",
   "ingredient": "agesandtheart:stripped_paper_tree_log",
   "result": {
-    "id": "agesandtheart:yema_pulp",
+    "id": "agesandtheart:paper_tree_pulp",
     "count": 2
   }
 }

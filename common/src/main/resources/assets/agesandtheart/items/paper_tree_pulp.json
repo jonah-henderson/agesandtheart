@@ -1,7 +1,7 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:item/yema_pulp",
+    "model": "agesandtheart:item/paper_tree_pulp",
     "tints": [
       {
         "type": "minecraft:constant",

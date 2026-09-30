@@ -65,10 +65,14 @@ object PaperTreeGrowth {
         level.setBlock(at, root, flags)
     }
 
-    /** What a root pushes through: earth, sand, mud and the like, never stone. */
-    private fun isSoftGround(state: BlockState): Boolean {
-        val isEarth = state.`is`(BlockTags.DIRT) || state.`is`(BlockTags.SAND)
-        val isLoose = state.`is`(Blocks.MUD) || state.`is`(Blocks.GRAVEL) || state.`is`(Blocks.CLAY)
+    /**
+     * What a root pushes through and a sapling stands in: earth, grass, mud, moss, sand, gravel and clay,
+     * never stone. **`#substrate_overworld`, not `#dirt`**: 26.3 took the grass out of `#dirt`, and a sapling
+     * that could not be planted on grass was how that showed.
+     */
+    fun isSoftGround(state: BlockState): Boolean {
+        val isEarth = state.`is`(BlockTags.SUBSTRATE_OVERWORLD) || state.`is`(BlockTags.SAND)
+        val isLoose = state.`is`(Blocks.GRAVEL) || state.`is`(Blocks.CLAY)
         return isEarth || isLoose
     }
 }

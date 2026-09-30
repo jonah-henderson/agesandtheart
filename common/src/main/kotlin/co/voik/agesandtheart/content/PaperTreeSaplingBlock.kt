@@ -3,7 +3,6 @@ package co.voik.agesandtheart.content
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.tags.BlockTags
 import net.minecraft.tags.FluidTags
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.BlockGetter
@@ -46,12 +45,9 @@ class PaperTreeSaplingBlock(properties: Properties) : VegetationBlock(properties
     override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
         SHAPE
 
-    /** Soil a tide reaches: earth, sand, mud, gravel and clay. */
-    override fun mayPlaceOn(state: BlockState, level: BlockGetter, pos: BlockPos): Boolean {
-        val isEarth = state.`is`(BlockTags.DIRT) || state.`is`(BlockTags.SAND)
-        val isLoose = state.`is`(Blocks.MUD) || state.`is`(Blocks.GRAVEL) || state.`is`(Blocks.CLAY)
-        return isEarth || isLoose
-    }
+    /** Soil a tide reaches — the ground a root grows through ([PaperTreeGrowth.isSoftGround]). */
+    override fun mayPlaceOn(state: BlockState, level: BlockGetter, pos: BlockPos): Boolean =
+        PaperTreeGrowth.isSoftGround(state)
 
     override fun isRandomlyTicking(state: BlockState): Boolean = true
 
