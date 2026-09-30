@@ -1,16 +1,17 @@
 # The tide's flood and ebb, driven where no player stands to see them.
 # Run with: scripts/drive-server.sh scripts/checks/tide.txt
 #
-# An ocean Age, mid at y=62. `/age tide pass` runs one whole pass of the tide over the chunks around it, as a
-# tick does around a player, and a few ticks between passes let vanilla's water move. Each stage is counted on
-# its own strip of sea by replacing its water with glass, so one count never disturbs the next. A stone roof
-# over part of the sea is where high water runs in under cover, which the ebb has to follow to drain.
+# An ocean Age whose sea stands at y=62, which is high water: the tide only falls from the sea the world was
+# generated around, so mid is 61 and low 60. `/age tide pass` runs one whole pass of the tide over the chunks
+# around it, as a tick does around a player, and a few ticks between passes let vanilla's water move. Each stage
+# is counted on its own strip of sea by replacing its water with glass, so one count never disturbs the next. A
+# stone roof laid on the sea covers water the ebb has to follow in to drain.
 #
-# MEASURED 2026-09-30: high fills y=63 (240 of 240); mid leaves y=63 empty and y=62 full; low leaves y=63 and
-# y=62 empty and y=61 full. Under the roof, high water ran in (55 of 55) and low left y=63 and y=62 empty.
+# MEASURED 2026-09-30: high keeps y=62 full (240 of 240); mid leaves y=62 empty and y=61 full; low leaves y=62
+# and y=61 empty and y=60 full. Under the roof, low leaves y=62 and y=61 empty.
 age write tidetest 7 age ocean biomes
 execute in agesandtheart:tidetest run forceload add -48 -48 63 63
-execute in agesandtheart:tidetest run fill 30 64 0 34 64 10 minecraft:stone
+execute in agesandtheart:tidetest run fill 30 63 0 34 63 10 minecraft:stone
 execute in agesandtheart:tidetest run age tide high
 execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
 tick sprint 100
@@ -20,7 +21,7 @@ execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
 tick sprint 100
 execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
 tick sprint 100
-execute in agesandtheart:tidetest run fill -16 63 -16 -12 63 31 minecraft:glass replace minecraft:water
+execute in agesandtheart:tidetest run fill -16 62 -16 -12 62 31 minecraft:glass replace minecraft:water
 execute in agesandtheart:tidetest run age tide mid
 execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
 tick sprint 40
@@ -34,8 +35,8 @@ execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
 tick sprint 40
 execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
 tick sprint 40
-execute in agesandtheart:tidetest run fill 0 63 -16 4 63 31 minecraft:glass replace minecraft:water
 execute in agesandtheart:tidetest run fill 0 62 -16 4 62 31 minecraft:glass replace minecraft:water
+execute in agesandtheart:tidetest run fill 0 61 -16 4 61 31 minecraft:glass replace minecraft:water
 execute in agesandtheart:tidetest run age tide low
 execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
 tick sprint 60
@@ -53,9 +54,9 @@ execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
 tick sprint 60
 execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
 tick sprint 60
-execute in agesandtheart:tidetest run fill 16 63 -16 20 63 31 minecraft:glass replace minecraft:water
 execute in agesandtheart:tidetest run fill 16 62 -16 20 62 31 minecraft:glass replace minecraft:water
 execute in agesandtheart:tidetest run fill 16 61 -16 20 61 31 minecraft:glass replace minecraft:water
-# Under the roof, after the ebb: y=63 and y=62 empty, y=61 the sea.
-execute in agesandtheart:tidetest run fill 30 63 0 34 63 10 minecraft:glass replace minecraft:water
+execute in agesandtheart:tidetest run fill 16 60 -16 20 60 31 minecraft:glass replace minecraft:water
+# Under the roof, after the ebb: y=62 and y=61 empty.
 execute in agesandtheart:tidetest run fill 30 62 0 34 62 10 minecraft:glass replace minecraft:water
+execute in agesandtheart:tidetest run fill 30 61 0 34 61 10 minecraft:glass replace minecraft:water

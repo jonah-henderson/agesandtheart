@@ -106,7 +106,11 @@ class PaperTreeRootBlockEntity(pos: BlockPos, state: BlockState) :
         if (isThriving) growBack(level, shape)
     }
 
-    /** Whether the heart, or any root of its own it can see, is in water or beside it. */
+    /**
+     * Whether the heart, or any root of its own it can see, stands in water — waterlogged, or with water beside
+     * it or over it. **Not under it**: a root is wet when the water has come up to it, and a tip at mid tide
+     * with the sea one block down at low water is dry, which is what lets a tide alternate it at all.
+     */
     private fun touchesWater(level: ServerLevel, shape: PaperTreeShape): Boolean {
         fun isWetAt(at: BlockPos): Boolean {
             val state = level.getBlockState(at)
@@ -114,7 +118,7 @@ class PaperTreeRootBlockEntity(pos: BlockPos, state: BlockState) :
             if (!isOurs) return false
             val isWaterlogged = state.getOptionalValue(BlockStateProperties.WATERLOGGED).orElse(false)
             fun isWaterBeside(side: Direction) = level.getFluidState(at.relative(side)).`is`(FluidTags.WATER)
-            return isWaterlogged || Direction.entries.any(::isWaterBeside)
+            return isWaterlogged || Direction.entries.filter { it != Direction.DOWN }.any(::isWaterBeside)
         }
         return isWetAt(blockPos) || shape.roots.any(::isWetAt)
     }

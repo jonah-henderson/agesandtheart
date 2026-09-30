@@ -285,6 +285,12 @@ data class PaperTreeShape(
         private const val SHORTEST_ROOT = 3
         private const val LONGEST_ROOT = 4
         private const val ROOT_DESCENT = 2
+
+        /**
+         * How far under the heart every root ends — all at one height, so a grove can put that height at mid
+         * tide and every tip is wet at high and mid water and dry at low.
+         */
+        const val ROOT_TIPS_UNDER_THE_HEART = ROOT_DESCENT - 1
         private const val ROOT_SPREAD = 0.6f
     }
 }

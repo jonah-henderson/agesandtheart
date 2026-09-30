@@ -30,8 +30,11 @@ import kotlin.math.ceil
  * wrote a pull for raises nothing, so an Age tides only where a book said so. The pulling moons' altitudes,
  * weighed by how hard each pulls, set how high it stands — high with them well up, low with them well
  * down — and their pull together sets how far it reaches either side of mid, held for now at one block
- * ([WIDEST_REACH]): **a three-block band**, low, mid and high, with mid wherever the sea stands now — the
- * written sea, or the deluge's where one is raising it, so a rising sea still tides.
+ * ([WIDEST_REACH]): **a three-block band**, low, mid and high.
+ *
+ * **High water is the sea as it stands** — the written sea, or the deluge's where one is raising it, so a
+ * rising sea still tides — **and the tide only ever falls from it** (Jonah, 2026-09-30). A tide rising over
+ * the sea the world was generated around poured over every low rim into the chasms and hollows beside it.
  *
  * **The level is a pure function of the clock**, with nothing stored, so a chunk nobody has seen catches up
  * on the one pass that reaches it.
@@ -41,7 +44,7 @@ import kotlin.math.ceil
  * below where the tide stands, flowing sea becomes a source and a source grows up to the tide. The ebb: a
  * source at the top of a column, inside the band and above the tide, is taken away, and vanilla's own flow
  * drains the rest. **Neither acts outside the band**, so a mountain lake, a cavern pool and water placed above
- * high water are never touched, and generation keeps the written sea.
+ * high water are never touched, and generation keeps the written sea, which is high water.
  */
 object Tide {
 
@@ -138,7 +141,7 @@ object Tide {
         }
     }
 
-    /** The sea a tide moves: the top block it fills at mid tide, and what it is made of. */
+    /** The sea a tide moves: the top block it fills at high tide, and what it is made of. */
     data class Sea(val top: Int, val block: BlockState)
 
     /**
@@ -154,8 +157,14 @@ object Tide {
         return Sea((age as ChunkGenerator).seaLevel - 1, fluid)
     }
 
-    /** The y of the top of the sea at mid tide in [level], which is where it stands now. */
-    fun midIn(level: ServerLevel): Int? = seaOf(level.chunkSource.generator)?.top
+    /** The y of the top of the sea at mid tide in [level]: a reach under high water, which is the sea. */
+    fun midIn(level: ServerLevel): Int? = midOf(level.chunkSource.generator)
+
+    /**
+     * The same, from [generator] — where a grove plants its trees. At the widest reach, which a tide's reach
+     * never passes and, while [WIDEST_REACH] is one, always is.
+     */
+    fun midOf(generator: ChunkGenerator): Int? = seaOf(generator)?.top?.let { it - WIDEST_REACH }
 
     /**
      * The tide's block work, over every chunk anybody can see, a few chunks a tick — where some moon of
@@ -198,10 +207,11 @@ object Tide {
     private fun bandIn(level: ServerLevel, pulls: List<Double>): Band? {
         val written = pulls.takeIf(::isTidal)
         if (written == null && !isForcedIn(level)) return null
-        val mid = seaOf(level.chunkSource.generator)?.top ?: return null
+        val high = seaOf(level.chunkSource.generator)?.top ?: return null
         val stage = stageIn(level, written) ?: return null
         val reach = written?.let(::reachOf) ?: WIDEST_REACH
-        return Band(low = mid - reach, standing = mid + stage.offset * reach, high = mid + reach)
+        val mid = high - reach
+        return Band(low = mid - reach, standing = mid + stage.offset * reach, high = high)
     }
 
     /** The band's three heights: its bottom, where the tide stands now, and its top. */

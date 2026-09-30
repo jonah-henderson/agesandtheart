@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.content.PaperTreeGrowth
 import co.voik.agesandtheart.content.PaperTreeHealth
+import co.voik.agesandtheart.content.PaperTreeShape
 import co.voik.agesandtheart.age.phenomena.Tide
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
@@ -35,9 +36,10 @@ object PaperTree : Feature {
 }
 
 /**
- * A paper tree where one would grow of itself: **in the intertidal band** (design §7.1.2), its heart in the
- * ground level with the sea or a block above it and water within reach of its roots, so they are wet at high
- * tide and dry at low. Laid only in an Age whose window is met — see `PaperTreeWindow`.
+ * A paper tree where one would grow of itself: **in the intertidal band** (design §7.1.2), its heart set so
+ * that **every root ends at mid tide** and water within reach of them, so they are wet at high and mid water
+ * and dry at low — a tree that keeps itself, rather than one a tide drowns. Laid only in an Age whose window
+ * is met — see `PaperTreeWindow`.
  */
 object PaperTreeGrove : Feature {
 
@@ -51,18 +53,18 @@ object PaperTreeGrove : Feature {
         random: RandomSource,
         origin: BlockPos,
     ): Boolean {
-        val sea = Tide.seaOf(generator)?.top ?: return false
+        val mid = Tide.midOf(generator) ?: return false
         val heart = origin.below()
-        val isAtTheWaterline = heart.y == sea || heart.y == sea + 1
-        if (!isAtTheWaterline || !waterWithinReach(level, heart, sea)) return false
+        val rootsEndAtMidTide = heart.y - PaperTreeShape.ROOT_TIPS_UNDER_THE_HEART == mid
+        if (!rootsEndAtMidTide || !waterWithinReach(level, heart, mid)) return false
         return PaperTreeGrowth.grow(level, heart, random.nextLong(), PaperTreeHealth.SETTLED, Block.UPDATE_CLIENTS)
     }
 
-    /** Whether the sea's surface lies within a root's reach of [heart]. */
-    private fun waterWithinReach(level: WorldGenLevel, heart: BlockPos, sea: Int): Boolean {
+    /** Whether the sea at mid tide lies within a root's reach of [heart]. */
+    private fun waterWithinReach(level: WorldGenLevel, heart: BlockPos, mid: Int): Boolean {
         for (dx in -ROOT_REACH..ROOT_REACH) {
             for (dz in -ROOT_REACH..ROOT_REACH) {
-                val at = BlockPos(heart.x + dx, sea, heart.z + dz)
+                val at = BlockPos(heart.x + dx, mid, heart.z + dz)
                 if (level.getFluidState(at).`is`(FluidTags.WATER)) return true
             }
         }
