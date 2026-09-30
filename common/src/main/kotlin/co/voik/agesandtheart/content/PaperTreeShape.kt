@@ -45,9 +45,10 @@ data class PaperTreeShape(
         fun grownFrom(heart: BlockPos, seed: Long): PaperTreeShape {
             val random = RandomSource.create(seed)
             val logs = mutableListOf<Log>()
-            val trunk = trunk(heart, random, logs)
-            val terraceCount = if (trunk.size >= THREE_TERRACES_FROM) THREE_TERRACES else TWO_TERRACES
-            val hubs = hubsFor(trunk, terraceCount, random)
+            val tiers = tiersFor(random)
+            val trunk = trunk(heart, tiers.height, random, logs)
+            val hubs = tiers.levels.map { trunk[it] }
+            val terraceCount = hubs.size
             val placedLogs = logs.withIndex().associate { (index, log) -> log.at to index }.toMutableMap()
             val radii = hubs.indices.map { tier -> radiusOf(tier, terraceCount, random) }
             val terraceLogs = hubs.mapIndexed { tier, hub -> branches(logs, hub, radii[tier], random, placedLogs) }
@@ -64,8 +65,7 @@ data class PaperTreeShape(
          * before it by a face — which is what leaves count their distance through, and what reads as a slant
          * rather than a stack of offset posts.
          */
-        private fun trunk(heart: BlockPos, random: RandomSource, logs: MutableList<Log>): List<Int> {
-            val height = random.nextIntBetweenInclusive(SHORTEST, TALLEST)
+        private fun trunk(heart: BlockPos, height: Int, random: RandomSource, logs: MutableList<Log>): List<Int> {
             val heading = (random.nextFloat() * Mth.TWO_PI).toDouble()
             val lean = LEAST_LEAN + random.nextFloat() * (MOST_LEAN - LEAST_LEAN)
             val wander = LEAST_WANDER + random.nextFloat() * (MOST_WANDER - LEAST_WANDER)
@@ -98,15 +98,23 @@ data class PaperTreeShape(
             return trunk
         }
 
-        /** The trunk logs each terrace grows from: spaced up the trunk, the last at its very top. */
-        private fun hubsFor(trunk: List<Int>, count: Int, random: RandomSource): List<Int> {
-            val heights = if (count == THREE_TERRACES) THREE_TIER_HEIGHTS else TWO_TIER_HEIGHTS
-            return heights.mapIndexed { tier, share ->
-                val isTheTop = tier == heights.lastIndex
-                val jitter = if (isTheTop) 0 else random.nextIntBetweenInclusive(-1, 1)
-                val index = ((trunk.size - 1) * share).roundToInt() + jitter
-                trunk[index.coerceIn(0, trunk.lastIndex)]
-            }
+        /** How tall the trunk grows, and which of its levels (from nought) each terrace grows from. */
+        private data class Tiers(val height: Int, val levels: List<Int>)
+
+        /**
+         * The trunk's height and where its terraces sit: **two, the lower a share of the way up and the upper
+         * at the top**, or now and then a third on the same spacing. A third terrace does not squeeze in
+         * between the two — it keeps the gap a two-terrace tree has, and the tree grows that much taller.
+         */
+        private fun tiersFor(random: RandomSource): Tiers {
+            val height = random.nextIntBetweenInclusive(SHORTEST, TALLEST)
+            val jitter = random.nextIntBetweenInclusive(-1, 1)
+            val lowest = ((height - 1) * LOWER_TIER_SHARE).roundToInt() + jitter
+            val gap = (height - 1) - lowest
+            val isThreeTiered = random.nextFloat() < THREE_TERRACES_ONE_IN
+            if (!isThreeTiered) return Tiers(height, listOf(lowest, height - 1))
+            val taller = height + gap
+            return Tiers(taller, listOf(lowest, lowest + gap, taller - 1))
         }
 
         /** Broadest at the bottom and narrowing upward, as a pagoda does. */
@@ -236,15 +244,15 @@ data class PaperTreeShape(
             return roots.toList()
         }
 
+        /** A two-terrace tree's trunk, which a third terrace grows taller by one more gap. */
         private const val SHORTEST = 8
-        private const val TALLEST = 13
-        private const val THREE_TERRACES_FROM = 11
-        private const val TWO_TERRACES = 2
-        private const val THREE_TERRACES = 3
+        private const val TALLEST = 10
 
-        /** How far up the trunk each tier sits, as a share of its height; the last is the top. */
-        private val TWO_TIER_HEIGHTS = listOf(0.6, 1.0)
-        private val THREE_TIER_HEIGHTS = listOf(0.45, 0.72, 1.0)
+        /** How far up a two-terrace trunk its lower terrace sits; the upper is at the top. */
+        private const val LOWER_TIER_SHARE = 0.6
+
+        /** How often a tree grows a third terrace. */
+        private const val THREE_TERRACES_ONE_IN = 0.5f
 
         /** How far the top leans off the root, in blocks, and how sharply the lean gathers toward the top. */
         private const val LEAST_LEAN = 2.0f

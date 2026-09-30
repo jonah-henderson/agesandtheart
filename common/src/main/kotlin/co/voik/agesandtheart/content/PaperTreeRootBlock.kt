@@ -119,22 +119,36 @@ class PaperTreeRootBlockEntity(pos: BlockPos, state: BlockState) :
         return isWetAt(blockPos) || shape.roots.any(::isWetAt)
     }
 
-    /** Every leaf of the tree's own the colour its distance from a log gives it at [stage]. */
+    /**
+     * Every leaf of the tree's own the colour its distance from a log gives it at [stage] — and, short of the
+     * leaves falling, back at that distance, so a leaf the tree had begun to shed stops falling when it
+     * recovers.
+     */
     private fun colourTheLeaves(level: ServerLevel, shape: PaperTreeShape, stage: PaperTreeHealth.Stage) {
         val drowning = strain > 0
-        for ((at, _) in shape.leaves) {
+        val isHoldingItsLeaves = stage < PaperTreeHealth.Stage.LEAVES_FALLEN
+        for ((at, distance) in shape.leaves) {
             val state = level.getBlockState(at)
             if (!isOwnLeaf(state)) continue
-            val wanted = PaperTreeHealth.blightOf(stage, state.getValue(LeavesBlock.DISTANCE), drowning)
-            if (state.getValue(PaperTreeLeavesBlock.BLIGHT) != wanted) {
-                level.setBlock(at, state.setValue(PaperTreeLeavesBlock.BLIGHT, wanted), Block.UPDATE_CLIENTS)
-            }
+            val held = if (isHoldingItsLeaves) state.setValue(LeavesBlock.DISTANCE, distance) else state
+            val wanted = PaperTreeHealth.blightOf(stage, held.getValue(LeavesBlock.DISTANCE), drowning)
+            val coloured = held.setValue(PaperTreeLeavesBlock.BLIGHT, wanted)
+            if (coloured != state) level.setBlock(at, coloured, Block.UPDATE_CLIENTS)
         }
     }
 
+    /**
+     * The leaves cut off from their logs, as vanilla's are when a tree is felled — so they fall **a leaf at a
+     * time on vanilla's own random ticks**, over a few minutes and dropping what decaying leaves drop, rather
+     * than all at once. Set without a shape update, and a shed leaf skips the recount that would put it back
+     * on the tree ([PaperTreeLeavesBlock.tick]).
+     */
     private fun dropTheLeaves(level: ServerLevel, shape: PaperTreeShape) {
         for ((at, _) in shape.leaves) {
-            if (isOwnLeaf(level.getBlockState(at))) level.destroyBlock(at, false)
+            val state = level.getBlockState(at)
+            if (!isOwnLeaf(state) || state.getValue(LeavesBlock.DISTANCE) == LeavesBlock.DECAY_DISTANCE) continue
+            val shed = state.setValue(LeavesBlock.DISTANCE, LeavesBlock.DECAY_DISTANCE)
+            level.setBlock(at, shed, Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE)
         }
     }
 

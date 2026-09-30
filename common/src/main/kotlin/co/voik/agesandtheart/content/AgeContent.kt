@@ -1179,8 +1179,8 @@ object AgeContent {
 
     private const val LEAVES_STRENGTH = 0.2f
 
-    /** A pale, silvered green over vanilla's mangrove leaves, so a grove reads apart from the jungle. */
-    const val YEMA_LEAF_TINT = 0x9CC08A
+    /** A pale lavender over vanilla's mangrove leaves, so a grove reads apart from every other tree. */
+    const val YEMA_LEAF_TINT = 0xBFA8E0
 
     /** See [PaperTreeRootsBlock] — the spread of roots that feels the water. Mangrove roots' feel. */
     val PAPER_TREE_ROOTS_BLOCK: PaperTreeRootsBlock = PaperTreeRootsBlock(
