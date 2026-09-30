@@ -731,28 +731,24 @@ class AuthoringCheck : FunSpec({
     }
 
     /**
-     * **What a word costs is its own to say.** A page reaching three parts of the world is dearer than one
-     * reaching one — unless it says otherwise, which is what the reach switch is for and what nothing
-     * could say while the multiplier was read off whether the word narrows.
+     * **A page is charged for the parts it narrows, and nothing it only leans on** (world model §3,
+     * "Retiring tier"): reaching three parts and barring one costs one part, and a word that narrows
+     * nothing costs the floor rather than nothing.
      */
-    test("a word may be priced flat however far it reaches") {
+    test("a page costs the parts it narrows, and never nothing") {
         val wide = Word(
             id = Identifier.fromNamespaceAndPath("test", "wide"),
             tier = Tier.RESTRICTIVE,
             aspects = setOf(Aspect.SEA, Aspect.SKY, Aspect.TERRAIN),
             restricts = mapOf(Aspect.SEA to mapOf("#molten" to 1.0)),
         )
-        check(wide.price == Tier.RESTRICTIVE.cost * 3) { "reach stopped being charged: ${wide.price}" }
-        val flat = wide.copy(tier = Tier.RESTRICTIVE.copy(versatilityMultiplier = Tier.FLAT))
-        check(flat.price == Tier.RESTRICTIVE.cost) { "a flat price still counted the reach: ${flat.price}" }
-        check(flat.tier.narrows) { "turning the reach off stopped the word narrowing" }
-        // **Never below the base cost**, so no page is ever free — which is what a multiplier of zero
-        // means, and what keeps the beginner's sentence the cheapest thing in the language rather than
-        // the free one.
-        val free = wide.copy(tier = Tier.RESTRICTIVE.copy(cost = 3, versatilityMultiplier = 0.1))
-        check(free.price == 3) { "a small multiplier priced the page below its base: ${free.price}" }
-        val halved = wide.copy(tier = Tier.RESTRICTIVE.copy(versatilityMultiplier = 0.5))
-        check(halved.price == 3) { "half a multiplier over three aspects gave ${halved.price}" }
+        check(wide.price == Word.INK_PER_NARROWED_PART) { "one barred part of three cost ${wide.price}" }
+        val leaning = wide.copy(
+            tier = Tier.EVOCATIVE,
+            restricts = emptyMap(),
+            biases = mapOf(Aspect.SEA to mapOf("#molten" to 1.0)),
+        )
+        check(leaning.price == Word.FLOOR_PRICE) { "a word that only leans cost ${leaning.price}" }
     }
 
     /**

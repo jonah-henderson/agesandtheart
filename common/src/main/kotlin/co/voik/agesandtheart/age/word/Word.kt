@@ -776,41 +776,40 @@ data class Word(
     }
 
     /**
-     * **How many places this page may be laid** — the second half of what it costs (world model §9).
+     * **How many parts of the world this page narrows** — what its ink is counted in (world model §3,
+     * "Retiring tier"; Jonah, 2026-09-30).
      *
-     * An evocative word is one: it may only ever be written on the Age itself, which is what makes it the
-     * cheapest thing in the language. A narrowing word is at home in as many parts of the world as it
-     * declares, and one that landed nowhere is priced as though it landed somewhere — being empty on
-     * purpose so `DerivedAspectsCheck` can refuse it, not so it can be free.
-     *
-     * **How much reaching further is worth is the word's own to say** ([Tier.versatilityMultiplier]). It
-     * used to be read off `narrows`, which made the two inseparable: a word that narrows and wants a flat
-     * price had no way to say so.
-     *
-     * **Never below one**, so no page is ever free. That floor is what a multiplier of zero means — the
-     * base cost, flat — and it is what keeps the beginner's sentence the cheapest thing in the language
-     * rather than the free one.
+     * Only what narrows counts: a part the word chooses, excludes, bars or settles a value in, a minting
+     * and a template one part apiece, and **a pool as many parts as it draws**, since that is how much of it
+     * any one Age takes. Leans, offers and bent ranges count for nothing, so a word that only nudges narrows
+     * nothing and costs the floor.
      */
-    val versatility: Double get() {
-        val reach = aspects.size.coerceAtLeast(ONE_PLACE)
-        return (reach * tier.versatilityMultiplier).coerceAtLeast(ONE_PLACE.toDouble())
+    val narrowedParts: Int get() {
+        if (!tier.narrows) return 0
+        fun settlesIn(aspect: Aspect) = sets.keys.any { landsOn(it, aspect) }
+        val narrowed = aspects.filter { constrainsPresetsIn(it) || settlesIn(it) }.toSet()
+        val minted = if (mints != null && Aspect.FEATURES !in narrowed) ONE_PLACE else 0
+        val templated = if (template != null) ONE_PLACE else 0
+        val drawn = pools.sumOf { pool -> minOf(pool.draws.most, pool.offers.size) }
+        return narrowed.size + minted + templated + drawn
     }
 
+    /** [narrowedParts] as a price's multiplier — **never below one**, so no page is ever free. */
+    val versatility: Double get() = narrowedParts.coerceAtLeast(ONE_PLACE).toDouble()
+
     /**
-     * **What this page costs: specificity × versatility** (world model §9).
+     * **What this page costs: [INK_PER_NARROWED_PART] for every part it narrows** — fixed, and the same
+     * wherever the page is laid and whatever an [unaimed] roll gives (Jonah, 2026-09-30).
      *
-     * Precision is what a writer is buying, so precision is priced; and a page usable in several places is
-     * a better page to own than one usable in one, so **the charge is for what the page *can* do** and is
-     * the same wherever it is laid. `clear` is a clear sky and clear water alike where `murky` is only ever
-     * the water, and the dearer of the two is the one worth owning.
+     * A page with many uses is dear and a narrow one cheap, made scarce instead by being hard to find; and
+     * the versatile pages worth re-seeding a book for are the ones that cost most to write again. A word
+     * that only nudges costs the floor, which keeps the beginner's sentence the cheapest thing in the
+     * language.
      *
-     * One number with two readers, which is the point of it being here rather than in either: the book's
-     * cost is the sum of its pages ([Resolver.resolve]) and the page's own
-     * price is what the desk charges for writing it (`WriteCost`). They were separately computed and
-     * disagreed — the desk priced by tier alone, so versatility was charged to a book nobody paid for and
-     * not to the page anybody buys.
+     * One number with two readers: the book's cost is the sum of its pages ([Resolver.resolve]) and the
+     * page's own price is what the desk charges for writing it (`WriteCost`).
      */
-    val price: Int get() = (tier.cost * versatility).roundToInt().coerceAtLeast(0)
+    val price: Int get() = if (narrowedParts == 0) FLOOR_PRICE else INK_PER_NARROWED_PART * narrowedParts
 
     /**
      * How well [tags] answers what this word narrowed [aspect] to: **how far past its bar the member's best
@@ -883,6 +882,15 @@ data class Word(
 
         /** What a page at home in one part of the world is worth, as versatility — see [Word.price]. */
         private const val ONE_PLACE = 1
+
+        /**
+         * The ink a narrowed part costs — what an exact word reaching one part cost under the tiers, so the
+         * block and biome words, which are most of what anybody writes, cost what they did.
+         */
+        const val INK_PER_NARROWED_PART = 4
+
+        /** What a page that narrows nothing costs: the least any page costs, and never nothing. */
+        const val FLOOR_PRICE = 1
 
         /** What keeps the two pools' draws independent — see [Word.requestsDrawnAt]. */
         private const val REQUIRED_SALT = 0L

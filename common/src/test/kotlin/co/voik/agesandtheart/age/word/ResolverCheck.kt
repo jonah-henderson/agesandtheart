@@ -380,13 +380,16 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * The exact word costs more than its restrictive synonym. `burning` and `molten` name the same tag at
-     * different rungs; if they priced the same, the ladder would be decoration.
+     * **A page is charged for what it narrows** (world model §3, "Retiring tier"): `drowned` narrows the sea
+     * and the rock where `molten` narrows the sea alone, so it is the dearer page; `burning` and `molten` bar
+     * the same tag at different heights and narrow the same one part, so they cost the same.
      */
-    test("precision costs more") {
-        val vague = resolve(vocabulary, "burning").cost
-        val exact = resolve(vocabulary, "molten").cost
-        check(exact > vague) { "'molten' cost $exact and 'burning' cost $vague, so precision is free" }
+    test("reach costs more, and precision does not") {
+        val one = resolve(vocabulary, "molten").cost
+        val two = resolve(vocabulary, "drowned").cost
+        check(two > one) { "'drowned' cost $two and 'molten' cost $one, so reach is free" }
+        val burning = resolve(vocabulary, "burning").cost
+        check(burning == one) { "'burning' cost $burning and 'molten' $one, where both narrow the sea alone" }
     }
 
     /**
