@@ -339,7 +339,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Thirty-three Mixins and one accessor in `common`, one more in `fabric`, all Java.**
+**4. Thirty-four Mixins and one accessor in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -371,6 +371,10 @@ When shared code needs something loader-specific, it goes through an interface, 
   through without the blocks under it, and the third answers no fluid for the camera, whose water fog and
   narrowed field of view the player's own readings never reached. Neither loader has an event for any of
   the three. **Vanilla's section list and mesher only** — Sodium replaces both (`notes/before-release.md`).
+- **`FlowingFluidMixin`** — an ebbing tide does not refill itself. The ebb takes the sources above where
+  the tide stands and vanilla's infinite-water rule turned the flows back into sources as fast as they
+  drained; this refuses that conversion only inside the tide's band and above where it stands
+  (`Tide.holdsBack`), since `canConvertToSource` takes no position and its caller `getNewLiquid` does.
 - **`BubbleColumnBlockMixin`** — in a level with an abyss, every bubble column is `DeepBubbleColumnBlock`'s, so one column runs on through ordinary water and deep water, each block keeping the water it replaced. In 26.1 a column is raised by the liquid over magma or soul sand calling the static `updateColumn`; neither loader has an event for it, and vanilla places its blocks without notifying anything, so a column stopped at the abyss had nothing to tell the deep water above to carry it on. Only vanilla's own column, only where there is an abyss.
 
 The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.

@@ -63,6 +63,23 @@ object Tide {
     fun isForcedIn(level: ServerLevel): Boolean = level in forced
 
     /**
+     * The band each Age's tide was last worked at — set by [flow] while a tide runs, and gone the pass it
+     * stops. Not saved, and needs no saving: the next pass sets it again from the clock.
+     */
+    private val working: MutableMap<ServerLevel, Band> = Collections.synchronizedMap(WeakHashMap())
+
+    /**
+     * Whether the tide is holding water back at [at] — inside its band and above where it stands — which is
+     * the one place vanilla's infinite-water rule must not turn a drained flow back into a source, or the
+     * ebb refills as fast as it drains (`FlowingFluidMixin`). Only water the tide itself moves is refused:
+     * outside the band, below the tide, and in an Age with no tide, the rule is vanilla's.
+     */
+    fun holdsBack(level: ServerLevel, at: BlockPos): Boolean {
+        val band = working[level] ?: return false
+        return at.y > band.standing && at.y <= band.high
+    }
+
+    /**
      * How hard each moon [composition] describes pulls the sea, nought to one, in the order the sky draws
      * them. Empty where the Age has no moon, and nought for a moon nothing gave a pull.
      */
@@ -135,16 +152,15 @@ object Tide {
      * [pulls] pulls, or a tide was forced by hand.
      */
     fun flow(level: ServerLevel, pulls: List<Double>) {
-        val written = pulls.takeIf(::isTidal)
-        if (written == null && !isForcedIn(level)) return
-        val standing = seaOf(level.chunkSource.generator) ?: return
-        val mid = standing.top
-        val sea = standing.block
-        val stage = stageIn(level, written) ?: return
+        val band = bandIn(level, pulls)
+        if (band == null) {
+            working -= level
+            return
+        }
+        working[level] = band
+        val sea = seaOf(level.chunkSource.generator)?.block ?: return
         val inView = Sampling.inViewNearestFirst(level)
         if (inView.isEmpty()) return
-        val reach = written?.let(::reachOf) ?: WIDEST_REACH
-        val band = Band(low = mid - reach, standing = mid + stage.offset * reach, high = mid + reach)
         // As the deluge does it: where a pass starts is derived from the clock, so nothing holds a cursor.
         val from = ((level.gameTime * CHUNKS_A_TICK) % inView.size).toInt()
         for (step in 0..<CHUNKS_A_TICK) {
@@ -152,6 +168,16 @@ object Tide {
             val chunk = level.chunkSource.getChunkNow(ChunkPos.getX(packed), ChunkPos.getZ(packed)) ?: continue
             flowIn(level, chunk, band, sea)
         }
+    }
+
+    /** Where the tide in [level] is working now, or null where it has no tide: no pull, no sea, or no moon. */
+    private fun bandIn(level: ServerLevel, pulls: List<Double>): Band? {
+        val written = pulls.takeIf(::isTidal)
+        if (written == null && !isForcedIn(level)) return null
+        val mid = seaOf(level.chunkSource.generator)?.top ?: return null
+        val stage = stageIn(level, written) ?: return null
+        val reach = written?.let(::reachOf) ?: WIDEST_REACH
+        return Band(low = mid - reach, standing = mid + stage.offset * reach, high = mid + reach)
     }
 
     /** The band's three heights: its bottom, where the tide stands now, and its top. */
