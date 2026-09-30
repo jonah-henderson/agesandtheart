@@ -252,7 +252,7 @@ data class Formation(
      * The **lowest** ground under the mouth, with the ground standing higher cut away over it ([cutAway]),
      * so on a hillside the pit is a hollow dug into the slope with a bank on its uphill side rather than
      * standing proud of the ground below. A lake refuses a spot where its bowl would be open to the side;
-     * this refuses one where the bank would be taller than [DEEPEST_CUT].
+     * this refuses one where the bank would be taller than [tallestBankFor] its width.
      *
      * Sampled on a coarse grid, since every chunk the formation crosses asks and all of them must reach the
      * same answer.
@@ -273,8 +273,11 @@ data class Formation(
             }
         }
         if (lowest == Int.MAX_VALUE) return null
-        return lowest.takeIf { highest - lowest <= DEEPEST_CUT }
+        return lowest.takeIf { highest - lowest <= tallestBankFor(formation.reach) }
     }
+
+    /** A wider pit cuts a taller bank, so a colossal one is not refused by every slope under it. */
+    private fun tallestBankFor(reach: Double): Int = maxOf(DEEPEST_CUT, (reach * BANK_PER_BLOCK_OF_REACH).toInt())
 
     /** The ground over a sunk formation's mouth, from [anchor] up to where this column's own ground stood. */
     private fun cutAway(anchor: Int, ground: Int, x: Int, z: Int, clear: (BlockPos) -> Unit) {
@@ -345,10 +348,13 @@ data class Formation(
         private const val FORMATION_MINGLING = 3.5
 
         /**
-         * The tallest bank a sunk formation will cut on its uphill side. A surface lake's bowl is eight deep
-         * with four of air over its fluid, so this is about what one of those tolerates before refusing.
+         * The tallest bank a small sunk formation will cut on its uphill side. A surface lake's bowl is eight
+         * deep with four of air over its fluid, so this is about what one of those tolerates before refusing.
          */
         private const val DEEPEST_CUT = 5
+
+        /** How much taller a sunk formation's bank may be for every block from its middle to its rim. */
+        private const val BANK_PER_BLOCK_OF_REACH = 0.4
 
         /**
          * How far a sunk formation's mouth sits under the ground it was dug into. Flush, a pit read as a

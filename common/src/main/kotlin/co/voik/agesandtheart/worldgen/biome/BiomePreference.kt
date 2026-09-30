@@ -119,8 +119,40 @@ data class BiomePreference(
                 Constants.LOG.warn("An Age narrowed its biomes down to none; the narrowing is ignored")
                 return table
             }
-            return Climate.ParameterList(kept)
+            return Climate.ParameterList(rankedWhereTheyOverlap(kept, preferences, alreadyHere))
         }
+
+        /**
+         * [entries] with an offset by how strongly each biome was asked for, so where a widened or introduced
+         * box overlaps another, **the biome asked for answers, and always the same one**.
+         *
+         * A point inside two boxes is at distance nought from both, and vanilla's search keeps whichever it
+         * met first, starting from the last answer it gave on that thread — so a column in an overlap read
+         * as either biome depending on what had been looked up before it. The offset is added to every
+         * distance, so a step of one quantized unit decides a tie and moves nothing else measurably.
+         */
+        private fun rankedWhereTheyOverlap(
+            entries: List<Pair<Climate.ParameterPoint, Holder<Biome>>>,
+            preferences: List<BiomePreference>,
+            alreadyHere: Set<Identifier>,
+        ): List<Pair<Climate.ParameterPoint, Holder<Biome>>> {
+            fun claimsMoreClimate(preference: BiomePreference) =
+                !preference.removes && (preference.weight > ORDINARY || preference.biome !in alreadyHere)
+            val strongestFirst = preferences.filter(::claimsMoreClimate)
+                .sortedWith(compareByDescending<BiomePreference> { it.weight }.thenBy { it.biome.toString() })
+                .map { it.biome }
+                .distinct()
+            val rankOf = strongestFirst.withIndex().associate { (rank, biome) -> biome to rank.toLong() }
+            val everyOtherRank = strongestFirst.size.toLong()
+            return entries.map { entry ->
+                val rank = rankOf[idOf(entry.second)] ?: everyOtherRank
+                Pair(entry.first.offsetBy(rank * TIE_STEP), entry.second)
+            }
+        }
+
+        private fun Climate.ParameterPoint.offsetBy(extra: Long) = Climate.ParameterPoint(
+            temperature(), humidity(), continentalness(), erosion(), depth(), weirdness(), offset() + extra,
+        )
 
         /**
          * The entries a biome the table has **never heard of** earns — everything already in it is scaled
@@ -256,6 +288,9 @@ data class BiomePreference(
         private val SURFACE_DEPTH = Climate.quantizeCoord(0.1f)
 
         private const val BIOME_MIXER = -0x61c8_8646_80b5_83ebL
+
+        /** One quantized climate unit: the least offset that tells two entries apart. */
+        private const val TIE_STEP = 1L
 
         private fun idOf(biome: Holder<Biome>): Identifier? = biome.unwrapKey().orElse(null)?.identifier()
     }

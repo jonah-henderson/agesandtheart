@@ -44,6 +44,12 @@ sealed interface Placement {
     /** The same layout with every distance multiplied by [factor], so a resized field spreads to match. */
     fun resized(factor: Double): Placement
 
+    /**
+     * The same layout holding [amount] times as many instances over the same ground: its spacing shrunk by
+     * the root of [amount], and nothing else, so the patches and the falloff stay where they were.
+     */
+    fun timesAsMany(amount: Double): Placement
+
     companion object {
         val CODEC: Codec<Placement> = PlacementKind.CODEC.dispatch(
             "type",
@@ -182,6 +188,11 @@ data class Grid(val spacing: Double, val jitter: Double, val density: Density) :
     override fun resized(factor: Double) =
         Grid(spacing * factor, jitter * factor, density.resized(factor))
 
+    override fun timesAsMany(amount: Double): Grid {
+        val closer = sqrt(amount)
+        return copy(spacing = spacing / closer, jitter = jitter / closer)
+    }
+
     companion object {
         val CODEC: MapCodec<Grid> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -257,6 +268,11 @@ data class Radial(
 
     override fun resized(factor: Double) =
         Radial(ringSpacing * factor, arcSpacing * factor, jitter * factor, density.resized(factor))
+
+    override fun timesAsMany(amount: Double): Radial {
+        val closer = sqrt(amount)
+        return copy(ringSpacing = ringSpacing / closer, arcSpacing = arcSpacing / closer, jitter = jitter / closer)
+    }
 
     companion object {
         val CODEC: MapCodec<Radial> = RecordCodecBuilder.mapCodec { instance ->
@@ -342,6 +358,8 @@ data class Scatter(
     // Counts are unitless — a bigger world holds the same number per (bigger) cell, which is what keeps
     // a resized scatter looking like the same scatter rather than a denser one.
     override fun resized(factor: Double) = copy(cellSize = cellSize * factor, density = density.resized(factor))
+
+    override fun timesAsMany(amount: Double) = copy(cellSize = cellSize / sqrt(amount))
 
     companion object {
         // Any value no instance index can take. Instances count up from zero, so below zero is free.

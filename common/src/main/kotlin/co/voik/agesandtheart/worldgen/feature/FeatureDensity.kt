@@ -54,6 +54,13 @@ object FeatureDensity {
             val richer = vein.copy(abundance = vein.abundance * density)
             return Holder.direct(PlacedFeature(Holder.direct(richer), placed.placement()))
         }
+        // A formation lays the same copies wherever it runs, so running it twice lays them twice. More of it
+        // is its own layout packed closer.
+        val formation = placed.feature().value() as? Formation
+        if (formation != null && density > NONE) {
+            val closer = formation.copy(placement = formation.placement.timesAsMany(density))
+            return Holder.direct(PlacedFeature(Holder.direct(closer), placed.placement()))
+        }
         val asOftenAsAsked = CountPlacement.of(timesOver(density))
         return Holder.direct(PlacedFeature(placed.feature(), listOf(asOftenAsAsked) + placed.placement()))
     }

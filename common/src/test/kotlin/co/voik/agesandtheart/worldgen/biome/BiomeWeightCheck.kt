@@ -49,10 +49,23 @@ class BiomeWeightCheck : FunSpec({
         val grown = applied(BiomePreference(FAVOURED, ABOVE_ORDINARY))
         // The boxes, not the entries: a standalone holder is equal only to itself, and every table built
         // here builds its own.
-        val untouched = entriesFor(grown, IGNORED).map { it.first }
-        check(untouched == entriesFor(table(), IGNORED).map { it.first }) {
+        val untouched = entriesFor(grown, IGNORED).map { climateOf(it.first) }
+        check(untouched == entriesFor(table(), IGNORED).map { climateOf(it.first) }) {
             "speaking about one biome moved another: $untouched"
         }
+    }
+
+    // Vanilla's search keeps the first of two equally near entries, starting from its last answer, so an
+    // overlap answered by whatever had been looked up before it.
+    test("where boxes overlap, the biome asked for answers, whatever was looked up before") {
+        // The unnamed biome first, so a search that keeps the first equal it meets would answer it.
+        val grown = applied(BiomePreference(FAVOURED, ABOVE_ORDINARY), from = table(IGNORED, FAVOURED))
+        val inBoth = targetAt(0.0f)
+        val answers = listOf(0.0f, 0.2f, -0.9f, 0.9f, 0.1f).map { elsewhere ->
+            grown.findValue(targetAt(elsewhere))
+            grown.findValue(inBoth).unwrapKey().orElse(null)?.identifier()
+        }
+        check(answers.all { it == FAVOURED }) { "a point inside both biomes' boxes answered $answers" }
     }
 
     test("except deletes a biome's entries") {
@@ -100,20 +113,35 @@ private const val A_SEED = 7L
 private fun applied(
     vararg preferences: BiomePreference,
     keepsOnlyNamed: Boolean = false,
+    from: Climate.ParameterList<Holder<Biome>> = table(),
 ): Climate.ParameterList<Holder<Biome>> {
-    return BiomePreference.applied(table(), preferences.toList(), keepsOnlyNamed, NO_BIOMES, A_SEED)
+    return BiomePreference.applied(from, preferences.toList(), keepsOnlyNamed, NO_BIOMES, A_SEED)
 }
 
-/** A table of two biomes, three boxes each — enough to tell "resized" from "gone" and from "untouched". */
-private fun table(): Climate.ParameterList<Holder<Biome>> = Climate.ParameterList(
-    listOf(FAVOURED, IGNORED).flatMap { biome ->
-        (0..<ENTRIES_EACH).map { entry -> Pair(boxAt(entry * ENTRY_STRIDE), standaloneHolder(biome)) }
-    },
-)
+/**
+ * A table of two biomes, three boxes each — enough to tell "resized" from "gone" and from "untouched". The
+ * two share their boxes, so every point in one is in the other.
+ */
+private fun table(vararg biomes: Identifier = arrayOf(FAVOURED, IGNORED)): Climate.ParameterList<Holder<Biome>> =
+    Climate.ParameterList(
+        biomes.toList().flatMap { biome ->
+            (0..<ENTRIES_EACH).map { entry -> Pair(boxAt(entry * ENTRY_STRIDE), standaloneHolder(biome)) }
+        },
+    )
 
 private fun boxAt(middle: Float): Climate.ParameterPoint {
     val box = Climate.Parameter.span(middle - SAMPLE_HALF_WIDTH, middle + SAMPLE_HALF_WIDTH)
     return Climate.ParameterPoint(box, box, box, box, box, box, 0L)
+}
+
+/** A box's six climate parameters, without the offset that only breaks ties. */
+private fun climateOf(point: Climate.ParameterPoint) = with(point) {
+    listOf(temperature(), humidity(), continentalness(), erosion(), depth(), weirdness())
+}
+
+private fun targetAt(value: Float): Climate.TargetPoint {
+    val quantized = Climate.quantizeCoord(value)
+    return Climate.TargetPoint(quantized, quantized, quantized, quantized, quantized, quantized)
 }
 
 private fun entriesFor(table: Climate.ParameterList<Holder<Biome>>, biome: Identifier) =
