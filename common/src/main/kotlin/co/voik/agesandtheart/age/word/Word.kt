@@ -408,7 +408,8 @@ data class Word(
      * `polar` sets a cold temperature and a polar path, and lists the sun and the moon at a quarter: `polar
      * sun` always sets the path, `polar climate` always the cold, and a polar Age is always cold and now and
      * then has a polar sun. One word, whose reach laid bare is a gamble and aimed is certain. Rolled per Age
-     * off the seed ([Resolver.resolve]), so an Age rebuilds identically.
+     * off the seed ([Resolver.resolve]), so an Age rebuilds identically. **It never moves the price**: ink is
+     * a fact about the word written, the same wherever it is laid (Jonah, 2026-09-30).
      */
     val unaimed: Map<Aspect, Double> = emptyMap(),
 ) {
@@ -809,18 +810,6 @@ data class Word(
      * not to the page anybody buys.
      */
     val price: Int get() = (tier.cost * versatility).roundToInt().coerceAtLeast(0)
-
-    /**
-     * What this page costs **laid bare**: [price], with each part of the world counted at its [unaimed]
-     * chance — a polar sun one Age in four is a quarter of a place. What the desk charges for the page is
-     * still [price], since a page may be laid anywhere once written.
-     */
-    val barePrice: Int get() {
-        if (unaimed.isEmpty()) return price
-        val reach = aspects.sumOf { unaimed[it] ?: 1.0 }.coerceAtLeast(ONE_PLACE.toDouble())
-        val versatility = (reach * tier.versatilityMultiplier).coerceAtLeast(ONE_PLACE.toDouble())
-        return (tier.cost * versatility).roundToInt().coerceAtLeast(0)
-    }
 
     /**
      * How well [tags] answers what this word narrowed [aspect] to — the number a narrowing word

@@ -301,10 +301,7 @@ object Resolver {
             instability = Instability(flaws.toList()),
             // Structure is priced too: every page a writer lays costs ink, and a page that made no
             // claim still came out of the pot. A latent page came out of nobody's pot.
-            // A bare page is charged for what it is likely to reach rather than for this Age's roll, so two
-            // seeds of one book cost the same.
-            cost = sentence.written.sumOf { if (it.laidBare) it.word.barePrice else it.word.price } +
-                sentence.structural.sumOf { it.cost },
+            cost = sentence.written.sumOf { it.word.price } + sentence.structural.sumOf { it.cost },
             words = sentence.words,
             template = template,
             dropped = sentence.unreadable,

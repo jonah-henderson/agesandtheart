@@ -56,12 +56,14 @@ class UnaimedCheck : FunSpec({
         check(PaperTreeWindow.isPolar(Sky.specFor(age, SEEDS.first))) { "'polar sun' did not read as polar" }
     }
 
-    test("laid bare, a page costs what it is likely to reach") {
+    test("a page costs the same wherever it is laid, and whatever the roll") {
         val polar = ShippedCorpus.vocabulary.word("polar") ?: error("no 'polar'")
-        check(polar.barePrice < polar.price) { "bare ${polar.barePrice} is no cheaper than ${polar.price}" }
-        val bareCost = Resolver.resolve(ShippedCorpus.vocabulary, ShippedCorpus.read(listOf("polar", "age")), 1L).cost
-        val otherSeed = Resolver.resolve(ShippedCorpus.vocabulary, ShippedCorpus.read(listOf("polar", "age")), 2L).cost
-        check(bareCost == otherSeed) { "one bare book cost $bareCost and $otherSeed at two seeds" }
+        fun costOf(pages: List<String>, seed: Long) =
+            Resolver.resolve(ShippedCorpus.vocabulary, ShippedCorpus.read(pages), seed).cost
+        val bare = SEEDS.map { costOf(listOf("polar", "age"), it) }.toSet()
+        check(bare.size == 1) { "one bare book cost $bare across seeds" }
+        val structure = costOf(listOf("age"), SEEDS.first)
+        check(bare.single() - structure == polar.price) { "bare 'polar' was charged ${bare.single() - structure}" }
     }
 })
 

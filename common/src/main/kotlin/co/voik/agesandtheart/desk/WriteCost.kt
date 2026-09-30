@@ -11,8 +11,7 @@ import net.minecraft.core.RegistryAccess
  * Two independent axes meet here, and keeping them apart is the point (design §7.1.1). **Which** ink a
  * word demands comes from the referent's tags — a diamond needs the good ink however vaguely you use it.
  * **How much** comes from [Word.price], which is specificity times versatility (world model §9) and the
- * same number a book's cost is the sum of — but for a bare page with [Word.unaimed] chances, which a book
- * charges at [Word.barePrice]. Paper discounts the amount without ever touching the tier, so
+ * same number a book's cost is the sum of. Paper discounts the amount without ever touching the tier, so
  * it eases the economy but can never unlock a word. The sheets a book takes are the book's business — see
  * [sheetsFor] and [BookCost].
  */
