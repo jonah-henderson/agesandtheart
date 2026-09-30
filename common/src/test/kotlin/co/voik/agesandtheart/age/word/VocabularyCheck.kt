@@ -35,6 +35,12 @@ class VocabularyCheck : FunSpec({
     val vocabulary by lazy { Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen) }
 
     /**
+     * Every way every word reads — laid bare and aimed — since a rule about what a word may do holds of
+     * each reading on its own terms: an aimed `polar` narrows, and must say what it is about.
+     */
+    val everyReading by lazy { vocabulary.words.flatMap { it.everyReading } }
+
+    /**
      * Nothing failed to load.
      *
      * First because everything below is weaker than it looks if a file was quietly skipped: a word that never
@@ -193,7 +199,7 @@ class VocabularyCheck : FunSpec({
      * namespaced id, because `presetFor` parses rather than looks up and the content may arrive later.
      */
     test("a word means something the part of the world it is meant in could hold") {
-        for (word in vocabulary.words.distinct()) {
+        for (word in everyReading.distinct()) {
             for ((aspect, key) in word.chooses) {
                 val oneOfOurDesigns = aspect.ownsPresetNamed(key)
                 val anEntryOfItsRegistry = aspect.presetsAreEntriesOf != null && namesARegistryEntry(key)
@@ -215,7 +221,7 @@ class VocabularyCheck : FunSpec({
      * make that fair. Offered, it fills an empty sky and vanishes the moment a clause mints a body.
      */
     test("no word insists on a cast") {
-        for (word in vocabulary.words) {
+        for (word in everyReading) {
             val demanded = word.required.everything.keys
                 .filter { it.substringAfterLast('.') == Parameter.CAST }
             check(demanded.isEmpty()) {
@@ -231,7 +237,7 @@ class VocabularyCheck : FunSpec({
      * never land — a page paid for that says nothing, which is §3.3's silent drop again.
      */
     test("no word both demands and offers one parameter") {
-        for (word in vocabulary.words) {
+        for (word in everyReading) {
             val both = word.required.everything.keys intersect word.requests.everything.keys
             check(both.isEmpty()) {
                 "'${word.name}' both demands and offers ${both.joinToString()}, so the offer can never land"
@@ -245,7 +251,7 @@ class VocabularyCheck : FunSpec({
      * touch, so `stormy` pins the terrain to caverns and throws `floating` away in silence.
      */
     test("every narrowing word says what it is about") {
-        for (word in vocabulary.words.filter { it.tier.narrows && it.template == null }) {
+        for (word in everyReading.filter { it.tier.narrows && it.template == null }) {
             check(word.aspects.isNotEmpty()) {
                 "'${word.name}' is ${word.tier.key} but names no aspect, so it would narrow every aspect its tags " +
                     "reach — which is how a word about the sky ends up choosing the ground"
@@ -538,7 +544,7 @@ class VocabularyCheck : FunSpec({
      * arriving with its answer in hand, dropping the lean it was written for as well.
      */
     test("a word that does not narrow only nudges") {
-        val deciding = vocabulary.authoredWords
+        val deciding = vocabulary.authoredWords.flatMap { it.everyReading }
             .filter { !it.tier.narrows && it.decidesOutright.isNotEmpty() }
             .map { "${it.name} (${it.decidesOutright.joinToString(", ")})" }
         check(deciding.isEmpty()) {

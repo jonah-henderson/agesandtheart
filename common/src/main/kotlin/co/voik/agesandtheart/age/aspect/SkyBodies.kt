@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.aspect
 import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.ephemeris.sky.Appearance
 import co.voik.ephemeris.sky.CelestialBody
+import co.voik.ephemeris.sky.CelestialPath
 import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.SkySpec
 import kotlin.math.roundToInt
@@ -131,6 +132,20 @@ object SkyBodies {
     )
 
     /**
+     * The shape of a body's path, or [Parameter.DEFAULT] for the one it was drawn with.
+     *
+     * **`polar`**: a circle held at one height just over the horizon, never setting and never climbing —
+     * perpetual twilight under a sun, a tide held at one level under a moon, and the paper tree's window
+     * (design §7.1.2). Its height is [POLAR_LIFT]; the design leaves where the circle sits open, and a second
+     * value is how a writer would ask for it lower or higher.
+     */
+    val PATH = Parameter(
+        "path",
+        listOf(Parameter.DEFAULT, POLAR),
+        help = "The shape of this body's path across the sky.",
+    )
+
+    /**
      * One body as **its own clause** described it, which is the whole point of minting (world model §2).
      *
      * `SkySpec.drawn` builds a sky out of what is true of all of them, which is everything a count could
@@ -148,9 +163,31 @@ object SkyBodies {
         }
         // Aimed from the path it already has, so a spare body keeps the wander the draw gave it and only
         // the horizon it comes up over moves.
-        val path = rising?.let { Orbit.risingAt(it, body.path as? Orbit ?: Orbit.VANILLA_SUN) } ?: body.path
+        val risen = rising?.let { Orbit.risingAt(it, body.path as? Orbit ?: Orbit.VANILLA_SUN) } ?: body.path
+        // A polar body circles the horizon, so which horizon it rises over has nothing left to say.
+        val path = if (own.of(PATH) == POLAR) polarPathFrom(body.path) else risen
         return body.copy(appearance = appearance, path = path)
     }
+
+    /**
+     * A circle round the pole at [POLAR_LIFT], keeping the body's own period, phase and distance — so a
+     * polar sun still goes round once a day and a polar moon keeps its month.
+     */
+    private fun polarPathFrom(path: CelestialPath): Orbit {
+        val drawn = path as? Orbit ?: Orbit.VANILLA_SUN.copy(distance = path.distance)
+        return drawn.copy(inclinationDegrees = POLE, liftDegrees = POLAR_LIFT)
+    }
+
+    private const val POLAR = "polar"
+
+    /** An inclination that stands the circle on the horizon's own plane. */
+    private const val POLE = 90.0f
+
+    /**
+     * Two degrees over the horizon: the light a sun there casts is about thirteen of fifteen
+     * (`LevelDaylight`'s ramp), dim and steady, and never night.
+     */
+    private const val POLAR_LIFT = 2.0f
 
     private const val DENSEST_STARS = 3
 

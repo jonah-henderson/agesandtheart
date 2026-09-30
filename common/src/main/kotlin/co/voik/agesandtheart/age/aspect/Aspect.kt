@@ -301,8 +301,11 @@ enum class Aspect(
             AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE)
             WATERS -> listOf(Atmosphere.MURK)
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER)
-            SUN -> listOf(SkyBodies.ABSENT, SkyBodies.SUNSIZE, SkyBodies.SUNCOLOUR, SkyBodies.RISING, Parameter.cast())
-            MOON -> listOf(SkyBodies.ABSENT, SkyBodies.RISING, Parameter.cast())
+            SUN -> listOf(
+                SkyBodies.ABSENT, SkyBodies.SUNSIZE, SkyBodies.SUNCOLOUR, SkyBodies.RISING, SkyBodies.PATH,
+                Parameter.cast(),
+            )
+            MOON -> listOf(SkyBodies.ABSENT, SkyBodies.RISING, SkyBodies.PATH, Parameter.cast())
             STARS -> listOf(SkyBodies.STARS, SkyBodies.STARGLOW)
             GRASS -> listOf(Atmosphere.GRASSCOLOUR)
             LEAVES -> listOf(Atmosphere.LEAFCOLOUR)

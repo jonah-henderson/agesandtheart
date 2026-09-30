@@ -37,10 +37,11 @@ class WriteCostCheck : FunSpec({
 
     /**
      * What a word *ought* to cost, as a share of a bucket, before anything rounds — the definition the
-     * economy is stated in rather than a number read back out of the code.
+     * economy is stated in rather than a number read back out of the code. A page is bought before it is
+     * laid, so it costs its dearest reading.
      */
     fun idealShare(word: Word, paper: InkTier): Double =
-        word.price * (WriteCost.paperEfficiency(paper)) / WriteCost.COST_UNITS_PER_BUCKET
+        word.everyReading.maxOf { it.price } * (WriteCost.paperEfficiency(paper)) / WriteCost.COST_UNITS_PER_BUCKET
 
     /**
      * **Every price lands within one of the loader's own units of the true one.**

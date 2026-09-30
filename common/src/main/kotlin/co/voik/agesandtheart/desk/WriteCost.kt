@@ -10,8 +10,8 @@ import net.minecraft.core.RegistryAccess
  *
  * Two independent axes meet here, and keeping them apart is the point (design §7.1.1). **Which** ink a
  * word demands comes from the referent's tags — a diamond needs the good ink however vaguely you use it.
- * **How much** comes from [Word.price], which is specificity times versatility (world model §9) and the
- * same number a book's cost is the sum of. Paper discounts the amount without ever touching the tier, so
+ * **How much** comes from [Word.pagePrice], its dearest reading's specificity times versatility (world
+ * model §9) — for a word with one reading, the same number a book's cost is the sum of. Paper discounts the amount without ever touching the tier, so
  * it eases the economy but can never unlock a word. The sheets a book takes are the book's business — see
  * [sheetsFor] and [BookCost].
  */
@@ -96,7 +96,7 @@ data class WriteCost(
             val perUnit = unitsPerBucket.toDouble() / COST_UNITS_PER_BUCKET
             val efficiency = paperEfficiency(paperTier)
             // Rounded up, so better paper makes a word cheaper but never free.
-            val units = Math.ceil(word.price * perUnit * efficiency).toLong().coerceAtLeast(1L)
+            val units = Math.ceil(word.pagePrice * perUnit * efficiency).toLong().coerceAtLeast(1L)
             return WriteCost(required, units, paperTier)
         }
     }

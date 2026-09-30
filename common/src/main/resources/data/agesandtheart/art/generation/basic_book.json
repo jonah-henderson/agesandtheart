@@ -91,8 +91,7 @@
       {"produce":["shattered"]}
     ],
     "cold": [
-      {"weight":2.0,"produce":["frozen","climate"]},
-      {"produce":["icy","climate"]}
+      {"produce":["frozen","climate"]}
     ],
     "temperstone_age": [
       {"produce":["age","[seaworthy_landmass]","landmass","scorching","climate","lava","sea"]},

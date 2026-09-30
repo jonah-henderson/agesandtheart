@@ -82,7 +82,7 @@ rime_crystal_age =
 # Sheer ground first: rime is won by climbing, and ramps with height.
 rime_crystal_landmasses = [typical_landmass]@3 | mountainous@2 | sheer@2 | pillared | cleft | shattered
 
-cold = frozen climate@2 | icy climate
+cold = frozen climate
 
 # Temperstone: every climate as hot as a desert, and a lava sea. Named `lava` rather than `molten`, which
 # could draw a sea of magma and pass no gate.

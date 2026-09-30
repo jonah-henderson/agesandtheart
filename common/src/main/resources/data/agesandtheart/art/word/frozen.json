@@ -15,15 +15,31 @@
     "",
     "The ground may be frozen too, drawn by tag from whatever a world can be made of that is -- snow and ice,",
     "never the packed or blue ice a broad word is fenced from. The rock is only offered, since a world built",
-    "of ice is a stronger thing to have said than a world dressed in snow. The sea and biomes lean cold."
+    "of ice is a stronger thing to have said than a world dressed in snow. The sea and biomes lean cold.",
+    "",
+    "**`icy` folded in** (the readings spike, 2026-09-29): its aurora, its refusal of a molten sea, its lean to",
+    "ice spikes and its offers across the rainbow, the air, the vault and the aurora are frozen's now. Two words",
+    "that looked as though they should differ and did not, which is the case for having one."
   ],
   "tier": "restrictive",
+  "admits": {
+    "phenomena": [
+      "aurora"
+    ]
+  },
+  "excludes": {
+    "sea": [
+      "#molten"
+    ]
+  },
   "biases": {
     "sea": {
       "#frozen": 0.5
     },
     "biomes": {
-      "#frozen": 0.5
+      "#frozen": 0.5,
+      "minecraft:ice_spikes": 0.6,
+      "minecraft:frozen_ocean": 0.1
     }
   },
   "sets": {
@@ -50,6 +66,50 @@
           "motes": "snow",
           "stars.glow": "+0.2"
         }
+      },
+      {
+        "draws": "4",
+        "facets": [
+          {
+            "rainbow.colour": "white|blue",
+            "rainbow.rain": "-1..-1",
+            "rainbow.frequency": "0.7..1",
+            "rainbow.size": "-0.6..-0.2"
+          },
+          {
+            "air.colour": "white|grey"
+          },
+          {
+            "air.haze": "+0.4"
+          },
+          {
+            "air.motes": "snow"
+          },
+          {
+            "sky.ceiling": "-0.3"
+          },
+          {
+            "sky.colour": "default|blue|white|grey"
+          },
+          {
+            "air.tint": "white|grey|blue"
+          },
+          {
+            "aurora.frequency": "0.7..1"
+          },
+          {
+            "aurora.glow": "+0.5"
+          },
+          {
+            "aurora.size": "0.8..1"
+          },
+          {
+            "clouds.colour": "white|grey"
+          },
+          {
+            "stars.glow": "+0.2"
+          }
+        ]
       }
     ]
   }

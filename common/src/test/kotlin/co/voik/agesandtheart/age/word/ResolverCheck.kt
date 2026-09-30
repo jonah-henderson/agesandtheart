@@ -1539,7 +1539,7 @@ private val SENTENCES = listOf(
 /** Vague words querying what the things kept from broad words carry: hostile, frozen, buried, monumental. */
 private val BROAD_WORDS_AIMED_AT_THE_KEPT = listOf(
     "savage foreboding",
-    "icy",
+    "polar",
     "rich buried",
     "ancient colossal wondrous",
     "floating uncanny",

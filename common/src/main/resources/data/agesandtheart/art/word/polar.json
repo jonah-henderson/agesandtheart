@@ -1,0 +1,49 @@
+{
+  "_comment": [
+    "Of the poles, and the first word written to read by where it is laid rather than to have a variant per",
+    "place (the readings spike, 2026-09-29). Laid bare it only nudges: a polar Age leans cold, grows the",
+    "frozen biomes and seas more often, may be offered an aurora, snow in the air and brighter stars, and",
+    "bends the temperature toward the cold end without pinning it.",
+    "",
+    "Aimed, it claims, and attachment decides which claim lands: `polar climate` the cold temperature,",
+    "`polar sun` and `polar moon` the polar path -- a circle held just over the horizon, never setting,",
+    "which is the paper tree's window (design 7.1.2) and holds a tide at one level under a moon."
+  ],
+  "tier": "evocative",
+  "admits": {
+    "phenomena": [
+      "aurora"
+    ]
+  },
+  "biases": {
+    "sea": {
+      "#frozen": 0.4
+    },
+    "biomes": {
+      "#frozen": 0.5
+    }
+  },
+  "sets": {
+    "temperature": "-0.95..-0.45"
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "2",
+        "facets": {
+          "aurora.frequency": "0.7..1",
+          "air.motes": "snow",
+          "stars.glow": "+0.2",
+          "sky.colour": "default|blue|white"
+        }
+      }
+    ]
+  },
+  "aimed": {
+    "tier": "restrictive",
+    "sets": {
+      "temperature": "-0.95..-0.45",
+      "path": "polar"
+    }
+  }
+}

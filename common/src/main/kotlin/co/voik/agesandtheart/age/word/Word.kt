@@ -11,6 +11,7 @@ import co.voik.agesandtheart.math.mix64
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceKey
 import com.mojang.datafixers.util.Either
+import com.mojang.datafixers.util.Pair as MojangPair
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import kotlin.math.roundToInt
@@ -400,9 +401,37 @@ data class Word(
      * the language the file already speaks. This is what a *derivation* over a whole registry says instead.
      */
     val entryOf: ResourceKey<out Registry<*>>? = null,
+    /**
+     * **What the word does when it is aimed** — laid in a clause about some part of the world, where
+     * everything above is what it does laid bare on the Age. A whole word's worth of effects and precision,
+     * and attachment still decides which of them land: `polar` aimed sets a cold temperature and a polar
+     * path, so `polar climate` gets the one and `polar sun` the other, while `polar` laid bare only nudges
+     * the Age cold. Null where the word does the same wherever it is laid, which is most words.
+     *
+     * A reading is itself a [Word] with this word's id, so everything that resolves, prices and reports a
+     * laid word works on the reading unchanged — see [readingFor].
+     */
+    val aimed: Word? = null,
+    /**
+     * The rare word whose strength must differ between two aims, per aiming page — consulted before
+     * [aimed], which covers every aim these do not.
+     */
+    val readings: Map<Aspect, Word> = emptyMap(),
 ) {
     /** What a writer says to use it. */
     val name: String get() = id.path
+
+    /**
+     * The word as it reads in a clause aimed at [aim]: laid bare where nothing was aimed, and otherwise that
+     * aim's own reading, or the [aimed] one, or — for a word that reads the same everywhere — itself.
+     */
+    fun readingFor(aim: Set<Aspect>): Word {
+        if (aim.isEmpty()) return this
+        return aim.singleOrNull()?.let(readings::get) ?: aimed ?: this
+    }
+
+    /** Every way this word can read: laid bare, aimed, and aimed at each of its [readings]. */
+    val everyReading: List<Word> get() = listOfNotNull(this, aimed) + readings.values
 
     /**
      * Every registry this word names an entry of: its own ([entryOf]), and each open aspect it [chooses] in.
@@ -767,6 +796,14 @@ data class Word(
     val price: Int get() = (tier.cost * versatility).roundToInt().coerceAtLeast(0)
 
     /**
+     * What writing this page costs at the desk: **its dearest reading**, since a page is bought before it is
+     * laid and may then be laid anywhere it reads. A book is still charged what each page does where it was
+     * laid ([Resolver.resolve] sums the readings), so for a word with [readings] the two part company —
+     * which is the open question the readings spike leaves (`decisions.md`).
+     */
+    val pagePrice: Int get() = everyReading.maxOf { it.price }
+
+    /**
      * How well [tags] answers what this word narrowed [aspect] to — the number a narrowing word
      * thresholds. The strongest single term rather than a sum, because a word restricting on two tags
      * asks for either.
@@ -902,8 +939,41 @@ data class Word(
                     { it },
                 )
 
-        /** A word as its file says it, the id coming from where the file *is*, like every vanilla registry. */
-        fun mapCodec(id: Identifier): MapCodec<Word> = RecordCodecBuilder.mapCodec { instance ->
+        /**
+         * A word as its file says it, the id coming from where the file *is*, like every vanilla registry:
+         * its bare effects, an `aimed` object of the same shape, and a `readings` object of them per aiming
+         * page. A reading holds no readings of its own — one word, one level of adapting.
+         */
+        fun mapCodec(id: Identifier): MapCodec<Word> =
+            Codec.mapPair(
+                bodyCodec(id),
+                Codec.mapPair(
+                    bodyCodec(id).codec().optionalFieldOf(AIMED),
+                    readingsCodec(id).optionalFieldOf(READINGS, emptyMap()),
+                ),
+            ).xmap(
+                { whole ->
+                    val (aimed, readings) = whole.second.first to whole.second.second
+                    whole.first.copy(aimed = aimed.orElse(null), readings = readings)
+                },
+                { word ->
+                    val bare = word.copy(aimed = null, readings = emptyMap())
+                    MojangPair.of(bare, MojangPair.of(Optional.ofNullable(word.aimed), word.readings))
+                },
+            )
+
+        private const val AIMED = "aimed"
+        private const val READINGS = "readings"
+
+        private fun readingsCodec(id: Identifier): Codec<Map<Aspect, Word>> =
+            Codec.unboundedMap(ASPECT_CODEC, bodyCodec(id).codec()).xmap(
+                // A reading reaches where it is aimed, whatever its effects spell, so a word laid there always
+                // has something to say rather than reaching nowhere.
+                { readings -> readings.mapValues { (aim, reading) -> reading.copy(aspects = reading.aspects + aim) } },
+                { it },
+            )
+
+        private fun bodyCodec(id: Identifier): MapCodec<Word> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Tier.CODEC.fieldOf("tier").forGetter(Word::tier),
                 Codec.unboundedMap(ASPECT_CODEC, Codec.STRING).optionalFieldOf("chooses", emptyMap())
