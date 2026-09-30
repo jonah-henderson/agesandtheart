@@ -51,6 +51,22 @@ object Materials {
      * world of them would quietly evaporate after it was written. A better answer exists — place them
      * `persistent` — and it is a placement change rather than a rule, so this is the honest stopgap.
      */
+    /**
+     * **What a named block is laid as, where that is not itself** — the one place a word's block and the
+     * block a world is built of part company.
+     *
+     * Living yema is the case (design §7.1.2): it is a word, and a world written of it comes out of **dead**
+     * yema, so the only living yema anywhere is what a tended tree grew — writing it cannot stand in for
+     * tending it. Read wherever a block id from a sentence becomes a block to place: the rock's and the
+     * skin's materials, the sea, and a minted formation's substance.
+     */
+    private val STAND_INS: Map<Identifier, Identifier> = mapOf(
+        "paper_tree_log".location() to "dead_paper_tree_log".location(),
+    )
+
+    /** [named] as a world is built of it — itself, unless it has a stand-in. */
+    fun laidAs(named: Identifier): Identifier = STAND_INS[named] ?: named
+
     val INVALID_FOR_TERRAIN: TagKey<Block> = TagKey.create(Registries.BLOCK, "invalid_for_terrain".location())
 
     /**

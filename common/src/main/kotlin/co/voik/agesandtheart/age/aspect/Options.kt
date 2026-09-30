@@ -91,7 +91,7 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
     fun materialsOf(parameter: Parameter): List<BlockState> = allOf(parameter)
         .filter { it != Parameter.UNCHANGED }
         .mapNotNull { named ->
-            val id = Identifier.tryParse(named) ?: return@mapNotNull null
+            val id = Identifier.tryParse(named)?.let(Materials::laidAs) ?: return@mapNotNull null
             // `orElseGet { null }` no longer compiles: Minecraft ships nullness annotations now, so Kotlin
             // holds `Optional`'s supplier to returning something. Reads better as a guard in any case.
             val block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null)

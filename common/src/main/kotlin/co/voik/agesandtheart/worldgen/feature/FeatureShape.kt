@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.feature
 
+import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.worldgen.SizeScale
 import net.minecraft.core.BlockPos
@@ -96,7 +97,8 @@ object FeatureShape {
     @Suppress("DEPRECATION")
     fun mintedFrom(pattern: Holder<PlacedFeature>, substances: List<String>): Holder<PlacedFeature> {
         val blocks = substances.mapNotNull { substance ->
-            Identifier.tryParse(substance)?.let { BuiltInRegistries.BLOCK.getOptional(it).orElse(null) }
+            val laid = Identifier.tryParse(substance)?.let(Materials::laidAs)
+            laid?.let { BuiltInRegistries.BLOCK.getOptional(it).orElse(null) }
         }
         val block = blocks.firstOrNull() ?: return pattern
         val placed = pattern.value()

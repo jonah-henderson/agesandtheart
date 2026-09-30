@@ -30,3 +30,11 @@ age write yematide 7 age ocean biomes
 execute in agesandtheart:yematide run age tide high
 execute in agesandtheart:yematide run age tide moon
 execute in agesandtheart:yematide run age yema
+
+# Yema is one word, and a world written of it is dead yema: the rock, and a minted formation, both. The
+# living log should count nothing and the dead log a great deal.
+age write yemarock 7 age paper_tree_log landmass paper_tree_log pits
+age list
+execute in agesandtheart:yemarock run forceload add 0 0
+execute in agesandtheart:yemarock run fill 0 40 0 15 72 15 minecraft:air replace agesandtheart:paper_tree_log
+execute in agesandtheart:yemarock run fill 0 40 0 15 72 15 minecraft:stone replace agesandtheart:dead_paper_tree_log

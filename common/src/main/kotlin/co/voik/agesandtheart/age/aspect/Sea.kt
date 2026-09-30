@@ -35,7 +35,7 @@ data class Sea(override val id: Identifier) : RegistryReference {
      * What this sea is made of; air for a sea of nothing. A block the pack does not have resolves to air,
      * loudly — that is a content problem, and refusing to open the world over it would be worse.
      */
-    fun substance(): BlockState = BuiltInRegistries.BLOCK.getOptional(id)
+    fun substance(): BlockState = BuiltInRegistries.BLOCK.getOptional(Materials.laidAs(id))
         .map { block -> block.defaultBlockState() }
         .orElseGet {
             Constants.LOG.warn("An Age names '{}' as its sea, which no block in this pack is", id)
