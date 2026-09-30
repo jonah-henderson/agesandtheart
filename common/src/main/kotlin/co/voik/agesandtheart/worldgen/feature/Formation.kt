@@ -108,20 +108,36 @@ data class Formation(
         random: RandomSource,
         origin: BlockPos,
     ): Boolean {
-        // The chunk being decorated, which is the only one this call may write into.
-        val chunk = ChunkPos(SectionPos.blockToSectionCoord(origin.x), SectionPos.blockToSectionCoord(origin.z))
-        val groundAt = surfaceOf(level, generator)
-        val laid = raise(
-            level.seed,
-            chunk,
-            groundAt,
-            clear = { position -> clearUpwardsFrom(level, position) },
-            standsAt = onlyIn?.let { biome -> standsIn(biome, level, generator, groundAt) } ?: ANYWHERE,
-            seaTop = Tide.seaOf(generator)?.top,
-        ) { position, state ->
+        val laid = raiseIn(level, generator, origin, clear = { position -> clearUpwardsFrom(level, position) }) {
+            position, state ->
             if (!level.isOutsideBuildHeight(position)) level.setBlock(position, state, PLACED_BY_WORLDGEN)
         }
         return laid > 0
+    }
+
+    /**
+     * [raise] over the chunk [origin] is in, which is the only one a feature there may write into — with the
+     * ground, the biome and the sea read off [generator], so a second pass over the same chunk ([PitClearing])
+     * finds the same formations the first one laid.
+     */
+    fun raiseIn(
+        level: WorldGenLevel,
+        generator: ChunkGenerator,
+        origin: BlockPos,
+        clear: (BlockPos) -> Unit,
+        lay: (BlockPos, BlockState) -> Unit,
+    ): Int {
+        val chunk = ChunkPos(SectionPos.blockToSectionCoord(origin.x), SectionPos.blockToSectionCoord(origin.z))
+        val groundAt = surfaceOf(level, generator)
+        return raise(
+            level.seed,
+            chunk,
+            groundAt,
+            clear = clear,
+            standsAt = onlyIn?.let { biome -> standsIn(biome, level, generator, groundAt) } ?: ANYWHERE,
+            seaTop = Tide.seaOf(generator)?.top,
+            lay = lay,
+        )
     }
 
     /**

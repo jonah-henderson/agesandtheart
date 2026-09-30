@@ -20,6 +20,7 @@ import co.voik.agesandtheart.worldgen.feature.Heap
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.placement.PlacedFeature as VanillaPlacedFeature
 import co.voik.agesandtheart.worldgen.feature.Formation
+import co.voik.agesandtheart.worldgen.feature.PitClearing
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -157,6 +158,8 @@ object Features {
         // It bit the moment a formation went into every biome. A minted spring is the same shape of bug
         // and had simply never been generated over enough ground to meet a second biome carrying it.
         val grown = ConcurrentHashMap<Claim, Holder<VanillaPlacedFeature>>()
+        // A dug formation's second pass, one per formation for the same reason.
+        val clearings = ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>()
         // Scaling a biome's own feature makes a new one too, so it is memoised for the same reason —
         // keyed by the feature and the amount, which is what decides the object.
         val bent = ConcurrentHashMap<Pair<Holder<VanillaPlacedFeature>, Double>, Holder<VanillaPlacedFeature>>()
@@ -172,7 +175,7 @@ object Features {
                 val here = PLACES.skewOf(claims, it.unwrapKey().orElse(null)?.identifier())
                 settingsFrom(
                     it,
-                    wanted(server, here, salt, grown, shape, confined),
+                    wanted(server, here, salt, grown, clearings, shape, confined),
                     bentWhereItGrows(here),
                     bent,
                     here.struck.mapNotNull(Identifier::tryParse).toSet(),
@@ -228,6 +231,7 @@ object Features {
         asked: Skew,
         salt: Long,
         grown: ConcurrentHashMap<Claim, Holder<VanillaPlacedFeature>>,
+        clearings: ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>,
         shape: Shape,
         confinedElsewhere: List<Claim>,
     ): Map<Int, List<Holder<VanillaPlacedFeature>>> {
@@ -274,6 +278,7 @@ object Features {
                 FeatureDensity.applied(confined, claim.density)
             }
             byStep.getOrPut(stepFor(named, found.value(), biomes)) { mutableListOf() } += laid
+            clearingOver(laid, clearings)?.let { byStep.getOrPut(CLEARING_STEP) { mutableListOf() } += it }
         }
         return byStep
     }
@@ -341,6 +346,23 @@ object Features {
      * it cut the ground from under trees, grass and flowers already standing on it and left them hanging.
      */
     private val DIGGING_STEP = GenerationStep.Decoration.LAKES.ordinal
+
+    /**
+     * What grew in a dug formation, cleared once it has grown — [PitClearing] — or null for anything that
+     * does not dig.
+     */
+    private fun clearingOver(
+        laid: Holder<VanillaPlacedFeature>,
+        clearings: ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>,
+    ): Holder<VanillaPlacedFeature>? {
+        val pit = (laid.value().feature().value() as? Formation)?.takeIf { it.sunk } ?: return null
+        return clearings.computeIfAbsent(laid) {
+            Holder.direct(VanillaPlacedFeature(Holder.direct(PitClearing(pit)), laid.value().placement()))
+        }
+    }
+
+    /** Where a pit is cleared of what grew in it: with the snow, after everything has grown. */
+    private val CLEARING_STEP = GenerationStep.Decoration.TOP_LAYER_MODIFICATION.ordinal
 
     /**
      * Where a pile is heaped: on the ground **before the grass grows over it**. A pile only lands on an open

@@ -114,6 +114,7 @@ import co.voik.agesandtheart.worldgen.feature.ImpactCrater
 import co.voik.agesandtheart.worldgen.feature.DeepSeaVent
 import co.voik.agesandtheart.worldgen.feature.PaperTree
 import co.voik.agesandtheart.worldgen.feature.PaperTreeGrove
+import co.voik.agesandtheart.worldgen.feature.PitClearing
 import co.voik.agesandtheart.worldgen.feature.ScarabColony
 import net.minecraft.world.level.block.RotatedPillarBlock
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument
@@ -2114,6 +2115,7 @@ object AgeContent {
         "algae".location() to Algae.CODEC,
         "spilled_spring".location() to SpilledSpring.CODEC,
         "formation".location() to Formation.CODEC,
+        "pit_clearing".location() to PitClearing.CODEC,
         "heap".location() to Heap.CODEC,
         "ore_vein".location() to OreVein.CODEC,
         "rime_crystal".location() to RimeCrystal.CODEC,
