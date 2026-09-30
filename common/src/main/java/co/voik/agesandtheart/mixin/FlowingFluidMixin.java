@@ -13,11 +13,12 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 /**
  * Keeps an ebbing tide from refilling itself.
  *
- * <p>The ebb takes away the sources above where the tide stands, and vanilla's infinite-water rule turns a
- * flow with two sources beside it and water or ground under it straight back into a source — so the shore
+ * <p>The ebb takes away the sea above where the tide stands, and vanilla's infinite-water rule turns a flow
+ * with two sources beside it and water or ground under it straight back into a source — so the shore
  * refilled as fast as it drained. This refuses that conversion **only where {@link Tide#holdsBack} says the
- * tide is holding water back**: inside its band, above where it stands, in an Age whose tide is running.
- * Everywhere else, the rule is vanilla's.
+ * tide is holding the sea back**: the sea's own water, in the open, inside its band and above where it
+ * stands. Water still flows there as ever; it only cannot become new sea. Everywhere else, the rule is
+ * vanilla's.
  *
  * <p><b>A Mixin because the rule knows no position.</b> {@code canConvertToSource(ServerLevel)} is the one
  * switch, and it takes the level alone; its only caller is {@code getNewLiquid}, which has the position, so
@@ -44,7 +45,7 @@ public abstract class FlowingFluidMixin {
         BlockPos at,
         BlockState state
     ) {
-        if (Tide.INSTANCE.holdsBack(level, at)) return false;
+        if (Tide.INSTANCE.holdsBack(level, at, fluid)) return false;
         return this.canConvertToSource(level);
     }
 }

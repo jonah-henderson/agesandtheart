@@ -16,6 +16,7 @@ import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.material.FlowingFluid
+import net.minecraft.world.level.material.Fluid
 import java.util.Collections
 import java.util.WeakHashMap
 import kotlin.math.ceil
@@ -66,17 +67,25 @@ object Tide {
      * The band each Age's tide was last worked at — set by [flow] while a tide runs, and gone the pass it
      * stops. Not saved, and needs no saving: the next pass sets it again from the clock.
      */
-    private val working: MutableMap<ServerLevel, Band> = Collections.synchronizedMap(WeakHashMap())
+    private val working: MutableMap<ServerLevel, Holding> = Collections.synchronizedMap(WeakHashMap())
+
+    /** The band a tide is working in [level], and the fluid of the sea it moves. */
+    private data class Holding(val band: Band, val sea: Fluid)
 
     /**
-     * Whether the tide is holding water back at [at] — inside its band and above where it stands — which is
-     * the one place vanilla's infinite-water rule must not turn a drained flow back into a source, or the
-     * ebb refills as fast as it drains (`FlowingFluidMixin`). Only water the tide itself moves is refused:
-     * outside the band, below the tide, and in an Age with no tide, the rule is vanilla's.
+     * Whether the tide is holding [fluid] back at [at] — the sea's own, in the open, inside the band and above
+     * where the tide stands. There vanilla's infinite-water rule may not make a new source (`FlowingFluidMixin`),
+     * or the sea beside each gap the ebb leaves turns the flow into it back into sea as fast as it drains. Water
+     * still flows there as it always does; it only cannot become more sea. **In the open** leaves a cavern pool
+     * at sea level under a hill alone; outside the band, below the tide, and in an Age with no tide, water is
+     * vanilla's.
      */
-    fun holdsBack(level: ServerLevel, at: BlockPos): Boolean {
-        val band = working[level] ?: return false
-        return at.y > band.standing && at.y <= band.high
+    fun holdsBack(level: ServerLevel, at: BlockPos, fluid: Fluid): Boolean {
+        val holding = working[level] ?: return false
+        val isAboveTheTide = at.y > holding.band.standing && at.y <= holding.band.high
+        if (!isAboveTheTide || !fluid.isSame(holding.sea)) return false
+        val isInTheOpen = at.y >= level.getHeight(Heightmap.Types.MOTION_BLOCKING, at.x, at.z) - 1
+        return isInTheOpen
     }
 
     /**
@@ -152,19 +161,33 @@ object Tide {
      * [pulls] pulls, or a tide was forced by hand.
      */
     fun flow(level: ServerLevel, pulls: List<Double>) {
-        val band = bandIn(level, pulls)
-        if (band == null) {
-            working -= level
-            return
-        }
-        working[level] = band
-        val sea = seaOf(level.chunkSource.generator)?.block ?: return
         val inView = Sampling.inViewNearestFirst(level)
         if (inView.isEmpty()) return
         // As the deluge does it: where a pass starts is derived from the clock, so nothing holds a cursor.
         val from = ((level.gameTime * CHUNKS_A_TICK) % inView.size).toInt()
-        for (step in 0..<CHUNKS_A_TICK) {
-            val packed = inView[(from + step) % inView.size]
+        flowOver(level, pulls, (0..<CHUNKS_A_TICK).map { step -> inView[(from + step) % inView.size] })
+    }
+
+    /**
+     * One whole pass of the tide over every chunk within [radius] of [centre] — `/age tide pass`, so a check
+     * can drive the tide where no player stands to see it.
+     */
+    fun passAround(level: ServerLevel, pulls: List<Double>, centre: ChunkPos, radius: Int) {
+        val around = (-radius..radius).flatMap { dx ->
+            (-radius..radius).map { dz -> ChunkPos.pack(centre.x + dx, centre.z + dz) }
+        }
+        flowOver(level, pulls, around)
+    }
+
+    private fun flowOver(level: ServerLevel, pulls: List<Double>, chunks: List<Long>) {
+        val band = bandIn(level, pulls)
+        val sea = seaOf(level.chunkSource.generator)?.block
+        if (band == null || sea == null) {
+            working -= level
+            return
+        }
+        working[level] = Holding(band, sea.fluidState.type)
+        for (packed in chunks) {
             val chunk = level.chunkSource.getChunkNow(ChunkPos.getX(packed), ChunkPos.getZ(packed)) ?: continue
             flowIn(level, chunk, band, sea)
         }
@@ -191,7 +214,9 @@ object Tide {
         val originZ = chunk.pos.minBlockZ
         for (offsetX in 0..<CHUNK_WIDTH) {
             for (offsetZ in 0..<CHUNK_WIDTH) {
-                val top = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING, offsetX, offsetZ) - 1
+                // A chunk's `getHeight` is the top block itself, where a level's is the space over it: one
+                // under that was the tide working a block low, flooding right and ebbing the block beneath.
+                val top = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING, offsetX, offsetZ)
                 if (top < band.low || top > band.high) continue
                 val x = originX + offsetX
                 val z = originZ + offsetZ
@@ -200,16 +225,20 @@ object Tide {
                 val isTheSea = here.type == seaFluid || here.type == flowingSea
                 if (!isTheSea) continue
                 when {
-                    top > band.standing -> ebb(level, BlockPos(x, top, z), here.isSource)
+                    top > band.standing -> ebb(level, BlockPos(x, top, z))
                     top < band.standing -> flood(level, chunk, BlockPos(x, top, z), band.standing, sea, here.isSource)
                 }
             }
         }
     }
 
-    /** A source above the tide goes; a flow there is left for vanilla to drain once its sources have. */
-    private fun ebb(level: ServerLevel, at: BlockPos, isSource: Boolean) {
-        if (isSource) level.setBlockAndUpdate(at, Blocks.AIR.defaultBlockState())
+    /**
+     * The sea above the tide goes, **a source or a flow alike**. Taking only the sources left the flow that ran
+     * back into each gap standing, and the next pass passed it over, so the shore never drained; a flow taken
+     * pass after pass is gone once the sources that fed it are, since none can be made again here ([holdsBack]).
+     */
+    private fun ebb(level: ServerLevel, at: BlockPos) {
+        level.setBlockAndUpdate(at, Blocks.AIR.defaultBlockState())
     }
 
     /** The deluge's own rule, stopped at the tide: a flow becomes a source, a source rises to the line. */

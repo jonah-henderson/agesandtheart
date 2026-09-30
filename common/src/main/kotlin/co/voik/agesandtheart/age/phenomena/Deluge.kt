@@ -212,8 +212,8 @@ object Deluge {
         val originZ = chunk.pos.minBlockZ
         for (offsetX in 0..<CHUNK_WIDTH) {
             for (offsetZ in 0..<CHUNK_WIDTH) {
-                // `getHeight` answers the first empty space, so the top of the column is one under it.
-                val top = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING, offsetX, offsetZ) - 1
+                // A chunk's `getHeight` is the top block itself, where a level's is the space over it.
+                val top = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING, offsetX, offsetZ)
                 if (top > standing) continue
                 val x = originX + offsetX
                 val z = originZ + offsetZ

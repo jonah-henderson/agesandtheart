@@ -371,10 +371,11 @@ When shared code needs something loader-specific, it goes through an interface, 
   through without the blocks under it, and the third answers no fluid for the camera, whose water fog and
   narrowed field of view the player's own readings never reached. Neither loader has an event for any of
   the three. **Vanilla's section list and mesher only** — Sodium replaces both (`notes/before-release.md`).
-- **`FlowingFluidMixin`** — an ebbing tide does not refill itself. The ebb takes the sources above where
-  the tide stands and vanilla's infinite-water rule turned the flows back into sources as fast as they
-  drained; this refuses that conversion only inside the tide's band and above where it stands
-  (`Tide.holdsBack`), since `canConvertToSource` takes no position and its caller `getNewLiquid` does.
+- **`FlowingFluidMixin`** — an ebbing tide does not refill itself. The ebb takes the sea above where the
+  tide stands and vanilla's infinite-water rule turned the flows back into sources as fast as they drained;
+  this refuses that conversion only for the sea's water in the open, inside the tide's band and above where
+  it stands (`Tide.holdsBack`), since `canConvertToSource` takes no position and its caller `getNewLiquid`
+  does. Water still flows there; it only cannot become new sea.
 - **`BubbleColumnBlockMixin`** — in a level with an abyss, every bubble column is `DeepBubbleColumnBlock`'s, so one column runs on through ordinary water and deep water, each block keeping the water it replaced. In 26.1 a column is raised by the liquid over magma or soul sand calling the static `updateColumn`; neither loader has an event for it, and vanilla places its blocks without notifying anything, so a column stopped at the abyss had nothing to tell the deep water above to carry it on. Only vanilla's own column, only where there is an abyss.
 
 The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.

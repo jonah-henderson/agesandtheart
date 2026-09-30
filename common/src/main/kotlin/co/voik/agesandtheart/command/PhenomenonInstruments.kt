@@ -15,6 +15,7 @@ import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.phenomena.Deluge
 import co.voik.agesandtheart.age.phenomena.Tide
+import co.voik.agesandtheart.generation.Ages
 import com.mojang.brigadier.arguments.DoubleArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.builder.ArgumentBuilder
@@ -25,6 +26,7 @@ import net.minecraft.commands.Commands
 import net.minecraft.commands.arguments.EntityAnchorArgument
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.util.Mth
 import net.minecraft.world.phys.Vec3
 import net.minecraft.network.chat.Component
@@ -44,6 +46,11 @@ internal object PhenomenonInstruments {
     /** `/age tide moon` — the moons' tide again, after a stage was pinned. */
     private const val FOLLOW_THE_MOONS = "moon"
 
+    private const val PASS = "pass"
+
+    /** How far `/age tide pass` reaches, in chunks — about what a player sees at a short view distance. */
+    private const val PASS_RADIUS = 3
+
     /**
      * `/age tide <low|mid|high|moon>` — a tide running in the Age you stand in, pinned at one stage or left
      * to the moons.
@@ -58,7 +65,23 @@ internal object PhenomenonInstruments {
                 then(Commands.literal(stage.name.lowercase()).executes { context -> runTide(context, stage) })
             }
             then(Commands.literal(FOLLOW_THE_MOONS).executes { context -> runTide(context, pinned = null) })
+            then(Commands.literal(PASS).executes(::runTidePass))
         }
+
+    /**
+     * `/age tide pass` — one whole pass of the tide over the chunks around where it is run, as a tick does
+     * around a player: how a headless check drives a tide nobody stands in.
+     */
+    private fun runTidePass(context: CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val level = source.level
+        val recipe = Ages.recipeOf(level)
+        val pulls = recipe?.composition?.let { Tide.pullsIn(it, recipe.seed) }.orEmpty()
+        val at = ChunkPos.containing(BlockPos.containing(source.position))
+        Tide.passAround(level, pulls, at, PASS_RADIUS)
+        source.sendSuccess({ Component.literal("The tide passed over ${PASS_RADIUS * 2 + 1}² chunks") }, false)
+        return SUCCESS
+    }
 
     private fun runTide(context: CommandContext<CommandSourceStack>, pinned: Tide.Stage?): Int {
         val source = context.source

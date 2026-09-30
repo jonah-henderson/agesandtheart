@@ -7,6 +7,7 @@ import co.voik.agesandtheart.content.ScarabNestBlockEntity
 import co.voik.agesandtheart.math.mix64
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
+import net.minecraft.core.QuartPos
 import net.minecraft.tags.BiomeTags
 import net.minecraft.tags.BlockTags
 import net.minecraft.util.RandomSource
@@ -104,8 +105,17 @@ object ScarabColony : Feature {
         val state = level.getBlockState(at)
         val isOfAPit = state.`is`(Blocks.MUD) || state.`is`(BlockTags.SAND)
         val isDry = level.getFluidState(at.above()).isEmpty
-        return if (isOfAPit && isDry && level.getBiome(at).`is`(BiomeTags.IS_JUNGLE)) at else null
+        return if (isOfAPit && isDry && isUnderTheJungle(level, at)) at else null
     }
+
+    /**
+     * Whether [at] lies in a jungle, asked of the biome at exactly that spot. **Not `getBiome`**, which blends
+     * in its neighbours and so reads a little past the column — at the edge of what the region generating
+     * a chunk may read, into a chunk it may not, which crashed generation.
+     */
+    private fun isUnderTheJungle(level: WorldGenLevel, at: BlockPos): Boolean =
+        level.getNoiseBiome(QuartPos.fromBlock(at.x), QuartPos.fromBlock(at.y), QuartPos.fromBlock(at.z))
+            .`is`(BiomeTags.IS_JUNGLE)
 
     /**
      * Up to a colony's worth of columns on [patch] a scarab would claim — [isFree], and a clear block between
