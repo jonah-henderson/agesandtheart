@@ -70,6 +70,11 @@ data class Constraint(
      */
     val rehomed: Boolean = false,
     /**
+     * Whether this was laid on the Age itself, aimed at nothing — the case in which the word's
+     * [co.voik.agesandtheart.age.word.Word.unaimed] chances are rolled.
+     */
+    val laidBare: Boolean = false,
+    /**
      * Which member of a **population** this is about, counting the clauses that described one, or null
      * where the claim is not about one (`the-world-model.md` §2).
      *

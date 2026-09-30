@@ -272,7 +272,7 @@ object Resolver {
         val kept = sentence.constraints.map { constraint ->
             if (!isSpentIn(constraint)) constraint
             else constraint.copy(word = constraint.word.withoutItsSize().withoutItsHeight())
-        }
+        }.map { rolledBare(it, draw) }
         val said = offered(vocabulary, kept.map { it.materialisedAt(vocabulary, draw) }, draw)
         val flaws = mutableListOf<Flaw>()
         flaws += rehomings(vocabulary, sentence)
@@ -301,7 +301,10 @@ object Resolver {
             instability = Instability(flaws.toList()),
             // Structure is priced too: every page a writer lays costs ink, and a page that made no
             // claim still came out of the pot. A latent page came out of nobody's pot.
-            cost = sentence.written.sumOf { it.word.price } + sentence.structural.sumOf { it.cost },
+            // A bare page is charged for what it is likely to reach rather than for this Age's roll, so two
+            // seeds of one book cost the same.
+            cost = sentence.written.sumOf { if (it.laidBare) it.word.barePrice else it.word.price } +
+                sentence.structural.sumOf { it.cost },
             words = sentence.words,
             template = template,
             dropped = sentence.unreadable,
@@ -497,6 +500,22 @@ object Resolver {
             val landedIn = reachOf(vocabulary, said).firstOrNull()
             flaw(vocabulary, Register.REHOMED, listOf(said), landedIn, tags = emptyList(), tier = said.word.tier)
         }
+
+    /**
+     * A word laid bare, with the parts of the world its [Word.unaimed] roll missed in this Age taken off it
+     * — out of its effects, and out of its scope where it narrows. Rolled off [draw], the word and the part,
+     * so the same book at the same seed always misses the same parts.
+     */
+    private fun rolledBare(constraint: Constraint, draw: Long): Constraint {
+        val word = constraint.word
+        if (!constraint.laidBare || word.unaimed.isEmpty()) return constraint
+        val missed = word.unaimed.filter { (aspect, chance) ->
+            val key = draw xor word.id.hashCode().toLong() xor (aspect.ordinal.toLong() shl ROLL_SHIFT)
+            XoroshiroRandomSource(key).nextDouble() >= chance
+        }.keys
+        if (missed.isEmpty()) return constraint
+        return constraint.copy(word = word.withoutAspects(missed), aimedAt = constraint.aimedAt - missed)
+    }
 
     /**
      * Pages there was nowhere for in any sentence at all. The dearest register and the only one that costs
@@ -1456,6 +1475,9 @@ object Resolver {
     }
 
     private const val NO_LEAN = 0.0
+
+    /** Where the part of the world goes in a bare roll's key, clear of the word's hash. */
+    private const val ROLL_SHIFT = 40
 
     /**
      * Where a description above ordinary **introduces** its member rather than reweighing one already

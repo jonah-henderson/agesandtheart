@@ -1,49 +1,32 @@
 {
   "_comment": [
-    "Of the poles, and the first word written to read by where it is laid rather than to have a variant per",
-    "place (the readings spike, 2026-09-29). Laid bare it only nudges: a polar Age leans cold, grows the",
-    "frozen biomes and seas more often, may be offered an aurora, snow in the air and brighter stars, and",
-    "bends the temperature toward the cold end without pinning it.",
+    "Of the poles, and the first word written to be felt differently laid bare than aimed (`unaimed`, the",
+    "readings spike, 2026-09-30). It claims two things -- a cold temperature and a polar path, a circle held",
+    "just over the horizon -- and attachment decides which lands: `polar climate` the cold, `polar sun` and",
+    "`polar moon` the path. Laid bare, the sun and the moon each feel it one Age in four, so a polar Age is",
+    "always cold, leans to the frozen biomes, may have an aurora, and now and then has a polar sun: the",
+    "paper tree's sky (design 7.1.2), stumbled into.",
     "",
-    "Aimed, it claims, and attachment decides which claim lands: `polar climate` the cold temperature,",
-    "`polar sun` and `polar moon` the polar path -- a circle held just over the horizon, never setting,",
-    "which is the paper tree's window (design 7.1.2) and holds a tide at one level under a moon."
+    "Lean on purpose. A word that narrows is charged for every part it reaches, so the snow, the stars and",
+    "the pale vault `frozen` offers are left to `frozen`."
   ],
-  "tier": "evocative",
+  "tier": "restrictive",
   "admits": {
     "phenomena": [
       "aurora"
     ]
   },
   "biases": {
-    "sea": {
-      "#frozen": 0.4
-    },
     "biomes": {
       "#frozen": 0.5
     }
   },
   "sets": {
-    "temperature": "-0.95..-0.45"
+    "temperature": "-0.95..-0.45",
+    "path": "polar"
   },
-  "requests": {
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "aurora.frequency": "0.7..1",
-          "air.motes": "snow",
-          "stars.glow": "+0.2",
-          "sky.colour": "default|blue|white"
-        }
-      }
-    ]
-  },
-  "aimed": {
-    "tier": "restrictive",
-    "sets": {
-      "temperature": "-0.95..-0.45",
-      "path": "polar"
-    }
+  "unaimed": {
+    "sun": 0.25,
+    "moon": 0.25
   }
 }

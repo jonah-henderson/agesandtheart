@@ -64,10 +64,8 @@ data class Candidate(
     /** What [mints] is made of when the clause says nothing — a block id, or a tag naming a pool. */
     val unstated: String? = null,
     val mintsSomethingThatFlows: Boolean = false,
-    /** What the word does aimed at any part of the world — see [Word.aimed]. A file of its own shape. */
-    val aimed: Candidate? = null,
-    /** What it does aimed at one part in particular, where that differs from [aimed] — see [Word.readings]. */
-    val readings: Map<Aspect, Candidate> = emptyMap(),
+    /** How likely each part of the world is to feel the word laid bare — see [Word.unaimed]. */
+    val unaimed: Map<Aspect, Double> = emptyMap(),
     /**
      * The registry entry this word was read off, where it was read off one at all.
      *
@@ -160,15 +158,13 @@ data class Candidate(
         mints?.let { addProperty("mints", it) }
         unstated?.let { addProperty("unstated", it) }
         if (mintsSomethingThatFlows) addProperty("mints_something_that_flows", true)
-        // Last, being whole words' worth of the same fields: what it does aimed, then aimed somewhere in
-        // particular.
-        aimed?.let { add(AIMED, it.asJson()) }
-        if (readings.isNotEmpty()) {
+        // Last: how the word is felt laid bare, which qualifies everything above rather than adding to it.
+        if (unaimed.isNotEmpty()) {
             add(
-                READINGS,
+                UNAIMED,
                 JsonObject().apply {
-                    readings.entries.sortedBy { it.key.ordinal }.forEach { (aspect, reading) ->
-                        add(aspect.page, reading.asJson())
+                    unaimed.entries.sortedBy { it.key.ordinal }.forEach { (aspect, chance) ->
+                        addProperty(aspect.page, chance)
                     }
                 },
             )
@@ -240,14 +236,13 @@ data class Candidate(
          */
         val KNOWN_FIELDS = setOf(
             "tier", "chooses", "admits", "excludes", "restricts", "biases", "sets", "pools", "requests",
-            "template", "mints", "unstated", "mints_something_that_flows", AIMED, READINGS,
+            "template", "mints", "unstated", "mints_something_that_flows", UNAIMED,
         )
 
-        private const val AIMED = "aimed"
-        private const val READINGS = "readings"
+        private const val UNAIMED = "unaimed"
 
         /** A word the game gave us, opened so its rarity and ink can be set. */
-        fun of(word: Word): Candidate = Candidate(
+        fun of(word: Word) = Candidate(
             name = word.name,
             tier = word.tier,
             chooses = word.chooses,
@@ -263,8 +258,7 @@ data class Candidate(
             mints = word.mints,
             unstated = word.unstated,
             mintsSomethingThatFlows = word.mintsSomethingThatFlows,
-            aimed = word.aimed?.let(::of),
-            readings = word.readings.mapValues { (_, reading) -> of(reading) },
+            unaimed = word.unaimed,
             derivedFrom = word.id,
             tagDirectory = word.referentRegistries.firstOrNull()?.let(Registries::tagsDirPath),
         )
@@ -297,10 +291,8 @@ data class Candidate(
                 mints = json.get("mints")?.asString,
                 unstated = json.get("unstated")?.asString,
                 mintsSomethingThatFlows = json.get("mints_something_that_flows")?.asBoolean ?: false,
-                aimed = json.getAsJsonObject(AIMED)?.let { read(name, it).getOrThrow() },
-                readings = json.getAsJsonObject(READINGS)?.entrySet().orEmpty().associate { (page, reading) ->
-                    aspectPaged(page) to read(name, reading.asJsonObject).getOrThrow()
-                },
+                unaimed = json.getAsJsonObject(UNAIMED)?.let(::readNumbers).orEmpty()
+                    .mapKeys { (page, _) -> aspectPaged(page) },
             )
         }
 

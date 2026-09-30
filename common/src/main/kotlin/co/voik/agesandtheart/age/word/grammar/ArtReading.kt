@@ -178,10 +178,7 @@ internal object ArtReading {
             val last = pages.lastIndex.takeIf { it >= at } ?: return null
             val page = pages[last]
             if (page.kind != PageClass.TERM) return null
-            // Only a word that narrows laid bare: one that only nudges there is a nudge on the Age, and closing
-            // it on the one part it leans toward would turn `age polar` into `polar climate` unasked.
-            val narrowsBare = page.word?.tier?.narrows == true
-            return last.takeIf { narrowsBare && page.word?.aspects?.size == ONE_PART_OF_THE_WORLD }
+            return last.takeIf { page.word?.aspects?.size == ONE_PART_OF_THE_WORLD }
         }
 
         /**
@@ -257,9 +254,7 @@ internal object ArtReading {
             // unjoined juxtaposition has to keep meaning contention (§3.2).
             val group = if (terms.size > 1) Group(nextGroup++) else null
             return terms.mapNotNull { (page, quantifier) ->
-                // **The word as it reads here**: its reading for this clause's aim where it has one, so what
-                // resolves, prices and reports is what the word does in this place (world model §3).
-                val word = page.word?.readingFor(aim) ?: return@mapNotNull null
+                val word = page.word ?: return@mapNotNull null
                 Constraint(
                     word,
                     scopeFor(word, aim),
@@ -272,6 +267,8 @@ internal object ArtReading {
                     confinedTo = confinedTo,
                     latent = page.latent,
                     rehomed = page.rehomed,
+                    // Aimed at nothing, so what the word lists as `unaimed` is rolled for (`Word.unaimed`).
+                    laidBare = aim.isEmpty(),
                 )
             }
         }
@@ -298,9 +295,7 @@ internal object ArtReading {
             if (page == null) return false
             // Structure carries no aspect of its own; what it joins or qualifies is checked on its own.
             if (page.word == null) return page.kind != null
-            // **Judged as it reads here**: a word aimed at something is its aimed reading, so `polar` laid
-            // bare is a nudge on the Age and `polar sun` is a claim on the sun, each held to its own rules.
-            val word = page.word.readingFor(aim)
+            val word = page.word
             // **An evocative word is written where nothing was aimed at** (§4.3.1) — the `age` clause, and
             // nowhere else. It used to be laid anywhere and stay global, tilting hardest at the part it sat
             // under: a factor of two on a weighted draw, which produces no signal a reader can check and so

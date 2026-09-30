@@ -11,7 +11,6 @@ import co.voik.agesandtheart.math.mix64
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceKey
 import com.mojang.datafixers.util.Either
-import com.mojang.datafixers.util.Pair as MojangPair
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import kotlin.math.roundToInt
@@ -402,36 +401,52 @@ data class Word(
      */
     val entryOf: ResourceKey<out Registry<*>>? = null,
     /**
-     * **What the word does when it is aimed** — laid in a clause about some part of the world, where
-     * everything above is what it does laid bare on the Age. A whole word's worth of effects and precision,
-     * and attachment still decides which of them land: `polar` aimed sets a cold temperature and a polar
-     * path, so `polar climate` gets the one and `polar sun` the other, while `polar` laid bare only nudges
-     * the Age cold. Null where the word does the same wherever it is laid, which is most words.
+     * **How likely each part of the world is to feel this word when it is laid bare** — on the Age itself,
+     * aimed at nothing. A part not listed feels it as it always has; a part listed at a quarter feels it in
+     * one Age in four, and at nought only when the word is aimed there.
      *
-     * A reading is itself a [Word] with this word's id, so everything that resolves, prices and reports a
-     * laid word works on the reading unchanged — see [readingFor].
+     * `polar` sets a cold temperature and a polar path, and lists the sun and the moon at a quarter: `polar
+     * sun` always sets the path, `polar climate` always the cold, and a polar Age is always cold and now and
+     * then has a polar sun. One word, whose reach laid bare is a gamble and aimed is certain. Rolled per Age
+     * off the seed ([Resolver.resolve]), so an Age rebuilds identically.
      */
-    val aimed: Word? = null,
-    /**
-     * The rare word whose strength must differ between two aims, per aiming page — consulted before
-     * [aimed], which covers every aim these do not.
-     */
-    val readings: Map<Aspect, Word> = emptyMap(),
+    val unaimed: Map<Aspect, Double> = emptyMap(),
 ) {
     /** What a writer says to use it. */
     val name: String get() = id.path
 
     /**
-     * The word as it reads in a clause aimed at [aim]: laid bare where nothing was aimed, and otherwise that
-     * aim's own reading, or the [aimed] one, or — for a word that reads the same everywhere — itself.
+     * This word with nothing it does to [missed] — what a bare word is in an Age whose roll missed those
+     * parts (see [unaimed]).
+     *
+     * A parameter goes where it names a missed part, or where it names none and every part of this word
+     * owning it was missed. One owned by a missed part and a kept one stays, and a word that narrows is kept
+     * off the missed part by its scope, which [Resolver.resolve] shrinks beside this.
      */
-    fun readingFor(aim: Set<Aspect>): Word {
-        if (aim.isEmpty()) return this
-        return aim.singleOrNull()?.let(readings::get) ?: aimed ?: this
+    fun withoutAspects(missed: Set<Aspect>): Word {
+        if (missed.isEmpty()) return this
+        val kept = aspects - missed
+        fun stillLands(key: String): Boolean {
+            val named = aspectNamedBy(key)
+            if (named != null) return named !in missed
+            return missed.none { landsOn(key, it) } || kept.any { landsOn(key, it) }
+        }
+        fun keptOf(pool: Facets): Facets? {
+            val offers = pool.offers.map { offer -> offer.filterKeys(::stillLands) }.filter { it.isNotEmpty() }
+            return if (offers.isEmpty()) null else pool.copy(offers = offers)
+        }
+        return copy(
+            aspects = kept,
+            chooses = chooses - missed,
+            admits = admits - missed,
+            excludes = excludes - missed,
+            restricts = restricts - missed,
+            biases = biases - missed,
+            sets = sets.filterKeys(::stillLands),
+            pools = pools.mapNotNull(::keptOf),
+            requests = Claims(requests.sets.filterKeys(::stillLands), requests.pools.mapNotNull(::keptOf)),
+        )
     }
-
-    /** Every way this word can read: laid bare, aimed, and aimed at each of its [readings]. */
-    val everyReading: List<Word> get() = listOfNotNull(this, aimed) + readings.values
 
     /**
      * Every registry this word names an entry of: its own ([entryOf]), and each open aspect it [chooses] in.
@@ -796,12 +811,16 @@ data class Word(
     val price: Int get() = (tier.cost * versatility).roundToInt().coerceAtLeast(0)
 
     /**
-     * What writing this page costs at the desk: **its dearest reading**, since a page is bought before it is
-     * laid and may then be laid anywhere it reads. A book is still charged what each page does where it was
-     * laid ([Resolver.resolve] sums the readings), so for a word with [readings] the two part company —
-     * which is the open question the readings spike leaves (`decisions.md`).
+     * What this page costs **laid bare**: [price], with each part of the world counted at its [unaimed]
+     * chance — a polar sun one Age in four is a quarter of a place. What the desk charges for the page is
+     * still [price], since a page may be laid anywhere once written.
      */
-    val pagePrice: Int get() = everyReading.maxOf { it.price }
+    val barePrice: Int get() {
+        if (unaimed.isEmpty()) return price
+        val reach = aspects.sumOf { unaimed[it] ?: 1.0 }.coerceAtLeast(ONE_PLACE.toDouble())
+        val versatility = (reach * tier.versatilityMultiplier).coerceAtLeast(ONE_PLACE.toDouble())
+        return (tier.cost * versatility).roundToInt().coerceAtLeast(0)
+    }
 
     /**
      * How well [tags] answers what this word narrowed [aspect] to — the number a narrowing word
@@ -939,41 +958,8 @@ data class Word(
                     { it },
                 )
 
-        /**
-         * A word as its file says it, the id coming from where the file *is*, like every vanilla registry:
-         * its bare effects, an `aimed` object of the same shape, and a `readings` object of them per aiming
-         * page. A reading holds no readings of its own — one word, one level of adapting.
-         */
-        fun mapCodec(id: Identifier): MapCodec<Word> =
-            Codec.mapPair(
-                bodyCodec(id),
-                Codec.mapPair(
-                    bodyCodec(id).codec().optionalFieldOf(AIMED),
-                    readingsCodec(id).optionalFieldOf(READINGS, emptyMap()),
-                ),
-            ).xmap(
-                { whole ->
-                    val (aimed, readings) = whole.second.first to whole.second.second
-                    whole.first.copy(aimed = aimed.orElse(null), readings = readings)
-                },
-                { word ->
-                    val bare = word.copy(aimed = null, readings = emptyMap())
-                    MojangPair.of(bare, MojangPair.of(Optional.ofNullable(word.aimed), word.readings))
-                },
-            )
-
-        private const val AIMED = "aimed"
-        private const val READINGS = "readings"
-
-        private fun readingsCodec(id: Identifier): Codec<Map<Aspect, Word>> =
-            Codec.unboundedMap(ASPECT_CODEC, bodyCodec(id).codec()).xmap(
-                // A reading reaches where it is aimed, whatever its effects spell, so a word laid there always
-                // has something to say rather than reaching nowhere.
-                { readings -> readings.mapValues { (aim, reading) -> reading.copy(aspects = reading.aspects + aim) } },
-                { it },
-            )
-
-        private fun bodyCodec(id: Identifier): MapCodec<Word> = RecordCodecBuilder.mapCodec { instance ->
+        /** A word as its file says it, the id coming from where the file *is*, like every vanilla registry. */
+        fun mapCodec(id: Identifier): MapCodec<Word> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Tier.CODEC.fieldOf("tier").forGetter(Word::tier),
                 Codec.unboundedMap(ASPECT_CODEC, Codec.STRING).optionalFieldOf("chooses", emptyMap())
@@ -1001,9 +987,11 @@ data class Word(
                 Codec.BOOL.optionalFieldOf("mints_something_that_flows", false)
                     .forGetter(Word::mintsSomethingThatFlows),
                 Codec.STRING.optionalFieldOf("unstated").forGetter { Optional.ofNullable(it.unstated) },
+                Codec.unboundedMap(ASPECT_CODEC, Codec.doubleRange(0.0, 1.0)).optionalFieldOf("unaimed", emptyMap())
+                    .forGetter(Word::unaimed),
             ).apply(instance) {
                 tier, chooses, admits, excludes, restricts, leanings, sets, pools, requests, template,
-                mints, flows, unstated,
+                mints, flows, unstated, unaimed,
                 ->
                 val everywhere = leanings[EVERYWHERE].orEmpty()
                 val leaned = leanings.filterKeys { it != EVERYWHERE }
@@ -1020,7 +1008,7 @@ data class Word(
                     id, tier, reaches, chooses, admits.mapValues { it.value.toSet() },
                     excludes.mapValues { it.value.toSet() }, restricts, leaned, everywhere,
                     sets, pools, requests, template.orElse(null), mints.orElse(null),
-                    unstated.orElse(null), flows,
+                    unstated.orElse(null), flows, unaimed = unaimed,
                 )
             }
         }
