@@ -2,6 +2,8 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.age.reward.ScarabHabitat
 import net.minecraft.core.BlockPos
+import net.minecraft.core.particles.BlockParticleOption
+import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
@@ -15,9 +17,10 @@ import java.util.EnumSet
  * A scarab raising its pillar: sand carried from within reach of the nest a piece at a time, each laid on
  * top as mud, until the pillar is as tall as it was meant to be (design §7.1.2).
  *
- * **The sand is taken out of the world**, as an enderman takes a block, so a colony has only what lies
- * around it and a beach beside one is slowly dug away. Taking it is griefing and answers to `mob_griefing`,
- * as a villager's farming does; with it off a colony still lives, and simply does not build.
+ * **The sand is never taken out of the world** (Jonah): a scarab scrabbles at a patch for a moment, kicking
+ * up its grains, and flies off with a load of its own making, so a beach beside a colony stays a beach.
+ * Laying the mud still changes the world and answers to `mob_griefing`, as a villager's farming does; with
+ * it off a colony still lives, and simply does not build.
  *
  * Sand is looked for by sampling columns at random rather than nearest first, so a pillar is not always fed
  * from the same hole — and sampling rather than sweeping keeps the search a fixed cost.
@@ -26,6 +29,7 @@ class ScarabBuild(private val scarab: Scarab) : Goal() {
 
     private var sand: BlockPos? = null
     private var travelling = 0
+    private var scrabbling = 0
     private var restUntil = 0L
 
     init {
@@ -50,10 +54,12 @@ class ScarabBuild(private val scarab: Scarab) : Goal() {
 
     override fun start() {
         travelling = 0
+        scrabbling = 0
     }
 
     override fun stop() {
         sand = null
+        scrabbling = 0
         scarab.navigation.stop()
     }
 
@@ -82,15 +88,28 @@ class ScarabBuild(private val scarab: Scarab) : Goal() {
         val state = level.getBlockState(at)
         if (!isSandToCarry(level, at, state, home.y + 1)) {
             sand = null
+            scrabbling = 0
             return
         }
         val over = Vec3.atBottomCenterOf(at.above())
         scarab.headFor(over)
         if (!scarab.isNear(over, WITHIN_REACH)) return
-        level.destroyBlock(at, false, scarab)
+        scrabbling++
+        if (scrabbling % KICKS_EVERY == 0) kickUp(level, at, state)
+        if (scrabbling < SCRABBLES_FOR) return
         scarab.carry(state)
         sand = null
+        scrabbling = 0
         travelling = 0
+    }
+
+    /** Grains thrown up off the patch, and the scuff of it — all a scarab's digging leaves behind. */
+    private fun kickUp(level: ServerLevel, at: BlockPos, state: BlockState) {
+        val top = Vec3.atBottomCenterOf(at.above())
+        val grains = BlockParticleOption(ParticleTypes.BLOCK, state)
+        level.sendParticles(grains, top.x, top.y, top.z, GRAINS, GRAIN_SPREAD, 0.0, GRAIN_SPREAD, GRAIN_SPEED)
+        val sound = state.soundType
+        level.playSound(null, at, sound.hitSound, SoundSource.NEUTRAL, sound.volume * SCUFF_VOLUME, sound.pitch)
     }
 
     private fun lay(level: ServerLevel, nest: ScarabNestBlockEntity) {
@@ -135,6 +154,14 @@ class ScarabBuild(private val scarab: Scarab) : Goal() {
         const val WITHIN_REACH = 0.8
         const val GIVES_UP_AFTER = 1200
         const val LOOK_AGAIN_AFTER = 200L
+
+        /** A second and a half at the patch before it rises with its load. */
+        const val SCRABBLES_FOR = 30
+        const val KICKS_EVERY = 4
+        const val GRAINS = 4
+        const val GRAIN_SPREAD = 0.2
+        const val GRAIN_SPEED = 0.15
+        const val SCUFF_VOLUME = 0.5f
 
         /** Five seconds between loads, so a pillar rises over a morning and not in front of you at once. */
         const val PAUSE_BETWEEN_LOADS = 100L
