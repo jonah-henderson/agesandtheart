@@ -1,8 +1,12 @@
 {
   "_comment": [
-    "Hot and wet, and the rain is the point: two of the storm, the thunder, the close air and the lit",
+    "Warm and wet, and the rain is the point: two of the storm, the thunder, the close air and the lit",
     "insects are drawn for every tropical Age, so no two are quite alike and none is dry. What grows leans",
-    "wooded, flowering and lush, and the water leans towards being water."
+    "wooded, flowering and lush, and the water leans towards being water.",
+    "",
+    "Warm, not hot (Jonah, walked 2026-10-01: an island under it grew mostly badlands). Vanilla grows jungle only",
+    "in its warm band, 0.2..0.55, and files desert and badlands above it however wet the air -- so this asked",
+    "for 0.45..0.9 and got a wooded-badlands Age. Inside the warm band the humidity is what picks jungle."
   ],
   "biases": {
     "sea": {
@@ -18,7 +22,7 @@
     }
   },
   "sets": {
-    "temperature": "0.45..0.9",
+    "temperature": "0.22..0.54",
     "humidity": "0.4..0.9"
   },
   "pools": [
