@@ -1,0 +1,92 @@
+# The tide's rise, driven where no player stands to see it.
+# Run with: scripts/drive-server.sh scripts/checks/tide-rise.txt
+#
+# The rise puts the sea back wherever generation laid it and runs on from there a block a pass, as far as
+# eight blocks past it, only ever beside the sea and only where a cell would hold the water. Three things are
+# built in an ocean Age whose high water is y=62, the tide is taken down to low and back up to high, and each
+# is counted by replacing its sources with glass:
+#   - a stone roof on the sea, which high water must come back in under;
+#   - an L-shaped channel a block wide, cut into a block of stone and open to the sea at one end;
+#   - a glass room sealed in the shallows and pumped dry, which must stay dry although generation laid sea
+#     inside it.
+#
+# MEASURED 2026-09-30: under the roof y=60..62 full (26, 27, 27 of 27); the channel full on every layer (12 of
+# 12); the room empty. On the coast Age (`age polar sun tidal moon` at seed 7, sea to x=84 along z=320) a
+# trench dug inland from x=85 filled with sources to x=91 at y=62 and x=89 at y=61 — eight past where
+# generation's sea stops on each layer — and drained at low.
+age write tidetest 7 age ocean biomes
+execute in agesandtheart:tidetest run forceload add -48 -48 63 63
+execute in agesandtheart:tidetest run fill 30 63 0 34 63 10 minecraft:stone
+execute in agesandtheart:tidetest run fill 40 50 20 50 63 30 minecraft:stone
+execute in agesandtheart:tidetest run fill 40 60 25 47 62 25 minecraft:air
+execute in agesandtheart:tidetest run fill 47 60 25 47 62 29 minecraft:air
+execute in agesandtheart:tidetest run fill 39 60 25 39 62 25 minecraft:water
+execute in agesandtheart:tidetest run fill 10 58 20 16 64 26 minecraft:glass hollow
+execute in agesandtheart:tidetest run age tide low
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest run age tide high
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+execute in agesandtheart:tidetest positioned 8 80 8 run age tide pass
+tick sprint 60
+say roof y60
+execute in agesandtheart:tidetest run fill 31 60 1 33 60 9 minecraft:glass replace minecraft:water[level=0]
+say roof y61
+execute in agesandtheart:tidetest run fill 31 61 1 33 61 9 minecraft:glass replace minecraft:water[level=0]
+say roof y62
+execute in agesandtheart:tidetest run fill 31 62 1 33 62 9 minecraft:glass replace minecraft:water[level=0]
+say channel y60
+execute in agesandtheart:tidetest run fill 40 60 25 47 60 29 minecraft:glass replace minecraft:water[level=0]
+say channel y61
+execute in agesandtheart:tidetest run fill 40 61 25 47 61 29 minecraft:glass replace minecraft:water[level=0]
+say channel y62
+execute in agesandtheart:tidetest run fill 40 62 25 47 62 29 minecraft:glass replace minecraft:water[level=0]
+say room y60
+execute in agesandtheart:tidetest run fill 11 60 21 15 60 25 minecraft:glass replace minecraft:water[level=0]
+say room y61
+execute in agesandtheart:tidetest run fill 11 61 21 15 61 25 minecraft:glass replace minecraft:water[level=0]
+say room y62
+execute in agesandtheart:tidetest run fill 11 62 21 15 62 25 minecraft:glass replace minecraft:water[level=0]

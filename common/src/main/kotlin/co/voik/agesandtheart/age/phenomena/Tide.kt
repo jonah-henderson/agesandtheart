@@ -9,6 +9,7 @@ import co.voik.ephemeris.sky.SkyReading
 import co.voik.ephemeris.sky.SkySpec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.SectionPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Blocks
@@ -19,6 +20,7 @@ import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.material.FlowingFluid
 import net.minecraft.world.level.material.Fluid
+import net.minecraft.world.level.material.Fluids
 import java.util.Collections
 import java.util.WeakHashMap
 import kotlin.math.ceil
@@ -40,12 +42,10 @@ import kotlin.math.ceil
  * **The level is a pure function of the clock**, with nothing stored, so a chunk nobody has seen catches up
  * on the one pass that reaches it.
  *
- * **The deluge's rise, with an ebb beside it**, and both at one position per column — the top of the column,
- * which is the one candidate the heightmap names. The flood: at the top of a column, inside the band and
- * below where the tide stands, flowing sea becomes a source and a source grows up to the tide. The ebb: a
- * source at the top of a column, inside the band and above the tide, is taken away, and vanilla's own flow
- * drains the rest. **Neither acts outside the band**, so a mountain lake, a cavern pool and water placed above
- * high water are never touched, and generation keeps the written sea, which is high water.
+ * **The rise puts back what generation laid, and runs on a little from it** ([rise]); **the ebb takes the
+ * sea from the top of each column** above the tide, and from under the cover beside it ([ebb]). **Neither
+ * acts outside the band**, so a mountain lake, a cavern pool and water placed above high water are never
+ * touched, and generation keeps the written sea, which is high water.
  */
 object Tide {
 
@@ -233,18 +233,144 @@ object Tide {
                 val x = originX + offsetX
                 val z = originZ + offsetZ
                 cursor.set(x, top, z)
-                val state = chunk.getBlockState(cursor)
-                val here = state.fluidState
+                val here = chunk.getBlockState(cursor).fluidState
                 val isTheSea = here.type == seaFluid || here.type == flowingSea
-                if (!isTheSea) {
-                    if (top <= band.standing) soak(level, BlockPos(x, top, z), state, seaFluid)
-                    continue
-                }
-                when {
-                    top > band.standing -> ebb(level, BlockPos(x, top, z), seaFluid)
-                    top < band.standing -> flood(level, chunk, BlockPos(x, top, z), band.standing, sea, here.isSource)
+                if (isTheSea && top > band.standing) ebb(level, BlockPos(x, top, z), seaFluid)
+            }
+        }
+        rise(level, chunk, band, sea)
+    }
+
+    /**
+     * The sea back up to where the tide stands, **wherever generation laid it, and on from there** (Jonah,
+     * 2026-09-30): each pass the sea runs **one block further** into the room beside it or over it, back over
+     * everything generation filled with it, open or under cover, and on as far as [RUNS_ON_FOR] past that —
+     * so a covered pool, an inlet a block wide and a trench a player digs on the shore all fill, the trench a
+     * block at a time.
+     *
+     * What generation laid is asked of the generator ([GeneratedSea]) rather than stored, which is why a
+     * pond a player makes is never taken for the sea. **Only beside the sea**, so a room a player sealed and
+     * pumped dry in the shallows stays dry, and only where a cell would hold the water — ground or the sea
+     * under it — so none is poured into a cave, where vanilla's flow takes it as it always did. Every cell is
+     * decided before any is filled, so the sea runs one block a pass.
+     */
+    private fun rise(level: ServerLevel, chunk: LevelChunk, band: Band, sea: BlockState) {
+        val generated = generatedSeaIn(level, band.high)
+        if (!generated.isNear(chunk.pos)) return
+        val seaFluid = sea.fluidState.type
+        fun isSeaAt(at: BlockPos): Boolean {
+            if (!level.isLoaded(at)) return false
+            val fluid = level.getFluidState(at)
+            return fluid.isSource && fluid.type.isSame(seaFluid)
+        }
+        val filled = mutableListOf<Pair<BlockPos, BlockState>>()
+        for (offsetX in 0..<CHUNK_WIDTH) {
+            for (offsetZ in 0..<CHUNK_WIDTH) {
+                val x = chunk.pos.minBlockX + offsetX
+                val z = chunk.pos.minBlockZ + offsetZ
+                for (y in band.low..band.standing) {
+                    val at = BlockPos(x, y, z)
+                    val state = chunk.getBlockState(at)
+                    val becomes = withTheSeaIn(state, sea) ?: continue
+                    val below = at.below()
+                    val isOverTheSea = isSeaAt(below)
+                    val wouldHoldIt = isOverTheSea || chunk.getBlockState(below).isFaceSturdy(chunk, below, Direction.UP)
+                    val isBesideTheSea = isOverTheSea || Direction.Plane.HORIZONTAL.any { isSeaAt(at.relative(it)) }
+                    if (!wouldHoldIt || !isBesideTheSea) continue
+                    val isWithinItsReach = generated.isSeaAt(x, y, z) || generated.isWithin(RUNS_ON_FOR, x, y, z)
+                    if (isWithinItsReach) filled += at to becomes
                 }
             }
+        }
+        for ((at, state) in filled) level.setBlockAndUpdate(at, state)
+    }
+
+    /**
+     * [state] with the sea in it, or null where the sea cannot come in or is there already: room becomes the
+     * sea, a flow of it becomes the sea itself, and a dry block that could stand in water is waterlogged.
+     */
+    private fun withTheSeaIn(state: BlockState, sea: BlockState): BlockState? {
+        val seaFluid = sea.fluidState.type
+        val isAFlowOfIt = state.`is`(sea.block) && !state.fluidState.isSource
+        if (state.isAir || isAFlowOfIt) return sea
+        val couldStandInIt = state.getOptionalValue(BlockStateProperties.WATERLOGGED).map { !it }.orElse(false)
+        val isWater = seaFluid.isSame(Fluids.WATER)
+        return if (couldStandInIt && isWater) state.setValue(BlockStateProperties.WATERLOGGED, true) else null
+    }
+
+    /** What generation laid of the sea in [level]'s band under [high], kept for the chunks a tide works. */
+    private fun generatedSeaIn(level: ServerLevel, high: Int): GeneratedSea {
+        val known = generatedSea[level]
+        if (known != null && known.high == high) return known
+        return GeneratedSea(level, high).also { generatedSea[level] = it }
+    }
+
+    private val generatedSea: MutableMap<ServerLevel, GeneratedSea> = Collections.synchronizedMap(WeakHashMap())
+
+    /**
+     * Which cells of the band under [high] generation filled with the sea — open water standing on the
+     * generated floor — asked of the generator's own heights, a pure function, so nothing need be saved.
+     *
+     * **Remembered in memory only**, a byte a column for the [MOST_CHUNKS_REMEMBERED] chunks a tide last
+     * worked, and asked again for one forgotten. Rebuilt whole where high water moves, as a deluge moves it.
+     */
+    private class GeneratedSea(private val level: ServerLevel, val high: Int) {
+
+        private val byChunk = object : LinkedHashMap<Long, ByteArray>(MOST_CHUNKS_REMEMBERED, LOAD, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, ByteArray>?): Boolean =
+                size > MOST_CHUNKS_REMEMBERED
+        }
+
+        fun isSeaAt(x: Int, y: Int, z: Int): Boolean {
+            val layer = high - y
+            if (layer !in 0..<LAYERS) return false
+            val columns = columnsOf(ChunkPos(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z)))
+            if (columns === NONE) return false
+            val column = columns[(x and CHUNK_MASK) * CHUNK_WIDTH + (z and CHUNK_MASK)].toInt()
+            return column and (1 shl layer) != 0
+        }
+
+        /** Whether generation laid the sea at height [y] within [reach] blocks of the column at [x], [z]. */
+        fun isWithin(reach: Int, x: Int, y: Int, z: Int): Boolean =
+            (-reach..reach).any { dx -> (-reach..reach).any { dz -> isSeaAt(x + dx, y, z + dz) } }
+
+        /** Whether generation laid any of the band in [chunk] or beside it — what lets a dry inland chunk go. */
+        fun isNear(chunk: ChunkPos): Boolean = (-1..1).any { dx ->
+            (-1..1).any { dz -> columnsOf(ChunkPos(chunk.x + dx, chunk.z + dz)) !== NONE }
+        }
+
+        private fun columnsOf(chunk: ChunkPos): ByteArray = byChunk.getOrPut(chunk.pack()) { askedOf(chunk) }
+
+        private fun askedOf(chunk: ChunkPos): ByteArray {
+            val generator = level.chunkSource.generator
+            val randomState = level.chunkSource.randomState()
+            val columns = ByteArray(CHUNK_WIDTH * CHUNK_WIDTH)
+            for (offsetX in 0..<CHUNK_WIDTH) {
+                for (offsetZ in 0..<CHUNK_WIDTH) {
+                    val x = chunk.minBlockX + offsetX
+                    val z = chunk.minBlockZ + offsetZ
+                    // Each the space over the top block of its kind: the floor, and whatever stood on it.
+                    val overTheFloor = generator.getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, level, randomState)
+                    val overTheTop = generator.getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, level, randomState)
+                    var layers = 0
+                    for (layer in 0..<LAYERS) {
+                        val y = high - layer
+                        if (y >= overTheFloor && y < overTheTop) layers = layers or (1 shl layer)
+                    }
+                    columns[offsetX * CHUNK_WIDTH + offsetZ] = layers.toByte()
+                }
+            }
+            return if (columns.all { it.toInt() == 0 }) NONE else columns
+        }
+
+        private companion object {
+            /** Every layer a band can reach, under high water: the widest reach either side of mid. */
+            const val LAYERS = 2 * WIDEST_REACH + 1
+            const val CHUNK_MASK = CHUNK_WIDTH - 1
+            const val LOAD = 0.75f
+
+            /** A chunk with none of the band's sea in it, shared, so it costs a reference and no columns. */
+            val NONE = ByteArray(0)
         }
     }
 
@@ -278,18 +404,6 @@ object Tide {
         level.setBlockAndUpdate(at, dried)
     }
 
-    /** A dry block that could stand in water, at or under the tide with the sea beside it, waterlogged again. */
-    private fun soak(level: ServerLevel, at: BlockPos, state: BlockState, sea: Fluid) {
-        val isDryButCouldStandInIt = state.getOptionalValue(BlockStateProperties.WATERLOGGED).map { !it }.orElse(false)
-        if (!isDryButCouldStandInIt) return
-        fun isSeaBeside(side: Direction): Boolean {
-            val beside = level.getFluidState(at.relative(side))
-            return beside.isSource && beside.type.isSame(sea)
-        }
-        if (Direction.Plane.HORIZONTAL.none(::isSeaBeside)) return
-        level.setBlockAndUpdate(at, state.setValue(BlockStateProperties.WATERLOGGED, true))
-    }
-
     private fun drainUnderCover(level: ServerLevel, from: BlockPos, sea: Fluid) {
         fun isCoveredSea(at: BlockPos): Boolean {
             if (!level.isLoaded(at) || !level.getFluidState(at).type.isSame(sea)) return false
@@ -306,28 +420,6 @@ object Tide {
                 dryOut(level, next)
                 frontier.addLast(next)
             }
-        }
-    }
-
-    /** The deluge's own rule, stopped at the tide: a flow becomes a source, a source rises to the line. */
-    private fun flood(
-        level: ServerLevel,
-        chunk: LevelChunk,
-        top: BlockPos,
-        standing: Int,
-        sea: BlockState,
-        isSource: Boolean,
-    ) {
-        if (!isSource) {
-            level.setBlockAndUpdate(top, sea)
-            return
-        }
-        var risen = top
-        while (risen.y < standing) {
-            val above = risen.above()
-            if (!chunk.getBlockState(above).canBeReplaced(sea.fluidState.type)) break
-            level.setBlockAndUpdate(above, sea)
-            risen = above
         }
     }
 
@@ -358,6 +450,12 @@ object Tide {
 
     /** How far under cover the ebb follows the sea from the open water beside it. */
     private const val COVERED_REACH = 8
+
+    /** How far the rising sea runs on past where generation laid it — as far as the ebb follows it. */
+    private const val RUNS_ON_FOR = COVERED_REACH
+
+    /** About what three players at an ordinary view distance keep loaded, at a byte a column. */
+    private const val MOST_CHUNKS_REMEMBERED = 4096
 
     /**
      * The furthest a tide reaches either side of mid, however hard its moons pull — **one block for now**
