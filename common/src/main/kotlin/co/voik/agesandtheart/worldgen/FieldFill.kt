@@ -89,8 +89,10 @@ internal class FieldFill(
                     val verdict = adaptation?.verdictAt(worldX, y, worldZ)
                     val isRock = verdict ?: fieldHasRock
                     val clearedByAStructure = verdict == false && fieldHasRock
+                    // A hollow open to the sky under the waterline is the sea's, not the aquifer's.
+                    val openToTheSea = band.hollowOpenToTheSea(at, y)
                     val askedTheAquifer = !isRock && !clearedByAStructure && band.carried(at, y) == null &&
-                        band.hollow(at, y)
+                        band.hollow(at, y) && !openToTheSea
                     val state = when {
                         // What the rock *is*, which is vanilla's `default_block` and now ours — the surface
                         // system paints its skin over this afterwards, exactly as it does for vanilla.
@@ -109,6 +111,7 @@ internal class FieldFill(
                         // caldera's lava is neither groundwater nor the sea, and both of those would take
                         // the space and put the wrong substance in it.
                         band.carried(at, y) != null -> band.carried(at, y)
+                        openToTheSea -> seaHere
                         // Inside the rock a cave system opened: the table answers, not the waterline. Asked
                         // before the sea, since this space is under it and the sea would otherwise take it.
                         band.hollow(at, y) -> heldBackFrom(
@@ -276,8 +279,11 @@ internal class FieldFill(
          * Whether the **sea** stands against this block — beside it, or over it.
          *
          * The sea's own space is what the aquifer does not own: not rock, not a hollow of ours, and under
-         * the waterline. Above is checked as well as beside, because a sea lying on the roof of a dry cave
-         * falls into it the moment the chunk is ticked.
+         * the waterline — **or a hollow open to the sky under it**, which is the sea's too
+         * ([hollowOpenToTheSea]). Leaving that out walled nothing between a roofed dry cave and an open
+         * hollow beside it, and the sea stood against the air (walked 2026-10-01). Above is checked as well
+         * as beside, because a sea lying on the roof of a dry cave falls into it the moment the chunk is
+         * ticked.
          */
         fun seaTouching(localX: Int, localZ: Int, y: Int): Boolean =
             isSea(indexOf(localX, localZ), y + 1) ||
@@ -285,7 +291,18 @@ internal class FieldFill(
                 isSea(indexOf(localX, localZ - 1), y) || isSea(indexOf(localX, localZ + 1), y)
 
         private fun isSea(at: Int, y: Int): Boolean =
-            !spans[at]!!.contains(y) && !hollow(at, y) && carried(at, y) == null && fills(at, y)
+            !spans[at]!!.contains(y) && (!hollow(at, y) || hollowOpenToTheSea(at, y)) && carried(at, y) == null &&
+                fills(at, y)
+
+        /**
+         * **A hollow with nothing over it, under the waterline, is the sea's** (Jonah, walked 2026-10-01: holes
+         * in the shallows open to the sky, the sea walled round them). The aquifer decides whether a cell is
+         * under the sea from the preliminary surface, which is smoothed over sixteen blocks and stands above
+         * the water along a shore, so a cave opening up through the shallows read as inland and came out dry.
+         * Enclosed caves are still the aquifer's, which is what it is for.
+         */
+        fun hollowOpenToTheSea(at: Int, y: Int): Boolean =
+            hollow(at, y) && (spans[at]!!.highestSolidY?.let { y > it } ?: true) && fills(at, y)
 
         /** Whether any of the four columns beside this one left this level open. */
         fun openBeside(localX: Int, localZ: Int, y: Int): Boolean =

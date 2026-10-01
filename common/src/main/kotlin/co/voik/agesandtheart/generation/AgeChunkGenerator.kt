@@ -61,7 +61,9 @@ import net.minecraft.world.level.levelgen.densityfunction.DensitySampler
 import net.minecraft.world.level.levelgen.densityfunction.SamplerContext
 import net.minecraft.world.level.chunk.CarvingMask
 import net.minecraft.core.Direction
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.tags.BlockTags
+import net.minecraft.tags.FluidTags
 import net.minecraft.util.Util
 import co.voik.agesandtheart.worldgen.carver.OpenGround
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
@@ -1080,6 +1082,9 @@ class AgeChunkGenerator(
         if (mask.isEmpty()) return
         val here = BlockPos.MutableBlockPos()
         val below = BlockPos.MutableBlockPos()
+        // What the carve opened under the waterline, for [floodFromTheSea] once the walk is done.
+        val openedUnderTheSea = LongOpenHashSet()
+        val waterline = seaFill.surfaceY
         mask.visit { localX, localZ, lowY, highY ->
             val worldX = chunk.pos.getBlockX(localX)
             val worldZ = chunk.pos.getBlockZ(localZ)
@@ -1090,11 +1095,17 @@ class AgeChunkGenerator(
             // Where the carver ran through space the fill already left open, there was nothing to cut. Vanilla
             // asks its aquifer even here, which is harmless when that aquifer is what opened the space; ours
             // does not know a chamber or a hollow is dry, and would pour a tunnel of water through the air.
-            if (!standing.isAir && !standing.`is`(BlockTags.UNCARVABLE)) {
+            //
+            // **Nor through anything holding a fluid** (Jonah, walked 2026-10-01: "carver holes in the middle
+            // of the ocean"). A carver path climbing out of the sea bed ran on up through the sea itself, the
+            // aquifer answered air for the sea's own blocks, and the hole stood open to the sky with the sea
+            // walled round it. Vanilla's carvers never replace a fluid, and neither does this now.
+            if (!standing.isAir && standing.fluidState.isEmpty && !standing.`is`(BlockTags.UNCARVABLE)) {
                 val wasTurf = standing.`is`(Blocks.GRASS_BLOCK) || standing.`is`(Blocks.MYCELIUM)
                 val cut = aquifer.computeSubstance(worldX, worldY, worldZ, NO_CAVE_DENSITY)
                 if (cut != null) {
                     chunk.setBlockState(here, cut)
+                    if (cut.isAir && waterline != null && worldY <= waterline) openedUnderTheSea.add(here.asLong())
                     if (aquifer.shouldScheduleFluidUpdate() && !cut.fluidState.isEmpty) {
                         chunk.markPosForPostProcessing(here)
                     }
@@ -1112,6 +1123,63 @@ class AgeChunkGenerator(
                     }
                 }
             }
+            }
+        }
+        floodFromTheSea(chunk, openedUnderTheSea)
+    }
+
+    /**
+     * **A carve that opens onto the sea, under the waterline, is the sea's** — flooded from every face it
+     * shares with standing water, through whatever else the same carve opened, as water finds its level.
+     *
+     * The aquifer answers dry along a shore, for the reason [FieldFill] gives open hollows to the sea: it reads
+     * "under the sea" off a surface smoothed over sixteen blocks, which there stands over the water. So a
+     * carve up under a shallow sea floor left the sea's last block standing on nothing, and one through the
+     * beach's edge left the sea standing as a wall against a dry pit (Jonah, walked 2026-10-01, twice). Only
+     * what *this carve* opened is flooded, so a cave the fill left dry stays dry, and a cut that never touches
+     * the sea is still the aquifer's.
+     *
+     * Within the chunk, since a neighbour's blocks are not this pass's; a flooded block on the chunk's edge
+     * is marked for post-processing, so the water finds its own way across on load. Water only: lava a carver
+     * opens is told to move rather than poured after (`decisions.md`, 2026-09-11).
+     */
+    private fun floodFromTheSea(chunk: ChunkAccess, opened: LongOpenHashSet) {
+        if (opened.isEmpty()) return
+        val minX = chunk.pos.minBlockX
+        val minZ = chunk.pos.minBlockZ
+        fun inChunk(x: Int, z: Int) = x - minX in 0..<CHUNK_WIDTH && z - minZ in 0..<CHUNK_WIDTH
+        val at = BlockPos.MutableBlockPos()
+        fun waterAt(x: Int, y: Int, z: Int): BlockState? {
+            if (!inChunk(x, z)) return null
+            val fluid = chunk.getBlockState(at.set(x, y, z)).fluidState
+            return if (fluid.`is`(FluidTags.WATER) && fluid.isSource) fluid.createLegacyBlock() else null
+        }
+        val reaching = ArrayDeque<Pair<Long, BlockState>>()
+        for (packed in opened) {
+            val x = BlockPos.getX(packed)
+            val y = BlockPos.getY(packed)
+            val z = BlockPos.getZ(packed)
+            val water = Direction.entries.firstNotNullOfOrNull { side ->
+                if (side == Direction.DOWN) null else waterAt(x + side.stepX, y + side.stepY, z + side.stepZ)
+            } ?: continue
+            reaching.add(packed to water)
+        }
+        while (reaching.isNotEmpty()) {
+            val (packed, water) = reaching.removeFirst()
+            if (!opened.remove(packed)) continue
+            at.set(packed)
+            chunk.setBlockState(at, water)
+            val x = at.x
+            val y = at.y
+            val z = at.z
+            if (x == minX || z == minZ || x == minX + CHUNK_WIDTH - 1 || z == minZ + CHUNK_WIDTH - 1) {
+                chunk.markPosForPostProcessing(at)
+            }
+            for (side in Direction.entries) {
+                // Water does not climb: what lies over a flooded block floods only if it reaches the sea itself.
+                if (side == Direction.UP) continue
+                val next = BlockPos.asLong(x + side.stepX, y + side.stepY, z + side.stepZ)
+                if (next in opened) reaching.add(next to water)
             }
         }
     }
