@@ -6,6 +6,8 @@ import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.TerrainFill
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.core.HolderGetter
+import net.minecraft.resources.Identifier
+import net.minecraft.world.level.levelgen.material.MaterialRules
 import net.minecraft.world.level.levelgen.material.rule.MaterialRule
 
 /**
@@ -52,12 +54,22 @@ object Surface {
         template: AgeTemplate,
         rules: HolderGetter<MaterialRule>,
         biomes: HolderGetter<Biome>? = null,
+        /** The sea's surface, or null where there is none — our biomes' skins are laid against it. */
+        waterline: Int? = null,
+        /** The biomes the book asked for, which says which of ours this Age has a skin to lay for. */
+        grown: Set<Identifier> = emptySet(),
     ): MaterialRule {
         // What the world paints deep in its rock goes on whatever the skin is: a book naming its ground's
         // top layer has said nothing about a sulfur cave's walls.
         val beneath = biomes?.let { template.beneathTheSkin(rules, it) }
         val blocks = options.materialsOf(MATERIAL)
-        if (blocks.isEmpty()) return SurfacingStrategy.delegatedToBiomes(rock.landform, template.skin(rules), beneath)
+        if (blocks.isEmpty()) {
+            // Our biomes before the template's, whose tree does not know them. Only with a sea, since the one
+            // that has a skin of its own is a coast.
+            val ours = if (biomes != null && waterline != null) SurfacingStrategy.ofOurBiomes(biomes, waterline, grown) else null
+            val skin = ours?.let { MaterialRules.sequence(it, template.skin(rules)) } ?: template.skin(rules)
+            return SurfacingStrategy.delegatedToBiomes(rock.landform, skin, beneath)
+        }
         // Air is how a writer says "no skin", the same way `open` says "no sea" — and it is only bare when
         // *everything* named is air, since air mingled with a rock is a skin full of holes and a fine thing
         // for a book to ask for.

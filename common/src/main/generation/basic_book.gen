@@ -35,7 +35,19 @@ curiosity_age =
     | [mood] age [curious_landmass] [thing]
     | age [open_curious_landmass] [look] [thing]@4
     | age [open_curious_landmass] [look] [landed_thing] [climate]@2
-    | age [curious_landmass] [landed_thing] [sea]
+    | age [curious_landmass] [thing_beside_a_sea] [sea]
+    | [palm_beach_age]
+
+# The palm beach: a ribbon rather than a trophy (Jonah, 2026-09-30), so it is a curiosity and common ink. An
+# island, so there is a beach for it, and warmth or something to look at beside it -- it grows only where
+# the coast is mild, and a book that named it on a cold Age would be a page that did nothing.
+palm_beach_age =
+    age [palm_landmass] landmass palm_beach biomes [palm_climate]@2
+    | age [palm_landmass] landmass [look] palm_beach biomes
+
+palm_landmass = insular@3 | archipelagic@3 | [size] insular
+
+palm_climate = tropical climate | warm climate
 
 curious_landmass = [typical_landmass] landmass@3 | [size] [typical_landmass] landmass@2 | [stone] [typical_landmass] landmass
 
@@ -47,6 +59,20 @@ thing = [landed_thing]@4 | [sea]
 
 # Without the sea, for beside a climate: a drowned sea and an arid climate are watery against dry.
 landed_thing = [formation]@3 | [underground]@3 | [life]@2
+
+# And without dry rock, for beside a sea: `dry rock` and `drowned sea` are dry against watery, which
+# BookCheck caught at seed 341 once the palm beach's shape moved which book each seed draws.
+thing_beside_a_sea = [formation]@3 | [underground_beside_a_sea]@3 | [life]@2
+
+underground_beside_a_sea =
+    tunnels underground@4
+    | fissured underground@4
+    | chambered underground@3
+    | riddled rock@3
+    | [size] tunnels underground@2
+    | delved underground
+    | hollow underground
+    | lattice underground
 
 # Arc crystals: a tempest, and an aurora most nights and fierce.
 arc_crystal_age =

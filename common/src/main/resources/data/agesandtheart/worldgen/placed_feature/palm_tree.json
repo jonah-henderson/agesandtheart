@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "Where the palm beach puts its palms: on dry ground, as vanilla's own trees are placed, and in the biome",
+    "the placement re-checks at the end. One chunk in sixteen (Jonah, walked twice: 'a bit too frequent' at 1.25 a",
+    "chunk, 'still too frequent' at 0.625), so a palm is a landmark on a beach rather than a grove.",
+    "A placed feature is a word (`palm_tree features`), as vanilla's trees are, so a writer may grow palms in an",
+    "Age with no palm beach at all."
+  ],
+  "feature": "agesandtheart:palm_tree",
+  "placement": [
+    {
+      "type": "minecraft:rarity_filter",
+      "chance": 16
+    },
+    {
+      "type": "minecraft:in_square"
+    },
+    {
+      "type": "minecraft:surface_water_depth_filter",
+      "max_water_depth": 0
+    },
+    {
+      "type": "minecraft:heightmap",
+      "heightmap": "OCEAN_FLOOR"
+    },
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

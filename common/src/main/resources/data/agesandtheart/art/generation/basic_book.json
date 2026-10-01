@@ -19,7 +19,21 @@
       {"produce":["[mood]","age","[curious_landmass]","[thing]"]},
       {"weight":4.0,"produce":["age","[open_curious_landmass]","[look]","[thing]"]},
       {"weight":2.0,"produce":["age","[open_curious_landmass]","[look]","[landed_thing]","[climate]"]},
-      {"produce":["age","[curious_landmass]","[landed_thing]","[sea]"]}
+      {"produce":["age","[curious_landmass]","[thing_beside_a_sea]","[sea]"]},
+      {"produce":["[palm_beach_age]"]}
+    ],
+    "palm_beach_age": [
+      {"weight":2.0,"produce":["age","[palm_landmass]","landmass","palm_beach","biomes","[palm_climate]"]},
+      {"produce":["age","[palm_landmass]","landmass","[look]","palm_beach","biomes"]}
+    ],
+    "palm_landmass": [
+      {"weight":3.0,"produce":["insular"]},
+      {"weight":3.0,"produce":["archipelagic"]},
+      {"produce":["[size]","insular"]}
+    ],
+    "palm_climate": [
+      {"produce":["tropical","climate"]},
+      {"produce":["warm","climate"]}
     ],
     "curious_landmass": [
       {"weight":3.0,"produce":["[typical_landmass]","landmass"]},
@@ -45,6 +59,21 @@
       {"weight":3.0,"produce":["[formation]"]},
       {"weight":3.0,"produce":["[underground]"]},
       {"weight":2.0,"produce":["[life]"]}
+    ],
+    "thing_beside_a_sea": [
+      {"weight":3.0,"produce":["[formation]"]},
+      {"weight":3.0,"produce":["[underground_beside_a_sea]"]},
+      {"weight":2.0,"produce":["[life]"]}
+    ],
+    "underground_beside_a_sea": [
+      {"weight":4.0,"produce":["tunnels","underground"]},
+      {"weight":4.0,"produce":["fissured","underground"]},
+      {"weight":3.0,"produce":["chambered","underground"]},
+      {"weight":3.0,"produce":["riddled","rock"]},
+      {"weight":2.0,"produce":["[size]","tunnels","underground"]},
+      {"produce":["delved","underground"]},
+      {"produce":["hollow","underground"]},
+      {"produce":["lattice","underground"]}
     ],
     "arc_crystal_age": [
       {"produce":["age","[arc_crystal_landmasses]","landmass","[tempest_options]","[aurora_options]"]},

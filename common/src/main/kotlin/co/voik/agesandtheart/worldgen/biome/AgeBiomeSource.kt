@@ -106,6 +106,10 @@ class AgeBiomeSource(
             ?: beneath.getNoiseBiome(quartX, quartY, quartZ)
     }
 
+    /** The six numbers this Age looks its biomes up by at a block, as it reads them — for `/age probe`. */
+    fun climateAt(climate: Climate.Sampler, blockX: Int, blockY: Int, blockZ: Int): Climate.TargetPoint =
+        asThisAgeSeesIt(climate).sample(QuartPos.fromBlock(blockX), QuartPos.fromBlock(blockY), QuartPos.fromBlock(blockZ))
+
     /** The world below's own, plus anything only a [BiomeBand] hands out — in no table, so it must be said. */
     override fun collectPossibleBiomes(): Stream<Holder<Biome>> =
         Stream.concat(under.possibleBiomes().stream(), bands.stream().map(BiomeBand::biome))

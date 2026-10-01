@@ -30,6 +30,9 @@ object Biomes {
     /** The biome an Age's great halls are, carrying their own dark and their own sound. */
     val GREAT_HALL_BIOME: Identifier = "great_hall".location()
 
+    /** White sand, a reef lagoon and palms, on a warm Age's coast — `notes/palm-beach-design.md`. */
+    val PALM_BEACH_BIOME: Identifier = "palm_beach".location()
+
 
     /**
      * The biomes this Age was told to grow, as weights against what it would have grown anyway — above
@@ -48,6 +51,13 @@ object Biomes {
             asked.struck.filter { it != Parameter.UNCHANGED }.mapNotNull(Identifier::tryParse)
                 .map { biome -> BiomePreference(biome, BiomePreference.STRUCK_OUT) }
     }
+
+    /**
+     * The biomes this Age was told to grow and not struck — which of **ours** it has, since none of ours is
+     * in any table until a book names it.
+     */
+    fun grownIn(options: Options): Set<Identifier> =
+        preferencesIn(options).filterNot { it.removes }.map { it.biome }.toSet()
 
     /** Whether the sentence singled biomes out, so everything it did not name is struck from the table. */
     fun keepsOnlyNamed(options: Options): Boolean = options.skewOn(GROWN).exclusive

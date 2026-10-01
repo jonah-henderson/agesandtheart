@@ -85,5 +85,18 @@
   },
   "minecraft:the_void": {
     "available_to_broad_words": false
+  },
+  "agesandtheart:palm_beach": {
+    "present_anyway": false,
+    "_comment": [
+      "Ours, and in no Age until a book names it, so naming it is the whole request and takes no mention",
+      "bump -- the declared home is what one plain naming gets (notes/palm-beach-design.md). A description",
+      "never introduces a biome, so these tags only reweigh a palm beach some sentence already named."
+    ],
+    "tags": {
+      "sandy": 1.0,
+      "bright": 0.8,
+      "colourful": 0.6
+    }
   }
 }

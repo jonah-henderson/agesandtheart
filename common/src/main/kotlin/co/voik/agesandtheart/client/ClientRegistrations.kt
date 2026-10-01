@@ -1,6 +1,9 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.PalmWood
+import net.minecraft.client.model.geom.ModelLayers
+import net.minecraft.client.renderer.entity.BoatRenderer
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.screens.inventory.ContainerScreen
 import net.minecraft.client.gui.screens.inventory.MenuAccess
@@ -59,6 +62,9 @@ object ClientRegistrations {
         RendererForEntity(AgeContent.METEOR_STORM) { NoopRenderer(it) },
         RendererForEntity(AgeContent.CAVE_IN) { NoopRenderer(it) },
         RendererForEntity(AgeContent.CRUMBLING_COLUMN) { NoopRenderer(it) },
+        // Birch's boats until the asset pass: a boat's texture follows its model layer, which no tint reaches.
+        RendererForEntity(PalmWood.BOAT) { BoatRenderer(it, ModelLayers.BIRCH_BOAT) },
+        RendererForEntity(PalmWood.CHEST_BOAT) { BoatRenderer(it, ModelLayers.BIRCH_CHEST_BOAT) },
     )
 
     val BLOCK_ENTITY_RENDERERS: List<RendererForBlockEntity<*, *>> = listOf(

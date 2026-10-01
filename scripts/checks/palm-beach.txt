@@ -1,0 +1,20 @@
+# Does a named palm beach land on an island's coast, and only there?
+# Run with: scripts/drive-server.sh scripts/checks/palm-beach.txt
+#
+# What to read: in the tropical Age, palm beach takes the share a coast has and the ocean and the interior
+# keep theirs -- it should not appear inland or out at sea. The plain Age names it without a climate, so it
+# grows only where the Age happens to be warm. The cold one asks for it where it does not belong, and a
+# small share or none is the right answer (the risk the writer takes, notes/palm-beach-design.md).
+
+age write palms 7 age insular landmass tropical climate palm_beach biomes
+age biomes palms 24
+
+age write palmsplain 7 age insular landmass palm_beach biomes
+age biomes palmsplain 24
+
+age write palmscold 7 age insular landmass frozen climate palm_beach biomes
+age biomes palmscold 24
+
+# And the same island without it, to see what the palm beach took the place of.
+age write nopalms 7 age insular landmass tropical climate
+age biomes nopalms 24

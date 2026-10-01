@@ -1,10 +1,29 @@
 {
   "blizzard_sheltered": {
     "category": "weather",
-    "sounds": [{ "name": "agesandtheart:blizzard_sheltered", "stream": true }]
+    "sounds": [
+      {
+        "name": "agesandtheart:blizzard_sheltered",
+        "stream": true
+      }
+    ]
   },
   "blizzard_exposed": {
     "category": "weather",
-    "sounds": [{ "name": "agesandtheart:blizzard_exposed", "stream": true }]
+    "sounds": [
+      {
+        "name": "agesandtheart:blizzard_exposed",
+        "stream": true
+      }
+    ]
+  },
+  "surf": {
+    "category": "ambient",
+    "sounds": [
+      {
+        "name": "agesandtheart:surf_loop",
+        "stream": true
+      }
+    ]
   }
 }

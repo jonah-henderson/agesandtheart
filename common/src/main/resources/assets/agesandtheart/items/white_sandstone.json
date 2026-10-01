@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "agesandtheart:block/white_sandstone",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 16775920
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "agesandtheart:block/palm_trapdoor_bottom",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 16630428
+      },
+      {
+        "type": "minecraft:constant",
+        "value": 16630428
+      }
+    ]
+  }
+}

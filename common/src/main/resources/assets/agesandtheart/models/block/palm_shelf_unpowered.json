@@ -1,0 +1,33 @@
+{
+  "parent": "minecraft:block/template_shelf_unpowered",
+  "textures": {
+    "all": "minecraft:block/birch_shelf",
+    "particle": "minecraft:block/stripped_birch_log"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        4,
+        13
+      ],
+      "to": [
+        16,
+        12,
+        13
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            2,
+            8,
+            6
+          ],
+          "texture": "#all",
+          "tintindex": 0
+        }
+      }
+    }
+  ]
+}

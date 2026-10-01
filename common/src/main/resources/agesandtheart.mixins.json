@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_${java_version}",
   "mixins": [
     "BlockDefaultStateMixin",
+    "BlockEntityTypeMixin",
     "BlockStateFluidMixin",
     "BubbleColumnBlockMixin",
     "CarvedPumpkinBlockMixin",
@@ -13,6 +14,7 @@
     "EnderDragonMixin",
     "EntityCollidersMixin",
     "EntityFluidInteractionMixin",
+    "FireBlockInvoker",
     "FlowingFluidMixin",
     "LecternBlockEntityMixin",
     "LecternBlockMixin",

@@ -12,6 +12,7 @@ import co.voik.agesandtheart.age.aspect.Underground
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
+import co.voik.agesandtheart.worldgen.biome.BiomeHome
 import com.mojang.serialization.Codec
 import net.minecraft.core.HolderGetter
 import net.minecraft.data.worldgen.material.EndMaterialRules
@@ -245,7 +246,7 @@ enum class AgeTemplate(
             .value()
             .parameters()
         return MultiNoiseBiomeSource.createFromList(
-            BiomePreference.applied(table, preferences, keepsOnlyNamed, lookup, seed),
+            BiomePreference.applied(table, preferences, keepsOnlyNamed, lookup, seed, BiomeHome.of(server)),
         )
     }
 

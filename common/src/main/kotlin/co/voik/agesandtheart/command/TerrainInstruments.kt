@@ -25,6 +25,10 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.core.Holder
+import net.minecraft.world.level.biome.Biome
+import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
+import net.minecraft.world.level.levelgen.densityfunction.SamplerContext
 import net.minecraft.world.level.biome.BiomeResolver
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.Climate
@@ -220,8 +224,31 @@ internal object TerrainInstruments {
         }
         // The contradiction that flooded every rift: a space kept dry that the aquifer also claims.
         report.only("dryAndAquifer", (PROBE_FROM..seaFill.level).count { dryness.contains(it) && hollow.contains(it) })
+        sayClimate(level, generator, x, rock.highestSolidY ?: seaFill.level, z, report)
         report.finish()
         return SUCCESS
+    }
+
+    /**
+     * **The climate this Age reads at the column's surface, and what it picks there** — the numbers a
+     * biome's place is decided by, which nothing printed until a palm beach came out patched with warm
+     * ocean (2026-09-30). The pick is the table's at that quart; the level's own answer goes through vanilla's
+     * fuzzy zoom first, so the two can differ near an edge, and both are said.
+     */
+    private fun sayClimate(level: ServerLevel, generator: AgeChunkGenerator, x: Int, y: Int, z: Int, report: Report) {
+        val biomes = generator.biomeSource as? AgeBiomeSource ?: return
+        val sampler = level.chunkSource.randomState().createClimateSampler(SamplerContext.EMPTY_UNCACHED)
+        val point = biomes.climateAt(sampler, x, y, z)
+        fun read(value: Long) = "%.3f".format(Climate.unquantizeCoord(value))
+        val numbers = "T=${read(point.temperature())} H=${read(point.humidity())} C=${read(point.continentalness())} " +
+            "E=${read(point.erosion())} D=${read(point.depth())} W=${read(point.weirdness())}"
+        report.fact("climate", numbers) { "  climate at the surface (y=$y): $numbers" }
+        val picked = biomes.createResolver(sampler)
+            .getNoiseBiome(QuartPos.fromBlock(x), QuartPos.fromBlock(y), QuartPos.fromBlock(z))
+        val shown = level.getBiome(BlockPos(x, y, z))
+        fun named(biome: Holder<Biome>) =
+            biome.unwrapKey().map { it.identifier().toString() }.orElse("?")
+        report.fact("biome", named(picked)) { "  the table picks ${named(picked)}; the level shows ${named(shown)}" }
     }
 
     private fun locateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =

@@ -257,6 +257,8 @@ object AgeGeneration {
                     recipe.template,
                     server.registryAccess().lookupOrThrow(Registries.MATERIAL_RULE),
                     server.registryAccess().lookupOrThrow(Registries.BIOME),
+                    seaFill.surfaceY,
+                    Biomes.grownIn(biomeOptions),
                 )
                 // A landform that is its own roof closes it with bedrock, as vanilla closes the nether's.
                 if (composition.roofedByItsRock) SurfacingStrategy.shutOverhead(skin) else skin

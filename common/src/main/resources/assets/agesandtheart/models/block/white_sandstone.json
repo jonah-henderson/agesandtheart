@@ -1,0 +1,7 @@
+{
+  "_comment": "Vanilla's calcite under the white sand's tint, until the asset pass. Parented on `leaves` for its tintindex, as `white_sand` is.",
+  "parent": "minecraft:block/leaves",
+  "textures": {
+    "all": "minecraft:block/calcite"
+  }
+}

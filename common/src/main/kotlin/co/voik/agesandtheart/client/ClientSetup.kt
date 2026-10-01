@@ -30,6 +30,8 @@ object ClientSetup {
         LecternPanels.tick(minecraft)
         // Whether a tear is being fallen through, settled once here rather than per fissure per frame.
         StarFissureVeil.tick(minecraft)
+        // Waves on a palm beach: the shore is found and the foam laid on the client, and nowhere else.
+        Surf.tick(minecraft)
     }
 
     /**
@@ -56,6 +58,7 @@ object ClientSetup {
     /** Leaving a server. What these hold is keyed on that server's ids, which mean nothing on the next, and an Age id can be reused. */
     fun disconnected() {
         KnownWords.forgetAll()
+        Surf.forget()
         DeskModel.forget()
         Wounds.forget()
         TintedLights.forget()

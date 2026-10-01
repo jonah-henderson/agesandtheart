@@ -59,7 +59,8 @@ data class BiomePreference(
         /**
          * [table] with every preference applied. Removals resolve first, so `except` beats a mention of the
          * same biome whatever order the writer said them in (§3.5). [keepsOnlyNamed] is `only`: everything
-         * unnamed goes, and a mention among the survivors still widens.
+         * unnamed goes, and a mention among the survivors still widens. [homes] are where the biomes of ours
+         * that declare one belong ([BiomeHome]).
          */
         fun applied(
             table: Climate.ParameterList<Holder<Biome>>,
@@ -67,6 +68,7 @@ data class BiomePreference(
             keepsOnlyNamed: Boolean,
             biomes: HolderGetter<Biome>,
             seed: Long,
+            homes: Map<Identifier, BiomeHome> = emptyMap(),
         ): Climate.ParameterList<Holder<Biome>> {
             if (preferences.isEmpty() && !keepsOnlyNamed) return table
             val named = preferences.filterNot { it.removes }.map { it.biome }.toSet()
@@ -110,7 +112,7 @@ data class BiomePreference(
                 !preference.removes && !preference.onlyWhereItGrows && preference.biome !in alreadyHere
             }
             val added = preferences.filter(introduces)
-                .flatMap { preference -> entriesFor(preference, table.values(), biomes, seed) }
+                .flatMap { preference -> entriesFor(preference, table.values(), biomes, seed, homes[preference.biome]) }
             val kept = (standing + added).filter(survives)
             if (kept.isEmpty()) {
                 // Still reachable: every biome struck out by `except`, or an `only` naming nothing at all. A world
@@ -156,8 +158,9 @@ data class BiomePreference(
 
         /**
          * The entries a biome the table has **never heard of** earns — everything already in it is scaled
-         * where it stands instead. Its entries are seeded homes among climates this table already reaches
-         * ([homesFor]), so they land somewhere arbitrary but *stable*.
+         * where it stands instead. A biome of ours that declares a [home] is put there. Any other gets seeded
+         * homes among climates this table already reaches ([homesFor]), so it lands somewhere arbitrary but
+         * *stable*.
          *
          * The count is **normalised against how much of the table a native biome holds**: vanilla's
          * overworld list carries ~60 points for cherry grove and the nether list carries **one** for
@@ -168,12 +171,15 @@ data class BiomePreference(
             table: List<Pair<Climate.ParameterPoint, Holder<Biome>>>,
             biomes: HolderGetter<Biome>,
             seed: Long,
+            home: BiomeHome?,
         ): List<Pair<Climate.ParameterPoint, Holder<Biome>>> {
             val holder = biomes.get(ResourceKey.create(Registries.BIOME, preference.biome)).orElse(null)
                 ?: run {
                     Constants.LOG.warn("An Age asked for biome '{}', which this pack does not have", preference.biome)
                     return emptyList()
                 }
+            // A biome that says where it belongs goes there, and none of what follows applies to it.
+            if (home != null) return home.at(preference.weight).map { box -> Pair(box, holder) }
             // A biome from elsewhere is given a home in climate this world actually reaches, and its own
             // dimension's coordinates are deliberately not used.
             //
@@ -255,21 +261,6 @@ data class BiomePreference(
         )
 
         /**
-         * A box never closes to nothing, however faint the claim: the table is searched by nearest
-         * neighbour, so a biome with a point in it is still somewhere's answer — being *small* is what
-         * makes it rare, and being absent is what `except` is for.
-         */
-        private fun Climate.Parameter.scaledBy(weight: Double): Climate.Parameter {
-            val middle = (min() + max()) / 2
-            val half = abs(max() - min()) / 2
-            val resized = (half * weight).toLong().coerceAtLeast(NARROWEST_BOX)
-            return Climate.Parameter(middle - resized, middle + resized)
-        }
-
-        /** Half-width in quantized climate units, below which a box is a point and cannot shrink further. */
-        private val NARROWEST_BOX = Climate.quantizeCoord(0.005f)
-
-        /**
          * How wide a niche a biome borrowed from another dimension (or invented for one with no climate)
          * is given, in climate units either side of its centre, before its weight scales it.
          */
@@ -295,3 +286,20 @@ data class BiomePreference(
         private fun idOf(biome: Holder<Biome>): Identifier? = biome.unwrapKey().orElse(null)?.identifier()
     }
 }
+
+/**
+ * One climate interval resized about its own middle. A box never closes to nothing, however faint the claim:
+ * the table is searched by nearest neighbour, so a biome with a point in it is still somewhere's answer —
+ * being *small* is what makes it rare, and being absent is what `except` is for.
+ *
+ * Shared with [BiomeHome], which resizes only some of a box's axes.
+ */
+internal fun Climate.Parameter.scaledBy(weight: Double): Climate.Parameter {
+    val middle = (min() + max()) / 2
+    val half = abs(max() - min()) / 2
+    val resized = (half * weight).toLong().coerceAtLeast(NARROWEST_BOX)
+    return Climate.Parameter(middle - resized, middle + resized)
+}
+
+/** Half-width in quantized climate units, below which a box is a point and cannot shrink further. */
+private val NARROWEST_BOX = Climate.quantizeCoord(0.005f)

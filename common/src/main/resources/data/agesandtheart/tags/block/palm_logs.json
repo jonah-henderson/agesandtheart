@@ -1,0 +1,9 @@
+{
+  "_comment": "The palm's log, wood and their stripped forms -- birch's `birch_logs`, for the palm.",
+  "values": [
+    "agesandtheart:palm_log",
+    "agesandtheart:palm_wood",
+    "agesandtheart:stripped_palm_log",
+    "agesandtheart:stripped_palm_wood"
+  ]
+}

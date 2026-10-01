@@ -1,6 +1,12 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.age.aspect.Biomes
+import co.voik.agesandtheart.content.PalmBeach
 import co.voik.agesandtheart.location
+import net.minecraft.core.HolderGetter
+import net.minecraft.resources.Identifier
+import net.minecraft.world.level.biome.Biomes as VanillaBiomes
+import net.minecraft.world.level.biome.Biome
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.block.Blocks
@@ -136,6 +142,77 @@ object SurfacingStrategy {
      */
     fun delegatedToBiomes(terrain: TerrainField, skin: MaterialRule, beneath: MaterialRule? = null): MaterialRule =
         layers(*listOfNotNull(worldFloor(), MaterialRules.ifTrue(NearTheSurface(terrain), skin), beneath).toTypedArray())
+
+    /**
+     * **The skins of our own biomes**, laid before a template's: a template's tree knows only the game's
+     * biomes, and one of ours falls through it to grass over dirt.
+     *
+     * The palm beach is white sand over white sandstone, as vanilla's beach is sand over sandstone, but
+     * **only between two heights about [waterline]**, so the white gives way on a contour rather than along
+     * the biome's four-block cells (`notes/palm-beach-design.md`, "Where it gives way"). Above the band the
+     * palm beach falls through to the template's skin and wears ordinary ground under its palms.
+     *
+     * Asked of the *surface's* height (`yStartCheck`), not each block's, so a column just over the line is
+     * grass over dirt all the way down rather than grass over dirt over white sand.
+     *
+     * **And the warm shallows beside it, in an Age that grows one.** The surface pass reads the biome through
+     * vanilla's fuzzy zoom, which borrows a neighbouring cell's near an edge — so a hole in the lagoon floor,
+     * which is warm ocean and rightly, bled a block or two of yellow sand onto the shallows around it and
+     * once onto the waterline (measured 2026-09-30 with `/age probe`: the table picked palm beach, the level
+     * showed warm ocean). In an Age that grows a palm beach, warm shallows lie in front of palm beaches and
+     * nowhere else, so they are white in the same band. An Age without one is left exactly as it was.
+     *
+     * Null where the Age grows none of ours, so nothing is added to its rule at all.
+     */
+    fun ofOurBiomes(biomes: HolderGetter<Biome>, waterline: Int, grown: Set<Identifier>): MaterialRule? {
+        if (Biomes.PALM_BEACH_BIOME !in grown) return null
+        val whiteSand = solid(PalmBeach.WHITE_SAND_BLOCK.defaultBlockState())
+        val whiteSandstone = solid(PalmBeach.WHITE_SANDSTONE_BLOCK.defaultBlockState())
+        // `yStartCheck` adds the stone depth, which counts the surface block itself as one — so a surface at y
+        // reads as y + 1, and each anchor is one over the surface it means.
+        val inTheBand =
+            MaterialRules.yStartCheck(VerticalAnchor.absolute(waterline - WHITE_BELOW_THE_WATERLINE + 1), 0)
+        // Not white from the first surface past the band, which is one over its top.
+        val firstSurfaceAbove = waterline + WHITE_ABOVE_THE_WATERLINE + 1
+        val underTheTop = MaterialRules.not(MaterialRules.yStartCheck(VerticalAnchor.absolute(firstSurfaceAbove + 1), 0))
+        return MaterialRules.ifTrue(
+            MaterialRules.isBiome(
+                biomes,
+                ResourceKey.create(Registries.BIOME, Biomes.PALM_BEACH_BIOME),
+                VanillaBiomes.WARM_OCEAN,
+                VanillaBiomes.LUKEWARM_OCEAN,
+            ),
+            MaterialRules.ifTrue(
+                inTheBand,
+                MaterialRules.ifTrue(
+                    underTheTop,
+                    layers(
+                        // Vanilla's beach in white: sand, or sandstone where it would hang from a ceiling and fall.
+                        MaterialRules.ifTrue(
+                            MaterialRules.stoneDepthCheck(0, true, CaveSurface.FLOOR),
+                            layers(MaterialRules.ifTrue(onTheCeiling(), whiteSandstone), whiteSand),
+                        ),
+                        MaterialRules.ifTrue(MaterialRules.stoneDepthCheck(0, true, SANDSTONE_DEPTH, CaveSurface.FLOOR), whiteSandstone),
+                    ),
+                ),
+            ),
+        )
+    }
+
+    /** Vanilla's own `on_ceiling`, spelled out for the reason [onTheFloor] is. */
+    private fun onTheCeiling(): MaterialCondition = MaterialRules.stoneDepthCheck(0, false, CaveSurface.CEILING)
+
+    /**
+     * How far under and over the waterline (the sea's top block) a palm beach surface may stand and still be
+     * white, both inclusive. The biome's home reaches about eight under and twelve over; these sit just
+     * inside it, and are tuned with it on the walk. Measured 2026-09-30 with the anchors one block short: a
+     * surface nine over was the last white one, and the next was grass.
+     */
+    private const val WHITE_BELOW_THE_WATERLINE = 9
+    private const val WHITE_ABOVE_THE_WATERLINE = 10
+
+    /** How far under the sand its sandstone goes — vanilla's `deep_under_floor`. */
+    private const val SANDSTONE_DEPTH = 6
 
     /**
      * A material laid over the ground instead of the biome's own skin — `Surface`'s answer when a writer

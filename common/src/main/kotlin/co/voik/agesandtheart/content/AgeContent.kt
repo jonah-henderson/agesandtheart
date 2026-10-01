@@ -116,6 +116,7 @@ import co.voik.agesandtheart.worldgen.feature.PaperTree
 import co.voik.agesandtheart.worldgen.feature.PaperTreeGrove
 import co.voik.agesandtheart.worldgen.feature.PitClearing
 import co.voik.agesandtheart.worldgen.feature.ScarabColony
+import co.voik.agesandtheart.worldgen.feature.PalmTree
 import net.minecraft.world.level.block.RotatedPillarBlock
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument
 import co.voik.agesandtheart.worldgen.feature.LavaPuddles
@@ -1716,7 +1717,7 @@ object AgeContent {
         MeteorStorm.ID to METEOR_STORM,
         "drifting_ore".location() to DRIFTING_ORE,
         "arc_bolt".location() to ARC_BOLT,
-    )
+    ) + PalmWood.entities
 
     /**
      * Each mob's attributes. A mob is the one kind of entity whose attributes are declared apart from its
@@ -1882,7 +1883,7 @@ object AgeContent {
         PAPER_TREE_ROOTS_ID to PAPER_TREE_ROOTS_BLOCK,
         PAPER_TREE_ROOT_ID to PAPER_TREE_ROOT_BLOCK,
         PAPER_TREE_SAPLING_ID to PAPER_TREE_SAPLING_BLOCK,
-    )
+    ) + PalmBeach.blocks + PalmWood.blocks
 
     /**
      * **Each loader registers these its own way**, and that is the whole platform cost of the profession.
@@ -2047,7 +2048,7 @@ object AgeContent {
         ASTRITE_SHARD_ID to ASTRITE_SHARD,
         ALGAE_ID to ALGAE,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK,
-    )
+    ) + PalmBeach.items + PalmWood.items
 
     /**
      * Loot-function kinds. What makes pages ordinary loot: a pack puts
@@ -2086,7 +2087,7 @@ object AgeContent {
     val soundEvents: List<Pair<Identifier, SoundEvent>> = listOf(
         BLIZZARD_SHELTERED_ID to BLIZZARD_SHELTERED,
         BLIZZARD_EXPOSED_ID to BLIZZARD_EXPOSED,
-    )
+    ) + PalmBeach.soundEvents
 
     private val PRESSURE_EFFECT_ID: Identifier = "crushing_pressure".location()
 
@@ -2129,5 +2130,6 @@ object AgeContent {
         "paper_tree".location() to PaperTree.CODEC,
         "paper_tree_grove".location() to PaperTreeGrove.CODEC,
         "scarab_colony".location() to ScarabColony.CODEC,
+        "palm_tree".location() to PalmTree.CODEC,
     )
 }

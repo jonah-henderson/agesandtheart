@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "Where the palm beach belongs: the coast of a warm or hot Age, from the shallows up the foot of the climb",
+    "(notes/palm-beach-design.md). Read by BiomeHome, which widens only temperature and humidity as the",
+    "biome is asked for more strongly -- where it stands on the ground stays put.",
+    "",
+    "Continentalness is Grounding's height curve: -2..+8 over the waterline reads as -0.15, -10 as -0.3,",
+    "+20 as -0.04. So -0.27 is about eight under (the lagoon's edge) and -0.11 about twelve over, part-way",
+    "up an island's shoulder. Erosion is the sandy side of vanilla's -0.2225 line.",
+    "",
+    "Temperature is vanilla's temperate, warm and hot bands, from -0.15. It began at 0.2, warm only, and an",
+    "ordinary Age that named it plainly got none (measured 2026-09-30, scripts/checks/palm-beach.txt): its",
+    "coasts read temperate, and a page that does nothing is the silent drop. From temperate, an ordinary Age's",
+    "coast is palm beach where it is mild and vanilla beach where it is cool, a cold Age wants a stronger",
+    "naming, and a frozen one practically never has it -- the risk the writer takes.",
+    "",
+    "Two depths, as vanilla gives every surface biome: the surface itself and the ground under it."
+  ],
+  "parameters": [
+    {
+      "temperature": [-0.15, 1.0],
+      "humidity": [-1.0, 1.0],
+      "continentalness": [-0.27, -0.11],
+      "erosion": [-0.2225, 1.0],
+      "depth": 0.0,
+      "weirdness": [-1.0, 1.0],
+      "offset": 0.0
+    },
+    {
+      "temperature": [-0.15, 1.0],
+      "humidity": [-1.0, 1.0],
+      "continentalness": [-0.27, -0.11],
+      "erosion": [-0.2225, 1.0],
+      "depth": 1.0,
+      "weirdness": [-1.0, 1.0],
+      "offset": 0.0
+    }
+  ]
+}

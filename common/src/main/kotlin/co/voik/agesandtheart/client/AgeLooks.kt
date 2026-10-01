@@ -26,6 +26,9 @@ object AgeLooks {
         // than a sky of our own, so an Age keeps whatever sun and stars it was written with underneath.
         MeteorSky.register()
 
+        // A palm beach's sunset stands taller, in vanilla's sky and in ephemeris's alike — see [PalmDusk].
+        LevelRendering.horizonHeight(PalmDusk::standsTaller)
+
         // The Age's own air first, then what its wounds do to it — corruption darkens whatever was there
         // rather than being blended into it, so a lurid sky still goes black at the throat of a tear.
         LevelRendering.environment { level, layers ->
@@ -47,7 +50,8 @@ object AgeLooks {
                                 level,
                                 // Over the Age's air, because `murk` is a word about the Age's seas and an
                                 // abyss is not one of them — a clear Age still has a black abyss.
-                                DeepWaterFog.paint(level, AgeAir.paint(level, layers)),
+                                // A palm beach's dusk deepens whatever sunset the Age's air already had.
+                                DeepWaterFog.paint(level, PalmDusk.paint(level, AgeAir.paint(level, layers))),
                             ),
                         ),
                     ),

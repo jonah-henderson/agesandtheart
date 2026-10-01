@@ -74,6 +74,11 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   is why this exists. Read it before drawing a control.
 - **`notes/corruption-research.md`** — what 26.1 allows for a proximity gradient around a wound, and why
   positional environment layers beat a post-processing chain. Read it before reaching for a post effect.
+- **`notes/palm-beach-design.md`** — our own Age-only biome: white sand, a reef lagoon, palms, surf. **Built
+  2026-10-01, unwalked**; its "Calls made while building" lists what was decided without Jonah.
+  Common ink, a ribbon not a trophy. Its one real piece of engineering is a **declared climate home** for a biome
+  of ours, since `BiomePreference.homesFor` drops a biome it has never seen somewhere random. The surf is flat
+  client-side particles on per-stretch wave clocks, not a renderer and not blocks. Read it before touching either.
 - **`notes/water-colour-research.md`** — how to make an Age's water shift colour over time: the tint is baked
   into the chunk mesh, and 26.1's `GameTime` UBO is the way around that. Nothing is built; it is meant to be
   built alongside the wound renderer, which needs the same pipeline.

@@ -2,6 +2,8 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.client.light.TintedLights
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.PalmBeach
+import co.voik.agesandtheart.content.PalmWood
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.client.color.block.BlockTintSource
 import net.minecraft.client.color.block.BlockTintSources
@@ -52,6 +54,36 @@ object AgeTints {
             listOf(BlockTintSources.constant(opaque(AgeContent.GLOOMGRIT_TINT))),
             AgeContent.GLOOMGRIT_CLUSTER,
         )
+        // White sand has a texture of its own (a desaturated vanilla sand), and only its sandstone is a tint.
+        registrar(listOf(BlockTintSources.constant(opaque(PalmBeach.WHITE_SAND_TINT))), PalmBeach.WHITE_SANDSTONE_BLOCK)
+        palm(registrar)
+    }
+
+    /**
+     * The palm's wood over birch's, until the asset pass — see [PalmWood.PLANKS_TINT] for the colours.
+     *
+     * **Two tints on a log**, because its model's two faces are two materials: the palm's models carry their
+     * own elements with 0 on a log's sides and 1 on its cut ends, so a log is bark round the outside and
+     * caramel at the ends, and the wood, which is bark all round, takes bark for both. Those models are
+     * birch's with a `tintindex` added, generated from the 26.3 jar, and go with the art.
+     */
+    private fun palm(registrar: (List<BlockTintSource>, Block) -> Unit) {
+        val bark = BlockTintSources.constant(opaque(PalmWood.BARK_TINT))
+        val sawn = BlockTintSources.constant(opaque(PalmWood.PLANKS_TINT))
+        val green = BlockTintSources.constant(opaque(PalmWood.FRONDS_TINT))
+        registrar(listOf(bark, sawn), PalmWood.LOG)
+        registrar(listOf(bark, bark), PalmWood.WOOD)
+        val sawnThroughout = listOf(
+            PalmWood.STRIPPED_LOG, PalmWood.STRIPPED_WOOD, PalmWood.PLANKS, PalmWood.STAIRS, PalmWood.SLAB,
+            PalmWood.FENCE, PalmWood.FENCE_GATE, PalmWood.DOOR, PalmWood.TRAPDOOR, PalmWood.PRESSURE_PLATE,
+            PalmWood.BUTTON, PalmWood.SHELF,
+            // A 26.3 sign's board is a block model, so it takes the tint like the rest; only its text is drawn
+            // by the block entity. Left off this list, the walk found them plain birch.
+            PalmWood.SIGN, PalmWood.WALL_SIGN, PalmWood.HANGING_SIGN, PalmWood.WALL_HANGING_SIGN,
+        )
+        for (block in sawnThroughout) registrar(listOf(sawn, sawn), block)
+        for (block in listOf(PalmWood.FRONDS, PalmWood.SAPLING, PalmWood.POTTED_SAPLING)) registrar(listOf(green), block)
+        registrar(listOf(BlockTintSources.constant(opaque(PalmWood.COCONUT_TINT))), PalmWood.COCONUT)
         // A paper tree says how it is: the leaves by how far they have turned, the heart and a sapling by
         // which side of their band the moisture is on (design §7.1.2).
         registrar(listOf(ByBlight), AgeContent.PAPER_TREE_LEAVES_BLOCK)

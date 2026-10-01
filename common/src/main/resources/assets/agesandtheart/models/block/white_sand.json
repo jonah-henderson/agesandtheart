@@ -1,0 +1,7 @@
+{
+  "_comment": "Vanilla's sand, desaturated and lightened, until the asset pass (Jonah, walked 2026-10-01: back to sand from powder snow). A recoloured Mojang texture, which AgeTints otherwise avoids -- a placeholder, like the deep water's frames, and one to replace with art of our own before release.",
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "agesandtheart:block/white_sand"
+  }
+}

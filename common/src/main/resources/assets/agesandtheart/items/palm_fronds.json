@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "agesandtheart:block/palm_fronds",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 11858010
+      }
+    ]
+  }
+}

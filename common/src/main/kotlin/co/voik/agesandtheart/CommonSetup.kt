@@ -10,6 +10,8 @@ import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.content.ChargedMetal
 import co.voik.agesandtheart.content.DeepWaterLogging
+import co.voik.agesandtheart.content.PalmWood
+import co.voik.agesandtheart.mixin.FireBlockInvoker
 import co.voik.agesandtheart.content.ProtectiveSuit
 import co.voik.agesandtheart.generation.Skies
 import co.voik.agesandtheart.worldgen.fissure.RubbleArrivals
@@ -19,6 +21,7 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.chunk.ChunkAccess
 
 /**
@@ -49,6 +52,9 @@ object CommonSetup {
      */
     fun afterContentRegistered() {
         DeepWaterLogging.settleTheCache()
+        // The palm burns as birch does. `FireBlock` keeps its table private, and this is the door into it.
+        val fire = Blocks.FIRE as FireBlockInvoker
+        for ((block, ignites, burns) in PalmWood.flammable) fire.`agesandtheart$setFlammable`(block, ignites, burns)
     }
 
     /** The end of every server tick. */
