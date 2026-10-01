@@ -1,8 +1,8 @@
 {
   "_comment": [
     "A spyglass is the honest core of it -- the device is an instrument you carry to a place and stand up.",
-    "Fine ink and fine paper for the same reason the linking book takes them: this is mid-tier Art",
-    "equipment, not a consumable. Stand-in materials until Phase 6, like the analysis machine's."
+    "Fine ink and fine paper for the same reason the linking book takes them, and nara because the",
+    "acquisition devices are nara's to build (Jonah, 2026-10-01). Ratios are unbalanced."
   ],
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
@@ -10,7 +10,8 @@
     "minecraft:spyglass",
     "minecraft:amethyst_shard",
     "agesandtheart:fine_paper",
-    "agesandtheart:fine_ink_bottle"
+    "agesandtheart:fine_ink_bottle",
+    "agesandtheart:compounded_stone"
   ],
   "result": {
     "id": "agesandtheart:surveying_device",

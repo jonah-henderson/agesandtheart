@@ -1,0 +1,8 @@
+{
+  "_comment": "What the advanced analysis machine is missing, and only nara will do (design 7.1.2). Ratios are unbalanced.",
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": { "N": "agesandtheart:compounded_stone" },
+  "pattern": ["N", "N", "N"],
+  "result": { "id": "agesandtheart:compounded_stone_probes" }
+}

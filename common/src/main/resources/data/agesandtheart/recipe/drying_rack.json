@@ -1,0 +1,18 @@
+{
+  "_comment": "Sticks and string, as a real one is. Ratios are unbalanced.",
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "SSS",
+    "T T",
+    "SSS"
+  ],
+  "key": {
+    "S": "minecraft:stick",
+    "T": "minecraft:string"
+  },
+  "result": {
+    "id": "agesandtheart:drying_rack",
+    "count": 1
+  }
+}

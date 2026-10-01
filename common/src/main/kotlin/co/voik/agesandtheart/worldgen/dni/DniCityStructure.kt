@@ -8,6 +8,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.Holder
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece
 import net.minecraft.world.level.levelgen.structure.Structure
 import net.minecraft.world.level.levelgen.structure.StructureType
 import net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement
@@ -38,7 +39,7 @@ class DniCityStructure(
         val generator = context.chunkGenerator() as? AgeChunkGenerator ?: return Optional.empty()
         val site = DniCitySite.of(generator) ?: return Optional.empty()
         if (ChunkPos.containing(site.start) != context.chunkPos()) return Optional.empty()
-        return JigsawPlacement.addPieces(
+        val city = JigsawPlacement.addPieces(
             context,
             startPool,
             startJigsawName,
@@ -51,7 +52,17 @@ class DniCityStructure(
             JigsawStructure.DEFAULT_DIMENSION_PADDING,
             JigsawStructure.DEFAULT_LIQUID_SETTINGS,
         )
+        return city.map { withTheDevices(it, context) }
     }
+
+    /** The jigsaw's pieces, and after them the machines the city holds one of, set by its frame. */
+    private fun withTheDevices(city: GenerationStub, context: GenerationContext): GenerationStub =
+        GenerationStub(city.position()) { builder ->
+            val laid = city.getPiecesBuilder().build().pieces()
+            laid.forEach(builder::addPiece)
+            val centre = laid.firstOrNull() as? PoolElementStructurePiece ?: return@GenerationStub
+            DniCity.devicesBefore(context.structureTemplateManager(), centre).forEach(builder::addPiece)
+        }
 
     /** The recipe and the site have decided; the biome under the start is not asked. */
     override fun findValidGenerationPoint(context: GenerationContext): Optional<GenerationStub> =

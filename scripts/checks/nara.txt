@@ -1,0 +1,17 @@
+# Nara's block on a server: every tag it is meant to carry, read back from the block standing in the world.
+# Run with: scripts/drive-server.sh scripts/checks/nara.txt
+#
+# A tag naming a block id that does not exist is dropped at load without a word, so this asks the placed
+# block itself. Each `execute if block` answers "Test passed" or "Test failed".
+#
+# MEASURED 2026-10-01: all seven passed.
+forceload add 0 0
+setblock 0 100 0 agesandtheart:compounded_stone
+execute if block 0 100 0 #minecraft:mineable/pickaxe
+execute if block 0 100 0 #minecraft:wither_immune
+execute if block 0 100 0 #minecraft:dragon_immune
+execute if block 0 100 0 #agesandtheart:immune_to_collapse
+execute if block 0 100 0 #agesandtheart:withheld
+execute if block 0 100 0 #agesandtheart:requires_masterwork_ink
+execute if block 0 100 0 #agesandtheart:cage_frame
+setblock 0 100 0 minecraft:air

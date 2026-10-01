@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.consequence
 
+import co.voik.agesandtheart.age.phenomena.CaveIn
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
 import net.minecraft.network.syncher.SynchedEntityData
@@ -80,7 +81,7 @@ class CrumblingColumn(type: EntityType<out CrumblingColumn>, level: Level) : Ent
 
     private fun showTheCracks(level: ServerLevel) {
         for (y in nextToGo..top) {
-            if (!level.getBlockState(at(y)).isAir) crack(level, at(y), CRACKED_TO)
+            if (!level.getBlockState(at(y)).isAir && !isSpared(level, at(y))) crack(level, at(y), CRACKED_TO)
         }
         showedTheCracks = true
     }
@@ -90,17 +91,19 @@ class CrumblingColumn(type: EntityType<out CrumblingColumn>, level: Level) : Ent
         WARNS_FOR + (y - Collapse.floorOfATear(level)) / LAYERS_A_TICK
 
     /**
-     * The floor of the column becomes the tear, whatever stood there; anything above is simply removed, with
-     * no drops, and sometimes falls as rubble instead.
+     * The floor of the column becomes the tear; anything above is simply removed, with no drops, and sometimes
+     * falls as rubble instead. What `#immune_to_collapse` names, and what nara holds, stays where it stands,
+     * as a cave-in leaves it.
      */
     private fun giveWay(level: ServerLevel, y: Int) {
         val at = at(y)
         crack(level, at, CLEARED)
+        val standing = level.getBlockState(at)
+        if (isSpared(level, at)) return
         if (y == Collapse.floorOfATear(level)) {
             level.setBlock(at, TEAR, Block.UPDATE_ALL)
             return
         }
-        val standing = level.getBlockState(at)
         if (standing.isAir) return
         level.setBlock(at, AIR, Block.UPDATE_ALL)
         val throwsRubble = random.nextFloat() < LEAVES_RUBBLE && standing.isSolidRender
@@ -111,6 +114,9 @@ class CrumblingColumn(type: EntityType<out CrumblingColumn>, level: Level) : Ent
     }
 
     private fun at(y: Int) = BlockPos(blockX, y, blockZ)
+
+    private fun isSpared(level: ServerLevel, at: BlockPos): Boolean =
+        level.getBlockState(at).`is`(CaveIn.IMMUNE_TO_COLLAPSE) || BetweenNara.holds(level, at)
 
     private fun crack(level: ServerLevel, at: BlockPos, stage: Int) =
         level.destroyBlockProgress(breakerFor(at), at, stage)

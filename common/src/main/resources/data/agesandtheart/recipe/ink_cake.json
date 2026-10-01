@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Design 7.1.2, after the finest East Asian ink: pigment and a binder pressed into a cake, then cured slowly.",
+    "Honey stands for the gum. Ratios are unbalanced."
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "agesandtheart_ink",
+  "ingredients": [
+    "agesandtheart:carapace_powder",
+    "agesandtheart:carapace_powder",
+    "agesandtheart:carapace_powder",
+    "agesandtheart:carapace_powder",
+    "minecraft:honey_bottle"
+  ],
+  "result": {
+    "id": "agesandtheart:ink_cake",
+    "count": 1
+  }
+}

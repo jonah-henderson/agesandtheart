@@ -24,7 +24,8 @@ import net.minecraft.world.phys.shapes.VoxelShape
  * the experiment is planting one and seeing whether it takes.
  *
  * It follows the root's rule from the day it is planted — wetter beside water, drier away from it, rain no
- * help — and a sapling kept in its band grows, where one left out of it too long dies to a dead bush. When
+ * help — and a sapling kept in its band grows, where one left out of it too long dies to a dead bush. It
+ * grows only in about a polar sun's light; out of it, it waits. When
  * it grows, the ground under it becomes the tree's heart, with the moisture the sapling had.
  */
 class PaperTreeSaplingBlock(properties: Properties) : VegetationBlock(properties), BonemealableBlock {
@@ -57,12 +58,17 @@ class PaperTreeSaplingBlock(properties: Properties) : VegetationBlock(properties
         val wetted = state.setValue(PaperTreeHealth.MOISTURE, moisture)
         if (PaperTreeHealth.bandOf(moisture) != PaperTreeHealth.Band.SUITS) return wither(level, pos, wetted)
         val eased = wetted.setValue(STRAIN, 0)
-        val growsNow = random.nextInt(GROWS_ONE_TICK_IN) == 0
+        val growsNow = isLitToGrow(level, pos) && random.nextInt(GROWS_ONE_TICK_IN) == 0
         if (growsNow) grow(level, pos, eased, random) else setIfChanged(level, pos, state, eased)
     }
 
     override fun isValidBonemealTarget(level: LevelReader, pos: BlockPos, state: BlockState, source: BonemealSource) =
-        PaperTreeHealth.bandOf(state.getValue(PaperTreeHealth.MOISTURE)) == PaperTreeHealth.Band.SUITS
+        PaperTreeHealth.bandOf(state.getValue(PaperTreeHealth.MOISTURE)) == PaperTreeHealth.Band.SUITS &&
+            isLitToGrow(level, pos)
+
+    /** Whether the sapling stands in the light it grows in — bonemeal included, or it would be a way round. */
+    private fun isLitToGrow(level: LevelReader, pos: BlockPos): Boolean =
+        PaperTreeHealth.isLitToGrow(level.getMaxLocalRawBrightness(pos))
 
     override fun isBonemealSuccess(
         level: Level,

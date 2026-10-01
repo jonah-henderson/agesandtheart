@@ -70,7 +70,7 @@ object ScarabArrivals {
         repeat(GROUND_SAMPLES) {
             val x = around.x + random.nextIntBetweenInclusive(-GROUND_REACH, GROUND_REACH)
             val z = around.z + random.nextIntBetweenInclusive(-GROUND_REACH, GROUND_REACH)
-            if (ScarabHabitat.freeSiteAt(level, x, z) != null) return true
+            if (ScarabHabitat.freeSiteAt(level, x, z, around.y) != null) return true
         }
         return false
     }

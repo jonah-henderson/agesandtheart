@@ -1,0 +1,8 @@
+{
+  "_comment": "The loom stands in until the model pass.",
+  "variants": {
+    "": {
+      "model": "minecraft:block/loom"
+    }
+  }
+}

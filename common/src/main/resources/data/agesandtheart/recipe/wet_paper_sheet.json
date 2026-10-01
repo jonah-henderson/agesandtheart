@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "Design 7.1.2, after the finest Western paper: pulp sized in gelatin, which is boiled skin. A phantom's",
+    "membrane is the nearest vanilla has. Ratios are unbalanced."
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "agesandtheart_paper",
+  "ingredients": [
+    "agesandtheart:paper_tree_pulp",
+    "agesandtheart:paper_tree_pulp",
+    "agesandtheart:paper_tree_pulp",
+    "minecraft:phantom_membrane"
+  ],
+  "result": {
+    "id": "agesandtheart:wet_paper_sheet",
+    "count": 3
+  }
+}

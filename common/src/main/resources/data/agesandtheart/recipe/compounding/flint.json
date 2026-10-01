@@ -1,0 +1,6 @@
+{
+  "_comment": "A joke, and a bad trade on purpose (design 7.1.2).",
+  "type": "agesandtheart:compounding",
+  "ingredients": [{ "ingredient": "minecraft:gravel", "count": 64 }],
+  "result": { "id": "minecraft:flint" }
+}

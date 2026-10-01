@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.age.reward.ScarabHabitat
-import co.voik.agesandtheart.generation.Ages
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Mth
@@ -18,8 +17,7 @@ import java.util.EnumSet
  * none of those is there, it roams on a held heading and looks again as it goes; that is the stray that
  * wanders and never settles, the world saying there is nowhere here good enough.
  *
- * The Age's half of the habitat is asked before any ground is: in an Age that could never hold a colony
- * there is no nest to find and no site worth claiming, whatever the ground looks like.
+ * Only the ground is asked, never the Age: a scarab carried anywhere settles wherever it finds a home.
  */
 class ScarabSettle(private val scarab: Scarab) : Goal() {
 
@@ -76,9 +74,6 @@ class ScarabSettle(private val scarab: Scarab) : Goal() {
     /** Chooses where to go next, or leaves [destination] empty to roam. */
     private fun look(level: ServerLevel) {
         lookAgainAfter = level.gameTime + LOOK_AGAIN_AFTER
-        val recipe = Ages.recipeOf(level) ?: return
-        val age = ScarabHabitat.readAge(level, recipe) ?: return
-        if (!age.wouldHoldAColony) return
         val here = scarab.blockPosition()
         destination = vacantNestNear(level, here)
             ?: siteNear(level, here)?.let(Destination::Site)
@@ -96,7 +91,7 @@ class ScarabSettle(private val scarab: Scarab) : Goal() {
             }
             is Destination.Site -> {
                 // Asked again on arrival: another scarab may have claimed beside it on the way.
-                if (ScarabHabitat.freeSiteAt(level, going.at.x, going.at.z) == going.at) claim(level, going.at)
+                if (ScarabHabitat.freeSiteAt(level, going.at.x, going.at.z, going.at.y + 1) == going.at) claim(level, going.at)
             }
             // Searched around on the next look, which is now.
             is Destination.Colony -> lookAgainAfter = 0L
@@ -131,7 +126,7 @@ class ScarabSettle(private val scarab: Scarab) : Goal() {
         repeat(SITE_SAMPLES) {
             val x = from.x + random.nextIntBetweenInclusive(-SITE_SEARCH, SITE_SEARCH)
             val z = from.z + random.nextIntBetweenInclusive(-SITE_SEARCH, SITE_SEARCH)
-            ScarabHabitat.freeSiteAt(level, x, z)?.let { return it }
+            ScarabHabitat.freeSiteAt(level, x, z, from.y)?.let { return it }
         }
         return null
     }
@@ -153,7 +148,7 @@ class ScarabSettle(private val scarab: Scarab) : Goal() {
         val turn = (random.nextFloat() * Mth.TWO_PI).toDouble()
         val x = scarab.x + Mth.sin(turn) * ROAMS_AS_FAR_AS
         val z = scarab.z + Mth.cos(turn) * ROAMS_AS_FAR_AS
-        val ground = ScarabHabitat.surfaceOf(level, Mth.floor(x), Mth.floor(z))?.y
+        val ground = ScarabHabitat.groundNear(level, Mth.floor(x), Mth.floor(z), scarab.blockY)?.y
             ?: scarab.blockY
         return Vec3(x, (ground + FLIES_ABOVE_THE_GROUND).toDouble(), z)
     }

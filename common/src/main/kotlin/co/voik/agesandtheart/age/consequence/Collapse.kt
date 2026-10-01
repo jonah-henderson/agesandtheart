@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.consequence
 
+import co.voik.agesandtheart.age.phenomena.CaveIn
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.generation.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.fissure.Crack
@@ -122,7 +123,8 @@ object Collapse {
         }
         for (y in lowest + 1..surface) {
             cursor.set(x, y, z)
-            if (chunk.getBlockState(cursor).isAir) continue
+            val standing = chunk.getBlockState(cursor)
+            if (standing.isAir || standing.`is`(CaveIn.IMMUNE_TO_COLLAPSE)) continue
             chunk.setBlockState(cursor, AIR, Block.UPDATE_NONE)
         }
     }

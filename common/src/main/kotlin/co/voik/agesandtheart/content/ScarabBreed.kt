@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.age.reward.ScarabHabitat
-import co.voik.agesandtheart.generation.Ages
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.EntityEvent
@@ -76,7 +75,7 @@ class ScarabBreed(private val scarab: Scarab) : Goal() {
     private fun brood(level: ServerLevel, mate: Scarab) {
         val claimed = site ?: return
         // Asked again: a stray may have settled there while the two were courting.
-        if (ScarabHabitat.freeSiteAt(level, claimed.x, claimed.z) != claimed) {
+        if (ScarabHabitat.freeSiteAt(level, claimed.x, claimed.z, claimed.y + 1) != claimed) {
             partner = null
             return
         }
@@ -102,13 +101,11 @@ class ScarabBreed(private val scarab: Scarab) : Goal() {
         }.minByOrNull(scarab::distanceToSqr)
 
     private fun freeSiteFor(level: ServerLevel, home: BlockPos): BlockPos? {
-        val recipe = Ages.recipeOf(level) ?: return null
-        if (ScarabHabitat.readAge(level, recipe)?.wouldHoldAColony != true) return null
         val random = scarab.random
         repeat(SITE_SAMPLES) {
             val x = home.x + random.nextIntBetweenInclusive(-BROOD_REACH, BROOD_REACH)
             val z = home.z + random.nextIntBetweenInclusive(-BROOD_REACH, BROOD_REACH)
-            ScarabHabitat.freeSiteAt(level, x, z)?.let { return it }
+            ScarabHabitat.freeSiteAt(level, x, z, home.y + 1)?.let { return it }
         }
         return null
     }

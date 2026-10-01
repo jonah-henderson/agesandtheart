@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.consequence.BetweenNara
+import co.voik.agesandtheart.age.consequence.CrumblingColumn
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -280,9 +282,9 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
     private fun openToTheAir(level: ServerLevel, at: BlockPos): Boolean =
         Direction.entries.any { !level.getBlockState(at.relative(it)).isSolidRender }
 
-    /** What a cave-in will not take — `#immune_to_collapse`, plus the way out it must never swallow. */
+    /** What a cave-in will not take — `#immune_to_collapse`, and what nara holds ([BetweenNara]). */
     private fun immune(level: ServerLevel, at: BlockPos): Boolean =
-        level.getBlockState(at).`is`(IMMUNE_TO_COLLAPSE)
+        level.getBlockState(at).`is`(IMMUNE_TO_COLLAPSE) || BetweenNara.holds(level, at)
 
     private fun clearCrack(level: ServerLevel, at: BlockPos) =
         level.destroyBlockProgress(breakerFor(at), at, CLEARED)
@@ -342,7 +344,7 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
         }
 
         /**
-         * What a cave-in will not touch, however much else it takes.
+         * What a cave-in will not touch, however much else it takes — nor a collapse tear ([CrumblingColumn]).
          *
          * The tag is the seam (Jonah, 2026-09-11): the technical blocks, the portals, and above all the
          * **star fissures**, which are the guaranteed way out of an Age — a collapse that ate the escape

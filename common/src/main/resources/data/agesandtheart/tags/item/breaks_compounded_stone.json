@@ -1,0 +1,11 @@
+{
+  "_comment": "What may break nara at all (design 7.1.2: it takes nara to mine it). Every other tool makes no progress on it. Every nara tool is here, though only the pickaxe is the right tool for the drop.",
+  "replace": false,
+  "values": [
+    "agesandtheart:compounded_stone_pickaxe",
+    "agesandtheart:compounded_stone_axe",
+    "agesandtheart:compounded_stone_shovel",
+    "agesandtheart:compounded_stone_hoe",
+    "agesandtheart:compounded_stone_sword"
+  ]
+}

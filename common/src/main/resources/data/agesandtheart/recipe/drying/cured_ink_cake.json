@@ -1,0 +1,9 @@
+{
+  "_comment": "Design 7.1.2: an ink cake cures under a black sun, the ink taking its colour from the light it cures under. A day on the drying rack.",
+  "type": "agesandtheart:drying",
+  "ingredient": "agesandtheart:ink_cake",
+  "result": {
+    "id": "agesandtheart:cured_ink_cake"
+  },
+  "under": "black_sun"
+}

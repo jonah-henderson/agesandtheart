@@ -6,10 +6,12 @@
     "",
     "Yema is here (design 7.1.2): the tree's one word, its wood, which a world written of comes out as dead",
     "yema (`Materials.laidAs`). Its other states have no word at all -- see `does_not_have_a_word.json`. The",
-    "scarab is the entity half, in `tags/entity_type/withheld.json`."
+    "scarab is the entity half, in `tags/entity_type/withheld.json`. Nara is `compounded_stone`: holding a",
+    "block of it is exactly the possession the reproduction rung exists to refuse."
   ],
   "replace": false,
   "values": [
-    "agesandtheart:paper_tree_log"
+    "agesandtheart:paper_tree_log",
+    "agesandtheart:compounded_stone"
   ]
 }

@@ -1,0 +1,7 @@
+{
+  "_comment": "Otherwise only an ominous vault's, and it opens the mace (design 7.1.2). Ratios are unbalanced.",
+  "type": "agesandtheart:compounding",
+  "ingredients": [{ "ingredient": "minecraft:iron_block", "count": 32 }],
+  "result": { "id": "minecraft:heavy_core" },
+  "allowed_by": "heavy_core"
+}

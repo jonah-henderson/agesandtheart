@@ -42,6 +42,11 @@ import co.voik.agesandtheart.desk.WritersDeskMenu
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.station.Station
 import co.voik.agesandtheart.station.StationBlock
+import co.voik.agesandtheart.station.Compounder
+import co.voik.agesandtheart.station.Compounding
+import co.voik.agesandtheart.station.CompoundingRecipeDisplay
+import co.voik.agesandtheart.station.Drying
+import co.voik.agesandtheart.station.DryingRack
 import co.voik.agesandtheart.station.StationBlockEntity
 import co.voik.agesandtheart.station.StationMenu
 import co.voik.agesandtheart.station.StationRecipes
@@ -50,6 +55,7 @@ import com.mojang.serialization.MapCodec
 import co.voik.agesandtheart.worldgen.fissure.StarFissurePiece
 import co.voik.agesandtheart.worldgen.fissure.StarFissureStructure
 import co.voik.agesandtheart.worldgen.dni.DniCityStructure
+import co.voik.agesandtheart.worldgen.dni.DniDevicePiece
 import co.voik.agesandtheart.worldgen.structure.LootTableSwap
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType
 import net.minecraft.world.level.levelgen.structure.StructureType
@@ -80,6 +86,7 @@ import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.crafting.RecipeBookCategory
+import net.minecraft.world.item.crafting.display.RecipeDisplay
 import net.minecraft.world.item.crafting.RecipeSerializer
 import net.minecraft.world.item.crafting.RecipeType
 import net.minecraft.world.entity.EquipmentSlot
@@ -1423,6 +1430,9 @@ object AgeContent {
 
     val STAR_FISSURE_PIECE: StructurePieceType = StructurePieceType.ContextlessType(::StarFissurePiece)
 
+    /** A machine a D'ni city holds one of — see [DniDevicePiece]. */
+    val DNI_DEVICE_PIECE: StructurePieceType = StructurePieceType.ContextlessType(::DniDevicePiece)
+
     /** The D'ni city — see the `dni` package. */
     val DNI_CITY_STRUCTURE: StructureType<DniCityStructure> = StructureType { DniCityStructure.CODEC }
 
@@ -1441,6 +1451,7 @@ object AgeContent {
 
     val structurePieces: List<Pair<Identifier, StructurePieceType>> = listOf(
         STAR_FISSURE_ID to STAR_FISSURE_PIECE,
+        "dni_device".location() to DNI_DEVICE_PIECE,
     )
 
     val STAR_FISSURE_ENTITY: BlockEntityType<StarFissureBlockEntity> =
@@ -1857,6 +1868,9 @@ object AgeContent {
         OBSERVATION_DEVICE_ID to OBSERVATION_DEVICE_BLOCK,
         GRINDER_ID to GRINDER_BLOCK,
         PULPER_ID to PULPER_BLOCK,
+        Compounder.ID to Compounder.BLOCK,
+        AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.BLOCK,
+        DryingRack.ID to DryingRack.BLOCK,
         PITCHSTONE_ORE_ID to PITCHSTONE_ORE_BLOCK,
         DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE_BLOCK,
         PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
@@ -1883,7 +1897,7 @@ object AgeContent {
         PAPER_TREE_ROOTS_ID to PAPER_TREE_ROOTS_BLOCK,
         PAPER_TREE_ROOT_ID to PAPER_TREE_ROOT_BLOCK,
         PAPER_TREE_SAPLING_ID to PAPER_TREE_SAPLING_BLOCK,
-    ) + PalmBeach.blocks + PalmWood.blocks
+    ) + PalmBeach.blocks + PalmWood.blocks + CompoundedStone.blocks
 
     /**
      * **Each loader registers these its own way**, and that is the whole platform cost of the profession.
@@ -1909,6 +1923,9 @@ object AgeContent {
         SCARAB_NEST_ID to SCARAB_NEST_ENTITY,
         PAPER_TREE_ROOT_ID to PAPER_TREE_ROOT_ENTITY,
         STATION_ID to STATION_ENTITY,
+        Compounder.ID to Compounder.ENTITY,
+        AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.ENTITY,
+        DryingRack.ID to DryingRack.ENTITY,
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_ENTITY,
     )
 
@@ -1976,14 +1993,20 @@ object AgeContent {
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_MENU,
         ARCHIVE_ID to ARCHIVE_MENU,
         STATION_ID to STATION_MENU,
+        Compounder.ID to Compounder.MENU,
     )
 
     val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =
-        listOf("repattern_descriptive_book".location() to RepatternBookRecipe.SERIALIZER) + StationRecipes.serializers
+        listOf("repattern_descriptive_book".location() to RepatternBookRecipe.SERIALIZER) + StationRecipes.serializers +
+            (Compounding.ID to Compounding.SERIALIZER) + (Drying.ID to Drying.SERIALIZER)
 
-    val recipeTypes: List<Pair<Identifier, RecipeType<*>>> = StationRecipes.types
+    val recipeTypes: List<Pair<Identifier, RecipeType<*>>> = StationRecipes.types + (Compounding.ID to Compounding.TYPE) + (Drying.ID to Drying.TYPE)
 
-    val recipeBookCategories: List<Pair<Identifier, RecipeBookCategory>> = StationRecipes.bookCategories
+    val recipeBookCategories: List<Pair<Identifier, RecipeBookCategory>> =
+        StationRecipes.bookCategories + (Compounding.ID to Compounding.BOOK_CATEGORY) + (Drying.ID to Drying.BOOK_CATEGORY)
+
+    val recipeDisplays: List<Pair<Identifier, RecipeDisplay.Type<*>>> =
+        listOf(CompoundingRecipeDisplay.ID to CompoundingRecipeDisplay.TYPE)
 
     val items: List<Pair<Identifier, Item>> = listOf(
         VENT_LINING_ID to VENT_LINING_ITEM,
@@ -2009,6 +2032,10 @@ object AgeContent {
         HADALFISH_LURE_ID to HADALFISH_LURE,
         GRINDER_ID to GRINDER,
         PULPER_ID to PULPER,
+        Compounder.ID to Compounder.ITEM,
+        AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.ITEM,
+        AdvancedAnalysisMachine.PROBES_ID to AdvancedAnalysisMachine.PROBES,
+        DryingRack.ID to DryingRack.ITEM,
         PITCHSTONE_DUST_ID to PITCHSTONE_DUST,
         PULP_ID to PULP,
         SCARAB_MEDALLION_ID to SCARAB_MEDALLION,
@@ -2048,7 +2075,7 @@ object AgeContent {
         ASTRITE_SHARD_ID to ASTRITE_SHARD,
         ALGAE_ID to ALGAE,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK,
-    ) + PalmBeach.items + PalmWood.items
+    ) + PalmBeach.items + PalmWood.items + CompoundedStone.items + MasterworkCrafts.items
 
     /**
      * Loot-function kinds. What makes pages ordinary loot: a pack puts

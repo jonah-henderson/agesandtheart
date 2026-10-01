@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Design 7.1.2: a cured cake, fine ink for the vehicle, and dragon's breath -- the End's, as the endgame",
+    "is, and renewable with the dragon. Ratios are unbalanced."
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "agesandtheart_ink",
+  "ingredients": [
+    "agesandtheart:cured_ink_cake",
+    "agesandtheart:fine_ink_bottle",
+    "minecraft:dragon_breath"
+  ],
+  "result": {
+    "id": "agesandtheart:masterwork_ink_bottle",
+    "count": 1
+  }
+}

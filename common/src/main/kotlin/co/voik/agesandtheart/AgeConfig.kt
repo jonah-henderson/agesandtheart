@@ -65,6 +65,16 @@ object AgeConfig {
      */
     val warmAgesWhen: ModConfigSpec.EnumValue<WarmAgesWhen>
 
+    /**
+     * Whether the fusion-compounder makes what nothing else in the game can — one switch a recipe, named by
+     * the recipe's `allowed_by` (design §7.1.2). Read live by the recipe, so turning one off takes effect at
+     * once. Bedrock most of all: a player who can place it can build what nobody else can break.
+     */
+    val compoundsBedrock: ModConfigSpec.BooleanValue
+    val compoundsReinforcedDeepslate: ModConfigSpec.BooleanValue
+    val compoundsBuddingAmethyst: ModConfigSpec.BooleanValue
+    val compoundsHeavyCore: ModConfigSpec.BooleanValue
+
     /** The spec each loader hands to its own config system. */
     val SPEC: ModConfigSpec
 
@@ -115,6 +125,27 @@ object AgeConfig {
             .translation(translationOf("warm_ages_when"))
             .defineEnum("warmAgesWhen", WarmAgesWhen.BOUND)
         builder.pop()
+        builder.comment("Compounding").push(COMPOUNDING)
+        compoundsBedrock = builder
+            .comment(
+                "Let the D'ni fusion compounder press 64 blocks of netherite into bedrock. A player with",
+                "bedrock can build what no other player can break.",
+            )
+            .translation(translationOf("compounds_bedrock"))
+            .define("compoundsBedrock", true)
+        compoundsReinforcedDeepslate = builder
+            .comment("Let the compounder make reinforced deepslate, which nothing else can.")
+            .translation(translationOf("compounds_reinforced_deepslate"))
+            .define("compoundsReinforcedDeepslate", true)
+        compoundsBuddingAmethyst = builder
+            .comment("Let the compounder make budding amethyst, which nothing else can.")
+            .translation(translationOf("compounds_budding_amethyst"))
+            .define("compoundsBuddingAmethyst", true)
+        compoundsHeavyCore = builder
+            .comment("Let the compounder make a heavy core, which is otherwise found only in ominous vaults.")
+            .translation(translationOf("compounds_heavy_core"))
+            .define("compoundsHeavyCore", true)
+        builder.pop()
         SPEC = builder.build()
     }
 
@@ -126,6 +157,8 @@ object AgeConfig {
     private const val VILLAGERS = "villagers"
 
     private const val LINKING = "linking"
+
+    private const val COMPOUNDING = "compounding"
 }
 
 /**

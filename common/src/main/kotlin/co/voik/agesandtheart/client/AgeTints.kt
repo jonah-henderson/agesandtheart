@@ -2,6 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.client.light.TintedLights
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.CompoundedStone
 import co.voik.agesandtheart.content.PalmBeach
 import co.voik.agesandtheart.content.PalmWood
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
@@ -56,6 +57,7 @@ object AgeTints {
         )
         // White sand has a texture of its own (a desaturated vanilla sand), and only its sandstone is a tint.
         registrar(listOf(BlockTintSources.constant(opaque(PalmBeach.WHITE_SAND_TINT))), PalmBeach.WHITE_SANDSTONE_BLOCK)
+        registrar(listOf(BlockTintSources.constant(opaque(CompoundedStone.TINT))), CompoundedStone.BLOCK)
         palm(registrar)
     }
 

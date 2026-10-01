@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "Nara's recipe: deretheni and purpur held together, the two of its inputs that say a dangerous",
+    "Age and the End (design 7.1.2). All four at once would ask a player to carry a recipe they cannot know."
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_the_inputs": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:pitchstone"
+          },
+          {
+            "items": "minecraft:purpur_block"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:compounding/compounded_stone"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_the_inputs",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:compounding/compounded_stone"
+    ]
+  }
+}

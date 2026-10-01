@@ -1,0 +1,6 @@
+{
+  "_comment": "Pressure makes diamond (design 7.1.2). Ratios are unbalanced.",
+  "type": "agesandtheart:compounding",
+  "ingredients": [{ "ingredient": "minecraft:coal_block", "count": 64 }],
+  "result": { "id": "minecraft:diamond_block" }
+}

@@ -1,10 +1,8 @@
 {
   "_comment": [
-    "The rare materials are stand-ins. Design 8.3 wants this built out of what only dangerous Ages",
-    "surface, and those are produced by Phase 6's consequence registers -- so amethyst, diamond and a",
-    "lodestone hold the mid-game position until the real materials exist. Ratios are unbalanced.",
-    "The masterwork paper is not filler: the machine reads the Art's own script, so it wants the",
-    "Art's own paper."
+    "Nara in it (Jonah, 2026-10-01): the acquisition devices are nara's to build, which design 7.1.2",
+    "always gave it -- the desk implements and the acquisition devices. It takes the place masterwork paper",
+    "stood in, which no recipe makes. Amethyst, diamond and lodestone remain stand-ins. Ratios are unbalanced."
   ],
   "type": "minecraft:crafting_shaped",
   "category": "misc",
@@ -15,7 +13,7 @@
   ],
   "key": {
     "A": "minecraft:amethyst_shard",
-    "P": "agesandtheart:masterwork_paper",
+    "P": "agesandtheart:compounded_stone",
     "D": "minecraft:diamond",
     "L": "minecraft:lodestone",
     "O": "minecraft:obsidian"

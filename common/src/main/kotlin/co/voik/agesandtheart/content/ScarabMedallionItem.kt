@@ -108,7 +108,7 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
     }
 
     /**
-     * What the ground here would give a colony: mud open to the sky, sand to build with, jungle over both.
+     * What the ground here would give a colony: mud open to the sky or lit, sand to build with, and warmth.
      *
      * One sentence about one place rather than three lacks, because the confluence is the thing — mud
      * somewhere and sand somewhere else is two unrelated facts, and would send a player after the wrong one.
@@ -131,7 +131,7 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
         val distance = howFar(here, site.mud)
         val key = when {
             site.wouldHoldAColony -> SITE
-            !site.underTheJungle -> MUD_AWAY_FROM_THE_JUNGLE
+            !site.warm -> MUD_NOT_WARM
             else -> MUD_WITHOUT_SAND
         }
         say(player, key, bearing, distance)
@@ -210,7 +210,7 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
         const val SITE = "$ITEM.site"
         const val NO_MUD = "$ITEM.no_mud"
         const val MUD_WITHOUT_SAND = "$ITEM.mud_without_sand"
-        const val MUD_AWAY_FROM_THE_JUNGLE = "$ITEM.mud_away_from_the_jungle"
+        const val MUD_NOT_WARM = "$ITEM.mud_not_warm"
         const val COLONY = "$ITEM.colony"
         const val ANOTHER_HAND = "$ITEM.another_hand"
 

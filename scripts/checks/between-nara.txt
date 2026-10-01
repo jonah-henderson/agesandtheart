@@ -1,0 +1,34 @@
+# What nara holds against a spreading tear: a block with nara above and below it, close by, is not taken.
+# Run with: scripts/drive-server.sh scripts/checks/between-nara.txt
+#
+# Four columns of stone from y=101 to 107, each crumbled by the tear's own column entity, the same one a
+# spreading fissure starts (`CrumblingColumn`). Expected, read off the `execute if block` lines:
+#   A (x=200) nara at 100 and 108, stone between: the stone stands, the ground under 100 is gone.
+#   B (x=201) no nara of its own, A's one column aside: its stone stands too.
+#   C (x=203) three columns from any nara: gone.
+#   D (x=206) nara under it only, no roof: the stone is gone, the nara stays.
+forceload add 192 -8 216 8
+setblock 200 100 0 agesandtheart:compounded_stone
+setblock 200 108 0 agesandtheart:compounded_stone
+fill 200 101 0 200 107 0 minecraft:stone
+fill 201 101 0 201 107 0 minecraft:stone
+fill 203 101 0 203 107 0 minecraft:stone
+setblock 206 100 0 agesandtheart:compounded_stone
+fill 206 101 0 206 107 0 minecraft:stone
+summon agesandtheart:crumbling_column 200 108 0
+summon agesandtheart:crumbling_column 201 108 0
+summon agesandtheart:crumbling_column 203 108 0
+summon agesandtheart:crumbling_column 206 108 0
+tick sprint 600
+# A: held, then the nara either side, then the ground beneath.
+execute if block 200 104 0 minecraft:stone
+execute if block 200 100 0 agesandtheart:compounded_stone
+execute if block 200 108 0 agesandtheart:compounded_stone
+execute if block 200 40 0 minecraft:air
+# B: held from the column beside.
+execute if block 201 104 0 minecraft:stone
+# C: taken.
+execute if block 203 104 0 minecraft:air
+# D: the stone taken, the nara left.
+execute if block 206 104 0 minecraft:air
+execute if block 206 100 0 agesandtheart:compounded_stone

@@ -19,9 +19,11 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.BiomeTags
 import net.minecraft.tags.BlockTags
+import net.minecraft.tags.TagKey
 import net.minecraft.world.entity.ai.village.poi.PoiManager
 import net.minecraft.world.entity.ai.village.poi.PoiRecord
 import net.minecraft.world.entity.ai.village.poi.PoiType
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.Heightmap
@@ -37,6 +39,10 @@ import net.minecraft.world.level.levelgen.placement.PlacedFeature
  * The Age's half is read off the recipe and so can be answered anywhere in it; the ground's half is read
  * off blocks, and only in loaded chunks. The colony claims ground by [freeSiteAt], which is the test
  * [siteNear] sweeps with, so the instrument and the creature cannot disagree about what good ground is.
+ *
+ * **Only arrival asks the Age** (Jonah, 2026-10-01). Where a scarab nests and breeds is the ground's half
+ * alone, read where the scarab is — warm by its biome or by a heat source beside it, and open to the sky or
+ * lit — so one carried through a portal can found a colony anywhere a player builds it a home.
  */
 object ScarabHabitat {
 
@@ -112,8 +118,8 @@ object ScarabHabitat {
     }
 
     /** Ground the medallion found: mud is what is looked for, and the other two are what may be missing. */
-    data class Site(val mud: BlockPos, val sandWithinReach: Boolean, val underTheJungle: Boolean) {
-        val wouldHoldAColony: Boolean get() = sandWithinReach && underTheJungle
+    data class Site(val mud: BlockPos, val sandWithinReach: Boolean, val warm: Boolean) {
+        val wouldHoldAColony: Boolean get() = sandWithinReach && warm
     }
 
     /**
@@ -207,7 +213,8 @@ object ScarabHabitat {
     }
 
     /**
-     * The best ground for a nest within reach of [from], or null where no mud lies open to the sky.
+     * The best ground for a nest within reach of [from], or null where no mud a scarab could see from there
+     * lies open to the sky or lit.
      *
      * A whole site wins however far off it is, and between two of a kind the nearer does; a partial one is
      * still worth reporting, being what a player can walk to and judge.
@@ -223,13 +230,13 @@ object ScarabHabitat {
                 val distance = squaredDistance(x, z)
                 val cannotBeatWhatWeHave = distance >= bestDistance && best?.wouldHoldAColony == true
                 if (cannotBeatWhatWeHave) continue
-                val mud = openMudAt(level, from.x + x, from.z + z) ?: continue
+                val mud = mudAt(level, from.x + x, from.z + z, from.y) ?: continue
                 // Ground a colony already holds is no site, however good, and not a lack either.
                 if (touchesAClaim(level, mud)) continue
                 val site = Site(
                     mud = mud,
                     sandWithinReach = sandNear(level, mud),
-                    underTheJungle = isUnderTheJungle(level, mud),
+                    warm = isWarmAt(level, mud),
                 )
                 val held = best
                 val better = when {
@@ -247,17 +254,52 @@ object ScarabHabitat {
     }
 
     /**
-     * The mud a scarab could claim in the column at [x], [z], or null where it could not: open to the sky,
-     * under the jungle, sand within reach, and **at least a column clear of every claimed one**, diagonals
-     * included (design §7.1.2).
-     *
-     * The ground half only; whether the Age would hold a colony at all is [AgeReading.wouldHoldAColony].
+     * The mud a scarab at [nearY] could claim in the column at [x], [z], or null where it could not: open
+     * to the sky or lit, warm, sand within reach, and **at least a column clear of every claimed one**,
+     * diagonals included (design §7.1.2).
      */
-    fun freeSiteAt(level: ServerLevel, x: Int, z: Int): BlockPos? {
-        val mud = openMudAt(level, x, z) ?: return null
-        val isGoodGround = isUnderTheJungle(level, mud) && sandNear(level, mud)
+    fun freeSiteAt(level: ServerLevel, x: Int, z: Int, nearY: Int): BlockPos? {
+        val mud = mudAt(level, x, z, nearY) ?: return null
+        val isGoodGround = isWarmAt(level, mud) && sandNear(level, mud)
         return if (isGoodGround && !touchesAClaim(level, mud)) mud else null
     }
+
+    /**
+     * Whether a nest at [mud] is warm: a biome about as warm as the jungle, or something giving off heat
+     * within [HEAT_REACH] of it (`#agesandtheart:gives_heat`).
+     */
+    fun isWarmAt(level: ServerLevel, mud: BlockPos): Boolean {
+        val temperature = level.getBiome(mud).value().baseTemperature
+        if (temperature in NESTS_FROM..NESTS_UP_TO) return true
+        return BlockPos.betweenClosedStream(
+            mud.offset(-HEAT_REACH, -HEAT_REACH, -HEAT_REACH),
+            mud.offset(HEAT_REACH, HEAT_REACH, HEAT_REACH),
+        ).anyMatch { level.getBlockState(it).`is`(GIVES_HEAT) }
+    }
+
+    /**
+     * The ground a scarab sees in the column at [x], [z] from [nearY], which is a height in the open air of
+     * where it is — its own, or the air over a nest's mud. Loaded chunks only.
+     *
+     * Where nothing in the column stands higher than [nearY], the ground is the column's top, however far
+     * down. Otherwise something does — a roof, a canopy, or a bank — and the column is read at [nearY]: air
+     * there means the ground is the first block under it, and solid means the top of the bank, a few
+     * blocks up at most. So a scarab under a roof works its own floor, and sand on a pit's rim is still the
+     * rim's.
+     */
+    fun groundNear(level: ServerLevel, x: Int, z: Int, nearY: Int): BlockPos? {
+        if (!level.hasChunkAtColumn(x, z)) return null
+        val top = surfaceOf(level, x, z) ?: return null
+        if (top.y <= nearY) return top
+        val reading = BlockPos(x, nearY, z)
+        return if (level.getBlockState(reading).isAir) floorUnder(level, reading) else topOfTheBank(level, reading)
+    }
+
+    private fun floorUnder(level: ServerLevel, from: BlockPos): BlockPos? =
+        (1..SEES_BELOW).map(from::below).firstOrNull { !level.getBlockState(it).isAir }
+
+    private fun topOfTheBank(level: ServerLevel, from: BlockPos): BlockPos? =
+        (0..SEES_ABOVE).map(from::above).firstOrNull { level.getBlockState(it.above()).isAir }
 
     /** Whether a nest stands in [column] or in any of the eight around it, at any height. */
     fun touchesAClaim(level: ServerLevel, column: BlockPos): Boolean =
@@ -284,24 +326,24 @@ object ScarabHabitat {
 
     private fun isNest(poi: Holder<PoiType>): Boolean = poi.`is`(NEST)
 
-    private fun isUnderTheJungle(level: ServerLevel, at: BlockPos): Boolean =
-        level.getBiome(at).`is`(BiomeTags.IS_JUNGLE)
-
-    /** The top of the column at [x], [z] where it is mud and loaded, and null otherwise. */
-    private fun openMudAt(level: ServerLevel, x: Int, z: Int): BlockPos? {
-        if (!level.hasChunkAtColumn(x, z)) return null
-        val top = surfaceOf(level, x, z) ?: return null
-        return if (level.getBlockState(top).`is`(Blocks.MUD)) top else null
+    /**
+     * The mud a scarab at [nearY] would see in the column at [x], [z], or null: open to the sky, or under
+     * cover with at least [ENOUGH_LIGHT] on the air over it, so a lamp stands in for the sun.
+     */
+    private fun mudAt(level: ServerLevel, x: Int, z: Int, nearY: Int): BlockPos? {
+        val ground = groundNear(level, x, z, nearY) ?: return null
+        if (!level.getBlockState(ground).`is`(Blocks.MUD)) return null
+        val isOpenToTheSky = surfaceOf(level, x, z) == ground
+        val isLit = level.getRawBrightness(ground.above(), NO_DARKENING) >= ENOUGH_LIGHT
+        return if (isOpenToTheSky || isLit) ground else null
     }
 
     /** Whether the colony would find sand to carry from [mud] — what a pillar is actually built of. */
     private fun sandNear(level: ServerLevel, mud: BlockPos): Boolean {
         for (x in -SAND_REACH..SAND_REACH) {
             for (z in -SAND_REACH..SAND_REACH) {
-                val column = BlockPos(mud.x + x, mud.y, mud.z + z)
-                if (!level.hasChunkAtColumn(column.x, column.z)) continue
-                val surface = surfaceOf(level, column.x, column.z) ?: continue
-                if (level.getBlockState(surface).`is`(BlockTags.SAND)) return true
+                val ground = groundNear(level, mud.x + x, mud.z + z, mud.y + 1) ?: continue
+                if (level.getBlockState(ground).`is`(BlockTags.SAND)) return true
             }
         }
         return false
@@ -347,6 +389,23 @@ object ScarabHabitat {
 
     /** How far a colony will carry sand to its pillar. */
     const val SAND_REACH = 12
+
+    /** About the jungle's own temperature, 0.95, and the palm beach's and the mushroom fields' at 0.9. */
+    private const val NESTS_FROM = 0.9f
+    private const val NESTS_UP_TO = 1.0f
+
+    /** How near a heat source must be to warm a nest. */
+    private const val HEAT_REACH = 3
+
+    private val GIVES_HEAT: TagKey<Block> = TagKey.create(Registries.BLOCK, "gives_heat".location())
+
+    /** Vanilla's light for a crop to grow by, which a torch gives five blocks off. */
+    private const val ENOUGH_LIGHT = 9
+    private const val NO_DARKENING = 0
+
+    /** How far a scarab looks up a bank and down to a floor for the ground of a column that is not open. */
+    private const val SEES_ABOVE = 4
+    private const val SEES_BELOW = 12
 
     /** A claim keeps the columns beside it, diagonals included, clear of other claims. */
     private const val NEIGHBOURING_COLUMNS = 1

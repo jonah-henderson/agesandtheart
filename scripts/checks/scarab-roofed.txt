@@ -1,0 +1,49 @@
+# Does a carried scarab nest under a roof, warmed by a heat source and lit by torches, outside any Age?
+# Run with: scripts/drive-server.sh scripts/checks/scarab-roofed.txt
+#
+# Nesting is the ground's half alone (design 7.1.2, Jonah 2026-10-01): warm by biome or by `#gives_heat`
+# nearby, and open to the sky or lit. Two sealed stone rooms in the overworld, under plains so the climate
+# is not warm: mud in the middle on magma, sand around it, torches on the sand and torchflowers at one end.
+# The second room is the same with no magma, and should never hold a nest. Two scarabs go into each.
+#
+# Read the two `fill ... replace agesandtheart:scarab_nest` lines: the warm room's should fill one or more,
+# the cold room's none.
+#
+# MEASURED 2026-10-01: the warm room held 2 nests, the cold room none. `scarab-colony.txt` alongside it,
+# under open sky, still made 3 nests of 2 scarabs with pillars rising.
+forceload add -16 -16 80 16
+fillbiome -16 190 -16 80 215 16 minecraft:plains
+# The warm room, around x=0.
+fill -8 199 -8 8 206 8 minecraft:stone
+fill -7 201 -7 7 205 7 minecraft:air
+fill -7 200 -7 7 200 7 minecraft:grass_block
+fill -4 200 -4 4 200 4 minecraft:sand
+fill -1 200 -1 1 200 1 minecraft:mud
+setblock 0 199 0 minecraft:magma_block
+setblock 3 201 0 minecraft:torch
+setblock -3 201 0 minecraft:torch
+setblock 0 201 3 minecraft:torch
+setblock 0 201 -3 minecraft:torch
+fill -7 201 -7 -6 201 7 minecraft:torchflower
+# The cold room, around x=64: the same, less the magma.
+fill 56 199 -8 72 206 8 minecraft:stone
+fill 57 201 -7 71 205 7 minecraft:air
+fill 57 200 -7 71 200 7 minecraft:grass_block
+fill 60 200 -4 68 200 4 minecraft:sand
+fill 63 200 -1 65 200 1 minecraft:mud
+setblock 67 201 0 minecraft:torch
+setblock 61 201 0 minecraft:torch
+setblock 64 201 3 minecraft:torch
+setblock 64 201 -3 minecraft:torch
+fill 57 201 -7 58 201 7 minecraft:torchflower
+time set noon
+summon agesandtheart:scarab 0 202 0
+summon agesandtheart:scarab 1 202 1
+summon agesandtheart:scarab 64 202 0
+summon agesandtheart:scarab 65 202 1
+tick sprint 1800
+execute positioned 0 202 0 run data get entity @e[type=agesandtheart:scarab,sort=nearest,limit=1] home
+execute positioned 64 202 0 run data get entity @e[type=agesandtheart:scarab,sort=nearest,limit=1] home
+# Counted by replacing, which is destructive and fine in a world about to be thrown away.
+fill -1 200 -1 1 200 1 minecraft:dirt replace agesandtheart:scarab_nest
+fill 63 200 -1 65 200 1 minecraft:dirt replace agesandtheart:scarab_nest

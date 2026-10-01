@@ -1,0 +1,7 @@
+{
+  "_comment": "Unobtainable otherwise; the city's portal frame is made of it (design 7.1.2). Ratios are unbalanced.",
+  "type": "agesandtheart:compounding",
+  "ingredients": [{ "ingredient": "minecraft:deepslate", "count": 64 }],
+  "result": { "id": "minecraft:reinforced_deepslate" },
+  "allowed_by": "reinforced_deepslate"
+}

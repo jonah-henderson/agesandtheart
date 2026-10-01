@@ -1,0 +1,7 @@
+{
+  "_comment": "Unobtainable otherwise, and it makes amethyst a crop a player can keep at home (design 7.1.2). Ratios are unbalanced.",
+  "type": "agesandtheart:compounding",
+  "ingredients": [{ "ingredient": "minecraft:amethyst_block", "count": 64 }],
+  "result": { "id": "minecraft:budding_amethyst" },
+  "allowed_by": "budding_amethyst"
+}

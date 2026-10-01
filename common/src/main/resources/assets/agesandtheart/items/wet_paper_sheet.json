@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "agesandtheart:item/wet_paper_sheet",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 10466504
+      }
+    ]
+  }
+}

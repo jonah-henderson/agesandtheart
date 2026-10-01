@@ -1,0 +1,7 @@
+{
+  "_comment": "Vanilla's polished deepslate under nara's tint, until the asset pass: canon has nara a dark grey-green. Parented on `leaves` for its tintindex, as `white_sandstone` is.",
+  "parent": "minecraft:block/leaves",
+  "textures": {
+    "all": "minecraft:block/polished_deepslate"
+  }
+}

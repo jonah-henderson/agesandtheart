@@ -1,0 +1,33 @@
+{
+  "_comment": "A compounding is learned by holding what goes into it (design 7.1.2).",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_the_inputs": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "minecraft:gravel"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:compounding/flint"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_the_inputs",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:compounding/flint"
+    ]
+  }
+}

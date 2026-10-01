@@ -1,0 +1,6 @@
+{
+  "_comment": "Likewise a joke (design 7.1.2).",
+  "type": "agesandtheart:compounding",
+  "ingredients": [{ "ingredient": "minecraft:cobblestone", "count": 64 }],
+  "result": { "id": "minecraft:stone" }
+}

@@ -41,6 +41,10 @@ object PaperTreeHealth {
     /** A new heart's memory: wet and dry by turns, which reads as the middle of its band. */
     const val SETTLED_HISTORY = 0b01010101010101010101
 
+    /** Measured: a polar sun lights the open air to 14, and noon in the overworld to 15. */
+    private const val GROWS_IN_LIGHT_FROM = 12
+    private const val GROWS_IN_LIGHT_UP_TO = 14
+
     private const val REMEMBERED = (1 shl SAMPLES) - 1
 
     /** [history] with one more look at the end of it, and the oldest forgotten. */
@@ -78,6 +82,12 @@ object PaperTreeHealth {
     /** A sapling's moisture after one random tick, a step toward wet or toward dry — a counter lives long enough. */
     fun moistened(moisture: Int, isWet: Boolean): Int =
         (moisture + if (isWet) 1 else -1).coerceIn(DRIEST, WETTEST)
+
+    /**
+     * Whether [light] lets a sapling grow and a tree heal: about what a polar sun gives, 14 of 15 in the
+     * open (design §7.1.2). Out of it nothing advances, and nothing dies of it either.
+     */
+    fun isLitToGrow(light: Int): Boolean = light in GROWS_IN_LIGHT_FROM..GROWS_IN_LIGHT_UP_TO
 
     /** Strain after one tick in [band]: out of it, a step further its way; in it, eased back toward none. */
     fun strained(strain: Int, band: Band): Int = when (band) {

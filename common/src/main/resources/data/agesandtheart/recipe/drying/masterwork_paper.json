@@ -1,0 +1,9 @@
+{
+  "_comment": "Design 7.1.2: a wet sheet dries in the air of an Age with an open lava sea, anywhere in it. A day on the drying rack.",
+  "type": "agesandtheart:drying",
+  "ingredient": "agesandtheart:wet_paper_sheet",
+  "result": {
+    "id": "agesandtheart:masterwork_paper"
+  },
+  "under": "lava_sea"
+}

@@ -1,0 +1,33 @@
+{
+  "_comment": "Learned on first holding carapace powder.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_carapace_powder": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:carapace_powder"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:ink_cake"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_carapace_powder",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:ink_cake"
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "_comment": "Learned on first holding nara.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_nara": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [{ "items": "agesandtheart:compounded_stone" }] } },
+    "has_the_recipe": { "trigger": "minecraft:recipe_unlocked", "conditions": { "recipes": "agesandtheart:compounded_stone_probes" } }
+  },
+  "requirements": [["has_nara", "has_the_recipe"]],
+  "rewards": { "recipes": ["agesandtheart:compounded_stone_probes"] }
+}

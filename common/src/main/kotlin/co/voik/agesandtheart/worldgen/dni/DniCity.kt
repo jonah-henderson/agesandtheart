@@ -30,6 +30,7 @@ import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStruct
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadType
 import net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager
 
 /**
  * Which Ages have a D'ni city, how it is offered to their generator, and where a visitor arrives in it
@@ -101,9 +102,13 @@ object DniCity {
         return inFrontOfTheFrame(level, centre)
     }
 
-    private fun inFrontOfTheFrame(level: ServerLevel, centre: PoolElementStructurePiece): Ages.Arrival? {
+    private fun inFrontOfTheFrame(level: ServerLevel, centre: PoolElementStructurePiece): Ages.Arrival? =
+        arrivalBefore(level.server.structureTemplateManager, centre)
+
+    /** On the floor in front of [centre]'s reinforced deepslate frame, facing it, or null where it has none. */
+    fun arrivalBefore(templates: StructureTemplateManager, centre: PoolElementStructurePiece): Ages.Arrival? {
         val element = centre.element as? SinglePoolElement ?: return null
-        val template = level.server.structureTemplateManager.getOrCreate(element.templateLocation)
+        val template = templates.getOrCreate(element.templateLocation)
         // A single element places with no pivot, so these are the positions its blocks land at.
         val placed = StructurePlaceSettings().setRotation(centre.rotation)
         val frame = template.filterBlocks(centre.position, placed, Blocks.REINFORCED_DEEPSLATE).map { it.pos() }
@@ -112,5 +117,14 @@ object DniCity {
         val facing = if (box.xSpan <= box.zSpan) Direction.EAST else Direction.SOUTH
         val bottomMiddle = BlockPos((box.minX() + box.maxX()) / 2, box.minY(), (box.minZ() + box.maxZ()) / 2)
         return Ages.Arrival(bottomMiddle.relative(facing.opposite), facing)
+    }
+
+    /** Where each [DniDevice] stands in a city whose start piece is [centre]: beside the arrival, along the frame. */
+    fun devicesBefore(templates: StructureTemplateManager, centre: PoolElementStructurePiece): List<DniDevicePiece> {
+        val arrival = arrivalBefore(templates, centre) ?: return emptyList()
+        val alongTheFrame = arrival.facing?.clockWise ?: return emptyList()
+        return DniDevice.entries.map { device ->
+            DniDevicePiece(arrival.at.relative(alongTheFrame, device.besideTheArrival), device)
+        }
     }
 }

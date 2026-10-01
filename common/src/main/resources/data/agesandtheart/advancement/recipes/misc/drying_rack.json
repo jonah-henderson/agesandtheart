@@ -1,0 +1,44 @@
+{
+  "_comment": "Learned on first holding either top-rung ingredient.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_carapace_powder": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:carapace_powder"
+          }
+        ]
+      }
+    },
+    "has_paper_tree_pulp": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:paper_tree_pulp"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:drying_rack"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_carapace_powder",
+      "has_paper_tree_pulp",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:drying_rack"
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "agesandtheart:item/compounded_stone_probes",
+    "tints": [{ "type": "minecraft:constant", "value": 6188635 }]
+  }
+}

@@ -78,8 +78,9 @@ class ScarabBuild(private val scarab: Scarab) : Goal() {
 
     private fun fetch(level: ServerLevel) {
         val at = sand ?: return
+        val home = scarab.nest()?.blockPos ?: return
         val state = level.getBlockState(at)
-        if (!isSandToCarry(level, at, state)) {
+        if (!isSandToCarry(level, at, state, home.y + 1)) {
             sand = null
             return
         }
@@ -117,15 +118,15 @@ class ScarabBuild(private val scarab: Scarab) : Goal() {
         repeat(SAMPLES) {
             val x = nest.x + random.nextIntBetweenInclusive(-reach, reach)
             val z = nest.z + random.nextIntBetweenInclusive(-reach, reach)
-            val top = ScarabHabitat.surfaceOf(level, x, z) ?: return@repeat
-            if (isSandToCarry(level, top, level.getBlockState(top))) return top
+            val top = ScarabHabitat.groundNear(level, x, z, nest.y + 1) ?: return@repeat
+            if (isSandToCarry(level, top, level.getBlockState(top), nest.y + 1)) return top
         }
         return null
     }
 
-    /** Sand or red sand on top of its column. Not suspicious sand, which holds an archaeologist's find. */
-    private fun isSandToCarry(level: ServerLevel, at: BlockPos, state: BlockState): Boolean {
-        val isOnTop = ScarabHabitat.surfaceOf(level, at.x, at.z) == at
+    /** Sand or red sand that is the ground a scarab sees there. Not suspicious sand, which holds an archaeologist's find. */
+    private fun isSandToCarry(level: ServerLevel, at: BlockPos, state: BlockState, nearY: Int): Boolean {
+        val isOnTop = ScarabHabitat.groundNear(level, at.x, at.z, nearY) == at
         return state.`is`(BlockTags.SAND) && !state.hasBlockEntity() && isOnTop
     }
 

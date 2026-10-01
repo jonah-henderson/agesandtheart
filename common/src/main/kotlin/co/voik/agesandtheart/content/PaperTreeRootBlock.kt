@@ -84,7 +84,10 @@ class PaperTreeRootBlockEntity(pos: BlockPos, state: BlockState) :
             level.setBlock(blockPos, state.setValue(PaperTreeHealth.MOISTURE, moisture), Block.UPDATE_CLIENTS)
         }
         val band = PaperTreeHealth.bandOf(moisture)
-        strain = PaperTreeHealth.strained(strain, band)
+        val isLit = PaperTreeHealth.isLitToGrow(lightOver(level, shape))
+        // In its band but in the wrong light, the tree neither heals nor worsens.
+        val holdsAsItIs = band == PaperTreeHealth.Band.SUITS && !isLit
+        if (!holdsAsItIs) strain = PaperTreeHealth.strained(strain, band)
         setChanged()
         val stage = PaperTreeHealth.stageOf(strain)
         when (stage) {
@@ -102,8 +105,20 @@ class PaperTreeRootBlockEntity(pos: BlockPos, state: BlockState) :
                 if (!killTheHighestLog(level, shape)) die(level, shape)
             }
         }
-        val isThriving = strain == 0 && band == PaperTreeHealth.Band.SUITS
+        val isThriving = strain == 0 && band == PaperTreeHealth.Band.SUITS && isLit
         if (isThriving) growBack(level, shape)
+    }
+
+    /**
+     * The light the tree stands in, read in the air over its crown — the topmost block of its own, leaf or
+     * log. Lower down the terraces shade the trunk, which put a polar grove under the band and an overworld
+     * tree at noon inside it. With nothing of its own standing, the air over the heart.
+     */
+    fun lightOver(level: ServerLevel, shape: PaperTreeShape): Int {
+        val ownLogs = shape.logs.map { it.at }.filter { isOwnLog(level.getBlockState(it)) }
+        val ownLeaves = shape.terraces.flatMap { it.leaves.keys }.filter { isOwnLeaf(level.getBlockState(it)) }
+        val crown = (ownLogs + ownLeaves).maxByOrNull { it.y } ?: blockPos
+        return level.getMaxLocalRawBrightness(crown.above())
     }
 
     /**
@@ -224,10 +239,11 @@ class PaperTreeRootBlockEntity(pos: BlockPos, state: BlockState) :
     }
 
     /** For `/age yema`: how the tree stands, as the root sees it. */
-    fun describe(level: Level): String {
+    fun describe(level: ServerLevel): String {
         val moisture = level.getBlockState(blockPos).getOptionalValue(PaperTreeHealth.MOISTURE).orElse(-1)
+        val light = lightOver(level, PaperTreeShape.grownFrom(blockPos, seed))
         return "moisture $moisture (${PaperTreeHealth.bandOf(moisture)}), strain $strain " +
-            "(${PaperTreeHealth.stageOf(strain)}), seed $seed"
+            "(${PaperTreeHealth.stageOf(strain)}), light $light (grows: ${PaperTreeHealth.isLitToGrow(light)}), seed $seed"
     }
 
     companion object {

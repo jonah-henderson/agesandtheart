@@ -87,12 +87,21 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
             },
             AgeContent.WRITERS_DESK_BLOCK,
         )
-        // NeoForge wraps only vanilla's own containers for pipes, so the stations are named here; Fabric's
+        // NeoForge wraps only vanilla's own containers for pipes, so the stations, the compounder and the drying
+        // rack are named here; Fabric's
         // transfer API wraps any Container block entity by itself.
         event.registerBlockEntity(
             net.neoforged.neoforge.capabilities.Capabilities.Item.BLOCK,
             AgeContent.STATION_ENTITY,
         ) { station, side -> net.neoforged.neoforge.transfer.item.WorldlyContainerWrapper(station, side) }
+        event.registerBlockEntity(
+            net.neoforged.neoforge.capabilities.Capabilities.Item.BLOCK,
+            co.voik.agesandtheart.station.Compounder.ENTITY,
+        ) { compounder, side -> net.neoforged.neoforge.transfer.item.WorldlyContainerWrapper(compounder, side) }
+        event.registerBlockEntity(
+            net.neoforged.neoforge.capabilities.Capabilities.Item.BLOCK,
+            co.voik.agesandtheart.station.DryingRack.ENTITY,
+        ) { rack, side -> net.neoforged.neoforge.transfer.item.WorldlyContainerWrapper(rack, side) }
     }
 
     private fun onCreateAttributes(event: EntityAttributeCreationEvent) {
@@ -180,6 +189,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         }
         event.register(Registries.RECIPE_BOOK_CATEGORY) { helper ->
             AgeContent.recipeBookCategories.forEach { (id, category) -> helper.register(id, category) }
+        }
+        event.register(Registries.RECIPE_DISPLAY) { helper ->
+            AgeContent.recipeDisplays.forEach { (id, type) -> helper.register(id, type) }
         }
         event.register(Registries.CHUNK_GENERATOR) { helper ->
             WorldgenCodecs.chunkGeneratorCodecs.forEach { (id, codec) -> helper.register(id, codec) }

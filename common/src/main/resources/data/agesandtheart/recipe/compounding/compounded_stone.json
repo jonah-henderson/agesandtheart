@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "Nara (design 7.1.2, Jonah 2026-10-01): sixteen each of four hard stones -- deretheni from a dangerous",
+    "Age, obsidian for the early game's mastery, blackstone for the Nether's and purpur for the End's. The",
+    "only recipe that needs more than power; heat and cold are placeholders. Ratios are unbalanced."
+  ],
+  "type": "agesandtheart:compounding",
+  "ingredients": [
+    { "ingredient": "agesandtheart:pitchstone", "count": 16 },
+    { "ingredient": "minecraft:obsidian", "count": 16 },
+    { "ingredient": "minecraft:blackstone", "count": 16 },
+    { "ingredient": "minecraft:purpur_block", "count": 16 }
+  ],
+  "result": { "id": "agesandtheart:compounded_stone" },
+  "also_needs": ["heat", "cold"]
+}

@@ -1,0 +1,33 @@
+{
+  "_comment": "Learned on first holding a cured ink cake.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_cured_ink_cake": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:cured_ink_cake"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:masterwork_ink_bottle"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_cured_ink_cake",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:masterwork_ink_bottle"
+    ]
+  }
+}

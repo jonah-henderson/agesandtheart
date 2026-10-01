@@ -1,0 +1,5 @@
+{
+  "_comment": "Nara takes nara to break, and the fusion-compounder and the advanced analysis machine cannot be broken at all (design 7.1.2), so a boss breaks none of them.",
+  "replace": false,
+  "values": ["agesandtheart:compounded_stone", "agesandtheart:fusion_compounder", "agesandtheart:advanced_analysis_machine"]
+}

@@ -1,36 +1,10 @@
 {
-  "_comment": [
-    "Gated on masterwork paper: it is the ingredient a player only has once they are deep in the Art,",
-    "which is where design 8.3 puts the machine."
-  ],
+  "_comment": "Learned on first holding nara, which the machine is built around (design 7.1.2).",
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_masterwork_paper": {
-      "trigger": "minecraft:inventory_changed",
-      "conditions": {
-        "items": [
-          {
-            "items": "agesandtheart:masterwork_paper"
-          }
-        ]
-      }
-    },
-    "has_the_recipe": {
-      "trigger": "minecraft:recipe_unlocked",
-      "conditions": {
-        "recipes": "agesandtheart:analysis_machine"
-      }
-    }
+    "has_nara": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [{ "items": "agesandtheart:compounded_stone" }] } },
+    "has_the_recipe": { "trigger": "minecraft:recipe_unlocked", "conditions": { "recipes": "agesandtheart:analysis_machine" } }
   },
-  "requirements": [
-    [
-      "has_masterwork_paper",
-      "has_the_recipe"
-    ]
-  ],
-  "rewards": {
-    "recipes": [
-      "agesandtheart:analysis_machine"
-    ]
-  }
+  "requirements": [["has_nara", "has_the_recipe"]],
+  "rewards": { "recipes": ["agesandtheart:analysis_machine"] }
 }

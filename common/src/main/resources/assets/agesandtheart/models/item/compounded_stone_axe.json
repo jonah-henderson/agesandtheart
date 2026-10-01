@@ -1,0 +1,1 @@
+{ "_comment": "Iron under nara's dark grey-green tint, until the model pass.", "parent": "minecraft:item/handheld", "textures": { "layer0": "minecraft:item/iron_axe" } }

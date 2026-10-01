@@ -2,21 +2,23 @@
   "_comment": [
     "The lure is the device's eye, and a spyglass the instrument behind it. Rime crystals are the lenses, as",
     "on the crystal viewer; phasmium because the device is set on a phasmium cage; pitchstone plate for the",
-    "casing. Ratios are unbalanced."
+    "casing, about a nara heart -- the acquisition devices are nara's to build (Jonah, 2026-10-01). Ratios are",
+    "unbalanced."
   ],
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
     "PLP",
     "RSR",
-    "DDD"
+    "DND"
   ],
   "key": {
     "P": "agesandtheart:phasmium",
     "L": "agesandtheart:hadalfish_lure",
     "R": "#agesandtheart:rime_crystals",
     "S": "minecraft:spyglass",
-    "D": "agesandtheart:pitchstone_plate"
+    "D": "agesandtheart:pitchstone_plate",
+    "N": "agesandtheart:compounded_stone"
   },
   "result": {
     "id": "agesandtheart:observation_device",
