@@ -14,6 +14,10 @@
 # 12); the room empty. On the coast Age (`age polar sun tidal moon` at seed 7, sea to x=84 along z=320) a
 # trench dug inland from x=85 filled with sources to x=91 at y=62 and x=89 at y=61 — eight past where
 # generation's sea stops on each layer — and drained at low.
+#
+# Never snapshot a layer by cloning it up the same columns: that lifts each column's top out of the band and
+# the ebb passes it over. Counting here is done in place, and a snapshot belongs in columns the tide never
+# works.
 age write tidetest 7 age ocean biomes
 execute in agesandtheart:tidetest run forceload add -48 -48 63 63
 execute in agesandtheart:tidetest run fill 30 63 0 34 63 10 minecraft:stone

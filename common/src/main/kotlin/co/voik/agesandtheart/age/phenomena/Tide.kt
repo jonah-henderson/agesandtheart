@@ -256,7 +256,6 @@ object Tide {
      */
     private fun rise(level: ServerLevel, chunk: LevelChunk, band: Band, sea: BlockState) {
         val generated = generatedSeaIn(level, band.high)
-        if (!generated.isNear(chunk.pos)) return
         val seaFluid = sea.fluidState.type
         fun isSeaAt(at: BlockPos): Boolean {
             if (!level.isLoaded(at)) return false
@@ -277,8 +276,7 @@ object Tide {
                     val wouldHoldIt = isOverTheSea || chunk.getBlockState(below).isFaceSturdy(chunk, below, Direction.UP)
                     val isBesideTheSea = isOverTheSea || Direction.Plane.HORIZONTAL.any { isSeaAt(at.relative(it)) }
                     if (!wouldHoldIt || !isBesideTheSea) continue
-                    val isWithinItsReach = generated.isSeaAt(x, y, z) || generated.isWithin(RUNS_ON_FOR, x, y, z)
-                    if (isWithinItsReach) filled += at to becomes
+                    if (generated.isWithin(RUNS_ON_FOR, x, y, z)) filled += at to becomes
                 }
             }
         }
@@ -309,10 +307,12 @@ object Tide {
 
     /**
      * Which cells of the band under [high] generation filled with the sea — open water standing on the
-     * generated floor — asked of the generator's own heights, a pure function, so nothing need be saved.
+     * generated floor — asked of the generator's own height, a pure function, so nothing need be saved.
      *
-     * **Remembered in memory only**, a byte a column for the [MOST_CHUNKS_REMEMBERED] chunks a tide last
-     * worked, and asked again for one forgotten. Rebuilt whole where high water moves, as a deluge moves it.
+     * **Asked a column at a time, and only for a cell about to fill near the shore** ([isOpenSea] answers the
+     * rest): the generator answers by running a whole noise column, and asking it for every column of every
+     * chunk in view held the server up for seconds a tick. Remembered in memory only, a byte a column for the [MOST_CHUNKS_REMEMBERED] chunks last
+     * asked about, and rebuilt whole where high water moves, as a deluge moves it.
      */
     private class GeneratedSea(private val level: ServerLevel, val high: Int) {
 
@@ -324,43 +324,59 @@ object Tide {
         fun isSeaAt(x: Int, y: Int, z: Int): Boolean {
             val layer = high - y
             if (layer !in 0..<LAYERS) return false
-            val columns = columnsOf(ChunkPos(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z)))
-            if (columns === NONE) return false
-            val column = columns[(x and CHUNK_MASK) * CHUNK_WIDTH + (z and CHUNK_MASK)].toInt()
-            return column and (1 shl layer) != 0
+            if (isOpenSea(x, z)) return true
+            return layersAt(x, z) and (1 shl layer) != 0
         }
 
-        /** Whether generation laid the sea at height [y] within [reach] blocks of the column at [x], [z]. */
-        fun isWithin(reach: Int, x: Int, y: Int, z: Int): Boolean =
-            (-reach..reach).any { dx -> (-reach..reach).any { dz -> isSeaAt(x + dx, y, z + dz) } }
-
-        /** Whether generation laid any of the band in [chunk] or beside it — what lets a dry inland chunk go. */
-        fun isNear(chunk: ChunkPos): Boolean = (-1..1).any { dx ->
-            (-1..1).any { dz -> columnsOf(ChunkPos(chunk.x + dx, chunk.z + dz)) !== NONE }
+        /**
+         * A column whose floor lies under the whole band now, read off the live heightmap — the open sea, which
+         * generation laid, and which is nearly every cell a rising tide refills. Answered without the generator,
+         * which is what keeps the open sea cheap: refilling it by asking cost seconds a pass.
+         */
+        private fun isOpenSea(x: Int, z: Int): Boolean {
+            val at = BlockPos(x, high, z)
+            if (!level.isLoaded(at)) return false
+            return level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z) <= high - (LAYERS - 1)
         }
 
-        private fun columnsOf(chunk: ChunkPos): ByteArray = byChunk.getOrPut(chunk.pack()) { askedOf(chunk) }
-
-        private fun askedOf(chunk: ChunkPos): ByteArray {
-            val generator = level.chunkSource.generator
-            val randomState = level.chunkSource.randomState()
-            val columns = ByteArray(CHUNK_WIDTH * CHUNK_WIDTH)
-            for (offsetX in 0..<CHUNK_WIDTH) {
-                for (offsetZ in 0..<CHUNK_WIDTH) {
-                    val x = chunk.minBlockX + offsetX
-                    val z = chunk.minBlockZ + offsetZ
-                    // Each the space over the top block of its kind: the floor, and whatever stood on it.
-                    val overTheFloor = generator.getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, level, randomState)
-                    val overTheTop = generator.getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, level, randomState)
-                    var layers = 0
-                    for (layer in 0..<LAYERS) {
-                        val y = high - layer
-                        if (y >= overTheFloor && y < overTheTop) layers = layers or (1 shl layer)
-                    }
-                    columns[offsetX * CHUNK_WIDTH + offsetZ] = layers.toByte()
+        /**
+         * Whether generation laid the sea at height [y] within [reach] blocks of the column at [x], [z] —
+         * looked for ring by ring outwards, since a cell beside the sea nearly always has it next door.
+         */
+        fun isWithin(reach: Int, x: Int, y: Int, z: Int): Boolean {
+            if (isSeaAt(x, y, z)) return true
+            for (ring in 1..reach) {
+                for (along in -ring..ring) {
+                    val onTheRing = isSeaAt(x + along, y, z - ring) || isSeaAt(x + along, y, z + ring) ||
+                        isSeaAt(x - ring, y, z + along) || isSeaAt(x + ring, y, z + along)
+                    if (onTheRing) return true
                 }
             }
-            return if (columns.all { it.toInt() == 0 }) NONE else columns
+            return false
+        }
+
+        private fun layersAt(x: Int, z: Int): Int {
+            val chunk = ChunkPos.pack(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z))
+            val columns = byChunk.getOrPut(chunk) { ByteArray(CHUNK_WIDTH * CHUNK_WIDTH) { UNASKED } }
+            val index = (x and CHUNK_MASK) * CHUNK_WIDTH + (z and CHUNK_MASK)
+            if (columns[index] == UNASKED) columns[index] = askedOf(x, z)
+            return columns[index].toInt()
+        }
+
+        private fun askedOf(x: Int, z: Int): Byte {
+            val generator = level.chunkSource.generator
+            val randomState = level.chunkSource.randomState()
+            // Each the space over the top block of its kind: the floor, and whatever stood on it — so a hollow
+            // generation kept dry under the waterline is not taken for the sea.
+            val overTheFloor = generator.getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, level, randomState)
+            if (overTheFloor > high) return NONE_OF_THE_BAND
+            val overTheTop = generator.getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, level, randomState)
+            var layers = 0
+            for (layer in 0..<LAYERS) {
+                val y = high - layer
+                if (y >= overTheFloor && y < overTheTop) layers = layers or (1 shl layer)
+            }
+            return layers.toByte()
         }
 
         private companion object {
@@ -369,8 +385,10 @@ object Tide {
             const val CHUNK_MASK = CHUNK_WIDTH - 1
             const val LOAD = 0.75f
 
-            /** A chunk with none of the band's sea in it, shared, so it costs a reference and no columns. */
-            val NONE = ByteArray(0)
+            /** A column not asked about yet — never a set of layers, since [LAYERS] stays under eight. */
+            const val UNASKED: Byte = -1
+
+            const val NONE_OF_THE_BAND: Byte = 0
         }
     }
 
@@ -454,8 +472,8 @@ object Tide {
     /** How far the rising sea runs on past where generation laid it — as far as the ebb follows it. */
     private const val RUNS_ON_FOR = COVERED_REACH
 
-    /** About what three players at an ordinary view distance keep loaded, at a byte a column. */
-    private const val MOST_CHUNKS_REMEMBERED = 4096
+    /** About what four players at a long view distance keep loaded, at a byte a column. */
+    private const val MOST_CHUNKS_REMEMBERED = 16384
 
     /**
      * The furthest a tide reaches either side of mid, however hard its moons pull — **one block for now**
