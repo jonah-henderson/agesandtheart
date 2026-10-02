@@ -1,7 +1,0 @@
-{
-  "type": "minecraft:crafting_shaped",
-  "category": "building",
-  "key": { "X": "agesandtheart:pitchstone" },
-  "pattern": ["XXX", "XXX", "XXX"],
-  "result": { "id": "agesandtheart:pitchstone_block" }
-}

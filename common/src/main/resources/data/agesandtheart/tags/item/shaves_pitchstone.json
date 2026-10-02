@@ -1,0 +1,9 @@
+{
+  "_comment": "What shaves plates off a placed deretheni stone (PitchstoneBlock): a diamond axe or better.",
+  "replace": false,
+  "values": [
+    "minecraft:diamond_axe",
+    "minecraft:netherite_axe",
+    "agesandtheart:compounded_stone_axe"
+  ]
+}

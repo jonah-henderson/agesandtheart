@@ -1,0 +1,52 @@
+{
+  "_comment": "A whole stone drops itself; a shaved one drops the plates it has left, so mining it out loses nothing the axe would have given.",
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:alternatives",
+          "children": [
+            {
+              "type": "minecraft:item",
+              "name": "agesandtheart:pitchstone",
+              "condition": {
+                "type": "minecraft:match_block",
+                "blocks": "agesandtheart:pitchstone",
+                "state": { "shaved": "0" }
+              }
+            },
+            {
+              "type": "minecraft:item",
+              "name": "agesandtheart:pitchstone_plate",
+              "modifier": [
+                {
+                  "type": "minecraft:set_count",
+                  "condition": {
+                    "type": "minecraft:match_block",
+                    "blocks": "agesandtheart:pitchstone",
+                    "state": { "shaved": "1" }
+                  },
+                  "count": 3
+                },
+                {
+                  "type": "minecraft:set_count",
+                  "condition": {
+                    "type": "minecraft:match_block",
+                    "blocks": "agesandtheart:pitchstone",
+                    "state": { "shaved": "2" }
+                  },
+                  "count": 2
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "condition": { "type": "minecraft:survives_explosion" }
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/pitchstone"
+}

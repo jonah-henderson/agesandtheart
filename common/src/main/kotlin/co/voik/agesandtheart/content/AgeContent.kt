@@ -100,10 +100,8 @@ import net.minecraft.world.item.equipment.ArmorType
 import net.minecraft.world.item.equipment.Equippable
 import net.minecraft.world.item.equipment.EquipmentAssets
 import net.minecraft.sounds.SoundEvents
-import net.minecraft.util.valueproviders.UniformInt
 import net.minecraft.world.level.block.AmethystClusterBlock
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.DropExperienceBlock
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.entity.BlockEntityType
@@ -191,86 +189,38 @@ object AgeContent {
     val MASTERWORK_PAPER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, MASTERWORK_PAPER_ID)))
 
     private val PITCHSTONE_ID: Identifier = "pitchstone".location()
-    private val PITCHSTONE_ORE_ID: Identifier = "pitchstone_ore".location()
-    private val DEEPSLATE_PITCHSTONE_ORE_ID: Identifier = "deepslate_pitchstone_ore".location()
-    private val PITCHSTONE_BLOCK_ID: Identifier = "pitchstone_block".location()
 
     /**
      * What a dangerous Age yields (design §7.7) — "Deretheni" in the language file, and named here for what
      * it is, like the inks.
      *
-     * **A mineral rather than a metal**, which the lore settles and the mechanics follow: the ore drops the
-     * material directly and it is crafted into a block, which is quartz's shape rather than iron's. There is
-     * no smelting step because there is nothing to smelt out — it is stone all the way down.
+     * **A stone, not an ore**: a deposit is the stone itself, mined whole, and the block is the item. The
+     * crafts spend [PITCHSTONE_PLATE], shaved off it ([PitchstoneBlock]) or cut at a stonecutter.
      *
      * **Writable, but only in masterwork ink** (`#agesandtheart:requires_masterwork_ink`): an Age full of
      * this is priced like a sea of diamonds rather than refused.
      */
-    val PITCHSTONE: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, PITCHSTONE_ID)))
-
-    val PITCHSTONE_ORE_BLOCK: Block = DropExperienceBlock(
-        UniformInt.of(LEAST_ORE_EXPERIENCE, MOST_ORE_EXPERIENCE),
+    val PITCHSTONE_BLOCK: Block = PitchstoneBlock(
         BlockBehaviour.Properties.of()
-            .setId(ResourceKey.create(Registries.BLOCK, PITCHSTONE_ORE_ID))
-            .mapColor(MapColor.STONE)
-            .strength(ORE_STRENGTH, ORE_RESISTANCE)
-            .sound(SoundType.STONE)
-            .requiresCorrectToolForDrops(),
-    )
-
-    /** The same deposit found below the stone line, harder for the same reason vanilla's deepslate ores are. */
-    val DEEPSLATE_PITCHSTONE_ORE_BLOCK: Block = DropExperienceBlock(
-        UniformInt.of(LEAST_ORE_EXPERIENCE, MOST_ORE_EXPERIENCE),
-        BlockBehaviour.Properties.of()
-            .setId(ResourceKey.create(Registries.BLOCK, DEEPSLATE_PITCHSTONE_ORE_ID))
-            .mapColor(MapColor.DEEPSLATE)
-            .strength(DEEPSLATE_ORE_STRENGTH, ORE_RESISTANCE)
-            .sound(SoundType.DEEPSLATE)
-            .requiresCorrectToolForDrops(),
-    )
-
-    /** Storage, and the form the crafts will ask for. Light for a stone, which is the whole of what it is. */
-    val PITCHSTONE_BLOCK_BLOCK: Block = Block(
-        BlockBehaviour.Properties.of()
-            .setId(ResourceKey.create(Registries.BLOCK, PITCHSTONE_BLOCK_ID))
+            .setId(ResourceKey.create(Registries.BLOCK, PITCHSTONE_ID))
             .mapColor(MapColor.COLOR_BLACK)
-            .strength(ORE_STRENGTH, ORE_RESISTANCE)
+            .strength(PITCHSTONE_STRENGTH, PITCHSTONE_RESISTANCE)
             .sound(SoundType.STONE)
             .requiresCorrectToolForDrops(),
     )
 
-    val PITCHSTONE_ORE: Item = BlockItem(
-        PITCHSTONE_ORE_BLOCK,
-        Item.Properties().setId(ResourceKey.create(Registries.ITEM, PITCHSTONE_ORE_ID)).useBlockDescriptionPrefix(),
+    val PITCHSTONE: Item = BlockItem(
+        PITCHSTONE_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, PITCHSTONE_ID)).useBlockDescriptionPrefix(),
     )
 
-    val DEEPSLATE_PITCHSTONE_ORE: Item = BlockItem(
-        DEEPSLATE_PITCHSTONE_ORE_BLOCK,
-        Item.Properties().setId(ResourceKey.create(Registries.ITEM, DEEPSLATE_PITCHSTONE_ORE_ID))
-            .useBlockDescriptionPrefix(),
-    )
-
-    val PITCHSTONE_BLOCK: Item = BlockItem(
-        PITCHSTONE_BLOCK_BLOCK,
-        Item.Properties().setId(ResourceKey.create(Registries.ITEM, PITCHSTONE_BLOCK_ID)).useBlockDescriptionPrefix(),
-    )
-
-    /** Quartz's numbers, which is the ore this one is shaped after. */
-    private const val ORE_STRENGTH = 3.0f
-    private const val DEEPSLATE_ORE_STRENGTH = 4.5f
-    private const val ORE_RESISTANCE = 3.0f
-    private const val LEAST_ORE_EXPERIENCE = 2
-    private const val MOST_ORE_EXPERIENCE = 5
+    /** Quartz ore's numbers, which the deposit was first shaped after. Light for a stone. */
+    private const val PITCHSTONE_STRENGTH = 3.0f
+    private const val PITCHSTONE_RESISTANCE = 3.0f
 
     private val PITCHSTONE_PLATE_ID: Identifier = "pitchstone_plate".location()
 
-    /**
-     * Deretheni chipped into overlapping plates at a saw — the form the lore's suit was actually built of,
-     * and the only thing the armour is made from.
-     *
-     * **A stonecutter rather than a furnace**, because it is stone: four plates off one piece, which is the
-     * saw's usual generosity and what keeps a suit inside one dangerous Age's yield.
-     */
+    /** Deretheni as every craft takes it: four to a stone, shaved off with an axe or cut at a stonecutter. */
     val PITCHSTONE_PLATE: Item =
         Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, PITCHSTONE_PLATE_ID)))
 
@@ -1911,9 +1861,7 @@ object AgeContent {
         Compounder.ID to Compounder.BLOCK,
         AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.BLOCK,
         DryingRack.ID to DryingRack.BLOCK,
-        PITCHSTONE_ORE_ID to PITCHSTONE_ORE_BLOCK,
-        DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE_BLOCK,
-        PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
+        PITCHSTONE_ID to PITCHSTONE_BLOCK,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK_BLOCK,
         ARC_CRYSTAL_ID to ARC_CRYSTAL_CLUSTER,
         ARC_CRYSTAL_BLOCK_ID to ARC_CRYSTAL_BLOCK_BLOCK,
@@ -2107,9 +2055,6 @@ object AgeContent {
         *SURVEY_REPORTS.map { (report, item) -> report.id to item }.toTypedArray(),
         GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE,
         PITCHSTONE_ID to PITCHSTONE,
-        PITCHSTONE_ORE_ID to PITCHSTONE_ORE,
-        DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE,
-        PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK,
         PITCHSTONE_PLATE_ID to PITCHSTONE_PLATE,
         PITCHSTONE_HELMET_ID to PITCHSTONE_HELMET,
         PITCHSTONE_CHESTPLATE_ID to PITCHSTONE_CHESTPLATE,

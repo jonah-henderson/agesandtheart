@@ -29,10 +29,10 @@ age compose coldlava 11 landmass=gentle sea=lava rock=solid climate.temperature=
 # `#agesandtheart:requires_masterwork_ink` instead: writable, and braked by costing the rarest ink there
 # is. These must all succeed.
 age compose stonetemper 11 landmass=gentle[stone=agesandtheart:temperstone] sea=water rock=solid
-age compose stonederetheni 11 landmass=gentle[stone=agesandtheart:pitchstone_block] sea=water rock=solid
+age compose stonederetheni 11 landmass=gentle[stone=agesandtheart:pitchstone] sea=water rock=solid
 
 # --- and that they are sayable at all, which the fence used to prevent ------------------------------
-# Grep the output for `temperstone`, `scorched_temperstone` and `pitchstone_block`. All three must appear
+# Grep the output for `temperstone`, `scorched_temperstone` and `pitchstone`. All three must appear
 # as derived words. **`/age words` does not print the ink tier**, so what it CANNOT tell you is whether the
 # masterwork gate took — that wants either a tier column here or a server check of its own.
 age words

@@ -21,7 +21,7 @@ import kotlin.math.roundToInt
 /**
  * What a dangerous Age has in the ground (design §7.7) — deretheni, at a density its danger scales.
  *
- * **Not a feature a writer can ask for.** The ore blocks have words, but they demand masterwork ink
+ * **Not a feature a writer can ask for.** The stone has a word, but it demands masterwork ink
  * (`#agesandtheart:requires_masterwork_ink`), so an Age made of the stuff is priced rather than free.
  *
  * **Laid over whatever the sentence already asked for**, rather than built into [Features]. What a book
@@ -72,7 +72,7 @@ object Deposits {
         (score * VEINS_AT_FULL_DANGER).roundToInt().coerceAtLeast(ONE_VEIN)
 
     /**
-     * The deposit itself — an ore vein, sited deep.
+     * The deposit itself — a vein of the stone, sited deep.
      *
      * **Deep is the whole of the siting, and that is deliberate.** §7.7 wants the material somewhere
      * plausibly dangerous without guaranteeing it, and explicitly declines to pay for siting each vein
@@ -124,18 +124,18 @@ object Deposits {
     )
 
     /**
-     * What the vein replaces: vanilla's two ore hosts, and **whatever this Age is actually made of**.
+     * What the vein replaces: vanilla's two ore hosts, and **whatever this Age is actually made of**. The
+     * stone is the same in all of them.
      *
      * An ore rule matches the rock it was written for, so an Age of blackstone or of somebody's modded
      * granite would grow no deposit at all — the same trap `FeatureShape.targetsReaching` exists for, and
      * the reason the rock is threaded down here rather than assumed.
      */
     private fun targetsIn(rock: List<BlockState>): List<BlockReplacement> {
-        val stone = AgeContent.PITCHSTONE_ORE_BLOCK.defaultBlockState()
-        val deepslate = AgeContent.DEEPSLATE_PITCHSTONE_ORE_BLOCK.defaultBlockState()
+        val stone = AgeContent.PITCHSTONE_BLOCK.defaultBlockState()
         val vanillas = listOf(
             BlockReplacement.replace(TagMatchTest(BlockTags.STONE_ORE_REPLACEABLES), stone),
-            BlockReplacement.replace(TagMatchTest(BlockTags.DEEPSLATE_ORE_REPLACEABLES), deepslate),
+            BlockReplacement.replace(TagMatchTest(BlockTags.DEEPSLATE_ORE_REPLACEABLES), stone),
         )
         val ours = rock.distinct()
             .filterNot { it.`is`(BlockTags.STONE_ORE_REPLACEABLES) || it.`is`(BlockTags.DEEPSLATE_ORE_REPLACEABLES) }

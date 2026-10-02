@@ -58,9 +58,8 @@ age gen alllava
 age gen quiet
 execute in agesandtheart:alllava run forceload add 0 0 15 15
 execute in agesandtheart:quiet run forceload add 0 0 15 15
-execute in agesandtheart:alllava run fill 0 -56 0 15 39 15 minecraft:air replace agesandtheart:pitchstone_ore
-execute in agesandtheart:alllava run fill 0 -56 0 15 39 15 minecraft:air replace agesandtheart:deepslate_pitchstone_ore
-execute in agesandtheart:quiet run fill 0 -56 0 15 39 15 minecraft:air replace agesandtheart:pitchstone_ore
+execute in agesandtheart:alllava run fill 0 -56 0 15 39 15 minecraft:air replace agesandtheart:pitchstone
+execute in agesandtheart:quiet run fill 0 -56 0 15 39 15 minecraft:air replace agesandtheart:pitchstone
 
 # And the structured form, which is what a check would assert on.
 age danger json score hellish
@@ -73,5 +72,5 @@ age compose doomed 11 unstable=400 landmass=gentle sea=lava rock=solid
 age danger score doomed
 age gen doomed
 execute in agesandtheart:doomed run forceload add 0 0 15 15
-execute in agesandtheart:doomed run fill 0 -62 0 15 -40 15 minecraft:air replace agesandtheart:pitchstone_ore
-execute in agesandtheart:alllava run fill 0 -62 0 15 -40 15 minecraft:air replace agesandtheart:pitchstone_ore
+execute in agesandtheart:doomed run fill 0 -62 0 15 -40 15 minecraft:air replace agesandtheart:pitchstone
+execute in agesandtheart:alllava run fill 0 -62 0 15 -40 15 minecraft:air replace agesandtheart:pitchstone

@@ -1,4 +1,0 @@
-{
-  "_comment": "Blackstone stands in until the model pass, being vanilla's own jet-black stone.",
-  "variants": { "": { "model": "minecraft:block/blackstone" } }
-}

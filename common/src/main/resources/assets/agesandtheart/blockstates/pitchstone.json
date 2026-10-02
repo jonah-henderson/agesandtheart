@@ -1,0 +1,9 @@
+{
+  "_comment": "Blackstone stands in until the model pass, being vanilla's own jet-black stone. Each plate shaved takes a quarter off the west face, as a cake is eaten.",
+  "variants": {
+    "shaved=0": { "model": "minecraft:block/blackstone" },
+    "shaved=1": { "model": "agesandtheart:block/pitchstone_shaved_1" },
+    "shaved=2": { "model": "agesandtheart:block/pitchstone_shaved_2" },
+    "shaved=3": { "model": "agesandtheart:block/pitchstone_shaved_3" }
+  }
+}

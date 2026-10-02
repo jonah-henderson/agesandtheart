@@ -1,5 +1,5 @@
 {
-  "_comment": "Deretheni chipped into plates at a saw. Four to the piece -- the saw's usual generosity, and what keeps a suit inside one dangerous Age's yield.",
+  "_comment": "Deretheni cut into plates at a saw. Four to the stone, as many as an axe shaves off one -- the saw's usual generosity, and what keeps a suit inside one dangerous Age's yield.",
   "type": "minecraft:stonecutting",
   "ingredient": "agesandtheart:pitchstone",
   "result": { "id": "agesandtheart:pitchstone_plate", "count": 4 }

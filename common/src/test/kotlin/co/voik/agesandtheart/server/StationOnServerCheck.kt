@@ -36,12 +36,12 @@ class StationOnServerCheck : FunSpec({
     fun isInState(x: Int, station: String, activity: String): Boolean =
         server.run("execute if block ${at(x)} agesandtheart:$station[activity=$activity]").startsWith("Test passed")
 
-    test("a grinder with arc crystal and a grindstone beside it grinds deretheni to two dust") {
+    test("a grinder with arc crystal and a grindstone beside it grinds a deretheni stone to nine dust") {
         build(GRINDER_X, "grinder", 1 to "agesandtheart:arc_crystal_block", -1 to "minecraft:grindstone")
         load(GRINDER_X, "agesandtheart:pitchstone")
         runPastOneRun()
         val held = contents(GRINDER_X)
-        check("agesandtheart:pitchstone_dust" in held && "count: 2" in held) { "the grinder holds: $held" }
+        check("agesandtheart:pitchstone_dust" in held && "count: 9" in held) { "the grinder holds: $held" }
     }
 
     test("a grinder without its grindstone stalls, and says so in its block state") {

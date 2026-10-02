@@ -1,9 +1,10 @@
 {
-  "_comment": "The rare early-game materials sit at diamond (Jonah, 2026-09-06): rarity is the point of them, and a pickaxe is the one gate that is legible before you know what the stuff is for. Scorched temperstone is deliberately absent — it is the spoiled band, netherrack-soft on purpose, and it carries no requiresCorrectToolForDrops for the tier to bite on. The crystals go in by tag, so a new colour is gated without touching this file.",
+  "_comment": "The rare early-game materials, and deretheni, sit at diamond (Jonah, 2026-09-06): rarity is the point of them, and a pickaxe is the one gate that is legible before you know what the stuff is for. Scorched temperstone is deliberately absent — it is the spoiled band, netherrack-soft on purpose, and it carries no requiresCorrectToolForDrops for the tier to bite on. The crystals go in by tag, so a new colour is gated without touching this file.",
   "replace": false,
   "values": [
     "#agesandtheart:rime_crystals",
     "agesandtheart:temperstone",
-    "agesandtheart:raw_temperstone"
+    "agesandtheart:raw_temperstone",
+    "agesandtheart:pitchstone"
   ]
 }

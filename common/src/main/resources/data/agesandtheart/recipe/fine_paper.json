@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Pulp pressed with deretheni. The pulper did the work a recipe cannot: stripping, cooking and beating",
+    "Pulp pressed with a deretheni plate. The pulper did the work a recipe cannot: stripping, cooking and beating",
     "the wood, and the water a sheet is laid from, which is why there is no bucket here any more.",
     "",
     "Deretheni is the danger material, which design 7.1.1 asks both mid-tier rungs to carry so that it stays",
@@ -17,7 +17,7 @@
     "agesandtheart:pulp",
     "agesandtheart:pulp",
     "agesandtheart:pulp",
-    "agesandtheart:pitchstone"
+    "agesandtheart:pitchstone_plate"
   ],
   "result": {
     "id": "agesandtheart:fine_paper",

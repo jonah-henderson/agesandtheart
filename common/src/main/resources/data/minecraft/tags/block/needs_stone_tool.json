@@ -1,8 +1,0 @@
-{
-  "_comment": "Deretheni sits where iron does: past a wooden pickaxe, well short of anything exotic. The gate in this phase is comprehension, not tool tier (design 7.6).",
-  "replace": false,
-  "values": [
-    "agesandtheart:pitchstone_ore",
-    "agesandtheart:deepslate_pitchstone_ore"
-  ]
-}

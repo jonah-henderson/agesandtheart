@@ -14,7 +14,7 @@
 #   the same, with the game's structures in it ... 21636 blocks, 81 of 81 -- the gate costs nothing
 #   the noise floor, one composition twice .......... 904 blocks, 13 of 81
 #   landmass=overworld, water, seed 4242 ........... 18062 blocks (measured apart from this file)
-#   dry hills, seed 5150028736327257943 ........... 1552 blocks, every example pitchstone ore
+#   dry hills, seed 5150028736327257943 ........... 1552 blocks, every example deretheni
 #
 # **Read the chunk count as well as the block count.** Craters touch every chunk of the square; the noise
 # floor is decoration not reproducing between two worlds and sits in a fraction of them.

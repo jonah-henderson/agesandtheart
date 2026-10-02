@@ -1,4 +1,0 @@
-{
-  "_comment": "Coal ore stands in until the model pass: the closest vanilla has to a black mineral in stone.",
-  "variants": { "": { "model": "minecraft:block/coal_ore" } }
-}

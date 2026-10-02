@@ -12,9 +12,7 @@
   ],
   "replace": false,
   "values": [
-    "agesandtheart:deepslate_pitchstone_ore",
-    "agesandtheart:pitchstone_block",
-    "agesandtheart:pitchstone_ore",
+    "agesandtheart:pitchstone",
     "agesandtheart:raw_temperstone",
     "agesandtheart:scorched_temperstone",
     "agesandtheart:temperstone",

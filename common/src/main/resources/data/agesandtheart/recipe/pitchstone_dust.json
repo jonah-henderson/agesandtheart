@@ -1,9 +1,9 @@
 {
-  "_comment": "Two to one, so grinding is a gain on the whole stone as well as the only road to fine ink.",
+  "_comment": "The whole stone, ground to nine dust: the only road to fine ink.",
   "type": "agesandtheart:grinding",
   "ingredient": "agesandtheart:pitchstone",
   "result": {
     "id": "agesandtheart:pitchstone_dust",
-    "count": 2
+    "count": 9
   }
 }
