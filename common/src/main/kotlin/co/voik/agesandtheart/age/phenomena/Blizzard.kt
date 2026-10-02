@@ -10,6 +10,7 @@ import java.util.WeakHashMap
 import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
+import net.minecraft.tags.BlockTags
 import net.minecraft.tags.TagKey
 import co.voik.agesandtheart.location
 import net.minecraft.world.entity.LivingEntity
@@ -373,7 +374,13 @@ object Blizzard {
         cursor.set(x, open, z)
         if (level.getBrightness(LightLayer.BLOCK, cursor) >= KEEPS_ITS_GROUND) return
         if (!level.canSeeSky(cursor)) return
-        if (depthOfDriftAt(level, cursor, x, open - 1, z) >= DEEPEST_DRIFT) return
+        val base = underTheLooseCover(level, cursor, x, open, z)
+        val beneath = level.getBlockState(cursor.set(x, base - 1, z))
+        if (!beneath.fluidState.isEmpty) {
+            freezeOver(level, cursor, beneath)
+            return
+        }
+        if (depthOfDriftAt(level, cursor, x, base - 1, z) >= DEEPEST_DRIFT) return
 
         val laying = if (inTheLeeOfSomething(level, cursor, x, open, z, bearing)) {
             inTheLee(severity)
@@ -381,8 +388,8 @@ object Blizzard {
             ONE_BLOCK
         }
         for (course in 0..<laying) {
-            cursor.set(x, open + course, z)
-            if (!level.getBlockState(cursor).isAir) break
+            cursor.set(x, base + course, z)
+            if (!takesTheDrift(level.getBlockState(cursor))) break
             level.setBlock(cursor, Blocks.POWDER_SNOW.defaultBlockState(), Block.UPDATE_ALL)
         }
         // **Asked of the heightmap rather than assumed.** The loop above stops early wherever something
@@ -390,6 +397,43 @@ object Blizzard {
         // block of air and found no run to compact.
         settle(level, cursor, x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1, z)
     }
+
+    /**
+     * Where a drift on this column begins: the first block under whatever loose cover tops it — a layer of
+     * snow, a tuft of grass — which the heightmap counts as ground and the drift buries, rather than standing
+     * a block of powder snow over it.
+     */
+    private fun underTheLooseCover(level: ServerLevel, cursor: BlockPos.MutableBlockPos, x: Int, open: Int, z: Int): Int {
+        var base = open
+        while (base > level.minY && takesTheDrift(level.getBlockState(cursor.set(x, base - 1, z)))) base--
+        cursor.set(x, open, z)
+        return base
+    }
+
+    /**
+     * A drift come down on open fluid at the cursor: **no snow lies on water**, which instead now and then
+     * freezes where it fell — and always beside ice already there, so a sheet spreads out from the first
+     * freeze — and lava takes nothing from a storm at all.
+     */
+    private fun freezeOver(level: ServerLevel, cursor: BlockPos.MutableBlockPos, fluid: BlockState) {
+        val isStillWater = fluid.`is`(Blocks.WATER) && fluid.fluidState.isSource
+        if (!isStillWater) return
+        val at = cursor.immutable()
+        val besideIce = Direction.Plane.HORIZONTAL.any { level.getBlockState(at.relative(it)).`is`(BlockTags.ICE) }
+        if (besideIce || level.random.nextInt(FREEZES_ONE_DRIFT_IN) == 0) {
+            level.setBlock(at, Blocks.ICE.defaultBlockState(), Block.UPDATE_ALL)
+        }
+    }
+
+    /** How rarely a drift falling on water freezes it, against the snow it would have laid on land. */
+    private const val FREEZES_ONE_DRIFT_IN = 10
+
+    /**
+     * Whether a drift may take this block's place: air, or anything replaceable that is not a fluid, so a
+     * storm buries grass and snow layers and never fills a lake or a lava pool.
+     */
+    private fun takesTheDrift(state: BlockState): Boolean =
+        state.isAir || (state.canBeReplaced() && state.fluidState.isEmpty)
 
     /**
      * How deep the drift standing over this column already is, in blocks of ours.
