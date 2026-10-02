@@ -1,10 +1,12 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.worldgen.SizeScale
+import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.Appearance
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.CelestialPath
 import co.voik.ephemeris.sky.Orbit
+import co.voik.ephemeris.sky.Palette
 import co.voik.ephemeris.sky.SkySpec
 import kotlin.math.roundToInt
 
@@ -171,11 +173,17 @@ object SkyBodies {
         val isAMoon = body.phase != null
         val sized = own.steer(BODYSIZE, seed)?.let { sizeAt(it, isAMoon) }
         val tinted = Colour.named(own.of(SUNCOLOUR))?.saturated(SUN_IS_LOOKED_AT)
+        // Vanilla's moons are not its sun's sprite, so a sun's palette means nothing on one.
+        val palette = SUN_PALETTES[own.of(SUNCOLOUR)]?.takeUnless { isAMoon }
         val rising = bearingOf(own.of(RISING))
         val sprite = body.appearance as? Appearance.Sprite
         val appearance = when {
             sprite == null || (sized == null && tinted == null) -> body.appearance
-            else -> sprite.copy(tint = tinted ?: sprite.tint, angularSize = sized ?: sprite.angularSize)
+            else -> sprite.copy(
+                tint = tinted ?: sprite.tint,
+                angularSize = sized ?: sprite.angularSize,
+                palette = palette ?: sprite.palette,
+            )
         }
         // Aimed from the path it already has, so a spare body keeps the wander the draw gave it and only
         // the horizon it comes up over moves.
@@ -258,4 +266,23 @@ object SkyBodies {
      * the star burns, which is the one thing a sun's colour has to say.
      */
     private const val SUN_IS_LOOKED_AT = 1.5f
+
+    /**
+     * The colours a sun is drawn in where a tint cannot say it — **black**, since a sun is added to the sky
+     * and adding a dark colour adds next to nothing, which drew a black sun as a faint yellow one.
+     *
+     * A black disc that hides the sky behind it, a rim of embers, and a pale corona added round it in
+     * vanilla's glow, so it still reads at night against a black sky.
+     */
+    private val SUN_PALETTES: Map<String, Palette> = mapOf(
+        "black" to Palette.ofVanillaSun(
+            centre = Rgba(0.0f, 0.0f, 0.0f, HIDES_THE_SKY),
+            ring = Rgba(0.0f, 0.0f, 0.0f, HIDES_THE_SKY),
+            rim = Rgba(0.30f, 0.06f, 0.04f, HIDES_THE_SKY),
+            glow = Rgba(0.35f, 0.30f, 0.45f, HIDES_NOTHING),
+        ),
+    )
+
+    private const val HIDES_THE_SKY = 1.0f
+    private const val HIDES_NOTHING = 0.0f
 }
