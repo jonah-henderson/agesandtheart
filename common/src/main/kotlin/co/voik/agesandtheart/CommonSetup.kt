@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.book.panel.PanelWarming
+import co.voik.agesandtheart.content.AlgaeCatchUp
 import co.voik.agesandtheart.content.ChargedMetal
 import co.voik.agesandtheart.content.DeepWaterLogging
 import co.voik.agesandtheart.content.PalmWood
@@ -72,6 +73,8 @@ object CommonSetup {
         TheFall.letGo(server)
         // And the rubble the tears have sent home, a little at a time.
         RubbleArrivals.letDown(server)
+        // And algae come back to after the hour turned while it was away.
+        AlgaeCatchUp.catchUp(server)
     }
 
     /**
@@ -94,12 +97,14 @@ object CommonSetup {
     fun chunkLoaded(level: ServerLevel, chunk: ChunkAccess) {
         Wounds.stocked(level, chunk)
         Worsening.chunkArrived(level, chunk.pos)
+        AlgaeCatchUp.chunkArrived(level, chunk)
     }
 
     /** A chunk unloading on the server. */
     fun chunkUnloaded(level: ServerLevel, at: ChunkPos) {
         Wounds.emptied(level, at)
         Worsening.chunkLeft(level, at)
+        AlgaeCatchUp.chunkLeft(level, at)
     }
 
     /**

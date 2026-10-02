@@ -224,6 +224,20 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         fun isLitAtHour(clockTime: Long): Boolean = Math.floorMod(clockTime, A_DAY) < NIGHT_FALLS
 
         /**
+         * The chance that a mat found out of step with the hour at [clockTime] — in a chunk that was away
+         * while the hour turned — has turned with it by now (Jonah, 2026-10-01).
+         *
+         * A loaded lake turns over minutes rather than at once, so a mat coming back just after sunset is as
+         * likely as not to be still burning: nought at sunset, rising evenly to certain at midnight, when
+         * every mat should be out. And the same at dawn, certain by midday.
+         */
+        fun chanceOfHavingTurned(clockTime: Long): Double {
+            val timeOfDay = Math.floorMod(clockTime, A_DAY)
+            val sinceItTurned = if (timeOfDay < NIGHT_FALLS) timeOfDay else timeOfDay - NIGHT_FALLS
+            return (sinceItTurned.toDouble() / ALL_TURNED_AFTER).coerceIn(0.0, 1.0)
+        }
+
+        /**
          * The top rung, and so how many there are — **cave vines' own**, which is what the lake being the
          * light of the world asks for. One below what a block can emit, deliberately: full brightness is
          * glowstone's, and a growth should not be the brightest thing there is.
@@ -237,6 +251,9 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
 
         /** Vanilla's own sunset, and zero is its sunrise — so "dark from sundown to sunup" is literal. */
         private const val NIGHT_FALLS = 12000L
+
+        /** From sunset to midnight, and from sunrise to midday: by then every mat has turned. */
+        private const val ALL_TURNED_AFTER = 6000.0
 
         /**
          * How far a waking mat reaches, and how far down it looks — see [wakeTheNeighbours].

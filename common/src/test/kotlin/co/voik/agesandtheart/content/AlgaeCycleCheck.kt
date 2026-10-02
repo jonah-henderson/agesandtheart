@@ -32,6 +32,25 @@ class AlgaeCycleCheck : FunSpec({
         check(day.isEmpty()) { "it was out at ${day.size} moments before sunset: ${day.take(5)}" }
     }
 
+    /**
+     * A chunk come back after the hour turned: its stale mats have not turned at the moment the lake began
+     * to, and have all turned by midnight — or by midday, the other way round.
+     */
+    test("a stale mat has turned by nothing at sunset and certainly by midnight") {
+        check(AlgaeBlock.chanceOfHavingTurned(SUNSET) == 0.0) { "a mat had turned at the moment of sunset" }
+        check(AlgaeBlock.chanceOfHavingTurned(MIDNIGHT) == 1.0) { "a mat had not certainly turned by midnight" }
+        check(AlgaeBlock.chanceOfHavingTurned(MIDNIGHT + A_MOMENT * 10) == 1.0) { "past midnight, a mat had not turned" }
+        check(AlgaeBlock.chanceOfHavingTurned(0L) == 0.0) { "a mat had turned at the moment of sunrise" }
+        check(AlgaeBlock.chanceOfHavingTurned(NOON) == 1.0) { "a mat had not certainly turned by midday" }
+    }
+
+    test("the chance rises steadily between") {
+        val evening = (SUNSET..MIDNIGHT step A_MOMENT).map(AlgaeBlock::chanceOfHavingTurned)
+        val fallsBack = evening.zipWithNext().filter { (before, after) -> after < before }
+        check(fallsBack.isEmpty()) { "the evening's chance fell back at ${fallsBack.size} moments" }
+        check(AlgaeBlock.chanceOfHavingTurned(SUNSET + (MIDNIGHT - SUNSET) / 2) == 0.5) { "halfway to midnight was not even" }
+    }
+
     /** The clock is absolute rather than wrapped, so a world a hundred days old still reads its own hour. */
     test("it reads the same hour on any day") {
         for (day in listOf(0L, 1L, 99L, 100_000L)) {
