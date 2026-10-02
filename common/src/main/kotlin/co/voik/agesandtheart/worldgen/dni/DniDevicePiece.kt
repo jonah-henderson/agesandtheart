@@ -3,7 +3,9 @@ package co.voik.agesandtheart.worldgen.dni
 import co.voik.agesandtheart.content.AdvancedAnalysisMachine
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.station.Compounder
+import co.voik.agesandtheart.station.CompounderBlock
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.ChunkPos
@@ -24,8 +26,9 @@ enum class DniDevice(val key: String) {
     ADVANCED_ANALYSIS_MACHINE("advanced_analysis_machine"),
     ;
 
-    val state: BlockState get() = when (this) {
-        COMPOUNDER -> Compounder.BLOCK.defaultBlockState()
+    /** The machine as it stands, its front — the compounder's, where results come out — towards [front]. */
+    fun stateFacing(front: Direction): BlockState = when (this) {
+        COMPOUNDER -> Compounder.BLOCK.defaultBlockState().setValue(CompounderBlock.FACING, front)
         ADVANCED_ANALYSIS_MACHINE -> AdvancedAnalysisMachine.BLOCK.defaultBlockState()
     }
 
@@ -50,16 +53,22 @@ class DniDevicePiece : StructurePiece {
 
     private val device: DniDevice
 
-    constructor(at: BlockPos, device: DniDevice) : super(AgeContent.DNI_DEVICE_PIECE, 0, BoundingBox(at)) {
+    /** Away from the frame, out over the floor a visitor arrives on. */
+    private val front: Direction
+
+    constructor(at: BlockPos, device: DniDevice, front: Direction) : super(AgeContent.DNI_DEVICE_PIECE, 0, BoundingBox(at)) {
         this.device = device
+        this.front = front
     }
 
     constructor(saved: CompoundTag) : super(AgeContent.DNI_DEVICE_PIECE, saved) {
         this.device = DniDevice.byKey(saved.getStringOr(DEVICE_KEY, ""))
+        this.front = Direction.byName(saved.getStringOr(FRONT_KEY, "")) ?: Direction.NORTH
     }
 
     override fun addAdditionalSaveData(context: StructurePieceSerializationContext, saved: CompoundTag) {
         saved.putString(DEVICE_KEY, device.key)
+        saved.putString(FRONT_KEY, front.serializedName)
     }
 
     override fun postProcess(
@@ -73,11 +82,12 @@ class DniDevicePiece : StructurePiece {
     ) {
         val where = BlockPos(boundingBox.minX(), boundingBox.minY(), boundingBox.minZ())
         if (!within.isInside(where)) return
-        level.setBlock(where, device.state, UPDATE_FLAGS)
+        level.setBlock(where, device.stateFacing(front), UPDATE_FLAGS)
     }
 
     private companion object {
         const val DEVICE_KEY = "device"
+        const val FRONT_KEY = "front"
 
         /** No neighbour updates: this is worldgen. */
         const val UPDATE_FLAGS = 2

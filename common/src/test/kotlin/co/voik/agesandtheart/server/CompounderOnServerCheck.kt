@@ -17,9 +17,9 @@ class CompounderOnServerCheck : FunSpec({
     fun at(x: Int) = "$x $COMPOUNDER_Y 0"
 
     fun build(x: Int, vararg neighbours: Pair<Int, String>) {
-        // Each test's own chunk, which must tick for anything to pass down.
+        // Each test's own chunk, which must tick for a signal to be answered.
         server.run("forceload add $x 0")
-        server.run("setblock ${at(x)} agesandtheart:fusion_compounder")
+        server.run("setblock ${at(x)} agesandtheart:fusion_compounder[facing=east]")
         for ((offset, block) in neighbours) server.run("setblock $x $COMPOUNDER_Y $offset $block")
     }
 
@@ -75,29 +75,47 @@ class CompounderOnServerCheck : FunSpec({
         check(offers(NARA_X, "agesandtheart:compounded_stone")) { "nara was not offered with power, heat and cold" }
     }
 
-    test("a chest beneath it is passed the result, and the inputs are spent for it") {
-        build(PASSING_X, 1 to "agesandtheart:arc_crystal_block")
-        server.run("setblock $PASSING_X ${COMPOUNDER_Y - 1} 0 minecraft:chest")
-        load(PASSING_X, 0, "minecraft:coal_block", A_STACK)
-        server.run("tick sprint $A_FEW_HOPPER_BEATS")
+    fun signal(x: Int) {
+        server.run("setblock $x ${COMPOUNDER_Y + 1} 0 minecraft:redstone_block")
+        server.run("tick sprint $A_FEW_TICKS")
         Thread.sleep(SPRINT_WAIT_MILLIS)
-        val chest = "$PASSING_X ${COMPOUNDER_Y - 1} 0"
-        val passed = server.run("execute if items block $chest container.0 minecraft:diamond_block[count=1]")
-        val inChest = server.run("data get block $chest Items")
-        check(passed.startsWith("Test passed")) { "the chest beneath was not passed a diamond block: $inChest" }
-        val spent = server.run("execute if items block ${at(PASSING_X)} container.* minecraft:coal_block")
-        check(!spent.startsWith("Test passed")) { "the coal blocks were not spent for what was passed down: $spent" }
     }
 
-    test("a full container beneath it is passed nothing, and nothing is spent") {
-        build(FULL_X, 1 to "agesandtheart:arc_crystal_block")
-        server.run("setblock $FULL_X ${COMPOUNDER_Y - 1} 0 minecraft:hopper")
-        for (slot in 0..<A_HOPPERS_SLOTS) server.run("item replace block $FULL_X ${COMPOUNDER_Y - 1} 0 container.$slot with minecraft:dirt $A_STACK")
-        load(FULL_X, 0, "minecraft:coal_block", A_STACK)
+    test("a signal compounds into the container in front, and the inputs are spent for it") {
+        build(INTO_A_CHEST_X, 1 to "agesandtheart:arc_crystal_block")
+        val chest = "${INTO_A_CHEST_X + 1} $COMPOUNDER_Y 0"
+        server.run("setblock $chest minecraft:chest")
+        load(INTO_A_CHEST_X, 0, "minecraft:coal_block", A_STACK)
+        signal(INTO_A_CHEST_X)
+        val passed = server.run("execute if items block $chest container.0 minecraft:diamond_block[count=1]")
+        val inChest = server.run("data get block $chest Items")
+        check(passed.startsWith("Test passed")) { "the chest in front was not given a diamond block: $inChest" }
+        val spent = server.run("execute if items block ${at(INTO_A_CHEST_X)} container.* minecraft:coal_block")
+        check(!spent.startsWith("Test passed")) { "the coal blocks were not spent for what was made: $spent" }
+    }
+
+    test("with nothing in front, a signal throws the result out onto the floor") {
+        build(THROWN_X, 1 to "agesandtheart:arc_crystal_block")
+        // A floor to land on: the compounder stands in the open air, and a thrown block would fall far.
+        server.run("fill ${THROWN_X + 1} ${COMPOUNDER_Y - 1} -2 ${THROWN_X + NEAR_ENOUGH} ${COMPOUNDER_Y - 1} 2 minecraft:stone")
+        load(THROWN_X, 0, "minecraft:coal_block", A_STACK)
+        signal(THROWN_X)
+        val near = "x=$THROWN_X,y=$COMPOUNDER_Y,z=0,distance=..$NEAR_ENOUGH"
+        val thrown = server.run("execute if entity @e[type=minecraft:item,$near,nbt={Item:{id:\"minecraft:diamond_block\"}}]")
+        check(thrown.startsWith("Test passed")) { "no diamond block was thrown out of the front: $thrown" }
+    }
+
+    test("a hopper beneath takes nothing out, and without a signal nothing is made") {
+        build(HOPPER_X, 1 to "agesandtheart:arc_crystal_block")
+        val hopper = "$HOPPER_X ${COMPOUNDER_Y - 1} 0"
+        server.run("setblock $hopper minecraft:hopper")
+        load(HOPPER_X, 0, "minecraft:coal_block", A_STACK)
         server.run("tick sprint $A_FEW_HOPPER_BEATS")
         Thread.sleep(SPRINT_WAIT_MILLIS)
-        val kept = server.run("execute if items block ${at(FULL_X)} container.0 minecraft:coal_block[count=$A_STACK]")
-        check(kept.startsWith("Test passed")) { "coal blocks were spent with nowhere to put the result: $kept" }
+        val kept = server.run("execute if items block ${at(HOPPER_X)} container.0 minecraft:coal_block[count=$A_STACK]")
+        check(kept.startsWith("Test passed")) { "the coal blocks went somewhere without a signal: $kept" }
+        val inHopper = server.run("data get block $hopper Items")
+        check(inHopper.endsWith("[]")) { "the hopper beneath took something out: $inHopper" }
     }
 
     test("the ingredients pair off in any slots") {
@@ -118,13 +136,19 @@ class CompounderOnServerCheck : FunSpec({
         const val NARA_X = 14
         const val SHUFFLED_X = 18
         const val BEDROCK_X = 22
-        const val PASSING_X = 26
-        const val FULL_X = 30
+        const val INTO_A_CHEST_X = 26
+        const val THROWN_X = 32
+        const val HOPPER_X = 38
         const val RESULT_SLOT = 4
+
+        /** Past a crafter's four-tick delay. */
+        const val A_FEW_TICKS = 10
 
         /** Several of a hopper's eight-tick beats. */
         const val A_FEW_HOPPER_BEATS = 40
-        const val A_HOPPERS_SLOTS = 5
+
+        /** A thrown item's flight and fall in those few ticks. */
+        const val NEAR_ENOUGH = 6
 
         /** A sprint runs off the command's thread; forty ticks of an idle server take well under this. */
         const val SPRINT_WAIT_MILLIS = 1500L

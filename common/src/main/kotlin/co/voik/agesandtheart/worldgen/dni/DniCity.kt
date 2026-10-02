@@ -124,7 +124,7 @@ object DniCity {
         val arrival = arrivalBefore(templates, centre) ?: return emptyList()
         val alongTheFrame = arrival.facing?.clockWise ?: return emptyList()
         return DniDevice.entries.map { device ->
-            DniDevicePiece(arrival.at.relative(alongTheFrame, device.besideTheArrival), device)
+            DniDevicePiece(arrival.at.relative(alongTheFrame, device.besideTheArrival), device, arrival.facing.opposite)
         }
     }
 }

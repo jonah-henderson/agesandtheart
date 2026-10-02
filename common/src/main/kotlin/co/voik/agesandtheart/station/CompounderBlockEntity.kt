@@ -3,13 +3,13 @@ package co.voik.agesandtheart.station
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.NonNullList
+import net.minecraft.core.dispenser.DefaultDispenseItemBehavior
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.Container
 import net.minecraft.world.ContainerHelper
-import net.minecraft.world.Containers
 import net.minecraft.world.MenuProvider
 import net.minecraft.world.WorldlyContainer
 import net.minecraft.world.entity.player.Inventory
@@ -19,21 +19,23 @@ import net.minecraft.world.inventory.ContainerData
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.RecipeHolder
 import net.minecraft.world.item.crafting.RecipeManager
+import net.minecraft.world.level.block.LevelEvent
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.HopperBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
+import net.minecraft.world.phys.Vec3
 
 /**
  * The fusion-compounder's four input stacks, and the result they make (design §7.1.2).
  *
  * **The result is worked out, not stored.** Its slot shows what the inputs make while what the recipe
  * needs stands beside the compounder, and taking it spends them — at once, which is the machine's whole
- * offer. Hoppers fill the inputs, and the compounder passes the result down into a container beneath it
- * ([passResultDown]) rather than letting one take it: a hopper puts back what it cannot hold, and the
- * loaders' transfer APIs take a slot's stack without ever asking the container to remove it, so a taken
- * result would be inputs spent for nothing or a result got for free.
+ * offer. A redstone signal does the same and puts the result out of the front ([compoundOutOfTheFront]).
+ * Hoppers may fill the inputs but never take the result: a hopper puts back what it cannot hold, and the
+ * loaders' transfer APIs take a slot's stack without asking the container to remove it, so a taken result
+ * would be inputs spent for nothing or a result got for free.
  */
 class CompounderBlockEntity(pos: BlockPos, state: BlockState) :
     BlockEntity(Compounder.ENTITY, pos, state), WorldlyContainer, MenuProvider {
@@ -78,38 +80,30 @@ class CompounderBlockEntity(pos: BlockPos, state: BlockState) :
     }
 
     /**
-     * On a hopper's beat, compounds into the container beneath — a hopper, a chest — where it has room for
-     * the whole result, and does nothing where it has not.
+     * Compounds once, on a redstone signal, and puts the result out of the face towards [front]: into a
+     * container there as far as it will go, as a crafter does, and the rest thrown out onto the floor.
+     * Where the inputs make nothing here, it says so with the crafter's failing click.
      */
-    fun passResultDown(level: ServerLevel) {
-        if (level.gameTime % HopperBlockEntity.MOVE_ITEM_SPEED != 0L) return
-        val beneath = HopperBlockEntity.getContainerAt(level, blockPos.below()) ?: return
-        val made = result()
-        if (made.isEmpty || !hasRoomFor(beneath, made)) return
-        val left = HopperBlockEntity.addItem(this, beneath, compound(), Direction.UP)
-        // Only where the room counted above was not there after all; nothing compounded is ever lost.
-        if (!left.isEmpty) Containers.dropItemStack(level, blockPos.x + HALF, blockPos.y + HALF, blockPos.z + HALF, left)
-        beneath.setChanged()
-    }
-
-    /** Whether [into] can take all of [stack] through its top, as a hopper would put it there. */
-    private fun hasRoomFor(into: Container, stack: ItemStack): Boolean {
-        val slots = (into as? WorldlyContainer)?.getSlotsForFace(Direction.UP)?.toList() ?: (0..<into.containerSize).toList()
-        var room = 0
-        for (slot in slots) {
-            val isPlaceable = into.canPlaceItem(slot, stack) &&
-                (into !is WorldlyContainer || into.canPlaceItemThroughFace(slot, stack, Direction.UP))
-            if (!isPlaceable) continue
-            val there = into.getItem(slot)
-            val mostThere = minOf(into.getMaxStackSize(stack), stack.maxStackSize)
-            room += when {
-                there.isEmpty -> mostThere
-                ItemStack.isSameItemSameComponents(there, stack) -> (mostThere - there.count).coerceAtLeast(0)
-                else -> 0
-            }
-            if (room >= stack.count) return true
+    fun compoundOutOfTheFront(level: ServerLevel, front: Direction) {
+        val made = compound()
+        if (made.isEmpty) {
+            level.levelEvent(LevelEvent.SOUND_CRAFTER_FAIL, blockPos, 0)
+            return
         }
-        return false
+        val into = HopperBlockEntity.getContainerAt(level, blockPos.relative(front))
+        var left = made
+        if (into != null) {
+            while (!left.isEmpty) {
+                val before = left.count
+                left = HopperBlockEntity.addItem(this, into, left, front.opposite)
+                if (left.count == before) break
+            }
+            into.setChanged()
+        }
+        if (left.isEmpty) return
+        val outOfTheFront = Vec3.atCenterOf(blockPos).relative(front, OUT_OF_THE_FRONT)
+        DefaultDispenseItemBehavior.spawnItem(level, left, THROWN_ACCURACY, front, outOfTheFront)
+        level.levelEvent(LevelEvent.PARTICLES_SHOOT_WHITE_SMOKE, blockPos, front.get3DDataValue())
     }
 
     /**
@@ -191,7 +185,9 @@ class CompounderBlockEntity(pos: BlockPos, state: BlockState) :
 
         private val INPUT_SLOT_INDICES = IntArray(INPUT_SLOTS) { it }
 
-        private const val HALF = 0.5
+        /** A crafter's: where a thrown result starts, and how true it flies. */
+        private const val OUT_OF_THE_FRONT = 0.7
+        private const val THROWN_ACCURACY = 6
 
         private const val VOLUME = 0.8f
         private const val PITCH = 0.6f

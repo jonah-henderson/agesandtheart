@@ -25,9 +25,13 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.block.Mirror
+import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.entity.BlockEntity
-import net.minecraft.world.level.block.entity.BlockEntityTicker
 import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.level.block.state.properties.EnumProperty
+import net.minecraft.world.level.redstone.Orientation
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
@@ -42,12 +46,18 @@ import net.minecraft.world.phys.BlockHitResult
  *
  * **What stands beside it shows on it**, as a block state per [CompounderNeed], so a writer reads the
  * arrangement off the machine before opening it: sparks for power, flame for heat, snow for cold.
+ *
+ * **A crafter's redstone** (Jonah): a rising signal compounds once and puts the result out of its front,
+ * into a container there or onto the floor. Hoppers fill the inputs and take nothing out, since the result
+ * is worked out rather than stored.
  */
 class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     init {
         registerDefaultState(
-            NEEDS.values.fold(stateDefinition.any()) { state, property -> state.setValue(property, false) },
+            NEEDS.values.fold(stateDefinition.any()) { state, property -> state.setValue(property, false) }
+                .setValue(FACING, Direction.NORTH)
+                .setValue(TRIGGERED, false),
         )
     }
 
@@ -55,22 +65,43 @@ class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL
 
-    override fun <T : BlockEntity> getTicker(
-        level: Level,
-        state: BlockState,
-        type: BlockEntityType<T>,
-    ): BlockEntityTicker<T>? =
-        if (level.isClientSide) null
-        else createTickerHelper(type, Compounder.ENTITY) { tickLevel, _, _, compounder ->
-            (tickLevel as? ServerLevel)?.let(compounder::passResultDown)
-        }
-
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         NEEDS.values.forEach { builder.add(it) }
+        builder.add(FACING, TRIGGERED)
     }
 
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState =
         showingWhatStandsBeside(defaultBlockState(), context.level, context.clickedPos)
+            .setValue(FACING, context.nearestLookingDirection.opposite)
+
+    override fun rotate(state: BlockState, rotation: Rotation): BlockState =
+        state.setValue(FACING, rotation.rotate(state.getValue(FACING)))
+
+    override fun mirror(state: BlockState, mirror: Mirror): BlockState =
+        state.rotate(mirror.getRotation(state.getValue(FACING)))
+
+    /** A rising signal compounds a moment later, as a crafter's does; a falling one readies it for the next. */
+    override fun neighborChanged(
+        state: BlockState,
+        level: Level,
+        pos: BlockPos,
+        block: Block,
+        orientation: Orientation?,
+        movedByPiston: Boolean,
+    ) {
+        val isPowered = level.hasNeighborSignal(pos)
+        val wasPowered = state.getValue(TRIGGERED)
+        if (isPowered && !wasPowered) {
+            level.scheduleTick(pos, this, A_CRAFTERS_DELAY)
+            level.setBlock(pos, state.setValue(TRIGGERED, true), Block.UPDATE_CLIENTS)
+        } else if (!isPowered && wasPowered) {
+            level.setBlock(pos, state.setValue(TRIGGERED, false), Block.UPDATE_CLIENTS)
+        }
+    }
+
+    override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
+        (level.getBlockEntity(pos) as? CompounderBlockEntity)?.compoundOutOfTheFront(level, state.getValue(FACING))
+    }
 
     override fun updateShape(
         state: BlockState,
@@ -123,6 +154,15 @@ class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
             CompounderNeed.entries.associateWith { BooleanProperty.create(it.serializedName) }
 
         private const val ABOVE_THE_MACHINE = 1.05
+
+        /** Which way its front faces: where a result goes. */
+        val FACING: EnumProperty<Direction> = BlockStateProperties.FACING
+
+        /** Whether it is powered, so only a rising signal compounds. */
+        val TRIGGERED: BooleanProperty = BlockStateProperties.TRIGGERED
+
+        /** The crafter's four ticks between a signal and the craft. */
+        private const val A_CRAFTERS_DELAY = 4
 
         fun showingWhatStandsBeside(state: BlockState, level: BlockGetter, pos: BlockPos): BlockState =
             NEEDS.entries.fold(state) { shown, (need, property) ->
