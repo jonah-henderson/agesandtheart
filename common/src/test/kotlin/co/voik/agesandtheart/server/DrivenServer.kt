@@ -30,6 +30,20 @@ class DrivenServer private constructor(
     fun run(command: String): String = rcon.run(command)
 
     /**
+     * [command] — an `execute if …` test — asked until it passes or [tries] run out, answering its last reply.
+     * For a check after `tick sprint`, which runs off the command's thread and finishes later on a busy server.
+     */
+    fun untilPasses(command: String, tries: Int = PATIENT_TRIES, pauseMillis: Long = BETWEEN_TRIES_MILLIS): String {
+        var said = run(command)
+        repeat(tries - 1) {
+            if (said.startsWith(PASSED)) return said
+            Thread.sleep(pauseMillis)
+            said = run(command)
+        }
+        return said
+    }
+
+    /**
      * Everything the server has said since it started.
      *
      * **Kept because a datapack error is not fatal.** A file the server cannot read is logged and the boot
@@ -85,6 +99,13 @@ class DrivenServer private constructor(
          * however the level ends up configured.
          */
         const val CHECKS_WORLD_PREFIX = "checks-"
+
+        /** What vanilla's `execute if` says when it holds. */
+        private const val PASSED = "Test passed"
+
+        /** Five seconds in all, which a short sprint finishes well within however busy the server is. */
+        private const val PATIENT_TRIES = 20
+        private const val BETWEEN_TRIES_MILLIS = 250L
 
         /**
          * Removes a world **only** if it is one of ours, sitting where we put it, and not a link. Anything

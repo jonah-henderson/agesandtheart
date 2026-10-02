@@ -87,7 +87,7 @@ class CompounderOnServerCheck : FunSpec({
         server.run("setblock $chest minecraft:chest")
         load(INTO_A_CHEST_X, 0, "minecraft:coal_block", A_STACK)
         signal(INTO_A_CHEST_X)
-        val passed = server.run("execute if items block $chest container.0 minecraft:diamond_block[count=1]")
+        val passed = server.untilPasses("execute if items block $chest container.0 minecraft:diamond_block[count=1]")
         val inChest = server.run("data get block $chest Items")
         check(passed.startsWith("Test passed")) { "the chest in front was not given a diamond block: $inChest" }
         val spent = server.run("execute if items block ${at(INTO_A_CHEST_X)} container.* minecraft:coal_block")
@@ -101,7 +101,7 @@ class CompounderOnServerCheck : FunSpec({
         load(THROWN_X, 0, "minecraft:coal_block", A_STACK)
         signal(THROWN_X)
         val near = "x=$THROWN_X,y=$COMPOUNDER_Y,z=0,distance=..$NEAR_ENOUGH"
-        val thrown = server.run("execute if entity @e[type=minecraft:item,$near,nbt={Item:{id:\"minecraft:diamond_block\"}}]")
+        val thrown = server.untilPasses("execute if entity @e[type=minecraft:item,$near,nbt={Item:{id:\"minecraft:diamond_block\"}}]")
         check(thrown.startsWith("Test passed")) { "no diamond block was thrown out of the front: $thrown" }
     }
 
