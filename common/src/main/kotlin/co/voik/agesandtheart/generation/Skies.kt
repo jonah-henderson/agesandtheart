@@ -3,6 +3,7 @@ package co.voik.agesandtheart.generation
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.aspect.AgeParts
 import co.voik.agesandtheart.age.aspect.Atmosphere
+import co.voik.agesandtheart.age.aspect.SunLight
 import co.voik.ephemeris.RuntimeLevelEvents
 import co.voik.ephemeris.sky.LevelAppearance
 import co.voik.ephemeris.sky.LevelLook
@@ -55,9 +56,13 @@ object Skies {
         // The Spire's palette goes **underneath**: it is what the Age looks like before anyone said
         // anything, so a writer who repaints one colour of a Spire-skied Age keeps the rest. And under *that*
         // whatever the Age's own switches insist on — a lightless Age is dark to look at as well as to stand in.
-        val painted = AgeGeneration.lookUnderTheSentence(recipe).over(Atmosphere.unlitLook(parts, recipe.template))
+        // And under everything, what the Age's sun does to the light where nobody said what the light is.
+        val sky = AgeGeneration.skySpec(recipe)
+        val painted = AgeGeneration.lookUnderTheSentence(recipe)
+            .over(Atmosphere.unlitLook(parts, recipe.template))
+            .over(SunLight.lookUnder(sky))
         return LevelLook(
-            AgeGeneration.skySpec(recipe),
+            sky,
             Atmosphere.lookIn(parts, recipe.seed).over(painted),
             Atmosphere.cornersOf(parts).associateWith { Atmosphere.lookIn(parts, recipe.seed, it).over(painted) },
             // **Named, not copied.** The client holds every dimension type already; what it cannot know is

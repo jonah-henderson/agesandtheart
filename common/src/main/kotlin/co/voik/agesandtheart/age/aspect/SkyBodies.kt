@@ -5,6 +5,7 @@ import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.Appearance
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.CelestialPath
+import co.voik.ephemeris.sky.Corona
 import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.Palette
 import co.voik.ephemeris.sky.SkySpec
@@ -175,6 +176,7 @@ object SkyBodies {
         val tinted = Colour.named(own.of(SUNCOLOUR))?.saturated(SUN_IS_LOOKED_AT)
         // Vanilla's moons are not its sun's sprite, so a sun's palette means nothing on one.
         val palette = SUN_PALETTES[own.of(SUNCOLOUR)]?.takeUnless { isAMoon }
+        val corona = SUN_CORONAS[own.of(SUNCOLOUR)]?.takeUnless { isAMoon }
         val rising = bearingOf(own.of(RISING))
         val sprite = body.appearance as? Appearance.Sprite
         val appearance = when {
@@ -183,6 +185,7 @@ object SkyBodies {
                 tint = tinted ?: sprite.tint,
                 angularSize = sized ?: sprite.angularSize,
                 palette = palette ?: sprite.palette,
+                corona = corona ?: sprite.corona,
             )
         }
         // Aimed from the path it already has, so a spare body keeps the wander the draw gave it and only
@@ -271,18 +274,33 @@ object SkyBodies {
      * The colours a sun is drawn in where a tint cannot say it — **black**, since a sun is added to the sky
      * and adding a dark colour adds next to nothing, which drew a black sun as a faint yellow one.
      *
-     * A black disc that hides the sky behind it, a rim of embers, and a pale corona added round it in
-     * vanilla's glow, so it still reads at night against a black sky.
+     * An eclipse: a black disc that hides the sky, a thin bright ring at its rim, and in vanilla's glow a
+     * halo of shadow that hides most of the sky round it — against the dusky sky [SunLight] gives it.
      */
     private val SUN_PALETTES: Map<String, Palette> = mapOf(
         "black" to Palette.ofVanillaSun(
             centre = Rgba(0.0f, 0.0f, 0.0f, HIDES_THE_SKY),
             ring = Rgba(0.0f, 0.0f, 0.0f, HIDES_THE_SKY),
-            rim = Rgba(0.30f, 0.06f, 0.04f, HIDES_THE_SKY),
-            glow = Rgba(0.35f, 0.30f, 0.45f, HIDES_NOTHING),
+            rim = Rgba(0.95f, 0.88f, 0.75f, HIDES_THE_SKY),
+            glow = Rgba(0.02f, 0.0f, 0.05f, HIDES_MOST_OF_THE_SKY),
+        ),
+    )
+
+    /**
+     * Streamers round the suns that have them: for a black sun, faint violet light from the shadow, turning
+     * twice a day and breathing as they go.
+     */
+    private val SUN_CORONAS: Map<String, Corona> = mapOf(
+        "black" to Corona(
+            rays = 16,
+            reach = 1.4f,
+            colour = Rgba(0.30f, 0.24f, 0.45f, HIDES_NOTHING),
+            turnsPerDay = 2.0f,
+            shimmer = 0.35f,
         ),
     )
 
     private const val HIDES_THE_SKY = 1.0f
+    private const val HIDES_MOST_OF_THE_SKY = 0.6f
     private const val HIDES_NOTHING = 0.0f
 }
