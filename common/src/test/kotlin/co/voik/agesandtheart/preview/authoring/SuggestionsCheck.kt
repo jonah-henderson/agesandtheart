@@ -3,6 +3,7 @@ package co.voik.agesandtheart.preview.authoring
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -148,8 +149,12 @@ class SuggestionsCheck : FunSpec({
         check(suggesting.closersAfter(emptyList()) == listOf("age")) {
             "before the nucleus, only `age` can close: ${suggesting.closersAfter(emptyList())}"
         }
-        val afterPillars = suggesting.closersAfter(listOf("age", "pillared"))
+        // Straight after `pillared`, only the land closes its clause. With a word between, any aiming page
+        // may follow, since `pillared` can only mean the land and closes a clause of its own before it.
+        val afterPillars = Aspect.entries.mapNotNull { it.page }.distinct()
+            .filter { page -> vocabulary.word(page) != null && Grammar.parses(vocabulary, listOf("age", "pillared", page)) }
         check(afterPillars == listOf("landmass")) { "a landform clause closed with $afterPillars" }
+        check("landmass" in suggesting.closersAfter(listOf("age", "pillared"))) { "the land was not offered after pillared" }
         check(suggesting.closersAfter(book).size > 1) { "a finished book closed nothing further" }
     }
 

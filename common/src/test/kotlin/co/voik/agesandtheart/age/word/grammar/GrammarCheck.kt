@@ -268,6 +268,33 @@ class GrammarCheck : FunSpec({
     }
 
     /**
+     * And one that is not what the following aiming page is about closes a clause of its own where it
+     * stands, rather than being refused by that page and moved into it by `Repair` (walked 2026-10-01: a
+     * cat read as landmass and said nothing).
+     */
+    test("an unambiguous word before another part's aiming page closes its own clause") {
+        val read = read(listOf("age", "teeming", "cat", "gentle", "landmass"))
+        check(read.dropped.isEmpty()) { "the book did not read as laid: ${read.dropped}" }
+        val cat = read.constraints.single { it.word.name == "cat" }
+        check(cat.aimedAt == setOf(Aspect.SPAWNS)) { "'cat' reaches ${cat.aimedAt}" }
+        check(cat.density == TEEMING) { "'teeming' did not reach the cat: ${cat.density}" }
+        val landmass = read.phrases.single { phrase -> phrase.subject?.word?.name == "landmass" }
+        check(landmass.modifiers.map { it.word.name } == listOf("gentle")) {
+            "the landmass clause holds ${landmass.modifiers.map { it.word.name }}"
+        }
+    }
+
+    /** A self-closing word keeps the quantifier and the `except` laid in front of it. */
+    test("a word closing its own clause keeps its rung and its polarity") {
+        val counted = read(listOf("age", "teeming", "ore_diamond"))
+        val ore = counted.constraints.single { it.word.name == "ore_diamond" }
+        check(ore.density == TEEMING) { "'teeming ore_diamond' came out at ${ore.density}" }
+        val struck = read(listOf("age", "except", "zombie"))
+        val zombie = struck.constraints.single { it.word.name == "zombie" }
+        check(zombie.polarity == Polarity.EXCEPT) { "'except zombie' came out ${zombie.polarity}" }
+    }
+
+    /**
      * §4.3.1: a lean on everything is sited like any other word — it reaches the spawns, which vanilla
      * resolves through the biome, so `beautiful zombie in jungle` is a beautiful jungle's zombies.
      */

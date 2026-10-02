@@ -117,7 +117,8 @@ internal object ArtReading {
             // The *index* is what is searched for, never the page. A `Page` is a data class, so a book that
             // lays the same word twice has equal pages in it and `indexOf` answers with the first — which
             // walked the cursor backwards and read the same clause forever.
-            val closesAt = (at..<pages.size).firstOrNull { closes(pages[it]) }
+            val aimedAt = (at..<pages.size).firstOrNull { closes(pages[it]) }
+            val closesAt = aimedAt?.let { unambiguousTermBefore(it) ?: it }
                 ?: (if (nucleus) null else trailingCloseAt())
                 ?: return null
             // Meeting the wrong kind is a book that does not read rather than a page swallowed: a second
@@ -133,8 +134,18 @@ internal object ArtReading {
             // is no subject the terms answer for themselves, which `belongsHere` asks of each in turn.
             if (confinedTo != null && subject != null && aim.none { it.confinable }) return null
 
-            val said = modifiers(until = closesAt, aim = aim, confinedTo = confinedTo, closes = subject)
+            // A term closing its own clause keeps the rung and the `only` or `except` laid in front of it,
+            // which a modifier would otherwise be read as having with nothing after it.
+            val ownedFrom = if (subject?.kind == PageClass.TERM) subjectsOwnPagesFrom(closesAt) else closesAt
+            val owned = pages.subList(ownedFrom, closesAt)
+            val said = modifiers(until = ownedFrom, aim = aim, confinedTo = confinedTo, closes = subject)
                 ?: return null
+            val subjectsRung = owned.firstOrNull { it.kind == PageClass.QUANTIFIER }
+            val subjectsPolarity = when (owned.firstOrNull()?.kind) {
+                PageClass.RESTRICTOR -> Polarity.ONLY
+                PageClass.EXCLUDER -> Polarity.EXCEPT
+                else -> Polarity.ASSERTED
+            }
             at = if (confinedTo == null) sitingAt else sitingAt + PAGES_IN_A_SITING
             // A clause closing on a population brings a member of it into being, and everything said in the
             // clause is said about *that* one.
@@ -146,6 +157,9 @@ internal object ArtReading {
                     Constraint(
                         it,
                         scopeFor(it, aim),
+                        subjectsPolarity,
+                        density = subjectsRung?.rung ?: Rung.ORDINARY,
+                        quantifier = subjectsRung?.written,
                         latent = subject.latent,
                         rehomed = subject.rehomed,
                         // The siting is the clause's, so it is the subject's too — `mud pits in jungle`
@@ -161,6 +175,52 @@ internal object ArtReading {
         /** Whether this page ends the clause it is in — an aiming page, or the `in` that opens a siting. */
         private fun closes(page: Page): Boolean =
             page.kind == PageClass.NUCLEUS || page.kind == PageClass.SUBJECT || page.kind == PageClass.CONFINER
+
+        /**
+         * A term before the aiming page at [closer] that reaches **exactly one** part of the world, and not
+         * the one [closer] is about — which closes a clause of its own where it stands, so `teeming cat
+         * gentle landmass` is two clauses rather than a cat refused by the landmass (and moved into it by
+         * `Repair`, where it said nothing).
+         *
+         * Only before an aiming page: everything before the `age` page is the nucleus's, and a siting with
+         * no subject lets every term answer for itself. Only where **something laid after it still belongs
+         * to [closer]**, so the aiming page is left a clause to close: `starless landmass` aims the land at
+         * nothing, and is `Repair`'s as it always was. And never a term joined to the one before it by `and`,
+         * which the writer laid as one modifier. A book that reads without this reads the same with it,
+         * since such a term would have been refused where it stood.
+         */
+        private fun unambiguousTermBefore(closer: Int): Int? {
+            if (pages[closer].kind != PageClass.SUBJECT) return null
+            val aim = pages[closer].word?.aspects.orEmpty()
+            fun speaksOnlyElsewhere(index: Int): Boolean {
+                val page = pages[index]
+                val only = page.word?.aspects?.singleOrNull() ?: return false
+                val isJoined = pages.getOrNull(index - 1)?.kind == PageClass.JOINER
+                return page.kind == PageClass.TERM && only !in aim && !isJoined
+            }
+            fun belongsToTheCloser(index: Int): Boolean {
+                val page = pages[index]
+                val declared = page.word?.aspects ?: return false
+                val isATerm = page.kind == PageClass.TERM || page.kind == PageClass.MATERIAL
+                return isATerm && (declared.isEmpty() || declared.any { it in aim })
+            }
+            return (at..<closer).firstOrNull { index ->
+                speaksOnlyElsewhere(index) && (index + 1..<closer).any(::belongsToTheCloser)
+            }
+        }
+
+        /**
+         * Where a self-closing term's own pages begin: the quantifier in front of it, and an `only` or
+         * `except` in front of that, back to the start of the clause and no further.
+         */
+        private fun subjectsOwnPagesFrom(subjectAt: Int): Int {
+            var from = subjectAt
+            if (from - 1 >= at && pages[from - 1].kind == PageClass.QUANTIFIER) from--
+            val polarityPage = pages.getOrNull(from - 1)?.kind
+            val hasPolarity = polarityPage == PageClass.RESTRICTOR || polarityPage == PageClass.EXCLUDER
+            if (from - 1 >= at && hasPolarity) from--
+            return from
+        }
 
         /**
          * The last page of a run nothing else closes, where that page reaches **exactly one** part of the
