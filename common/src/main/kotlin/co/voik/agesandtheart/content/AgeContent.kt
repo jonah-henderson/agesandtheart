@@ -876,7 +876,7 @@ object AgeContent {
         BlockBehaviour.Properties.of()
             .setId(ResourceKey.create(Registries.BLOCK, GEOLOGISTS_TOOLS_ID))
             .mapColor(MapColor.WOOD)
-            .strength(WOODEN_STRENGTH)
+            .strength(STUDY_STRENGTH)
             .sound(SoundType.WOOD),
     )
 
@@ -899,9 +899,8 @@ object AgeContent {
         BlockBehaviour.Properties.of()
             .setId(ResourceKey.create(Registries.BLOCK, SEISMOGRAPH_ID))
             .mapColor(MapColor.METAL)
-            .strength(IRON_STRENGTH)
-            .sound(SoundType.LANTERN)
-            .requiresCorrectToolForDrops(),
+            .strength(STUDY_STRENGTH)
+            .sound(SoundType.LANTERN),
     )
 
     val SEISMOGRAPH: Item = SeismographItem(
@@ -909,17 +908,17 @@ object AgeContent {
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, SEISMOGRAPH_ID)).useBlockDescriptionPrefix(),
     )
 
-    /** Iron's, which is what the frame is made of. */
-    private const val IRON_STRENGTH = 5.0f
+    /**
+     * The brewing stand's, for the study's blocks: they drop to any tool or none, and the `mineable` tags
+     * make the fitting one faster.
+     */
+    const val STUDY_STRENGTH = 0.5f
 
     val GEOLOGISTS_TOOLS: Item = BlockItem(
         GEOLOGISTS_TOOLS_BLOCK,
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, GEOLOGISTS_TOOLS_ID))
             .useBlockDescriptionPrefix(),
     )
-
-    /** A cabinet's, which is what both of these are. */
-    private const val WOODEN_STRENGTH = 2.5f
 
     /**
      * A leaf's, and the toolbox has it because **it is luggage rather than furniture** (Jonah,
@@ -1271,7 +1270,7 @@ object AgeContent {
         BlockBehaviour.Properties.of()
             .setId(ResourceKey.create(Registries.BLOCK, GRAMMAR_GUIDE_ID))
             .mapColor(MapColor.WOOD)
-            .strength(WOODEN_STRENGTH)
+            .strength(STUDY_STRENGTH)
             .sound(SoundType.WOOD),
     )
 
@@ -1338,7 +1337,7 @@ object AgeContent {
         BlockBehaviour.Properties.of()
             .setId(ResourceKey.create(Registries.BLOCK, WRITERS_DESK_ID))
             .mapColor(MapColor.WOOD)
-            .strength(2.5f)
+            .strength(STUDY_STRENGTH)
             .sound(SoundType.WOOD)
             .noOcclusion(),
     )
@@ -1361,7 +1360,7 @@ object AgeContent {
         BlockBehaviour.Properties.of()
             .setId(ResourceKey.create(Registries.BLOCK, ARCHIVE_ID))
             .mapColor(MapColor.WOOD)
-            .strength(1.5f)
+            .strength(STUDY_STRENGTH)
             .sound(SoundType.CHISELED_BOOKSHELF),
     )
 
