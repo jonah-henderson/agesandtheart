@@ -24,7 +24,9 @@ import net.minecraft.world.level.block.BaseEntityBlock
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.SoundType
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.entity.BlockEntityTicker
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
@@ -52,6 +54,16 @@ class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = CompounderBlockEntity(pos, state)
 
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.MODEL
+
+    override fun <T : BlockEntity> getTicker(
+        level: Level,
+        state: BlockState,
+        type: BlockEntityType<T>,
+    ): BlockEntityTicker<T>? =
+        if (level.isClientSide) null
+        else createTickerHelper(type, Compounder.ENTITY) { tickLevel, _, _, compounder ->
+            (tickLevel as? ServerLevel)?.let(compounder::passResultDown)
+        }
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         NEEDS.values.forEach { builder.add(it) }

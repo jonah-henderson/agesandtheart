@@ -9,6 +9,7 @@ import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.world.Container
 import net.minecraft.world.ContainerHelper
+import net.minecraft.world.Containers
 import net.minecraft.world.MenuProvider
 import net.minecraft.world.WorldlyContainer
 import net.minecraft.world.entity.player.Inventory
@@ -19,6 +20,7 @@ import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.RecipeHolder
 import net.minecraft.world.item.crafting.RecipeManager
 import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.level.block.entity.HopperBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
@@ -28,8 +30,10 @@ import net.minecraft.world.level.storage.ValueOutput
  *
  * **The result is worked out, not stored.** Its slot shows what the inputs make while what the recipe
  * needs stands beside the compounder, and taking it spends them — at once, which is the machine's whole
- * offer. Hoppers may fill the inputs but never take the result: a hopper that cannot hold what it took puts
- * it back, and a put-back result would be inputs spent for nothing.
+ * offer. Hoppers fill the inputs, and the compounder passes the result down into a container beneath it
+ * ([passResultDown]) rather than letting one take it: a hopper puts back what it cannot hold, and the
+ * loaders' transfer APIs take a slot's stack without ever asking the container to remove it, so a taken
+ * result would be inputs spent for nothing or a result got for free.
  */
 class CompounderBlockEntity(pos: BlockPos, state: BlockState) :
     BlockEntity(Compounder.ENTITY, pos, state), WorldlyContainer, MenuProvider {
@@ -71,6 +75,41 @@ class CompounderBlockEntity(pos: BlockPos, state: BlockState) :
         setChanged()
         level.playSound(null, blockPos, SoundEvents.RESPAWN_ANCHOR_CHARGE, SoundSource.BLOCKS, VOLUME, PITCH)
         return made
+    }
+
+    /**
+     * On a hopper's beat, compounds into the container beneath — a hopper, a chest — where it has room for
+     * the whole result, and does nothing where it has not.
+     */
+    fun passResultDown(level: ServerLevel) {
+        if (level.gameTime % HopperBlockEntity.MOVE_ITEM_SPEED != 0L) return
+        val beneath = HopperBlockEntity.getContainerAt(level, blockPos.below()) ?: return
+        val made = result()
+        if (made.isEmpty || !hasRoomFor(beneath, made)) return
+        val left = HopperBlockEntity.addItem(this, beneath, compound(), Direction.UP)
+        // Only where the room counted above was not there after all; nothing compounded is ever lost.
+        if (!left.isEmpty) Containers.dropItemStack(level, blockPos.x + HALF, blockPos.y + HALF, blockPos.z + HALF, left)
+        beneath.setChanged()
+    }
+
+    /** Whether [into] can take all of [stack] through its top, as a hopper would put it there. */
+    private fun hasRoomFor(into: Container, stack: ItemStack): Boolean {
+        val slots = (into as? WorldlyContainer)?.getSlotsForFace(Direction.UP)?.toList() ?: (0..<into.containerSize).toList()
+        var room = 0
+        for (slot in slots) {
+            val isPlaceable = into.canPlaceItem(slot, stack) &&
+                (into !is WorldlyContainer || into.canPlaceItemThroughFace(slot, stack, Direction.UP))
+            if (!isPlaceable) continue
+            val there = into.getItem(slot)
+            val mostThere = minOf(into.getMaxStackSize(stack), stack.maxStackSize)
+            room += when {
+                there.isEmpty -> mostThere
+                ItemStack.isSameItemSameComponents(there, stack) -> (mostThere - there.count).coerceAtLeast(0)
+                else -> 0
+            }
+            if (room >= stack.count) return true
+        }
+        return false
     }
 
     /**
@@ -151,6 +190,8 @@ class CompounderBlockEntity(pos: BlockPos, state: BlockState) :
         const val SLOT_COUNT = INPUT_SLOTS + 1
 
         private val INPUT_SLOT_INDICES = IntArray(INPUT_SLOTS) { it }
+
+        private const val HALF = 0.5
 
         private const val VOLUME = 0.8f
         private const val PITCH = 0.6f

@@ -17,7 +17,8 @@ class CompounderOnServerCheck : FunSpec({
     fun at(x: Int) = "$x $COMPOUNDER_Y 0"
 
     fun build(x: Int, vararg neighbours: Pair<Int, String>) {
-        server.run("forceload add 0 0")
+        // Each test's own chunk, which must tick for anything to pass down.
+        server.run("forceload add $x 0")
         server.run("setblock ${at(x)} agesandtheart:fusion_compounder")
         for ((offset, block) in neighbours) server.run("setblock $x $COMPOUNDER_Y $offset $block")
     }
@@ -74,6 +75,31 @@ class CompounderOnServerCheck : FunSpec({
         check(offers(NARA_X, "agesandtheart:compounded_stone")) { "nara was not offered with power, heat and cold" }
     }
 
+    test("a chest beneath it is passed the result, and the inputs are spent for it") {
+        build(PASSING_X, 1 to "agesandtheart:arc_crystal_block")
+        server.run("setblock $PASSING_X ${COMPOUNDER_Y - 1} 0 minecraft:chest")
+        load(PASSING_X, 0, "minecraft:coal_block", A_STACK)
+        server.run("tick sprint $A_FEW_HOPPER_BEATS")
+        Thread.sleep(SPRINT_WAIT_MILLIS)
+        val chest = "$PASSING_X ${COMPOUNDER_Y - 1} 0"
+        val passed = server.run("execute if items block $chest container.0 minecraft:diamond_block[count=1]")
+        val inChest = server.run("data get block $chest Items")
+        check(passed.startsWith("Test passed")) { "the chest beneath was not passed a diamond block: $inChest" }
+        val spent = server.run("execute if items block ${at(PASSING_X)} container.* minecraft:coal_block")
+        check(!spent.startsWith("Test passed")) { "the coal blocks were not spent for what was passed down: $spent" }
+    }
+
+    test("a full container beneath it is passed nothing, and nothing is spent") {
+        build(FULL_X, 1 to "agesandtheart:arc_crystal_block")
+        server.run("setblock $FULL_X ${COMPOUNDER_Y - 1} 0 minecraft:hopper")
+        for (slot in 0..<A_HOPPERS_SLOTS) server.run("item replace block $FULL_X ${COMPOUNDER_Y - 1} 0 container.$slot with minecraft:dirt $A_STACK")
+        load(FULL_X, 0, "minecraft:coal_block", A_STACK)
+        server.run("tick sprint $A_FEW_HOPPER_BEATS")
+        Thread.sleep(SPRINT_WAIT_MILLIS)
+        val kept = server.run("execute if items block ${at(FULL_X)} container.0 minecraft:coal_block[count=$A_STACK]")
+        check(kept.startsWith("Test passed")) { "coal blocks were spent with nowhere to put the result: $kept" }
+    }
+
     test("the ingredients pair off in any slots") {
         build(SHUFFLED_X, 1 to "agesandtheart:arc_crystal_block", -1 to "minecraft:magma_block")
         server.run("setblock $SHUFFLED_X ${COMPOUNDER_Y + 1} 0 agesandtheart:white_rime_crystal")
@@ -92,7 +118,16 @@ class CompounderOnServerCheck : FunSpec({
         const val NARA_X = 14
         const val SHUFFLED_X = 18
         const val BEDROCK_X = 22
+        const val PASSING_X = 26
+        const val FULL_X = 30
         const val RESULT_SLOT = 4
+
+        /** Several of a hopper's eight-tick beats. */
+        const val A_FEW_HOPPER_BEATS = 40
+        const val A_HOPPERS_SLOTS = 5
+
+        /** A sprint runs off the command's thread; forty ticks of an idle server take well under this. */
+        const val SPRINT_WAIT_MILLIS = 1500L
         const val A_STACK = 64
         const val NARA_EACH = 16
     }
