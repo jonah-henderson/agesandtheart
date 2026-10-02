@@ -20,8 +20,10 @@ import net.minecraft.world.MenuProvider
 import net.minecraft.world.WorldlyContainer
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.AbstractContainerMenu
-import net.minecraft.world.inventory.HopperMenu
+import net.minecraft.world.inventory.ContainerData
+import net.minecraft.world.inventory.MenuType
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
@@ -44,13 +46,13 @@ import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.BlockHitResult
 
 /**
- * The drying rack (design §7.1.2): the masterwork grades' last step, a day's curing or drying under a sky
- * only a written Age has. Five places, a hopper's screen, and hoppers in from above and the sides and out
- * from below, so a clever enough writer can keep one fed.
+ * The drying rack (design §7.1.2): the masterwork grades' last step, curing or drying under a sky only a
+ * written Age has. Six inputs and an output, as a furnace has, worked one item at a time; hoppers in from
+ * above and the sides and out from below.
  *
- * **Out of its sky an item waits; wet, it starts again** (Jonah): rain on the rack or water beside it puts
- * everything back to nothing, while anything short of the Age simply pauses. Time is counted in ticks the
- * rack has watched, as the advanced analysis machine's studies are, so nothing dries unloaded.
+ * **Out of its sky an item waits; wet, it starts again**: rain on the rack or water beside it puts the item
+ * being dried back to nothing, while anything short of the Age simply pauses. Time is counted in ticks the
+ * rack has watched, so nothing dries unloaded.
  */
 class DryingRackBlock(properties: Properties) : BaseEntityBlock(properties) {
 
@@ -85,10 +87,13 @@ class DryingRackBlock(properties: Properties) : BaseEntityBlock(properties) {
 class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
     BlockEntity(DryingRack.ENTITY, pos, state), WorldlyContainer, MenuProvider {
 
-    private val items: NonNullList<ItemStack> = NonNullList.withSize(SLOTS, ItemStack.EMPTY)
+    private val items: NonNullList<ItemStack> = NonNullList.withSize(SLOT_COUNT, ItemStack.EMPTY)
 
-    /** How long each place has been drying, in ticks watched. */
-    private val dried = IntArray(SLOTS)
+    /** The input being dried, or [NOTHING_DRYING]. */
+    private var drying = NOTHING_DRYING
+
+    /** How long it has been drying, in ticks watched. */
+    private var dried = 0
 
     private val recipes: RecipeManager.CachedCheck<SingleRecipeInput, DryingRecipe> = RecipeManager.createCheck(Drying.TYPE)
 
@@ -99,20 +104,38 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
         if ((level.gameTime + pos.asLong()) % LOOKS_EVERY != 0L) return
         if (isWet(level, pos)) return startAgain()
         val skies = skiesHere ?: skiesOf(level).also { skiesHere = it }
-        var changed = false
-        for (slot in 0..<SLOTS) {
-            val stack = items[slot]
-            if (stack.isEmpty) continue
-            val recipe = recipeFor(stack, level)?.value() ?: continue
-            if (recipe.under !in skies) continue
-            dried[slot] += LOOKS_EVERY.toInt()
-            if (dried[slot] >= A_DAY) {
-                items[slot] = recipe.assemble(SingleRecipeInput(stack)).copyWithCount(stack.count)
-                dried[slot] = 0
-            }
-            changed = true
+        val slot = (0..<INPUT_SLOTS).firstOrNull { canDryNow(it, level, skies) }
+        if (slot == null) return
+        if (slot != drying) {
+            drying = slot
+            dried = 0
         }
-        if (changed) setChanged()
+        dried += LOOKS_EVERY.toInt()
+        if (dried >= DRY_TIME) finish(slot, level)
+        setChanged()
+    }
+
+    /** Whether the input in [slot] dries under one of [skies], with room in the output for what it makes. */
+    private fun canDryNow(slot: Int, level: ServerLevel, skies: Set<DryingSky>): Boolean {
+        val stack = items[slot]
+        if (stack.isEmpty) return false
+        val recipe = recipeFor(stack, level)?.value() ?: return false
+        return recipe.under in skies && outputHasRoomFor(recipe.assemble(SingleRecipeInput(stack)))
+    }
+
+    private fun outputHasRoomFor(made: ItemStack): Boolean {
+        val output = items[OUTPUT]
+        val stacksOn = ItemStack.isSameItemSameComponents(output, made) && output.count + made.count <= output.maxStackSize
+        return output.isEmpty || stacksOn
+    }
+
+    private fun finish(slot: Int, level: ServerLevel) {
+        val stack = items[slot]
+        val made = recipeFor(stack, level)?.value()?.assemble(SingleRecipeInput(stack)) ?: return
+        if (items[OUTPUT].isEmpty) items[OUTPUT] = made else items[OUTPUT].grow(made.count)
+        stack.shrink(1)
+        drying = NOTHING_DRYING
+        dried = 0
     }
 
     /** Rain falling on it, or water against any face. */
@@ -123,8 +146,8 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
     }
 
     private fun startAgain() {
-        if (dried.any { it > 0 }) setChanged()
-        dried.fill(0)
+        if (dried > 0) setChanged()
+        dried = 0
     }
 
     private fun skiesOf(level: ServerLevel): Set<DryingSky> {
@@ -141,77 +164,93 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
         return recipeFor(stack, serverLevel) != null
     }
 
-    override fun getContainerSize(): Int = SLOTS
+    override fun getContainerSize(): Int = SLOT_COUNT
 
     override fun isEmpty(): Boolean = items.all { it.isEmpty }
 
     override fun getItem(slot: Int): ItemStack = items[slot]
 
     override fun removeItem(slot: Int, count: Int): ItemStack =
-        ContainerHelper.removeItem(items, slot, count).also {
-            if (items[slot].isEmpty) dried[slot] = 0
-            if (!it.isEmpty) setChanged()
-        }
+        ContainerHelper.removeItem(items, slot, count).also { if (!it.isEmpty) setChanged() }
 
-    override fun removeItemNoUpdate(slot: Int): ItemStack = ContainerHelper.takeItem(items, slot).also { dried[slot] = 0 }
+    override fun removeItemNoUpdate(slot: Int): ItemStack = ContainerHelper.takeItem(items, slot)
 
-    /** Something else put in a place starts that place again; more of the same does not. */
+    /** Something else put in the place being dried starts it again; more of the same does not. */
     override fun setItem(slot: Int, itemStack: ItemStack) {
         val isSomethingElse = !ItemStack.isSameItemSameComponents(items[slot], itemStack)
         items[slot] = itemStack
         itemStack.limitSize(getMaxStackSize(itemStack))
-        if (isSomethingElse) dried[slot] = 0
+        if (slot == drying && isSomethingElse) dried = 0
         setChanged()
     }
 
     override fun getDisplayName(): Component = blockState.block.name
 
     override fun createMenu(containerId: Int, inventory: Inventory, player: Player): AbstractContainerMenu =
-        HopperMenu(containerId, inventory, this)
+        DryingRackMenu(containerId, inventory, this, progress)
+
+    /** Read live, so it needs no syncing of its own. */
+    private val progress = object : ContainerData {
+        override fun get(index: Int): Int = if (index == DryingRackMenu.DRIED) dried else DRY_TIME
+
+        override fun set(index: Int, value: Int) = Unit
+
+        override fun getCount(): Int = DryingRackMenu.DATA_COUNT
+    }
 
     override fun stillValid(player: Player): Boolean = Container.stillValidBlockEntity(this, player)
 
     override fun clearContent() {
         items.clear()
-        dried.fill(0)
+        drying = NOTHING_DRYING
+        dried = 0
     }
 
-    override fun getSlotsForFace(direction: Direction): IntArray = ALL_SLOTS
+    /** Only what dries goes in, and never into the output. */
+    override fun canPlaceItem(slot: Int, itemStack: ItemStack): Boolean = slot != OUTPUT && dries(itemStack)
 
-    /** Only what dries goes in by hopper, and only into an empty place. */
+    override fun getSlotsForFace(direction: Direction): IntArray = if (direction == Direction.DOWN) OUTPUT_SLOTS else INPUT_SLOT_INDICES
+
     override fun canPlaceItemThroughFace(slot: Int, itemStack: ItemStack, direction: Direction?): Boolean =
-        direction != Direction.DOWN && items[slot].isEmpty && dries(itemStack)
+        direction != Direction.DOWN && canPlaceItem(slot, itemStack)
 
-    /** Only what is finished comes out underneath: whatever no longer has drying to do. */
+    /** Only what is finished comes out, and only underneath. */
     override fun canTakeItemThroughFace(slot: Int, itemStack: ItemStack, direction: Direction): Boolean =
-        direction == Direction.DOWN && !dries(itemStack)
+        direction == Direction.DOWN && slot == OUTPUT
 
     override fun loadAdditional(input: ValueInput) {
         super.loadAdditional(input)
         items.clear()
         ContainerHelper.loadAllItems(input, items)
-        val saved = input.getIntArray(DRIED_KEY).orElse(IntArray(SLOTS))
-        for (slot in 0..<SLOTS) dried[slot] = saved.getOrElse(slot) { 0 }
+        drying = input.getIntOr(DRYING_KEY, NOTHING_DRYING)
+        dried = input.getIntOr(DRIED_KEY, 0)
     }
 
     override fun saveAdditional(output: ValueOutput) {
         super.saveAdditional(output)
         ContainerHelper.saveAllItems(output, items)
-        output.putIntArray(DRIED_KEY, dried)
+        output.putInt(DRYING_KEY, drying)
+        output.putInt(DRIED_KEY, dried)
     }
 
-    private companion object {
-        /** A hopper's five, so a hopper's screen serves. */
-        const val SLOTS = HopperMenu.CONTAINER_SIZE
+    companion object {
+        const val INPUT_SLOTS = 6
+        const val OUTPUT = INPUT_SLOTS
+        const val SLOT_COUNT = INPUT_SLOTS + 1
 
-        val ALL_SLOTS = IntArray(SLOTS) { it }
+        /** Twice a furnace's 200 ticks an item (Jonah). */
+        const val DRY_TIME = 400
 
-        /** A full day (Jonah): the ink cures, the paper dries, as slowly as the real ones do. */
-        const val A_DAY = 24_000
+        private val INPUT_SLOT_INDICES = IntArray(INPUT_SLOTS) { it }
+        private val OUTPUT_SLOTS = intArrayOf(OUTPUT)
 
-        const val LOOKS_EVERY = 20L
+        /** Often enough that the arrow moves smoothly. */
+        private const val LOOKS_EVERY = 4L
 
-        const val DRIED_KEY = "dried"
+        private const val NOTHING_DRYING = -1
+
+        private const val DRYING_KEY = "drying"
+        private const val DRIED_KEY = "dried"
     }
 }
 
@@ -234,4 +273,9 @@ object DryingRack {
 
     val ENTITY: BlockEntityType<DryingRackBlockEntity> =
         BlockEntityType({ pos, state -> DryingRackBlockEntity(pos, state) }, setOf(BLOCK))
+
+    val MENU: MenuType<DryingRackMenu> = MenuType(
+        { containerId, inventory -> DryingRackMenu(containerId, inventory) },
+        FeatureFlags.VANILLA_SET,
+    )
 }

@@ -2,6 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.station.Compounder
+import co.voik.agesandtheart.station.DryingRack
 import co.voik.agesandtheart.content.PalmWood
 import net.minecraft.client.model.geom.ModelLayers
 import net.minecraft.client.renderer.entity.BoatRenderer
@@ -87,6 +88,7 @@ object ClientRegistrations {
         ScreenForMenu(AgeContent.ARCHIVE_MENU, ::ArchiveScreen),
         ScreenForMenu(AgeContent.STATION_MENU, ::StationScreen),
         ScreenForMenu(Compounder.MENU, ::CompounderScreen),
+        ScreenForMenu(DryingRack.MENU, ::DryingRackScreen),
         // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it, and
         // the fence lives in the menu rather than in the drawing.
         ScreenForMenu(AgeContent.TOOLBOX_MENU, ::ContainerScreen),

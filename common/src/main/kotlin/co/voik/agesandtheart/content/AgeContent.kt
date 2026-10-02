@@ -2022,6 +2022,7 @@ object AgeContent {
         ARCHIVE_ID to ARCHIVE_MENU,
         STATION_ID to STATION_MENU,
         Compounder.ID to Compounder.MENU,
+        DryingRack.ID to DryingRack.MENU,
     )
 
     val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =
