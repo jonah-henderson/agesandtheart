@@ -41,10 +41,11 @@ object AlgaeCatchUp {
         for (level in server.allLevels) {
             val here = waiting[level] ?: continue
             var budget = MATS_PER_TICK
-            val iterator = here.iterator()
-            while (iterator.hasNext() && budget > 0) {
-                val at = iterator.next()
-                iterator.remove()
+            // Taken off the front one at a time rather than iterated: turning a mat can bring a neighbouring
+            // chunk in, whose arrival adds to this same set.
+            while (budget > 0) {
+                val at = here.firstOrNull() ?: break
+                here.remove(at)
                 val chunk = level.chunkSource.getChunkNow(ChunkPos.getX(at), ChunkPos.getZ(at)) ?: continue
                 budget -= turnTowardsTheHour(level, chunk)
             }
