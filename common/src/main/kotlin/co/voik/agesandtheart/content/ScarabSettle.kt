@@ -9,32 +9,19 @@ import net.minecraft.world.phys.Vec3
 import java.util.EnumSet
 
 /**
- * A homeless scarab looking for somewhere to live, and going there — the turtle's way home, and the stray's
- * whole behaviour (design §7.1.2).
+ * A homeless scarab with no nest to claim and no work in reach, looking for somewhere it could have either
+ * — the turtle's way home, and the stray's whole behaviour (design §7.1.2).
  *
- * In order: a nest nobody holds, then ground it could claim itself, then any colony at all, which it flies
- * to and searches around — so **a player can follow one to a colony, or watch it found a new one**. Where
- * none of those is there, it roams on a held heading and looks again as it goes; that is the stray that
- * wanders and never settles, the world saying there is nowhere here good enough.
+ * It flies to the nearest colony it can find and searches around it, so **a player can follow one to a
+ * colony**. Where there is none, it roams on a held heading, and the claiming and building goals look again
+ * as it goes; that is the stray that wanders and never settles, the world saying there is nowhere here good
+ * enough. Below work in a scarab's priorities: ground it could begin a pillar on keeps it there.
  *
  * Only the ground is asked, never the Age: a scarab carried anywhere settles wherever it finds a home.
  */
 class ScarabSettle(private val scarab: Scarab) : Goal() {
 
-    private sealed interface Destination {
-        val at: BlockPos
-
-        /** A nest standing empty, to be taken over as it is. */
-        data class VacantNest(override val at: BlockPos) : Destination
-
-        /** Mud a scarab could claim, to be made into a nest. */
-        data class Site(override val at: BlockPos) : Destination
-
-        /** Somewhere a colony already lives, to be searched around on arrival. */
-        data class Colony(override val at: BlockPos) : Destination
-    }
-
-    private var destination: Destination? = null
+    private var colony: BlockPos? = null
     private var roamingToward: Vec3? = null
     private var travelling = 0
     private var lookAgainAfter = 0L
@@ -48,7 +35,7 @@ class ScarabSettle(private val scarab: Scarab) : Goal() {
     override fun canContinueToUse(): Boolean = !scarab.isHoused
 
     override fun start() {
-        destination = null
+        colony = null
         roamingToward = null
         travelling = 0
     }
@@ -62,73 +49,25 @@ class ScarabSettle(private val scarab: Scarab) : Goal() {
     override fun tick() {
         val level = scarab.level() as? ServerLevel ?: return
         travelling++
-        if (level.gameTime >= lookAgainAfter && destination == null) look(level)
-        val going = destination
-        if (going == null) return roam(level)
-        val there = Vec3.atBottomCenterOf(going.at.above())
+        if (level.gameTime >= lookAgainAfter && colony == null) look(level)
+        val going = colony ?: return roam(level)
+        val there = Vec3.atBottomCenterOf(going.above())
         scarab.headFor(there)
-        if (travelling > GIVES_UP_AFTER) return forget()
-        if (scarab.isNear(there, ARRIVES_WITHIN)) arrive(level, going)
+        val hasArrived = scarab.isNear(there, NEAR_A_COLONY)
+        if (hasArrived || travelling > GIVES_UP_AFTER) forget()
     }
 
-    /** Chooses where to go next, or leaves [destination] empty to roam. */
+    /** The nearest colony not already close by, or nothing, which roams. */
     private fun look(level: ServerLevel) {
         lookAgainAfter = level.gameTime + LOOK_AGAIN_AFTER
-        val here = scarab.blockPosition()
-        destination = vacantNestNear(level, here)
-            ?: siteNear(level, here)?.let(Destination::Site)
-            ?: ScarabHabitat.nestsNear(level, here, COLONY_SEARCH).firstOrNull()
-                ?.takeUnless { scarab.isNear(Vec3.atCenterOf(it), NEAR_A_COLONY) }
-                ?.let(Destination::Colony)
-        if (destination != null) travelling = 0
-    }
-
-    private fun arrive(level: ServerLevel, going: Destination) {
-        when (going) {
-            is Destination.VacantNest -> {
-                val nest = level.getBlockEntity(going.at) as? ScarabNestBlockEntity
-                if (nest != null && nest.isVacant) settle(nest)
-            }
-            is Destination.Site -> {
-                // Asked again on arrival: another scarab may have claimed beside it on the way.
-                if (ScarabHabitat.freeSiteAt(level, going.at.x, going.at.z, going.at.y + 1) == going.at) claim(level, going.at)
-            }
-            // Searched around on the next look, which is now.
-            is Destination.Colony -> lookAgainAfter = 0L
-        }
-        destination = null
-    }
-
-    private fun claim(level: ServerLevel, mud: BlockPos) {
-        level.setBlockAndUpdate(mud, AgeContent.SCARAB_NEST_BLOCK.defaultBlockState())
-        val nest = level.getBlockEntity(mud) as? ScarabNestBlockEntity ?: return
-        settle(nest)
-    }
-
-    private fun settle(nest: ScarabNestBlockEntity) {
-        nest.claimFor(scarab, scarab.random)
-        scarab.settleIn(nest.blockPos)
+        colony = ScarabHabitat.colonyNear(level, scarab.blockPosition(), COLONY_SEARCH)
+            ?.takeUnless { scarab.isNear(Vec3.atCenterOf(it), NEAR_A_COLONY) }
+        if (colony != null) travelling = 0
     }
 
     private fun forget() {
-        destination = null
+        colony = null
         travelling = 0
-    }
-
-    private fun vacantNestNear(level: ServerLevel, from: BlockPos): Destination? =
-        ScarabHabitat.nestsNear(level, from, NEST_SEARCH)
-            .firstOrNull { (level.getBlockEntity(it) as? ScarabNestBlockEntity)?.isVacant == true }
-            ?.let(Destination::VacantNest)
-
-    /** Claimable ground, sampled at random so the search is a fixed cost and never only the nearest. */
-    private fun siteNear(level: ServerLevel, from: BlockPos): BlockPos? {
-        val random = scarab.random
-        repeat(SITE_SAMPLES) {
-            val x = from.x + random.nextIntBetweenInclusive(-SITE_SEARCH, SITE_SEARCH)
-            val z = from.z + random.nextIntBetweenInclusive(-SITE_SEARCH, SITE_SEARCH)
-            ScarabHabitat.freeSiteAt(level, x, z, from.y)?.let { return it }
-        }
-        return null
     }
 
     /** On a heading held for a while, a few blocks above the ground ahead. */
@@ -154,13 +93,6 @@ class ScarabSettle(private val scarab: Scarab) : Goal() {
     }
 
     private companion object {
-        const val NEST_SEARCH = 48
-        /**
-         * A sample is one heightmap read unless it lands on mud, so a search can afford to be dense: a
-         * five-by-five pit within this reach is found about four times in five.
-         */
-        const val SITE_SEARCH = 32
-        const val SITE_SAMPLES = 256
         const val COLONY_SEARCH = 128
 
         /** Close enough to a colony to search around it rather than fly to it. */

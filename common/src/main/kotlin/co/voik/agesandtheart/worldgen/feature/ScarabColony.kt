@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.reward.ScarabHabitat
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.Scarab
 import co.voik.agesandtheart.content.ScarabNestBlockEntity
+import co.voik.agesandtheart.content.ScarabPillarBlockEntity
 import co.voik.agesandtheart.math.mix64
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
@@ -132,29 +133,35 @@ object ScarabColony : Feature {
         return claimed
     }
 
-    /** One pillar: its nest, its courses to a height of its own, and its owner asleep in it. */
+    /**
+     * One pillar: its foot, its courses up to its nest at least and some all the way, and the nest's owner
+     * asleep in it.
+     */
     private fun raise(level: WorldGenLevel, mud: BlockPos, random: RandomSource) {
         // The grass or fern the jungle grew on the mud gives way, as the column is claimed.
         level.setBlock(mud.above(), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS)
-        level.setBlock(mud, AgeContent.SCARAB_NEST_BLOCK.defaultBlockState(), Block.UPDATE_CLIENTS)
-        val nest = level.getBlockEntity(mud) as? ScarabNestBlockEntity ?: return
-        val scarab = AgeContent.SCARAB.create(level.level, EntitySpawnReason.STRUCTURE) ?: return
-        scarab.settleIn(mud)
-        nest.grownWith(scarab, random)
+        level.setBlock(mud, AgeContent.SCARAB_PILLAR_BLOCK.defaultBlockState(), Block.UPDATE_CLIENTS)
+        val plan = level.getBlockEntity(mud) as? ScarabPillarBlockEntity ?: return
+        plan.plan(random)
         val isFinished = random.nextFloat() < FINISHED
-        val height = if (isFinished) nest.pillarGoal else random.nextIntBetweenInclusive(1, nest.pillarGoal - 1)
-        for (course in 1..height) level.setBlock(mud.above(course), nest.courseAt(course), Block.UPDATE_CLIENTS)
-        // The door, where the pillar goes on and its owner comes out, is left open whatever grew over it.
+        val height = if (isFinished) plan.goal else random.nextIntBetweenInclusive(plan.nestAt, plan.goal - 1)
+        for (course in 1..height) level.setBlock(mud.above(course), plan.courseAt(course), Block.UPDATE_CLIENTS)
+        // Above the pillar, where it goes on, is left open whatever grew over it.
         level.setBlock(mud.above(height + 1), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS)
+        val nestAt = mud.above(plan.nestAt)
+        val nest = level.getBlockEntity(nestAt) as? ScarabNestBlockEntity ?: return
+        val scarab = AgeContent.SCARAB.create(level.level, EntitySpawnReason.STRUCTURE) ?: return
+        scarab.settleIn(nestAt)
+        nest.grownWith(scarab)
     }
 
     /**
-     * Whether a nest already stands at or beside [mud] — a pit wider than one chunk's reach is walked a little
-     * differently from each side of it, and may be rolled for twice.
+     * Whether a pillar already stands at or beside [mud] — a pit wider than one chunk's reach is walked a
+     * little differently from each side of it, and may be rolled for twice.
      */
     private fun besideANest(level: WorldGenLevel, mud: BlockPos): Boolean =
         BlockPos.betweenClosed(mud.offset(-CLEAR_BETWEEN, 0, -CLEAR_BETWEEN), mud.offset(CLEAR_BETWEEN, 0, CLEAR_BETWEEN))
-            .any { level.getBlockState(it).`is`(AgeContent.SCARAB_NEST_BLOCK) }
+            .any { level.getBlockState(it).`is`(AgeContent.SCARAB_PILLAR_BLOCK) }
 
     /**
      * The topmost solid block of a column, under any plant, leaf or water on it, or null where there is none

@@ -1,0 +1,4 @@
+{
+  "_comment": "Plain mud: the foot of a pillar is the mud the colony began it on.",
+  "variants": { "": { "model": "minecraft:block/mud" } }
+}

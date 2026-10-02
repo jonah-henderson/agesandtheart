@@ -1,4 +1,4 @@
 {
-  "_comment": "Plain mud: the claimed base is the foot of the pillar, and what a player sees of a nest is its chamber, the course of packed mud partway up.",
-  "variants": { "": { "model": "minecraft:block/mud" } }
+  "_comment": "Packed mud: the nest is the course of packed mud partway up a pillar, which is what a player sees of one.",
+  "variants": { "": { "model": "minecraft:block/packed_mud" } }
 }

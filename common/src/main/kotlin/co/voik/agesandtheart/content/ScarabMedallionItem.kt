@@ -119,7 +119,7 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
         if (site == null) {
             // A colony that has taken every column is not a place with no mud, and saying so would send a
             // player away from the one place that is working.
-            val colony = ScarabHabitat.nestsNear(level, here, COLONY_REACH).firstOrNull()
+            val colony = ScarabHabitat.colonyNear(level, here, COLONY_REACH)
             if (colony == null) {
                 say(player, NO_MUD)
             } else {

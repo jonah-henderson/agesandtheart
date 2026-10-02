@@ -49,8 +49,11 @@ object ScarabHabitat {
     /** The patch of `worldgen/placed_feature/torchflowers.json`, which is the only thing that grows them. */
     val TORCHFLOWERS: Identifier = "torchflowers".location()
 
-    /** A claimed column: the nest a scarab turned its mud into, one scarab to a nest. */
+    /** A nest course of a pillar, laid empty and claimed by one scarab. */
     val NEST: ResourceKey<PoiType> = ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, "scarab_nest".location())
+
+    /** The foot of a pillar a colony is building, whoever is working on it. */
+    val PILLAR: ResourceKey<PoiType> = ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, "scarab_pillar".location())
 
     /**
      * Everything about the Age itself that a colony asks, rather than about any ground in it.
@@ -254,8 +257,8 @@ object ScarabHabitat {
     }
 
     /**
-     * The mud a scarab at [nearY] could claim in the column at [x], [z], or null where it could not: open
-     * to the sky or lit, warm, sand within reach, and **at least a column clear of every claimed one**,
+     * The mud a scarab at [nearY] could raise a pillar on in the column at [x], [z], or null where it could
+     * not: open to the sky or lit, warm, sand within reach, and **at least a column clear of every pillar**,
      * diagonals included (design §7.1.2).
      */
     fun freeSiteAt(level: ServerLevel, x: Int, z: Int, nearY: Int): BlockPos? {
@@ -263,6 +266,17 @@ object ScarabHabitat {
         val isGoodGround = isWarmAt(level, mud) && sandNear(level, mud)
         return if (isGoodGround && !touchesAClaim(level, mud)) mud else null
     }
+
+    /** Every pillar foot within [radius] of [from], nearest first. */
+    fun pillarsNear(level: ServerLevel, from: BlockPos, radius: Int): List<BlockPos> =
+        level.poiManager.getInRange(::isPillar, from, radius, PoiManager.Occupancy.ANY)
+            .map(PoiRecord::getPos)
+            .sorted(Comparator.comparingDouble { pillar -> pillar.distSqr(from) })
+            .toList()
+
+    /** Where a colony is: its nearest pillar or nest to [from], or null where none is within [radius]. */
+    fun colonyNear(level: ServerLevel, from: BlockPos, radius: Int): BlockPos? =
+        (pillarsNear(level, from, radius) + nestsNear(level, from, radius)).minByOrNull { it.distSqr(from) }
 
     /**
      * Whether a nest at [mud] is warm: a biome about as warm as the jungle, or something giving off heat
@@ -301,9 +315,9 @@ object ScarabHabitat {
     private fun topOfTheBank(level: ServerLevel, from: BlockPos): BlockPos? =
         (0..SEES_ABOVE).map(from::above).firstOrNull { level.getBlockState(it.above()).isAir }
 
-    /** Whether a nest stands in [column] or in any of the eight around it, at any height. */
+    /** Whether a pillar stands in [column] or in any of the eight around it, at any height. */
     fun touchesAClaim(level: ServerLevel, column: BlockPos): Boolean =
-        level.poiManager.getInSquare(::isNest, column, NEIGHBOURING_COLUMNS, PoiManager.Occupancy.ANY)
+        level.poiManager.getInSquare(::isPillar, column, NEIGHBOURING_COLUMNS, PoiManager.Occupancy.ANY)
             .findAny()
             .isPresent
 
@@ -325,6 +339,8 @@ object ScarabHabitat {
             .orElse(false)
 
     private fun isNest(poi: Holder<PoiType>): Boolean = poi.`is`(NEST)
+
+    private fun isPillar(poi: Holder<PoiType>): Boolean = poi.`is`(PILLAR)
 
     /**
      * The mud a scarab at [nearY] would see in the column at [x], [z], or null: open to the sky, or under

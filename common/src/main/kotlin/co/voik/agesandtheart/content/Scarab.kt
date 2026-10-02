@@ -48,11 +48,12 @@ import kotlin.math.PI
  * (design §7.1.2).
  *
  * **One creature, and whether it is a stray is only whether it has found a home.** Scarabs arrive homeless
- * ([ScarabArrivals]) and look for a nest with room or ground to claim ([ScarabSettle]); where the Age falls
- * short there is none, and a scarab that never had a home wanders off in the end. Once it has a nest — or
- * was born to a colony — it stays: it builds its pillar out of sand ([ScarabBuild]), sleeps in it at night
- * ([ScarabRoost]), grazes torchflowers ([ScarabGraze]) and breeds wherever a free site remains
- * ([ScarabBreed]). Hunger stops building and breeding and nothing else.
+ * ([ScarabArrivals]), take an empty nest where there is one ([ScarabClaim]), and otherwise work on the
+ * colony's pillars until one is laid ([ScarabBuild]) or go looking for a colony ([ScarabSettle]); where the
+ * Age falls short there is nothing, and a scarab that never had a home wanders off in the end. Once it has a
+ * nest — or was born to one — it stays: it sleeps in it at night ([ScarabRoost]), grazes torchflowers
+ * ([ScarabGraze]), builds at leisure, and breeds where an empty nest stands ([ScarabBreed]). Hunger stops
+ * building and breeding and nothing else.
  *
  * **It flies**, being drawn as a bee: bee movement is vanilla's already, a pillar top is somewhere a
  * flier can reach, and a stray crosses jungle canopy that a walker would spend its life pathfinding under.
@@ -102,9 +103,10 @@ class Scarab(type: EntityType<out Scarab>, level: Level) : Animal(type, level) {
         goalSelector.addGoal(BREEDING, ScarabBreed(this))
         goalSelector.addGoal(TEMPTED, TemptGoal(this, TEMPTED_SPEED, { mealOf(it) != null }, false))
         goalSelector.addGoal(GRAZING, ScarabGraze(this))
+        goalSelector.addGoal(CLAIMING, ScarabClaim(this))
         goalSelector.addGoal(WORKING, ScarabBuild(this))
-        goalSelector.addGoal(WORKING, ScarabSettle(this))
         goalSelector.addGoal(FOLLOWING, FollowParentGoal(this, FOLLOWING_SPEED))
+        goalSelector.addGoal(SEEKING, ScarabSettle(this))
         goalSelector.addGoal(WANDERING, ScarabWander(this))
         goalSelector.addGoal(FLOATING, FloatGoal(this))
     }
@@ -131,7 +133,7 @@ class Scarab(type: EntityType<out Scarab>, level: Level) : Animal(type, level) {
     fun carry(sand: BlockState?) = entityData.set(CARRIED, Optional.ofNullable(sand))
 
     fun wantsToRoost(): Boolean =
-        isHoused && stayOutOfTheNestFor <= 0 && ScarabNestBlockEntity.isTimeToRoost(level(), blockPosition())
+        isHoused && stayOutOfTheNestFor <= 0 && ScarabNestBlockEntity.isTimeToRoost(level())
 
     /** Its own nest, where that is loaded and still holds its claim; null otherwise. */
     fun nest(): ScarabNestBlockEntity? {
@@ -410,15 +412,20 @@ class Scarab(type: EntityType<out Scarab>, level: Level) : Animal(type, level) {
         private const val PUFFS = 8
         private const val PUFF_SPREAD = 0.2
 
-        /** The nest first, then pairing, then food; work only once fed, and idling last. */
+        /**
+         * The nest first, then pairing, then food; an empty nest before work, work before looking further
+         * afield, and idling last.
+         */
         private const val ROOSTING = 1
         private const val BREEDING = 2
         private const val TEMPTED = 3
         private const val GRAZING = 4
-        private const val WORKING = 5
-        private const val FOLLOWING = 6
-        private const val WANDERING = 8
-        private const val FLOATING = 9
+        private const val CLAIMING = 5
+        private const val WORKING = 6
+        private const val FOLLOWING = 7
+        private const val SEEKING = 8
+        private const val WANDERING = 9
+        private const val FLOATING = 10
 
         private const val HOME_KEY = "home"
         private const val LAST_MEAL_KEY = "last_meal"

@@ -8,13 +8,13 @@ import net.minecraft.world.entity.ai.goal.Goal
 import java.util.EnumSet
 
 /**
- * Two scarabs of a colony making a third — **only where a free site remains for it**, the way villagers need
- * a free bed (design §7.1.2).
+ * Two scarabs of a colony making a third — **only where an empty nest stands for it**, the way villagers
+ * need a free bed (design §7.1.2).
  *
  * The colony decides this itself; nothing a player holds starts it. Both parents must be adult, housed,
- * fed and rested, and the site is found by the claim test every nest was made by. **The young one is given
- * that site at birth**, so the site is spoken for the moment it is counted, and unclaimed mud caps the
- * colony exactly — two pairings can never be promised the same ground.
+ * fed and rested, and the nest is one the colony built and nobody has claimed. **The young one is given
+ * that nest at birth**, so it is spoken for the moment it is counted, and the colony grows exactly as fast
+ * as it builds empty nests — two pairings can never be promised the same one.
  *
  * Mushrooms make it happen sooner: a mushroom-fed scarab looks for a partner more often and rests less
  * between broods.
@@ -22,7 +22,7 @@ import java.util.EnumSet
 class ScarabBreed(private val scarab: Scarab) : Goal() {
 
     private var partner: Scarab? = null
-    private var site: BlockPos? = null
+    private var nest: BlockPos? = null
     private var courting = 0
     private var together = 0
 
@@ -37,8 +37,8 @@ class ScarabBreed(private val scarab: Scarab) : Goal() {
         if (!feelsLikeIt || !scarab.canBreedNow) return false
         val home = scarab.home ?: return false
         partner = nearestWilling(level) ?: return false
-        site = freeSiteFor(level, home)
-        return site != null
+        nest = vacantNestNear(level, home)
+        return nest != null
     }
 
     override fun canContinueToUse(): Boolean {
@@ -53,7 +53,7 @@ class ScarabBreed(private val scarab: Scarab) : Goal() {
 
     override fun stop() {
         partner = null
-        site = null
+        nest = null
         scarab.navigation.stop()
     }
 
@@ -73,9 +73,10 @@ class ScarabBreed(private val scarab: Scarab) : Goal() {
     }
 
     private fun brood(level: ServerLevel, mate: Scarab) {
-        val claimed = site ?: return
-        // Asked again: a stray may have settled there while the two were courting.
-        if (ScarabHabitat.freeSiteAt(level, claimed.x, claimed.z, claimed.y + 1) != claimed) {
+        val promised = nest ?: return
+        // Asked again: a stray may have claimed it while the two were courting.
+        val empty = (level.getBlockEntity(promised) as? ScarabNestBlockEntity)?.takeIf { it.isVacant }
+        if (empty == null) {
             partner = null
             return
         }
@@ -84,11 +85,8 @@ class ScarabBreed(private val scarab: Scarab) : Goal() {
         young.snapTo(scarab.x, scarab.y, scarab.z, 0.0f, 0.0f)
         young.bornToAColony()
         level.addFreshEntityWithPassengers(young)
-        level.setBlockAndUpdate(claimed, AgeContent.SCARAB_NEST_BLOCK.defaultBlockState())
-        (level.getBlockEntity(claimed) as? ScarabNestBlockEntity)?.let { nest ->
-            nest.claimFor(young, young.random)
-            young.settleIn(claimed)
-        }
+        empty.claimFor(young)
+        young.settleIn(promised)
         val rest = if (scarab.isMushroomFed || mate.isMushroomFed) MUSHROOM_FED_REST else REST
         scarab.age = rest
         mate.age = rest
@@ -100,15 +98,9 @@ class ScarabBreed(private val scarab: Scarab) : Goal() {
             other !== scarab && other.canBreedNow
         }.minByOrNull(scarab::distanceToSqr)
 
-    private fun freeSiteFor(level: ServerLevel, home: BlockPos): BlockPos? {
-        val random = scarab.random
-        repeat(SITE_SAMPLES) {
-            val x = home.x + random.nextIntBetweenInclusive(-BROOD_REACH, BROOD_REACH)
-            val z = home.z + random.nextIntBetweenInclusive(-BROOD_REACH, BROOD_REACH)
-            ScarabHabitat.freeSiteAt(level, x, z, home.y + 1)?.let { return it }
-        }
-        return null
-    }
+    private fun vacantNestNear(level: ServerLevel, home: BlockPos): BlockPos? =
+        ScarabHabitat.nestsNear(level, home, BROOD_REACH)
+            .firstOrNull { (level.getBlockEntity(it) as? ScarabNestBlockEntity)?.isVacant == true }
 
     private companion object {
         /** Asked each tick of an eligible scarab: about one pairing attempt a minute, a third of that fed. */
@@ -121,7 +113,6 @@ class ScarabBreed(private val scarab: Scarab) : Goal() {
 
         const val PARTNER_REACH = 12.0
         const val BROOD_REACH = 16
-        const val SITE_SAMPLES = 128
         const val CLOSE_ENOUGH = 2.0
         const val TOGETHER_FOR = 60
         const val HEARTS_EVERY = 10

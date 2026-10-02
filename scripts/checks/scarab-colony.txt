@@ -3,9 +3,11 @@
 # Run with: scripts/drive-server.sh scripts/checks/scarab-colony.txt
 #
 # The site is built on a raised block of ground, so it is the top of every column in it:
-# mud in the middle, sand around it, torchflowers on grass beyond, all under a jungle `fillbiome` makes. A
-# scarab should claim a mud column (it becomes `agesandtheart:scarab_nest`, mud to look at), stack
-# mud on it out of the sand with one course of packed mud partway up, and graze the flowers. Read `home`, `satiety` and `carried` off each.
+# mud in the middle, sand around it, torchflowers on grass beyond, all under a jungle `fillbiome` makes. The
+# scarabs should begin pillars on the mud (each foot becomes `agesandtheart:scarab_pillar`, mud to look at),
+# stack mud on them out of the sand with one course partway up laid as an empty nest
+# (`agesandtheart:scarab_nest`, packed mud to look at), claim those nests, and graze the flowers. Read
+# `home`, `satiety` and `carried` off each: a home is a nest, partway up a pillar.
 
 age write scarabcolony 7 age jungle biomes torchflowers in jungle mud pits in jungle sand pits in jungle
 execute in agesandtheart:scarabcolony run forceload add -64 -64 64 64
@@ -29,14 +31,14 @@ execute in agesandtheart:scarabcolony if entity @e[type=agesandtheart:scarab]
 execute in agesandtheart:scarabcolony positioned 0 200 0 run data get entity @e[type=agesandtheart:scarab,sort=nearest,limit=1]
 execute in agesandtheart:scarabcolony positioned 0 200 0 run data get entity @e[type=agesandtheart:scarab,sort=furthest,limit=1]
 
-# Three minutes more, ending before dusk: the pillars should be rising, the sand going, and a young one or
-# two bred onto the mud that is left.
+# Three minutes more, ending before dusk: the pillars should be rising, and a young one or two bred into the
+# empty nests the housed scarabs have been adding at leisure.
 tick sprint 4000
 execute in agesandtheart:scarabcolony positioned 0 200 0 run data get entity @e[type=agesandtheart:scarab,sort=nearest,limit=1] home
 execute in agesandtheart:scarabcolony positioned 0 200 0 run data get entity @e[type=agesandtheart:scarab,sort=furthest,limit=1] home
 execute in agesandtheart:scarabcolony if entity @e[type=agesandtheart:scarab]
 
-# Night: every housed scarab should go into its pillar beside the chamber, and the count fall to none. Then
+# Night: every housed scarab should go into its nest by a side of it, and the count fall to none. Then
 # morning, when they come out where they went in.
 execute in agesandtheart:scarabcolony run time set midnight
 tick sprint 1200
@@ -45,9 +47,9 @@ execute in agesandtheart:scarabcolony run time set day
 tick sprint 1200
 execute in agesandtheart:scarabcolony if entity @e[type=agesandtheart:scarab]
 
-# Counted by replacing, which is destructive and fine in a world about to be thrown away: how many nests,
-# how much pillar, and how much of the sand is left.
-execute in agesandtheart:scarabcolony run fill -2 200 -2 2 200 2 minecraft:dirt replace agesandtheart:scarab_nest
+# Counted by replacing, which is destructive and fine in a world about to be thrown away: how many pillars,
+# how many mud courses on them, how many nests, and that the sand is all still there (13 by 13 less the mud).
+execute in agesandtheart:scarabcolony run fill -2 200 -2 2 200 2 minecraft:dirt replace agesandtheart:scarab_pillar
 execute in agesandtheart:scarabcolony run fill -2 201 -2 2 208 2 minecraft:dirt replace minecraft:mud
-execute in agesandtheart:scarabcolony run fill -2 201 -2 2 208 2 minecraft:dirt replace minecraft:packed_mud
+execute in agesandtheart:scarabcolony run fill -2 201 -2 2 208 2 minecraft:dirt replace agesandtheart:scarab_nest
 execute in agesandtheart:scarabcolony run fill -6 200 -6 6 200 6 minecraft:dirt replace minecraft:sand

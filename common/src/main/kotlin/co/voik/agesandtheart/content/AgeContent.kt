@@ -1105,10 +1105,11 @@ object AgeContent {
     private const val SCARAB_TRACKING_CHUNKS = 8
 
     private val SCARAB_NEST_ID: Identifier = ScarabHabitat.NEST.identifier()
+    private val SCARAB_PILLAR_ID: Identifier = ScarabHabitat.PILLAR.identifier()
 
     /**
-     * The claimed base of a scarab's pillar — see [ScarabNestBlock]. Packed mud's feel, and **mud's drop**:
-     * breaking a nest gives back the mud it was made from rather than a nest, which only a scarab makes.
+     * A scarab's nest, a course partway up its pillar — see [ScarabNestBlock]. Packed mud's look and feel,
+     * and **mud's drop**: a nest is only ever a scarab's work, so it is not carried off whole.
      */
     val SCARAB_NEST_BLOCK: ScarabNestBlock = ScarabNestBlock(
         BlockBehaviour.Properties.of()
@@ -1118,15 +1119,34 @@ object AgeContent {
             .sound(SoundType.PACKED_MUD),
     )
 
+    /** The foot of a scarab pillar — see [ScarabPillarBlock]. Mud to look at and to break, and mud's drop. */
+    val SCARAB_PILLAR_BLOCK: ScarabPillarBlock = ScarabPillarBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, SCARAB_PILLAR_ID))
+            .mapColor(MapColor.TERRACOTTA_CYAN)
+            .strength(PILLAR_STRENGTH)
+            .sound(SoundType.MUD),
+    )
+
     private const val NEST_STRENGTH = 1.0f
     private const val NEST_RESISTANCE = 3.0f
+
+    /** Mud's. */
+    private const val PILLAR_STRENGTH = 0.5f
 
     val SCARAB_NEST_ENTITY: BlockEntityType<ScarabNestBlockEntity> =
         BlockEntityType({ pos, state -> ScarabNestBlockEntity(pos, state) }, setOf(SCARAB_NEST_BLOCK))
 
+    val SCARAB_PILLAR_ENTITY: BlockEntityType<ScarabPillarBlockEntity> =
+        BlockEntityType({ pos, state -> ScarabPillarBlockEntity(pos, state) }, setOf(SCARAB_PILLAR_BLOCK))
+
     /** One scarab to a nest, and it must be at the nest to be home — a bed's numbers. */
     val SCARAB_NEST_POI: PoiType =
         PoiType(SCARAB_NEST_BLOCK.stateDefinition.possibleStates.toSet(), ONE_SCARAB_TO_A_NEST, AT_THE_NEST)
+
+    /** Found by the colony rather than claimed by anyone: the tickets are never taken. */
+    val SCARAB_PILLAR_POI: PoiType =
+        PoiType(SCARAB_PILLAR_BLOCK.stateDefinition.possibleStates.toSet(), ONE_SCARAB_TO_A_NEST, AT_THE_NEST)
 
     private const val ONE_SCARAB_TO_A_NEST = 1
     private const val AT_THE_NEST = 1
@@ -1910,6 +1930,7 @@ object AgeContent {
         CRYSTAL_VIEWER_ID to CRYSTAL_VIEWER_BLOCK,
         GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE_BLOCK,
         SCARAB_NEST_ID to SCARAB_NEST_BLOCK,
+        SCARAB_PILLAR_ID to SCARAB_PILLAR_BLOCK,
         GRAZED_TORCHFLOWER_ID to GRAZED_TORCHFLOWER_BLOCK,
         PAPER_TREE_LOG_ID to PAPER_TREE_LOG_BLOCK,
         STRIPPED_PAPER_TREE_LOG_ID to STRIPPED_PAPER_TREE_LOG_BLOCK,
@@ -1928,6 +1949,7 @@ object AgeContent {
     val poiTypes: List<Pair<Identifier, PoiType>> = listOf(
         WriterProfession.ID to WRITERS_DESK_POI,
         SCARAB_NEST_ID to SCARAB_NEST_POI,
+        SCARAB_PILLAR_ID to SCARAB_PILLAR_POI,
     )
 
     val villagerProfessions: List<Pair<Identifier, VillagerProfession>> = listOf(
@@ -1942,6 +1964,7 @@ object AgeContent {
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,
         OBSERVATION_DEVICE_ID to OBSERVATION_DEVICE_ENTITY,
         SCARAB_NEST_ID to SCARAB_NEST_ENTITY,
+        SCARAB_PILLAR_ID to SCARAB_PILLAR_ENTITY,
         PAPER_TREE_ROOT_ID to PAPER_TREE_ROOT_ENTITY,
         STATION_ID to STATION_ENTITY,
         Compounder.ID to Compounder.ENTITY,

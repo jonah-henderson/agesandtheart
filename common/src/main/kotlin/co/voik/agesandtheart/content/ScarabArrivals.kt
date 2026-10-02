@@ -52,7 +52,7 @@ object ScarabArrivals {
      */
     fun bringOneNear(level: ServerLevel, player: ServerPlayer): Scarab? {
         val at = arrivalNear(level, player.blockPosition()) ?: return null
-        if (ScarabNestBlockEntity.isTimeToRoost(level, at)) return null
+        if (ScarabNestBlockEntity.isTimeToRoost(level)) return null
         val scarab = AgeContent.SCARAB.create(level, EntitySpawnReason.NATURAL) ?: return null
         scarab.snapTo(at.x + HALF, at.y.toDouble(), at.z + HALF, level.random.nextFloat() * FULL_TURN, 0.0f)
         scarab.finalizeSpawn(level, level.getCurrentDifficultyAt(at), EntitySpawnReason.NATURAL, null)

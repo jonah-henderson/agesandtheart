@@ -5,8 +5,8 @@ import net.minecraft.world.phys.Vec3
 import java.util.EnumSet
 
 /**
- * A scarab going into its pillar for the night, as a bee goes into its hive (design §7.1.2), by the door
- * beside the chamber ([ScarabNestBlockEntity.doorOf]).
+ * A scarab going into its nest for the night, as a bee goes into its hive (design §7.1.2), by a door in
+ * the nest's side ([ScarabNestBlockEntity.doorOf]).
  */
 class ScarabRoost(private val scarab: Scarab) : Goal() {
 

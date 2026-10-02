@@ -6,7 +6,7 @@
 # is not warm: mud in the middle on magma, sand around it, torches on the sand and torchflowers at one end.
 # The second room is the same with no magma, and should never hold a nest. Two scarabs go into each.
 #
-# Read the two `fill ... replace agesandtheart:scarab_nest` lines: the warm room's should fill one or more,
+# Read the two `fill ... replace agesandtheart:scarab_pillar` lines: the warm room's should fill one or more,
 # the cold room's none.
 #
 # MEASURED 2026-10-01: the warm room held 2 nests, the cold room none. `scarab-colony.txt` alongside it,
@@ -45,5 +45,5 @@ tick sprint 1800
 execute positioned 0 202 0 run data get entity @e[type=agesandtheart:scarab,sort=nearest,limit=1] home
 execute positioned 64 202 0 run data get entity @e[type=agesandtheart:scarab,sort=nearest,limit=1] home
 # Counted by replacing, which is destructive and fine in a world about to be thrown away.
-fill -1 200 -1 1 200 1 minecraft:dirt replace agesandtheart:scarab_nest
-fill 63 200 -1 65 200 1 minecraft:dirt replace agesandtheart:scarab_nest
+fill -1 200 -1 1 200 1 minecraft:dirt replace agesandtheart:scarab_pillar
+fill 63 200 -1 65 200 1 minecraft:dirt replace agesandtheart:scarab_pillar
