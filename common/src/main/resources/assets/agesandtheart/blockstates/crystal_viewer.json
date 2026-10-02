@@ -1,0 +1,4 @@
+{
+  "_comment": "A copper bulb stands in until the model pass -- the bulb is what lights the crystals in the recipe.",
+  "variants": { "": { "model": "minecraft:block/copper_bulb" } }
+}

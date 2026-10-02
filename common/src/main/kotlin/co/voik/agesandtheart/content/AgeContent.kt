@@ -30,6 +30,8 @@ import co.voik.agesandtheart.desk.ArchiveItem
 import co.voik.agesandtheart.desk.ArchiveMenu
 import co.voik.agesandtheart.desk.GeologistsToolsBlock
 import co.voik.agesandtheart.desk.SeismographBlock
+import co.voik.agesandtheart.desk.CrystalViewerBlock
+import co.voik.agesandtheart.desk.CrystalViewerMenu
 import co.voik.agesandtheart.desk.SeismographItem
 import co.voik.agesandtheart.desk.WriterProfession
 import co.voik.agesandtheart.desk.WritersDeskBlock
@@ -913,6 +915,25 @@ object AgeContent {
      * make the fitting one faster.
      */
     const val STUDY_STRENGTH = 0.5f
+
+    private val CRYSTAL_VIEWER_ID: Identifier = "crystal_viewer".location()
+
+    /**
+     * Shows the Age being written at a desk in the room, as its linking panel will, before it is bound
+     * (design §7.4). Rime crystals round a spyglass, lit by a copper bulb, on an iron-barred stand.
+     */
+    val CRYSTAL_VIEWER_BLOCK: CrystalViewerBlock = CrystalViewerBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, CRYSTAL_VIEWER_ID))
+            .mapColor(MapColor.COLOR_ORANGE)
+            .strength(STUDY_STRENGTH)
+            .sound(SoundType.COPPER_BULB),
+    )
+
+    val CRYSTAL_VIEWER: Item = BlockItem(
+        CRYSTAL_VIEWER_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, CRYSTAL_VIEWER_ID)).useBlockDescriptionPrefix(),
+    )
 
     val GEOLOGISTS_TOOLS: Item = BlockItem(
         GEOLOGISTS_TOOLS_BLOCK,
@@ -1886,6 +1907,7 @@ object AgeContent {
         TOOLBOX_ID to TOOLBOX_BLOCK,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_BLOCK,
         SEISMOGRAPH_ID to SEISMOGRAPH_BLOCK,
+        CRYSTAL_VIEWER_ID to CRYSTAL_VIEWER_BLOCK,
         GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE_BLOCK,
         SCARAB_NEST_ID to SCARAB_NEST_BLOCK,
         GRAZED_TORCHFLOWER_ID to GRAZED_TORCHFLOWER_BLOCK,
@@ -1965,6 +1987,12 @@ object AgeContent {
         FeatureFlags.VANILLA_SET,
     )
 
+    /** The crystal viewer's, which has no slots either: one synced int, and the panel on its own payloads. */
+    val CRYSTAL_VIEWER_MENU: MenuType<CrystalViewerMenu> = MenuType(
+        { containerId, inventory -> CrystalViewerMenu(containerId, inventory, ContainerLevelAccess.NULL) },
+        FeatureFlags.VANILLA_SET,
+    )
+
     /** The geologist's tools' own screen, built the way the seismograph's is and for the same reasons. */
     val GEOLOGISTS_TOOLS_MENU: MenuType<GeologistsToolsMenu> = MenuType(
         { containerId, inventory -> GeologistsToolsMenu(containerId, inventory, ContainerLevelAccess.NULL) },
@@ -1989,6 +2017,7 @@ object AgeContent {
         "supply_bin".location() to SUPPLY_BIN_MENU,
         TOOLBOX_ID to TOOLBOX_MENU,
         SEISMOGRAPH_ID to SEISMOGRAPH_MENU,
+        CRYSTAL_VIEWER_ID to CRYSTAL_VIEWER_MENU,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_MENU,
         ARCHIVE_ID to ARCHIVE_MENU,
         STATION_ID to STATION_MENU,
@@ -2069,6 +2098,7 @@ object AgeContent {
         TOOLBOX_ID to TOOLBOX,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS,
         SEISMOGRAPH_ID to SEISMOGRAPH,
+        CRYSTAL_VIEWER_ID to CRYSTAL_VIEWER,
         ARC_CRYSTAL_ID to ARC_CRYSTAL,
         ARC_CRYSTAL_BLOCK_ID to ARC_CRYSTAL_BLOCK,
         ASTRITE_SHARD_ID to ASTRITE_SHARD,

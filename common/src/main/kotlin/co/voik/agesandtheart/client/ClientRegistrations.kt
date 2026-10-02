@@ -82,6 +82,7 @@ object ClientRegistrations {
         // Its own screen rather than a line on the desk's -- an implement that does something is the thing
         // you go and look at (Jonah, 2026-09-07).
         ScreenForMenu(AgeContent.SEISMOGRAPH_MENU, ::SeismographScreen),
+        ScreenForMenu(AgeContent.CRYSTAL_VIEWER_MENU, ::CrystalViewerScreen),
         ScreenForMenu(AgeContent.GEOLOGISTS_TOOLS_MENU, ::GeologistsToolsScreen),
         ScreenForMenu(AgeContent.ARCHIVE_MENU, ::ArchiveScreen),
         ScreenForMenu(AgeContent.STATION_MENU, ::StationScreen),

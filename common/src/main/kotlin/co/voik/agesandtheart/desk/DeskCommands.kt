@@ -132,6 +132,9 @@ object DeskCommands {
         book.set(AgeComponents.BOOK_READING, Readout.columnsOf(sentence))
         // The one place a book is marked as somebody's own work (design §7.7).
         book.set(AgeComponents.BOOK_AUTHORED, true)
+        // A crystal viewer's preview of exactly this sentence becomes the book's Age; any other is deleted.
+        PreviewedAges.claim(player, words, player.writingSeed, payload.title.trim())
+            ?.let { book.set(AgeComponents.AGE_ID, it) }
         desk.setTemplate(player.uuid, "")
         // Straight to the writer: there is no slot to lift it out of, since nothing is handled at the desk.
         player.inventory.placeItemBackInInventory(book, Prediction.SERVER_ONLY)

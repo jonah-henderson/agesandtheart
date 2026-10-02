@@ -101,7 +101,7 @@ object LinkingPanel {
         }
         showing?.close()
         PanelRenderer.startOver()
-        showing = PreviewLevel.open(payload)
+        showing = PreviewLevel.open(payload, large = askedFor == BookBeingRead.AtACrystalViewer)
         if (showing == null) {
             Constants.LOG.warn(
                 "Panel: the level payload for {} arrived and no preview could be built",

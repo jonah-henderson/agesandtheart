@@ -6,6 +6,7 @@ import co.voik.agesandtheart.book.LecternOpening
 import co.voik.agesandtheart.book.LecternPanelChoice
 import co.voik.agesandtheart.book.NearbyLectern
 import co.voik.agesandtheart.client.BookScreen
+import co.voik.agesandtheart.client.CrystalViewerScreen
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
@@ -42,7 +43,9 @@ object LecternPanels {
         val level = minecraft.level ?: return
         val player = minecraft.player ?: return
         // An open book screen owns the panel and ticks it; the choice resumes from its lectern once it closes.
-        if (minecraft.gui.screen() is BookScreen) return
+        // A crystal viewer's screen outranks them as a book's does.
+        val screen = minecraft.gui.screen()
+        if (screen is BookScreen || screen is CrystalViewerScreen) return
 
         val showing = shown
         val wanted = LecternPanelChoice.choose(showing, openBooksNear(level, player.position()))

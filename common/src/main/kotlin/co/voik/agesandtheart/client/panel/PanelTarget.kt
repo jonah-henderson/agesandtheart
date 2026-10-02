@@ -21,7 +21,8 @@ import com.mojang.renderpearl.api.textures.GpuTextureView
  *
  * Every pair is kept rather than one being resized, which is what makes [showing] a note to self that any
  * thread may leave: the fields themselves are made lazily, inside the render, and only at the sizes a world
- * actually asks for. They come to about three megabytes if every rung is used, nearly all of it the first.
+ * actually asks for. They come to about three megabytes if every rung a book uses is, nearly all of it the
+ * book's window, and another ten once a crystal viewer has been looked through.
  *
  * `renderLevel` sizes every internal target in its frame graph from whatever `getMainRenderTarget()`
  * returns, so a panel-sized target makes the whole pass a fraction of a full-screen world render.
@@ -35,11 +36,13 @@ object PanelTarget {
      * The sizes a panel may be rendered at, sharpest first, all of them eight to five so the blit into the
      * page neither stretches nor crops whichever is showing.
      *
-     * The first is a **window**, finer than the page can show at any GUI scale, and is what a coherent Age
-     * gets. The rest are what an unstable one falls down: Riven's panel was a low-resolution movie, and the
-     * further gone an Age is the less of one the book has left.
+     * The first two are **windows**, what a coherent Age gets: the crystal viewer's, which draws the panel
+     * several times the size a book does, and the book's, finer than the page can show at any GUI scale. The
+     * rest are what an unstable one falls down, in a viewer as in a book: Riven's panel was a low-resolution
+     * movie, and the further gone an Age is the less of one the book has left.
      */
     private val COARSENESSES = listOf(
+        1024 to 640,
         512 to 320,
         208 to 130,
         144 to 90,
@@ -54,11 +57,15 @@ object PanelTarget {
     val SHARPEST_WIDTH: Int = COARSENESSES.first().first
     val SHARPEST_HEIGHT: Int = COARSENESSES.first().second
 
-    private const val CLEAREST = 0
+    private const val A_VIEWERS_WINDOW = 0
+    private const val A_BOOKS_WINDOW = 1
+
+    /** The first rung an unsettled Age may take: past both windows. */
+    private const val FIRST_BLURRED = 2
 
     private val fieldsAt: List<Array<TextureTarget?>> = COARSENESSES.map { arrayOfNulls(FIELDS) }
 
-    private var coarseness = CLEAREST
+    private var coarseness = A_BOOKS_WINDOW
     private var newest = 0
     private var everTurned = false
     private var redirecting = false
@@ -66,16 +73,16 @@ object PanelTarget {
     /**
      * How coarsely the book about to be shown is rendered. Decided once as it opens, never inside a frame.
      *
-     * A coherent Age takes the clear rung and no other, because the coarseness is part of the distortion
-     * rather than part of the panel ([PanelDistortion.distorts]).
+     * A coherent Age takes a window and no other rung — the viewer's where the panel is [large] — because the
+     * coarseness is part of the distortion rather than part of the panel ([PanelDistortion.distorts]).
      */
-    fun showing(unsettled: Float) {
-        coarseness = if (!PanelDistortion.distorts(unsettled)) {
-            CLEAREST
-        } else {
-            // Nought is the window, so the rungs an unsettled Age may take start at one.
-            val rungs = COARSENESSES.size - 1
-            (1 + (unsettled * rungs).toInt()).coerceAtMost(rungs)
+    fun showing(unsettled: Float, large: Boolean) {
+        coarseness = when {
+            !PanelDistortion.distorts(unsettled) -> if (large) A_VIEWERS_WINDOW else A_BOOKS_WINDOW
+            else -> {
+                val rungs = COARSENESSES.size - FIRST_BLURRED
+                (FIRST_BLURRED + (unsettled * rungs).toInt()).coerceAtMost(COARSENESSES.size - 1)
+            }
         }
     }
 

@@ -94,12 +94,25 @@ object PanelWarming {
 
         // Minting stamps the id onto the book, so the check above answers on every later tick.
         val level = BookAge.of(server, stack) ?: return
-        if (isWarmedOrUnderway(level)) return
+        warmLevel(server, level)
+    }
 
+    /**
+     * Warms [level], an Age with no book yet: a crystal viewer's preview, made as the writer leaves the desk
+     * so it is ready by the time they look ([co.voik.agesandtheart.desk.PreviewedAges]).
+     */
+    fun warmLevel(server: MinecraftServer, level: ServerLevel) {
+        if (isWarmedOrUnderway(level)) return
         underway.add(level)
         waiting.add(level.dimension().identifier())
         beginTheNext(server)
     }
+
+    /**
+     * Whether [level]'s ring is still waiting or being made — when it must not be closed, since what is
+     * generating it holds the level and its chunk futures.
+     */
+    fun isUnderway(level: ServerLevel): Boolean = level in underway
 
     /** Takes a deleted Age out of the queue. What was warmed is keyed on its level, which goes with it. */
     private fun forget(id: Identifier) {

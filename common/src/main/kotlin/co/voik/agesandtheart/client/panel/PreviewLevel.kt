@@ -169,8 +169,11 @@ class PreviewLevel private constructor(
 
     companion object {
 
-        /** Null when the dimension type the server named is not in the client's registries. */
-        fun open(payload: PanelLevelPayload): PreviewLevel? {
+        /**
+         * Null when the dimension type the server named is not in the client's registries. [large] is a
+         * crystal viewer's panel, drawn several times the size of a book's and rendered finer to match.
+         */
+        fun open(payload: PanelLevelPayload, large: Boolean): PreviewLevel? {
             val minecraft = Minecraft.getInstance()
             val connection = minecraft.connection ?: return null
             val dimensionType = connection.registryAccess()
@@ -232,7 +235,7 @@ class PreviewLevel private constructor(
 
             val unsettled = PanelDistortion.unsettledAt(payload.instability)
             // A note to self rather than GPU work: the fields are made lazily, inside the render.
-            PanelTarget.showing(unsettled)
+            PanelTarget.showing(unsettled, large)
             return PreviewLevel(
                 level = level,
                 renderer = renderer,

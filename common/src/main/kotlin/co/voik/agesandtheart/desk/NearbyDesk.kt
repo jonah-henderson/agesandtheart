@@ -29,10 +29,17 @@ class NearbyDesk(private val pos: BlockPos) {
      * instrument with nothing to read, where no desk at all is an instrument that should fall back to the
      * world it is standing in.
      */
-    fun laidOutBy(writer: ServerPlayer): List<Identifier>? {
+    fun laidOutBy(writer: ServerPlayer): List<Identifier>? = readFor(writer)?.let(TemplateReading::learnedWords)
+
+    /**
+     * This writer's template at the desk in the room, read word by word — unlearned and unknown runs
+     * included, which is what the crystal viewer needs to refuse a sentence the desk would refuse to bind.
+     * Null where the room holds no desk.
+     */
+    fun readFor(writer: ServerPlayer): List<ReadWord>? {
         val level = writer.level()
         val known = deskAt?.let { level.getBlockEntity(it) as? WritersDeskBlockEntity }
-        if (known != null) return DeskTemplates.wordsOf(writer, known.templateFor(writer.uuid))
+        if (known != null) return DeskTemplates.read(writer, known.templateFor(writer.uuid))
         deskAt = null
         val reach = WritersDesk.of(level.server).radius
         val cursor = BlockPos.MutableBlockPos()
@@ -40,7 +47,7 @@ class NearbyDesk(private val pos: BlockPos) {
             cursor.setWithOffset(pos, x, y, z)
             val desk = level.getBlockEntity(cursor) as? WritersDeskBlockEntity ?: continue
             deskAt = cursor.immutable()
-            return DeskTemplates.wordsOf(writer, desk.templateFor(writer.uuid))
+            return DeskTemplates.read(writer, desk.templateFor(writer.uuid))
         }
         return null
     }

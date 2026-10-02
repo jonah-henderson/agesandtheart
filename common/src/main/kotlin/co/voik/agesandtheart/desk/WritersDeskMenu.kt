@@ -38,6 +38,14 @@ class WritersDeskMenu(
     override fun stillValid(player: Player): Boolean =
         access.evaluate({ level, pos -> level.getBlockState(pos).block is WritersDeskBlock }, true)
 
+    /** The writer has stopped working on the sentence for now, so a crystal viewer's Age can be made ready. */
+    override fun removed(player: Player) {
+        super.removed(player)
+        val writer = player as? ServerPlayer ?: return
+        val desk = deskOf(writer) ?: return
+        PreviewedAges.whenTheDeskCloses(writer, desk)
+    }
+
     /** Wrapped in an Optional because `evaluate` will not carry a nullable result. */
     fun deskOf(player: ServerPlayer): WritersDeskBlockEntity? =
         access.evaluate(

@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "Rime crystals round a spyglass, the lens that looks into the Age, with a copper bulb under it to light",
+    "them, on a stand of iron bars (Jonah, 2026-10-01). Rime because a crystal is the thing a viewer is",
+    "made of rather than a stand-in for a lens (design 7.4). Ratios are unbalanced."
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "RSR",
+    "RBR",
+    "III"
+  ],
+  "key": {
+    "R": "#agesandtheart:rime_crystals",
+    "S": "minecraft:spyglass",
+    "B": "minecraft:copper_bulb",
+    "I": "minecraft:iron_bars"
+  },
+  "result": { "id": "agesandtheart:crystal_viewer" }
+}

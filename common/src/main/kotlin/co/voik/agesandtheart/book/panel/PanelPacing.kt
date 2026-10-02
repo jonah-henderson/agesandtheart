@@ -55,7 +55,8 @@ class PanelPacing(private val gap: Long) {
     }
 
     private fun clockFor(book: BookBeingRead): MutableMap<UUID, Long> = when (book) {
-        is BookBeingRead.InHand -> openedInHand
+        // A viewer's screen outranks every lectern as a book's does, so it keeps the hand's clock.
+        is BookBeingRead.InHand, BookBeingRead.AtACrystalViewer -> openedInHand
         is BookBeingRead.OnALectern -> openedAtALectern
     }
 

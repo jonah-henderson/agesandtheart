@@ -8,6 +8,9 @@ import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.Linking
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.desk.CrystalViewerMenu
+import co.voik.agesandtheart.desk.PreviewedAges
+import co.voik.agesandtheart.desk.ViewerFinding
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.util.Util
@@ -80,21 +83,7 @@ object PanelViews {
     private fun openAdmitted(server: MinecraftServer, player: ServerPlayer, book: BookBeingRead) {
         closeWatchOf(server, player.uuid)
 
-        val stack = when (book) {
-            is BookBeingRead.InHand -> player.getItemInHand(book.hand)
-            is BookBeingRead.OnALectern -> LecternBooks.openBookSeenBy(player, book.pos)
-        }
-        if (stack == null) {
-            Constants.LOG.info("Panel refused: {} asked after a lectern with no open book of ours in reach", player.name.string)
-            return
-        }
-        val destination = destinationOf(server, stack)
-        if (destination == null) {
-            Constants.LOG.info("Panel refused: {} asked after {}, which leads nowhere that will open", player.name.string, stack.item)
-            return
-        }
-        // Resolving a descriptive book stamps its Age onto it, and a lectern keeps the stamp.
-        if (book is BookBeingRead.OnALectern) player.level().getBlockEntity(book.pos)?.setChanged()
+        val destination = destinationFor(server, player, book) ?: return
 
         val level = destination.level
         val around = destination.around
@@ -220,6 +209,41 @@ object PanelViews {
         if (previously != null && now - previously < gap) return false
         clock[player.uuid] = now
         return true
+    }
+
+    /**
+     * What [player]'s panel onto [book] looks at, or null — said in the log — where it looks at nothing.
+     *
+     * A crystal viewer's is the Age its screen was opened onto ([PreviewedAges]), and only while that screen
+     * is open: the menu is the proof the writer is standing at one.
+     */
+    private fun destinationFor(server: MinecraftServer, player: ServerPlayer, book: BookBeingRead): Destination? {
+        if (book == BookBeingRead.AtACrystalViewer) {
+            // The menu's own finding, so a viewer opened onto an unwritable sentence cannot show the last
+            // preview the writer made.
+            val viewer = player.containerMenu as? CrystalViewerMenu
+            val isPreviewing = viewer?.finding == ViewerFinding.PREVIEWING
+            val level = if (isPreviewing) PreviewedAges.showing(player) else null
+            if (level == null) Constants.LOG.info("Panel refused: {} asked after a crystal viewer with none open, or nothing laid out", player.name.string)
+            return level?.let { Destination(it, Ages.arrivalIn(it)) }
+        }
+        val stack = when (book) {
+            is BookBeingRead.InHand -> player.getItemInHand(book.hand)
+            is BookBeingRead.OnALectern -> LecternBooks.openBookSeenBy(player, book.pos)
+            BookBeingRead.AtACrystalViewer -> null
+        }
+        if (stack == null) {
+            Constants.LOG.info("Panel refused: {} asked after a lectern with no open book of ours in reach", player.name.string)
+            return null
+        }
+        val destination = destinationOf(server, stack)
+        if (destination == null) {
+            Constants.LOG.info("Panel refused: {} asked after {}, which leads nowhere that will open", player.name.string, stack.item)
+            return null
+        }
+        // Resolving a descriptive book stamps its Age onto it, and a lectern keeps the stamp.
+        if (book is BookBeingRead.OnALectern) player.level().getBlockEntity(book.pos)?.setChanged()
+        return destination
     }
 
     /**

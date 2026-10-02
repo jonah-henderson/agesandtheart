@@ -39,6 +39,12 @@ object PanelComposite {
     /** Texels to a page-pixel: finer than a book screen shows at any GUI scale, so a blit is as sharp as drawing. */
     private const val TEXELS_PER_PAGE_PIXEL = 4
 
+    /**
+     * The live picture's, which a crystal viewer also draws at several times a book's size — about its own
+     * window's ([PanelTarget]) texels across, so the composite is never what softens it.
+     */
+    private const val LIVE_TEXELS_PER_PAGE_PIXEL = 10
+
     private const val FRAMED_WIDTH = PanelPicture.WIDTH + 2 * PanelPicture.FRAME_WIDTH
     private const val FRAMED_HEIGHT = PanelPicture.HEIGHT + 2 * PanelPicture.FRAME_WIDTH
 
@@ -83,13 +89,13 @@ object PanelComposite {
     fun composeLive(preview: PreviewLevel?, delta: DeltaTracker): GpuTextureView {
         val age = preview?.takeIf { PanelRenderer.draw(it, delta) }?.let(AgeInView::of)
         val stillMissing = 1.0f - (preview?.load?.wholeness ?: 0.0f)
-        val target = live ?: newTarget("live").also { live = it }
+        val target = live ?: newTarget("live", LIVE_TEXELS_PER_PAGE_PIXEL).also { live = it }
         return compose(target, PanelPicture.strokes(age, stillMissing))
     }
 
     /** Lays the misted picture down: the one every panel wears that is not showing an Age. */
     fun composeMisted(): GpuTextureView {
-        val target = misted ?: newTarget("misted").also { misted = it }
+        val target = misted ?: newTarget("misted", TEXELS_PER_PAGE_PIXEL).also { misted = it }
         return compose(target, PanelPicture.strokes(age = null, mist = WHOLLY_MISTED))
     }
 
@@ -99,10 +105,10 @@ object PanelComposite {
     /** The misted picture as last laid down, or null before it ever has been. */
     fun mistedView(): GpuTextureView? = misted?.colorTextureView
 
-    private fun newTarget(which: String): RenderTarget = TextureTarget(
+    private fun newTarget(which: String, texelsPerPagePixel: Int): RenderTarget = TextureTarget(
         "Ages linking panel, $which",
-        FRAMED_WIDTH * TEXELS_PER_PAGE_PIXEL,
-        FRAMED_HEIGHT * TEXELS_PER_PAGE_PIXEL,
+        FRAMED_WIDTH * texelsPerPagePixel,
+        FRAMED_HEIGHT * texelsPerPagePixel,
         GpuFormat.RGBA8_UNORM,
         // 26.3 names the depth format where it took a "give me depth" flag; this is what vanilla's own
         // main target asks for, and a null here would mean no depth at all.
