@@ -56,9 +56,11 @@ object CaveIns {
      *
      * A swathe centred on somebody standing on a hillside would cut half its shape through open air. Put on
      * the ground, the crack's plan lies where there is rock to take, and [CaveIn] eats down from there.
+     * The ocean floor's heightmap, which passes through water, so a cave-in under the sea starts on the
+     * seabed rather than at the waterline.
      */
     private fun groundAt(level: ServerLevel, x: Int, z: Int): BlockPos =
-        BlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) - ONE, z)
+        BlockPos(x, level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z) - ONE, z)
 
     /**
      * How many chances a pass gets and how rarely each one takes.

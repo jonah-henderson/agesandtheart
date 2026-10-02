@@ -18,6 +18,7 @@ import net.minecraft.world.entity.item.FallingBlockEntity
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import co.voik.agesandtheart.location
@@ -166,7 +167,7 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
             val since = level.gameTime - began
             val standing = level.getBlockState(at)
             // Something else took it, or it was never ours to take.
-            if (standing.isAir || immune(level, at)) {
+            if (!isGround(standing) || immune(level, at)) {
                 gone += at
                 clearCrack(level, at)
                 continue
@@ -259,7 +260,7 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
                     val at = cursor.immutable()
                     if (at in cracking) continue
                     val standing = level.getBlockState(at)
-                    if (standing.isAir || immune(level, at)) continue
+                    if (!isGround(standing) || immune(level, at)) continue
                     if (!openToTheAir(level, at)) continue
                     cracking[at] = level.gameTime
                     level.destroyBlockProgress(breakerFor(at), at, CRACKED_TO)
@@ -281,6 +282,12 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
     /** Whether any of the six sides of [at] is open, which is the only way a crack on it could be seen. */
     private fun openToTheAir(level: ServerLevel, at: BlockPos): Boolean =
         Direction.entries.any { !level.getBlockState(at.relative(it)).isSolidRender }
+
+    /**
+     * Whether [state] is ground a cave-in can take: not air, and not a fluid, which would only flow back in
+     * or turn back into a source as fast as it was taken.
+     */
+    private fun isGround(state: BlockState): Boolean = !state.isAir && !state.liquid()
 
     /** What a cave-in will not take — `#immune_to_collapse`, and what nara holds ([BetweenNara]). */
     private fun immune(level: ServerLevel, at: BlockPos): Boolean =
