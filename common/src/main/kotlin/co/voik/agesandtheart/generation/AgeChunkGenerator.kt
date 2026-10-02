@@ -1262,29 +1262,33 @@ class AgeChunkGenerator(
     }
 
     /**
-     * Nothing where the shape is ours — mob generation is disabled in
-     * [co.voik.agesandtheart.worldgen.settingsFor], and the superclass
-     * would otherwise consult its own [NoiseChunk] to decide. Vanilla's rock answers for itself: its
-     * settings already say whether that world populates a fresh chunk, and the overworld's says it does.
+     * The animals a chunk is made with — [ChunkGenerationSpawns], vanilla's pass over the Age's own list.
      *
-     * **And nothing where the Age says nothing lives here.** This pass is not the runtime spawner and does
-     * not come through [getMobsAt]: `NaturalSpawner.spawnMobsForChunkGeneration` takes the biome holder and
-     * reads its own mob settings, so the whole of `Spawns.LIVES` was invisible to it. An Age on vanilla
-     * rock got vanilla's chunk-generation animals whatever its sentence said — `deserted` emptied the
-     * spawner and left five horses standing where the chunk was made.
+     * **Ours wherever vanilla's cannot see the Age.** Vanilla's reads the biome's list straight off the
+     * environment rather than through [getMobsAt], so the whole of `Spawns.LIVES` was invisible to it —
+     * `deserted` left five horses standing where the chunk was made, and `cats everywhere` filled the cap
+     * with vanilla's animals before a cat could come. And where the shape is ours vanilla's runs not at all:
+     * its settings switch it off ([co.voik.agesandtheart.worldgen.settingsFor]), since it would consult a
+     * [NoiseChunk] our shapes never build, and an Age of our own rock was made with no animals in it.
+     *
+     * Vanilla's rock that said nothing of what lives here keeps vanilla's own pass, and its settings, which
+     * say whether that world populates a fresh chunk.
      */
     override fun spawnOriginalMobs(level: WorldGenRegion) {
-        if (rock is AgeRock.Ours) return
-        if (offersNoCreaturesIn(level)) return
-        super.spawnOriginalMobs(level)
+        val isOurShape = rock is AgeRock.Ours
+        val living = lives
+        if (!isOurShape && living == null) return super.spawnOriginalMobs(level)
+        if (!isOurShape && generatorSettings().value().disableMobGeneration()) return
+        val center = level.center
+        val random = WorldgenRandom(LegacyRandomSource(RandomSupport.generateUniqueSeed()))
+        random.setDecorationSeed(level.seed, center.minBlockX, center.minBlockZ)
+        ChunkGenerationSpawns.spawn(level, creaturesMadeWith(level, living), random)
     }
 
     /**
-     * Whether this Age would refuse every creature the chunk-generation pass could place.
-     *
-     * Asked the way vanilla's own spawner asks, so the question is the one it is about to answer.
-     * **Only emptiness is acted on**: a sentence that merely narrows still gets vanilla's own list here,
-     * since the pass reads the attribute directly and there is nowhere to hand it a shorter one.
+     * The creatures a chunk is made with: the biome's list with the sentence applied, as the runtime
+     * spawner offers them, or the biome's alone where [living] is null — asked the way vanilla's own pass
+     * asks, at the chunk's centre.
      *
      * **26.3 moved a biome's spawners off the biome** and onto `NATURAL_MOB_SPAWNS`, an environment
      * attribute like the sky's colour or the fog's. Read positionally here because that is what the
@@ -1293,21 +1297,21 @@ class AgeChunkGenerator(
      * The situation is the surface in daylight because that is what this pass places — animals, out in the
      * open, before there is any lighting to ask about.
      */
-    private fun offersNoCreaturesIn(level: WorldGenRegion): Boolean {
-        val living = lives ?: return false
+    private fun creaturesMadeWith(
+        level: WorldGenRegion,
+        living: Spawns.Living?,
+    ): WeightedList<MobSpawnSettings.SpawnerData> {
         val at = level.center.worldPosition.atY(level.maxY)
-        val biome = level.getBiome(at)
         val offered = level.environmentAttributes()
             .getValue(EnvironmentAttributes.NATURAL_MOB_SPAWNS, at)
             .getMobsToSpawn(MobCategory.CREATURE)
-        if (offered.isEmpty) return false
-        val kept = living.at(
-            biome.unwrapKey().orElse(null)?.identifier(),
+        if (living == null) return offered
+        return living.at(
+            level.getBiome(at).unwrapKey().orElse(null)?.identifier(),
             MobCategory.CREATURE,
             Spawns.Situation(at = at, skyIsOpen = true, brightness = FULLY_LIT),
             offered,
         )
-        return kept.isEmpty
     }
 
     /** The superclass renders noise-router values in F3, which describe terrain a field Age does not have. */
