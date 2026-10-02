@@ -41,7 +41,7 @@ import net.minecraft.world.phys.shapes.VoxelShape
  * light changes a day apiece rather than the twenty-eight a ladder of rungs needed, which on a vault's
  * lake is the difference between a relight and a storm of them.
  *
- * **And a mat that wakes wakes the ones around it**, which is not decoration — see [wakeTheNeighbours].
+ * **And a mat that turns turns the ones around it**, a ripple across the lake — see [turnToTheHour].
  */
 class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
 
@@ -109,11 +109,8 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         }
         // **The hour is followed and the tick carries on**, rather than being spent on it: returning here
         // would skip the spread on the ticks that happen to fall at dawn or dusk.
+        turnToTheHour(state, level, pos, random)
         val lit = isLitAtHour(level.defaultClockTime)
-        if (state.getValue(LIT) != lit) {
-            level.setBlock(pos, state.setValue(LIT, lit), UPDATE_CLIENTS)
-            wakeTheNeighbours(level, pos, lit)
-        }
         if (random.nextInt(SPREADS_ONE_TICK_IN) != 0) return
         if (crowdedAround(level, pos)) return
         val reachX = random.nextInt(SPREAD_ACROSS * 2 + 1) - SPREAD_ACROSS
@@ -129,28 +126,32 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         level.setBlockAndUpdate(to, defaultBlockState().setValue(LIT, lit))
     }
 
+    /** A ripple arriving — see [turnToTheHour]. */
+    override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
+        turnToTheHour(state, level, pos, random)
+    }
+
     /**
-     * Every mat within reach brought to the same hour as the one that just woke.
+     * A mat out of step with the hour turned to it, **and the turn rippling out across the lake** — vanilla's
+     * eyeblossom, whose patches open and close the same way.
      *
-     * **This is what makes the lake turn at one speed in both directions**, and without it the two are not
-     * even close. Lighting up looks quick because a lake reads as lit once the *first* mats have caught
-     * up, each one lighting a wide radius; going dark waits on the *last*, and the tail of a random-tick
-     * process is about `ln(mats)` times its mean — eight minutes against twenty-five seconds for a
-     * thousand of them (Jonah, walked 2026-09-08: "it takes ages for them all to darken").
-     *
-     * Waking a neighbourhood rather than a block turns that tail into a patchwork: every mat now has as
-     * many chances to be caught as there are mats near it. It costs nothing when the lake is settled,
-     * because a mat that was already at the hour never gets here.
+     * Every mat within reach still at the old hour is scheduled to turn after a delay that grows with its
+     * distance, and turns its own neighbours in turn, so one random tick sends a wave through the whole
+     * mat. That is what turns a lake at one speed both ways, where a random-tick process alone waits on its
+     * last straggler; and a chunk come back after the hour turned needs nothing of its own, since the
+     * first of its mats to tick sets the wave going.
      */
-    private fun wakeTheNeighbours(level: ServerLevel, pos: BlockPos, lit: Boolean) {
+    private fun turnToTheHour(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
+        val lit = isLitAtHour(level.defaultClockTime)
+        if (state.getValue(LIT) == lit) return
+        level.setBlock(pos, state.setValue(LIT, lit), UPDATE_CLIENTS)
         for (around in BlockPos.betweenClosed(
-            pos.offset(-WAKES_WITHIN, -WAKES_BELOW, -WAKES_WITHIN),
-            pos.offset(WAKES_WITHIN, WAKES_BELOW, WAKES_WITHIN),
+            pos.offset(-RIPPLES_ACROSS, -RIPPLES_UP_AND_DOWN, -RIPPLES_ACROSS),
+            pos.offset(RIPPLES_ACROSS, RIPPLES_UP_AND_DOWN, RIPPLES_ACROSS),
         )) {
-            val neighbour = level.getBlockState(around)
-            if (!neighbour.`is`(this)) continue
-            if (neighbour.getValue(LIT) == lit) continue
-            level.setBlock(around.immutable(), neighbour.setValue(LIT, lit), UPDATE_CLIENTS)
+            if (level.getBlockState(around) != state) continue
+            val distance = Math.sqrt(pos.distSqr(around))
+            level.scheduleTick(around.immutable(), this, rippleDelay(distance, random))
         }
     }
 
@@ -223,18 +224,11 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
          */
         fun isLitAtHour(clockTime: Long): Boolean = Math.floorMod(clockTime, A_DAY) < NIGHT_FALLS
 
-        /**
-         * The chance that a mat found out of step with the hour at [clockTime] — in a chunk that was away
-         * while the hour turned — has turned with it by now (Jonah, 2026-10-01).
-         *
-         * A loaded lake turns over minutes rather than at once, so a mat coming back just after sunset is as
-         * likely as not to be still burning: nought at sunset, rising evenly to certain at midnight, when
-         * every mat should be out. And the same at dawn, certain by midday.
-         */
-        fun chanceOfHavingTurned(clockTime: Long): Double {
-            val timeOfDay = Math.floorMod(clockTime, A_DAY)
-            val sinceItTurned = if (timeOfDay < NIGHT_FALLS) timeOfDay else timeOfDay - NIGHT_FALLS
-            return (sinceItTurned.toDouble() / ALL_TURNED_AFTER).coerceIn(0.0, 1.0)
+        /** How long a ripple takes to reach a mat [distance] blocks away, in ticks: the eyeblossom's. */
+        fun rippleDelay(distance: Double, random: RandomSource): Int {
+            val soonest = (distance * FASTEST_TICKS_A_BLOCK).toInt()
+            val latest = (distance * SLOWEST_TICKS_A_BLOCK).toInt()
+            return random.nextIntBetweenInclusive(soonest, latest)
         }
 
         /**
@@ -252,18 +246,13 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         /** Vanilla's own sunset, and zero is its sunrise — so "dark from sundown to sunup" is literal. */
         private const val NIGHT_FALLS = 12000L
 
-        /** From sunset to midnight, and from sunrise to midday: by then every mat has turned. */
-        private const val ALL_TURNED_AFTER = 6000.0
+        /** How far a turning mat reaches, across and up and down — the eyeblossom's. See [turnToTheHour]. */
+        private const val RIPPLES_ACROSS = 3
+        private const val RIPPLES_UP_AND_DOWN = 2
 
-        /**
-         * How far a waking mat reaches, and how far down it looks — see [wakeTheNeighbours].
-         *
-         * Twenty-five columns, which is enough to collapse the straggler tail without making a random tick
-         * expensive. It is smaller than the spread's own reach on purpose: this is the hour travelling
-         * through a patch that already exists, not the patch growing.
-         */
-        private const val WAKES_WITHIN = 2
-        private const val WAKES_BELOW = 1
+        /** How many ticks a ripple takes to cross a block, at its quickest and its slowest. */
+        private const val FASTEST_TICKS_A_BLOCK = 5
+        private const val SLOWEST_TICKS_A_BLOCK = 10
 
         /** How thin it lies in its block — enough to read as a growth on the water and not as a lid. */
         private val MAT: VoxelShape = box(0.0, 0.0, 0.0, 16.0, 1.0, 16.0)

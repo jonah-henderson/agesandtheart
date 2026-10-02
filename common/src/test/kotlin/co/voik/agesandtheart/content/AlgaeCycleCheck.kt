@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.content
 
 import io.kotest.core.spec.style.FunSpec
+import net.minecraft.util.RandomSource
 
 /**
  * **The algae keeps the hour** (design §7.6) — the cycle that gave a people with no sky a day.
@@ -32,23 +33,13 @@ class AlgaeCycleCheck : FunSpec({
         check(day.isEmpty()) { "it was out at ${day.size} moments before sunset: ${day.take(5)}" }
     }
 
-    /**
-     * A chunk come back after the hour turned: its stale mats have not turned at the moment the lake began
-     * to, and have all turned by midnight — or by midday, the other way round.
-     */
-    test("a stale mat has turned by nothing at sunset and certainly by midnight") {
-        check(AlgaeBlock.chanceOfHavingTurned(SUNSET) == 0.0) { "a mat had turned at the moment of sunset" }
-        check(AlgaeBlock.chanceOfHavingTurned(MIDNIGHT) == 1.0) { "a mat had not certainly turned by midnight" }
-        check(AlgaeBlock.chanceOfHavingTurned(MIDNIGHT + A_MOMENT * 10) == 1.0) { "past midnight, a mat had not turned" }
-        check(AlgaeBlock.chanceOfHavingTurned(0L) == 0.0) { "a mat had turned at the moment of sunrise" }
-        check(AlgaeBlock.chanceOfHavingTurned(NOON) == 1.0) { "a mat had not certainly turned by midday" }
-    }
-
-    test("the chance rises steadily between") {
-        val evening = (SUNSET..MIDNIGHT step A_MOMENT).map(AlgaeBlock::chanceOfHavingTurned)
-        val fallsBack = evening.zipWithNext().filter { (before, after) -> after < before }
-        check(fallsBack.isEmpty()) { "the evening's chance fell back at ${fallsBack.size} moments" }
-        check(AlgaeBlock.chanceOfHavingTurned(SUNSET + (MIDNIGHT - SUNSET) / 2) == 0.5) { "halfway to midnight was not even" }
+    /** A turn ripples outward: the next mat over within half a second, and one farther off never sooner. */
+    test("a ripple reaches farther mats later") {
+        val random = RandomSource.create(RIPPLE_SEED)
+        val nextDoor = (1..RIPPLES_TRIED).map { AlgaeBlock.rippleDelay(1.0, random) }
+        val threeAway = (1..RIPPLES_TRIED).map { AlgaeBlock.rippleDelay(3.0, random) }
+        check(nextDoor.all { it in 1..HALF_A_SECOND }) { "the next mat over was reached at ${nextDoor.min()}..${nextDoor.max()}" }
+        check(threeAway.min() >= nextDoor.max()) { "three blocks off was reached before the next mat over" }
     }
 
     /** The clock is absolute rather than wrapped, so a world a hundred days old still reads its own hour. */
@@ -67,5 +58,9 @@ class AlgaeCycleCheck : FunSpec({
 
         /** Fine enough to catch a boundary put a few ticks wrong, which is the only way this can be wrong. */
         const val A_MOMENT = 20L
+
+        const val RIPPLE_SEED = 7L
+        const val RIPPLES_TRIED = 200
+        const val HALF_A_SECOND = 10
     }
 }
