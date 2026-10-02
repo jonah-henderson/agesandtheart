@@ -99,11 +99,6 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
     }
 
     private companion object {
-        /**
-         * What to call the place. An Age's id path is the name its writer gave it; anywhere else falls
-         * back to the dimension's own, so a book written in the Overworld reads sensibly too.
-         */
-        fun nameOf(level: ServerLevel): String =
-            WordNames.titleCase(level.dimension().identifier().path.replace('_', ' '))
+        fun nameOf(level: ServerLevel): String = WordNames.placeName(level.dimension())
     }
 }

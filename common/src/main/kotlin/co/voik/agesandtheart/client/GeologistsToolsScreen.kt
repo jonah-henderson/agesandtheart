@@ -2,6 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterial
 import co.voik.agesandtheart.age.reward.Yield
+import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.desk.GeologistsToolsMenu
 import co.voik.agesandtheart.desk.ReadingSource
 import co.voik.agesandtheart.desk.materialsIn
@@ -37,8 +38,23 @@ class GeologistsToolsScreen(menu: GeologistsToolsMenu, inventory: Inventory, tit
         val deposit = Yield.entries.getOrNull(menu.deposit) ?: Yield.NONE
         val deretheni = if (deposit == Yield.NONE) null else translated("amount.${deposit.key}", translated("material.pitchstone"))
         val held = listOfNotNull(deretheni) + materialsIn(menu.materials).map { translated("material.${keyOf(it)}") }
-        if (held.isEmpty()) return listOf(translated("contains_nothing"))
-        return listOf(translated("contains")) + held.map { translated("item", it) }
+        val header = headerFor(held.isEmpty())
+        if (held.isEmpty()) return listOf(header)
+        return listOf(header) + held.map { translated("item", it) }
+    }
+
+    /**
+     * The Age by its name where the tools stand in one — the player is standing there too, so the client
+     * knows which — and otherwise the one at the desk, which has no name until it is bound.
+     */
+    private fun headerFor(holdsNothing: Boolean): Component {
+        val standingIn = minecraft?.level?.dimension()
+        val suffix = if (holdsNothing) "_nothing" else ""
+        return if (menu.source == ReadingSource.AN_AGE && standingIn != null) {
+            translated("contains$suffix", WordNames.placeName(standingIn))
+        } else {
+            translated("will_contain$suffix")
+        }
     }
 
     /** An early material's survey name: plain and uncoloured, rime being any of its colours. */

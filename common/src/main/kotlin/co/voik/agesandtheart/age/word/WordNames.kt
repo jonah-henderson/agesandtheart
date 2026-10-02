@@ -2,6 +2,8 @@ package co.voik.agesandtheart.age.word
 
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.level.Level
 
 /** What a word is called in the player's own language. */
 object WordNames {
@@ -17,6 +19,13 @@ object WordNames {
      */
     fun readable(word: Identifier): Component =
         Component.translatableWithFallback(key(word), titleCase(word.path.replace('_', ' ')))
+
+    /**
+     * What to call a level: an Age's id path is the name its writer gave it, and anywhere else reads by its
+     * dimension's own, so the Overworld reads sensibly too.
+     */
+    fun placeName(dimension: ResourceKey<Level>): String =
+        titleCase(dimension.identifier().path.replace('_', ' '))
 
     /** Title-cased for display. A place or a word of the Art is a name, and names take capitals. */
     fun titleCase(text: String): String = text
