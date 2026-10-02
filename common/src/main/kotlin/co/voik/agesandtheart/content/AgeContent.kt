@@ -2025,7 +2025,10 @@ object AgeContent {
     )
 
     val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =
-        listOf("repattern_descriptive_book".location() to RepatternBookRecipe.SERIALIZER) + StationRecipes.serializers +
+        listOf(
+            "repattern_descriptive_book".location() to RepatternBookRecipe.SERIALIZER,
+            ShapelessIntoOneBottleRecipe.ID to ShapelessIntoOneBottleRecipe.SERIALIZER,
+        ) + StationRecipes.serializers +
             (Compounding.ID to Compounding.SERIALIZER) + (Drying.ID to Drying.SERIALIZER)
 
     val recipeTypes: List<Pair<Identifier, RecipeType<*>>> = StationRecipes.types + (Compounding.ID to Compounding.TYPE) + (Drying.ID to Drying.TYPE)

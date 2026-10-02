@@ -1,9 +1,10 @@
 {
   "_comment": [
     "Design 7.1.2: a cured cake, fine ink for the vehicle, and dragon's breath -- the End's, as the endgame",
-    "is, and renewable with the dragon. Ratios are unbalanced."
+    "is, and renewable with the dragon. Ratios are unbalanced. Both bottles leave an empty one behind, and",
+    "the ink is poured into one of them, so this type gives back one empty bottle where vanilla's would give two."
   ],
-  "type": "minecraft:crafting_shapeless",
+  "type": "agesandtheart:crafting_shapeless_into_one_bottle",
   "category": "misc",
   "group": "agesandtheart_ink",
   "ingredients": [
