@@ -78,11 +78,15 @@ class CompoundingRecipe(
     override fun getType(): RecipeType<CompoundingRecipe> = Compounding.TYPE
 
     /**
-     * The ingredients, without their counts. Nothing places a compounding — the compounder's menu is not a
-     * recipe-book menu, and its book shows rather than fills — but vanilla warns at every load about a
-     * recipe that says it cannot be placed.
+     * Each ingredient once per item it takes, so sixteen obsidian is sixteen entries. That is what makes
+     * vanilla's `StackedItemContents` count: the recipe book's craftable check and [CompoundingPlacement]
+     * both read this list, and neither knows of counts.
      */
-    override fun placementInfo(): PlacementInfo = PlacementInfo.create(ingredients.map { it.ingredient })
+    override fun placementInfo(): PlacementInfo = placement
+
+    private val placement: PlacementInfo by lazy {
+        PlacementInfo.create(ingredients.flatMap { counted -> List(counted.count) { counted.ingredient } })
+    }
 
     override fun recipeBookCategory(): RecipeBookCategory = Compounding.BOOK_CATEGORY
 

@@ -1,26 +1,32 @@
 package co.voik.agesandtheart.station
 
 import co.voik.agesandtheart.desk.DeskSlots
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.Container
 import net.minecraft.world.SimpleContainer
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.entity.player.Player
-import net.minecraft.world.inventory.AbstractContainerMenu
+import net.minecraft.world.entity.player.StackedItemContents
 import net.minecraft.world.inventory.ContainerData
+import net.minecraft.world.inventory.RecipeBookMenu
+import net.minecraft.world.inventory.RecipeBookType
 import net.minecraft.world.inventory.SimpleContainerData
 import net.minecraft.world.inventory.Slot
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.crafting.RecipeHolder
 
 /**
  * The compounder's screen: four inputs in a square, an arrow, and the result, over the player's inventory.
  * What the inputs' recipe still lacks beside the machine travels on one data slot.
+ *
+ * A recipe-book menu, so vanilla's book lays a compounding out into the inputs ([CompoundingPlacement]).
  */
 class CompounderMenu(
     containerId: Int,
     playerInventory: Inventory,
     private val compounder: Container,
     private val lacking: ContainerData,
-) : AbstractContainerMenu(Compounder.MENU, containerId) {
+) : RecipeBookMenu(Compounder.MENU, containerId) {
 
     /** The client's, which vanilla's data syncing fills in. */
     constructor(containerId: Int, playerInventory: Inventory) :
@@ -44,6 +50,31 @@ class CompounderMenu(
         get() = CompounderNeed.entries.filter { need -> lacking.get(MISSING_NEEDS) and (1 shl need.ordinal) != 0 }
 
     val hasAResult: Boolean get() = slots[CompounderBlockEntity.RESULT].hasItem()
+
+    val inputSlots: List<Slot> get() = slots.subList(0, CompounderBlockEntity.INPUT_SLOTS)
+
+    val resultSlot: Slot get() = slots[CompounderBlockEntity.RESULT]
+
+    override fun handlePlacement(
+        useMaxItems: Boolean,
+        allowDroppingItemsToClear: Boolean,
+        recipe: RecipeHolder<*>,
+        level: ServerLevel,
+        inventory: Inventory,
+    ): RecipeBookMenu.PostPlaceAction {
+        val compounding = recipe.value() as? CompoundingRecipe ?: return RecipeBookMenu.PostPlaceAction.NOTHING
+        return CompoundingPlacement(inputSlots, inventory).place(compounding, useMaxItems, allowDroppingItemsToClear)
+    }
+
+    override fun fillCraftSlotsStackedContents(stackedContents: StackedItemContents) {
+        inputSlots.forEach { stackedContents.accountSimpleStack(it.item) }
+    }
+
+    /**
+     * The crafting table's, so the book's open and its filter are shared with it: the type is an enum and
+     * Fabric has no way to add to one.
+     */
+    override fun getRecipeBookType(): RecipeBookType = RecipeBookType.CRAFTING
 
     /**
      * The result goes to the inventory, as many times over as the inputs and the inventory allow — a

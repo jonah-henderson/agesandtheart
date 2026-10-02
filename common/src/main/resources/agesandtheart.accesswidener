@@ -191,3 +191,7 @@ accessible	method	net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator	ge
 # Our own `NoiseChunk` is built for both rocks, and the picker it was handed read OUR sea, which vanilla's
 # terrain never declares: the fill came out dry. Widened rather than copied so the lava line cannot drift.
 accessible	method	net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator	createFluidPicker	(Lnet/minecraft/world/level/levelgen/NoiseGeneratorSettings;)Lnet/minecraft/world/level/levelgen/Aquifer$FluidPicker;
+
+# The compounder's recipe book lays a compounding's ghost into its inputs with their counts, which a ghost
+# draws on a result slot alone. Vanilla's own books reach this from its package; NeoForge widens it already.
+accessible	method	net/minecraft/client/gui/screens/recipebook/GhostSlots	setResult	(Lnet/minecraft/world/inventory/Slot;Lnet/minecraft/util/context/ContextMap;Lnet/minecraft/world/item/crafting/display/SlotDisplay;)V
