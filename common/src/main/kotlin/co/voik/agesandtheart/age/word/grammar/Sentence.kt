@@ -82,6 +82,11 @@ data class Constraint(
      * — `ink springs`. A population's members are described into being, and that is this.
      */
     val describes: Int? = null,
+    /**
+     * Whether the clause said `everywhere`: a plant or creature named here is asked for in every place,
+     * rather than more of it where it already grows.
+     */
+    val everywhere: Boolean = false,
 )
 
 /**
@@ -113,6 +118,8 @@ data class Phrase(
      * what carries it into the recipe long after the sentence is gone.
      */
     val confinedTo: Identifier? = null,
+    /** Whether this clause closed on `everywhere`, held here so a reading can say it back as [confinedTo] is. */
+    val everywhere: Boolean = false,
 ) {
     /** Everything said here, in the order it was laid out — the subject closing the clause it is about. */
     val said: List<Constraint> get() = modifiers + listOfNotNull(subject)

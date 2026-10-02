@@ -57,21 +57,24 @@ class WritingCheck : FunSpec({
     }
 
     /**
-     * **Describing asks for more of what is here; naming asks for the thing.**
+     * **Describing or naming asks for more of what is here; `everywhere` asks for the thing.**
      *
      * `trees` reaches some seventy features through a tag. Read as seventy namings it put acacia, bamboo
      * and cherry into every biome at once, and an Age came out uniformly forested with no regard for what
-     * grew where (Jonah, 2026-09-03). A word that names one outright still puts it where it was not,
-     * because that is the whole of what naming a thing is for.
+     * grew where. Naming one is read the same way, and `everywhere` is what puts it where it was not.
      */
-    test("a described feature is bent where it grows, a named one is put there") {
+    test("a described or named feature is bent where it grows, a widened one is put there") {
         val described = server.run("age write describedtrees 7 age teeming trees features")
         check("where_it_grows" in described) {
             "'teeming trees' asked for trees to be *added* everywhere:\n$described"
         }
         val named = server.run("age write namedtree 7 age acacia features")
-        check("minecraft:acacia[" in named && "where_it_grows" !in named) {
-            "naming a feature stopped putting it where it was not:\n$named"
+        check("minecraft:acacia[where_it_grows,introduced_if_absent" in named) {
+            "naming a feature put it where it was not:\n$named"
+        }
+        val widened = server.run("age write widenedtree 7 age acacia everywhere")
+        check("minecraft:acacia" in widened && "minecraft:acacia[where_it_grows" !in widened) {
+            "'acacia everywhere' did not put it where it was not:\n$widened"
         }
     }
 

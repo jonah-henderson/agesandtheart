@@ -17,7 +17,7 @@ import net.minecraft.resources.Identifier
  * nucleus  : modifier* AGE
  * clause   : modifier* close
  * close    : SUBJECT siting? | siting
- * siting   : IN biome
+ * siting   : IN biome | EVERYWHERE
  * modifier : (ONLY | EXCEPT)? term (AND term)*
  * term     : QUANTIFIER? word
  * ```
@@ -48,6 +48,12 @@ internal object ArtReading {
 
     /** `in` and the biome it names — what a siting costs the cursor once it has been read. */
     private const val PAGES_IN_A_SITING = 2
+
+    /** `everywhere`, which names nothing after it. */
+    private const val PAGES_IN_A_WIDENING = 1
+
+    /** The parts of the world that grow in places, and so the ones `everywhere` can widen. */
+    val WIDENED: Set<Aspect> = setOf(Aspect.FEATURES, Aspect.SPAWNS)
 
     /** What makes a term unambiguous, and so able to close its own clause — see [Reading.trailingCloseAt]. */
     private const val ONE_PART_OF_THE_WORLD = 1
@@ -126,9 +132,11 @@ internal object ArtReading {
             if ((pages[closesAt].kind == PageClass.NUCLEUS) != nucleus) return null
 
             // A siting closes a clause on its own, so the subject is whatever is not one.
-            val subject = pages[closesAt].takeUnless { it.kind == PageClass.CONFINER }
+            fun isASiting(page: Page) = page.kind == PageClass.CONFINER || page.kind == PageClass.WIDENER
+            val subject = pages[closesAt].takeUnless(::isASiting)
             val sitingAt = if (subject == null) closesAt else closesAt + 1
             val confinedTo = sitingIn(sitingAt) ?: if (refused) return null else null
+            val everywhere = !nucleus && pages.getOrNull(sitingAt)?.kind == PageClass.WIDENER
             val aim = if (nucleus) emptySet() else subject?.word?.aspects.orEmpty()
             // A subject the sentence sited must be something vanilla resolves through the biome. Where there
             // is no subject the terms answer for themselves, which `belongsHere` asks of each in turn.
@@ -138,15 +146,24 @@ internal object ArtReading {
             // which a modifier would otherwise be read as having with nothing after it.
             val ownedFrom = if (subject?.kind == PageClass.TERM) subjectsOwnPagesFrom(closesAt) else closesAt
             val owned = pages.subList(ownedFrom, closesAt)
-            val said = modifiers(until = ownedFrom, aim = aim, confinedTo = confinedTo, closes = subject)
-                ?: return null
+            val said = modifiers(
+                until = ownedFrom, aim = aim, confinedTo = confinedTo, closes = subject, everywhere = everywhere,
+            ) ?: return null
+            // `everywhere` widens what grows in places, and a clause about nothing that does is a page
+            // laid for nothing — refused, as `in` with no biome after it is.
+            val reached = (said.flatMap { it.aimedAt } + aim + subject?.word?.aspects.orEmpty()).toSet()
+            if (everywhere && reached.none { it in WIDENED }) return null
             val subjectsRung = owned.firstOrNull { it.kind == PageClass.QUANTIFIER }
             val subjectsPolarity = when (owned.firstOrNull()?.kind) {
                 PageClass.RESTRICTOR -> Polarity.ONLY
                 PageClass.EXCLUDER -> Polarity.EXCEPT
                 else -> Polarity.ASSERTED
             }
-            at = if (confinedTo == null) sitingAt else sitingAt + PAGES_IN_A_SITING
+            at = when {
+                confinedTo != null -> sitingAt + PAGES_IN_A_SITING
+                everywhere -> sitingAt + PAGES_IN_A_WIDENING
+                else -> sitingAt
+            }
             // A clause closing on a population brings a member of it into being, and everything said in the
             // clause is said about *that* one.
             val population = aim.singleOrNull()?.takeIf { it.holds == Holds.POPULATION }
@@ -166,15 +183,18 @@ internal object ArtReading {
                         // mints off the subject, and a subject that forgot its ground minted everywhere.
                         confinedTo = confinedTo,
                         describes = body,
+                        everywhere = everywhere,
                     )
                 },
                 confinedTo = confinedTo,
+                everywhere = everywhere,
             )
         }
 
         /** Whether this page ends the clause it is in — an aiming page, or the `in` that opens a siting. */
         private fun closes(page: Page): Boolean =
-            page.kind == PageClass.NUCLEUS || page.kind == PageClass.SUBJECT || page.kind == PageClass.CONFINER
+            page.kind == PageClass.NUCLEUS || page.kind == PageClass.SUBJECT || page.kind == PageClass.CONFINER ||
+                page.kind == PageClass.WIDENER
 
         /**
          * A term before the aiming page at [closer] that reaches **exactly one** part of the world, and not
@@ -285,17 +305,23 @@ internal object ArtReading {
             aim: Set<Aspect>,
             confinedTo: Identifier?,
             closes: Page? = null,
+            everywhere: Boolean = false,
         ): List<Constraint>? =
             buildList {
                 while (at < until) {
                     if (!belongsHere(here, aim, sited = confinedTo != null, closing = closes)) return null
-                    addAll(modifier(until, aim, confinedTo))
+                    addAll(modifier(until, aim, confinedTo, everywhere))
                     if (refused) return@buildList
                 }
             }
 
         /** `(ONLY | EXCEPT)? term (AND term)*` — the shape every clause's modifiers share. */
-        private fun modifier(until: Int, aim: Set<Aspect>, confinedTo: Identifier?): List<Constraint> {
+        private fun modifier(
+            until: Int,
+            aim: Set<Aspect>,
+            confinedTo: Identifier?,
+            everywhere: Boolean,
+        ): List<Constraint> {
             val polarity = when (here?.kind) {
                 PageClass.RESTRICTOR -> Polarity.ONLY.also { take() }
                 PageClass.EXCLUDER -> Polarity.EXCEPT.also { take() }
@@ -328,6 +354,7 @@ internal object ArtReading {
                     rehomed = page.rehomed,
                     // Aimed at nothing, so what the word lists as `unaimed` is rolled for (`Word.unaimed`).
                     laidBare = aim.isEmpty(),
+                    everywhere = everywhere,
                 )
             }
         }

@@ -61,6 +61,7 @@ import co.voik.agesandtheart.age.aspect.AgeSpawner
 import co.voik.agesandtheart.content.DriftingOreSpawner
 import net.minecraft.world.level.CustomSpawner
 import co.voik.agesandtheart.age.aspect.Spawns
+import co.voik.agesandtheart.age.aspect.WhereThingsGrow
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Sky
@@ -307,7 +308,11 @@ object AgeGeneration {
                 ) + EarlyGameRareMaterials.layers(EarlyGameRareMaterials.grownIn(composition, seed, spending)),
             ),
             // What lives here, narrowing what vanilla resolves per biome and per structure.
-            Spawns.livingIn(composition.optionsFor(Aspect.SPAWNS, 0), Vocabulary.of(server).spawning),
+            Spawns.livingIn(
+                composition.optionsFor(Aspect.SPAWNS, 0),
+                Vocabulary.of(server).spawning,
+                WhereThingsGrow.creaturesListed(server.registryAccess()),
+            ),
             // What the Age's instability bought. Derived here rather than restated: these were three lines
             // recomputing `Consequence.of`'s own arithmetic, which is how a copy comes to drift from it.
             bought = Consequence.of(server, recipe),

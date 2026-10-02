@@ -74,6 +74,14 @@ enum class Production(
      * Reuses the biome term page rather than minting a page per biome, which is what keeps it one word.
      */
     CONFINEMENT("in"),
+
+    /**
+     * `teeming cats everywhere` — **the term in every place, not only where it already lives** (Jonah,
+     * 2026-10-01). Naming a plant or a creature asks for more of it where it grows; this widens it into
+     * every biome. A siting like `in`, closing the clause, and spoken only to the parts of the world that
+     * grow in places: features and spawns.
+     */
+    WIDENING("everywhere"),
     ;
 
     override fun getSerializedName(): String = key

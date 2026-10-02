@@ -46,6 +46,9 @@ enum class PageClass {
     EXCLUDER,
     QUANTIFIER,
     CONFINER,
+
+    /** `everywhere`, a siting that widens rather than confines — see `Production.WIDENING`. */
+    WIDENER,
 }
 
 /**
@@ -205,5 +208,6 @@ object Grammar {
             Production.EXCEPTION -> PageClass.EXCLUDER
             Production.QUANTIFICATION -> PageClass.QUANTIFIER
             Production.CONFINEMENT -> PageClass.CONFINER
+            Production.WIDENING -> PageClass.WIDENER
         }
 }

@@ -19,6 +19,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Holds
+import co.voik.agesandtheart.age.word.grammar.ArtReading
 import co.voik.agesandtheart.age.word.grammar.Phrase
 import co.voik.agesandtheart.age.word.grammar.Constraint
 import co.voik.agesandtheart.age.word.grammar.Readout
@@ -1422,7 +1423,8 @@ object Resolver {
         }
 
         val lifted = reached
-            .filter { it.onlyWhereItGrows && it.density > Rung.ORDINARY }
+            // An atmosphere's lifts, and never a member a word named, which is the writer's and not drawn for.
+            .filter { it.onlyWhereItGrows && !it.introducedIfAbsent && it.density > Rung.ORDINARY }
             .map { Lifted(it, leanedOn(it)) }
             .filter { it.leanedOn > NO_LEAN }
         if (lifted.size <= allowed) return reached
@@ -1605,7 +1607,14 @@ object Resolver {
         fun namesItOutright(said: Constraint) =
             said.word.choiceIn(aspect)?.key == member.key || member.key in said.word.admitsIn(aspect)
         val namedOutright = speaking.any(::namesItOutright)
-        val described = polarity == null && !namedOutright
+        // **Naming a plant or a creature asks for more of it where it grows**, as a description does, and
+        // only `everywhere` widens it into every place. One the pack grows nowhere is still brought in by
+        // its naming, which generation decides ([Claim.introducedIfAbsent]). A biome or a structure is not
+        // a thing that grows in places, so naming one asks for it as before.
+        val widened = speaking.any { it.everywhere }
+        val growsInPlaces = aspect in ArtReading.WIDENED
+        val namedWhereItGrows = namedOutright && growsInPlaces && !widened
+        val described = polarity == null && !widened && (!namedOutright || namedWhereItGrows)
         // **Ordinary is only silence for a member the world would have had anyway.** One a word put there
         // by name arrives at ordinary standing and dropping the claim would drop the admission with it —
         // the member would be reached, weighed, and then quietly left out of the world it was named into.
@@ -1629,6 +1638,7 @@ object Resolver {
             weight,
             confinedTo = ground,
             onlyWhereItGrows = described,
+            introducedIfAbsent = described && namedOutright,
         )
     }
 

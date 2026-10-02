@@ -53,7 +53,12 @@ object Spawns {
      * Takes the list vanilla resolved rather than the biome's own, so a structure that overrides spawning
      * inside itself is narrowed by the same sentence as the open ground around it.
      */
-    fun livingIn(options: Options, spawning: Spawning = Spawning()): Living {
+    fun livingIn(
+        options: Options,
+        spawning: Spawning = Spawning(),
+        /** Every creature the pack already offers somewhere — [WhereThingsGrow.creaturesListed]. */
+        livesSomewhere: Set<Identifier> = emptySet(),
+    ): Living {
         val claims = options.claimsOn(LIVES)
         if (LIVES.skewOf(claims).isSilent && claims.none { it.confinedTo != null }) {
             return Living { _, _, _, offered -> offered }
@@ -71,7 +76,7 @@ object Spawns {
                 ?: LIVES.skewOf(claims)
             val kept = narrowed(offered, asked)
             val candidates = couldArrive.computeIfAbsent(Arrivals(biome, category)) {
-                resolved(asked, category, spawning)
+                resolved(asked, category, spawning, livesSomewhere)
             }
             added(kept, candidates, where)
         }
@@ -201,8 +206,9 @@ object Spawns {
         options.skewOn(LIVES).wanted
             // **Summoning one takes naming it.** This is the Age's own placement — the golems, the wither,
             // the dragon — and a boss is not an atmosphere: a word brushing the dragon through `hostile`
-            // put one in the sky of a beautiful Age. `teeming ender_dragon` still names it outright.
-            .filterNot { it.onlyWhereItGrows }
+            // put one in the sky of a beautiful Age. `teeming ender_dragon` still names it outright, and
+            // nothing placed by the Age is offered by any biome, so a naming always brings it.
+            .filter { it.introduces(growsSomewhere = false) }
             .mapNotNull { claim -> claim.id?.let { it to claim.density } }
 
     /**
@@ -212,8 +218,17 @@ object Spawns {
      * the weight and the entry itself are the same answer at every position, and this is asked once per
      * spawn attempt. Measured at 0.9µs an attempt before, against 0.005µs for an Age that said nothing.
      */
-    private fun resolved(asked: Skew, category: MobCategory, spawning: Spawning): List<Arriving> =
-        asked.wanted
+    private fun resolved(
+        asked: Skew,
+        category: MobCategory,
+        spawning: Spawning,
+        livesSomewhere: Set<Identifier>,
+    ): List<Arriving> {
+        // A creature named without `everywhere` comes in only where the pack offers it nowhere; one that
+        // lives somewhere is thickened there by [narrowed] instead.
+        fun mayBeAdded(claim: Claim): Boolean =
+            if (claim.introducedIfAbsent) claim.introduces(claim.id in livesSomewhere) else !claim.bringsNothingAbout
+        return asked.wanted
             // **A description may still stock a menu, but only with what it asks more of.** Adding here is
             // safe by construction — vanilla re-checks every placement, which is what lets `villagers`
             // work at all in a world whose biomes offer none — but an evocative word's faintest reaches
@@ -225,7 +240,7 @@ object Spawns {
             // default, which is how a hadalfish reached by one evocative page hunted a hillside (Jonah,
             // 2026-09-17, the Age Tumar). The gate belongs there rather than here, because a word aimed at
             // an aspect — `villagers`, `undead` — is a description that *should* introduce.
-            .filterNot { it.bringsNothingAbout }
+            .filter(::mayBeAdded)
             .mapNotNull { claim -> claim.id?.let { it to claim.density } }
             .mapNotNull { (id, density) ->
                 // **Asked whether it is there before asking what it is.** The entity registry is a
@@ -255,6 +270,7 @@ object Spawns {
                     Weighted(entry, asked.roundToInt().coerceIn(1, MOST_OFTEN)),
                 )
             }
+    }
 
     /**
      * What belonging to one ground costs, which is **not** the share of attempts that land there.

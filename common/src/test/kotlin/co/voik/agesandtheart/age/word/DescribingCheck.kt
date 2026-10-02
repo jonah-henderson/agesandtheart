@@ -70,6 +70,20 @@ class DescribingCheck : FunSpec({
      * Without this the checks above would pass just as well on a resolver that had stopped populating
      * anything at all, which is the failure mode a "nothing was introduced" assertion invites.
      */
+    /** A creature or a plant named is thickened where it lives; `everywhere` asks for it in every place. */
+    test("naming a creature describes it, and everywhere names it") {
+        fun cats(vararg pages: String) =
+            membersOf(Aspect.SPAWNS, Spawns.LIVES.name, *pages).filter { it.startsWith("minecraft:cat[") }
+        val named = cats("teeming", "cat", "spawns")
+        check(named.size == 1 && WHERE_IT_GROWS in named.single() && INTRODUCED_IF_ABSENT in named.single()) {
+            "'teeming cat' did not ask for more cats where they live: $named"
+        }
+        val widened = cats("teeming", "cat", "everywhere")
+        check(widened.size == 1 && WHERE_IT_GROWS !in widened.single()) {
+            "'teeming cat everywhere' did not ask for cats in every place: $widened"
+        }
+    }
+
     test("naming a biome still introduces it") {
         val named = membersOf(Aspect.BIOMES, Biomes.GROWN.name, "minecraft:ice_spikes", "biomes")
         check(named.any { it.contains("ice_spikes") && !it.contains(WHERE_IT_GROWS) }) {
@@ -82,6 +96,9 @@ private const val SAMPLE_SEED = 0x5EEDL
 
 /** How a claim spells "bend this where it already is" — [co.voik.agesandtheart.age.aspect.Claim]'s own. */
 private const val WHERE_IT_GROWS = "where_it_grows"
+
+/** And "bring it in where nothing has it" — the mark of a naming. */
+private const val INTRODUCED_IF_ABSENT = "introduced_if_absent"
 
 /** How a claim spells a member struck out — removal, which introduces nothing. */
 private const val STRUCK_OUT = "except"

@@ -37,6 +37,22 @@ class SpawningCheck : FunSpec({
     }
 
     /**
+     * **Naming a creature without `everywhere` thickens it where the pack already offers it**, and brings
+     * it in only where the pack offers it nowhere — a cat lives in swamp huts, an illusioner in no list.
+     */
+    test("a creature named where it lives is not added where it does not") {
+        val named = "minecraft:cat[where_it_grows,introduced_if_absent,amount=4]"
+        val listed = livingWith(named, MobCategory.CREATURE, skyIsOpen = true, livesSomewhere = setOf(CAT))
+        check("cat" !in listed) { "a cat the pack offers elsewhere was added to a meadow: $listed" }
+        val unlisted = livingWith(named, MobCategory.CREATURE, skyIsOpen = true)
+        check("cat" in unlisted) { "a cat the pack offers nowhere was named and did not arrive: $unlisted" }
+        val widened = livingWith(
+            "minecraft:cat[amount=4]", MobCategory.CREATURE, skyIsOpen = true, livesSomewhere = setOf(CAT),
+        )
+        check("cat" in widened) { "'cats everywhere' did not put a cat in a meadow: $widened" }
+    }
+
+    /**
      * **A creature arrives in the pass its own category names.** Vanilla's spawner runs a pass per
      * category and asks the generator for that pass's list, so a monster offered to the creature pass
      * would be tried under the creature rules — in daylight, on grass, against the wrong cap.
@@ -307,10 +323,11 @@ private fun livingWith(
     claim: String,
     category: MobCategory,
     skyIsOpen: Boolean,
+    livesSomewhere: Set<Identifier> = emptySet(),
     brightness: Int = DARK,
 ): List<String> {
     val options = Options(mapOf(Spawns.LIVES.name to listOf(claim)))
-    return Spawns.livingIn(options, shippedSpawning)
+    return Spawns.livingIn(options, shippedSpawning, livesSomewhere)
         .at(null, category, Spawns.Situation(BlockPos.ZERO, skyIsOpen, brightness), aMeadow())
         .unwrap()
         .map { it.value().type().builtInRegistryHolder().key().identifier().path }
@@ -321,6 +338,8 @@ private val shippedSpawning: Spawning by lazy { Vocabulary.load(MinecraftRegistr
 
 /** The dragon's own id, for the arrival read straight out of `art/spawning.json`. */
 private val DRAGON: Identifier = Identifier.withDefaultNamespace("ender_dragon")
+
+private val CAT: Identifier = Identifier.withDefaultNamespace("cat")
 
 /** Either side of vanilla's own line between somewhere lit and somewhere a monster will come. */
 private const val DARK = 0

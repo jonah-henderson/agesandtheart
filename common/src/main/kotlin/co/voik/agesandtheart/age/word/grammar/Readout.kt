@@ -134,6 +134,7 @@ object Readout {
 
     /** How `in` reads, written down beside `only` and the rungs for the reason given there. */
     private const val CONFINED = "in"
+    private const val WIDENED = "everywhere"
 
     /** A word the Art supplied — English on both sides, since that is §4.1's interface doing its job. */
     private fun particleFor(text: String): Said = Said(text, Component.literal(text))
@@ -161,7 +162,7 @@ object Readout {
         val subjectWasWritten = phrase.subject != null && !phrase.subject.latent
         if (modifiers.isEmpty() && !subjectWasWritten) return null
         val adopted = phrase.subject.takeIf { subjectWasWritten || modifiers.isNotEmpty() }
-        return Phrase(modifiers, adopted, phrase.confinedTo)
+        return Phrase(modifiers, adopted, phrase.confinedTo, phrase.everywhere)
     }
 
     /**
@@ -190,6 +191,8 @@ object Readout {
             said += runOf(run)
         }
         phrase.subject?.let { said += pageFor(it.word) }
+        // Where the writer laid it: after what it widens, closing the clause.
+        if (phrase.everywhere) said += particleFor(WIDENED)
         return said
     }
 

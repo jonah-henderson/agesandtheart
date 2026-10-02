@@ -64,6 +64,13 @@ data class Claim(
      */
     val onlyWhereItGrows: Boolean = false,
     /**
+     * Whether a member asked for [onlyWhereItGrows] is **brought in all the same where it grows nowhere** —
+     * the mark of one that was named rather than described.
+     *
+     * Whether it grows anywhere is a fact about the pack's biomes, so generation decides it ([introduces]).
+     */
+    val introducedIfAbsent: Boolean = false,
+    /**
      * How big this one is, or null to take the Age's own — **a size that belongs to its clause**.
      *
      * `colossal gold_block obelisks, tiny rings` asks for two sizes in one book, and a `Parameter` holds
@@ -85,6 +92,13 @@ data class Claim(
      * biome of one.
      */
     val bringsNothingAbout: Boolean get() = onlyWhereItGrows && density <= Rung.ORDINARY
+
+    /**
+     * Whether this names its member into places the world did not already have it, given whether the pack
+     * [growsSomewhere] — asked for everywhere, or named and found growing nowhere ([introducedIfAbsent]).
+     */
+    fun introduces(growsSomewhere: Boolean): Boolean =
+        !onlyWhereItGrows || (introducedIfAbsent && !growsSomewhere)
 
     /** The value read as a registry id, or null where it is not one. */
     val id: Identifier? get() = Identifier.tryParse(value)
@@ -113,6 +127,7 @@ data class Claim(
                 Polarity.EXCEPT -> add(EXCEPT)
             }
             if (onlyWhereItGrows) add(WHERE_IT_GROWS)
+            if (introducedIfAbsent) add(INTRODUCED_IF_ABSENT)
             if (!Rung.isOrdinary(density)) add("$AMOUNT$SETS${Rung.spelled(density)}")
             madeOf?.let { add("$OF$SETS$it") }
             ownSize?.let { add("$SIZE$SETS${Rung.spelled(it)}") }
@@ -134,6 +149,9 @@ data class Claim(
 
         /** How a claim says it only bends what is already there — see [Claim.onlyWhereItGrows]. */
         const val WHERE_IT_GROWS = "where_it_grows"
+
+        /** And how one says it comes in all the same where it grows nowhere — see [Claim.introducedIfAbsent]. */
+        const val INTRODUCED_IF_ABSENT = "introduced_if_absent"
         const val EXCEPT = "except"
         const val AMOUNT = "amount"
         const val IN = "in"
@@ -168,6 +186,7 @@ data class Claim(
                 confinedTo,
                 valueOf(parts, OF),
                 onlyWhereItGrows = parts.any { it == WHERE_IT_GROWS },
+                introducedIfAbsent = parts.any { it == INTRODUCED_IF_ABSENT },
                 size = valueOf(parts, SIZE)?.toDoubleOrNull(),
                 height = valueOf(parts, HEIGHT)?.toDoubleOrNull(),
             )

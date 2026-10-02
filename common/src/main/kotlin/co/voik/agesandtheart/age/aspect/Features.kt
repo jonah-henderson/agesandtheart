@@ -64,10 +64,10 @@ object Features {
      * has never been built. The amount rides on the claim, so a caller wanting one takes it from here
      * rather than asking a second time.
      *
-     * **Naming is the whole of it**, and two kinds of mention are not that. A description
-     * ([Claim.onlyWhereItGrows]) asks for more of the thing where it already grows, and a landform grows
-     * nowhere — so `desolate`, leaning on `#barren`, reached `agesandtheart:volcano` at 1.6 and raised
-     * cones through a frozen Age (Jonah, 2026-09-17, the Age Tumar). A strike-out is the opposite mention
+     * **Naming is the whole of it** ([Claim.introducedIfAbsent] marks one), and two kinds of mention are not
+     * that. A description ([Claim.onlyWhereItGrows]) asks for more of the thing where it already grows, and
+     * a landform grows nowhere — so `desolate`, leaning on `#barren`, reached `agesandtheart:volcano` at 1.6
+     * and raised cones through a frozen Age (Jonah, 2026-09-17, the Age Tumar). A strike-out is the opposite mention
      * and used to build what it struck, which [Danger] already fixed on its own side.
      *
      * Confinement is *not* filtered here and cannot be honoured by the callers, whose fields are laid over
@@ -78,7 +78,8 @@ object Features {
         val mentions = composition.optionsFor(Aspect.FEATURES, 0).claimsOn(PLACES).filter { it.id == feature }
         val isStruckOut = mentions.any { it.polarity == Polarity.EXCEPT }
         if (isStruckOut) return null
-        return mentions.firstOrNull { !it.onlyWhereItGrows }
+        fun wasNamed(claim: Claim) = !claim.onlyWhereItGrows || claim.introducedIfAbsent
+        return mentions.firstOrNull(::wasNamed)
     }
 
     /**
@@ -168,6 +169,7 @@ object Features {
         val confined = claims.filter { it.confinedTo != null }
             .groupBy { it.confinedTo }
             .flatMap { (ground, there) -> PLACES.skewOf(there, ground).wanted }
+        val grownSomewhere = WhereThingsGrow.featuresGrown(server.registryAccess())
         return { biome ->
             settled.computeIfAbsent(biome) {
                 // A claim confined to one biome (§4.3.1) is absent from every other, so each biome's
@@ -175,7 +177,7 @@ object Features {
                 val here = PLACES.skewOf(claims, it.unwrapKey().orElse(null)?.identifier())
                 settingsFrom(
                     it,
-                    wanted(server, here, salt, grown, clearings, shape, confined),
+                    wanted(server, here, salt, grown, clearings, shape, confined, grownSomewhere),
                     bentWhereItGrows(here),
                     bent,
                     here.struck.mapNotNull(Identifier::tryParse).toSet(),
@@ -234,6 +236,7 @@ object Features {
         clearings: ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>,
         shape: Shape,
         confinedElsewhere: List<Claim>,
+        grownSomewhere: Set<Identifier>,
     ): Map<Int, List<Holder<VanillaPlacedFeature>>> {
         val features = server.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
         val biomes = server.registryAccess().lookupOrThrow(Registries.BIOME)
@@ -245,10 +248,11 @@ object Features {
         }
         val formationsFromElsewhere = confinedElsewhere.filter { it !in asked.wanted && placesAFormation(it) }
         for (claim in asked.wanted + formationsFromElsewhere) {
-            // A description asks for more of what grows here, never for something that does not — see
-            // [bentWhereItGrows] and `Claim.onlyWhereItGrows`.
-            if (claim.onlyWhereItGrows && claim.madeOf == null) continue
             val named = claim.id ?: continue
+            // A description, or a naming of something some biome grows, asks for more of it where it
+            // grows rather than for it here — see [bentWhereItGrows] and `Claim.introduces`.
+            val bendsWhatIsHere = claim.madeOf == null && !claim.introduces(named in grownSomewhere)
+            if (bendsWhatIsHere) continue
             val found = features.get(ResourceKey.create(Registries.PLACED_FEATURE, named)).orElse(null)
             if (found == null) {
                 Constants.LOG.warn("An Age asked to grow '{}', which is no placed feature in this pack", named)
