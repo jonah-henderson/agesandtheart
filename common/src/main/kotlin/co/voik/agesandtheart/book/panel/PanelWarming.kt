@@ -143,6 +143,8 @@ object PanelWarming {
                 warmed.add(level)
                 busy = false
                 Constants.LOG.info("Warmed {} in {}ms", id, (System.nanoTime() - began) / 1_000_000)
+                // The first moment the level may be closed, which a rename owed to it was waiting for.
+                Ages.renameIfOwed(server, id)
                 beginTheNext(server)
             }, server)
         }

@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
@@ -85,6 +86,8 @@ object Linking {
         // `BookAge` and not a second copy of this: the linking panel opens the same Age from the same
         // stack, and a book that previewed one world and sent you to another would be the worst fault
         // this could have.
+        val isStillBeingRenamed = stack.get(AgeComponents.AGE_ID)?.let(AgeSavedData.get(level.server)::isReserved) == true
+        if (isStillBeingRenamed) return refuse(player, "still_settling")
         val age = BookAge.of(level.server, stack) ?: return refuse(player, "failed")
         Ages.teleport(player, age)
         val called = stack.get(AgeComponents.BOOK_TITLE) ?: age.dimension().identifier().path

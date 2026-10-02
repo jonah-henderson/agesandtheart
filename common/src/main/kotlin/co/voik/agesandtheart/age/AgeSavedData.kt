@@ -36,10 +36,35 @@ class AgeSavedData() : SavedData() {
      */
     private val presence: MutableMap<Identifier, Long> = linkedMapOf()
 
-    private constructor(written: List<WrittenAge>, counter: Int, presence: List<TimeSpent>) : this() {
+    /** Ages waiting to be moved to a new id, keyed on where they are now — see [renameLater]. */
+    private val renames: MutableMap<Identifier, Identifier> = linkedMapOf()
+
+    private constructor(
+        written: List<WrittenAge>,
+        counter: Int,
+        presence: List<TimeSpent>,
+        renames: List<PendingRename>,
+    ) : this() {
         written.forEach { recipes[it.id] = it.recipe }
         this.counter = counter
         presence.forEach { this.presence[it.id] = it.ticks }
+        renames.forEach { this.renames[it.from] = it.to }
+    }
+
+    /** Every rename still owed, from where each Age is to where it is going. */
+    val pendingRenames: Map<Identifier, Identifier> get() = renames
+
+    /** Records that [from] is to become [to], which holds [to] for it until then ([isReserved]). */
+    fun renameLater(from: Identifier, to: Identifier) {
+        renames[from] = to
+        setDirty()
+    }
+
+    /** Whether [id] is held for an Age still to be renamed to it. */
+    fun isReserved(id: Identifier): Boolean = id in renames.values
+
+    fun forgetRename(from: Identifier) {
+        if (renames.remove(from) != null) setDirty()
     }
 
     /** Every Age that exists, in the order they were written. */
@@ -54,6 +79,17 @@ class AgeSavedData() : SavedData() {
         // A binned Age's clock goes with it, or an id minted again later would inherit somebody else's
         // drowning.
         if (presence.remove(id) != null) setDirty()
+        // And a rename owed to it, which would otherwise hold its new id for ever.
+        forgetRename(id)
+    }
+
+    /** Files [from]'s recipe and clock under [to] instead, for an Age whose folder has moved there. */
+    fun rename(from: Identifier, to: Identifier) {
+        val recipe = recipes.remove(from) ?: return
+        recipes[to] = recipe
+        presence.remove(from)?.let { presence[to] = it }
+        renames.remove(from)
+        setDirty()
     }
 
     /** The recipe [id] was written from, or null where no Age of that id exists. */
@@ -94,6 +130,8 @@ class AgeSavedData() : SavedData() {
                 Codec.INT.optionalFieldOf("counter", 0).forGetter { it.counter },
                 TimeSpent.LIST_CODEC.optionalFieldOf("presence", emptyList())
                     .forGetter { saved -> saved.presence.map { (id, ticks) -> TimeSpent(id, ticks) } },
+                PendingRename.LIST_CODEC.optionalFieldOf("renames", emptyList())
+                    .forGetter { saved -> saved.renames.map { (from, to) -> PendingRename(from, to) } },
             ).apply(instance, ::AgeSavedData)
         }
 
@@ -142,6 +180,18 @@ private data class TimeSpent(val id: Identifier, val ticks: Long) {
                 Identifier.CODEC.fieldOf("id").forGetter(TimeSpent::id),
                 Codec.LONG.fieldOf("ticks").forGetter(TimeSpent::ticks),
             ).apply(instance, ::TimeSpent)
+        }.listOf()
+    }
+}
+
+/** One Age waiting to be moved from the id it has to the one held for it. */
+private data class PendingRename(val from: Identifier, val to: Identifier) {
+    companion object {
+        val LIST_CODEC: Codec<List<PendingRename>> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                Identifier.CODEC.fieldOf("from").forGetter(PendingRename::from),
+                Identifier.CODEC.fieldOf("to").forGetter(PendingRename::to),
+            ).apply(instance, ::PendingRename)
         }.listOf()
     }
 }

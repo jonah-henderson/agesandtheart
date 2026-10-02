@@ -83,6 +83,7 @@ object AgeCommand {
             .then(vocabularySubcommand())
             .then(teleportSubcommand())
             .then(deleteSubcommand())
+            .then(renameSubcommand())
             .then(listSubcommand())
         if (Services.PLATFORM.isDevelopment) AgeInstruments.addTo(age)
         dispatcher.register(age)
@@ -179,6 +180,29 @@ object AgeCommand {
         Commands.literal("delete")
             .then(Commands.literal("all").executes(::runDeleteAll))
             .then(Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runDelete))
+
+    /**
+     * `/age rename <name> <new name>` — the move a bound book makes of the crystal viewer's preview, by hand,
+     * so the one path that moves a world's files can be driven and checked.
+     */
+    private fun renameSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("rename").then(
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).then(
+                Commands.argument(NEW_NAME_ARGUMENT, StringArgumentType.word()).executes(::runRename),
+            ),
+        )
+
+    private fun runRename(context: CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val newName = StringArgumentType.getString(context, NEW_NAME_ARGUMENT)
+        if (!Ages.rename(source.server, ageId(name), ageId(newName))) {
+            source.sendFailure(Component.literal("Could not rename Age '$name' — no such Age, '$newName' is taken, or someone is in it"))
+            return FAILURE
+        }
+        source.sendSuccess({ Component.literal("Renamed Age '$name' to '$newName'") }, true)
+        return SUCCESS
+    }
 
     private fun listSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("list")

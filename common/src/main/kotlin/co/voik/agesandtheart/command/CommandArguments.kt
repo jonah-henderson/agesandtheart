@@ -24,6 +24,9 @@ import net.minecraft.server.level.ServerLevel
  */
 
 internal const val NAME_ARGUMENT = "name"
+
+/** What `/age rename` moves an Age to. */
+internal const val NEW_NAME_ARGUMENT = "new_name"
 internal const val SEED_ARGUMENT = "seed"
 internal const val SPECIFICATION_ARGUMENT = "spec"
 

@@ -85,10 +85,15 @@ object Ages {
         level.setDragonFight(fight)
     }
 
-    /** Creates a brand-new Age and records it for persistence. Null if a level of that id is already loaded. */
+    /**
+     * Creates a brand-new Age and records it for persistence. Null if a level of that id is already loaded,
+     * or the id is held for an Age still to be renamed to it — which is how a book bound to such an Age
+     * opens nothing until it arrives, rather than a second world of the same name.
+     */
     fun create(server: MinecraftServer, id: Identifier, recipe: AgeRecipe): ServerLevel? {
         val dimensionKey = ResourceKey.create(Registries.DIMENSION, id)
         if (server.getLevel(dimensionKey) != null) return null // already loaded
+        if (AgeSavedData.get(server).isReserved(id)) return null
         // Record the recipe *before* opening: [open] builds the world from what is recorded.
         AgeSavedData.get(server).add(id, recipe)
         val level = open(server, id)
@@ -138,17 +143,22 @@ object Ages {
      * already taken. Anything left with nothing usable — punctuation, another script — falls back to the
      * counter. The id is also the seed source, so two Ages of the same name still differ.
      */
-    fun allocateId(server: MinecraftServer, called: String = ""): Identifier {
+    fun allocateId(server: MinecraftServer, called: String = ""): Identifier =
+        idCalled(server, called)
+            ?: Identifier.fromNamespaceAndPath(Constants.MOD_ID, "age_${AgeSavedData.get(server).allocateIndex()}")
+
+    /** A free id taken from what an Age is [called], or null where nothing usable is left of the name. */
+    fun idCalled(server: MinecraftServer, called: String): Identifier? {
         val data = AgeSavedData.get(server)
         val stem = folded(called)
-        if (stem.isNotEmpty()) {
-            for (attempt in 1..NAME_ATTEMPTS) {
-                val path = if (attempt == 1) stem else "${stem}_$attempt"
-                val candidate = Identifier.fromNamespaceAndPath(Constants.MOD_ID, path)
-                if (candidate !in data.ages) return candidate
-            }
+        if (stem.isEmpty()) return null
+        for (attempt in 1..NAME_ATTEMPTS) {
+            val path = if (attempt == 1) stem else "${stem}_$attempt"
+            val candidate = Identifier.fromNamespaceAndPath(Constants.MOD_ID, path)
+            val isFree = candidate !in data.ages && !data.isReserved(candidate)
+            if (isFree) return candidate
         }
-        return Identifier.fromNamespaceAndPath(Constants.MOD_ID, "age_${data.allocateIndex()}")
+        return null
     }
 
     private fun folded(name: String): String =
@@ -417,6 +427,46 @@ object Ages {
     }
 
     /**
+     * Moves the Age [from] to the id [to], chunks and all, and opens it there. Returns whether it moved; where
+     * it did not, the Age is open at [from] as before.
+     *
+     * For an Age whose id was a placeholder — a crystal viewer's preview, made before its book had a title
+     * ([co.voik.agesandtheart.desk.PreviewedAges]). Refused where anyone is standing in it, since closing a
+     * level under a player is not something a rename should do, or where [to] is taken.
+     */
+    fun rename(server: MinecraftServer, from: Identifier, to: Identifier): Boolean {
+        val saved = AgeSavedData.get(server)
+        if (from !in saved.ages || to in saved.ages) return false
+        val leaving = ResourceKey.create(Registries.DIMENSION, from)
+        if (server.getLevel(leaving)?.players()?.isNotEmpty() == true) return false
+        if (!RuntimeLevels.move(server, from, to)) {
+            // Closed and not moved, or not closed at all: either way it is still at its old id.
+            open(server, from)
+            return false
+        }
+        saved.rename(from, to)
+        LevelAppearance.forget(leaving)
+        open(server, to)
+        Constants.LOG.info("Renamed Age {} to {}", from, to)
+        return true
+    }
+
+    /**
+     * Holds [to] for the Age [from] and renames it when [renameIfOwed] is next asked of it — or at the next
+     * boot, before anything opens. For an Age that cannot be closed yet because its ring is generating.
+     */
+    fun renameLater(server: MinecraftServer, from: Identifier, to: Identifier) {
+        AgeSavedData.get(server).renameLater(from, to)
+        Constants.LOG.info("Age {} will be renamed to {} once it is warmed", from, to)
+    }
+
+    /** Renames [from] if a rename is owed to it. The rename stays owed, to be tried at boot, if it fails. */
+    fun renameIfOwed(server: MinecraftServer, from: Identifier) {
+        val to = AgeSavedData.get(server).pendingRenames[from] ?: return
+        if (!rename(server, from, to)) Constants.LOG.warn("Could not rename {} to {} yet; it will be tried again at boot", from, to)
+    }
+
+    /**
      * Tells [listener] the id of every Age [delete] discards, before its level closes — including an Age
      * whose level was never opened, which Ephemeris' `RuntimeLevelEvents.whenClosing` does not report.
      */
@@ -445,8 +495,31 @@ object Ages {
         }
     }
 
+    /**
+     * Makes every rename still owed from a server that stopped before it could, while no Age is open — so
+     * each is a move of a closed folder.
+     */
+    private fun settleOwedRenames(server: MinecraftServer) {
+        val saved = AgeSavedData.get(server)
+        for ((from, to) in saved.pendingRenames.toList()) {
+            val isStillAnAge = from in saved.ages && to !in saved.ages
+            if (!isStillAnAge) {
+                saved.forgetRename(from)
+                continue
+            }
+            if (!RuntimeLevels.move(server, from, to)) {
+                Constants.LOG.warn("Could not rename {} to {} at boot; it stays owed", from, to)
+                continue
+            }
+            saved.rename(from, to)
+            LevelAppearance.forget(ResourceKey.create(Registries.DIMENSION, from))
+            Constants.LOG.info("Renamed Age {} to {}, owed since the last run", from, to)
+        }
+    }
+
     /** Re-opens every persisted Age. Call once per server start (from a loader lifecycle hook). */
     fun reloadSaved(server: MinecraftServer) {
+        settleOwedRenames(server)
         val ages = AgeSavedData.get(server).ages
         if (ages.isEmpty()) return
         Constants.LOG.info("Re-opening {} saved Age(s)", ages.size)
