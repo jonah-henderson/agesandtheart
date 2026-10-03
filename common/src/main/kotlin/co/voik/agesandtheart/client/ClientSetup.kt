@@ -32,6 +32,8 @@ object ClientSetup {
         StarFissureVeil.tick(minecraft)
         // Waves on a palm beach: the shore is found and the foam laid on the client, and nowhere else.
         Surf.tick(minecraft)
+        // The haze over a plasma sea, found under the player's feet and drawn as a post effect.
+        PlasmaHaze.tick(minecraft)
     }
 
     /**

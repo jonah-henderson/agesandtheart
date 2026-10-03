@@ -1,9 +1,13 @@
 {
   "_comment": [
     "What warms what stands beside it: the compounder's heat for nara (design 7.1.2), and the warmth a",
-    "scarab may nest by in place of a warm climate. Everything that bakes temperstone, and magma besides.",
-    "A placeholder on the compounder (Jonah, 2026-10-01): lava is probably too easy for nara's gate."
+    "scarab may nest by in place of a warm climate. Everything that bakes temperstone, magma, and a unit of",
+    "contained plasma, which warms without cooking anything. The repair is nara's gate now; this is a step."
   ],
   "replace": false,
-  "values": ["#agesandtheart:cooks_stone", "minecraft:magma_block"]
+  "values": [
+    "#agesandtheart:cooks_stone",
+    "minecraft:magma_block",
+    "agesandtheart:contained_plasma"
+  ]
 }

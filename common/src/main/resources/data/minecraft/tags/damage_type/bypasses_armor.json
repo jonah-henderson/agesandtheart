@@ -10,6 +10,7 @@
   ],
   "replace": false,
   "values": [
-    "agesandtheart:pressure"
+    "agesandtheart:pressure",
+    "agesandtheart:plasma"
   ]
 }

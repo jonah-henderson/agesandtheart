@@ -344,7 +344,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Thirty-four Mixins and one accessor in `common`, one more in `fabric`, all Java.**
+**4. Thirty-four Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -360,6 +360,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   only seam that fires on both sides for a block change: `onPlace` is skipped client-side, so the index the
   wound renderer draws from would otherwise never hear about one torn after its chunk arrived. Neither
   loader has a client block-change event.
+- **`ItemRemainderAccessor`** — contained plasma leaves its empty unit in a furnace. `Properties.craftRemainder` builds its template at once and needs the remainder registered, where ours are all built before any is registered; the field is final and its getter too, so it is set in `CommonSetup.afterContentRegistered`.
 - **`client/LevelRendererMixin`** — draws the Age's wounds in one submission. Declared under the config's `"client"` array, not `"mixins"`. The loader alternatives exist here (Fabric's world-render events, NeoForge's `RenderLevelStageEvent`) and are declined deliberately: they are different objects with different stages where the vanilla seam is identical on both sides.
 - **`MerchantResultSlotMixin`** and **`MerchantQuickMoveMixin`** — a page or notebook bought unwritten gets its word at the instant of purchase. An offer's `given_item_modifiers` run once for a stack handed out many times, so the draw cannot live there; and `quickMoveStack` merges into the inventory *before* calling `onTake`, so the shift-click path needs its own seam.
 - **`fabric/.../mixin/fabric/client/RendererManagerMixin`** — the **only Mixin outside `common`**, declared by its own `agesandtheart-fabric.mixins.json`, and the only one that targets another mod. Fabric API's Indigo redirects chunk building away from `ModelBlockRenderer`, so coloured light needs a second seam on that loader; the registry takes exactly one renderer plug-in and Indigo has it, so what is handed out is decorated instead. `TintingRenderer` carries the argument and the alternatives. **A Fabric-only Mixin needs the Fabric config** — the common one ships in both jars, so a target that exists on only one loader cannot go in it.

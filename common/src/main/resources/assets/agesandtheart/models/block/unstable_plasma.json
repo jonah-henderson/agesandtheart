@@ -1,0 +1,8 @@
+{
+  "_comment": "A STAND-IN that must not ship: vanilla's nether portal ramped from bright green to white (textures/block/unstable_plasma.png), so a bolt's head reads white-hot against the sea. Mojang's art -- notes/before-release.md.",
+  "parent": "agesandtheart:block/plasma",
+  "textures": {
+    "particle": "agesandtheart:block/unstable_plasma",
+    "all": "agesandtheart:block/unstable_plasma"
+  }
+}

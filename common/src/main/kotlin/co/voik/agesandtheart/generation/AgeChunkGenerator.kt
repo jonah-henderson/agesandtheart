@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.phenomena.Deluge
 import co.voik.agesandtheart.content.DeepWater
+import co.voik.agesandtheart.content.PlasmaSea
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
@@ -553,6 +554,8 @@ class AgeChunkGenerator(
             } else {
                 region?.let { carveOurGround(ours, chunk, randomState, biomeManager, noiseChunk, it) }
             }
+            // Before the features, so nothing grows or stands on a sea that was ground until now.
+            PlasmaSea.consume(this, chunk)
         }
         chunk
     }, Util.backgroundExecutor())
@@ -1235,6 +1238,8 @@ class AgeChunkGenerator(
         // this hook's: the order those steps run in is a fact about §5, not about chunk generation.
         consequence.writeInto(level, chunk)
         clearWhatFellToTheFloor(chunk)
+        // And again last, for what structures and the features put at the sea's level or under it.
+        PlasmaSea.consume(this, chunk)
     }
 
     /**

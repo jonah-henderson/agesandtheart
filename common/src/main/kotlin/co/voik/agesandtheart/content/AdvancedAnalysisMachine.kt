@@ -56,7 +56,8 @@ import java.util.UUID
 class AdvancedAnalysisMachineBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(AWAKE, false).setValue(STUDYING, false))
+        val asFound = PARTS.values.fold(stateDefinition.any()) { state, fitted -> state.setValue(fitted, false) }
+        registerDefaultState(asFound.setValue(AWAKE, false).setValue(STUDYING, false))
     }
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity =
@@ -66,6 +67,7 @@ class AdvancedAnalysisMachineBlock(properties: Properties) : BaseEntityBlock(pro
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         builder.add(AWAKE, STUDYING)
+        PARTS.values.forEach { builder.add(it) }
     }
 
     override fun <T : BlockEntity> getTicker(
@@ -87,17 +89,33 @@ class AdvancedAnalysisMachineBlock(properties: Properties) : BaseEntityBlock(pro
         hand: InteractionHand,
         hitResult: BlockHitResult,
     ): InteractionResult {
-        val isTheProbes = stack.`is`(AdvancedAnalysisMachine.PROBES)
-        if (!isTheProbes || state.getValue(AWAKE)) return InteractionResult.TRY_WITH_EMPTY_HAND
+        val part = MachinePart.entries.firstOrNull { stack.`is`(it.item()) }
+        val fitsSomething = part != null && !state.getValue(PARTS.getValue(part))
+        if (!fitsSomething) return InteractionResult.TRY_WITH_EMPTY_HAND
         if (level.isClientSide) return InteractionResult.SUCCESS
         val serverLevel = level as? ServerLevel ?: return InteractionResult.FAIL
         val serverPlayer = player as? ServerPlayer ?: return InteractionResult.FAIL
         stack.consume(1, player)
-        level.setBlock(pos, state.setValue(AWAKE, true), UPDATE_ALL)
+        val fitted = state.setValue(PARTS.getValue(part), true)
+        val isWhole = PARTS.values.all { fitted.getValue(it) }
+        level.setBlock(pos, fitted.setValue(AWAKE, isWhole), UPDATE_ALL)
+        if (!isWhole) {
+            level.playSound(null, pos, SoundEvents.ANVIL_USE, SoundSource.BLOCKS, A_QUIET_FIT, 1.0f)
+            serverPlayer.sendSystemMessage(stillWanting(fitted), true)
+            return InteractionResult.CONSUME
+        }
         celebrate(serverLevel, pos)
         serverPlayer.sendSystemMessage(Component.translatable(AdvancedAnalysisMachine.WOKEN))
         Mastery.grant(serverPlayer, MasterySubject.NARA)
         return InteractionResult.CONSUME
+    }
+
+    /** What the machine still lacks, said as its broken message names it. */
+    private fun stillWanting(state: BlockState): Component {
+        val missing = MachinePart.entries.filterNot { state.getValue(PARTS.getValue(it)) }
+            .map { Component.translatable(it.lacking) }
+        val named = missing.reduce { list, next -> Component.translatable(AdvancedAnalysisMachine.AND, list, next) }
+        return Component.translatable(AdvancedAnalysisMachine.BROKEN, named)
     }
 
     override fun useWithoutItem(
@@ -111,7 +129,7 @@ class AdvancedAnalysisMachineBlock(properties: Properties) : BaseEntityBlock(pro
         val serverLevel = level as? ServerLevel ?: return InteractionResult.FAIL
         val serverPlayer = player as? ServerPlayer ?: return InteractionResult.FAIL
         if (!state.getValue(AWAKE)) {
-            serverPlayer.sendSystemMessage(Component.translatable(AdvancedAnalysisMachine.BROKEN), true)
+            serverPlayer.sendSystemMessage(stillWanting(state), true)
             return InteractionResult.CONSUME
         }
         val machine = level.getBlockEntity(pos) as? AdvancedAnalysisMachineBlockEntity ?: return InteractionResult.FAIL
@@ -133,8 +151,14 @@ class AdvancedAnalysisMachineBlock(properties: Properties) : BaseEntityBlock(pro
     }
 
     companion object {
-        /** Woken with nara probes; until then, broken. */
+        /** Woken once every one of its [PARTS] is fitted; until then, broken. */
         val AWAKE: BooleanProperty = BooleanProperty.create("awake")
+
+        /** One property a part, named for it: `probes`, `ink`, `paper`. */
+        val PARTS: Map<MachinePart, BooleanProperty> =
+            MachinePart.entries.associateWith { BooleanProperty.create(it.key) }
+
+        private const val A_QUIET_FIT = 0.5f
         val STUDYING: BooleanProperty = BooleanProperty.create("studying")
 
         private const val ABOVE_THE_MACHINE = 1.2
@@ -317,6 +341,19 @@ class AdvancedAnalysisMachineBlockEntity(pos: BlockPos, state: BlockState) :
     }
 }
 
+/**
+ * What the machine is found without, fitted one at a time in any order (design §7.1.2): nara probes, and the
+ * masterwork ink and paper its readouts are made of. The repair is made once.
+ */
+enum class MachinePart(val key: String, val item: () -> Item) {
+    PROBES("probes", { AdvancedAnalysisMachine.PROBES }),
+    INK("ink", { AgeContent.MASTERWORK_INK_BOTTLE }),
+    PAPER("paper", { AgeContent.MASTERWORK_PAPER }),
+    ;
+
+    val lacking: String get() = "block.agesandtheart.advanced_analysis_machine.lacks.$key"
+}
+
 /** The machine's registrations, for [AgeContent]'s lists. */
 object AdvancedAnalysisMachine {
     val ID: Identifier = "advanced_analysis_machine".location()
@@ -351,4 +388,5 @@ object AdvancedAnalysisMachine {
 
     const val WOKEN = "block.agesandtheart.advanced_analysis_machine.woken"
     const val BROKEN = "block.agesandtheart.advanced_analysis_machine.broken"
+    const val AND = "block.agesandtheart.advanced_analysis_machine.and"
 }

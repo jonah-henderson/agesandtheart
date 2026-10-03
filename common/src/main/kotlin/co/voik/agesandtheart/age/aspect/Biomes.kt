@@ -25,7 +25,8 @@ object Biomes {
      * They sit with the aspect rather than with the generation that places them, so nothing in the model
      * has to ask the composition what a biome is called.
      */
-    val PLASMA_BIOME: Identifier = "plasma".location()
+    /** The Spire's own biome: empty of everything, so nothing grows over its sea. */
+    val SPIRE_BARRENS: Identifier = "spire_barrens".location()
 
     /** The biome an Age's great halls are, carrying their own dark and their own sound. */
     val GREAT_HALL_BIOME: Identifier = "great_hall".location()

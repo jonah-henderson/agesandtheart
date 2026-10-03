@@ -155,17 +155,18 @@ object ProtectiveSuit {
     }
 
     /**
-     * A point off every piece, once a second, for as long as the Age is trying to kill them.
+     * A point off every piece, once a second, for as long as the Age is trying to kill them — or [points],
+     * where something nearer to killing them wears harder: plasma's heat.
      *
      * **Every piece rather than one**, because the protection is the set's: wearing out only the boots
      * would leave three pieces of a suit that has stopped working. When a piece goes the set is broken and
      * the protection stops with it on the next look, which is the failure a player can see coming.
      */
-    fun wearOut(player: ServerPlayer) {
+    fun wearOut(player: ServerPlayer, points: Int = A_POINT) {
         for ((slot, piece) in SUIT) {
             val worn = player.getItemBySlot(slot)
             if (worn.item !== piece()) continue
-            worn.hurtAndBreak(A_POINT, player, slot)
+            worn.hurtAndBreak(points, player, slot)
         }
     }
 

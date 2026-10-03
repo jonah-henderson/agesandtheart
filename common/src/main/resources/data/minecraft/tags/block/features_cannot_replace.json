@@ -1,0 +1,8 @@
+{
+  "_comment": "A plasma sea is generated whole and nothing written after it may break into it (design 7.1.2): a feature spilling over from a neighbouring chunk would otherwise land in a sea that chunk had already consumed, and a geode touching one does not grow at all.",
+  "replace": false,
+  "values": [
+    "agesandtheart:plasma",
+    "agesandtheart:unstable_plasma"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "_comment": "Deretheni holds plasma (design 7.1.2), so the unit is deretheni plate and nothing else: a ring of eight round the space the plasma goes into. Ratios are unbalanced.",
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": { "P": "agesandtheart:pitchstone_plate" },
+  "pattern": ["PPP", "P P", "PPP"],
+  "result": { "id": "agesandtheart:plasma_containment_unit" }
+}

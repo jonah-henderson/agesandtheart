@@ -1,0 +1,16 @@
+{
+  "_comment": "Shown on holding a deretheni plate, which is all the unit is made of.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_a_plate": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": { "items": [{ "items": "agesandtheart:pitchstone_plate" }] }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": { "recipes": "agesandtheart:plasma_containment_unit" }
+    }
+  },
+  "requirements": [["has_a_plate", "has_the_recipe"]],
+  "rewards": { "recipes": ["agesandtheart:plasma_containment_unit"] }
+}

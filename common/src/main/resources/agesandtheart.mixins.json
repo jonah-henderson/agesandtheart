@@ -15,6 +15,7 @@
     "EntityCollidersMixin",
     "EntityFluidInteractionMixin",
     "FireBlockInvoker",
+    "ItemRemainderAccessor",
     "FlowingFluidMixin",
     "LecternBlockEntityMixin",
     "LecternBlockMixin",

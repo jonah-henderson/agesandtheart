@@ -1,7 +1,10 @@
 package co.voik.agesandtheart.worldgen.dni
 
 import co.voik.agesandtheart.content.AdvancedAnalysisMachine
+import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.PageItem
+import co.voik.agesandtheart.location
 import co.voik.agesandtheart.station.Compounder
 import co.voik.agesandtheart.station.CompounderBlock
 import net.minecraft.core.BlockPos
@@ -10,7 +13,11 @@ import net.minecraft.nbt.CompoundTag
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.StructureManager
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.WorldGenLevel
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.ChestBlock
+import net.minecraft.world.level.block.entity.ChestBlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.structure.BoundingBox
@@ -56,7 +63,8 @@ class DniDevicePiece : StructurePiece {
     /** Away from the frame, out over the floor a visitor arrives on. */
     private val front: Direction
 
-    constructor(at: BlockPos, device: DniDevice, front: Direction) : super(AgeContent.DNI_DEVICE_PIECE, 0, BoundingBox(at)) {
+    constructor(at: BlockPos, device: DniDevice, front: Direction) :
+        super(AgeContent.DNI_DEVICE_PIECE, 0, boxFor(at, device, front)) {
         this.device = device
         this.front = front
     }
@@ -80,12 +88,53 @@ class DniDevicePiece : StructurePiece {
         chunk: ChunkPos,
         at: BlockPos,
     ) {
-        val where = BlockPos(boundingBox.minX(), boundingBox.minY(), boundingBox.minZ())
-        if (!within.isInside(where)) return
-        level.setBlock(where, device.stateFacing(front), UPDATE_FLAGS)
+        val where = machineAt(boundingBox, device, front)
+        if (within.isInside(where)) level.setBlock(where, device.stateFacing(front), UPDATE_FLAGS)
+        if (device == DniDevice.COMPOUNDER) leaveTheWordForPlasma(level, where.relative(besideOf(front)), within)
+    }
+
+    /**
+     * A chest beside the compounder holding the page for plasma, which is what its repair wants (design
+     * §7.1.2) — a STAND-IN until Jonah's own structures teach the word near the machine.
+     */
+    private fun leaveTheWordForPlasma(level: WorldGenLevel, chest: BlockPos, within: BoundingBox) {
+        if (!within.isInside(chest)) return
+        val facing = if (front.axis.isHorizontal) front else Direction.NORTH
+        level.setBlock(chest, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, facing), UPDATE_FLAGS)
+        (level.getBlockEntity(chest) as? ChestBlockEntity)?.setItem(0, plasmaPage(level))
+    }
+
+    private fun plasmaPage(level: WorldGenLevel): ItemStack {
+        val vocabulary = Vocabulary.of(level.level.server)
+        val word = vocabulary.word(PLASMA_WORD.toString()) ?: return PageItem.writtenWith(PLASMA_WORD)
+        return PageItem.writtenWith(word, vocabulary)
     }
 
     private companion object {
+        val PLASMA_WORD = "plasma".location()
+
+        /** Along the frame, at a right angle to the front. */
+        fun besideOf(front: Direction): Direction = if (front.axis.isHorizontal) front.clockWise else Direction.EAST
+
+        /** The machine's block, and for the compounder the chest beside it too, so both are placed in whichever chunk holds them. */
+        fun boxFor(at: BlockPos, device: DniDevice, front: Direction): BoundingBox {
+            if (device != DniDevice.COMPOUNDER) return BoundingBox(at)
+            val chest = at.relative(besideOf(front))
+            return BoundingBox(
+                minOf(at.x, chest.x), at.y, minOf(at.z, chest.z),
+                maxOf(at.x, chest.x), at.y, maxOf(at.z, chest.z),
+            )
+        }
+
+        /** Where the machine stands in its box: the corner, unless the chest is beside it on that side. */
+        fun machineAt(box: BoundingBox, device: DniDevice, front: Direction): BlockPos {
+            val corner = BlockPos(box.minX(), box.minY(), box.minZ())
+            if (device != DniDevice.COMPOUNDER) return corner
+            val beside = besideOf(front)
+            val chestIsTheCorner = beside.stepX < 0 || beside.stepZ < 0
+            return if (chestIsTheCorner) corner.relative(beside.opposite) else corner
+        }
+
         const val DEVICE_KEY = "device"
         const val FRONT_KEY = "front"
 

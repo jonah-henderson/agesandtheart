@@ -1,0 +1,5 @@
+{
+  "_comment": "Vanilla's lantern wearing the plasma stand-in texture, until the asset pass.",
+  "parent": "minecraft:block/template_lantern",
+  "textures": { "lantern": "agesandtheart:block/plasma" }
+}

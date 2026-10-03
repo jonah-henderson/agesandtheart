@@ -1,0 +1,13 @@
+{
+  "_comment": "What plasma does not consume, and the whole of it (design 7.1.2, Jonah): deretheni, which contains it, nara, plasma itself, and the few blocks too special to lose -- bedrock, reinforced deepslate, an end portal's frame. Nothing else is spared, a compounder or analysis machine included: a writer can always write another Age.",
+  "replace": false,
+  "values": [
+    "agesandtheart:pitchstone",
+    "agesandtheart:compounded_stone",
+    "agesandtheart:plasma",
+    "agesandtheart:unstable_plasma",
+    "minecraft:bedrock",
+    "minecraft:reinforced_deepslate",
+    "minecraft:end_portal_frame"
+  ]
+}

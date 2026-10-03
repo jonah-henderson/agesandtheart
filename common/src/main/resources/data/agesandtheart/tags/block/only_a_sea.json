@@ -1,0 +1,7 @@
+{
+  "_comment": "Blocks whose word means a sea and nothing else -- never a world's skin or its rock (DerivedWords). Plasma is stable only in its sea.",
+  "replace": false,
+  "values": [
+    "agesandtheart:plasma"
+  ]
+}

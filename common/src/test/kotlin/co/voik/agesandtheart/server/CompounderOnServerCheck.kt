@@ -16,10 +16,10 @@ class CompounderOnServerCheck : FunSpec({
 
     fun at(x: Int) = "$x $COMPOUNDER_Y 0"
 
-    fun build(x: Int, vararg neighbours: Pair<Int, String>) {
+    fun build(x: Int, vararg neighbours: Pair<Int, String>, repaired: Boolean = true) {
         // Each test's own chunk, which must tick for a signal to be answered.
         server.run("forceload add $x 0")
-        server.run("setblock ${at(x)} agesandtheart:fusion_compounder[facing=east]")
+        server.run("setblock ${at(x)} agesandtheart:fusion_compounder[facing=east,repaired=$repaired]")
         for ((offset, block) in neighbours) server.run("setblock $x $COMPOUNDER_Y $offset $block")
     }
 
@@ -94,6 +94,18 @@ class CompounderOnServerCheck : FunSpec({
         check(!spent.startsWith("Test passed")) { "the coal blocks were not spent for what was made: $spent" }
     }
 
+    test("a compounder found broken compounds nothing, however it is powered and signalled") {
+        build(BROKEN_X, 1 to "agesandtheart:arc_crystal_block", repaired = false)
+        val chest = "${BROKEN_X + 1} $COMPOUNDER_Y 0"
+        server.run("setblock $chest minecraft:chest")
+        load(BROKEN_X, 0, "minecraft:coal_block", A_STACK)
+        signal(BROKEN_X)
+        val inChest = server.run("data get block $chest Items")
+        check("diamond_block" !in inChest) { "a broken compounder made a diamond block: $inChest" }
+        val kept = server.run("execute if items block ${at(BROKEN_X)} container.0 minecraft:coal_block[count=$A_STACK]")
+        check(kept.startsWith("Test passed")) { "a broken compounder spent its inputs: $kept" }
+    }
+
     test("with nothing in front, a signal throws the result out onto the floor") {
         build(THROWN_X, 1 to "agesandtheart:arc_crystal_block")
         // A floor to land on: the compounder stands in the open air, and a thrown block would fall far.
@@ -139,6 +151,7 @@ class CompounderOnServerCheck : FunSpec({
         const val INTO_A_CHEST_X = 26
         const val THROWN_X = 32
         const val HOPPER_X = 38
+        const val BROKEN_X = 44
         const val RESULT_SLOT = 4
 
         /** Past a crafter's four-tick delay. */

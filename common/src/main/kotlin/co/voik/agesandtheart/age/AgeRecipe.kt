@@ -438,20 +438,24 @@ data class AgeRecipe(
         )
 
         /**
-         * The Spire, pinned: weathered island spires over its green sea, under its own sky, nothing growing.
+         * The Spire, pinned: weathered island spires over a sea of plasma, under its own sky, nothing growing.
          *
-         * The single `only` claim on the empty `agesandtheart:plasma` biome is load-bearing — it is what stops
+         * **Unreachable by a player for now** (Jonah, 2026-10-02): a plasma sea is priced at masterwork ink,
+         * and the Spire would hand it out for nothing. Only an operator's `/age create` makes one, until it
+         * has a way in as an easter egg.
+         *
+         * The single `only` claim on the empty `agesandtheart:spire_barrens` biome is load-bearing — it is what stops
          * decoration, mob spawning, biome-driven carving and the surface skin, and it carries the green water
          * colour. Remove it and all five come back.
          */
         private fun spire() = AgeComposition(
             terrains = listOf(Terrain.SPIRE_ISLANDS),
-            seas = listOf(Sea.WATER),
+            seas = listOf(Sea.PLASMA),
             carvers = listOf(Carvers.SOLID),
             options = AspectOptions()
                 .with(
                     Aspect.STRUCTURES,
-                    // Nobody built here. The `only plasma` claim below would strand every set anyway, but
+                    // Nobody built here. The `only spire_barrens` claim below would strand every set anyway, but
                     // the Spire says so outright rather than relying on a side effect of its biome.
                     listOf(Options(mapOf(Structures.BUILT.name to listOf(Pool.NOTHING)))),
                 )
@@ -465,7 +469,7 @@ data class AgeRecipe(
                         Options(
                             mapOf(
                                 Biomes.GROWN.name to listOf(
-                                    Claim(Biomes.PLASMA_BIOME.toString(), Polarity.ONLY).spelled(),
+                                    Claim(Biomes.SPIRE_BARRENS.toString(), Polarity.ONLY).spelled(),
                                 ),
                             ),
                         ),
@@ -473,7 +477,7 @@ data class AgeRecipe(
                 )
                 .with(
                     Aspect.SURFACE,
-                    // The plasma biome kills decoration but not the surface rule, whose grass-over-dirt
+                    // The barrens biome kills decoration but not the surface rule, whose grass-over-dirt
                     // default is not biome-gated — so the Spire wears no skin and its own rock shows.
                     listOf(Options(mapOf(Surface.MATERIAL.name to listOf(BARE_GROUND)))),
                 )

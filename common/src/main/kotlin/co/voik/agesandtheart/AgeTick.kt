@@ -9,6 +9,7 @@ import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.phenomena.Sampling
 import co.voik.agesandtheart.age.phenomena.Tide
 import co.voik.agesandtheart.content.DeepWater
+import co.voik.agesandtheart.content.PlasmaField
 import co.voik.agesandtheart.content.Dragons
 import co.voik.agesandtheart.content.ScarabArrivals
 import net.minecraft.server.MinecraftServer
@@ -65,6 +66,8 @@ object AgeTick {
             // still works, where this must reach no Overworld and no End (Jonah, 2026-09-10). Walking the
             // Ages *is* the carve-out, and a positive one rather than a list to keep extended.
             DeepWater.seep(level)
+            // Nor this: the heat over a plasma sea — see [PlasmaField].
+            PlasmaField.burn(level)
             // Nor this: scarabs arriving where somebody could see them, at the rate the Age has earned.
             ScarabArrivals.arrive(level, recipe)
         }

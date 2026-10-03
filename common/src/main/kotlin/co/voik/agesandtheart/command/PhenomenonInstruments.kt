@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.command
 
+import co.voik.agesandtheart.content.PlasmaField
 import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.phenomena.Happenings
@@ -41,7 +42,23 @@ internal object PhenomenonInstruments {
             .then(meteorsSubcommand())
             .then(weatherSubcommand())
             .then(tideSubcommand())
+            .then(plasmaSubcommand())
     }
+
+    /**
+     * `/age plasma pass` — one whole pass of a plasma sea's heat over the chunks around where it is run, as
+     * a tick does round a player: how a headless check drives a field nobody stands in.
+     */
+    private fun plasmaSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("plasma").then(
+            Commands.literal(PASS).executes { context ->
+                val source = context.source
+                val at = ChunkPos.containing(BlockPos.containing(source.position))
+                PlasmaField.passAround(source.level, at, PASS_RADIUS)
+                source.sendSuccess({ Component.literal("The plasma's heat passed over ${PASS_RADIUS * 2 + 1}² chunks") }, false)
+                SUCCESS
+            },
+        )
 
     /** `/age tide moon` — the moons' tide again, after a stage was pinned. */
     private const val FOLLOW_THE_MOONS = "moon"

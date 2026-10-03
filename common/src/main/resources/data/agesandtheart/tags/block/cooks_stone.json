@@ -5,5 +5,9 @@
     "one already in view -- can be a heat source without the feature knowing it exists."
   ],
   "replace": false,
-  "values": ["minecraft:lava"]
+  "values": [
+    "minecraft:lava",
+    "agesandtheart:plasma",
+    "agesandtheart:unstable_plasma"
+  ]
 }

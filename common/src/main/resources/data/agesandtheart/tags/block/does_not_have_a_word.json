@@ -200,6 +200,8 @@
     "minecraft:yellow_candle_cake",
     "minecraft:yellow_wall_banner",
     "minecraft:zombie_head",
-    "minecraft:zombie_wall_head"
+    "minecraft:zombie_wall_head",
+    "agesandtheart:unstable_plasma",
+    "agesandtheart:contained_plasma"
   ]
 }

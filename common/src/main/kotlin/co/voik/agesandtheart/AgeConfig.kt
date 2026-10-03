@@ -75,6 +75,13 @@ object AgeConfig {
     val compoundsBuddingAmethyst: ModConfigSpec.BooleanValue
     val compoundsHeavyCore: ModConfigSpec.BooleanValue
 
+    /**
+     * Whether plasma let loose destroys the blocks it erupts through and bursts beside (design §7.1.2). Off,
+     * it still erupts through the air, burns what it touches and hurts with its bursts, but leaves every
+     * block standing: a released container is otherwise a block-deleter in a player's hands.
+     */
+    val plasmaAnnihilates: ModConfigSpec.BooleanValue
+
     /** The spec each loader hands to its own config system. */
     val SPEC: ModConfigSpec
 
@@ -146,6 +153,15 @@ object AgeConfig {
             .translation(translationOf("compounds_heavy_core"))
             .define("compoundsHeavyCore", true)
         builder.pop()
+        builder.comment("Plasma").push(PLASMA)
+        plasmaAnnihilates = builder
+            .comment(
+                "Let plasma let loose from a broken container destroy the blocks it erupts through and bursts",
+                "beside. Off, it still burns what it touches and its bursts still hurt, but every block stands.",
+            )
+            .translation(translationOf("plasma_annihilates"))
+            .define("plasmaAnnihilates", true)
+        builder.pop()
         SPEC = builder.build()
     }
 
@@ -159,6 +175,8 @@ object AgeConfig {
     private const val LINKING = "linking"
 
     private const val COMPOUNDING = "compounding"
+
+    private const val PLASMA = "plasma"
 }
 
 /**

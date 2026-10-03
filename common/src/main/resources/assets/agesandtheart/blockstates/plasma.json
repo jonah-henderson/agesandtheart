@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "buried=false": { "model": "agesandtheart:block/plasma" },
+    "buried=true": { "model": "agesandtheart:block/plasma" }
+  }
+}

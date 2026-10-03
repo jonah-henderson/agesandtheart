@@ -85,15 +85,15 @@ data class BiomePreference(
             // It used to be the other way round, and the bug it caused is worth keeping written down. `only`
             // filtered vanilla's table and *then* additions were anchored against whatever survived, so naming a
             // biome the table has no entry for — a datapack biome, a nether or End one — emptied it, tripped the
-            // guard below, and threw the whole narrowing away. An Age asking for "only plasma" silently got
+            // guard below, and threw the whole narrowing away. An Age asking for "only spire_barrens" silently got
             // vanilla's twenty-two biomes, complete with their decoration. That is precisely §3.3's silent drop,
             // and it hid behind a warning nobody reads.
             //
             // Anchoring additions against the **unfiltered** table instead makes one mechanism cover everything
             // (Jonah: *"eventually just subsets of biomes too, we need to be able to express all"*):
-            //   - `only plasma`        → plasma is added, then everything else is dropped: one biome everywhere.
+            //   - `only spire_barrens` → it is added, then everything else is dropped: one biome everywhere.
             //   - `only ocean beach`   → a subset, as before.
-            //   - `plasma`             → added to vanilla's table and mingled with it.
+            //   - `spire_barrens`      → added to vanilla's table and mingled with it.
             //   - `except desert`      → struck out, as before.
             // The additions are what `entriesFor` earns a biome, including a synthetic climate point for one the
             // table has never heard of — which is exactly why it must see the full table to place it.

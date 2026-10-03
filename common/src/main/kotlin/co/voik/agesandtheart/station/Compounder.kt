@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.station
 
+import co.voik.agesandtheart.content.Plasma
 import co.voik.agesandtheart.location
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -9,12 +10,17 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.util.RandomSource
+import net.minecraft.network.chat.Component
+import net.minecraft.sounds.SoundEvents
+import net.minecraft.sounds.SoundSource
+import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.MenuType
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
@@ -50,6 +56,9 @@ import net.minecraft.world.phys.BlockHitResult
  * **A crafter's redstone** (Jonah): a rising signal compounds once and puts the result out of its front,
  * into a container there or onto the floor. Hoppers fill the inputs and take nothing out, since the result
  * is worked out rather than stored.
+ *
+ * **Found broken, and nothing runs until it is [REPAIRED]** with a whole unit of contained plasma, which is
+ * what puts nara after masterwork ink.
  */
 class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
 
@@ -57,7 +66,8 @@ class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
         registerDefaultState(
             NEEDS.values.fold(stateDefinition.any()) { state, property -> state.setValue(property, false) }
                 .setValue(FACING, Direction.NORTH)
-                .setValue(TRIGGERED, false),
+                .setValue(TRIGGERED, false)
+                .setValue(REPAIRED, false),
         )
     }
 
@@ -67,7 +77,7 @@ class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
         NEEDS.values.forEach { builder.add(it) }
-        builder.add(FACING, TRIGGERED)
+        builder.add(FACING, TRIGGERED, REPAIRED)
     }
 
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState =
@@ -100,7 +110,28 @@ class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
     }
 
     override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
+        if (!state.getValue(REPAIRED)) return
         (level.getBlockEntity(pos) as? CompounderBlockEntity)?.compoundOutOfTheFront(level, state.getValue(FACING))
+    }
+
+    override fun useItemOn(
+        stack: ItemStack,
+        state: BlockState,
+        level: Level,
+        pos: BlockPos,
+        player: Player,
+        hand: InteractionHand,
+        hitResult: BlockHitResult,
+    ): InteractionResult {
+        val repairsIt = stack.`is`(Plasma.CONTAINED_ITEM) && !state.getValue(REPAIRED)
+        if (!repairsIt) return InteractionResult.TRY_WITH_EMPTY_HAND
+        if (level.isClientSide) return InteractionResult.SUCCESS
+        stack.consume(1, player)
+        level.setBlock(pos, state.setValue(REPAIRED, true), UPDATE_ALL)
+        level.playSound(null, pos, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 1.0f, 1.0f)
+        (level as? ServerLevel)?.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x + 0.5, pos.y + 1.0, pos.z + 0.5, SPARKS, 0.4, 0.4, 0.4, 0.1)
+        player.sendSystemMessage(Component.translatable(REPAIRED_MESSAGE))
+        return InteractionResult.CONSUME
     }
 
     override fun updateShape(
@@ -122,6 +153,10 @@ class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
         hitResult: BlockHitResult,
     ): InteractionResult {
         if (level.isClientSide) return InteractionResult.SUCCESS
+        if (!state.getValue(REPAIRED)) {
+            player.sendOverlayMessage(Component.translatable(BROKEN_MESSAGE))
+            return InteractionResult.CONSUME
+        }
         val entity = level.getBlockEntity(pos) as? CompounderBlockEntity ?: return InteractionResult.FAIL
         player.openMenu(entity)
         return InteractionResult.CONSUME
@@ -160,6 +195,14 @@ class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
 
         /** Whether it is powered, so only a rising signal compounds. */
         val TRIGGERED: BooleanProperty = BlockStateProperties.TRIGGERED
+
+        /** Whether its core has been given contained plasma; until then it does nothing at all. */
+        val REPAIRED: BooleanProperty = BooleanProperty.create("repaired")
+
+        const val BROKEN_MESSAGE = "block.agesandtheart.fusion_compounder.broken"
+        const val REPAIRED_MESSAGE = "block.agesandtheart.fusion_compounder.repaired"
+
+        private const val SPARKS = 30
 
         /** The crafter's four ticks between a signal and the craft. */
         private const val A_CRAFTERS_DELAY = 4

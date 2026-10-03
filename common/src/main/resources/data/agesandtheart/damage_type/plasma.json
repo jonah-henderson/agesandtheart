@@ -1,0 +1,6 @@
+{
+  "_comment": "Plasma's heat and plasma itself (design 7.1.2). Not fire: neither fire immunity nor a potion stops it, and only a whole deretheni suit does. Scaled 'never', as the deep's pressure is.",
+  "message_id": "plasma",
+  "scaling": "never",
+  "exhaustion": 0.0
+}

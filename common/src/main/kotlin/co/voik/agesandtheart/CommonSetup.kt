@@ -11,6 +11,7 @@ import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.content.ChargedMetal
 import co.voik.agesandtheart.content.DeepWaterLogging
 import co.voik.agesandtheart.content.PalmWood
+import co.voik.agesandtheart.content.Plasma
 import co.voik.agesandtheart.mixin.FireBlockInvoker
 import co.voik.agesandtheart.content.ProtectiveSuit
 import co.voik.agesandtheart.generation.Skies
@@ -55,6 +56,10 @@ object CommonSetup {
         // The palm burns as birch does. `FireBlock` keeps its table private, and this is the door into it.
         val fire = Blocks.FIRE as FireBlockInvoker
         for ((block, ignites, burns) in PalmWood.flammable) fire.`agesandtheart$setFlammable`(block, ignites, burns)
+        // Contained plasma catches as TNT does, and burning lets it loose — see `ContainedPlasmaBlock`.
+        fire.`agesandtheart$setFlammable`(Plasma.CONTAINED, CATCHES_AS_TNT_DOES, BURNS_AS_TNT_DOES)
+        // A spent fuel's empty unit, which the item builder could not name before the unit was registered.
+        Plasma.leaveTheUnitBehind()
     }
 
     /** The end of every server tick. */
@@ -123,4 +128,8 @@ object CommonSetup {
     fun playerLeft(server: MinecraftServer, player: ServerPlayer) {
         PanelViews.forget(server, player)
     }
+
+    /** Vanilla's own odds for TNT, which fire takes almost at once. */
+    private const val CATCHES_AS_TNT_DOES = 15
+    private const val BURNS_AS_TNT_DOES = 100
 }

@@ -69,6 +69,9 @@ data class Sea(override val id: Identifier) : RegistryReference {
         /** A sea of lava — survivable only from a distance. */
         val LAVA = Sea(Identifier.withDefaultNamespace("lava"))
 
+        /** Plasma's (design §7.1.2): it consumes everything at its level and under it, and burns what is near. */
+        val PLASMA = Sea(Identifier.fromNamespaceAndPath(Constants.MOD_ID, "plasma"))
+
         /**
          * Names for "no sea at all", the one value an id cannot spell for itself — every other sea is
          * written as a block and arrives through [named] unaided.

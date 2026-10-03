@@ -39,6 +39,9 @@ object DerivedWords {
 
     val WORDLESS_BLOCKS: TagKey<Block> = TagKey.create(Registries.BLOCK, DOES_NOT_HAVE_A_WORD)
 
+    /** Blocks whose word means a sea and nothing else: never a skin, never a world's rock. Plasma's. */
+    val ONLY_SEAS: TagKey<Block> = TagKey.create(Registries.BLOCK, "only_a_sea".location())
+
     /**
      * **A word for every block in the pack** — what a writer points at to say "made of that" or "a sea of
      * that". No filter beyond [DOES_NOT_HAVE_A_WORD]: any filter we invented would exclude somebody's
@@ -57,8 +60,14 @@ object DerivedWords {
      */
     fun materials(): List<Word> = BuiltInRegistries.BLOCK.listElements()
         .filter { holder -> !holder.`is`(WORDLESS_BLOCKS) }
-        .map { holder -> substance(holder.key().identifier(), pours = holder.value().defaultBlockState().fluidState.isSource) }
+        .map { holder ->
+            val id = holder.key().identifier()
+            if (holder.`is`(ONLY_SEAS)) onlyASea(id)
+            else substance(id, pours = holder.value().defaultBlockState().fluidState.isSource)
+        }
         .toList()
+
+    private fun onlyASea(id: Identifier) = Word(id = id, aspects = setOf(Aspect.SEA), entryOf = Registries.BLOCK)
 
     /**
      * A block, said as a word: the sea it could be, and the material it could be made into. [Word.entryOf]

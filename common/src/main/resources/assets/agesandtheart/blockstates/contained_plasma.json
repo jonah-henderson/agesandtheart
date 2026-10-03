@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "hanging=false": { "model": "agesandtheart:block/contained_plasma" },
+    "hanging=true": { "model": "agesandtheart:block/contained_plasma_hanging" }
+  }
+}

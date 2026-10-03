@@ -34,7 +34,7 @@ class BespokeRecipeCheck : FunSpec({
             "the Spire's biome claim is not exclusive, so vanilla's whole table grows there: $claims"
         }
         val wanted = grown.wanted.map { it.value }
-        check(wanted == listOf(Biomes.PLASMA_BIOME.toString())) {
+        check(wanted == listOf(Biomes.SPIRE_BARRENS.toString())) {
             "the Spire asked for $wanted rather than for its own biome — a claim spelled by hand and left behind"
         }
     }

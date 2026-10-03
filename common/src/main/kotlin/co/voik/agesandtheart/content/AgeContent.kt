@@ -1887,7 +1887,7 @@ object AgeContent {
         PAPER_TREE_ROOTS_ID to PAPER_TREE_ROOTS_BLOCK,
         PAPER_TREE_ROOT_ID to PAPER_TREE_ROOT_BLOCK,
         PAPER_TREE_SAPLING_ID to PAPER_TREE_SAPLING_BLOCK,
-    ) + PalmBeach.blocks + PalmWood.blocks + CompoundedStone.blocks
+    ) + PalmBeach.blocks + PalmWood.blocks + CompoundedStone.blocks + Plasma.blocks
 
     /**
      * **Each loader registers these its own way**, and that is the whole platform cost of the profession.
@@ -2076,7 +2076,7 @@ object AgeContent {
         ASTRITE_SHARD_ID to ASTRITE_SHARD,
         ALGAE_ID to ALGAE,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK,
-    ) + PalmBeach.items + PalmWood.items + CompoundedStone.items + MasterworkCrafts.items
+    ) + PalmBeach.items + PalmWood.items + CompoundedStone.items + MasterworkCrafts.items + Plasma.items
 
     /**
      * Loot-function kinds. What makes pages ordinary loot: a pack puts

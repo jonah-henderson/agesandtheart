@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.generation
 
+import co.voik.agesandtheart.book.DescriptiveBookRecipe
 import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.Constants
 import co.voik.ephemeris.RuntimeLevelConfig
@@ -21,7 +22,6 @@ import net.minecraft.world.level.levelgen.Heightmap
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import java.util.WeakHashMap
-import co.voik.agesandtheart.age.AgePreset
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.worldgen.dni.DniCity
@@ -104,10 +104,10 @@ object Ages {
     /**
      * Opens the Age [id] from its recorded recipe, or returns it if it is open already. Opening an existing
      * Age reuses its saved chunks. Used for travel and restart-replay; must be called on the server thread.
-     * An [id] with no recorded recipe opens as the Spire preset.
+     * An [id] with no recorded recipe opens as a book that says nothing would ([DescriptiveBookRecipe.sayingNothing]).
      */
     fun open(server: MinecraftServer, id: Identifier): ServerLevel {
-        val recipe = AgeSavedData.get(server).recipe(id) ?: AgeRecipe.of(AgePreset.SPIRE, id)
+        val recipe = AgeSavedData.get(server).recipe(id) ?: DescriptiveBookRecipe.sayingNothing(server, id)
         return RuntimeLevels.open(
             server,
             id,
