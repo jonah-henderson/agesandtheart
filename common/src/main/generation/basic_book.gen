@@ -25,6 +25,11 @@ rare_material_age =
 # progression: a landmass worth looking at, and two or three things to look at in it. They never name a
 # phenomenon kept for the materials and instability, nor a lava sea, so no curiosity passes a gate.
 
+# Between them the curiosities must use every aiming page at least once: a basic book is where a player
+# first meets the parts of a world there are to aim at. The pages are landmass, sea, rock, underground,
+# biomes, sky, structures, climate, surface, features, spawns, air, waters, weather, sun, moon, stars, grass,
+# leaves, aurora, rainbow, phenomena and clouds. Not used yet: surface, weather, moon.
+
 # One thing to look at and one thing to find, each drawn from its own group so no two say the same part of
 # the world twice -- two leaf colours, or a tropical and an arid climate, is a book arguing with itself. A
 # climate is only ever the third, and never beside a mood, which leans the climate its own way.

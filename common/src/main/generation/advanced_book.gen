@@ -5,6 +5,15 @@ terminals word
 # one where the Age it makes shows what it did (§4.5): an `except` should leave out something the world
 # would otherwise have. BookCheck fails any book that uses no grammatical word but `age`.
 
+# What these books must teach, because nothing else on the critical path does (plan, Phase 7 "Still open"):
+# - Every grammatical word, each doing visible work.
+# - Danger: at least one Age that scores over the danger threshold (`pays_above`, art/danger.json) using
+#   common-ink words only. These books are the route into the hunt for deretheni.
+# - The scarab's habitat, for the books beside the ink workshop: `torchflowers in jungle` in one book and
+#   `mud and sand pits` in another, never both in the same book.
+# Taught elsewhere, so not needed here: the city's words (the survey reports), `black sun` and `lava sea`
+# (item frames), `polar` and `tidal` (the greenhouse's chest), `plasma` (beside the compounder).
+
 book = [mingled_age] | [spared_age] | [thronged_age] | [sited_age]
 
 # `and`: two stones laid together, so the rock visibly holds both.
