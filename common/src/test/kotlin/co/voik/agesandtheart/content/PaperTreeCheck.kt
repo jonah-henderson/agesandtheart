@@ -51,6 +51,35 @@ class PaperTreeCheck : FunSpec({
         }
     }
 
+    test("a heart looks exactly once a minute") {
+        for (place in PLACES) {
+            val minutes = (0L..<SAMPLE_MINUTES * PaperTreeHealth.SAMPLE_EVERY)
+                .filter { PaperTreeHealth.isTimeToLook(it, place) }
+                .map { it / PaperTreeHealth.SAMPLE_EVERY }
+            check(minutes == (0L..<SAMPLE_MINUTES).toList()) { "a heart at $place looked in minutes $minutes" }
+        }
+    }
+
+    /**
+     * The case a fixed moment failed: dispensers on a clock wetting the roots half of every cycle, where the
+     * cycle divides the minute. Looking at one moment of it every time read the same half every time.
+     */
+    test("dispensers on a fast clock never mark a leaf, whatever its period") {
+        val periods = (2..PaperTreeHealth.SAMPLE_EVERY).filter { PaperTreeHealth.SAMPLE_EVERY % it == 0 && it % 2 == 0 }
+        for (period in periods) for (place in PLACES) {
+            var memory = PaperTreeHealth.SETTLED_HISTORY
+            var strain = 0
+            for (tick in 0L..<PaperTreeHealth.SAMPLES.toLong() * TIDES * PaperTreeHealth.SAMPLE_EVERY) {
+                if (!PaperTreeHealth.isTimeToLook(tick, place)) continue
+                memory = PaperTreeHealth.remembered(memory, isWet = tick % period < period / 2)
+                strain = PaperTreeHealth.strained(strain, PaperTreeHealth.bandOf(PaperTreeHealth.moistureOf(memory)))
+                check(PaperTreeHealth.stageOf(strain) == PaperTreeHealth.Stage.HEALTHY) {
+                    "a $period-tick clock marked the tree at $place at tick $tick, strain $strain"
+                }
+            }
+        }
+    }
+
     test("a sapling's moisture hands the heart the same moisture") {
         for (moisture in 0..15) {
             val handed = PaperTreeHealth.moistureOf(PaperTreeHealth.historyFor(moisture))
@@ -130,3 +159,7 @@ private val SEEDS = 0L..<200L
 private const val THIRD = 7
 private const val TWO_THIRDS = 13
 private const val TIDES = 10
+
+/** Hearts at the origin, in the negatives, and far out — what `BlockPos.asLong` packs differently. */
+private val PLACES = listOf(HEART, BlockPos(-3, -40, -7), BlockPos(29_000_000, 300, -29_000_000)).map { it.asLong() }
+private const val SAMPLE_MINUTES = 50L

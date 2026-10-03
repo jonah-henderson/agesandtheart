@@ -249,9 +249,7 @@ class PaperTreeRootBlockEntity(pos: BlockPos, state: BlockState) :
     companion object {
         fun tick(level: Level, pos: BlockPos, state: BlockState, heart: PaperTreeRootBlockEntity) {
             val serverLevel = level as? ServerLevel ?: return
-            // Spread across the minute by position, so a grove does not all look on the same tick.
-            val isTimeToLook = (level.gameTime + pos.asLong()) % PaperTreeHealth.SAMPLE_EVERY == 0L
-            if (isTimeToLook) heart.tend(serverLevel, state)
+            if (PaperTreeHealth.isTimeToLook(level.gameTime, pos.asLong())) heart.tend(serverLevel, state)
         }
 
         private const val SEED_KEY = "seed"

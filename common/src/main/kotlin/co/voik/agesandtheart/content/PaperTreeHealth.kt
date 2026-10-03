@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.content
 
+import it.unimi.dsi.fastutil.HashCommon
 import net.minecraft.world.level.block.state.properties.IntegerProperty
 import kotlin.math.abs
 
@@ -40,6 +41,25 @@ object PaperTreeHealth {
 
     /** A new heart's memory: wet and dry by turns, which reads as the middle of its band. */
     const val SETTLED_HISTORY = 0b01010101010101010101
+
+    /**
+     * Whether a heart at [place] looks at [gameTime]: once a minute, at a different moment of each. **A fixed
+     * moment let a redstone clock pick the tree's moisture**, since a clock whose period divides the minute —
+     * nearly every fast one — was caught at the same point of its cycle every look, and dispensers on a clock
+     * (the farm the design wants) read as always wet or always dry and killed the tree with nothing to see.
+     *
+     * **The moment walks the minute by the golden ratio, not at random.** A random moment reads a fast clock
+     * as coin flips, and twenty flips stray: in a simulated hundred hours a clock wet two fifths of the time
+     * killed the tree outright. The golden stride spreads any twenty looks evenly over any cycle, so a clock
+     * reads as its share of wet, as a tide does. Each heart starts at its own place in the walk, so a grove
+     * does not all look on the same tick.
+     */
+    fun isTimeToLook(gameTime: Long, place: Long): Boolean {
+        val minute = Math.floorDiv(gameTime, SAMPLE_EVERY)
+        val turn = (minute * GOLDEN_STRIDE + HashCommon.mix(place)) and WHOLE_TURN
+        val moment = (turn * SAMPLE_EVERY) ushr Int.SIZE_BITS
+        return Math.floorMod(gameTime, SAMPLE_EVERY).toLong() == moment
+    }
 
     /** Measured: a polar sun lights the open air to 14, and noon in the overworld to 15. */
     private const val GROWS_IN_LIGHT_FROM = 12
@@ -150,4 +170,8 @@ object PaperTreeHealth {
 
     /** A leaf this far from a log is on the outside of its terrace. */
     private const val OUTERMOST = 3
+
+    /** The golden ratio's share of a turn, a turn being 2^32 — the stride [isTimeToLook] walks the minute by. */
+    private const val GOLDEN_STRIDE = 0x9E3779B9L
+    private const val WHOLE_TURN = 0xFFFFFFFFL
 }
