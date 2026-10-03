@@ -275,32 +275,28 @@ object SkyBodies {
      * and adding a dark colour adds next to nothing, which drew a black sun as a faint yellow one.
      *
      * An eclipse: a black disc that hides the sky, a thin bright ring at its rim, and in vanilla's glow a
-     * halo of shadow that hides most of the sky round it — against the dusky sky [SunLight] gives it.
+     * pale violet corona of light, against the dusky sky [SunLight] gives it.
      */
     private val SUN_PALETTES: Map<String, Palette> = mapOf(
         "black" to Palette.ofVanillaSun(
             centre = Rgba(0.0f, 0.0f, 0.0f, HIDES_THE_SKY),
             ring = Rgba(0.0f, 0.0f, 0.0f, HIDES_THE_SKY),
             rim = Rgba(0.95f, 0.88f, 0.75f, HIDES_THE_SKY),
-            glow = Rgba(0.02f, 0.0f, 0.05f, HIDES_MOST_OF_THE_SKY),
+            glow = Rgba(0.40f, 0.33f, 0.58f, HIDES_A_LITTLE_OF_THE_SKY),
         ),
     )
 
-    /**
-     * Streamers round the suns that have them: for a black sun, faint violet light from the shadow, turning
-     * twice a day and breathing as they go.
-     */
+    /** A shimmer in a black sun's glow, breathing slowly. No streamers. */
     private val SUN_CORONAS: Map<String, Corona> = mapOf(
         "black" to Corona(
-            rays = 16,
-            reach = 1.4f,
-            colour = Rgba(0.30f, 0.24f, 0.45f, HIDES_NOTHING),
-            turnsPerDay = 2.0f,
+            rays = 0,
+            reach = 0.0f,
+            colour = Rgba.CLEAR,
+            turnsPerDay = 0.0f,
             shimmer = 0.35f,
         ),
     )
 
     private const val HIDES_THE_SKY = 1.0f
-    private const val HIDES_MOST_OF_THE_SKY = 0.6f
-    private const val HIDES_NOTHING = 0.0f
+    private const val HIDES_A_LITTLE_OF_THE_SKY = 0.2f
 }

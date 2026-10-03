@@ -47,13 +47,13 @@ object SunLight {
     private const val SUN_TINTS_THE_LIGHT = 0.35f
 
     /**
-     * Under a black sun. The sky is dusky rather than black, so the darker halo round the sun still shows
-     * against it; the light is cold and dim; the stars are most of the way out, day and night alike.
+     * Under a black sun. The sky is dusky, so the sun's pale corona shows against it; the light is cold and
+     * dim; the stars are out as at midnight, day and night alike.
      */
     private val ECLIPSE = Look(
         sky = Rgba(0.20f, 0.15f, 0.31f),
         fog = Rgba(0.24f, 0.19f, 0.33f),
         tint = Rgba(0.42f, 0.38f, 0.62f),
-        starBrightness = 0.75f,
+        starBrightness = 1.0f,
     )
 }
