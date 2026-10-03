@@ -1,0 +1,8 @@
+{
+  "_comment": "One model; how it died is a tint.",
+  "variants": {
+    "": {
+      "model": "agesandtheart:block/dead_paper_tree_sapling"
+    }
+  }
+}

@@ -8,6 +8,7 @@ import co.voik.agesandtheart.content.PalmWood
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.client.color.block.BlockTintSource
 import net.minecraft.client.color.block.BlockTintSources
+import co.voik.agesandtheart.content.DeadPaperTreeSaplingBlock
 import co.voik.agesandtheart.content.PaperTreeHealth
 import co.voik.agesandtheart.content.PaperTreeLeavesBlock
 import net.minecraft.world.level.block.Block
@@ -91,6 +92,15 @@ object AgeTints {
         registrar(listOf(ByBlight), AgeContent.PAPER_TREE_LEAVES_BLOCK)
         registrar(listOf(ByMoisture), AgeContent.PAPER_TREE_ROOT_BLOCK)
         registrar(listOf(ByMoisture), AgeContent.PAPER_TREE_SAPLING_BLOCK)
+        registrar(listOf(ByHowItDied), AgeContent.DEAD_PAPER_TREE_SAPLING_BLOCK)
+    }
+
+    /** A dead yema sapling, by [DeadPaperTreeSaplingBlock.DROWNED]; its item takes the same two colours. */
+    private object ByHowItDied : BlockTintSource {
+        override fun color(state: BlockState): Int =
+            opaque(if (state.getValue(DeadPaperTreeSaplingBlock.DROWNED)) DROWNED_SAPLING else SERE_LEAF)
+
+        override fun relevantProperties(): Set<Property<*>> = setOf(DeadPaperTreeSaplingBlock.DROWNED)
     }
 
     /** A paper tree's leaf, by [PaperTreeLeavesBlock.BLIGHT]. */
@@ -124,6 +134,9 @@ object AgeTints {
     private const val SERE_LEAF = 0x8B6A3E
     private const val DROWNING_LEAF = 0xC9B23A
     private const val DROWNED_LEAF = 0x2E2B22
+
+    /** Halfway from a drowning leaf to a drowned one: a sapling has one colour to say both with. */
+    private const val DROWNED_SAPLING = 0x7C6E2E
 
     /** Pale and dusty dry, dark and cold soaked, and the root's own colour in between. */
     private const val PARCHED = 0xD8C49A

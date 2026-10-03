@@ -1135,6 +1135,7 @@ object AgeContent {
     private val PAPER_TREE_ROOTS_ID: Identifier = "paper_tree_roots".location()
     private val PAPER_TREE_ROOT_ID: Identifier = "paper_tree_root".location()
     private val PAPER_TREE_SAPLING_ID: Identifier = "paper_tree_sapling".location()
+    private val DEAD_PAPER_TREE_SAPLING_ID: Identifier = "dead_paper_tree_sapling".location()
     private val PAPER_TREE_PULP_ID: Identifier = "paper_tree_pulp".location()
 
     /** Wood's feel, on vanilla's own numbers for a log. */
@@ -1226,6 +1227,19 @@ object AgeContent {
             .pushReaction(PushReaction.POPPED),
     )
 
+    /** See [DeadPaperTreeSaplingBlock] — on vanilla's own properties for a dead bush. */
+    val DEAD_PAPER_TREE_SAPLING_BLOCK: DeadPaperTreeSaplingBlock = DeadPaperTreeSaplingBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, DEAD_PAPER_TREE_SAPLING_ID))
+            .mapColor(MapColor.WOOD)
+            .replaceable()
+            .noCollision()
+            .instabreak()
+            .sound(SoundType.GRASS)
+            .ignitedByLava()
+            .pushReaction(PushReaction.POPPED),
+    )
+
     private fun blockItem(block: Block, id: Identifier): Item =
         BlockItem(block, Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)).useBlockDescriptionPrefix())
 
@@ -1235,6 +1249,7 @@ object AgeContent {
     val PAPER_TREE_LEAVES: Item = blockItem(PAPER_TREE_LEAVES_BLOCK, PAPER_TREE_LEAVES_ID)
     val PAPER_TREE_ROOTS: Item = blockItem(PAPER_TREE_ROOTS_BLOCK, PAPER_TREE_ROOTS_ID)
     val PAPER_TREE_SAPLING: Item = blockItem(PAPER_TREE_SAPLING_BLOCK, PAPER_TREE_SAPLING_ID)
+    val DEAD_PAPER_TREE_SAPLING: Item = blockItem(DEAD_PAPER_TREE_SAPLING_BLOCK, DEAD_PAPER_TREE_SAPLING_ID)
 
     /**
      * What the pulper makes of stripped yema: the top rung's pulp, as a carapace's powder is the ink's. The
@@ -1887,6 +1902,7 @@ object AgeContent {
         PAPER_TREE_ROOTS_ID to PAPER_TREE_ROOTS_BLOCK,
         PAPER_TREE_ROOT_ID to PAPER_TREE_ROOT_BLOCK,
         PAPER_TREE_SAPLING_ID to PAPER_TREE_SAPLING_BLOCK,
+        DEAD_PAPER_TREE_SAPLING_ID to DEAD_PAPER_TREE_SAPLING_BLOCK,
     ) + PalmBeach.blocks + PalmWood.blocks + CompoundedStone.blocks + Plasma.blocks
 
     /**
@@ -2051,6 +2067,7 @@ object AgeContent {
         PAPER_TREE_LEAVES_ID to PAPER_TREE_LEAVES,
         PAPER_TREE_ROOTS_ID to PAPER_TREE_ROOTS,
         PAPER_TREE_SAPLING_ID to PAPER_TREE_SAPLING,
+        DEAD_PAPER_TREE_SAPLING_ID to DEAD_PAPER_TREE_SAPLING,
         PAPER_TREE_PULP_ID to PAPER_TREE_PULP,
         *SURVEY_REPORTS.map { (report, item) -> report.id to item }.toTypedArray(),
         GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE,

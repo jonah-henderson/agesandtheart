@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.book.panel.PanelWarming
+import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.ChargedMetal
 import co.voik.agesandtheart.content.DeepWaterLogging
 import co.voik.agesandtheart.content.PalmWood
@@ -58,6 +59,8 @@ object CommonSetup {
         for ((block, ignites, burns) in PalmWood.flammable) fire.`agesandtheart$setFlammable`(block, ignites, burns)
         // Contained plasma catches as TNT does, and burning lets it loose — see `ContainedPlasmaBlock`.
         fire.`agesandtheart$setFlammable`(Plasma.CONTAINED, CATCHES_AS_TNT_DOES, BURNS_AS_TNT_DOES)
+        // A dead yema sapling burns as the dead bush it otherwise is.
+        fire.`agesandtheart$setFlammable`(AgeContent.DEAD_PAPER_TREE_SAPLING_BLOCK, CATCHES_AS_A_DEAD_BUSH_DOES, BURNS_AS_A_DEAD_BUSH_DOES)
         // A spent fuel's empty unit, which the item builder could not name before the unit was registered.
         Plasma.leaveTheUnitBehind()
     }
@@ -137,4 +140,8 @@ object CommonSetup {
     /** Vanilla's own odds for TNT, which fire takes almost at once. */
     private const val CATCHES_AS_TNT_DOES = 15
     private const val BURNS_AS_TNT_DOES = 100
+
+    /** Vanilla's own odds for a dead bush. */
+    private const val CATCHES_AS_A_DEAD_BUSH_DOES = 60
+    private const val BURNS_AS_A_DEAD_BUSH_DOES = 100
 }

@@ -24,7 +24,7 @@ import net.minecraft.world.phys.shapes.VoxelShape
  * the experiment is planting one and seeing whether it takes.
  *
  * It follows the root's rule from the day it is planted — wetter beside water, drier away from it, rain no
- * help — and a sapling kept in its band grows, where one left out of it too long dies to a dead bush. It
+ * help — and a sapling kept in its band grows, where one left out of it too long dies, to a [DeadPaperTreeSaplingBlock] showing which way. It
  * grows only in about a polar sun's light; out of it, it waits. When
  * it grows, the ground under it becomes the tree's heart, with the moisture the sapling had.
  */
@@ -103,11 +103,14 @@ class PaperTreeSaplingBlock(properties: Properties) : VegetationBlock(properties
         if (!grew) level.setBlock(pos, state, UPDATE_NONE)
     }
 
-    /** A tick out of its band: a step of strain, and past what a sapling can bear, a dead bush. */
+    /** A tick out of its band: a step of strain, and past what a sapling can bear, dead the way it went. */
     private fun wither(level: ServerLevel, pos: BlockPos, state: BlockState) {
         val strain = state.getValue(STRAIN) + 1
         if (strain > MOST_STRAIN) {
-            level.setBlock(pos, Blocks.DEAD_BUSH.defaultBlockState(), UPDATE_ALL)
+            val drowned = PaperTreeHealth.bandOf(state.getValue(PaperTreeHealth.MOISTURE)) == PaperTreeHealth.Band.DROWNED
+            val dead = AgeContent.DEAD_PAPER_TREE_SAPLING_BLOCK.defaultBlockState()
+                .setValue(DeadPaperTreeSaplingBlock.DROWNED, drowned)
+            level.setBlock(pos, dead, UPDATE_ALL)
             return
         }
         level.setBlock(pos, state.setValue(STRAIN, strain), UPDATE_CLIENTS)

@@ -1,0 +1,33 @@
+{
+  "_comment": "The block's two tints, AgeTints' SERE_LEAF and DROWNED_SAPLING, chosen by the state shears kept.",
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:block_state",
+    "block_state_property": "drowned",
+    "cases": [
+      {
+        "when": "true",
+        "model": {
+          "type": "minecraft:model",
+          "model": "agesandtheart:item/dead_paper_tree_sapling",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": 8154670
+            }
+          ]
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "agesandtheart:item/dead_paper_tree_sapling",
+      "tints": [
+        {
+          "type": "minecraft:constant",
+          "value": 9136702
+        }
+      ]
+    }
+  }
+}
