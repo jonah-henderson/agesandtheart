@@ -1,0 +1,11 @@
+{
+  "_comment": "Shown on first holding a page, which is when a writer first wants somewhere to write, or a lectern.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_a_page": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [{ "items": "agesandtheart:page" }] } },
+    "has_a_lectern": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [{ "items": "minecraft:lectern" }] } },
+    "has_the_recipe": { "trigger": "minecraft:recipe_unlocked", "conditions": { "recipes": "agesandtheart:writers_desk" } }
+  },
+  "requirements": [["has_a_page", "has_a_lectern", "has_the_recipe"]],
+  "rewards": { "recipes": ["agesandtheart:writers_desk"] }
+}

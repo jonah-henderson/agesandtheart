@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "Jonah's: an inverted boat of planks across the lower two rows with a lectern at its centre, a glass",
+    "bottle and a feather above for the ink and the pen. All vanilla, because it is the first thing a writer",
+    "needs and nothing of ours can come before it."
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "P": "#minecraft:planks",
+    "L": "minecraft:lectern",
+    "B": "minecraft:glass_bottle",
+    "F": "minecraft:feather"
+  },
+  "pattern": [
+    "B F",
+    "PLP",
+    "P P"
+  ],
+  "result": { "id": "agesandtheart:writers_desk" }
+}
