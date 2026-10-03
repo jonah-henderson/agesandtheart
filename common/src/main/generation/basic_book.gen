@@ -23,7 +23,7 @@ rare_material_age =
 # Curiosity ages
 # Meant to show what the mod can do and encourage experimentation without directly giving too much
 # progression: a landmass worth looking at, and two or three things to look at in it. They never name a
-# phenomenon kept for the materials and instability, nor a lava sea, so no curiosity passes a gate.
+# phenomenon kept for the materials and instability, nor a volcano, so no curiosity passes a gate.
 
 # Between them the curiosities must use every aiming page at least once: a basic book is where a player
 # first meets the parts of a world there are to aim at. The pages are landmass, sea, rock, underground,
@@ -115,12 +115,12 @@ rime_crystal_landmasses = [typical_landmass]@3 | mountainous@2 | sheer@2 | pilla
 
 cold = frozen climate
 
-# Temperstone: every climate as hot as a desert, and a lava sea. Named `lava` rather than `molten`, which
-# could draw a sea of magma and pass no gate.
+# Temperstone: every climate as hot as a desert, and volcanoes. `volcanic` admits the volcano by name, which
+# the gate reads; a lava sea is drawn beside it now and then, and pays nothing alone.
 temperstone_age =
-    age [seaworthy_landmass] landmass scorching climate lava sea
+    age [seaworthy_landmass] landmass scorching climate volcanic features
     | age [seaworthy_landmass] landmass scorching climate lava sea volcanic features
-    | age [seaworthy_landmass] landmass scorching climate lava sea [flavour]@2
+    | age [seaworthy_landmass] landmass scorching climate volcanic features [flavour]@2
 
 # Astrite: meteors. Cratered country and a dark night are drawn beside it, since that is what it looks like.
 astrite_age =

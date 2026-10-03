@@ -4,6 +4,9 @@ import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Claim
+import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.age.aspect.Volcanoes
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Sea
@@ -23,27 +26,41 @@ import io.kotest.core.spec.style.FunSpec
  */
 class EarlyGameRareMaterialsCheck : FunSpec({
 
-    test("a hot Age standing in lava bakes temperstone") {
-        check(EarlyGameRareMaterials.bakesTemperstone(hot().inLava())) {
+    test("a hot volcanic Age bakes temperstone") {
+        check(EarlyGameRareMaterials.bakesTemperstone(hot().volcanic())) {
             "an Age with both halves of the gate baked nothing"
         }
     }
 
-    test("heat with no lava bakes nothing") {
+    test("heat with no volcanoes bakes nothing") {
         check(!EarlyGameRareMaterials.bakesTemperstone(hot())) {
-            "a hot Age with a water sea baked temperstone against nothing"
+            "a hot Age with no volcanoes baked temperstone against nothing"
         }
     }
 
-    test("lava with no heat bakes nothing") {
-        check(!EarlyGameRareMaterials.bakesTemperstone(cold().inLava())) {
-            "a frozen Age with a lava sea baked temperstone, which makes the heat gate decorative"
+    /** A lava sea is a medium any hot Age names in one word, where a volcano is a place (design §7.1.2). */
+    test("a hot Age with a lava sea and no volcanoes bakes nothing") {
+        check(!EarlyGameRareMaterials.bakesTemperstone(hot().inLava())) {
+            "a lava sea alone baked temperstone, so the volcanic half of the gate is one word"
+        }
+    }
+
+    test("volcanoes with no heat bake nothing") {
+        check(!EarlyGameRareMaterials.bakesTemperstone(cold().volcanic())) {
+            "a frozen Age with volcanoes baked temperstone, which makes the heat gate decorative"
+        }
+    }
+
+    test("volcanoes written out bake nothing") {
+        val struck = hot().volcanic("${Volcanoes.ID}${Claim.OPEN}${Claim.EXCEPT}${Claim.CLOSE}")
+        check(!EarlyGameRareMaterials.bakesTemperstone(struck)) {
+            "an Age that wrote its volcanoes out still baked temperstone"
         }
     }
 
     test("an Age nobody said anything about the temperature of bakes nothing") {
-        check(!EarlyGameRareMaterials.bakesTemperstone(plain().inLava())) {
-            "an unstated climate counted as hot, so every lava Age would pay"
+        check(!EarlyGameRareMaterials.bakesTemperstone(plain().volcanic())) {
+            "an unstated climate counted as hot, so every volcanic Age would pay"
         }
     }
 
@@ -125,7 +142,7 @@ class EarlyGameRareMaterialsCheck : FunSpec({
         val divided = AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.HILLS))
             .withOptions(Aspect.CLIMATE, TEMPERATURE, listOf(SCORCHING))
             .withOptionsFor(Aspect.CLIMATE, member = 1, parameter = TEMPERATURE, chosen = listOf(MILD))
-            .inLava()
+            .volcanic()
         check(!EarlyGameRareMaterials.bakesTemperstone(divided)) {
             "a half-hot Age baked temperstone, so breadth could be bought with one territory"
         }
@@ -144,6 +161,10 @@ class EarlyGameRareMaterialsCheck : FunSpec({
         private fun hot(): AgeComposition = plain().withOptions(Aspect.CLIMATE, TEMPERATURE, listOf(SCORCHING))
 
         private fun cold(): AgeComposition = plain().withOptions(Aspect.CLIMATE, TEMPERATURE, listOf(FREEZING))
+
+        /** Volcanoes asked for, as `volcano` asks — or [claim] spelled out. */
+        private fun AgeComposition.volcanic(claim: String = Volcanoes.ID.toString()): AgeComposition =
+            withOptionsFor(Aspect.FEATURES, 0, Features.PLACES.name, listOf(claim))
 
         private fun AgeComposition.inLava(): AgeComposition =
             copy(seas = List(seas.size.coerceAtLeast(1)) { Sea(Identifier.withDefaultNamespace("lava")) })

@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.Volcanoes
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.age.aspect.Sea
@@ -136,11 +137,12 @@ object EarlyGameRareMaterials {
      * Whether stone is baked into temperstone here.
      *
      * Read from the recipe like everything else that pays out, so the desk's survey can answer before the
-     * Age is opened. Both halves are needed: heat without lava has nothing to bake against, and lava in a
-     * cold Age is a hazard rather than a kiln.
+     * Age is opened. Both halves are needed: a hot Age without volcanoes has nothing to bake against, and
+     * volcanoes in a cold Age are a hazard rather than a kiln. A lava sea alone does not pay: it is a medium
+     * any hot Age names in one word, where a volcano is a place (design §7.1.2).
      */
     fun bakesTemperstone(composition: AgeComposition): Boolean =
-        neverCools(composition) && standsInLava(composition)
+        neverCools(composition) && Volcanoes.amountIn(composition) != null
 
     /**
      * Whether every one of the Age's climates bottoms out at or above the desert.
@@ -158,10 +160,6 @@ object EarlyGameRareMaterials {
             bounded != null && bounded != Span.NATURAL && bounded.least >= DESERT
         }
     }
-
-    /** Whether any of the Age's seas is lava, which is what puts heat against rock at all. */
-    private fun standsInLava(composition: AgeComposition): Boolean =
-        composition.seas.any { sea -> !sea.isEmpty && sea.id == LAVA }
 
     /**
      * Whether rime grows here at all.
@@ -325,7 +323,6 @@ object EarlyGameRareMaterials {
     private const val MOST_NIGHTS = 0.75f
     private const val FIERCE_CURTAIN = 1.2f
 
-    private val LAVA: Identifier = Identifier.withDefaultNamespace("lava")
     private val WATER: Identifier = Identifier.withDefaultNamespace("water")
 
     /** The least raise `deep` writes (`art/word/deep.json`, 0.85 on the cubic), in blocks over the terrain's waterline. */

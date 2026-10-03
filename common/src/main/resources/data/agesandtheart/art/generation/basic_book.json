@@ -123,9 +123,9 @@
       {"produce":["frozen","climate"]}
     ],
     "temperstone_age": [
-      {"produce":["age","[seaworthy_landmass]","landmass","scorching","climate","lava","sea"]},
+      {"produce":["age","[seaworthy_landmass]","landmass","scorching","climate","volcanic","features"]},
       {"produce":["age","[seaworthy_landmass]","landmass","scorching","climate","lava","sea","volcanic","features"]},
-      {"weight":2.0,"produce":["age","[seaworthy_landmass]","landmass","scorching","climate","lava","sea","[flavour]"]}
+      {"weight":2.0,"produce":["age","[seaworthy_landmass]","landmass","scorching","climate","volcanic","features","[flavour]"]}
     ],
     "astrite_age": [
       {"produce":["age","[astrite_landmasses]","landmass","meteors","phenomena"]},
