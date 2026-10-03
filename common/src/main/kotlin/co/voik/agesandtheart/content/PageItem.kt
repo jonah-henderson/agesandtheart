@@ -1,11 +1,15 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Word
 import net.minecraft.core.component.DataComponents
 import co.voik.agesandtheart.age.word.WordNames
+import co.voik.agesandtheart.client.KnownWords
 import co.voik.agesandtheart.client.PageScreen
+import co.voik.agesandtheart.location
 import net.minecraft.ChatFormatting
+import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.world.InteractionHand
@@ -35,6 +39,14 @@ class PageItem(properties: Properties) : Item(properties) {
         return InteractionResult.SUCCESS
     }
 
+    /** The word, where one is written — so it is the word that takes the rarity colour. */
+    override fun getName(stack: ItemStack): Component =
+        stack.get(AgeComponents.PAGE_WORD)?.let(WordNames::readable) ?: super.getName(stack)
+
+    /**
+     * Laid out as a smithing template's is: what kind of thing this is, then where it applies, listed by
+     * aiming page. Only ever built on the client, which is where [KnownWords] is filled.
+     */
     @Suppress("OVERRIDE_DEPRECATION")
     override fun appendHoverText(
         stack: ItemStack,
@@ -44,10 +56,39 @@ class PageItem(properties: Properties) : Item(properties) {
         flag: TooltipFlag,
     ) {
         val word = stack.get(AgeComponents.PAGE_WORD) ?: return
-        builder.accept(WordNames.readable(word).copy().withStyle(ChatFormatting.GRAY))
+        builder.accept(Component.translatable(SUBTITLE).withStyle(ChatFormatting.GRAY))
+        val reach = KnownWords.reachOf(word) ?: return
+        val isAnAimingPage = reach.singleOrNull()?.page?.location() == word
+        if (isAnAimingPage) return
+        builder.accept(CommonComponents.EMPTY)
+        builder.accept(Component.translatable(APPLIES_TO).withStyle(ChatFormatting.GRAY))
+        appliesToLines(reach).forEach { line ->
+            builder.accept(CommonComponents.space().append(line).withStyle(ChatFormatting.BLUE))
+        }
+    }
+
+    /** The aiming pages [reach] answers to, a few to a line so a word reaching eight parts stays narrow. */
+    private fun appliesToLines(reach: Set<Aspect>): List<Component> {
+        if (reach.isEmpty()) return listOf(Component.translatable(APPLIES_ANYWHERE))
+        val names = reach.sortedBy { it.page }.map { WordNames.readable(it.page.location()).string }
+        val lines = mutableListOf<String>()
+        for (name in names) {
+            val last = lines.lastOrNull()
+            val fitsOnTheLastLine = last != null && last.length + LIST_SEPARATOR.length + name.length <= LINE_LENGTH
+            if (fitsOnTheLastLine) lines[lines.lastIndex] = last + LIST_SEPARATOR + name else lines += name
+        }
+        return lines.map(Component::literal)
     }
 
     companion object {
+        private const val SUBTITLE = "item.agesandtheart.page.subtitle"
+        private const val APPLIES_TO = "item.agesandtheart.page.applies_to"
+        private const val APPLIES_ANYWHERE = "item.agesandtheart.page.applies_anywhere"
+        private const val LIST_SEPARATOR = ", "
+
+        /** The longest "Applies to" line, in characters. */
+        private const val LINE_LENGTH = 26
+
         /**
          * A page with [word] written on it — **the one way to make one.**
          *

@@ -119,6 +119,11 @@ object CommonSetup {
         TheFall.resumed(player)
     }
 
+    /** Datapack contents going to [player] — on joining, and to everyone after a `/reload`. */
+    fun datapackSynced(player: ServerPlayer) {
+        PageLearning.tellTheLexicon(player)
+    }
+
     /**
      * A player leaving the server.
      *

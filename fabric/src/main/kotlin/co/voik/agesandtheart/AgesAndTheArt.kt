@@ -119,6 +119,9 @@ fun init() {
     ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->
         CommonSetup.playerJoined(handler.player)
     }
+    ServerLifecycleEvents.SYNC_DATA_PACK_CONTENTS.register { player, _ ->
+        CommonSetup.datapackSynced(player)
+    }
 
     // The desk's tanks, on every part of it — a pipe touching a wing should work, since the wings are
     // the same furniture. Registered against the block rather than the block entity for that reason.

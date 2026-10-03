@@ -22,6 +22,7 @@ import net.neoforged.fml.config.ModConfig
 import net.neoforged.fml.loading.FMLEnvironment
 import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.common.NeoForge
+import net.neoforged.neoforge.event.OnDatapackSyncEvent
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import net.neoforged.neoforge.event.server.ServerStartedEvent
@@ -67,6 +68,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         NeoForge.EVENT_BUS.addListener(::onRegisterCommands)
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedIn)
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedOut)
+        NeoForge.EVENT_BUS.addListener(::onDatapackSync)
         NeoForge.EVENT_BUS.addListener(::onServerStarted)
         NeoForge.EVENT_BUS.addListener(::onServerStopped)
         NeoForge.EVENT_BUS.addListener(::onServerTick)
@@ -249,6 +251,10 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     private fun onPlayerLoggedIn(event: PlayerEvent.PlayerLoggedInEvent) {
         val player = event.entity as? ServerPlayer ?: return
         CommonSetup.playerJoined(player)
+    }
+
+    private fun onDatapackSync(event: OnDatapackSyncEvent) {
+        event.relevantPlayers.forEach(CommonSetup::datapackSynced)
     }
 
     private fun onPlayerLoggedOut(event: PlayerEvent.PlayerLoggedOutEvent) {

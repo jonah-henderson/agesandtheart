@@ -87,14 +87,21 @@ object PageLearning {
     }
 
     /**
-     * Tells a joining player what they know and how it is written.
+     * Tells a joining player what they know.
      *
-     * The learned set is sent even though the client could not have forgotten it: a client may have
-     * connected to another server since, and the script belongs to whichever server is serving it.
+     * Sent even though the client could not have forgotten it: a client may have connected to another
+     * server since.
      */
     fun tellEverything(player: ServerPlayer) {
-        val vocabulary = Vocabulary.of(player.level().server)
-        Services.NETWORK.sendToPlayer(player, LexiconPayload(vocabulary.script))
         Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.whole(player.learnedWords.words))
+    }
+
+    /**
+     * Tells [player] how words are written and where each reaches — **on joining and again on every
+     * `/reload`**, since both are datapack content and a page's tooltip read off a stale copy would
+     * contradict the desk.
+     */
+    fun tellTheLexicon(player: ServerPlayer) {
+        Services.NETWORK.sendToPlayer(player, LexiconPayload.of(Vocabulary.of(player.level().server)))
     }
 }

@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.aspect.Aspect
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
@@ -8,13 +9,17 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.Identifier
 
 /**
- * The script, on its way to the client.
+ * The script, and which parts of the world each word reaches, on their way to the client.
  *
- * Sent rather than read locally because spellings and rules are datapack content while the screen that
- * draws them is on the client — so a pack ships its script without every client installing it. A client
- * that never receives one falls back to the readable alphabet.
+ * Sent rather than read locally because both are datapack content while the screens that draw them are on
+ * the client — so a pack ships its script without every client installing it. A client that never receives
+ * one falls back to the readable alphabet, and its pages say nothing of where they apply.
  */
-data class LexiconPayload(val script: Script) : CustomPacketPayload {
+data class LexiconPayload(
+    val script: Script,
+    /** [Word.aspects] for every word, by id — empty meaning anywhere. A page's "Applies to" lists it. */
+    val reach: Map<Identifier, Set<Aspect>>,
+) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<LexiconPayload> = TYPE
 
@@ -23,8 +28,25 @@ data class LexiconPayload(val script: Script) : CustomPacketPayload {
             Identifier.fromNamespaceAndPath(Constants.MOD_ID, "lexicon"),
         )
 
-        val STREAM_CODEC: StreamCodec<ByteBuf, LexiconPayload> =
-            Script.STREAM_CODEC.map(::LexiconPayload, LexiconPayload::script)
+        /** What [vocabulary] tells a client. */
+        fun of(vocabulary: Vocabulary) =
+            LexiconPayload(vocabulary.script, vocabulary.words.associate { it.id to it.aspects })
+
+        /** By ordinal, which is stable: aspects are only ever appended (see [Aspect]). */
+        private val ASPECT_STREAM_CODEC: StreamCodec<ByteBuf, Aspect> =
+            ByteBufCodecs.idMapper({ Aspect.entries[it] }, Aspect::ordinal)
+
+        val STREAM_CODEC: StreamCodec<ByteBuf, LexiconPayload> = StreamCodec.composite(
+            Script.STREAM_CODEC,
+            LexiconPayload::script,
+            ByteBufCodecs.map(
+                ::LinkedHashMap,
+                Identifier.STREAM_CODEC,
+                ASPECT_STREAM_CODEC.apply(ByteBufCodecs.collection(::LinkedHashSet)),
+            ),
+            LexiconPayload::reach,
+            ::LexiconPayload,
+        )
     }
 }
 

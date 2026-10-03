@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.age.word.Script
@@ -18,13 +19,18 @@ import net.minecraft.resources.Identifier
  */
 object KnownWords {
     private var known: Script = Script.NONE
+    private var reach: Map<Identifier, Set<Aspect>> = emptyMap()
     private val learned = LinkedHashSet<Identifier>()
 
     val words: Set<Identifier> get() = learned
 
     fun remember(payload: LexiconPayload) {
         known = payload.script
+        reach = payload.reach
     }
+
+    /** The parts of the world [word] reaches — empty meaning anywhere — or null if the server never said. */
+    fun reachOf(word: Identifier): Set<Aspect>? = reach[word]
 
     fun remember(payload: LearnedWordsPayload) {
         if (payload.replacing) {
@@ -54,6 +60,7 @@ object KnownWords {
     /** These mean nothing on the next server: a pack there may spell the same word differently. */
     fun forgetAll() {
         known = Script.NONE
+        reach = emptyMap()
         learned.clear()
     }
 
