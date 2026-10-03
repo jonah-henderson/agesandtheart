@@ -2,6 +2,9 @@ package co.voik.agesandtheart.desk
 
 import net.minecraft.util.Prediction
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.advancement.AgeTriggers
+import co.voik.agesandtheart.advancement.WrittenAge
+import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
@@ -50,6 +53,7 @@ object DeskCommands {
     fun opened(player: ServerPlayer) {
         val menu = player.containerMenu as? WritersDeskMenu ?: return
         val desk = menu.deskOf(player) ?: return
+        AgeTriggers.DESK_FURNISHED.trigger(player, desk.capabilities(WritersDesk.of(player.level().server)).rung)
         sync(player, menu, desk)
     }
 
@@ -142,6 +146,10 @@ object DeskCommands {
         // generated while nobody is waiting on it.
         PanelWarming.whenBound(player.level().server, book)
         // A fresh world for the next book: one desk read over and over must not hand out the same Age.
+        val seed = player.writingSeed
+        AgeTriggers.WROTE_AGE.trigger(player, WrittenAge(words) {
+            Resolver.resolve(WritersDeskMenu.vocabularyFor(player), sentence, seed).composition
+        })
         player.rerollWritingSeed()
         sync(player, menu, desk)
         Constants.LOG.debug("{} bound the Age '{}'", player.gameProfile.name, payload.title)

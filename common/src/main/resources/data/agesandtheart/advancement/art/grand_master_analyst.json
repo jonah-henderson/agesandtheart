@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/rebahntahno_tayneeen_shemtee",
+  "criteria": {
+    "learned": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "by": "analysis"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:analysis_machine"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.grand_master_analyst.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.grand_master_analyst.description"
+    },
+    "frame": "task"
+  }
+}

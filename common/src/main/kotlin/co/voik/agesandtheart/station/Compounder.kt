@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.station
 
+import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.content.Plasma
 import co.voik.agesandtheart.location
 import net.minecraft.core.BlockPos
@@ -31,6 +32,7 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.block.Mirror
 import net.minecraft.world.level.block.Rotation
 import net.minecraft.world.level.block.entity.BlockEntity
@@ -131,6 +133,7 @@ class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
         level.playSound(null, pos, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 1.0f, 1.0f)
         (level as? ServerLevel)?.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x + 0.5, pos.y + 1.0, pos.z + 0.5, SPARKS, 0.4, 0.4, 0.4, 0.1)
         player.sendSystemMessage(Component.translatable(REPAIRED_MESSAGE))
+        (player as? ServerPlayer)?.let(AgeTriggers.REPAIRED_COMPOUNDER::trigger)
         return InteractionResult.CONSUME
     }
 

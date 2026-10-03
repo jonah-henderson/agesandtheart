@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/a_surrealistic_adventure",
+  "criteria": {
+    "visited": {
+      "trigger": "agesandtheart:entered_age",
+      "conditions": {
+        "holding": "gloomgrit"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:gloomgrit"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.an_abyssal_age.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.an_abyssal_age.description"
+    },
+    "frame": "task"
+  }
+}

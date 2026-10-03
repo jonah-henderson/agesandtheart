@@ -1,0 +1,27 @@
+{
+  "parent": "agesandtheart:art/regestoy",
+  "criteria": {
+    "desk": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:writers_desk"
+          }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:writers_desk"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.cadet_writer.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.cadet_writer.description"
+    },
+    "frame": "task"
+  }
+}

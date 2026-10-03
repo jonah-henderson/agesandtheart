@@ -1,0 +1,42 @@
+{
+  "parent": "agesandtheart:art/a_perilous_age",
+  "criteria": {
+    "suited": {
+      "trigger": "minecraft:location",
+      "conditions": {
+        "player": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:equipment": {
+              "head": {
+                "items": "agesandtheart:pitchstone_helmet"
+              },
+              "chest": {
+                "items": "agesandtheart:pitchstone_chestplate"
+              },
+              "legs": {
+                "items": "agesandtheart:pitchstone_leggings"
+              },
+              "feet": {
+                "items": "agesandtheart:pitchstone_boots"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:pitchstone_chestplate"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.grand_master_maintainer.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.grand_master_maintainer.description"
+    },
+    "frame": "goal"
+  }
+}

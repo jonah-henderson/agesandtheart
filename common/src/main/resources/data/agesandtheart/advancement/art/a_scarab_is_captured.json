@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/demaths_protege",
+  "criteria": {
+    "scarab": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "word": "agesandtheart:scarab"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:scarab_carapace"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.a_scarab_is_captured.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.a_scarab_is_captured.description"
+    },
+    "frame": "goal"
+  }
+}

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.page
 
+import co.voik.agesandtheart.advancement.LearnedBy
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.word.Word
@@ -35,7 +36,7 @@ object Mastery {
     fun grant(player: ServerPlayer, subject: MasterySubject): Word? {
         val word = wordFor(player, subject) ?: return null
         if (player.learnedWords.knows(word.id)) return null
-        return word.takeIf { PageLearning.teach(player, listOf(word.id)).isNotEmpty() }
+        return word.takeIf { PageLearning.teach(player, listOf(word.id), LearnedBy.MASTERY).isNotEmpty() }
     }
 
     private fun wordFor(player: ServerPlayer, subject: MasterySubject): Word? =

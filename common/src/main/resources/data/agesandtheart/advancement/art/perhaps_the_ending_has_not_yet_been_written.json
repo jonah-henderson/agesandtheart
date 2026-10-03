@@ -1,0 +1,20 @@
+{
+  "parent": "agesandtheart:art/regestoy",
+  "criteria": {
+    "found": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "minecraft:chiseled_bookshelf"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.perhaps_the_ending_has_not_yet_been_written.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.perhaps_the_ending_has_not_yet_been_written.description"
+    },
+    "frame": "task"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "parent": "agesandtheart:art/grand_master_stone_mason",
+  "criteria": {
+    "mined": {
+      "trigger": "agesandtheart:mined_with_nara"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:compounded_stone_pickaxe"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.grand_master_miner.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.grand_master_miner.description"
+    },
+    "frame": "task"
+  }
+}

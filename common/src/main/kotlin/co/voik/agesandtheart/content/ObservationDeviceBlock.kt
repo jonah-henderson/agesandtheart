@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.advancement.LearnedBy
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.page.Acquaintance
 import co.voik.agesandtheart.page.Acquainted
@@ -124,7 +125,7 @@ class ObservationDeviceBlock(properties: Properties) : BaseEntityBlock(propertie
         observer: ServerPlayer,
         device: ObservationDeviceBlockEntity,
     ) {
-        val outcomes = Acquaintance.teachEach(observer, device.studied)
+        val outcomes = Acquaintance.teachEach(observer, device.studied, LearnedBy.OBSERVATION)
         if (outcomes.any { it is Acquainted.Learned }) {
             level.playSound(
                 null, pos, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, DeviceWork.VOLUME, DeviceWork.PITCH,

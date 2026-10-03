@@ -80,6 +80,8 @@ data class DeskState(
     val capabilities: Set<DeskCapability>,
     /** Pages one book may hold; null meaning no limit. */
     val pageLimit: Int?,
+    /** Which rung of furnishing is reached, 0 being the bare desk. */
+    val rung: Int = 0,
 ) {
     companion object {
         /** A desk with nothing around it. */
@@ -137,8 +139,12 @@ class WritersDesk(
             }
         }
         val granted = implements.filter { it.id in present }.flatMap { it.grants }.toSet()
-        return DeskState(granted, pageLimitFor(present.size))
+        return DeskState(granted, pageLimitFor(present.size), rungFor(present.size))
     }
+
+    /** Which rung [count] distinct implements reach, counting from the bare desk at 0. */
+    fun rungFor(count: Int): Int =
+        tiers.sortedBy { it.implements }.indexOfLast { it.implements <= count }.coerceAtLeast(0)
 
     /**
      * The pages allowed at [count] distinct implements — the highest rung reached.

@@ -1,0 +1,27 @@
+{
+  "parent": "agesandtheart:art/cadet_ink_maker",
+  "criteria": {
+    "ink": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:fine_ink_bottle"
+          }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:fine_ink_bottle"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.guild_master_ink_maker.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.guild_master_ink_maker.description"
+    },
+    "frame": "task"
+  }
+}

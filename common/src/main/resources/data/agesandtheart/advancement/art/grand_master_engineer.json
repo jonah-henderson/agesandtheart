@@ -1,0 +1,20 @@
+{
+  "parent": "agesandtheart:art/an_abyssal_age",
+  "criteria": {
+    "opened": {
+      "trigger": "agesandtheart:opened_linking_portal"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:linking_book_receptacle"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.grand_master_engineer.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.grand_master_engineer.description"
+    },
+    "frame": "goal"
+  }
+}

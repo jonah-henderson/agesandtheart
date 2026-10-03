@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.fissure
 
+import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -8,6 +9,7 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.InsideBlockEffectApplier
 import net.minecraft.world.entity.item.FallingBlockEntity
+import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.BaseEntityBlock
@@ -86,8 +88,16 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
         // holds them in the field, and nothing of it is a teleport. Only the overworld has no fall to give.
         if (entity is ServerPlayer && level.dimension() != Level.OVERWORLD) return
         if (entity is FallingBlockEntity) return RubbleArrivals.deliver(level.server.overworld(), entity)
+        if (entity is ItemEntity) answerTheThrower(entity)
         // A mob, an item, or a player where there is no fall to be had: straight home, at once.
         sendHome(level, entity)
+    }
+
+    /** A linking or descriptive book somebody threw in tells the advancements whose it was. */
+    private fun answerTheThrower(item: ItemEntity) {
+        val isABook = item.item.`is`(AgeContent.LINKING_BOOK) || item.item.`is`(AgeContent.DESCRIPTIVE_BOOK)
+        val thrower = item.owner as? ServerPlayer
+        if (isABook && thrower != null) AgeTriggers.GAVE_A_BOOK_TO_A_FISSURE.trigger(thrower)
     }
 
     /**

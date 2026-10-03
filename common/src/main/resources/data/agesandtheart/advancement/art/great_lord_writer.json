@@ -1,0 +1,46 @@
+{
+  "parent": "agesandtheart:art/demaths_protege",
+  "criteria": {
+    "nara": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "word": "agesandtheart:compounded_stone"
+      }
+    },
+    "scarab": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "word": "agesandtheart:scarab"
+      }
+    },
+    "yema": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "word": "agesandtheart:paper_tree_log"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "nara"
+    ],
+    [
+      "scarab"
+    ],
+    [
+      "yema"
+    ]
+  ],
+  "display": {
+    "icon": {
+      "id": "agesandtheart:descriptive_book"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.great_lord_writer.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.great_lord_writer.description"
+    },
+    "frame": "challenge"
+  }
+}

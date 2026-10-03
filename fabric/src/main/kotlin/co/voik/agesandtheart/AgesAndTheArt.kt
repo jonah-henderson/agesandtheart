@@ -1,6 +1,7 @@
 package co.voik.agesandtheart
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents
+import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.platform.FabricDeepWaterFluids
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import co.voik.agesandtheart.command.AgeCommand
@@ -24,6 +25,7 @@ import net.fabricmc.fabric.api.`object`.builder.v1.world.poi.PoiHelper
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents
 import fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry
 import net.neoforged.fml.config.ModConfig
 import net.minecraft.core.Registry
@@ -109,6 +111,7 @@ fun init() {
     AgeContent.carvers.forEach { (id, codec) -> Registry.register(BuiltInRegistries.CARVER_TYPE, id, codec) }
     AgeContent.features.forEach { (id, codec) -> Registry.register(BuiltInRegistries.FEATURE_TYPE, id, codec) }
     AgeContent.lootFunctions.forEach { (id, fn) -> Registry.register(BuiltInRegistries.LOOT_FUNCTION_TYPE, id, fn) }
+    AgeTriggers.triggers.forEach { (id, trigger) -> Registry.register(BuiltInRegistries.TRIGGER_TYPES, id, trigger) }
 
     // The payload types, registered here rather than in the client entrypoint: Fabric requires them on
     // *both* sides, and registering twice throws. Common init is the only place that is true of.
@@ -118,6 +121,9 @@ fun init() {
     }
     ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->
         CommonSetup.playerJoined(handler.player)
+    }
+    ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register { player, _, to ->
+        CommonSetup.playerChangedLevel(player, to)
     }
     ServerLifecycleEvents.SYNC_DATA_PACK_CONTENTS.register { player, _ ->
         CommonSetup.datapackSynced(player)

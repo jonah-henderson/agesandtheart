@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.advancement.LearnedBy
 import co.voik.agesandtheart.page.Acquaintance
 import co.voik.agesandtheart.page.Acquainted
 import net.minecraft.core.BlockPos
@@ -156,7 +157,7 @@ class AnalysisMachineBlock(properties: Properties) : BaseEntityBlock(properties)
             level.setBlock(pos, state.setValue(DeviceStage.PROPERTY, DeviceStage.IDLE), UPDATE_ALL)
             return
         }
-        val outcome = Acquaintance.teach(writer, held)
+        val outcome = Acquaintance.teach(writer, held, LearnedBy.ANALYSIS)
         Acquaintance.tell(writer, outcome)
         if (outcome is Acquainted.Learned) {
             level.playSound(

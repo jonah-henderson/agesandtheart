@@ -1,0 +1,20 @@
+{
+  "parent": "agesandtheart:art/cadet_writer",
+  "criteria": {
+    "wrote": {
+      "trigger": "agesandtheart:wrote_age"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:descriptive_book"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.inception.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.inception.description"
+    },
+    "frame": "task"
+  }
+}

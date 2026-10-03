@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/regestoy",
+  "criteria": {
+    "linked": {
+      "trigger": "agesandtheart:linked",
+      "conditions": {
+        "into": "age"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:linking_book"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.a_surrealistic_adventure.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.a_surrealistic_adventure.description"
+    },
+    "frame": "task"
+  }
+}

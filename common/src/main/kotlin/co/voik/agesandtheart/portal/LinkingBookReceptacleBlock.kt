@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.portal
 
+import co.voik.agesandtheart.advancement.AgeTriggers
 import net.minecraft.util.Prediction
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
@@ -57,8 +58,10 @@ class LinkingBookReceptacleBlock(properties: Properties) : BaseEntityBlock(prope
         level.setBlock(pos, state.setValue(HAS_BOOK, true), UPDATE_ALL)
         level.playSound(null, pos, SoundEvents.BOOK_PUT, SoundSource.BLOCKS, VOLUME, PITCH)
         when (LinkingPortals.open(level, pos, book)) {
-            LinkingPortals.Opening.OPENED ->
+            LinkingPortals.Opening.OPENED -> {
                 level.playSound(null, pos, SoundEvents.END_PORTAL_FRAME_FILL, SoundSource.BLOCKS, VOLUME, PITCH)
+                (player as? ServerPlayer)?.let(AgeTriggers.OPENED_LINKING_PORTAL::trigger)
+            }
             LinkingPortals.Opening.NO_FRAME -> tell(player, "no_frame")
             LinkingPortals.Opening.SAME_WORLD -> tell(player, "same_world")
         }

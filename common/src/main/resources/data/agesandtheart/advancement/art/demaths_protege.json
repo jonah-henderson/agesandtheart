@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/grand_master_stone_mason",
+  "criteria": {
+    "nara": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "word": "agesandtheart:compounded_stone"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:compounded_stone"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.demaths_protege.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.demaths_protege.description"
+    },
+    "frame": "goal"
+  }
+}

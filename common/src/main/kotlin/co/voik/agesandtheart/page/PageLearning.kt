@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.page
 
+import co.voik.agesandtheart.advancement.AgeTriggers
+import co.voik.agesandtheart.advancement.LearnedBy
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
@@ -70,9 +72,10 @@ object PageLearning {
      * One packet however many are learned, because these arrive by the notebook and the deskful now — and
      * the toast cycles through a batch where a packet each would raise a wall of them.
      */
-    fun teach(player: ServerPlayer, words: Collection<Identifier>): List<Identifier> {
+    fun teach(player: ServerPlayer, words: Collection<Identifier>, by: LearnedBy = LearnedBy.READING): List<Identifier> {
         val learned = words.filter(player.learnedWords::learn)
         if (learned.isNotEmpty()) Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(learned))
+        for (word in learned) AgeTriggers.LEARNED_WORD.trigger(player, word, by)
         return learned
     }
 

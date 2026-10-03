@@ -1,19 +1,24 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.location
 import net.minecraft.core.BlockPos
 import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.tags.BlockTags
 import net.minecraft.tags.TagKey
 import net.minecraft.util.Unit as MinecraftUnit
+import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.ToolMaterial
 import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.state.BlockBehaviour
@@ -74,7 +79,7 @@ object CompoundedStone {
     )
 
     // Iron's baselines, tool for tool, as `Items` lays them.
-    val PICKAXE: Item = tool("compounded_stone_pickaxe") { it.pickaxe(MATERIAL, 1.0f, -2.8f) }
+    val PICKAXE: Item = tool("compounded_stone_pickaxe", ::CompoundedStonePickaxe) { it.pickaxe(MATERIAL, 1.0f, -2.8f) }
     val AXE: Item = tool("compounded_stone_axe") { it.axe(MATERIAL, 6.0f, -3.1f) }
     val SHOVEL: Item = tool("compounded_stone_shovel") { it.shovel(MATERIAL, 1.5f, -3.0f) }
     val HOE: Item = tool("compounded_stone_hoe") { it.hoe(MATERIAL, -2.0f, -1.0f) }
@@ -83,8 +88,11 @@ object CompoundedStone {
     val blocks: List<Pair<Identifier, Block>> get() = registeredBlocks
     val items: List<Pair<Identifier, Item>> get() = registeredItems
 
-    private fun tool(path: String, shape: (Item.Properties) -> Item.Properties): Item =
-        item(path, shape(Item.Properties()).component(DataComponents.UNBREAKABLE, MinecraftUnit.INSTANCE).fireResistant(), ::Item)
+    private fun tool(
+        path: String,
+        make: (Item.Properties) -> Item = ::Item,
+        shape: (Item.Properties) -> Item.Properties,
+    ): Item = item(path, shape(Item.Properties()).component(DataComponents.UNBREAKABLE, MinecraftUnit.INSTANCE).fireResistant(), make)
 
     private fun block(path: String, properties: BlockBehaviour.Properties): Block {
         val id = path.location()
@@ -104,5 +112,13 @@ class CompoundedStoneBlock(properties: BlockBehaviour.Properties) : Block(proper
     override fun getDestroyProgress(state: BlockState, player: Player, level: BlockGetter, pos: BlockPos): Float {
         val holdsWhatBreaksIt = player.mainHandItem.`is`(CompoundedStone.BREAKS_IT)
         return if (holdsWhatBreaksIt) super.getDestroyProgress(state, player, level, pos) else 0.0f
+    }
+}
+
+/** The nara pickaxe, which tells the advancements when it has broken something. */
+class CompoundedStonePickaxe(properties: Item.Properties) : Item(properties) {
+    override fun mineBlock(stack: ItemStack, level: Level, state: BlockState, pos: BlockPos, owner: LivingEntity): Boolean {
+        if (owner is ServerPlayer) AgeTriggers.MINED_WITH_NARA.trigger(owner)
+        return super.mineBlock(stack, level, state, pos, owner)
     }
 }

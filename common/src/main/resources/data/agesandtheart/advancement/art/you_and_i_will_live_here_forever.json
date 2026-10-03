@@ -1,0 +1,26 @@
+{
+  "parent": "agesandtheart:art/a_surrealistic_adventure",
+  "criteria": {
+    "stranded": {
+      "trigger": "agesandtheart:linked",
+      "conditions": {
+        "into": "age",
+        "carrying_a_linking_book": false,
+        "first_visit": true
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:descriptive_book"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.you_and_i_will_live_here_forever.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.you_and_i_will_live_here_forever.description"
+    },
+    "frame": "task",
+    "hidden": true
+  }
+}

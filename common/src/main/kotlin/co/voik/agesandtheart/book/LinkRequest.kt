@@ -1,6 +1,10 @@
 package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.advancement.AgeTriggers
+import co.voik.agesandtheart.advancement.Link
+import co.voik.agesandtheart.advancement.LinkedInto
+import co.voik.agesandtheart.advancement.LinkedWith
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.content.AgeComponents
@@ -17,6 +21,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.Level
 
 /**
  * "Take me there" — the click on a book's linking panel.
@@ -72,10 +77,33 @@ object Linking {
      * Takes [player] wherever [stack] leads and leaves the stack where it was, answering whether they went.
      * What becomes of the book afterwards is the caller's: spent from a hand, kept by a lectern.
      */
-    fun go(player: ServerPlayer, level: ServerLevel, stack: ItemStack): Boolean = when {
-        stack.item === AgeContent.DESCRIPTIVE_BOOK -> goToTheAge(player, level, stack)
-        stack.item === AgeContent.LINKING_BOOK -> goToThePlace(player, level, stack)
-        else -> false
+    fun go(player: ServerPlayer, level: ServerLevel, stack: ItemStack): Boolean {
+        // Asked before going: arriving marks the Age visited, and it does so inside the teleport.
+        val firstVisit = destinationOf(stack)?.let { !AgeSavedData.get(level.server).hasBeenVisited(it) } ?: true
+        val went = when {
+            stack.item === AgeContent.DESCRIPTIVE_BOOK -> goToTheAge(player, level, stack)
+            stack.item === AgeContent.LINKING_BOOK -> goToThePlace(player, level, stack)
+            else -> false
+        }
+        if (went) AgeTriggers.LINKED.trigger(player, linkAsLanded(player, stack, firstVisit))
+        return went
+    }
+
+    /** The world [stack] leads to, or null for a descriptive book whose Age has not been made yet. */
+    private fun destinationOf(stack: ItemStack): Identifier? =
+        stack.get(AgeComponents.AGE_ID) ?: stack.get(AgeComponents.LINK_TARGET)?.dimension?.identifier()
+
+    /** The link [player] has just made through [stack], read where they landed. */
+    private fun linkAsLanded(player: ServerPlayer, stack: ItemStack, firstVisit: Boolean): Link {
+        val arrivedIn = player.level()
+        val into = when {
+            Ages.recipeOf(arrivedIn) != null -> LinkedInto.AN_AGE
+            arrivedIn.dimension() == Level.OVERWORLD -> LinkedInto.THE_OVERWORLD
+            else -> LinkedInto.ELSEWHERE
+        }
+        val with = if (stack.item === AgeContent.LINKING_BOOK) LinkedWith.LINKING_BOOK else LinkedWith.DESCRIPTIVE_BOOK
+        val carriesALinkingBook = player.inventory.nonEquipmentItems.any { it.item === AgeContent.LINKING_BOOK }
+        return Link(into, with, carriesALinkingBook, firstVisit = into == LinkedInto.AN_AGE && firstVisit)
     }
 
     private fun goToTheAge(player: ServerPlayer, level: ServerLevel, stack: ItemStack): Boolean {

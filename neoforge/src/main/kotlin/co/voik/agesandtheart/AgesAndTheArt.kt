@@ -1,6 +1,7 @@
 package co.voik.agesandtheart
 
 import net.neoforged.neoforge.event.tick.ServerTickEvent
+import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.command.AgeCommand
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.generation.WorldgenCodecs
@@ -68,6 +69,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         NeoForge.EVENT_BUS.addListener(::onRegisterCommands)
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedIn)
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedOut)
+        NeoForge.EVENT_BUS.addListener(::onPlayerChangedDimension)
         NeoForge.EVENT_BUS.addListener(::onDatapackSync)
         NeoForge.EVENT_BUS.addListener(::onServerStarted)
         NeoForge.EVENT_BUS.addListener(::onServerStopped)
@@ -171,6 +173,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.BLOCK_ENTITY_TYPE) { helper ->
             AgeContent.blockEntities.forEach { (id, type) -> helper.register(id, type) }
         }
+        event.register(Registries.TRIGGER_TYPE) { helper ->
+            AgeTriggers.triggers.forEach { (id, trigger) -> helper.register(id, trigger) }
+        }
         // NeoForge maps a point of interest's block states off the registry itself — see
         // NeoForgeRegistryCallbacks.PoiTypeCallbacks — so plain registration is all it takes here.
         // Fabric's half of this is `PoiHelper`, because vanilla's own state map is private.
@@ -251,6 +256,11 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     private fun onPlayerLoggedIn(event: PlayerEvent.PlayerLoggedInEvent) {
         val player = event.entity as? ServerPlayer ?: return
         CommonSetup.playerJoined(player)
+    }
+
+    private fun onPlayerChangedDimension(event: PlayerEvent.PlayerChangedDimensionEvent) {
+        val player = event.entity as? ServerPlayer ?: return
+        CommonSetup.playerChangedLevel(player, player.level())
     }
 
     private fun onDatapackSync(event: OnDatapackSyncEvent) {

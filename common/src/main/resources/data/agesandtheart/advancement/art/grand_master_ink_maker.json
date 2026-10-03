@@ -1,0 +1,27 @@
+{
+  "parent": "agesandtheart:art/guild_master_ink_maker",
+  "criteria": {
+    "ink": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:masterwork_ink_bottle"
+          }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:masterwork_ink_bottle"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.grand_master_ink_maker.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.grand_master_ink_maker.description"
+    },
+    "frame": "goal"
+  }
+}

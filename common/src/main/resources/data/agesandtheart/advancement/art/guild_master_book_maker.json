@@ -1,0 +1,27 @@
+{
+  "parent": "agesandtheart:art/cadet_book_maker",
+  "criteria": {
+    "paper": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:fine_paper"
+          }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:fine_paper"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.guild_master_book_maker.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.guild_master_book_maker.description"
+    },
+    "frame": "task"
+  }
+}

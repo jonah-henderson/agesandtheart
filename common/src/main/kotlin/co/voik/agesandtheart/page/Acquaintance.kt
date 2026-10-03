@@ -10,6 +10,7 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.BucketItem
 import net.minecraft.world.item.ItemStack
+import co.voik.agesandtheart.advancement.LearnedBy
 import co.voik.agesandtheart.age.word.DerivedWords
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Withheld
@@ -69,7 +70,7 @@ object Acquaintance {
      */
     fun withPlace(player: ServerPlayer, level: ServerLevel, at: BlockPos): Acquainted {
         val here = level.getBiome(at).unwrapKey().orElse(null) ?: return Acquainted.Unnameable
-        return teach(player, here.identifier())
+        return teach(player, here.identifier(), LearnedBy.SURVEY)
     }
 
     /**
@@ -91,16 +92,17 @@ object Acquaintance {
     fun kindOf(creature: Entity): Identifier = BuiltInRegistries.ENTITY_TYPE.getKey(creature.type)
 
     /** Learns the word for [referent], or says why not. */
-    fun teach(player: ServerPlayer, referent: Identifier): Acquainted = teachEach(player, listOf(referent)).single()
+    fun teach(player: ServerPlayer, referent: Identifier, by: LearnedBy): Acquainted =
+        teachEach(player, listOf(referent), by).single()
 
     /**
      * Learns the word for each of [referents], or says why not, in the order asked. The words learned are
      * confirmed together, so a cage of several creatures raises one toast rather than a stack of them.
      */
-    fun teachEach(player: ServerPlayer, referents: List<Identifier>): List<Acquainted> {
+    fun teachEach(player: ServerPlayer, referents: List<Identifier>, by: LearnedBy): List<Acquainted> {
         val lookups = referents.map { lookUp(player, it) }
         val teachable = lookups.filterIsInstance<Lookup.Teaches>().map { it.word.id }
-        val learned = PageLearning.teach(player, teachable).toSet()
+        val learned = PageLearning.teach(player, teachable, by).toSet()
         return lookups.map { lookup ->
             when (lookup) {
                 is Lookup.Refused -> lookup.why

@@ -39,16 +39,21 @@ class AgeSavedData() : SavedData() {
     /** Ages waiting to be moved to a new id, keyed on where they are now — see [renameLater]. */
     private val renames: MutableMap<Identifier, Identifier> = linkedMapOf()
 
+    /** Ages a player has set foot in, which is all "You and I Will Live Here… Forever" asks. */
+    private val visited: MutableSet<Identifier> = linkedSetOf()
+
     private constructor(
         written: List<WrittenAge>,
         counter: Int,
         presence: List<TimeSpent>,
         renames: List<PendingRename>,
+        visited: List<Identifier>,
     ) : this() {
         written.forEach { recipes[it.id] = it.recipe }
         this.counter = counter
         presence.forEach { this.presence[it.id] = it.ticks }
         renames.forEach { this.renames[it.from] = it.to }
+        this.visited += visited
     }
 
     /** Every rename still owed, from where each Age is to where it is going. */
@@ -79,6 +84,7 @@ class AgeSavedData() : SavedData() {
         // A binned Age's clock goes with it, or an id minted again later would inherit somebody else's
         // drowning.
         if (presence.remove(id) != null) setDirty()
+        if (visited.remove(id)) setDirty()
         // And a rename owed to it, which would otherwise hold its new id for ever.
         forgetRename(id)
     }
@@ -88,12 +94,20 @@ class AgeSavedData() : SavedData() {
         val recipe = recipes.remove(from) ?: return
         recipes[to] = recipe
         presence.remove(from)?.let { presence[to] = it }
+        if (visited.remove(from)) visited += to
         renames.remove(from)
         setDirty()
     }
 
     /** The recipe [id] was written from, or null where no Age of that id exists. */
     fun recipe(id: Identifier): AgeRecipe? = recipes[id]
+
+    /** Whether any player has ever set foot in [id]. */
+    fun hasBeenVisited(id: Identifier): Boolean = id in visited
+
+    fun visit(id: Identifier) {
+        if (visited.add(id)) setDirty()
+    }
 
     /** How many ticks somebody has been standing in [id], counting no faster for a crowd. */
     fun presenceIn(id: Identifier): Long = presence[id] ?: 0L
@@ -132,6 +146,7 @@ class AgeSavedData() : SavedData() {
                     .forGetter { saved -> saved.presence.map { (id, ticks) -> TimeSpent(id, ticks) } },
                 PendingRename.LIST_CODEC.optionalFieldOf("renames", emptyList())
                     .forGetter { saved -> saved.renames.map { (from, to) -> PendingRename(from, to) } },
+                Identifier.CODEC.listOf().optionalFieldOf("visited", emptyList()).forGetter { it.visited.toList() },
             ).apply(instance, ::AgeSavedData)
         }
 

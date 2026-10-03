@@ -1,0 +1,27 @@
+{
+  "parent": "agesandtheart:art/regestoy",
+  "criteria": {
+    "ink": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:ink_bottle"
+          }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:ink_bottle"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.cadet_ink_maker.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.cadet_ink_maker.description"
+    },
+    "frame": "task"
+  }
+}

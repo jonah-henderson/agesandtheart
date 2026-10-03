@@ -1,5 +1,8 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.advancement.AgeTriggers
+import co.voik.agesandtheart.advancement.Arrival
+import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.consequence.Wounds
@@ -120,6 +123,13 @@ object CommonSetup {
         PageLearning.tellEverything(player)
         // And a fall through a tear resumes, or ends where the tear no longer does.
         TheFall.resumed(player)
+    }
+
+    /** A player arriving in another level, however they came: a book, a portal, a fissure or a command. */
+    fun playerChangedLevel(player: ServerPlayer, to: ServerLevel) {
+        val arrival = Arrival.at(to) ?: return
+        AgeTriggers.ENTERED_AGE.trigger(player, arrival)
+        AgeSavedData.get(to.server).visit(to.dimension().identifier())
     }
 
     /** Datapack contents going to [player] — on joining, and to everyone after a `/reload`. */
