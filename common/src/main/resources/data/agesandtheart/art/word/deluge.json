@@ -23,5 +23,6 @@
   },
   "sets": {
     "rainfall": "0.7..1.0"
-  }
+  },
+  "speech": "noun"
 }

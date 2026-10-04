@@ -6,5 +6,6 @@
     "The umbrella for vanilla's `pile_*` features, which have no words of their own."
   ],
   "mints": "agesandtheart:piles",
-  "unstated": "#agesandtheart:pile_substance"
+  "unstated": "#agesandtheart:pile_substance",
+  "speech": "plural"
 }

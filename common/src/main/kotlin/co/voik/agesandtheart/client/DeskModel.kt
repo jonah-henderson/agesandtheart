@@ -2,6 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
+import co.voik.agesandtheart.age.word.grammar.ProseWriting
 import co.voik.agesandtheart.content.AgeFluids
 import co.voik.agesandtheart.desk.DeskCapability
 import co.voik.agesandtheart.desk.DeskNoticePayload
@@ -93,8 +94,8 @@ object DeskModel {
     /** What disagrees with what, as the server resolved it against the seed the book will use. */
     fun quarrels(): List<Quarrel> = state?.quarrels.orEmpty()
 
-    /** The sentence the template makes, as the server read it back. */
-    fun reading(): String = state?.reading.orEmpty()
+    /** The sentence the template makes, as the bound book will read it. */
+    fun reading(): String = ProseWriting.sentencesOf(state?.reading.orEmpty()).joinToString(" ")
 
     /** Every word the player knows, alphabetical by the name the list shows, filtered by [filter]. */
     fun knownRows(filter: String): List<WordRow> {

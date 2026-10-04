@@ -351,6 +351,11 @@ data class Word(
      */
     val unaimed: Map<Aspect, Double> = emptyMap(),
     /**
+     * How a book's prose speaks this word, where its file says — and null where what the word is already
+     * says it. Ask [partOfSpeech], which answers for both.
+     */
+    val speech: Speech? = null,
+    /**
      * How firmly this word claims the world, **fixed when the word is made**: a working copy the resolver
      * makes of it — its requests granted, its size spent, its pool drawn — is still the word that was
      * written, and claims as firmly as it did.
@@ -682,6 +687,20 @@ data class Word(
         .firstOrNull { it.key in MATERIAL_PARAMETERS && !Materials.isQuery(it.value) }?.value
 
     /**
+     * **How a book's prose speaks this word** — what its file says, or else what the word is.
+     *
+     * Only the authored half needs saying. A block is a substance; a creature, a biome and a placed feature
+     * are each one of many; a structure set is named for the many it holds, `villages`, and is already
+     * plural. Everything else defaults to being said *of* something, which is most of the authored corpus.
+     */
+    val partOfSpeech: Speech get() = speech ?: when {
+        entryOf != null -> Speech.MASS
+        Aspect.STRUCTURES in chooses -> Speech.PLURAL
+        Aspect.SPAWNS in chooses || Aspect.BIOMES in chooses || Aspect.FEATURES in chooses -> Speech.NOUN
+        else -> Speech.ADJECTIVE
+    }
+
+    /**
      * The size this word asks for, or null where it says nothing about size — read the same way
      * [material] is read, off what the word sets rather than off a name we would have to keep in step.
      *
@@ -962,9 +981,10 @@ data class Word(
                 Codec.STRING.optionalFieldOf("unstated").forGetter { Optional.ofNullable(it.unstated) },
                 Codec.unboundedMap(ASPECT_CODEC, Codec.doubleRange(0.0, 1.0)).optionalFieldOf("unaimed", emptyMap())
                     .forGetter(Word::unaimed),
+                Speech.CODEC.optionalFieldOf("speech").forGetter { Optional.ofNullable(it.speech) },
             ).apply(instance) {
                 chooses, admits, excludes, restricts, leanings, sets, bends, pools, requests, template,
-                mints, flows, unstated, unaimed,
+                mints, flows, unstated, unaimed, speech,
                 ->
                 val everywhere = leanings[EVERYWHERE].orEmpty()
                 val leaned = leanings.filterKeys { it != EVERYWHERE }
@@ -981,7 +1001,7 @@ data class Word(
                     id, reaches, chooses, admits.mapValues { it.value.toSet() },
                     excludes.mapValues { it.value.toSet() }, restricts, leaned, everywhere,
                     sets, bends, pools, requests, template.orElse(null), mints.orElse(null),
-                    unstated.orElse(null), flows, unaimed = unaimed,
+                    unstated.orElse(null), flows, unaimed = unaimed, speech = speech.orElse(null),
                 )
             }
         }

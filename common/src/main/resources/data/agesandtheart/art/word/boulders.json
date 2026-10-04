@@ -4,5 +4,6 @@
     "read alike. The one shape here that is plainly a rock and not a monument."
   ],
   "mints": "agesandtheart:boulders",
-  "unstated": "#agesandtheart:formation_substance"
+  "unstated": "#agesandtheart:formation_substance",
+  "speech": "plural"
 }

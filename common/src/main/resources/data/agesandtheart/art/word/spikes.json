@@ -4,5 +4,6 @@
     "`ice spikes` says with two pages what vanilla ships as a whole biome."
   ],
   "mints": "agesandtheart:spikes",
-  "unstated": "#agesandtheart:formation_substance"
+  "unstated": "#agesandtheart:formation_substance",
+  "speech": "plural"
 }

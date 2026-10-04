@@ -4,5 +4,6 @@
       "inhabited": ">0.3",
       "built": ">0.5"
     }
-  }
+  },
+  "speech": "plural"
 }

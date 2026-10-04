@@ -14,5 +14,6 @@
   ],
   "chooses": {
     "phenomena": "tectonics"
-  }
+  },
+  "speech": "mass"
 }

@@ -3,5 +3,6 @@
     "features": {
       "flowering": ">0.3"
     }
-  }
+  },
+  "speech": "plural"
 }

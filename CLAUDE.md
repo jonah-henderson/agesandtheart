@@ -426,8 +426,9 @@ pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope
   with the row classified once, for a screen asking it of a thousand candidates against one row. **Every clause ends with the page it is about** and modifiers lead it —
   `pillared and gentle landmass`, and a book with no aiming page closes with `age`. A clause is closed by an
   **aiming page** (`landmass`, `weather`, `sky` — one per aspect, synthesised from `Aspect.page`) and never by a word that fills something —
-  presets are ours, not the player's. `Readout.of(sentence)` says the parse back as prose, which is how attachment is visible at
-  all.
+  presets are ours, not the player's. `Readout.of(sentence)` says the parse back word for word, which is how attachment is visible at
+  all; `Prose.of` is what a book *reads* as — clauses stored on the book and written into English sentences by
+  `ProseWriting` on the client, from `prose.agesandtheart.*` frames in the language file.
 - **`Holds`** — what an aspect holds: a catalogue, a weighted set, a population, or nothing but its own
   properties. One enum where there were two parallel `Kind`s, and what `Aspect` answers with rather than a
   type of its own.

@@ -7,5 +7,6 @@
     "spawns": {
       "fauna": ">0.3"
     }
-  }
+  },
+  "speech": "plural"
 }

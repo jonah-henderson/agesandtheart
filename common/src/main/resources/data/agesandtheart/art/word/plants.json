@@ -4,5 +4,6 @@
     "features": {
       "undergrowth": ">0.3"
     }
-  }
+  },
+  "speech": "plural"
 }

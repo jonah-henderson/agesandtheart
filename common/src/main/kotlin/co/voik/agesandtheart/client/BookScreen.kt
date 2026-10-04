@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.word.grammar.Said
+import co.voik.agesandtheart.age.word.grammar.ProseWriting
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.LecternBooks
@@ -214,12 +214,10 @@ class BookScreen(
     }
 
     /**
-     * The book's words packed into lines, and the lines into pages.
+     * The book's prose packed into lines, and the lines into pages.
      *
-     * **A word is set over its own reading and neither is allowed to drift from the other**, which is what
-     * a player learns the language from: they see `of` written in a script they cannot read, above an `of`
-     * they can, in a book that plainly means something. So a line is a run of columns rather than a run of
-     * text, and a page break can only fall between columns.
+     * **Each word is set over its own transliteration**, the D'ni as ornament on an English account, so a
+     * line is a run of columns rather than a run of text and a page break can only fall between columns.
      */
     private fun paginate(): List<List<Line>> {
         val cut = mutableListOf<List<Line>>()
@@ -240,7 +238,7 @@ class BookScreen(
         val lines = mutableListOf<Line>()
         var line = mutableListOf<Column>()
         var used = 0
-        for (word in book.get(AgeComponents.BOOK_READING).orEmpty().flatMap(::columnsOf)) {
+        for (word in wordsOfWriting().map(::columnOf)) {
             if (line.isNotEmpty() && used + word.width > COLUMN_WIDTH) {
                 lines += Line(line)
                 line = mutableListOf()
@@ -253,24 +251,16 @@ class BookScreen(
         return lines
     }
 
-    /**
-     * One word of the reading, **broken on whitespace into a column per part**.
-     *
-     * A derived word is a block id, so `polished_deepslate` is two words wearing one name — set whole it
-     * puts "Polished Deepslate" under a script that plainly has two pieces, which teaches a reader that the
-     * pieces mean nothing. Both sides divide the same way, the script's `_` having become a space.
-     *
-     * Where they do not divide alike — an authored name need not follow its id — the word is set whole
-     * rather than paired up wrongly.
-     */
-    private fun columnsOf(said: Said): List<Column> {
-        val script = KnownWords.scriptParts(said.written)
-        val read = said.read.string.split(' ').filter { it.isNotBlank() }
-        if (script.size != read.size || script.isEmpty()) {
-            return listOf(Column(KnownWords.scriptLine(said.written), said.read))
-        }
-        return script.indices.map { Column(script[it], Component.literal(read[it])) }
+    /** The prose, written in this client's language and broken into its words. */
+    private fun wordsOfWriting(): List<String> {
+        val clauses = book.get(AgeComponents.BOOK_READING).orEmpty()
+        return ProseWriting.sentencesOf(clauses)
+            .flatMap { it.split(' ') }
+            .filter { it.isNotBlank() }
     }
+
+    /** One word, under the script that spells it. */
+    private fun columnOf(word: String): Column = Column(KnownWords.scriptLine(word), Component.literal(word))
 
     private fun scriptHeight(): Int = (font.lineHeight * SCRIPT_SCALE).toInt() + 1
 

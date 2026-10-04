@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.age.word.grammar.Said
+import co.voik.agesandtheart.age.word.grammar.ProseClause
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.desk.PageArchive
 import co.voik.agesandtheart.location
@@ -111,16 +111,16 @@ object AgeComponents {
         .build()
 
     /**
-     * What the book **says**, column by column — [Readout][co.voik.agesandtheart.age.word.grammar.Readout]'s
-     * reading, with the particles a writer was spared for being inferable from position.
+     * What the book **says** — [Prose][co.voik.agesandtheart.age.word.grammar.Prose]'s clauses, written out
+     * as sentences wherever the book is read.
      *
      * Written down rather than derived, because reading a sentence takes the whole corpus and a client has
-     * none. Column by column rather than as prose, because a book sets the script over its reading **word
-     * for word**, and running them together would leave nothing to line up.
+     * none; clauses rather than finished prose, because a name can only be made plural once it is in the
+     * reader's own language.
      */
-    val BOOK_READING: DataComponentType<List<Said>> = DataComponentType.builder<List<Said>>()
-        .persistent(Said.CODEC.listOf())
-        .networkSynchronized(Said.STREAM_CODEC.apply(ByteBufCodecs.list()))
+    val BOOK_READING: DataComponentType<List<ProseClause>> = DataComponentType.builder<List<ProseClause>>()
+        .persistent(ProseClause.CODEC.listOf())
+        .networkSynchronized(ByteBufCodecs.fromCodecWithRegistries(ProseClause.CODEC.listOf()))
         .build()
 
     /**

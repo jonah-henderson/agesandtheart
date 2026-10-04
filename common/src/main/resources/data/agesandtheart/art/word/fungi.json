@@ -3,5 +3,6 @@
     "features": {
       "fungal": ">0.3"
     }
-  }
+  },
+  "speech": "plural"
 }

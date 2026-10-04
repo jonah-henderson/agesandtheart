@@ -14,5 +14,6 @@
   ],
   "chooses": {
     "phenomena": "sandfall"
-  }
+  },
+  "speech": "mass"
 }

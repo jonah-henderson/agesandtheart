@@ -8,5 +8,6 @@
     "deposit rather than a seam or a curiosity. The long ribbons of ore vanilla strings through tuff and",
     "granite are `veins`."
   ],
-  "mints": "minecraft:ore_gold"
+  "mints": "minecraft:ore_gold",
+  "speech": "plural"
 }

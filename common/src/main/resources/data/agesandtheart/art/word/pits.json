@@ -9,5 +9,6 @@
     "handsome stone, where a pit of polished granite is a monument somebody dug a hole for."
   ],
   "mints": "agesandtheart:pits",
-  "unstated": "#agesandtheart:pit_substance"
+  "unstated": "#agesandtheart:pit_substance",
+  "speech": "plural"
 }

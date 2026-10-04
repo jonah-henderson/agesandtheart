@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.word.Claims
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Facets
 import co.voik.agesandtheart.age.word.Bars
+import co.voik.agesandtheart.age.word.Speech
 import co.voik.agesandtheart.age.word.Word
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
@@ -67,6 +68,8 @@ data class Candidate(
     val mintsSomethingThatFlows: Boolean = false,
     /** How likely each part of the world is to feel the word laid bare — see [Word.unaimed]. */
     val unaimed: Map<Aspect, Double> = emptyMap(),
+    /** How a book's prose speaks the word, where its file says — see [Word.speech]. */
+    val speech: Speech? = null,
     /**
      * The registry entry this word was read off, where it was read off one at all.
      *
@@ -168,6 +171,7 @@ data class Candidate(
                 },
             )
         }
+        speech?.let { addProperty(SPEECH, it.serializedName) }
     }
 
     /**
@@ -242,10 +246,11 @@ data class Candidate(
          */
         val KNOWN_FIELDS = setOf(
             "chooses", "admits", "excludes", "restricts", "biases", "bends", "sets", "pools", "requests",
-            "template", "mints", "unstated", "mints_something_that_flows", UNAIMED,
+            "template", "mints", "unstated", "mints_something_that_flows", UNAIMED, SPEECH,
         )
 
         private const val UNAIMED = "unaimed"
+        private const val SPEECH = "speech"
 
         /** A word the game gave us, opened so its rarity and ink can be set. */
         fun of(word: Word) = Candidate(
@@ -265,6 +270,7 @@ data class Candidate(
             unstated = word.unstated,
             mintsSomethingThatFlows = word.mintsSomethingThatFlows,
             unaimed = word.unaimed,
+            speech = word.speech,
             derivedFrom = word.id,
             tagDirectory = word.referentRegistries.firstOrNull()?.let(Registries::tagsDirPath),
         )
@@ -299,8 +305,13 @@ data class Candidate(
                 mintsSomethingThatFlows = json.get("mints_something_that_flows")?.asBoolean ?: false,
                 unaimed = json.getAsJsonObject(UNAIMED)?.let(::readNumbers).orEmpty()
                     .mapKeys { (page, _) -> aspectPaged(page) },
+                speech = json.get(SPEECH)?.asString?.let(::speechNamed),
             )
         }
+
+        private fun speechNamed(named: String): Speech =
+            Speech.entries.firstOrNull { it.serializedName == named }
+                ?: error("no part of speech is called '$named'")
 
         private fun aspectPaged(page: String): Aspect =
             Aspect.byPage(page)

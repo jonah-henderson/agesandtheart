@@ -11,5 +11,6 @@
   ],
   "chooses": {
     "phenomena": "tempest"
-  }
+  },
+  "speech": "noun"
 }

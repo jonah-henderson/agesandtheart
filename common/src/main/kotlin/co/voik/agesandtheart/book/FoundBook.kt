@@ -3,7 +3,7 @@ package co.voik.agesandtheart.book
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.AgeName
 import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Readout
+import co.voik.agesandtheart.age.word.grammar.Prose
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.SurveyReport
 import com.mojang.serialization.Codec
@@ -80,6 +80,6 @@ object FoundBook {
         // A sentence that dropped the `age` page is something no player could bind, so the book goes out
         // unread rather than carrying a reading of a sentence it does not spell.
         val read = Grammar.read(vocabulary, pages) ?: return
-        stack.set(AgeComponents.BOOK_READING, Readout.columnsOf(read))
+        stack.set(AgeComponents.BOOK_READING, Prose.of(read))
     }
 }

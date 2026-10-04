@@ -16,5 +16,6 @@
     "spawns": {
       "aloft": ">0.3"
     }
-  }
+  },
+  "speech": "plural"
 }

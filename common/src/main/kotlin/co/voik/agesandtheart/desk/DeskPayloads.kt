@@ -2,6 +2,7 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.InkTier
+import co.voik.agesandtheart.age.word.grammar.ProseClause
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
@@ -51,12 +52,9 @@ data class DeskSyncPayload(
      */
     val quarrels: List<Quarrel>,
     /**
-     * The sentence said back as prose — empty without the grammar guide in the room.
-     *
-     * The same `Readout` a bound book carries, so what the desk says while you are writing and what the
-     * book says afterwards can never be two different sentences.
+     * The sentence as the bound book will read it — empty without the grammar guide in the room.
      */
-    val reading: String,
+    val reading: List<ProseClause>,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<DeskSyncPayload> = TYPE
@@ -82,6 +80,9 @@ data class DeskSyncPayload(
             ::Quarrel,
         )
 
+        private val READING_STREAM: StreamCodec<ByteBuf, List<ProseClause>> =
+            ByteBufCodecs.fromCodec(ProseClause.CODEC.listOf())
+
         val STREAM_CODEC: StreamCodec<ByteBuf, DeskSyncPayload> = StreamCodec.of(
             { buffer, value ->
                 INK_STREAM.encode(buffer, LinkedHashMap(value.ink))
@@ -95,7 +96,7 @@ data class DeskSyncPayload(
                 PagePrice.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buffer, value.toWrite)
                 ByteBufCodecs.VAR_INT.encode(buffer, value.drawn)
                 QUARREL_STREAM.apply(ByteBufCodecs.list()).encode(buffer, value.quarrels)
-                ByteBufCodecs.STRING_UTF8.encode(buffer, value.reading)
+                READING_STREAM.encode(buffer, value.reading)
             },
             { buffer ->
                 DeskSyncPayload(
@@ -110,7 +111,7 @@ data class DeskSyncPayload(
                     toWrite = PagePrice.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buffer),
                     drawn = ByteBufCodecs.VAR_INT.decode(buffer),
                     quarrels = QUARREL_STREAM.apply(ByteBufCodecs.list()).decode(buffer),
-                    reading = ByteBufCodecs.STRING_UTF8.decode(buffer),
+                    reading = READING_STREAM.decode(buffer),
                 )
             },
         )

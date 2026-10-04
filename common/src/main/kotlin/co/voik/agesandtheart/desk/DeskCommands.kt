@@ -7,7 +7,7 @@ import co.voik.agesandtheart.advancement.WrittenAge
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Readout
+import co.voik.agesandtheart.age.word.grammar.Prose
 import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
@@ -86,7 +86,7 @@ object DeskCommands {
                 toWrite = emptyList(),
                 drawn = 0,
                 quarrels = emptyList(),
-                reading = "",
+                reading = emptyList(),
             ),
         )
     }
@@ -133,7 +133,7 @@ object DeskCommands {
         book.set(AgeComponents.BOOK_SEED, player.writingSeed)
         // Read by the same expression `DescriptiveBookRecipe` reads it by, so what a book says and the Age
         // it makes can never be two different sentences.
-        book.set(AgeComponents.BOOK_READING, Readout.columnsOf(sentence))
+        book.set(AgeComponents.BOOK_READING, Prose.of(sentence))
         // The one place a book is marked as somebody's own work (design §7.7).
         book.set(AgeComponents.BOOK_AUTHORED, true)
         // A crystal viewer's preview of exactly this sentence becomes the book's Age; any other is deleted.

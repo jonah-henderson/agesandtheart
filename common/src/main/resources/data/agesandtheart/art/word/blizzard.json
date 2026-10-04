@@ -25,5 +25,6 @@
     "motes": "snow",
     "temperature": "-1.0..-0.5",
     "rainfall": "0.4..1.0"
-  }
+  },
+  "speech": "noun"
 }

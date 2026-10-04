@@ -10,5 +10,6 @@
   ],
   "chooses": {
     "phenomena": "meteors"
-  }
+  },
+  "speech": "plural"
 }

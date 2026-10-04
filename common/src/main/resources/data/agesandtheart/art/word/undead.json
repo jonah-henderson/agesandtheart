@@ -3,5 +3,6 @@
     "spawns": {
       "undead": ">0.3"
     }
-  }
+  },
+  "speech": "plural"
 }

@@ -5,7 +5,8 @@ import co.voik.agesandtheart.age.word.Resolution
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Readout
+import co.voik.agesandtheart.age.word.grammar.Prose
+import co.voik.agesandtheart.age.word.grammar.ProseClause
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.platform.Services
@@ -84,13 +85,13 @@ class WritersDeskMenu(
     }
 
     /**
-     * The sentence said back as prose — **empty without the implement that reads it**, exactly as the
+     * The sentence as the bound book will read it — **empty without the implement that reads it**, exactly as the
      * conflicts are (design §7.3): visibility is a property of the workspace. The gate is on the desk's
      * live reading and nothing else — a bound book still carries its own, and a found one still teaches.
      */
-    private fun readingOf(capabilities: DeskState, said: Sentence?): String {
-        if (DeskCapability.READABLE_GRAMMAR !in capabilities.capabilities) return ""
-        return said?.let(Readout::of).orEmpty()
+    private fun readingOf(capabilities: DeskState, said: Sentence?): List<ProseClause> {
+        if (DeskCapability.READABLE_GRAMMAR !in capabilities.capabilities) return emptyList()
+        return said?.let(Prose::of).orEmpty()
     }
 
     /**

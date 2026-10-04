@@ -4,5 +4,6 @@
     "features": {
       "aquatic": ">0.3"
     }
-  }
+  },
+  "speech": "plural"
 }

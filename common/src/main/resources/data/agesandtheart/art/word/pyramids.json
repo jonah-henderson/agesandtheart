@@ -4,5 +4,6 @@
     "Named for the shape rather than for the structure, and it mints like any other pattern."
   ],
   "mints": "agesandtheart:pyramids",
-  "unstated": "#agesandtheart:formation_substance"
+  "unstated": "#agesandtheart:formation_substance",
+  "speech": "plural"
 }

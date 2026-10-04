@@ -3,5 +3,6 @@
     "features": {
       "wooded": ">0.3"
     }
-  }
+  },
+  "speech": "plural"
 }

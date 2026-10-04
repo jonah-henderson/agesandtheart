@@ -19,5 +19,6 @@
   ],
   "chooses": {
     "phenomena": "rainbow"
-  }
+  },
+  "speech": "plural"
 }
