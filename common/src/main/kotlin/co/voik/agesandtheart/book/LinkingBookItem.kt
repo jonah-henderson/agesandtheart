@@ -5,9 +5,11 @@ import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.client.BookScreenOpener
 import net.minecraft.ChatFormatting
+import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.util.Prediction
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
@@ -48,8 +50,11 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
         return InteractionResult.SUCCESS
     }
 
-    /** Writing it: the book takes this exact spot, facing the way you were — and the Age behind it. */
-    private fun bind(stack: ItemStack, level: ServerLevel, player: ServerPlayer): InteractionResult {
+    /**
+     * Writing it: the book takes this exact spot, facing the way you were — and the Age behind it. One book
+     * off a stack of blanks is written, and the rest stay blank in the hand.
+     */
+    private fun bind(held: ItemStack, level: ServerLevel, player: ServerPlayer): InteractionResult {
         val target = LinkTarget(
             dimension = level.dimension(),
             position = player.position(),
@@ -59,7 +64,9 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
             // the whole point is a book that outlives the Age it names (design §9, "Losing the books").
             recipe = Ages.recipeOf(level),
         )
-        stack.set(AgeComponents.LINK_TARGET, target)
+        val book = if (held.count > 1) held.split(1) else held
+        bindTo(book, target)
+        if (book !== held) player.inventory.placeItemBackInInventory(book, Prediction.SERVER_ONLY)
         player.sendSystemMessage(Component.translatable("book.agesandtheart.bound", target.name), true)
         return InteractionResult.SUCCESS
     }
@@ -98,7 +105,13 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
         )
     }
 
-    private companion object {
-        fun nameOf(level: ServerLevel): String = WordNames.placeName(level.dimension())
+    companion object {
+        /** [book] written to [target], and alone in its slot from then on: no two doors share a stack. */
+        fun bindTo(book: ItemStack, target: LinkTarget) {
+            book.set(AgeComponents.LINK_TARGET, target)
+            book.set(DataComponents.MAX_STACK_SIZE, 1)
+        }
+
+        private fun nameOf(level: ServerLevel): String = WordNames.placeName(level.dimension())
     }
 }

@@ -116,10 +116,12 @@ object ProtectiveSuit {
      * Called from `CommonSetup.serverTick`, beside `AgeTick.tick`.
      */
     fun tick(server: MinecraftServer) {
-        if (server.tickCount % A_SECOND != 0) return
+        val looksThisTick = server.tickCount % A_SECOND == 0
         for (level in server.allLevels) {
             for (player in level.players()) {
                 if (!wearingTheWholeSuit(player)) continue
+                putOutTheFire(player)
+                if (!looksThisTick) continue
                 player.addEffect(
                     MobEffectInstance(
                         MobEffects.FIRE_RESISTANCE,
@@ -133,6 +135,18 @@ object ProtectiveSuit {
                 if (theEnvironmentIsTryingToKillThem(player)) wearOut(player)
             }
         }
+    }
+
+    /**
+     * **No flames on a suited wearer, every tick.** A fire block adds burning ticks directly rather than
+     * through `igniteForTicks`, so [Attributes.BURNING_TIME] never sees them and the wearer stands "on fire"
+     * — harmless under the resistance, but drawn over the screen. The synced flag is cleared too: this runs
+     * after the player has ticked, and that tick already set the flag from the ticks the fire added.
+     */
+    private fun putOutTheFire(player: ServerPlayer) {
+        if (player.remainingFireTicks <= 0) return
+        player.clearFire()
+        player.setSharedFlagOnFire(false)
     }
 
     /**

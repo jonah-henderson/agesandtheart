@@ -1270,6 +1270,7 @@ object AgeContent {
     }
 
     private const val SURVEY_REPORT_STACK = 16
+    private const val BLANK_LINKING_BOOK_STACK = 16
 
     private val GRAMMAR_GUIDE_ID: Identifier = "grammar_guide".location()
 
@@ -1289,11 +1290,11 @@ object AgeContent {
 
     private val LINKING_BOOK_ID: Identifier = "linking_book".location()
 
-    /** Unstackable: each one is a different door, even before it is written in. */
+    /** Blanks stack; a written one stands alone, each being a different door (`LinkingBookItem.bindTo`). */
     val LINKING_BOOK: Item = LinkingBookItem(
         Item.Properties()
             .setId(ResourceKey.create(Registries.ITEM, LINKING_BOOK_ID))
-            .stacksTo(1),
+            .stacksTo(BLANK_LINKING_BOOK_STACK),
     )
 
     private val INK_BOTTLE_ID: Identifier = "ink_bottle".location()

@@ -54,7 +54,7 @@ class BindLinkingBookFunction(
                 HOME_NAME,
             )
         }
-        itemStack.set(AgeComponents.LINK_TARGET, target)
+        LinkingBookItem.bindTo(itemStack, target)
         return itemStack
     }
 
