@@ -344,7 +344,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Thirty-four Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Thirty-six Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -366,6 +366,10 @@ When shared code needs something loader-specific, it goes through an interface, 
 - **`fabric/.../mixin/fabric/client/RendererManagerMixin`** — the **only Mixin outside `common`**, declared by its own `agesandtheart-fabric.mixins.json`, and the only one that targets another mod. Fabric API's Indigo redirects chunk building away from `ModelBlockRenderer`, so coloured light needs a second seam on that loader; the registry takes exactly one renderer plug-in and Indigo has it, so what is handed out is decorated instead. `TintingRenderer` carries the argument and the alternatives. **A Fabric-only Mixin needs the Fabric config** — the common one ships in both jars, so a target that exists on only one loader cannot go in it.
 - **`client/MainRenderTargetMixin`** — the linking panel's world render lands on the panel's target instead of the window. `LevelRenderer.renderLevel` hard-codes `getMainRenderTarget()` and sizes its whole frame graph from it, there is no parameter or event on either loader, and `Minecraft.mainRenderTarget` is `private final`. The redirect is live only inside `PanelTarget.redirecting`. It is the **only** Mixin a panel in a book needs: everything else it borrows from the client has a public setter, and `BorrowedFrame` is where that is done. A panel on a lectern takes one more, **`client/GameRendererMixin`**, which renders it from the head of `extractGui` — the phase `BookScreen` renders its own in — since a lectern has no screen to lend it the frame.
 - **`LecternBlockMixin`** and **`LecternBlockEntityMixin`** — books on vanilla lecterns (design §7.8.2). The click and the auto-close ride `useWithoutItem` and the lectern's own scheduled tick, and the block entity is taught to tell a client which book it holds, which vanilla never does. The `book_open` property rides `StateDefinitionBuilderMixin` beside deep waterlogging. The renderer is not a Mixin: `LecternBookRenderer` extends vanilla's, and `client/ClientRegistrations` registers it in vanilla's place.
+- **`BlocksAttacksMixin`** and **`MaceItemMixin`** — what a potion of crushing resistance turns aside
+  besides the deep. An axe disables a shield through `BlocksAttacks.disable`, the one method every
+  `disable_blocking_for_seconds` weapon goes through; a mace's smash is `getAttackDamageBonus` and the
+  shockwave is whoever `knockbackPredicate` accepts. Neither loader has an event for any of the three.
 - **`EntityFluidInteractionMixin`** — a player falling through a star fissure touches no fluid. `noPhysics`
   stops collisions and block effects but not `baseTick`'s fluid scan, so water in the tear's column turned
   the fall into sinking. A null `getFluidInteractionBox` empties every fluid reading at once; neither loader

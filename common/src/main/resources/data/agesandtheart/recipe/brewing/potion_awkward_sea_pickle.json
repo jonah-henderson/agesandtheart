@@ -1,0 +1,21 @@
+{
+  "_comment": "Brewed from a sea pickle, which had little else to do (Jonah). The rest of this directory is vanilla fire resistance's set of conversions, one file each as vanilla writes them.",
+  "type": "minecraft:brewing",
+  "input": {
+    "item": "minecraft:potion",
+    "potion_contents": {
+      "potions": "minecraft:awkward"
+    }
+  },
+  "output": {
+    "components": {
+      "minecraft:potion_contents": {
+        "potion": "agesandtheart:crushing_resistance"
+      }
+    },
+    "id": "minecraft:potion"
+  },
+  "reagent": {
+    "item": "minecraft:sea_pickle"
+  }
+}

@@ -32,7 +32,8 @@ class PressureEffect : MobEffect(MobEffectCategory.HARMFUL, COLOUR) {
     override fun shouldApplyEffectTickThisTick(duration: Int, amplifier: Int): Boolean = EVERY_TICK
 
     override fun applyEffectTick(level: ServerLevel, body: LivingEntity, amplifier: Int): Boolean {
-        if (!DeepWater.stillUnderPressure(level, body)) return GONE
+        // A potion drunk in the deep lets go at once, as surfacing does.
+        if (!DeepWater.stillUnderPressure(level, body) || DeepWater.resistsPressure(body)) return GONE
         DeepWater.crush(level, body)
         return STANDS
     }

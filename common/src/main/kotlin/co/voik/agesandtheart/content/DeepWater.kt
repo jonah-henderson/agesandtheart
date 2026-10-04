@@ -587,10 +587,14 @@ object DeepWater {
     fun press(level: Level, body: Entity) {
         if (level !is ServerLevel) return
         if (body !is LivingEntity || body.isSpectator) return
-        if (body.typeHolder().`is`(IMMUNE_TO_PRESSURE)) return
+        if (resistsPressure(body)) return
         if (body.hasEffect(AgeContent.PRESSURE_EFFECT)) return
         body.addEffect(MobEffectInstance(AgeContent.PRESSURE_EFFECT, HELD_FOR, NO_STRONGER, AMBIENT, SHOWN))
     }
+
+    /** Exempt by kind, or for as long as a potion of [CrushingResistance] lasts. */
+    fun resistsPressure(body: LivingEntity): Boolean =
+        body.typeHolder().`is`(IMMUNE_TO_PRESSURE) || CrushingResistance.isResisting(body)
 
     /**
      * Whether the deep still has hold of [body] — what decides when [PressureEffect] lets go.

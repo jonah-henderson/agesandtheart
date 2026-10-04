@@ -89,6 +89,7 @@ import net.minecraft.world.entity.npc.villager.VillagerProfession
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Items
+import net.minecraft.world.item.alchemy.Potion
 import net.minecraft.world.item.crafting.RecipeBookCategory
 import net.minecraft.world.item.crafting.display.RecipeDisplay
 import net.minecraft.world.item.crafting.RecipeSerializer
@@ -2160,7 +2161,11 @@ object AgeContent {
 
     val mobEffects: List<Pair<Identifier, MobEffect>> = listOf(
         PRESSURE_EFFECT_ID to PRESSURE_EFFECT_INSTANCE,
+        CrushingResistance.EFFECT_ID to CrushingResistance.EFFECT_INSTANCE,
     )
+
+    /** Registered after [mobEffects], whose holders they carry. */
+    val potions: List<Pair<Identifier, Potion>> get() = CrushingResistance.potions
 
     /**
      * Our own features. As with [carvers], this registers the *kind*; what is made of it is built in code
