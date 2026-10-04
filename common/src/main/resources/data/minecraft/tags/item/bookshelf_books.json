@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "Chiselled bookshelves gate placement on this tag, by hand and by hopper alike, so this file is the whole",
+    "of shelving a book. The shelf keeps the stack as it is, so a book keeps its Age on the shelf."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:descriptive_book",
+    "agesandtheart:linking_book"
+  ]
+}
