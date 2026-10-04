@@ -1,0 +1,33 @@
+{
+  "_comment": "Gated on astrite, the one ingredient that has to come from an Age.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_astrite_shard": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:astrite_shard"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:seismograph"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_astrite_shard",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:seismograph"
+    ]
+  }
+}

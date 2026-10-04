@@ -1,0 +1,64 @@
+{
+  "_comment": [
+    "Shown once all three surveys have been held, not necessarily at once: each is its own requirement,",
+    "and a criterion stays met once met. Knowing the recipe already satisfies every one."
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_sunlit_age_survey": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:sunlit_age_survey"
+          }
+        ]
+      }
+    },
+    "has_lightless_age_survey": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:lightless_age_survey"
+          }
+        ]
+      }
+    },
+    "has_cramped_age_survey": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:cramped_age_survey"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:grammar_guide"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_sunlit_age_survey",
+      "has_the_recipe"
+    ],
+    [
+      "has_lightless_age_survey",
+      "has_the_recipe"
+    ],
+    [
+      "has_cramped_age_survey",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:grammar_guide"
+    ]
+  }
+}

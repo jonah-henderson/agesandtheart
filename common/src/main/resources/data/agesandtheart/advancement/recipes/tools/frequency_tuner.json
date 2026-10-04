@@ -1,0 +1,33 @@
+{
+  "_comment": "Gated on arc crystal, the one ingredient that has to come from an Age.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_arc_crystal": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:arc_crystal"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:frequency_tuner"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_arc_crystal",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:frequency_tuner"
+    ]
+  }
+}

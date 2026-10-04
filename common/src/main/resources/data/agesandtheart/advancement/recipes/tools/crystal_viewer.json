@@ -1,0 +1,33 @@
+{
+  "_comment": "Gated on a rime crystal of any colour, the one ingredient that has to come from an Age.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_rime_crystal": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "#agesandtheart:rime_crystals"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:crystal_viewer"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_rime_crystal",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:crystal_viewer"
+    ]
+  }
+}

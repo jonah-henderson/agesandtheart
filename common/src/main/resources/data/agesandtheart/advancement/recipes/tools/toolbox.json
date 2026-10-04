@@ -1,0 +1,44 @@
+{
+  "_comment": "Shown on first holding planks or wooden slabs, as vanilla's wooden things are.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_planks": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "#minecraft:planks"
+          }
+        ]
+      }
+    },
+    "has_wooden_slabs": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "#minecraft:wooden_slabs"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:toolbox"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_planks",
+      "has_wooden_slabs",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:toolbox"
+    ]
+  }
+}

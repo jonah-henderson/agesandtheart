@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.station
 
 import co.voik.agesandtheart.desk.DeskSlots
+import net.minecraft.server.MinecraftServer
 import net.minecraft.world.Container
 import net.minecraft.world.SimpleContainer
 import net.minecraft.world.entity.player.Inventory
@@ -20,7 +21,14 @@ class DryingRackMenu(
     playerInventory: Inventory,
     private val rack: Container,
     private val progress: ContainerData,
-) : AbstractContainerMenu(DryingRack.MENU, containerId) {
+) : AbstractContainerMenu(DryingRack.MENU, containerId), ListsItsRecipes {
+
+    override var listed: List<ListedRecipe> = emptyList()
+
+    override fun recipesOn(server: MinecraftServer): List<MachineRecipe> =
+        MachineRecipeLists.of(server, Drying.TYPE) { recipe ->
+            if (recipe.isAllowed) MachineRecipe(recipe.ingredient, recipe.result) else null
+        }
 
     /** The client's, which vanilla's data syncing fills in. */
     constructor(containerId: Int, playerInventory: Inventory) :

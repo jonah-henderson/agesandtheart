@@ -9,13 +9,12 @@ import co.voik.agesandtheart.desk.DeskSlots
 import co.voik.agesandtheart.station.DryingRackBlockEntity
 import co.voik.agesandtheart.station.DryingRackMenu
 import co.voik.agesandtheart.station.DryingRackSlots
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Inventory
 
 /** The drying rack's screen: the inputs, a furnace's arrow filling as the item being dried dries, and the output. */
 class DryingRackScreen(menu: DryingRackMenu, inventory: Inventory, title: Component) :
-    AbstractContainerScreen<DryingRackMenu>(menu, inventory, title, DeskSlots.PANEL_WIDTH, DeskSlots.WING_PANEL_HEIGHT) {
+    RecipeListingScreen<DryingRackMenu>(menu, inventory, title) {
 
     override fun init() {
         super.init()

@@ -52,7 +52,7 @@ class StationBlock(val station: Station, properties: Properties) : BaseEntityBlo
     ): InteractionResult {
         if (level.isClientSide) return InteractionResult.SUCCESS
         val entity = level.getBlockEntity(pos) as? StationBlockEntity ?: return InteractionResult.FAIL
-        player.openMenu(entity)
+        MachineRecipeLists.open(player, entity)
         return InteractionResult.CONSUME
     }
 

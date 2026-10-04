@@ -6,7 +6,7 @@ import io.kotest.core.spec.style.FunSpec
 /**
  * That the drying rack finishes a masterwork grade only under the sky its recipe names, one item at a time
  * into its output: an ink cake under a black sun, a wet sheet in an Age with an open lava sea, and neither
- * anywhere else.
+ * anywhere else. A recipe naming no sky, rotten flesh to leather, dries in the overworld.
  *
  * On a server because the recipes are datapack JSON and the skies are written Ages. Each rack has a roof,
  * so an Age's rain cannot start it again partway.
@@ -38,6 +38,7 @@ class DryingOnServerCheck : FunSpec({
         rackIn(LAVA_SEA_AGE, SHEET_X, "agesandtheart:wet_paper_sheet")
         rackIn(LAVA_SEA_AGE, CAKE_X, "agesandtheart:ink_cake")
         rackIn(null, CAKE_X, "agesandtheart:ink_cake")
+        rackIn(null, FLESH_X, "minecraft:rotten_flesh")
         server.run("tick sprint $BOTH_DRIED_AND_A_LITTLE")
         Thread.sleep(SPRINT_WAIT_MILLIS)
 
@@ -54,6 +55,10 @@ class DryingOnServerCheck : FunSpec({
         check("agesandtheart:ink_cake" in cakeOverLava) { "a cake cured in a lava-sea Age: $cakeOverLava" }
         val cakeAtHome = holds(null, CAKE_X)
         check("agesandtheart:ink_cake" in cakeAtHome) { "a cake cured in the overworld: $cakeAtHome" }
+        val fleshAtHome = holds(null, FLESH_X)
+        check("{count: 2, Slot: ${OUTPUT}b, id: \"minecraft:leather\"}" in fleshAtHome) {
+            "rotten flesh, which names no sky, should dry into leather in the overworld: $fleshAtHome"
+        }
     }
 }) {
     private companion object {
@@ -62,6 +67,7 @@ class DryingOnServerCheck : FunSpec({
         const val RACK_Y = 250
         const val CAKE_X = 0
         const val SHEET_X = 4
+        const val FLESH_X = 8
 
         const val OUTPUT = 6
 

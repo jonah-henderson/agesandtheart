@@ -11,6 +11,8 @@ import co.voik.agesandtheart.desk.ArchiveSyncPayload
 import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.desk.TunerProposalPayload
+import co.voik.agesandtheart.station.ListsItsRecipes
+import co.voik.agesandtheart.station.MachineRecipesPayload
 import co.voik.agesandtheart.worldgen.fissure.FallResumedPayload
 import net.minecraft.client.Minecraft
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
@@ -37,5 +39,9 @@ object ClientPayloads {
         Receiver(FallResumedPayload.TYPE) { Minecraft.getInstance().player?.noPhysics = true },
         Receiver(PanelLevelPayload.TYPE) { LinkingPanel.accept(it) },
         Receiver(PanelChunkPayload.TYPE) { LinkingPanel.accept(it) },
+        Receiver(MachineRecipesPayload.TYPE) { payload ->
+            val menu = Minecraft.getInstance().player?.containerMenu
+            if (menu is ListsItsRecipes && menu.containerId == payload.containerId) menu.listed = payload.recipes
+        },
     )
 }

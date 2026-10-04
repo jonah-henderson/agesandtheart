@@ -1,0 +1,47 @@
+{
+  "_comment": [
+    "Gated as the writer's desk is, on a page or the desk itself, rather than on leather: leather is early",
+    "and common, and a notebook is no use to anyone who has not started writing."
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_a_page": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:page"
+          }
+        ]
+      }
+    },
+    "has_writers_desk": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:writers_desk"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:notebook"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_a_page",
+      "has_writers_desk",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:notebook"
+    ]
+  }
+}

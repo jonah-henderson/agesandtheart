@@ -1,0 +1,9 @@
+{
+  "_comment": "Rotten flesh dried into leather, anywhere (Jonah, 2026-10-04). A server can switch it off: it changes early leather a great deal.",
+  "type": "agesandtheart:drying",
+  "ingredient": "minecraft:rotten_flesh",
+  "result": {
+    "id": "minecraft:leather"
+  },
+  "allowed_by": "leather"
+}

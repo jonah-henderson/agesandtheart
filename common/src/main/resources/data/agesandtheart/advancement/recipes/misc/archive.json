@@ -1,0 +1,33 @@
+{
+  "_comment": "Shown on first holding a notebook, which is what the archive shelves.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_notebook": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:notebook"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:archive"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_notebook",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:archive"
+    ]
+  }
+}

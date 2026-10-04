@@ -8,13 +8,12 @@ import co.voik.agesandtheart.client.ui.SlotView
 import co.voik.agesandtheart.desk.DeskSlots
 import co.voik.agesandtheart.station.StationMenu
 import co.voik.agesandtheart.station.StationSlots
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Inventory
 
 /** A grinder's or a pulper's screen: an input, the arrow, the result, and the player's inventory. */
 class StationScreen(menu: StationMenu, inventory: Inventory, title: Component) :
-    AbstractContainerScreen<StationMenu>(menu, inventory, title, DeskSlots.PANEL_WIDTH, DeskSlots.WING_PANEL_HEIGHT) {
+    RecipeListingScreen<StationMenu>(menu, inventory, title) {
 
     override fun init() {
         super.init()

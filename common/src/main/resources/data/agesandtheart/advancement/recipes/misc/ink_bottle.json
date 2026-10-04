@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "Shown on first holding black dye or an ink sac. One file for both loaders: the recipe is per loader,",
+    "but its id is the same in each."
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_black_dye": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:black_dye",
+              "minecraft:ink_sac"
+            ]
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:ink_bottle"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_black_dye",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:ink_bottle"
+    ]
+  }
+}

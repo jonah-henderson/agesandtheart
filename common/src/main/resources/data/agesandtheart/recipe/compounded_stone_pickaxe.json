@@ -1,0 +1,17 @@
+{
+  "_comment": "Vanilla's stone pickaxe with nara for the cobblestone (Jonah, 2026-10-04); the axe, shovel, hoe and sword follow suit.",
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "#": "minecraft:stick",
+    "X": "agesandtheart:compounded_stone"
+  },
+  "pattern": [
+    "XXX",
+    " # ",
+    " # "
+  ],
+  "result": {
+    "id": "agesandtheart:compounded_stone_pickaxe"
+  }
+}

@@ -197,6 +197,8 @@
   "config.agesandtheart.compounds_heavy_core": "The compounder may make a heavy core",
   "config.agesandtheart.compounds_reinforced_deepslate": "The compounder may make reinforced deepslate",
   "config.agesandtheart.drawing": "How much this machine draws",
+  "config.agesandtheart.dries_leather": "The drying rack may turn rotten flesh into leather",
+  "config.agesandtheart.drying": "Drying",
   "config.agesandtheart.housekeeping": "Housekeeping",
   "config.agesandtheart.plasma": "Plasma",
   "config.agesandtheart.plasma_annihilates": "Plasma let loose destroys blocks",

@@ -76,6 +76,12 @@ object AgeConfig {
     val compoundsHeavyCore: ModConfigSpec.BooleanValue
 
     /**
+     * Whether the drying rack turns rotten flesh into leather. Read live by the recipe, so turning it off
+     * takes effect at once, and the recipe is then missing from the rack's list too.
+     */
+    val driesLeather: ModConfigSpec.BooleanValue
+
+    /**
      * Whether plasma let loose destroys the blocks it erupts through and bursts beside (design §7.1.2). Off,
      * it still erupts through the air, burns what it touches and hurts with its bursts, but leaves every
      * block standing: a released container is otherwise a block-deleter in a player's hands.
@@ -153,6 +159,15 @@ object AgeConfig {
             .translation(translationOf("compounds_heavy_core"))
             .define("compoundsHeavyCore", true)
         builder.pop()
+        builder.comment("Drying").push(DRYING)
+        driesLeather = builder
+            .comment(
+                "Let the drying rack turn rotten flesh into leather. An early, endless supply of leather",
+                "changes what leather is worth from the first night on.",
+            )
+            .translation(translationOf("dries_leather"))
+            .define("driesLeather", true)
+        builder.pop()
         builder.comment("Plasma").push(PLASMA)
         plasmaAnnihilates = builder
             .comment(
@@ -175,6 +190,7 @@ object AgeConfig {
     private const val LINKING = "linking"
 
     private const val COMPOUNDING = "compounding"
+    private const val DRYING = "drying"
 
     private const val PLASMA = "plasma"
 }

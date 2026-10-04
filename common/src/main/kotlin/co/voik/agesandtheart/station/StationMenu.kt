@@ -2,6 +2,7 @@ package co.voik.agesandtheart.station
 
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.desk.DeskSlots
+import net.minecraft.server.MinecraftServer
 import net.minecraft.world.Container
 import net.minecraft.world.SimpleContainer
 import net.minecraft.world.entity.player.Inventory
@@ -23,7 +24,14 @@ class StationMenu(
     playerInventory: Inventory,
     private val station: Container,
     private val progress: ContainerData,
-) : AbstractContainerMenu(AgeContent.STATION_MENU, containerId) {
+) : AbstractContainerMenu(AgeContent.STATION_MENU, containerId), ListsItsRecipes {
+
+    override var listed: List<ListedRecipe> = emptyList()
+
+    override fun recipesOn(server: MinecraftServer): List<MachineRecipe> {
+        val machine = (station as? StationBlockEntity)?.station ?: return emptyList()
+        return MachineRecipeLists.of(server, StationRecipes.typeFor(machine)) { MachineRecipe(it.input(), it.shownResult()) }
+    }
 
     /** The client's, which vanilla's data syncing fills in. */
     constructor(containerId: Int, playerInventory: Inventory) :

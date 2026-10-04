@@ -79,7 +79,7 @@ class DryingRackBlock(properties: Properties) : BaseEntityBlock(properties) {
     ): InteractionResult {
         if (level.isClientSide) return InteractionResult.SUCCESS
         val rack = level.getBlockEntity(pos) as? DryingRackBlockEntity ?: return InteractionResult.FAIL
-        player.openMenu(rack)
+        MachineRecipeLists.open(player, rack)
         return InteractionResult.CONSUME
     }
 }
@@ -120,7 +120,7 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
         val stack = items[slot]
         if (stack.isEmpty) return false
         val recipe = recipeFor(stack, level)?.value() ?: return false
-        return recipe.under in skies && outputHasRoomFor(recipe.assemble(SingleRecipeInput(stack)))
+        return recipe.driesUnder(skies) && outputHasRoomFor(recipe.assemble(SingleRecipeInput(stack)))
     }
 
     private fun outputHasRoomFor(made: ItemStack): Boolean {

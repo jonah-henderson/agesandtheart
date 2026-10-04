@@ -27,6 +27,9 @@ class StationRecipe(
 
     override fun group(): String = ""
 
+    /** The result, which [SingleItemRecipe] keeps to itself. */
+    fun shownResult(): ItemStackTemplate = result()
+
     override fun recipeBookCategory(): RecipeBookCategory = StationRecipes.bookCategoryFor(station)
 }
 
