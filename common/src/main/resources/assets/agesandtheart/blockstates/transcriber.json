@@ -1,0 +1,4 @@
+{
+  "_comment": "A cartography table stands in until the model pass: the transcriber is built on its model, one book copied onto another on a table.",
+  "variants": { "": { "model": "minecraft:block/cartography_table" } }
+}

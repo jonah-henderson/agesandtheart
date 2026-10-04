@@ -1,0 +1,4 @@
+{
+  "_comment": "A fluid's block draws nothing -- its fluid model does -- so this is only the particle, as vanilla's water model is.",
+  "textures": { "particle": "agesandtheart:block/deep_water_still" }
+}

@@ -1,0 +1,4 @@
+{
+  "_comment": "A note block stands in until the model pass -- a full cube, so its neighbours' faces stay drawn, and the block vanilla already means tuning by.",
+  "variants": { "": { "model": "minecraft:block/note_block" } }
+}

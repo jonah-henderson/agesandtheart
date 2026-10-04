@@ -1,0 +1,4 @@
+{
+  "_comment": "Vanilla water's particle-only model: the ink is drawn by its fluid model, tinted in AgeFluidLooks.",
+  "variants": { "": { "model": "minecraft:block/water" } }
+}
