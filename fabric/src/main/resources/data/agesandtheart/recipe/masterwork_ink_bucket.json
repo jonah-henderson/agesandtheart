@@ -1,0 +1,14 @@
+{
+  "_comment": "A Fabric bottle is a third of a bucket (FluidConstants.BOTTLE), so three fill one. The bottles come back empty, by their crafting remainder.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "agesandtheart:masterwork_ink_bottle",
+    "agesandtheart:masterwork_ink_bottle",
+    "agesandtheart:masterwork_ink_bottle",
+    "minecraft:bucket"
+  ],
+  "result": {
+    "id": "agesandtheart:masterwork_ink_bucket"
+  }
+}

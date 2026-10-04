@@ -1,0 +1,33 @@
+{
+  "_comment": "One file for both loaders: the recipe is per loader, for its bottle's size, but its id is the same in each.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_ink_bottle": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:ink_bottle"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "agesandtheart:ink_bucket"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ink_bottle",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:ink_bucket"
+    ]
+  }
+}

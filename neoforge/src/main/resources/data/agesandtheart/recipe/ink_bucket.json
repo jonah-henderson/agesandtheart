@@ -1,0 +1,15 @@
+{
+  "_comment": "A NeoForge bottle is a quarter of a bucket (NeoForgeInkFluids), so four fill one; three would make ink from nothing. The bottles come back empty, by their crafting remainder.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "agesandtheart:ink_bottle",
+    "agesandtheart:ink_bottle",
+    "agesandtheart:ink_bottle",
+    "agesandtheart:ink_bottle",
+    "minecraft:bucket"
+  ],
+  "result": {
+    "id": "agesandtheart:ink_bucket"
+  }
+}

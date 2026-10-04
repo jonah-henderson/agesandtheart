@@ -196,10 +196,11 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
         hand: InteractionHand,
         hitResult: BlockHitResult,
     ): InteractionResult {
-        if (!DeskIntake.accepts(itemStack)) return InteractionResult.TRY_WITH_EMPTY_HAND
+        val isDrawingInk = itemStack.`is`(Items.BUCKET)
+        if (!isDrawingInk && !DeskIntake.accepts(itemStack)) return InteractionResult.TRY_WITH_EMPTY_HAND
         if (level.isClientSide) return InteractionResult.SUCCESS
         val desk = entityAt(level, pos) ?: return InteractionResult.TRY_WITH_EMPTY_HAND
-        val result = DeskIntake.offer(desk, itemStack)
+        val result = if (isDrawingInk) DeskIntake.draw(desk, itemStack) else DeskIntake.offer(desk, itemStack)
         if (!result.took) return InteractionResult.TRY_WITH_EMPTY_HAND
         player.setItemInHand(hand, result.remainder)
         if (!result.returned.isEmpty) player.inventory.placeItemBackInInventory(result.returned, Prediction.SERVER_ONLY)

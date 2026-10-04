@@ -91,6 +91,18 @@ object DeskIntake {
             ?.let { Triple(it, fluids.unitsPerBucket, ItemStack(Items.BUCKET)) }
     }
 
+    /**
+     * Fills one empty bucket from the commonest ink holding a whole bucket — the least precious first,
+     * and pouring it back loses nothing. Untouched when no tank holds a bucket's worth.
+     */
+    fun draw(desk: WritersDeskBlockEntity, stack: ItemStack): Result {
+        if (!stack.`is`(Items.BUCKET)) return Result.untouched(stack)
+        val fluids = Services.INK_FLUIDS
+        val tier = InkTier.entries.firstOrNull { desk.stores.ink(it) >= fluids.unitsPerBucket } ?: return Result.untouched(stack)
+        if (!desk.takeInk(tier, fluids.unitsPerBucket)) return Result.untouched(stack)
+        return Result(stack.copyWithCount(stack.count - 1), ItemStack(fluids.bucket(tier)), took = true)
+    }
+
     /** Pours in as many containers as the tank has room for, leaving the rest full. */
     private fun acceptInk(
         desk: WritersDeskBlockEntity,

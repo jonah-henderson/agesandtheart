@@ -66,6 +66,15 @@ class WritersDeskBlockEntity(pos: BlockPos, state: BlockState) :
         return rejected
     }
 
+    /** @return whether all of [amount] was there; nothing is taken unless it was. */
+    fun takeInk(tier: InkTier, amount: Long): Boolean {
+        val held = stores.ink(tier)
+        if (held < amount) return false
+        stores = stores.withInk(tier, held - amount, inkCapacity)
+        setChanged()
+        return true
+    }
+
     /** Used by the loaders' fluid interfaces, which settle the arithmetic on their own side. */
     fun setInk(tier: InkTier, amount: Long) {
         stores = stores.withInk(tier, amount, inkCapacity)
