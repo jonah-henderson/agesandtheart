@@ -15,20 +15,35 @@ import io.kotest.core.spec.style.FunSpec
 class DryingOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 
-    fun inAge(name: String, command: String) = server.run("execute in agesandtheart:$name run $command")
+    fun dimensionOf(age: String?): String = if (age == null) "minecraft:overworld" else "agesandtheart:$age"
+
+    fun inLevel(age: String?, command: String) = server.run("execute in ${dimensionOf(age)} run $command")
+
+    /** Forceloads the chunk and waits for it: a just-written Age is still making its ground. */
+    fun loaded(age: String?, x: Int) {
+        inLevel(age, "forceload add $x 0")
+        val isThere = (1..LOAD_TRIES).any {
+            Thread.sleep(LOAD_WAIT_MILLIS)
+            server.run("execute in ${dimensionOf(age)} if loaded $x 0 0").startsWith("Test passed")
+        }
+        check(isThere) { "the chunk at ($x, 0) in ${dimensionOf(age)} never loaded" }
+    }
 
     fun rackIn(age: String?, x: Int, item: String) {
-        val run: (String) -> String = { command -> if (age == null) server.run(command) else inAge(age, command) }
-        run("forceload add $x 0")
-        run("setblock $x $RACK_Y 0 agesandtheart:drying_rack")
-        run("setblock $x ${RACK_Y + 1} 0 minecraft:stone")
-        run("item replace block $x $RACK_Y 0 container.0 with $item 2")
+        loaded(age, x)
+        inLevel(age, "setblock $x $RACK_Y 0 agesandtheart:drying_rack")
+        inLevel(age, "setblock $x ${RACK_Y + 1} 0 minecraft:stone")
+        inLevel(age, "item replace block $x $RACK_Y 0 container.0 with $item 2")
     }
 
-    fun holds(age: String?, x: Int): String {
-        val command = "data get block $x $RACK_Y 0 Items"
-        return if (age == null) server.run(command) else inAge(age, command)
-    }
+    /** Waits until both of a rack's items are [made] in its output, on a sprint that ends when it ends. */
+    fun untilBothDried(age: String?, x: Int, made: String): String = server.untilPasses(
+        "execute in ${dimensionOf(age)} if items block $x $RACK_Y 0 container.$OUTPUT $made[count=2]",
+        tries = DRIED_TRIES,
+        pauseMillis = DRIED_WAIT_MILLIS,
+    )
+
+    fun holds(age: String?, x: Int): String = inLevel(age, "data get block $x $RACK_Y 0 Items")
 
     test("the right sky finishes each grade into the output, and the wrong one nothing") {
         server.run("age write $BLACK_SUN_AGE 7 age black sun")
@@ -40,25 +55,23 @@ class DryingOnServerCheck : FunSpec({
         rackIn(null, CAKE_X, "agesandtheart:ink_cake")
         rackIn(null, FLESH_X, "minecraft:rotten_flesh")
         server.run("tick sprint $BOTH_DRIED_AND_A_LITTLE")
-        Thread.sleep(SPRINT_WAIT_MILLIS)
 
-        val curedUnderTheBlackSun = holds(BLACK_SUN_AGE, CAKE_X)
-        val bothInTheOutput = "{count: 2, Slot: ${OUTPUT}b, id: \"agesandtheart:cured_ink_cake\"}" in curedUnderTheBlackSun
-        check(bothInTheOutput && "ink_cake\"" !in curedUnderTheBlackSun.replace("cured_ink_cake\"", "")) {
-            "the black sun's rack should hold both cakes cured in its output: $curedUnderTheBlackSun"
+        val cured = untilBothDried(BLACK_SUN_AGE, CAKE_X, "agesandtheart:cured_ink_cake")
+        check(cured.startsWith("Test passed")) { "the black sun's rack holds: ${holds(BLACK_SUN_AGE, CAKE_X)}" }
+        val driedOverLava = untilBothDried(LAVA_SEA_AGE, SHEET_X, "agesandtheart:masterwork_paper")
+        check(driedOverLava.startsWith("Test passed")) { "the lava sea's rack holds: ${holds(LAVA_SEA_AGE, SHEET_X)}" }
+        val leather = untilBothDried(null, FLESH_X, "minecraft:leather")
+        check(leather.startsWith("Test passed")) {
+            "rotten flesh, which names no sky, should dry into leather in the overworld: ${holds(null, FLESH_X)}"
         }
-        val driedOverLava = holds(LAVA_SEA_AGE, SHEET_X)
-        check("agesandtheart:masterwork_paper" in driedOverLava) { "the lava sea's rack holds: $driedOverLava" }
+
+        // Read only once the rest have dried, so each of these has had as long as they took.
         val sheetUnderTheBlackSun = holds(BLACK_SUN_AGE, SHEET_X)
         check("agesandtheart:wet_paper_sheet" in sheetUnderTheBlackSun) { "a sheet dried under a black sun: $sheetUnderTheBlackSun" }
         val cakeOverLava = holds(LAVA_SEA_AGE, CAKE_X)
         check("agesandtheart:ink_cake" in cakeOverLava) { "a cake cured in a lava-sea Age: $cakeOverLava" }
         val cakeAtHome = holds(null, CAKE_X)
         check("agesandtheart:ink_cake" in cakeAtHome) { "a cake cured in the overworld: $cakeAtHome" }
-        val fleshAtHome = holds(null, FLESH_X)
-        check("{count: 2, Slot: ${OUTPUT}b, id: \"minecraft:leather\"}" in fleshAtHome) {
-            "rotten flesh, which names no sky, should dry into leather in the overworld: $fleshAtHome"
-        }
     }
 }) {
     private companion object {
@@ -74,7 +87,14 @@ class DryingOnServerCheck : FunSpec({
         /** Two items at the rack's 400 ticks apiece, and a margin over. */
         const val BOTH_DRIED_AND_A_LITTLE = 1_000
 
-        /** A sprint runs off the command's thread. */
-        const val SPRINT_WAIT_MILLIS = 5_000L
+        const val LOAD_TRIES = 20
+        const val LOAD_WAIT_MILLIS = 500L
+
+        /**
+         * A sprint runs off the command's thread, and slowly while two new Ages are still making their ground.
+         * Thirty seconds, which is also six hundred ordinary ticks should the sprint end first.
+         */
+        const val DRIED_TRIES = 60
+        const val DRIED_WAIT_MILLIS = 500L
     }
 }
