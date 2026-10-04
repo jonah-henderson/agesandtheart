@@ -161,7 +161,9 @@ class FrequencyTunerMenu(
 private class TunerReading(private val writer: ServerPlayer, private val room: NearbyDesk) : ContainerData {
 
     private var hasADesk = false
-    private var deskLookedForAt = Long.MIN_VALUE
+
+    /** When the room was last searched, or null before the first look. */
+    private var deskLookedForAt: Long? = null
 
     override fun get(index: Int): Int = when (index) {
         FrequencyTunerMenu.POWERED -> if (writer.tuning?.powered == true) 1 else 0
@@ -172,7 +174,9 @@ private class TunerReading(private val writer: ServerPlayer, private val room: N
     /** Looked for once a second: data slots are read every tick, and an empty room is searched in full. */
     private fun deskIsInTheRoom(): Boolean {
         val now = writer.level().gameTime
-        if (now - deskLookedForAt >= LOOKS_EVERY) {
+        // Null rather than Long.MIN_VALUE, which `now -` would overflow to a negative that is never due.
+        val isDue = deskLookedForAt?.let { now - it >= LOOKS_EVERY } ?: true
+        if (isDue) {
             hasADesk = room.deskIn(writer.level()) != null
             deskLookedForAt = now
         }
