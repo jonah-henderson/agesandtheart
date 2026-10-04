@@ -25,6 +25,7 @@ import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.OnDatapackSyncEvent
 import net.neoforged.neoforge.event.RegisterCommandsEvent
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import net.neoforged.neoforge.event.server.ServerStartedEvent
 import net.neoforged.neoforge.event.server.ServerStoppedEvent
@@ -70,6 +71,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedIn)
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedOut)
         NeoForge.EVENT_BUS.addListener(::onPlayerChangedDimension)
+        NeoForge.EVENT_BUS.addListener(::onLivingDeath)
         NeoForge.EVENT_BUS.addListener(::onDatapackSync)
         NeoForge.EVENT_BUS.addListener(::onServerStarted)
         NeoForge.EVENT_BUS.addListener(::onServerStopped)
@@ -265,6 +267,12 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     private fun onPlayerChangedDimension(event: PlayerEvent.PlayerChangedDimensionEvent) {
         val player = event.entity as? ServerPlayer ?: return
         CommonSetup.playerChangedLevel(player, player.level())
+    }
+
+    /** Server side only, as Fabric's `AFTER_DEATH` is; a cancelled death is no death. */
+    private fun onLivingDeath(event: LivingDeathEvent) {
+        if (event.entity.level().isClientSide || event.isCanceled) return
+        CommonSetup.livingDied(event.entity, event.source)
     }
 
     private fun onDatapackSync(event: OnDatapackSyncEvent) {

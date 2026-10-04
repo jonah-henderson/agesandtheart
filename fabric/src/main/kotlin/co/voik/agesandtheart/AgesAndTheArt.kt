@@ -26,6 +26,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents
 import fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry
 import net.neoforged.fml.config.ModConfig
 import net.minecraft.core.Registry
@@ -126,6 +127,7 @@ fun init() {
     ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register { player, _, to ->
         CommonSetup.playerChangedLevel(player, to)
     }
+    ServerLivingEntityEvents.AFTER_DEATH.register { victim, source -> CommonSetup.livingDied(victim, source) }
     ServerLifecycleEvents.SYNC_DATA_PACK_CONTENTS.register { player, _ ->
         CommonSetup.datapackSynced(player)
     }

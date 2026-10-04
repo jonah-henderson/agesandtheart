@@ -15,6 +15,7 @@ import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStackTemplate
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.LanternBlock
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
@@ -67,10 +68,24 @@ object Plasma {
         )
     }
 
-    /** An empty deretheni unit, which takes a block of the sea into itself. */
-    val CONTAINMENT_UNIT: Item = item("plasma_containment_unit", Item.Properties().stacksTo(UNITS_A_STACK)) {
-        PlasmaContainmentUnitItem(it)
+    /** An empty unit set down like a lantern, standing or hanging; dark, having nothing in it to shine. */
+    val CONTAINMENT_UNIT_BLOCK: Block = block("plasma_containment_unit") { properties ->
+        LanternBlock(
+            properties
+                .mapColor(MapColor.METAL)
+                .forceSolidOn()
+                .strength(CONTAINED_STRENGTH)
+                .sound(SoundType.LANTERN)
+                .noOcclusion()
+                .pushReaction(PushReaction.POPPED),
+        )
     }
+
+    /** An empty deretheni unit, which takes a block of the sea into itself, and is set down as a lantern is. */
+    val CONTAINMENT_UNIT: Item = item(
+        "plasma_containment_unit",
+        Item.Properties().stacksTo(UNITS_A_STACK).useBlockDescriptionPrefix(),
+    ) { PlasmaContainmentUnitItem(CONTAINMENT_UNIT_BLOCK, it) }
 
     /** Plasma in its unit: the compounder's repair, a furnace's fuel and a lamp — see [ContainedPlasmaBlock]. */
     val CONTAINED: Block = block("contained_plasma") { properties ->

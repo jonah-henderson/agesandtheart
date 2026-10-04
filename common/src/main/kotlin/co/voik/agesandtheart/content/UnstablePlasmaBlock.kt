@@ -159,7 +159,7 @@ class UnstablePlasmaBlock(properties: Properties) : Block(properties) {
         if (!mayBurst(level)) return setAlightAround(level, pos)
         level.playSound(null, pos, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.BLOCKS, LOUD, 1.0f)
         val breaksBlocks = if (AgeConfig.plasmaAnnihilates.get()) Level.ExplosionInteraction.BLOCK else Level.ExplosionInteraction.NONE
-        level.explode(null, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, BLAST, true, breaksBlocks)
+        level.explode(null, PlasmaBurst.of(level), null, Vec3.atCenterOf(pos), BLAST, true, breaksBlocks)
     }
 
     private fun setAlightAround(level: ServerLevel, pos: BlockPos) {

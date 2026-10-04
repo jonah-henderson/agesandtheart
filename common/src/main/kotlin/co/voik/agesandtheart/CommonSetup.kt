@@ -16,6 +16,7 @@ import co.voik.agesandtheart.content.ChargedMetal
 import co.voik.agesandtheart.content.DeepWaterLogging
 import co.voik.agesandtheart.content.PalmWood
 import co.voik.agesandtheart.content.Plasma
+import co.voik.agesandtheart.content.PlasmaBurst
 import co.voik.agesandtheart.mixin.FireBlockInvoker
 import co.voik.agesandtheart.content.ProtectiveSuit
 import co.voik.agesandtheart.generation.Skies
@@ -25,6 +26,8 @@ import co.voik.ephemeris.LevelWeather
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.damagesource.DamageSource
+import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.chunk.ChunkAccess
@@ -130,6 +133,11 @@ object CommonSetup {
         val arrival = Arrival.at(to) ?: return
         AgeTriggers.ENTERED_AGE.trigger(player, arrival)
         AgeSavedData.get(to.server).visit(to.dimension().identifier())
+    }
+
+    /** A creature dying on the server, of [source]. */
+    fun livingDied(victim: LivingEntity, source: DamageSource) {
+        PlasmaBurst.died(victim, source)
     }
 
     /** Datapack contents going to [player] — on joining, and to everyone after a `/reload`. */

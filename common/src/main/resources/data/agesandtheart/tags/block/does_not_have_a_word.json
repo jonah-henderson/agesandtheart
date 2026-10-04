@@ -203,6 +203,7 @@
     "minecraft:zombie_head",
     "minecraft:zombie_wall_head",
     "agesandtheart:unstable_plasma",
-    "agesandtheart:contained_plasma"
+    "agesandtheart:contained_plasma",
+    "agesandtheart:plasma_containment_unit"
   ]
 }
