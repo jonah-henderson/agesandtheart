@@ -64,9 +64,11 @@ object PlasmaSea {
             for (y in chunk.minY..top) {
                 position.set(worldX, y, worldZ)
                 val standing = chunk.getBlockState(position)
-                if (standing.`is`(Blocks.BEDROCK) || standing.`is`(Plasma.SEA)) continue
+                // Plasma the sea fill laid is lit until told otherwise, so it is only skipped when already right.
+                val wanted = if (y == surface) lit else buried
+                if (standing.`is`(Blocks.BEDROCK) || standing == wanted) continue
                 if (standing.hasBlockEntity()) chunk.removeBlockEntity(position)
-                chunk.setBlockState(position, if (y == surface) lit else buried)
+                chunk.setBlockState(position, wanted)
             }
             for (y in surface + 1..minOf(surface + FIELD_REACH, chunk.maxY)) {
                 position.set(worldX, y, worldZ)
