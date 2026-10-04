@@ -1,5 +1,5 @@
 {
-  "parent": "agesandtheart:art/inception",
+  "parent": "agesandtheart:art/regestoy",
   "criteria": {
     "furnished": {
       "trigger": "agesandtheart:desk_furnished",

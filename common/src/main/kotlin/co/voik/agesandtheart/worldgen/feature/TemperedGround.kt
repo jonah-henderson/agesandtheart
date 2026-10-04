@@ -1,6 +1,9 @@
 package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.generation.AgeChunkGenerator
+import co.voik.agesandtheart.worldgen.field.StandingFluid
+import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.location
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -38,8 +41,95 @@ object TemperedGround : Feature {
         origin: BlockPos,
     ): Boolean {
         val seeds = contactSurfaces(level, origin)
-        if (seeds.isEmpty()) return false
-        return bake(level, seeds)
+        val bakedDeep = seeds.isNotEmpty() && bake(level, seeds)
+        val bakedAtTheRim = pocketInTheCraterWall(level, generator, random, origin)
+        return bakedDeep || bakedAtTheRim
+    }
+
+    /**
+     * **The exception to the depth: a small pocket in a volcano's crater wall** (Jonah). Finding temperstone
+     * is a descent, or it is braving an active volcano for the little its rim has baked — a 3×3 finger
+     * pushed into the rock from the lava's edge, banded by true distance to lava like any formation, so it
+     * shows the whole rule in a handful of blocks.
+     *
+     * Only a volcano's own lake counts, found by name as its vents find it: a lava sea's shore is still
+     * out. One pocket at most per chunk of crater edge, and only in [POCKET_CHANCE] of them.
+     */
+    private fun pocketInTheCraterWall(
+        level: WorldGenLevel,
+        generator: ChunkGenerator,
+        random: RandomSource,
+        origin: BlockPos,
+    ): Boolean {
+        val ageGenerator = generator as? AgeChunkGenerator ?: return false
+        val lakes = ageGenerator.seaFill.carried.firstOrNull { it.named == StandingFluid.CRATER_LAKES }?.where
+            ?: return false
+        if (random.nextFloat() >= POCKET_CHANCE) return false
+        val edges = craterEdgesIn(level, lakes, origin).toMutableList()
+        // Most of a crater's wall is a thick lining with nothing to bake within reach, so a few edges are
+        // tried and the first that bakes anything is the pocket.
+        repeat(minOf(POCKET_TRIES, edges.size)) {
+            val (lava, into) = edges.removeAt(random.nextInt(edges.size))
+            if (dig(level, lava, into)) return true
+        }
+        return false
+    }
+
+    /** Lava near a crater lake's surface in this chunk with bakeable rock beside it, and the way to that rock. */
+    private fun craterEdgesIn(level: WorldGenLevel, lakes: TerrainField, origin: BlockPos): List<Pair<BlockPos, Direction>> {
+        val edges = mutableListOf<Pair<BlockPos, Direction>>()
+        for (offsetX in 0..<CHUNK step LAKE_STRIDE) {
+            for (offsetZ in 0..<CHUNK step LAKE_STRIDE) {
+                val x = origin.x + offsetX
+                val z = origin.z + offsetZ
+                for (body in lakes.columnSpans(x, z).ranges) {
+                    val surface = body.last
+                    if (surface <= NOTHING_ABOVE) continue
+                    for (y in surface downTo maxOf(body.first, surface - NEAR_THE_SURFACE)) {
+                        val at = BlockPos(x, y, z)
+                        if (!level.getBlockState(at).`is`(COOKS_STONE)) continue
+                        Direction.Plane.HORIZONTAL
+                            .filter { wallAt(level.getBlockState(at.relative(it))) }
+                            .forEach { edges += at to it }
+                    }
+                }
+            }
+        }
+        return edges
+    }
+
+    /**
+     * Whether a crater's lava rests against rock here: the obsidian a lake is held in, or stone the heat may
+     * work on. The lining is passed through and kept — it is what holds the lake — and the pocket is baked
+     * into the rock behind it.
+     */
+    private fun wallAt(state: BlockState): Boolean = state.`is`(Blocks.OBSIDIAN) || bakeable(state)
+
+    /**
+     * What a rim pocket may bake: the rock, and the skin a hot climate paints a cone with — dirt, sand,
+     * gravel, terracotta — which is all there is within reach of the lava's surface on most rims.
+     */
+    private fun bakeableAtTheRim(state: BlockState): Boolean =
+        bakeable(state) || state.`is`(BlockTags.DIRT) || state.`is`(BlockTags.SAND) ||
+            state.`is`(BlockTags.TERRACOTTA) || state.`is`(Blocks.GRAVEL) ||
+            state.`is`(Blocks.SANDSTONE) || state.`is`(Blocks.RED_SANDSTONE)
+
+    /** A finger [POCKET_DEEP] blocks into the rock from [lava], three across, each block banded by its heat. */
+    private fun dig(level: WorldGenLevel, lava: BlockPos, into: Direction): Boolean {
+        val across = into.clockWise
+        var baked = false
+        for (deep in 1..POCKET_DEEP) {
+            for (side in -1..1) {
+                for (rise in -1..1) {
+                    val at = lava.relative(into, deep).relative(across, side).above(rise)
+                    if (!bakeableAtTheRim(level.getBlockState(at))) continue
+                    val heat = distanceToLava(level, at) ?: continue
+                    level.setBlock(at, becomes(heat), UPDATE_NONE)
+                    baked = true
+                }
+            }
+        }
+        return baked
     }
 
     /**
@@ -170,6 +260,21 @@ object TemperedGround : Feature {
 
     /** Clearly under any waterline, so a lava sea's shore is out and its floor is in. */
     private const val NOTHING_ABOVE = 32
+
+    /** How many of a crater's edge chunks hold a pocket — a few to a caldera, so the rim stays a gamble. */
+    private const val POCKET_CHANCE = 0.25f
+
+    /** Scorched, tempered and raw, the whole lesson in one pocket. */
+    private const val POCKET_DEEP = 6
+
+    /** How far under the lava's surface a pocket may start: the wall a player can reach from the rim. */
+    private const val NEAR_THE_SURFACE = 3
+
+    /** How many edges one chunk tries before giving up on a pocket. */
+    private const val POCKET_TRIES = 6
+
+    /** Every other column, which still finds every stretch of shore and halves the field's work. */
+    private const val LAKE_STRIDE = 2
 
     /**
      * How far the heat reaches, in blocks of rock.

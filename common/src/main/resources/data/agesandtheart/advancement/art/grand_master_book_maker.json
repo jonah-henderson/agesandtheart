@@ -1,5 +1,5 @@
 {
-  "parent": "agesandtheart:art/guild_master_book_maker",
+  "parent": "agesandtheart:art/rebahntahno_tayneeen_shemtee",
   "criteria": {
     "paper": {
       "trigger": "minecraft:inventory_changed",

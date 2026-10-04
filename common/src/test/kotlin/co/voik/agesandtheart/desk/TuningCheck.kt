@@ -29,4 +29,20 @@ class TuningCheck : FunSpec({
         val samples = (0..1000).map { loudest.mixedAt(it / 1000.0) }
         check(samples.all { it in -2.0..2.0 }) { "a sample left the trace: ${samples.filter { it !in -2.0..2.0 }}" }
     }
+
+    /** The switch is saved with the dials, and switching off keeps where they were set. */
+    test("a tuning is kept whole, on or off") {
+        val on = Tuning.CENTRED.withDial(2, 9).copy(powered = true)
+        check(Tuning.ofStored(on.stored) == on) { "an on tuning came back as ${Tuning.ofStored(on.stored)}" }
+        val off = on.copy(powered = false)
+        check(Tuning.ofStored(off.stored) == off) { "an off tuning came back as ${Tuning.ofStored(off.stored)}" }
+        check(off.seed == on.seed) { "the switch moved the seed" }
+        check(Tuning.ofStored(on.dials.toIntArray()) == null) { "six dials with no switch were read as a tuning" }
+    }
+
+    test("turning a dial leaves the switch where it was") {
+        val on = Tuning.CENTRED.copy(powered = true)
+        check(on.withDial(0, 1).powered) { "turning a dial switched the tuner off" }
+        check(!Tuning.CENTRED.withDial(0, 1).powered) { "turning a dial switched the tuner on" }
+    }
 })

@@ -1,5 +1,5 @@
 {
-  "parent": "agesandtheart:art/regestoy",
+  "parent": "agesandtheart:art/root",
   "criteria": {
     "found": {
       "trigger": "minecraft:impossible"

@@ -1,5 +1,5 @@
 {
-  "parent": "agesandtheart:art/cadet_book_maker",
+  "parent": "agesandtheart:art/a_perilous_age",
   "criteria": {
     "paper": {
       "trigger": "minecraft:inventory_changed",

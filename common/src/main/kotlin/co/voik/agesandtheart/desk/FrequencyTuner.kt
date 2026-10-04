@@ -26,7 +26,6 @@ import net.minecraft.world.inventory.ContainerData
 import net.minecraft.world.inventory.ContainerLevelAccess
 import net.minecraft.world.inventory.MenuType
 import net.minecraft.world.inventory.SimpleContainerData
-import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
@@ -70,7 +69,7 @@ class FrequencyTunerBlock(properties: BlockBehaviour.Properties) : Block(propert
  * The tuner's screen: six dials and two flags on synced ints, and the proposed book on [TunerProposalPayload].
  *
  * A dial is moved by a menu button whose id says which dial and which step, so turning one needs nothing of
- * ours on the wire.
+ * ours on the wire; the power switch and copying to the desk are a button each.
  */
 class FrequencyTunerMenu(
     containerId: Int,
@@ -91,8 +90,8 @@ class FrequencyTunerMenu(
     /** The dials as the server last said, centred where the writer has not tuned. */
     val tuning: Tuning get() = Tuning.ofDials((0..<Tuning.DIALS).map(reading::get)) ?: Tuning.CENTRED
 
-    /** Whether the writer has tuned, rather than letting the desk draw the seed. */
-    val isTuned: Boolean get() = reading.get(TUNED) == 1
+    /** Whether the tuner is on, and so choosing the seed rather than letting the desk draw it. */
+    val isPowered: Boolean get() = reading.get(POWERED) == 1
 
     /** Whether a writer's desk stands in the room to load the proposal into. */
     val hasADesk: Boolean get() = reading.get(DESK) == 1
@@ -100,21 +99,23 @@ class FrequencyTunerMenu(
     override fun clickMenuButton(player: Player, id: Int): Boolean {
         val writer = player as? ServerPlayer ?: return false
         val room = room ?: return false
+        val tuned = writer.tuning ?: Tuning.CENTRED
         when (id) {
-            LOAD -> return load(writer, room)
-            RELEASE -> writer.tuning = null
-            in 0..<Tuning.DIALS * Tuning.STEPS -> {
-                val tuned = writer.tuning ?: Tuning.CENTRED
-                writer.tuning = tuned.withDial(id / Tuning.STEPS, id % Tuning.STEPS)
-            }
+            COPY -> return copyToTheDesk(writer, room)
+            POWER -> writer.tuning = tuned.copy(powered = !tuned.powered)
+            in 0..<Tuning.DIALS * Tuning.STEPS -> writer.tuning = tuned.withDial(id / Tuning.STEPS, id % Tuning.STEPS)
             else -> return false
         }
         sendProposal(writer, room)
         return true
     }
 
-    /** The proposed book becomes the writer's template at the desk in the room. */
-    private fun load(writer: ServerPlayer, room: NearbyDesk): Boolean {
+    /**
+     * The proposed book becomes the writer's template at the desk in the room — whatever it would cost, which
+     * is the desk's to say. Only while the tuner is on, since off it shows no proposal to copy.
+     */
+    private fun copyToTheDesk(writer: ServerPlayer, room: NearbyDesk): Boolean {
+        if (writer.tuning?.powered != true) return false
         val desk = room.deskIn(writer.level()) ?: return false
         val proposed = proposalFor(writer, room)
         if (proposed.isEmpty()) return false
@@ -130,12 +131,12 @@ class FrequencyTunerMenu(
     override fun stillValid(player: Player): Boolean = stillValid(access, player, FrequencyTuner.BLOCK)
 
     companion object {
-        const val TUNED = Tuning.DIALS
+        const val POWERED = Tuning.DIALS
         const val DESK = Tuning.DIALS + 1
         const val READINGS = Tuning.DIALS + 2
 
-        const val LOAD = 1000
-        const val RELEASE = 1001
+        const val COPY = 1000
+        const val POWER = 1001
 
         /** Proposals are short so they fit a desk short of furnished; a furnished one allows more. */
         private const val MOST_PAGES_PROPOSED = 9
@@ -163,7 +164,7 @@ private class TunerReading(private val writer: ServerPlayer, private val room: N
     private var deskLookedForAt = Long.MIN_VALUE
 
     override fun get(index: Int): Int = when (index) {
-        FrequencyTunerMenu.TUNED -> if (writer.tuning != null) 1 else 0
+        FrequencyTunerMenu.POWERED -> if (writer.tuning?.powered == true) 1 else 0
         FrequencyTunerMenu.DESK -> if (deskIsInTheRoom()) 1 else 0
         else -> (writer.tuning ?: Tuning.CENTRED).dials[index]
     }
@@ -213,7 +214,7 @@ object FrequencyTuner {
             .sound(SoundType.COPPER),
     )
 
-    val ITEM: Item = BlockItem(BLOCK, Item.Properties().setId(ResourceKey.create(Registries.ITEM, ID)).useBlockDescriptionPrefix())
+    val ITEM: Item = DeskImplementItem(BLOCK, Item.Properties().setId(ResourceKey.create(Registries.ITEM, ID)).useBlockDescriptionPrefix())
 
     val MENU: MenuType<FrequencyTunerMenu> = MenuType(
         { containerId, inventory -> FrequencyTunerMenu(containerId, inventory) },

@@ -397,10 +397,7 @@ internal object ArtReading {
             // is charged, which is what `stormy landmass` has always got.
             if (page.kind == PageClass.MATERIAL) {
                 if (closing?.word?.mints != null) return true
-                val substance = word.material
-                return aim.any {
-                    it.madeOfSomething && (substance == null || it.canBeMadeOf(substance))
-                }
+                return aim.any { Grammar.materialStandsIn(it, word) }
             }
             return declared.isEmpty() || declared.any { it in aim }
         }

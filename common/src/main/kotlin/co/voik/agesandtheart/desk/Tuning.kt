@@ -18,10 +18,11 @@ data class Signal(val frequency: Int, val amplitude: Int, val phase: Int) {
 /**
  * Where a writer has set the frequency tuner's dials, and the number the mixed signal is read as (design §7.4).
  *
- * **The number is the seed the writer's next book is written at**, and the same dials always give the same
- * one, so a world found once can be found again. It is never shown: the writer sees the trace.
+ * **The number is the seed the writer's next book is written at — while the tuner is [powered]**, and the
+ * same dials always give the same one, so a world found once can be found again. Switched off, the dials
+ * stay where they were and the desk draws its own seed. The number is never shown: the writer sees the trace.
  */
-data class Tuning(val first: Signal, val second: Signal) {
+data class Tuning(val first: Signal, val second: Signal, val powered: Boolean = false) {
 
     /** The six dials in order: each signal's frequency, amplitude and phase. */
     val dials: List<Int>
@@ -34,7 +35,14 @@ data class Tuning(val first: Signal, val second: Signal) {
     val seed: Long
         get() = scramble(dials.fold(0L) { packed, dial -> packed * STEPS + dial } xor SALT)
 
-    fun withDial(index: Int, step: Int): Tuning = ofDials(dials.toMutableList().also { it[index] = step }) ?: this
+    fun withDial(index: Int, step: Int): Tuning =
+        ofDials(dials.toMutableList().also { it[index] = step })?.copy(powered = powered) ?: this
+
+    /** As a player's save keeps it: the six dials, then the switch. */
+    val stored: IntArray get() = (dials + (if (powered) ON else OFF)).toIntArray()
+
+    /** The signal [index] — 0 the first, 1 the second. */
+    fun signal(index: Int): Signal = if (index == 0) first else second
 
     companion object {
         /** How many settings each dial has: sixteen to the sixth is about seventeen million worlds. */
@@ -43,6 +51,15 @@ data class Tuning(val first: Signal, val second: Signal) {
 
         /** Where an untouched tuner's dials sit: one clean signal, the other silent. */
         val CENTRED = Tuning(Signal(frequency = 3, amplitude = 10, phase = 0), Signal(frequency = 7, amplitude = 0, phase = 0))
+
+        private const val ON = 1
+        private const val OFF = 0
+
+        /** What [stored] wrote, or null where it is not a tuning. */
+        fun ofStored(stored: IntArray): Tuning? {
+            if (stored.size != DIALS + 1) return null
+            return ofDials(stored.take(DIALS))?.copy(powered = stored[DIALS] == ON)
+        }
 
         /** Six steps, or null where there are not six or one is out of range. */
         fun ofDials(dials: List<Int>): Tuning? {

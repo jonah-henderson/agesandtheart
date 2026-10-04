@@ -22,7 +22,6 @@ import net.minecraft.world.inventory.ContainerLevelAccess
 import net.minecraft.world.inventory.MenuType
 import net.minecraft.world.inventory.ResultContainer
 import net.minecraft.world.inventory.Slot
-import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
@@ -187,7 +186,7 @@ object Transcriber {
             .ignitedByLava(),
     )
 
-    val ITEM: Item = BlockItem(BLOCK, Item.Properties().setId(ResourceKey.create(Registries.ITEM, ID)).useBlockDescriptionPrefix())
+    val ITEM: Item = DeskImplementItem(BLOCK, Item.Properties().setId(ResourceKey.create(Registries.ITEM, ID)).useBlockDescriptionPrefix())
 
     val MENU: MenuType<TranscriberMenu> = MenuType(
         { containerId, inventory -> TranscriberMenu(containerId, inventory) },

@@ -1,5 +1,5 @@
 {
-  "parent": "agesandtheart:art/regestoy",
+  "parent": "agesandtheart:art/gahrohevtee",
   "criteria": {
     "ink": {
       "trigger": "minecraft:inventory_changed",

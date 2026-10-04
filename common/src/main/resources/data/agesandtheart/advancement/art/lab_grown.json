@@ -1,5 +1,5 @@
 {
-  "parent": "agesandtheart:art/inception",
+  "parent": "agesandtheart:art/regestoy",
   "criteria": {
     "diamonds": {
       "trigger": "agesandtheart:wrote_age",

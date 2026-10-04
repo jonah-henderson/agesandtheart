@@ -145,6 +145,24 @@ object Grammar {
     }
 
     /**
+     * Whether a material may be laid in a clause about [aspect]: where that part of the world is made of
+     * something, and can be made of *this* — the rock refuses what a player would fall through.
+     */
+    fun materialStandsIn(aspect: Aspect, material: Word): Boolean {
+        val substance = material.material
+        return aspect.madeOfSomething && (substance == null || aspect.canBeMadeOf(substance))
+    }
+
+    /**
+     * **Every part of the world a page may be aimed at**, as the parser admits it. For a material that is
+     * every part made of something that can be made of it, whatever it volunteers for laid bare
+     * ([Word.aspects]). What the desk shows as where a word applies.
+     */
+    fun placesFor(word: Word): Set<Aspect> =
+        if (word.material == null) word.aspects
+        else Aspect.entries.filter { materialStandsIn(it, word) }.toSet()
+
+    /**
      * What the Art makes of one page — its class, the word behind it, and the part of the world it is in.
      * [latent] where the page is the Art's own rather than a writer's.
      */

@@ -1,5 +1,5 @@
 {
-  "parent": "agesandtheart:art/perhaps_the_ending_has_not_yet_been_written",
+  "parent": "agesandtheart:art/guild_master_writer",
   "criteria": {
     "entered": {
       "trigger": "minecraft:location",

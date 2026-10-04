@@ -31,6 +31,20 @@ class ProseCheck : FunSpec({
     fun prose(vararg pages: String): String =
         ProseWriting.sentencesOf(Prose.of(read(pages.toList())), english).joinToString(" ")
 
+    /** A material in a minting clause is what the shape is made of, and nothing else's (Jonah, on the walk). */
+    test("a minted shape is said with what it is made of") {
+        val said = prose("age", "reinforced_deepslate", "arches")
+        check(said == "An Age. It holds arches of reinforced deepslate.") { "read as '$said'" }
+        val counted = prose("age", "teeming", "basalt", "deposits")
+        check(counted == "An Age. It holds teeming deposits of basalt.") { "read as '$counted'" }
+    }
+
+    test("a quality of what the Age holds is said plainly") {
+        check(prose("age", "sparse", "features") == "An Age. Its features are sparse.") {
+            "read as '${prose("age", "sparse", "features")}'"
+        }
+    }
+
     /** The book the readout was redesigned around, and the shape every other book follows. */
     test("a book reads as several sentences, each about one part of the world") {
         val said = prose(

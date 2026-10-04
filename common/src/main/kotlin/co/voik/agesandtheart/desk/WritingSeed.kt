@@ -30,28 +30,28 @@ interface WritingSeedHolder {
 
     fun agesandtheart_rerollWritingSeed()
 
-    /** The frequency tuner's six dials as this writer left them, or null where they have not tuned. */
+    /** The frequency tuner as this writer left it — [Tuning.stored] — or null where they never touched one. */
     fun agesandtheart_tuning(): IntArray?
 
     fun agesandtheart_setTuning(dials: IntArray?)
 }
 
 /**
- * The seed this writer's next book will be written at: **the tuned one where they have tuned**, which
+ * The seed this writer's next book will be written at: **the tuned one while their tuner is on**, which
  * binding leaves alone, and otherwise the one drawn for them.
  */
 val ServerPlayer.writingSeed: Long
-    get() = tuning?.seed ?: (this as WritingSeedHolder).agesandtheart_writingSeed()
+    get() = tuning?.takeIf { it.powered }?.seed ?: (this as WritingSeedHolder).agesandtheart_writingSeed()
 
 /** Called once a book is bound, so the next one is a different world — unless the writer has tuned one. */
 fun ServerPlayer.rerollWritingSeed() {
     (this as WritingSeedHolder).agesandtheart_rerollWritingSeed()
 }
 
-/** Where this writer has set the frequency tuner, or null to let the desk draw the seed again. */
+/** Where this writer has set the frequency tuner, or null where they never touched one. */
 var ServerPlayer.tuning: Tuning?
-    get() = (this as WritingSeedHolder).agesandtheart_tuning()?.let { Tuning.ofDials(it.toList()) }
-    set(value) = (this as WritingSeedHolder).agesandtheart_setTuning(value?.dials?.toIntArray())
+    get() = (this as WritingSeedHolder).agesandtheart_tuning()?.let(Tuning::ofStored)
+    set(value) = (this as WritingSeedHolder).agesandtheart_setTuning(value?.stored)
 
 /** Where the seed sits in a player's save data. */
 const val WRITING_SEED_KEY = "writing_seed"

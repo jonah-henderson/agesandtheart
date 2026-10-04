@@ -4,6 +4,7 @@ import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
+import net.minecraft.world.entity.ai.attributes.AttributeInstance
 import net.minecraft.world.entity.ai.attributes.AttributeModifier
 import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.item.equipment.ArmorMaterials
@@ -32,7 +33,7 @@ class ProtectiveSuitCheck : FunSpec({
             val burning = burningModifiersOf(type)
             check(burning.size == 1) { "${type.getName()} carries ${burning.size} burning-time modifiers" }
             val modifier = burning.single()
-            check(modifier.operation() == AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL) {
+            check(modifier.operation() == AttributeModifier.Operation.ADD_MULTIPLIED_BASE) {
                 "${type.getName()} scales the burn by ${modifier.operation()}, which does not sum across pieces"
             }
             check(modifier.amount() == -A_QUARTER) {
@@ -44,12 +45,14 @@ class ProtectiveSuitCheck : FunSpec({
     /**
      * The whole suit comes to exactly nothing — not nearly nothing, and not past it.
      *
-     * `ADD_MULTIPLIED_TOTAL` sums its modifiers and then multiplies once, so four quarters are the whole of
-     * the burn and there is no rounding to argue about.
+     * **Worked out by vanilla's own attribute, not by adding the amounts up.** `ADD_MULTIPLIED_TOTAL`
+     * multiplies per modifier, so four quarters off it left a third of the burn, and a check that summed the
+     * amounts passed while a whole suit still caught fire in lava (walked 2026-10-04).
      */
     test("the four pieces together put the burning time at nought") {
-        val total = worn.sumOf { type -> burningModifiersOf(type).sumOf { it.amount() } }
-        check(abs(total - -WHOLE) < A_ROUNDING) { "the set comes to $total of the burn rather than all of it" }
+        val burning = AttributeInstance(Attributes.BURNING_TIME) {}
+        for (type in worn) burningModifiersOf(type).forEach(burning::addTransientModifier)
+        check(abs(burning.value) < A_ROUNDING) { "a whole suit still burns for ${burning.value} of the time" }
     }
 
     /** A piece is still worth wearing on its own, which is what a per-piece modifier buys. */

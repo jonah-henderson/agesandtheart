@@ -66,6 +66,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.minecraft.tags.BlockTags
 import net.minecraft.tags.FluidTags
 import net.minecraft.util.Util
+import co.voik.agesandtheart.worldgen.DefaultBlockOnly
 import co.voik.agesandtheart.worldgen.carver.OpenGround
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.densityfunction.DensityFunction
@@ -545,7 +546,7 @@ class AgeChunkGenerator(
                 WorldGenerationContext(this, chunk.heightAccessorForGeneration),
                 chunk,
                 noiseChunk,
-                surfacedBy,
+                DefaultBlockOnly(surfacedBy, chunk, generationSettings.defaultBlock.block),
                 biomes,
             )
             clearWhatTheSurfaceStoodIn(chunk, empty)

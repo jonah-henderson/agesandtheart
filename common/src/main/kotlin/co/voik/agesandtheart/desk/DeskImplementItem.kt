@@ -10,14 +10,14 @@ import net.minecraft.world.level.block.Block
 import java.util.function.Consumer
 
 /**
- * A seismograph in the hand, which says what to do with it.
+ * A study implement in the hand, which says what to do with it: place it near a writer's desk.
  *
  * **A tooltip here and not on the astrite** (Jonah, 2026-09-07). The lure's height rule was refused one,
  * because a hidden mechanic scattered across whatever items happen to carry a hint teaches worse than an
  * advancement tree — but this is not a hidden mechanic. It is what the block in your hand is *for*, which
  * is the ordinary work a tooltip does.
  */
-class SeismographItem(block: Block, properties: Item.Properties) : BlockItem(block, properties) {
+class DeskImplementItem(block: Block, properties: Item.Properties) : BlockItem(block, properties) {
 
     @Suppress("OVERRIDE_DEPRECATION")
     override fun appendHoverText(
@@ -31,6 +31,6 @@ class SeismographItem(block: Block, properties: Item.Properties) : BlockItem(blo
     }
 
     private companion object {
-        const val HINT = "item.agesandtheart.seismograph.hint"
+        const val HINT = "item.agesandtheart.desk_implement.hint"
     }
 }

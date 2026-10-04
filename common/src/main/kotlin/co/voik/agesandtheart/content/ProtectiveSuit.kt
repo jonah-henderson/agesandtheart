@@ -86,9 +86,9 @@ object ProtectiveSuit {
      * [type]'s ordinary armour modifiers with the one that makes this suit what it is.
      *
      * **A quarter of the immunity per piece, so the set matters and a piece is still worth wearing.**
-     * `ADD_MULTIPLIED_TOTAL` sums before it multiplies, so four quarters take the burning time to exactly
-     * nought and three take it to a quarter — which reads in play as a suit that nearly works, and is the
-     * right thing for a player who has found deretheni for boots and not yet for a chestplate.
+     * `ADD_MULTIPLIED_BASE` sums the pieces against the base, so four quarters take the burning time to
+     * exactly nought and three take it to a quarter. `ADD_MULTIPLIED_TOTAL` would multiply them instead —
+     * four quarters off leave a third, and a whole suit still caught fire in lava.
      *
      * The attribute is vanilla's own and it is the whole of the fire protection: everything that burns you
      * does it by setting you alight for a number of ticks, and this multiplies that number. That includes
@@ -99,7 +99,7 @@ object ProtectiveSuit {
         AttributeModifier(
             "armour.${type.getName()}".location(),
             -A_QUARTER_OF_THE_BURN,
-            AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL,
+            AttributeModifier.Operation.ADD_MULTIPLIED_BASE,
         ),
         EquipmentSlotGroup.bySlot(type.slot),
     )
@@ -138,10 +138,11 @@ object ProtectiveSuit {
     }
 
     /**
-     * **No flames on a suited wearer, every tick.** A fire block adds burning ticks directly rather than
-     * through `igniteForTicks`, so [Attributes.BURNING_TIME] never sees them and the wearer stands "on fire"
-     * — harmless under the resistance, but drawn over the screen. The synced flag is cleared too: this runs
-     * after the player has ticked, and that tick already set the flag from the ticks the fire added.
+     * **No flames on a suited wearer from a fire block.** Lava and everything else ignite through
+     * `igniteForTicks`, which [Attributes.BURNING_TIME] at nought refuses; a fire block adds a tick or two
+     * to a player directly, past the attribute, so the wearer stands "on fire" — harmless under the
+     * resistance, but drawn over the screen. The synced flag is cleared too: this runs after the player has
+     * ticked, and that tick already set the flag from the ticks the fire added.
      */
     private fun putOutTheFire(player: ServerPlayer) {
         if (player.remainingFireTicks <= 0) return

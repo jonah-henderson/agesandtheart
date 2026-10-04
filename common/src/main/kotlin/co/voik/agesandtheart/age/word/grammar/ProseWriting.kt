@@ -67,17 +67,29 @@ object ProseWriting {
          * claims and joining them would make one of them a clause of the other.
          */
         private fun sentencesAbout(about: Aspect, clause: ProseClause): List<String> {
-            val where = when {
-                clause.confinedTo != null -> framed("in", listOf(plural(clause.confinedTo)))
-                clause.everywhere -> word("everywhere")
-                else -> ""
-            }
+            val where = whereOf(clause)
+            clause.shape?.let { return listOf(sentence(about, "has", shaped(it), where, ordinal = null)) }
             val ordinal = clause.body?.takeIf { (bodies[about] ?: 0) > 1 }?.let { ordinal(it + 1) }
             val (named, described) = clause.terms.partition { it.speech.names }
             return buildList {
                 if (described.isNotEmpty()) add(sentence(about, "is", predicate(described), where, ordinal))
                 if (named.isNotEmpty()) add(sentence(about, "has", list(things(named)), where, ordinal))
             }
+        }
+
+        private fun whereOf(clause: ProseClause): String = when {
+            clause.confinedTo != null -> framed("in", listOf(plural(clause.confinedTo)))
+            clause.everywhere -> word("everywhere")
+            else -> ""
+        }
+
+        /** A minted shape: its rung and qualities before it, what it is made of after. */
+        private fun shaped(minted: ProseShape): String {
+            val qualities = minted.qualities.map(::nameOf)
+            val named = (qualities + plural(minted.shape)).joinToString(" ")
+            val counted = quantified(minted.shape, named)
+            val madeOf = if (minted.madeOf.isEmpty()) "" else framed("shape_of", listOf(list(things(minted.madeOf))))
+            return polarised(listOf(minted.shape), except = { "no" }) { counted + madeOf }.single()
         }
 
         /** The most particular frame the language file has for this sentence, filled. */

@@ -1,5 +1,5 @@
 {
-  "parent": "agesandtheart:art/cadet_ink_maker",
+  "parent": "agesandtheart:art/a_perilous_age",
   "criteria": {
     "ink": {
       "trigger": "minecraft:inventory_changed",

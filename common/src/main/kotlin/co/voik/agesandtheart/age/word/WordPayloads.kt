@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.aspect.Aspect
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
@@ -17,8 +18,12 @@ import net.minecraft.resources.Identifier
  */
 data class LexiconPayload(
     val script: Script,
-    /** [Word.aspects] for every word, by id — empty meaning anywhere. The desk's word list shows it with a grammar guide by. */
+    /** Where each word may be aimed, by id — empty meaning anywhere. The desk's word list shows it with a grammar guide by. */
     val reach: Map<Identifier, Set<Aspect>>,
+    /** Every word that is a material, and so can be what a [shapes] word is made of. */
+    val materials: Set<Identifier>,
+    /** Every word that mints a shape out of a material — `rings`, `arches`, `veins`. */
+    val shapes: Set<Identifier>,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<LexiconPayload> = TYPE
@@ -29,8 +34,15 @@ data class LexiconPayload(
         )
 
         /** What [vocabulary] tells a client. */
-        fun of(vocabulary: Vocabulary) =
-            LexiconPayload(vocabulary.script, vocabulary.words.associate { it.id to it.aspects })
+        fun of(vocabulary: Vocabulary) = LexiconPayload(
+            vocabulary.script,
+            vocabulary.words.associate { it.id to Grammar.placesFor(it) },
+            materials = vocabulary.words.filter { it.material != null }.map { it.id }.toSet(),
+            shapes = vocabulary.words.filter { it.mints != null }.map { it.id }.toSet(),
+        )
+
+        private val IDS: StreamCodec<ByteBuf, Set<Identifier>> =
+            Identifier.STREAM_CODEC.apply(ByteBufCodecs.collection(::LinkedHashSet))
 
         /** By ordinal, which is stable: aspects are only ever appended (see [Aspect]). */
         private val ASPECT_STREAM_CODEC: StreamCodec<ByteBuf, Aspect> =
@@ -45,6 +57,10 @@ data class LexiconPayload(
                 ASPECT_STREAM_CODEC.apply(ByteBufCodecs.collection(::LinkedHashSet)),
             ),
             LexiconPayload::reach,
+            IDS,
+            LexiconPayload::materials,
+            IDS,
+            LexiconPayload::shapes,
             ::LexiconPayload,
         )
     }

@@ -32,7 +32,7 @@ import co.voik.agesandtheart.desk.GeologistsToolsBlock
 import co.voik.agesandtheart.desk.SeismographBlock
 import co.voik.agesandtheart.desk.CrystalViewerBlock
 import co.voik.agesandtheart.desk.CrystalViewerMenu
-import co.voik.agesandtheart.desk.SeismographItem
+import co.voik.agesandtheart.desk.DeskImplementItem
 import co.voik.agesandtheart.desk.WriterProfession
 import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.desk.WritersDeskBlockEntity
@@ -857,7 +857,7 @@ object AgeContent {
             .sound(SoundType.LANTERN),
     )
 
-    val SEISMOGRAPH: Item = SeismographItem(
+    val SEISMOGRAPH: Item = DeskImplementItem(
         SEISMOGRAPH_BLOCK,
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, SEISMOGRAPH_ID)).useBlockDescriptionPrefix(),
     )
@@ -882,12 +882,12 @@ object AgeContent {
             .sound(SoundType.COPPER_BULB),
     )
 
-    val CRYSTAL_VIEWER: Item = BlockItem(
+    val CRYSTAL_VIEWER: Item = DeskImplementItem(
         CRYSTAL_VIEWER_BLOCK,
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, CRYSTAL_VIEWER_ID)).useBlockDescriptionPrefix(),
     )
 
-    val GEOLOGISTS_TOOLS: Item = BlockItem(
+    val GEOLOGISTS_TOOLS: Item = DeskImplementItem(
         GEOLOGISTS_TOOLS_BLOCK,
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, GEOLOGISTS_TOOLS_ID))
             .useBlockDescriptionPrefix(),
@@ -1283,7 +1283,7 @@ object AgeContent {
             .sound(SoundType.WOOD),
     )
 
-    val GRAMMAR_GUIDE: Item = BlockItem(
+    val GRAMMAR_GUIDE: Item = DeskImplementItem(
         GRAMMAR_GUIDE_BLOCK,
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, GRAMMAR_GUIDE_ID)).useBlockDescriptionPrefix(),
     )

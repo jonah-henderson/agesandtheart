@@ -1,0 +1,22 @@
+{
+  "criteria": {
+    "learned": {
+      "trigger": "agesandtheart:learned_word"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:page"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.root.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.root.description"
+    },
+    "frame": "task",
+    "background": "minecraft:block/bookshelf",
+    "show_toast": false,
+    "announce_to_chat": false
+  }
+}

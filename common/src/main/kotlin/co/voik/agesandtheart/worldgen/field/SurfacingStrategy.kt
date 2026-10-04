@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.DefaultBlockOnly
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.content.PalmBeach
 import co.voik.agesandtheart.location
@@ -274,9 +275,9 @@ object SurfacingStrategy {
      * came out netherrack throughout (Jonah, 2026-08-25, walked).
      *
      * So the unconditional tail comes off, and **that changes nothing until a rock has been substituted**:
-     * `SurfaceSystem.buildSurface` consults the rule only where `old == this.defaultBlock` and leaves the
-     * block as it found it when the rule declines, so an arm painting netherrack onto netherrack was
-     * already a no-op. `VanillasSkinCheck` holds both halves of that.
+     * the surface pass consults the rule only where `old == this.defaultBlock` ([DefaultBlockOnly] keeps
+     * that rule, which 26.3's `MaterialSystem` dropped) and leaves the block as it found it when the rule
+     * declines, so an arm painting netherrack onto netherrack was already a no-op. `VanillasSkinCheck` holds both halves of that.
      *
      * Only the **last** arm of a sequence can be the tail; the earlier ones are alternatives that may
      * decline. A tree that is nothing but a block — the End's — comes back [SUPPRESSED], which is the same

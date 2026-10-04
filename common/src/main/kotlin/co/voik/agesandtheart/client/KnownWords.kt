@@ -20,6 +20,8 @@ import net.minecraft.resources.Identifier
 object KnownWords {
     private var known: Script = Script.NONE
     private var reach: Map<Identifier, Set<Aspect>> = emptyMap()
+    private var materials: Set<Identifier> = emptySet()
+    private var shapes: Set<Identifier> = emptySet()
     private val learned = LinkedHashSet<Identifier>()
 
     val words: Set<Identifier> get() = learned
@@ -27,10 +29,16 @@ object KnownWords {
     fun remember(payload: LexiconPayload) {
         known = payload.script
         reach = payload.reach
+        materials = payload.materials
+        shapes = payload.shapes
     }
 
     /** The parts of the world [word] reaches — empty meaning anywhere — or null if the server never said. */
     fun reachOf(word: Identifier): Set<Aspect>? = reach[word]
+
+    /** The shape words this player knows that [word] can be the material of — none where it is no material. */
+    fun shapesMadeOf(word: Identifier): List<Identifier> =
+        if (word !in materials) emptyList() else shapes.filter { it in learned }
 
     fun remember(payload: LearnedWordsPayload) {
         if (payload.replacing) {
@@ -61,6 +69,8 @@ object KnownWords {
     fun forgetAll() {
         known = Script.NONE
         reach = emptyMap()
+        materials = emptySet()
+        shapes = emptySet()
         learned.clear()
     }
 

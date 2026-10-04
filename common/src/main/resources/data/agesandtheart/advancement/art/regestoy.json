@@ -1,12 +1,13 @@
 {
+  "parent": "agesandtheart:art/cadet_writer",
   "criteria": {
-    "learned": {
-      "trigger": "agesandtheart:learned_word"
+    "wrote": {
+      "trigger": "agesandtheart:wrote_age"
     }
   },
   "display": {
     "icon": {
-      "id": "agesandtheart:page"
+      "id": "agesandtheart:descriptive_book"
     },
     "title": {
       "translate": "advancements.agesandtheart.regestoy.title"
@@ -14,9 +15,6 @@
     "description": {
       "translate": "advancements.agesandtheart.regestoy.description"
     },
-    "frame": "task",
-    "background": "minecraft:block/bookshelf",
-    "show_toast": false,
-    "announce_to_chat": false
+    "frame": "task"
   }
 }

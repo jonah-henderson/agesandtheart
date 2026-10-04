@@ -2,32 +2,40 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.ui.DecorationWidget
+import co.voik.agesandtheart.client.ui.DialKnob
+import co.voik.agesandtheart.client.ui.ItemIconButton
 import co.voik.agesandtheart.client.ui.Palette
 import co.voik.agesandtheart.client.ui.PanelSurface
+import co.voik.agesandtheart.client.ui.Rect
+import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.desk.FrequencyTunerMenu
 import co.voik.agesandtheart.desk.TunerProposalPayload
 import co.voik.agesandtheart.desk.Tuning
+import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
-import net.minecraft.client.gui.components.AbstractSliderButton
 import net.minecraft.client.gui.components.Button
+import net.minecraft.client.gui.components.Tooltip
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
-import net.minecraft.client.input.MouseButtonEvent
+import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.world.entity.player.Inventory
+import net.minecraft.world.item.ItemStack
 import kotlin.math.roundToInt
 
 /**
- * The frequency tuner's screen: the mixed signal traced across the top, each signal's three dials beneath
- * it, and the book the signal proposes with a button to lay it on the desk.
+ * The frequency tuner's screen: a power switch, a switch between the two signals and three knobs for the
+ * one switched to, beside two screens — that signal over the other, muted, and the two mixed beneath — and
+ * under them the book the signal proposes, with a button to copy it to the desk.
  */
 class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title: Component) :
     AbstractContainerScreen<FrequencyTunerMenu>(menu, inventory, title, WIDTH, HEIGHT) {
 
-    private val dials = mutableListOf<DialSlider>()
-    private lateinit var loadButton: Button
-    private lateinit var releaseButton: Button
+    private val knobs = mutableListOf<DialKnob>()
+    private lateinit var powerButton: Button
+    private lateinit var signalButton: Button
+    private lateinit var copyButton: ItemIconButton
 
     override fun init() {
         super.init()
@@ -37,127 +45,147 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
                 it.setSize(imageWidth, imageHeight)
             },
         )
-        dials.clear()
-        for (index in 0..<Tuning.DIALS) {
-            val column = index / DIALS_PER_SIGNAL
-            val row = index % DIALS_PER_SIGNAL
-            val slider = DialSlider(
-                x = leftPos + MARGIN + column * (DIAL_WIDTH + GAP),
-                y = topPos + DIALS_TOP + row * (DIAL_HEIGHT + DIAL_GAP),
-                index = index,
-                step = menu.tuning.dials[index],
-            )
-            dials += addRenderableWidget(slider)
-        }
-        loadButton = addRenderableWidget(
-            Button.builder(translated("load")) { press(FrequencyTunerMenu.LOAD) }
-                .bounds(leftPos + MARGIN, topPos + BUTTONS_TOP, BUTTON_WIDTH, DIAL_HEIGHT).build(),
+        powerButton = addRenderableWidget(
+            Button.builder(powerLabel()) { press(FrequencyTunerMenu.POWER) }
+                .bounds(leftPos + MARGIN, topPos + POWER_TOP, CONTROLS_WIDTH, BUTTON_HEIGHT).build(),
         )
-        releaseButton = addRenderableWidget(
-            Button.builder(translated("release")) { press(FrequencyTunerMenu.RELEASE) }
-                .bounds(leftPos + imageWidth - MARGIN - BUTTON_WIDTH, topPos + BUTTONS_TOP, BUTTON_WIDTH, DIAL_HEIGHT).build(),
+        signalButton = addRenderableWidget(
+            Button.builder(signalLabel()) { switchSignal() }
+                .bounds(leftPos + MARGIN, topPos + SIGNAL_TOP, CONTROLS_WIDTH, BUTTON_HEIGHT).build(),
+        )
+        knobs.clear()
+        for (role in 0..<DIALS_PER_SIGNAL) {
+            val knob = DialKnob(KNOB, Tuning.STEPS, translated(DIAL_NAMES[role])) { step ->
+                press(dialIndex(role) * Tuning.STEPS + step)
+            }
+            knob.setPosition(leftPos + MARGIN, topPos + KNOBS_TOP + role * KNOB_PITCH)
+            knob.setTooltip(Tooltip.create(translated(DIAL_NAMES[role])))
+            knob.follow(menu.tuning.dials[dialIndex(role)])
+            knobs += addRenderableWidget(knob)
+        }
+        copyButton = addRenderableWidget(
+            ItemIconButton(BUTTON_HEIGHT, translated("copy"), { ItemStack(AgeContent.WRITERS_DESK) }) {
+                press(FrequencyTunerMenu.COPY)
+            }.also {
+                it.setPosition(leftPos + imageWidth - MARGIN - BUTTON_HEIGHT, topPos + READOUT_TOP)
+                it.setTooltip(Tooltip.create(translated("copy")))
+            },
         )
     }
 
     override fun containerTick() {
         super.containerTick()
         val server = menu.tuning.dials
-        dials.forEach { it.follow(server[it.index]) }
-        loadButton.active = menu.hasADesk && proposal.isNotEmpty()
-        releaseButton.active = menu.isTuned
+        knobs.forEachIndexed { role, knob -> knob.follow(server[dialIndex(role)]) }
+        powerButton.message = powerLabel()
+        signalButton.message = signalLabel()
+        val why = whyNotCopied()
+        copyButton.active = why == null
+        if (why != copyRefusal) {
+            copyRefusal = why
+            val said = translated("copy").copy()
+            why?.let { said.append(CommonComponents.NEW_LINE).append(translated(it).copy().withStyle(ChatFormatting.GRAY)) }
+            copyButton.setTooltip(Tooltip.create(said))
+        }
     }
 
-    /** The dials as the screen shows them, so the trace moves with a slider before the server has answered. */
-    private fun shownTuning(): Tuning = Tuning.ofDials(dials.map { it.step }) ?: menu.tuning
+    /** What the copy button says it is waiting for — the tuner off, no desk in the room, nothing heard. */
+    private var copyRefusal: String? = null
+
+    private fun whyNotCopied(): String? = when {
+        !menu.isPowered -> "copy.off"
+        !menu.hasADesk -> "copy.no_desk"
+        proposal.isEmpty() -> "copy.nothing"
+        else -> null
+    }
+
+    /** Which of the six dials the knob for [role] turns: the switched-to signal's. */
+    private fun dialIndex(role: Int): Int = selected * DIALS_PER_SIGNAL + role
+
+    private fun switchSignal() {
+        selected = 1 - selected
+        signalButton.message = signalLabel()
+        knobs.forEachIndexed { role, knob -> knob.follow(menu.tuning.dials[dialIndex(role)]) }
+    }
+
+    /** The dials as the screen shows them, so the trace moves with a knob before the server has answered. */
+    private fun shownTuning(): Tuning {
+        val dials = menu.tuning.dials.toMutableList()
+        knobs.forEachIndexed { role, knob -> dials[dialIndex(role)] = knob.step }
+        return Tuning.ofDials(dials) ?: menu.tuning
+    }
 
     private fun press(button: Int) {
         Minecraft.getInstance().gameMode?.handleInventoryButtonClick(menu.containerId, button)
     }
 
-    /** Title only: there is no inventory on this screen. */
+    private fun powerLabel(): Component = translated(if (menu.isPowered) "power.on" else "power.off")
+
+    private fun signalLabel(): Component = translated(if (selected == 0) "signal.a" else "signal.b")
+
+    /** Title and the knobs' names: there is no inventory on this screen. */
     override fun extractLabels(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int) {
         graphics.text(font, title, titleLabelX, titleLabelY, Palette.TEXT, false)
-        graphics.text(font, translated("first"), MARGIN, SIGNAL_LABEL_TOP, Palette.TEXT, false)
-        graphics.text(font, translated("second"), MARGIN + DIAL_WIDTH + GAP, SIGNAL_LABEL_TOP, Palette.TEXT, false)
+        for ((role, name) in DIAL_NAMES.withIndex()) {
+            val labelY = KNOBS_TOP + role * KNOB_PITCH + (KNOB - font.lineHeight) / 2 + 1
+            graphics.text(font, translated(name), MARGIN + KNOB + LABEL_GAP, labelY, Palette.TEXT, false)
+        }
     }
 
     override fun extractContents(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
         super.extractContents(graphics, mouseX, mouseY, a)
-        drawTrace(graphics)
+        val tuning = shownTuning()
+        val screensLeft = leftPos + SCREENS_X
+        val screensWidth = imageWidth - SCREENS_X - MARGIN
+        val signalScreen = Rect(screensLeft, topPos + SIGNAL_SCREEN_TOP, screensWidth, SCREEN_HEIGHT)
+        val mixedScreen = Rect(screensLeft, topPos + MIXED_SCREEN_TOP, screensWidth, SCREEN_HEIGHT)
+        drawScreen(graphics, signalScreen)
+        drawScreen(graphics, mixedScreen)
+        if (menu.isPowered) {
+            val other = 1 - selected
+            drawTrace(graphics, signalScreen, MOST_ONE_SIGNAL, MUTED_INKS[other], tuning.signal(other)::at)
+            drawTrace(graphics, signalScreen, MOST_ONE_SIGNAL, INKS[selected], tuning.signal(selected)::at)
+            drawTrace(graphics, mixedScreen, MOST_MIXED, MIXED_INK, tuning::mixedAt)
+        }
+        drawReadout(graphics)
+    }
+
+    /** What the signal proposes, beside the button that copies it; nothing while the tuner is off. */
+    private fun drawReadout(graphics: GuiGraphicsExtractor) {
+        if (!menu.isPowered) return
         val heard = if (proposal.isEmpty()) {
             translated("nothing_heard")
         } else {
             Component.literal(proposal.joinToString(" ") { WordNames.readable(it).string })
         }
-        graphics.textWithWordWrap(font, heard, leftPos + MARGIN, topPos + PROPOSAL_TOP, imageWidth - 2 * MARGIN, Palette.TEXT)
+        val width = imageWidth - 2 * MARGIN - BUTTON_HEIGHT - LABEL_GAP
+        graphics.textWithWordWrap(font, heard, leftPos + MARGIN, topPos + READOUT_TOP, width, Palette.TEXT)
     }
 
-    /** The two signals summed, one sample a pixel; faint while the desk is drawing its own seed. */
-    private fun drawTrace(graphics: GuiGraphicsExtractor) {
-        val left = leftPos + MARGIN
-        val top = topPos + TRACE_TOP
-        val width = imageWidth - 2 * MARGIN
-        graphics.fill(left - 1, top - 1, left + width + 1, top + TRACE_HEIGHT + 1, Palette.WELL_EDGE)
-        graphics.fill(left, top, left + width, top + TRACE_HEIGHT, SCREEN)
-        val middle = top + TRACE_HEIGHT / 2
-        val reach = TRACE_HEIGHT / 2 - 2
-        val tuning = shownTuning()
-        val ink = if (menu.isTuned) TRACE else TRACE_IDLE
-        fun heightAt(column: Int) = middle - (tuning.mixedAt(column.toDouble() / width) / MOST_MIXED * reach).roundToInt()
+    private fun drawScreen(graphics: GuiGraphicsExtractor, at: Rect) {
+        graphics.fill(at.x - 1, at.y - 1, at.right + 1, at.bottom + 1, Palette.WELL_EDGE)
+        graphics.fill(at.x, at.y, at.right, at.bottom, SCREEN)
+    }
+
+    /** [sample] across [at], one sample a pixel, scaled so [most] reaches nearly to the screen's edge. */
+    private fun drawTrace(graphics: GuiGraphicsExtractor, at: Rect, most: Double, ink: Int, sample: (Double) -> Double) {
+        val middle = at.y + at.height / 2
+        val reach = at.height / 2 - 2
+        fun heightAt(column: Int) = middle - (sample(column.toDouble() / at.width) / most * reach).roundToInt()
         var previous = heightAt(0)
-        for (column in 0..<width) {
+        for (column in 0..<at.width) {
             val here = heightAt(column)
-            graphics.fill(left + column, minOf(previous, here), left + column + 1, maxOf(previous, here) + 1, ink)
+            graphics.fill(at.x + column, minOf(previous, here), at.x + column + 1, maxOf(previous, here) + 1, ink)
             previous = here
-        }
-        if (!menu.isTuned) graphics.text(font, translated("untuned"), left + 3, top + 3, TRACE_IDLE, false)
-    }
-
-    /** One dial: sixteen steps, saying what it sets and never the number. */
-    private inner class DialSlider(x: Int, y: Int, val index: Int, step: Int) :
-        AbstractSliderButton(x, y, DIAL_WIDTH, DIAL_HEIGHT, Component.empty(), step.toDouble() / (Tuning.STEPS - 1)) {
-
-        private var held = false
-
-        val step: Int get() = (value * (Tuning.STEPS - 1)).roundToInt()
-
-        private var sent = step
-
-        init {
-            updateMessage()
-        }
-
-        /** Takes the server's step, unless the writer is holding this dial. */
-        fun follow(serverStep: Int) {
-            if (held || serverStep == step) return
-            value = serverStep.toDouble() / (Tuning.STEPS - 1)
-            sent = serverStep
-        }
-
-        override fun updateMessage() {
-            message = translated(DIAL_NAMES[index % DIALS_PER_SIGNAL])
-        }
-
-        override fun applyValue() {
-            if (step == sent) return
-            sent = step
-            press(index * Tuning.STEPS + step)
-        }
-
-        override fun onClick(event: MouseButtonEvent, doubleClick: Boolean) {
-            held = true
-            super.onClick(event, doubleClick)
-        }
-
-        override fun onRelease(event: MouseButtonEvent) {
-            held = false
-            super.onRelease(event)
         }
     }
 
     companion object {
         /** The last book the server proposed, which arrives just after the screen. */
         private var proposal: List<Identifier> = emptyList()
+
+        /** Which signal the knobs turn — remembered between openings, as a real dial's switch would be. */
+        private var selected = 0
 
         fun remember(payload: TunerProposalPayload) {
             proposal = payload.words
@@ -169,25 +197,31 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
         private const val DIALS_PER_SIGNAL = 3
 
         private const val WIDTH = 248
-        private const val HEIGHT = 214
+        private const val HEIGHT = 178
         private const val MARGIN = 8
-        private const val GAP = 8
-        private const val TRACE_TOP = 18
-        private const val TRACE_HEIGHT = 48
-        private const val SIGNAL_LABEL_TOP = 72
-        private const val DIALS_TOP = 82
-        private const val DIAL_WIDTH = 112
-        private const val DIAL_HEIGHT = 20
-        private const val DIAL_GAP = 2
-        private const val PROPOSAL_TOP = 152
-        private const val BUTTONS_TOP = 186
-        private const val BUTTON_WIDTH = 112
+        private const val CONTROLS_WIDTH = 76
+        private const val BUTTON_HEIGHT = 20
+        private const val POWER_TOP = 18
+        private const val SIGNAL_TOP = 42
+        private const val KNOBS_TOP = 66
+        private const val KNOB = 20
+        private const val KNOB_PITCH = 24
+        private const val LABEL_GAP = 4
+        private const val SCREENS_X = MARGIN + CONTROLS_WIDTH + 6
+        private const val SIGNAL_SCREEN_TOP = 18
+        private const val MIXED_SCREEN_TOP = 80
+        private const val SCREEN_HEIGHT = 58
+        private const val READOUT_TOP = 146
 
-        /** Two signals at full strength sum to at most this. */
+        /** One signal at full strength reaches this; the two summed reach twice it. */
+        private const val MOST_ONE_SIGNAL = 1.0
         private const val MOST_MIXED = 2.0
 
-        private val SCREEN = 0xFF0E1A14.toInt()
-        private val TRACE = 0xFF7CF0C8.toInt()
-        private val TRACE_IDLE = 0xFF3C6E5C.toInt()
+        private val SCREEN = 0xFF101014.toInt()
+
+        /** Signal A red and signal B blue, the Spire's and Haven's; mixed, the violet between them. */
+        private val INKS = listOf(0xFFF07C7C.toInt(), 0xFF7CA8F0.toInt())
+        private val MUTED_INKS = listOf(0xFF5A2E2E.toInt(), 0xFF2E3E5A.toInt())
+        private val MIXED_INK = 0xFFC09CF0.toInt()
     }
 }

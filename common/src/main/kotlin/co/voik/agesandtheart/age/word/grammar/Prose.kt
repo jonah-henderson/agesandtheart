@@ -48,6 +48,28 @@ data class ProseTerm(
 }
 
 /**
+ * A shape a clause minted, said as one thing — `teeming basalt arches` is "teeming arches of basalt",
+ * since every rung and every material in a minting clause belongs to what it mints.
+ */
+data class ProseShape(
+    val shape: ProseTerm,
+    /** What the shape is made of, where the clause said. */
+    val madeOf: List<ProseTerm> = emptyList(),
+    /** Its size and the like — `colossal`. */
+    val qualities: List<ProseTerm> = emptyList(),
+) {
+    companion object {
+        val CODEC: Codec<ProseShape> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                ProseTerm.CODEC.fieldOf("shape").forGetter(ProseShape::shape),
+                ProseTerm.CODEC.listOf().optionalFieldOf("made_of", emptyList()).forGetter(ProseShape::madeOf),
+                ProseTerm.CODEC.listOf().optionalFieldOf("qualities", emptyList()).forGetter(ProseShape::qualities),
+            ).apply(instance, ::ProseShape)
+        }
+    }
+}
+
+/**
  * **One sentence's worth of a book**: what was said about one part of the world, and where.
  *
  * A clause of the grammar is about one part of the world when it closes on an aiming page, and about as many
@@ -63,6 +85,8 @@ data class ProseClause(
     val everywhere: Boolean = false,
     /** Which member of a population this describes — the second sun rather than the first. */
     val body: Int? = null,
+    /** What the clause minted, where it minted something; its words are then here and not in [terms]. */
+    val shape: ProseShape? = null,
 ) {
     companion object {
         val CODEC: Codec<ProseClause> = RecordCodecBuilder.create { instance ->
@@ -72,8 +96,11 @@ data class ProseClause(
                 ProseTerm.CODEC.optionalFieldOf("confined_to").forGetter { Optional.ofNullable(it.confinedTo) },
                 Codec.BOOL.optionalFieldOf("everywhere", false).forGetter(ProseClause::everywhere),
                 Codec.INT.optionalFieldOf("body").forGetter { Optional.ofNullable(it.body) },
-            ).apply(instance) { about, terms, confinedTo, everywhere, body ->
-                ProseClause(about.orElse(null), terms, confinedTo.orElse(null), everywhere, body.orElse(null))
+                ProseShape.CODEC.optionalFieldOf("shape").forGetter { Optional.ofNullable(it.shape) },
+            ).apply(instance) { about, terms, confinedTo, everywhere, body, shape ->
+                ProseClause(
+                    about.orElse(null), terms, confinedTo.orElse(null), everywhere, body.orElse(null), shape.orElse(null),
+                )
             }
         }
     }
@@ -136,6 +163,7 @@ object Prose {
      * whole of what says where a re-homed page landed.
      */
     private fun clausesOf(phrase: Phrase): List<ProseClause> {
+        mintedIn(phrase)?.let { return listOf(it) }
         val aimingPage = phrase.subject?.takeIf { it.word.aims }
         val written = phrase.said.filterNot { it.latent || it === aimingPage }
         if (written.isEmpty()) return emptyList()
@@ -150,6 +178,36 @@ object Prose {
             ProseClause(about, said.map(::termOf), confinedTo, phrase.everywhere, body)
         }
     }
+
+    /**
+     * A clause closing on a word that **mints** a shape, said as that one shape — or null where it mints
+     * nothing. Such a word looks like an aiming page, but it is the thing itself: `basalt arches` says
+     * "arches of basalt", never "what is in it is made of basalt" with the arches gone.
+     */
+    private fun mintedIn(phrase: Phrase): ProseClause? {
+        val subject = phrase.subject ?: return null
+        if (subject.word.mints == null || subject.latent) return null
+        val written = phrase.modifiers.filterNot { it.latent }
+        val (substances, rest) = written.partition { it.word.material != null }
+        // Every rung in the clause counts the shape, as the resolver reads it.
+        val rung = subject.quantifier ?: written.firstNotNullOfOrNull { it.quantifier }
+        val counted = termOf(subject).copy(quantifier = rung.takeUnless { rung == null || isOrdinaryIn(phrase) })
+        val shape = ProseShape(
+            shape = counted,
+            madeOf = substances.map { termOf(it).copy(quantifier = null) },
+            qualities = rest.map { termOf(it).copy(quantifier = null) },
+        )
+        return ProseClause(
+            about = Aspect.FEATURES,
+            terms = emptyList(),
+            confinedTo = phrase.confinedTo?.let(::biomeTerm),
+            everywhere = phrase.everywhere,
+            shape = shape,
+        )
+    }
+
+    /** Whether every rung laid in [phrase] asks for the ordinary amount, which is the same as none. */
+    private fun isOrdinaryIn(phrase: Phrase): Boolean = phrase.said.all { Rung.isOrdinary(it.density) }
 
     /** What a word in a clause with no aiming page is about: where it landed, else where it can. */
     private fun aspectOf(constraint: Constraint): Aspect? =
