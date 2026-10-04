@@ -461,6 +461,11 @@ instrument(
 )
 
 instrument(
+    "instabilityspike", "documentation", "co.voik.agesandtheart.preview.InstabilitySpikeKt",
+    "THROWAWAY: what instability can a written book reach under today's grammar? Read it, don't build on it.",
+)
+
+instrument(
     "terraindiff", "verification", "co.voik.agesandtheart.preview.TerrainDiffKt",
     "Compares two saved worlds Age by Age, block for block. Takes two world folders, " +
         "e.g. --args=\"before/world after/world\" (absolute paths — Gradle runs from this module).",
