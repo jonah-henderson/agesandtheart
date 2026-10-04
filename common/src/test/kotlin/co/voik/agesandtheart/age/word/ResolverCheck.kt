@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
@@ -234,6 +235,22 @@ class ResolverCheck : FunSpec({
                 "'${word.name}' alone was charged for disagreeing with nothing: $invented"
             }
         }
+    }
+
+    /**
+     * **A contradiction written twice is charged once** (design §5.0): the index counts how many different
+     * things a book contradicts, so repeating one clause buys nothing more. A page there is nowhere for is
+     * the exception, and is charged every time (Jonah).
+     */
+    test("a contradiction written twice is charged once, and an impossible page every time") {
+        fun indexOf(row: String): Int {
+            val sentence = Grammar.read(vocabulary, row.split(" ")) ?: error("'$row' is not a book")
+            return Resolver.resolve(vocabulary, sentence, SAMPLE_SEED).instability.index
+        }
+        val once = indexOf("age verdant dusty air")
+        check(once > 0) { "the clause meant to contradict itself was charged nothing" }
+        check(indexOf("age verdant dusty air verdant dusty air") == once) { "a repeated clause was charged again" }
+        check(indexOf("age age age") > indexOf("age age")) { "a repeated impossible page was not charged again" }
     }
 
     /**

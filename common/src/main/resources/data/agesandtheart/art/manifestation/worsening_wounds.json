@@ -5,10 +5,10 @@
     "stopping -- the register a player cannot outlast, only leave. Each step bought makes the density",
     "climb faster with the Age's age; `most` bounds the RATE, never the final state.",
     "",
-    "Opens at 120, because it is a verdict: under the draw a price alone would let a moderate Age buy it",
+    "Opens at 30, because it is a verdict: under the draw a price alone would let a moderate Age buy it",
     "first, and the floor is what reserves it for the severe end."
   ],
   "dials": {
-    "pace": { "costs": 9, "most": 3, "opens_at": 120 }
+    "pace": { "costs": 2, "most": 3, "opens_at": 30 }
   }
 }

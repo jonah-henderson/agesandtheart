@@ -6,12 +6,12 @@
     "vanilla's own rules. Three dials are weather and cheap: `often` (how often a storm comes), `long` (how",
     "long each lasts) and `visibility` (how close the whiteout closes in, and how hard the snow drifts).",
     "`frostbite` is how fast the cold gets into anyone out in it, which is the one that kills, and it is",
-    "dear. Opens at 16 with the other phenomena. The numbers wait on the tuning pass."
+    "dear. Opens at 4 with the other phenomena. The numbers wait on the tuning pass."
   ],
   "dials": {
-    "often": { "costs": 3, "most": 4, "opens_at": 16 },
-    "long": { "costs": 3, "most": 4, "opens_at": 16 },
-    "visibility": { "costs": 3, "most": 4, "opens_at": 16 },
-    "frostbite": { "costs": 7, "most": 4, "opens_at": 16 }
+    "often": { "costs": 1, "most": 4, "opens_at": 4 },
+    "long": { "costs": 1, "most": 4, "opens_at": 4 },
+    "visibility": { "costs": 1, "most": 4, "opens_at": 4 },
+    "frostbite": { "costs": 2, "most": 4, "opens_at": 4 }
   }
 }

@@ -8,16 +8,16 @@
     "near-constant deluge a moderate index should be able to earn.",
     "",
     "`height` is how far over its written level the sea is carried, and its steps open one after another",
-    "up the index: the first at 16 with the other phenomena, the last just short of the collapse threshold,",
+    "up the index: the first at 4 with the other phenomena, the last just short of the collapse threshold,",
     "so only an Age about to come apart drowns to the build limit. Every number here waits on the tuning",
     "pass."
   ],
   "dials": {
-    "rate": { "costs": 3, "most": 10, "opens_at": 16 },
-    "downpour": { "costs": 3, "most": 10, "opens_at": 16 },
+    "rate": { "costs": 1, "most": 10, "opens_at": 4 },
+    "downpour": { "costs": 1, "most": 10, "opens_at": 4 },
     "height": {
-      "costs": [3, 3, 3, 3, 4, 4, 4, 5, 5, 6, 6, 8],
-      "opens_at": [16, 16, 30, 45, 60, 80, 100, 120, 140, 160, 180, 195]
+      "costs": [1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2],
+      "opens_at": [4, 4, 8, 11, 15, 20, 25, 30, 35, 40, 45, 49]
     }
   }
 }

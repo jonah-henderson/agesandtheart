@@ -80,8 +80,8 @@ class SpendingCheck : FunSpec({
 
     /** The point of drawing rather than ordering (Jonah, 2026-09-17). */
     test("the same index shows as different symptoms in different Ages") {
-        val shown = seeds.map { Spending.of(60, it, SHIPPED_PRICES) }.toSet()
-        check(shown.size > seeds.size / 2) { "forty seeds at index 60 drew only ${shown.size} different Ages" }
+        val shown = seeds.map { Spending.of(15, it, SHIPPED_PRICES) }.toSet()
+        check(shown.size > seeds.size / 2) { "forty seeds at index 15 drew only ${shown.size} different Ages" }
     }
 
     /** A price of zero would buy infinitely many steps for nothing, so it is refused rather than looped on. */
@@ -93,7 +93,7 @@ class SpendingCheck : FunSpec({
 
     test("a draw never spends more than the index") {
         for (seed in seeds) {
-            for (budget in 0..199 step 3) {
+            for (budget in 0..49) {
                 val spent = paid(Spending.of(budget, seed, SHIPPED_PRICES), SHIPPED_PRICES)
                 check(spent <= budget) { "index $budget under seed $seed paid $spent" }
             }
@@ -107,7 +107,7 @@ class SpendingCheck : FunSpec({
      */
     test("no step is bought before its floor opens") {
         for (seed in seeds) {
-            for (budget in 0..199 step 3) {
+            for (budget in 0..49) {
                 val spent = Spending.of(budget, seed, SHIPPED_PRICES)
                 for (manifestation in Manifestation.entries) {
                     val price = SHIPPED_PRICES.getValue(manifestation)
@@ -125,11 +125,11 @@ class SpendingCheck : FunSpec({
 
     test("a small mistake tears seams and opens no wounds") {
         for (seed in seeds) {
-            for (budget in 0..9) {
+            for (budget in 0..2) {
                 val wounds = Spending.of(budget, seed, SHIPPED_PRICES).bought(Manifestation.WOUNDS)
                 check(wounds == 0) { "instability $budget under seed $seed opened $wounds wounds" }
             }
-            check(Spending.of(9, seed, SHIPPED_PRICES).bought(Manifestation.TORN_SEAMS) > 0) {
+            check(Spending.of(2, seed, SHIPPED_PRICES).bought(Manifestation.TORN_SEAMS) > 0) {
                 "an Age with nothing else open to it tore no seams under seed $seed"
             }
         }
@@ -166,13 +166,13 @@ class SpendingCheck : FunSpec({
      */
     test("some Age at a moderate index is drowning in earnest") {
         fun drowning(seed: Long): Boolean {
-            val spent = Spending.of(60, seed, SHIPPED_PRICES)
+            val spent = Spending.of(MODERATE, seed, SHIPPED_PRICES)
             val downpour = spent.reach(Manifestation.DELUGE, Manifestation.DOWNPOUR)
             val rate = spent.reach(Manifestation.DELUGE, Manifestation.RISE_RATE)
             return downpour >= HALF_OR_MORE && rate >= HALF_OR_MORE
         }
         val manySeeds = (0L..<400L).map { it * 104_729L + 3L }
-        check(manySeeds.any(::drowning)) { "no Age in four hundred at index 60 had bought half of both cheap dials" }
+        check(manySeeds.any(::drowning)) { "no Age in four hundred at index $MODERATE had bought half of both cheap dials" }
     }
 
     /**
@@ -225,6 +225,9 @@ class SpendingCheck : FunSpec({
 }) {
     private companion object {
         const val HALF_OR_MORE = 0.5
+
+        /** Two fifths of the way to collapse: the cheap dials cost 1 where a quarter of their old 3 would be ¾. */
+        const val MODERATE = 20
     }
 }
 
@@ -233,61 +236,61 @@ class SpendingCheck : FunSpec({
  * what a server runs. `ShippedPricesCheck` fails if it drifts from the files.
  */
 internal val SHIPPED_PRICES = mapOf(
-    Manifestation.TORN_SEAMS to Price.flat(Manifestation.TORN_SEAMS, costs = 2, most = 4),
-    Manifestation.WOUNDS to Price.flat(Manifestation.WOUNDS, costs = 5, most = 4, opensAt = 10),
-    Manifestation.WORSENING_WOUNDS to Price.flat(Manifestation.WORSENING_WOUNDS, costs = 9, most = 3, opensAt = 120),
+    Manifestation.TORN_SEAMS to Price.flat(Manifestation.TORN_SEAMS, costs = 1, most = 4),
+    Manifestation.WOUNDS to Price.flat(Manifestation.WOUNDS, costs = 1, most = 4, opensAt = 3),
+    Manifestation.WORSENING_WOUNDS to Price.flat(Manifestation.WORSENING_WOUNDS, costs = 2, most = 3, opensAt = 30),
     Manifestation.SANDFALL to Price(
         mapOf(
-            Manifestation.COLUMNS_OFTEN to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
-            Manifestation.COLUMNS_LONG to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
-            Manifestation.COLUMNS_SIZE to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
-            Manifestation.COLUMNS_DEPTH to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+            Manifestation.COLUMNS_OFTEN to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
+            Manifestation.COLUMNS_LONG to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
+            Manifestation.COLUMNS_SIZE to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
+            Manifestation.COLUMNS_DEPTH to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
         ),
     ),
     Manifestation.BLIZZARD to Price(
         mapOf(
-            Manifestation.SNOWSTORMS_OFTEN to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
-            Manifestation.SNOWSTORMS_LONG to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
-            Manifestation.SNOWSTORMS_VISIBILITY to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
-            Manifestation.SNOWSTORMS_FROSTBITE to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+            Manifestation.SNOWSTORMS_OFTEN to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
+            Manifestation.SNOWSTORMS_LONG to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
+            Manifestation.SNOWSTORMS_VISIBILITY to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
+            Manifestation.SNOWSTORMS_FROSTBITE to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
         ),
     ),
     Manifestation.METEORS to Price(
         mapOf(
-            Manifestation.STORMS_OFTEN to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
-            Manifestation.STORMS_LONG to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
-            Manifestation.STORMS_POWER to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+            Manifestation.STORMS_OFTEN to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
+            Manifestation.STORMS_LONG to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
+            Manifestation.STORMS_POWER to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
         ),
     ),
-    // At 200 with `collapse`, not 16 with the phenomena: given time it takes the whole Age.
+    // At 50 with `collapse`, not 4 with the phenomena: given time it takes the whole Age.
     Manifestation.TECTONICS to Price(
         mapOf(
-            Manifestation.CAVE_IN_SIZE to DialPrice.flat(costs = 7, most = 4, opensAt = 200),
-            Manifestation.CAVE_IN_SPEED to DialPrice.flat(costs = 7, most = 4, opensAt = 200),
+            Manifestation.CAVE_IN_SIZE to DialPrice.flat(costs = 2, most = 4, opensAt = 50),
+            Manifestation.CAVE_IN_SPEED to DialPrice.flat(costs = 2, most = 4, opensAt = 50),
         ),
     ),
     Manifestation.TEMPEST to Price(
         mapOf(
-            Manifestation.BOLTS_OFTEN to DialPrice.flat(costs = 3, most = 4, opensAt = 16),
-            Manifestation.BOLTS_BLAST to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
-            Manifestation.BOLTS_FIRE to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+            Manifestation.BOLTS_OFTEN to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
+            Manifestation.BOLTS_BLAST to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
+            Manifestation.BOLTS_FIRE to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
         ),
     ),
     Manifestation.INFERNO to Price(
         mapOf(
-            Manifestation.BURN_DAMAGE to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
-            Manifestation.LIGHT_INTENSITY to DialPrice.flat(costs = 7, most = 4, opensAt = 16),
+            Manifestation.BURN_DAMAGE to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
+            Manifestation.LIGHT_INTENSITY to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
         ),
     ),
     Manifestation.DELUGE to Price(
         mapOf(
-            Manifestation.RISE_RATE to DialPrice.flat(costs = 3, most = 10, opensAt = 16),
-            Manifestation.DOWNPOUR to DialPrice.flat(costs = 3, most = 10, opensAt = 16),
+            Manifestation.RISE_RATE to DialPrice.flat(costs = 1, most = 10, opensAt = 4),
+            Manifestation.DOWNPOUR to DialPrice.flat(costs = 1, most = 10, opensAt = 4),
             Manifestation.RISE_HEIGHT to DialPrice(
-                costs = listOf(3, 3, 3, 3, 4, 4, 4, 5, 5, 6, 6, 8),
-                opensAt = listOf(16, 16, 30, 45, 60, 80, 100, 120, 140, 160, 180, 195),
+                costs = listOf(1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2),
+                opensAt = listOf(4, 4, 8, 11, 15, 20, 25, 30, 35, 40, 45, 49),
             ),
         ),
     ),
-    Manifestation.COLLAPSE to Price.flat(Manifestation.COLLAPSE, costs = 14, most = 3).copy(certainFrom = 200),
+    Manifestation.COLLAPSE to Price.flat(Manifestation.COLLAPSE, costs = 4, most = 3).copy(certainFrom = 50),
 )

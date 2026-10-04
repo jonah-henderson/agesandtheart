@@ -127,6 +127,9 @@ data class Flaw(
     /** What it cost, frozen — so retuning the charges cannot rewrite an Age already written. */
     val severity: Int,
 ) {
+    /** What makes two flaws the same one: the kind, the words whichever way round, and the place. */
+    val identity: Triple<Register, List<String>, Aspect?> get() = Triple(register, words.sorted(), aspect)
+
     /** How to say it to a writer. */
     fun describe(): String {
         val quoted = words.map { "'$it'" }

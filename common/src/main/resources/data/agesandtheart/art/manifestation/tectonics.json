@@ -11,11 +11,11 @@
     "",
     "Not the same register as `collapse`, which tears the world floor and ends the Age. This one only ever",
     "takes the hillside you are standing on -- but given long enough it takes every hillside, which is an Age",
-    "undone as surely as a torn floor. So it opens at 200 with `collapse` rather than at 16 with the other",
+    "undone as surely as a torn floor. So it opens at 50 with `collapse` rather than at 4 with the other",
     "phenomena (Jonah, 2026-09-17)."
   ],
   "dials": {
-    "size": { "costs": 7, "most": 4, "opens_at": 200 },
-    "speed": { "costs": 7, "most": 4, "opens_at": 200 }
+    "size": { "costs": 2, "most": 4, "opens_at": 50 },
+    "speed": { "costs": 2, "most": 4, "opens_at": 50 }
   }
 }

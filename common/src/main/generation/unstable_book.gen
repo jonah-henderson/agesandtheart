@@ -4,11 +4,22 @@ terminals word
 # A book somebody put away as unfit, kept in the D'ni city's quarantine chamber (design §4.2). The one
 # found book allowed to argue with itself: BookCheck fails any book here that comes out coherent. Each
 # alternative should be a mistake a reader can see in the world and learn to recognise in their own.
+#
+# Two mistakes a book, so it comes out wounded and in the grip of phenomena but nowhere near collapse:
+# BookCheck holds every one between the phenomena's floor and collapse's threshold.
 
-book = [torn_climate] | [flooded_desert]
+book = [torn_climate] | [flooded_desert] | [warring_sizes] | [settled_ruins]
 
-torn_climate = age [cold_stone] landmass frozen scorching climate
+torn_climate = age [cold_stone] landmass frozen scorching tropical climate
 
-flooded_desert = age arid landmass flooded rock
+flooded_desert = age arid landmass flooded rock [wet_sky]
+
+warring_sizes = age colossal minuscule landmass [wild_weather]
+
+settled_ruins = age villagers ruins structures trees arid landmass
 
 cold_stone = packed_ice | snow_block
+
+wet_sky = drenched weather | verdant climate
+
+wild_weather = blizzard inferno weather | parched deluge weather

@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.age.Manifestation
+import co.voik.agesandtheart.age.SHIPPED_PRICES
 import co.voik.agesandtheart.book.FoundBookDraft
 import co.voik.agesandtheart.book.FoundBookKind
 
@@ -66,7 +68,20 @@ fun problemsWith(book: JudgedBook): List<String> = buildList {
         }
         // An unstable book that is not is a mistake that teaches nothing about mistakes.
         if (!book.kind.isCoherent && isCoherent) add("$book, which came out coherent")
+        // And one that is should show what a mistake buys — wounds and phenomena — without collapsing.
+        val showsTooLittle = !book.kind.isCoherent && !isCoherent && instability < WOUNDS_AND_PHENOMENA_OPEN
+        if (showsTooLittle) add("$book, which at $instability is short of the wounds and phenomena it should show")
+        if (!book.kind.isCoherent && instability >= COLLAPSES_AT) add("$book, which at $instability collapses")
     }
     // The only place a modifier is found (§4.5), so an advanced book that uses none has taught nothing.
     if (book.kind == FoundBookKind.ADVANCED && book.modifiers.isEmpty()) add("$book, which teaches no modifier")
 }
+
+private fun firstFloorOf(manifestation: Manifestation): Int =
+    SHIPPED_PRICES.getValue(manifestation).dials.values.minOf { it.opensAt.first() }
+
+/** Where the wounds and the first phenomena are both open to the draw. */
+private val WOUNDS_AND_PHENOMENA_OPEN: Int =
+    maxOf(firstFloorOf(Manifestation.WOUNDS), firstFloorOf(Manifestation.METEORS))
+
+private val COLLAPSES_AT: Int = requireNotNull(SHIPPED_PRICES.getValue(Manifestation.COLLAPSE).certainFrom)

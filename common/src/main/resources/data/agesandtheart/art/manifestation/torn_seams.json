@@ -6,6 +6,6 @@
     "instability, so it is the thing a barely unstable Age most often shows."
   ],
   "dials": {
-    "width": { "costs": 2, "most": 4 }
+    "width": { "costs": 1, "most": 4 }
   }
 }

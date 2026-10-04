@@ -7,11 +7,11 @@
     "how often a storm gathers and `long` how long it lasts, and how many bodies it drops follows `long`",
     "alone, since every body is a light drawn in the sky. `power` is how hard they land -- speed and blast --",
     "which is what can take a roof off, and it is dear. A dial bought in full is worth what `teeming` is to a",
-    "written storm. All three open at 16 with the other phenomena. Every number here waits on the tuning pass."
+    "written storm. All three open at 4 with the other phenomena. Every number here waits on the tuning pass."
   ],
   "dials": {
-    "often": { "costs": 3, "most": 4, "opens_at": 16 },
-    "long": { "costs": 3, "most": 4, "opens_at": 16 },
-    "power": { "costs": 7, "most": 4, "opens_at": 16 }
+    "often": { "costs": 1, "most": 4, "opens_at": 4 },
+    "long": { "costs": 1, "most": 4, "opens_at": 4 },
+    "power": { "costs": 2, "most": 4, "opens_at": 4 }
   }
 }

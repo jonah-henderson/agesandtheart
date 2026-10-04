@@ -94,10 +94,10 @@ object PanelDistortion {
     /**
      * The index at which the panel is as bad as it gets.
      *
-     * Past what any ordinary book reaches: seams and wounds together are bought by the twenties
-     * (`art/manifestation/`), so an Age that shows the worst of this is one written to come apart.
+     * Where seams and wounds together are bought (`art/manifestation/`), a quarter of the way to collapse's
+     * fifty, as every other threshold on the ladder is.
      */
-    private const val MOST_SHOWN = 24
+    private const val MOST_SHOWN = 6
 
     /** Two page-pixels, which is a band thin enough for two fields to comb rather than to stripe. */
     private const val BAND_HEIGHT = 2

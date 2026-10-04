@@ -3,13 +3,13 @@
     "When an Age comes apart at the bottom (design 5.3), and how fast. The only manifestation that ends",
     "the Age: fissures open at the world floor, widen, and put whatever falls in back in the overworld.",
     "",
-    "Not drawn. `certain_from` is a threshold -- an index of 200 collapses the Age whatever else its draw",
+    "Not drawn. `certain_from` is a threshold -- an index of 50 collapses the Age whatever else its draw",
     "bought -- and the index past it buys `spread`, how fast the tear grows: the first step comes with the",
     "threshold and each further one costs its price out of what is left over. `/age decay <name> unstable",
-    "<n>` is how that is reached for testing. 200 is a placeholder for the tuning pass."
+    "<n>` is how that is reached for testing. 50 is a placeholder for the tuning pass."
   ],
-  "certain_from": 200,
+  "certain_from": 50,
   "dials": {
-    "spread": { "costs": 14, "most": 3 }
+    "spread": { "costs": 4, "most": 3 }
   }
 }

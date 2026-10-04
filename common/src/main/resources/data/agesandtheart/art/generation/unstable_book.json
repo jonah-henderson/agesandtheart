@@ -5,17 +5,33 @@
   "rules": {
     "book": [
       {"produce":["[torn_climate]"]},
-      {"produce":["[flooded_desert]"]}
+      {"produce":["[flooded_desert]"]},
+      {"produce":["[warring_sizes]"]},
+      {"produce":["[settled_ruins]"]}
     ],
     "torn_climate": [
-      {"produce":["age","[cold_stone]","landmass","frozen","scorching","climate"]}
+      {"produce":["age","[cold_stone]","landmass","frozen","scorching","tropical","climate"]}
     ],
     "flooded_desert": [
-      {"produce":["age","arid","landmass","flooded","rock"]}
+      {"produce":["age","arid","landmass","flooded","rock","[wet_sky]"]}
+    ],
+    "warring_sizes": [
+      {"produce":["age","colossal","minuscule","landmass","[wild_weather]"]}
+    ],
+    "settled_ruins": [
+      {"produce":["age","villagers","ruins","structures","trees","arid","landmass"]}
     ],
     "cold_stone": [
       {"produce":["packed_ice"]},
       {"produce":["snow_block"]}
+    ],
+    "wet_sky": [
+      {"produce":["drenched","weather"]},
+      {"produce":["verdant","climate"]}
+    ],
+    "wild_weather": [
+      {"produce":["blizzard","inferno","weather"]},
+      {"produce":["parched","deluge","weather"]}
     ]
   }
 }

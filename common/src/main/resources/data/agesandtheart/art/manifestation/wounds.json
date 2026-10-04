@@ -5,10 +5,9 @@
     "step bought makes one likelier per chunk rather than adding a fixed count -- a handful of wounds in a",
     "whole dimension is a handful nobody ever walks past.",
     "",
-    "Opens at 10, which is the fence that says a small mistake tears seams and holes nothing: a five-page",
-    "book cannot reach it however the draw falls."
+    "Opens at 3, which is the fence that says a single slip tears seams and holes nothing."
   ],
   "dials": {
-    "frequency": { "costs": 5, "most": 4, "opens_at": 10 }
+    "frequency": { "costs": 1, "most": 4, "opens_at": 3 }
   }
 }

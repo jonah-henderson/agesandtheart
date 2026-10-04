@@ -9,10 +9,10 @@
     "Two dials, and either one bought sets the Age alight. `burn_damage` is how much it hurts to stand out",
     "under open light, on top of vanilla's own burning. `light_intensity` is how dim that light may get before",
     "the burning stops: none of it is daylight only, as a written inferno is, and all of it burns under the",
-    "moon. Both are harm, so both are dear. Opens at 16 with the other phenomena."
+    "moon. Both are harm, so both are dear. Opens at 4 with the other phenomena."
   ],
   "dials": {
-    "burn_damage": { "costs": 7, "most": 4, "opens_at": 16 },
-    "light_intensity": { "costs": 7, "most": 4, "opens_at": 16 }
+    "burn_damage": { "costs": 2, "most": 4, "opens_at": 4 },
+    "light_intensity": { "costs": 2, "most": 4, "opens_at": 4 }
   }
 }

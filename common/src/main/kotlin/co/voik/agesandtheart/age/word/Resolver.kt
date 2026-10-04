@@ -304,7 +304,13 @@ object Resolver {
 
         return Resolution(
             composition = composition,
-            instability = Instability(flaws.toList()),
+            // A contradiction written twice is one contradiction, so the index counts their variety (design
+            // §5.0). A page there is nowhere for is charged every time: a book of nothing but `age` should
+            // tear itself apart (Jonah).
+            instability = Instability(
+                flaws.filter { it.register == Register.IMPOSSIBLE } +
+                    flaws.filter { it.register != Register.IMPOSSIBLE }.distinctBy(Flaw::identity),
+            ),
             // Structure is priced too: every page a writer lays costs ink, and a page that made no
             // claim still came out of the pot. A latent page came out of nobody's pot.
             cost = sentence.written.sumOf { it.word.price } + sentence.structural.sumOf { it.cost },
@@ -913,7 +919,7 @@ object Resolver {
                         listOf(first.word.name, second.word.name),
                         aspect,
                         opposition.over,
-                        opposition.severity,
+                        opposed(vocabulary, Register.TENSION, opposition, first, second),
                     ),
                 )
             }
@@ -957,10 +963,19 @@ object Resolver {
                     // No aspect: the sentence owns this one, since landing nowhere together is the point.
                     aspect = null,
                     opposition.over,
-                    opposition.severity,
+                    opposed(vocabulary, Register.OPPOSED, opposition, first, second),
                 ),
             )
         }
+    }
+
+    /**
+     * What a disagreement costs: the register's charge at the firmer of the two words, times how severe the
+     * antonym table says the pair is — so a contradiction weighs what any other flaw from those words would.
+     */
+    private fun opposed(vocabulary: Vocabulary, register: Register, opposition: Disagreement, first: Constraint, second: Constraint): Int {
+        val firmer = maxOf(first.word.firmness, second.word.firmness)
+        return register.charge(firmer, vocabulary.earnedBy(register)) * opposition.severity
     }
 
     /** Whether [first] and [second] both set [parameter] in some one aspect both of them reach. */
