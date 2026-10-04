@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:frequency_tuner" }],
+      "condition": { "type": "minecraft:survives_explosion" }
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/frequency_tuner"
+}

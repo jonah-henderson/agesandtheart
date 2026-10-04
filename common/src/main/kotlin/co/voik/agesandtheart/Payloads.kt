@@ -19,6 +19,7 @@ import co.voik.agesandtheart.desk.DeskBindPayload
 import co.voik.agesandtheart.desk.DeskCommands
 import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
+import co.voik.agesandtheart.desk.TunerProposalPayload
 import co.voik.agesandtheart.desk.DeskTemplatePayload
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
@@ -61,6 +62,7 @@ object Payloads {
         Clientbound(LearnedWordsPayload.TYPE, LearnedWordsPayload.STREAM_CODEC),
         Clientbound(DeskSyncPayload.TYPE, DeskSyncPayload.STREAM_CODEC),
         Clientbound(DeskNoticePayload.TYPE, DeskNoticePayload.STREAM_CODEC),
+        Clientbound(TunerProposalPayload.TYPE, TunerProposalPayload.STREAM_CODEC),
         // A fall through a tear that a disconnection interrupted, taken up again.
         Clientbound(FallResumedPayload.TYPE, FallResumedPayload.STREAM_CODEC),
         // The desk's instructions, re-checked server-side whatever the screen believed.

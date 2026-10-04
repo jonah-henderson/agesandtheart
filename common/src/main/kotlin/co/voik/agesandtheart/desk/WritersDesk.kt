@@ -27,8 +27,8 @@ enum class DeskCapability(val key: String) : StringRepresentable {
     /** The readout gains its inferable particles, so a token row reads as a sentence (§4.3.1). */
     READABLE_GRAMMAR("readable_grammar"),
 
-    /** A finished Descriptive Book can be taken apart and rewritten (Phase 8, gated here). */
-    EDIT_BOOKS("edit_books"),
+    /** Hovering a word in the desk's list says which parts of an Age it applies to (design §7.4). */
+    WORD_REACH("word_reach"),
 
     ;
 

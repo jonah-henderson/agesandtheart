@@ -3,6 +3,8 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.station.Compounder
 import co.voik.agesandtheart.station.DryingRack
+import co.voik.agesandtheart.desk.Transcriber
+import co.voik.agesandtheart.desk.FrequencyTuner
 import co.voik.agesandtheart.content.PalmWood
 import net.minecraft.client.model.geom.ModelLayers
 import net.minecraft.client.renderer.entity.BoatRenderer
@@ -84,6 +86,8 @@ object ClientRegistrations {
         // you go and look at (Jonah, 2026-09-07).
         ScreenForMenu(AgeContent.SEISMOGRAPH_MENU, ::SeismographScreen),
         ScreenForMenu(AgeContent.CRYSTAL_VIEWER_MENU, ::CrystalViewerScreen),
+        ScreenForMenu(Transcriber.MENU, ::TranscriberScreen),
+        ScreenForMenu(FrequencyTuner.MENU, ::FrequencyTunerScreen),
         ScreenForMenu(AgeContent.GEOLOGISTS_TOOLS_MENU, ::GeologistsToolsScreen),
         ScreenForMenu(AgeContent.ARCHIVE_MENU, ::ArchiveScreen),
         ScreenForMenu(AgeContent.STATION_MENU, ::StationScreen),

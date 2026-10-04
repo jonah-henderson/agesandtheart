@@ -1,7 +1,0 @@
-{
-  "_comment": "An OPEN SLOT, not furniture. The old comment here argued that most implements SHOULD grant nothing and that the room matters as a room; 7.4 reversed that on 2026-09-06 -- the count still sets the tier, so furnishing is still rewarded, but no implement earns its place by occupying floor alone. It must earn a capability or leave.",
-  "blocks": [
-    "minecraft:cartography_table"
-  ],
-  "grants": []
-}

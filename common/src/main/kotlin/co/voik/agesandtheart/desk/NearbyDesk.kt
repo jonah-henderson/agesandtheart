@@ -2,6 +2,7 @@ package co.voik.agesandtheart.desk
 
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 
 /**
@@ -36,10 +37,13 @@ class NearbyDesk(private val pos: BlockPos) {
      * included, which is what the crystal viewer needs to refuse a sentence the desk would refuse to bind.
      * Null where the room holds no desk.
      */
-    fun readFor(writer: ServerPlayer): List<ReadWord>? {
-        val level = writer.level()
+    fun readFor(writer: ServerPlayer): List<ReadWord>? =
+        deskIn(writer.level())?.let { DeskTemplates.read(writer, it.templateFor(writer.uuid)) }
+
+    /** The writer's desk in the room, or null where there is none. */
+    fun deskIn(level: ServerLevel): WritersDeskBlockEntity? {
         val known = deskAt?.let { level.getBlockEntity(it) as? WritersDeskBlockEntity }
-        if (known != null) return DeskTemplates.read(writer, known.templateFor(writer.uuid))
+        if (known != null) return known
         deskAt = null
         val reach = WritersDesk.of(level.server).radius
         val cursor = BlockPos.MutableBlockPos()
@@ -47,7 +51,7 @@ class NearbyDesk(private val pos: BlockPos) {
             cursor.setWithOffset(pos, x, y, z)
             val desk = level.getBlockEntity(cursor) as? WritersDeskBlockEntity ?: continue
             deskAt = cursor.immutable()
-            return DeskTemplates.read(writer, desk.templateFor(writer.uuid))
+            return desk
         }
         return null
     }

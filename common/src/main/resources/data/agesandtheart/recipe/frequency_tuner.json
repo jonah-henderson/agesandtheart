@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "Two lightning rods for the two signals' aerials, arc crystal either side of a calibrated sculk sensor",
+    "(vanilla's own block tuned to a frequency, and the deep dark's, which is the midgame's vanilla tier), on",
+    "copper bars (Jonah, 2026-10-03). Ratios are unbalanced."
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "R R",
+    "ASA",
+    "CCC"
+  ],
+  "key": {
+    "R": "minecraft:lightning_rod",
+    "A": "agesandtheart:arc_crystal",
+    "S": "minecraft:calibrated_sculk_sensor",
+    "C": "minecraft:copper_bars"
+  },
+  "result": { "id": "agesandtheart:frequency_tuner" }
+}

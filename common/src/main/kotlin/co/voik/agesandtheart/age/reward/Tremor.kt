@@ -11,10 +11,10 @@ import net.minecraft.server.MinecraftServer
  * (design §7.3).
  *
  * **It reads what the instability will *buy*, not how incoherent the sentence is**, and that is the whole
- * of what separates it from the scribe's lens. The lens names contradictions; this says whether they will
- * do anything. An Age can be at odds with itself and still stand, because a budget too small to afford any
- * manifestation buys none — and a writer deserves to know that the flaws the lens is complaining about are
- * flaws the world will absorb.
+ * of what separates it from the grammar guide's contradictions. The guide names them; this says whether they
+ * will do anything. An Age can be at odds with itself and still stand, because a budget too small to afford
+ * any manifestation buys none — and a writer deserves to know that the flaws the guide is marking are flaws
+ * the world will absorb.
  *
  * **Derived from the same [Spending] the generator uses**, so the instrument and the world cannot drift
  * apart. That is [Yield.forVeins]'s rule applied to the other register: report the thing that is actually

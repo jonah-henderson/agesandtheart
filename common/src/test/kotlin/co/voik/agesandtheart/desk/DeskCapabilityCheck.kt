@@ -28,9 +28,7 @@ class DeskCapabilityCheck : FunSpec({
      * when it will be. An empty map is the goal, and a capability missing from both the map and the code
      * is the bug this spec exists for.
      */
-    val notYetWired = mapOf(
-        DeskCapability.EDIT_BOOKS to "Phase 8's gate, deliberately inert so the implement is findable first",
-    )
+    val notYetWired = mapOf<DeskCapability, String>()
 
     test("every capability the desk grants is consulted somewhere") {
         val roots = listOf(Path.of("src/main/kotlin"), Path.of("../fabric/src/main/kotlin"))

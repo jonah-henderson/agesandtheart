@@ -37,6 +37,10 @@ object DeskTemplates {
     fun wordsOf(writer: ServerPlayer, text: String): List<Identifier> =
         TemplateReading.learnedWords(read(writer, text))
 
+    /** [words] as a writer would type them into a template — the name the word list shows, where it has one. */
+    fun typed(words: List<Identifier>): String =
+        words.joinToString(" ") { translatedName(it) ?: it.path.replace('_', ' ') }
+
     /**
      * The server's own translation, where there is one — both loaders load a mod's `en_us` on a dedicated
      * server. Null where the key is missing, which is every derived word: those are named by their path.

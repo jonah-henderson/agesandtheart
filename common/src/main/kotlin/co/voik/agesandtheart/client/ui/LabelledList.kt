@@ -71,6 +71,8 @@ class LabelledRow<T : Any>(
     private val count: Int?,
     private val onActivate: (T) -> Unit,
     private val actions: List<RowAction<T>> = emptyList(),
+    /** Shown while the row is hovered away from its buttons; nothing when empty. */
+    private val tooltip: (T) -> List<Component> = { emptyList() },
 ) : ObjectSelectionList.Entry<LabelledRow<T>>() {
 
     /** Where each action's button sits, left to right against the row's right edge. */
@@ -92,6 +94,11 @@ class LabelledRow<T : Any>(
         lines.forEachIndexed { index, line ->
             val indent = if (index == 0) 0 else WRAP_INDENT
             graphics.text(font, line, x + TEXT_INSET + indent, baseline + index * font.lineHeight, Palette.TEXT, false)
+        }
+        if (hovered) {
+            // Set before the buttons, so a hovered button's own tooltip replaces it.
+            val lines = tooltip(value)
+            if (lines.isNotEmpty()) graphics.setComponentTooltipForNextFrame(font, lines, mouseX, mouseY)
         }
 
         for ((index, action) in actions.withIndex()) {
@@ -159,12 +166,13 @@ class LabelledRow<T : Any>(
             onActivate: (T) -> Unit,
             actions: List<RowAction<T>>,
             rowWidth: Int,
+            tooltip: (T) -> List<Component>,
         ): LabelledRow<T> {
             val font = Minecraft.getInstance().font
             val countWidth = if (count != null && count > 0) font.width("$count") + TEXT_INSET else 0
             val labelWidth = rowWidth - TEXT_INSET * 2 - countWidth - actions.size * BUTTON_PITCH
             val lines = wrapLabel(label, labelWidth.coerceAtLeast(MINIMUM_LABEL_WIDTH), WRAP_INDENT, font::width)
-            return LabelledRow(value, label, lines, count, onActivate, actions)
+            return LabelledRow(value, label, lines, count, onActivate, actions, tooltip)
         }
 
         fun heightOf(row: LabelledRow<*>): Int =
@@ -215,13 +223,14 @@ class LabelledList<T : Any>(
         count: (T) -> Int? = { null },
         key: (T) -> Any = { it },
         actions: List<RowAction<T>> = emptyList(),
+        tooltip: (T) -> List<Component> = { emptyList() },
     ) {
-        reshow = { show(values, label, count, key, actions) }
+        reshow = { show(values, label, count, key, actions, tooltip) }
         val wasSelected = selected?.value?.let(key)
         val wasScrolledTo = scrollAmount()
         clearEntries()
         for (value in values) {
-            val row = LabelledRow.wrapped(value, label(value), count(value), onSelect, actions, rowWidth)
+            val row = LabelledRow.wrapped(value, label(value), count(value), onSelect, actions, rowWidth, tooltip)
             addEntry(row, LabelledRow.heightOf(row))
         }
         selected = children().firstOrNull { key(it.value) == wasSelected }

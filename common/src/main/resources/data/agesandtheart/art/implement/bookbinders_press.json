@@ -1,5 +1,0 @@
-{
-  "_comment": "Taking a finished book apart. Grants nothing until Phase 8 lands, and that is deliberate -- the device should be findable and the fiction consistent long before the mechanic exists.",
-  "blocks": ["minecraft:smithing_table"],
-  "grants": ["edit_books"]
-}

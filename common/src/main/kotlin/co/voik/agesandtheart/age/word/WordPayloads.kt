@@ -13,11 +13,11 @@ import net.minecraft.resources.Identifier
  *
  * Sent rather than read locally because both are datapack content while the screens that draw them are on
  * the client — so a pack ships its script without every client installing it. A client that never receives
- * one falls back to the readable alphabet, and its pages say nothing of where they apply.
+ * one falls back to the readable alphabet, and its desk says nothing of where words apply.
  */
 data class LexiconPayload(
     val script: Script,
-    /** [Word.aspects] for every word, by id — empty meaning anywhere. A page's "Applies to" lists it. */
+    /** [Word.aspects] for every word, by id — empty meaning anywhere. The desk's word list shows it with a grammar guide by. */
     val reach: Map<Identifier, Set<Aspect>>,
 ) : CustomPacketPayload {
 

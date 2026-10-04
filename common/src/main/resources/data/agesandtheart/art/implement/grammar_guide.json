@@ -1,7 +1,9 @@
 {
-  "_comment": "The D'ni grammar guide -- adds the inferable particles so a row of words reads as a sentence. Built from the three D'ni survey reports and six pages (design 7.4); a bookshelf stood in for it until it had a block.",
+  "_comment": "The D'ni grammar guide, and all of the grammar work done at the desk while pages are in hand (design 7.4): the readout of the sentence, contradictions marked before the ink is spent (the scribe's lens, folded in 2026-10-03), and which parts of an Age each word applies to, on hover in the word list (moved off the page tooltip 2026-10-03). Built from the three D'ni survey reports and six pages.",
   "blocks": ["agesandtheart:grammar_guide"],
   "grants": [
-    "readable_grammar"
+    "readable_grammar",
+    "reveal_conflicts",
+    "word_reach"
   ]
 }

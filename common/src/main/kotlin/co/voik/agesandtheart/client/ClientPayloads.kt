@@ -10,6 +10,7 @@ import co.voik.agesandtheart.client.panel.LinkingPanel
 import co.voik.agesandtheart.desk.ArchiveSyncPayload
 import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
+import co.voik.agesandtheart.desk.TunerProposalPayload
 import co.voik.agesandtheart.worldgen.fissure.FallResumedPayload
 import net.minecraft.client.Minecraft
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
@@ -29,6 +30,7 @@ object ClientPayloads {
         Receiver(LearnedWordsPayload.TYPE) { KnownWords.remember(it) },
         Receiver(DeskSyncPayload.TYPE) { DeskModel.remember(it) },
         Receiver(DeskNoticePayload.TYPE) { DeskModel.remember(it) },
+        Receiver(TunerProposalPayload.TYPE) { FrequencyTunerScreen.remember(it) },
         Receiver(ArchiveSyncPayload.TYPE) { ArchiveScreen.remember(it) },
         // The drop carries on from where it left off: where they are and how fast they were going came
         // back with them, and this is the flag that says the ground is still not holding them.

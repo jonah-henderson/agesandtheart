@@ -285,8 +285,12 @@ class WritersDeskScreen(
         val rows = DeskModel.knownRows(search.value)
         if (!force && rows == shownWords) return
         shownWords = rows
-        wordList.show(rows, label = { it.readable }, key = { it.word })
+        wordList.show(rows, label = { it.readable }, key = { it.word }, tooltip = ::reachTooltip)
     }
+
+    /** Where a word applies, asked at hover so a guide carried into or out of the room shows at once. */
+    private fun reachTooltip(row: WordRow): List<Component> =
+        if (DeskModel.can(DeskCapability.WORD_REACH)) WordReachTooltip.linesFor(row.word) else emptyList()
 
     private fun refreshControls() {
         paperButtons.forEachIndexed { index, button ->

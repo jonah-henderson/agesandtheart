@@ -40,6 +40,8 @@ import co.voik.agesandtheart.desk.InkCaseMenu
 import co.voik.agesandtheart.desk.SupplyBinMenu
 import co.voik.agesandtheart.desk.GeologistsToolsMenu
 import co.voik.agesandtheart.desk.SeismographMenu
+import co.voik.agesandtheart.desk.Transcriber
+import co.voik.agesandtheart.desk.FrequencyTuner
 import co.voik.agesandtheart.desk.WritersDeskMenu
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.station.Station
@@ -1891,6 +1893,8 @@ object AgeContent {
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_BLOCK,
         SEISMOGRAPH_ID to SEISMOGRAPH_BLOCK,
         CRYSTAL_VIEWER_ID to CRYSTAL_VIEWER_BLOCK,
+        Transcriber.ID to Transcriber.BLOCK,
+        FrequencyTuner.ID to FrequencyTuner.BLOCK,
         GRAMMAR_GUIDE_ID to GRAMMAR_GUIDE_BLOCK,
         SCARAB_NEST_ID to SCARAB_NEST_BLOCK,
         SCARAB_PILLAR_ID to SCARAB_PILLAR_BLOCK,
@@ -2005,6 +2009,8 @@ object AgeContent {
         TOOLBOX_ID to TOOLBOX_MENU,
         SEISMOGRAPH_ID to SEISMOGRAPH_MENU,
         CRYSTAL_VIEWER_ID to CRYSTAL_VIEWER_MENU,
+        Transcriber.ID to Transcriber.MENU,
+        FrequencyTuner.ID to FrequencyTuner.MENU,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_MENU,
         ARCHIVE_ID to ARCHIVE_MENU,
         STATION_ID to STATION_MENU,
@@ -2088,6 +2094,8 @@ object AgeContent {
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS,
         SEISMOGRAPH_ID to SEISMOGRAPH,
         CRYSTAL_VIEWER_ID to CRYSTAL_VIEWER,
+        Transcriber.ID to Transcriber.ITEM,
+        FrequencyTuner.ID to FrequencyTuner.ITEM,
         ARC_CRYSTAL_ID to ARC_CRYSTAL,
         ARC_CRYSTAL_BLOCK_ID to ARC_CRYSTAL_BLOCK,
         ASTRITE_SHARD_ID to ASTRITE_SHARD,

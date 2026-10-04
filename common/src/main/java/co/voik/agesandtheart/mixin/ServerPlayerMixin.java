@@ -41,8 +41,22 @@ public abstract class ServerPlayerMixin implements LearnedWordsHolder, WritingSe
     @Unique
     private long agesandtheart$writingSeed;
 
+    /** The frequency tuner's dials as this writer left them, or null where they have not tuned. */
+    @Unique
+    private int[] agesandtheart$tuning;
+
     @Unique
     private ContainerListener agesandtheart$listener;
+
+    @Override
+    public int[] agesandtheart_tuning() {
+        return this.agesandtheart$tuning;
+    }
+
+    @Override
+    public void agesandtheart_setTuning(int[] dials) {
+        this.agesandtheart$tuning = dials;
+    }
 
     @Override
     public long agesandtheart_writingSeed() {
@@ -71,6 +85,7 @@ public abstract class ServerPlayerMixin implements LearnedWordsHolder, WritingSe
         input.read(LearnedWords.SAVE_KEY, LearnedWords.Packed.CODEC)
                 .ifPresent(packed -> this.agesandtheart_learnedWords().load(packed));
         this.agesandtheart$writingSeed = input.getLongOr(WritingSeedKt.WRITING_SEED_KEY, 0L);
+        this.agesandtheart$tuning = input.getIntArray(WritingSeedKt.TUNING_KEY).orElse(null);
         // And a fall through a tear, taken up where it left off. The rest of a fall is where they are and
         // how fast they are going, both of which vanilla saves already.
         if (input.getBooleanOr(StarFissureFall.SAVE_KEY, false)) {
@@ -82,6 +97,9 @@ public abstract class ServerPlayerMixin implements LearnedWordsHolder, WritingSe
     private void agesandtheart$write(ValueOutput output, CallbackInfo ci) {
         output.store(LearnedWords.SAVE_KEY, LearnedWords.Packed.CODEC, this.agesandtheart_learnedWords().pack());
         output.putLong(WritingSeedKt.WRITING_SEED_KEY, this.agesandtheart$writingSeed);
+        if (this.agesandtheart$tuning != null) {
+            output.putIntArray(WritingSeedKt.TUNING_KEY, this.agesandtheart$tuning);
+        }
         output.putBoolean(StarFissureFall.SAVE_KEY, StarFissureFall.isFalling((ServerPlayer) (Object) this));
     }
 
@@ -90,6 +108,7 @@ public abstract class ServerPlayerMixin implements LearnedWordsHolder, WritingSe
         this.agesandtheart_learnedWords().copyFrom(((LearnedWordsHolder) oldPlayer).agesandtheart_learnedWords());
         // Death does not reroll: the Age you were about to write is still the one you were about to write.
         this.agesandtheart$writingSeed = ((WritingSeedHolder) oldPlayer).agesandtheart_writingSeed();
+        this.agesandtheart$tuning = ((WritingSeedHolder) oldPlayer).agesandtheart_tuning();
     }
 
     /** One listener per player, not per menu, so {@code addSlotListener}'s own dedupe can work. */

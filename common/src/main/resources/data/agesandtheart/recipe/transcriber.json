@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "A shroomlight over a nether quartz over phasmium, between two shelves of any wood (Jonah, 2026-10-03).",
+    "Phasmium because it is the linking material: it frames the portals and holds their books. Ratios are",
+    "unbalanced."
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " L ",
+    " Q ",
+    "SPS"
+  ],
+  "key": {
+    "L": "minecraft:shroomlight",
+    "Q": "minecraft:quartz",
+    "P": "agesandtheart:phasmium",
+    "S": "#minecraft:wooden_shelves"
+  },
+  "result": { "id": "agesandtheart:transcriber" }
+}
