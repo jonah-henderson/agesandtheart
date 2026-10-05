@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/repair_the_fusion_compounder",
+  "criteria": {
+    "compounded_stone": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "word": "agesandtheart:compounded_stone"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:compounded_stone"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.learn_compounded_stone.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.learn_compounded_stone.description"
+    },
+    "frame": "goal"
+  }
+}

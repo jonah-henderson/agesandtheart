@@ -73,8 +73,9 @@ object PalmBeach {
     private val SURF_ID: Identifier = "surf".location()
 
     /**
-     * The sea on a palm beach: one three-minute recording of waves (`sounds/surf_loop.ogg`, Jonah's, encoded
-     * mono so it can be positional), looped by `SurfLoop` while there is shore in reach. Streamed, being long.
+     * The sea on a palm beach: one three-minute recording of waves (`sounds/surf_loop.ogg`, from Freesound, see
+     * ATTRIBUTIONS.md; encoded mono so it can be positional), looped by `SurfLoop` while there is shore in reach.
+     * Streamed, being long.
      */
     val SURF: SoundEvent = SoundEvent.createVariableRangeEvent(SURF_ID)
 

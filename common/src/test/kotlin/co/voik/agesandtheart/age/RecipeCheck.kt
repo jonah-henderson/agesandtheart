@@ -16,7 +16,6 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtOps
-import net.minecraft.nbt.StringTag
 import net.minecraft.resources.Identifier
 
 /**
@@ -414,37 +413,6 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * An Age written before terrain was a set still opens, as the single-terrain Age it was.
-     *
-     * Its `terrain` is a bare string where today's is a list, and both spellings have to keep working —
-     * this is the second time that field has changed shape, and the first migration is still load-bearing.
-     */
-    test("recipes written before regions still read") {
-        val written = CompoundTag().apply {
-            put(
-                "world",
-                CompoundTag().apply {
-                    put("kind", StringTag.valueOf("composed"))
-                    put("terrain", StringTag.valueOf(Terrain.ERODED.key))
-                    put("sea", StringTag.valueOf(Sea.WATER.key))
-                },
-            )
-            putLong("seed", SAMPLE_SEED)
-            putInt(GENERATOR_VERSION_KEY, PRE_REGIONS_GENERATOR_VERSION)
-        }
-        val decoded = AgeRecipe.CODEC.parse(NbtOps.INSTANCE, written)
-            .getOrThrow { problem -> IllegalStateException("a pre-regions recipe would not load: $problem") }
-
-        check(decoded.composition?.terrains == listOf(Terrain.ERODED)) {
-            "A pre-regions terrain read back as ${decoded.composition?.terrains}"
-        }
-        check(decoded.character == AgeCharacter.LEGACY) {
-            "A recipe with no character should read as LEGACY, not ${decoded.character}"
-        }
-        check(decoded.generatorVersion == PRE_REGIONS_GENERATOR_VERSION) { "Migration overwrote the stamp" }
-    }
-
-    /**
      * An Age somebody *wrote* keeps its words and its flaws. Both are provenance — nothing rebuilds a
      * world from them, which is exactly why they are easy to lose without noticing, and the flaws are what
      * makes an unstable Age diagnosable rather than merely punished (§5.1).
@@ -484,13 +452,13 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * Who wrote an Age survives the trip, and an Age written before the question was asked answers no.
+     * Who wrote an Age survives the trip, and the default (nobody) is left unwritten.
      *
      * Both halves matter: the flag is what every §7.7 reward reads before it pays, and a recipe that lost
      * it would quietly stop paying a writer for work they did, where one that gained it would pay out on
      * every Age already in every save.
      */
-    test("whether a player wrote an Age round-trips, and an older recipe says they did not") {
+    test("whether a player wrote an Age round-trips, and the default is not written down") {
         val composition = AgeComposition(terrains = listOf(Terrain.HILLS))
         val written = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED, authored = true)
         check(roundTrips(written, "an Age somebody wrote").authored) { "the writer was lost" }
@@ -498,18 +466,17 @@ class RecipeCheck : FunSpec({
         val found = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED)
         check(!roundTrips(found, "an Age nobody wrote").authored) { "an unwritten Age came back written" }
 
-        val beforeTheFlag = AgeRecipe.CODEC.encodeStart(NbtOps.INSTANCE, found)
+        val encodedDefault = AgeRecipe.CODEC.encodeStart(NbtOps.INSTANCE, found)
             .getOrThrow { problem -> IllegalStateException("would not encode: $problem") }
-        check("authored" !in (beforeTheFlag as CompoundTag).keySet()) {
-            "the default is written down, so a recipe from before it would read as whatever it is today"
+        check("authored" !in (encodedDefault as CompoundTag).keySet()) {
+            "the default is written down"
         }
     }
 
     /**
      * An Age whose aspects divide unevenly keeps its shares, through NBT and through its own spelling.
      * Shares are generation inputs, so losing one hands back a different world on the next open — and an
-     * even division must keep its old spelling, or every recipe written before shares reads as something
-     * else.
+     * even division says nothing about shares.
      */
     test("an uneven division round-trips") {
         val uneven = AgeComposition(terrains = listOf(Terrain.HILLS))
@@ -531,8 +498,7 @@ class RecipeCheck : FunSpec({
         }
         check(AgeComposition.parse(spelling).getOrThrow() == uneven) { "'$spelling' does not read back as itself" }
 
-        // An even division says nothing about shares at all, which is what keeps a hand-composed Age — and
-        // every recipe written before shares existed — spelled exactly as it was.
+        // An even division says nothing about shares at all.
         val even = AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.PILLARS))
         check("@" !in even.toString()) { "an even division should not mention shares: '$even'" }
         check(even.spreadOf(Aspect.TERRAIN).shares == listOf(Share.EVEN, Share.EVEN)) {
@@ -567,36 +533,9 @@ class RecipeCheck : FunSpec({
         }
         check(AgeComposition.parse(spelling).getOrThrow() == riven) { "'$spelling' does not read back as itself" }
 
-        // An undivided Age has no boundary and says nothing about one, so every recipe written before this
-        // is spelled exactly as it was.
+        // An undivided Age has no boundary and says nothing about one.
         val whole = AgeComposition(terrains = listOf(Terrain.HILLS))
         check(Spread.SEAM !in whole.toString()) { "an undivided Age should mention no seam: '$whole'" }
-    }
-
-    /**
-     * An Age written before words existed still opens, and opens as a coherent Age with nothing to say for
-     * itself — which is the truth about it, since nobody wrote it from a sentence.
-     */
-    test("recipes written before words still read") {
-        val written = CompoundTag().apply {
-            put(
-                "world",
-                CompoundTag().apply {
-                    put("kind", StringTag.valueOf("composed"))
-                    put("terrain", StringTag.valueOf(Terrain.HILLS.key))
-                },
-            )
-            putLong("seed", SAMPLE_SEED)
-            putInt(GENERATOR_VERSION_KEY, PRE_WORDS_GENERATOR_VERSION)
-        }
-        val decoded = AgeRecipe.CODEC.parse(NbtOps.INSTANCE, written)
-            .getOrThrow { problem -> IllegalStateException("a pre-words recipe would not load: $problem") }
-
-        check(decoded.words.isEmpty()) { "a recipe with no words read back with ${decoded.words}" }
-        check(decoded.instability == Instability.NONE) {
-            "a recipe with no flaws read back as ${decoded.instability}"
-        }
-        check(decoded.generatorVersion == PRE_WORDS_GENERATOR_VERSION) { "Migration overwrote the stamp" }
     }
 
     /**
@@ -649,11 +588,7 @@ private const val GENERATOR_VERSION_KEY = "generator_version"
 /** A stamp no generation ever has, so an absent one fails the comparison rather than passing by accident. */
 private const val NOT_STAMPED = -1
 
-/** And what every Age written after aspects but before regions is stamped with. */
-private const val PRE_REGIONS_GENERATOR_VERSION = 2
 
-/** And what every Age written after every aspect became positional but before words could write one is. */
-private const val PRE_WORDS_GENERATOR_VERSION = 5
 
 /** What the sample flaws add up to: a division at exact precision, plus the tension behind it. */
 private const val EXPECTED_SAMPLE_INDEX = 4

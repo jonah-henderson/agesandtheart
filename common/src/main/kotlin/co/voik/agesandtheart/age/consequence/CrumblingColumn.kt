@@ -116,7 +116,7 @@ class CrumblingColumn(type: EntityType<out CrumblingColumn>, level: Level) : Ent
     private fun at(y: Int) = BlockPos(blockX, y, blockZ)
 
     private fun isSpared(level: ServerLevel, at: BlockPos): Boolean =
-        level.getBlockState(at).`is`(CaveIn.IMMUNE_TO_COLLAPSE) || BetweenNara.holds(level, at)
+        level.getBlockState(at).`is`(CaveIn.IMMUNE_TO_COLLAPSE) || BetweenCompoundedStone.holds(level, at)
 
     private fun crack(level: ServerLevel, at: BlockPos, stage: Int) =
         level.destroyBlockProgress(breakerFor(at), at, stage)

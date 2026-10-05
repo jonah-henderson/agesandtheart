@@ -1,0 +1,20 @@
+{
+  "parent": "agesandtheart:art/build_a_writers_desk",
+  "criteria": {
+    "wrote": {
+      "trigger": "agesandtheart:wrote_age"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:descriptive_book"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.write_an_age.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.write_an_age.description"
+    },
+    "frame": "task"
+  }
+}

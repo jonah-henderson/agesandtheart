@@ -8,24 +8,24 @@
 #
 # It wants no player, unlike `loot give`, which is what makes it usable headless. The Age is written
 # only to have somewhere loaded to spawn into; the tables themselves are not the Age's.
-age write dniloottest 7 age insular landmass deep water sea
-execute in agesandtheart:dniloottest run forceload add -16 -16 16 16
+age write ruinsloottest 7 age insular landmass deep water sea
+execute in agesandtheart:ruinsloottest run forceload add -16 -16 16 16
 # Ten rolls each, so a rare entry has a chance to be drawn and to fail if it is going to.
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/library
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/library
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/library
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/ink_and_paper_workshop
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/ink_and_paper_workshop
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/ink_and_paper_workshop
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/writers_workshop
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/writers_workshop
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/writers_workshop
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/maintenance_hall
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/maintenance_hall
-execute in agesandtheart:dniloottest run loot spawn 0 150 0 loot agesandtheart:chests/dni_city/maintenance_hall
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins/library
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins/library
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins/library
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins/ink_and_paper_workshop
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins/ink_and_paper_workshop
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins/ink_and_paper_workshop
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins/writers_workshop
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins/writers_workshop
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins/writers_workshop
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins/maintenance_hall
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins/maintenance_hall
+execute in agesandtheart:ruinsloottest run loot spawn 0 150 0 loot agesandtheart:chests/cavern_ruins/maintenance_hall
 # The two new items, so a missing registration reads as a parse failure rather than as an empty slot.
-execute in agesandtheart:dniloottest run summon item 0 151 0 {Item:{id:"agesandtheart:masterwork_ink_bottle",count:1}}
-execute in agesandtheart:dniloottest run summon item 0 151 0 {Item:{id:"agesandtheart:scarab_medallion",count:1}}
+execute in agesandtheart:ruinsloottest run summon item 0 151 0 {Item:{id:"agesandtheart:masterwork_ink_bottle",count:1}}
+execute in agesandtheart:ruinsloottest run summon item 0 151 0 {Item:{id:"agesandtheart:scarab_medallion",count:1}}
 # What is actually lying on the ground. A zero here means a table rolled nothing at all.
-execute in agesandtheart:dniloottest run data get entity @e[type=item,limit=1,sort=nearest,x=0,y=150,z=0]
+execute in agesandtheart:ruinsloottest run data get entity @e[type=item,limit=1,sort=nearest,x=0,y=150,z=0]

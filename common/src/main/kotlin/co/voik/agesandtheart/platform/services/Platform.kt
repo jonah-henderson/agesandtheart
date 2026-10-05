@@ -10,4 +10,7 @@ interface Platform {
 
     /** Whether a mod with the given id is loaded. */
     fun isModLoaded(modId: String?): Boolean
+
+    /** The version of the loaded mod with the given id, or null when it is not loaded. */
+    fun modVersion(modId: String): String?
 }

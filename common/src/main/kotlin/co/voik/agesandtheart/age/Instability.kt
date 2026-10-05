@@ -185,7 +185,7 @@ data class Instability(val flaws: List<Flaw>) {
     override fun toString(): String = if (isCoherent) "coherent" else "instability $index"
 
     companion object {
-        /** A sentence the world had no argument with. Also what every Age written before words had. */
+        /** A sentence the world had no argument with, and every Age not written from one. */
         val NONE = Instability(emptyList())
 
         /**

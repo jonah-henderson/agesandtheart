@@ -1,0 +1,27 @@
+{
+  "_comment": "A handful of uncommon pages, drawn together so the fireplace chest either has them or does not.",
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 2,
+        "max": 5
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:page",
+          "modifier": [
+            {
+              "type": "agesandtheart:roll_page_word",
+              "rarity": [
+                "uncommon"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

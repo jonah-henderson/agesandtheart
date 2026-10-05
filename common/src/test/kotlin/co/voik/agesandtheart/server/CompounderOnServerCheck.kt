@@ -30,7 +30,7 @@ class CompounderOnServerCheck : FunSpec({
     fun offers(x: Int, item: String): Boolean =
         server.run("execute if items block ${at(x)} container.$RESULT_SLOT $item").startsWith("Test passed")
 
-    fun loadNara(x: Int) {
+    fun loadCompoundedStone(x: Int) {
         load(x, 0, "agesandtheart:pitchstone", NARA_EACH)
         load(x, 1, "minecraft:obsidian", NARA_EACH)
         load(x, 2, "minecraft:blackstone", NARA_EACH)
@@ -68,7 +68,7 @@ class CompounderOnServerCheck : FunSpec({
 
     test("nara wants heat and cold beside the machine as well as power") {
         build(NARA_X, 1 to "agesandtheart:arc_crystal_block")
-        loadNara(NARA_X)
+        loadCompoundedStone(NARA_X)
         check(!offers(NARA_X, "agesandtheart:compounded_stone")) { "nara was offered on power alone" }
         server.run("setblock ${NARA_X + 1} $COMPOUNDER_Y 0 minecraft:magma_block")
         server.run("setblock ${NARA_X - 1} $COMPOUNDER_Y 0 agesandtheart:white_rime_crystal")

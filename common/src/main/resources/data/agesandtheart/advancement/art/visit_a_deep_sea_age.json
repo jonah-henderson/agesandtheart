@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/link_into_an_age",
+  "criteria": {
+    "visited": {
+      "trigger": "agesandtheart:entered_age",
+      "conditions": {
+        "holding": "gloomgrit"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:gloomgrit"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.visit_a_deep_sea_age.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.visit_a_deep_sea_age.description"
+    },
+    "frame": "task"
+  }
+}

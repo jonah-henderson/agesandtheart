@@ -1,0 +1,31 @@
+{
+  "parent": "agesandtheart:art/furnish_the_study",
+  "criteria": {
+    "entered": {
+      "trigger": "minecraft:location",
+      "conditions": {
+        "player": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:location": {
+              "structures": "agesandtheart:cavern_ruins"
+            }
+          }
+        }
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "minecraft:reinforced_deepslate"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.enter_the_cavern_ruins.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.enter_the_cavern_ruins.description"
+    },
+    "frame": "goal"
+  }
+}

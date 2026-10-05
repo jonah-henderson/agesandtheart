@@ -106,7 +106,7 @@ class AdvancedAnalysisMachineBlock(properties: Properties) : BaseEntityBlock(pro
         }
         celebrate(serverLevel, pos)
         serverPlayer.sendSystemMessage(Component.translatable(AdvancedAnalysisMachine.WOKEN))
-        Mastery.grant(serverPlayer, MasterySubject.NARA)
+        Mastery.grant(serverPlayer, MasterySubject.COMPOUNDED_STONE)
         return InteractionResult.CONSUME
     }
 
@@ -194,7 +194,7 @@ data class MasteryStudy(val subject: MasterySubject, val at: BlockPos, val stude
 
         val CODEC: Codec<MasteryStudy> = RecordCodecBuilder.create { instance ->
             instance.group(
-                Codec.STRING.xmap({ MasterySubject.byKey(it) ?: MasterySubject.YEMA }, MasterySubject::key)
+                Codec.STRING.xmap({ MasterySubject.byKey(it) ?: MasterySubject.PAPER_TREE }, MasterySubject::key)
                     .fieldOf("subject").forGetter { it.subject },
                 BlockPos.CODEC.fieldOf("at").forGetter { it.at },
                 UUIDUtil.CODEC.fieldOf("student").forGetter { it.student },
@@ -233,7 +233,7 @@ class AdvancedAnalysisMachineBlockEntity(pos: BlockPos, state: BlockState) :
             return Component.empty()
         }
         if (current != null) return say(howFarSaid(current.watched), subjectName(current.subject))
-        val unlearned = listOf(MasterySubject.SCARAB, MasterySubject.YEMA).filterNot { Mastery.knows(player, it) }
+        val unlearned = listOf(MasterySubject.SCARAB, MasterySubject.PAPER_TREE).filterNot { Mastery.knows(player, it) }
         if (unlearned.isEmpty()) return say(NOTHING_LEFT)
         val found = unlearned.firstNotNullOfOrNull { subject -> subjectNear(level, subject)?.let { subject to it } }
             ?: return say(NOTHING_TO_STUDY)
@@ -262,18 +262,18 @@ class AdvancedAnalysisMachineBlockEntity(pos: BlockPos, state: BlockState) :
     /** Where in reach the machine would find [subject] standing as a study needs it, or null. */
     private fun subjectNear(level: ServerLevel, subject: MasterySubject): BlockPos? = when (subject) {
         MasterySubject.SCARAB -> ScarabHabitat.nestsNear(level, blockPos, REACH).firstOrNull { isHoused(level, it) }
-        MasterySubject.YEMA -> BlockPos.betweenClosedStream(blockPos.offset(-REACH, -REACH, -REACH), blockPos.offset(REACH, REACH, REACH))
+        MasterySubject.PAPER_TREE -> BlockPos.betweenClosedStream(blockPos.offset(-REACH, -REACH, -REACH), blockPos.offset(REACH, REACH, REACH))
             .filter { isHealthyHeart(level, it) }
             .findFirst()
             .map(BlockPos::immutable)
             .orElse(null)
-        MasterySubject.NARA -> null
+        MasterySubject.COMPOUNDED_STONE -> null
     }
 
     private fun stillStands(level: ServerLevel, watched: MasteryStudy): Boolean = when (watched.subject) {
         MasterySubject.SCARAB -> isHoused(level, watched.at)
-        MasterySubject.YEMA -> isHealthyHeart(level, watched.at)
-        MasterySubject.NARA -> false
+        MasterySubject.PAPER_TREE -> isHealthyHeart(level, watched.at)
+        MasterySubject.COMPOUNDED_STONE -> false
     }
 
     private fun isHoused(level: ServerLevel, nest: BlockPos): Boolean =
@@ -290,7 +290,7 @@ class AdvancedAnalysisMachineBlockEntity(pos: BlockPos, state: BlockState) :
 
     private fun failureFor(subject: MasterySubject): String = when (subject) {
         MasterySubject.SCARAB -> FAILED_SCARAB
-        MasterySubject.YEMA, MasterySubject.NARA -> FAILED_YEMA
+        MasterySubject.PAPER_TREE, MasterySubject.COMPOUNDED_STONE -> FAILED_PAPER_TREE
     }
 
     /** No numbers to a player: how far through the day, said. */
@@ -333,7 +333,7 @@ class AdvancedAnalysisMachineBlockEntity(pos: BlockPos, state: BlockState) :
         const val BEGINS = "$TALK.begins"
         const val MASTERED = "$TALK.mastered"
         const val FAILED_SCARAB = "$TALK.failed.scarab"
-        const val FAILED_YEMA = "$TALK.failed.yema"
+        const val FAILED_PAPER_TREE = "$TALK.failed.paper_tree"
         const val JUST_BEGUN = "$TALK.progress.just_begun"
         const val A_QUARTER = "$TALK.progress.a_quarter"
         const val HALF = "$TALK.progress.half"

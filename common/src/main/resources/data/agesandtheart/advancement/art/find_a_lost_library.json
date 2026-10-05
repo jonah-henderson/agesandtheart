@@ -1,0 +1,31 @@
+{
+  "parent": "agesandtheart:art/root",
+  "criteria": {
+    "found": {
+      "trigger": "minecraft:location",
+      "conditions": {
+        "player": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:location": {
+              "structures": "agesandtheart:lost_library"
+            }
+          }
+        }
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "minecraft:chiseled_bookshelf"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.find_a_lost_library.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.find_a_lost_library.description"
+    },
+    "frame": "task"
+  }
+}

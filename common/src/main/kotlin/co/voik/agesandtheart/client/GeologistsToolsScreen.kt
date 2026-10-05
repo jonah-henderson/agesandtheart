@@ -36,8 +36,8 @@ class GeologistsToolsScreen(menu: GeologistsToolsMenu, inventory: Inventory, tit
         if (menu.source == ReadingSource.AN_IDLE_DESK) return listOf(translated("desk_idle"))
         if (menu.source == ReadingSource.A_PLAIN_WORLD) return listOf(translated("plain_world"))
         val deposit = Yield.entries.getOrNull(menu.deposit) ?: Yield.NONE
-        val deretheni = if (deposit == Yield.NONE) null else translated("amount.${deposit.key}", translated("material.pitchstone"))
-        val held = listOfNotNull(deretheni) + materialsIn(menu.materials).map { translated("material.${keyOf(it)}") }
+        val pitchstone = if (deposit == Yield.NONE) null else translated("amount.${deposit.key}", translated("material.pitchstone"))
+        val held = listOfNotNull(pitchstone) + materialsIn(menu.materials).map { translated("material.${keyOf(it)}") }
         val header = headerFor(held.isEmpty())
         if (held.isEmpty()) return listOf(header)
         return listOf(header) + held.map { translated("item", it) }

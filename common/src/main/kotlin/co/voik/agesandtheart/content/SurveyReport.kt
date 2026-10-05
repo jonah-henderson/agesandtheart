@@ -5,6 +5,7 @@ import co.voik.agesandtheart.location
 import co.voik.agesandtheart.page.PageLearning
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
+import net.minecraft.locale.Language
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
@@ -21,14 +22,13 @@ import java.util.function.Consumer
  * The three D'ni survey reports (design §7.6): each turns down a candidate Age for missing one of the
  * things a D'ni city needs, and teaches the words for it.
  *
- * What each says is in `lang/`, one key per page, [pageCount] of them. The Age it surveyed is [ageName],
- * written as [sentence] at [ageSeed], and its descriptive book is found with the report.
+ * What each says is in `lang/`, one key per page, [pageCount] of them, and so is the name of the Age it surveyed,
+ * [ageName]. That Age is written as [sentence] at [ageSeed], and its descriptive book is found with the report.
  */
 enum class SurveyReport(
     val path: String,
     val pageCount: Int,
     teaches: List<String>,
-    val ageName: String,
     sentence: String,
     val ageSeed: Long,
 ) {
@@ -36,7 +36,6 @@ enum class SurveyReport(
         "sunlit_age_survey",
         pageCount = 3,
         teaches = listOf("subterranean"),
-        ageName = "Taleen",
         sentence = "age gentle landmass teeming trees features",
         ageSeed = 0x7A1EE4L,
     ),
@@ -44,7 +43,6 @@ enum class SurveyReport(
         "lightless_age_survey",
         pageCount = 4,
         teaches = listOf("algae"),
-        ageName = "Gomur",
         sentence = "age subterranean landmass colossal chambered underground",
         ageSeed = 0x90AA7L,
     ),
@@ -52,7 +50,6 @@ enum class SurveyReport(
         "cramped_age_survey",
         pageCount = 3,
         teaches = listOf("colossal", "chambered"),
-        ageName = "Reshan",
         sentence = "age subterranean landmass colossal fissured underground algae features",
         ageSeed = 0x2E54A7L,
     ),
@@ -66,6 +63,11 @@ enum class SurveyReport(
     val teaches: List<Identifier> = teaches.map { it.location() }
 
     fun pageKey(page: Int): String = "item.${id.namespace}.$path.page.${page + 1}"
+
+    val ageNameKey: String get() = "item.${id.namespace}.$path.age_name"
+
+    /** The server's own translation: both loaders load a mod's `en_us` on a dedicated server. */
+    val ageName: String get() = Language.getInstance().getOrDefault(ageNameKey)
 }
 
 /** A survey report: reading it opens it, and teaches its words. */

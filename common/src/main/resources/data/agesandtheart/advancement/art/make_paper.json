@@ -1,0 +1,27 @@
+{
+  "parent": "agesandtheart:art/learn_a_word",
+  "criteria": {
+    "paper": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "#agesandtheart:common_paper"
+          }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "minecraft:paper"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.make_paper.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.make_paper.description"
+    },
+    "frame": "task"
+  }
+}

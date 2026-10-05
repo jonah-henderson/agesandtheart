@@ -6,6 +6,7 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.Identifier
+import net.minecraft.util.RandomSource
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.storage.loot.LootContext
 import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction
@@ -51,9 +52,7 @@ class PageWordFunction(
         val vocabulary = Vocabulary.of(context.level.server)
         val registries = context.level.registryAccess()
         val word = if (pool == null) {
-            vocabulary.rarity.draw(vocabulary, context.random, rarity) { word ->
-                !Withheld.holdsBack(word, registries) && !CannotAppearInLoot.keepsOut(word, vocabulary, registries)
-            }
+            drawFoundWord(vocabulary, registries, context.random, rarity)
         } else {
             drawFromStock(vocabulary, registries, context)
         }
@@ -72,6 +71,12 @@ class PageWordFunction(
     ): Word? = vocabulary.stock.draw(requireNotNull(pool), vocabulary, registries, context.random)
 
     companion object {
+        /** A word a found page may carry, drawn by rarity from [rarity]'s buckets, or all of them when null. */
+        fun drawFoundWord(vocabulary: Vocabulary, registries: RegistryAccess, random: RandomSource, rarity: Set<String>?): Word? =
+            vocabulary.rarity.draw(vocabulary, random, rarity) { word ->
+                !Withheld.holdsBack(word, registries) && !CannotAppearInLoot.keepsOut(word, vocabulary, registries)
+            }
+
         /** The registry holds the codec itself in 26.1 — there is no function-type wrapper any more. */
         val MAP_CODEC: MapCodec<PageWordFunction> = RecordCodecBuilder.mapCodec { instance ->
             commonFields(instance)

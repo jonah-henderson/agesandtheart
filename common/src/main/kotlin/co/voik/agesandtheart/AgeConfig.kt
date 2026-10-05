@@ -141,7 +141,7 @@ object AgeConfig {
         builder.comment("Compounding").push(COMPOUNDING)
         compoundsBedrock = builder
             .comment(
-                "Let the D'ni fusion compounder press 64 blocks of netherite into bedrock. A player with",
+                "Let the fusion compounder press 64 blocks of netherite into bedrock. A player with",
                 "bedrock can build what no other player can break.",
             )
             .translation(translationOf("compounds_bedrock"))

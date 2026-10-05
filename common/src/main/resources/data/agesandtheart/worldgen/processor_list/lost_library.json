@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "Every lost library's linking books lead back to it, from the structure block named",
+    "linking_book_target in the template; its pages and books are written afresh for each one; and",
+    "the air beside the building leaves the ground alone."
+  ],
+  "processors": [
+    {
+      "processor_type": "agesandtheart:bind_linking_books",
+      "template": "agesandtheart:lost_library",
+      "arrival": {
+        "marker": "minecraft:linking_book_target",
+        "facing": "south",
+        "name": "lost library"
+      }
+    },
+    {
+      "processor_type": "agesandtheart:write_found_items"
+    },
+    {
+      "processor_type": "agesandtheart:keep_terrain_in_open_columns"
+    }
+  ]
+}

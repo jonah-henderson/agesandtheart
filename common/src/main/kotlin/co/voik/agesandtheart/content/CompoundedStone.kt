@@ -118,7 +118,7 @@ class CompoundedStoneBlock(properties: BlockBehaviour.Properties) : Block(proper
 /** The nara pickaxe, which tells the advancements when it has broken something. */
 class CompoundedStonePickaxe(properties: Item.Properties) : Item(properties) {
     override fun mineBlock(stack: ItemStack, level: Level, state: BlockState, pos: BlockPos, owner: LivingEntity): Boolean {
-        if (owner is ServerPlayer) AgeTriggers.MINED_WITH_NARA.trigger(owner)
+        if (owner is ServerPlayer) AgeTriggers.MINED_WITH_COMPOUNDED_STONE.trigger(owner)
         return super.mineBlock(stack, level, state, pos, owner)
     }
 }

@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/enter_the_cavern_ruins",
+  "criteria": {
+    "learned": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "by": "analysis"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:analysis_machine"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.learn_by_analysis.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.learn_by_analysis.description"
+    },
+    "frame": "task"
+  }
+}

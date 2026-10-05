@@ -1,0 +1,27 @@
+{
+  "parent": "agesandtheart:art/enter_the_cavern_ruins",
+  "criteria": {
+    "paper": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:masterwork_paper"
+          }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:masterwork_paper"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.make_masterwork_paper.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.make_masterwork_paper.description"
+    },
+    "frame": "goal"
+  }
+}

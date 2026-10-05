@@ -1,0 +1,46 @@
+{
+  "parent": "agesandtheart:art/learn_compounded_stone",
+  "criteria": {
+    "compounded_stone": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "word": "agesandtheart:compounded_stone"
+      }
+    },
+    "scarab": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "word": "agesandtheart:scarab"
+      }
+    },
+    "paper_tree": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "word": "agesandtheart:paper_tree_log"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "compounded_stone"
+    ],
+    [
+      "scarab"
+    ],
+    [
+      "paper_tree"
+    ]
+  ],
+  "display": {
+    "icon": {
+      "id": "agesandtheart:descriptive_book"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.learn_the_summit_words.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.learn_the_summit_words.description"
+    },
+    "frame": "challenge"
+  }
+}

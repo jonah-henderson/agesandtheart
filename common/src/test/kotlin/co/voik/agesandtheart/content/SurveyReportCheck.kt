@@ -5,7 +5,7 @@ import io.kotest.core.spec.style.FunSpec
 
 /**
  * The survey reports' text is there to read. Whether what they teach writes a D'ni city needs the whole
- * vocabulary, and so a server: see `DniCityOnServerCheck`.
+ * vocabulary, and so a server: see `CavernRuinsOnServerCheck`.
  */
 class SurveyReportCheck : FunSpec({
 
@@ -20,7 +20,7 @@ class SurveyReportCheck : FunSpec({
     test("every report names the Age its book leads to") {
         val english = shippedEnglish()
         val unnamed = SurveyReport.entries.filterNot { report ->
-            report.ageName in english.get(report.pageKey(0)).asString
+            english.get(report.ageNameKey).asString in english.get(report.pageKey(0)).asString
         }
         check(unnamed.isEmpty()) { "these reports do not name their Age on the first page: $unnamed" }
     }

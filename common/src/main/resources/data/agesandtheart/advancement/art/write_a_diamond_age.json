@@ -1,0 +1,28 @@
+{
+  "parent": "agesandtheart:art/write_an_age",
+  "criteria": {
+    "diamonds": {
+      "trigger": "agesandtheart:wrote_age",
+      "conditions": {
+        "made_of": [
+          "minecraft:diamond_block",
+          "minecraft:diamond_ore",
+          "minecraft:deepslate_diamond_ore"
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "minecraft:diamond_block"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.write_a_diamond_age.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.write_a_diamond_age.description"
+    },
+    "frame": "task",
+    "hidden": true
+  }
+}

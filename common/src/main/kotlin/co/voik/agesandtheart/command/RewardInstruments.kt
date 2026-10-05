@@ -19,20 +19,20 @@ internal object RewardInstruments {
     /** What an Age a player wrote will give back, forced rather than waited for. */
     fun addTo(age: LiteralArgumentBuilder<CommandSourceStack>) {
         age.then(scarabSubcommand())
-            .then(yemaSubcommand())
+            .then(paperTreeSubcommand())
     }
 
     /**
-     * `/age yema` — whether this Age holds the paper tree's window, and how the nearest tree's heart stands:
+     * `/age paper_tree` — whether this Age holds the paper tree's window, and how the nearest tree's heart stands:
      * its moisture and band, its strain and the stage that has reached, and its seed.
      *
      * A readout and nothing more. A tree is grown with `/place feature agesandtheart:paper_tree`, and its
      * roots wetted and dried with `/age tide`.
      */
-    private fun yemaSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("yema").executes(::runYema)
+    private fun paperTreeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("paper_tree").executes(::runPaperTree)
 
-    private fun runYema(context: CommandContext<CommandSourceStack>): Int {
+    private fun runPaperTree(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val level = source.level
         val window = Ages.recipeOf(level)?.let { PaperTreeWindow.read(it, AgeGeneration.skySpec(it)) }
@@ -49,7 +49,7 @@ internal object RewardInstruments {
             .toList()
             .minByOrNull { it.distSqr(from) }
             ?: return SUCCESS.also {
-                source.sendSuccess({ Component.literal("No yema heart within reach.") }, false)
+                source.sendSuccess({ Component.literal("No paper tree heart within reach.") }, false)
             }
         val root = level.getBlockEntity(heart) as? PaperTreeRootBlockEntity ?: return FAILURE
         val said = "The heart at ${heart.toShortString()}: ${root.describe(level)}"
@@ -57,7 +57,7 @@ internal object RewardInstruments {
         return SUCCESS
     }
 
-    /** How far `/age yema` looks for a heart, every way. */
+    /** How far `/age paper_tree` looks for a heart, every way. */
     private const val HEART_SEARCH = 16
 
     /**

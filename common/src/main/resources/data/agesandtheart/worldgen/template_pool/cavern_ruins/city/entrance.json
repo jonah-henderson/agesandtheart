@@ -1,0 +1,59 @@
+{
+  "elements": [
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/city/entrance/entrance_connector",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/city/entrance/entrance_path_1",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/city/entrance/entrance_path_2",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/city/entrance/entrance_path_3",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/city/entrance/entrance_path_4",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/city/entrance/entrance_path_5",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

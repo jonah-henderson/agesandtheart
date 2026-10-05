@@ -1,6 +1,7 @@
 package co.voik.agesandtheart
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents
 import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.platform.FabricDeepWaterFluids
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
@@ -25,6 +26,11 @@ import net.fabricmc.fabric.api.`object`.builder.v1.world.poi.PoiHelper
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
+import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents
+import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking
+import net.minecraft.network.protocol.Packet
+import net.minecraft.server.network.ConfigurationTask
+import java.util.function.Consumer
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents
 import fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry
@@ -118,6 +124,7 @@ fun init() {
     // The payload types, registered here rather than in the client entrypoint: Fabric requires them on
     // *both* sides, and registering twice throws. Common init is the only place that is true of.
     Payloads.ROUTES.forEach { registerPayload(it) }
+    registerBuildMatch()
     ServerPlayConnectionEvents.DISCONNECT.register { handler, server ->
         CommonSetup.playerLeft(server, handler.player)
     }
@@ -162,10 +169,50 @@ fun init() {
 
     ServerTickEvents.END_SERVER_TICK.register(CommonSetup::serverTick)
     ServerChunkEvents.CHUNK_LOAD.register { level, chunk, _ -> CommonSetup.chunkLoaded(level, chunk) }
+    ServerEntityEvents.ENTITY_LOAD.register { entity, _ -> CommonSetup.entityLoaded(entity) }
+    ServerEntityEvents.ENTITY_UNLOAD.register { entity, _ -> CommonSetup.entityUnloaded(entity) }
     ServerChunkEvents.CHUNK_UNLOAD.register { level, chunk -> CommonSetup.chunkUnloaded(level, chunk.pos) }
 
     // Last, and it has to be: everything of ours is registered by now, which is the whole condition.
     CommonSetup.afterContentRegistered()
+}
+
+/**
+ * Asks every joining client for its build before vanilla configuration starts, and turns away one without
+ * the mod or with a different build (`BuildMatch`). Both handlers run on netty's event loop, which is where
+ * Fabric expects configuration tasks to be completed.
+ */
+private fun registerBuildMatch() {
+    PayloadTypeRegistry.clientboundConfiguration().register(ServerBuildPayload.TYPE, ServerBuildPayload.STREAM_CODEC)
+    PayloadTypeRegistry.serverboundConfiguration().register(ClientBuildPayload.TYPE, ClientBuildPayload.STREAM_CODEC)
+    ServerConfigurationConnectionEvents.BEFORE_CONFIGURE.register { listener, _ ->
+        if (ServerConfigurationNetworking.canSend(listener, ServerBuildPayload.TYPE)) {
+            listener.addTask(AskForBuild)
+        } else {
+            Constants.LOG.info("Turned away {}: no Ages and the Art installed", listener.owner.name)
+            listener.disconnect(BuildMatch.NOT_INSTALLED)
+        }
+    }
+    ServerConfigurationNetworking.registerGlobalReceiver(ClientBuildPayload.TYPE) { payload, context ->
+        val listener = context.packetListener()
+        val refusal = BuildMatch.refusal(server = BuildMatch.OURS, client = payload.builds)
+        if (refusal == null) {
+            listener.completeTask(BuildMatch.TASK)
+        } else {
+            Constants.LOG.info(
+                "Turned away {}: build {} does not match the server's {}",
+                listener.owner.name, payload.builds, BuildMatch.OURS,
+            )
+            listener.disconnect(refusal)
+        }
+    }
+}
+
+private object AskForBuild : ConfigurationTask {
+    override fun start(send: Consumer<Packet<*>>) =
+        send.accept(ServerConfigurationNetworking.createClientboundPacket(ServerBuildPayload(BuildMatch.OURS)))
+
+    override fun type(): ConfigurationTask.Type = BuildMatch.TASK
 }
 
 /** Registers one payload's type and, for one a client sends, its receiver, which runs on the server thread. */

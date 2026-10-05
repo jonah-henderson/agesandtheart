@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/learn_compounded_stone",
+  "criteria": {
+    "scarab": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "word": "agesandtheart:scarab"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:scarab_carapace"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.learn_scarab.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.learn_scarab.description"
+    },
+    "frame": "goal"
+  }
+}

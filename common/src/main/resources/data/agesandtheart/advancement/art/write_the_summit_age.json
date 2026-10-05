@@ -1,0 +1,28 @@
+{
+  "parent": "agesandtheart:art/learn_the_summit_words",
+  "criteria": {
+    "given": {
+      "trigger": "agesandtheart:wrote_age",
+      "conditions": {
+        "naming": [
+          "agesandtheart:compounded_stone",
+          "agesandtheart:scarab",
+          "agesandtheart:paper_tree_log"
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:descriptive_book"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.write_the_summit_age.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.write_the_summit_age.description"
+    },
+    "frame": "challenge",
+    "hidden": true
+  }
+}

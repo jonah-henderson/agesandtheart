@@ -29,7 +29,7 @@ import net.minecraft.world.level.levelgen.RandomSupport
 data class AgeRecipe(
     val world: AgeWorld,
     val seed: Long,
-    val character: AgeCharacter = AgeCharacter.LEGACY,
+    val character: AgeCharacter = AgeCharacter.PLAIN,
     /** Resolved once when the Age was written and kept; never re-derived from the words. */
     val instability: Instability = Instability.NONE,
     /** The pages the book was laid with, structure included. Provenance only — nothing reads it to decide anything. */
@@ -57,9 +57,8 @@ data class AgeRecipe(
      * **The overworld's clock rather than the Age's own**, because an Age's own only advances while it is
      * loaded, which is precisely when nobody is there — the register is meant to progress in your absence.
      *
-     * Zero means an Age written before this existed, which reads as having been written at the beginning
-     * of the world. That is wrong by however old the save is and harmless: it makes an old test Age decay
-     * faster, not a live one decay wrongly.
+     * Zero ([UNRECORDED]) is an Age built without the server's clock, a demo preset's, and reads as having
+     * been written when the world began.
      */
     val writtenAt: Long = UNRECORDED,
     /**
@@ -71,8 +70,8 @@ data class AgeRecipe(
      * route to everything §7 gates behind comprehension. Nothing else about it differs — it links, it
      * decays and it can be repatterned exactly as a bound one does.
      *
-     * **False is the safe default and is why this is not derived.** A book from before the flag existed, a
-     * hand-built stack and a recipe some later code path forgets to mark all read as not paying, which
+     * **False is the safe default and is why this is not derived.** A hand-built stack and a recipe
+     * some later code path forgets to mark both read as not paying, which
      * costs a player a reward they can write again and never hands one out that was not earned.
      */
     val authored: Boolean = false,
@@ -165,7 +164,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 71
+        const val CURRENT_GENERATOR_VERSION = 1
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -174,19 +173,18 @@ data class AgeRecipe(
                 // Required, never `optionalFieldOf(name, default)`: that omits the field when it equals the
                 // default, so a recipe would read back claiming whatever version is current when it is read.
                 Codec.INT.fieldOf("generator_version").forGetter(AgeRecipe::generatorVersion),
-                AgeCharacter.MAP_CODEC.codec().optionalFieldOf("character", AgeCharacter.LEGACY)
+                AgeCharacter.MAP_CODEC.codec().optionalFieldOf("character", AgeCharacter.PLAIN)
                     .forGetter(AgeRecipe::character),
                 // Absent on every Age not written from words.
                 Instability.CODEC.optionalFieldOf("instability", Instability.NONE)
                     .forGetter(AgeRecipe::instability),
                 Codec.STRING.listOf().optionalFieldOf("words", emptyList()).forGetter(AgeRecipe::words),
-                // Absent on every Age written before an Age had an age.
+                // Absent on a demo preset, which is built without the clock.
                 Codec.LONG.optionalFieldOf("written_at", UNRECORDED).forGetter(AgeRecipe::writtenAt),
-                // Absent on every Age written before a book started from a world.
+                // Absent where the Age was written over the ordinary world.
                 AgeTemplate.CODEC.optionalFieldOf("template", AgeTemplate.ORDINARY)
                     .forGetter(AgeRecipe::template),
-                // Absent on every Age written before the rewards had a provenance to read, which reads as
-                // not having been written by a player — see [authored] for why that is the safe way round.
+                // Absent where no player wrote it — see [authored] for why that is the safe way round.
                 Codec.BOOL.optionalFieldOf("authored", false).forGetter(AgeRecipe::authored),
             ).apply(instance) {
                 world, seed, version, character, instability, words, writtenAt, template, authored,
@@ -269,7 +267,7 @@ data class AgeRecipe(
         /** The top of the size axis, which is what `colossal` sets and what a D'ni vault wants. */
         private const val COLOSSAL = "1.0..1.0"
 
-        /** An Age from before an Age had an age — read as having been written when the world began. */
+        /** An Age built without the server's clock — read as having been written when the world began. */
         const val UNRECORDED = 0L
 
         /**

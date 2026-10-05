@@ -152,6 +152,10 @@ val SPECS_BY_FEATURE: Map<String, List<String>> = mapOf(
         "co.voik.agesandtheart.server.TempestCheck",
     ),
     "advancements" to listOf("co.voik.agesandtheart.advancement.*"),
+    "compatibility" to listOf(
+        "co.voik.agesandtheart.BuildMatchCheck",
+        "co.voik.agesandtheart.server.CompatibilityRecordCheck",
+    ),
     "desk" to listOf("co.voik.agesandtheart.desk.*"),
     "stations" to listOf(
         "co.voik.agesandtheart.station.*",
@@ -169,7 +173,7 @@ val SPECS_BY_FEATURE: Map<String, List<String>> = mapOf(
         "co.voik.agesandtheart.content.BreakingApartCheck",
         "co.voik.agesandtheart.content.ChargedBandsCheck",
         "co.voik.agesandtheart.content.SurveyReportCheck",
-        "co.voik.agesandtheart.server.DniCityOnServerCheck",
+        "co.voik.agesandtheart.server.CavernRuinsOnServerCheck",
     ),
     "levels" to listOf(
         "co.voik.agesandtheart.age.RecipeCheck",
@@ -297,6 +301,9 @@ tasks.register<Test>("serverTest") {
     classpath = test.runtimeClasspath
     dependsOn(":$loader:exportServerLaunch")
     systemProperty("agesandtheart.checks.loader", loader)
+    // `CompatibilityRecordCheck` rewrites the record under this flag, and must rerun when the record is edited.
+    systemProperty("agesandtheart.recordCompatibility", project.hasProperty("recordCompatibility"))
+    inputs.files(project.file("compatibility.record")).withPropertyName("compatibilityRecord")
     // **An input, or the second loader never runs.** A system property is invisible to up-to-date checking,
     // so a suite that has passed on Fabric is reported UP-TO-DATE for NeoForge and says nothing at all —
     // which looks exactly like passing.

@@ -1,0 +1,103 @@
+{
+  "_comment": [
+    "The chest hidden in a lost library's fireplace: more of everything, rarer words, and a survey",
+    "report every time (design 7.6, 'Where they are')."
+  ],
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:descriptive_book",
+          "modifier": [
+            {
+              "type": "agesandtheart:write_found_book",
+              "kind": "basic"
+            }
+          ],
+          "weight": 3
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 17
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:chests/lost_library/uncommon_pages",
+          "weight": 3
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 1
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:ink_bottle",
+          "modifier": [
+            {
+              "type": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 3,
+                "max": 8
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:paper",
+          "modifier": [
+            {
+              "type": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 6,
+                "max": 16
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 0,
+        "max": 2
+      },
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:inject/notebook"
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:inject/survey_report"
+        }
+      ]
+    }
+  ]
+}

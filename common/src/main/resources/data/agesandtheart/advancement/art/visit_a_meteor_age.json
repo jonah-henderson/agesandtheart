@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/link_into_an_age",
+  "criteria": {
+    "visited": {
+      "trigger": "agesandtheart:entered_age",
+      "conditions": {
+        "holding": "astrite"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:astrite_shard"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.visit_a_meteor_age.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.visit_a_meteor_age.description"
+    },
+    "frame": "task"
+  }
+}

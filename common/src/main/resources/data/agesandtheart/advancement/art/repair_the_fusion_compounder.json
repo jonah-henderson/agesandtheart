@@ -1,0 +1,20 @@
+{
+  "parent": "agesandtheart:art/enter_the_cavern_ruins",
+  "criteria": {
+    "repaired": {
+      "trigger": "agesandtheart:repaired_compounder"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:fusion_compounder"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.repair_the_fusion_compounder.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.repair_the_fusion_compounder.description"
+    },
+    "frame": "goal"
+  }
+}

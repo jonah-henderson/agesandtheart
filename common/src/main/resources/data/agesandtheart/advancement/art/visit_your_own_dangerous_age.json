@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/link_into_an_age",
+  "criteria": {
+    "visited": {
+      "trigger": "agesandtheart:entered_age",
+      "conditions": {
+        "holding": "pitchstone"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:pitchstone"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.visit_your_own_dangerous_age.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.visit_your_own_dangerous_age.description"
+    },
+    "frame": "task"
+  }
+}

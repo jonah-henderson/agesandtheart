@@ -47,5 +47,5 @@ age gen grown
 age compare bare grown 3
 
 # And the whole formula as a sentence, which is what a player would lay.
-age write dnifull 7 age subterranean landmass colossal chambered underground water sea algae features
-age gen dnifull
+age write ruinsfull 7 age subterranean landmass colossal chambered underground water sea algae features
+age gen ruinsfull

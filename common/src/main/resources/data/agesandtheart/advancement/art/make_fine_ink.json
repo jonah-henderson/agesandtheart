@@ -1,0 +1,27 @@
+{
+  "parent": "agesandtheart:art/visit_your_own_dangerous_age",
+  "criteria": {
+    "ink": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:fine_ink_bottle"
+          }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:fine_ink_bottle"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.make_fine_ink.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.make_fine_ink.description"
+    },
+    "frame": "task"
+  }
+}

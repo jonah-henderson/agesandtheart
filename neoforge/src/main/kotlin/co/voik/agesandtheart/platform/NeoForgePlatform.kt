@@ -12,4 +12,6 @@ class NeoForgePlatform : Platform {
      */
     override val isDevelopment: Boolean get() = FMLLoader.getCurrentOrNull()?.isProduction() == false
     override fun isModLoaded(modId: String?): Boolean = ModList.get().isLoaded(modId)
+    override fun modVersion(modId: String): String? =
+        ModList.get().getModContainerById(modId).map { it.modInfo.version.toString() }.orElse(null)
 }

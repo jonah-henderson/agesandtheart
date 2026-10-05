@@ -1,0 +1,20 @@
+{
+  "parent": "agesandtheart:art/find_a_lost_library",
+  "criteria": {
+    "learned": {
+      "trigger": "agesandtheart:learned_word"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:page"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.learn_a_word.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.learn_a_word.description"
+    },
+    "frame": "task"
+  }
+}

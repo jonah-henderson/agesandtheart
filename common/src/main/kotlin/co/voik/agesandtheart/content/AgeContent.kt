@@ -58,9 +58,12 @@ import co.voik.agesandtheart.worldgen.carver.Porosity
 import com.mojang.serialization.MapCodec
 import co.voik.agesandtheart.worldgen.fissure.StarFissurePiece
 import co.voik.agesandtheart.worldgen.fissure.StarFissureStructure
-import co.voik.agesandtheart.worldgen.dni.DniCityStructure
-import co.voik.agesandtheart.worldgen.dni.DniDevicePiece
+import co.voik.agesandtheart.worldgen.ruins.CavernRuinsStructure
+import co.voik.agesandtheart.worldgen.ruins.CavernRuinsDevicePiece
 import co.voik.agesandtheart.worldgen.structure.LootTableSwap
+import co.voik.agesandtheart.worldgen.structure.BindLinkingBooks
+import co.voik.agesandtheart.worldgen.structure.WriteFoundItems
+import co.voik.agesandtheart.worldgen.structure.KeepTerrainInOpenColumns
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType
 import net.minecraft.world.level.levelgen.structure.StructureType
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
@@ -1439,15 +1442,15 @@ object AgeContent {
 
     val STAR_FISSURE_PIECE: StructurePieceType = StructurePieceType.ContextlessType(::StarFissurePiece)
 
-    /** A machine a D'ni city holds one of — see [DniDevicePiece]. */
-    val DNI_DEVICE_PIECE: StructurePieceType = StructurePieceType.ContextlessType(::DniDevicePiece)
+    /** A machine a D'ni city holds one of — see [CavernRuinsDevicePiece]. */
+    val CAVERN_RUINS_DEVICE_PIECE: StructurePieceType = StructurePieceType.ContextlessType(::CavernRuinsDevicePiece)
 
     /** The D'ni city — see the `dni` package. */
-    val DNI_CITY_STRUCTURE: StructureType<DniCityStructure> = StructureType { DniCityStructure.CODEC }
+    val CAVERN_RUINS_STRUCTURE: StructureType<CavernRuinsStructure> = StructureType { CavernRuinsStructure.CODEC }
 
     val structureTypes: List<Pair<Identifier, StructureType<*>>> = listOf(
         STAR_FISSURE_ID to STAR_FISSURE_STRUCTURE,
-        "dni_city".location() to DNI_CITY_STRUCTURE,
+        "cavern_ruins".location() to CAVERN_RUINS_STRUCTURE,
     )
 
     /**
@@ -1456,11 +1459,14 @@ object AgeContent {
      */
     val structureProcessors: List<Pair<Identifier, MapCodec<out StructureProcessor>>> = listOf(
         "loot_table_swap".location() to LootTableSwap.CODEC,
+        "bind_linking_books".location() to BindLinkingBooks.CODEC,
+        "write_found_items".location() to WriteFoundItems.CODEC,
+        "keep_terrain_in_open_columns".location() to KeepTerrainInOpenColumns.CODEC,
     )
 
     val structurePieces: List<Pair<Identifier, StructurePieceType>> = listOf(
         STAR_FISSURE_ID to STAR_FISSURE_PIECE,
-        "dni_device".location() to DNI_DEVICE_PIECE,
+        "cavern_ruins_device".location() to CAVERN_RUINS_DEVICE_PIECE,
     )
 
     val STAR_FISSURE_ENTITY: BlockEntityType<StarFissureBlockEntity> =

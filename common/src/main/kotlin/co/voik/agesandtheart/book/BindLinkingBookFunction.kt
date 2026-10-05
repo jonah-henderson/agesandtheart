@@ -12,6 +12,8 @@ import net.minecraft.core.Holder
 import java.util.Optional
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
 import net.minecraft.world.phys.Vec3
+import net.minecraft.core.BlockPos
+import co.voik.agesandtheart.worldgen.structure.ArrivalMarker
 
 /**
  * Writes a found linking book, so it arrives leading somewhere.
@@ -27,10 +29,19 @@ import net.minecraft.world.phys.Vec3
  * A `stray_chance` of them instead point at **wherever they were found**, which is a different and much
  * stranger object: someone else's route, to a place you have to go and see. Chests are generated all over
  * the world, so a stray book is a coordinate you would otherwise never have had a reason to visit.
+ *
+ * With an `arrival`, every book points at the structure the chest stands in instead, at its [ArrivalMarker]
+ * — the way back to a lost library from anywhere. Outside any such structure they fall back to home.
+ *
+ * ```json
+ * { "function": "agesandtheart:bind_linking_book",
+ *   "arrival": { "marker": "minecraft:linking_book_target", "facing": "south", "name": "lost library" } }
+ * ```
  */
 class BindLinkingBookFunction(
     predicate: Optional<Holder<LootItemCondition>>,
     val strayChance: Float,
+    val arrival: ArrivalMarker?,
 ) : LootItemConditionalFunction(predicate) {
 
     override fun codec(): MapCodec<out LootItemConditionalFunction> = MAP_CODEC
@@ -41,7 +52,10 @@ class BindLinkingBookFunction(
         // A stray needs to know where it is; without an origin there is nothing to bind it to, so it
         // quietly falls back to home rather than arriving blank.
         val here = context.getOptional(LootContextParams.ORIGIN)
-        val target = if (strays && here != null) {
+        val structureArrival = if (arrival != null && here != null) arrival.around(level, BlockPos.containing(here)) else null
+        val target = if (structureArrival != null) {
+            structureArrival
+        } else if (strays && here != null) {
             LinkTarget(level.dimension(), here, 0.0f, level.dimension().identifier().path.replace('_', ' '))
         } else {
             // The world's respawn point rather than literal 0,0 — "home" means where you would wake up.
@@ -71,7 +85,13 @@ class BindLinkingBookFunction(
                     Codec.floatRange(0.0f, 1.0f).optionalFieldOf("stray_chance", NO_STRAYS)
                         .forGetter(BindLinkingBookFunction::strayChance),
                 )
-                .apply(instance, ::BindLinkingBookFunction)
+                .and(
+                    ArrivalMarker.CODEC.optionalFieldOf("arrival")
+                        .forGetter { Optional.ofNullable(it.arrival) },
+                )
+                .apply(instance) { predicate, strayChance, arrival ->
+                    BindLinkingBookFunction(predicate, strayChance, arrival.orElse(null))
+                }
         }
     }
 }

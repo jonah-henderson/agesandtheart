@@ -24,7 +24,7 @@ import co.voik.agesandtheart.age.aspect.Atmosphere
 import java.util.WeakHashMap
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
-import co.voik.agesandtheart.worldgen.dni.DniCity
+import co.voik.agesandtheart.worldgen.ruins.CavernRuins
 
 /**
  * Loader-agnostic lifecycle for Ages. Opening and discarding a level is Ephemeris' [RuntimeLevels]; this
@@ -233,7 +233,7 @@ object Ages {
 
     /** Into the D'ni city where the Age has one (design §7.6), and otherwise onto footing near the origin. */
     private fun workOutTheArrivalIn(level: ServerLevel): Arrival {
-        DniCity.arrivalIn(level)?.let { return it }
+        CavernRuins.arrivalIn(level)?.let { return it }
         val (landingX, landingZ) = findFooting(level)
         return Arrival(footingIn(level, landingX, landingZ))
     }

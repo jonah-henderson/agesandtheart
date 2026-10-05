@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/write_an_age",
+  "criteria": {
+    "furnished": {
+      "trigger": "agesandtheart:desk_furnished",
+      "conditions": {
+        "rung": 1
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:crystal_viewer"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.furnish_the_study.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.furnish_the_study.description"
+    },
+    "frame": "goal"
+  }
+}

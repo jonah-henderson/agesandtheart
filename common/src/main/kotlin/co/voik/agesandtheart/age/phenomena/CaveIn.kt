@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.age.aspect.Phenomenon
-import co.voik.agesandtheart.age.consequence.BetweenNara
+import co.voik.agesandtheart.age.consequence.BetweenCompoundedStone
 import co.voik.agesandtheart.age.consequence.CrumblingColumn
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
@@ -289,9 +289,9 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
      */
     private fun isGround(state: BlockState): Boolean = !state.isAir && !state.liquid()
 
-    /** What a cave-in will not take — `#immune_to_collapse`, and what nara holds ([BetweenNara]). */
+    /** What a cave-in will not take — `#immune_to_collapse`, and what nara holds ([BetweenCompoundedStone]). */
     private fun immune(level: ServerLevel, at: BlockPos): Boolean =
-        level.getBlockState(at).`is`(IMMUNE_TO_COLLAPSE) || BetweenNara.holds(level, at)
+        level.getBlockState(at).`is`(IMMUNE_TO_COLLAPSE) || BetweenCompoundedStone.holds(level, at)
 
     private fun clearCrack(level: ServerLevel, at: BlockPos) =
         level.destroyBlockProgress(breakerFor(at), at, CLEARED)

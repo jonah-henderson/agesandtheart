@@ -120,7 +120,7 @@ object Tearing {
      * torn Age from being a slab of them at head height: a lightly flawed world holds a few near where a
      * writer walks, and a holed one is torn from bedrock to sky.
      *
-     * Declines a position already holding one, or one nara holds ([BetweenNara]), so a saturating chunk stops
+     * Declines a position already holding one, or one nara holds ([BetweenCompoundedStone]), so a saturating chunk stops
      * gaining rather than overwriting itself — the only bound in the register, and it is arithmetic rather than a budget: at the top of it
      * every column is a hole, and there is nowhere left for a wound to be.
      */
@@ -153,7 +153,7 @@ object Tearing {
         val at = BlockPos(x, y.coerceIn(floor, top), z)
         if (level.getBlockState(at).`is`(AgeContent.WOUND_BLOCK)) return false
         // Nothing a player has built exists while the chunk is still being generated.
-        val isHeld = update != Block.UPDATE_NONE && BetweenNara.holds(level, at)
+        val isHeld = update != Block.UPDATE_NONE && BetweenCompoundedStone.holds(level, at)
         if (isHeld) return false
         level.setBlock(at, AgeContent.WOUND_BLOCK.defaultBlockState(), update)
         return true

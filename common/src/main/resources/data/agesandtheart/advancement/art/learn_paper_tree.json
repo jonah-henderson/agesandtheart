@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/learn_compounded_stone",
+  "criteria": {
+    "paper_tree": {
+      "trigger": "agesandtheart:learned_word",
+      "conditions": {
+        "word": "agesandtheart:paper_tree_log"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:paper_tree_log"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.learn_paper_tree.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.learn_paper_tree.description"
+    },
+    "frame": "goal"
+  }
+}

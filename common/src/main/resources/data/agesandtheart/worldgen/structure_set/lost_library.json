@@ -1,0 +1,15 @@
+{
+  "_comment": "Between a village (34/8) and a woodland mansion (80/20) in rarity (design 7.6).",
+  "placement": {
+    "type": "minecraft:random_spread",
+    "salt": 1347183520,
+    "separation": 16,
+    "spacing": 48
+  },
+  "structures": [
+    {
+      "structure": "agesandtheart:lost_library",
+      "weight": 1
+    }
+  ]
+}

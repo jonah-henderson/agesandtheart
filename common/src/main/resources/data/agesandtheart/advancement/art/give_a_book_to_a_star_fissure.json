@@ -1,0 +1,21 @@
+{
+  "parent": "agesandtheart:art/visit_a_collapsing_age",
+  "criteria": {
+    "given": {
+      "trigger": "agesandtheart:gave_a_book_to_a_fissure"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:linking_book"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.give_a_book_to_a_star_fissure.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.give_a_book_to_a_star_fissure.description"
+    },
+    "frame": "challenge",
+    "hidden": true
+  }
+}

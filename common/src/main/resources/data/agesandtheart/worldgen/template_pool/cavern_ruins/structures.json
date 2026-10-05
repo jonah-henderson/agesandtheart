@@ -1,0 +1,215 @@
+{
+  "_comment": [
+    "Vanilla's ancient_city/structures, with each element's processor list saying what the room was FOR.",
+    "Of these templates only ten hold a chest at all, and they are the four rooms of design 7.6 and the",
+    "quarantine chamber of 4.2: chamber_1..3 are the library, sauna_1 the ink and paper workshop, barracks",
+    "the writer's workshop, tall_ruin_1..4 the maintenance hall, and ice_box_1 the quarantine chamber.",
+    "Everything else keeps the generic list.",
+    "Pairing a ROOM with a vanilla template is the placeholder half -- when the rooms are authored the",
+    "same loot tables are pointed at by the new elements and nothing else moves."
+  ],
+  "elements": [
+    {
+      "element": {
+        "element_type": "minecraft:empty_pool_element"
+      },
+      "weight": 7
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/barracks",
+        "processors": "agesandtheart:cavern_ruins_writers_workshop",
+        "projection": "rigid"
+      },
+      "weight": 4
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/chamber_1",
+        "processors": "agesandtheart:cavern_ruins_library",
+        "projection": "rigid"
+      },
+      "weight": 4
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/chamber_2",
+        "processors": "agesandtheart:cavern_ruins_library",
+        "projection": "rigid"
+      },
+      "weight": 4
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/chamber_3",
+        "processors": "agesandtheart:cavern_ruins_library",
+        "projection": "rigid"
+      },
+      "weight": 4
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/sauna_1",
+        "processors": "agesandtheart:cavern_ruins_ink_and_paper_workshop",
+        "projection": "rigid"
+      },
+      "weight": 4
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/small_statue",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 4
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/large_ruin_1",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/tall_ruin_1",
+        "processors": "agesandtheart:cavern_ruins_maintenance_hall",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/tall_ruin_2",
+        "processors": "agesandtheart:cavern_ruins_maintenance_hall",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/tall_ruin_3",
+        "processors": "agesandtheart:cavern_ruins_maintenance_hall",
+        "projection": "rigid"
+      },
+      "weight": 2
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/tall_ruin_4",
+        "processors": "agesandtheart:cavern_ruins_maintenance_hall",
+        "projection": "rigid"
+      },
+      "weight": 2
+    },
+    {
+      "element": {
+        "element_type": "minecraft:list_pool_element",
+        "elements": [
+          {
+            "element_type": "minecraft:single_pool_element",
+            "location": "minecraft:ancient_city/structures/camp_1",
+            "processors": "agesandtheart:cavern_ruins_generic_degradation",
+            "projection": "rigid"
+          },
+          {
+            "element_type": "minecraft:single_pool_element",
+            "location": "minecraft:ancient_city/structures/camp_2",
+            "processors": "agesandtheart:cavern_ruins_generic_degradation",
+            "projection": "rigid"
+          },
+          {
+            "element_type": "minecraft:single_pool_element",
+            "location": "minecraft:ancient_city/structures/camp_3",
+            "processors": "agesandtheart:cavern_ruins_generic_degradation",
+            "projection": "rigid"
+          }
+        ],
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/medium_ruin_1",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/medium_ruin_2",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/small_ruin_1",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/small_ruin_2",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/large_pillar_1",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "minecraft:ancient_city/structures/medium_pillar_1",
+        "processors": "agesandtheart:cavern_ruins_generic_degradation",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:list_pool_element",
+        "elements": [
+          {
+            "element_type": "minecraft:single_pool_element",
+            "location": "minecraft:ancient_city/structures/ice_box_1",
+            "processors": "agesandtheart:cavern_ruins_quarantine",
+            "projection": "rigid"
+          }
+        ],
+        "projection": "rigid"
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

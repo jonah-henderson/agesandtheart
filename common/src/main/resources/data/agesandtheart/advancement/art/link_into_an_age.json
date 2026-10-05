@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/learn_a_word",
+  "criteria": {
+    "linked": {
+      "trigger": "agesandtheart:linked",
+      "conditions": {
+        "into": "age"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:linking_book"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.link_into_an_age.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.link_into_an_age.description"
+    },
+    "frame": "task"
+  }
+}

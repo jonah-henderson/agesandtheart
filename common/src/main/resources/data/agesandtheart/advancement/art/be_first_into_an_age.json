@@ -1,0 +1,26 @@
+{
+  "parent": "agesandtheart:art/link_into_an_age",
+  "criteria": {
+    "stranded": {
+      "trigger": "agesandtheart:linked",
+      "conditions": {
+        "into": "age",
+        "carrying_a_linking_book": false,
+        "first_visit": true
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:descriptive_book"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.be_first_into_an_age.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.be_first_into_an_age.description"
+    },
+    "frame": "task",
+    "hidden": true
+  }
+}

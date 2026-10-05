@@ -36,8 +36,44 @@ def modAuthor = mod.modAuthor
 def license = mod.license
 def credits = mod.credits
 
+/** One git command's output in this project's directory, or empty where there is no git or no repository. */
+def gitOutput = { String... arguments ->
+    try {
+        providers.exec {
+            commandLine(['git'] + arguments.toList())
+            workingDir = project.projectDir
+            ignoreExitValue = true
+        }.standardOutput.asText.get().trim()
+    } catch (Exception ignored) {
+        ''
+    }
+}
+
+/**
+ * The version, from the nearest release tag for this Minecraft version: `v0.3.1-mc26.3` on a commit builds
+ * `0.3.1+26.3`, four commits later `0.3.1+26.3.dev4.abc1234`, with `.dirty` for uncommitted changes. Before
+ * the first tag, `mod.properties`' version stands in, marked `untagged`. `BuildMatch` reads the release
+ * part to decide which clients a server lets in.
+ */
+def releaseVersion = { ->
+    def minecraftVersion = libs.versions.minecraft.get()
+    def described = gitOutput('describe', '--tags', '--long', '--dirty', '--match', "v*-mc${minecraftVersion}")
+    def release = described =~ /^v(\d+\.\d+\.\d+)-mc[0-9.]+-(\d+)-g([0-9a-f]+)(-dirty)?$/
+    if (release.matches()) {
+        def (_, number, commitsSince, commit, dirty) = release[0]
+        def metadata = [minecraftVersion]
+        if (commitsSince != '0') metadata += ["dev${commitsSince}", commit]
+        if (dirty) metadata += 'dirty'
+        return "${number}+${metadata.join('.')}"
+    }
+    def commit = gitOutput('rev-parse', '--short', 'HEAD')
+    if (commit.isEmpty()) return mod.version
+    def dirty = !gitOutput('status', '--porcelain').isEmpty()
+    return "${mod.version}+${minecraftVersion}.untagged.${commit}${dirty ? '.dirty' : ''}"
+}
+
 group = mod.group
-version = mod.version
+version = releaseVersion()
 description = mod.description
 
 // Build files and the loader convention read these by name, so they keep working as ordinary project
@@ -111,14 +147,15 @@ repositories {
     }
 }
 
+// LICENSE carves out what ATTRIBUTIONS.md lists, so the two travel together.
 sourcesJar {
-    from(rootProject.file('LICENSE')) {
+    from(rootProject.files('LICENSE', 'ATTRIBUTIONS.md')) {
         rename { "${it}_${modId}" }
     }
 }
 
 jar {
-    from(rootProject.file('LICENSE')) {
+    from(rootProject.files('LICENSE', 'ATTRIBUTIONS.md')) {
         rename { "${it}_${modId}" }
     }
 
@@ -183,7 +220,7 @@ processResources {
             'java_version'                 : libs.versions.java.get()
     ]
 
-    filesMatching(['pack.mcmeta', 'fabric.mod.json', 'META-INF/neoforge.mods.toml', '*.mixins.json']) {
+    filesMatching(['pack.mcmeta', 'fabric.mod.json', 'META-INF/neoforge.mods.toml', '*.mixins.json', '*-build.properties']) {
         expand expandProps
     }
     inputs.properties(expandProps)

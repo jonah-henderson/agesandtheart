@@ -11,9 +11,9 @@ import net.minecraft.server.level.ServerPlayer
 
 /** The three summit things, and the word each is named by (design §7.1.2). */
 enum class MasterySubject(val key: String, val referent: Identifier) {
-    NARA("nara", "compounded_stone".location()),
+    COMPOUNDED_STONE("compounded_stone", "compounded_stone".location()),
     SCARAB("scarab", "scarab".location()),
-    YEMA("yema", "paper_tree_log".location()),
+    PAPER_TREE("paper_tree", "paper_tree_log".location()),
     ;
 
     companion object {

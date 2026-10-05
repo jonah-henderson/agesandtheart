@@ -56,11 +56,11 @@ class AdvancementsCheck : FunSpec({
     }
 
     test("a learned word passes the word and the way asked, and refuses others") {
-        val nara = Identifier.fromNamespaceAndPath("agesandtheart", "compounded_stone")
+        val compoundedStone = Identifier.fromNamespaceAndPath("agesandtheart", "compounded_stone")
         val stone = Identifier.withDefaultNamespace("stone")
-        val forNara = LearnedWordTrigger.Instance(Optional.empty(), Optional.of(nara), Optional.empty())
+        val forCompoundedStone = LearnedWordTrigger.Instance(Optional.empty(), Optional.of(compoundedStone), Optional.empty())
         val bySurvey = LearnedWordTrigger.Instance(Optional.empty(), Optional.empty(), Optional.of(LearnedBy.SURVEY))
-        check(forNara.matches(nara, LearnedBy.MASTERY) && !forNara.matches(stone, LearnedBy.MASTERY))
+        check(forCompoundedStone.matches(compoundedStone, LearnedBy.MASTERY) && !forCompoundedStone.matches(stone, LearnedBy.MASTERY))
         check(bySurvey.matches(stone, LearnedBy.SURVEY) && !bySurvey.matches(stone, LearnedBy.READING))
     }
 

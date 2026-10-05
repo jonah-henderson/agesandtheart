@@ -1,0 +1,107 @@
+{
+  "_comment": [
+    "The chest beside the lectern in a lost library's secret room: a writer's everyday supplies, and",
+    "sometimes a way back here from anywhere."
+  ],
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 2,
+        "max": 4
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:page",
+          "modifier": [
+            {
+              "type": "agesandtheart:roll_page_word",
+              "rarity": [
+                "staple",
+                "common"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:ink_bottle",
+          "modifier": [
+            {
+              "type": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 1,
+                "max": 3
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:paper",
+          "modifier": [
+            {
+              "type": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 2,
+                "max": 6
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:inject/notebook",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 3
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:linking_book",
+          "modifier": [
+            {
+              "type": "agesandtheart:bind_linking_book",
+              "arrival": {
+                "marker": "minecraft:linking_book_target",
+                "facing": "south",
+                "name": "lost library"
+              }
+            }
+          ],
+          "weight": 3
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 7
+        }
+      ]
+    }
+  ]
+}

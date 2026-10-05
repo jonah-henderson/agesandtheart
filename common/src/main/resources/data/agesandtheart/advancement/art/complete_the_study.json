@@ -1,0 +1,23 @@
+{
+  "parent": "agesandtheart:art/furnish_the_study",
+  "criteria": {
+    "complete": {
+      "trigger": "agesandtheart:desk_furnished",
+      "conditions": {
+        "rung": 2
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:seismograph"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.complete_the_study.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.complete_the_study.description"
+    },
+    "frame": "goal"
+  }
+}

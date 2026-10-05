@@ -26,7 +26,7 @@ enum class AgeHolding(private val key: String) : StringRepresentable {
     ASTRITE("astrite"),
     ARC_CRYSTAL("arc_crystal"),
     GLOOMGRIT("gloomgrit"),
-    DERETHENI("deretheni"),
+    PITCHSTONE("pitchstone"),
     ;
 
     override fun getSerializedName(): String = key
@@ -60,7 +60,7 @@ data class Arrival(val holds: Set<AgeHolding>, val collapsing: Boolean) {
             val holds = buildSet {
                 addAll(materials)
                 if (meteoric) add(AgeHolding.ASTRITE)
-                if (perilous) add(AgeHolding.DERETHENI)
+                if (perilous) add(AgeHolding.PITCHSTONE)
             }
             return Arrival(holds, collapsing = spending.bought(Manifestation.COLLAPSE) > 0)
         }

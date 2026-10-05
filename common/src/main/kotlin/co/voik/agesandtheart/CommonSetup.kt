@@ -1,5 +1,10 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.worldgen.structure.LocalMaps
+import co.voik.agesandtheart.worldgen.structure.RandomPaintings
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.decoration.ItemFrame
+import net.minecraft.world.entity.decoration.painting.Painting
 import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.advancement.Arrival
 import co.voik.agesandtheart.age.AgeSavedData
@@ -86,6 +91,8 @@ object CommonSetup {
         TheFall.letGo(server)
         // And the rubble the tears have sent home, a little at a time.
         RubbleArrivals.letDown(server)
+        // And the maps structures hang of the ground around them, kept drawn while anybody is near.
+        LocalMaps.tick(server)
     }
 
     /**
@@ -95,6 +102,20 @@ object CommonSetup {
      */
     fun serverStopped() {
         PanelWarming.serverStopped()
+        LocalMaps.serverStopped()
+    }
+
+    /** An entity entering a server level, freshly spawned or loaded with its chunk. */
+    fun entityLoaded(entity: Entity) {
+        when (entity) {
+            is Painting -> RandomPaintings.loaded(entity)
+            is ItemFrame -> LocalMaps.loaded(entity)
+        }
+    }
+
+    /** An entity leaving a server level, removed or unloaded with its chunk. */
+    fun entityUnloaded(entity: Entity) {
+        if (entity is ItemFrame) LocalMaps.unloaded(entity)
     }
 
     /**

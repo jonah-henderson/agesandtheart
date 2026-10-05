@@ -1,0 +1,24 @@
+{
+  "parent": "agesandtheart:art/link_into_an_age",
+  "criteria": {
+    "home": {
+      "trigger": "agesandtheart:linked",
+      "conditions": {
+        "into": "overworld",
+        "with": "linking_book"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:linking_book"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.link_home.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.link_home.description"
+    },
+    "frame": "task"
+  }
+}

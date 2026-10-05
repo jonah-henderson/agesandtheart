@@ -8,15 +8,15 @@
 forceload add -32 -32 32 32
 fill -12 100 -12 12 100 12 minecraft:dirt
 place feature agesandtheart:paper_tree 0 101 0
-execute positioned 0 101 0 run age yema
+execute positioned 0 101 0 run age paper_tree
 
 # Ten minutes: still in its band, the memory of wet and dry it was grown with not yet worn off.
 tick sprint 12000
-execute positioned 0 101 0 run age yema
+execute positioned 0 101 0 run age paper_tree
 
 # Twenty more: well past sere, the leaves gone and the wood dying.
 tick sprint 24000
-execute positioned 0 101 0 run age yema
+execute positioned 0 101 0 run age paper_tree
 fill -12 101 -12 12 125 12 minecraft:air replace agesandtheart:dead_paper_tree_log
 fill -12 101 -12 12 125 12 minecraft:air replace agesandtheart:paper_tree_log
 
@@ -29,7 +29,7 @@ loot spawn 0 130 0 loot agesandtheart:blocks/paper_tree_root
 age write yematide 7 age ocean biomes
 execute in agesandtheart:yematide run age tide high
 execute in agesandtheart:yematide run age tide moon
-execute in agesandtheart:yematide run age yema
+execute in agesandtheart:yematide run age paper_tree
 
 # Yema is one word, and a world written of it is dead yema: the rock, and a minted formation, both. The
 # living log should count nothing and the dead log a great deal.

@@ -238,7 +238,7 @@ class PaperTreeRootBlockEntity(pos: BlockPos, state: BlockState) :
         output.putInt(HISTORY_KEY, history)
     }
 
-    /** For `/age yema`: how the tree stands, as the root sees it. */
+    /** For `/age paper_tree`: how the tree stands, as the root sees it. */
     fun describe(level: ServerLevel): String {
         val moisture = level.getBlockState(blockPos).getOptionalValue(PaperTreeHealth.MOISTURE).orElse(-1)
         val light = lightOver(level, PaperTreeShape.grownFrom(blockPos, seed))

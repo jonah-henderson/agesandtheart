@@ -54,8 +54,8 @@ data class AgeCharacter(
             )
         }
 
-        /** What an Age written before character existed had: the default region size, every map together. */
-        val LEGACY = AgeCharacter(Alignment.SHARED, BiomeScale.DEFAULT_REGION_BLOCKS)
+        /** The default region size, every map together: what an Age has when nothing drew it a character. */
+        val PLAIN = AgeCharacter(Alignment.SHARED, BiomeScale.DEFAULT_REGION_BLOCKS)
 
         // So the character is decorrelated from everything else the seed drives.
         private const val CHARACTER_SALT = 0x0C7A_5AC7L

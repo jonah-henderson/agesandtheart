@@ -1,5 +1,7 @@
 package co.voik.agesandtheart
 
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent
+import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent
 import net.neoforged.neoforge.event.tick.ServerTickEvent
 import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.command.AgeCommand
@@ -78,6 +80,8 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         NeoForge.EVENT_BUS.addListener(::onServerTick)
         NeoForge.EVENT_BUS.addListener(::onChunkLoad)
         NeoForge.EVENT_BUS.addListener(::onChunkUnload)
+        NeoForge.EVENT_BUS.addListener(::onEntityJoinLevel)
+        NeoForge.EVENT_BUS.addListener(::onEntityLeaveLevel)
     }
 
     /**
@@ -312,6 +316,14 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     private fun onChunkUnload(event: ChunkEvent.Unload) {
         val level = event.level as? ServerLevel ?: return
         CommonSetup.chunkUnloaded(level, event.chunk.pos)
+    }
+
+    private fun onEntityJoinLevel(event: EntityJoinLevelEvent) {
+        if (event.level is ServerLevel) CommonSetup.entityLoaded(event.entity)
+    }
+
+    private fun onEntityLeaveLevel(event: EntityLeaveLevelEvent) {
+        if (event.level is ServerLevel) CommonSetup.entityUnloaded(event.entity)
     }
 
     private fun onRegisterCommands(event: RegisterCommandsEvent) {

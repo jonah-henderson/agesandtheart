@@ -20,6 +20,7 @@ import net.minecraft.client.gui.screens.inventory.MenuAccess
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
+import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking
 import net.minecraft.client.renderer.entity.EntityRenderers
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.world.entity.Entity
@@ -42,6 +43,10 @@ fun initClient() {
     ClientRegistrations.MENU_SCREENS.forEach { registerScreen(it) }
     AgeTints.register { sources, block -> BlockColorRegistry.register(sources, block) }
     ClientPayloads.RECEIVERS.forEach { registerReceiver(it) }
+    // The answer to the server's `BuildMatch` question.
+    ClientConfigurationNetworking.registerGlobalReceiver(ServerBuildPayload.TYPE) { _, context ->
+        context.responseSender().sendPacket(ClientBuildPayload(BuildMatch.OURS))
+    }
     ClientTickEvents.END_CLIENT_TICK.register(ClientSetup::clientTick)
     ClientChunkEvents.CHUNK_LOAD.register { level, chunk -> ClientSetup.chunkLoaded(level, chunk) }
     ClientChunkEvents.CHUNK_UNLOAD.register { level, chunk -> ClientSetup.chunkUnloaded(level, chunk.pos) }

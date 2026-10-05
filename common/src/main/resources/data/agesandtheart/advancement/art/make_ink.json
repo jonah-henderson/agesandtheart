@@ -1,0 +1,27 @@
+{
+  "parent": "agesandtheart:art/learn_a_word",
+  "criteria": {
+    "ink": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:ink_bottle"
+          }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:ink_bottle"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.make_ink.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.make_ink.description"
+    },
+    "frame": "task"
+  }
+}

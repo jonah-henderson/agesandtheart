@@ -1,0 +1,20 @@
+{
+  "parent": "agesandtheart:art/repair_the_fusion_compounder",
+  "criteria": {
+    "mined": {
+      "trigger": "agesandtheart:mined_with_compounded_stone"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:compounded_stone_pickaxe"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.mine_with_compounded_stone.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.mine_with_compounded_stone.description"
+    },
+    "frame": "task"
+  }
+}
