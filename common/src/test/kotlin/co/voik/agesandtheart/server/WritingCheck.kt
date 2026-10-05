@@ -203,16 +203,16 @@ private const val MOST_PHENOMENA = 2
 private data class Quantifier(val said: String, val written: String)
 
 /**
- * What naming one member comes to unquantified, which a rung then scales — see `Resolver.claimForMember`,
- * where a mention is a claim on the world rather than a page waiting for a quantifier to give it one.
+ * What naming one member comes to unquantified: half as much again. A rung replaces it rather than scaling
+ * it, so a quantified mention writes exactly the rung — see `Resolver.claimForMember`.
  */
-private const val A_MENTION = "2"
+private const val A_MENTION = "1.5"
 
 /** Enough draws that a sea turning up in one in five would show; the leak was worse than that. */
 private const val GLOWING_SEA_SEEDS = 16
 
-private val TEEMING = Quantifier("teeming", "8")
-private val SCARCE = Quantifier("scarce", "0.5")
+private val TEEMING = Quantifier("teeming", "4")
+private val SCARCE = Quantifier("scarce", "0.25")
 
 /** The recipe an Age was written with, read back out of `/age list`. */
 private fun recipeOf(server: DrivenServer, name: String): String {

@@ -34,7 +34,7 @@ class StructureDensityCheck : FunSpec({
      * structure population rescales a placement, and it is the rescale that walks the ring.
      */
     test("structures can be asked for at any rate") {
-        for (rung in listOf("teeming", "plentiful", "scarce")) {
+        for (rung in listOf("teeming", "plentiful", "few", "scarce")) {
             val said = server.run("age write spaced$rung 3 $rung villages structures age")
             check(said.contains("Created Age")) { "'$rung villages' was not written: $said" }
         }

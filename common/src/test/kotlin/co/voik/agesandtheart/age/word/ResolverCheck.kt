@@ -1172,29 +1172,25 @@ class ResolverCheck : FunSpec({
      * is the claim.
      */
     test("a rung reaches a population") {
-        fun askedFor(rung: Double): Claim {
+        fun askedFor(rung: Double): List<Claim> {
             val said = Constraint(
                 structureSet("villages"),
                 setOf(Aspect.STRUCTURES),
                 density = rung,
             )
             val resolved = Resolver.resolve(vocabulary, sentenceOf(listOf(said)), SAMPLE_SEED)
-            val population = Skew.of(
-                resolved.composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT),
-            )
-            return population.wanted.singleOrNull() ?: error("'villages' at $rung gave ${population.wanted}")
+            return Skew.of(resolved.composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT)).wanted
         }
 
-        // **It scales the mention rather than replacing it.** Naming a member is already a claim on the
-        // world, so `teeming villages` is that claim four times over — where reading the rung *as* the
-        // claim would have made `teeming` ask for less than the bare mention it was written on.
-        val unquantified = askedFor(Rung.ORDINARY).density
-        for (rung in RUNGS) {
-            val claim = askedFor(rung)
+        // **A bare mention asks for half as much again, and a rung for exactly its own amount** — the
+        // mention's bump is not stacked under a rung, so `few villages` is half of vanilla's and
+        // `plentiful villages` twice them, with a plain `villages` between.
+        val unquantified = askedFor(Rung.ORDINARY).single().density
+        check(unquantified == A_BARE_MENTION) { "a bare mention of villages asked for $unquantified" }
+        for (rung in RUNGS.filterNot(Rung::isOrdinary)) {
+            val claim = askedFor(rung).singleOrNull() ?: error("'villages' at $rung gave ${askedFor(rung)}")
             check(claim.value == "minecraft:villages") { "the rung ate the value: ${claim.value}" }
-            check(claim.density == Rung.legible(unquantified * rung)) {
-                "asking for $rung villages gave ${claim.density}, against $unquantified for a bare mention"
-            }
+            check(claim.density == rung) { "asking for $rung villages gave ${claim.density}" }
         }
     }
 
@@ -1487,7 +1483,10 @@ private fun climateOf(resolution: Resolution): List<Span> {
 }
 
 /** The amounts `art/grammar/`'s quantifier pages ask for, plus the one that asks for nothing. */
-private val RUNGS = listOf(Rung.ORDINARY, 0.25, 2.25, 4.0)
+private val RUNGS = listOf(Rung.ORDINARY, 0.25, 0.5, 2.0, 4.0)
+
+/** What naming a member the world has anyway asks for with no rung on it: half as much again. */
+private const val A_BARE_MENTION = 1.5
 
 private fun resolve(vocabulary: Vocabulary, sentence: String, seed: Long = SAMPLE_SEED): Resolution {
     val words = sentence.split(" ").filter(String::isNotBlank).map { name ->

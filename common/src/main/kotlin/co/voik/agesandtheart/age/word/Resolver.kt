@@ -112,16 +112,16 @@ object Resolver {
     /** Precedence between words claiming one part, firmest first — see [Word.PRECEDENCE]. */
     private val FIRMEST_FIRST: Comparator<Constraint> = compareByDescending(Word.PRECEDENCE) { it.word }
 
-    // How much more of the world naming a member asks for, on top of the ordinary share it already had.
-    private const val A_MENTION_IS_WORTH = 1.0
+    // How much more of the world naming a member asks for, on top of the ordinary share it already had: half
+    // as much again, so a bare mention sits between `few` and `plentiful` (Jonah, 2026-10-05).
+    private const val A_MENTION_IS_WORTH = 0.5
 
     /** What naming a member the world would not otherwise have adds: nothing, the naming being the ask. */
     private const val NOTHING_MORE = 0.0
 
     // As much of the world as any one member of a population may be talked into taking, so that a
     // sentence full of words agreeing about one biome cannot quietly make an Age of nothing else. Room
-    // for the loudest thing a writer can say about one member and no more: `teeming <member>`, which is
-    // a mention at the top rung.
+    // for the loudest thing a writer can say about one member and no more: `teeming` said twice.
     private const val MOST_OF_A_WORLD = 8.0
 
     // Where a population lets a member be pushed all the way down, the claim that says so.
@@ -1606,7 +1606,12 @@ object Resolver {
         // quarter added to it would still be more. Ordinary is one, so an unquantified word changes
         // nothing, and two quantified words compound — `teeming` said twice is very teeming.
         val rung = wanting.fold(Rung.ORDINARY) { standing, said -> standing * said.density }
-        val asked = (Rung.ORDINARY + mentioned + insisted + leaned) * rung
+        // **A rung says the amount outright, so the mention's own bump is not stacked under it** (Jonah,
+        // 2026-10-05): `few villages` is half of vanilla's villages and `plentiful villages` twice them,
+        // exactly, where a bare `villages` is half as many again.
+        val isQuantified = !Rung.isOrdinary(rung)
+        val mentionedUnlessQuantified = if (isQuantified) NOTHING_MORE else mentioned
+        val asked = (Rung.ORDINARY + mentionedUnlessQuantified + insisted + leaned) * rung
         val weight = Rung.legible(asked.coerceIn(pool.leastKept, MOST_OF_A_WORLD))
         // Struck out rather than kept at nothing: a claim of none of something is what `except` says, and
         // saying it that way keeps one mechanism for removal instead of two.
