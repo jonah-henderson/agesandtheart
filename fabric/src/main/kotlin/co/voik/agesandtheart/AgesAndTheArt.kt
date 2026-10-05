@@ -119,6 +119,7 @@ fun init() {
     AgeContent.carvers.forEach { (id, codec) -> Registry.register(BuiltInRegistries.CARVER_TYPE, id, codec) }
     AgeContent.features.forEach { (id, codec) -> Registry.register(BuiltInRegistries.FEATURE_TYPE, id, codec) }
     AgeContent.lootFunctions.forEach { (id, fn) -> Registry.register(BuiltInRegistries.LOOT_FUNCTION_TYPE, id, fn) }
+    AgeContent.lootConditions.forEach { (id, condition) -> Registry.register(BuiltInRegistries.LOOT_CONDITION_TYPE, id, condition) }
     AgeTriggers.triggers.forEach { (id, trigger) -> Registry.register(BuiltInRegistries.TRIGGER_TYPES, id, trigger) }
 
     // The payload types, registered here rather than in the client entrypoint: Fabric requires them on

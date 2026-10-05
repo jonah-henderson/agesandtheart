@@ -183,6 +183,7 @@ item agesandtheart:lava_tube
 item agesandtheart:lightless_age_survey
 item agesandtheart:linking_book
 item agesandtheart:linking_book_receptacle
+item agesandtheart:lost_library_map
 item agesandtheart:magenta_rime_crystal
 item agesandtheart:masterwork_ink_bottle
 item agesandtheart:masterwork_ink_bucket
@@ -251,6 +252,7 @@ item agesandtheart:white_sand
 item agesandtheart:white_sandstone
 item agesandtheart:writers_desk
 item agesandtheart:yellow_rime_crystal
+loot_condition_type agesandtheart:first_find
 loot_function_type agesandtheart:bind_linking_book
 loot_function_type agesandtheart:fill_notebook
 loot_function_type agesandtheart:roll_page_word

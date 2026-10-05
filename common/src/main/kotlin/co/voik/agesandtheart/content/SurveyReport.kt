@@ -89,9 +89,14 @@ class SurveyReportItem(properties: Properties, val report: SurveyReport) : Item(
         flag: TooltipFlag,
     ) {
         builder.accept(Component.translatable(AUTHOR_KEY).withStyle(ChatFormatting.GRAY))
+        // Which of the set this is, in the order the three argue, so a reader knows how many to look for.
+        builder.accept(
+            Component.translatable(NUMBER_KEY, report.ordinal + 1, SurveyReport.entries.size).withStyle(ChatFormatting.GRAY),
+        )
     }
 
     private companion object {
         const val AUTHOR_KEY = "item.agesandtheart.survey_report.author"
+        const val NUMBER_KEY = "item.agesandtheart.survey_report.number"
     }
 }

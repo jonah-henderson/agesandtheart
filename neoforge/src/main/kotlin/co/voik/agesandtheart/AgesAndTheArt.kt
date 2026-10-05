@@ -234,6 +234,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.LOOT_FUNCTION_TYPE) { helper ->
             AgeContent.lootFunctions.forEach { (id, fn) -> helper.register(id, fn) }
         }
+        event.register(Registries.LOOT_CONDITION_TYPE) { helper ->
+            AgeContent.lootConditions.forEach { (id, condition) -> helper.register(id, condition) }
+        }
     }
 
     /**

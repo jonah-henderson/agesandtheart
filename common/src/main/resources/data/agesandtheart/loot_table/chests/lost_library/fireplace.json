@@ -1,7 +1,7 @@
 {
   "_comment": [
-    "The chest hidden in a lost library's fireplace: more of everything, rarer words, and a survey",
-    "report every time (design 7.6, 'Where they are')."
+    "The chest hidden in a lost library's fireplace: more of everything and rarer words. A player's",
+    "first library chest holds a survey report, and this one holds one half the time after that (design 7.6)."
   ],
   "type": "minecraft:chest",
   "pools": [
@@ -92,6 +92,11 @@
     },
     {
       "rolls": 1,
+      "condition": {
+        "type": "agesandtheart:first_find",
+        "find": "survey_report",
+        "otherwise_chance": 0.5
+      },
       "entries": [
         {
           "type": "minecraft:loot_table",

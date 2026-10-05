@@ -1,7 +1,8 @@
 {
   "_comment": [
     "The chest beside the lectern in a lost library's secret room: a writer's everyday supplies, and",
-    "sometimes a way back here from anywhere."
+    "sometimes a way back here from anywhere. Whichever library chest a player opens first holds a survey",
+    "report (first_find); after that only the fireplace may."
   ],
   "type": "minecraft:chest",
   "pools": [
@@ -100,6 +101,20 @@
         {
           "type": "minecraft:empty",
           "weight": 7
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "condition": {
+        "type": "agesandtheart:first_find",
+        "find": "survey_report",
+        "otherwise_chance": 0.0
+      },
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:inject/survey_report"
         }
       ]
     }

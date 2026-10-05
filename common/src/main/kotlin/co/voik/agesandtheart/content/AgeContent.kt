@@ -102,6 +102,10 @@ import net.minecraft.world.entity.EquipmentSlotGroup
 import net.minecraft.world.entity.ai.attributes.AttributeModifier
 import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.item.component.ItemAttributeModifiers
+import net.minecraft.world.item.MapItem
+import net.minecraft.world.item.component.MapDecorations
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
+import co.voik.agesandtheart.page.FirstFindCondition
 import net.minecraft.world.item.equipment.ArmorType
 import net.minecraft.world.item.equipment.Equippable
 import net.minecraft.world.item.equipment.EquipmentAssets
@@ -191,6 +195,14 @@ object AgeContent {
      * player must make *these*, which is what stops the soft axis being bought at a village.
      */
     val FINE_PAPER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, FINE_PAPER_ID)))
+
+    private val LOST_LIBRARY_MAP_ID: Identifier = "lost_library_map".location()
+
+    /** A cartographer's explorer map to the nearest lost library, built as vanilla builds its own. */
+    val LOST_LIBRARY_MAP: Item = MapItem(
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, LOST_LIBRARY_MAP_ID))
+            .component(DataComponents.MAP_DECORATIONS, MapDecorations.EMPTY),
+    )
 
     val MASTERWORK_PAPER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, MASTERWORK_PAPER_ID)))
 
@@ -2058,6 +2070,7 @@ object AgeContent {
         FINE_INK_BOTTLE_ID to FINE_INK_BOTTLE,
         MASTERWORK_INK_BOTTLE_ID to MASTERWORK_INK_BOTTLE,
         FINE_PAPER_ID to FINE_PAPER,
+        LOST_LIBRARY_MAP_ID to LOST_LIBRARY_MAP,
         MASTERWORK_PAPER_ID to MASTERWORK_PAPER,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE,
         SURVEYING_DEVICE_ID to SURVEYING_DEVICE,
@@ -2121,6 +2134,10 @@ object AgeContent {
         "bind_linking_book".location() to BindLinkingBookFunction.MAP_CODEC,
         "write_found_book".location() to WriteFoundBookFunction.MAP_CODEC,
         "write_surveyed_book".location() to WriteSurveyedBookFunction.MAP_CODEC,
+    )
+
+    val lootConditions: List<Pair<Identifier, MapCodec<out LootItemCondition>>> = listOf(
+        "first_find".location() to FirstFindCondition.MAP_CODEC,
     )
 
     /**
