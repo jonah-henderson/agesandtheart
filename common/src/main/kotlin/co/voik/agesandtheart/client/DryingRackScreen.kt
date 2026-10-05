@@ -12,7 +12,7 @@ import co.voik.agesandtheart.station.DryingRackSlots
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.player.Inventory
 
-/** The drying rack's screen: the inputs, a furnace's arrow filling as the item being dried dries, and the output. */
+/** The drying rack's screen: the inputs, a furnace's arrow filling as the input nearest done dries, and the output. */
 class DryingRackScreen(menu: DryingRackMenu, inventory: Inventory, title: Component) :
     RecipeListingScreen<DryingRackMenu>(menu, inventory, title) {
 

@@ -39,8 +39,13 @@ object RubbleArrivals {
      * such as bedrock, is never sent: a heap of it at the spawn could never be cleared.
      */
     fun deliver(home: ServerLevel, rubble: FallingBlockEntity) {
-        if (!isUnbreakable(home, rubble.blockState)) RubbleBacklog.of(home).keep(rubble.blockState)
+        keep(home, rubble.blockState)
         rubble.discard()
+    }
+
+    /** Keeps [state] for the spawn, for a block that fell in without ever being an entity. */
+    fun keep(home: ServerLevel, state: BlockState) {
+        if (!isUnbreakable(home, state)) RubbleBacklog.of(home).keep(state)
     }
 
     private fun isUnbreakable(home: ServerLevel, state: BlockState): Boolean =

@@ -14,7 +14,7 @@ import net.minecraft.world.item.ItemStack
 
 /**
  * The drying rack's screen: six inputs in two columns of three, a furnace's arrow, and the output, over the
- * player's inventory. How far the item being dried has got travels on two data slots.
+ * player's inventory. How far the input nearest done has got travels on two data slots.
  */
 class DryingRackMenu(
     containerId: Int,
@@ -49,7 +49,7 @@ class DryingRackMenu(
         addDataSlots(progress)
     }
 
-    /** How far the item being dried has got, from nothing to done. */
+    /** How far the input nearest done has got, from nothing to done. */
     val dryness: Float
         get() {
             val total = progress.get(TOTAL)

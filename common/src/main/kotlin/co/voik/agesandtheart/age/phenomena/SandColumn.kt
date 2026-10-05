@@ -2,6 +2,8 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.compat.hasChunkAtColumn
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.worldgen.fissure.RubbleArrivals
+import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
 import net.minecraft.core.BlockPos
 import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.network.syncher.EntityDataSerializers
@@ -343,6 +345,8 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             }
         }
         val standing = level.getBlockState(top)
+        // A star fissure blocks no motion either, so the heightmap points at its mouth: the sand falls in.
+        if (standing.block is StarFissureBlock) return RubbleArrivals.keep(level.server.overworld(), Blocks.SAND.defaultBlockState())
         if (!standing.isAir && !standing.canBeReplaced()) level.destroyBlock(top, true)
         level.setBlockAndUpdate(top, Blocks.SAND.defaultBlockState())
     }

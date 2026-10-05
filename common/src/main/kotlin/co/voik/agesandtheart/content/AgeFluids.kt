@@ -80,7 +80,7 @@ object AgeFluids {
      * What one tank holds, **in buckets** rather than in units — the unit is the loader's, so a capacity
      * in absolute numbers could only be right on one of them.
      */
-    const val TANK_CAPACITY_BUCKETS = 64L
+    const val TANK_CAPACITY_BUCKETS = 8L
 
     /**
      * Water's own figures, against the inks' deliberately thick ones: deep water is water that happens to be

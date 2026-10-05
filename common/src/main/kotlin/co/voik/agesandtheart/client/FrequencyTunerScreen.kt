@@ -159,7 +159,7 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
             Component.literal(proposal.joinToString(" ") { WordNames.readable(it).string })
         }
         val width = imageWidth - 2 * MARGIN - BUTTON_HEIGHT - LABEL_GAP
-        graphics.textWithWordWrap(font, heard, leftPos + MARGIN, topPos + READOUT_TOP, width, Palette.TEXT)
+        graphics.textWithWordWrap(font, heard, leftPos + MARGIN, topPos + READOUT_TOP, width, READOUT_INK)
     }
 
     private fun drawScreen(graphics: GuiGraphicsExtractor, at: Rect) {
@@ -218,6 +218,7 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
         private const val MOST_MIXED = 2.0
 
         private val SCREEN = 0xFF101014.toInt()
+        private val READOUT_INK = 0xFFFFFFFF.toInt()
 
         /** Signal A red and signal B blue, the Spire's and Haven's; mixed, the violet between them. */
         private val INKS = listOf(0xFFF07C7C.toInt(), 0xFF7CA8F0.toInt())

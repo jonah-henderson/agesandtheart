@@ -7,6 +7,7 @@ import co.voik.agesandtheart.location
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.NonNullList
+import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
@@ -47,10 +48,10 @@ import net.minecraft.world.phys.BlockHitResult
 
 /**
  * The drying rack (design §7.1.2): the masterwork grades' last step, curing or drying under a sky only a
- * written Age has. Six inputs and an output, as a furnace has, worked one item at a time; hoppers in from
- * above and the sides and out from below.
+ * written Age has. Six inputs and an output, each input drying its next item alongside the others; hoppers
+ * in from above and the sides and out from below.
  *
- * **Out of its sky an item waits; wet, it starts again**: rain on the rack or water beside it puts the item
+ * **Out of its sky an item waits; wet, it starts again**: rain on the rack or water beside it puts every item
  * being dried back to nothing, while anything short of the Age simply pauses. Time is counted in ticks the
  * rack has watched, so nothing dries unloaded.
  */
@@ -89,11 +90,8 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
 
     private val items: NonNullList<ItemStack> = NonNullList.withSize(SLOT_COUNT, ItemStack.EMPTY)
 
-    /** The input being dried, or [NOTHING_DRYING]. */
-    private var drying = NOTHING_DRYING
-
-    /** How long it has been drying, in ticks watched. */
-    private var dried = 0
+    /** How long each input's next item has been drying, in ticks watched. */
+    private val dried = IntArray(INPUT_SLOTS)
 
     private val recipes: RecipeManager.CachedCheck<SingleRecipeInput, DryingRecipe> = RecipeManager.createCheck(Drying.TYPE)
 
@@ -103,17 +101,18 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
     fun dry(level: ServerLevel, pos: BlockPos) {
         if ((level.gameTime + pos.asLong()) % LOOKS_EVERY != 0L) return
         if (isWet(level, pos)) return startAgain()
-        val skies = skiesHere ?: skiesOf(level).also { skiesHere = it }
-        val slot = (0..<INPUT_SLOTS).firstOrNull { canDryNow(it, level, skies) }
-        if (slot == null) return
-        if (slot != drying) {
-            drying = slot
-            dried = 0
+        val skies = skiesHere(level)
+        val dryingNow = (0..<INPUT_SLOTS).filter { canDryNow(it, level, skies) }
+        if (dryingNow.isEmpty()) return
+        if ((level.gameTime + pos.asLong()) % DRIPS_EVERY == 0L) showDripping(level, pos)
+        for (slot in dryingNow) {
+            dried[slot] = (dried[slot] + LOOKS_EVERY.toInt()).coerceAtMost(DRY_TIME)
+            if (dried[slot] >= DRY_TIME) finish(slot, level)
         }
-        dried += LOOKS_EVERY.toInt()
-        if (dried >= DRY_TIME) finish(slot, level)
         setChanged()
     }
+
+    private fun skiesHere(level: ServerLevel): Set<DryingSky> = skiesHere ?: skiesOf(level).also { skiesHere = it }
 
     /** Whether the input in [slot] dries under one of [skies], with room in the output for what it makes. */
     private fun canDryNow(slot: Int, level: ServerLevel, skies: Set<DryingSky>): Boolean {
@@ -123,19 +122,44 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
         return recipe.driesUnder(skies) && outputHasRoomFor(recipe.assemble(SingleRecipeInput(stack)))
     }
 
+    /** Drops on the top and sides, where a rack on the ground still shows them; a stand-in for a model's own. */
+    private fun showDripping(level: ServerLevel, pos: BlockPos) {
+        val random = level.random
+        fun across() = (random.nextDouble() - MIDDLE) * FACE_SPAN
+        repeat(DRIPS) {
+            val face = DRIPPING_FACES[random.nextInt(DRIPPING_FACES.size)]
+            fun along(step: Int) = if (step == 0) across() else step * JUST_OUTSIDE
+            val x = pos.x + MIDDLE + along(face.stepX)
+            val y = pos.y + MIDDLE + along(face.stepY)
+            val z = pos.z + MIDDLE + along(face.stepZ)
+            level.sendParticles(ParticleTypes.DRIPPING_WATER, x, y, z, 1, 0.0, 0.0, 0.0, 0.0)
+        }
+    }
+
+    /** Vanilla's failed taming, as [stack] arrives: it will never dry under this sky. */
+    private fun warnIfThisSkyRefuses(stack: ItemStack) {
+        val serverLevel = level as? ServerLevel ?: return
+        if (stack.isEmpty) return
+        val recipe = recipeFor(stack, serverLevel)?.value() ?: return
+        if (recipe.driesUnder(skiesHere(serverLevel))) return
+        val pos = blockPos
+        serverLevel.sendParticles(ParticleTypes.SMOKE, pos.x + MIDDLE, pos.y + 1.0, pos.z + MIDDLE, PUFFS, PUFF_SPREAD, PUFF_SPREAD, PUFF_SPREAD, PUFF_SPEED)
+    }
+
     private fun outputHasRoomFor(made: ItemStack): Boolean {
         val output = items[OUTPUT]
         val stacksOn = ItemStack.isSameItemSameComponents(output, made) && output.count + made.count <= output.maxStackSize
         return output.isEmpty || stacksOn
     }
 
+    /** Done, unless another input finishing this same look took the output's last room; then it waits. */
     private fun finish(slot: Int, level: ServerLevel) {
         val stack = items[slot]
         val made = recipeFor(stack, level)?.value()?.assemble(SingleRecipeInput(stack)) ?: return
+        if (!outputHasRoomFor(made)) return
         if (items[OUTPUT].isEmpty) items[OUTPUT] = made else items[OUTPUT].grow(made.count)
         stack.shrink(1)
-        drying = NOTHING_DRYING
-        dried = 0
+        dried[slot] = 0
     }
 
     /** Rain falling on it, or water against any face. */
@@ -146,8 +170,8 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
     }
 
     private fun startAgain() {
-        if (dried > 0) setChanged()
-        dried = 0
+        if (dried.any { it > 0 }) setChanged()
+        dried.fill(0)
     }
 
     private fun skiesOf(level: ServerLevel): Set<DryingSky> {
@@ -175,12 +199,15 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
 
     override fun removeItemNoUpdate(slot: Int): ItemStack = ContainerHelper.takeItem(items, slot)
 
-    /** Something else put in the place being dried starts it again; more of the same does not. */
+    /** Something else put in an input starts it again; more of the same does not. */
     override fun setItem(slot: Int, itemStack: ItemStack) {
         val isSomethingElse = !ItemStack.isSameItemSameComponents(items[slot], itemStack)
         items[slot] = itemStack
         itemStack.limitSize(getMaxStackSize(itemStack))
-        if (slot == drying && isSomethingElse) dried = 0
+        if (slot < INPUT_SLOTS && isSomethingElse) {
+            dried[slot] = 0
+            warnIfThisSkyRefuses(itemStack)
+        }
         setChanged()
     }
 
@@ -189,9 +216,9 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
     override fun createMenu(containerId: Int, inventory: Inventory, player: Player): AbstractContainerMenu =
         DryingRackMenu(containerId, inventory, this, progress)
 
-    /** Read live, so it needs no syncing of its own. */
+    /** Read live, so it needs no syncing of its own. The arrow shows the input nearest done. */
     private val progress = object : ContainerData {
-        override fun get(index: Int): Int = if (index == DryingRackMenu.DRIED) dried else DRY_TIME
+        override fun get(index: Int): Int = if (index == DryingRackMenu.DRIED) dried.max() else DRY_TIME
 
         override fun set(index: Int, value: Int) = Unit
 
@@ -202,8 +229,7 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
 
     override fun clearContent() {
         items.clear()
-        drying = NOTHING_DRYING
-        dried = 0
+        dried.fill(0)
     }
 
     /** Only what dries goes in, and never into the output. */
@@ -222,15 +248,14 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
         super.loadAdditional(input)
         items.clear()
         ContainerHelper.loadAllItems(input, items)
-        drying = input.getIntOr(DRYING_KEY, NOTHING_DRYING)
-        dried = input.getIntOr(DRIED_KEY, 0)
+        dried.fill(0)
+        input.getIntArray(DRIED_KEY).ifPresent { saved -> saved.copyInto(dried, endIndex = minOf(saved.size, INPUT_SLOTS)) }
     }
 
     override fun saveAdditional(output: ValueOutput) {
         super.saveAdditional(output)
         ContainerHelper.saveAllItems(output, items)
-        output.putInt(DRYING_KEY, drying)
-        output.putInt(DRIED_KEY, dried)
+        output.putIntArray(DRIED_KEY, dried)
     }
 
     companion object {
@@ -247,9 +272,18 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
         /** Often enough that the arrow moves smoothly. */
         private const val LOOKS_EVERY = 4L
 
-        private const val NOTHING_DRYING = -1
+        /** A multiple of [LOOKS_EVERY], so drips always fall on a look. */
+        private const val DRIPS_EVERY = 3 * LOOKS_EVERY
 
-        private const val DRYING_KEY = "drying"
+        private const val DRIPS = 2
+        private val DRIPPING_FACES = listOf(Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.EAST, Direction.WEST)
+        private const val MIDDLE = 0.5
+        private const val FACE_SPAN = 0.9
+        private const val JUST_OUTSIDE = 0.52
+        private const val PUFFS = 7
+        private const val PUFF_SPREAD = 0.3
+        private const val PUFF_SPEED = 0.02
+
         private const val DRIED_KEY = "dried"
     }
 }

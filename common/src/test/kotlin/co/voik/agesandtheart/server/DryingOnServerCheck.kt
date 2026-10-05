@@ -4,8 +4,8 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * That the drying rack finishes a masterwork grade only under the sky its recipe names, one item at a time
- * into its output: an ink cake under a black sun, a wet sheet in an Age with an open lava sea, and neither
+ * That the drying rack finishes a masterwork grade only under the sky its recipe names, each input drying
+ * alongside the others into its output: an ink cake under a black sun, a wet sheet in an Age with an open lava sea, and neither
  * anywhere else. A recipe naming no sky, rotten flesh to leather, dries in the overworld.
  *
  * On a server because the recipes are datapack JSON and the skies are written Ages. Each rack has a roof,
@@ -29,16 +29,16 @@ class DryingOnServerCheck : FunSpec({
         check(isThere) { "the chunk at ($x, 0) in ${dimensionOf(age)} never loaded" }
     }
 
-    fun rackIn(age: String?, x: Int, item: String) {
+    fun rackIn(age: String?, x: Int, item: String, inputs: Int = 1) {
         loaded(age, x)
         inLevel(age, "setblock $x $RACK_Y 0 agesandtheart:drying_rack")
         inLevel(age, "setblock $x ${RACK_Y + 1} 0 minecraft:stone")
-        inLevel(age, "item replace block $x $RACK_Y 0 container.0 with $item 2")
+        repeat(inputs) { slot -> inLevel(age, "item replace block $x $RACK_Y 0 container.$slot with $item 2") }
     }
 
-    /** Waits until both of a rack's items are [made] in its output, on a sprint that ends when it ends. */
-    fun untilBothDried(age: String?, x: Int, made: String): String = server.untilPasses(
-        "execute in ${dimensionOf(age)} if items block $x $RACK_Y 0 container.$OUTPUT $made[count=2]",
+    /** Waits until [count] of [made] are in a rack's output, on a sprint that ends when it ends. */
+    fun untilBothDried(age: String?, x: Int, made: String, count: Int = 2): String = server.untilPasses(
+        "execute in ${dimensionOf(age)} if items block $x $RACK_Y 0 container.$OUTPUT $made[count=$count]",
         tries = DRIED_TRIES,
         pauseMillis = DRIED_WAIT_MILLIS,
     )
@@ -53,16 +53,17 @@ class DryingOnServerCheck : FunSpec({
         rackIn(LAVA_SEA_AGE, SHEET_X, "agesandtheart:wet_paper_sheet")
         rackIn(LAVA_SEA_AGE, CAKE_X, "agesandtheart:ink_cake")
         rackIn(null, CAKE_X, "agesandtheart:ink_cake")
-        rackIn(null, FLESH_X, "minecraft:rotten_flesh")
+        rackIn(null, FLESH_X, "minecraft:rotten_flesh", inputs = FLESH_INPUTS)
         server.run("tick sprint $BOTH_DRIED_AND_A_LITTLE")
 
         val cured = untilBothDried(BLACK_SUN_AGE, CAKE_X, "agesandtheart:cured_ink_cake")
         check(cured.startsWith("Test passed")) { "the black sun's rack holds: ${holds(BLACK_SUN_AGE, CAKE_X)}" }
         val driedOverLava = untilBothDried(LAVA_SEA_AGE, SHEET_X, "agesandtheart:masterwork_paper")
         check(driedOverLava.startsWith("Test passed")) { "the lava sea's rack holds: ${holds(LAVA_SEA_AGE, SHEET_X)}" }
-        val leather = untilBothDried(null, FLESH_X, "minecraft:leather")
+        // Three inputs of two take 800 ticks together and 2,400 in turn, past the sprint and the wait after it.
+        val leather = untilBothDried(null, FLESH_X, "minecraft:leather", count = 2 * FLESH_INPUTS)
         check(leather.startsWith("Test passed")) {
-            "rotten flesh, which names no sky, should dry into leather in the overworld: ${holds(null, FLESH_X)}"
+            "rotten flesh, which names no sky, should dry into leather in the overworld, every input at once: ${holds(null, FLESH_X)}"
         }
 
         // Read only once the rest have dried, so each of these has had as long as they took.
@@ -81,6 +82,7 @@ class DryingOnServerCheck : FunSpec({
         const val CAKE_X = 0
         const val SHEET_X = 4
         const val FLESH_X = 8
+        const val FLESH_INPUTS = 3
 
         const val OUTPUT = 6
 
