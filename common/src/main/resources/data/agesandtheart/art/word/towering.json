@@ -1,8 +1,0 @@
-{
-  "restricts": {
-    "landmass": {
-      "mountainous": ">0.3",
-      "sheer": ">0.5"
-    }
-  }
-}

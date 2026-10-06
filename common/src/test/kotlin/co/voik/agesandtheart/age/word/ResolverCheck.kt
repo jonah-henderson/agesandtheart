@@ -1432,8 +1432,8 @@ class ResolverCheck : FunSpec({
         // Two terrain words with disjoint carriers, so the *presets* divide and the guard below has something
         // real to bite on.
         val flat = aimedAtTheLand(vocabulary.word("flat") ?: error("the shipped vocabulary lost 'flat'"))
-        val towering =
-            aimedAtTheLand(vocabulary.word("towering") ?: error("the shipped vocabulary lost 'towering'"))
+        val mountainous =
+            aimedAtTheLand(vocabulary.word("mountainous") ?: error("the shipped vocabulary lost 'mountainous'"))
         val copper = aimedAtTheLand(material("firststone", "minecraft:copper_block"))
         val andesite = aimedAtTheLand(material("secondstone", "minecraft:andesite"))
 
@@ -1459,9 +1459,9 @@ class ResolverCheck : FunSpec({
             "a fractured composition does not read back as itself: '$spelling'"
         }
 
-        // `flat towering` already splits the terrain in two, so the materials have nowhere of their own to go.
+        // `flat mountainous` already splits the terrain in two, so the materials have nowhere of their own to go.
         val alreadyDivided =
-            Resolver.resolve(vocabulary, sentenceOf(listOf(flat, towering, copper, andesite)), SAMPLE_SEED)
+            Resolver.resolve(vocabulary, sentenceOf(listOf(flat, mountainous, copper, andesite)), SAMPLE_SEED)
         check(alreadyDivided.composition.terrains.size == 2) {
             "the preset division was lost: ${alreadyDivided.composition.terrains}"
         }
@@ -1540,7 +1540,7 @@ private fun structureSet(path: String) = choosingWord(path, Aspect.STRUCTURES)
 private val SENTENCES = listOf(
     "beautiful floating",
     "verdant lifeless",
-    "flat towering",
+    "flat mountainous",
     "burning drowned",
     "riddled foreboding ancient",
     "beautiful",

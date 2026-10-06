@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Every creature that will hurt you, as `undead` is every one that died: the `hostile` tag, read on",
+    "the spawns alone, so `no monsters spawns` is a world nothing hunts and `teeming monsters spawns` one",
+    "everything does."
+  ],
+  "restricts": {
+    "spawns": {
+      "hostile": ">0.3"
+    }
+  },
+  "speech": "plural"
+}
