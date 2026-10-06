@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Ellipsoid
 import co.voik.agesandtheart.worldgen.field.Instanced
@@ -15,6 +14,7 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
 import co.voik.agesandtheart.worldgen.field.Warped
+import kotlin.math.sqrt
 
 /**
  * An underground of **great chambers, each with a lake in the bottom of it** — the vaults a city could be
@@ -238,18 +238,32 @@ object Chambers {
      * with its roof cut off square by the rock above it. What the band buys beyond that is **storeys** —
      * whatever is left over after one chamber goes in is enough for another, and small chambers stack
      * several deep in a band a colossal one fills on its own.
+     *
+     * **Size is read on the shared geometric axis**, [SizeScale]: each size word doubles a chamber's
+     * width and takes its headroom up by √2, so every step is a different place rather than a nudge.
      */
     private class Plan(val floorY: Int, val roofY: Int, size: Double?) {
-        val radius = betweenTheEnds(SMALLEST_RADIUS, LARGEST_RADIUS, size)
-        val spacing = betweenTheEnds(CLOSEST_SPACING, WIDEST_SPACING, size)
+        private val factor = SizeScale.factorAt(size)
+
+        val radius = ORDINARY_RADIUS * factor
+
+        /** Wider as they grow, in step, so a bigger chamber is not a more crowded world. */
+        val spacing = radius * SPACING_IN_RADII
 
         private val band = roofY - floorY
-        private val wanted = betweenTheEnds(SHALLOWEST_CHAMBER, DEEPEST_CHAMBER, size)
+
+        /**
+         * Headroom grows as the square root of the width, because the full factor would ask 288 of a
+         * colossal vault, more than a solid Age's whole band holds, and 18 of a minuscule one, which is
+         * under [LOWEST_CHAMBER].
+         */
+        private val wanted = ORDINARY_HEIGHT * sqrt(factor)
+
+        /** The tallest headroom whose storey still fits the band — rock both sides, the bed's swing, the dome. */
+        private val tallestThatFits = (band - 2.0 * ROCK_AROUND_A_CHAMBER) / (1.0 + BED_SWING)
 
         /** How far the dome stands over its bed — the headroom, and what a chamber's height means here. */
-        val height = wanted
-            .coerceAtMost(band - 2.0 * ROCK_AROUND_A_CHAMBER - BED_SWING * wanted)
-            .coerceAtLeast(0.0)
+        val height = wanted.coerceAtMost(tallestThatFits).coerceAtLeast(0.0)
 
         /** How far the bed swings either way about its own mean. */
         val bedRelief = height * BED_SWING
@@ -260,12 +274,12 @@ object Chambers {
         val storeys: List<Storey> = layOutStoreys()
 
         private fun layOutStoreys(): List<Storey> {
-            if (height < SHALLOWEST_CHAMBER || storeyHeight <= 0.0) return emptyList()
+            if (height < LOWEST_CHAMBER) return emptyList()
             val levels = (band / storeyHeight).toInt().coerceAtMost(MOST_STOREYS)
             // **The leftover is shared above and below rather than left overhead**, which for a colossal
-            // vault is the difference between forty blocks of rock under the lake and a hundred and ten.
-            // One storey of two hundred does not fit twice in three hundred and fifty, so a chamber stacked
-            // up from the floor sat on the bedrock with half the world's height of dead rock over it.
+            // vault in solid rock is seventy-five more blocks under its lake. One storey of nearly two
+            // hundred does not fit twice in three hundred and fifty, so a chamber stacked up from the floor
+            // sat on the bedrock with half the world's height of dead rock over it.
             val spare = ((band - levels * storeyHeight) / 2.0).toInt()
             return (0..<levels).map { level ->
                 val base = floorY + spare + (level * storeyHeight).toInt()
@@ -291,32 +305,24 @@ object Chambers {
         Plan(floorY, roofY, size).takeIf { it.storeys.isNotEmpty() }
 
     /**
-     * [size] read as a fraction of the way from the smallest chamber to the largest — the one place the
-     * shared axis becomes this shape's own units, and null, the axis nobody spoke about, is [ORDINARY].
+     * How wide a chamber is where nothing was said: 320 across, so `minuscule` is a grotto 80 across and
+     * `colossal` a vault of 1280. **`large` is where a city fits**: a jigsaw structure reaches 128 blocks from
+     * its start, so the island in the middle wants a couple of hundred across and the water round it more
+     * again, which a radius of 320 holds and nothing below it does.
      */
-    private fun betweenTheEnds(smallest: Double, largest: Double, size: Double?): Double {
-        val fraction = size?.let(Span.NATURAL::fractionOf) ?: ORDINARY
-        return smallest + fraction * (largest - smallest)
-    }
+    private const val ORDINARY_RADIUS = 160.0
 
     /**
-     * How wide a chamber is. **The top is where a city fits**: a jigsaw structure reaches 128 blocks from
-     * its start, so the island in the middle wants a couple of hundred across and the water round it more
-     * again — which is what `colossal` buys and what nothing below it does.
+     * And how tall, bed to crown, where nothing was said: 36 at `minuscule` and 144 at `colossal`, which
+     * still fits a solid Age's band once over. Read with [LAKE_ABOVE_THE_BED]: most of it is air.
      */
-    private const val SMALLEST_RADIUS = 90.0
-    private const val LARGEST_RADIUS = 380.0
+    private const val ORDINARY_HEIGHT = 72.0
 
-    /** And how deep, floor to crown. Read with [LAKE_ABOVE_THE_BED]: most of it is air. */
-    private const val SHALLOWEST_CHAMBER = 44.0
-    private const val DEEPEST_CHAMBER = 150.0
+    /** A chamber lower than this is a crawlspace, and a band that can hold nothing taller holds none. */
+    private const val LOWEST_CHAMBER = 24.0
 
-    /** How far apart they lie. Wider as they grow, so a bigger chamber is not a more crowded world. */
-    private const val CLOSEST_SPACING = 520.0
-    private const val WIDEST_SPACING = 1400.0
-
-    /** Where a chamber sits when nothing in the book spoke about its size. */
-    private const val ORDINARY = 0.4
+    /** How far apart they lie, against their own radius. */
+    private const val SPACING_IN_RADII = 4.0
 
     /** Rock over a chamber's crown and under the lowest dip of its bed, so neither opens into the band. */
     private const val ROCK_AROUND_A_CHAMBER = 10

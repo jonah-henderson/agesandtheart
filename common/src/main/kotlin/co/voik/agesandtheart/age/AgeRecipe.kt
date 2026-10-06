@@ -164,7 +164,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 1
+        const val CURRENT_GENERATOR_VERSION = 2
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -264,7 +264,7 @@ data class AgeRecipe(
             is AgeWorld.Bespoke -> world
         }
 
-        /** The top of the size axis, which is what `colossal` sets and what a D'ni vault wants. */
+        /** The top of the size axis, which is what `colossal` sets. */
         private const val COLOSSAL = "1.0..1.0"
 
         /** An Age built without the server's clock — read as having been written when the world began. */
@@ -395,8 +395,8 @@ data class AgeRecipe(
                     seas = listOf(Sea.WATER),
                     underground = Underground.NOISE_CAVES,
                 )
-                // And the same rock chambered instead, at the size the D'ni formula asks for: the vaults
-                // carry their own lakes, so the sea here is what they are made of rather than a level.
+                // And the same rock chambered instead, at the biggest size there is: the vaults carry their
+                // own lakes, so the sea here is what they are made of rather than a level.
                 AgePreset.CHAMBERS -> AgeComposition(
                     terrains = listOf(Terrain.SOLID),
                     seas = listOf(Sea.WATER),

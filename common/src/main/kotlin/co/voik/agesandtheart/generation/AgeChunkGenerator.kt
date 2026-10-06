@@ -430,7 +430,7 @@ class AgeChunkGenerator(
      * walked finding it was written for — an aquifer pocket under a real sea floor is still abyss, because
      * the sea stands over that column at the line even though the pocket itself is sealed.
      */
-    private fun abyssReachesAt(chunk: ChunkAccess, worldX: Int, worldZ: Int): Boolean {
+    fun abyssReachesAt(chunk: ChunkAccess, worldX: Int, worldZ: Int): Boolean {
         val ours = rock as? AgeRock.Ours ?: return false
         return isAbyssal(
             ours,

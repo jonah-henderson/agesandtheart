@@ -1,7 +1,7 @@
 # The D'ni environment, as the canonical formula spells it — Phase 7 step 4.
 # Run with: scripts/drive-server.sh scripts/checks/chambered.txt
 #
-# The formula is `subterranean landmass` + `colossal chambered underground` + a water sea + the algae. The algae
+# The formula is `subterranean landmass` + `large chambered underground` + a water sea + the algae. The algae
 # does not exist yet, so what this drives is the first three: does the rock generate, does it read as
 # roofed without anybody writing `sealed`, and is there a chamber with water in it at the origin.
 
@@ -17,12 +17,12 @@ age biomes warren
 # And chambered, at the size the formula asks for. What to read: the arrival should be UNDER the roof
 # rather than on top of it, which is `Ages.footingIn` taking its roofed branch — and that branch is only
 # taken because the landform declares it roofs the world, since nothing here says `sealed`.
-age compose vaults 7 landmass=subterranean sea=water underground=chambered[size=1.0..1.0]
+age compose vaults 7 landmass=subterranean sea=water underground=chambered[size=0.5..0.5]
 age gen vaults
 age biomes vaults
 
 # Written rather than composed: the whole formula as a sentence, which is what a player would lay.
-age write dni 7 age subterranean landmass colossal chambered underground water sea
+age write dni 7 age subterranean landmass large chambered underground water sea
 age gen dni
 
 # The same chambers under an ordinary surface world, since the point of putting them on the underground
@@ -47,5 +47,5 @@ age gen grown
 age compare bare grown 3
 
 # And the whole formula as a sentence, which is what a player would lay.
-age write ruinsfull 7 age subterranean landmass colossal chambered underground water sea algae features
+age write ruinsfull 7 age subterranean landmass large chambered underground water sea algae features
 age gen ruinsfull

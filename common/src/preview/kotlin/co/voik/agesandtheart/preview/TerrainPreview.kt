@@ -591,7 +591,7 @@ private val subjects: Map<String, Subject> = mapOf(
         ),
         lowestY = VerticalWindow.MIN_Y,
         highestY = VerticalWindow.HIGHEST_BLOCK_Y,
-        radius = 700,
+        radius = 900,
         step = 2,
         sliceAtZ = 0,
         sliceAtX = 0,
@@ -603,14 +603,14 @@ private val subjects: Map<String, Subject> = mapOf(
         Chambers.voidBetween(-59, SolidField.UNDERGROUND_CEILING, size = Span.NATURAL_MOST),
         lowestY = VerticalWindow.MIN_Y,
         highestY = VerticalWindow.HIGHEST_BLOCK_Y,
-        radius = 700,
+        radius = 900,
         step = 2,
         sliceAtZ = 0,
         sliceAtX = 0,
     ),
 
-    // **Ordinary chambers rather than colossal, which is the only size that stacks.** A band that holds
-    // one colossal vault holds two of these and four of the smallest, so the storeys are invisible in the
+    // **Ordinary chambers rather than colossal, which is the only size that does not stack.** A band that
+    // holds one colossal vault holds three of these and four of the smallest, so the storeys are invisible in the
     // subject above and this is the one to read them in. What to look for in the Z slice is a second
     // chamber under the first with its own lake, and rock between them rather than a shaft.
     "chambers-storeys" to Subject(

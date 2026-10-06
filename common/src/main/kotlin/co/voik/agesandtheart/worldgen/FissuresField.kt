@@ -42,7 +42,7 @@ object FissuresField {
     private const val NARROWEST = 3
 
     // How tall the tallest fissure stands, as a share of the band: a fifth at minuscule, nearly all of it at
-    // colossal. Unsaid is the halfway share, as the chambers put theirs.
+    // colossal. Unsaid is the halfway share.
     private const val LEAST_SHARE_OF_BAND = 0.2
     private const val MOST_SHARE_OF_BAND = 0.95
     private const val ORDINARY_SHARE = 0.5

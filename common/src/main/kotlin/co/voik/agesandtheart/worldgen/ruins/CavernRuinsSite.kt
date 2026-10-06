@@ -114,7 +114,7 @@ object CavernRuinsSite {
     /** An opening at the origin shorter than this is a crack, not the chamber. */
     private const val LEAST_CHAMBER_HEIGHT = 24
 
-    /** How far under the origin's bed another column's may lie and be the same chamber; the bed swings ±33. */
+    /** How far under the origin's bed another column's may lie and be the same chamber; the bed swings ±32 at most. */
     private const val BED_SWING_ALLOWED = 40
 
     /** Room over the island for the city; the start piece alone stands 28 over its street. */

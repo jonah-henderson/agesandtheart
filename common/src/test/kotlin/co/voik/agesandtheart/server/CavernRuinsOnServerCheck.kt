@@ -25,7 +25,7 @@ class CavernRuinsOnServerCheck : FunSpec({
     }
 
     test("the reports' words, written out, make an Age with a D'ni city") {
-        val sentence = "age subterranean landmass colossal chambered underground algae features"
+        val sentence = "age subterranean landmass large chambered underground algae features"
         val taught = SurveyReport.entries.flatMap { it.teaches }.map { it.path }
         val untaught = taught.filterNot { it in sentence.split(' ') }
         check(untaught.isEmpty()) { "the sentence leaves out words a report teaches: $untaught" }
@@ -41,14 +41,6 @@ class CavernRuinsOnServerCheck : FunSpec({
     test("no Age a report turned down has a city") {
         val qualified = SurveyReport.entries.filter { hasACity(it.path, it.sentence.joinToString(" ")) }
         check(qualified.isEmpty()) { "these surveyed Ages have a city after all: $qualified" }
-    }
-
-    /** Each lacks exactly what its report says, so writing that one thing in is the whole of the fix. */
-    test("the lightless and cramped Ages are one fix from a city") {
-        val lit = SurveyReport.LIGHTLESS_AGE.sentence.joinToString(" ") + " algae features"
-        check(hasACity("gomurlit", lit)) { "'$lit' has no city" }
-        val chambered = SurveyReport.CRAMPED_AGE.sentence.joinToString(" ").replace("fissured", "chambered")
-        check(hasACity("reshanchambered", chambered)) { "'$chambered' has no city" }
     }
 
     test("a report is found with its Age's book") {

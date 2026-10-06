@@ -43,8 +43,8 @@ object CavernRuins {
     private val ALGAE = "algae".location()
 
     /**
-     * A sealed world carved into colossal chambers, with the algae named — read off the recipe, since the
-     * chambers guarantee the lakes.
+     * A sealed world carved into large chambers or bigger, with the algae named — read off the recipe, since
+     * the chambers guarantee the lakes.
      *
      * The size must be asked here: [CavernRuinsSite] needs only one island column with room over it, and
      * `beard_box` carves the rest, so a smaller chamber would take a city too.
@@ -54,13 +54,16 @@ object CavernRuins {
      */
     fun qualifies(composition: AgeComposition): Boolean =
         composition.underground == Underground.CHAMBERED &&
-            isColossal(composition.optionsFor(Aspect.UNDERGROUND)) &&
+            isLargeOrBigger(composition.optionsFor(Aspect.UNDERGROUND)) &&
             Sky.isRoofed(composition) &&
             Features.claimNaming(composition, ALGAE) != null
 
-    /** The size axis held at its top — `colossal`, and nothing a writer could reach below it. */
-    private fun isColossal(options: Options): Boolean =
-        Span.read(options.of(Terrain.SIZE))?.let { it.least >= Span.NATURAL_MOST } == true
+    /** The size axis held at `large` or above it, with nothing a writer could reach below. */
+    private fun isLargeOrBigger(options: Options): Boolean =
+        Span.read(options.of(Terrain.SIZE))?.let { it.least >= LARGE } == true
+
+    /** Where `large` sets the size axis. */
+    private const val LARGE = 0.5
 
     /**
      * The city as a set only this Age can place, or nothing. Built here rather than shipped as a

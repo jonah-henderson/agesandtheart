@@ -527,6 +527,9 @@ object DeepWater {
      * Ages a player is standing in and nothing else, so no Overworld and no End — a positive check rather
      * than a list of exclusions somebody has to remember to extend.
      *
+     * **Only where generation would have laid one**: the column has to be seabed, as
+     * [AgeChunkGenerator.abyssReachesAt] asks, or a cave lake under land that dips below the line turns.
+     *
      * **One block seeded, and the block rule does the rest.** [DeepWaterBlock] takes in the ordinary water
      * it touches a step at a time, so seeding a block on the line and letting it spread beats converting a
      * hundred of them inside a sampling visit.
@@ -545,6 +548,10 @@ object DeepWater {
             val water = level.getBlockState(spot)
             if (!isStillWater(water)) return@sweep
             if (!standsAt(level, spot)) return@sweep
+            // Last, being a whole column of the field: a lake in a cave under land is never an abyss, however
+            // far below the line its floor goes.
+            val generator = level.chunkSource.generator as? AgeChunkGenerator
+            if (generator != null && !generator.abyssReachesAt(chunk, at.x, at.z)) return@sweep
             level.setBlockAndUpdate(spot, deepWater())
         }
     }
