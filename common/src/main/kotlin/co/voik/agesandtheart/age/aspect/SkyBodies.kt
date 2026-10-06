@@ -35,6 +35,12 @@ object SkyBodies {
      */
     val ABSENT = Parameter.flag("absent", help = "Whether this body is missing from the sky altogether.")
 
+    /**
+     * Where [multiple] times vanilla's stars stands on [STARS], whose landmarks are linear in it: none at -1,
+     * vanilla's at -1/3, twice at 1/3, three times at 1 — and no further, so `teeming` is the top.
+     */
+    fun starsAt(multiple: Double): Double = ((2.0 * multiple - 3.0) / 3.0).coerceIn(-1.0, 1.0)
+
     /** How thick the stars lie: none at the bottom of the axis, [DENSEST_STARS] times vanilla's at the top. */
     val STARS = Parameter.ranged(
         "density",

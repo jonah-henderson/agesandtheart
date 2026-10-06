@@ -1,5 +1,18 @@
 {
-  "sets": {
-    "density": "1.0..1.0"
+  "_comment": [
+    "A night full of stars, said of the whole Age (Jonah, 2026-10-06): more of them and brighter, offered",
+    "and yielding to anything the book says. The precise words are the stars' own: `bright stars` for how",
+    "hard they burn, and the frequency ladder (`few stars`, `teeming stars`) for how many."
+  ],
+  "requests": {
+    "pools": [
+      {
+        "draws": "2",
+        "facets": {
+          "stars.density": "+0.6",
+          "stars.glow": "+0.5"
+        }
+      }
+    ]
   }
 }

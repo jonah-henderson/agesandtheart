@@ -143,7 +143,7 @@ astrite_age =
 
 astrite_landmasses = [open_landmass]@3 | cratered@3 | flat | pyramidal
 
-night = starlit stars | glimmering stars | [sky_colour] sky
+night = bright stars | glimmering stars | [sky_colour] sky
 
 # Reusable components
 
@@ -238,7 +238,7 @@ sky =
     | [rising] sun
     | [colour] clouds
     | overcast sky
-    | starlit stars
+    | bright stars
     | glimmering stars
     | [colour] air@2
     | inky air

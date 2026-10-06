@@ -52,7 +52,7 @@ mingled_age =
 # `only`: one or two kinds of country and nothing else, dressed to suit.
 singled_age =
     age only cherry_grove and meadow biomes [sun_colour] sun [colour] air
-    | age only ice_spikes biomes blue_ice spikes features [aurora_colour] aurora starlit stars
+    | age only ice_spikes biomes blue_ice spikes features [aurora_colour] aurora bright stars
     | age only pale_garden biomes grey sky small moon
     | uncanny age only pale_garden biomes green sky red sun
     | age only desert and badlands biomes amethyst_block spikes features sandfall phenomena orange sky
@@ -63,7 +63,7 @@ singled_age =
 spared_age =
     age [land] landmass no monsters spawns glimmering stars colossal moon@2
     | age floating landmass no monsters spawns [colour] sky [colour] clouds
-    | age [land] landmass no undead spawns starlit stars [aurora_colour] aurora
+    | age [land] landmass no undead spawns bright stars [aurora_colour] aurora
     | age [land] landmass no undead and arthropods spawns [sun_colour] sun
     | age verdant biomes no trees features [colour] grass
     | age floating landmass no trees features [colour] sky
@@ -71,7 +71,7 @@ spared_age =
 # The upper rungs: monuments in numbers.
 thronged_age =
     age [land] landmass teeming [semiprecious] [shape] features [colour] sky
-    | age [land] landmass plentiful glowstone rings features starlit stars
+    | age [land] landmass plentiful glowstone rings features bright stars
 
 # The lower rungs: a few of something, set out in an emptier country.
 thinned_age =
@@ -83,7 +83,7 @@ thinned_age =
 sited_age =
     age [land] landmass amethyst_block spikes in desert yellow sky
     | age archipelagic landmass prismarine pyramids in beach [colour] waters
-    | age [land] landmass glowstone rings in plains starlit stars
+    | age [land] landmass glowstone rings in plains bright stars
     | age teeming parrot spawns in jungle jungle biomes
     | age plentiful axolotl spawns in lush_caves
 
@@ -144,7 +144,7 @@ semiprecious = copper_block | amethyst_block | prismarine | quartz_block | obsid
 
 shape = spikes | obelisks | arches | pyramids | rings
 
-night = glimmering stars | starlit stars | [aurora_colour] aurora | small moon | colossal moon
+night = glimmering stars | bright stars | [aurora_colour] aurora | small moon | colossal moon
 
 land = gentle | eroded | continental | archipelagic | insular | mountainous | riverine | canyoned | pillared
 

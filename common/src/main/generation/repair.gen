@@ -23,11 +23,11 @@ mild_sky = clear@2 | overcast
 
 dry_sky = clear
 
-mild_stars = starlit@2 | starless
+mild_stars = bright@2 | starless
 
-cold_stars = starless@2 | starlit
+cold_stars = starless@2 | bright
 
-dry_stars = starlit
+dry_stars = bright
 
 harsh_land = sheer@2 | worn
 

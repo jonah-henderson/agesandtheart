@@ -38,15 +38,15 @@
       {"produce":["clear"]}
     ],
     "mild_stars": [
-      {"weight":2.0,"produce":["starlit"]},
+      {"weight":2.0,"produce":["bright"]},
       {"produce":["starless"]}
     ],
     "cold_stars": [
       {"weight":2.0,"produce":["starless"]},
-      {"produce":["starlit"]}
+      {"produce":["bright"]}
     ],
     "dry_stars": [
-      {"produce":["starlit"]}
+      {"produce":["bright"]}
     ],
     "harsh_land": [
       {"weight":2.0,"produce":["sheer"]},

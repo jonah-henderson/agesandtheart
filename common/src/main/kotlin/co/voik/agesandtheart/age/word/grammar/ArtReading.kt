@@ -144,7 +144,14 @@ internal object ArtReading {
 
             // A term closing its own clause keeps the rung and the `only` or `except` laid in front of it,
             // which a modifier would otherwise be read as having with nothing after it.
-            val ownedFrom = if (subject?.kind == PageClass.TERM) subjectsOwnPagesFrom(closesAt) else closesAt
+            // And an aiming page whose aspect a rung counts keeps the rung laid in front of it: `teeming stars`.
+            val countedByARung = subject?.kind == PageClass.SUBJECT && aim.any { it.count != null } &&
+                closesAt - 1 >= at && pages[closesAt - 1].kind == PageClass.QUANTIFIER
+            val ownedFrom = when {
+                subject?.kind == PageClass.TERM -> subjectsOwnPagesFrom(closesAt)
+                countedByARung -> closesAt - 1
+                else -> closesAt
+            }
             val owned = pages.subList(ownedFrom, closesAt)
             val said = modifiers(
                 until = ownedFrom, aim = aim, confinedTo = confinedTo, closes = subject, everywhere = everywhere,

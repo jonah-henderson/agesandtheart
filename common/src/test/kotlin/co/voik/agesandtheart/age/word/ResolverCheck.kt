@@ -1206,6 +1206,10 @@ class ResolverCheck : FunSpec({
             return Sky.specFor(composition, SAMPLE_SEED)
         }
 
+        // Read through the grammar, for a book with a rung in it: `teeming stars`.
+        fun skyOfBook(vararg pages: String): SkySpec =
+            Sky.specFor(ShippedCorpus.resolved(SAMPLE_SEED, *pages).composition, SAMPLE_SEED)
+
         val ordinary = skyOf("stormy")
         check(ordinary.stars.count == SkySpec.VANILLA_STAR_COUNT) {
             "a sky nobody spoke to about stars did not keep vanilla's: ${ordinary.stars.count}"
@@ -1213,8 +1217,11 @@ class ResolverCheck : FunSpec({
         check(skyOf("starless").stars.count == 0) {
             "'starless' left ${skyOf("starless").stars.count} stars in the sky"
         }
-        check(skyOf("starlit").stars.count > SkySpec.VANILLA_STAR_COUNT) {
-            "'starlit' drew ${skyOf("starlit").stars.count} stars, no more than an ordinary sky"
+        check(skyOfBook("teeming", "stars").stars.count > SkySpec.VANILLA_STAR_COUNT) {
+            "'teeming stars' drew ${skyOfBook("teeming", "stars").stars.count} stars, no more than an ordinary sky"
+        }
+        check(skyOfBook("scarce", "stars").stars.count < SkySpec.VANILLA_STAR_COUNT) {
+            "'scarce stars' drew ${skyOfBook("scarce", "stars").stars.count} stars, no fewer than an ordinary sky"
         }
 
         // Brilliance is the field's other axis, and the two must not be one word between them: a sky
@@ -1228,8 +1235,8 @@ class ResolverCheck : FunSpec({
         check(skyOf("glimmering").stars.count == SkySpec.VANILLA_STAR_COUNT) {
             "'glimmering' also added stars (${skyOf("glimmering").stars.count}), so it says two things"
         }
-        check(skyOf("starlit").stars.glow == SkySpec.ORDINARY_STAR_GLOW) {
-            "'starlit' also brightened them, so the two axes are one word between them"
+        check(skyOfBook("teeming", "stars").stars.glow == SkySpec.ORDINARY_STAR_GLOW) {
+            "'teeming stars' also brightened them, so the two axes are one word between them"
         }
 
         // And a body is minted by the clause that describes it, so two clauses are two suns — there is no

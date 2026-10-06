@@ -463,6 +463,16 @@ enum class Aspect(
     val confinable: Boolean get() = confinableParameters.isNotEmpty() || confinablePool != null
 
     /**
+     * What a rung laid on this aspect's own page counts (Jonah, 2026-10-06): `teeming stars` is how many
+     * stars there are, as `teeming villages` is how many villages. Null where nothing of the aspect is
+     * counted that way.
+     */
+    val count: Count? get() = if (this == STARS) Count(SkyBodies.STARS, SkyBodies::starsAt) else null
+
+    /** A parameter a rung counts, and where a multiple of vanilla's amount stands on it. */
+    class Count(val parameter: Parameter, val at: (Double) -> Double)
+
+    /**
      * This aspect's population where a claim on it may be sited, and null otherwise — the other half of
      * [confinable], which was all of it while a population was stored in a parameter of its own.
      */

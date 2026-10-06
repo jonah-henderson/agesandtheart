@@ -162,7 +162,7 @@
       {"produce":["pyramidal"]}
     ],
     "night": [
-      {"produce":["starlit","stars"]},
+      {"produce":["bright","stars"]},
       {"produce":["glimmering","stars"]},
       {"produce":["[sky_colour]","sky"]}
     ],
@@ -292,7 +292,7 @@
       {"produce":["[rising]","sun"]},
       {"produce":["[colour]","clouds"]},
       {"produce":["overcast","sky"]},
-      {"produce":["starlit","stars"]},
+      {"produce":["bright","stars"]},
       {"produce":["glimmering","stars"]},
       {"weight":2.0,"produce":["[colour]","air"]},
       {"produce":["inky","air"]},

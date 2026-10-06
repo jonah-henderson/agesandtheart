@@ -294,7 +294,7 @@ object Resolver {
         // an aspect a word reached and left at its default still belongs to the writer.
         val template = templateOf(said)
         val spokenTo = said.flatMap { reachOf(it) }.toSet()
-        val composition = mintedFeatures(resolved, sentence, draw).laidOver(template.world(), spokenTo)
+        val composition = counted(mintedFeatures(resolved, sentence, draw), sentence).laidOver(template.world(), spokenTo)
         flaws += mintingsThatCannotHold(vocabulary, sentence, draw)
         flaws += materialsDisplacedInMintings(vocabulary, sentence, draw)
         flaws += tidesWithNoMoon(vocabulary, said, composition)
@@ -452,6 +452,21 @@ object Resolver {
      * The claim names the pattern and carries the substance, so nothing downstream has to know there were
      * ever two pages — `Features` looks the pattern up and swaps what it is made of.
      */
+    /**
+     * An aiming page carrying a rung — `teeming stars` — sets the count its aspect has ([Aspect.count]), as a
+     * rung on a member sets how much of that member there is.
+     */
+    private fun counted(composition: AgeComposition, sentence: Sentence): AgeComposition =
+        sentence.phrases.fold(composition) { held, phrase ->
+            val subject = phrase.subject ?: return@fold held
+            if (!subject.word.aims || Rung.isOrdinary(subject.density)) return@fold held
+            subject.word.aspects.fold(held) { counting, aspect ->
+                val count = aspect.count ?: return@fold counting
+                val at = count.at(subject.density)
+                counting.withOptions(aspect, count.parameter.name, listOf(Span(at, at).spelled()))
+            }
+        }
+
     private fun mintedFeatures(composition: AgeComposition, sentence: Sentence, draw: Long): AgeComposition {
         val minted = sentence.phrases.mapNotNull { phrase ->
             val subject = phrase.subject ?: return@mapNotNull null

@@ -214,7 +214,8 @@ object Atmosphere {
             options.steer(parameter, salt, biome)?.let(Span.NATURAL::fractionOf)?.toFloat()
         return Look(
             sky = colourOf(vault, SKY, biome),
-            fog = colourOf(air, FOG, biome),
+            // The air's own colour, or the sky's carried towards white as vanilla's fog is (Jonah, walk 2026-10-06).
+            fog = colourOf(air, FOG, biome) ?: colourOf(vault, SKY, biome)?.let(::fogUnder),
             cloud = colourOf(parts.optionsFor(Aspect.CLOUD), CLOUD, biome),
             tint = colourOf(air, TINT, biome),
             motes = air.of(MOTES, biome).takeUnless { it == Parameter.DEFAULT },
@@ -350,6 +351,19 @@ object Atmosphere {
     }
 
     private const val NO_DAYLIGHT = 0f
+
+    /**
+     * The fog a sky of [sky]'s colour would have: vanilla's overworld fog is its sky carried a little over
+     * halfway to white (`#78A7FF` under `#C0D8FF`), and the carry scales with the sky's brightness, so a
+     * black sky keeps a black fog rather than a grey one.
+     */
+    private fun fogUnder(sky: Rgba): Rgba {
+        val brightness = maxOf(sky.red, sky.green, sky.blue)
+        return sky.lerp(Rgba.WHITE, FOG_TOWARDS_WHITE * brightness)
+    }
+
+    /** How far vanilla's fog stands from its sky towards white. */
+    private const val FOG_TOWARDS_WHITE = 0.55f
 
     /** The [FADES] answer for a sky that holds its colour through the night. */
     const val NEVER_FADES = "never"
