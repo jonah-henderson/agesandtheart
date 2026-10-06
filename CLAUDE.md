@@ -117,6 +117,10 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 - **`notes/before-beta.md`** — the checklist for the private beta: decisions to make first, the minimum
   assets and what must not ship (recoloured Mojang art, Cyan's font), distribution, the Windows server, the
   multiplayer gaps, and the dress rehearsal. Deleted when the last item goes.
+- **`notes/release-process.md`** — the one-command release: a local `scripts/release.sh` that tests and builds
+  a chosen commit in throwaway worktrees, tags it, attaches the jar to a GitHub Release and moves the
+  packwiz pack on the orphan `pack` branch. **Planned, unbuilt**; Ephemeris gets its own script and the
+  catalog pins its release. Read it before touching the tags or the release.
 - **`notes/dni-sources.md`** — where the D'ni comes from, and how good the transliteration actually is.
   The two fan compilations we spell from (and why they stay out of this repository), the finding that the
   fuller one's headwords *are* our typeface encoding, and the measurement that says our rules reproduce
