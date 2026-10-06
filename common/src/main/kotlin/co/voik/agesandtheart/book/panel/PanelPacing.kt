@@ -11,14 +11,14 @@ import java.util.UUID
  * answered by nothing, and a client cannot tell silence from a slow Age: it waited twenty seconds to ask again,
  * so a book shut and opened again inside half a second sat in mist all that while.
  *
- * A hand and a lectern keep separate clocks, because a hand outranks every lectern (design §7.8.2): a lectern's
- * panel taken up a moment ago must never hold up a book opened in a hand. And a newer request replaces a held
+ * A hand and a book lying open, on a lectern or fallen, keep separate clocks, because a hand outranks every book
+ * lying open (design §7.8.2): one taken up a moment ago must never hold up a book opened in a hand. And a newer request replaces a held
  * one, since what a client wants is the book it asked for last.
  */
 class PanelPacing(private val gap: Long) {
 
     private val openedInHand = mutableMapOf<UUID, Long>()
-    private val openedAtALectern = mutableMapOf<UUID, Long>()
+    private val openedLyingOpen = mutableMapOf<UUID, Long>()
     private val held = mutableMapOf<UUID, BookBeingRead>()
 
     /** Whether [viewer]'s request for [book] may be served [now]; one that may not is held until it may. */
@@ -51,13 +51,13 @@ class PanelPacing(private val gap: Long) {
     fun forget(viewer: UUID) {
         cancel(viewer)
         openedInHand.remove(viewer)
-        openedAtALectern.remove(viewer)
+        openedLyingOpen.remove(viewer)
     }
 
     private fun clockFor(book: BookBeingRead): MutableMap<UUID, Long> = when (book) {
         // A viewer's screen outranks every lectern as a book's does, so it keeps the hand's clock.
         is BookBeingRead.InHand, BookBeingRead.AtACrystalViewer -> openedInHand
-        is BookBeingRead.OnALectern -> openedAtALectern
+        is BookBeingRead.OnALectern, is BookBeingRead.OnTheGround -> openedLyingOpen
     }
 
     private fun isClear(viewer: UUID, book: BookBeingRead, now: Long): Boolean {

@@ -37,10 +37,10 @@ object LecternBooks {
     const val REACH_BLOCKS = 8.0
 
     /**
-     * How near the server lets a lectern's panel stay open: past [REACH_BLOCKS], so the client — which lets
-     * go at the edge — is always the one to, and the two never argue over a player standing on it.
+     * How near the server lets the panel of a book lying open stay open: past [REACH_BLOCKS], so the client —
+     * which lets go at the edge — is always the one to, and the two never argue over a player standing on it.
      */
-    private const val PANEL_HELD_WITHIN_BLOCKS = REACH_BLOCKS + 4.0
+    const val PANEL_HELD_WITHIN_BLOCKS = REACH_BLOCKS + 4.0
 
     /** How long an open book goes between looking round for a reader, so "a few minutes" is at most this. */
     private const val TICKS_BETWEEN_LOOKS_ROUND = 3 * 60 * 20

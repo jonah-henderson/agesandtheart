@@ -4,6 +4,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.book.BookBeingRead
+import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.Linking
 import co.voik.agesandtheart.content.AgeComponents
@@ -15,7 +16,6 @@ import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.util.Util
 import net.minecraft.core.BlockPos
-import net.minecraft.core.GlobalPos
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData
 import net.minecraft.resources.ResourceKey
@@ -34,9 +34,10 @@ import java.util.UUID
 /**
  * Who is looking at what, and the ring of chunks that costs.
  *
- * One panel per player, held only while a book is open (design §7.8.1) — in their hand, or on a lectern they
- * are standing at (§7.8.2). Everything it loads it releases: opening a second panel closes the first,
- * closing the book closes it, walking away from a lectern closes it, and leaving the server closes it.
+ * One panel per player, held only while a book is open (design §7.8.1) — in their hand, or lying open on a
+ * lectern or the ground where they are standing (§7.8.2). Everything it loads it releases: opening a second
+ * panel closes the first, closing the book closes it, walking away from one lying open closes it, and leaving
+ * the server closes it.
  */
 object PanelViews {
 
@@ -47,9 +48,12 @@ object PanelViews {
     private class Watch(
         val dimension: ResourceKey<Level>,
         val centre: ChunkPos,
-        /** The lectern the book lies open on, or null for a book in a hand — whose screen closes it. */
-        val lectern: GlobalPos?,
+        /** The book lying open, on a lectern or fallen, or null for one a screen holds — which closes it. */
+        val lyingOpen: LyingOpen?,
     )
+
+    /** A book lying open, and the world it lies in. */
+    private class LyingOpen(val book: BookBeingRead, val world: ResourceKey<Level>)
 
     /** What a panel looks at: the world a book leads to, and the point in it a visitor would arrive at. */
     private class Destination(val level: ServerLevel, val around: BlockPos)
@@ -71,8 +75,8 @@ object PanelViews {
     private const val TICKS_BETWEEN_CHASES = 20L
 
     /**
-     * Opens a panel onto [book] — in [player]'s hand, or open on a lectern they are standing at — streaming
-     * the ring around where it would put them.
+     * Opens a panel onto [book] — in [player]'s hand, or lying open where they are standing — streaming the ring
+     * around where it would put them.
      */
     fun open(server: MinecraftServer, player: ServerPlayer, book: BookBeingRead) {
         if (!pacing.admit(player.uuid, book, server.overworld().gameTime)) return
@@ -88,8 +92,8 @@ object PanelViews {
         val level = destination.level
         val around = destination.around
         val centre = PanelRing.centreOf(around)
-        val lectern = (book as? BookBeingRead.OnALectern)?.let { GlobalPos.of(player.level().dimension(), it.pos) }
-        watching[player.uuid] = Watch(level.dimension(), centre, lectern)
+        val lyingOpen = LyingOpen(book, player.level().dimension()).takeIf { isLyingOpen(book) }
+        watching[player.uuid] = Watch(level.dimension(), centre, lyingOpen)
         hold(level, centre)
 
         val instability = instabilityOf(level)
@@ -161,8 +165,8 @@ object PanelViews {
     }
 
     /**
-     * Opens whatever [pacing] was holding and now lets through, and lets go of a lectern's panel whose viewer
-     * has walked away from it or whose book has shut or gone.
+     * Opens whatever [pacing] was holding and now lets through, and lets go of the panel of a book lying open
+     * whose viewer has walked away from it, or which has shut or gone.
      *
      * The client lets go first and should always be the one to; the second half is for a client that does
      * not, as [forget] is for one that crashed. A panel in a hand belongs to its screen and is left alone.
@@ -174,16 +178,29 @@ object PanelViews {
         if (watching.isEmpty()) return
         val leftBehind = watching.filter { (viewer, watch) -> isLeftBehind(server, viewer, watch) }.keys.toList()
         for (viewer in leftBehind) {
-            Constants.LOG.info("Panel: a lectern's panel was still held by {} after they left it", viewer)
+            Constants.LOG.info("Panel: an open book's panel was still held by {} after they left it", viewer)
             closeWatchOf(server, viewer)
         }
     }
 
     private fun isLeftBehind(server: MinecraftServer, viewer: UUID, watch: Watch): Boolean {
-        val lectern = watch.lectern ?: return false
+        val lyingOpen = watch.lyingOpen ?: return false
         val player = server.playerList.getPlayer(viewer) ?: return true
-        val inTheLecternsWorld = player.level().dimension() == lectern.dimension()
-        return !inTheLecternsWorld || LecternBooks.openBookSeenBy(player, lectern.pos()) == null
+        val inTheBooksWorld = player.level().dimension() == lyingOpen.world
+        return !inTheBooksWorld || bookSeenBy(player, lyingOpen.book) == null
+    }
+
+    private fun isLyingOpen(book: BookBeingRead): Boolean = when (book) {
+        is BookBeingRead.OnALectern, is BookBeingRead.OnTheGround -> true
+        is BookBeingRead.InHand, BookBeingRead.AtACrystalViewer -> false
+    }
+
+    /** The book [player] is reading as [book], or null where it is not there for them to read. */
+    private fun bookSeenBy(player: ServerPlayer, book: BookBeingRead): ItemStack? = when (book) {
+        is BookBeingRead.InHand -> player.getItemInHand(book.hand)
+        is BookBeingRead.OnALectern -> LecternBooks.openBookSeenBy(player, book.pos)
+        is BookBeingRead.OnTheGround -> BookEntity.openBookSeenBy(player, book.entityId)
+        BookBeingRead.AtACrystalViewer -> null
     }
 
     private fun closeWatchOf(server: MinecraftServer, viewer: UUID) {
@@ -227,13 +244,9 @@ object PanelViews {
             if (level == null) Constants.LOG.info("Panel refused: {} asked after a crystal viewer with none open, or nothing laid out", player.name.string)
             return level?.let { Destination(it, Ages.arrivalIn(it)) }
         }
-        val stack = when (book) {
-            is BookBeingRead.InHand -> player.getItemInHand(book.hand)
-            is BookBeingRead.OnALectern -> LecternBooks.openBookSeenBy(player, book.pos)
-            BookBeingRead.AtACrystalViewer -> null
-        }
+        val stack = bookSeenBy(player, book)
         if (stack == null) {
-            Constants.LOG.info("Panel refused: {} asked after a lectern with no open book of ours in reach", player.name.string)
+            Constants.LOG.info("Panel refused: {} asked after {}, with no open book of ours there in reach", player.name.string, book)
             return null
         }
         val destination = destinationOf(server, stack)

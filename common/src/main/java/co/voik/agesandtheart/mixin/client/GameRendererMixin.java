@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.mixin.client;
 
-import co.voik.agesandtheart.client.panel.LecternPanels;
+import co.voik.agesandtheart.client.panel.OpenBookPanels;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -9,14 +9,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Renders a lectern's linking panel once a frame, at the point the book screen renders its own (design
- * §7.8.2).
+ * Renders the linking panel of a book lying open, on a lectern or fallen, once a frame, at the point the book
+ * screen renders its own (design §7.8.2).
  *
  * <p><b>Why here.</b> {@code GameRenderer.extract} runs the camera, then the level's extraction, then the
  * GUI's — and {@code BookScreen} renders its panel inside that last one, which is the one place in the frame
  * a second level render is already known to be safe. The seam between the two extractions is that same
- * point with no screen needed: after the block entities are extracted, so the lectern's renderer has said
- * whether the shown book is in view, and before the world is drawn, so the book samples this frame's
+ * point with no screen needed: after the entities and block entities are extracted, so the book's renderer has
+ * said whether the shown book is in view, and before the world is drawn, so the book samples this frame's
  * picture rather than the last one's.
  *
  * <p><b>26.2 inlined {@code extractGui}</b>, so the seam is named by the call before it rather than by a
@@ -41,10 +41,10 @@ public abstract class GameRendererMixin {
             shift = At.Shift.AFTER
         )
     )
-    private void agesandtheart$drawTheLecternsPanel(
+    private void agesandtheart$drawTheOpenBooksPanels(
             DeltaTracker deltaTracker,
             boolean advanceGameTime,
             CallbackInfo callback) {
-        LecternPanels.drawFrame(deltaTracker);
+        OpenBookPanels.drawFrame(deltaTracker);
     }
 }

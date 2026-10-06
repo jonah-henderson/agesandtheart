@@ -6,7 +6,7 @@ import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.LinkRequest
-import co.voik.agesandtheart.client.panel.LecternPanels
+import co.voik.agesandtheart.client.panel.OpenBookPanels
 import co.voik.agesandtheart.client.panel.LinkingPanel
 import co.voik.agesandtheart.client.panel.PanelComposite
 import co.voik.agesandtheart.client.panel.PanelPicture
@@ -91,7 +91,7 @@ class BookScreen(
     /**
      * Gives a hand's ring back, on every way out rather than only the link path.
      *
-     * A lectern's is handed back to [LecternPanels] instead, which keeps it while that lectern is still the one
+     * A lectern's is handed back to [OpenBookPanels] instead, which keeps it while that lectern is still the one
      * to show, so closing the screen does not load the panel again from mist.
      */
     override fun removed() {

@@ -3,7 +3,7 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.client.light.DeepLights
 import co.voik.agesandtheart.client.light.TintedLights
-import co.voik.agesandtheart.client.panel.LecternPanels
+import co.voik.agesandtheart.client.panel.OpenBookPanels
 import co.voik.agesandtheart.client.panel.LinkingPanel
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
@@ -27,7 +27,7 @@ object ClientSetup {
         // A lure is drawn about its cluster rather than by each block, so it rides the tick as well.
         LureLooks.pulse(minecraft)
         // Which lectern's panel this client shows, since a lectern has no screen to tick it as a book's does.
-        LecternPanels.tick(minecraft)
+        OpenBookPanels.tick(minecraft)
         // Whether a tear is being fallen through, settled once here rather than per fissure per frame.
         StarFissureVeil.tick(minecraft)
         // Waves on a palm beach: the shore is found and the foam laid on the client, and nowhere else.

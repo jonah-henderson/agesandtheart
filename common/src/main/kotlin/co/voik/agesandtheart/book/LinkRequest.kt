@@ -64,11 +64,12 @@ object Linking {
     fun link(player: ServerPlayer, level: ServerLevel, stack: ItemStack, hand: InteractionHand): Boolean {
         // Taken before going, which moves the player — otherwise the book would come to rest in the world
         // they went to. The book itself is copied after, so it carries whatever going stamped onto it.
-        val leftAt = player.position()
+        val leftAt = player.position().add(0.0, player.eyeHeight - HAND_BELOW_THE_EYES, 0.0)
+        val facing = player.yRot
         if (!go(player, level, stack)) return false
         val left = stack.copy()
         player.setItemInHand(hand, ItemStack.EMPTY)
-        BookEntity.leaveBehind(level, leftAt, left)
+        BookEntity.leaveBehind(level, leftAt, facing, left)
         Constants.LOG.debug("{} linked, book left at {}", player.gameProfile.name, leftAt)
         return true
     }
@@ -166,4 +167,7 @@ object Linking {
         player.sendSystemMessage(Component.translatable("book.agesandtheart.$reason"), true)
         return false
     }
+
+    /** Where a dropped book leaves the hand, as vanilla drops an item: this far below the eyes. */
+    private const val HAND_BELOW_THE_EYES = 0.3
 }

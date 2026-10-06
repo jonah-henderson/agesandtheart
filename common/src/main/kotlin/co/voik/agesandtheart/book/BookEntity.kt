@@ -97,10 +97,18 @@ class BookEntity(type: EntityType<out BookEntity>, level: Level) : Entity(type, 
         private const val GRAVITY = 0.04
         private const val DRAG = 0.98
 
-        /** Leaves [stack] resting where [at] stood. */
-        fun leaveBehind(level: ServerLevel, at: Vec3, stack: ItemStack): BookEntity? {
+        /** The book [viewer] can see lying open as [entityId], within a panel's reach, or null. */
+        fun openBookSeenBy(viewer: Player, entityId: Int): ItemStack? {
+            val fallen = viewer.level().getEntity(entityId) as? BookEntity ?: return null
+            if (!viewer.position().closerThan(fallen.position(), LecternBooks.PANEL_HELD_WITHIN_BLOCKS)) return null
+            return fallen.book.takeIf(LecternBooks::isOurs)
+        }
+
+        /** Lets [stack] fall from [at], turned to read the way [facing] looks. */
+        fun leaveBehind(level: ServerLevel, at: Vec3, facing: Float, stack: ItemStack): BookEntity? {
             val entity = AgeContent.BOOK_ENTITY.create(level, EntitySpawnReason.TRIGGERED) ?: return null
             entity.setPos(at.x, at.y, at.z)
+            entity.yRot = facing
             entity.book = stack.copy()
             level.addFreshEntity(entity)
             return entity

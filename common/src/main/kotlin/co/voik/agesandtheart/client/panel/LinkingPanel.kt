@@ -12,9 +12,9 @@ import co.voik.agesandtheart.client.sendToServer
 /**
  * The one panel a client is looking at, if any: its lifetime and its half of the conversation.
  *
- * A panel exists while a book is open and not otherwise (design §7.8.1) — not in an inventory, not on the
- * ground, and of the books open on lecterns only the nearest one's (§7.8.2, [LecternPanels]). How one draws
- * is elsewhere; this decides only when one exists.
+ * A panel exists while a book is open and not otherwise (design §7.8.1) — not in an inventory, and of the books
+ * lying open, on lecterns or fallen, only the nearest one's (§7.8.2, [OpenBookPanels]). How one draws is
+ * elsewhere; this decides only when one exists.
  */
 object LinkingPanel {
 
