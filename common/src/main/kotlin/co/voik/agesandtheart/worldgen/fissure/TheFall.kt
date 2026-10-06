@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.fissure
 
+import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
@@ -69,6 +70,7 @@ object TheFall {
             emptySet(), player.yRot, player.xRot, true,
         )
         player.deltaMovement = Vec3(0.0, -GENTLY_DOWN, 0.0)
+        AgeTriggers.FELL_HOME.trigger(player)
     }
 
     /** A little over the spawn, so the last thing the fall does is the thing it started with. */

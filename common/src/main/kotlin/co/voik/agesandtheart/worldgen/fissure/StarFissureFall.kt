@@ -34,7 +34,8 @@ object StarFissureFall {
      */
     @JvmStatic
     fun takesHold(player: Player, alreadyFalling: Boolean): Boolean {
-        if (player.isSpectator) return false
+        // A seated player is held to the seat; the fissure lets them off its vehicle first.
+        if (player.isSpectator || player.isPassenger) return false
         if (player.level().dimension() == Level.OVERWORLD) return false
         if (alreadyFalling) return stillUnderTheTear(player)
         return tearInTheWayDown(player) != null

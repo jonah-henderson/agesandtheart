@@ -86,11 +86,25 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
         entity.resetFallDistance()
         // A player is [StarFissureFall]'s from here: it carries them through the ground under the tear and
         // holds them in the field, and nothing of it is a teleport. Only the overworld has no fall to give.
-        if (entity is ServerPlayer && level.dimension() != Level.OVERWORLD) return
+        val thereIsAFall = level.dimension() != Level.OVERWORLD
+        if (entity is ServerPlayer && thereIsAFall) return
+        if (thereIsAFall) letRidersFall(entity, pos)
         if (entity is FallingBlockEntity) return RubbleArrivals.deliver(level.server.overworld(), entity)
         if (entity is ItemEntity) answerTheThrower(entity)
         // A mob, an item, or a player where there is no fall to be had: straight home, at once.
         sendHome(level, entity)
+    }
+
+    /**
+     * The players riding [vehicle] off it and into the tear at [pos], where the fall takes them as it would on
+     * foot. A seated player cannot fall, and the vehicle going home would otherwise take them along seated.
+     */
+    private fun letRidersFall(vehicle: Entity, pos: BlockPos) {
+        val riders = vehicle.indirectPassengers.filterIsInstance<ServerPlayer>()
+        for (rider in riders) {
+            rider.stopRiding()
+            rider.teleportTo(pos.x + HALF_A_BLOCK, pos.y.toDouble(), pos.z + HALF_A_BLOCK)
+        }
     }
 
     /** A linking or descriptive book somebody threw in tells the advancements whose it was. */

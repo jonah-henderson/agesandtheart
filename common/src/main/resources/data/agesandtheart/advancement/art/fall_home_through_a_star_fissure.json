@@ -1,0 +1,21 @@
+{
+  "parent": "agesandtheart:art/link_into_an_age",
+  "criteria": {
+    "fell": {
+      "trigger": "agesandtheart:fell_home"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:star_fissure"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.fall_home_through_a_star_fissure.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.fall_home_through_a_star_fissure.description"
+    },
+    "frame": "task",
+    "hidden": true
+  }
+}

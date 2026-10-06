@@ -28,6 +28,9 @@ object AgeTriggers {
     /** A linking or descriptive book a player threw reached a star fissure. */
     val GAVE_A_BOOK_TO_A_FISSURE = PlayerTrigger()
 
+    /** A player came out of a star fissure's fall into the overworld. */
+    val FELL_HOME = PlayerTrigger()
+
     val triggers: List<Pair<Identifier, CriterionTrigger<*>>> = listOf(
         "learned_word".location() to LEARNED_WORD,
         "linked".location() to LINKED,
@@ -38,5 +41,6 @@ object AgeTriggers {
         "repaired_compounder".location() to REPAIRED_COMPOUNDER,
         "mined_with_compounded_stone".location() to MINED_WITH_COMPOUNDED_STONE,
         "gave_a_book_to_a_fissure".location() to GAVE_A_BOOK_TO_A_FISSURE,
+        "fell_home".location() to FELL_HOME,
     )
 }
