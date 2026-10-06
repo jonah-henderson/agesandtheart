@@ -91,7 +91,6 @@ enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<ou
     ISLE({ Isle.CODEC }),
     ESCARPMENT({ Escarpment.CODEC }),
     CHANCE({ self -> Chance.codec(self) }),
-    EXTRUDED({ self -> Extruded.codec(self) }),
     CHOOSE({ self -> Choose.codec(self) }),
     UNION({ self -> Union.codec(self) }),
     INTERSECT({ self -> Intersect.codec(self) }),

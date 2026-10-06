@@ -1098,6 +1098,7 @@ class AgeChunkGenerator(
         if (mask.isEmpty()) return
         val here = BlockPos.MutableBlockPos()
         val below = BlockPos.MutableBlockPos()
+        val holdsALakeBack = LakeHolding()
         // What the carve opened under the waterline, for [floodFromTheSea] once the walk is done.
         val openedUnderTheSea = LongOpenHashSet()
         mask.visit { localX, localZ, lowY, highY ->
@@ -1119,7 +1120,13 @@ class AgeChunkGenerator(
             // walled round it. Vanilla's carvers never replace a fluid, and neither does this now.
             // **Nor through the wall between two seas**, which a cave would breach and the higher sea pour through.
             val holdsASeaBack = seaFill.isWalledAt(worldX, worldZ, worldY, levelHere)
-            if (!standing.isAir && standing.fluidState.isEmpty && !standing.`is`(BlockTags.UNCARVABLE) && !holdsASeaBack) {
+            // **Nor through rock a lake of the land's stands on or against** (Jonah, walk 2026-10-06): a
+            // carve under a chamber's lake, or through the hill rising out of it, left the water standing
+            // on air. The sea's own floods in instead — see [floodFromTheSea].
+            val keepsALakeIn = holdsALakeBack.at(worldX, worldY, worldZ)
+            if (!standing.isAir && standing.fluidState.isEmpty && !standing.`is`(BlockTags.UNCARVABLE) &&
+                !holdsASeaBack && !keepsALakeIn
+            ) {
                 val wasTurf = standing.`is`(Blocks.GRASS_BLOCK) || standing.`is`(Blocks.MYCELIUM)
                 val cut = aquifer.computeSubstance(worldX, worldY, worldZ, NO_CAVE_DENSITY)
                 if (cut != null) {
@@ -1145,6 +1152,38 @@ class AgeChunkGenerator(
             }
         }
         floodFromTheSea(chunk, openedUnderTheSea)
+    }
+
+    /**
+     * Whether a block holds back water the land carries of its own — a chamber's lake, a river, a crater's
+     * pool — standing directly over it or beside it.
+     *
+     * **Asked of the fields, not of the blocks**, so it answers the same whichever chunk was built first: a
+     * lake in the next chunk over is as visible as one in this. Read once per column and remembered, and
+     * a column with no such water anywhere costs nothing more than finding that out.
+     */
+    private inner class LakeHolding {
+        private val columns = HashMap<Long, Column>()
+
+        private inner class Column(val rock: Spans, val wet: Spans, val bodies: List<Spans>) {
+            fun holdsWaterAt(y: Int): Boolean =
+                !rock.contains(y) && (wet.contains(y) || seaFill.carriedAt(y, bodies) != null)
+        }
+
+        private fun columnAt(x: Int, z: Int): Column? = columns.getOrPut(BlockPos.asLong(x, 0, z)) {
+            val wet = seaFill.wetnessAt(x, z)
+            val bodies = seaFill.carriedAt(x, z)
+            val ours = rock as? AgeRock.Ours
+            val nothingStands = wet.ranges.isEmpty() && bodies.all { it.ranges.isEmpty() }
+            if (ours == null || nothingStands) Column(Spans.EMPTY, Spans.EMPTY, emptyList())
+            else Column(ours.field.columnSpans(x, z), wet, bodies)
+        }
+
+        fun at(x: Int, y: Int, z: Int): Boolean {
+            fun standsAt(atX: Int, atY: Int, atZ: Int) = columnAt(atX, atZ)?.holdsWaterAt(atY) == true
+            return standsAt(x, y + 1, z) || standsAt(x - 1, y, z) || standsAt(x + 1, y, z) ||
+                standsAt(x, y, z - 1) || standsAt(x, y, z + 1)
+        }
     }
 
     /**

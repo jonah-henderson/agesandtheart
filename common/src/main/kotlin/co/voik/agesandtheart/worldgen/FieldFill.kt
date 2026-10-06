@@ -232,6 +232,7 @@ internal class FieldFill(
         private val hollowness = arrayOfNulls<Spans>(SIDE * SIDE)
         private val bodies = arrayOfNulls<List<Spans>>(SIDE * SIDE)
         private val levels = IntArray(SIDE * SIDE)
+        private val ranks = LongArray(SIDE * SIDE)
 
         init {
             for (bandX in 0..<SIDE) {
@@ -245,6 +246,7 @@ internal class FieldFill(
                     hollowness[at] = hollows?.columnSpans(worldX, worldZ) ?: Spans.EMPTY
                     bodies[at] = seaFill.carriedAt(worldX, worldZ)
                     levels[at] = seaFill.levelAt(worldX, worldZ)
+                    ranks[at] = seaFill.rankAt(worldX, worldZ, levels[at])
                 }
             }
         }
@@ -263,12 +265,12 @@ internal class FieldFill(
 
         /** [SeaFill.isWalledAt], answered from the band rather than the map. */
         fun walled(localX: Int, localZ: Int, y: Int): Boolean {
-            if (seaFill.territories == null) return false
+            if (!seaFill.holdsDifferentSeas) return false
             val at = indexOf(localX, localZ)
             if (!fills(at, y) || y >= levels[at]) return false
-            fun lowerBeside(beside: Int) = levels[beside] <= y
-            return lowerBeside(indexOf(localX - 1, localZ)) || lowerBeside(indexOf(localX + 1, localZ)) ||
-                lowerBeside(indexOf(localX, localZ - 1)) || lowerBeside(indexOf(localX, localZ + 1))
+            fun outranksBeside(beside: Int) = seaFill.outranks(ranks[at], ranks[beside])
+            return outranksBeside(indexOf(localX - 1, localZ)) || outranksBeside(indexOf(localX + 1, localZ)) ||
+                outranksBeside(indexOf(localX, localZ - 1)) || outranksBeside(indexOf(localX, localZ + 1))
         }
 
         /**

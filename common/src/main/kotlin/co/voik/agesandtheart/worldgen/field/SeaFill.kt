@@ -79,17 +79,30 @@ data class SeaFill(
 
     /**
      * Whether the sea's place at this block is taken by a wall instead: it would fill here at [levelHere],
-     * and a column beside it stands its sea lower than this block, so water here would pour over the edge.
-     * The wall is one block thick along the higher sea's edge, from the lower sea up to its own; beside a
-     * territory with no sea it reaches the floor of the world.
+     * and a column beside it holds a different sea — lower, or of something else.
+     *
+     * **A wall wherever two seas meet** (Jonah, walk 2026-10-06), through their whole depth: a higher sea
+     * held back from a lower one or from a void, and water kept from lava along the seam where the two
+     * stand level. One block thick, on one side only: the side whose sea [outranks] the other's. Two columns
+     * of the same sea at the same level have nothing to divide, so an ocean runs on across a seam.
      */
     fun isWalledAt(worldX: Int, worldZ: Int, y: Int, levelHere: Int): Boolean {
-        val held = territories ?: return false
-        if (y >= levelHere || representative.isAir) return false
-        fun lowerBeside(x: Int, z: Int) = held.levelAt(x, z) <= y
-        return lowerBeside(worldX - 1, worldZ) || lowerBeside(worldX + 1, worldZ) ||
-            lowerBeside(worldX, worldZ - 1) || lowerBeside(worldX, worldZ + 1)
+        if (!holdsDifferentSeas || y >= levelHere || representative.isAir) return false
+        val here = rankAt(worldX, worldZ, levelHere)
+        fun outranksBeside(x: Int, z: Int) = outranks(here, rankAt(x, z, levelAt(x, z)))
+        return outranksBeside(worldX - 1, worldZ) || outranksBeside(worldX + 1, worldZ) ||
+            outranksBeside(worldX, worldZ - 1) || outranksBeside(worldX, worldZ + 1)
     }
+
+    /** Whether any two columns could hold different seas — the gate that keeps [isWalledAt] off one-sea Ages. */
+    val holdsDifferentSeas: Boolean = territories != null || blocks.distinct().size > 1
+
+    /** A column's sea as the wall compares it: its level, and which substance it is. */
+    fun rankAt(worldX: Int, worldZ: Int, levelHere: Int): Long =
+        levelHere.toLong() * SUBSTANCES + blocks.indexOf(blockAt(worldX, worldZ))
+
+    /** Whether a column whose sea is [here] keeps a wall against one whose sea is [beside]. */
+    fun outranks(here: Long, beside: Long): Boolean = here > beside
 
     /** This sea [blocks] higher everywhere, every territory's level with it — what a rising sea asks. */
     fun raisedBy(blocks: Int): SeaFill = copy(
@@ -170,6 +183,9 @@ data class SeaFill(
                 SeaFill(blocks, level, map, dry.orElse(null), wet.orElse(null), carried, territories.orElse(null))
             }
         }
+
+        /** More than an Age has seas of, so [rankAt] orders by level first and substance second. */
+        private const val SUBSTANCES = 1024L
 
         /** A territory's level where it has no sea at all: nothing is ever below it. */
         const val NO_SEA = Int.MIN_VALUE

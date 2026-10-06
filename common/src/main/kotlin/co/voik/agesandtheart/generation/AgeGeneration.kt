@@ -31,6 +31,7 @@ import co.voik.agesandtheart.worldgen.field.StandingFluid
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Weathered
 import co.voik.agesandtheart.worldgen.field.TerrainFill
+import net.minecraft.world.level.levelgen.material.MaterialRules
 import net.minecraft.world.level.block.Blocks
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeRock
@@ -144,11 +145,7 @@ object AgeGeneration {
             ground,
             // **The bodies are carried whichever path built them**, because `VolcanoVents` finds its lava
             // through this and would otherwise seat no vents at all in a vanilla-rock Age.
-        ).copy(
-            dry = chasm,
-            wet = standing,
-            carried = overlay.pours + listOfNotNull(pondsOf(composition, landmass.seam, ground, seed, torn)),
-        )
+        ).copy(dry = chasm, wet = standing, carried = overlay.pours)
 
         // What the rock *is*, on the terrain's own map, laid by the fill rather than painted by a rule — which
         // is what lets vanilla's surface tree keep its skin over our fill (see [TerrainFill]).
@@ -251,7 +248,20 @@ object AgeGeneration {
                             },
                     ),
                 ),
-            ourGround?.rock ?: AgeRock.Vanillas(Holder.direct(vanillasRockFor(vanillasRockSettings.value(), composition, fill))),
+            ourGround?.rock ?: AgeRock.Vanillas(
+                Holder.direct(
+                    vanillasRockFor(
+                        vanillasRockSettings.value(),
+                        composition,
+                        fill,
+                        SurfacingStrategy.ofOurBiomes(
+                            server.registryAccess().lookupOrThrow(Registries.BIOME),
+                            vanillasRockSettings.value().seaLevel(),
+                            Biomes.grownIn(biomeOptions),
+                        ),
+                    ),
+                ),
+            ),
             seaFill,
             // The Surface aspect's answer, not a constant: vanilla's tree paints grass over dirt above
             // water without consulting the biome, so there has to be a way to say "no skin" and a way to
@@ -301,7 +311,7 @@ object AgeGeneration {
             // deposits sit nearest the biome's own and the character materials furthest out, which is the
             // order the four nested wrappers this replaced happened to produce. See [Decoration].
             Decoration.laidOver(
-                Features.placedIn(server, composition.optionsFor(Aspect.FEATURES, 0), seed, rockBlocks),
+                Features.placedIn(server, featuresWithWhatTheLandCarries(composition), seed, rockBlocks),
                 listOfNotNull(
                     Deposits.layer(Danger.of(server, recipe), rockBlocks),
                     // The buried lava tubes were laid here until 2026-09-11. They are their own page now
@@ -345,6 +355,11 @@ object AgeGeneration {
         theirs: NoiseGeneratorSettings,
         composition: AgeComposition,
         fill: TerrainFill,
+        /**
+         * The skins of our own biomes this Age grows, laid ahead of vanilla's, whose tree does not know them
+         * and paints a palm beach in grass to the water (Jonah, walk 2026-10-06). Null where it grows none.
+         */
+        ourBiomes: MaterialRule? = null,
     ): NoiseGeneratorSettings {
         // Only a skin the writer actually named: `Surface.ruleFor` would otherwise delegate to the biomes
         // *through the field tree*, and there is none here to delegate through. Silence means vanilla's own
@@ -362,7 +377,8 @@ object AgeGeneration {
             named.isEmpty() -> {
                 val theirRule = theirs.materialRule()
                 val patches = SurfacingStrategy.asPatchesOver(theirRule.value())
-                if (patches === theirRule.value()) theirRule else Holder.direct(patches)
+                val theirSkin = if (patches === theirRule.value()) theirRule else Holder.direct(patches)
+                ourBiomes?.let { Holder.direct(MaterialRules.sequence(it, theirSkin.value())) } ?: theirSkin
             }
             named.all { it.isAir } -> Holder.direct(SurfacingStrategy.NO_SKIN)
             else -> Holder.direct(SurfacingStrategy.laidOnVanilla(named))
@@ -400,27 +416,13 @@ object AgeGeneration {
      * **Only a scarp reaches it.** A rift is already kept out by `SeaFill.dry`, and a wall *adds* rock,
      * which must not put a wall of water up alongside it.
      */
-    /**
-     * The ponds the terrains hold of their own, as one body of water divided as the rock is — water
-     * whatever the Age's sea is made of, since an island's tarn is there whether it has a sea or none.
-     */
-    private fun pondsOf(
-        composition: AgeComposition,
-        seam: Seam,
-        ground: RegionMap,
-        seed: Long,
-        torn: Double,
-    ): StandingFluid? {
-        val held = composition.terrains.mapIndexed { member, terrain ->
-            terrain.ponds(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
-        }
-        if (held.all { it == null }) return null
-        val divided = Regions.of(held.map { it ?: Union(emptyList()) }, ground)
-        val where = when (seam) {
-            Seam.SCARP -> faulted(divided, seam, ground, seed, torn)
-            Seam.SHEARED, Seam.FUZZED, Seam.RIFT, Seam.WALL -> divided
-        }
-        return StandingFluid(where, Blocks.WATER.defaultBlockState(), StandingFluid.ISLAND_PONDS)
+    /** The book's feature claims, and those its landforms carry of their own ([Terrain.carriedFeatures]). */
+    private fun featuresWithWhatTheLandCarries(composition: AgeComposition): Options {
+        val written = composition.optionsFor(Aspect.FEATURES, 0)
+        val carried = composition.terrains.flatMap { it.carriedFeatures }.distinct()
+        if (carried.isEmpty()) return written
+        val places = Features.PLACES.name
+        return Options(written.chosen + (places to (written.chosen[places].orEmpty() + carried).distinct()))
     }
 
     private fun carriedWater(

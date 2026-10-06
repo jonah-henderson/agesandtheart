@@ -38,6 +38,16 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
  */
 private const val ORDINARY_SEA_LEVEL = 63
 
+/**
+ * The islands' ponds: vanilla's surface lake, the shape `lakes` mints, filled with water, at four times
+ * vanilla's rate for its lava, since only the islands of a sky give it anywhere to lie.
+ */
+private val ISLAND_PONDS: String by lazy {
+    Claim("minecraft:lake_lava_surface", density = ISLAND_POND_RATE, madeOf = "minecraft:water").spelled()
+}
+
+private const val ISLAND_POND_RATE = 4.0
+
 /** [Terrain.SIZE] as [SizeScale]'s factor, which is what every landform's builder is handed. */
 private fun scaleOf(options: Options, salt: Long): Double = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
 
@@ -496,13 +506,11 @@ enum class Terrain(
      * pour it — see `SeaFill.wet`. Most terrains carry none, and a new one should not have to say so.
      */
     /**
-     * Ponds this terrain holds **of water whatever its sea**, or null for none — the islands' tarns, which
-     * are there whether or not the Age has a sea at all. See `SkylandsField.ponds`.
+     * Features this landform carries of its own, as claims added to whatever the book asked for: the
+     * islands' ponds (Jonah, 2026-10-06), vanilla's surface lake filled with water, which lies on the ground
+     * where it falls and will not place where it would spill.
      */
-    fun ponds(options: Options, salt: Long): TerrainField? = when (this) {
-        SKYLANDS -> SkylandsField.ponds(salt, scaleOf(options, salt))
-        else -> null
-    }
+    val carriedFeatures: List<String> get() = if (this == SKYLANDS) listOf(ISLAND_PONDS) else emptyList()
 
     fun standingWater(options: Options, salt: Long): TerrainField? = when (this) {
         RIVERLANDS -> RiverlandsField.water(salt, scaleOf(options, salt))
