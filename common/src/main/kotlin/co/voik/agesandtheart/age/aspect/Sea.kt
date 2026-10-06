@@ -86,16 +86,29 @@ data class Sea(override val id: Identifier) : RegistryReference {
             NAMES_FOR_NOTHING[key] ?: Identifier.tryParse(key)?.let(::Sea)
 
         /**
-         * Several seas poured to one [waterline], each filling its own territory. The height is shared and
-         * the substance is not, so water can meet lava along a line at the same level. A sea of nothing
-         * contributes air, leaving genuine open space on one side of the seam.
+         * Several seas poured, each filling its own territory of [map]. The substance divides on the sea's
+         * map and the height on the terrain's: [waterline] is the Age's one number, and [waterlines] each
+         * terrain territory's own on [terrainMap], null where that landform has no sea. Where those differ
+         * the fill keeps them apart with a wall. A sea of nothing contributes air, leaving genuine open space
+         * on one side of the seam.
          */
-        fun pour(seas: List<Sea>, waterline: Int?, options: Options, map: RegionMap, seed: Long): SeaFill {
+        fun pour(
+            seas: List<Sea>,
+            waterline: Int?,
+            options: Options,
+            map: RegionMap,
+            seed: Long,
+            waterlines: List<Int?> = listOf(waterline),
+            terrainMap: RegionMap = RegionMap.whole(),
+        ): SeaFill {
             if (waterline == null || seas.all { it.isEmpty }) return SeaFill.NONE
+            val shift = depthShift(options, seed)
+            val levels = waterlines.map { it?.plus(shift) ?: SeaFill.NO_SEA }
             return SeaFill(
                 seas.map { it.substance() },
-                waterline + depthShift(options, seed),
+                waterline + shift,
                 map,
+                territories = SeaFill.Territories(terrainMap, levels).takeIf { levels.distinct().size > 1 },
             )
         }
 

@@ -50,6 +50,12 @@ data class AgeComposition(
      * scattered in another, and because a seam belongs to the boundary rather than to either side of it.
      */
     val spreads: Spreads = Spreads(),
+    /**
+     * Whether the book named a sea. A floating landform takes one only if so
+     * ([Terrain.takesASeaOnlyWhenNamed]), and beside a grounded landform the world's own sea is seated all
+     * the same, so [seas] alone cannot say whether the floating territory was meant to have it.
+     */
+    val seaNamed: Boolean = false,
 ) : AgeParts {
     /**
      * The coordinates its biomes are looked up at, one per territory. Never empty.
@@ -272,6 +278,7 @@ data class AgeComposition(
             },
             carvers = seated(Aspect.CARVERS, carvers, template.carvers).filterIsInstance<Carvers>(),
             underground = if (Aspect.UNDERGROUND in spokenTo) underground else template.underground,
+            seaNamed = Aspect.SEA in spokenTo,
         )
         return Aspect.entries.fold(merged) { held, aspect ->
             val boughtItsOwnMembers = aspect.holds == Holds.POPULATION && described(aspect) > 0
@@ -333,6 +340,7 @@ data class AgeComposition(
                     .forGetter(AgeComposition::underground),
                 AspectOptions.CODEC.optionalFieldOf("options", AspectOptions()).forGetter(AgeComposition::options),
                 Spreads.CODEC.optionalFieldOf("spread", Spreads()).forGetter(AgeComposition::spreads),
+                Codec.BOOL.optionalFieldOf("sea_named", false).forGetter(AgeComposition::seaNamed),
             ).apply(instance, ::AgeComposition)
         }
     }

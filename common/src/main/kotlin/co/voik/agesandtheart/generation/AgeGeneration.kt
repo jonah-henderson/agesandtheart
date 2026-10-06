@@ -131,14 +131,17 @@ object AgeGeneration {
         val chasm = ourGround?.chasm
         val standing = ourGround?.standing
         val flow = character.mapFor(Aspect.SEA, composition.spreadOf(Aspect.SEA), seed)
+        val waterlines = waterlinesOf(composition, seed)
         val seaFill = Sea.pour(
             composition.seas,
-            waterlineOf(composition, seed),
-            // The first territory's: `depth` shifts the waterline, which is one number for the whole Age.
-            // The sea's substance divides; the level does not.
+            waterlineOf(composition, waterlines, seed),
+            // The first territory's: `depth` shifts every waterline by one amount for the whole Age.
             composition.optionsFor(Aspect.SEA, 0),
             flow,
             seed,
+            // Each landform's own sea, on the map its rock is laid by, walled apart where they differ.
+            waterlines,
+            ground,
             // **The bodies are carried whichever path built them**, because `VolcanoVents` finds its lava
             // through this and would otherwise seat no vents at all in a vanilla-rock Age.
         ).copy(dry = chasm, wet = standing, carried = overlay.pours)
@@ -498,19 +501,34 @@ object AgeGeneration {
         }
 
     /**
-     * Where this Age's sea sits when its terrains disagree about it — or whether there is one at all.
+     * Each terrain territory's own waterline, null where that landform has no sea — which a floating one
+     * beside a grounded one has unless the book named a sea. Where every landform floats, [AgeComposition.seas]
+     * already says it: an unnamed sea over them is seated as none.
+     */
+    private fun waterlinesOf(composition: AgeComposition, seed: Long): List<Int?> {
+        val everyLandformFloats = composition.terrains.all { it.takesASeaOnlyWhenNamed }
+        return composition.terrains.mapIndexed { member, terrain ->
+            val withheld = terrain.takesASeaOnlyWhenNamed && !composition.seaNamed && !everyLandformFloats
+            if (withheld) null
+            else terrain.waterlineAt(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
+        }
+    }
+
+    /**
+     * The Age's one waterline, for whatever has to have one number — vanilla's sea level, the shores, the
+     * aquifers, the abyss plane — or null where no territory has a sea at all. Each territory pours its own
+     * ([waterlinesOf]); this is only the level the rest of the world is told.
      *
-     * The shape covering the most ground wins, since it is its coastline most of the world has. The seed
+     * The widest territory with a sea wins, since it is its coastline most of the world has. The seed
      * decides only where shares tie (design §3.5).
      */
-    private fun waterlineOf(composition: AgeComposition, seed: Long): Int? {
-        val claimed = composition.terrains.mapIndexed { member, terrain ->
-            terrain.waterlineAt(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
-        }
+    private fun waterlineOf(composition: AgeComposition, claimed: List<Int?>, seed: Long): Int? {
         if (claimed.size == 1) return claimed.first()
         val shares = composition.spreadOf(Aspect.TERRAIN).shares
-        val widest = shares.max()
-        val contenders = claimed.indices.filter { shares[it] == widest }
+        val withASea = claimed.indices.filter { claimed[it] != null }
+        if (withASea.isEmpty()) return null
+        val widest = withASea.maxOf { shares[it] }
+        val contenders = withASea.filter { shares[it] == widest }
         return claimed[contenders[XoroshiroRandomSource(seed xor WATERLINE_SALT).nextInt(contenders.size)]]
     }
 

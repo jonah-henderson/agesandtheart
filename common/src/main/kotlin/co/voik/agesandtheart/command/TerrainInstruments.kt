@@ -141,9 +141,11 @@ internal object TerrainInstruments {
         val rock = ours.field.columnSpans(x, z)
         val dryness = seaFill.drynessAt(x, z)
         val wetness = seaFill.wetnessAt(x, z)
+        // This column's own: an Age's landforms may each keep a sea at a different height.
+        val levelHere = seaFill.levelAt(x, z)
         report.say { "Column ($x, $z) as the generator sees it:" }
-        report.fact("waterline", seaFill.level) {
-            "  sea ${seaFill.blockAt(x, z).block.descriptionId} standing at y=${seaFill.level}"
+        report.fact("waterline", levelHere) {
+            "  sea ${seaFill.blockAt(x, z).block.descriptionId} standing at y=$levelHere"
         }
         report.fact("rock", said(rock)) { "  rock: ${said(rock)}" }
         report.fact("keptDry", said(dryness)) { "  kept dry: ${said(dryness)}" }
@@ -197,13 +199,17 @@ internal object TerrainInstruments {
         // space the aquifer does not answer for. So a cave under a hill was predicted full of sea to the
         // waterline when what stands in it is the aquifer's own pool, fifty blocks lower — the instrument
         // disagreeing with the world by more than the bug being hunted (2026-09-11).
-        val wet = (PROBE_FROM..seaFill.level).filter { y ->
+        val wet = (PROBE_FROM..levelHere).filter { y ->
             when {
                 rock.contains(y) -> false
                 // The aquifer owns every hollow of ours, and it is the one that may answer "dry".
                 hollow.contains(y) -> true
-                else -> seaFill.fillsAt(y, dryness, wetness)
+                else -> seaFill.fillsAt(y, levelHere, dryness, wetness) && !seaFill.isWalledAt(x, z, y, levelHere)
             }
+        }
+        val walled = (PROBE_FROM..levelHere).count { seaFill.isWalledAt(x, z, it, levelHere) }
+        report.fact("walled", walled) {
+            if (walled == 0) "  no wall here" else "  a wall holding this sea back from a lower one ($walled blocks)"
         }
         report.fact("filled", wet.size) {
             if (wet.isEmpty()) "  nothing is filled here between y=$PROBE_FROM and the waterline"
@@ -213,7 +219,7 @@ internal object TerrainInstruments {
         // and says only what the sea is *made* of, so a probe over a hundred blocks of water reported
         // plain water and left the one question this Age was written to settle unanswerable.
         val sea = seaFill.blockAt(x, z)
-        val surface = seaFill.surfaceY ?: PROBE_FROM
+        val surface = seaFill.surfaceYAt(x, z) ?: PROBE_FROM
         val abyss = wet.filter { y -> DeepWater.seaAt(y, DeepWater.lineBelow(surface), sea) != sea }
         report.fact("deepWater", abyss.size) {
             if (abyss.isEmpty()) {
@@ -223,7 +229,7 @@ internal object TerrainInstruments {
             }
         }
         // The contradiction that flooded every rift: a space kept dry that the aquifer also claims.
-        report.only("dryAndAquifer", (PROBE_FROM..seaFill.level).count { dryness.contains(it) && hollow.contains(it) })
+        report.only("dryAndAquifer", (PROBE_FROM..levelHere).count { dryness.contains(it) && hollow.contains(it) })
         sayClimate(level, generator, x, rock.highestSolidY ?: seaFill.level, z, report)
         report.finish()
         return SUCCESS

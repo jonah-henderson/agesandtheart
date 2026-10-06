@@ -111,6 +111,9 @@ internal class FieldFill(
                         // caldera's lava is neither groundwater nor the sea, and both of those would take
                         // the space and put the wrong substance in it.
                         band.carried(at, y) != null -> band.carried(at, y)
+                        // Where two territories' seas stand at different heights, the higher is held back by
+                        // the land's own rock rather than poured over the edge — see `SeaFill.isWalledAt`.
+                        band.walled(localX, localZ, y) -> fill.blockAt(worldX, y, worldZ)
                         openToTheSea -> seaHere
                         // Inside the rock a cave system opened: the table answers, not the waterline. Asked
                         // before the sea, since this space is under it and the sea would otherwise take it.
@@ -228,6 +231,7 @@ internal class FieldFill(
         private val wetness = arrayOfNulls<Spans>(SIDE * SIDE)
         private val hollowness = arrayOfNulls<Spans>(SIDE * SIDE)
         private val bodies = arrayOfNulls<List<Spans>>(SIDE * SIDE)
+        private val levels = IntArray(SIDE * SIDE)
 
         init {
             for (bandX in 0..<SIDE) {
@@ -240,6 +244,7 @@ internal class FieldFill(
                     wetness[at] = seaFill.wetnessAt(worldX, worldZ)
                     hollowness[at] = hollows?.columnSpans(worldX, worldZ) ?: Spans.EMPTY
                     bodies[at] = seaFill.carriedAt(worldX, worldZ)
+                    levels[at] = seaFill.levelAt(worldX, worldZ)
                 }
             }
         }
@@ -254,7 +259,17 @@ internal class FieldFill(
 
         fun spans(at: Int): Spans = spans[at]!!
 
-        fun fills(at: Int, y: Int): Boolean = seaFill.fillsAt(y, dryness[at]!!, wetness[at]!!)
+        fun fills(at: Int, y: Int): Boolean = seaFill.fillsAt(y, levels[at], dryness[at]!!, wetness[at]!!)
+
+        /** [SeaFill.isWalledAt], answered from the band rather than the map. */
+        fun walled(localX: Int, localZ: Int, y: Int): Boolean {
+            if (seaFill.territories == null) return false
+            val at = indexOf(localX, localZ)
+            if (!fills(at, y) || y >= levels[at]) return false
+            fun lowerBeside(beside: Int) = levels[beside] <= y
+            return lowerBeside(indexOf(localX - 1, localZ)) || lowerBeside(indexOf(localX + 1, localZ)) ||
+                lowerBeside(indexOf(localX, localZ - 1)) || lowerBeside(indexOf(localX, localZ + 1))
+        }
 
         /**
          * Whether this column or any beside it carries a body at all — the gate that keeps the lining

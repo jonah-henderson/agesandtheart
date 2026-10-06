@@ -66,6 +66,12 @@ object CompositionSpelling {
                     ?: error("No world called '$value'. Try: ${AgeTemplate.entries.joinToString(" ") { it.key }}")
                 continue
             }
+            // Whether the sea was named, which only a floating landform beside a grounded one asks.
+            if (key == SEA_NAMED) {
+                val named = value.toBooleanStrictOrNull() ?: error("'$value' is not `true` or `false`")
+                composition = composition.copy(seaNamed = named)
+                continue
+            }
             // The other token that is not an aspect's, and the same argument: the recipe's, not the world's.
             if (key == UNSTABLE) {
                 val index = value.toIntOrNull()?.takeIf { it >= 0 }
@@ -153,6 +159,8 @@ object CompositionSpelling {
             .plus(castSpelling())
             .plus(seatlessSpelling())
             .plus(seamSpelling())
+            // Spelled only where it is so, as `unstable` is.
+            .plus(if (seaNamed) listOf("$SEA_NAMED=true") else emptyList())
 
     /**
      * `landmass.seam=rift` — the form drawn for each boundary the Age has one for.
@@ -248,6 +256,9 @@ private const val TEMPLATE = "template"
 
 /** `unstable=42` — an index set by hand, which no contradiction had to earn. */
 private const val UNSTABLE = "unstable"
+
+/** `sea_named=true` — the book named a sea, which a floating landform beside a grounded one asks. */
+private const val SEA_NAMED = "sea_named"
 
 /** What stands for one member of a cast, having no name of its own — see `CompositionSpelling.castSpelling`. */
 private const val BODY = "member"

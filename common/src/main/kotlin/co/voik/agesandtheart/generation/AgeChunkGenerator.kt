@@ -250,7 +250,7 @@ class AgeChunkGenerator(
         standingSea = if (wanted == 0 || writtenSea.surfaceY == null) {
             writtenSea
         } else {
-            writtenSea.copy(level = writtenSea.level + wanted)
+            writtenSea.raisedBy(wanted)
         }
     }
 
@@ -438,7 +438,12 @@ class AgeChunkGenerator(
             worldZ,
             rockHere = ours.field.columnSpans(worldX, worldZ),
             seaFillsTheLine = {
-                seaFill.fillsAt(abyssLine, seaFill.drynessAt(worldX, worldZ), seaFill.wetnessAt(worldX, worldZ))
+                seaFill.fillsAt(
+                    abyssLine,
+                    seaFill.levelAt(worldX, worldZ),
+                    seaFill.drynessAt(worldX, worldZ),
+                    seaFill.wetnessAt(worldX, worldZ),
+                )
             },
             biomeAtTheLine = { biomeAtTheLineIn(chunk, worldX, worldZ) },
         )
@@ -501,7 +506,7 @@ class AgeChunkGenerator(
         // The land rather than the whole rock, as `getBaseHeight` reads it: a lid over a sealed Age is not
         // a sea floor, and reading it here would call every column of such an Age dry land.
         val ground = ours.landform.columnSpans(worldX, worldZ).highestSolidY
-        return ground == null || ground < seaSurfaceY
+        return ground == null || ground < (seaFill.surfaceYAt(worldX, worldZ) ?: window.minY)
     }
 
     /**
@@ -802,10 +807,13 @@ class AgeChunkGenerator(
         // The land rather than the whole rock: a lid over a sealed Age is not somewhere to stand, and
         // reading it here would answer "the top of the world" for every column (see [AgeRock.Ours.ground]).
         val landform = ours.landform.columnSpans(x, z).highestSolidY
-        val rockTop = if (counts.test(fill.representative)) landform ?: nothing else nothing
+        val levelHere = seaFill.levelAt(x, z)
+        // The wall holding a higher sea back from a lower one is rock to its top, which is this sea's surface.
+        val wallTop = seaFill.surfaceYAt(x, z)?.takeIf { seaFill.isWalledAt(x, z, it, levelHere) }
+        val rockTop = if (counts.test(fill.representative)) maxOf(landform ?: nothing, wallTop ?: nothing) else nothing
         // A river stands over the waterline, so its own surface is what a structure has to be told about.
         val mediumTop = if (!counts.test(seaFill.blockAt(x, z))) nothing else {
-            maxOf(seaFill.surfaceY ?: nothing, seaFill.wetnessAt(x, z).highestSolidY ?: nothing)
+            maxOf(seaFill.surfaceYAt(x, z) ?: nothing, seaFill.wetnessAt(x, z).highestSolidY ?: nothing)
         }
         // And so does a lake the shape carries, which is made of something else and asks on its own behalf.
         val carriedTop = seaFill.carriedSurfaceY(x, z) { counts.test(it) } ?: nothing
@@ -858,13 +866,14 @@ class AgeChunkGenerator(
         val dryness = seaFill.drynessAt(x, z)
         val wetness = seaFill.wetnessAt(x, z)
         val bodies = seaFill.carriedAt(x, z)
+        val levelHere = seaFill.levelAt(x, z)
         // The same abyss the chunk fill lays, so a heightmap query and the blocks agree.
         val abyssal = isAbyssal(
             ours,
             x,
             z,
             rockHere = spans,
-            seaFillsTheLine = { seaFill.fillsAt(abyssLine, dryness, wetness) },
+            seaFillsTheLine = { seaFill.fillsAt(abyssLine, levelHere, dryness, wetness) },
             biomeAtTheLine = {
                 biomeSource.createUncachedResolver(randomState).getNoiseBiome(
                     QuartPos.fromBlock(x),
@@ -877,8 +886,11 @@ class AgeChunkGenerator(
             val y = window.minY + index
             when {
                 spans.contains(y) -> fill.blockAt(x, y, z)
+                // The same wall the chunk fill lays, so the column and the blocks agree.
+                seaFill.carriedAt(y, bodies) == null && seaFill.fillsAt(y, levelHere, dryness, wetness) &&
+                    seaFill.isWalledAt(x, z, y, levelHere) -> fill.blockAt(x, y, z)
                 else -> {
-                    val open = seaFill.carriedAt(y, bodies) ?: if (seaFill.fillsAt(y, dryness, wetness)) sea else AIR
+                    val open = seaFill.carriedAt(y, bodies) ?: if (seaFill.fillsAt(y, levelHere, dryness, wetness)) sea else AIR
                     if (abyssal) DeepWater.seaAt(y, abyssLine, open) else open
                 }
             }
@@ -1088,10 +1100,11 @@ class AgeChunkGenerator(
         val below = BlockPos.MutableBlockPos()
         // What the carve opened under the waterline, for [floodFromTheSea] once the walk is done.
         val openedUnderTheSea = LongOpenHashSet()
-        val waterline = seaFill.surfaceY
         mask.visit { localX, localZ, lowY, highY ->
             val worldX = chunk.pos.getBlockX(localX)
             val worldZ = chunk.pos.getBlockZ(localZ)
+            val levelHere = seaFill.levelAt(worldX, worldZ)
+            val waterline = seaFill.surfaceYAt(worldX, worldZ)
             // Downward, as vanilla's own walk is: the aquifer's column cache is built top down.
             for (worldY in highY downTo lowY) {
             here.set(worldX, worldY, worldZ)
@@ -1104,7 +1117,9 @@ class AgeChunkGenerator(
             // of the ocean"). A carver path climbing out of the sea bed ran on up through the sea itself, the
             // aquifer answered air for the sea's own blocks, and the hole stood open to the sky with the sea
             // walled round it. Vanilla's carvers never replace a fluid, and neither does this now.
-            if (!standing.isAir && standing.fluidState.isEmpty && !standing.`is`(BlockTags.UNCARVABLE)) {
+            // **Nor through the wall between two seas**, which a cave would breach and the higher sea pour through.
+            val holdsASeaBack = seaFill.isWalledAt(worldX, worldZ, worldY, levelHere)
+            if (!standing.isAir && standing.fluidState.isEmpty && !standing.`is`(BlockTags.UNCARVABLE) && !holdsASeaBack) {
                 val wasTurf = standing.`is`(Blocks.GRASS_BLOCK) || standing.`is`(Blocks.MYCELIUM)
                 val cut = aquifer.computeSubstance(worldX, worldY, worldZ, NO_CAVE_DENSITY)
                 if (cut != null) {

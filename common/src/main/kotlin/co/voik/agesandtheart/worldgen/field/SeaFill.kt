@@ -10,10 +10,14 @@ import net.minecraft.world.level.block.state.BlockState
  * A [co.voik.agesandtheart.age.aspect.Sea] once it has a height. Everything below [level] that the shape
  * leaves empty is filled with one of [blocks]; [NONE] fills nothing, and above [level] there is only air.
  *
- * **The substance is positional but the height is not**, which is the design's asymmetry rather than a
- * shortcut: where a sea belongs is the terrain's to declare (§3.4), so an Age has exactly one waterline.
- * What varies across it is *what the sea is made of* — an ocean of water meeting one of lava along a line
- * at the same level, with no barrier and no obsidian, which nothing in Minecraft does.
+ * **Where a sea stands is the terrain's to declare (§3.4), territory by territory** ([territories]). Two
+ * landforms that want different seas each keep their own, and where they meet the higher one is held back
+ * by a wall of the land's own rock ([isWalledAt]) — islands over a void beside hills over a sea, neither
+ * drowning the other (Jonah, 2026-10-06). [level] is still the one number for whatever has to have one:
+ * vanilla's sea level, the shores, the aquifers, the abyss plane.
+ *
+ * What varies across a level is *what the sea is made of* — an ocean of water meeting one of lava along a
+ * line at the same level, with no barrier and no obsidian, which nothing in Minecraft does.
  */
 data class SeaFill(
     val blocks: List<BlockState>,
@@ -43,7 +47,57 @@ data class SeaFill(
      * times to say the same thing.
      */
     val carried: List<StandingFluid> = emptyList(),
+    /** Each terrain territory's own level, where they differ; null where one level serves the whole Age. */
+    val territories: Territories? = null,
 ) {
+
+    /**
+     * Each terrain territory's sea level, on the same map the rock is laid by — [NO_SEA] for a territory
+     * with none, which is a floating landform nobody gave a sea.
+     */
+    data class Territories(val where: RegionMap, val levels: List<Int>) {
+        fun levelAt(worldX: Int, worldZ: Int): Int = levels[where.memberAt(worldX, worldZ).coerceIn(levels.indices)]
+
+        companion object {
+            val CODEC: Codec<Territories> = RecordCodecBuilder.create { instance ->
+                instance.group(
+                    RegionMap.MAP_CODEC.fieldOf("where").forGetter(Territories::where),
+                    Codec.INT.listOf().fieldOf("levels").forGetter(Territories::levels),
+                ).apply(instance, ::Territories)
+            }
+        }
+    }
+
+    /** The level the sea stands at in this column: its territory's, or [level] where there is only one. */
+    fun levelAt(worldX: Int, worldZ: Int): Int = territories?.levelAt(worldX, worldZ) ?: level
+
+    /** [surfaceY] for this column, or null where this column's territory has no sea. */
+    fun surfaceYAt(worldX: Int, worldZ: Int): Int? {
+        val here = levelAt(worldX, worldZ)
+        return if (representative.isAir || here == NO_SEA) null else here - 1
+    }
+
+    /**
+     * Whether the sea's place at this block is taken by a wall instead: it would fill here at [levelHere],
+     * and a column beside it stands its sea lower than this block, so water here would pour over the edge.
+     * The wall is one block thick along the higher sea's edge, from the lower sea up to its own; beside a
+     * territory with no sea it reaches the floor of the world.
+     */
+    fun isWalledAt(worldX: Int, worldZ: Int, y: Int, levelHere: Int): Boolean {
+        val held = territories ?: return false
+        if (y >= levelHere || representative.isAir) return false
+        fun lowerBeside(x: Int, z: Int) = held.levelAt(x, z) <= y
+        return lowerBeside(worldX - 1, worldZ) || lowerBeside(worldX + 1, worldZ) ||
+            lowerBeside(worldX, worldZ - 1) || lowerBeside(worldX, worldZ + 1)
+    }
+
+    /** This sea [blocks] higher everywhere, every territory's level with it — what a rising sea asks. */
+    fun raisedBy(blocks: Int): SeaFill = copy(
+        level = level + blocks,
+        territories = territories?.let { held ->
+            held.copy(levels = held.levels.map { if (it == NO_SEA) it else it + blocks })
+        },
+    )
 
     /** Which part of this column the sea is kept out of. Asked once per column, like [blockAt]. */
     fun drynessAt(worldX: Int, worldZ: Int): Spans = dry?.columnSpans(worldX, worldZ) ?: Spans.EMPTY
@@ -81,11 +135,14 @@ data class SeaFill(
     fun fillsAt(y: Int): Boolean = y < level && !representative.isAir
 
     /** The same question for a column whose [dryness] and [wetness] have already been read. */
-    fun fillsAt(y: Int, dryness: Spans, wetness: Spans): Boolean {
+    fun fillsAt(y: Int, dryness: Spans, wetness: Spans): Boolean = fillsAt(y, level, dryness, wetness)
+
+    /** And for a column whose own level, [levelHere], has been read too — see [levelAt]. */
+    fun fillsAt(y: Int, levelHere: Int, dryness: Spans, wetness: Spans): Boolean {
         if (representative.isAir) return false
         // A shape's own water is not subject to the waterline, so it is asked first and answers outright.
         if (wetness.contains(y)) return true
-        return fillsAt(y) && !dryness.contains(y)
+        return y < levelHere && !dryness.contains(y)
     }
 
     /**
@@ -107,13 +164,18 @@ data class SeaFill(
                     .forGetter { fill -> java.util.Optional.ofNullable(fill.wet) },
                 StandingFluid.codec(TerrainField.CODEC).codec().listOf().optionalFieldOf("carried", emptyList())
                     .forGetter(SeaFill::carried),
-            ).apply(instance) { blocks, level, map, dry, wet, carried ->
-                SeaFill(blocks, level, map, dry.orElse(null), wet.orElse(null), carried)
+                Territories.CODEC.optionalFieldOf("territories")
+                    .forGetter { fill -> java.util.Optional.ofNullable(fill.territories) },
+            ).apply(instance) { blocks, level, map, dry, wet, carried, territories ->
+                SeaFill(blocks, level, map, dry.orElse(null), wet.orElse(null), carried, territories.orElse(null))
             }
         }
 
+        /** A territory's level where it has no sea at all: nothing is ever below it. */
+        const val NO_SEA = Int.MIN_VALUE
+
         /** Empty space all the way down. */
-        val NONE = SeaFill(listOf(Blocks.AIR.defaultBlockState()), Int.MIN_VALUE)
+        val NONE = SeaFill(listOf(Blocks.AIR.defaultBlockState()), NO_SEA)
 
         /** A sea filling everything below [level]. */
         fun of(block: BlockState, level: Int) = SeaFill(listOf(block), level)
