@@ -1,5 +1,7 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.content.AgeCreativeTab
+import net.minecraft.world.item.CreativeModeTab
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent
 import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent
 import net.neoforged.neoforge.event.tick.ServerTickEvent
@@ -164,6 +166,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         }
         event.register(Registries.ITEM) { helper ->
             AgeContent.items.forEach { (id, item) -> helper.register(id, item) }
+        }
+        event.register(Registries.CREATIVE_MODE_TAB) { helper ->
+            helper.register(AgeCreativeTab.ID, AgeCreativeTab.built(CreativeModeTab.builder()))
         }
         event.register(Registries.ENTITY_TYPE) { helper ->
             AgeContent.entities.forEach { (id, type) -> helper.register(id, type) }

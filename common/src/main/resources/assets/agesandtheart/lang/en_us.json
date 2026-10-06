@@ -446,6 +446,7 @@
   "item.minecraft.potion.effect.agesandtheart.crushing_resistance": "Potion of Crushing Resistance",
   "item.minecraft.splash_potion.effect.agesandtheart.crushing_resistance": "Splash Potion of Crushing Resistance",
   "item.minecraft.tipped_arrow.effect.agesandtheart.crushing_resistance": "Arrow of Crushing Resistance",
+  "itemGroup.agesandtheart": "Ages and the Art",
   "portal.agesandtheart.no_frame": "There is no phasmium frame here for the book to open",
   "portal.agesandtheart.same_world": "A linking portal leads between worlds, not within one",
   "prose.agesandtheart.a": "a",

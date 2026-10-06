@@ -2,6 +2,8 @@ package co.voik.agesandtheart
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents
+import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab
+import co.voik.agesandtheart.content.AgeCreativeTab
 import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.platform.FabricDeepWaterFluids
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
@@ -66,6 +68,7 @@ fun init() {
     AgeComponents.components.forEach { (id, comp) -> Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id, comp) }
     AgeContent.blocks.forEach { (id, block) -> Registry.register(BuiltInRegistries.BLOCK, id, block) }
     AgeContent.items.forEach { (id, item) -> Registry.register(BuiltInRegistries.ITEM, id, item) }
+    Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, AgeCreativeTab.ID, AgeCreativeTab.built(FabricCreativeModeTab.builder()))
     AgeContent.entities.forEach { (id, type) -> Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type) }
     AgeContent.mobAttributes.forEach { (type, attributes) -> FabricDefaultAttributeRegistry.register(type, attributes()) }
     AgeContent.placeWhereTheyBelong(object : AgeContent.SpawnPlacing {

@@ -104,6 +104,7 @@ block_entity_type agesandtheart:star_fissure
 block_entity_type agesandtheart:station
 block_entity_type agesandtheart:toolbox
 block_entity_type agesandtheart:writers_desk
+creative_mode_tab agesandtheart:agesandtheart
 data_component_type agesandtheart:age_id
 data_component_type agesandtheart:archive_pages
 data_component_type agesandtheart:book_authored
@@ -213,6 +214,7 @@ item agesandtheart:palm_wood
 item agesandtheart:paper_tree_leaves
 item agesandtheart:paper_tree_log
 item agesandtheart:paper_tree_pulp
+item agesandtheart:paper_tree_root
 item agesandtheart:paper_tree_roots
 item agesandtheart:paper_tree_sapling
 item agesandtheart:phasmium
@@ -225,6 +227,7 @@ item agesandtheart:pitchstone_dust
 item agesandtheart:pitchstone_helmet
 item agesandtheart:pitchstone_leggings
 item agesandtheart:pitchstone_plate
+item agesandtheart:plasma
 item agesandtheart:plasma_containment_unit
 item agesandtheart:pulp
 item agesandtheart:pulper
@@ -234,8 +237,11 @@ item agesandtheart:rime_skates
 item agesandtheart:roasted_carapace
 item agesandtheart:scarab_carapace
 item agesandtheart:scarab_medallion
+item agesandtheart:scarab_nest
+item agesandtheart:scarab_pillar
 item agesandtheart:scorched_temperstone
 item agesandtheart:seismograph
+item agesandtheart:star_fissure
 item agesandtheart:stripped_palm_log
 item agesandtheart:stripped_palm_wood
 item agesandtheart:stripped_paper_tree_log
@@ -245,11 +251,13 @@ item agesandtheart:temperstone
 item agesandtheart:temperstone_climbers
 item agesandtheart:toolbox
 item agesandtheart:transcriber
+item agesandtheart:unstable_plasma
 item agesandtheart:vent_lining
 item agesandtheart:wet_paper_sheet
 item agesandtheart:white_rime_crystal
 item agesandtheart:white_sand
 item agesandtheart:white_sandstone
+item agesandtheart:wound
 item agesandtheart:writers_desk
 item agesandtheart:yellow_rime_crystal
 loot_condition_type agesandtheart:first_find

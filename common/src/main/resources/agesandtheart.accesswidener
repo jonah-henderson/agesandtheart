@@ -195,3 +195,7 @@ accessible	method	net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator	cr
 # The compounder's recipe book lays a compounding's ghost into its inputs with their counts, which a ghost
 # draws on a result slot alone. Vanilla's own books reach this from its package; NeoForge widens it already.
 accessible	method	net/minecraft/client/gui/screens/recipebook/GhostSlots	setResult	(Lnet/minecraft/world/inventory/Slot;Lnet/minecraft/util/context/ContextMap;Lnet/minecraft/world/item/crafting/display/SlotDisplay;)V
+
+# The creative tab fills itself through this; Kotlin cannot call into a protected nested interface the way
+# vanilla's own Java tabs do (`AgeCreativeTab`).
+accessible	class	net/minecraft/world/item/CreativeModeTab$Output

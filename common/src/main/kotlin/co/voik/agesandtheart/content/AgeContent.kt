@@ -2053,6 +2053,23 @@ object AgeContent {
     val recipeDisplays: List<Pair<Identifier, RecipeDisplay.Type<*>>> =
         listOf(CompoundingRecipeDisplay.ID to CompoundingRecipeDisplay.TYPE)
 
+    /**
+     * Items for blocks that only worldgen or the Art otherwise places, so a structure can be built with them
+     * by hand (Jonah, 2026-10-05). A hand-placed tear or wound is a block only: it is not part of an Age's
+     * collapse and nothing tears further from it.
+     */
+    private val placedByHand: List<Pair<Identifier, Item>> = listOf(
+        PAPER_TREE_ROOT_ID to PAPER_TREE_ROOT_BLOCK,
+        SCARAB_NEST_ID to SCARAB_NEST_BLOCK,
+        SCARAB_PILLAR_ID to SCARAB_PILLAR_BLOCK,
+        "plasma".location() to Plasma.SEA,
+        "unstable_plasma".location() to Plasma.UNSTABLE,
+        STAR_FISSURE_ID to STAR_FISSURE_BLOCK,
+        WOUND_ID to WOUND_BLOCK,
+    ).map { (id, block) ->
+        id to BlockItem(block, Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)).useBlockDescriptionPrefix())
+    }
+
     val items: List<Pair<Identifier, Item>> = listOf(
         VENT_LINING_ID to VENT_LINING_ITEM,
         GLOOMGRIT_ID to GLOOMGRIT,
@@ -2122,7 +2139,7 @@ object AgeContent {
         ASTRITE_SHARD_ID to ASTRITE_SHARD,
         ALGAE_ID to ALGAE,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK,
-    ) + PalmBeach.items + PalmWood.items + CompoundedStone.items + MasterworkCrafts.items + Plasma.items
+    ) + PalmBeach.items + PalmWood.items + CompoundedStone.items + MasterworkCrafts.items + Plasma.items + placedByHand
 
     /**
      * Loot-function kinds. What makes pages ordinary loot: a pack puts
