@@ -2,11 +2,11 @@
   "_comment": [
     "Found pages roll a bucket by weight, then a word within it uniformly, so `weight` is this bucket's share",
     "of pages whatever it lists. `default`: every word no bucket lists is common, authored and derived alike,",
-    "so this list only ever needs the words moved OUT of it. The four weights are 66/20/12/2: two pages in",
-    "three are filler, one in five a staple, one in eight uncommon and one in fifty rare. A loot table may",
+    "so this list only ever needs the words moved OUT of it. The five weights are 46/20/20/12/2: two pages in",
+    "five are filler, one in five a staple, one in five critical, one in eight uncommon and one in fifty rare. A loot table may",
     "narrow the roll with `\"rarity\": \"rare\"` or a list, on `roll_page_word` and `fill_notebook` alike."
   ],
-  "weight": 66,
+  "weight": 46,
   "default": true,
   "words": [
     "arid",
@@ -17,7 +17,6 @@
     "landmass",
     "open",
     "parched",
-    "sea",
     "structures",
     "worn"
   ]

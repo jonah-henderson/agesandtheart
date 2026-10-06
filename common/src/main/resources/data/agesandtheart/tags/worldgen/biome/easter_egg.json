@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "What only an easter-egg Age is made of, kept out of every page drawn (CannotAppearInLoot.EASTER_EGG).",
+    "The word still exists; it is met by finding the Age. Every registry a word can name may carry this tag,",
+    "under its own tags/ folder, so a later easter egg's blocks or structures go beside these."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:spire_barrens"
+  ]
+}

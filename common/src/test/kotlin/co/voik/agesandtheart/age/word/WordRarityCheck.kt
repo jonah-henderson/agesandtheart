@@ -37,6 +37,7 @@ class WordRarityCheck : FunSpec({
         val wanted = mapOf(
             "common" to Rarity.COMMON,
             "staple" to Rarity.UNCOMMON,
+            "critical" to Rarity.UNCOMMON,
             "uncommon" to Rarity.RARE,
             "rare" to Rarity.EPIC,
         )

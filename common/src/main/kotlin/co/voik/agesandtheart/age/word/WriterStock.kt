@@ -45,7 +45,8 @@ class WriterStock(private val listed: Map<String, Set<String>>) {
         registries: RegistryAccess,
         random: RandomSource,
     ): Word? {
-        val held = words(pool, vocabulary, registries).filterNot { Withheld.holdsBack(it, registries) }
+        fun isKeptBack(word: Word) = Withheld.holdsBack(word, registries) || CannotAppearInLoot.isEasterEgg(word, registries)
+        val held = words(pool, vocabulary, registries).filterNot(::isKeptBack)
         return if (held.isEmpty()) null else held[random.nextInt(held.size)]
     }
 

@@ -3,8 +3,11 @@
     "Blocks whose word is never drawn onto a found page or into a found notebook. The word still exists and",
     "is writable by anyone who learns it another way; for a thing that must have no word at all, use",
     "`does_not_have_a_word`. Every registry a word can name may carry this tag, under its own tags/ folder.",
-    "Scrivener's rarity column writes it as `no loot`."
+    "Scrivener's rarity column writes it as `no loot`.",
+    "Plasma is learned only from the chest beside the fusion compounder (design 7, the summit)."
   ],
   "replace": false,
-  "values": []
+  "values": [
+    "agesandtheart:plasma"
+  ]
 }

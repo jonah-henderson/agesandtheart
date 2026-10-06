@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "Words the way through the game needs: what writes an Age each early rare material grows in",
+    "(phasmium, rime crystal, temperstone, astrite, arc crystal), and the aiming page each is said to (Jonah,",
+    "2026-10-05). As often as the staples, and a bucket of their own so a loot table or a structure can ask",
+    "for them by name -- the lost library's shelf page is drawn from here. The window's words and the city's",
+    "are not here: those come from structures and the survey reports.",
+    "item_rarity: Yellow, vanilla's uncommon."
+  ],
+  "weight": 20,
+  "item_rarity": "uncommon",
+  "words": [
+    "aurora",
+    "blizzard",
+    "climate",
+    "deep",
+    "deluge",
+    "electromagnetic",
+    "features",
+    "frozen",
+    "glimmering",
+    "meteors",
+    "phenomena",
+    "restless",
+    "scorching",
+    "sea",
+    "tempest",
+    "volcanic"
+  ]
+}
