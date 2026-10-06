@@ -2,6 +2,8 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
+import co.voik.agesandtheart.age.phenomena.Sampling
+import co.voik.agesandtheart.age.phenomena.ConeExposure
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.ephemeris.Rgba
@@ -11,7 +13,6 @@ import net.minecraft.world.phys.Vec3
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
-import net.minecraft.client.player.LocalPlayer
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundSource
@@ -45,17 +46,24 @@ object Storms {
     /** For a client leaving a server, whose Age ids mean nothing on the next. */
     fun forget() {
         told = null
+        inTheWind = ConeExposure.Remembered()
     }
 
+    /** The local player's last [ConeExposure] reading, which every sample below is capped by. */
+    private var inTheWind = ConeExposure.Remembered()
+
     /**
-     * How much of the storm is actually on [player], from none of it to all of it — [Blizzard.exposureAt],
-     * the same definition the cold uses.
+     * How much of [blowing] is actually on [at], from none of it to all of it — [Blizzard.exposureAt], the
+     * same definition the cold uses, with the wind read from where the local player stands.
      *
      * **Cover only, deliberately.** A fire warms you without sheltering you, so it takes the edge off the
      * cold and changes nothing here: you are still standing in the wind, and the sound should say so.
      */
-    fun exposure(level: ClientLevel, player: LocalPlayer): Float =
-        Blizzard.exposureAt(level, player.blockPosition())
+    private fun exposure(level: ClientLevel, at: BlockPos, blowing: BlizzardPayload): Float {
+        val player = Minecraft.getInstance().player ?: return Sampling.exposureAt(level, at)
+        val reading = inTheWind.read(level, player.eyePosition, ConeExposure.upwind(blowing.driving()))
+        return Blizzard.exposureAt(level, at, reading)
+    }
 
     /**
      * The fog closing in while a blizzard blows, laid over whatever the Age already paints.
@@ -72,10 +80,10 @@ object Storms {
         // sample rather than at registration, and that is the only shape that works for a condition that
         // comes and goes.
         layers.addPositionalLayer(EnvironmentAttributes.FOG_COLOR) { was, at, _ ->
-            if (outInIt(level, at) == null) was else whitenedBy(level, at, was)
+            blowingIn(level)?.let { whitenedBy(level, at, it, was) } ?: was
         }
         layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { was, at, _ ->
-            if (outInIt(level, at) == null) was else whitenedBy(level, at, was)
+            blowingIn(level)?.let { whitenedBy(level, at, it, was) } ?: was
         }
         layers.addPositionalLayer(EnvironmentAttributes.FOG_START_DISTANCE) { was, at, _ ->
             outInIt(level, at)?.let { seenThrough(was, it) * BEGINS_AT } ?: was
@@ -103,18 +111,14 @@ object Storms {
      */
     private fun outInIt(level: ClientLevel, at: Vec3): Double? {
         val blowing = blowingIn(level) ?: return null
-        // **Graded, the way the wind beside it already was.** This asked `canSeeSky`, which is a yes or a
-        // no — so the whiteout switched off at a doorway while the sound it is supposed to agree with
-        // faded over a dozen blocks, and stepping under a lip went from a blizzard to a clear day in one
-        // step (Jonah, 2026-09-09, walked). Sky light is the one definition; there is no second one now.
-        val exposed = Blizzard.exposureAt(level, BlockPos.containing(at))
+        val exposed = exposure(level, BlockPos.containing(at), blowing)
         if (exposed <= NONE) return null
         return blowing.severity * exposed
     }
 
     /** How far toward a whiteout this sample is — the colour follows the distances rather than snapping. */
-    private fun whitenedBy(level: ClientLevel, at: Vec3, was: Vector3fc): Vector3fc {
-        val exposed = Blizzard.exposureAt(level, BlockPos.containing(at))
+    private fun whitenedBy(level: ClientLevel, at: Vec3, blowing: BlizzardPayload, was: Vector3fc): Vector3fc {
+        val exposed = exposure(level, BlockPos.containing(at), blowing)
         return ARGB.srgbLerp(exposed, was, DRIVEN_SNOW.rgb())
     }
 
@@ -163,7 +167,7 @@ object Storms {
                 here.y + random.nextDouble(),
                 here.z + random.nextDouble(),
                 driving.stepX * hurry,
-                -FALLING * hurry,
+                -Blizzard.SNOW_FALLS_PER_BLOCK * hurry,
                 driving.stepZ * hurry,
             )
         }
@@ -246,7 +250,7 @@ object Storms {
             val player = client.player
             val blowing = level?.let(::blowingIn)
             if (level == null || player == null || blowing == null) return stop()
-            val open = exposure(level, player)
+            val open = exposure(level, player.blockPosition(), blowing)
             volume = loudnessOf(blowing.severity) * (if (whenOpen) open else ALL_OF_IT - open)
         }
     }
@@ -319,10 +323,9 @@ object Storms {
     private const val FLAKES = 60
     private const val MOST_FLAKES = 220
 
-    /** How fast they go sideways, and how much of that they also fall at. */
+    /** How fast they go sideways. */
     private const val RUSHING = 0.9
     private const val FASTEST = 2.4
-    private const val FALLING = 0.35
 
     private const val QUIETEST = 0.5
     private const val LOUDEST = 1.0

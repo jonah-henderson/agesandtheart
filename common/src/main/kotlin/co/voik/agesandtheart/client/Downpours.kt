@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.age.phenomena.Blizzard
+import co.voik.agesandtheart.age.phenomena.Sampling
 import co.voik.agesandtheart.age.phenomena.DelugePayload
 import co.voik.ephemeris.Rgba
 import net.minecraft.client.Minecraft
@@ -108,7 +108,7 @@ object Downpours {
      */
     private fun outInIt(level: ClientLevel, at: Vec3): Float? {
         val heaviness = heavinessIn(level) ?: return null
-        val exposed = Blizzard.exposureAt(level, BlockPos.containing(at))
+        val exposed = Sampling.exposureAt(level, BlockPos.containing(at))
         if (exposed <= NONE) return null
         val raining = level.getRainLevel(WHOLE_TICK)
         return (ORDINARY_HARDNESS + (ALL_OF_IT - ORDINARY_HARDNESS) * heaviness.toFloat()) * exposed * raining
@@ -155,7 +155,7 @@ object Downpours {
     /** vanilla's own rain sound, played louder and lower than it plays it, muffled under cover. */
     private fun roar(level: ClientLevel, at: BlockPos, heaviness: Double, raining: Float) {
         if (level.random.nextInt(ROAR_EVERY) != 0) return
-        val exposed = Blizzard.exposureAt(level, at)
+        val exposed = Sampling.exposureAt(level, at)
         val loud = (QUIETEST_ROAR + (LOUDEST_ROAR - QUIETEST_ROAR) * heaviness.toFloat()) * raining
         val sound = if (exposed > HALF) SoundEvents.WEATHER_RAIN else SoundEvents.WEATHER_RAIN_ABOVE
         val volume = if (exposed > HALF) loud * exposed else loud * SHELTERED

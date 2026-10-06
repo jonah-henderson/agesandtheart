@@ -71,7 +71,7 @@ object Blizzard {
                 val z = around.z + level.random.nextInt(-REACH, REACH)
                 driftAt(level, cursor, x, z, bearing, thickness)
             }
-            chill(level, around, biting)
+            chill(level, around, biting, bearing)
         }
     }
 
@@ -87,11 +87,14 @@ object Blizzard {
      * powder snow, so anything under three is a blizzard that never bites; three is vanilla's own pace in
      * powder snow, and a fiercer storm gains faster.
      */
-    private fun chill(level: ServerLevel, around: BlockPos, severity: Double) {
+    private fun chill(level: ServerLevel, around: BlockPos, severity: Double, driving: Direction) {
         val nearby = AABB(around).inflate(REACH.toDouble())
         for (living in level.getEntitiesOfClass(LivingEntity::class.java, nearby) { it.canFreeze() }) {
             val at = living.blockPosition()
-            val onYou = exposureAt(level, at) * (ALL_OF_IT - warmthAt(level, at))
+            val inTheWind = windReadings.getOrPut(living, ConeExposure::Remembered)
+                .read(level, living.eyePosition, ConeExposure.upwind(driving))
+            val exposed = exposureAt(level, at, inTheWind)
+            val onYou = exposed * (ALL_OF_IT - warmthAt(level, at))
             if (onYou <= NOTHING) continue
             val bite = (BITES_BY * severity * onYou).roundToInt().coerceAtLeast(1)
             val gaining = THAWS_BY + bite
@@ -108,17 +111,19 @@ object Blizzard {
 
     /**
      * How much of the storm is on this spot, from none of it to all of it — **the one definition**, read
-     * by the cold here and by the wind's crossfade on the client.
+     * by the cold here and by the whiteout and the wind's crossfade on the client.
      *
-     * **Cover, and graded** — [Sampling.exposureAt], which an inferno's burn is taken off by too.
+     * [inTheWind] is a [ConeExposure] reading, which is only taken every [ConeExposure.BETWEEN_READINGS]
+     * ticks; sky light, read every time, can only lower it. So walking into cover is felt at once and
+     * walking out of it is up to a second late.
      *
-     * **Block light is deliberately not consulted, and that is a change.** It used to stop the freezing
-     * outright, on the argument that what keeps the drift off your ground keeps the cold off you — but a
-     * field of torches is not warm, it is a lit field you are still standing in the wind of (Jonah). Light
-     * still keeps your *ground*; see [driftAt], which is vanilla's own rule and keeps it. What answers the
-     * cold is cover, a real fire, or the leather the design always meant to be the portable answer.
+     * Block light is not consulted: it keeps your *ground* ([driftAt]) but not you.
      */
-    fun exposureAt(level: Level, at: BlockPos): Float = Sampling.exposureAt(level, at)
+    fun exposureAt(level: Level, at: BlockPos, inTheWind: Float): Float =
+        minOf(Sampling.exposureAt(level, at), inTheWind)
+
+    /** Each freezable thing's last [ConeExposure] reading, held weakly so it goes with the entity. */
+    private val windReadings = WeakHashMap<LivingEntity, ConeExposure.Remembered>()
 
     /**
      * How much a real fire nearby takes off the cold, from none of it to [MOST_A_FIRE_GIVES].
@@ -500,6 +505,9 @@ object Blizzard {
 
     /** How fast an ordinary blizzard gains on that — vanilla's own pace in powder snow. */
     private const val BITES_BY = 1.0
+
+    /** How far a flake falls for each block the wind carries it: the slant the snow is drawn and sheltered at. */
+    const val SNOW_FALLS_PER_BLOCK = 0.35
 
     /** How far past frozen the cold is allowed to bank up, so stepping inside is not instant relief. */
     private const val DEEPEST_CHILL = 2

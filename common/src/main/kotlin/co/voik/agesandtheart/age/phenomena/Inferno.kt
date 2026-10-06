@@ -11,6 +11,7 @@ import net.minecraft.util.Mth
 import net.minecraft.world.level.block.BaseFireBlock
 import net.minecraft.world.level.block.IceBlock
 import net.minecraft.world.level.block.state.BlockState
+import java.util.WeakHashMap
 
 /**
  * A world that burns (design §5.2.2).
@@ -190,13 +191,19 @@ object Inferno {
         val extra = burnDamage * MOST_EXTRA_BURN_PER_SECOND * intensity.betweenHarms / TICKS_PER_SECOND
         for (living in nearSomebody(level)) {
             // **The sun says how much burn there may be, and cover takes it off** (Jonah, 2026-09-23), as it
-            // takes off a blizzard's cold: a lip of rock shortens it, a cave or a roof ends it.
-            val burn = sun * Sampling.exposureAt(level, living.blockPosition())
+            // takes off a blizzard's cold: a lip of rock shortens it, a cave or a roof ends it. Read the
+            // blizzard's way too — a ray cone, here straight up, capped by sky light between readings.
+            val overhead = sunReadings.getOrPut(living, ConeExposure::Remembered)
+                .read(level, living.eyePosition, ConeExposure.OVERHEAD)
+            val burn = sun * minOf(Sampling.exposureAt(level, living.blockPosition()), overhead)
             if (burn < LEAST_WORTH_A_BURN) continue
             living.igniteForSeconds((alight * burn).toFloat())
             if (extra > NONE_OF_IT) living.hurtServer(level, level.damageSources().onFire(), (extra * burn).toFloat())
         }
     }
+
+    /** Each burnable thing's last [ConeExposure] reading, held weakly so it goes with the entity. */
+    private val sunReadings = WeakHashMap<LivingEntity, ConeExposure.Remembered>()
 
     /**
      * Everything near somebody that fire can hurt.
