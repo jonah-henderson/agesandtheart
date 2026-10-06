@@ -5,7 +5,10 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.sin
 
 /**
  * A stream down each of some of the shapes [placement] lays out over [ground]: it rises at the highest
@@ -75,8 +78,14 @@ data class Streams(
             if (!course.isEmpty && course.nearTo(worldX, worldZ)) onACourse = true
         }
         if (!onACourse) return Spans.EMPTY
-        val top = topAt(worldX, worldZ) ?: return Spans.EMPTY
-        return if (water) Spans.of(top - BED_DEPTH + 1, top - BED_DEPTH + 1) else Spans.of(top - BED_DEPTH + 1, Spans.HIGHEST_Y)
+        val column = ground.columnSpans(worldX, worldZ)
+        val top = column.highestSolidY ?: return Spans.EMPTY
+        // Only where there is ground under the bed: a course crossing a thin overhang would cut straight
+        // through it and pour its water out of the bottom.
+        val waterAt = top - BED_DEPTH + 1
+        val floored = column.contains(waterAt - 1) && column.contains(waterAt - 2)
+        if (!floored) return Spans.EMPTY
+        return if (water) Spans.of(waterAt, waterAt) else Spans.of(waterAt, Spans.HIGHEST_Y)
     }
 
     /** The ground's top in a column, or null where there is no ground. */
@@ -113,44 +122,55 @@ data class Streams(
         val visited = HashSet<Long>()
         // Its own, so two streams do not wander alike.
         val wander = XoroshiroRandomSource(seed xor key(originX, originZ))
+        // **Across the island, not off its nearest edge** (Jonah, 2026-10-06: "as long as possible… across the
+        // centre and off the opposing edge"): a point well past the far side, roughly through the middle from
+        // where the stream rose — swung up to [MOST_SWING] to one side or the other, since a river a little
+        // off the middle is as good (Jonah). Rising at the middle itself, it heads off whichever way it draws.
+        val awayBearing = if (hypot((originX - startX).toDouble(), (originZ - startZ).toDouble()) >= SEARCH_STRIDE) {
+            atan2((originZ - startZ).toDouble(), (originX - startX).toDouble())
+        } else {
+            wander.nextDouble() * 2.0 * Math.PI
+        }
+        val bearing = awayBearing + (wander.nextDouble() * 2.0 - 1.0) * MOST_SWING
+        val farX = originX + cos(bearing) * FAR_SIDE
+        val farZ = originZ + sin(bearing) * FAR_SIDE
         var x = startX
         var z = startZ
+        var standing = highest
         var heading: Pair<Int, Int>? = null
         for (step in 0..<longestCourse) {
             xs += x
             zs += z
             visited += key(x, z)
             var next: Pair<Int, Int>? = null
+            var nextTop = standing
             var nextHeading: Pair<Int, Int>? = null
             var best = Double.MAX_VALUE
-            var reachesTheEdge = false
             for ((dx, dz) in NEIGHBOURS) {
                 val nextX = x + dx * STEP
                 val nextZ = z + dz * STEP
                 if (key(nextX, nextZ) in visited) continue
+                // Off the edge is a step down like any other, a little better than level, so a stream leaves
+                // where the edge is ahead of it and passes it by where it is only beside it.
                 val top = topAt(nextX, nextZ)
-                if (top == null) {
-                    reachesTheEdge = true
-                    continue
-                }
-                // Downhill first and always: a block of fall outweighs everything else. On the flat, where
-                // every way is level, it keeps roughly to its heading and wanders a little, as a stream does.
+                val height = top?.toDouble() ?: (standing - EDGE_PULL)
+                // Downhill first: a block of fall outweighs everything below. On the level it keeps roughly to
+                // its heading, makes for the far side and wanders a little, as a stream does.
                 val turning = heading?.let { (hx, hz) -> turnBetween(hx, hz, dx, dz) } ?: 0.0
-                // And outward, so a stream on a level island still finds its way to the edge.
-                val inward = turnBetween(x - originX, z - originZ, dx, dz).takeUnless { it.isNaN() } ?: 0.0
-                val score = top + turning * TURN_COST + inward * OUTWARD + wander.nextDouble() * WANDER
+                val astray = turnBetween((farX - x).toInt(), (farZ - z).toInt(), dx, dz).takeUnless { it.isNaN() } ?: 0.0
+                val score = height + turning * TURN_COST + astray * TOWARDS_THE_FAR_SIDE + wander.nextDouble() * WANDER
                 if (score < best) {
                     best = score
-                    next = nextX to nextZ
+                    next = if (top == null) null else nextX to nextZ
+                    nextTop = top ?: Int.MIN_VALUE
                     nextHeading = dx to dz
                 }
             }
-            // The edge is lower than any ground, so a stream that can step off it does, and its course ends
-            // on the last ground it stood on.
-            if (reachesTheEdge) break
+            // Gone over the edge, or nowhere left to go: the course ends on the last ground it stood on.
             val going = next ?: break
             x = going.first
             z = going.second
+            standing = nextTop
             heading = nextHeading
         }
         return Course(xs.toIntArray(), zs.toIntArray())
@@ -167,8 +187,8 @@ data class Streams(
         /** How far a course moves in one step: a gentle stream turns over a few blocks, not every one. */
         const val STEP = 2
 
-        /** How far either side of its course a stream reaches: three blocks across. */
-        private const val HALF_WIDTH = 1.5
+        /** How far either side of its course a stream reaches: about four blocks across (Jonah, 2026-10-06). */
+        private const val HALF_WIDTH = 2.0
 
         /** How deep the bed is cut under the ground, the water standing in the lower block of it. */
         private const val BED_DEPTH = 2
@@ -176,12 +196,21 @@ data class Streams(
         private const val SEARCH_STRIDE = 4
 
         /**
-         * What a full turn about costs a step, what heading back to the middle does, and how much a step may
-         * wander — together under a block, so any fall at all outweighs them.
+         * What a full turn about costs a step, what heading away from the far side does, and how much a step
+         * may wander — together a block at most, so any fall at all decides before they do.
          */
-        private const val TURN_COST = 0.3
-        private const val OUTWARD = 0.35
-        private const val WANDER = 0.3
+        private const val TURN_COST = 0.2
+        private const val TOWARDS_THE_FAR_SIDE = 0.6
+        private const val WANDER = 0.2
+
+        /** How much better than level a step off the edge counts. */
+        private const val EDGE_PULL = 0.4
+
+        /** How far past the middle the point a stream makes for lies — well beyond any island. */
+        private const val FAR_SIDE = 200.0
+
+        /** How far that point may swing to either side of straight across, in radians: 35 degrees. */
+        private const val MOST_SWING = 0.61
 
         /** How far apart two headings point: 0 for the same way, 1 for opposite. */
         private fun turnBetween(fromX: Int, fromZ: Int, toX: Int, toZ: Int): Double {

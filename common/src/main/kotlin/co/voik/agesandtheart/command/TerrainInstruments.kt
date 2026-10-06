@@ -16,6 +16,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
+import net.minecraft.tags.FluidTags
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.core.BlockPos
@@ -46,6 +47,67 @@ internal object TerrainInstruments {
             .then(compareSubcommand())
             .then(spawnsSubcommand())
             .then(probeSubcommand())
+            .then(hangingSubcommand())
+    }
+
+    /** As far as `/age hanging` will generate around the origin, in chunks: enough for an island or two. */
+    private const val WIDEST_HANGING_SEARCH = 8
+
+    /** How many places `/age hanging` names; the count is the finding and these are where to look. */
+    private const val HANGING_PLACES_NAMED = 10
+
+    /**
+     * `/age hanging <name> <radius>` — water standing on air within [RADIUS_ARGUMENT] chunks of the origin,
+     * counted and the first few named. Generates what it reads, so ask it of a small radius.
+     *
+     * **A lead, not a fault.** The chunks it generates do not tick, and water only falls in one that does,
+     * so a pool over a gap reads as on air here until something keeps its chunk loaded — `forceload` it and
+     * read the blocks, and water that is falling has fallen. What still stands on air in a ticking chunk is
+     * the fault (2026-10-06: none was, under a stream or a carved cave).
+     */
+    private fun hangingSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("hanging") { reportFor ->
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).then(
+                Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(0, WIDEST_HANGING_SEARCH)).executes { context ->
+                    runHanging(context, IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT), reportFor(context))
+                },
+            )
+        }
+
+    private fun runHanging(context: CommandContext<CommandSourceStack>, radius: Int, report: Report): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val level = openNamedAge(source, name, report) ?: return FAILURE
+        val here = BlockPos.MutableBlockPos()
+        val below = BlockPos.MutableBlockPos()
+        var hanging = 0
+        var water = 0
+        val named = ArrayList<BlockPos>()
+        for (chunkX in -radius..radius) {
+            for (chunkZ in -radius..radius) {
+                val chunk = level.getChunk(chunkX, chunkZ)
+                for (localX in 0..<16) {
+                    for (localZ in 0..<16) {
+                        val x = chunk.pos.minBlockX + localX
+                        val z = chunk.pos.minBlockZ + localZ
+                        for (y in level.minY + 1..<level.maxY) {
+                            val isWater = chunk.getFluidState(here.set(x, y, z)).`is`(FluidTags.WATER)
+                            if (isWater) water++
+                            if (!isWater || !chunk.getBlockState(below.set(x, y - 1, z)).isAir) continue
+                            hanging++
+                            if (named.size < HANGING_PLACES_NAMED) named += here.immutable()
+                        }
+                    }
+                }
+            }
+        }
+        report.fact("water", water) { "Water within $radius chunks of the origin: $water blocks" }
+        report.fact("hanging", hanging) { "  of which on air: $hanging" }
+        for (place in named) {
+            report.entry("at", mapOf("x" to place.x, "y" to place.y, "z" to place.z)) { "  at ${place.x} ${place.y} ${place.z}" }
+        }
+        report.finish()
+        return SUCCESS
     }
 
     private const val PROBE_X = "x"
