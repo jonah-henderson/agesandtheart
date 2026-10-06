@@ -1,16 +1,15 @@
 {
   "_comment": [
-    "Gated on fine ink rather than on leather: leather is early and common, so keying on it would show the",
-    "recipe long before any of it is makeable. The fine ink bottle is the ingredient that actually gates it."
+    "Gated on the ink bottle rather than the book or the feather, which every player has long before ink."
   ],
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_fine_ink_bottle": {
+    "has_ink_bottle": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
         "items": [
           {
-            "items": "agesandtheart:fine_ink_bottle"
+            "items": "agesandtheart:ink_bottle"
           }
         ]
       }
@@ -24,7 +23,7 @@
   },
   "requirements": [
     [
-      "has_fine_ink_bottle",
+      "has_ink_bottle",
       "has_the_recipe"
     ]
   ],

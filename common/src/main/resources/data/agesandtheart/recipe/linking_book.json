@@ -1,18 +1,16 @@
 {
   "_comment": [
-    "Fine ink and fine paper, so a linking book is a mid-tier reward rather than a consumable.",
-    "The ink is a bottle rather than a bucket now that fine ink has one -- a bucket for a single book was",
-    "roughly sixteen times what it should be.",
-    "Ratios still have had no balancing thought."
+    "A book, common ink and a feather (Jonah, walk 2026-10-05): a linking book is how anyone gets home from an",
+    "Age, and the few found in loot made exploring one too cautious. The ink bottle is what tells it from a book",
+    "and quill, which takes an ink sac."
   ],
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "group": "agesandtheart_books",
   "ingredients": [
-    "minecraft:leather",
-    "agesandtheart:fine_paper",
-    "minecraft:feather",
-    "agesandtheart:fine_ink_bottle"
+    "minecraft:book",
+    "agesandtheart:ink_bottle",
+    "minecraft:feather"
   ],
   "result": {
     "id": "agesandtheart:linking_book",
