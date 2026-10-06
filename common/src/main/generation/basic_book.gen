@@ -39,7 +39,8 @@ curiosity_age =
     [mood] age [open_curious_landmass] [look]
     | [mood] age [curious_landmass] [thing]
     | age [open_curious_landmass] [look] [thing]@4
-    | age [open_curious_landmass] [look] [landed_thing] [climate]@2
+    | age [open_curious_landmass] [look] [landed_thing] [mild_climate]@2
+    | age [open_curious_landmass] [bare_look] [bare_thing] [barren_climate]
     | age [curious_landmass] [thing_beside_a_sea] [sea]
     | [palm_beach_age]
 
@@ -67,7 +68,14 @@ landed_thing = [formation]@3 | [underground]@3 | [life]@2
 
 # And without dry rock, for beside a sea: `dry rock` and `drowned sea` are dry against watery, which
 # BookCheck caught at seed 341 once the palm beach's shape moved which book each seed draws.
-thing_beside_a_sea = [formation]@3 | [underground_beside_a_sea]@3 | [life]@2
+# And without a settlement, for beside a sea: `settled structures` and `open sea` are inhabited against empty.
+thing_beside_a_sea = [formation]@3 | [underground_beside_a_sea]@3 | [life_beside_a_sea]@2
+
+# A barren climate only beside what does not live or grow: herds and trees are grazing and wooded against
+# barren (the antonym pairs of 2026-10-04, which made one basic book in four hundred unstable).
+bare_look = [sky]@4 | [aurora]@2 | [rainbow]@2
+
+bare_thing = [formation]@3 | [underground]@3 | ruins structures | untouched structures
 
 underground_beside_a_sea =
     tunnels underground@4
@@ -271,4 +279,8 @@ sea = drowned sea@2 | open sea | shallow water sea | murky waters | clear waters
 
 life = teeming herds spawns | fish spawns | fliers spawns | beasts spawns | ruins structures | settled structures | untouched structures
 
-climate = temperate climate@2 | warm climate | tropical climate | verdant biomes | parched climate | arid climate
+life_beside_a_sea = teeming herds spawns | fish spawns | fliers spawns | beasts spawns | ruins structures | untouched structures
+
+mild_climate = temperate climate@2 | warm climate | tropical climate | verdant biomes
+
+barren_climate = parched climate | arid climate

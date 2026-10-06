@@ -18,7 +18,8 @@
       {"produce":["[mood]","age","[open_curious_landmass]","[look]"]},
       {"produce":["[mood]","age","[curious_landmass]","[thing]"]},
       {"weight":4.0,"produce":["age","[open_curious_landmass]","[look]","[thing]"]},
-      {"weight":2.0,"produce":["age","[open_curious_landmass]","[look]","[landed_thing]","[climate]"]},
+      {"weight":2.0,"produce":["age","[open_curious_landmass]","[look]","[landed_thing]","[mild_climate]"]},
+      {"produce":["age","[open_curious_landmass]","[bare_look]","[bare_thing]","[barren_climate]"]},
       {"produce":["age","[curious_landmass]","[thing_beside_a_sea]","[sea]"]},
       {"produce":["[palm_beach_age]"]}
     ],
@@ -63,7 +64,18 @@
     "thing_beside_a_sea": [
       {"weight":3.0,"produce":["[formation]"]},
       {"weight":3.0,"produce":["[underground_beside_a_sea]"]},
-      {"weight":2.0,"produce":["[life]"]}
+      {"weight":2.0,"produce":["[life_beside_a_sea]"]}
+    ],
+    "bare_look": [
+      {"weight":4.0,"produce":["[sky]"]},
+      {"weight":2.0,"produce":["[aurora]"]},
+      {"weight":2.0,"produce":["[rainbow]"]}
+    ],
+    "bare_thing": [
+      {"weight":3.0,"produce":["[formation]"]},
+      {"weight":3.0,"produce":["[underground]"]},
+      {"produce":["ruins","structures"]},
+      {"produce":["untouched","structures"]}
     ],
     "underground_beside_a_sea": [
       {"weight":4.0,"produce":["tunnels","underground"]},
@@ -342,11 +354,21 @@
       {"produce":["settled","structures"]},
       {"produce":["untouched","structures"]}
     ],
-    "climate": [
+    "life_beside_a_sea": [
+      {"produce":["teeming","herds","spawns"]},
+      {"produce":["fish","spawns"]},
+      {"produce":["fliers","spawns"]},
+      {"produce":["beasts","spawns"]},
+      {"produce":["ruins","structures"]},
+      {"produce":["untouched","structures"]}
+    ],
+    "mild_climate": [
       {"weight":2.0,"produce":["temperate","climate"]},
       {"produce":["warm","climate"]},
       {"produce":["tropical","climate"]},
-      {"produce":["verdant","biomes"]},
+      {"produce":["verdant","biomes"]}
+    ],
+    "barren_climate": [
       {"produce":["parched","climate"]},
       {"produce":["arid","climate"]}
     ]
