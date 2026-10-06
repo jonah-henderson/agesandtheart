@@ -1,5 +1,8 @@
 package co.voik.agesandtheart.worldgen
 
+import kotlin.math.roundToInt
+import co.voik.agesandtheart.worldgen.field.Subtract
+import co.voik.agesandtheart.worldgen.field.NoiseHeightmap
 import co.voik.agesandtheart.worldgen.field.Cone
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Density
@@ -35,7 +38,55 @@ object SkylandsField {
      * [scale] is [SizeScale]'s factor: the islands, their spacing and the grain of their wear are resized
      * together about the plane they float at.
      */
-    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField = islands(salt).resized(scale, PLANE_Y)
+    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        Subtract(islands(salt), riverValleys(salt)).resized(scale, PLANE_Y)
+
+    /**
+     * The water in the islands' rivers (Jonah, 2026-10-06: "about the same feel as vanilla's rivers"): long
+     * meandering courses across the whole sky, flat, one block under the ground they cut through, as a
+     * vanilla river lies under its banks. Where one meets an island's rim it pours off into the void.
+     */
+    fun rivers(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        Intersect(
+            listOf(
+                riverValleys(salt),
+                Slab(lowY = PLANE_Y - RIVER_DEPTH, highY = PLANE_Y - 1),
+                islands(salt),
+            ),
+        ).resized(scale, PLANE_Y)
+
+    /**
+     * Where a river is cut out of the islands: everything above two surfaces drawn from one ridged noise,
+     * which dips along the noise's zero line — a line that wanders for hundreds of blocks, as a river does.
+     *
+     * The **bed** is a shallow trough, [RIVER_DEPTH] under the plane on the river's line and meeting the plane
+     * at its edge. The **banks** are far steeper, crossing the plane at that same edge: beside the river they
+     * cut its valley through whatever hills stand there, and away from it they are far above everything.
+     * The cut is above both, so the bed rules in the channel and the banks out of it.
+     */
+    private fun riverValleys(salt: Long): TerrainField {
+        fun ridged(lowest: Double, rise: Double): NoiseHeightmap {
+            // A ridged sample is 1 on the line and falls by 2 for each unit of noise away from it, so a
+            // negative relief of half the rise puts the surface at [lowest] on the line, climbing [rise] a unit.
+            val baseY = (lowest + rise / 2.0).roundToInt()
+            return NoiseHeightmap(
+                seed = RIVER_SEED xor salt,
+                firstOctave = RIVER_OCTAVE,
+                amplitudes = RIVER_AMPLITUDES,
+                scaleX = RIVER_SCALE,
+                scaleZ = RIVER_SCALE,
+                baseY = baseY,
+                relief = -rise / 2.0,
+                // Above the base, so the heightmap faces down and carves rather than standing up from a ceiling.
+                flatY = maxOf(VerticalWindow.HIGHEST_BLOCK_Y, baseY + 1),
+                character = NoiseCharacter.RIDGED,
+            )
+        }
+        val bedRise = RIVER_DEPTH / RIVER_HALF_WIDTH
+        val bed = ridged(lowest = (PLANE_Y - RIVER_DEPTH).toDouble(), rise = bedRise)
+        val banks = ridged(lowest = PLANE_Y + 1 - BANK_RISE * RIVER_HALF_WIDTH, rise = BANK_RISE)
+        return Intersect(listOf(bed, banks))
+    }
 
     private fun islands(salt: Long): TerrainField {
         val outlines = Instanced(
@@ -173,6 +224,19 @@ object SkylandsField {
     private const val RIM_SCALE = 3.0
     private const val RIM_AMOUNT = 22.0
 
+    /** How deep a river runs under the plane on its line, and how much noise either side of it is river. */
+    private const val RIVER_DEPTH = 4
+    private const val RIVER_HALF_WIDTH = 0.02
+
+    /** How fast a river's banks climb away from it, in blocks for each unit of noise. */
+    private const val BANK_RISE = 250.0
+
+    /** A river's noise: long wavelengths, so one course runs on across many islands. */
+    private const val RIVER_OCTAVE = -8
+    private val RIVER_AMPLITUDES = listOf(1.0, 0.5)
+    private const val RIVER_SCALE = 1.0
+
+    private const val RIVER_SEED = 0x5C1_4B2DL
     private const val RIM_SEED = 0x5C1_41A1L
     private const val LAND_SEED = 0x5C1_1A4DL
     private const val LAYOUT_SEED = 0x5C1_1A2DL

@@ -38,6 +38,9 @@ data class StandingFluid(
         /** The pools standing in the bottom of the magma chambers. */
         const val CHAMBER_POOLS = "chamber_pools"
 
+        /** The rivers running across floating islands. */
+        const val ISLAND_RIVERS = "island_rivers"
+
         fun codec(self: Codec<TerrainField>): MapCodec<StandingFluid> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 self.fieldOf("where").forGetter(StandingFluid::where),

@@ -512,6 +512,13 @@ enum class Terrain(
      */
     val carriedFeatures: List<String> get() = if (this == SKYLANDS) listOf(ISLAND_PONDS) else emptyList()
 
+    /**
+     * Rivers this terrain runs **of water whatever its sea**, or null for none — the islands' rivers, there
+     * whether the Age has a sea or not. See `SkylandsField.rivers`.
+     */
+    fun rivers(options: Options, salt: Long): TerrainField? =
+        if (this == SKYLANDS) SkylandsField.rivers(salt, scaleOf(options, salt)) else null
+
     fun standingWater(options: Options, salt: Long): TerrainField? = when (this) {
         RIVERLANDS -> RiverlandsField.water(salt, scaleOf(options, salt))
         MOUNTAINOUS -> MountainousField.water(salt, scaleOf(options, salt))

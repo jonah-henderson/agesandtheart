@@ -360,6 +360,11 @@ data class NoiseHeightmap(
     val relief: Double,
     /** The flat bound the rock reaches back to — a floor below [baseY], a ceiling above it. */
     val flatY: Int,
+    /**
+     * How the noise is bent before it becomes a height. [NoiseCharacter.RIDGED] peaks along the noise's zero
+     * line, so with a negative [relief] the surface dips along long meandering channels — a river's course.
+     */
+    val character: NoiseCharacter = NoiseCharacter.PLAIN,
 ) : TerrainField {
     override val kind = FieldKind.NOISE_HEIGHTMAP
     override val horizontalReach = Double.POSITIVE_INFINITY
@@ -375,7 +380,7 @@ data class NoiseHeightmap(
     private val stretchZ = scaleZ.coerceAtLeast(SMALLEST_STRETCH)
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
-        val sampled = noise.get(worldX / stretchX, 0.0, worldZ / stretchZ).toDouble()
+        val sampled = character.shape(noise.get(worldX / stretchX, 0.0, worldZ / stretchZ).toDouble())
         val surfaceY = baseY + (sampled * relief).roundToInt()
         return if (baseY >= flatY) Spans.of(flatY, surfaceY) else Spans.of(surfaceY, flatY)
     }
@@ -399,6 +404,7 @@ data class NoiseHeightmap(
                 Codec.INT.fieldOf("base_y").forGetter(NoiseHeightmap::baseY),
                 Codec.DOUBLE.fieldOf("relief").forGetter(NoiseHeightmap::relief),
                 Codec.INT.fieldOf("flat_y").forGetter(NoiseHeightmap::flatY),
+                NoiseCharacter.CODEC.optionalFieldOf("character", NoiseCharacter.PLAIN).forGetter(NoiseHeightmap::character),
             ).apply(instance, ::NoiseHeightmap)
         }
     }
