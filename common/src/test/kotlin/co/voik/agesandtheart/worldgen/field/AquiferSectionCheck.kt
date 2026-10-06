@@ -386,7 +386,8 @@ class AquiferSectionCheck : FunSpec({
 }) {
     private companion object {
         private const val SEED = 4242L
-        private val TERRAIN_SALT = AgeGeneration.saltFor(SEED, 0)
+        // Lazy, because Kotest builds this companion to discover the spec and `AgeGeneration` needs Minecraft bootstrapped.
+        private val TERRAIN_SALT by lazy { AgeGeneration.saltFor(SEED, 0) }
         private const val SEA_LEVEL = 63
 
         /** The wall walk W6 found in `age gentle landmass` at seed 4242, after stamp 41. */
