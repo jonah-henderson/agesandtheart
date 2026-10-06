@@ -1,11 +1,11 @@
 {
-  "_comment": "Sticks and string, as a real one is. Ratios are unbalanced.",
+  "_comment": "Sticks and string, as a real one is: sticks down the sides with the string strung between them (Jonah, walk 2026-10-06).",
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "pattern": [
-    "SSS",
-    "T T",
-    "SSS"
+    "STS",
+    "STS",
+    "STS"
   ],
   "key": {
     "S": "minecraft:stick",

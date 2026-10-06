@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "A sky that keeps its colour through the night (Jonah, 2026-10-06). Any sky goes dark with the day,",
+    "coloured ones too, so `purple sky` is purple by day and black by night; `unfading purple sky` is",
+    "purple at midnight."
+  ],
+  "sets": {
+    "fades": "never"
+  }
+}

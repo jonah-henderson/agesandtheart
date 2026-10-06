@@ -332,6 +332,7 @@ enum class Aspect(
             SKY -> listOf(
                 Atmosphere.SKY,
                 Atmosphere.CEILING,
+                Atmosphere.FADES,
                 Sky.SEALED,
             )
             CLOUD -> listOf(Atmosphere.CLOUD)

@@ -95,6 +95,16 @@ object Atmosphere {
     /** A cloud height as a share of the band, which may fall outside it for a deck laid below the band. */
     fun ceilingAt(cloudsY: Int): Float = (cloudsY - LOWEST_CLOUD) / (HIGHEST_CLOUD - LOWEST_CLOUD)
 
+    /**
+     * Whether the sky's colours darken at night as the day's own do (Jonah, walk 2026-10-06): a coloured
+     * sky is a colour of the day, and goes dark with it, unless a book says it holds — `unfading`.
+     */
+    val FADES = Parameter(
+        "fades",
+        listOf(Parameter.DEFAULT, NEVER_FADES),
+        help = "Whether the sky's colour darkens at night.",
+    )
+
     /** How high the clouds sit, on the same argument: one number a word bends. */
     val CEILING = Parameter.ranged(
         "ceiling",
@@ -209,6 +219,7 @@ object Atmosphere {
             tint = colourOf(air, TINT, biome),
             motes = air.of(MOTES, biome).takeUnless { it == Parameter.DEFAULT },
             murk = band(water, MURK),
+            fadesAtNight = if (vault.of(FADES, biome) == NEVER_FADES) false else null,
             water = colourOf(water, WATERCOLOUR, biome),
             waterFog = colourOf(water, WATERCOLOUR, biome)?.dimmed(WATER_FOG_SHARE),
             haze = band(air, HAZE),
@@ -339,6 +350,9 @@ object Atmosphere {
     }
 
     private const val NO_DAYLIGHT = 0f
+
+    /** The [FADES] answer for a sky that holds its colour through the night. */
+    const val NEVER_FADES = "never"
 
     /** How much of the water's colour its fog keeps: vanilla's `#050533` under `#3F76E4` is about this. */
     private const val WATER_FOG_SHARE = 0.25f

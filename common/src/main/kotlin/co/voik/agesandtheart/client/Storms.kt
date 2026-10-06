@@ -48,7 +48,8 @@ object Storms {
     fun forget() {
         told = null
         inTheWind = ConeExposure.Remembered()
-        shown = Float.NaN
+        seen = Easing()
+        heard = Easing()
     }
 
     /** The local player's last [ConeExposure] reading, which every sample below is capped by. */
@@ -64,26 +65,38 @@ object Storms {
     private fun exposure(level: ClientLevel, at: BlockPos, blowing: BlizzardPayload): Float {
         val player = Minecraft.getInstance().player ?: return Sampling.exposureAt(level, at)
         val reading = inTheWind.read(level, player.eyePosition, ConeExposure.upwind(blowing.driving()))
-        return eased(Blizzard.exposureAt(level, at, reading))
+        return seen.towards(Blizzard.exposureAt(level, at, reading))
     }
 
-    /** What the eye and ear are shown, easing towards [exposure]'s reading rather than stepping to it. */
-    private var shown = Float.NaN
-    private var shownAt = 0L
+    /**
+     * How loud the open wind is where the player stands: **the sky over them, not the wind's cone** (Jonah,
+     * walk 2026-10-06), so a lee that keeps the snow off still has the gale howling past it.
+     */
+    private fun heardExposure(level: ClientLevel, at: BlockPos): Float = heard.towards(Sampling.exposureAt(level, at))
+
+    /** What the eye is shown and what the ear is, each easing towards its own reading. */
+    private var seen = Easing()
+    private var heard = Easing()
 
     /**
-     * [target], approached over about [EASE_SECONDS] of real time (Jonah, walk 2026-10-06: the steps were
-     * plain to see). The wind is re-read once a second and the sky light changes block by block, and either
-     * one jumped the fog and the sound; the cold itself still takes the server's reading as it stands.
+     * A reading approached over about [EASE_SECONDS] of real time rather than stepped to (Jonah, walk
+     * 2026-10-06: the steps were plain to see). The wind is re-read once a second and the sky light changes
+     * block by block, and either one jumped the fog and the sound; the cold itself still takes the server's
+     * reading as it stands.
      */
-    private fun eased(target: Float): Float {
-        val now = System.nanoTime()
-        shown = if (shown.isNaN()) target else {
-            val elapsed = (now - shownAt) / NANOS_PER_SECOND
-            shown + (target - shown) * (1.0 - exp(-elapsed / EASE_SECONDS)).toFloat()
+    private class Easing {
+        private var shown = Float.NaN
+        private var shownAt = 0L
+
+        fun towards(target: Float): Float {
+            val now = System.nanoTime()
+            shown = if (shown.isNaN()) target else {
+                val elapsed = (now - shownAt) / NANOS_PER_SECOND
+                shown + (target - shown) * (1.0 - exp(-elapsed / EASE_SECONDS)).toFloat()
+            }
+            shownAt = now
+            return shown
         }
-        shownAt = now
-        return shown
     }
 
     /**
@@ -271,7 +284,7 @@ object Storms {
             val player = client.player
             val blowing = level?.let(::blowingIn)
             if (level == null || player == null || blowing == null) return stop()
-            val open = exposure(level, player.blockPosition(), blowing)
+            val open = heardExposure(level, player.blockPosition())
             volume = loudnessOf(blowing.severity) * (if (whenOpen) open else ALL_OF_IT - open)
         }
     }

@@ -270,7 +270,7 @@ data class Formation(
             // Null where a sunk formation declined its site.
             val standsOn by lazy {
                 when {
-                    !sunk -> groundAt(formation.originX, formation.originZ)
+                    !sunk -> lowestGroundUnder(formation, groundAt, ::columnOf)
                     givesWayToAnother(formation, furthest, origins, ::standingAt, ::columnOf) { other ->
                         standsAt(other.originX, other.originZ) &&
                             sinkingInto(other, groundAt, { x, z -> columnOf(other, x, z) }, seaTop) != null
@@ -295,6 +295,34 @@ data class Formation(
             }
         }
         return laid
+    }
+
+    /**
+     * Where a standing formation's base goes: the **lowest** ground under it, so every block of its base
+     * stands on the ground or in it (Jonah, walk 2026-10-06: a spike on a slope stood its downhill edge
+     * out in the air). The uphill side is sunk into the slope instead.
+     *
+     * Read off the base's footprint at a stride that keeps it to about [FOOTING_SAMPLES_ACROSS] columns across,
+     * since each is a `getBaseHeight` and the largest formations are dozens of blocks across. The centre is
+     * always among them, so a formation never stands higher than it did.
+     */
+    private fun lowestGroundUnder(
+        formation: Standing,
+        groundAt: (Int, Int) -> Int,
+        columnOf: (Int, Int) -> Spans,
+    ): Int {
+        val reach = formation.reach.toInt()
+        val stride = maxOf(1, (2 * reach) / FOOTING_SAMPLES_ACROSS)
+        var lowest = groundAt(formation.originX, formation.originZ)
+        for (x in formation.originX - reach..formation.originX + reach step stride) {
+            for (z in formation.originZ - reach..formation.originZ + reach step stride) {
+                if (!formation.couldReach(x, z)) continue
+                val base = columnOf(x, z).ranges.firstOrNull() ?: continue
+                val isPartOfTheBase = base.first <= 0
+                if (isPartOfTheBase) lowest = minOf(lowest, groundAt(x, z))
+            }
+        }
+        return lowest
     }
 
     /**
@@ -492,6 +520,9 @@ data class Formation(
          * patch of the terrain; a step down, it reads as a hole (Jonah, 2026-09-24).
          */
         private const val RECESS = 1
+
+        /** How many columns across a formation's footprint is sampled for its footing, so about 49 in all. */
+        private const val FOOTING_SAMPLES_ACROSS = 7
 
         /** Where a formation that names no biome may stand. */
         private val ANYWHERE: (Int, Int) -> Boolean = { _, _ -> true }

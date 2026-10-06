@@ -39,14 +39,14 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 private const val ORDINARY_SEA_LEVEL = 63
 
 /**
- * The islands' ponds: vanilla's surface lake, the shape `lakes` mints, filled with water, at four times
+ * The islands' ponds: vanilla's surface lake, the shape `lakes` mints, filled with water, at eight times
  * vanilla's rate for its lava, since only the islands of a sky give it anywhere to lie.
  */
 private val ISLAND_PONDS: String by lazy {
     Claim("minecraft:lake_lava_surface", density = ISLAND_POND_RATE, madeOf = "minecraft:water").spelled()
 }
 
-private const val ISLAND_POND_RATE = 4.0
+private const val ISLAND_POND_RATE = 8.0
 
 /** [Terrain.SIZE] as [SizeScale]'s factor, which is what every landform's builder is handed. */
 private fun scaleOf(options: Options, salt: Long): Double = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))

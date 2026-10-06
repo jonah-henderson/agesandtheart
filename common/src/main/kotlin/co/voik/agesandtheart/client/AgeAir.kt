@@ -6,6 +6,8 @@ import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.CloudDeck
 import co.voik.ephemeris.sky.LevelLooks
 import co.voik.ephemeris.sky.Look
+import net.minecraft.world.attribute.EnvironmentAttributeLayer
+import net.minecraft.world.attribute.WeatherAttributes
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
@@ -42,9 +44,10 @@ object AgeAir {
         // **First, so everything the book said sits over it.** This is the air of the world the Age was
         // written over, which the client resolves from a registry it already has — see [BorrowedAir].
         world?.let { BorrowedAir.seen(layers, it) }
-        if (!told.air.saysNothing) layers.addConstantLayer(asAttributeMap(told.air))
+        val daylight = Daylight(level, fades = told.air.fadesAtNight != false)
+        for (painted in painting(told.air)) painted.everywhere(layers, daylight)
         for ((biome, look) in told.corners) {
-            for (painted in painting(look)) painted.onlyIn(layers, level, biome)
+            for (painted in painting(look)) painted.onlyIn(layers, level, biome, daylight)
         }
         // Last, so it sits over the flat colour it darkens.
         deepened(told.air, decks)?.let { under -> under.onto(layers) }
@@ -124,15 +127,52 @@ object AgeAir {
         private val attribute: EnvironmentAttribute<Value>,
         private val value: Value,
     ) {
-        fun into(air: EnvironmentAttributeMap.Builder) {
-            air.set(attribute, value)
+        fun everywhere(layers: EnvironmentAttributeSystem.Builder, daylight: Daylight) {
+            layers.addTimeBasedLayer(attribute) { _, tick -> daylight.over(attribute, value, tick) }
         }
 
-        fun onlyIn(layers: EnvironmentAttributeSystem.Builder, level: ClientLevel, biome: Identifier) {
+        fun onlyIn(layers: EnvironmentAttributeSystem.Builder, level: ClientLevel, biome: Identifier, daylight: Daylight) {
             layers.addPositionalLayer(attribute) { below, at, _ ->
                 val here = level.getBiome(BlockPos.containing(at)).unwrapKey().orElse(null)?.identifier()
-                if (here == biome) value else below
+                if (here == biome) daylight.over(attribute, value, level.gameTime.toInt()) else below
             }
+        }
+    }
+
+    /**
+     * What the day and the weather do to a value of ours, as they do to the world's own.
+     *
+     * Vanilla darkens its sky at night through the dimension's timelines and greys it in rain through
+     * [WeatherAttributes], both layers under ours — so a colour laid over them took their place, and a
+     * purple sky stayed purple at midnight (Jonah, walk 2026-10-06). Here the same tracks and the same rain
+     * are applied to our value instead. An `unfading` sky skips the day's and keeps the weather's.
+     */
+    private class Daylight(private val level: ClientLevel, private val fades: Boolean) {
+        private val clock = level.clockManager()
+        private val weather = if (level.canHaveWeather()) WeatherAttributes.WeatherAccess.from(level) else null
+
+        private val samplers = HashMap<EnvironmentAttribute<*>, List<EnvironmentAttributeLayer.TimeBased<*>>>()
+
+        @Suppress("UNCHECKED_CAST")
+        private fun <Value : Any> timelinesFor(attribute: EnvironmentAttribute<Value>): List<EnvironmentAttributeLayer.TimeBased<Value>> =
+            samplers.getOrPut(attribute) {
+                // Only the colours: the rest of what a look pins — the stars' brightness above all — is pinned
+                // precisely to stand against the day's curve.
+                if (!fades || attribute !in DARKENED_BY_THE_DAY) emptyList()
+                else level.dimensionType().timelines()
+                    .filter { attribute in it.value().attributes() }
+                    .map { it.value().createTrackSampler(attribute, clock) }
+            } as List<EnvironmentAttributeLayer.TimeBased<Value>>
+
+        fun <Value : Any> over(attribute: EnvironmentAttribute<Value>, value: Value, tick: Int): Value {
+            var result = timelinesFor(attribute).fold(value) { held, track -> track.applyTimeBased(held, tick) }
+            val weather = weather ?: return result
+            val thunder = weather.thunderLevel()
+            val rain = weather.rainLevel() - thunder
+            val lerp = attribute.type().stateChangeLerp()
+            WeatherAttributes.RAIN.get(attribute)?.takeIf { rain > 0f }?.let { result = lerp.apply(rain, result, it.applyModifier(result)) }
+            WeatherAttributes.THUNDER.get(attribute)?.takeIf { thunder > 0f }?.let { result = lerp.apply(thunder, result, it.applyModifier(result)) }
+            return result
         }
     }
 
@@ -178,11 +218,14 @@ object AgeAir {
         }
     }
 
-    private fun asAttributeMap(look: Look): EnvironmentAttributeMap {
-        val air = EnvironmentAttributeMap.builder()
-        painting(look).forEach { it.into(air) }
-        return air.build()
-    }
+    /** The colours of a look, which the day darkens as it darkens the world's own. */
+    private val DARKENED_BY_THE_DAY: Set<EnvironmentAttribute<*>> = setOf(
+        EnvironmentAttributes.SKY_COLOR,
+        EnvironmentAttributes.FOG_COLOR,
+        EnvironmentAttributes.CLOUD_COLOR,
+        EnvironmentAttributes.SKY_LIGHT_COLOR,
+        EnvironmentAttributes.WATER_FOG_COLOR,
+    )
 
     /** How far the fog's far edge stands at either end of the axis, in blocks. */
     private const val FURTHEST = 192f
