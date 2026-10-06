@@ -1,7 +1,7 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
 line=0.1
-generator=4
+generator=5
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
 block agesandtheart:analysis_machine

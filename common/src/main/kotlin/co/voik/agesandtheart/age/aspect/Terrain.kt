@@ -495,6 +495,15 @@ enum class Terrain(
      * A river system's water follows its own beds, which run downhill everywhere, so no single level can
      * pour it — see `SeaFill.wet`. Most terrains carry none, and a new one should not have to say so.
      */
+    /**
+     * Ponds this terrain holds **of water whatever its sea**, or null for none — the islands' tarns, which
+     * are there whether or not the Age has a sea at all. See `SkylandsField.ponds`.
+     */
+    fun ponds(options: Options, salt: Long): TerrainField? = when (this) {
+        SKYLANDS -> SkylandsField.ponds(salt, scaleOf(options, salt))
+        else -> null
+    }
+
     fun standingWater(options: Options, salt: Long): TerrainField? = when (this) {
         RIVERLANDS -> RiverlandsField.water(salt, scaleOf(options, salt))
         MOUNTAINOUS -> MountainousField.water(salt, scaleOf(options, salt))

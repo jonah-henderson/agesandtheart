@@ -3,11 +3,14 @@ package co.voik.agesandtheart.worldgen
 import co.voik.agesandtheart.worldgen.field.Cone
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Density
+import co.voik.agesandtheart.worldgen.field.Extruded
 import co.voik.agesandtheart.worldgen.field.Grid
 import co.voik.agesandtheart.worldgen.field.Instanced
 import co.voik.agesandtheart.worldgen.field.Intersect
 import co.voik.agesandtheart.worldgen.field.Noise3D
 import co.voik.agesandtheart.worldgen.field.NoiseCharacter
+import co.voik.agesandtheart.worldgen.field.NoiseHeightmap
+import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
@@ -34,8 +37,68 @@ object SkylandsField {
     /**
      * [scale] is [SizeScale]'s factor: the islands, their spacing and the grain of their wear are resized
      * together about the plane they float at.
+     *
+     * With their pond hollows taken out, which [ponds] fills.
      */
-    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField {
+    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        Subtract(islands(salt), pondHollows(salt)).resized(scale, PLANE_Y)
+
+    /**
+     * The water standing in the islands' ponds (Jonah, 2026-10-06): some islands have one, most do not, and
+     * none is a shape anybody drew. Where [pondHollows] dips below the plane, the water fills it to the plane
+     * and no further — the plane is solid on every island, so the pond is held by the ground round it
+     * wherever the hills fall. A dip that reaches an island's rim spills over it into the void.
+     */
+    fun ponds(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
+        Intersect(listOf(pondHollows(salt), Slab(lowY = PLANE_Y - POND_DEPTH, highY = PLANE_Y)))
+            .resized(scale, PLANE_Y)
+
+    /**
+     * Where the islands are carved away from above: everything over one noisy surface that floats clear of
+     * every hill, save where it dips. A shallow dip shaves a hill into a hollow; a deep one goes through the
+     * plane and holds a pond, its banks the same smooth surface rising out of it.
+     *
+     * **Each part kept inside its own outline of the island.** The banks carve only over the island's
+     * footprint at its plane: an island's top overhangs that footprint, being widest at its hills, and
+     * shaving the overhang takes the island's edge away with it. The bed carves only where the island still
+     * has rock [INTERIOR_DEPTH] under its plane, which its taper keeps well in from the edge — so a pond holds
+     * rather than pouring off the side, and meets flat ground at the plane round it rather than a cliff.
+     * Stopped [POND_DEPTH] under the plane, so a bed never reaches the worn rock beneath.
+     */
+    private fun pondHollows(salt: Long): TerrainField {
+        val surface = NoiseHeightmap(
+            seed = POND_SEED xor salt,
+            firstOctave = -6,
+            amplitudes = listOf(1.0, 0.5),
+            scaleX = POND_SCALE,
+            scaleZ = POND_SCALE,
+            baseY = HOLLOW_BASE_Y,
+            relief = HOLLOW_RELIEF,
+            flatY = VerticalWindow.HIGHEST_BLOCK_Y,
+        )
+        val bed = Slab(lowY = PLANE_Y - POND_DEPTH, highY = PLANE_Y)
+        val overTheFootprint = Extruded(
+            islands(salt),
+            atY = PLANE_Y,
+            lowY = PLANE_Y + 1,
+            highY = VerticalWindow.HIGHEST_BLOCK_Y,
+        )
+        val insideTheRim = Extruded(
+            islands(salt),
+            atY = PLANE_Y - INTERIOR_DEPTH,
+            lowY = PLANE_Y - POND_DEPTH,
+            highY = PLANE_Y,
+        )
+        return Union(
+            listOf(
+                Intersect(listOf(surface, overTheFootprint)),
+                Intersect(listOf(surface, bed, insideTheRim)),
+            ),
+        )
+    }
+
+    /** The islands as they stand before any pond is carved in them. */
+    private fun islands(salt: Long): TerrainField {
         val outlines = Instanced(
             templates = LOBES.map(::island),
             placement = Grid(spacing = SPACING, jitter = JITTER, density = Density.uniform()),
@@ -75,7 +138,7 @@ object SkylandsField {
             scale = RIM_SCALE,
             amount = RIM_AMOUNT,
         )
-        return ragged.resized(scale, PLANE_Y)
+        return ragged
     }
 
     /**
@@ -171,6 +234,23 @@ object SkylandsField {
     private const val RIM_SCALE = 3.0
     private const val RIM_AMOUNT = 22.0
 
+    /**
+     * Where the hollows' surface stands, and how far its noise moves it: high enough that most of the world
+     * floats over every hill, and a dip of under about half the noise's range takes it through the plane.
+     */
+    private const val HOLLOW_BASE_Y = PLANE_Y + 112
+    private const val HOLLOW_RELIEF = 320.0
+
+    /** Blocks per unit of the hollows' noise: a pond a few dozen blocks across. */
+    private const val POND_SCALE = 1.4
+
+    /** The deepest a pond goes under the plane. */
+    private const val POND_DEPTH = 5
+
+    /** How far under the plane an island must still be rock for a pond to be inside its rim. */
+    private const val INTERIOR_DEPTH = 12
+
+    private const val POND_SEED = 0x5C1_9A4DL
     private const val RIM_SEED = 0x5C1_41A1L
     private const val LAND_SEED = 0x5C1_1A4DL
     private const val LAYOUT_SEED = 0x5C1_1A2DL

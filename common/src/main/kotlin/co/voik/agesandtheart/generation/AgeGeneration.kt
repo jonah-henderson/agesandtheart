@@ -144,7 +144,11 @@ object AgeGeneration {
             ground,
             // **The bodies are carried whichever path built them**, because `VolcanoVents` finds its lava
             // through this and would otherwise seat no vents at all in a vanilla-rock Age.
-        ).copy(dry = chasm, wet = standing, carried = overlay.pours)
+        ).copy(
+            dry = chasm,
+            wet = standing,
+            carried = overlay.pours + listOfNotNull(pondsOf(composition, landmass.seam, ground, seed, torn)),
+        )
 
         // What the rock *is*, on the terrain's own map, laid by the fill rather than painted by a rule — which
         // is what lets vanilla's surface tree keep its skin over our fill (see [TerrainFill]).
@@ -396,6 +400,29 @@ object AgeGeneration {
      * **Only a scarp reaches it.** A rift is already kept out by `SeaFill.dry`, and a wall *adds* rock,
      * which must not put a wall of water up alongside it.
      */
+    /**
+     * The ponds the terrains hold of their own, as one body of water divided as the rock is — water
+     * whatever the Age's sea is made of, since an island's tarn is there whether it has a sea or none.
+     */
+    private fun pondsOf(
+        composition: AgeComposition,
+        seam: Seam,
+        ground: RegionMap,
+        seed: Long,
+        torn: Double,
+    ): StandingFluid? {
+        val held = composition.terrains.mapIndexed { member, terrain ->
+            terrain.ponds(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
+        }
+        if (held.all { it == null }) return null
+        val divided = Regions.of(held.map { it ?: Union(emptyList()) }, ground)
+        val where = when (seam) {
+            Seam.SCARP -> faulted(divided, seam, ground, seed, torn)
+            Seam.SHEARED, Seam.FUZZED, Seam.RIFT, Seam.WALL -> divided
+        }
+        return StandingFluid(where, Blocks.WATER.defaultBlockState(), StandingFluid.ISLAND_PONDS)
+    }
+
     private fun carriedWater(
         composition: AgeComposition,
         seam: Seam,
