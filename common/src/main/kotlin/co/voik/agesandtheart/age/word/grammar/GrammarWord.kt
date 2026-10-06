@@ -50,7 +50,7 @@ enum class Production(
     /** `only` — this and nothing else. The pin that naming alone deliberately never does. */
     RESTRICTION("only"),
 
-    /** `except` — anything but this. Already half-expressible beneath, since preference weights are signed. */
+    /** `no` — anything but this. Already half-expressible beneath, since preference weights are signed. */
     EXCEPTION("except"),
 
     /**

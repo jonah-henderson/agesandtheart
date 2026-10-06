@@ -105,13 +105,13 @@ object Readout {
         return said
     }
 
-    /** One `and`-joined run, with whatever `only`/`except` the writer put in front of it. */
+    /** One `and`-joined run, with whatever `only`/`no` the writer put in front of it. */
     private fun runOf(run: List<Constraint>): List<String> {
         val said = mutableListOf<String>()
         when (run.first().polarity) {
             Polarity.ASSERTED -> Unit
             Polarity.ONLY -> said += "only"
-            Polarity.EXCEPT -> said += "except"
+            Polarity.EXCEPT -> said += "no"
         }
         for ((position, term) in run.withIndex()) {
             if (position > 0) said += "and"

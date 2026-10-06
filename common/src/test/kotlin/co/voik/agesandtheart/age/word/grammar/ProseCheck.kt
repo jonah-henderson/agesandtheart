@@ -80,11 +80,11 @@ class ProseCheck : FunSpec({
         check(said == "An Age. Its first sun is large and red. Its second sun is small and blue.") { "read as '$said'" }
     }
 
-    test("only and except are said once over the run they govern") {
+    test("only and no are said once over the run they govern") {
         val only = prose("age", "only", "wolf", "and", "witch", "spawns")
         check(only == "An Age. Only wolves and witches dwell in it.") { "read as '$only'" }
 
-        val except = prose("age", "except", "villages", "structures")
+        val except = prose("age", "no", "villages", "structures")
         check(except == "An Age. It features no villages.") { "read as '$except'" }
     }
 
@@ -123,7 +123,7 @@ class ProseCheck : FunSpec({
     test("the prose never refuses") {
         val nonsense = listOf(
             listOf("and"), listOf("only"), listOf("teeming"), listOf("zzzz", "yyyy"), listOf("basalt", "and"),
-            listOf("except", "and", "only"), listOf("teeming", "and", "scarce"),
+            listOf("no", "and", "only"), listOf("teeming", "and", "scarce"),
             listOf("landmass", "sea", "firmament", "atmosphere"), listOf("floating", "and", "and", "basalt"),
         ).map { pages -> listOf("age") + pages }
         for (pages in nonsense) {

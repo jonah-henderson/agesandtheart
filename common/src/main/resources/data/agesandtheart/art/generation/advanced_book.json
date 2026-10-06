@@ -14,7 +14,7 @@
       {"produce":["age","patchy","[cold_stone]","and","[pale_stone]","landmass","frozen","climate"]}
     ],
     "spared_age": [
-      {"produce":["age","except","[monster]","spawns","temperate","climate"]}
+      {"produce":["age","no","[monster]","spawns","temperate","climate"]}
     ],
     "thronged_age": [
       {"produce":["age","teeming","[beast]","spawns","verdant","biomes"]}

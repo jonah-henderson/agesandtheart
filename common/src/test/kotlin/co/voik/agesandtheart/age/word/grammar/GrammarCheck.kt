@@ -289,9 +289,9 @@ class GrammarCheck : FunSpec({
         val counted = read(listOf("age", "teeming", "ore_diamond"))
         val ore = counted.constraints.single { it.word.name == "ore_diamond" }
         check(ore.density == TEEMING) { "'teeming ore_diamond' came out at ${ore.density}" }
-        val struck = read(listOf("age", "except", "zombie"))
+        val struck = read(listOf("age", "no", "zombie"))
         val zombie = struck.constraints.single { it.word.name == "zombie" }
-        check(zombie.polarity == Polarity.EXCEPT) { "'except zombie' came out ${zombie.polarity}" }
+        check(zombie.polarity == Polarity.EXCEPT) { "'no zombie' came out ${zombie.polarity}" }
     }
 
     /**
@@ -331,8 +331,8 @@ class GrammarCheck : FunSpec({
     }
 
     /** `only` and `except` attach to the values they precede, not to the section at large. */
-    test("only and except reach their values") {
-        for ((page, expected) in listOf("only" to Polarity.ONLY, "except" to Polarity.EXCEPT)) {
+    test("only and no reach their values") {
+        for ((page, expected) in listOf("only" to Polarity.ONLY, "no" to Polarity.EXCEPT)) {
             val read = read(listOf("verdant", page, "basalt", "age"))
             val basalt = read.constraints.first { it.word.name == "basalt" }
             check(basalt.polarity == expected) { "'$page basalt' gave ${basalt.polarity}" }
@@ -370,7 +370,7 @@ class GrammarCheck : FunSpec({
             listOf("floating", "zzzznotaword", "beautiful"),
             listOf("verdant", "and", "and", "basalt"),
             listOf("beautiful", "and", "floating"),
-            listOf("only", "except", "and"),
+            listOf("only", "no", "and"),
             listOf("basalt", "floating", "verdant", "deepslate"),
             // Every row names an Age, without which it is refused rather than read (§4.3.1) — and a
             // refusal loses every page at once, which would pass this check for the wrong reason.
@@ -453,7 +453,7 @@ private val NONSENSE = listOf(
     listOf("only"),
     listOf("basalt"),
     listOf("and", "and", "and"),
-    listOf("except", "and", "only"),
+    listOf("no", "and", "only"),
     listOf("zzzz", "yyyy"),
     listOf("basalt", "and"),
     listOf("floating", "and", "and", "basalt"),

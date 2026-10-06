@@ -115,12 +115,12 @@ class ReadoutCheck : FunSpec({
     }
 
     /** `only` and `except` are pages the writer laid down, and the reading has to show them. */
-    test("only and except are said out loud") {
+    test("only and no are said out loud") {
         val singled = readingOf("only", "blackstone", "landmass")
         check("only blackstone" in singled) { "'only' vanished from the reading: '$singled'" }
 
-        val struck = readingOf("except", "blackstone", "landmass")
-        check("except blackstone" in struck) { "'except' vanished from the reading: '$struck'" }
+        val struck = readingOf("no", "blackstone", "landmass")
+        check("no blackstone" in struck) { "'no' vanished from the reading: '$struck'" }
     }
 
     /** A rung is bound to one term, so the reading has to put it back on that term and no other. */
@@ -156,7 +156,7 @@ class ReadoutCheck : FunSpec({
             listOf("zzzz", "yyyy"),
             listOf("basalt", "and"),
             listOf("and", "and", "and"),
-            listOf("except", "and", "only"),
+            listOf("no", "and", "only"),
             listOf("teeming", "and", "scarce"),
             listOf("landmass", "sea", "firmament", "atmosphere"),
             listOf("floating", "and", "and", "basalt"),

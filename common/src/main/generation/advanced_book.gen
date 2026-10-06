@@ -20,8 +20,8 @@ book = [mingled_age] | [spared_age] | [thronged_age] | [sited_age]
 mingled_age = [bleak_mood] age patchy [hot_stone] and [dark_stone] landmass molten sea
     | age patchy [cold_stone] and [pale_stone] landmass frozen climate
 
-# `except`: the creatures a world would grow, less one a visitor would miss.
-spared_age = age except [monster] spawns temperate climate
+# `no`: the creatures a world would grow, less one a visitor would miss.
+spared_age = age no [monster] spawns temperate climate
 
 # A quantifier: one creature, far more often than the world would grow it.
 thronged_age = age teeming [beast] spawns verdant biomes

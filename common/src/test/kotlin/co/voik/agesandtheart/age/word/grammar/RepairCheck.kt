@@ -179,7 +179,7 @@ class RepairCheck : FunSpec({
         val nonsense = listOf(
             listOf("age", "and"),
             listOf("age", "landmass", "starless", "and"),
-            listOf("age", "only", "except", "and"),
+            listOf("age", "only", "no", "and"),
             listOf("age", "teeming"),
             listOf("age", "firmament", "flat"),
             listOf("age", "sky", "flat", "landmass", "starless"),

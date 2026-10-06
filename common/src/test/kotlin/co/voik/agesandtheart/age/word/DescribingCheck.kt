@@ -101,4 +101,4 @@ private const val WHERE_IT_GROWS = "where_it_grows"
 private const val INTRODUCED_IF_ABSENT = "introduced_if_absent"
 
 /** How a claim spells a member struck out — removal, which introduces nothing. */
-private const val STRUCK_OUT = "except"
+private const val STRUCK_OUT = "no"
