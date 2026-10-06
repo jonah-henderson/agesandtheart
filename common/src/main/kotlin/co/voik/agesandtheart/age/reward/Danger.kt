@@ -16,6 +16,7 @@ import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Pool
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Polarity
+import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Spawns
@@ -321,11 +322,19 @@ data class Danger(
         private fun spawnsNothing(composition: AgeComposition): Boolean =
             Pool.NOTHING in composition.optionsFor(Aspect.SPAWNS, 0).allOf(Spawns.LIVES)
 
-        /** The claims that ask for something, removals applied last exactly as [Skew] applies them (§3.5). */
+        /**
+         * The claims that ask for something, removals applied last exactly as [Skew] applies them (§3.5).
+         *
+         * A claim below [Rung.ORDINARY] asks for less of a thing than the world grows, and the world's own
+         * share is never scored, so it adds nothing. A word that leans away from what is hostile writes every
+         * hostile member in below ordinary, and counting those made a gentle Age read as a dangerous one.
+         */
         private fun wanted(claims: List<Claim>): List<Claim> {
             val struck = claims.filter { it.polarity == Polarity.EXCEPT }.map { it.value }.toSet()
+            fun asksForLessThanTheWorld(claim: Claim) = claim.density < Rung.ORDINARY
             return claims
                 .filter { it.polarity != Polarity.EXCEPT }
+                .filterNot(::asksForLessThanTheWorld)
                 .distinctBy { it.value }
                 .filterNot { it.value in struck }
         }
