@@ -248,12 +248,13 @@ data class BiomePreference(
          * One climate box resized about its own middle — wider for a biome asked for, narrower for one
          * spoken against. `depth` is left alone, being the one parameter an Age answers for itself
          * ([ClimateDepth]): resizing it would let a surface biome claim the rock below, or a cave biome
-         * the surface.
+         * the surface. `continentalness` is left alone for the same reason across the shore: widened, a
+         * favoured land biome claims the coast and the open sea, and an island has no beach or ocean left.
          */
         private fun Climate.ParameterPoint.scaledBy(weight: Double) = Climate.ParameterPoint(
             temperature().scaledBy(weight),
             humidity().scaledBy(weight),
-            continentalness().scaledBy(weight),
+            continentalness(),
             erosion().scaledBy(weight),
             depth(),
             weirdness().scaledBy(weight),

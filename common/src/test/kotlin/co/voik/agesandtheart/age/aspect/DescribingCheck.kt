@@ -164,8 +164,9 @@ class DescribingCheck : FunSpec({
     test("a description never introduces a biome, and a naming still does") {
         val preferences = Biomes.preferencesIn(composed("beautiful", "age").optionsFor(Aspect.BIOMES, 0))
         val introduced = preferences.filterNot { it.onlyWhereItGrows }.map { it.biome.toString() }.toSet()
-        check(introduced == setOf("minecraft:sunflower_plains", "minecraft:jungle")) {
-            "'beautiful' names exactly the two biomes no tag can reach, and introduced $introduced"
+        val admitted = setOf("minecraft:sunflower_plains", "minecraft:jungle", "agesandtheart:palm_beach")
+        check(introduced == admitted) {
+            "'beautiful' names exactly the three biomes it admits, and introduced $introduced"
         }
         check(preferences.count { it.onlyWhereItGrows } > 1) {
             "'beautiful' reached nothing by query at all, so this is checking nothing"
