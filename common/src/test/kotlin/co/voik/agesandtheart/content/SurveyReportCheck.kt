@@ -20,7 +20,7 @@ class SurveyReportCheck : FunSpec({
     test("every report names the Age its book leads to") {
         val english = shippedEnglish()
         val unnamed = SurveyReport.entries.filterNot { report ->
-            english.get(report.ageNameKey).asString in english.get(report.pageKey(0)).asString
+            AGE_NAME in english.get(report.pageKey(0)).asString
         }
         check(unnamed.isEmpty()) { "these reports do not name their Age on the first page: $unnamed" }
     }
@@ -32,6 +32,9 @@ class SurveyReportCheck : FunSpec({
     }
 }) {
     private companion object {
+        /** Where a page says the name its copy of the report was found with. */
+        const val AGE_NAME = "%1${'$'}s"
+
         fun shippedEnglish() =
             SurveyReportCheck::class.java.getResourceAsStream("/assets/agesandtheart/lang/en_us.json")
                 .let { requireNotNull(it) { "no English shipped" } }

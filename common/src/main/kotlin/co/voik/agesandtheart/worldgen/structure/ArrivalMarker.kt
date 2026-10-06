@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.structure
 
+import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.book.LinkTarget
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -36,7 +37,7 @@ data class ArrivalMarker(val marker: String, val facing: Direction, val name: St
     fun target(dimension: ResourceKey<Level>, marker: BlockPos, origin: BlockPos, settings: StructurePlaceSettings): LinkTarget {
         val at = StructureTemplate.calculateRelativePosition(settings, marker).offset(origin)
         val facingPlaced = settings.rotation.rotate(settings.mirror.mirror(facing))
-        return LinkTarget(dimension, Vec3(at.x + HALF_BLOCK, at.y.toDouble(), at.z + HALF_BLOCK), facingPlaced.toYRot(), name)
+        return LinkTarget(dimension, Vec3(at.x + HALF_BLOCK, at.y.toDouble(), at.z + HALF_BLOCK), facingPlaced.toYRot(), WordNames.titleCase(name))
     }
 
     /**

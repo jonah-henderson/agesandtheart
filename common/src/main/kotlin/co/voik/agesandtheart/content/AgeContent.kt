@@ -7,7 +7,7 @@ import co.voik.agesandtheart.page.PageWordFunction
 import co.voik.agesandtheart.age.consequence.WoundBlock
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
-import co.voik.agesandtheart.book.WriteSurveyedBookFunction
+import co.voik.agesandtheart.book.SurveyReportEntry
 import co.voik.agesandtheart.portal.LinkingBookReceptacleBlock
 import co.voik.agesandtheart.portal.LinkingBookReceptacleBlockEntity
 import co.voik.agesandtheart.portal.LinkingPortalBlock
@@ -64,6 +64,7 @@ import co.voik.agesandtheart.worldgen.structure.LootTableSwap
 import co.voik.agesandtheart.worldgen.structure.BindLinkingBooks
 import co.voik.agesandtheart.worldgen.structure.WriteFoundItems
 import co.voik.agesandtheart.worldgen.structure.KeepTerrainInOpenColumns
+import co.voik.agesandtheart.worldgen.structure.EntranceOnGroundStructure
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType
 import net.minecraft.world.level.levelgen.structure.StructureType
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
@@ -140,6 +141,7 @@ import co.voik.agesandtheart.worldgen.feature.LavaPuddles
 import co.voik.agesandtheart.worldgen.feature.VolcanoVents
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.carver.WorldCarver
+import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction
 
 /**
@@ -1460,9 +1462,14 @@ object AgeContent {
     /** The D'ni city — see the `dni` package. */
     val CAVERN_RUINS_STRUCTURE: StructureType<CavernRuinsStructure> = StructureType { CavernRuinsStructure.CODEC }
 
+    /** A jigsaw set down by its door — see [EntranceOnGroundStructure]. The lost library is one. */
+    val ENTRANCE_ON_GROUND_STRUCTURE: StructureType<EntranceOnGroundStructure> =
+        StructureType { EntranceOnGroundStructure.CODEC }
+
     val structureTypes: List<Pair<Identifier, StructureType<*>>> = listOf(
         STAR_FISSURE_ID to STAR_FISSURE_STRUCTURE,
         "cavern_ruins".location() to CAVERN_RUINS_STRUCTURE,
+        "entrance_on_ground".location() to ENTRANCE_ON_GROUND_STRUCTURE,
     )
 
     /**
@@ -2150,7 +2157,11 @@ object AgeContent {
         "fill_notebook".location() to FillNotebookFunction.MAP_CODEC,
         "bind_linking_book".location() to BindLinkingBookFunction.MAP_CODEC,
         "write_found_book".location() to WriteFoundBookFunction.MAP_CODEC,
-        "write_surveyed_book".location() to WriteSurveyedBookFunction.MAP_CODEC,
+    )
+
+    /** Loot entry kinds: what a pool can draw besides vanilla's. */
+    val lootEntries: List<Pair<Identifier, MapCodec<out LootPoolEntryContainer>>> = listOf(
+        "survey_report".location() to SurveyReportEntry.MAP_CODEC,
     )
 
     val lootConditions: List<Pair<Identifier, MapCodec<out LootItemCondition>>> = listOf(

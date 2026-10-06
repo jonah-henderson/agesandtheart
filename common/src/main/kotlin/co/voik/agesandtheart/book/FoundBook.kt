@@ -64,11 +64,11 @@ object FoundBook {
     }
 
     /**
-     * [stack] written as the book of the Age [report] surveyed (design §7.6) — its name, its sentence, and
-     * its seed, so every copy of it leads to the same world.
+     * [stack] written as the book of the Age [report] surveyed (design §7.6), called [ageName] as that copy of
+     * the report calls it — its sentence and its seed, so every copy of it leads to the same world.
      */
-    fun writeSurveyed(stack: ItemStack, server: MinecraftServer, report: SurveyReport) {
-        writePages(stack, Vocabulary.of(server), report.sentence) { report.ageName }
+    fun writeSurveyed(stack: ItemStack, server: MinecraftServer, report: SurveyReport, ageName: String) {
+        writePages(stack, Vocabulary.of(server), report.sentence) { ageName }
         stack.set(AgeComponents.BOOK_SEED, report.ageSeed)
     }
 

@@ -1,8 +1,8 @@
 {
   "_comment": [
     "Every lost library's linking books lead back to it, from the structure block named",
-    "linking_book_target in the template; its pages and books are written afresh for each one; and",
-    "the air beside the building leaves the ground alone."
+    "linking_book_target in the template; its pages and books are written afresh for each one, the shelf's page",
+    "from the critical bucket; and the air beside the building leaves the ground alone."
   ],
   "processors": [
     {
@@ -15,7 +15,8 @@
       }
     },
     {
-      "processor_type": "agesandtheart:write_found_items"
+      "processor_type": "agesandtheart:write_found_items",
+      "rarity": "critical"
     },
     {
       "processor_type": "agesandtheart:keep_terrain_in_open_columns"
