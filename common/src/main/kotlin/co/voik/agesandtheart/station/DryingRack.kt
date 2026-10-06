@@ -216,9 +216,9 @@ class DryingRackBlockEntity(pos: BlockPos, state: BlockState) :
     override fun createMenu(containerId: Int, inventory: Inventory, player: Player): AbstractContainerMenu =
         DryingRackMenu(containerId, inventory, this, progress)
 
-    /** Read live, so it needs no syncing of its own. The arrow shows the input nearest done. */
+    /** Read live, so it needs no syncing of its own. */
     private val progress = object : ContainerData {
-        override fun get(index: Int): Int = if (index == DryingRackMenu.DRIED) dried.max() else DRY_TIME
+        override fun get(index: Int): Int = if (index == DryingRackMenu.TOTAL) DRY_TIME else dried[index]
 
         override fun set(index: Int, value: Int) = Unit
 

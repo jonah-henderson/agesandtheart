@@ -14,7 +14,7 @@ import net.minecraft.world.item.ItemStack
 
 /**
  * The drying rack's screen: six inputs in two columns of three, a furnace's arrow, and the output, over the
- * player's inventory. How far the input nearest done has got travels on two data slots.
+ * player's inventory. How far each input has got travels on a data slot of its own, and the time it takes on one more.
  */
 class DryingRackMenu(
     containerId: Int,
@@ -49,12 +49,11 @@ class DryingRackMenu(
         addDataSlots(progress)
     }
 
-    /** How far the input nearest done has got, from nothing to done. */
-    val dryness: Float
-        get() {
-            val total = progress.get(TOTAL)
-            return if (total <= 0) 0f else progress.get(DRIED).toFloat() / total
-        }
+    /** How far the input in [slot] has got, from nothing to done. */
+    fun drynessOf(slot: Int): Float {
+        val total = progress.get(TOTAL)
+        return if (total <= 0) 0f else progress.get(slot).toFloat() / total
+    }
 
     /** The output goes to the inventory; an input back to the inventory; anything else to the inputs. */
     override fun quickMoveStack(player: Player, index: Int): ItemStack {
@@ -76,9 +75,9 @@ class DryingRackMenu(
     override fun stillValid(player: Player): Boolean = rack.stillValid(player)
 
     companion object {
-        const val DRIED = 0
-        const val TOTAL = 1
-        const val DATA_COUNT = 2
+        /** The data slots before it are each input's own drying time, in input order. */
+        const val TOTAL = DryingRackBlockEntity.INPUT_SLOTS
+        const val DATA_COUNT = TOTAL + 1
 
         private const val FIRST_PLAYER_SLOT = DryingRackBlockEntity.SLOT_COUNT
         private const val SLOT_PITCH = 18
