@@ -347,6 +347,7 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
             born.startedAt = level.gameTime
             born.setPos(at.x + HALF, at.y.toDouble(), at.z + HALF)
             level.addFreshEntity(born)
+            PhenomenaCeiling.began(level, Phenomenon.TECTONICS, born)
             return born
         }
 

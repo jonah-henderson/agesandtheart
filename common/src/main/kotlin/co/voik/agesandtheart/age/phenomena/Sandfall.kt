@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Mth
 import net.minecraft.world.level.entity.EntityTypeTest
@@ -41,7 +42,9 @@ object Sandfall {
         if (behaviour.atMost <= NONE) return
 
         if (standingIn(level) >= behaviour.atMostFor(density, dials.often)) return
-        if (level.random.nextInt(behaviour.betweenSpawnsFor(density, dials.often)) != NOW) return
+        val owed = PhenomenaCeiling.isOwed(level, Phenomenon.SANDFALL)
+        if (!owed && level.random.nextInt(behaviour.betweenSpawnsFor(density, dials.often)) != NOW) return
+        if (!PhenomenaCeiling.mayBegin(level, Phenomenon.SANDFALL)) return
 
         raiseOneNearSomebody(level, behaviour, dials)
     }
@@ -100,7 +103,7 @@ object Sandfall {
         val widest = behaviour.widestHalfWidthAt(dials.size)
         val shortest = behaviour.shortestLifeAt(dials.long)
         val longest = behaviour.longestLifeAt(dials.long)
-        return SandColumn.raise(
+        val raised = SandColumn.raise(
             level = level,
             atX = atX,
             atZ = atZ,
@@ -111,6 +114,8 @@ object Sandfall {
             fullHalfWidth = narrowest + random.nextDouble() * (widest - narrowest),
             depth = behaviour.depthAt(dials.depth),
         )
+        if (raised != null) PhenomenaCeiling.began(level, Phenomenon.SANDFALL, raised)
+        return raised
     }
 
     /** How far off a bearing straight back at the player one may be aimed. */

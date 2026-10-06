@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.levelgen.Heightmap
@@ -34,11 +35,13 @@ object CaveIns {
         val behaviour = TectonicsBehaviour.of(level.server)
         val random = level.random
         repeat(Happenings.timesFor(density, ROLLS)) {
-            if (random.nextInt(SELDOM) != 0) return@repeat
+            val owed = PhenomenaCeiling.isOwed(level, Phenomenon.TECTONICS)
+            if (!owed && random.nextInt(SELDOM) != 0) return@repeat
             val near = watching[random.nextInt(watching.size)].blockPosition()
             val x = near.x + random.nextInt(NEARBY * 2 + 1) - NEARBY
             val z = near.z + random.nextInt(NEARBY * 2 + 1) - NEARBY
             if (!level.isLoaded(BlockPos(x, near.y, z))) return@repeat
+            if (!PhenomenaCeiling.mayBegin(level, Phenomenon.TECTONICS)) return@repeat
             val shape = random.nextLong()
             CaveIn.begin(
                 level = level,

@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.consequence.Hostility
 import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.phenomena.Deluge
 import co.voik.agesandtheart.age.phenomena.Happenings
+import co.voik.agesandtheart.age.phenomena.PhenomenaCeiling
 import co.voik.agesandtheart.age.phenomena.Sampling
 import co.voik.agesandtheart.age.phenomena.Tide
 import co.voik.agesandtheart.content.DeepWater
@@ -32,6 +33,7 @@ object AgeTick {
     fun tick(server: MinecraftServer) {
         val saved = AgeSavedData.get(server)
         if (saved.ages.isEmpty()) return
+        PhenomenaCeiling.tick(server)
         for (level in server.allLevels) {
             val age = level.dimension().identifier()
             val recipe = saved.recipe(age) ?: continue

@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.phenomena.MeteorDials
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
+import co.voik.agesandtheart.age.phenomena.PhenomenaCeiling
 import co.voik.agesandtheart.age.phenomena.Meteors
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.phenomena.Sandfall
@@ -43,7 +44,16 @@ internal object PhenomenonInstruments {
             .then(weatherSubcommand())
             .then(tideSubcommand())
             .then(plasmaSubcommand())
+            .then(ceilingSubcommand())
     }
+
+    /** `/age ceiling` — what is running under the phenomena ceiling, what has been granted, and what waits. */
+    private fun ceilingSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("ceiling").executes { context ->
+            val said = PhenomenaCeiling.describe().joinToString("\n")
+            context.source.sendSuccess({ Component.literal(said) }, false)
+            SUCCESS
+        }
 
     /**
      * `/age plasma pass` — one whole pass of a plasma sea's heat over the chunks around where it is run, as

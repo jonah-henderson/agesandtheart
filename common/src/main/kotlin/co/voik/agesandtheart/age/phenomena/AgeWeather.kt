@@ -81,7 +81,7 @@ object AgeWeather {
      */
     private val heldUntil = WeakHashMap<ServerLevel, Long>()
 
-    private fun beingHumoured(level: ServerLevel): Boolean {
+    fun beingHumoured(level: ServerLevel): Boolean {
         val until = heldUntil[level] ?: return false
         if (level.gameTime < until) return true
         heldUntil.remove(level)

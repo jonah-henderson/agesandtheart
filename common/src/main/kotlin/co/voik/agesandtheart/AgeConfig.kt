@@ -88,6 +88,13 @@ object AgeConfig {
      */
     val plasmaAnnihilates: ModConfigSpec.BooleanValue
 
+    /**
+     * How many phenomena may be running at once, and over what — see
+     * [co.voik.agesandtheart.age.phenomena.PhenomenaCeiling]. Read live.
+     */
+    val phenomenaAtOnce: ModConfigSpec.IntValue
+    val phenomenaCeilingCovers: ModConfigSpec.EnumValue<CeilingCovers>
+
     /** Whether a player holding a coconut half in each hand walks to the sound of hooves. */
     val coconutHoofbeats: ModConfigSpec.BooleanValue
 
@@ -180,6 +187,23 @@ object AgeConfig {
             .translation(translationOf("plasma_annihilates"))
             .define("plasmaAnnihilates", true)
         builder.pop()
+        builder.comment("Phenomena").push(PHENOMENA)
+        phenomenaAtOnce = builder
+            .comment(
+                "How many phenomena may be running at once: sandfalls, cave-ins, meteor storms, and the",
+                "storms a blizzard, deluge or tempest blows in. One that would begin past this waits its",
+                "turn and begins when another ends, so nothing is lost, only delayed. 0 for no limit.",
+            )
+            .translation(translationOf("phenomena_at_once"))
+            .defineInRange("phenomenaAtOnce", DEFAULT_PHENOMENA_AT_ONCE, 0, MOST_PHENOMENA_AT_ONCE)
+        phenomenaCeilingCovers = builder
+            .comment(
+                "Whether that limit is for each Age on its own (EACH_AGE), or shared by every Age on the",
+                "server (THE_SERVER) — the safer choice when many players are each in an Age of their own.",
+            )
+            .translation(translationOf("phenomena_ceiling_covers"))
+            .defineEnum("phenomenaCeilingCovers", CeilingCovers.EACH_AGE)
+        builder.pop()
         builder.comment("Coconuts").push(COCONUTS)
         coconutHoofbeats = builder
             .comment("Walking with half a coconut in each hand sounds like a horse.")
@@ -203,7 +227,17 @@ object AgeConfig {
 
     private const val PLASMA = "plasma"
 
+    private const val PHENOMENA = "phenomena"
+    private const val DEFAULT_PHENOMENA_AT_ONCE = 2
+    private const val MOST_PHENOMENA_AT_ONCE = 64
+
     private const val COCONUTS = "coconuts"
+}
+
+/** What one ceiling on running phenomena is shared by. */
+enum class CeilingCovers {
+    EACH_AGE,
+    THE_SERVER,
 }
 
 /**

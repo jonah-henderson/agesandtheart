@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.content.Lures
 import net.minecraft.core.BlockPos
@@ -42,7 +43,8 @@ object Meteors {
         // decide whether to roll would cost a thousand times what it saves. Rolling at the faster rate
         // and letting three in four through without a lure comes to the same two rates and asks the
         // question about three times an hour instead.
-        if (level.random.nextInt(quickenedFor(asIfTeeming(density, dials.often))) != NOW) return
+        val owed = PhenomenaCeiling.isOwed(level, Phenomenon.METEORS)
+        if (!owed && level.random.nextInt(quickenedFor(asIfTeeming(density, dials.often))) != NOW) return
         // **Counted after the roll, not before it.** This walks the level's whole entity list, and asking
         // it on every tick of every meteoric Age is thousands of class checks twenty times a second for an
         // answer that is nearly always the same. Behind the roll it is asked about three times an hour,
@@ -50,7 +52,8 @@ object Meteors {
         if (gatheringIn(level) >= MOST_AT_ONCE) return
         val somebody = Sampling.somebody(level) ?: return
         val drawn = drawnNear(level, somebody.position())
-        if (drawn == null && level.random.nextDouble() > WITHOUT_A_LURE) return
+        if (!owed && drawn == null && level.random.nextDouble() > WITHOUT_A_LURE) return
+        if (!PhenomenaCeiling.mayBegin(level, Phenomenon.METEORS)) return
         gatherOneNearSomebody(level, somebody, drawn, density, dials)
     }
 
@@ -200,7 +203,9 @@ object Meteors {
                 level.random.nextInt(MeteorStorm.ORDINARY_FALL - MeteorStorm.SHORTEST_FALL + ONE),
             asIfTeeming(density, dials.long),
         )
-        return MeteorStorm.gatherAt(level, where, bodiesFor(falling), falling, dials.power, slant, reach)
+        val storm = MeteorStorm.gatherAt(level, where, bodiesFor(falling), falling, dials.power, slant, reach)
+        PhenomenaCeiling.began(level, Phenomenon.METEORS, storm)
+        return storm
     }
 
     /**

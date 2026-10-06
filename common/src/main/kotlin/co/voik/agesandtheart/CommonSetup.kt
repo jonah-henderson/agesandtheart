@@ -13,6 +13,7 @@ import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.age.phenomena.Happenings
+import co.voik.agesandtheart.age.phenomena.PhenomenaCeiling
 import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.book.panel.PanelWarming
@@ -103,6 +104,7 @@ object CommonSetup {
     fun serverStopped() {
         PanelWarming.serverStopped()
         LocalMaps.serverStopped()
+        PhenomenaCeiling.serverStopped()
     }
 
     /** An entity entering a server level, freshly spawned or loaded with its chunk. */
