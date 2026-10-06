@@ -2,32 +2,153 @@ start     book
 terminals word
 
 # The D'ni's own books (design §4.2), and the only place a modifier is taught. Every book here should use
-# one where the Age it makes shows what it did (§4.5): an `except` should leave out something the world
-# would otherwise have. BookCheck fails any book that uses no grammatical word but `age`.
+# one where the Age it makes shows what it did (§4.5): a `no` should leave out something the world would
+# otherwise have. BookCheck fails any book that uses no grammatical word but `age`.
+
+# Where a basic book is the ordinary world leaned one way, an advanced book is somewhere that could not be
+# (Jonah, 2026-10-06): a scene, built from rarer words, that only a modifier makes sayable. Landforms mixed,
+# monuments of copper and amethyst, a palette agreed between sun, sky, air, clouds, water and leaves, the
+# phenomena taught nowhere else, the strange undergrounds, our own palm beaches. Fine ink is spent freely
+# here; masterwork is not. A scene naming the pack's own worldgen (`palm_beach`, `torchflowers`) is judged on a
+# server, which is no reason to leave it out.
 
 # What these books must teach, because nothing else on the critical path does (plan, Phase 7 "Still open"):
-# - Every grammatical word, each doing visible work.
-# - Danger: at least one Age that scores over the danger threshold (`pays_above`, art/danger.json) using
-#   common-ink words only. These books are the route into the hunt for deretheni.
+# - Every grammatical word, each doing visible work: `and`, `only`, `no`, `in`, `everywhere`, and the four
+#   rungs `scarce`, `few`, `plentiful` and `teeming`.
+# - Danger: an Age that scores over the danger threshold (`pays_above`, art/danger.json) using common-ink
+#   words only. These books are the route into the hunt for deretheni, so they stay plain.
 # - The scarab's habitat, for the books beside the ink workshop: `torchflowers in jungle` in one book and
-#   `mud and sand pits` in another, never both in the same book.
+#   `mud and sand pits in jungle` in another, never both in the same book.
 # Taught elsewhere, so not needed here: the city's words (the survey reports), `black sun` and `lava sea`
 # (item frames), `polar` and `tidal` (the greenhouse's chest), `plasma` (beside the compounder).
 
-book = [mingled_age] | [spared_age] | [thronged_age] | [sited_age]
+# One lesson per kind of book, so a reader with two in hand can tell what each is showing them. The
+# dangerous Ages are a quarter of the shelf: they are the road out of the early game.
+book =
+    [mingled_age]@2
+    | [singled_age]@2
+    | [spared_age]
+    | [thronged_age]
+    | [thinned_age]
+    | [sited_age]
+    | [widened_age]
+    | [wonder_age]@2
+    | [beset_age]@4
+    | [flowered_jungle_age]
+    | [pitted_jungle_age]
 
-# `and`: two stones laid together, so the rock visibly holds both.
-mingled_age = [bleak_mood] age patchy [hot_stone] and [dark_stone] landmass molten sea
-    | age patchy [cold_stone] and [pale_stone] landmass frozen climate
+# `and`: two things laid together, so the world visibly holds both — two landforms in one country, two
+# stones in one monument.
+mingled_age =
+    age [landform_pair] landmass [material_pair] [shape] features [colour] sky [colour] clouds@3
+    | age [landform_pair] landmass [material_pair] [shape] features [night]@2
+    | age archipelagic and pillared landmass [semiprecious] arches features [colour] waters [colour] sky
+    | age canyoned and shattered landmass red_sand surface sandfall phenomena orange sky
+    | wondrous age skyborne and archipelagic landmass [night]
+    | age insular and archipelagic landmass palm_beach biomes [colour] waters white clouds
+    | [bleak_mood] age patchy [hot_stone] and [dark_stone] landmass molten sea
+    | age patchy [cold_stone] and [pale_stone] landmass inferno phenomena white sun
 
-# `no`: the creatures a world would grow, less one a visitor would miss.
-spared_age = age no [monster] spawns temperate climate
+# `only`: one or two kinds of country and nothing else, dressed to suit.
+singled_age =
+    age only cherry_grove and meadow biomes [sun_colour] sun [colour] air
+    | age only ice_spikes biomes blue_ice spikes features [aurora_colour] aurora starlit stars
+    | age only pale_garden biomes grey sky small moon
+    | uncanny age only pale_garden biomes green sky red sun
+    | age only desert and badlands biomes amethyst_block spikes features sandfall phenomena orange sky
+    | age only desert biomes colossal sun orange sky
+    | age only plains biomes slime_block surface meteors phenomena [colour] sky
 
-# A quantifier: one creature, far more often than the world would grow it.
-thronged_age = age teeming [beast] spawns verdant biomes
+# `no`: something a world would have, left out where a visitor would miss it.
+spared_age =
+    age [land] landmass no monsters spawns glimmering stars colossal moon@2
+    | age floating landmass no monsters spawns [colour] sky [colour] clouds
+    | age [land] landmass no undead spawns starlit stars [aurora_colour] aurora
+    | age [land] landmass no undead and arthropods spawns [sun_colour] sun
+    | age verdant biomes no trees features [colour] grass
+    | age floating landmass no trees features [colour] sky
 
-# `in`: a feature confined to one biome. Torchflowers are the pack's own, so this is judged on a server.
-sited_age = age torchflowers features in jungle
+# The upper rungs: monuments in numbers.
+thronged_age =
+    age [land] landmass teeming [semiprecious] [shape] features [colour] sky
+    | age [land] landmass plentiful glowstone rings features starlit stars
+
+# The lower rungs: a few of something, set out in an emptier country.
+thinned_age =
+    age floating landmass few glowstone obelisks features
+    | age [land] landmass few obsidian obelisks features [colour] sky
+    | age sheer landmass scarce trees features white sky
+
+# `in`: a monument or a creature confined to one kind of country.
+sited_age =
+    age [land] landmass amethyst_block spikes in desert yellow sky
+    | age archipelagic landmass prismarine pyramids in beach [colour] waters
+    | age [land] landmass glowstone rings in plains starlit stars
+    | age teeming parrot spawns in jungle jungle biomes
+    | age plentiful axolotl spawns in lush_caves
+
+# `everywhere`: a creature in every kind of country, not only its own.
+widened_age =
+    age only swamp biomes teeming frog everywhere green air
+    | age deep water sea teeming axolotl everywhere
+    | age insular landmass reefs features warm climate teeming axolotl everywhere [colour] waters
+    | age teeming sniffer everywhere [colour] grass
+    | age teeming allay everywhere [colour] leaves
+    | age only flower_forest biomes teeming bee everywhere honey_block surface
+    | age archipelagic landmass palm_beach biomes teeming parrot everywhere tropical climate
+
+# The phenomena and the undergrounds taught nowhere else, each with a modifier to carry it.
+wonder_age =
+    age only badlands biomes red_sand surface sandfall phenomena orange sky
+    | age snow_block surface inferno phenomena only snowy_plains biomes
+    | age prismatic rainbow rainbows phenomena purple sky only cherry_grove biomes
+    | age [land] landmass lattice underground glowstone and shroomlight veins
+    | age [land] landmass delved underground glowstone and shroomlight veins
+    | age colossal chambered underground only lush_caves biomes
+    | age floating landmass hollow underground [colour] sky only plains biomes
+    | wondrous age skyborne landmass glimmering stars [aurora_colour] aurora only plains biomes
+
+# Danger in common ink: a hostile crowd and a phenomenon that falls on whoever is out in it. Each pairs a
+# creature with the weather it suits. Scored 0.32 at the least against a threshold of 0.25.
+beset_age =
+    age [land] landmass teeming [monster] spawns meteors phenomena lightless sky
+    | age [land] landmass teeming zombie and skeleton spawns tempest phenomena
+    | age [land] landmass plentiful zombie and skeleton spawns meteors phenomena
+    | age [land] landmass teeming husk spawns scorching climate meteors phenomena
+    | age [land] landmass teeming stray spawns frozen climate blizzard phenomena
+    | age [land] landmass teeming spider spawns deluge phenomena
+
+# The scarab's habitat, half each. Torchflowers are the pack's own, so this book is judged on a server.
+flowered_jungle_age = age [warm_land] landmass torchflowers features in jungle tropical climate jungle biomes
+
+pitted_jungle_age = age [warm_land] landmass mud and sand pits in jungle tropical climate jungle biomes
+
+# Two landforms that make one strange country between them.
+landform_pair =
+    pillared and insular
+    | sheer and cratered
+    | skyborne and archipelagic
+    | eroded and pillared
+    | canyoned and shattered
+    | pillared and gentle
+
+# Two stones in one monument, each worth fine ink or set off by one that is.
+material_pair =
+    copper_block and amethyst_block
+    | obsidian and crying_obsidian
+    | prismarine and sea_lantern
+    | quartz_block and calcite
+    | glowstone and shroomlight
+
+semiprecious = copper_block | amethyst_block | prismarine | quartz_block | obsidian | glowstone
+
+shape = spikes | obelisks | arches | pyramids | rings
+
+night = glimmering stars | starlit stars | [aurora_colour] aurora | small moon | colossal moon
+
+land = gentle | eroded | continental | archipelagic | insular | mountainous | riverine | canyoned | pillared
+
+warm_land = insular | archipelagic | gentle | riverine
 
 bleak_mood = desolate | ancient | foreboding
 
@@ -35,10 +156,14 @@ hot_stone = netherrack | magma_block
 
 dark_stone = blackstone | deepslate
 
-cold_stone = packed_ice | blue_ice
+cold_stone = snow_block | packed_ice
 
-pale_stone = snow_block | calcite
+pale_stone = calcite | white_concrete
 
-monster = zombie | skeleton | creeper
+colour = red | orange | yellow | green | cyan | blue | indigo | purple | magenta | white | black
 
-beast = sheep | rabbit | horse
+sun_colour = red | white | yellow | cyan | indigo | magenta
+
+aurora_colour = green | cyan | blue | indigo | purple | magenta | red | white
+
+monster = zombie | skeleton | creeper | spider

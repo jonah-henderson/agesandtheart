@@ -77,11 +77,11 @@ fun problemsWith(book: JudgedBook): List<String> = buildList {
     if (book.kind == FoundBookKind.ADVANCED && book.modifiers.isEmpty()) add("$book, which teaches no modifier")
 }
 
-private fun firstFloorOf(manifestation: Manifestation): Int =
+internal fun firstFloorOf(manifestation: Manifestation): Int =
     SHIPPED_PRICES.getValue(manifestation).dials.values.minOf { it.opensAt.first() }
 
 /** Where the wounds and the first phenomena are both open to the draw. */
-private val WOUNDS_AND_PHENOMENA_OPEN: Int =
+internal val WOUNDS_AND_PHENOMENA_OPEN: Int =
     maxOf(firstFloorOf(Manifestation.WOUNDS), firstFloorOf(Manifestation.METEORS))
 
-private val COLLAPSES_AT: Int = requireNotNull(SHIPPED_PRICES.getValue(Manifestation.COLLAPSE).certainFrom)
+internal val COLLAPSES_AT: Int = requireNotNull(SHIPPED_PRICES.getValue(Manifestation.COLLAPSE).certainFrom)

@@ -4,34 +4,41 @@
   "terminals": "word",
   "rules": {
     "book": [
-      {"produce":["[torn_climate]"]},
-      {"produce":["[flooded_desert]"]},
-      {"produce":["[warring_sizes]"]},
-      {"produce":["[settled_ruins]"]}
+      {"produce":["[slightly_unstable]"]},
+      {"produce":["[moderately_unstable]"]},
+      {"produce":["[severely_unstable]"]}
     ],
-    "torn_climate": [
-      {"produce":["age","[cold_stone]","landmass","frozen","scorching","tropical","climate"]}
+    "slightly_unstable": [
+      {"produce":["age","[land]","landmass","villagers","ruins","structures"]},
+      {"produce":["age","arid","landmass","flooded","rock"]},
+      {"produce":["age","[land]","landmass","molten","sea","verdant","biomes"]},
+      {"produce":["age","[land]","landmass","blizzard","inferno","weather"]},
+      {"produce":["age","[land]","landmass","trees","features","arid","climate"]},
+      {"produce":["age","[land]","landmass","drowned","sea","dry","rock"]},
+      {"produce":["age","colossal","minuscule","landmass"]}
     ],
-    "flooded_desert": [
-      {"produce":["age","arid","landmass","flooded","rock","[wet_sky]"]}
+    "moderately_unstable": [
+      {"produce":["age","colossal","minuscule","landmass","blizzard","inferno","weather"]},
+      {"produce":["age","arid","landmass","flooded","rock","drenched","weather","blizzard","inferno","weather"]},
+      {"produce":["age","[cold_stone]","landmass","frozen","scorching","climate","molten","sea","verdant","biomes"]},
+      {"produce":["age","villagers","ruins","structures","trees","features","arid","climate","drowned","sea","dry","rock"]}
     ],
-    "warring_sizes": [
-      {"produce":["age","colossal","minuscule","landmass","[wild_weather]"]}
+    "severely_unstable": [
+      {"produce":["age","colossal","minuscule","landmass","frozen","scorching","climate","molten","sea","verdant","biomes"]},
+      {"produce":["age","colossal","minuscule","landmass","villagers","ruins","structures","frozen","scorching","climate","molten","sea","verdant","biomes"]},
+      {"produce":["age","frozen","scorching","tropical","climate","blizzard","inferno","weather","molten","sea","verdant","biomes"]}
     ],
-    "settled_ruins": [
-      {"produce":["age","villagers","ruins","structures","trees","arid","landmass"]}
+    "land": [
+      {"produce":["gentle"]},
+      {"produce":["eroded"]},
+      {"produce":["insular"]},
+      {"produce":["pillared"]},
+      {"produce":["canyoned"]},
+      {"produce":["mountainous"]}
     ],
     "cold_stone": [
       {"produce":["packed_ice"]},
       {"produce":["snow_block"]}
-    ],
-    "wet_sky": [
-      {"produce":["drenched","weather"]},
-      {"produce":["verdant","climate"]}
-    ],
-    "wild_weather": [
-      {"produce":["blizzard","inferno","weather"]},
-      {"produce":["parched","deluge","weather"]}
     ]
   }
 }

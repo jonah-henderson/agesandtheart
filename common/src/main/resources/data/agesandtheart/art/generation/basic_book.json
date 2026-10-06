@@ -15,7 +15,7 @@
       {"produce":["[astrite_age]"]}
     ],
     "curiosity_age": [
-      {"produce":["[mood]","age","[open_curious_landmass]","[look]"]},
+      {"produce":["[mood]","age","[open_curious_landmass]","[look_beside_a_mood]"]},
       {"produce":["[mood]","age","[curious_landmass]","[thing]"]},
       {"weight":4.0,"produce":["age","[open_curious_landmass]","[look]","[thing]"]},
       {"weight":2.0,"produce":["age","[open_curious_landmass]","[look]","[landed_thing]","[mild_climate]"]},
@@ -50,7 +50,16 @@
       {"weight":4.0,"produce":["[sky]"]},
       {"weight":2.0,"produce":["[aurora]"]},
       {"weight":2.0,"produce":["[rainbow]"]},
-      {"weight":2.0,"produce":["[ground]"]}
+      {"weight":2.0,"produce":["[ground]"]},
+      {"produce":["[moon]"]},
+      {"produce":["[weather]"]}
+    ],
+    "look_beside_a_mood": [
+      {"weight":4.0,"produce":["[sky]"]},
+      {"weight":2.0,"produce":["[aurora]"]},
+      {"weight":2.0,"produce":["[rainbow]"]},
+      {"weight":2.0,"produce":["[ground]"]},
+      {"produce":["[weather]"]}
     ],
     "thing": [
       {"weight":4.0,"produce":["[landed_thing]"]},
@@ -69,7 +78,8 @@
     "bare_look": [
       {"weight":4.0,"produce":["[sky]"]},
       {"weight":2.0,"produce":["[aurora]"]},
-      {"weight":2.0,"produce":["[rainbow]"]}
+      {"weight":2.0,"produce":["[rainbow]"]},
+      {"produce":["[moon]"]}
     ],
     "bare_thing": [
       {"weight":3.0,"produce":["[formation]"]},
@@ -254,8 +264,11 @@
       {"produce":["orange"]},
       {"produce":["yellow"]},
       {"produce":["green"]},
+      {"produce":["cyan"]},
       {"produce":["blue"]},
+      {"produce":["indigo"]},
       {"produce":["purple"]},
+      {"produce":["magenta"]},
       {"produce":["black"]},
       {"produce":["white"]},
       {"produce":["grey"]}
@@ -284,6 +297,15 @@
       {"weight":2.0,"produce":["[colour]","air"]},
       {"produce":["inky","air"]},
       {"produce":["clear","air"]}
+    ],
+    "moon": [
+      {"produce":["colossal","moon"]},
+      {"produce":["small","moon"]},
+      {"produce":["[rising]","moon"]}
+    ],
+    "weather": [
+      {"produce":["drenched","weather"]},
+      {"produce":["stormy","weather"]}
     ],
     "rising": [
       {"produce":["rising_east"]},
@@ -336,14 +358,27 @@
       {"weight":2.0,"produce":["[colour]","leaves"]},
       {"produce":["[colour]","grass","[colour]","leaves"]},
       {"produce":["flowers","features"]},
-      {"produce":["trees","features"]}
+      {"produce":["trees","features"]},
+      {"produce":["[surface_block]","surface"]}
+    ],
+    "surface_block": [
+      {"produce":["sand"]},
+      {"produce":["red_sand"]},
+      {"produce":["moss_block"]},
+      {"produce":["podzol"]},
+      {"produce":["mud"]},
+      {"produce":["gravel"]},
+      {"produce":["calcite"]},
+      {"produce":["mycelium"]},
+      {"produce":["snow_block"]}
     ],
     "sea": [
       {"weight":2.0,"produce":["drowned","sea"]},
       {"produce":["open","sea"]},
       {"produce":["shallow","water","sea"]},
       {"produce":["murky","waters"]},
-      {"produce":["clear","waters"]}
+      {"produce":["clear","waters"]},
+      {"produce":["[colour]","waters"]}
     ],
     "life": [
       {"produce":["teeming","herds","spawns"]},

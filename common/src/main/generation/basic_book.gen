@@ -28,7 +28,8 @@ rare_material_age =
 # Between them the curiosities must use every aiming page at least once: a basic book is where a player
 # first meets the parts of a world there are to aim at. The pages are landmass, sea, rock, underground,
 # biomes, sky, structures, climate, surface, features, spawns, air, waters, weather, sun, moon, stars, grass,
-# leaves, aurora, rainbow, phenomena and clouds. Not used yet: surface, weather, moon.
+# leaves, aurora, rainbow, phenomena and clouds. Surface, weather and moon came last, as a moon, a
+# weather and a ground to stand on in what there is to look at.
 
 # One thing to look at and one thing to find, each drawn from its own group so no two say the same part of
 # the world twice -- two leaf colours, or a tropical and an arid climate, is a book arguing with itself. A
@@ -36,7 +37,7 @@ rare_material_age =
 # What there is to look at is overhead, so only a landmass open to the sky gets one: an aurora in a roofed
 # world is a page nobody can see.
 curiosity_age =
-    [mood] age [open_curious_landmass] [look]
+    [mood] age [open_curious_landmass] [look_beside_a_mood]
     | [mood] age [curious_landmass] [thing]
     | age [open_curious_landmass] [look] [thing]@4
     | age [open_curious_landmass] [look] [landed_thing] [mild_climate]@2
@@ -59,7 +60,10 @@ curious_landmass = [typical_landmass] landmass@3 | [size] [typical_landmass] lan
 
 open_curious_landmass = [open_landmass] landmass@3 | [size] [open_landmass] landmass@2 | [stone] [open_landmass] landmass
 
-look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground]@2
+look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground]@2 | [moon] | [weather]
+
+# Beside a mood, no moon: `moonless` is one.
+look_beside_a_mood = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground]@2 | [weather]
 
 thing = [landed_thing]@4 | [sea]
 
@@ -73,7 +77,7 @@ thing_beside_a_sea = [formation]@3 | [underground_beside_a_sea]@3 | [life_beside
 
 # A barren climate only beside what does not live or grow: herds and trees are grazing and wooded against
 # barren (the antonym pairs of 2026-10-04, which made one basic book in four hundred unstable).
-bare_look = [sky]@4 | [aurora]@2 | [rainbow]@2
+bare_look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [moon]
 
 bare_thing = [formation]@3 | [underground]@3 | ruins structures | untouched structures
 
@@ -218,7 +222,7 @@ size = minuscule | small | large | colossal
 
 stone = blackstone | calcite | deepslate | tuff | sandstone | red_sandstone | andesite | granite | diorite
 
-colour = red | orange | yellow | green | blue | purple | black | white | grey
+colour = red | orange | yellow | green | cyan | blue | indigo | purple | magenta | black | white | grey
 
 sky_colour = [colour]
 
@@ -239,6 +243,13 @@ sky =
     | [colour] air@2
     | inky air
     | clear air
+
+# A colour is not said of a moon; its size and where it rises are.
+moon = colossal moon | small moon | [rising] moon
+
+# Wet weather only, and never beside a barren climate: drenched is watery against dry. `parched` is a
+# climate's word as much as the weather's, so it is left to the climates.
+weather = drenched weather | stormy weather
 
 rising = rising_east | rising_north | rising_northeast | rising_northwest | rising_south | rising_southeast | rising_southwest | rising_west
 
@@ -273,9 +284,12 @@ underground =
     | lattice underground
 
 # The ground and what grows on it, which is mostly colour.
-ground = [colour] grass@2 | [colour] leaves@2 | [colour] grass [colour] leaves | flowers features | trees features
+ground = [colour] grass@2 | [colour] leaves@2 | [colour] grass [colour] leaves | flowers features | trees features | [surface_block] surface
 
-sea = drowned sea@2 | open sea | shallow water sea | murky waters | clear waters
+# What the ground is laid with where grass would be.
+surface_block = sand | red_sand | moss_block | podzol | mud | gravel | calcite | mycelium | snow_block
+
+sea = drowned sea@2 | open sea | shallow water sea | murky waters | clear waters | [colour] waters
 
 life = teeming herds spawns | fish spawns | fliers spawns | beasts spawns | ruins structures | settled structures | untouched structures
 

@@ -5,21 +5,34 @@ terminals word
 # found book allowed to argue with itself: BookCheck fails any book here that comes out coherent. Each
 # alternative should be a mistake a reader can see in the world and learn to recognise in their own.
 #
-# Two mistakes a book, so it comes out wounded and in the grip of phenomena but nowhere near collapse:
-# BookCheck holds every one between the phenomena's floor and collapse's threshold.
+# Three kinds, by how far gone the Age is, and none of them near collapse (50). BookCheck holds every one
+# between the phenomena's floor (4) and collapse, and UnstableBookCheck holds each kind to its band.
+# - Slightly unstable, 4 to 12: one mistake. Seams, a wound or two, a phenomenon starting.
+# - Moderately unstable, 13 to 29: two or three mistakes.
+# - Severely unstable, 30 to 49: mistakes stacked until the wounds go on opening (from 30).
 
-book = [torn_climate] | [flooded_desert] | [warring_sizes] | [settled_ruins]
+book = [slightly_unstable] | [moderately_unstable] | [severely_unstable]
 
-torn_climate = age [cold_stone] landmass frozen scorching tropical climate
+slightly_unstable =
+    age [land] landmass villagers ruins structures
+    | age arid landmass flooded rock
+    | age [land] landmass molten sea verdant biomes
+    | age [land] landmass blizzard inferno weather
+    | age [land] landmass trees features arid climate
+    | age [land] landmass drowned sea dry rock
+    | age colossal minuscule landmass
 
-flooded_desert = age arid landmass flooded rock [wet_sky]
+moderately_unstable =
+    age colossal minuscule landmass blizzard inferno weather
+    | age arid landmass flooded rock drenched weather blizzard inferno weather
+    | age [cold_stone] landmass frozen scorching climate molten sea verdant biomes
+    | age villagers ruins structures trees features arid climate drowned sea dry rock
 
-warring_sizes = age colossal minuscule landmass [wild_weather]
+severely_unstable =
+    age colossal minuscule landmass frozen scorching climate molten sea verdant biomes
+    | age colossal minuscule landmass villagers ruins structures frozen scorching climate molten sea verdant biomes
+    | age frozen scorching tropical climate blizzard inferno weather molten sea verdant biomes
 
-settled_ruins = age villagers ruins structures trees arid landmass
+land = gentle | eroded | insular | pillared | canyoned | mountainous
 
 cold_stone = packed_ice | snow_block
-
-wet_sky = drenched weather | verdant climate
-
-wild_weather = blizzard inferno weather | parched deluge weather
