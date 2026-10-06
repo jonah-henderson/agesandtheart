@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.age.word.Speech
 import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.FissuresField
 import co.voik.agesandtheart.worldgen.GreatHalls
@@ -95,9 +96,12 @@ enum class Underground(override val key: String) : AuthoredPreset {
      */
     override val writtenWordFor: String? get() = key.takeIf { this in SIZED }
 
+    /** `tunnels` and `lattice` are things a book's depths hold; the other minted pages say what they are like. */
+    override val writtenSpeech: Speech? get() = Speech.PLURAL.takeIf { this in SAID_AS_THINGS }
+
     /**
      * How big a chamber or a tunnel is — the axis every other size in the language is said on, so
-     * `colossal chambered underground` is the vault a city fits in and nothing below it is.
+     * `large chambered underground` is the vault a city fits in and nothing below it is.
      */
     override val parameters: List<Parameter>
         get() = listOfNotNull(Terrain.SIZE.takeIf { this in SIZED })
@@ -193,6 +197,7 @@ enum class Underground(override val key: String) : AuthoredPreset {
     companion object {
         /** The undergrounds that take a size and a page minted for them. `hollow`'s page is authored. */
         private val SIZED = setOf(CHAMBERED, TUNNELS, LATTICE, FISSURED)
+        private val SAID_AS_THINGS = setOf(TUNNELS, LATTICE)
 
         // Deep enough to hold a surface's dirt and a tree's roots over the void.
         private const val CRUST_THICKNESS = 8

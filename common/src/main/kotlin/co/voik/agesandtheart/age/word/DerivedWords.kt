@@ -205,6 +205,7 @@ object DerivedWords {
                 id = said.location(),
                         aspects = setOf(aspect),
                     chooses = mapOf(aspect to preset.key),
+                speech = preset.writtenSpeech,
             )
         }
     }

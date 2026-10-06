@@ -73,7 +73,8 @@ object ProseWriting {
             val (named, described) = clause.terms.partition { it.speech.names }
             return buildList {
                 if (described.isNotEmpty()) add(sentence(about, "is", predicate(described), where, ordinal))
-                if (named.isNotEmpty()) add(sentence(about, "has", list(things(named)), where, ordinal))
+                val isOnlyThese = named.all { it.polarity == Polarity.ONLY }
+                if (named.isNotEmpty()) add(sentence(about, "has", list(things(named)), where, ordinal, isOnlyThese))
             }
         }
 
@@ -92,10 +93,21 @@ object ProseWriting {
             return polarised(listOf(minted.shape), except = { "no" }) { counted + madeOf }.single()
         }
 
-        /** The most particular frame the language file has for this sentence, filled. */
-        private fun sentence(about: Aspect, kind: String, said: String, where: String, ordinal: String?): String {
+        /**
+         * The most particular frame the language file has for this sentence, filled. [isOnlyThese] offers a
+         * `.only` frame first, for an aspect whose plain frame would misread a set cut down to what it names.
+         */
+        private fun sentence(
+            about: Aspect,
+            kind: String,
+            said: String,
+            where: String,
+            ordinal: String?,
+            isOnlyThese: Boolean = false,
+        ): String {
             val base = "${about.key}.$kind"
             val candidates = buildList {
+                if (isOnlyThese) add("$base.only")
                 if (ordinal != null && where.isNotEmpty()) add("$base.nth.sited")
                 if (where.isNotEmpty()) add("$base.sited")
                 if (ordinal != null) add("$base.nth")

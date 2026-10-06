@@ -173,6 +173,7 @@ object Prose {
         if (isTheAge) return listOf(ProseClause(about = null, terms = written.map(::termOf)))
 
         val aimedAt = aimingPage?.word?.aspects?.minByOrNull { it.ordinal }
+        if (aimedAt != null) namedDesignIn(aimedAt, written, phrase)?.let { return listOf(it) }
         val byAspect = if (aimedAt != null) mapOf(aimedAt to written) else written.groupBy(::aspectOf)
         return byAspect.map { (about, said) ->
             ProseClause(about, said.map(::termOf), confinedTo, phrase.everywhere, body)
@@ -203,6 +204,25 @@ object Prose {
             confinedTo = phrase.confinedTo?.let(::biomeTerm),
             everywhere = phrase.everywhere,
             shape = shape,
+        )
+    }
+
+    /**
+     * A clause whose one named page is the design its part of the world takes, said as that design with its
+     * qualities in front — `large tunnels underground` is "its depths hold large tunnels", never "its depths
+     * are large" beside "its depths hold tunnels". Null where the clause is not just that.
+     */
+    private fun namedDesignIn(about: Aspect, written: List<Constraint>, phrase: Phrase): ProseClause? {
+        fun isTheDesign(constraint: Constraint) = about in constraint.word.chooses && constraint.word.partOfSpeech.names
+        val design = written.singleOrNull(::isTheDesign) ?: return null
+        val qualities = written.filterNot { it === design }
+        if (qualities.any { it.word.partOfSpeech != Speech.ADJECTIVE }) return null
+        return ProseClause(
+            about = about,
+            terms = emptyList(),
+            confinedTo = phrase.confinedTo?.let(::biomeTerm),
+            everywhere = phrase.everywhere,
+            shape = ProseShape(shape = termOf(design), qualities = qualities.map { termOf(it).copy(quantifier = null) }),
         )
     }
 
