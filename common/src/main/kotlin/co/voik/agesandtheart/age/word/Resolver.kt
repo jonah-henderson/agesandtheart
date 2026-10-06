@@ -1779,9 +1779,11 @@ object Resolver {
         val singledOut = contenders.filter { it.polarity == Polarity.ONLY }
         if (singledOut.isEmpty()) return emptyList()
         fun joinedToAnythingSingledOut(said: Constraint) = singledOut.any { wereJoined(said, it) }
-        // The aiming page closing the clause claims nothing, so there is nothing of it to crowd out.
+        // The aiming page closing the clause claims nothing, so there is nothing of it to crowd out. Nor does
+        // a word that only leans: `wondrous` beside `only plains` asked for nothing the `only` refused, and a
+        // lean yields to anything the book says.
         fun couldBeCrowdedOut(said: Constraint) =
-            said.polarity == Polarity.ASSERTED && !said.word.aims && !joinedToAnythingSingledOut(said)
+            said.polarity == Polarity.ASSERTED && !said.word.aims && said.word.narrows && !joinedToAnythingSingledOut(said)
         val crowdedOut = contenders.filter(::couldBeCrowdedOut)
         return crowdedOut.map { said ->
             flaw(vocabulary, Register.DISPLACED, listOf(said, singledOut.first()), aspect, emptyList(), said.word.firmness)
