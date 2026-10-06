@@ -85,8 +85,10 @@ object AgeTints {
             PalmWood.SIGN, PalmWood.WALL_SIGN, PalmWood.HANGING_SIGN, PalmWood.WALL_HANGING_SIGN,
         )
         for (block in sawnThroughout) registrar(listOf(sawn, sawn), block)
-        for (block in listOf(PalmWood.FRONDS, PalmWood.SAPLING, PalmWood.POTTED_SAPLING)) registrar(listOf(green), block)
-        registrar(listOf(BlockTintSources.constant(opaque(PalmWood.COCONUT_TINT))), PalmWood.COCONUT)
+        for (block in listOf(PalmWood.FRONDS, PalmWood.POTTED_SAPLING)) registrar(listOf(green), block)
+        for (block in listOf(PalmWood.COCONUT, PalmWood.HANGING_COCONUT)) {
+            registrar(listOf(BlockTintSources.constant(opaque(PalmWood.COCONUT_TINT))), block)
+        }
         // A paper tree says how it is: the leaves by how far they have turned, the heart and a sapling by
         // which side of their band the moisture is on (design §7.1.2).
         registrar(listOf(ByBlight), AgeContent.PAPER_TREE_LEAVES_BLOCK)

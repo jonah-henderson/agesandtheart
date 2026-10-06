@@ -11,6 +11,7 @@ import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.CocoaBlock
 import net.minecraft.world.level.block.LeavesBlock
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.feature.Feature
@@ -21,8 +22,8 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
- * One palm, standing on the ground under [place]'s origin — what the palm beach grows and what a palm
- * sapling grows into (`notes/palm-beach-design.md`).
+ * One palm, standing on the ground under [place]'s origin — what the palm beach grows and what a buried
+ * coconut grows into (`notes/palm-beach-design.md`).
  *
  * **Built here because nothing in vanilla builds one.** No trunk placer leans a trunk into a curve, and no
  * foliage placer hangs fronds from a single point. So: a trunk that stands straight at the foot and bends
@@ -43,10 +44,11 @@ object PalmTree : Feature {
 
     override fun codec(): MapCodec<out Feature> = CODEC
 
+    /** Sand, or the overworld's soil — not `#dirt`, which 26.3 emptied of grass, so a palm on a lawn grows. */
+    fun takesRootIn(ground: BlockState): Boolean = ground.`is`(BlockTags.SAND) || ground.`is`(BlockTags.SUBSTRATE_OVERWORLD)
+
     override fun place(level: WorldGenLevel, generator: ChunkGenerator, random: RandomSource, origin: BlockPos): Boolean {
-        // Sand, or the overworld's soil — not `#dirt`, which 26.3 emptied of grass, so a sapling on a lawn grows.
-        val ground = level.getBlockState(origin.below())
-        if (!ground.`is`(BlockTags.SAND) && !ground.`is`(BlockTags.SUBSTRATE_OVERWORLD)) return false
+        if (!takesRootIn(level.getBlockState(origin.below()))) return false
 
         val trunk = trunkFrom(origin, leanTowards(level, origin, random), random)
         if (!trunk.all { isOpen(level, it) }) return false
@@ -190,7 +192,7 @@ object PalmTree : Feature {
             val at = under.relative(side)
             if (!level.isEmptyBlock(at)) continue
             val ripeness = if (random.nextFloat() < RIPE_CHANCE) CocoaBlock.MAX_AGE else random.nextInt(CocoaBlock.MAX_AGE)
-            val coconut = PalmWood.COCONUT.defaultBlockState()
+            val coconut = PalmWood.HANGING_COCONUT.defaultBlockState()
                 .setValue(CocoaBlock.FACING, side.opposite)
                 .setValue(CocoaBlock.AGE, ripeness)
             level.setBlock(at, coconut, Block.UPDATE_CLIENTS)
@@ -200,7 +202,7 @@ object PalmTree : Feature {
     /** Whether a palm may grow through [at]: air, or something a growing thing pushes aside. */
     private fun isOpen(level: WorldGenLevel, at: BlockPos): Boolean {
         val there = level.getBlockState(at)
-        return there.isAir || there.`is`(BlockTags.REPLACEABLE_BY_TREES) || there.`is`(PalmWood.SAPLING)
+        return there.isAir || there.`is`(BlockTags.REPLACEABLE_BY_TREES)
     }
 
     private const val SHORTEST_TRUNK = 7

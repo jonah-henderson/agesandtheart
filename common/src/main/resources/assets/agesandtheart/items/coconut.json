@@ -1,7 +1,7 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:block/coconut_stage2",
+    "model": "agesandtheart:block/coconut",
     "tints": [
       {
         "type": "minecraft:constant",

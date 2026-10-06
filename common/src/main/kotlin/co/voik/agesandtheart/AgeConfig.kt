@@ -88,6 +88,9 @@ object AgeConfig {
      */
     val plasmaAnnihilates: ModConfigSpec.BooleanValue
 
+    /** Whether a player holding a coconut half in each hand walks to the sound of hooves. */
+    val coconutHoofbeats: ModConfigSpec.BooleanValue
+
     /** The spec each loader hands to its own config system. */
     val SPEC: ModConfigSpec
 
@@ -177,6 +180,12 @@ object AgeConfig {
             .translation(translationOf("plasma_annihilates"))
             .define("plasmaAnnihilates", true)
         builder.pop()
+        builder.comment("Coconuts").push(COCONUTS)
+        coconutHoofbeats = builder
+            .comment("Walking with half a coconut in each hand sounds like a horse.")
+            .translation(translationOf("coconut_hoofbeats"))
+            .define("coconutHoofbeats", true)
+        builder.pop()
         SPEC = builder.build()
     }
 
@@ -193,6 +202,8 @@ object AgeConfig {
     private const val DRYING = "drying"
 
     private const val PLASMA = "plasma"
+
+    private const val COCONUTS = "coconuts"
 }
 
 /**

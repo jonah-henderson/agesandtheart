@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "condition": {
+        "type": "minecraft:match_block",
+        "blocks": "agesandtheart:hanging_coconut",
+        "state": {
+          "age": "2"
+        }
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "modifier": [
+            {
+              "type": "minecraft:explosion_decay"
+            }
+          ],
+          "name": "agesandtheart:coconut"
+        }
+      ],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/hanging_coconut"
+}

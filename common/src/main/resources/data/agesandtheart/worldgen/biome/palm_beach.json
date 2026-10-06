@@ -13,7 +13,8 @@
     "",
     "Colours retuned on two walks (Jonah, 2026-10-01): the water tried aquamarine and came back to its first",
     "pale aqua ('too green'); the sky went from a pale cyan to a deep azure and then deeper still, far under",
-    "vanilla's light #78a7ff, with the clouds whiter and more solid over it (`PalmDusk`)."
+    "vanilla's light #78a7ff, with the clouds whiter and more solid over it (`PalmDusk`). The distant fog (#5588ff)",
+    "stands to that sky as vanilla's #c0d8ff to its own: the same small hue shift, 1.19 times the lightness."
   ],
   "attributes": {
     "minecraft:gameplay/natural_mob_spawns": {
@@ -140,6 +141,7 @@
       },
       "modifier": "overlay"
     },
+    "minecraft:visual/fog_color": "#5588ff",
     "minecraft:visual/sky_color": "#1e5bff",
     "minecraft:visual/water_fog_color": "#1d8fa3",
     "minecraft:visual/water_fog_end_distance": 128.0

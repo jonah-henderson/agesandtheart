@@ -2,26 +2,45 @@
   "type": "minecraft:block",
   "pools": [
     {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
       "entries": [
         {
-          "type": "minecraft:item",
-          "modifier": [
+          "type": "minecraft:alternatives",
+          "children": [
             {
-              "type": "minecraft:set_count",
+              "type": "minecraft:item",
               "condition": {
-                "type": "minecraft:match_block",
-                "blocks": "agesandtheart:coconut",
-                "state": {
-                  "age": "2"
-                }
+                "type": "minecraft:any_of",
+                "terms": [
+                  {
+                    "type": "minecraft:match_tool",
+                    "predicate": {
+                      "items": "#minecraft:axes"
+                    }
+                  },
+                  {
+                    "type": "minecraft:match_tool",
+                    "predicate": {
+                      "items": "#minecraft:swords"
+                    }
+                  }
+                ]
               },
-              "count": 3
+              "modifier": [
+                {
+                  "type": "minecraft:set_count",
+                  "count": 2
+                }
+              ],
+              "name": "agesandtheart:coconut_half"
             },
             {
-              "type": "minecraft:explosion_decay"
+              "type": "minecraft:item",
+              "name": "agesandtheart:coconut"
             }
-          ],
-          "name": "agesandtheart:coconut"
+          ]
         }
       ],
       "rolls": 1

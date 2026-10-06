@@ -27,6 +27,7 @@
     "MerchantResultSlotMixin",
     "PistonStructureResolverMixin",
     "PlayerMixin",
+    "PlayerStepSoundMixin",
     "PowderSnowBlockMixin",
     "ProjectileMixin",
     "ServerLevelMixin",

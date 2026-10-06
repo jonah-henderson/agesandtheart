@@ -8,12 +8,12 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.tags.TagKey
-import net.minecraft.util.random.WeightedList
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.EntityTypes
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.entity.vehicle.boat.Boat
 import net.minecraft.world.entity.vehicle.boat.ChestBoat
+import net.minecraft.world.food.FoodProperties
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.BoatItem
 import net.minecraft.world.item.DoubleHighBlockItem
@@ -40,7 +40,6 @@ import net.minecraft.world.level.block.TintedParticleLeavesBlock
 import net.minecraft.world.level.block.TrapDoorBlock
 import net.minecraft.world.level.block.WallHangingSignBlock
 import net.minecraft.world.level.block.WallSignBlock
-import net.minecraft.world.level.block.grower.TreeGrower
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.BlockSetType
@@ -123,7 +122,7 @@ object PalmWood {
     val STRIPPED_LOG: RotatedPillarBlock = block("stripped_palm_log", logLike(PLANKS_COLOUR), ::RotatedPillarBlock)
     val STRIPPED_WOOD: RotatedPillarBlock =
         block("stripped_palm_wood", planksLike().strength(LOG_STRENGTH).sound(SoundType.WOOD), ::RotatedPillarBlock)
-    val LOG: StrippableLogBlock = block("palm_log", logLike(BARK_COLOUR)) { StrippableLogBlock(it) { STRIPPED_LOG } }
+    val LOG: PalmLogBlock = block("palm_log", logLike(BARK_COLOUR).randomTicks()) { PalmLogBlock(it) { STRIPPED_LOG } }
     val WOOD: StrippableLogBlock = block("palm_wood", planksLike().mapColor(BARK_COLOUR).strength(LOG_STRENGTH).sound(SoundType.WOOD)) {
         StrippableLogBlock(it) { STRIPPED_WOOD }
     }
@@ -144,29 +143,27 @@ object PalmWood {
             .isRedstoneConductor { _, _, _ -> false },
     ) { TintedParticleLeavesBlock(LEAF_PARTICLE_CHANCE, it) }
 
-    /** The tree a sapling grows into — `worldgen/feature/palm_tree.json`, which is the same tree the beach grows. */
+    /** The tree a buried coconut grows into — `worldgen/feature/palm_tree.json`, which is the same tree the beach grows. */
     val TREE: ResourceKey<Feature> = ResourceKey.create(Registries.FEATURE, "palm_tree".location())
 
-    private val GROWER = TreeGrower("agesandtheart:palm", WeightedList.of(TREE), WeightedList.of(), WeightedList.of(), TREE)
-
-    val SAPLING: PalmSaplingBlock = block(
-        "palm_sapling",
+    val COCONUT: CoconutBlock = block(
+        "coconut",
         BlockBehaviour.Properties.of()
-            .mapColor(MapColor.PLANT)
-            .noCollision()
+            .mapColor(MapColor.TERRACOTTA_BROWN)
             .randomTicks()
-            .instabreak()
-            .sound(SoundType.GRASS)
-            .pushReaction(PushReaction.POPPED),
-    ) { PalmSaplingBlock(GROWER, it) }
+            .strength(PLACED_COCONUT_STRENGTH)
+            .sound(SoundType.WOOD)
+            .noOcclusion(),
+        ::CoconutBlock,
+    )
 
     val POTTED_SAPLING: FlowerPotBlock = block(
         "potted_palm_sapling",
         BlockBehaviour.Properties.of().instabreak().noOcclusion().pushReaction(PushReaction.POPPED),
-    ) { FlowerPotBlock(SAPLING, it) }
+    ) { FlowerPotBlock(COCONUT, it) }
 
-    val COCONUT: CoconutBlock = block(
-        "coconut",
+    val HANGING_COCONUT: HangingCoconutBlock = block(
+        "hanging_coconut",
         BlockBehaviour.Properties.of()
             .mapColor(MapColor.TERRACOTTA_BROWN)
             .randomTicks()
@@ -174,7 +171,7 @@ object PalmWood {
             .sound(SoundType.WOOD)
             .noOcclusion()
             .pushReaction(PushReaction.POPPED),
-        ::CoconutBlock,
+        ::HangingCoconutBlock,
     )
 
     val STAIRS: StairBlock = block(
@@ -251,12 +248,7 @@ object PalmWood {
         blockItem(STRIPPED_LOG, "stripped_palm_log", burnsAs(ContextIntProviders.COOKING_TIME_WOOD_BLOCKS))
         blockItem(STRIPPED_WOOD, "stripped_palm_wood", burnsAs(ContextIntProviders.COOKING_TIME_WOOD_BLOCKS))
         blockItem(FRONDS, "palm_fronds", Item.Properties().compostable(ContextIntProviders.COMPOSTABLE_LOW))
-        blockItem(
-            SAPLING,
-            "palm_sapling",
-            Item.Properties().compostable(ContextIntProviders.COMPOSTABLE_LOW).cookingFuel(ContextIntProviders.COOKING_TIME_DRY_PLANTS),
-        )
-        blockItem(COCONUT, "coconut", Item.Properties().compostable(ContextIntProviders.COMPOSTABLE_MEDIUM))
+        item("coconut", Item.Properties().compostable(ContextIntProviders.COMPOSTABLE_MEDIUM).useBlockDescriptionPrefix(), ::CoconutItem)
         blockItem(STAIRS, "palm_stairs", burnsAs(ContextIntProviders.COOKING_TIME_WOOD_BLOCKS))
         blockItem(SLAB, "palm_slab", burnsAs(ContextIntProviders.COOKING_TIME_WOOD_SLABS))
         blockItem(FENCE, "palm_fence", burnsAs(ContextIntProviders.COOKING_TIME_WOOD_BLOCKS))
@@ -285,6 +277,14 @@ object PalmWood {
     val BOAT_ITEM: Item = item("palm_boat", burnsAs(ContextIntProviders.COOKING_TIME_BOATS).stacksTo(1)) { BoatItem(BOAT, it) }
     val CHEST_BOAT_ITEM: Item =
         item("palm_chest_boat", burnsAs(ContextIntProviders.COOKING_TIME_BOATS).stacksTo(1)) { BoatItem(CHEST_BOAT, it) }
+
+    val COCONUT_HALF: CoconutHalfItem = item(
+        "coconut_half",
+        Item.Properties()
+            .food(FoodProperties.Builder().nutrition(COCONUT_HALF_NUTRITION).saturationModifier(COCONUT_HALF_SATURATION).alwaysEdible().build())
+            .compostable(ContextIntProviders.COMPOSTABLE_MEDIUM),
+        ::CoconutHalfItem,
+    )
 
     // --- What the rest of the game is told ---
 
@@ -341,6 +341,9 @@ object PalmWood {
     private const val SIGN_STACK = 16
     private const val COCONUT_STRENGTH = 0.2f
     private const val COCONUT_RESISTANCE = 3.0f
+    private const val PLACED_COCONUT_STRENGTH = 1.0f
+    private const val COCONUT_HALF_NUTRITION = 4
+    private const val COCONUT_HALF_SATURATION = 0.1f
     private const val BOAT_WIDTH = 1.375f
     private const val BOAT_HEIGHT = 0.5625f
     private const val BOAT_TRACKING_CHUNKS = 10

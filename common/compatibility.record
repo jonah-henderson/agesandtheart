@@ -1,7 +1,7 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
 line=0.1
-generator=1
+generator=2
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
 block agesandtheart:analysis_machine
@@ -30,6 +30,7 @@ block agesandtheart:grammar_guide
 block agesandtheart:grazed_torchflower
 block agesandtheart:green_rime_crystal
 block agesandtheart:grinder
+block agesandtheart:hanging_coconut
 block agesandtheart:indigo_rime_crystal
 block agesandtheart:ink
 block agesandtheart:lava_tube
@@ -48,7 +49,6 @@ block agesandtheart:palm_hanging_sign
 block agesandtheart:palm_log
 block agesandtheart:palm_planks
 block agesandtheart:palm_pressure_plate
-block agesandtheart:palm_sapling
 block agesandtheart:palm_shelf
 block agesandtheart:palm_sign
 block agesandtheart:palm_slab
@@ -149,6 +149,7 @@ item agesandtheart:astrite_block
 item agesandtheart:astrite_shard
 item agesandtheart:carapace_powder
 item agesandtheart:coconut
+item agesandtheart:coconut_half
 item agesandtheart:compounded_stone
 item agesandtheart:compounded_stone_axe
 item agesandtheart:compounded_stone_hoe
@@ -204,7 +205,6 @@ item agesandtheart:palm_hanging_sign
 item agesandtheart:palm_log
 item agesandtheart:palm_planks
 item agesandtheart:palm_pressure_plate
-item agesandtheart:palm_sapling
 item agesandtheart:palm_shelf
 item agesandtheart:palm_sign
 item agesandtheart:palm_slab
@@ -265,7 +265,7 @@ loot_function_type agesandtheart:bind_linking_book
 loot_function_type agesandtheart:fill_notebook
 loot_function_type agesandtheart:roll_page_word
 loot_function_type agesandtheart:write_found_book
-loot_function_type agesandtheart:write_surveyed_book
+loot_pool_entry_type agesandtheart:survey_report
 menu agesandtheart:archive
 menu agesandtheart:crystal_viewer
 menu agesandtheart:drying_rack
@@ -329,6 +329,7 @@ sound_event agesandtheart:surf
 ticket_type agesandtheart:panel
 trigger_type agesandtheart:desk_furnished
 trigger_type agesandtheart:entered_age
+trigger_type agesandtheart:fell_home
 trigger_type agesandtheart:gave_a_book_to_a_fissure
 trigger_type agesandtheart:learned_word
 trigger_type agesandtheart:linked
@@ -365,4 +366,5 @@ worldgen/structure_processor agesandtheart:keep_terrain_in_open_columns
 worldgen/structure_processor agesandtheart:loot_table_swap
 worldgen/structure_processor agesandtheart:write_found_items
 worldgen/structure_type agesandtheart:cavern_ruins
+worldgen/structure_type agesandtheart:entrance_on_ground
 worldgen/structure_type agesandtheart:star_fissure

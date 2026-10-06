@@ -1,5 +1,5 @@
 {
-  "_comment": "Joinery: the desk, the archive, the two cases and the guide's shelf; an axe is what takes one apart. And a paper tree's roots, as mangrove roots are.",
+  "_comment": "Joinery: the desk, the archive, the two cases and the guide's shelf; an axe is what takes one apart. And a paper tree's roots, as mangrove roots are, and coconuts, as cocoa and melons are.",
   "replace": false,
   "values": [
     "agesandtheart:writers_desk",
@@ -10,6 +10,8 @@
     "agesandtheart:paper_tree_roots",
     "agesandtheart:paper_tree_root",
     "agesandtheart:drying_rack",
-    "agesandtheart:transcriber"
+    "agesandtheart:transcriber",
+    "agesandtheart:coconut",
+    "agesandtheart:hanging_coconut"
   ]
 }

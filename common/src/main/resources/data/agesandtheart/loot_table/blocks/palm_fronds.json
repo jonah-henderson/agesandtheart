@@ -4,45 +4,18 @@
     {
       "entries": [
         {
-          "type": "minecraft:alternatives",
-          "children": [
-            {
-              "type": "minecraft:item",
-              "condition": {
-                "type": "minecraft:any_of",
-                "terms": [
-                  "minecraft:tool/can_shear",
-                  "minecraft:tool/can_silk_touch"
-                ]
-              },
-              "name": "agesandtheart:palm_fronds"
-            },
-            {
-              "type": "minecraft:item",
-              "condition": {
-                "type": "minecraft:all_of",
-                "terms": [
-                  {
-                    "type": "minecraft:survives_explosion"
-                  },
-                  {
-                    "type": "minecraft:table_bonus",
-                    "chances": [
-                      0.05,
-                      0.0625,
-                      0.083333336,
-                      0.1
-                    ],
-                    "enchantment": "minecraft:fortune"
-                  }
-                ]
-              },
-              "name": "agesandtheart:palm_sapling"
-            }
-          ]
+          "type": "minecraft:item",
+          "name": "agesandtheart:palm_fronds"
         }
       ],
-      "rolls": 1
+      "rolls": 1,
+      "condition": {
+        "type": "minecraft:any_of",
+        "terms": [
+          "minecraft:tool/can_shear",
+          "minecraft:tool/can_silk_touch"
+        ]
+      }
     },
     {
       "condition": {
