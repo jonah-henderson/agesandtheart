@@ -41,7 +41,7 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   presets): the evaluation contract, where things live, the performance budget. Built and shipped.
 - **`notes/writers-desk-redesign.md`** — the desk split into blocks: the archive block, writing from a
   template of known words paid for whole at the bind, and one inventory-less screen. **Built 2026-09-18,
-  unwalked**, and it supersedes parts of `the-art-design.md` §7.4 and §7.5. Its "Calls made while building"
+  walked by 2026-10-06**, and it supersedes parts of `the-art-design.md` §7.4 and §7.5. Its "Calls made while building"
   lists what the build decided without Jonah. Read it before touching `desk/` or the desk's screens.
 - **`notes/walk-list.md`** — **what is built and unwalked**, opened 2026-09-11 and organised by section with
   a reference per item. Verdicts go to `decisions.md` and the item is struck; when the last one goes, so
@@ -75,7 +75,7 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 - **`notes/corruption-research.md`** — what 26.1 allows for a proximity gradient around a wound, and why
   positional environment layers beat a post-processing chain. Read it before reaching for a post effect.
 - **`notes/palm-beach-design.md`** — our own Age-only biome: white sand, a reef lagoon, palms, surf. **Built
-  2026-10-01, unwalked**; its "Calls made while building" lists what was decided without Jonah.
+  2026-10-01, walked by 2026-10-06**; its "Calls made while building" lists what was decided without Jonah.
   Common ink, a ribbon not a trophy. Its one real piece of engineering is a **declared climate home** for a biome
   of ours, since `BiomePreference.homesFor` drops a biome it has never seen somewhere random. The surf is flat
   client-side particles on per-stretch wave clocks, not a renderer and not blocks. Read it before touching either.
