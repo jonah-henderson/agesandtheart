@@ -23,6 +23,12 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
 object InverseCavesField {
 
     /**
+     * Where a sea stands when a book names one: shallow, sixteen blocks off the bottom of the world, so it
+     * drowns only the lowest of the tangle and leaves the rest hanging over it.
+     */
+    const val NAMED_SEA_LEVEL = VerticalWindow.MIN_Y + 16
+
+    /**
      * [scale] is [SizeScale]'s factor, and it is the caves' own: the noise they are cast from is read that
      * much coarser, so every ridge, plateau and shaft grows while the cast still fills the world top to
      * bottom. Stretching the finished shape instead would squash or lose half of it against the ceiling.

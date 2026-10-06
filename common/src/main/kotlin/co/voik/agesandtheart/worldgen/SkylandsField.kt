@@ -130,6 +130,12 @@ object SkylandsField {
     /** Where the clouds lie: under the islands, near where their undersides end. */
     const val CLOUDS_Y = 72
 
+    /**
+     * Where a sea stands when a book names one: far under the islands, about thirty blocks below the
+     * deepest of their undersides, so it is an ocean seen through the clouds rather than one they sit in.
+     */
+    const val NAMED_SEA_LEVEL = 30
+
     /** A lobe's radius at [TOP_Y]; at the height its ground usually stands it is about three quarters of this. */
     private const val TOP_RADIUS = 52.0
 

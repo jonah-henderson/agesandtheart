@@ -61,6 +61,11 @@ enum class Terrain(
     override val key: String,
     val waterline: Int?,
     private val build: (Options, Long) -> TerrainField,
+    /**
+     * Where the sea stands if the book names one, for a landform that has none of its own: islands in the
+     * void are sealess unless asked, and then hang over a sea far below (Jonah, 2026-10-06).
+     */
+    private val waterlineWhenASeaIsNamed: Int? = null,
     // Deferred like [build], because a Parameter is a companion value and an entry is built before the
     // companion is.
     private val axes: () -> List<Parameter> = { emptyList() },
@@ -84,12 +89,13 @@ enum class Terrain(
 
     /**
      * Islands floating in nothing at about one height, the End's arrangement: broad tops over tapering
-     * undersides, near enough to cross between. No waterline and nothing below them but the void.
+     * undersides, near enough to cross between. Nothing below them but the void, unless a book names a sea.
      */
     SKYLANDS(
         "skyborne",
         waterline = null,
         build = { options, salt -> SkylandsField.world(salt, scaleOf(options, salt)) },
+        waterlineWhenASeaIsNamed = SkylandsField.NAMED_SEA_LEVEL,
         axes = { listOf(SIZE) },
     ),
 
@@ -247,6 +253,7 @@ enum class Terrain(
         "tangled",
         waterline = null,
         build = { options, salt -> InverseCavesField.world(salt, scaleOf(options, salt)) },
+        waterlineWhenASeaIsNamed = InverseCavesField.NAMED_SEA_LEVEL,
         axes = { listOf(SIZE) },
     ),
 
@@ -343,8 +350,14 @@ enum class Terrain(
      */
     fun waterlineAt(options: Options, salt: Long): Int? = when (this) {
         CANYON -> CanyonField.riverLevel(scaleOf(options, salt))
-        else -> waterline
+        else -> waterline ?: waterlineWhenASeaIsNamed
     }
+
+    /**
+     * Whether this landform takes a sea only when a book names one. Its unspoken sea is none rather than the
+     * world's water, which is what keeps it sealess by default (see `AgeComposition.laidOver`).
+     */
+    val takesASeaOnlyWhenNamed: Boolean get() = waterline == null && waterlineWhenASeaIsNamed != null
 
     /**
      * How high an underground of this terrain's may reach, or null where there is no room for one at all —

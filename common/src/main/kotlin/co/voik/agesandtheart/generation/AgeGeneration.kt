@@ -24,6 +24,7 @@ import co.voik.agesandtheart.worldgen.field.Regions
 import co.voik.agesandtheart.worldgen.field.Ridge
 import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.age.aspect.MagmaChambers
 import co.voik.agesandtheart.worldgen.field.StandingFluid
@@ -580,7 +581,12 @@ object AgeGeneration {
         // is analytic and free; the generator writes it into the chunk for the other. Before that, a word
         // like `volcano` was taken, charged for and scored, and then produced no mountains at all.
         val cones = volcanic.raises
-        val raised = Union(listOfNotNull(shape, cones, lid)).takeIf { cones != null || lid != null } ?: shape
+        // **A sea stands on bedrock** (Jonah, 2026-10-06): one layer of rock along the floor of the world,
+        // which the surface's own world floor paints as bedrock, so a sea poured into the void cannot be swum
+        // out of the bottom. Under ground it is rock that was already there.
+        val floor = if (composition.seas.any { !it.isEmpty }) Slab(lowY = window.minY, highY = window.minY) else null
+        val raised = Union(listOfNotNull(shape, cones, lid, floor))
+            .takeIf { cones != null || lid != null || floor != null } ?: shape
         // The magma chambers are taken out of everything, cones included: a hollow in a volcano's own root
         // is exactly where one belongs, and the pool poured into it below is the same shape.
         val standingRock = if (volcanic.hollows == null) raised else Subtract(raised, volcanic.hollows)

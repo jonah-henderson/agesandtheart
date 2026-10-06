@@ -263,7 +263,13 @@ data class AgeComposition(
             if (aspect in spokenTo) mine else theirs
         val merged = copy(
             terrains = seated(Aspect.TERRAIN, terrains, template.terrains).filterIsInstance<Terrain>(),
-            seas = seated(Aspect.SEA, seas, template.seas).filterIsInstance<Sea>(),
+            seas = when {
+                Aspect.SEA in spokenTo -> seas
+                // The world's own sea is not one a floating landform takes; only a named one is.
+                seated(Aspect.TERRAIN, terrains, template.terrains).filterIsInstance<Terrain>()
+                    .let { laid -> laid.isNotEmpty() && laid.all { it.takesASeaOnlyWhenNamed } } -> listOf(Sea.NONE)
+                else -> template.seas
+            },
             carvers = seated(Aspect.CARVERS, carvers, template.carvers).filterIsInstance<Carvers>(),
             underground = if (Aspect.UNDERGROUND in spokenTo) underground else template.underground,
         )
