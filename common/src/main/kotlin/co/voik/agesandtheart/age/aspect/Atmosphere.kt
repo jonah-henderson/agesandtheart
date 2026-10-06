@@ -108,10 +108,6 @@ object Atmosphere {
 
     /**
      * How far you see underwater — [HAZE]'s sibling, and named for the same direction it obscures.
-     *
-     * The water's *colour* is deliberately not here, and this is what remains reachable without it: the
-     * colour would only ever have moved the fog and left the surface vanilla blue, where a distance moves
-     * the one thing a swimmer actually experiences.
      */
     val MURK = Parameter.ranged(
         "murk",
@@ -152,6 +148,13 @@ object Atmosphere {
      * Sited like every other colour here, which is the whole of `purple grass in swamp`.
      */
     val GRASSCOLOUR = colour("colour", "The colour of the grass.")
+
+    /**
+     * What the water is tinted, from its surface to the fog a swimmer sees, which is the same colour dimmed
+     * as vanilla dims its own. Baked into the chunk mesh like the grass, so it holds still; water that shifts
+     * colour over time is `notes/water-colour-research.md`'s shader, and not this.
+     */
+    val WATERCOLOUR = colour("colour", "The colour of the water.")
 
     val LEAFCOLOUR = colour("colour", "The colour of the leaves.")
 
@@ -206,6 +209,8 @@ object Atmosphere {
             tint = colourOf(air, TINT, biome),
             motes = air.of(MOTES, biome).takeUnless { it == Parameter.DEFAULT },
             murk = band(water, MURK),
+            water = colourOf(water, WATERCOLOUR, biome),
+            waterFog = colourOf(water, WATERCOLOUR, biome)?.dimmed(WATER_FOG_SHARE),
             haze = band(air, HAZE),
             // The book's word on it first, then wherever the shape of the Age puts its clouds.
             ceiling = band(vault, CEILING) ?: parts.cloudsAtY?.let(::ceilingAt),
@@ -334,4 +339,7 @@ object Atmosphere {
     }
 
     private const val NO_DAYLIGHT = 0f
+
+    /** How much of the water's colour its fog keeps: vanilla's `#050533` under `#3F76E4` is about this. */
+    private const val WATER_FOG_SHARE = 0.25f
 }

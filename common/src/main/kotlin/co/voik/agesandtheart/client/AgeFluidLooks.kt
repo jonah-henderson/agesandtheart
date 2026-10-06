@@ -3,6 +3,10 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.content.AgeFluids
 import co.voik.agesandtheart.location
 import net.minecraft.client.color.block.BlockTintSource
+import net.minecraft.client.renderer.BiomeColors
+import net.minecraft.client.renderer.block.BlockAndTintGetter
+import net.minecraft.core.BlockPos
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.client.renderer.block.FluidModel
 import net.minecraft.client.resources.model.sprite.Material
 import net.minecraft.resources.Identifier
@@ -38,8 +42,28 @@ object AgeFluidLooks {
         ours("deep_water_still"),
         ours("deep_water_flow"),
         null,
-        BlockTintSource { ALMOST_BLACK },
+        DeepWaterTint,
     )
+
+    /**
+     * Nearly black, leaning a little towards whatever colour this Age's water is (Jonah, 2026-10-06).
+     *
+     * It leans by how far the water here is from vanilla's own blue rather than by the water itself, so an
+     * ordinary sea's abyss keeps exactly [ALMOST_BLACK] and only an Age that recoloured its water moves it.
+     */
+    private object DeepWaterTint : BlockTintSource {
+        override fun color(state: BlockState): Int = ALMOST_BLACK
+
+        override fun colorInWorld(state: BlockState, level: BlockAndTintGetter, pos: BlockPos): Int {
+            val water = BiomeColors.getAverageWaterColor(level, pos)
+            fun leaned(shift: Int): Int {
+                val channel = (ALMOST_BLACK shr shift and BYTE) +
+                    ((water shr shift and BYTE) - (VANILLA_WATER shr shift and BYTE)) * DEEP_WATER_LEAN
+                return channel.toInt().coerceIn(0, BYTE) shl shift
+            }
+            return OPAQUE or leaned(RED) or leaned(GREEN) or leaned(BLUE)
+        }
+    }
 
     /** Water's own sprites. A `Material` is just the sprite plus a translucency flag in 26.1. */
     private fun water(path: String) = Material(Identifier.withDefaultNamespace("block/$path"))
@@ -80,4 +104,16 @@ object AgeFluidLooks {
      * down through*.
      */
     private const val ALMOST_BLACK = 0xFF06111A.toInt()
+
+    /** Vanilla's own water, which an abyss leans away from rather than towards. */
+    private const val VANILLA_WATER = 0xFF3F76E4.toInt()
+
+    /** How much of the water's difference from vanilla's the abyss takes on: enough to see, never enough to light it. */
+    private const val DEEP_WATER_LEAN = 0.12f
+
+    private const val OPAQUE = 0xFF000000.toInt()
+    private const val BYTE = 0xFF
+    private const val RED = 16
+    private const val GREEN = 8
+    private const val BLUE = 0
 }

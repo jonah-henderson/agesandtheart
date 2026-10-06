@@ -299,7 +299,7 @@ enum class Aspect(
             SURFACE -> listOf(Surface.MATERIAL)
             FEATURES -> listOf(Features.SIZE, Features.THICKNESS, Features.HEIGHT)
             AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE)
-            WATERS -> listOf(Atmosphere.MURK)
+            WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR)
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER)
             SUN -> listOf(
                 SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.SUNCOLOUR, SkyBodies.RISING, SkyBodies.PATH,

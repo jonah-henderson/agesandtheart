@@ -151,6 +151,7 @@ object AgeAir {
         look.sky?.let { add(Painted(EnvironmentAttributes.SKY_COLOR, it.rgb())) }
         look.cloud?.let { add(Painted(EnvironmentAttributes.CLOUD_COLOR, it.rgba())) }
         look.fog?.let { add(Painted(EnvironmentAttributes.FOG_COLOR, it.rgb())) }
+        look.waterFog?.let { add(Painted(EnvironmentAttributes.WATER_FOG_COLOR, it.rgb())) }
         // One parameter for the light, because a writer who says the light is green means all of it.
         look.tint?.let {
             add(Painted(EnvironmentAttributes.SKY_LIGHT_COLOR, it.rgb()))

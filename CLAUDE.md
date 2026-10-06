@@ -80,8 +80,9 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   of ours, since `BiomePreference.homesFor` drops a biome it has never seen somewhere random. The surf is flat
   client-side particles on per-stretch wave clocks, not a renderer and not blocks. Read it before touching either.
 - **`notes/water-colour-research.md`** — how to make an Age's water shift colour over time: the tint is baked
-  into the chunk mesh, and 26.1's `GameTime` UBO is the way around that. Nothing is built; it is meant to be
-  built alongside the wound renderer, which needs the same pipeline.
+  into the chunk mesh, and 26.1's `GameTime` UBO is the way around that. A **still** colour is built
+  (`cyan waters`, through Ephemeris's `GroundTints`); the shifting half is not, and is meant to be built
+  alongside the wound renderer, which needs the same pipeline.
 - **`notes/coloured-light-research.md`** — coloured light, and why the lightmap can never give it: it is a
   16×16 texture indexed by (block, sky) with no position in it, so every lightmap route tints the *whole
   view*. The route that works is per-vertex colour at section-compile time, and the note carries the one
