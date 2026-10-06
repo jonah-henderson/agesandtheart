@@ -1,7 +1,41 @@
 {
-  "_comment": "Learned on first holding either top-rung ingredient.",
+  "_comment": [
+    "Learned on first holding anything it is made of or made for (Jonah, walk 2026-10-06): rotten flesh to",
+    "dry into leather, its sticks or string, or either of the top-rung inputs it dries. It is a simple machine",
+    "with advanced uses, so it should be in reach from the start."
+  ],
   "parent": "minecraft:recipes/root",
   "criteria": {
+    "has_rotten_flesh": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "minecraft:rotten_flesh"
+          }
+        ]
+      }
+    },
+    "has_stick": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "minecraft:stick"
+          }
+        ]
+      }
+    },
+    "has_string": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "minecraft:string"
+          }
+        ]
+      }
+    },
     "has_carapace_powder": {
       "trigger": "minecraft:inventory_changed",
       "conditions": {
@@ -31,6 +65,9 @@
   },
   "requirements": [
     [
+      "has_rotten_flesh",
+      "has_stick",
+      "has_string",
       "has_carapace_powder",
       "has_paper_tree_pulp",
       "has_the_recipe"

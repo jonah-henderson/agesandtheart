@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import kotlin.math.exp
 import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.age.phenomena.Sampling
@@ -47,6 +48,7 @@ object Storms {
     fun forget() {
         told = null
         inTheWind = ConeExposure.Remembered()
+        shown = Float.NaN
     }
 
     /** The local player's last [ConeExposure] reading, which every sample below is capped by. */
@@ -62,7 +64,26 @@ object Storms {
     private fun exposure(level: ClientLevel, at: BlockPos, blowing: BlizzardPayload): Float {
         val player = Minecraft.getInstance().player ?: return Sampling.exposureAt(level, at)
         val reading = inTheWind.read(level, player.eyePosition, ConeExposure.upwind(blowing.driving()))
-        return Blizzard.exposureAt(level, at, reading)
+        return eased(Blizzard.exposureAt(level, at, reading))
+    }
+
+    /** What the eye and ear are shown, easing towards [exposure]'s reading rather than stepping to it. */
+    private var shown = Float.NaN
+    private var shownAt = 0L
+
+    /**
+     * [target], approached over about [EASE_SECONDS] of real time (Jonah, walk 2026-10-06: the steps were
+     * plain to see). The wind is re-read once a second and the sky light changes block by block, and either
+     * one jumped the fog and the sound; the cold itself still takes the server's reading as it stands.
+     */
+    private fun eased(target: Float): Float {
+        val now = System.nanoTime()
+        shown = if (shown.isNaN()) target else {
+            val elapsed = (now - shownAt) / NANOS_PER_SECOND
+            shown + (target - shown) * (1.0 - exp(-elapsed / EASE_SECONDS)).toFloat()
+        }
+        shownAt = now
+        return shown
     }
 
     /**
@@ -329,4 +350,8 @@ object Storms {
 
     private const val QUIETEST = 0.5
     private const val LOUDEST = 1.0
+
+    /** How long the shown exposure takes to cover most of the way to a new reading. */
+    private const val EASE_SECONDS = 0.4
+    private const val NANOS_PER_SECOND = 1_000_000_000.0
 }

@@ -1,5 +1,10 @@
 package co.voik.agesandtheart.command
 
+import net.minecraft.util.Prediction
+import net.minecraft.world.item.ItemStack
+import co.voik.agesandtheart.content.AgeComponents
+import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.book.FoundBook
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Report
@@ -329,11 +334,9 @@ internal object CorpusInstruments {
         )
 
     /**
-     * `/age book [<kind>] [<seed>]` — a book the Art could have written, read back rather than handed over.
-     *
-     * **Deliberately not the item.** A real one is what `/give agesandtheart:descriptive_book` produces, so
-     * what this is for is *looking at what the grammar writes* — pages and reading, at a seed you can name,
-     * from a console that has nobody to hand anything to.
+     * `/age book [<kind>] [<seed>]` — a book the Art could have written, read back, and handed to whoever
+     * asked if anyone did (Jonah, walk 2026-10-06): the found book itself, written as loot writes one and
+     * carrying [seed], so binding it builds the Age the readout describes. From a console it is only read.
      */
     private fun runBook(context: CommandContext<CommandSourceStack>, kind: FoundBookKind, seed: Long): Int {
         val source = context.source
@@ -361,9 +364,18 @@ internal object CorpusInstruments {
             source.sendSuccess({ Component.literal("  $instability") }, false)
             for (flaw in instability.flaws) source.sendSuccess({ Component.literal("    $flaw") }, false)
         }
-        source.sendSuccess({
-            Component.literal("  write it with: /age write book$seed $seed ${pages.joinToString(" ")}")
-        }, false)
+        val player = source.player
+        if (player == null) {
+            source.sendSuccess({
+                Component.literal("  write it with: /age write book$seed $seed ${pages.joinToString(" ")}")
+            }, false)
+            return SUCCESS
+        }
+        val book = ItemStack(AgeContent.DESCRIPTIVE_BOOK)
+        FoundBook.write(book, source.server, seed, kind)
+        book.set(AgeComponents.BOOK_SEED, seed)
+        player.inventory.placeItemBackInInventory(book, Prediction.SERVER_ONLY)
+        source.sendSuccess({ Component.literal("  handed to ${player.name.string}") }, false)
         return SUCCESS
     }
 
