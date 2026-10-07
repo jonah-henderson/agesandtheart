@@ -1,1 +1,6 @@
-{ "model": { "type": "minecraft:model", "model": "minecraft:block/respawn_anchor_0" } }
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "agesandtheart:block/linking_book_receptacle"
+  }
+}

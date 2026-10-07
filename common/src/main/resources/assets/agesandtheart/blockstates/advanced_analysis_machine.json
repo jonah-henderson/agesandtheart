@@ -1,9 +1,17 @@
 {
-  "_comment": "Respawn anchors stand in until the model pass, the charge being the state: empty while broken, half once nara has woken it, full while it studies.",
+  "_comment": "The charge is the state: dark while broken, half once nara has woken it, full while it studies.",
   "variants": {
-    "awake=false,studying=false": { "model": "minecraft:block/respawn_anchor_0" },
-    "awake=false,studying=true": { "model": "minecraft:block/respawn_anchor_0" },
-    "awake=true,studying=false": { "model": "minecraft:block/respawn_anchor_2" },
-    "awake=true,studying=true": { "model": "minecraft:block/respawn_anchor_4" }
+    "awake=false,studying=false": {
+      "model": "agesandtheart:block/advanced_analysis_machine"
+    },
+    "awake=false,studying=true": {
+      "model": "agesandtheart:block/advanced_analysis_machine"
+    },
+    "awake=true,studying=false": {
+      "model": "agesandtheart:block/advanced_analysis_machine_awake"
+    },
+    "awake=true,studying=true": {
+      "model": "agesandtheart:block/advanced_analysis_machine_studying"
+    }
   }
 }

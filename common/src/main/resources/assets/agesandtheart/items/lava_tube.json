@@ -1,1 +1,6 @@
-{ "model": { "type": "minecraft:model", "model": "minecraft:block/smooth_basalt" } }
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "agesandtheart:block/lava_tube"
+  }
+}

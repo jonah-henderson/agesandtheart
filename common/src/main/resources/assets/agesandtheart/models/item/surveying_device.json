@@ -1,1 +1,3 @@
-{ "parent": "minecraft:block/respawn_anchor_0" }
+{
+  "parent": "agesandtheart:block/surveying_device"
+}

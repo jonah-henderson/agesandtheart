@@ -1,1 +1,3 @@
-{ "parent": "minecraft:block/lodestone" }
+{
+  "parent": "agesandtheart:block/analysis_machine"
+}

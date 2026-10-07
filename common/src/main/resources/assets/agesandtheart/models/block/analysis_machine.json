@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column",
+  "textures": {
+    "end": "agesandtheart:block/analysis_machine_top",
+    "side": "agesandtheart:block/analysis_machine_side"
+  }
+}

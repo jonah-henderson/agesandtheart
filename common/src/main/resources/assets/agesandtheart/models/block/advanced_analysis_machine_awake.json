@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "bottom": "agesandtheart:block/advanced_analysis_machine_bottom",
+    "side": "agesandtheart:block/advanced_analysis_machine_awake_side",
+    "top": "agesandtheart:block/advanced_analysis_machine_top_lit"
+  }
+}

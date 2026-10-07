@@ -1,1 +1,6 @@
-{ "_comment": "Iron stands in until the model pass.", "parent": "minecraft:item/generated", "textures": { "layer0": "minecraft:item/iron_leggings" } }
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "agesandtheart:item/pitchstone_leggings"
+  }
+}

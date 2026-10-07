@@ -5,7 +5,7 @@
   "given_item_modifier": [
     {
       "type": "minecraft:exploration_map",
-      "decoration": "minecraft:red_x",
+      "decoration": "agesandtheart:lost_library",
       "destination": "#agesandtheart:on_lost_library_maps",
       "search_radius": 100
     },

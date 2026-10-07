@@ -1,7 +1,10 @@
 {
-  "_comment": "Vanilla's lantern, unlit by the block's own light level, stands in for an empty unit until the asset pass.",
   "variants": {
-    "hanging=false": { "model": "minecraft:block/lantern" },
-    "hanging=true": { "model": "minecraft:block/lantern_hanging" }
+    "hanging=false": {
+      "model": "agesandtheart:block/plasma_containment_unit"
+    },
+    "hanging=true": {
+      "model": "agesandtheart:block/plasma_containment_unit_hanging"
+    }
   }
 }

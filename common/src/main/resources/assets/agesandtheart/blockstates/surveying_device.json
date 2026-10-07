@@ -1,17 +1,14 @@
 {
-  "_comment": [
-    "The respawn anchor stands in until the model pass: one cube shape lit three ways, so the stage a device",
-    "is in is legible across a clearing without a texture of our own."
-  ],
+  "_comment": "One shape in three lights, so the stage a device is in is legible across a clearing.",
   "variants": {
     "stage=idle": {
-      "model": "minecraft:block/respawn_anchor_0"
+      "model": "agesandtheart:block/surveying_device"
     },
     "stage=working": {
-      "model": "minecraft:block/respawn_anchor_2"
+      "model": "agesandtheart:block/surveying_device_working"
     },
     "stage=ready": {
-      "model": "minecraft:block/respawn_anchor_4"
+      "model": "agesandtheart:block/surveying_device_ready"
     }
   }
 }

@@ -1,7 +1,6 @@
 {
-  "_comment": "Vanilla's glow ink sac until the asset pass: the light a deep hunter carries.",
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "minecraft:item/glow_ink_sac"
+    "layer0": "agesandtheart:item/hadalfish_lure"
   }
 }

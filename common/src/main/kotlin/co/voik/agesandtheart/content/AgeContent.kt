@@ -105,6 +105,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.item.component.ItemAttributeModifiers
 import net.minecraft.world.item.MapItem
 import net.minecraft.world.item.component.MapDecorations
+import net.minecraft.world.level.saveddata.maps.MapDecorationType
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
 import co.voik.agesandtheart.page.FirstFindCondition
 import net.minecraft.world.item.equipment.ArmorType
@@ -797,7 +798,7 @@ object AgeContent {
             .component(
                 DataComponents.EQUIPPABLE,
                 Equippable.builder(EquipmentSlot.FEET)
-                    .setAsset(EquipmentAssets.LEATHER)
+                    .setAsset(ResourceKey.create(EquipmentAssets.ROOT_ID, TEMPERSTONE_CLIMBERS_ID))
                     .setEquipSound(SoundEvents.ARMOR_EQUIP_GENERIC)
                     .build(),
             ),
@@ -2209,6 +2210,13 @@ object AgeContent {
     val PRESSURE_EFFECT: Holder<MobEffect> by lazy {
         BuiltInRegistries.MOB_EFFECT.wrapAsHolder(PRESSURE_EFFECT_INSTANCE)
     }
+
+    private val LOST_LIBRARY_MARKER_ID: Identifier = "lost_library".location()
+
+    /** Shown on the map but not in an item frame, and counted, as vanilla's red X is. */
+    val mapDecorationTypes: List<Pair<Identifier, MapDecorationType>> = listOf(
+        LOST_LIBRARY_MARKER_ID to MapDecorationType(LOST_LIBRARY_MARKER_ID, false, true),
+    )
 
     val mobEffects: List<Pair<Identifier, MobEffect>> = listOf(
         PRESSURE_EFFECT_ID to PRESSURE_EFFECT_INSTANCE,

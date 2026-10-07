@@ -266,6 +266,7 @@ loot_function_type agesandtheart:fill_notebook
 loot_function_type agesandtheart:roll_page_word
 loot_function_type agesandtheart:write_found_book
 loot_pool_entry_type agesandtheart:survey_report
+map_decoration_type agesandtheart:lost_library
 menu agesandtheart:archive
 menu agesandtheart:crystal_viewer
 menu agesandtheart:drying_rack

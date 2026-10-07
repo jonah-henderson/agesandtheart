@@ -1,7 +1,6 @@
 {
-  "_comment": "Vanilla stands in until the model pass.",
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "minecraft:item/charcoal"
+    "layer0": "agesandtheart:item/ink_cake"
   }
 }

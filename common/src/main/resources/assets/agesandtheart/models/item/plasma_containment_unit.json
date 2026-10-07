@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "agesandtheart:item/plasma_containment_unit"
+  }
+}

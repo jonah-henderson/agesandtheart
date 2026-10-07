@@ -1,14 +1,14 @@
 {
-  "_comment": "Lodestone stands in until the model pass; the stage shows as the glow a respawn anchor uses, so a machine mid-run is legible across a room.",
+  "_comment": "The stage should read from across a room, so a machine mid-run is legible without opening it.",
   "variants": {
     "stage=idle": {
-      "model": "minecraft:block/lodestone"
+      "model": "agesandtheart:block/analysis_machine"
     },
     "stage=working": {
-      "model": "minecraft:block/respawn_anchor_2"
+      "model": "agesandtheart:block/analysis_machine_working"
     },
     "stage=ready": {
-      "model": "minecraft:block/respawn_anchor_4"
+      "model": "agesandtheart:block/analysis_machine_ready"
     }
   }
 }
