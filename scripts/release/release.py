@@ -404,9 +404,11 @@ class Release:
             fail(f"{' '.join(tasks)} failed; the whole log is {log}")
 
     def remove_worktrees(self) -> None:
+        """Each worktree this release made, and anything a build wrote back into one after it was removed."""
         for worktree, repository in ((self.codebase, ROOT), (self.ephemeris_worktree, EPHEMERIS), (self.work / "pack", ROOT)):
-            if worktree.exists():
-                git("worktree", "remove", "--force", str(worktree), cwd=repository)
+            git("worktree", "remove", "--force", str(worktree), cwd=repository, check=False)
+            shutil.rmtree(worktree, ignore_errors=True)
+            git("worktree", "prune", cwd=repository)
 
     def remove_tag(self) -> None:
         git("tag", "-d", self.tag, check=False)
