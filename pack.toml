@@ -1,0 +1,13 @@
+name = "Ages and the Art"
+author = "Jonah Henderson"
+version = "0.0.0"
+pack-format = "packwiz:1.1.0"
+
+[index]
+file = "index.toml"
+hash-format = "sha256"
+hash = "a0d7328f085668257871ab5362d1cffe7f2b3bf3ac7671a4d034ef9bb837b686"
+
+[versions]
+fabric = "0.19.5"
+minecraft = "26.3"
