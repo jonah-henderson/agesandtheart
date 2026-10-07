@@ -8,7 +8,7 @@ import co.voik.ephemeris.Rgba
  * **Named rather than numeric, and this is the one place §3.2's rule is unarguable**: a hex triple is the
  * arcane internal that section exists to keep away from a writer, where "green" is a thing a person says
  * about a sky. At least the rime crystal's eight (Jonah, 2026-10-06), so every colour a crystal grows in is
- * one a writer can name, plus blue, purple and the three that are not on the spectrum.
+ * one a writer can name, plus indigo, purple and the three that are not on the spectrum.
  *
  * The values lean **light** on purpose. These are painted onto sky, fog and cloud, which are lit rather
  * than surfaced, so a saturated primary reads as a colour filter over the world and a lighter one reads as

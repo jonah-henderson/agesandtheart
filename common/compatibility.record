@@ -10,6 +10,7 @@ block agesandtheart:arc_crystal_block
 block agesandtheart:archive
 block agesandtheart:astrite_block
 block agesandtheart:astrite_shard
+block agesandtheart:blue_rime_crystal
 block agesandtheart:coconut
 block agesandtheart:collapsing_fissure
 block agesandtheart:compounded_stone
@@ -31,7 +32,6 @@ block agesandtheart:grazed_torchflower
 block agesandtheart:green_rime_crystal
 block agesandtheart:grinder
 block agesandtheart:hanging_coconut
-block agesandtheart:indigo_rime_crystal
 block agesandtheart:ink
 block agesandtheart:lava_tube
 block agesandtheart:linking_book_receptacle
@@ -147,6 +147,7 @@ item agesandtheart:arc_crystal_block
 item agesandtheart:archive
 item agesandtheart:astrite_block
 item agesandtheart:astrite_shard
+item agesandtheart:blue_rime_crystal
 item agesandtheart:carapace_powder
 item agesandtheart:coconut
 item agesandtheart:coconut_half
@@ -177,7 +178,6 @@ item agesandtheart:grammar_guide
 item agesandtheart:green_rime_crystal
 item agesandtheart:grinder
 item agesandtheart:hadalfish_lure
-item agesandtheart:indigo_rime_crystal
 item agesandtheart:ink_bottle
 item agesandtheart:ink_bucket
 item agesandtheart:ink_cake

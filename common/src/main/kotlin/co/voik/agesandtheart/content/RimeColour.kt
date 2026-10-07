@@ -21,7 +21,7 @@ enum class RimeColour(val key: String, val tint: Int, val signal: Int) {
     YELLOW("yellow", 0xFFE01C, 3),
     GREEN("green", 0x2CE04E, 4),
     CYAN("cyan", 0x22D4FF, 5),
-    INDIGO("indigo", 0x4A3CFF, 6),
+    BLUE("blue", 0x4A3CFF, 6),
     MAGENTA("magenta", 0xF52CE0, 7),
     WHITE("white", 0xF2F7FF, 8),
     ;

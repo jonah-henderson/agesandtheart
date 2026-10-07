@@ -4,9 +4,9 @@
     {
       "rolls": 1.0,
       "bonus_rolls": 0.0,
-      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:indigo_rime_crystal" }],
+      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:blue_rime_crystal" }],
       "condition": { "type": "minecraft:survives_explosion" }
     }
   ],
-  "random_sequence": "agesandtheart:blocks/indigo_rime_crystal"
+  "random_sequence": "agesandtheart:blocks/blue_rime_crystal"
 }
