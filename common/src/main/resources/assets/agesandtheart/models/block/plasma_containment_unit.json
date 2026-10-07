@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:block/template_lantern",
   "textures": {
-    "lantern": "agesandtheart:block/plasma_containment_unit"
+    "lantern": "minecraft:block/lantern"
   }
 }

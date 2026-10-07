@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:item/lost_library_map"
+    "model": "minecraft:item/filled_map"
   }
 }

@@ -55,3 +55,8 @@ Thumbs.db
 /dist/
 /.release/
 __pycache__/
+
+# Image editors' working files live outside the repository; only exports are committed
+*.xcf
+*.pxo
+*.bbmodel

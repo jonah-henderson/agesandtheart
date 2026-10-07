@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:block/cube_all",
   "textures": {
-    "all": "agesandtheart:block/lava_tube"
+    "all": "minecraft:block/smooth_basalt"
   }
 }

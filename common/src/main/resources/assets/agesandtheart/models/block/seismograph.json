@@ -1,7 +1,7 @@
 {
   "parent": "minecraft:block/cube_column",
   "textures": {
-    "end": "agesandtheart:block/seismograph_top",
-    "side": "agesandtheart:block/seismograph_side"
+    "end": "minecraft:block/lodestone_top",
+    "side": "minecraft:block/lodestone_side"
   }
 }

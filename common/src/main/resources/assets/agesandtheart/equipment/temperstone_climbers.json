@@ -2,7 +2,13 @@
   "layers": {
     "humanoid": [
       {
-        "texture": "agesandtheart:temperstone_climbers"
+        "dyeable": {
+          "color_when_undyed": -6265536
+        },
+        "texture": "minecraft:leather"
+      },
+      {
+        "texture": "minecraft:leather_overlay"
       }
     ]
   }

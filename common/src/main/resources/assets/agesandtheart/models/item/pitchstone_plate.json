@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "agesandtheart:item/pitchstone_plate"
+    "layer0": "minecraft:item/iron_nugget"
   }
 }

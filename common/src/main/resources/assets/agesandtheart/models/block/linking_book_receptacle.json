@@ -1,8 +1,8 @@
 {
   "parent": "minecraft:block/cube_bottom_top",
   "textures": {
-    "bottom": "agesandtheart:block/linking_book_receptacle_bottom",
-    "side": "agesandtheart:block/linking_book_receptacle_side",
-    "top": "agesandtheart:block/linking_book_receptacle_top"
+    "bottom": "minecraft:block/crying_obsidian",
+    "side": "minecraft:block/respawn_anchor_side0",
+    "top": "minecraft:block/respawn_anchor_top_off"
   }
 }

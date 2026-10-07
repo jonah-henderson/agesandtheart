@@ -2215,7 +2215,7 @@ object AgeContent {
 
     /** Shown on the map but not in an item frame, and counted, as vanilla's red X is. */
     val mapDecorationTypes: List<Pair<Identifier, MapDecorationType>> = listOf(
-        LOST_LIBRARY_MARKER_ID to MapDecorationType(LOST_LIBRARY_MARKER_ID, false, true),
+        LOST_LIBRARY_MARKER_ID to MapDecorationType(Identifier.withDefaultNamespace("red_x"), false, true),
     )
 
     val mobEffects: List<Pair<Identifier, MobEffect>> = listOf(

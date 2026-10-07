@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:item/notebook"
+    "model": "minecraft:item/writable_book"
   }
 }

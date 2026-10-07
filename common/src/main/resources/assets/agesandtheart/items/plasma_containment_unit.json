@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:item/plasma_containment_unit"
+    "model": "minecraft:item/lantern"
   }
 }

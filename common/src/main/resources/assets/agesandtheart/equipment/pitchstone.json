@@ -2,12 +2,12 @@
   "layers": {
     "humanoid": [
       {
-        "texture": "agesandtheart:pitchstone"
+        "texture": "minecraft:iron"
       }
     ],
     "humanoid_leggings": [
       {
-        "texture": "agesandtheart:pitchstone"
+        "texture": "minecraft:iron"
       }
     ]
   }

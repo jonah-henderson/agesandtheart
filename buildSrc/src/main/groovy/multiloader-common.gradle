@@ -226,7 +226,7 @@ processResources {
     inputs.properties(expandProps)
 
     // Image editors' working files, kept beside the textures they export.
-    exclude('**/*.xcf')
+    exclude('**/*.xcf', '**/*.pxo', '**/*.bbmodel')
 }
 
 publishing {

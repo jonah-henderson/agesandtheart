@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:block/temperstone"
+    "model": "minecraft:block/smooth_basalt"
   }
 }
