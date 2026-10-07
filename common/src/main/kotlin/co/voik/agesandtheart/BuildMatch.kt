@@ -64,14 +64,14 @@ object BuildMatch {
             Comparison.PLAYS_TOGETHER -> return null
             Comparison.CLIENT_IS_BEHIND ->
                 "Your copy of Ages and the Art is older than the server's.\n\n" +
-                    "Close Minecraft and press Play again in Prism; it updates itself as it starts."
+                    "Import the newest Prism instance you were sent, and play from that one."
             Comparison.CLIENT_IS_AHEAD ->
                 "The server is running an older Ages and the Art than yours.\n\n" +
                     "It hasn't been updated yet, so let whoever runs it know."
             Comparison.UNRELATED ->
                 "Your copy of Ages and the Art doesn't match the server's.\n\n" +
-                    "Close Minecraft and press Play again in Prism; it updates itself as it starts.\n" +
-                    "If this keeps happening, let whoever runs the server know."
+                    "Play from the newest Prism instance you were sent.\n" +
+                    "If you already are, let whoever runs the server know."
         }
         return Component.literal("$explanation\n\n")
             .append(Component.literal("Yours: $client\nServer: $server").withStyle(ChatFormatting.GRAY))

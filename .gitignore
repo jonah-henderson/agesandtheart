@@ -50,3 +50,8 @@ Thumbs.db
 
 # The word forge remembers what a server carried, and `./gradlew clean` must not throw that away.
 /.authoring/
+
+# Release outputs, and the beta settings a release reads (scripts/release/beta.example.properties)
+/dist/
+/.release/
+__pycache__/
