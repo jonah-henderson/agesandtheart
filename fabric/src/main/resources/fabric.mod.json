@@ -28,6 +28,7 @@
     "agesandtheart.mixins.json",
     "agesandtheart-fabric.mixins.json"
   ],
+  "accessWidener": "${mod_id}.accesswidener",
   "depends": {
     "fabricloader": ">=${fabric_loader_version}",
     "fabric-api": "*",
