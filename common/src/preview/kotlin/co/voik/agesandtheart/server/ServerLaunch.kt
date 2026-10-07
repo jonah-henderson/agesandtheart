@@ -49,6 +49,8 @@ object ServerLaunch {
         // Nothing here needs a world to be interesting, and generating one costs the whole startup.
         "sync-chunk-writes" to "false",
         "max-tick-time" to "-1",
+        // Nobody ever joins, so a server that pauses when empty stops generating forced chunks a minute in.
+        "pause-when-empty-seconds" to "0",
     )
 
     /** A port nobody is on. Racy in principle; in practice this is one process on a developer's machine. */
