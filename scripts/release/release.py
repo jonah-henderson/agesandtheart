@@ -19,7 +19,9 @@ import re
 import shutil
 import subprocess
 import sys
+import socket
 import tarfile
+import threading
 import tomllib
 import urllib.request
 import zipfile
@@ -34,9 +36,11 @@ SETTINGS_EXAMPLE = Path(__file__).resolve().parent / "beta.example.properties"
 TESTER_GUIDE = Path(__file__).resolve().parent / "TESTERS.md"
 CACHE = ROOT / "build" / "release-cache"
 SERVER_RUN_FILES = ["eula.txt", "server.properties"]
+SMOKE_SERVER = CACHE / "smoke-server"
+SMOKE_SECONDS = 300
 PACK_BRANCH = "pack"
 
-STEPS = ["tag", "worktrees", "checks", "build", "pack", "bundles", "publish"]
+STEPS = ["tag", "worktrees", "checks", "build", "pack", "bundles", "smoke", "publish"]
 
 # Which pack entry carries each library the catalog pins, and how to read its version off the jar's name.
 LIBRARY_PINS = [
@@ -292,6 +296,55 @@ class Release:
         (self.dist / "CHANGELOG.md").write_text(self.changelog())
         self.state["bundles"] = [str(path) for path in made]
 
+    def boot_the_server_bundle(self) -> None:
+        """
+        Starts the server bundle as shipped, outside any dev environment, and writes an Age in it. The dev
+        game is widened and transformed by the build, so this is the only step that sees the jars as a
+        player's game will. The folder persists so the vanilla server is downloaded once.
+        """
+        say("booting the server bundle (log: build/release-cache/smoke-server/logs/latest.log)")
+        for transient in ("mods", "world", "logs", "crash-reports"):
+            shutil.rmtree(SMOKE_SERVER / transient, ignore_errors=True)
+        SMOKE_SERVER.mkdir(parents=True, exist_ok=True)
+        server_zip = next(Path(path) for path in self.state["bundles"] if path.endswith("-server.zip"))
+        with zipfile.ZipFile(server_zip) as archive:
+            archive.extractall(SMOKE_SERVER)
+        shutil.copy2(ROOT / "fabric/runs/server/eula.txt", SMOKE_SERVER / "eula.txt")
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            port = probe.getsockname()[1]
+        (SMOKE_SERVER / "server.properties").write_text(
+            f"server-port={port}\nonline-mode=false\nenable-rcon=false\npause-when-empty-seconds=0\n"
+        )
+        java = Path(java_environment().get("JAVA_HOME", "")) / "bin" / "java"
+        server = subprocess.Popen(
+            [str(java) if java.exists() else "java", "-Xmx3G", "-jar", "fabric-server-launch.jar", "nogui"],
+            cwd=SMOKE_SERVER, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        )
+        # Ends the read below by closing the server's output, should it go quiet.
+        watchdog = threading.Timer(SMOKE_SECONDS, server.kill)
+        watchdog.start()
+        try:
+            self.await_line(server, "Done (", "the server never finished starting")
+            server.stdin.write("age write smoke 1 age gentle landmass\n")
+            server.stdin.flush()
+            self.await_line(server, "Created Age agesandtheart:smoke", "the server could not write an Age")
+            server.stdin.write("stop\n")
+            server.stdin.flush()
+            server.wait(timeout=60)
+        finally:
+            watchdog.cancel()
+            if server.poll() is None:
+                server.kill()
+
+    def await_line(self, server: subprocess.Popen, wanted: str, failure: str) -> None:
+        for line in server.stdout:
+            if wanted in line:
+                return
+            if "Exception" in line or "/ERROR]" in line:
+                fail(f"{failure}: {line.strip()} (see {SMOKE_SERVER / 'logs/latest.log'})")
+        fail(f"{failure} (see {SMOKE_SERVER / 'logs/latest.log'})")
+
     def lwjgl(self) -> str:
         """The LWJGL Prism pairs with this Minecraft, which an instance names beside it."""
         url = f"https://meta.prismlauncher.org/v1/net.minecraft/{self.minecraft}.json"
@@ -366,6 +419,7 @@ class Release:
             "build": self.build_jars,
             "pack": self.assemble_pack,
             "bundles": self.make_bundles,
+            "smoke": self.boot_the_server_bundle,
             "publish": self.confirm_and_publish,
         }
         try:
