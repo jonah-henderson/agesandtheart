@@ -352,10 +352,15 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Thirty-six Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Thirty-seven Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
+- **`LifelessLevelMixin`** — an Age where nothing lives makes nothing living (`generation/Lifeless`). It
+  targets both `ServerLevel` and `WorldGenRegion` at `addFreshEntity`, the one method every *new* entity
+  passes through and an arriving one does not: Fabric's load event fires after the fact and for teleports
+  too, NeoForge's cancels but cannot tell a teleport, and neither sees what a structure places in a chunk
+  being generated.
 - **`ServerLevelMixin`** — local difficulty near a wound (§5.1). No event exists on either loader: difficulty is computed on demand and returned by value, so this one method is the only place it exists.
 - **`LightningBoltMixin`** — a bolt landing in a tempest. The entity-join event would fire re-entrantly inside `addFreshEntity` and cannot see the private `visualOnly` flag that marks a trap's harmless bolt.
 - **`EnderDragonMixin`** and **`DragonHoldingPatternMixin`**, with **`DragonPhaseAccessor`** serving the

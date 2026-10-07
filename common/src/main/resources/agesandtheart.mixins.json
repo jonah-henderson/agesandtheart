@@ -20,6 +20,7 @@
     "FlowingFluidMixin",
     "LecternBlockEntityMixin",
     "LecternBlockMixin",
+    "LifelessLevelMixin",
     "LightningBoltMixin",
     "LivingEntityMixin",
     "MaceItemMixin",

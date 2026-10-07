@@ -177,6 +177,8 @@ class AgeChunkGenerator(
      * and this is code, rebuilt from the Age's claims on every open.
      */
     private val lives: Spawns.Living? = null,
+    /** Whether no new living thing may be made in this Age by anything at all — see [Lifeless]. */
+    val nothingLives: Boolean = false,
     /**
      * What this Age's instability bought (design §5.0) — **one object, because the four figures in it
      * change together or not at all**, and a generator that took them loose could be handed half an update.

@@ -48,6 +48,16 @@ object Spawns {
     )
 
     /**
+     * Whether the whole Age says nothing lives in it, `lives=nothing` unconfined: an Age where no new living
+     * thing may be made by anything at all (`generation/Lifeless`). Nothing confined to a biome is only
+     * that biome's spawn list.
+     */
+    fun nothingLives(options: Options): Boolean = options.claimsOn(LIVES).any { claim ->
+        val isNothing = claim.value == Pool.NOTHING && claim.polarity == Polarity.ASSERTED
+        isNothing && claim.confinedTo == null
+    }
+
+    /**
      * This Age's answer for one biome's weighted list, or the list itself where nothing was said.
      *
      * Takes the list vanilla resolved rather than the biome's own, so a structure that overrides spawning

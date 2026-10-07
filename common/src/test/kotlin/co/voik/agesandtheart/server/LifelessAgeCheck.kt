@@ -36,33 +36,27 @@ class LifelessAgeCheck : FunSpec({
         }
     }
 
-    /** Living things in [age], by the count `tag` reports back — a count that changes nothing. */
+    /**
+     * Living things in [age], by the count `tag` reports back — a count that changes nothing.
+     *
+     * **In [age] only**: `@e` reaches every dimension unless it is given a distance. And **living** is what
+     * has health and is not an item or an orb, which carry a health of their own: gravel a chunk was made
+     * with falls as an entity, and leaf litter drops.
+     *
+     * **The spawner is left on.** The runtime one only works near a player, and none is ever on this server;
+     * turning it off turns off the chunk-generation pass too, which is the thing being measured.
+     */
     fun creaturesIn(age: String): Int {
-        val said = inThe(age, "tag @e[type=!minecraft:player,type=!minecraft:item] add counted")
+        val livingHere = "distance=0..,type=!minecraft:player,type=!minecraft:item,type=!minecraft:experience_orb"
+        inThe(age, "execute as @e[$livingHere] if data entity @s Health run tag @s add alive")
+        val said = inThe(age, "tag @e[distance=0..,tag=alive] add counted")
         return COUNT.find(said)?.groupValues?.get(1)?.toIntOrNull() ?: 0
     }
 
-    /**
-     * **The runtime spawner off, or it answers for everything.** It fills a loaded chunk in seconds, so a
-     * count taken with it running measures `getMobsAt` — which was never the broken path — and says
-     * nothing at all about what the chunk was made with.
-     *
-     * **That was said in a comment and done nowhere**, which is where this check's flakiness came from: it
-     * forceloads and then polls for up to a minute, so on a loaded machine the chunks tick long enough for
-     * the spawner to fill BOTH Ages and the difference this exists to measure is swamped. Two runs of four
-     * failed, at 287 against 274 and 330 against 326 — two worlds equally full rather than one empty.
-     *
-     * Put back in `afterSpec` rather than at the end of the test, because the server is shared with every
-     * other spec and a failing check must not leave the world without its mobs.
-     *
-     * **And the reply is read**, because the first fix was a no-op too: 26.1 renamed `doMobSpawning` to
-     * `spawn_mobs`, the old name is refused, and nothing asked — so the flake came back at 265 against 255.
-     */
-    beforeSpec {
-        val said = server.run("gamerule spawn_mobs false")
-        check(said.contains("now set")) { "the mob spawner was not turned off, so this measures it: $said" }
-    }
-    afterSpec { server.run("gamerule spawn_mobs true") }
+    /** What the counted entities in [age] are, and where: what a failure has to say to be diagnosable. */
+    fun kindsOf(age: String): String =
+        inThe(age, "execute as @e[distance=0..,tag=counted] run data get entity @s id") + " at " +
+            inThe(age, "execute as @e[distance=0..,tag=counted,limit=8] run data get entity @s Pos")
 
     test("an Age nothing lives in is generated with nothing living in it") {
         val written = mapOf(ALIVE to SAYS_NOTHING_OF_LIFE, LIFELESS to "deserted age")
@@ -112,8 +106,28 @@ class LifelessAgeCheck : FunSpec({
         }
         check(lifeless == 0) {
             "'deserted' left $lifeless creatures where its chunks were made, beside $living in the same " +
-                "seed that said nothing of life"
+                "seed that said nothing of life: ${kindsOf(LIFELESS)}"
         }
+    }
+
+    // **Every path, not only the spawn lists**: bees out of a generated nest were what this check caught.
+    // A summon is the plainest new creature there is, and goes in through the same door as all of them.
+    // The pig is looked for rather than the reply read: `summon` says "Summoned" whatever the level answered.
+    test("nothing new lives in an Age where nothing lives, however it is made") {
+        fun hasAPig(age: String): Boolean {
+            inThe(age, "forceload add $FAR $FAR")
+            val loaded = (1..TRIES).any {
+                Thread.sleep(BETWEEN_TRIES)
+                inThe(age, "execute if loaded $FAR $PROBE_HEIGHT $FAR").startsWith("Test passed")
+            }
+            check(loaded) { "the chunk a pig is summoned into never loaded in '$age'" }
+            inThe(age, "summon minecraft:pig $FAR $PROBE_HEIGHT $FAR")
+            val found = inThe(age, "execute if entity @e[distance=0..,type=minecraft:pig]").startsWith("Test passed")
+            inThe(age, "forceload remove all")
+            return found
+        }
+        check(hasAPig(ALIVE)) { "the control has no pig either, so this shows nothing" }
+        check(!hasAPig(LIFELESS)) { "a pig was summoned into 'deserted'" }
     }
 })
 

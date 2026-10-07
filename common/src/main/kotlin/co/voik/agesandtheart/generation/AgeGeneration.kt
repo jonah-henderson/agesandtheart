@@ -335,6 +335,7 @@ object AgeGeneration {
                 Vocabulary.of(server).spawning,
                 WhereThingsGrow.creaturesListed(server.registryAccess()),
             ),
+            nothingLives = Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0)),
             // What the Age's instability bought. Derived here rather than restated: these were three lines
             // recomputing `Consequence.of`'s own arithmetic, which is how a copy comes to drift from it.
             bought = Consequence.of(server, recipe),
