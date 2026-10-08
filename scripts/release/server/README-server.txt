@@ -3,7 +3,7 @@ Ages and the Art @VERSION@ - the beta server
 
 FIRST TIME
 1. Install Java 25 (Temurin: https://adoptium.net), and check "java -version" says 25.
-2. Unzip this into an empty folder and run start.bat. The first start writes server.properties, asks you
+2. Unzip this into an empty folder and run start.bat. The first start installs the mods, writes server.properties, asks you
    to agree to Minecraft's EULA, and downloads the Minecraft server itself. start.bat runs the server
    until it stops and does not start it again: to start it, run start.bat; to stop it, type "stop".
 3. In the server window, let the testers in by name:  whitelist add <name>
@@ -15,10 +15,12 @@ FIRST TIME
    kept.
 
 UPDATING TO A NEW RELEASE
-1. Type "stop" in the server window.
-2. Delete the mods folder.
-3. Unzip the new release over this folder, replacing files when asked. Your world, server.properties,
-   whitelist and backups are not in the zip, so they are left alone.
-4. Run start.bat.
+Type "stop" in the server window and run start.bat again. It fetches the new release's mods from the pack
+before it starts, and removes the old ones. Nothing needs unzipping unless this zip itself changes (a new
+start.bat, say), and then you are told to.
 
-Players on an older release are turned away with a message telling them to import the newest instance.
+The first start and every update need the internet. If the pack cannot be reached, start.bat asks whether to
+start with the mods already here.
+
+Players on an older release are turned away with a message telling them to restart their game, which
+updates it.

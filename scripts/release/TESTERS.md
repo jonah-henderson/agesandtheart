@@ -16,23 +16,26 @@ of mods apart from your normal Minecraft.
 The first time Prism opens, it asks a few setup questions; the defaults are fine. If it offers to
 download Java for you, say yes.
 
+You'll only install once. The beta updates itself every time you press Launch.
+
 ## Playing
 
 1. In Prism, choose **Accounts** (top right), then **Add Microsoft**, and sign in.
-2. Select **Ages and the Art @VERSION@**, and press **Launch**.
+2. Select **Ages and the Art**, and press **Launch**. A small window shows the mods being installed or
+   updated first; let it finish.
 
 Minecraft starts and joins the beta server by itself (`@ADDRESS@`). The first launch downloads Minecraft,
-so it takes a few minutes.
+so it takes a few minutes, and it needs the internet.
 
 **The server may be reset during the beta.** Don't build anything you couldn't bear to lose.
 
 ## Updating
 
-When there's a new release, you'll be sent a new zip. Import it the same way, and play from the new
-instance. Then you can delete the old one (right-click it in Prism, **Delete**).
+There's nothing to do. When there's a new release, pressing **Launch** updates your mods first, then
+starts the game.
 
-If Minecraft says **"Your copy of Ages and the Art is older than the server's"**, you're playing from an
-old instance. Import the newest zip you were sent, and launch that one instead.
+If Minecraft says **"Your copy of Ages and the Art is older than the server's"**, close Minecraft and
+press **Launch** again. If it still says so, tell us.
 
 ## When something goes wrong
 

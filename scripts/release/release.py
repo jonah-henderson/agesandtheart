@@ -12,6 +12,7 @@ worktrees under build/release/<version>/ for a look.
 """
 
 import argparse
+import hashlib
 import io
 import json
 import os
@@ -23,6 +24,8 @@ import socket
 import tarfile
 import threading
 import tomllib
+import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -39,6 +42,11 @@ SERVER_RUN_FILES = ["eula.txt", "server.properties"]
 SMOKE_SERVER = CACHE / "smoke-server"
 SMOKE_SECONDS = 300
 PACK_BRANCH = "pack"
+PACK_RAW = "https://raw.githubusercontent.com/{slug}/{branch}/pack.toml"
+ASSET_URL = "https://github.com/{slug}/releases/download/{tag}/{name}"
+
+# The pack's entry for each of the two jars, by the prefix the jar's name starts with.
+JAR_ENTRIES = {"agesandtheart": "Ages and the Art", "ephemeris": "Ephemeris"}
 
 STEPS = ["tag", "worktrees", "checks", "build", "pack", "bundles", "smoke", "publish"]
 
@@ -63,6 +71,35 @@ def git(*arguments: str, cwd: Path = ROOT, check: bool = True) -> str:
     if check and result.returncode != 0:
         fail(f"git {' '.join(arguments)}: {result.stderr.strip()}")
     return result.stdout.strip()
+
+
+def repository_slug(repository: Path) -> str:
+    """`owner/name` of a repository's origin, from either spelling of a GitHub address."""
+    address = git("remote", "get-url", "origin", cwd=repository)
+    match = re.search(r"github\.com[:/]([^/]+/[^/]+?)(\.git)?$", address)
+    if not match:
+        fail(f"origin of {repository.name} is {address}, which is not a GitHub repository")
+    return match.group(1)
+
+
+def sha512_of(path: Path) -> str:
+    return hashlib.sha512(path.read_bytes()).hexdigest()
+
+
+def asset_name(jar_name: str) -> str:
+    """A release asset's name, with the `+` a build version carries turned into something no host rewrites."""
+    return jar_name.replace("+", "-")
+
+
+def exists_online(url: str) -> bool:
+    request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "agesandtheart-release"})
+    try:
+        with urllib.request.urlopen(request, timeout=30):
+            return True
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return False
+        raise
 
 
 def number_parts(version: str) -> tuple[int, ...]:
@@ -106,6 +143,9 @@ class Release:
         self.dist = ROOT / "dist" / name
         self.state_file = self.work / "state.json"
         self.state: dict = {"done": []}
+        self.slug = repository_slug(ROOT)
+        self.ephemeris_slug = repository_slug(EPHEMERIS)
+        self.pack_url = PACK_RAW.format(slug=self.slug, branch=PACK_BRANCH)
 
     # --- state, so a failed release can be resumed rather than tagged again
 
@@ -132,6 +172,21 @@ class Release:
     @property
     def ephemeris_worktree(self) -> Path:
         return self.work / "ephemeris"
+
+    @property
+    def uses_published_ephemeris(self) -> bool:
+        """A real, online release ships the Ephemeris jar its own release published, not a rebuild of it."""
+        return not self.rehearsal and not self.offline
+
+    @property
+    def ephemeris_jar_name(self) -> str:
+        return f"ephemeris-fabric-{self.minecraft}-{self.ephemeris_version}+{self.minecraft}.jar"
+
+    def jar_url(self, jar_name: str) -> str:
+        """Where a jar of ours or Ephemeris's is, or will be, published."""
+        is_ours = jar_name.startswith("agesandtheart")
+        slug, tag = (self.slug, self.tag) if is_ours else (self.ephemeris_slug, self.ephemeris_tag)
+        return ASSET_URL.format(slug=slug, tag=tag, name=urllib.parse.quote(asset_name(jar_name)))
 
     # --- step 0: refuse what cannot be released, before anything is made
 
@@ -188,6 +243,9 @@ class Release:
         else:
             fail(f"Ephemeris {self.ephemeris_version} is not released: run scripts/release.sh "
                  f"{self.ephemeris_version} in {EPHEMERIS}, or move the catalog's 'ephemeris'")
+        if self.uses_published_ephemeris and not exists_online(self.jar_url(self.ephemeris_jar_name)):
+            fail(f"Ephemeris {self.ephemeris_version} is tagged but has no jar published at "
+                 f"{self.jar_url(self.ephemeris_jar_name)}: finish its release first")
 
     def check_pack(self) -> None:
         if not git("rev-parse", "-q", "--verify", f"refs/heads/{PACK_BRANCH}", check=False):
@@ -234,24 +292,29 @@ class Release:
 
     def build_jars(self) -> None:
         self.gradle(self.codebase, "build", ":fabric:build")
-        self.gradle(self.ephemeris_worktree, "build-ephemeris", ":fabric:assemble")
         ours = self.codebase / f"fabric/build/libs/agesandtheart-fabric-{self.minecraft}-{self.build}.jar"
         ephemeris_build = f"{self.ephemeris_version}+{self.minecraft}"
-        ephemeris = self.ephemeris_worktree / f"fabric/build/libs/ephemeris-fabric-{self.minecraft}-{ephemeris_build}.jar"
         self.expect_jar(ours, self.build)
-        if not self.rehearsal:
+        jars = self.dist / "jars"
+        jars.mkdir(parents=True, exist_ok=True)
+        if self.uses_published_ephemeris:
+            ephemeris = bundles.fetched(self.jar_url(self.ephemeris_jar_name), jars, self.ephemeris_jar_name)
             self.expect_jar(ephemeris, ephemeris_build)
-        elif not ephemeris.exists():
-            built = (self.ephemeris_worktree / "fabric/build/libs").glob(f"ephemeris-fabric-{self.minecraft}-*.jar")
-            ephemeris = next(jar for jar in built if not jar.stem.endswith(("-sources", "-javadoc")))
+        else:
+            self.gradle(self.ephemeris_worktree, "build-ephemeris", ":fabric:assemble")
+            ephemeris = self.ephemeris_worktree / f"fabric/build/libs/{self.ephemeris_jar_name}"
+            if not ephemeris.exists() and self.rehearsal:
+                built = (self.ephemeris_worktree / "fabric/build/libs").glob(f"ephemeris-fabric-{self.minecraft}-*.jar")
+                ephemeris = next(jar for jar in built if not jar.stem.endswith(("-sources", "-javadoc")))
+            elif not self.rehearsal:
+                self.expect_jar(ephemeris, ephemeris_build)
         with zipfile.ZipFile(ours) as jar:
             build_properties = jar.read("agesandtheart-build.properties").decode()
         if f"build={self.build}" not in build_properties.splitlines():
             fail(f"the jar's build properties do not say build={self.build}")
-        jars = self.dist / "jars"
-        jars.mkdir(parents=True, exist_ok=True)
         for jar in (ours, ephemeris):
-            shutil.copy2(jar, jars / jar.name)
+            if jar.parent != jars:
+                shutil.copy2(jar, jars / jar.name)
 
     def expect_jar(self, jar: Path, version: str) -> None:
         if not jar.exists():
@@ -262,7 +325,7 @@ class Release:
             fail(f"{jar.name} says {declared}, not {version}")
 
     def assemble_pack(self) -> None:
-        """The pack branch as it stands, with both jars in it as files and this release's version."""
+        """The pack branch as it stands, with an entry for each jar naming where its release asset is, and this release's version."""
         pack = self.dist / "pack"
         if pack.exists():
             shutil.rmtree(pack)
@@ -270,8 +333,19 @@ class Release:
         archive = subprocess.run(["git", "archive", PACK_BRANCH], cwd=ROOT, capture_output=True, check=True).stdout
         with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
             tar.extractall(pack, filter="data")
-        for jar in (self.dist / "jars").iterdir():
-            shutil.copy2(jar, pack / "mods" / jar.name)
+        for jar in sorted((self.dist / "jars").iterdir()):
+            prefix = jar.name.split("-", 1)[0]
+            (pack / "mods" / f"{prefix}.pw.toml").write_text("\n".join([
+                f'name = "{JAR_ENTRIES[prefix]}"',
+                f'filename = "{jar.name}"',
+                'side = "both"',
+                "",
+                "[download]",
+                f'url = "{self.jar_url(jar.name)}"',
+                'hash-format = "sha512"',
+                f'hash = "{sha512_of(jar)}"',
+                "",
+            ]))
         self.set_pack_version(pack)
 
     def set_pack_version(self, pack: Path) -> None:
@@ -281,12 +355,13 @@ class Release:
 
     def make_bundles(self) -> None:
         settings = read_properties(SETTINGS_FILE)
-        release = bundles.Release(self.version, self.minecraft, self.catalog["fabricLoader"], self.lwjgl())
-        mods = bundles.mods_of(self.dist / "pack", CACHE)
+        release = bundles.Release(self.version, self.minecraft, self.catalog["fabricLoader"], self.lwjgl(), self.pack_url)
+        bundles.mods_of(self.dist / "pack", CACHE, self.dist / "jars")
+        bootstrap = bundles.bootstrap_jar(settings, CACHE)
         made = [
-            bundles.prism_instance(self.dist, release, settings, mods),
-            bundles.windows_portable(self.dist, release, settings, mods, CACHE),
-            bundles.server(self.dist, release, settings, mods, CACHE),
+            bundles.prism_instance(self.dist, release, settings, bootstrap),
+            bundles.windows_portable(self.dist, release, settings, bootstrap, CACHE),
+            bundles.server(self.dist, release, settings, bootstrap, CACHE),
         ]
         guide = TESTER_GUIDE.read_text()
         for placeholder, value in (("@VERSION@", self.version), ("@ADDRESS@", settings["server.address"]),
@@ -298,9 +373,10 @@ class Release:
 
     def boot_the_server_bundle(self) -> None:
         """
-        Starts the server bundle as shipped, outside any dev environment, and writes an Age in it. The dev
-        game is widened and transformed by the build, so this is the only step that sees the jars as a
-        player's game will. The folder persists so the vanilla server is downloaded once.
+        Starts the server bundle outside any dev environment, with the mods its pack names put in by hand, and
+        writes an Age in it. The dev game is widened and transformed by the build, so this is the only step
+        that sees the jars as a player's game will. It does not run the bootstrap, which is a rehearsal's walk.
+        The folder persists so the vanilla server is downloaded once.
         """
         say("booting the server bundle (log: build/release-cache/smoke-server/logs/latest.log)")
         for transient in ("mods", "world", "logs", "crash-reports"):
@@ -309,6 +385,10 @@ class Release:
         server_zip = next(Path(path) for path in self.state["bundles"] if path.endswith("-server.zip"))
         with zipfile.ZipFile(server_zip) as archive:
             archive.extractall(SMOKE_SERVER)
+        (SMOKE_SERVER / "mods").mkdir()
+        for mod in bundles.mods_of(self.dist / "pack", CACHE, self.dist / "jars"):
+            if mod.is_for_servers:
+                shutil.copy2(mod.path, SMOKE_SERVER / "mods" / mod.filename)
         shutil.copy2(ROOT / "fabric/runs/server/eula.txt", SMOKE_SERVER / "eula.txt")
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
@@ -371,26 +451,59 @@ class Release:
         print(f"  out        {self.dist}")
         for bundle in self.state["bundles"]:
             print(f"             {Path(bundle).name}")
+        print(f"  pack       {self.pack_url}")
         print()
         if self.rehearsal:
             return
         if self.offline:
-            say(f"tagged {self.tag} locally (offline); push it and '{PACK_BRANCH}' when origin is back")
+            say(f"tagged {self.tag} locally (offline); push it, publish its release and push '{PACK_BRANCH}' when origin is back")
         else:
-            answer = input(f"Push {self.tag} and the pack to origin? [y/N] ")
+            answer = input(f"Publish {self.tag} as a release on {self.slug}, then move the pack? [y/N] ")
             if answer.strip().lower() != "y":
                 fail("not published; nothing left the machine (the tag is removed)")
+            self.publish_release()
         self.commit_pack()
         if not self.offline:
-            git("push", "origin", self.tag)
             git("push", "origin", PACK_BRANCH)
 
+    def publish_release(self) -> None:
+        """
+        The tag, then the release with our jar on it, checked by downloading it back. Only then does the pack
+        name the jar, so no client is ever pointed at a file that is not there.
+        """
+        git("push", "origin", self.tag)
+        self.state["tag_pushed"] = True
+        self.save_state()
+        jar = next((self.dist / "jars").glob("agesandtheart-*.jar"))
+        staged = self.dist / "assets" / asset_name(jar.name)
+        staged.parent.mkdir(exist_ok=True)
+        shutil.copy2(jar, staged)
+        already_released = subprocess.run(["gh", "release", "view", self.tag, "--repo", self.slug],
+                                          capture_output=True).returncode == 0
+        if already_released:
+            subprocess.run(["gh", "release", "upload", self.tag, str(staged), "--repo", self.slug, "--clobber"], check=True)
+        else:
+            subprocess.run(["gh", "release", "create", self.tag, str(staged), "--repo", self.slug, "--verify-tag",
+                            "--prerelease", "--title", f"Ages and the Art {self.build}",
+                            "--notes-file", str(self.dist / "CHANGELOG.md")], check=True)
+        request = urllib.request.Request(self.jar_url(jar.name), headers={"User-Agent": "agesandtheart-release"})
+        with urllib.request.urlopen(request, timeout=120) as response:
+            published = hashlib.sha512(response.read()).hexdigest()
+        if published != sha512_of(jar):
+            fail(f"the jar published at {self.jar_url(jar.name)} is not the one that was built; the pack is not moved")
+        say(f"published {self.tag}")
+
     def commit_pack(self) -> None:
-        """The pack branch's record of this release: its version, and nothing else while the jars are not entries."""
+        """The pack branch's record of this release: its version and an entry for each jar."""
         worktree = self.work / "pack"
+        git("worktree", "remove", "--force", str(worktree), check=False)
+        git("worktree", "prune")
         git("worktree", "add", str(worktree), PACK_BRANCH)
+        for prefix in JAR_ENTRIES:
+            shutil.copy2(self.dist / "pack" / "mods" / f"{prefix}.pw.toml", worktree / "mods" / f"{prefix}.pw.toml")
         self.set_pack_version(worktree)
-        git("commit", "-q", "-am", f"Ages and the Art {self.build}", cwd=worktree)
+        git("add", "-A", cwd=worktree)
+        git("commit", "-q", "-m", f"Ages and the Art {self.build}", cwd=worktree)
 
     def gradle(self, project: Path, log_name: str, *tasks: str) -> None:
         log = self.work / "logs" / f"{log_name}.log"
@@ -431,7 +544,7 @@ class Release:
                 actions[step]()
                 self.mark_done(step)
         except BaseException:
-            if not self.is_done("publish"):
+            if not self.is_done("publish") and not self.state.get("tag_pushed"):
                 self.remove_tag()
                 self.state["done"] = [step for step in self.state["done"] if step != "tag"]
                 self.save_state()

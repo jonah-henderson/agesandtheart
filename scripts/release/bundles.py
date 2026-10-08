@@ -1,7 +1,7 @@
 """
-What a release hands out, built from the pack it assembled: the Prism instance, the same instance inside a
-portable Prism for Windows, and the server's folder. Every mod comes from the pack's index, so the three
-cannot disagree about what is in it.
+What a release hands out: the Prism instance, the same instance inside a portable Prism for Windows, and the
+server's folder. None of them carries a mod. Each carries the packwiz bootstrap and the pack's address, and
+fetches the mods named by the pack's index when it starts, which is also how it updates.
 """
 
 import hashlib
@@ -30,11 +30,14 @@ STARTER_OPTIONS = {
 }
 
 
+BOOTSTRAP_URL = "https://github.com/packwiz/packwiz-installer-bootstrap/releases/download/{version}/packwiz-installer-bootstrap.jar"
+BOOTSTRAP_NAME = "packwiz-installer-bootstrap.jar"
+
+
 @dataclass(frozen=True)
 class Mod:
-    """One jar the pack carries: what it is called there, a name that stays put across releases, and which side wants it."""
+    """One jar the pack names: what it is called once installed, where a copy of it is, and which side wants it."""
     filename: str
-    stable_name: str
     path: Path
     side: str
 
@@ -53,6 +56,7 @@ class Release:
     minecraft: str
     fabric_loader: str
     lwjgl: str
+    pack_url: str
 
 
 def _hash_matches(path: Path, hash_format: str, expected: str) -> bool:
@@ -70,7 +74,7 @@ def _download(url: str, destination: Path) -> None:
     partial.rename(destination)
 
 
-def _fetched(url: str, cache: Path, name: str | None = None, hash_format: str | None = None, expected: str | None = None) -> Path:
+def fetched(url: str, cache: Path, name: str | None = None, hash_format: str | None = None, expected: str | None = None) -> Path:
     """The file at [url], kept in [cache] as [name], from the cache when it is there and still matches."""
     target = cache / (name or url.rsplit("/", 1)[-1])
     is_cached_and_whole = target.exists() and (expected is None or _hash_matches(target, hash_format, expected))
@@ -81,28 +85,37 @@ def _fetched(url: str, cache: Path, name: str | None = None, hash_format: str | 
     return target
 
 
-def mods_of(pack: Path, cache: Path) -> list[Mod]:
-    """Every mod in the pack's index: metafiles downloaded and checked, files carried in the pack taken as they are."""
+def mods_of(pack: Path, cache: Path, own_jars: Path | None = None) -> list[Mod]:
+    """
+    Every mod the pack's index names, each downloaded and checked against the hash the pack states. A jar
+    that [own_jars] holds is taken from there instead, checked the same way, for a release whose jars are
+    not published yet.
+    """
     index = tomllib.loads((pack / "index.toml").read_text())
     mods = []
     for entry in index.get("files", []):
         relative = Path(entry["file"])
         if relative.parts[0] != "mods":
             continue
-        if entry.get("metafile"):
-            meta = tomllib.loads((pack / relative).read_text())
-            download = meta["download"]
-            path = _fetched(download["url"], cache, meta["filename"], download["hash-format"], download["hash"])
-            stable_name = relative.name.removesuffix(".pw.toml") + ".jar"
-            mods.append(Mod(meta["filename"], stable_name, path, meta.get("side", "both")))
+        if not entry.get("metafile"):
+            raise SystemExit(f"release: {relative} is a file in the pack; mods are named by metafiles")
+        meta = tomllib.loads((pack / relative).read_text())
+        download = meta["download"]
+        hash_format, expected = download["hash-format"], download["hash"]
+        own = own_jars / meta["filename"] if own_jars else None
+        if own and own.exists():
+            if not _hash_matches(own, hash_format, expected):
+                raise SystemExit(f"release: {own.name} is not the file the pack's {relative.name} describes")
+            path = own
         else:
-            mods.append(Mod(relative.name, _stable_name_of_our_jar(relative.name), pack / relative, "both"))
+            path = fetched(download["url"], cache, meta["filename"], hash_format, expected)
+        mods.append(Mod(meta["filename"], path, meta.get("side", "both")))
     return mods
 
 
-def _stable_name_of_our_jar(filename: str) -> str:
-    """`agesandtheart-fabric-26.3-0.1.0+26.3.jar` is `agesandtheart.jar`, `ephemeris-fabric-…` `ephemeris.jar`."""
-    return filename.split("-", 1)[0] + ".jar"
+def bootstrap_jar(settings: dict[str, str], cache: Path) -> Path:
+    version = settings["packwiz.bootstrap"]
+    return fetched(BOOTSTRAP_URL.format(version=version), cache, f"packwiz-installer-bootstrap-{version}.jar")
 
 
 def _write_tree(archive: zipfile.ZipFile, prefix: str, files: dict[str, bytes | Path]) -> None:
@@ -113,12 +126,16 @@ def _write_tree(archive: zipfile.ZipFile, prefix: str, files: dict[str, bytes | 
             archive.writestr(prefix + name, content)
 
 
-def _instance_files(release: Release, settings: dict[str, str], mods: list[Mod]) -> dict[str, bytes | Path]:
-    """A Prism instance that joins the server on launch, with every client mod in it."""
+def _instance_files(release: Release, settings: dict[str, str], bootstrap: Path) -> dict[str, bytes | Path]:
+    """A Prism instance that joins the server on launch, and installs and updates its mods from the pack before it starts."""
+    pre_launch = f'"$INST_JAVA" -jar {BOOTSTRAP_NAME} {release.pack_url}'
+    quoted_pre_launch = '"' + pre_launch.replace('"', '\\"') + '"'
     instance_cfg = "\n".join([
         "[General]",
         "InstanceType=OneSix",
-        f"name=Ages and the Art {release.version}",
+        "name=Ages and the Art",
+        "OverrideCommands=true",
+        f"PreLaunchCommand={quoted_pre_launch}",
         "OverrideMemory=true",
         f"MinMemAlloc={settings['client.memory.min']}",
         f"MaxMemAlloc={settings['client.memory.max']}",
@@ -141,25 +158,23 @@ def _instance_files(release: Release, settings: dict[str, str], mods: list[Mod])
         "mmc-pack.json": (json.dumps(components, indent=2) + "\n").encode(),
         ".minecraft/servers.dat": nbt.servers_dat([(settings["server.name"], settings["server.address"])]),
         ".minecraft/options.txt": options.encode(),
+        f".minecraft/{BOOTSTRAP_NAME}": bootstrap,
     }
-    for mod in mods:
-        if mod.is_for_clients:
-            files[f".minecraft/mods/{mod.filename}"] = mod.path
     return files
 
 
-def prism_instance(out: Path, release: Release, settings: dict[str, str], mods: list[Mod]) -> Path:
+def prism_instance(out: Path, release: Release, settings: dict[str, str], bootstrap: Path) -> Path:
     """The zip Prism imports: Add Instance, Import, this file."""
     target = out / f"AgesAndTheArt-{release.version}.zip"
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
-        _write_tree(archive, "", _instance_files(release, settings, mods))
+        _write_tree(archive, "", _instance_files(release, settings, bootstrap))
     return target
 
 
-def windows_portable(out: Path, release: Release, settings: dict[str, str], mods: list[Mod], cache: Path) -> Path:
+def windows_portable(out: Path, release: Release, settings: dict[str, str], bootstrap: Path, cache: Path) -> Path:
     """Portable Prism for Windows with the instance already in it: unzip anywhere, run prismlauncher.exe."""
     prism_version = settings["prism.version"]
-    prism_zip = _fetched(
+    prism_zip = fetched(
         f"https://github.com/PrismLauncher/PrismLauncher/releases/download/{prism_version}/"
         f"PrismLauncher-Windows-MSVC-Portable-{prism_version}.zip",
         cache,
@@ -170,31 +185,28 @@ def windows_portable(out: Path, release: Release, settings: dict[str, str], mods
         for item in prism.infolist():
             if not item.is_dir():
                 archive.writestr(folder + item.filename, prism.read(item))
-        _write_tree(archive, f"{folder}instances/AgesAndTheArt/", _instance_files(release, settings, mods))
+        _write_tree(archive, f"{folder}instances/AgesAndTheArt/", _instance_files(release, settings, bootstrap))
     return target
 
 
-def server(out: Path, release: Release, settings: dict[str, str], mods: list[Mod], cache: Path) -> Path:
+def server(out: Path, release: Release, settings: dict[str, str], bootstrap: Path, cache: Path) -> Path:
     """
-    The server's folder, to unzip over the last one once its mods folder is deleted. Jars carry names that
-    stay put across releases, so an update replaces rather than adds; server.properties is not in it, so
-    unzipping never resets the server's settings.
+    The server's folder. It carries no mods: start.bat runs the bootstrap, which installs and updates them
+    from the pack. server.properties is not in it, so unzipping a new one never resets the server's settings.
     """
-    launcher = _fetched(
+    launcher = fetched(
         f"https://meta.fabricmc.net/v2/versions/loader/{release.minecraft}/{release.fabric_loader}/"
         f"{settings['fabric.installer']}/server/jar",
         cache,
         f"fabric-server-launch-{release.minecraft}-{release.fabric_loader}-{settings['fabric.installer']}.jar",
     )
-    files: dict[str, bytes | Path] = {"fabric-server-launch.jar": launcher}
+    files: dict[str, bytes | Path] = {"fabric-server-launch.jar": launcher, BOOTSTRAP_NAME: bootstrap}
     for template in sorted(SERVER_FILES.iterdir()):
         text = template.read_text()
-        text = text.replace("@SERVER_MEMORY@", settings["server.memory"]).replace("@VERSION@", release.version)
+        text = (text.replace("@SERVER_MEMORY@", settings["server.memory"])
+                .replace("@VERSION@", release.version).replace("@PACK_URL@", release.pack_url))
         newline = "\r\n" if template.suffix in (".bat", ".ps1", ".txt", ".properties") else "\n"
         files[template.name] = text.replace("\r\n", "\n").replace("\n", newline).encode()
-    for mod in mods:
-        if mod.is_for_servers:
-            files[f"mods/{mod.stable_name}"] = mod.path
     target = out / f"AgesAndTheArt-{release.version}-server.zip"
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
         _write_tree(archive, "", files)
