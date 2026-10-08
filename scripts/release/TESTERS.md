@@ -11,7 +11,7 @@ of mods apart from your normal Minecraft.
 - **Windows, the easy way:** unzip `AgesAndTheArt-@VERSION@-windows.zip` anywhere you like, open the
   `AgesAndTheArt` folder, and run `prismlauncher.exe`. Prism and the beta are already in there together.
 - **Any computer:** install Prism from <https://prismlauncher.org/download>. Open it, choose
-  **Add Instance**, then **Import**, and pick `AgesAndTheArt-@VERSION@.zip`.
+  **Add Instance**, then **Import**, and pick `AgesAndTheArt.zip`.
 
 The first time Prism opens, it asks a few setup questions; the defaults are fine. If it offers to
 download Java for you, say yes.

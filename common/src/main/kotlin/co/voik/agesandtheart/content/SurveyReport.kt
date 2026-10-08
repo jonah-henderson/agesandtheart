@@ -34,12 +34,12 @@ enum class SurveyReport(
     sentence: String,
     val ageSeed: Long,
 ) {
-    CRAMPED_AGE(
-        "cramped_age_survey",
+    SUNLIT_AGE(
+        "sunlit_age_survey",
         pageCount = 1,
-        teaches = listOf("large", "chambered"),
-        sentence = "age large fissured underground",
-        ageSeed = 0x2E54A7L,
+        teaches = listOf("subterranean"),
+        sentence = "age gentle landmass teeming trees features",
+        ageSeed = 0x7A1EE4L,
     ),
     LIGHTLESS_AGE(
         "lightless_age_survey",
@@ -48,12 +48,12 @@ enum class SurveyReport(
         sentence = "age gentle landmass sunless sun",
         ageSeed = 0x90AA7L,
     ),
-    SUNLIT_AGE(
-        "sunlit_age_survey",
+    CRAMPED_AGE(
+        "cramped_age_survey",
         pageCount = 1,
-        teaches = listOf("subterranean"),
-        sentence = "age gentle landmass teeming trees features",
-        ageSeed = 0x7A1EE4L,
+        teaches = listOf("large", "chambered"),
+        sentence = "age large fissured underground",
+        ageSeed = 0x2E54A7L,
     ),
     ;
 

@@ -164,8 +164,8 @@ def _instance_files(release: Release, settings: dict[str, str], bootstrap: Path)
 
 
 def prism_instance(out: Path, release: Release, settings: dict[str, str], bootstrap: Path) -> Path:
-    """The zip Prism imports: Add Instance, Import, this file."""
-    target = out / f"AgesAndTheArt-{release.version}.zip"
+    """The zip Prism imports: Add Instance, Import, this file. Prism names the instance after the file, so it has no version in it."""
+    target = out / "AgesAndTheArt.zip"
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as archive:
         _write_tree(archive, "", _instance_files(release, settings, bootstrap))
     return target
