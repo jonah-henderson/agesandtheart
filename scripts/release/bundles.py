@@ -129,13 +129,13 @@ def _write_tree(archive: zipfile.ZipFile, prefix: str, files: dict[str, bytes | 
 def _instance_files(release: Release, settings: dict[str, str], bootstrap: Path) -> dict[str, bytes | Path]:
     """A Prism instance that joins the server on launch, and installs and updates its mods from the pack before it starts."""
     pre_launch = f'"$INST_JAVA" -jar {BOOTSTRAP_NAME} {release.pack_url}'
-    quoted_pre_launch = '"' + pre_launch.replace('"', '\\"') + '"'
+    escaped_pre_launch = pre_launch.replace('"', '\\"')
     instance_cfg = "\n".join([
         "[General]",
         "InstanceType=OneSix",
         "name=Ages and the Art",
         "OverrideCommands=true",
-        f"PreLaunchCommand={quoted_pre_launch}",
+        f"PreLaunchCommand={escaped_pre_launch}",
         "OverrideMemory=true",
         f"MinMemAlloc={settings['client.memory.min']}",
         f"MaxMemAlloc={settings['client.memory.max']}",
