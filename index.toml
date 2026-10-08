@@ -1,6 +1,16 @@
 hash-format = "sha256"
 
 [[files]]
+file = "mods/agesandtheart.pw.toml"
+hash = "0aadcba67155304d0c97a16ab7793b1ba4fe7e043494da8c6bb8250ce05e7969"
+metafile = true
+
+[[files]]
+file = "mods/ephemeris.pw.toml"
+hash = "a8473a420aaf659234a98c3fd9d512d8c3efd7d5a38494c9f8d482e0208bd4f3"
+metafile = true
+
+[[files]]
 file = "mods/fabric-api.pw.toml"
 hash = "6b342a83e9736f0832e750c8d631273cf600305d73b32c8bd6a977811f6972ee"
 metafile = true
