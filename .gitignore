@@ -60,3 +60,6 @@ __pycache__/
 *.xcf
 *.pxo
 *.bbmodel
+
+# Design notes live in their own repository, linked in here
+/notes
