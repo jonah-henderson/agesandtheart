@@ -2,12 +2,12 @@ hash-format = "sha256"
 
 [[files]]
 file = "mods/agesandtheart.pw.toml"
-hash = "4136480137da035f502592d0cf0d5eacbd79f6eac9e8685e79e52a579a8cc957"
+hash = "19d355799e267c2d7877eda677734c360d7af01d49742cd54e34f03b823a8786"
 metafile = true
 
 [[files]]
 file = "mods/ephemeris.pw.toml"
-hash = "a8473a420aaf659234a98c3fd9d512d8c3efd7d5a38494c9f8d482e0208bd4f3"
+hash = "c5e8918120efe721550eab52a0ff957824f737a94e488b0da7edb02b0c4f3793"
 metafile = true
 
 [[files]]

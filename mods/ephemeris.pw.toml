@@ -1,8 +1,8 @@
 name = "Ephemeris"
-filename = "ephemeris-fabric-26.3-0.1.0+26.3.jar"
+filename = "ephemeris-fabric-26.3-0.1.1+26.3.jar"
 side = "both"
 
 [download]
-url = "https://github.com/jonah-henderson/ephemeris/releases/download/v0.1.0-mc26.3/ephemeris-fabric-26.3-0.1.0-26.3.jar"
+url = "https://github.com/jonah-henderson/ephemeris/releases/download/v0.1.1-mc26.3/ephemeris-fabric-26.3-0.1.1-26.3.jar"
 hash-format = "sha512"
-hash = "3b3dfb3bb6626efbcb482afc1cd4df356367cf0126524006f6f95368fc1018f7d01d48e83d118483f33f057173c94c90deea10def2dbad0d99981e76f1f360da"
+hash = "eb120c87d2524d7f83828797d303ae76b48b5fabb360b003564e7ed4807e958c24b96ea860f3901c10458ce112de8964da6f8e53364618569d15f1d4d5a3a7e1"
