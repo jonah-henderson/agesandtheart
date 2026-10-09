@@ -1,6 +1,6 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.1
+line=0.2
 generator=10
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
@@ -241,6 +241,7 @@ item agesandtheart:scarab_nest
 item agesandtheart:scarab_pillar
 item agesandtheart:scorched_temperstone
 item agesandtheart:seismograph
+item agesandtheart:soot
 item agesandtheart:star_fissure
 item agesandtheart:stripped_palm_log
 item agesandtheart:stripped_palm_wood
