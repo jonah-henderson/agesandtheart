@@ -12,7 +12,8 @@
           {
             "items": [
               "minecraft:black_dye",
-              "minecraft:ink_sac"
+              "minecraft:ink_sac",
+              "agesandtheart:soot"
             ]
           }
         ]

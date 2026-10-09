@@ -1,0 +1,6 @@
+{
+  "_comment": "One to one, and either coal or charcoal: a pigment is soot, and the grinder is what makes it a powder fine enough to carry. This is the plain ink's road to volume, where ink sacs and wither roses are not.",
+  "type": "agesandtheart:grinding",
+  "ingredient": "#minecraft:coals",
+  "result": { "id": "agesandtheart:soot" }
+}

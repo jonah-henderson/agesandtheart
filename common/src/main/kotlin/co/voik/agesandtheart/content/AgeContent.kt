@@ -91,6 +91,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier
 import net.minecraft.world.entity.ai.village.poi.PoiType
 import net.minecraft.world.entity.npc.villager.VillagerProfession
 import net.minecraft.world.item.BlockItem
+import net.minecraft.world.item.DyeColor
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.alchemy.Potion
@@ -1038,10 +1039,16 @@ object AgeContent {
     private const val STATION_STRENGTH = 3.5f
 
     private val PITCHSTONE_DUST_ID: Identifier = "pitchstone_dust".location()
+    private val SOOT_ID: Identifier = "soot".location()
     private val PULP_ID: Identifier = "pulp".location()
 
     /** What the grinder makes of deretheni, and what fine ink is coloured with. */
     val PITCHSTONE_DUST: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, PITCHSTONE_DUST_ID)))
+
+    /** What the grinder makes of coal and charcoal: a black dye, and so the plain ink's pigment. */
+    val SOOT: Item = Item(
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, SOOT_ID)).component(DataComponents.DYE, DyeColor.BLACK),
+    )
 
     /** What the pulper makes of a stripped log, and what fine paper is pressed from. */
     val PULP: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, PULP_ID)))
@@ -2108,6 +2115,7 @@ object AgeContent {
         AdvancedAnalysisMachine.PROBES_ID to AdvancedAnalysisMachine.PROBES,
         DryingRack.ID to DryingRack.ITEM,
         PITCHSTONE_DUST_ID to PITCHSTONE_DUST,
+        SOOT_ID to SOOT,
         PULP_ID to PULP,
         SCARAB_MEDALLION_ID to SCARAB_MEDALLION,
         SCARAB_CARAPACE_ID to SCARAB_CARAPACE,

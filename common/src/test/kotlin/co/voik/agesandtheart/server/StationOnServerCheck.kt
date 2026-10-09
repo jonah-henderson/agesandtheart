@@ -68,6 +68,18 @@ class StationOnServerCheck : FunSpec({
         check(drained.startsWith("Test passed")) { "the cauldron was not drained by one level: $drained" }
     }
 
+    test("a grinder grinds coal and charcoal alike to one soot each") {
+        for ((x, fuel) in listOf(COAL_GRINDER_X to "minecraft:coal", CHARCOAL_GRINDER_X to "minecraft:charcoal")) {
+            build(x, "grinder", 1 to "agesandtheart:arc_crystal_block", -1 to "minecraft:grindstone")
+            load(x, fuel)
+        }
+        runPastOneRun()
+        for (x in listOf(COAL_GRINDER_X, CHARCOAL_GRINDER_X)) {
+            val held = contents(x)
+            check("agesandtheart:soot" in held && "count: 1" in held) { "the grinder at $x holds: $held" }
+        }
+    }
+
     test("a hopper feeds a station only what it can work, and a hopper under it takes the result") {
         build(HOPPERED_X, "grinder", 1 to "agesandtheart:arc_crystal_block", -1 to "minecraft:grindstone")
         val above = "$HOPPERED_X ${STATION_Y + 1} 0"
@@ -89,6 +101,8 @@ class StationOnServerCheck : FunSpec({
         const val STALLED_GRINDER_X = 5
         const val PULPER_X = 8
         const val HOPPERED_X = 11
+        const val COAL_GRINDER_X = 14
+        const val CHARCOAL_GRINDER_X = 17
         const val INPUT_SLOT = 0
 
         /** Past the pulper's 300-tick run, with room to spare. */
