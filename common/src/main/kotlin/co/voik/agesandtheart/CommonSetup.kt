@@ -9,6 +9,7 @@ import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.advancement.Arrival
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.generation.Ages
+import co.voik.agesandtheart.generation.LinkInPoint
 import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.age.phenomena.AgeWeather
@@ -81,6 +82,8 @@ object CommonSetup {
     fun serverTick(server: MinecraftServer) {
         // Whatever an Age does, which is more than whatever befalls it.
         AgeTick.tick(server)
+        // And where each spawn compass points, for whoever has arrived somewhere since the last tick.
+        LinkInPoint.tick(server)
         // And what a deretheni suit keeps off its wearer, which is the half of that no attribute can reach.
         ProtectiveSuit.tick(server)
         // And every charged machine anybody is standing near — every level, not only the Ages, since crystal
