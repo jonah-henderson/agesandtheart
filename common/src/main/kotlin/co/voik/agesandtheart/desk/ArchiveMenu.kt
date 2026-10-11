@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.desk
 
 import net.minecraft.util.Prediction
+import co.voik.agesandtheart.age.word.learnedWords
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.platform.Services
@@ -33,6 +34,13 @@ class ArchiveMenu(
         private set
 
     private var lastSent: PageArchive? = null
+
+    /** What the viewer knew when their prices were last sent; the prices only change when that does. */
+    private var pricedFor: Int? = null
+
+    private var lastStock: WritingStock? = null
+    private var stockSent = false
+    private var ticksSinceDeskScan = DESK_SCAN_TICKS
 
     init {
         for (row in 0 until INVENTORY_ROWS) {
@@ -75,7 +83,12 @@ class ArchiveMenu(
     override fun broadcastChanges() {
         super.broadcastChanges()
         val viewer = viewer ?: return
-        val pages = archiveOf()?.pages ?: return
+        val archive = archiveOf() ?: return
+        sendPagesIfChanged(viewer, archive.pages)
+        sendWritingIfChanged(viewer, archive)
+    }
+
+    private fun sendPagesIfChanged(viewer: ServerPlayer, pages: PageArchive) {
         if (pages == lastSent) return
         lastSent = pages
         // Opening the archive is reading it (design §4.5), and so is watching a page arrive in it.
@@ -83,9 +96,42 @@ class ArchiveMenu(
         Services.NETWORK.sendToPlayer(viewer, ArchiveSyncPayload(pages))
     }
 
+    /**
+     * What writing a page here would cost and what could pay for it, each sent when it differs from the last.
+     *
+     * The prices are the heavy half and move only when the viewer learns something. The desk is looked for
+     * a few times a second rather than every tick, and its stock is compared every time so that a writer
+     * using the desk elsewhere is seen at once.
+     */
+    private fun sendWritingIfChanged(viewer: ServerPlayer, archive: ArchiveBlockEntity) {
+        val level = archive.level ?: return
+        val server = level.server ?: return
+        val known = viewer.learnedWords.words
+        val signature = known.size * PRICE_SIGNATURE_SPREAD + known.hashCode()
+        if (signature != pricedFor) {
+            pricedFor = signature
+            Services.NETWORK.sendToPlayer(viewer, ArchivePricesPayload(ArchiveWriting.pricesFor(viewer)))
+        }
+        if (++ticksSinceDeskScan >= DESK_SCAN_TICKS) {
+            ticksSinceDeskScan = 0
+            val reach = WritersDesk.of(server).radius
+            val stock = ArchiveWriting.closestDesk(level, archive.blockPos, reach)?.let(ArchiveWriting::stockOf)
+            if (!stockSent || stock != lastStock) {
+                stockSent = true
+                lastStock = stock
+                Services.NETWORK.sendToPlayer(viewer, ArchiveStockPayload(stock))
+            }
+        }
+    }
+
     override fun stillValid(player: Player): Boolean = stillValid(access, player, AgeContent.ARCHIVE_BLOCK)
 
     companion object {
+        /** How often, in ticks, the room is searched for a desk. */
+        private const val DESK_SCAN_TICKS = 5
+
+        private const val PRICE_SIGNATURE_SPREAD = 31
+
         const val PANEL_WIDTH = 176
         const val PANEL_HEIGHT = 222
         const val SLOT = 18

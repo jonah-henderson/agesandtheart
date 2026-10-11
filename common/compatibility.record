@@ -283,8 +283,11 @@ menu agesandtheart:transcriber
 menu agesandtheart:writers_desk
 mob_effect agesandtheart:crushing_pressure
 mob_effect agesandtheart:crushing_resistance
+payload agesandtheart:archive_prices
+payload agesandtheart:archive_stock
 payload agesandtheart:archive_sync
 payload agesandtheart:archive_withdraw
+payload agesandtheart:archive_write
 payload agesandtheart:blizzard
 payload agesandtheart:client_build
 payload agesandtheart:deluge

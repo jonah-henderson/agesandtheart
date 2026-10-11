@@ -7,6 +7,8 @@ import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
 import co.voik.agesandtheart.client.panel.LinkingPanel
+import co.voik.agesandtheart.desk.ArchivePricesPayload
+import co.voik.agesandtheart.desk.ArchiveStockPayload
 import co.voik.agesandtheart.desk.ArchiveSyncPayload
 import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
@@ -34,6 +36,8 @@ object ClientPayloads {
         Receiver(DeskNoticePayload.TYPE) { DeskModel.remember(it) },
         Receiver(TunerProposalPayload.TYPE) { FrequencyTunerScreen.remember(it) },
         Receiver(ArchiveSyncPayload.TYPE) { ArchiveScreen.remember(it) },
+        Receiver(ArchivePricesPayload.TYPE) { ArchiveScreen.remember(it) },
+        Receiver(ArchiveStockPayload.TYPE) { ArchiveScreen.remember(it) },
         // The drop carries on from where it left off: where they are and how fast they were going came
         // back with them, and this is the flag that says the ground is still not holding them.
         Receiver(FallResumedPayload.TYPE) { Minecraft.getInstance().player?.noPhysics = true },

@@ -13,7 +13,10 @@ import co.voik.agesandtheart.book.panel.PanelLevelPayload
 import co.voik.agesandtheart.book.panel.PanelOpenRequest
 import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.desk.ArchiveCommands
+import co.voik.agesandtheart.desk.ArchivePricesPayload
+import co.voik.agesandtheart.desk.ArchiveStockPayload
 import co.voik.agesandtheart.desk.ArchiveSyncPayload
+import co.voik.agesandtheart.desk.ArchiveWritePayload
 import co.voik.agesandtheart.desk.ArchiveWithdrawPayload
 import co.voik.agesandtheart.desk.DeskBindPayload
 import co.voik.agesandtheart.desk.DeskCommands
@@ -72,6 +75,9 @@ object Payloads {
         Serverbound(DeskTemplatePayload.TYPE, DeskTemplatePayload.STREAM_CODEC, DeskCommands::template),
         Serverbound(DeskBindPayload.TYPE, DeskBindPayload.STREAM_CODEC, DeskCommands::bind),
         Clientbound(ArchiveSyncPayload.TYPE, ArchiveSyncPayload.STREAM_CODEC),
+        Clientbound(ArchivePricesPayload.TYPE, ArchivePricesPayload.STREAM_CODEC),
+        Clientbound(ArchiveStockPayload.TYPE, ArchiveStockPayload.STREAM_CODEC),
+        Serverbound(ArchiveWritePayload.TYPE, ArchiveWritePayload.STREAM_CODEC, ArchiveCommands::write),
         Serverbound(ArchiveWithdrawPayload.TYPE, ArchiveWithdrawPayload.STREAM_CODEC, ArchiveCommands::withdraw),
         Serverbound(LinkRequest.TYPE, LinkRequest.STREAM_CODEC, Linking::handle),
         // A machine's recipe list, and a click on one of its lines.
