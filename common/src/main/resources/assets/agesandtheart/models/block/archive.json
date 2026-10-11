@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "A stand-in until the asset pass: the chiseled bookshelf's textures on a whole cube. Vanilla's own",
+    "chiseled_bookshelf model has no front, because its blockstate adds one per slot; the archive has no",
+    "slots and no facing, so it borrows the full shelf for its front instead."
+  ],
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "minecraft:block/chiseled_bookshelf_top",
+    "north": "minecraft:block/chiseled_bookshelf_occupied",
+    "east": "minecraft:block/chiseled_bookshelf_side",
+    "south": "minecraft:block/chiseled_bookshelf_side",
+    "west": "minecraft:block/chiseled_bookshelf_side",
+    "up": "minecraft:block/chiseled_bookshelf_top",
+    "down": "minecraft:block/chiseled_bookshelf_top"
+  }
+}
