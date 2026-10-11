@@ -23,7 +23,9 @@ import co.voik.agesandtheart.desk.WritingObstacle
 import co.voik.agesandtheart.desk.WritingStock
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
-import net.minecraft.client.gui.components.Button
+import net.minecraft.client.gui.components.CycleButton
+import net.minecraft.client.gui.components.Tooltip
+import net.minecraft.client.gui.components.WidgetSprites
 import net.minecraft.client.gui.components.EditBox
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.client.input.KeyEvent
@@ -48,7 +50,7 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
     AbstractContainerScreen<ArchiveMenu>(menu, inventory, title, ArchiveMenu.PANEL_WIDTH, ArchiveMenu.PANEL_HEIGHT) {
 
     private lateinit var search: EditBox
-    private lateinit var modeButton: Button
+    private lateinit var modeButton: CycleButton<Boolean>
     private lateinit var list: LabelledList<ArchiveRow>
     private var shown: List<ArchiveRow> = emptyList()
 
@@ -78,16 +80,22 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
             list.resetScroll()
             refresh(force = true)
         }
-        modeButton = Button.builder(modeLabel()) { toggleMode() }
-            .bounds(0, 0, 0, LINE + 2)
-            .build()
+        modeButton = CycleButton.booleanBuilder(translated("filed"), translated("known"), !showingKnown)
+            .withTooltip { filed -> Tooltip.create(translated(if (filed) "filed" else "known")) }
+            .withSprite { button, filed -> MODE_SPRITES.get(filed, button.isHoveredOrFocused) }
+            .displayState(CycleButton.DisplayState.HIDE)
+            .create(
+                leftPos + imageWidth - INSET - MODE_WIDTH,
+                topPos + MODE_TOP,
+                MODE_WIDTH,
+                MODE_HEIGHT,
+                Component.empty(),
+            ) { _, filed -> showMode(known = !filed) }
         addRenderableWidget(modeButton)
         addRenderableWidget(search)
         list = addRenderableWidget(LabelledList(Minecraft.getInstance(), Rect(0, 0, 0, 0)) {})
 
         val column = FlexColumn(imageWidth - INSET * 2, ArchiveMenu.INVENTORY_LABEL_Y - GAP - CONTENT_TOP)
-        column.add(modeButton, height = LINE + 2)
-        column.gap(GAP)
         column.add(search, height = LINE)
         column.gap(GAP)
         column.fill(list)
@@ -118,11 +126,8 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
         refresh(force = false)
     }
 
-    private fun modeLabel(): Component = translated(if (showingKnown) "known" else "filed")
-
-    private fun toggleMode() {
-        showingKnown = !showingKnown
-        modeButton.message = modeLabel()
+    private fun showMode(known: Boolean) {
+        showingKnown = known
         list.resetScroll()
         refresh(force = true)
     }
@@ -210,6 +215,20 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
         fun remember(payload: ArchiveStockPayload) {
             stock = payload.stock
         }
+
+        /**
+         * Vanilla's own craftable toggle, which is a sprite with no label and says what it shows on hover: the
+         * switch is on while the list is filtered to what the archive holds.
+         */
+        private val MODE_SPRITES = WidgetSprites(
+            Identifier.withDefaultNamespace("recipe_book/filter_enabled"),
+            Identifier.withDefaultNamespace("recipe_book/filter_disabled"),
+            Identifier.withDefaultNamespace("recipe_book/filter_enabled_highlighted"),
+            Identifier.withDefaultNamespace("recipe_book/filter_disabled_highlighted"),
+        )
+        private const val MODE_WIDTH = 26
+        private const val MODE_HEIGHT = 16
+        private const val MODE_TOP = 2
 
         private const val LINE = 12
         private const val GAP = 4
