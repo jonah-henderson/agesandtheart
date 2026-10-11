@@ -8,7 +8,7 @@
   ],
   "wants": {
     "id": "minecraft:emerald",
-    "count": 12
+    "count": 5
   },
   "gives": {
     "id": "agesandtheart:page",
