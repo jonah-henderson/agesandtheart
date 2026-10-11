@@ -1,6 +1,6 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.2
+line=0.3
 generator=10
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae

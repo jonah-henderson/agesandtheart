@@ -108,7 +108,7 @@ object ArchiveCommands {
         if (!player.learnedWords.knows(payload.word)) return
         val reach = WritersDesk.of(server).radius
         val desk = ArchiveWriting.closestDesk(level, archive.blockPos, reach) ?: return
-        val cost = ArchiveWriting.costOf(ArchiveWriting.priceOf(player, payload.word))
+        val cost = ArchiveWriting.costOf(WritersDeskMenu.pricePage(player, payload.word))
         if (!desk.pay(cost)) return
         archive.file(payload.word, 1)
     }

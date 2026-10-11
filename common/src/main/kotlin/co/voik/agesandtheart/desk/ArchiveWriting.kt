@@ -45,9 +45,6 @@ object ArchiveWriting {
 
     val PAPER = InkTier.COMMON
 
-    /** What a structural page (`and`, `only`, a rung) is written in — it has no referent to take a tier from. */
-    val STRUCTURAL_INK = InkTier.FINE
-
     /** The whole cost of one page: the ink its word demands and a sheet, with no binding. */
     fun costOf(price: PagePrice): BookCost =
         BookCost(mapOf(price.required to price.units(PAPER)), PAPER, sheets = 1, bindings = 0)
@@ -86,11 +83,7 @@ object ArchiveWriting {
         return closest
     }
 
-    /** What a page of [word] costs [player] to write, structural words in [STRUCTURAL_INK]. */
-    fun priceOf(player: ServerPlayer, word: Identifier): PagePrice =
-        WritersDeskMenu.pricePage(player, word, structuralInk = STRUCTURAL_INK)
-
     /** The price of every word [player] knows, which is all they can write. */
     fun pricesFor(player: ServerPlayer): Map<Identifier, PagePrice> =
-        player.learnedWords.words.associateWith { priceOf(player, it) }
+        player.learnedWords.words.associateWith { WritersDeskMenu.pricePage(player, it) }
 }

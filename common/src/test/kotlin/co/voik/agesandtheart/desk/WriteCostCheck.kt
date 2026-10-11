@@ -81,6 +81,13 @@ class WriteCostCheck : FunSpec({
      * word at all, when a page was priced by its tier alone and every exact word cost the same; the anchor
      * has to name a *shape* now, since an exact word can be four units or twenty-four.
      */
+    test("a structural word is written in fine ink, at one unit, on any paper") {
+        check(WriteCost.STRUCTURAL_INK == InkTier.FINE) { "A structural word was written in ${WriteCost.STRUCTURAL_INK}" }
+        for (paper in InkTier.entries) {
+            check(WriteCost.structural(paper, 1000L) >= 1L) { "A structural word was free on $paper" }
+        }
+    }
+
     test("the commonest page costs a tenth of a bottle") {
         val ordinary = vocabulary.derivedWords.firstOrNull { it.price == A_COMMON_PAGE }
             ?: error("the corpus has no ordinary page to price")
