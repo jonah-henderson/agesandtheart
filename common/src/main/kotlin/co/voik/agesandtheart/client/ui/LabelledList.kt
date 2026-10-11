@@ -88,7 +88,6 @@ class LabelledRow<T : Any>(
         a: Float,
     ) {
         val font = Minecraft.getInstance().font
-        val washed = hovered || isFocused
         if (hovered) graphics.fill(x, y, x + width, y + height, Palette.HOVER)
         val baseline = y + (FIRST_LINE_HEIGHT - font.lineHeight) / 2
         lines.forEachIndexed { index, line ->
@@ -116,14 +115,7 @@ class LabelledRow<T : Any>(
 
         if (count != null && count > 0) {
             val shown = "$count"
-            // Faint grey on the selection wash is close to unreadable, so a washed row states its count
-            // in the same ink as its name.
-            graphics.text(
-                font, shown,
-                countRight() - font.width(shown), baseline,
-                if (washed) Palette.TEXT else Palette.FAINT,
-                false,
-            )
+            graphics.text(font, shown, countRight() - font.width(shown), baseline, Palette.TEXT, false)
         }
     }
 
@@ -265,10 +257,8 @@ class LabelledList<T : Any>(
 
     override fun scrollBarX(): Int = right - scrollbarWidth()
 
-    /** A wash, not vanilla's white outline — this list sits on a panel, not on a menu background. */
-    override fun extractSelection(graphics: GuiGraphicsExtractor, entry: LabelledRow<T>, outlineColor: Int) {
-        graphics.fill(entry.x, entry.y, entry.x + entry.width, entry.y + entry.height, Palette.SELECTION)
-    }
+    /** Nothing: a row is acted on, never held selected, and a wash made the grey text on it unreadable. */
+    override fun extractSelection(graphics: GuiGraphicsExtractor, entry: LabelledRow<T>, outlineColor: Int) = Unit
 
     /** Both suppressed: the panel behind is the background, and there is nothing to separate it from. */
     override fun extractListBackground(graphics: GuiGraphicsExtractor) = Unit

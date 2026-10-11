@@ -25,7 +25,6 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.CycleButton
 import net.minecraft.client.gui.components.Tooltip
-import net.minecraft.client.gui.components.WidgetSprites
 import net.minecraft.client.gui.components.EditBox
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.client.input.KeyEvent
@@ -57,6 +56,8 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
     override fun init() {
         super.init()
         inventoryLabelY = ArchiveMenu.INVENTORY_LABEL_Y
+        // Level with the mode button's label, which a button centres one pixel low.
+        titleLabelY = MODE_TOP + (MODE_HEIGHT - font.lineHeight) / 2 + 1
         val keptFilter = if (::search.isInitialized) search.value else ""
 
         addRenderableWidget(
@@ -80,14 +81,16 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
             list.resetScroll()
             refresh(force = true)
         }
-        modeButton = CycleButton.booleanBuilder(translated("filed"), translated("known"), !showingKnown)
+        val filedLabel = translated("mode.filed")
+        val knownLabel = translated("mode.known")
+        val modeWidth = maxOf(font.width(filedLabel), font.width(knownLabel)) + MODE_PADDING * 2
+        modeButton = CycleButton.booleanBuilder(filedLabel, knownLabel, !showingKnown)
             .withTooltip { filed -> Tooltip.create(translated(if (filed) "filed" else "known")) }
-            .withSprite { button, filed -> MODE_SPRITES.get(filed, button.isHoveredOrFocused) }
-            .displayState(CycleButton.DisplayState.HIDE)
+            .displayOnlyValue()
             .create(
-                leftPos + imageWidth - INSET - MODE_WIDTH,
+                leftPos + imageWidth - INSET - modeWidth,
                 topPos + MODE_TOP,
-                MODE_WIDTH,
+                modeWidth,
                 MODE_HEIGHT,
                 Component.empty(),
             ) { _, filed -> showMode(known = !filed) }
@@ -216,24 +219,15 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
             stock = payload.stock
         }
 
-        /**
-         * Vanilla's own craftable toggle, which is a sprite with no label and says what it shows on hover: the
-         * switch is on while the list is filtered to what the archive holds.
-         */
-        private val MODE_SPRITES = WidgetSprites(
-            Identifier.withDefaultNamespace("recipe_book/filter_enabled"),
-            Identifier.withDefaultNamespace("recipe_book/filter_disabled"),
-            Identifier.withDefaultNamespace("recipe_book/filter_enabled_highlighted"),
-            Identifier.withDefaultNamespace("recipe_book/filter_disabled_highlighted"),
-        )
-        private const val MODE_WIDTH = 26
-        private const val MODE_HEIGHT = 16
-        private const val MODE_TOP = 2
+        /** The mode button sits on the title line, which is laid out around it. */
+        private const val MODE_TOP = 5
+        private const val MODE_HEIGHT = 14
+        private const val MODE_PADDING = 5
 
         private const val LINE = 12
         private const val GAP = 4
         private const val INSET = 8
-        private const val CONTENT_TOP = 18
+        private const val CONTENT_TOP = MODE_TOP + MODE_HEIGHT + GAP
         private const val HINT_INSET = 2
     }
 }

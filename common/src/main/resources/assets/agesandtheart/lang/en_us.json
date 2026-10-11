@@ -218,6 +218,8 @@
   "container.agesandtheart.archive.filed": "Pages in the archive",
   "container.agesandtheart.archive.hint": "Shift-click written pages or notebooks to store. If in range of a writer's desk, pages will be reused instead of written from scratch",
   "container.agesandtheart.archive.known": "All words you know",
+  "container.agesandtheart.archive.mode.filed": "Stored",
+  "container.agesandtheart.archive.mode.known": "All",
   "container.agesandtheart.archive.no_desk": "Needs a writer's desk in range, to supply ink and paper",
   "container.agesandtheart.archive.not_priced": "Still working out what this costs",
   "container.agesandtheart.archive.search": "Search pages...",

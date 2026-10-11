@@ -20,7 +20,6 @@ object Palette {
     val FAINT = 0xFF808080.toInt()
     val WARNING = 0xFF8B2E2E.toInt()
 
-    val SELECTION = 0x60000000
     val HOVER = 0x30000000
 
     /**
