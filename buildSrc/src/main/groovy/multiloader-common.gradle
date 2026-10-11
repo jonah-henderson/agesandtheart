@@ -198,8 +198,10 @@ tasks.named("javadocJar", Jar) {
 processResources {
     // `-PlocalEphemeris` drops the Ephemeris version requirement, for running against the sibling checkout,
     // whose version is its last release plus commits and so sits below the range this mod asks for. Pass it
-    // on the command line, never in a gradle.properties that a release build could read.
-    def localEphemeris = project.hasProperty('localEphemeris')
+    // on the command line, never in a gradle.properties that a release build could read. Asking for a
+    // loader's `dev` task implies it.
+    def askedForDev = gradle.startParameter.taskNames.any { it == 'dev' || it.endsWith(':dev') }
+    def localEphemeris = project.hasProperty('localEphemeris') || askedForDev
     var expandProps = [
             'version'                      : version,
             'group'                        : project.group, //Else we target the task's group.

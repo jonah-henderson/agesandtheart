@@ -161,6 +161,10 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOM
 ./gradlew :fabric:runClient
 ./gradlew :neoforge:runClient
 
+# The same, without the Ephemeris version requirement — for when the catalog is ahead of ../ephemeris
+./gradlew :fabric:dev
+./gradlew :neoforge:dev
+
 # Headless servers (usable without a display; good for smoke-testing that the mod loads)
 ./gradlew :fabric:runServer
 ./gradlew :neoforge:runServer

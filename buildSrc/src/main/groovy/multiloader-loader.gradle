@@ -60,6 +60,13 @@ tasks.named('sourcesJar', Jar) {
     from(configurations.commonResources)
 }
 
+// `runClient` against the sibling Ephemeris whatever its version; `multiloader-common` reads the task name.
+tasks.register('dev') {
+    group = 'run'
+    description = 'Runs the client without the Ephemeris version requirement (as -PlocalEphemeris).'
+    dependsOn('runClient')
+}
+
 // Use dokka to generate javadoc for both Java and Kotlin sources instead of using the builtin javadoc
 // tools. This allows mixing Kotlin and Java — and here it is also the only way a loader's docs can cover
 // `common`, whose sources are compiled *into* this jar rather than consumed as one.
