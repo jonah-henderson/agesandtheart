@@ -2,10 +2,13 @@
 Releases Ages and the Art for the beta: tests and builds a commit in throwaway worktrees, tags it, and puts
 the jars, the pack and the three bundles under dist/<version>/. notes/release-process.md is the design.
 
-    scripts/release.sh <version> [<commit>]   release; the commit defaults to HEAD
-    scripts/release.sh --resume <version>     carry on from the step that failed
-    scripts/release.sh --rehearse <version>   everything but the tag and the pack commit, into dist/<version>-rehearsal/
-    scripts/release.sh --offline ...          never asks origin anything, and pushes nothing
+    scripts/release.sh [<version>] [<commit>]   release; the commit defaults to HEAD
+    scripts/release.sh --resume [<version>]     carry on from the step that failed
+    scripts/release.sh --rehearse [<version>]   everything but the tag and the pack commit, into dist/<version>-rehearsal/
+    scripts/release.sh --offline ...            never asks origin anything, and pushes nothing
+
+Without a version it offers the next patch, minor and major after the last release, or takes one typed in;
+--resume without one picks up the release in progress.
 
 Nothing leaves the machine before it asks. A failure before then removes the tag it made and leaves the
 worktrees under build/release/<version>/ for a look.
@@ -116,6 +119,59 @@ def compatibility_line(version: str) -> tuple[int, ...]:
     return (0, minor) if major == 0 else (major,)
 
 
+VERSION_SHAPE = r"\d+\.\d+\.\d+"
+
+
+def catalog_versions() -> dict:
+    return tomllib.loads((ROOT / "libs.versions.toml").read_text())["versions"]
+
+
+def last_release(minecraft: str) -> str | None:
+    """The newest version tagged for [minecraft], or None before the first."""
+    tags = [tag for tag in git("tag", "--list", f"v*-mc{minecraft}").splitlines() if tag]
+    versions = sorted(number_parts(tag[1:]) for tag in tags)
+    return ".".join(str(part) for part in versions[-1]) if versions else None
+
+
+def ask_for_version(last: str | None) -> str:
+    """The next patch, minor or major after [last], or any version typed in."""
+    major, minor, patch = number_parts(last or "0.0.0")
+    presets = [
+        ("patch", f"{major}.{minor}.{patch + 1}"),
+        ("minor", f"{major}.{minor + 1}.0"),
+        ("major", f"{major + 1}.0.0"),
+    ]
+    print(f"The last release is {last}." if last else "Nothing has been released yet.")
+    for number, (kind, version) in enumerate(presets, start=1):
+        print(f"  {number}) {version}  {kind}")
+    other = str(len(presets) + 1)
+    print(f"  {other}) another version")
+    try:
+        while True:
+            answer = input("Release which version? ").strip()
+            if answer.isdigit() and 1 <= int(answer) <= len(presets):
+                return presets[int(answer) - 1][1]
+            typed = input("Version: ").strip() if answer == other else answer
+            if re.fullmatch(VERSION_SHAPE, typed):
+                return typed
+            print(f"'{typed}' is neither a choice nor a version like 0.1.0")
+    except EOFError:
+        fail("no version given, and no terminal to ask for one")
+
+
+def release_in_progress(rehearsal: bool) -> str:
+    """The version of the one release left unfinished under build/release/, for --resume without a version."""
+    suffix = "-rehearsal"
+    names = [path.parent.name for path in (ROOT / "build" / "release").glob("*/state.json")]
+    versions = sorted(name.removesuffix(suffix) for name in names if name.endswith(suffix) == rehearsal)
+    if not versions:
+        fail("nothing to resume")
+    if len(versions) > 1:
+        fail(f"more than one release to resume ({', '.join(versions)}); name one")
+    say(f"resuming {versions[0]}")
+    return versions[0]
+
+
 def read_properties(path: Path) -> dict[str, str]:
     properties = {}
     for line in path.read_text().splitlines():
@@ -131,7 +187,7 @@ class Release:
         self.version = version
         self.rehearsal = rehearsal
         self.offline = offline or rehearsal
-        catalog = tomllib.loads((ROOT / "libs.versions.toml").read_text())["versions"]
+        catalog = catalog_versions()
         self.catalog = catalog
         self.minecraft = catalog["minecraft"]
         self.tag = f"v{version}-mc{self.minecraft}"
@@ -191,7 +247,7 @@ class Release:
     # --- step 0: refuse what cannot be released, before anything is made
 
     def preflight(self, commit_name: str) -> None:
-        if not re.fullmatch(r"\d+\.\d+\.\d+", self.version):
+        if not re.fullmatch(VERSION_SHAPE, self.version):
             fail(f"'{self.version}' is not a version like 0.1.0")
         if self.rehearsal:
             self.remove_worktrees()
@@ -570,20 +626,29 @@ def java_environment() -> dict[str, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("version")
-    parser.add_argument("commit", nargs="?", default="HEAD")
+    parser.add_argument("version", nargs="?")
+    parser.add_argument("commit", nargs="?")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--rehearse", action="store_true")
     parser.add_argument("--offline", action="store_true")
     arguments = parser.parse_args()
 
-    release = Release(arguments.version, rehearsal=arguments.rehearse, offline=arguments.offline)
+    version, commit = arguments.version, arguments.commit
+    # A lone argument that is no version is the commit, with the version still to be asked for.
+    if version is not None and commit is None and not re.fullmatch(VERSION_SHAPE, version):
+        version, commit = None, version
+    if version is None and arguments.resume:
+        version = release_in_progress(arguments.rehearse)
+    elif version is None:
+        version = ask_for_version(last_release(catalog_versions()["minecraft"]))
+
+    release = Release(version, rehearsal=arguments.rehearse, offline=arguments.offline)
     if arguments.resume:
         release.load_state()
         if not release.is_done("tag"):
             release.check_ephemeris()
     else:
-        release.preflight(arguments.commit)
+        release.preflight(commit or "HEAD")
         release.save_state()
     release.run()
 
