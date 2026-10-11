@@ -134,7 +134,7 @@ class MagmaChamberCheck : FunSpec({
         val surface = pool.highestSolidY
         check(roof != null) { "the chamber reported at ($x, $z) has no hollow over its own axis" }
         check(surface != null) { "the chamber at ($x, $z) is dry" }
-        check(surface!! < roof!!) { "the lava at ($x, $z) stands at $surface against a roof at $roof" }
+        check(surface < roof) { "the lava at ($x, $z) stands at $surface against a roof at $roof" }
         println("  the chamber at ($x, $z): lava to y=$surface under a roof at y=$roof")
     }
 }) {

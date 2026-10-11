@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.field
 
+import io.kotest.common.ExperimentalKotest
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.property.Arb
 import io.kotest.property.PropTestConfig
@@ -18,6 +19,7 @@ import io.kotest.property.checkAll
  * `arbitrary { }` block carries no shrinker, so nothing shrank. Pairs print legibly and are a shape Kotest
  * knows how to shrink.
  */
+@OptIn(ExperimentalKotest::class)
 class SpansCheck : FunSpec({
 
     val operations = listOf<Triple<String, (Spans, Spans) -> Spans, (Boolean, Boolean) -> Boolean>>(

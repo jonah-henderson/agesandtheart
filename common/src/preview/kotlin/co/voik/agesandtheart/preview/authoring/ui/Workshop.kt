@@ -154,7 +154,7 @@ class Workshop(
                         ),
                     ),
                 )
-                val key = scope.readKey() ?: return
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 val standing = drafts.focused?.key?.let(AgeDraft::read)
                 when {
@@ -217,7 +217,7 @@ class Workshop(
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
             while (true) {
                 canvas.show(lines())
-                val key = scope.readKey() ?: return
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 message = ""
                 when {
@@ -840,7 +840,7 @@ class Workshop(
                             hints("↑↓" to "move", "enter" to "choose", "escape" to "leave it"),
                         ),
                 )
-                val key = scope.readKey() ?: return null
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
                     key.ctrl && key.key == "q" -> return null

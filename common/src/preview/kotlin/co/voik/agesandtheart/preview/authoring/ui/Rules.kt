@@ -55,7 +55,7 @@ class Rules(
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
             while (true) {
                 canvas.show(lines(table))
-                val key = scope.readKey() ?: return
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
                     key.ctrl && key.key == "q" -> return
@@ -122,7 +122,7 @@ class Rules(
                     widths = widthsFor(rules, pane)
                 }
                 canvas.show(detailLines(tag, listed, rules, members, pane, widths))
-                val key = scope.readKey() ?: return
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 val focused = when (pane) {
                     Pane.ASPECTS -> listed

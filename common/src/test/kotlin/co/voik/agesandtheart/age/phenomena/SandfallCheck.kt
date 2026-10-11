@@ -400,7 +400,7 @@ class SandfallCheck : FunSpec({
         val shader = Path.of("src/main/resources/assets/agesandtheart/shaders/sand_column.fsh").readText()
         val declared = Regex("""const float FASTEST_FALL = ([0-9.]+);""").find(shader)
         check(declared != null) { "sand_column.fsh no longer declares FASTEST_FALL" }
-        val fastest = declared!!.groupValues[1].toDouble()
+        val fastest = declared.groupValues[1].toDouble()
         check(fastest == ColumnBehaviour.FASTEST_POUR.toDouble()) {
             "the shader pours at $fastest where we send ${ColumnBehaviour.FASTEST_POUR}"
         }

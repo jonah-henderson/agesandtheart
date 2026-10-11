@@ -89,6 +89,8 @@ class CompounderBlock(properties: Properties) : BaseEntityBlock(properties) {
     override fun rotate(state: BlockState, rotation: Rotation): BlockState =
         state.setValue(FACING, rotation.rotate(state.getValue(FACING)))
 
+    // NeoForge deprecates this for an extension of its own, which common cannot call.
+    @Suppress("DEPRECATION")
     override fun mirror(state: BlockState, mirror: Mirror): BlockState =
         state.rotate(mirror.getRotation(state.getValue(FACING)))
 

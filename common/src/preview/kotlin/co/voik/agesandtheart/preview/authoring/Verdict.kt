@@ -258,7 +258,7 @@ object Verdict {
                         Standing.NOTED,
                         "'$tag' only exists on a running server",
                         members?.let {
-                            "a server had it on ${it.size} thing(s) — ${corpus.snapshot?.provenance}"
+                            "a server had it on ${it.size} thing(s) — ${corpus.snapshot.provenance}"
                         } ?: "nothing offline can carry it — sync data from server to see what one does",
                     ),
                 )

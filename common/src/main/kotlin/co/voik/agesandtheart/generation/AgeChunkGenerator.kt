@@ -1138,6 +1138,8 @@ class AgeChunkGenerator(
                         chunk.markPosForPostProcessing(here)
                     }
                     if (wasTurf && chunk.getBlockState(below.setWithOffset(here, Direction.DOWN)).`is`(Blocks.DIRT)) {
+                        // Deprecated in vanilla with no replacement, and vanilla still calls it.
+                        @Suppress("DEPRECATION")
                         randomState.surfaceSystem().topMaterial(
                             surfaceRule,
                             randomState,
@@ -1215,7 +1217,10 @@ class AgeChunkGenerator(
             return if (fluid.`is`(FluidTags.WATER) && fluid.isSource) fluid.createLegacyBlock() else null
         }
         val reaching = ArrayDeque<Pair<Long, BlockState>>()
-        for (packed in opened) {
+        // Unboxed: `for` over a fastutil set calls the boxing `next()`.
+        val each = opened.iterator()
+        while (each.hasNext()) {
+            val packed = each.nextLong()
             val x = BlockPos.getX(packed)
             val y = BlockPos.getY(packed)
             val z = BlockPos.getZ(packed)
@@ -1340,6 +1345,8 @@ class AgeChunkGenerator(
         val isOurShape = rock is AgeRock.Ours
         val living = lives
         if (!isOurShape && living == null) return super.spawnOriginalMobs(level)
+        // Deprecated in vanilla with no replacement, and vanilla still calls it.
+        @Suppress("DEPRECATION")
         if (!isOurShape && generatorSettings().value().disableMobGeneration()) return
         val center = level.center
         val random = WorldgenRandom(LegacyRandomSource(RandomSupport.generateUniqueSeed()))

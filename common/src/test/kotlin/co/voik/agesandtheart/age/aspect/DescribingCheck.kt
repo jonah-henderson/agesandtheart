@@ -65,7 +65,7 @@ class DescribingCheck : FunSpec({
             .flatMap { place ->
                 MobCategory.entries.flatMap { category -> living.at(null, category, place, nothingOffered).unwrap() }
             }
-            .mapNotNull { BuiltInRegistries.ENTITY_TYPE.getKey(it.value().type())?.toString() }
+            .map { BuiltInRegistries.ENTITY_TYPE.getKey(it.value().type()).toString() }
             .toSet()
     }
 

@@ -22,7 +22,7 @@ object ProposedBook {
         val byPage = known.filter { isAPage(vocabulary, it) }.associateBy(Identifier::getPath)
         val nucleus = byPage.keys.sorted().firstOrNull { vocabulary.grammarWord(it) != null && Grammar.isABook(vocabulary, listOf(it)) }
             ?: return emptyList()
-        val aimingPages = Aspect.entries.mapNotNull { aspect -> aspect.page?.let { aspect to it } }
+        val aimingPages = Aspect.entries.map { aspect -> aspect to aspect.page }
             .filter { (_, page) -> page in byPage && vocabulary.word(page) != null }
             .distinctBy { (_, page) -> page }
         val aimingPageNames = aimingPages.map { it.second }.toSet()

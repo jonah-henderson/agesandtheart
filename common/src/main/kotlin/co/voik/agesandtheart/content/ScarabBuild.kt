@@ -154,6 +154,8 @@ class ScarabBuild(private val scarab: Scarab) : Goal() {
         val top = Vec3.atBottomCenterOf(at.above())
         val grains = BlockParticleOption(ParticleTypes.BLOCK, state)
         level.sendParticles(grains, top.x, top.y, top.z, GRAINS, GRAIN_SPREAD, 0.0, GRAIN_SPREAD, GRAIN_SPEED)
+        // NeoForge deprecates this for an extension of its own, which common cannot call.
+        @Suppress("DEPRECATION")
         val sound = state.soundType
         level.playSound(null, at, sound.hitSound, SoundSource.NEUTRAL, sound.volume * SCUFF_VOLUME, sound.pitch)
     }

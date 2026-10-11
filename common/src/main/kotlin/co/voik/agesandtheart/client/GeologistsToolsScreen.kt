@@ -48,7 +48,7 @@ class GeologistsToolsScreen(menu: GeologistsToolsMenu, inventory: Inventory, tit
      * knows which — and otherwise the one at the desk, which has no name until it is bound.
      */
     private fun headerFor(holdsNothing: Boolean): Component {
-        val standingIn = minecraft?.level?.dimension()
+        val standingIn = minecraft.level?.dimension()
         val suffix = if (holdsNothing) "_nothing" else ""
         return if (menu.source == ReadingSource.AN_AGE && standingIn != null) {
             translated("contains$suffix", WordNames.placeName(standingIn))

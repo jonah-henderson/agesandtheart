@@ -945,8 +945,7 @@ class Parts(private val corpus: Corpus) {
     private fun blocksFor(parameter: Parameter): List<Picker.Option> =
         corpus.vocabulary.derivedWords
             .mapNotNull { it.material }
-            .filter { !parameter.holdsYouUp || Materials.makesAWorld(it.toString()) }
-            .map { it.toString() }
+            .filter { !parameter.holdsYouUp || Materials.makesAWorld(it) }
             .distinct()
             .sortedWith(compareBy({ it.substringBefore(':') != "minecraft" }, { it }))
             .map { id -> Picker.Option(id, id, "") }

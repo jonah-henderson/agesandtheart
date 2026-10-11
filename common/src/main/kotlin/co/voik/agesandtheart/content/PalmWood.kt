@@ -157,6 +157,8 @@ object PalmWood {
         ::CoconutBlock,
     )
 
+    // NeoForge deprecates this for an extension of its own, which common cannot call.
+    @Suppress("DEPRECATION")
     val POTTED_SAPLING: FlowerPotBlock = block(
         "potted_palm_sapling",
         BlockBehaviour.Properties.of().instabreak().noOcclusion().pushReaction(PushReaction.POPPED),
@@ -174,11 +176,15 @@ object PalmWood {
         ::HangingCoconutBlock,
     )
 
+    // Deprecated in vanilla with no replacement, and vanilla still calls it.
+    @Suppress("DEPRECATION")
     val STAIRS: StairBlock = block(
         "palm_stairs",
         BlockBehaviour.Properties.ofLegacyCopy(PLANKS).isViewBlocking(::nearPlaneIntersectsOutline),
     ) { object : StairBlock(PLANKS.defaultBlockState(), it) {} }
 
+    // Deprecated in vanilla with no replacement, and vanilla still calls it.
+    @Suppress("DEPRECATION")
     val SLAB: SlabBlock =
         block("palm_slab", BlockBehaviour.Properties.ofLegacyCopy(PLANKS).isViewBlocking(::nearPlaneIntersectsOutline), ::SlabBlock)
 

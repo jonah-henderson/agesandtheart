@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.util.valueproviders.UniformInt
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
@@ -104,7 +105,7 @@ private fun narrowedBy(
 }
 
 private fun kinds(list: WeightedList<MobSpawnSettings.SpawnerData>): List<String> =
-    list.unwrap().map { it.value().type().builtInRegistryHolder().key().identifier().path }.sorted()
+    list.unwrap().map { BuiltInRegistries.ENTITY_TYPE.getKey(it.value().type()).path }.sorted()
 
 /** Nothing in this spec judges a creature by the light, so any answer serves. */
 private const val ANY_LIGHT_WILL_DO = 0

@@ -46,6 +46,8 @@ class EntranceOnGroundStructure(
         val pieces = placed.getPiecesBuilder()
         val door = entranceOf(pieces, context)
         val rise = if (door == null) 0 else groundOutside(door, context) - door.position.y
+        // Deprecated in vanilla with no replacement, and vanilla still calls it.
+        @Suppress("DEPRECATION")
         pieces.offsetPiecesVertically(rise)
         return GenerationStub(placed.position().above(rise), Either.right(pieces))
     }

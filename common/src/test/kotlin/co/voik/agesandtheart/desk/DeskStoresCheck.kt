@@ -57,7 +57,7 @@ class DeskStoresCheck : FunSpec({
 
         val paid = ready.paying(costOf(common = 400, sheets = 1))
         check(paid != null) { "An affordable book should be paid for" }
-        check(paid!!.ink(InkTier.COMMON) == 600L) { "Ink left ${paid.ink(InkTier.COMMON)}" }
+        check(paid.ink(InkTier.COMMON) == 600L) { "Ink left ${paid.ink(InkTier.COMMON)}" }
         check(paid.paper(InkTier.COMMON) == 1) { "Paper left ${paid.paper(InkTier.COMMON)}" }
         check(paid.binding() == 0) { "Binding left ${paid.binding()}" }
     }
@@ -76,6 +76,6 @@ class DeskStoresCheck : FunSpec({
         check(archive.without(flat, 4) == null) { "Cannot take more than it holds" }
         val taken = archive.without(flat, 3)
         check(taken != null && taken.count(flat) == 0)
-        check(taken!!.words.isEmpty()) { "An emptied word should leave no entry behind" }
+        check(taken.words.isEmpty()) { "An emptied word should leave no entry behind" }
     }
 })

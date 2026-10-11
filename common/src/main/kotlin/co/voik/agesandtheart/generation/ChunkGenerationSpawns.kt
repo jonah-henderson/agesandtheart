@@ -3,6 +3,7 @@ package co.voik.agesandtheart.generation
 import co.voik.agesandtheart.Constants
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.WorldGenRegion
 import net.minecraft.util.Mth
 import net.minecraft.util.RandomSource
@@ -29,7 +30,7 @@ import net.minecraft.world.level.gamerules.GameRules
 internal object ChunkGenerationSpawns {
 
     fun spawn(level: WorldGenRegion, mobs: WeightedList<MobSpawnSettings.SpawnerData>, random: RandomSource) {
-        if (!level.level.gameRules.get(GameRules.SPAWN_MOBS) || mobs.isEmpty) return
+        if (!serverLevelOf(level).gameRules.get(GameRules.SPAWN_MOBS) || mobs.isEmpty) return
         val center = level.center
         val sourcePos = center.worldPosition.atY(level.maxY)
         val creatureProbability = level.environmentAttributes()
@@ -98,6 +99,8 @@ internal object ChunkGenerationSpawns {
             mob.snapTo(fx, pos.y.toDouble(), fz, random.nextFloat() * FULL_TURN, 0.0f)
             val fits = mob.checkSpawnRules(level, EntitySpawnReason.CHUNK_GENERATION) && mob.checkSpawnObstruction(level)
             if (!fits) return Tried.MOVE_ON
+            // NeoForge deprecates this for an extension of its own, which common cannot call.
+            @Suppress("DEPRECATION")
             groupSpawnData = mob.finalizeSpawn(
                 level,
                 level.getCurrentDifficultyAt(mob.blockPosition()),
@@ -123,9 +126,13 @@ internal object ChunkGenerationSpawns {
         }
     }
 
+    // Deprecated in vanilla with no replacement, and vanilla still calls it.
+    @Suppress("DEPRECATION")
+    private fun serverLevelOf(region: WorldGenRegion): ServerLevel = region.level
+
     private fun created(level: WorldGenRegion, type: EntityType<*>): Mob? =
         try {
-            type.create(level.level, EntitySpawnReason.NATURAL) as? Mob
+            type.create(serverLevelOf(level), EntitySpawnReason.NATURAL) as? Mob
         } catch (failure: Exception) {
             Constants.LOG.warn("Failed to create mob", failure)
             null

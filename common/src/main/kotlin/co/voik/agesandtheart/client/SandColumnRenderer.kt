@@ -243,6 +243,8 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
          * saying which stage it is; `sand_column.fsh` answers those defines the way vanilla's own particles
          * do. Nothing here chooses when they are used: the client's setting does.
          */
+        // NeoForge deprecates this for an extension of its own, which common cannot call.
+        @Suppress("DEPRECATION")
         private val SORTED_PIPELINES: OitPipelineSet =
             OitPipelineSet.builder("sand_column", RenderPipeline.builder(SHARED)).build()
 

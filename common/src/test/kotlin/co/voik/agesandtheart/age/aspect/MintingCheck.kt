@@ -184,7 +184,7 @@ class MintingCheck : FunSpec({
         }
         val made = spilled.value().feature().value()
         check(made is SpilledSpring) { "a solid spring was rebuilt as $made" }
-        val substance = (made as SpilledSpring).substance
+        val substance = made.substance
         check(substance == Blocks.GOLD_BLOCK.defaultBlockState()) { "the spill is made of $substance" }
     }
 
@@ -193,7 +193,7 @@ class MintingCheck : FunSpec({
         val spring = placedFeature("minecraft:spring_water")
         val running = FeatureShape.mintedFrom(spring, listOf("minecraft:lava")).value().feature().value()
         check(running is SpringFeature) { "a lava spring stopped being a spring: $running" }
-        check((running as SpringFeature).state().type === Fluids.LAVA) {
+        check(running.state().type === Fluids.LAVA) {
             "a lava spring runs with ${running.state().type}"
         }
     }

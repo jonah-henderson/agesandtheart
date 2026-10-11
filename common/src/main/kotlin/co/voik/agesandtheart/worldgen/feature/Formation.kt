@@ -451,6 +451,8 @@ data class Formation(
             return apartX * apartX + apartZ * apartZ < touching * touching
         }
 
+        // Deprecated in vanilla with no replacement, and vanilla still calls it.
+        @Suppress("DEPRECATION")
         private val priority: Long get() = Mth.getSeed(originX, 0, originZ)
 
         fun comesBefore(other: Standing): Boolean = when {

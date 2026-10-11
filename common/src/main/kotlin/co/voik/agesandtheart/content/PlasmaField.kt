@@ -77,7 +77,7 @@ object PlasmaField {
             entity.hurtServer(level, Plasma.damageIn(level), MOST_DAMAGE * nearness)
             return
         }
-        ProtectiveSuit.wearOut(entity as ServerPlayer, points = maxOf(1, (MOST_WEAR * nearness).toInt()))
+        ProtectiveSuit.wearOut(entity, points = maxOf(1, (MOST_WEAR * nearness).toInt()))
     }
 
     private fun burnOver(level: ServerLevel, generator: ChunkGenerator, chunks: List<Long>) {
@@ -113,6 +113,8 @@ object PlasmaField {
     }
 
     /** Fire over what burns, as lava sets it: only into air, and only by chance. */
+    // NeoForge deprecates this for an extension of its own, which common cannot call.
+    @Suppress("DEPRECATION")
     private fun setAlight(level: ServerLevel, position: BlockPos.MutableBlockPos) {
         if (!level.getBlockState(position).ignitedByLava()) return
         if (level.random.nextDouble() >= CATCHES) return

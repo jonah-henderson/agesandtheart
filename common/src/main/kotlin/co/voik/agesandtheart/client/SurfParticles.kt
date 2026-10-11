@@ -97,7 +97,7 @@ object SurfParticles {
                 wetted = true
                 if (furthest > WETS_PAST) {
                     Minecraft.getInstance().particleEngine.add(
-                        WetSand(level as ClientLevel, x, sandTop + WET_LIFT + sliver(), z, quadSize * WET_WIDER, yaw),
+                        WetSand(level, x, sandTop + WET_LIFT + sliver(), z, quadSize * WET_WIDER, yaw),
                     )
                 }
             }

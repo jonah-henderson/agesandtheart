@@ -18,6 +18,8 @@ object CoconutHoofbeats {
 
     /** As a horse's own step sounds: a gallop when sprinting, the hollow knock on wood, the plain step elsewhere. */
     fun clipClop(player: Player, ground: BlockState) {
+        // NeoForge deprecates this for an extension of its own, which common cannot call.
+        @Suppress("DEPRECATION")
         val soundType = ground.soundType
         val sound = when {
             player.isSprinting -> SoundEvents.HORSE_GALLOP

@@ -74,7 +74,7 @@ object ArchiveWriting {
         for (x in -radius..radius) for (y in -radius..radius) for (z in -radius..radius) {
             cursor.setWithOffset(pos, x, y, z)
             val desk = level.getBlockEntity(cursor) as? WritersDeskBlockEntity ?: continue
-            val distance = cursor.distSqr(pos).toDouble()
+            val distance = cursor.distSqr(pos)
             if (distance < closestDistance) {
                 closest = desk
                 closestDistance = distance

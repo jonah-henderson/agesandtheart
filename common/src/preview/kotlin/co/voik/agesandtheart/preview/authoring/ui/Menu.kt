@@ -481,7 +481,7 @@ class Menu(
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
             while (true) {
                 canvas.show(tableLines(table))
-                val key = scope.readKey() ?: return null
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 val row = table.focused
                 val kind = table.columns[table.column].kind
@@ -579,7 +579,7 @@ class Menu(
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
             while (true) {
                 canvas.show(pickerLines(picker, subtitle, standing))
-                val key = scope.readKey() ?: return null
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
                     key.ctrl && key.key == "q" -> return null

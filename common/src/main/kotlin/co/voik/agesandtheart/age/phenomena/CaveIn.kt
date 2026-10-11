@@ -287,6 +287,8 @@ class CaveIn(type: EntityType<out CaveIn>, level: Level) : Entity(type, level) {
      * Whether [state] is ground a cave-in can take: not air, and not a fluid, which would only flow back in
      * or turn back into a source as fast as it was taken.
      */
+    // Deprecated in vanilla with no replacement, and vanilla still calls it.
+    @Suppress("DEPRECATION")
     private fun isGround(state: BlockState): Boolean = !state.isAir && !state.liquid()
 
     /** What a cave-in will not take — `#immune_to_collapse`, and what nara holds ([BetweenCompoundedStone]). */

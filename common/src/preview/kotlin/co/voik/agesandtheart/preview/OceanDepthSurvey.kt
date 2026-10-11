@@ -100,6 +100,7 @@ fun main(args: Array<String>) {
             // ocean, and lumping the two together is what made the heightmap version nonsense.
             // `blocksMotion` is gone; what is left of it is `isSolid`, the cobweb and bamboo-sapling
             // exceptions it also carried having been dropped. Neither is rock over an ocean.
+            @Suppress("DEPRECATION")
             val roofed = column.getBlock(seaLevel).isSolid
             if (roofed) {
                 enclosed += run

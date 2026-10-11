@@ -79,7 +79,7 @@ class ScarabSettle(private val scarab: Scarab) : Goal() {
             travelling = 0
             return
         }
-        aim?.let(scarab::headFor)
+        scarab.headFor(aim)
     }
 
     private fun aNewHeading(level: ServerLevel): Vec3 {

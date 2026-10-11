@@ -90,6 +90,8 @@ class CompounderBlockEntity(pos: BlockPos, state: BlockState) :
             level.levelEvent(LevelEvent.SOUND_CRAFTER_FAIL, blockPos, 0)
             return
         }
+        // NeoForge deprecates this for an extension of its own, which common cannot call.
+        @Suppress("DEPRECATION")
         val into = HopperBlockEntity.getContainerAt(level, blockPos.relative(front))
         var left = made
         if (into != null) {

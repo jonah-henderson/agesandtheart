@@ -146,6 +146,8 @@ object AgeRenderTypes {
      * additive thing contributes light rather than covering what is behind it, so it is accumulated instead
      * of weighed against the layers under it. `core/position_color` already answers every OIT define.
      */
+    // NeoForge deprecates this for an extension of its own, which common cannot call.
+    @Suppress("DEPRECATION")
     private val SORTED_GLOW: OitPipelineSet =
         OitPipelineSet.builder("age_light_through_fog", RenderPipeline.builder(GLOW).withShaderDefine("OIT_ADDITIVE"))
             .build()

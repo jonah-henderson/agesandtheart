@@ -14,7 +14,6 @@ import net.minecraft.world.level.ClipContext
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.HitResult
 
 /**
@@ -42,7 +41,7 @@ class PlasmaContainmentUnitItem(block: Block, properties: Properties) : BlockIte
         val reach = eye.add(player.lookAngle.scale(player.blockInteractionRange()))
         val hit = level.clip(ClipContext(eye, reach, ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, player))
         val aimsAtTheSea = hit.type == HitResult.Type.BLOCK && level.getBlockState(hit.blockPos).`is`(Plasma.SEA)
-        return if (aimsAtTheSea) (hit as BlockHitResult).blockPos else null
+        return if (aimsAtTheSea) hit.blockPos else null
     }
 
     private fun fill(level: Level, player: Player, hand: InteractionHand, taken: BlockPos): InteractionResult {

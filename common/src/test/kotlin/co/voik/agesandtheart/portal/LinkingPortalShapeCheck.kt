@@ -64,7 +64,7 @@ class LinkingPortalShapeCheck : FunSpec({
         val lit = frame(width = 3, height = 4).fillOpening(PortalFooting.LIT)
         val fromTheTop = LinkingPortalShape.find(lit::footing, FLOOR, inside(2, 3), Direction.Axis.X)
         check(fromTheTop?.bottomLeft == inside(0, 0)) { "searched from the top corner, found ${fromTheTop?.bottomLeft}" }
-        check(fromTheTop != null && fromTheTop.isLit) { "a full opening of portal was not seen as lit" }
+        check(fromTheTop.isLit) { "a full opening of portal was not seen as lit" }
     }
 
     test("only the frame's own blocks frame it") {

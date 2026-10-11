@@ -83,7 +83,7 @@ class TorusCheck : FunSpec({
 
     test("resizing scales what it holds by the cube of the factor") {
         val ordinary = blocksIn(flat())
-        val doubled = blocksIn(flat().resized(2.0, 0) as Torus)
+        val doubled = blocksIn(flat().resized(2.0, 0))
         val eightfold = ordinary * 8.0
         check(abs(doubled - eightfold) / eightfold < TOLERANCE) {
             "doubled, a $ordinary-block ring came out $doubled where eight times is ${eightfold.toInt()}"

@@ -500,7 +500,7 @@ class VocabularyCheck : FunSpec({
         check(wrong.isEmpty()) { "${wrong.size} block words mean something elsewhere: ${wrong.take(5).map { it.name }}" }
         val ice = vocabulary.words.firstOrNull { it.name == "ice" }
         check(ice?.choiceIn(Aspect.SEA) != null) { "'ice sea' stopped being a sentence" }
-        check(ice?.choiceIn(Aspect.STRUCTURES) == null) { "'ice' still means a structure set" }
+        check(ice.choiceIn(Aspect.STRUCTURES) == null) { "'ice' still means a structure set" }
     }
 
     /**

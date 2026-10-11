@@ -46,7 +46,7 @@ object Dialogs {
                         hints("enter" to "accept", "escape" to "leave it alone"),
                     ),
                 )
-                val key = scope.readKey() ?: return null
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
                     key.ctrl && key.key == "q" -> return null
@@ -81,7 +81,7 @@ object Dialogs {
                             hints("↑↓" to "move", "enter" to "do it", "escape" to "keep it"),
                         ),
                 )
-                val key = scope.readKey() ?: return false
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
                     key.ctrl && key.key == "q" -> return false
@@ -99,7 +99,7 @@ object Dialogs {
             while (true) {
                 val window = (canvas.height - READER_CHROME).coerceAtLeast(1)
                 canvas.show(readerLines(canvas, reader, window))
-                val key = scope.readKey() ?: return
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
                     key.ctrl && key.key == "q" -> return

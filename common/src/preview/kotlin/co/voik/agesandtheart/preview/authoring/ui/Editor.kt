@@ -132,7 +132,7 @@ class Editor(
                 draw()
                 // **`break`, not `continue`.** A closed input reads null for ever, and a loop that
                 // carried on would spin a core redrawing a frame nobody is looking at.
-                val key = scope.readKey() ?: break
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 message = null
                 handle(key)
@@ -226,7 +226,7 @@ class Editor(
         // bottom and leave them looking unreachable.
         val sections = scrolled(sectionList(), part.ordinal, room)
         val body = Frame.beside(sections, SECTION_WIDTH, partLines(wordWidth, room), wordWidth).take(room)
-        if (!roomForThree || asked == null) return body
+        if (!roomForThree) return body
 
         val questionWidth = (rest - wordWidth - Frame.GUTTER).coerceAtMost(QUESTION_MOST)
         val question = overlayLines(asked, questionWidth, room)

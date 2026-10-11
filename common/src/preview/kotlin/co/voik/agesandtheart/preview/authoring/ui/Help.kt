@@ -38,7 +38,7 @@ class Help(
             while (true) {
                 val window = (canvas.height - CHROME).coerceAtLeast(1)
                 canvas.show(lines(window))
-                val key = scope.readKey() ?: return
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 val last = (contentOf(page).size - window).coerceAtLeast(0)
                 fun scroll(by: Int) { offset = (offset + by).coerceIn(0, last) }

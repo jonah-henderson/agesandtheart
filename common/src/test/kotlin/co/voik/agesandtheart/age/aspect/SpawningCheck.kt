@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.util.valueproviders.UniformInt
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
@@ -330,7 +331,7 @@ private fun livingWith(
     return Spawns.livingIn(options, shippedSpawning, livesSomewhere)
         .at(null, category, Spawns.Situation(BlockPos.ZERO, skyIsOpen, brightness), aMeadow())
         .unwrap()
-        .map { it.value().type().builtInRegistryHolder().key().identifier().path }
+        .map { BuiltInRegistries.ENTITY_TYPE.getKey(it.value().type()).path }
 }
 
 /** The shipped `art/spawning.json`. */

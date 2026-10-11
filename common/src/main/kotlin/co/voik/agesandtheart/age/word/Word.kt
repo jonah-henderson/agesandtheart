@@ -1216,7 +1216,7 @@ object Bars {
         val level = spelled.drop(1).toDoubleOrNull()
         val isSpelledRight = (direction == AT_LEAST || direction == AT_MOST) && level != null && level > 0.0 &&
             level <= 1.0
-        if (!isSpelledRight || level == null) {
+        if (!isSpelledRight) {
             return DataResult.error { "'$spelled' is no bar: write '>0.6' for at least 0.6, '<0.2' for at most 0.2" }
         }
         return DataResult.success(if (direction == AT_LEAST) level else -level)

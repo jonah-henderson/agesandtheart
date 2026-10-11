@@ -294,6 +294,8 @@ class Scarab(type: EntityType<out Scarab>, level: Level) : Animal(type, level) {
 
     override fun omnidirectionalAirMover(): Boolean = true
 
+    // NeoForge deprecates this for an extension of its own, which common cannot call.
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun jumpInLiquid(type: TagKey<Fluid>) {
         deltaMovement = deltaMovement.add(0.0, LIFT_OUT_OF_LIQUID, 0.0)
     }

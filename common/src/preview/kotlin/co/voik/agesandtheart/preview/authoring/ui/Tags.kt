@@ -168,7 +168,7 @@ class Tags(
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
             while (true) {
                 canvas.show(memberLines(table, named, grouped))
-                val key = scope.readKey() ?: return
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 val row = table.focused
 
@@ -302,7 +302,7 @@ class Tags(
                         listOf(hints("enter" to "take it", "←" to "back", searching(table.filter))),
                     ),
                 )
-                val key = scope.readKey() ?: return null
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
                     key.ctrl && key.key == "q" -> return null
@@ -494,7 +494,7 @@ class Tags(
                         ),
                     ),
                 )
-                val key = scope.readKey() ?: return null
+                val key = scope.readKey()
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
                     key.ctrl && key.key == "q" -> return null
