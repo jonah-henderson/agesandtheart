@@ -196,6 +196,10 @@ tasks.named("javadocJar", Jar) {
 }
 
 processResources {
+    // `-PlocalEphemeris` drops the Ephemeris version requirement, for running against the sibling checkout,
+    // whose version is its last release plus commits and so sits below the range this mod asks for. Pass it
+    // on the command line, never in a gradle.properties that a release build could read.
+    def localEphemeris = project.hasProperty('localEphemeris')
     var expandProps = [
             'version'                      : version,
             'group'                        : project.group, //Else we target the task's group.
@@ -213,8 +217,8 @@ processResources {
             'neoforge_range'               : libs.versions.neoforgeRange.get(),
             'kff_version'                  : libs.versions.kff.get(),
             'kff_version_range'            : libs.versions.kffRange.get(),
-            'ephemeris_range_neoforge'     : libs.versions.ephemerisRangeNeoForge.get(),
-            'ephemeris_range_fabric'       : libs.versions.ephemerisRangeFabric.get(),
+            'ephemeris_range_neoforge'     : localEphemeris ? '[0,)' : libs.versions.ephemerisRangeNeoForge.get(),
+            'ephemeris_range_fabric'       : localEphemeris ? '*' : libs.versions.ephemerisRangeFabric.get(),
             'config_port_range'            : libs.versions.forgeConfigApiPortRange.get(),
             'credits'                      : credits,
             'java_version'                 : libs.versions.java.get()
