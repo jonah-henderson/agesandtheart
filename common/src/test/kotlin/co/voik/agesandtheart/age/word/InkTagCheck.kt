@@ -66,7 +66,8 @@ class InkTagCheck : FunSpec({
                 JsonParser.parseString(file.readText()).asJsonObject
                     .getAsJsonArray("words").map { file.name to it.asString }
             }
-        val unknown = listed.filter { (_, word) -> vocabulary.word(word) == null }
+        fun isAWord(name: String) = vocabulary.word(name) != null || vocabulary.grammarWord(name) != null
+        val unknown = listed.filterNot { (_, word) -> isAWord(word) }
         check(unknown.isEmpty()) { "art/ink lists words the corpus does not have: $unknown" }
     }
 })

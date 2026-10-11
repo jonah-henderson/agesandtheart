@@ -1,13 +1,25 @@
 {
-  "_comment": "Authored words worth more than common ink, short of the summit.",
+  "_comment": [
+    "Authored words worth more than common ink, short of the summit. The structural words here are the ones",
+    "that do something advanced to generation, and the rungs at either end of the frequency and size ladders;",
+    "the steps beside normal, and the pages every book needs (age and the aiming pages), stay common."
+  ],
   "words": [
+    "and",
     "beautiful",
     "colossal",
     "delved",
     "deserted",
+    "everywhere",
     "floating",
+    "in",
     "lifeless",
+    "minuscule",
+    "no",
+    "only",
+    "scarce",
     "starlit",
+    "teeming",
     "uncanny"
   ]
 }

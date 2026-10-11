@@ -132,20 +132,25 @@ class WritersDeskMenu(
         /**
          * What writing a page of [word] costs on each paper.
          *
-         * A structural word — `and`, `only`, a rung — has no referent and so no cost number of its own; it
-         * is priced as the cheapest page there is, since the grammar is not what the ink is for, but in
-         * [WriteCost.STRUCTURAL_INK].
+         * A structural word — `age`, `and`, a rung — has no referent and so no cost number of its own; it
+         * is priced as the cheapest page there is, since the grammar is not what the ink is for, in the ink
+         * `art/ink/` lists it under.
          */
         fun pricePage(player: ServerPlayer, word: Identifier): PagePrice {
             val vocabulary = vocabularyFor(player)
             val registries = player.level().registryAccess()
             val units = Services.INK_FLUIDS.unitsPerBucket
             val spelled = vocabulary.word(word.toString()) ?: vocabulary.word(word.path)
-                ?: return PagePrice(WriteCost.STRUCTURAL_INK, InkTier.entries.associateWith { WriteCost.structural(it, units) })
+                ?: return structuralPrice(vocabulary, word.path, units)
             val costs = InkTier.entries.associateWith { paper ->
                 WriteCost.of(spelled, vocabulary, registries, paper, units)
             }
             return PagePrice(costs.getValue(InkTier.COMMON).inkTier, costs.mapValues { it.value.inkUnits })
+        }
+
+        private fun structuralPrice(vocabulary: Vocabulary, name: String, units: Long): PagePrice {
+            val ink = vocabulary.grammarWord(name)?.let(vocabulary.ink::tierFor) ?: InkTier.DEFAULT
+            return PagePrice(ink, InkTier.entries.associateWith { WriteCost.structural(it, units) })
         }
     }
 }

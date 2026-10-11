@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.age.word.grammar.GrammarWord
 import co.voik.agesandtheart.datapack.ResourceParsing
 import co.voik.agesandtheart.location
 import com.mojang.serialization.Codec
@@ -39,7 +40,8 @@ enum class InkTier(val key: String) : StringRepresentable {
  * Two channels, because the vocabulary has two halves. A **derived** word names a registry entry, so its
  * requirement is a tag on that entry — which is what lets another mod declare its own ore worth the good
  * ink without touching us. An **authored** word names nothing, so it is listed by name in
- * `art/ink/<tier>.json`; that is how the sky words get there, having no registry entry to tag.
+ * `art/ink/<tier>.json`; that is how the sky words get there, having no registry entry to tag, and the
+ * structural words too.
  *
  * Everything unmentioned is [InkTier.COMMON]. Silence means cheap, so a pack that ships neither file nor
  * tag still works.
@@ -52,6 +54,9 @@ class InkRequirement(private val authored: Map<String, InkTier>) {
      */
     fun tierFor(word: Word, registries: RegistryAccess): InkTier =
         fromTags(word, registries) ?: authored[word.name] ?: InkTier.DEFAULT
+
+    /** What a structural page demands. It names nothing to tag, so only the authored list can raise it. */
+    fun tierFor(word: GrammarWord): InkTier = authored[word.name] ?: InkTier.DEFAULT
 
     /**
      * The tag answer, or null if nothing carries one. Asked dearest first, so a thing carrying both tags,

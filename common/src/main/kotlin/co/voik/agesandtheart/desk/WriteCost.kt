@@ -75,12 +75,6 @@ data class WriteCost(
             return (pages + perSheet - 1) / perSheet
         }
 
-        /**
-         * What a structural word (`and`, `only`, a rung) is written in, wherever it is written. It has no
-         * referent to take a tier from, and is meant to be found about when fine ink is within reach.
-         */
-        val STRUCTURAL_INK = InkTier.FINE
-
         /** A structural word's ink on [paperTier]: one unit of cost, the least any page is priced at. */
         fun structural(paperTier: InkTier, unitsPerBucket: Long): Long {
             val perUnit = unitsPerBucket.toDouble() / COST_UNITS_PER_BUCKET

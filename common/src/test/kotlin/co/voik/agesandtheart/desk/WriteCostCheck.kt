@@ -2,6 +2,7 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.Word
 import net.minecraft.core.RegistryAccess
@@ -72,6 +73,44 @@ class WriteCostCheck : FunSpec({
         }
     }
 
+    test("a structural word costs one unit, never nothing, on any paper") {
+        for (paper in InkTier.entries) {
+            check(WriteCost.structural(paper, 1000L) >= 1L) { "A structural word was free on $paper" }
+        }
+    }
+
+    /** The pages every book needs are the cheapest there are: common ink, at the floor. */
+    test("age and every aiming page are written in common ink at the least price") {
+        val age = vocabulary.grammarWord("age") ?: error("the corpus has no 'age' page")
+        check(vocabulary.ink.tierFor(age) == InkTier.COMMON) { "'age' demands ${vocabulary.ink.tierFor(age)}" }
+        for (aspect in Aspect.entries) {
+            val page = vocabulary.word(aspect.page) ?: error("the corpus has no aiming page for $aspect")
+            val tier = vocabulary.ink.tierFor(page, registries)
+            check(tier == InkTier.COMMON && page.price == Word.FLOOR_PRICE) {
+                "the aiming page '${page.name}' costs ${page.price} in $tier"
+            }
+        }
+    }
+
+    /**
+     * Grammar that does something advanced to generation, and the extremes of a ladder, take fine ink; the
+     * step either side of normal takes common (Jonah, 2026-10-11).
+     */
+    test("the extremes of the grammar take fine ink and the steps beside normal take common") {
+        fun tierOf(name: String): InkTier {
+            val structural = vocabulary.grammarWord(name)
+            val word = vocabulary.word(name)
+            return when {
+                structural != null -> vocabulary.ink.tierFor(structural)
+                word != null -> vocabulary.ink.tierFor(word, registries)
+                else -> error("the corpus has no '$name'")
+            }
+        }
+        val wrong = WANTED_INK.filter { (name, wanted) -> tierOf(name) != wanted }
+            .map { (name, wanted) -> "'$name' demands ${tierOf(name)}, not $wanted" }
+        check(wrong.isEmpty()) { wrong.joinToString("\n") }
+    }
+
     /**
      * **Ten of the commonest page to the bottle**, which is the figure the economy was tuned to (Jonah,
      * 2026-08-06). A bottle is a third of a bucket, so that page is a thirtieth of one.
@@ -81,13 +120,6 @@ class WriteCostCheck : FunSpec({
      * word at all, when a page was priced by its tier alone and every exact word cost the same; the anchor
      * has to name a *shape* now, since an exact word can be four units or twenty-four.
      */
-    test("a structural word is written in fine ink, at one unit, on any paper") {
-        check(WriteCost.STRUCTURAL_INK == InkTier.FINE) { "A structural word was written in ${WriteCost.STRUCTURAL_INK}" }
-        for (paper in InkTier.entries) {
-            check(WriteCost.structural(paper, 1000L) >= 1L) { "A structural word was free on $paper" }
-        }
-    }
-
     test("the commonest page costs a tenth of a bottle") {
         val ordinary = vocabulary.derivedWords.firstOrNull { it.price == A_COMMON_PAGE }
             ?: error("the corpus has no ordinary page to price")
@@ -138,6 +170,22 @@ private const val CLOSE_ENOUGH = 0.005
 private const val A_COMMON_PAGE = 8
 
 private const val A_TENTH_OF_A_BOTTLE = 0.1
+
+private val WANTED_INK = mapOf(
+    "and" to InkTier.FINE,
+    "only" to InkTier.FINE,
+    "no" to InkTier.FINE,
+    "in" to InkTier.FINE,
+    "everywhere" to InkTier.FINE,
+    "scarce" to InkTier.FINE,
+    "few" to InkTier.COMMON,
+    "plentiful" to InkTier.COMMON,
+    "teeming" to InkTier.FINE,
+    "minuscule" to InkTier.FINE,
+    "small" to InkTier.COMMON,
+    "large" to InkTier.COMMON,
+    "colossal" to InkTier.FINE,
+)
 
 /** Floating-point noise, far below one unit of either loader. */
 private const val HAIRS_BREADTH = 1e-9
