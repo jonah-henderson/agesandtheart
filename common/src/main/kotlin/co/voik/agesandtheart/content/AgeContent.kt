@@ -108,6 +108,7 @@ import net.minecraft.world.item.MapItem
 import net.minecraft.world.item.component.MapDecorations
 import net.minecraft.world.level.saveddata.maps.MapDecorationType
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
+import co.voik.agesandtheart.page.FinderLacksCondition
 import co.voik.agesandtheart.page.FirstFindCondition
 import net.minecraft.world.item.equipment.ArmorType
 import net.minecraft.world.item.equipment.Equippable
@@ -2175,6 +2176,7 @@ object AgeContent {
 
     val lootConditions: List<Pair<Identifier, MapCodec<out LootItemCondition>>> = listOf(
         "first_find".location() to FirstFindCondition.MAP_CODEC,
+        "finder_lacks".location() to FinderLacksCondition.MAP_CODEC,
     )
 
     /**

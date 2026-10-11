@@ -88,10 +88,12 @@ class PageWordFunction(
             finder: ServerPlayer? = null,
         ): Word? {
             val isNew: ((Word) -> Boolean)? = finder?.let { player -> { word -> !player.learnedWords.knows(word.id) } }
-            return vocabulary.rarity.draw(vocabulary, random, rarity, isNew) { word ->
-                !Withheld.holdsBack(word, registries) && !CannotAppearInLoot.keepsOut(word, vocabulary, registries)
-            }
+            return vocabulary.rarity.draw(vocabulary, random, rarity, isNew) { word -> canBeFound(word, vocabulary, registries) }
         }
+
+        /** Whether [word] may be written on a found page at all. */
+        fun canBeFound(word: Word, vocabulary: Vocabulary, registries: RegistryAccess): Boolean =
+            !Withheld.holdsBack(word, registries) && !CannotAppearInLoot.keepsOut(word, vocabulary, registries)
 
         /**
          * Writes a page left [for its finder][AgeComponents.PAGE_DRAWN_FOR] with a word drawn for [finder],

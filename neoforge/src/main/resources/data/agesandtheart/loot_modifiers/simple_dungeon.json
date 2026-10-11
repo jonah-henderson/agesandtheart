@@ -7,8 +7,8 @@
     },
     {
       "type": "minecraft:random_chance",
-      "chance": 0.1
+      "chance": 0.35
     }
   ] },
-  "table": "agesandtheart:inject/pages"
+  "table": "agesandtheart:inject/pages_early"
 }

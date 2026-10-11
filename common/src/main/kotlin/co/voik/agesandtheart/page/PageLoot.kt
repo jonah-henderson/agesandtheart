@@ -26,9 +26,20 @@ data class PageLootTarget(
  * own tables with the `roll_page_word` loot function instead of going through this at all.
  */
 object PageLoot {
-    /** Loose pages: one or two, any rarity. */
+    /** A page of any rarity — kept for packs to reference; our own containers use the two below. */
     val PAGES: ResourceKey<LootTable> =
         ResourceKey.create(Registries.LOOT_TABLE, "inject/pages".location())
+
+    /** A page from somewhere found early: mostly common words, with some staples and critical words. */
+    val EARLY_PAGES: ResourceKey<LootTable> =
+        ResourceKey.create(Registries.LOOT_TABLE, "inject/pages_early".location())
+
+    /** A page from somewhere found later: staple to rare, and critical only while the finder lacks one. */
+    val LATE_PAGES: ResourceKey<LootTable> =
+        ResourceKey.create(Registries.LOOT_TABLE, "inject/pages_late".location())
+
+    /** The tables that put a single page in a container. */
+    val PAGE_TABLES: Set<ResourceKey<LootTable>> = setOf(PAGES, EARLY_PAGES, LATE_PAGES)
 
     /** Someone else's filled notebook. Rarer, and worth far more at once. */
     val NOTEBOOK: ResourceKey<LootTable> =
@@ -52,23 +63,40 @@ object PageLoot {
     val TARGETS: List<PageLootTarget> get() = PLACED
 
     private val PLACED: List<PageLootTarget> = listOf(
-        // Pages: about half what they were while vanilla's chests were the only place to learn a word.
-        vanilla("chests/stronghold_library", 0.40f),
-        vanilla("chests/ancient_city", 0.25f),
-        vanilla("chests/woodland_mansion", 0.25f),
-        vanilla("chests/desert_pyramid", 0.20f),
-        vanilla("chests/jungle_temple", 0.20f),
-        vanilla("chests/bastion_treasure", 0.20f),
-        vanilla("chests/stronghold_crossing", 0.15f),
-        vanilla("chests/stronghold_corridor", 0.15f),
-        vanilla("chests/pillager_outpost", 0.15f),
-        vanilla("chests/underwater_ruin_big", 0.15f),
-        vanilla("chests/village/village_temple", 0.15f),
-        vanilla("chests/village/village_cartographer", 0.15f),
-        vanilla("chests/ruined_portal", 0.10f),
-        vanilla("chests/simple_dungeon", 0.10f),
-        vanilla("chests/abandoned_mineshaft", 0.10f),
-        vanilla("chests/shipwreck_map", 0.10f),
+        // Early pages: where a player is in the first hours, often enough that the critical set fills here.
+        // Per container, so a structure with many — a mineshaft's carts, a trial chamber's pots of loot —
+        // is pitched lower than one chest standing alone.
+        vanilla("chests/village/village_temple", 0.40f, EARLY_PAGES),
+        vanilla("chests/village/village_cartographer", 0.40f, EARLY_PAGES),
+        vanilla("chests/igloo_chest", 0.40f, EARLY_PAGES),
+        vanilla("chests/simple_dungeon", 0.35f, EARLY_PAGES),
+        vanilla("chests/jungle_temple", 0.35f, EARLY_PAGES),
+        vanilla("chests/pillager_outpost", 0.35f, EARLY_PAGES),
+        vanilla("chests/ruined_portal", 0.30f, EARLY_PAGES),
+        vanilla("chests/desert_pyramid", 0.30f, EARLY_PAGES),
+        vanilla("chests/shipwreck_map", 0.30f, EARLY_PAGES),
+        vanilla("chests/shipwreck_supply", 0.30f, EARLY_PAGES),
+        vanilla("chests/shipwreck_treasure", 0.30f, EARLY_PAGES),
+        vanilla("chests/underwater_ruin_big", 0.30f, EARLY_PAGES),
+        vanilla("chests/underwater_ruin_small", 0.20f, EARLY_PAGES),
+        vanilla("chests/abandoned_mineshaft", 0.20f, EARLY_PAGES),
+        vanilla("chests/trial_chambers/supply", 0.20f, EARLY_PAGES),
+        vanilla("chests/trial_chambers/corridor", 0.20f, EARLY_PAGES),
+        vanilla("chests/trial_chambers/entrance", 0.20f, EARLY_PAGES),
+        vanilla("chests/trial_chambers/intersection", 0.20f, EARLY_PAGES),
+        vanilla("chests/trial_chambers/intersection_barrel", 0.20f, EARLY_PAGES),
+
+        // Late pages: further in, more often, and from further up the rarities.
+        vanilla("chests/stronghold_library", 0.70f, LATE_PAGES),
+        vanilla("chests/bastion_treasure", 0.60f, LATE_PAGES),
+        vanilla("chests/end_city_treasure", 0.60f, LATE_PAGES),
+        vanilla("chests/ancient_city", 0.45f, LATE_PAGES),
+        vanilla("chests/woodland_mansion", 0.45f, LATE_PAGES),
+        vanilla("chests/stronghold_crossing", 0.40f, LATE_PAGES),
+        vanilla("chests/stronghold_corridor", 0.40f, LATE_PAGES),
+        vanilla("chests/nether_bridge", 0.30f, LATE_PAGES),
+        vanilla("chests/bastion_other", 0.30f, LATE_PAGES),
+        vanilla("chests/bastion_bridge", 0.30f, LATE_PAGES),
 
         // Notebooks: someone's whole collection, so only where a person kept one, and rarely.
         vanilla("chests/stronghold_library", 0.12f, NOTEBOOK),
@@ -108,7 +136,7 @@ object PageLoot {
     /** One roll of the injected table; how often it yields anything is the chance above. */
     private const val ONE_ROLL = 1
 
-    private fun vanilla(path: String, chance: Float, injected: ResourceKey<LootTable> = PAGES) =
+    private fun vanilla(path: String, chance: Float, injected: ResourceKey<LootTable>) =
         PageLootTarget(
             ResourceKey.create(Registries.LOOT_TABLE, Identifier.withDefaultNamespace(path)),
             chance,

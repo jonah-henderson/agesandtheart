@@ -262,6 +262,7 @@ item agesandtheart:white_sandstone
 item agesandtheart:wound
 item agesandtheart:writers_desk
 item agesandtheart:yellow_rime_crystal
+loot_condition_type agesandtheart:finder_lacks
 loot_condition_type agesandtheart:first_find
 loot_function_type agesandtheart:bind_linking_book
 loot_function_type agesandtheart:fill_notebook

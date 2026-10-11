@@ -250,7 +250,9 @@ main() {
     previous_log=$(stat -c %i "$LOG" 2> /dev/null || true)
 
     # Process substitution rather than a pipe, so a failing gradle run is this script's exit status.
-    "$REPOSITORY/gradlew" :fabric:runServer --console=plain < <(drive)
+    # DRIVE_GRADLE_ARGS reaches Gradle, for `-PlocalEphemeris` while the catalog is ahead of ../ephemeris.
+    # shellcheck disable=SC2086 # split on purpose: it is a list of arguments
+    "$REPOSITORY/gradlew" :fabric:runServer --console=plain ${DRIVE_GRADLE_ARGS:-} < <(drive)
 
     note "drive-server: done — read the output above."
 }
