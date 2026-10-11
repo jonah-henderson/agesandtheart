@@ -37,6 +37,15 @@ object AgeComponents {
         .build()
 
     /**
+     * The rarity buckets a page left in a structure is still to be drawn from, for whoever takes it first —
+     * empty meaning all of them. Gone once the page is written.
+     */
+    val PAGE_DRAWN_FOR: DataComponentType<Set<String>> = DataComponentType.builder<Set<String>>()
+        .persistent(Codec.STRING.listOf().xmap({ it.toSet() }, { it.toList() }))
+        .networkSynchronized(ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list()).map({ it.toSet() }, { it.toList() }))
+        .build()
+
+    /**
      * The stock a page or notebook is still to be drawn from — **an unwritten page, not a blank one**.
      *
      * A villager's offer is built once and bought many times, so anything a trade writes into the item is
@@ -145,6 +154,7 @@ object AgeComponents {
         "stocked_from".location() to STOCKED_FROM,
         "age_id".location() to AGE_ID,
         "page_word".location() to PAGE_WORD,
+        "page_drawn_for".location() to PAGE_DRAWN_FOR,
         "book_words".location() to BOOK_WORDS,
         "book_title".location() to BOOK_TITLE,
         "book_seed".location() to BOOK_SEED,

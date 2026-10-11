@@ -1,5 +1,9 @@
 package co.voik.agesandtheart.page
 
+import co.voik.agesandtheart.content.AgeComponents
+import co.voik.agesandtheart.age.word.learnedWords
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams
+import net.minecraft.server.level.ServerPlayer
 import co.voik.agesandtheart.content.PageItem
 import co.voik.agesandtheart.Constants
 import com.mojang.serialization.MapCodec
@@ -52,7 +56,8 @@ class PageWordFunction(
         val vocabulary = Vocabulary.of(context.level.server)
         val registries = context.level.registryAccess()
         val word = if (pool == null) {
-            drawFoundWord(vocabulary, registries, context.random, rarity)
+            val finder = context.getOptional(LootContextParams.THIS_ENTITY) as? ServerPlayer
+            drawFoundWord(vocabulary, registries, context.random, rarity, finder)
         } else {
             drawFromStock(vocabulary, registries, context)
         }
@@ -71,11 +76,35 @@ class PageWordFunction(
     ): Word? = vocabulary.stock.draw(requireNotNull(pool), vocabulary, registries, context.random)
 
     companion object {
-        /** A word a found page may carry, drawn by rarity from [rarity]'s buckets, or all of them when null. */
-        fun drawFoundWord(vocabulary: Vocabulary, registries: RegistryAccess, random: RandomSource, rarity: Set<String>?): Word? =
-            vocabulary.rarity.draw(vocabulary, random, rarity) { word ->
+        /**
+         * A word a found page may carry, drawn by rarity from [rarity]'s buckets, or all of them when null —
+         * and where the page has a [finder], one they have not learned from a bucket that prefers that.
+         */
+        fun drawFoundWord(
+            vocabulary: Vocabulary,
+            registries: RegistryAccess,
+            random: RandomSource,
+            rarity: Set<String>?,
+            finder: ServerPlayer? = null,
+        ): Word? {
+            val isNew: ((Word) -> Boolean)? = finder?.let { player -> { word -> !player.learnedWords.knows(word.id) } }
+            return vocabulary.rarity.draw(vocabulary, random, rarity, isNew) { word ->
                 !Withheld.holdsBack(word, registries) && !CannotAppearInLoot.keepsOut(word, vocabulary, registries)
             }
+        }
+
+        /**
+         * Writes a page left [for its finder][AgeComponents.PAGE_DRAWN_FOR] with a word drawn for [finder],
+         * as it arrives in their inventory. A structure is generated with nobody there, so this is the first
+         * moment that knows who found the page.
+         */
+        fun writeForFinder(finder: ServerPlayer, stack: ItemStack) {
+            val rarity = stack.get(AgeComponents.PAGE_DRAWN_FOR) ?: return
+            val vocabulary = Vocabulary.of(finder.level().server)
+            val drawn = drawFoundWord(vocabulary, finder.level().registryAccess(), finder.random, rarity.ifEmpty { null }, finder)
+            stack.remove(AgeComponents.PAGE_DRAWN_FOR)
+            if (drawn != null) PageItem.write(stack, drawn, vocabulary)
+        }
 
         /** The registry holds the codec itself in 26.1 — there is no function-type wrapper any more. */
         val MAP_CODEC: MapCodec<PageWordFunction> = RecordCodecBuilder.mapCodec { instance ->

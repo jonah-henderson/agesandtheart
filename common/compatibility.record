@@ -114,6 +114,7 @@ data_component_type agesandtheart:book_title
 data_component_type agesandtheart:book_words
 data_component_type agesandtheart:link_target
 data_component_type agesandtheart:notebook_pages
+data_component_type agesandtheart:page_drawn_for
 data_component_type agesandtheart:page_word
 data_component_type agesandtheart:stocked_from
 entity_type agesandtheart:arc_bolt

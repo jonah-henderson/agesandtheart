@@ -104,6 +104,37 @@ class WordRarityCheck : FunSpec({
             "'${other.name}' is not on the list and was kept out"
         }
     }
+    /** The finder's own pages: no duplicate from a bucket that prefers the unknown until they know all of it. */
+    test("a bucket that prefers the unknown draws what the finder lacks, and anything once they lack nothing") {
+        val three = vocabulary.authoredWords.filter { word -> vocabulary.words.count { it.name == word.name } == 1 }.take(3)
+        val (known, alsoKnown, unknown) = three
+        fun rarityWith(prefers: Boolean) = WordRarity(
+            listOf(
+                RarityBucket("common", 1.0, emptySet(), isDefault = true),
+                RarityBucket("critical", 1.0, three.map { it.name }.toSet(), isDefault = false, prefersTheUnknown = prefers),
+            ),
+        )
+        val learned = setOf(known, alsoKnown)
+        fun drawn(rarity: WordRarity, isNew: (Word) -> Boolean) = (1L..200L).map { seed ->
+            rarity.draw(vocabulary, RandomSource.create(seed), only = setOf("critical"), isNew = isNew)
+        }.toSet()
+
+        val preferring = drawn(rarityWith(prefers = true)) { it !in learned }
+        check(preferring == setOf(unknown)) { "a finder lacking only '${unknown.name}' was handed ${preferring.map { it?.name }}" }
+
+        val allKnown = drawn(rarityWith(prefers = true)) { false }
+        check(allKnown.size == three.size) { "a finder who knew all three only ever got ${allKnown.map { it?.name }}" }
+
+        val indifferent = drawn(rarityWith(prefers = false)) { it !in learned }
+        check(indifferent.size == three.size) { "a bucket that does not prefer the unknown still did: ${indifferent.map { it?.name }}" }
+    }
+
+    test("only the critical bucket prefers the unknown, and electromagnetic is not in it") {
+        val preferring = vocabulary.rarity.buckets.filter { it.prefersTheUnknown }.map { it.name }
+        check(preferring == listOf("critical")) { "the buckets preferring the unknown are $preferring" }
+        val critical = vocabulary.rarity.buckets.first { it.name == "critical" }
+        check("electromagnetic" !in critical.words) { "electromagnetic is still critical" }
+    }
 }) {
     private companion object {
         const val SEED = 1L

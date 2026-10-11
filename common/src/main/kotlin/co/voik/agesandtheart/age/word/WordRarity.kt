@@ -25,6 +25,8 @@ data class RarityBucket(
     val isDefault: Boolean,
     /** The vanilla rarity a page of this bucket carries, which is what colours its name. */
     val itemRarity: Rarity = Rarity.COMMON,
+    /** Whether a page drawn for a known finder takes a word they have not learned, while one is left. */
+    val prefersTheUnknown: Boolean = false,
 ) {
     /** This bucket with [later] laid over it — a higher-priority pack retuning it. */
     fun mergedWith(later: RarityBucket): RarityBucket = RarityBucket(
@@ -33,6 +35,7 @@ data class RarityBucket(
         words = words + later.words,
         isDefault = later.isDefault,
         itemRarity = later.itemRarity,
+        prefersTheUnknown = later.prefersTheUnknown,
     )
 
     fun lists(word: Word): Boolean = word.name in words || word.id.toString() in words
@@ -45,8 +48,9 @@ data class RarityBucket(
                     .forGetter { it.words.toList() },
                 Codec.BOOL.optionalFieldOf("default", false).forGetter(RarityBucket::isDefault),
                 Rarity.CODEC.optionalFieldOf("item_rarity", Rarity.COMMON).forGetter(RarityBucket::itemRarity),
-            ).apply(instance) { weight, words, isDefault, itemRarity ->
-                RarityBucket(name, weight, words.toSet(), isDefault, itemRarity)
+                Codec.BOOL.optionalFieldOf("prefers_the_unknown", false).forGetter(RarityBucket::prefersTheUnknown),
+            ).apply(instance) { weight, words, isDefault, itemRarity, prefersTheUnknown ->
+                RarityBucket(name, weight, words.toSet(), isDefault, itemRarity, prefersTheUnknown)
             }
         }
     }
@@ -75,11 +79,16 @@ data class WordRarity(
      * Bucket first, then within it, so a bucket's share of pages is its weight whatever it lists. [only]
      * narrows the roll to the buckets named, which is how a loot table asks for rare pages. [keep] is
      * asked only of the bucket rolled, and a bucket it empties is dropped and the roll made again.
+     *
+     * [isNew] says which words the finder has not learned, where there is a finder. A bucket that
+     * [prefers the unknown][RarityBucket.prefersTheUnknown] draws among those while any are left, and among
+     * all of its words once none are; the bucket's own share of pages is unchanged.
      */
     fun draw(
         vocabulary: Vocabulary,
         random: RandomSource,
         only: Set<String>? = null,
+        isNew: ((Word) -> Boolean)? = null,
         keep: (Word) -> Boolean = { true },
     ): Word? {
         val byBucket = vocabulary.words.groupBy(::bucketOf)
@@ -87,7 +96,11 @@ data class WordRarity(
         while (true) {
             val bucket = pick(offered, random, RarityBucket::weight) ?: return null
             val words = byBucket[bucket].orEmpty().filter(keep)
-            if (words.isNotEmpty()) return words[random.nextInt(words.size)]
+            if (words.isNotEmpty()) {
+                val unlearned = if (bucket.prefersTheUnknown && isNew != null) words.filter(isNew) else emptyList()
+                val from = unlearned.ifEmpty { words }
+                return from[random.nextInt(from.size)]
+            }
             offered -= bucket
         }
     }

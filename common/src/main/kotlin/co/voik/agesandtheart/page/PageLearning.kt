@@ -56,6 +56,7 @@ object PageLearning {
      * archive that lists what you know, where nothing could see or reach them again.
      */
     fun observe(player: ServerPlayer, stack: ItemStack) {
+        PageWordFunction.writeForFinder(player, stack)
         val page = stack.get(AgeComponents.PAGE_WORD)
         if (page != null) {
             teach(player, listOf(page))
