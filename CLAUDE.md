@@ -26,11 +26,10 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   line that says to delete it when the last item goes.** Its §5 is the tool, which is `scripts/scrivener.sh`;
   §5.1 and §5.2 are what that tool refuses and nudges about. Read it before authoring a word or touching
   `art/word/` — and author with the tool rather than by hand.
-- **`notes/instability-tiers-plan.md`** — what replaces the instability budget: the index as a count of
-  distinct flaws, four tiers of manifestation capped by that count and by the book's length, a lean on the
-  finished recipe, hard exclusions, and the new cosmetic tier. **Unbuilt, a draft for Jonah to mark up**, and
-  it supersedes design §5.0 when it lands. Read it before touching `Instability`, `Spending` or
-  `art/manifestation/`.
+- **`notes/instability-tiers-plan.md`** — what is left of the instability tiers, which are **built** and live in
+  design §5.0: the strange tier (cosmetic manifestations, the beginner's whole experience of instability,
+  and nothing in it yet), the mirage experiment, and the wounds' rework. Read it before adding a manifestation
+  or touching `art/manifestation/`.
 - **`notes/tag-matching-research.md`** — how a vague word's reach actually resolves into densities, measured
   rather than reasoned (`./gradlew :common:tagreachspike` prints the numbers). Its three findings: reach is
   **per aspect**, so `monumental` on a feature is read by nothing; **wanting has a floor and striking has
