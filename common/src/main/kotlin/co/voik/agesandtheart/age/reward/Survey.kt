@@ -3,7 +3,8 @@ package co.voik.agesandtheart.age.reward
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.Price
+import co.voik.agesandtheart.age.Ladder
+import co.voik.agesandtheart.age.SpendingSetting
 import co.voik.agesandtheart.age.Spending
 import net.minecraft.server.MinecraftServer
 
@@ -29,20 +30,20 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
             composition: AgeComposition,
             instability: Instability,
             seed: Long,
-        ): Survey = of(composition, instability, seed, DangerTable.of(server), Price.list(server))
+        ): Survey = of(composition, instability, seed, DangerTable.of(server), Ladder.list(server))
 
-        /** The same, against a table and a price list handed in — offline, and what the checks use. */
+        /** The same, against a table and the ladders handed in — offline, and what the checks use. */
         fun of(
             composition: AgeComposition,
             instability: Instability,
             seed: Long,
             table: DangerTable,
-            prices: Map<Manifestation, Price>,
+            ladders: Map<Manifestation, Ladder>,
         ): Survey {
             // Surveyed at a desk by somebody about to write the book, which is the whole of what `authored`
             // asks. A found Age is never surveyed, because a found Age was never composed here.
-            val danger = Danger.of(composition, instability, seed, authored = true, table, prices)
-            val spending = Spending.of(instability.index, seed, prices)
+            val danger = Danger.of(composition, instability, seed, authored = true, table, ladders)
+            val spending = Spending.of(instability, seed, ladders, SpendingSetting.of(composition))
             return Survey(
                 deposit = Yield.forVeins(Deposits.veinsPerChunk(danger)),
                 earlyMaterials = EarlyGameRareMaterials.grownIn(composition, seed, spending),

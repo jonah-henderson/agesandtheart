@@ -1,17 +1,20 @@
 {
   "_comment": [
-    "What an inflicted sandfall costs out of the instability budget, dial by dial (design 5.0).",
+    "How an inflicted sandfall climbs the tiers, dial by dial (design 5.2.2).",
     "",
     "Difficulty rather than a verdict: you can roof over sand, and the burial hands you the glass to do it",
-    "with. So the nuisance is cheap and the damage is dear, as the deluge's and the meteors' are: `often`",
-    "(how often one comes, and how many may stand at once) and `long` (how long one lives) at 1, `size` (how",
-    "wide it grows, up to twenty by twenty) and `depth` (how deep a pass buries) at 2. Opens at 4 with the",
-    "other phenomena. The numbers wait on the tuning pass."
+    "with. So the nuisance unsettles and the damage is a hazard, as the deluge's and the meteors' are:",
+    "`often` (how often one comes, and how many may stand at once) and `long` (how long one lives) unsettle",
+    "until their far end; `size` (how wide it grows, up to twenty by twenty) and `depth` (how deep a pass",
+    "buries) are hazardous.",
+    "",
+    "Leans dry, and a little hot."
   ],
   "dials": {
-    "often": { "costs": 1, "most": 4, "opens_at": 4 },
-    "long": { "costs": 1, "most": 4, "opens_at": 4 },
-    "size": { "costs": 2, "most": 4, "opens_at": 4 },
-    "depth": { "costs": 2, "most": 4, "opens_at": 4 }
-  }
+    "often": {"tiers": [1, 1, 2, 2]},
+    "long": {"tiers": [1, 1, 2, 2]},
+    "size": {"tier": 2, "most": 4},
+    "depth": {"tier": 2, "most": 4}
+  },
+  "leans": {"humidity": -1.0, "temperature": 0.3}
 }

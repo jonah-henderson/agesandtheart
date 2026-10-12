@@ -1,14 +1,13 @@
 {
   "_comment": [
-    "What it costs an Age's instability budget to go on tearing itself for as long as it exists, and how",
-    "far that goes (design 5.2.1). A wound is a hole the Age was written with and this is the Age never",
-    "stopping -- the register a player cannot outlast, only leave. Each step bought makes the density",
-    "climb faster with the Age's age; `most` bounds the RATE, never the final state.",
+    "How an Age goes on tearing itself for as long as it exists (design 5.2.1). A wound is a hole the Age was",
+    "written with and this is the Age never stopping -- the register a player cannot outlast, only leave.",
+    "Each step makes the density climb faster with the Age's age; `most` bounds the rate, never the final",
+    "state.",
     "",
-    "Opens at 30, because it is a verdict: under the draw a price alone would let a moderate Age buy it",
-    "first, and the floor is what reserves it for the severe end."
+    "A verdict, so failing. Waiting on the wounds' rework against the canon (notes/instability-tiers-plan.md 6)."
   ],
   "dials": {
-    "pace": { "costs": 2, "most": 3, "opens_at": 30 }
+    "pace": {"tier": 3, "most": 3}
   }
 }

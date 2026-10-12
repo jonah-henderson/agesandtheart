@@ -1,15 +1,12 @@
 {
   "_comment": [
-    "When an Age comes apart at the bottom (design 5.3), and how fast. The only manifestation that ends",
-    "the Age: fissures open at the world floor, widen, and put whatever falls in back in the overworld.",
+    "When an Age comes apart at the bottom (design 5.3), and how fast. The only manifestation that ends the",
+    "Age: fissures open at the world floor, widen, and put whatever falls in back in the overworld.",
     "",
-    "Not drawn. `certain_from` is a threshold -- an index of 50 collapses the Age whatever else its draw",
-    "bought -- and the index past it buys `spread`, how fast the tear grows: the first step comes with the",
-    "threshold and each further one costs its price out of what is left over. `/age decay <name> unstable",
-    "<n>` is how that is reached for testing. 50 is a placeholder for the tuning pass."
+    "A verdict, so failing throughout. Its first step is the collapse and each further one how fast the tear",
+    "grows. `/age decay <name> unstable <n>` is how it is reached for testing."
   ],
-  "certain_from": 50,
   "dials": {
-    "spread": { "costs": 4, "most": 3 }
+    "spread": {"tier": 3, "most": 3}
   }
 }

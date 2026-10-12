@@ -3,188 +3,173 @@ package co.voik.agesandtheart.age
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * How an instability budget is spent (design §5.0).
+ * How an Age's instability is spent (`notes/instability-tiers-plan.md` §2).
  *
- * The index is spent a step at a time on steps drawn off the Age's seed, so what a check can hold is not
- * *which* steps an Age buys but the rules every draw obeys: nothing is bought past what the budget affords,
- * past a dial's steps, or before a step's floor opens; the same Age always draws the same way; and the one
- * threshold, collapse, is exact.
+ * Each distinct flaw buys one step, in tiers set by how many flaws there are and capped by how long the book
+ * was. Which steps an Age buys is drawn, so what a check can hold is the rules every draw obeys: the tier
+ * bands, the cap, the even spread with the top tier always reached, nothing bought above it, the exclusions,
+ * and that the same Age always draws the same way.
  */
 class SpendingCheck : FunSpec({
-
-    val cheap = Manifestation.TORN_SEAMS
-    val onlyDial = cheap.dials.single()
-
-    /** Far past any budget a check here hands out, so nothing but the one under test can be afforded. */
-    val unaffordable = 1_000_000
 
     /** Enough seeds that a rule holding for all of them is not a property of one draw. */
     val seeds = (0L..<40L).map { it * 7_919L + 13L }
 
-    /**
-     * A price list where only [cheap] is buyable and everything else is out of reach.
-     *
-     * **Every manifestation is priced, not just the one under test.** `Spending.of` falls back to the
-     * default price for anything a list omits, so a fixture naming one thing quietly let all the others
-     * spend the budget.
-     */
-    fun priced(costs: Int, most: Int) = Manifestation.entries.associateWith { manifestation ->
-        if (manifestation == cheap) Price.flat(manifestation, costs, most)
-        else Price.flat(manifestation, unaffordable, 1)
-    }
+    val cold = SpendingSetting(mapOf("temperature" to -0.8, "humidity" to 0.0), hasRegions = false)
+    val hot = SpendingSetting(mapOf("temperature" to 0.8, "humidity" to -0.4), hasRegions = false)
+    val divided = SpendingSetting(emptyMap(), hasRegions = true)
 
-    /** What a whole draw paid, step by step, at [prices]. */
-    fun paid(spending: Spending, prices: Map<Manifestation, Price>): Int =
-        Manifestation.entries.filter { prices.getValue(it).certainFrom == null }.sumOf { manifestation ->
-            manifestation.dials.sumOf { dial ->
-                prices.getValue(manifestation).dials.getValue(dial).costs.take(spending.bought(manifestation, dial)).sum()
-            }
+    fun spent(flaws: Int, seed: Long, setting: SpendingSetting = SpendingSetting.UNKNOWN, pages: Int = LONG_BOOK) =
+        Spending.of(Instability.forced(flaws).copy(pages = pages), seed, SHIPPED_LADDERS, setting)
+
+    /** The tier of every step [spending] bought. */
+    fun tiersBought(spending: Spending): List<Int> = Manifestation.entries.flatMap { manifestation ->
+        manifestation.dials.flatMap { dial ->
+            SHIPPED_LADDERS.getValue(manifestation).dials.getValue(dial).tiers.take(spending.bought(manifestation, dial))
         }
+    }
 
     test("a coherent Age buys nothing") {
-        val spending = Spending.of(budget = 0, seed = 1L, prices = priced(2, 4))
-        check(spending.bought(cheap) == 0) { "a coherent Age bought something: $spending" }
-        check(spending.reach(cheap) == 0.0) { "a coherent Age reached somewhere: $spending" }
+        val spending = spent(flaws = 0, seed = 1L)
+        check(spending == Spending.NOTHING) { "a coherent Age bought something: $spending" }
     }
 
-    test("a budget buys what it can afford and no more") {
-        val prices = priced(costs = 2, most = 4)
-        check(Spending.of(1, 1L, prices).bought(cheap) == 0) { "1 bought a 2-point step" }
-        check(Spending.of(2, 1L, prices).bought(cheap) == 1) { "2 bought no step at all" }
-        check(Spending.of(5, 1L, prices).bought(cheap) == 2) { "5 should buy two steps of two" }
+    /** Jonah's bands, and the bare desk's page limit over them. */
+    test("the top tier is set by the flaws, and a short book stays strange") {
+        val expected = mapOf(1 to 0, 2 to 0, 3 to 1, 4 to 1, 5 to 2, 7 to 2, 8 to 3, 20 to 3)
+        for ((flaws, tier) in expected) {
+            check(Spending.topTier(flaws, LONG_BOOK) == tier) { "$flaws flaws reached tier ${Spending.topTier(flaws, LONG_BOOK)}" }
+            check(Spending.topTier(flaws, Spending.PAGES_KEPT_STRANGE) == Spending.STRANGE) {
+                "$flaws flaws in a five-page book climbed out of the strange tier"
+            }
+        }
+    }
+
+    /** As evenly as they go, the remainder to the lowest tiers — Jonah's own example is seven. */
+    test("the flaws are dealt out evenly, the lowest tiers taking what is over") {
+        check(Spending.slotsPerTier(7, top = 2) == listOf(3, 2, 2)) { "seven gave ${Spending.slotsPerTier(7, 2)}" }
+        check(Spending.slotsPerTier(3, top = 1) == listOf(2, 1)) { "three gave ${Spending.slotsPerTier(3, 1)}" }
+        check(Spending.slotsPerTier(10, top = 3) == listOf(3, 3, 2, 2)) { "ten gave ${Spending.slotsPerTier(10, 3)}" }
+        check(Spending.slotsPerTier(4, top = 0) == listOf(4)) { "four strange gave ${Spending.slotsPerTier(4, 0)}" }
+        for (flaws in 1..30) {
+            val top = Spending.topTier(flaws, LONG_BOOK)
+            val slots = Spending.slotsPerTier(flaws, top)
+            check(slots.sum() == flaws) { "$flaws flaws were dealt ${slots.sum()} slots" }
+            check(slots[top] >= 1) { "$flaws flaws left the top tier empty: $slots" }
+        }
+    }
+
+    /** One step a flaw, never more; and none above the tier the flaws reach. */
+    test("each flaw buys at most one step, and none above its tier") {
+        for (seed in seeds) {
+            for (flaws in 1..20) {
+                val bought = tiersBought(spent(flaws, seed))
+                check(bought.size <= flaws) { "$flaws flaws bought ${bought.size} steps under seed $seed" }
+                val top = Spending.topTier(flaws, LONG_BOOK)
+                check(bought.all { it <= top }) { "$flaws flaws bought tiers $bought, above $top, under seed $seed" }
+            }
+        }
+    }
+
+    /** "Mistakes must purchase at least one manifestation of the top tier" (Jonah). */
+    test("the top tier is always bought where it has anything left") {
+        for (seed in seeds) {
+            for (flaws in 3..20) {
+                val top = Spending.topTier(flaws, LONG_BOOK)
+                check(top in tiersBought(spent(flaws, seed))) { "$flaws flaws under seed $seed bought nothing at tier $top" }
+            }
+        }
+    }
+
+    /** Nothing is built at the strange tier yet, so a short book shows nothing — and must not show more. */
+    test("a short book never buys a hazard, however wrong it is") {
+        for (seed in seeds) {
+            val bought = tiersBought(spent(flaws = 12, seed, pages = Spending.PAGES_KEPT_STRANGE))
+            check(bought.all { it == Spending.STRANGE }) { "a five-page book bought tiers $bought under seed $seed" }
+        }
     }
 
     /**
-     * **The cap is what makes consequence accumulate rather than escalate.** Without it a runaway index
-     * buys an unbounded amount of whatever its draw lands on and nothing else.
-     */
-    test("no dial can be bought past its steps") {
-        val rich = Spending.of(1000, 1L, priced(costs = 2, most = 4))
-        check(rich.bought(cheap) == 4) { "the cap did not hold: $rich" }
-        check(rich.reach(cheap) == 1.0) { "a maxed dial should read as fully reached" }
-    }
-
-    /**
-     * **Deterministic**, which the recipe model rests on: an Age rebuilds from its recipe on every open,
-     * so an allocation that differed the second time would be a different world under one book.
+     * **Deterministic**, which the recipe model rests on: an Age rebuilds from its recipe on every open, so a
+     * spending that differed the second time would be a different world under one book.
      */
     test("the same Age spends the same way every time") {
         for (seed in seeds) {
-            for (budget in 0..120 step 7) {
-                check(Spending.of(budget, seed, SHIPPED_PRICES) == Spending.of(budget, seed, SHIPPED_PRICES)) {
-                    "the allocation at $budget under seed $seed is not stable"
+            for (flaws in 0..20) {
+                check(spent(flaws, seed, cold) == spent(flaws, seed, cold)) { "$flaws flaws under seed $seed are not stable" }
+            }
+        }
+    }
+
+    test("the same flaws show as different symptoms in different Ages") {
+        val shown = seeds.map { spent(6, it) }.toSet()
+        check(shown.size > seeds.size / 2) { "forty seeds at six flaws drew only ${shown.size} different Ages" }
+    }
+
+    /** The one exclusive pair (Jonah, 2026-10-12), in every climate. */
+    test("a blizzard and an inferno never share an Age") {
+        for (setting in listOf(SpendingSetting.UNKNOWN, cold, hot)) {
+            for (seed in seeds) {
+                for (flaws in listOf(6, 12, 40)) {
+                    val spending = spent(flaws, seed, setting)
+                    val both = spending.bought(Manifestation.BLIZZARD) > 0 && spending.bought(Manifestation.INFERNO) > 0
+                    check(!both) { "$flaws flaws under seed $seed in $setting drew both: $spending" }
                 }
             }
         }
     }
 
-    /** The point of drawing rather than ordering (Jonah, 2026-09-17). */
-    test("the same index shows as different symptoms in different Ages") {
-        val shown = seeds.map { Spending.of(15, it, SHIPPED_PRICES) }.toSet()
-        check(shown.size > seeds.size / 2) { "forty seeds at index 15 drew only ${shown.size} different Ages" }
+    /** The lean makes instability fit the place: cold Ages snow, hot ones burn. */
+    test("a cold Age leans to the blizzard and a hot one to the inferno") {
+        fun count(setting: SpendingSetting, manifestation: Manifestation) =
+            (0L..<300L).count { spent(6, it * 104_729L + 3L, setting).bought(manifestation) > 0 }
+        check(count(cold, Manifestation.BLIZZARD) > count(cold, Manifestation.INFERNO) * 2) {
+            "a cold Age snowed ${count(cold, Manifestation.BLIZZARD)} times and burned ${count(cold, Manifestation.INFERNO)}"
+        }
+        check(count(hot, Manifestation.INFERNO) > count(hot, Manifestation.BLIZZARD) * 2) {
+            "a hot Age burned ${count(hot, Manifestation.INFERNO)} times and snowed ${count(hot, Manifestation.BLIZZARD)}"
+        }
     }
 
-    /** A price of zero would buy infinitely many steps for nothing, so it is refused rather than looped on. */
-    test("a free step is skipped, not bought forever") {
-        val free = priced(2, 4) + mapOf(cheap to Price.flat(cheap, costs = 0, most = 4))
-        val spending = Spending.of(10, 1L, free)
-        check(spending.bought(cheap) == 0) { "a zero price was bought anyway: $spending" }
-    }
-
-    test("a draw never spends more than the index") {
+    /** An undivided Age has no seam to tear, so a step there would show nothing. */
+    test("seams tear only where the Age has territories") {
         for (seed in seeds) {
-            for (budget in 0..49) {
-                val spent = paid(Spending.of(budget, seed, SHIPPED_PRICES), SHIPPED_PRICES)
-                check(spent <= budget) { "index $budget under seed $seed paid $spent" }
-            }
+            check(spent(4, seed).bought(Manifestation.TORN_SEAMS) == 0) { "an undivided Age tore its seams under seed $seed" }
+        }
+        check(seeds.any { spent(4, it, divided).bought(Manifestation.TORN_SEAMS) > 0 }) {
+            "no divided Age in forty tore its seams"
         }
     }
 
     /**
-     * **The goodwill fence, as a floor** (design §5.0, §5.2.1). Under a draw a price no longer keeps a
-     * verdict back — a nine-point step can be the first one drawn — so each step's `opens_at` does, and no
-     * draw may buy a step its index has not reached.
+     * And every dial is bought somewhere, or it is dead content whatever the draw does — at flaw counts a book
+     * reaches, and in the climate it leans towards, since a blizzard keeps the inferno out of an Age that is
+     * not hot. Not bought *in full*: with every flaw drawn, a heavily flawed Age buys the blizzard's
+     * unsettling steps sooner or later, which shuts the inferno out however hot it is.
      */
-    test("no step is bought before its floor opens") {
-        for (seed in seeds) {
-            for (budget in 0..49) {
-                val spent = Spending.of(budget, seed, SHIPPED_PRICES)
-                for (manifestation in Manifestation.entries) {
-                    val price = SHIPPED_PRICES.getValue(manifestation)
-                    if (price.certainFrom != null) continue
-                    for (dial in manifestation.dials) {
-                        val floors = price.dials.getValue(dial).opensAt.take(spent.bought(manifestation, dial))
-                        check(floors.all { it <= budget }) {
-                            "index $budget under seed $seed bought ${manifestation.key} $dial past a floor: $floors"
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    test("a small mistake tears seams and opens no wounds") {
-        for (seed in seeds) {
-            for (budget in 0..2) {
-                val wounds = Spending.of(budget, seed, SHIPPED_PRICES).bought(Manifestation.WOUNDS)
-                check(wounds == 0) { "instability $budget under seed $seed opened $wounds wounds" }
-            }
-            check(Spending.of(2, seed, SHIPPED_PRICES).bought(Manifestation.TORN_SEAMS) > 0) {
-                "an Age with nothing else open to it tore no seams under seed $seed"
-            }
-        }
-    }
-
-    /** Collapse is not drawn (Jonah, 2026-09-17): the threshold is exact, whatever the seed. */
-    test("collapse is a threshold, and what is past it buys its spread") {
-        val threshold = requireNotNull(SHIPPED_PRICES.getValue(Manifestation.COLLAPSE).certainFrom)
-        val spread = SHIPPED_PRICES.getValue(Manifestation.COLLAPSE).dials.values.single()
-        for (seed in seeds) {
-            fun collapse(budget: Int) = Spending.of(budget, seed, SHIPPED_PRICES).bought(Manifestation.COLLAPSE)
-            check(collapse(threshold - 1) == 0) { "an Age short of the threshold collapsed under seed $seed" }
-            check(collapse(threshold) == 1) { "an Age at the threshold did not collapse under seed $seed" }
-            check(collapse(threshold + spread.costs[1]) == 2) { "the index past the threshold bought no spread" }
-            check(collapse(threshold * 10) == spread.most) { "collapse's spread went past its steps" }
-        }
-    }
-
-    /** And that everything is reachable at all, or it is dead content whatever the draw does. */
-    test("everything is reachable by an Age written to come apart") {
-        val spent = Spending.of(unaffordable, seeds.first(), SHIPPED_PRICES)
+    test("every dial is bought by some Age with many flaws") {
+        val manySeeds = (0L..<100L).map { it * 104_729L + 3L }
+        val climates = listOf(divided, hot.copy(hasRegions = true), cold.copy(hasRegions = true))
         for (manifestation in Manifestation.entries) {
             for (dial in manifestation.dials) {
-                check(spent.reach(manifestation, dial) == 1.0) {
-                    "${manifestation.key} $dial was unreachable even at the top of the index"
+                val bought = climates.any { setting ->
+                    manySeeds.any { seed -> (10..30 step 5).any { spent(it, seed, setting).bought(manifestation, dial) > 0 } }
                 }
+                check(bought) { "${manifestation.key} $dial was never bought" }
             }
         }
-    }
-
-    /**
-     * **What a deluge-leaning Age gets**, which is the design's reason for the cheap dials: its downpour and
-     * rate bought well up while the rest of the index is still modest.
-     */
-    test("some Age at a moderate index is drowning in earnest") {
-        fun drowning(seed: Long): Boolean {
-            val spent = Spending.of(MODERATE, seed, SHIPPED_PRICES)
-            val downpour = spent.reach(Manifestation.DELUGE, Manifestation.DOWNPOUR)
-            val rate = spent.reach(Manifestation.DELUGE, Manifestation.RISE_RATE)
-            return downpour >= HALF_OR_MORE && rate >= HALF_OR_MORE
-        }
-        val manySeeds = (0L..<400L).map { it * 104_729L + 3L }
-        check(manySeeds.any(::drowning)) { "no Age in four hundred at index $MODERATE had bought half of both cheap dials" }
     }
 
     /**
      * **That the map below names every manifestation and every dial there is.** Without this, adding one and
-     * forgetting to price it here falls back to the default price, which eats the budget quietly.
+     * forgetting it here falls back to the default ladder quietly.
      */
-    test("the shipped list prices every manifestation and every dial") {
+    test("the shipped ladders cover every manifestation and every dial") {
         for (manifestation in Manifestation.entries) {
-            val price = SHIPPED_PRICES[manifestation]
-            check(price != null) { "${manifestation.key} is unpriced, so it would cost the default" }
-            check(price.dials.keys == manifestation.dials.toSet()) {
-                "${manifestation.key} prices ${price.dials.keys} where it has ${manifestation.dials}"
+            val ladder = SHIPPED_LADDERS[manifestation]
+            check(ladder != null) { "${manifestation.key} has no ladder, so it would take the default" }
+            check(ladder.dials.keys == manifestation.dials.toSet()) {
+                "${manifestation.key} ladders ${ladder.dials.keys} where it has ${manifestation.dials}"
             }
         }
     }
@@ -224,73 +209,70 @@ class SpendingCheck : FunSpec({
     }
 }) {
     private companion object {
-        const val HALF_OR_MORE = 0.5
-
-        /** Two fifths of the way to collapse: the cheap dials cost 1 where a quarter of their old 3 would be ¾. */
-        const val MODERATE = 20
+        /** Long enough that the page cap never binds. */
+        const val LONG_BOOK = 40
     }
 }
 
+private fun tiers(vararg each: Int) = DialSteps(each.toList())
+
 /**
- * The price list as shipped in `data/agesandtheart/art/manifestation/`, spelled out so a check reads
- * what a server runs. `ShippedPricesCheck` fails if it drifts from the files.
+ * The ladders as shipped in `data/agesandtheart/art/manifestation/`, spelled out so a check reads what a
+ * server runs. `ShippedLaddersCheck` fails if it drifts from the files.
  */
-internal val SHIPPED_PRICES = mapOf(
-    Manifestation.TORN_SEAMS to Price.flat(Manifestation.TORN_SEAMS, costs = 1, most = 4),
-    Manifestation.WOUNDS to Price.flat(Manifestation.WOUNDS, costs = 1, most = 4, opensAt = 3),
-    Manifestation.WORSENING_WOUNDS to Price.flat(Manifestation.WORSENING_WOUNDS, costs = 2, most = 3, opensAt = 30),
-    Manifestation.SANDFALL to Price(
+internal val SHIPPED_LADDERS = mapOf(
+    Manifestation.TORN_SEAMS to Ladder.flat(Manifestation.TORN_SEAMS, tier = 1, most = 4).copy(needsRegions = true),
+    Manifestation.WOUNDS to Ladder.flat(Manifestation.WOUNDS, tier = 2, most = 4),
+    Manifestation.WORSENING_WOUNDS to Ladder.flat(Manifestation.WORSENING_WOUNDS, tier = 3, most = 3),
+    Manifestation.SANDFALL to Ladder(
         mapOf(
-            Manifestation.COLUMNS_OFTEN to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
-            Manifestation.COLUMNS_LONG to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
-            Manifestation.COLUMNS_SIZE to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
-            Manifestation.COLUMNS_DEPTH to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
+            Manifestation.COLUMNS_OFTEN to tiers(1, 1, 2, 2),
+            Manifestation.COLUMNS_LONG to tiers(1, 1, 2, 2),
+            Manifestation.COLUMNS_SIZE to DialSteps.flat(tier = 2, most = 4),
+            Manifestation.COLUMNS_DEPTH to DialSteps.flat(tier = 2, most = 4),
+        ),
+        leans = mapOf("humidity" to -1.0, "temperature" to 0.3),
+    ),
+    Manifestation.BLIZZARD to Ladder(
+        mapOf(
+            Manifestation.SNOWSTORMS_OFTEN to tiers(1, 1, 1, 2),
+            Manifestation.SNOWSTORMS_LONG to tiers(1, 1, 1, 2),
+            Manifestation.SNOWSTORMS_VISIBILITY to tiers(1, 1, 2, 2),
+            Manifestation.SNOWSTORMS_FROSTBITE to DialSteps.flat(tier = 2, most = 4),
+        ),
+        leans = mapOf("temperature" to -1.0),
+        excludes = setOf(Manifestation.INFERNO),
+    ),
+    Manifestation.METEORS to Ladder(
+        mapOf(
+            Manifestation.STORMS_OFTEN to tiers(1, 1, 2, 2),
+            Manifestation.STORMS_LONG to tiers(1, 1, 2, 2),
+            Manifestation.STORMS_POWER to DialSteps.flat(tier = 2, most = 4),
         ),
     ),
-    Manifestation.BLIZZARD to Price(
+    Manifestation.TECTONICS to Ladder.flat(Manifestation.TECTONICS, tier = 3, most = 4),
+    Manifestation.TEMPEST to Ladder(
         mapOf(
-            Manifestation.SNOWSTORMS_OFTEN to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
-            Manifestation.SNOWSTORMS_LONG to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
-            Manifestation.SNOWSTORMS_VISIBILITY to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
-            Manifestation.SNOWSTORMS_FROSTBITE to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
+            Manifestation.BOLTS_OFTEN to tiers(1, 1, 2, 2),
+            Manifestation.BOLTS_BLAST to DialSteps.flat(tier = 2, most = 4),
+            Manifestation.BOLTS_FIRE to DialSteps.flat(tier = 2, most = 4),
         ),
+        leans = mapOf("humidity" to 0.5),
     ),
-    Manifestation.METEORS to Price(
+    Manifestation.INFERNO to Ladder(
         mapOf(
-            Manifestation.STORMS_OFTEN to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
-            Manifestation.STORMS_LONG to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
-            Manifestation.STORMS_POWER to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
+            Manifestation.BURN_DAMAGE to DialSteps.flat(tier = 2, most = 4),
+            Manifestation.LIGHT_INTENSITY to DialSteps.flat(tier = 2, most = 4),
         ),
+        leans = mapOf("temperature" to 1.0, "humidity" to -0.5),
     ),
-    // At 50 with `collapse`, not 4 with the phenomena: given time it takes the whole Age.
-    Manifestation.TECTONICS to Price(
+    Manifestation.DELUGE to Ladder(
         mapOf(
-            Manifestation.CAVE_IN_SIZE to DialPrice.flat(costs = 2, most = 4, opensAt = 50),
-            Manifestation.CAVE_IN_SPEED to DialPrice.flat(costs = 2, most = 4, opensAt = 50),
+            Manifestation.RISE_RATE to DialSteps.flat(tier = 1, most = 10),
+            Manifestation.DOWNPOUR to DialSteps.flat(tier = 1, most = 10),
+            Manifestation.RISE_HEIGHT to tiers(1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3),
         ),
+        leans = mapOf("humidity" to 1.0),
     ),
-    Manifestation.TEMPEST to Price(
-        mapOf(
-            Manifestation.BOLTS_OFTEN to DialPrice.flat(costs = 1, most = 4, opensAt = 4),
-            Manifestation.BOLTS_BLAST to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
-            Manifestation.BOLTS_FIRE to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
-        ),
-    ),
-    Manifestation.INFERNO to Price(
-        mapOf(
-            Manifestation.BURN_DAMAGE to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
-            Manifestation.LIGHT_INTENSITY to DialPrice.flat(costs = 2, most = 4, opensAt = 4),
-        ),
-    ),
-    Manifestation.DELUGE to Price(
-        mapOf(
-            Manifestation.RISE_RATE to DialPrice.flat(costs = 1, most = 10, opensAt = 4),
-            Manifestation.DOWNPOUR to DialPrice.flat(costs = 1, most = 10, opensAt = 4),
-            Manifestation.RISE_HEIGHT to DialPrice(
-                costs = listOf(1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2),
-                opensAt = listOf(4, 4, 8, 11, 15, 20, 25, 30, 35, 40, 45, 49),
-            ),
-        ),
-    ),
-    Manifestation.COLLAPSE to Price.flat(Manifestation.COLLAPSE, costs = 4, most = 3).copy(certainFrom = 50),
+    Manifestation.COLLAPSE to Ladder.flat(Manifestation.COLLAPSE, tier = 3, most = 3),
 )

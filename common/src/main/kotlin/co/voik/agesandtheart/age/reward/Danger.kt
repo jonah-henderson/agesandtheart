@@ -5,7 +5,8 @@ import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.Price
+import co.voik.agesandtheart.age.Ladder
+import co.voik.agesandtheart.age.SpendingSetting
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Claim
@@ -126,18 +127,18 @@ data class Danger(
 
         /** How dangerous the Age [recipe] describes is, on the server running it. */
         fun of(server: MinecraftServer, recipe: AgeRecipe): Danger =
-            of(recipe, DangerTable.of(server), Price.list(server))
+            of(recipe, DangerTable.of(server), Ladder.list(server))
 
         /**
-         * The same, against a table and a price list handed in — offline, and what the checks use.
+         * The same, against a table and the ladders handed in — offline, and what the checks use.
          *
          * A bespoke Age scores nothing: it has no composition to read, and none of them is a thing a
          * writer wrote.
          */
-        fun of(recipe: AgeRecipe, table: DangerTable, prices: Map<Manifestation, Price>): Danger {
+        fun of(recipe: AgeRecipe, table: DangerTable, ladders: Map<Manifestation, Ladder>): Danger {
             val composition = (recipe.world as? AgeWorld.Composed)?.composition
                 ?: return nothing(table, recipe.authored)
-            return of(composition, recipe.instability, recipe.seed, recipe.authored, table, prices)
+            return of(composition, recipe.instability, recipe.seed, recipe.authored, table, ladders)
         }
 
         /**
@@ -153,9 +154,9 @@ data class Danger(
             seed: Long,
             authored: Boolean,
             table: DangerTable,
-            prices: Map<Manifestation, Price>,
+            ladders: Map<Manifestation, Ladder>,
         ): Danger {
-            val spent = Spending.of(instability.index, seed, prices)
+            val spent = Spending.of(instability, seed, ladders, SpendingSetting.of(composition))
             return Danger(
                 materials = materialsOf(composition, table),
                 spawns = spawnsOf(composition, table, spent),

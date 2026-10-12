@@ -6,7 +6,9 @@ import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.Price
+import co.voik.agesandtheart.age.DialSteps
+import co.voik.agesandtheart.age.Ladder
+import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.Spreads
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -218,14 +220,14 @@ class DangerCheck : FunSpec({
      * must score exactly what a coherent one does.
      */
     test("a contradiction that only tore some seams is worth nothing") {
-        val coherent = score(oneTerritory(), index = NOTHING_WRONG)
-        val torn = score(oneTerritory(), index = ONLY_TORN_SEAMS)
+        val coherent = score(oneTerritory())
+        val torn = score(oneTerritory(), bought = Manifestation.TORN_SEAMS)
         check(torn.score == coherent.score) { "torn seams scored ${torn.score} against ${coherent.score}" }
     }
 
     test("a contradiction that bought wounds is hostile life, and one that bought a sandfall is a hazard") {
-        val wounded = score(oneTerritory(), index = AS_FAR_AS_WOUNDS)
-        val buried = score(oneTerritory(), index = AS_FAR_AS_SANDFALL)
+        val wounded = score(oneTerritory(), bought = Manifestation.WOUNDS)
+        val buried = score(oneTerritory(), bought = Manifestation.SANDFALL)
         check(wounded.spawns > 0.0) { "wounds drew no hostile life" }
         check(buried.phenomena > 0.0) { "an inflicted sandfall was not a hazard" }
     }
@@ -238,19 +240,19 @@ class DangerCheck : FunSpec({
      * economy a function of how sloppy the writer was.
      */
     test("only an Age that bought every step of collapse is terminal") {
-        check(!score(oneTerritory(), index = NOTHING_WRONG).isTerminal) { "a coherent Age is terminal" }
-        check(!score(oneTerritory(), index = AS_FAR_AS_SANDFALL).isTerminal) {
+        check(!score(oneTerritory()).isTerminal) { "a coherent Age is terminal" }
+        check(!score(oneTerritory(), bought = Manifestation.SANDFALL).isTerminal) {
             "an Age that never reached collapse is terminal"
         }
-        check(score(oneTerritory(), index = AS_FAR_AS_COLLAPSE).isTerminal) {
+        check(score(oneTerritory(), bought = Manifestation.COLLAPSE).isTerminal) {
             "an Age that bought all the collapse there is is not terminal"
         }
     }
 
     /** Exposed rather than scored, so §7.7's terminal multiplier can be settled without reopening this. */
     test("an Age that will not last says so without it changing the score") {
-        val terminal = score(oneTerritory(), index = AS_FAR_AS_COLLAPSE)
-        val ordinary = score(oneTerritory(), index = NOTHING_WRONG)
+        val terminal = score(oneTerritory(), bought = Manifestation.COLLAPSE)
+        val ordinary = score(oneTerritory())
         check(terminal.terminal > 0.0) { "a collapsing Age reported no terminal reach" }
         check(terminal.materials == ordinary.materials) { "collapse moved a contributor it has nothing to do with" }
     }
@@ -264,33 +266,20 @@ class DangerCheck : FunSpec({
         private const val A_TWENTIETH = 0.05
         private const val ONE_TENTH = 0.1
 
-        /** Every step the same price, so an index maps onto what it bought by plain arithmetic. */
-        private const val A_STEP = 2
         private const val STEPS_EACH = 4
 
-        /** What every step of [manifestation] costs together. */
-        private fun wholeOf(manifestation: Manifestation) = A_STEP * STEPS_EACH * manifestation.dials.size
-
-        /** What every manifestation declared before [manifestation] costs together. */
-        private fun before(manifestation: Manifestation) =
-            Manifestation.entries.takeWhile { it != manifestation }.sumOf(::wholeOf)
-
         /**
-         * **A ladder made of floors**, so the draw cannot make these checks depend on a seed: each
-         * manifestation opens one point after everything declared before it could be bought whole, so an
-         * index of exactly [upTo] buys every step of every manifestation to there and nothing past it.
+         * **Ladders that sell [only]'s steps and nothing else**, so a check names what instability bought
+         * with no draw between: every step strange, so every flaw falls through to it, and every other
+         * manifestation selling no steps at all.
          */
-        private val PRICES = Manifestation.entries.associateWith {
-            Price.flat(it, A_STEP, STEPS_EACH, opensAt = before(it) + 1)
+        private fun selling(only: Manifestation?): Map<Manifestation, Ladder> = Manifestation.entries.associateWith {
+            if (it == only) Ladder.flat(it, tier = Spending.STRANGE, most = STEPS_EACH)
+            else Ladder(it.dials.associateWith { DialSteps(emptyList()) })
         }
 
-        private fun upTo(manifestation: Manifestation) = before(manifestation) + wholeOf(manifestation)
-
-        private const val NOTHING_WRONG = 0
-        private val ONLY_TORN_SEAMS = upTo(Manifestation.TORN_SEAMS)
-        private val AS_FAR_AS_WOUNDS = upTo(Manifestation.WOUNDS)
-        private val AS_FAR_AS_SANDFALL = upTo(Manifestation.SANDFALL)
-        private val AS_FAR_AS_COLLAPSE = upTo(Manifestation.COLLAPSE)
+        /** Enough flaws to buy every step [manifestation] sells. */
+        private fun allOf(manifestation: Manifestation) = STEPS_EACH * manifestation.dials.size
 
         private const val ANY_SEED = 7L
 
@@ -352,7 +341,7 @@ class DangerCheck : FunSpec({
             oneTerritory().withOptionsFor(Aspect.FEATURES, 0, Features.PLACES.name, placed.toList())
 
         private fun groundScore(composition: AgeComposition): Danger =
-            Danger.of(composition, Instability.NONE, ANY_SEED, true, GROUND_ONLY, PRICES)
+            Danger.of(composition, Instability.NONE, ANY_SEED, true, GROUND_ONLY, selling(null))
 
         /** One landform covering the whole Age, made of nothing in particular. */
         private fun oneTerritory(): AgeComposition = AgeComposition(terrains = listOf(Terrain.HILLS))
@@ -374,20 +363,11 @@ class DangerCheck : FunSpec({
         private fun score(
             composition: AgeComposition,
             authored: Boolean = true,
-            index: Int = NOTHING_WRONG,
-        ): Danger = Danger.of(composition, instabilityAt(index), ANY_SEED, authored, TABLE, PRICES)
-
-        /**
-         * An instability worth exactly [index], as one flaw.
-         *
-         * What the index *is* does not matter here — [Danger] never reads the register, only what the
-         * budget bought — so one flaw carrying the whole severity says all these checks need.
-         */
-        private fun instabilityAt(index: Int): Instability =
-            if (index <= 0) {
-                Instability.NONE
-            } else {
-                Instability(listOf(Flaw(Register.TENSION, listOf("a", "b"), null, emptyList(), index)))
-            }
+            bought: Manifestation? = null,
+        ): Danger {
+            // What the flaws *are* does not matter — [Danger] never reads the register, only what was bought.
+            val instability = bought?.let { Instability.forced(allOf(it)) } ?: Instability.NONE
+            return Danger.of(composition, instability, ANY_SEED, authored, TABLE, selling(bought))
+        }
     }
 }

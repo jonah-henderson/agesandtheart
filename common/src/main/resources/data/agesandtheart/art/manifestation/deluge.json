@@ -1,23 +1,21 @@
 {
   "_comment": [
-    "What a deluge costs an Age's instability budget, dial by dial (design 5.2).",
+    "How a deluge climbs the tiers, dial by dial (design 5.2).",
     "",
     "Its danger is slow to pay off -- a sea two hours from your door is a threat and not yet a hazard -- so",
-    "two of its three dials are cheap. `rate` is how fast the sea climbs while it rains and `downpour` how",
-    "much of the time it rains; an Age leaning toward the deluge maxes both early, which is the",
-    "near-constant deluge a moderate index should be able to earn.",
+    "two of its three dials unsettle throughout: `rate` is how fast the sea climbs while it rains and",
+    "`downpour` how much of the time it rains, which is the near-constant deluge an unsettled Age can have.",
     "",
-    "`height` is how far over its written level the sea is carried, and its steps open one after another",
-    "up the index: the first at 4 with the other phenomena, the last just short of the collapse threshold,",
-    "so only an Age about to come apart drowns to the build limit. Every number here waits on the tuning",
-    "pass."
+    "`height` is how far over its written level the sea is carried, and it climbs the tiers step by step: a",
+    "few nuisance steps, then hazardous ones, and the last ones failing, so only a failing Age drowns to the",
+    "build limit.",
+    "",
+    "Leans wet."
   ],
   "dials": {
-    "rate": { "costs": 1, "most": 10, "opens_at": 4 },
-    "downpour": { "costs": 1, "most": 10, "opens_at": 4 },
-    "height": {
-      "costs": [1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2],
-      "opens_at": [4, 4, 8, 11, 15, 20, 25, 30, 35, 40, 45, 49]
-    }
-  }
+    "rate": {"tier": 1, "most": 10},
+    "downpour": {"tier": 1, "most": 10},
+    "height": {"tiers": [1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3]}
+  },
+  "leans": {"humidity": 1.0}
 }

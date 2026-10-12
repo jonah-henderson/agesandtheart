@@ -1,21 +1,18 @@
 {
   "_comment": [
-    "What ground that gives way under itself costs an Age's instability budget, and how far it can reach",
-    "(design 5.0, 5.2).",
+    "How ground that gives way under itself climbs the tiers (design 5.2).",
     "",
-    "Difficulty you can answer: what it asks of a player is to read the floor, and three seconds of",
-    "unmistakable fracture is a long time to get off a piece of ground. Two dials, priced apart: `size` is",
-    "how much ground one collapse takes, and `speed` how fast it goes once the warning is over. Neither buys",
-    "the warning: a collapse that arrived unannounced would not be a harder version of this, it would be a",
-    "different and worse thing.",
+    "What it asks of a player is to read the floor, and three seconds of unmistakable fracture is a long time",
+    "to get off a piece of ground. Two dials: `size` is how much ground one collapse takes, and `speed` how",
+    "fast it goes once the warning is over. Neither buys the warning: a collapse that arrived unannounced would",
+    "not be a harder version of this, it would be a different and worse thing.",
     "",
-    "Not the same register as `collapse`, which tears the world floor and ends the Age. This one only ever",
-    "takes the hillside you are standing on -- but given long enough it takes every hillside, which is an Age",
-    "undone as surely as a torn floor. So it opens at 50 with `collapse` rather than at 4 with the other",
-    "phenomena (Jonah, 2026-09-17)."
+    "Not the same as `collapse`, which tears the world floor and ends the Age. This one only ever takes the",
+    "hillside you are standing on -- but given long enough it takes every hillside, which is an Age undone as",
+    "surely as a torn floor. So it is failing, with `collapse` (Jonah, 2026-09-17)."
   ],
   "dials": {
-    "size": { "costs": 2, "most": 4, "opens_at": 50 },
-    "speed": { "costs": 2, "most": 4, "opens_at": 50 }
+    "size": {"tier": 3, "most": 4},
+    "speed": {"tier": 3, "most": 4}
   }
 }

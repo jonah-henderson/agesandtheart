@@ -1,15 +1,18 @@
 {
   "_comment": [
-    "What an inflicted tempest costs an Age's instability budget, dial by dial (design 5.0, 5.2).",
+    "How an inflicted tempest climbs the tiers, dial by dial (design 5.2).",
     "",
     "Difficulty you can answer: a lightning rod grounds any bolt within its reach and nothing here changes",
-    "that, so copper on the roof is the whole answer whatever was bought. `often` (how often bolts come) is",
-    "cheap; `blast` (how big a crater one digs) and `fire` (how much it sets alight) are dear. Opens at 4",
-    "with the other phenomena. The numbers wait on the tuning pass."
+    "that, so copper on the roof is the whole answer whatever was bought. `often` (how often bolts come)",
+    "unsettles until its far end; `blast` (how big a crater one digs) and `fire` (how much it sets alight) are",
+    "hazardous.",
+    "",
+    "Leans wet: a storm."
   ],
   "dials": {
-    "often": { "costs": 1, "most": 4, "opens_at": 4 },
-    "blast": { "costs": 2, "most": 4, "opens_at": 4 },
-    "fire": { "costs": 2, "most": 4, "opens_at": 4 }
-  }
+    "often": {"tiers": [1, 1, 2, 2]},
+    "blast": {"tier": 2, "most": 4},
+    "fire": {"tier": 2, "most": 4}
+  },
+  "leans": {"humidity": 0.5}
 }

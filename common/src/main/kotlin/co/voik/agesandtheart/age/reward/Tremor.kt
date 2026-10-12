@@ -2,7 +2,9 @@ package co.voik.agesandtheart.age.reward
 
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.Price
+import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.Ladder
+import co.voik.agesandtheart.age.SpendingSetting
 import co.voik.agesandtheart.age.Spending
 import net.minecraft.server.MinecraftServer
 
@@ -24,12 +26,17 @@ data class Tremor(val footing: Footing, val manifests: List<Manifestation>) {
 
     companion object {
         /** What the ground under this sentence will do, on the server about to be asked to build it. */
-        fun of(server: MinecraftServer, instability: Instability, seed: Long): Tremor =
-            of(instability, seed, Price.list(server))
+        fun of(server: MinecraftServer, instability: Instability, seed: Long, composition: AgeComposition?): Tremor =
+            of(instability, seed, Ladder.list(server), composition)
 
-        /** The same, against a price list handed in — offline, and what the checks use. */
-        fun of(instability: Instability, seed: Long, prices: Map<Manifestation, Price>): Tremor {
-            val spending = Spending.of(instability.index, seed, prices)
+        /** The same, against the ladders handed in — offline, and what the checks use. */
+        fun of(
+            instability: Instability,
+            seed: Long,
+            ladders: Map<Manifestation, Ladder>,
+            composition: AgeComposition? = null,
+        ): Tremor {
+            val spending = Spending.of(instability, seed, ladders, SpendingSetting.of(composition))
             val manifests = Manifestation.entries.filter { spending.bought(it) > 0 }
             return Tremor(Footing.of(manifests), manifests)
         }

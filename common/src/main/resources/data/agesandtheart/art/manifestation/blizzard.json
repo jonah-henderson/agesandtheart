@@ -1,17 +1,21 @@
 {
   "_comment": [
-    "What a blizzard costs an Age's instability budget, dial by dial (design 5.0, 5.2).",
+    "How a blizzard climbs the tiers, dial by dial (notes/instability-tiers-plan.md, design 5.2).",
     "",
     "Difficulty you can answer: light stops the snow settling and leather stops the freezing -- both",
-    "vanilla's own rules. Three dials are weather and cheap: `often` (how often a storm comes), `long` (how",
-    "long each lasts) and `visibility` (how close the whiteout closes in, and how hard the snow drifts).",
-    "`frostbite` is how fast the cold gets into anyone out in it, which is the one that kills, and it is",
-    "dear. Opens at 4 with the other phenomena. The numbers wait on the tuning pass."
+    "vanilla's own rules. Three dials are weather and unsettle: `often` (how often a storm comes), `long`",
+    "(how long each lasts) and `visibility` (how close the whiteout closes in, and how hard the snow drifts),",
+    "each turning hazardous only at its far end. `frostbite` is how fast the cold gets into anyone out in it,",
+    "which is the one that kills, so it is hazardous throughout.",
+    "",
+    "Leans cold, and never shares an Age with an inferno (Jonah, 2026-10-12)."
   ],
   "dials": {
-    "often": { "costs": 1, "most": 4, "opens_at": 4 },
-    "long": { "costs": 1, "most": 4, "opens_at": 4 },
-    "visibility": { "costs": 1, "most": 4, "opens_at": 4 },
-    "frostbite": { "costs": 2, "most": 4, "opens_at": 4 }
-  }
+    "often": {"tiers": [1, 1, 1, 2]},
+    "long": {"tiers": [1, 1, 1, 2]},
+    "visibility": {"tiers": [1, 1, 2, 2]},
+    "frostbite": {"tier": 2, "most": 4}
+  },
+  "leans": {"temperature": -1.0},
+  "excludes": ["inferno"]
 }

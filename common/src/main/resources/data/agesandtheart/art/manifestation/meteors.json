@@ -1,17 +1,19 @@
 {
   "_comment": [
-    "What an inflicted meteor storm costs an Age's instability budget, dial by dial (design 5.0, 5.2).",
+    "How an inflicted meteor storm climbs the tiers, dial by dial (design 5.2).",
     "",
-    "Difficulty you can answer: anything in `agesandtheart:seals_wounds` is immune to a blast worth using,",
-    "and being properly indoors is free. So two of its three dials are cheap, as the deluge's are: `often` is",
-    "how often a storm gathers and `long` how long it lasts, and how many bodies it drops follows `long`",
-    "alone, since every body is a light drawn in the sky. `power` is how hard they land -- speed and blast --",
-    "which is what can take a roof off, and it is dear. A dial bought in full is worth what `teeming` is to a",
-    "written storm. All three open at 4 with the other phenomena. Every number here waits on the tuning pass."
+    "Difficulty you can answer: anything in `agesandtheart:seals_wounds` is immune to a blast worth using, and",
+    "being properly indoors is free. So two of its three dials unsettle, as the deluge's do: `often` is how",
+    "often a storm gathers and `long` how long it lasts, and how many bodies it drops follows `long` alone,",
+    "since every body is a light drawn in the sky. `power` is how hard they land -- speed and blast -- which",
+    "is what can take a roof off, and it is hazardous. A dial bought in full is worth what `teeming` is to a",
+    "written storm.",
+    "",
+    "Leans nowhere: the sky falls on any climate."
   ],
   "dials": {
-    "often": { "costs": 1, "most": 4, "opens_at": 4 },
-    "long": { "costs": 1, "most": 4, "opens_at": 4 },
-    "power": { "costs": 2, "most": 4, "opens_at": 4 }
+    "often": {"tiers": [1, 1, 2, 2]},
+    "long": {"tiers": [1, 1, 2, 2]},
+    "power": {"tier": 2, "most": 4}
   }
 }

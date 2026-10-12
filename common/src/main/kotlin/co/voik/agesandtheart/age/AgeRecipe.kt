@@ -164,7 +164,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 10
+        const val CURRENT_GENERATOR_VERSION = 11
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -193,7 +193,9 @@ data class AgeRecipe(
                     world = world,
                     seed = seed,
                     character = character,
-                    instability = instability,
+                    // An Age written before the page count was kept reads it off the pages it was laid with,
+                    // which is the same number: otherwise every one of them would fall under the cap.
+                    instability = if (instability.pages == 0) instability.copy(pages = words.size) else instability,
                     words = words,
                     generatorVersion = version,
                     template = template,

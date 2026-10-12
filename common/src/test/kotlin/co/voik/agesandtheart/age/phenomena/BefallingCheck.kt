@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.phenomena
 
-import co.voik.agesandtheart.age.SHIPPED_PRICES
+import co.voik.agesandtheart.age.Instability
+import co.voik.agesandtheart.age.SHIPPED_LADDERS
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Phenomenon
@@ -20,7 +21,7 @@ class BefallingCheck : FunSpec({
     /** Far enough past the top of the ladder that every rung is bought, however many there are. */
     val MOST_BROKEN = 20
 
-    fun spendingAt(budget: Int) = Spending.of(budget, ANY_SEED, SHIPPED_PRICES)
+    fun spendingAt(flaws: Int) = Spending.of(Instability.forced(flaws), ANY_SEED, SHIPPED_LADDERS)
     fun sandfall(value: String = Phenomenon.SANDFALL.key, density: Double = Rung.ORDINARY) =
         Claim(value = value, density = density)
 
@@ -89,10 +90,10 @@ class BefallingCheck : FunSpec({
 }) {
     private companion object {
         /**
-         * Enough to buy every step of everything, so the sandfall is reached whatever the draw leans
-         * toward — which of the phenomena a *moderate* index reaches is the seed's to say.
+         * Enough flaws to buy every unsettling and hazardous step there is, so the sandfall is reached
+         * whatever the draw leans toward — which of the phenomena a few flaws reach is the seed's to say.
          */
-        const val RUINED = 10_000
+        const val RUINED = 200
 
         const val ANY_SEED = 7L
     }

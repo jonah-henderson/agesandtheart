@@ -8,7 +8,7 @@ import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.Price
+import co.voik.agesandtheart.age.Ladder
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -116,7 +116,7 @@ class DangerTableCheck : FunSpec({
 
         private val table by lazy { DangerTable.load(MinecraftRegistries.shippedData()) }
 
-        private val prices = Manifestation.entries.associateWith(Price::ordinaryFor)
+        private val prices = Manifestation.entries.associateWith(Ladder::ordinaryFor)
 
         private fun scoreOver(template: AgeTemplate): Danger = Danger.of(
             AgeRecipe(AgeWorld.Composed(template.world()), seed = SEED, template = template, authored = true),

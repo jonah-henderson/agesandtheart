@@ -1,11 +1,14 @@
 {
   "_comment": [
-    "What it costs an Age's instability budget to tear its own seams open, and how far that can go",
-    "(design 5.0). Each dial sells steps: `costs` is the price of a step, `most` how many there are, and",
-    "`opens_at` the index a step waits for before the draw may buy it. Open from the first point of",
-    "instability, so it is the thing a barely unstable Age most often shows."
+    "How far an Age tears its own seams open (design 3.4): scarps throw further, rifts cut deeper, walls",
+    "stand higher, and a fuzzed border widens.",
+    "",
+    "Only in an Age divided into territories, since an undivided one has no seam to tear and a step here",
+    "would show nothing -- which is what it did for most Ages while it was the commonest first purchase",
+    "(Jonah, 2026-10-12). Unsettling: the ground is wrong, and nothing about it hurts."
   ],
   "dials": {
-    "width": { "costs": 1, "most": 4 }
-  }
+    "width": {"tier": 1, "most": 4}
+  },
+  "needs_regions": true
 }

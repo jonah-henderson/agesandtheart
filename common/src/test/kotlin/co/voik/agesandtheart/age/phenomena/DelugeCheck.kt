@@ -1,8 +1,8 @@
 package co.voik.agesandtheart.age.phenomena
 
-import co.voik.agesandtheart.age.DialPrice
+import co.voik.agesandtheart.age.DialSteps
 import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.Price
+import co.voik.agesandtheart.age.Ladder
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Rung
 import io.kotest.core.spec.style.FunSpec
@@ -23,7 +23,7 @@ class DelugeCheck : FunSpec({
     /** A spending that bought [rate], [downpour] and [height] steps of ten on each of the deluge's dials. */
     fun bought(rate: Int = 0, downpour: Int = 0, height: Int = 0): Spending {
         val tenEach = mapOf(
-            Manifestation.DELUGE to Price(Manifestation.DELUGE.dials.associateWith { DialPrice.flat(1, 10) }),
+            Manifestation.DELUGE to Ladder(Manifestation.DELUGE.dials.associateWith { DialSteps.flat(1, 10) }),
         )
         val steps = mapOf(
             Manifestation.DELUGE to mapOf(
@@ -32,7 +32,7 @@ class DelugeCheck : FunSpec({
                 Manifestation.RISE_HEIGHT to height,
             ),
         )
-        val ceilings = tenEach.mapValues { (_, price) -> price.dials.mapValues { it.value.most } }
+        val ceilings = tenEach.mapValues { (_, ladder) -> ladder.dials.mapValues { it.value.most } }
         return Spending(steps, ceilings)
     }
 
