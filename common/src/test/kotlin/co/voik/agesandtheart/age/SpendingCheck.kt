@@ -36,7 +36,7 @@ class SpendingCheck : FunSpec({
 
     /** Jonah's bands, and the bare desk's page limit over them. */
     test("the top tier is set by the flaws, and a short book stays strange") {
-        val expected = mapOf(1 to 0, 2 to 0, 3 to 1, 4 to 1, 5 to 2, 7 to 2, 8 to 3, 20 to 3)
+        val expected = mapOf(1 to 1, 3 to 1, 4 to 2, 6 to 2, 7 to 3, 20 to 3)
         for ((flaws, tier) in expected) {
             check(Spending.topTier(flaws, LONG_BOOK) == tier) { "$flaws flaws reached tier ${Spending.topTier(flaws, LONG_BOOK)}" }
             check(Spending.topTier(flaws, Spending.PAGES_KEPT_STRANGE) == Spending.STRANGE) {
@@ -45,17 +45,16 @@ class SpendingCheck : FunSpec({
         }
     }
 
-    /** As evenly as they go, the remainder to the lowest tiers — Jonah's own example is seven. */
+    /** As evenly as they go, the remainder to the lowest tiers. */
     test("the flaws are dealt out evenly, the lowest tiers taking what is over") {
-        check(Spending.slotsPerTier(7, top = 2) == listOf(3, 2, 2)) { "seven gave ${Spending.slotsPerTier(7, 2)}" }
-        check(Spending.slotsPerTier(3, top = 1) == listOf(2, 1)) { "three gave ${Spending.slotsPerTier(3, 1)}" }
-        check(Spending.slotsPerTier(10, top = 3) == listOf(3, 3, 2, 2)) { "ten gave ${Spending.slotsPerTier(10, 3)}" }
-        check(Spending.slotsPerTier(4, top = 0) == listOf(4)) { "four strange gave ${Spending.slotsPerTier(4, 0)}" }
+        check(Spending.slotsPerTier(7, top = 3) == mapOf(1 to 3, 2 to 2, 3 to 2)) { "seven gave ${Spending.slotsPerTier(7, 3)}" }
+        check(Spending.slotsPerTier(5, top = 2) == mapOf(1 to 3, 2 to 2)) { "five gave ${Spending.slotsPerTier(5, 2)}" }
+        check(Spending.slotsPerTier(3, top = 1) == mapOf(1 to 3)) { "three gave ${Spending.slotsPerTier(3, 1)}" }
         for (flaws in 1..30) {
             val top = Spending.topTier(flaws, LONG_BOOK)
             val slots = Spending.slotsPerTier(flaws, top)
-            check(slots.sum() == flaws) { "$flaws flaws were dealt ${slots.sum()} slots" }
-            check(slots[top] >= 1) { "$flaws flaws left the top tier empty: $slots" }
+            check(slots.values.sum() == flaws) { "$flaws flaws were dealt ${slots.values.sum()} slots" }
+            check((slots[top] ?: 0) >= 1) { "$flaws flaws left the top tier empty: $slots" }
         }
     }
 
@@ -74,7 +73,7 @@ class SpendingCheck : FunSpec({
     /** "Mistakes must purchase at least one manifestation of the top tier" (Jonah). */
     test("the top tier is always bought where it has anything left") {
         for (seed in seeds) {
-            for (flaws in 3..20) {
+            for (flaws in 4..20) {
                 val top = Spending.topTier(flaws, LONG_BOOK)
                 check(top in tiersBought(spent(flaws, seed))) { "$flaws flaws under seed $seed bought nothing at tier $top" }
             }
@@ -231,13 +230,13 @@ private fun tiers(vararg each: Int) = DialSteps(each.toList())
  * server runs. `ShippedLaddersCheck` fails if it drifts from the files.
  */
 internal val SHIPPED_LADDERS = mapOf(
-    Manifestation.TORN_SEAMS to Ladder.flat(Manifestation.TORN_SEAMS, tier = 0, most = 4).copy(needsRegions = true),
+    Manifestation.TORN_SEAMS to Ladder.flat(Manifestation.TORN_SEAMS, tier = 1, most = 4).copy(needsRegions = true),
     Manifestation.WOUNDS to Ladder.flat(Manifestation.WOUNDS, tier = 2, most = 4),
     Manifestation.WORSENING_WOUNDS to Ladder.flat(Manifestation.WORSENING_WOUNDS, tier = 3, most = 3),
     Manifestation.SANDFALL to Ladder(
         mapOf(
-            Manifestation.COLUMNS_OFTEN to tiers(1, 1, 2, 2),
-            Manifestation.COLUMNS_LONG to tiers(1, 1, 2, 2),
+            Manifestation.COLUMNS_OFTEN to DialSteps.flat(tier = 2, most = 4),
+            Manifestation.COLUMNS_LONG to DialSteps.flat(tier = 2, most = 4),
             Manifestation.COLUMNS_SIZE to DialSteps.flat(tier = 2, most = 4),
             Manifestation.COLUMNS_DEPTH to DialSteps.flat(tier = 2, most = 4),
         ),
@@ -245,9 +244,9 @@ internal val SHIPPED_LADDERS = mapOf(
     ),
     Manifestation.BLIZZARD to Ladder(
         mapOf(
-            Manifestation.SNOWSTORMS_OFTEN to tiers(1, 1, 1, 2),
-            Manifestation.SNOWSTORMS_LONG to tiers(1, 1, 1, 2),
-            Manifestation.SNOWSTORMS_VISIBILITY to tiers(1, 1, 2, 2),
+            Manifestation.SNOWSTORMS_OFTEN to DialSteps.flat(tier = 2, most = 4),
+            Manifestation.SNOWSTORMS_LONG to DialSteps.flat(tier = 2, most = 4),
+            Manifestation.SNOWSTORMS_VISIBILITY to DialSteps.flat(tier = 2, most = 4),
             Manifestation.SNOWSTORMS_FROSTBITE to DialSteps.flat(tier = 2, most = 4),
         ),
         leans = mapOf("temperature" to -1.0),
@@ -255,15 +254,15 @@ internal val SHIPPED_LADDERS = mapOf(
     ),
     Manifestation.METEORS to Ladder(
         mapOf(
-            Manifestation.STORMS_OFTEN to tiers(1, 1, 2, 2),
-            Manifestation.STORMS_LONG to tiers(1, 1, 2, 2),
+            Manifestation.STORMS_OFTEN to DialSteps.flat(tier = 2, most = 4),
+            Manifestation.STORMS_LONG to DialSteps.flat(tier = 2, most = 4),
             Manifestation.STORMS_POWER to DialSteps.flat(tier = 2, most = 4),
         ),
     ),
     Manifestation.TECTONICS to Ladder.flat(Manifestation.TECTONICS, tier = 3, most = 4),
     Manifestation.TEMPEST to Ladder(
         mapOf(
-            Manifestation.BOLTS_OFTEN to tiers(1, 1, 2, 2),
+            Manifestation.BOLTS_OFTEN to DialSteps.flat(tier = 2, most = 4),
             Manifestation.BOLTS_BLAST to DialSteps.flat(tier = 2, most = 4),
             Manifestation.BOLTS_FIRE to DialSteps.flat(tier = 2, most = 4),
         ),
@@ -278,9 +277,9 @@ internal val SHIPPED_LADDERS = mapOf(
     ),
     Manifestation.DELUGE to Ladder(
         mapOf(
-            Manifestation.RISE_RATE to DialSteps.flat(tier = 1, most = 10),
-            Manifestation.DOWNPOUR to DialSteps.flat(tier = 1, most = 10),
-            Manifestation.RISE_HEIGHT to tiers(1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3),
+            Manifestation.RISE_RATE to DialSteps.flat(tier = 2, most = 10),
+            Manifestation.DOWNPOUR to DialSteps.flat(tier = 2, most = 10),
+            Manifestation.RISE_HEIGHT to tiers(2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3),
         ),
         leans = mapOf("humidity" to 1.0),
     ),

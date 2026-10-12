@@ -26,7 +26,7 @@
     "severely_unstable": [
       {"produce":["age","colossal","minuscule","landmass","frozen","scorching","climate","molten","sea","verdant","biomes"]},
       {"produce":["age","colossal","minuscule","landmass","villagers","ruins","structures","frozen","scorching","climate","molten","sea","verdant","biomes"]},
-      {"produce":["age","frozen","scorching","tropical","climate","blizzard","inferno","weather","molten","sea","verdant","biomes"]}
+      {"produce":["age","frozen","scorching","climate","blizzard","inferno","weather","molten","sea","verdant","biomes"]}
     ],
     "land": [
       {"produce":["gentle"]},

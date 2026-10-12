@@ -9,7 +9,7 @@
     "barely flawed Age with seams shows."
   ],
   "dials": {
-    "width": {"tier": 0, "most": 4}
+    "width": {"tier": 1, "most": 4}
   },
   "needs_regions": true
 }

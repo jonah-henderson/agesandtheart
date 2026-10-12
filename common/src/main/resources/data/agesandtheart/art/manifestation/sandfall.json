@@ -3,16 +3,15 @@
     "How an inflicted sandfall climbs the tiers, dial by dial (design 5.2.2).",
     "",
     "Difficulty rather than a verdict: you can roof over sand, and the burial hands you the glass to do it",
-    "with. So the nuisance unsettles and the damage is a hazard, as the deluge's and the meteors' are:",
-    "`often` (how often one comes, and how many may stand at once) and `long` (how long one lives) unsettle",
-    "until their far end; `size` (how wide it grows, up to twenty by twenty) and `depth` (how deep a pass",
-    "buries) are hazardous.",
+    "with. `often` (how often one comes, and how many may stand at once), `long` (how long one lives), `size`",
+    "(how wide it grows, up to twenty by twenty) and `depth` (how deep a pass buries). Harmful throughout: it",
+    "buries the land.",
     "",
     "Leans dry, and a little hot."
   ],
   "dials": {
-    "often": {"tiers": [1, 1, 2, 2]},
-    "long": {"tiers": [1, 1, 2, 2]},
+    "often": {"tier": 2, "most": 4},
+    "long": {"tier": 2, "most": 4},
     "size": {"tier": 2, "most": 4},
     "depth": {"tier": 2, "most": 4}
   },

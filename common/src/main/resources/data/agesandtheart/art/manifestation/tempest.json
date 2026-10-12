@@ -3,14 +3,13 @@
     "How an inflicted tempest climbs the tiers, dial by dial (design 5.2).",
     "",
     "Difficulty you can answer: a lightning rod grounds any bolt within its reach and nothing here changes",
-    "that, so copper on the roof is the whole answer whatever was bought. `often` (how often bolts come)",
-    "unsettles until its far end; `blast` (how big a crater one digs) and `fire` (how much it sets alight) are",
-    "hazardous.",
+    "that, so copper on the roof is the whole answer whatever was bought. `often` (how often bolts come),",
+    "`blast` (how big a crater one digs) and `fire` (how much it sets alight). Harmful throughout.",
     "",
     "Leans wet: a storm."
   ],
   "dials": {
-    "often": {"tiers": [1, 1, 2, 2]},
+    "often": {"tier": 2, "most": 4},
     "blast": {"tier": 2, "most": 4},
     "fire": {"tier": 2, "most": 4}
   },

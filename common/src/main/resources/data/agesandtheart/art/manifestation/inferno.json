@@ -9,7 +9,7 @@
     "Two dials, and either one bought sets the Age alight. `burn_damage` is how much it hurts to stand out",
     "under open light, on top of vanilla's own burning. `light_intensity` is how dim that light may get",
     "before the burning stops: none of it is daylight only, as a written inferno is, and all of it burns",
-    "under the moon. Both are harm, so both are hazardous.",
+    "under the moon. Both are harm.",
     "",
     "Leans hot and dry. A blizzard's ladder says it never shares an Age with one."
   ],

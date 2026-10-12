@@ -3,19 +3,18 @@
     "How a deluge climbs the tiers, dial by dial (design 5.2).",
     "",
     "Its danger is slow to pay off -- a sea two hours from your door is a threat and not yet a hazard -- so",
-    "two of its three dials unsettle throughout: `rate` is how fast the sea climbs while it rains and",
-    "`downpour` how much of the time it rains, which is the near-constant deluge an unsettled Age can have.",
+    "two of its three dials are cheap to have: `rate` is how fast the sea climbs while it rains and `downpour`",
+    "how much of the time it rains. All of it is harmful, since the sea takes ground.",
     "",
-    "`height` is how far over its written level the sea is carried, and it climbs the tiers step by step: a",
-    "few nuisance steps, then hazardous ones, and the last ones failing, so only a failing Age drowns to the",
-    "build limit.",
+    "`height` is how far over its written level the sea is carried; its last steps are failing, so only a",
+    "failing Age drowns to the build limit.",
     "",
     "Leans wet."
   ],
   "dials": {
-    "rate": {"tier": 1, "most": 10},
-    "downpour": {"tier": 1, "most": 10},
-    "height": {"tiers": [1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3]}
+    "rate": {"tier": 2, "most": 10},
+    "downpour": {"tier": 2, "most": 10},
+    "height": {"tiers": [2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3]}
   },
   "leans": {"humidity": 1.0}
 }

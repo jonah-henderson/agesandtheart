@@ -5,12 +5,11 @@ terminals word
 # found book allowed to argue with itself: BookCheck fails any book here that comes out coherent. Each
 # alternative should be a mistake a reader can see in the world and learn to recognise in their own.
 #
-# Three kinds, by how far gone the Age is, each in the tier its distinct mistakes reach
-# (notes/instability-tiers-plan.md), and none failing. BookCheck holds that every one is flawed and none
-# fails, and UnstableBookCheck holds each kind to its tier.
+# Three kinds, by how far gone the Age is, counted in distinct mistakes (the-art-design.md 5.0). BookCheck
+# holds that every one is flawed and none fails, and UnstableBookCheck holds each kind to its count.
 # - Slightly unstable, one or two mistakes: strange.
-# - Moderately unstable, three or four: unsettled, a phenomenon starting.
-# - Severely unstable, five to seven: hazardous.
+# - Moderately unstable, three or four: strange, or a phenomenon starting.
+# - Severely unstable, five or six: harmful, and short of the seven that fail.
 
 book = [slightly_unstable] | [moderately_unstable] | [severely_unstable]
 
@@ -32,7 +31,7 @@ moderately_unstable =
 severely_unstable =
     age colossal minuscule landmass frozen scorching climate molten sea verdant biomes
     | age colossal minuscule landmass villagers ruins structures frozen scorching climate molten sea verdant biomes
-    | age frozen scorching tropical climate blizzard inferno weather molten sea verdant biomes
+    | age frozen scorching climate blizzard inferno weather molten sea verdant biomes
 
 land = gentle | eroded | insular | pillared | canyoned | mountainous
 

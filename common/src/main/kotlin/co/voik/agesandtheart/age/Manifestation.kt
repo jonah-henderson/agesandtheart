@@ -92,22 +92,21 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
      * for (§7.7). Where the Age already has a sandfall, the two **compound**.
      *
      * **Four dials** (Jonah, 2026-09-23): how often a column comes and how many may stand at once, how long
-     * one lives, how wide it grows, and how deep it buries. The first two are a nuisance and unsettle; the
-     * last two are what takes a base and are hazards.
+     * one lives, how wide it grows, and how deep it buries. The last two are what takes a base.
      */
     SANDFALL("sandfall", SANDFALL_OFTEN, SANDFALL_LONG, SANDFALL_SIZE, SANDFALL_DEPTH),
 
     /**
      * The Age is driven under snow (design §5.2's blizzard). **Four dials** (Jonah, 2026-09-23): how often a
      * storm comes, how long each lasts, how far you can see in one (and how hard the snow drifts), and how
-     * fast the cold gets into you. Only the last one hurts, and it is the hazard.
+     * fast the cold gets into you.
      */
     BLIZZARD("blizzard", BLIZZARD_OFTEN, BLIZZARD_LONG, BLIZZARD_VISIBILITY, BLIZZARD_FROSTBITE),
 
     /**
      * The sky falls on the Age in showers (design §5.2). **Three dials** (Jonah, 2026-09-23): how often a storm
-     * gathers and how long it lasts unsettle, and how hard its bodies land is the hazard. How many bodies a
-     * storm drops follows how long it lasts and nothing else.
+     * gathers, how long it lasts, and how hard its bodies land. How many bodies a storm drops follows how long it
+     * lasts and nothing else.
      */
     METEORS("meteors", METEORS_OFTEN, METEORS_LONG, METEORS_POWER),
 
@@ -123,8 +122,8 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
     /**
      * The Age is struck (design §5.2) — a storm that does not end, bolts coming down far more often than
      * weather alone would bring them, and cratering the ground where they land. **Three dials** (Jonah,
-     * 2026-09-23): how often bolts come unsettles; how big a crater one digs and how much it sets alight are
-     * the hazards. A lightning rod still grounds a bolt, whatever was bought.
+     * 2026-09-23): how often bolts come, how big a crater one digs, and how much it sets alight. A lightning rod
+     * still grounds a bolt, whatever was bought.
      */
     TEMPEST("tempest", TEMPEST_OFTEN, TEMPEST_BLAST, TEMPEST_FIRE),
 
@@ -141,9 +140,8 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
     /**
      * The sea comes up under a downpour that will not stop (design §5.2's deluge).
      *
-     * **Three dials** (Jonah, 2026-09-17), because the danger is slow to pay off: how fast the sea climbs while
-     * it rains and how much of the time it rains are nuisances, so an Age can be near-constantly deluged
-     * early; how far the sea climbs reaches the top tier step by step, so only a failing Age drowns to the build
+     * **Three dials** (Jonah, 2026-09-17): how fast the sea climbs while it rains, how much of the time it rains,
+     * and how far the sea climbs — whose last steps are failing, so only a failing Age drowns to the build
      * limit.
      */
     DELUGE("deluge", DELUGE_RATE, DELUGE_DOWNPOUR, DELUGE_HEIGHT),
@@ -298,7 +296,7 @@ data class Ladder(
     val needsRegions: Boolean = false,
 ) {
     companion object {
-        private const val DEFAULT_TIER = 2
+        private const val DEFAULT_TIER = Spending.HARMFUL
         private const val DEFAULT_MOST = 4
 
         /** What a manifestation nobody wrote a ladder for does — so an absent file is a default, never nothing. */
@@ -447,42 +445,44 @@ data class Spending(
         /** A coherent Age, which buys nothing. */
         val NOTHING = Spending(emptyMap())
 
-        /** Strange, unsettled, hazardous, failing — cosmetic to verdict. */
-        val TIERS = 0..3
+        /** Strange, harmful, failing (Jonah, 2026-10-12): seen only, hurting or reshaping, and undoing the Age. */
+        val TIERS = 1..3
 
-        const val STRANGE = 0
-        const val UNSETTLED = 1
-        const val HAZARDOUS = 2
+        /** Visual only — at worst a nuisance, like a fog you cannot see through. */
+        const val STRANGE = 1
+
+        /** What can hurt you directly, or alter the land. */
+        const val HARMFUL = 2
+
+        /** What destroys an Age, left unchecked. */
         const val FAILING = 3
 
         /** A book this short stays strange however wrong it is: a bare desk's page limit. */
         const val PAGES_KEPT_STRANGE = 5
 
         /**
-         * The highest tier [flaws] distinct flaws reach in a book of [pages] (Jonah): one or two stay strange,
-         * three or four unsettle, five to seven are hazardous, and eight or more fail.
+         * The highest tier [flaws] distinct flaws reach in a book of [pages] (Jonah): up to three stay strange,
+         * four to six harm, and seven or more fail.
          */
         fun topTier(flaws: Int, pages: Int): Int = when {
             pages <= PAGES_KEPT_STRANGE -> STRANGE
             flaws <= MOST_STRANGE -> STRANGE
-            flaws <= MOST_UNSETTLED -> UNSETTLED
-            flaws <= MOST_HAZARDOUS -> HAZARDOUS
+            flaws <= MOST_HARMFUL -> HARMFUL
             else -> FAILING
         }
 
-        private const val MOST_STRANGE = 2
-        private const val MOST_UNSETTLED = 4
-        private const val MOST_HAZARDOUS = 7
+        private const val MOST_STRANGE = 3
+        private const val MOST_HARMFUL = 6
 
         /**
-         * How many of [flaws] each tier from strange up to [top] is dealt: as evenly as they go, the remainder
-         * to the lowest tiers first — so seven hazardous flaws are three strange, two unsettled, two hazardous.
+         * How many of [flaws] each tier from strange up to [top] is dealt, by tier: as evenly as they go, the
+         * remainder to the lowest tiers first — so five harmful flaws are three strange and two harmful.
          */
-        fun slotsPerTier(flaws: Int, top: Int): List<Int> {
-            val tiers = top + 1
-            val each = flaws / tiers
-            val over = flaws % tiers
-            return List(tiers) { tier -> each + if (tier < over) 1 else 0 }
+        fun slotsPerTier(flaws: Int, top: Int): Map<Int, Int> {
+            val tiers = (STRANGE..top).toList()
+            val each = flaws / tiers.size
+            val over = flaws % tiers.size
+            return tiers.withIndex().associate { (index, tier) -> tier to each + if (index < over) 1 else 0 }
         }
 
         /** What [instability] buys from these [ladders], for the Age whose seed is [seed] and setting is [setting]. */
@@ -541,7 +541,7 @@ data class Spending(
             // rest from the bottom up, so a dial that climbs — a deluge's height — has its lower steps
             // bought by the time a higher slot asks for the next one.
             buyOneAt(top)
-            for (tier in STRANGE..top) repeat(slots[tier] - if (tier == top) 1 else 0) { buyOneAt(tier) }
+            for ((tier, count) in slots) repeat(count - if (tier == top) 1 else 0) { buyOneAt(tier) }
 
             val ceilings = Manifestation.entries.associateWith { manifestation ->
                 ladderOf(manifestation).dials.mapValues { it.value.most }

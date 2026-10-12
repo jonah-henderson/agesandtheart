@@ -3,17 +3,16 @@
     "How an inflicted meteor storm climbs the tiers, dial by dial (design 5.2).",
     "",
     "Difficulty you can answer: anything in `agesandtheart:seals_wounds` is immune to a blast worth using, and",
-    "being properly indoors is free. So two of its three dials unsettle, as the deluge's do: `often` is how",
-    "often a storm gathers and `long` how long it lasts, and how many bodies it drops follows `long` alone,",
-    "since every body is a light drawn in the sky. `power` is how hard they land -- speed and blast -- which",
-    "is what can take a roof off, and it is hazardous. A dial bought in full is worth what `teeming` is to a",
-    "written storm.",
+    "being properly indoors is free. `often` is how often a storm gathers and `long` how long it lasts, and how",
+    "many bodies it drops follows `long` alone, since every body is a light drawn in the sky. `power` is how",
+    "hard they land -- speed and blast -- which is what can take a roof off. A dial bought in full is worth",
+    "what `teeming` is to a written storm. Harmful throughout.",
     "",
     "Leans nowhere: the sky falls on any climate."
   ],
   "dials": {
-    "often": {"tiers": [1, 1, 2, 2]},
-    "long": {"tiers": [1, 1, 2, 2]},
+    "often": {"tier": 2, "most": 4},
+    "long": {"tier": 2, "most": 4},
     "power": {"tier": 2, "most": 4}
   }
 }

@@ -3,17 +3,16 @@
     "How a blizzard climbs the tiers, dial by dial (notes/instability-tiers-plan.md, design 5.2).",
     "",
     "Difficulty you can answer: light stops the snow settling and leather stops the freezing -- both",
-    "vanilla's own rules. Three dials are weather and unsettle: `often` (how often a storm comes), `long`",
-    "(how long each lasts) and `visibility` (how close the whiteout closes in, and how hard the snow drifts),",
-    "each turning hazardous only at its far end. `frostbite` is how fast the cold gets into anyone out in it,",
-    "which is the one that kills, so it is hazardous throughout.",
+    "vanilla's own rules. Four dials: `often` (how often a storm comes), `long` (how long each lasts),",
+    "`visibility` (how close the whiteout closes in, and how hard the snow drifts) and `frostbite` (how fast",
+    "the cold gets into anyone out in it). Harmful throughout: any step brings a whole blizzard, which bites.",
     "",
     "Leans cold, and never shares an Age with an inferno (Jonah, 2026-10-12)."
   ],
   "dials": {
-    "often": {"tiers": [1, 1, 1, 2]},
-    "long": {"tiers": [1, 1, 1, 2]},
-    "visibility": {"tiers": [1, 1, 2, 2]},
+    "often": {"tier": 2, "most": 4},
+    "long": {"tier": 2, "most": 4},
+    "visibility": {"tier": 2, "most": 4},
     "frostbite": {"tier": 2, "most": 4}
   },
   "leans": {"temperature": -1.0},
