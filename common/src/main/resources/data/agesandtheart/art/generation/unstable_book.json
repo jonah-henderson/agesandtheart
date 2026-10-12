@@ -18,7 +18,7 @@
       {"produce":["age","colossal","minuscule","landmass"]}
     ],
     "moderately_unstable": [
-      {"produce":["age","colossal","minuscule","landmass","blizzard","inferno","weather"]},
+      {"produce":["age","colossal","minuscule","landmass","blizzard","inferno","weather","drowned","sea","dry","rock"]},
       {"produce":["age","arid","landmass","flooded","rock","drenched","weather","blizzard","inferno","weather"]},
       {"produce":["age","[cold_stone]","landmass","frozen","scorching","climate","molten","sea","verdant","biomes"]},
       {"produce":["age","villagers","ruins","structures","trees","features","arid","climate","drowned","sea","dry","rock"]}

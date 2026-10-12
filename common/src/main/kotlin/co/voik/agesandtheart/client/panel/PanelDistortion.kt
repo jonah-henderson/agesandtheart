@@ -21,10 +21,7 @@ object PanelDistortion {
     /**
      * How far gone an Age's picture is, `0..1`, from its instability index.
      *
-     * Straight, as design §7.3 says. It was square-rooted, on the reasoning that books carry the low
-     * indices and would otherwise show nothing — but the whole range is worth having and the low end was
-     * the part that was wrong: four is a book with a couple of contradictions in it, and it was tearing
-     * like a broken one.
+     * Straight, as design §7.3 says: the index counts distinct flaws, so each one shows a little more.
      */
     fun unsettledAt(index: Int): Float = (index.toFloat() / MOST_SHOWN).coerceIn(0.0f, 1.0f)
 
@@ -92,12 +89,10 @@ object PanelDistortion {
         unitFloat(mix64(salt xor (frame.toLong() * FRAME_STRIDE) xor (band.toLong() * BAND_STRIDE)))
 
     /**
-     * The index at which the panel is as bad as it gets.
-     *
-     * Where seams and wounds together are bought (`art/manifestation/`), a quarter of the way to collapse's
-     * fifty, as every other threshold on the ladder is.
+     * The flaws at which the panel is as bad as it gets: the first count that reaches the failing tier
+     * (`Spending.topTier`), so one mistake is an eighth of the way and a doomed Age all of it.
      */
-    private const val MOST_SHOWN = 6
+    private const val MOST_SHOWN = 8
 
     /** Two page-pixels, which is a band thin enough for two fields to comb rather than to stripe. */
     private const val BAND_HEIGHT = 2
