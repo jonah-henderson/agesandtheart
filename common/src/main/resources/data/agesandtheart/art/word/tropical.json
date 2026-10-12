@@ -6,15 +6,29 @@
     "",
     "Warm, not hot (Jonah, walked 2026-10-01: an island under it grew mostly badlands). Vanilla grows jungle only",
     "in its warm band, 0.2..0.55, and files desert and badlands above it however wet the air -- so this asked",
-    "for 0.45..0.9 and got a wooded-badlands Age. Inside the warm band the humidity is what picks jungle."
+    "for 0.45..0.9 and got a wooded-badlands Age. Inside the warm band the humidity is what picks jungle.",
+    "",
+    "The biomes are named rather than queried, because `tropical biomes` keeps only this lean and `#wooded`",
+    "promoted snowy taiga as much as jungle. The palm beach is let in, being in no Age until something asks."
   ],
+  "admits": {
+    "biomes": [
+      "agesandtheart:palm_beach"
+    ]
+  },
   "biases": {
     "sea": {
-      "#watery": 0.5
+      "#watery": 1.0,
+      "#frozen": -1.0
     },
     "biomes": {
-      "#lush": 1.0,
-      "#wooded": 0.7
+      "minecraft:jungle": 1.0,
+      "minecraft:bamboo_jungle": 1.0,
+      "minecraft:sparse_jungle": 0.8,
+      "minecraft:mangrove_swamp": 0.8,
+      "agesandtheart:palm_beach": 0.8,
+      "minecraft:warm_ocean": 0.6,
+      "#lush": 0.3
     },
     "features": {
       "#wooded": 1.0,

@@ -24,6 +24,9 @@
       "dry": 0.1
     }
   },
+  "minecraft:magma_block": {
+    "readiness": 0.2
+  },
   "minecraft:ice": {
     "readiness": 0.3,
     "tags": {
