@@ -55,10 +55,11 @@ age write manyvillages age teeming villages structures
 # teeming is eight of one.
 age write fewvillages age scarce villages structures
 
-# A rung binds to ONE term. Joined with another value, only the quantified one carries it.
-# Expect: `minecraft:villages[amount=8],minecraft:woodland_mansions[amount=2]` — the mansions left at a
-# plain mention, which is what naming one comes to before any rung scales it.
-age write onlyoneteems age woodland_mansions and teeming villages structures
+# A rung leads its run, so every value joined in it carries the rung; a second amount is a second run.
+# Expect: villages and woodland_mansions both at teeming's amount, then villages teeming and the mansions
+# scarce.
+age write bothteem age teeming woodland_mansions and villages structures
+age write eachitsown age teeming villages scarce woodland_mansions structures
 
 # `only` and a rung on the same value — the two axes are independent and must not eat each other.
 # Expect: `structures.built=minecraft:villages[only,amount=8]` — both marks on one value, inside the one

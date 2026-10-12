@@ -116,12 +116,17 @@ class WritingCheck : FunSpec({
         }
     }
 
-    /** A rung binds to one term. Joined with another value, only the quantified one carries it. */
-    test("a rung counts only the term it precedes") {
-        server.ask("write", "onlyoneteems age woodland_mansions and teeming villages structures")
-        val recipe = recipeOf(server, "onlyoneteems")
-        check("minecraft:villages[amount=${TEEMING.written}]" in recipe) { "the rung did not reach its own term: $recipe" }
-        check("woodland_mansions[amount=$A_MENTION]" in recipe) { "the rung leaked onto the term beside it: $recipe" }
+    /** A rung leads its run, so every value joined in it carries the rung, and the next run keeps its own. */
+    test("a rung counts the whole run it leads") {
+        server.ask("write", "bothteem age teeming woodland_mansions and villages structures")
+        val joined = recipeOf(server, "bothteem")
+        check("minecraft:villages[amount=${TEEMING.written}]" in joined) { "the rung did not reach the run: $joined" }
+        check("woodland_mansions[amount=${TEEMING.written}]" in joined) { "the rung missed its own term: $joined" }
+
+        server.ask("write", "eachitsown age teeming villages scarce woodland_mansions structures")
+        val apart = recipeOf(server, "eachitsown")
+        check("minecraft:villages[amount=${TEEMING.written}]" in apart) { "the first run lost its rung: $apart" }
+        check("woodland_mansions[amount=${SCARCE.written}]" in apart) { "the rung leaked into the next run: $apart" }
     }
 
     /** `only` and a rung are independent axes on one value, and must not eat each other. */
@@ -201,12 +206,6 @@ private const val MOST_PHENOMENA = 2
  * recipe does, which is the whole of §3.2's split and the thing these checks are here to see.
  */
 private data class Quantifier(val said: String, val written: String)
-
-/**
- * What naming one member comes to unquantified: half as much again. A rung replaces it rather than scaling
- * it, so a quantified mention writes exactly the rung — see `Resolver.claimForMember`.
- */
-private const val A_MENTION = "1.5"
 
 /** Enough draws that a sea turning up in one in five would show; the leak was worse than that. */
 private const val GLOWING_SEA_SEEDS = 16

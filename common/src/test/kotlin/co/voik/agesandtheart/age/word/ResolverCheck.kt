@@ -1384,7 +1384,7 @@ class ResolverCheck : FunSpec({
      * without it the word would say nothing here — what it says is that everything it joins was singled
      * out together.
      *
-     * So `only slime and teeming cows` keeps both and closes the door behind them, and `only slime,
+     * So `only slime and cows` keeps both and closes the door behind them, and `only slime,
      * teeming cows` is a writer who singled out the slimes and then asked for something else as well. The
      * second is charged (§3.2) rather than refused: the pen never rejects, and ignoring one of the two
      * would be exactly the silent drop §3.3 forbids.
