@@ -97,6 +97,12 @@ enum class Aspect(
      */
     val appetiteForCompany: Double = NO_APPETITE,
     /**
+     * Whether an answer nobody narrowed is drawn only between the **readiest** member and what some word
+     * leans towards, rather than among every member — so a sea nobody asked for is water, and a magma sea
+     * needs a word that wants one.
+     */
+    val keepsItsReadiestUnasked: Boolean = false,
+    /**
      * What a **writer** calls this part of the world, where that differs from [key].
      *
      * **Pack content and commands are pages; saves are keys.** A word file's `aspects`, a
@@ -115,7 +121,8 @@ enum class Aspect(
         page = "landmass"),
 
     /** What fills the space the shape leaves — sea, lava, nothing. */
-    SEA("sea", Holds.CATALOGUE, open = true, spatial = true, madeOfSomething = true, appetiteForCompany = 0.18),
+    SEA("sea", Holds.CATALOGUE, open = true, spatial = true, madeOfSomething = true, appetiteForCompany = 0.18,
+        keepsItsReadiestUnasked = true),
 
     /**
      * What has been cut back out of the rock, and where water stands in what was cut.

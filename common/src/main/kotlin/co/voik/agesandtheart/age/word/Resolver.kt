@@ -663,11 +663,27 @@ object Resolver {
             // were left, which the parameter pass writes; there is no seat here to fill and no company to
             // keep, so this returns before either.
             if (pool.isEmpty()) return emptyList()
-            chosen += pick(vocabulary, pool, speaking, draw, aspect, seat = 0)
+            chosen += pick(vocabulary, unaskedDraw(vocabulary, aspect, pool, speaking), speaking, draw, aspect, seat = 0)
         }
 
         chosen += company(vocabulary, aspect, kept, speaking, chosen, room, draw)
         return sharedOut(vocabulary, aspect, chosen, speaking)
+    }
+
+    /**
+     * What an aspect no word narrowed may be drawn from: the whole [pool], or for one that
+     * [Aspect.keepsItsReadiestUnasked], the readiest member and whatever a word leans towards.
+     */
+    private fun unaskedDraw(
+        vocabulary: Vocabulary,
+        aspect: Aspect,
+        pool: List<Taggable>,
+        speaking: List<Constraint>,
+    ): List<Taggable> {
+        if (!aspect.keepsItsReadiestUnasked) return pool
+        val readiest = pool.maxBy(vocabulary::readinessOf)
+        val leanedTowards = pool.filter { claimOn(vocabulary, it, speaking, aspect) > 0.0 }
+        return (listOf(readiest) + leanedTowards).distinct()
     }
 
     /**

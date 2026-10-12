@@ -503,6 +503,14 @@ class VocabularyCheck : FunSpec({
         check(ice.choiceIn(Aspect.STRUCTURES) == null) { "'ice' still means a structure set" }
     }
 
+    /** A sea nobody narrowed is the readiest one, so water must be readier than every other sea, alone. */
+    test("water is the readiest sea, and alone") {
+        val seas = vocabulary.availableToBroadWordsIn(Aspect.SEA)
+        val readiest = seas.maxOf(vocabulary::readinessOf)
+        val tied = seas.filter { vocabulary.readinessOf(it) == readiest }.map { it.key }
+        check(tied == listOf("minecraft:water")) { "the readiest seas are $tied" }
+    }
+
     /**
      * **A bend has a range.** A bend moves a range, so one naming a parameter with no range is inert — a
      * page charged for and doing nothing.
