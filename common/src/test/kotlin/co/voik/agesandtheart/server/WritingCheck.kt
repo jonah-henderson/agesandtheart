@@ -153,6 +153,19 @@ class WritingCheck : FunSpec({
     }
 
     /**
+     * **A sea is never made of what cannot stand in one.** Bamboo checks what it stands on and leaves decay,
+     * and each breaks and drops itself — a sea of bamboo became tens of thousands of items. The leaves are
+     * refused by `invalid_for_sea`, which only a server binds.
+     */
+    test("a sea of bamboo or leaves is refused") {
+        for ((name, block) in listOf("bamboosea" to "bamboo", "leafsea" to "oak_leaves")) {
+            server.ask("write", "$name age $block sea")
+            val recipe = recipeOf(server, name)
+            check("sea=minecraft:$block" !in recipe) { "a sea of $block was written: $recipe" }
+        }
+    }
+
+    /**
      * **What one evocative page may bring about** — the bound on an atmosphere's reach
      * (`Resolver.drawnAmong`), and **the check has to be here**: a tag's reach is only whole on a server,
      * so offline `foreboding` touches a fraction of what it touches in play.

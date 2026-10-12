@@ -76,6 +76,22 @@ class MaterialsCheck : FunSpec({
         check(Materials.makesAWorld(blockNamed(blocks, "water"))) { "an ocean world was refused" }
         check(Materials.makesAWorld(blockNamed(blocks, "lava"))) { "a world of lava was refused" }
     }
+
+    /**
+     * **A sea is never a block that checks what it stands on**: it fills a volume over stone and caves, and
+     * a sea of bamboo broke and dropped itself into tens of thousands of items. Shape is not asked, so a sea
+     * of cobweb or slabs stays a sentence.
+     */
+    test("a sea refuses what needs support, and nothing for its shape") {
+        for (name in SEAS) {
+            check(Materials.makesASea(blockNamed(blocks, name))) { "'$name' cannot be a sea and should be" }
+        }
+        for (name in NOT_SEAS) {
+            check(!Materials.makesASea(blockNamed(blocks, name))) { "'$name' can be a sea and should not be" }
+        }
+        check(!Aspect.SEA.canBeMadeOf("minecraft:bamboo")) { "'bamboo sea' is still a sentence" }
+        check(Aspect.SEA.canBeMadeOf("minecraft:water")) { "'water sea' stopped being a sentence" }
+    }
 })
 
 private fun blockNamed(blocks: List<Pair<net.minecraft.resources.Identifier, net.minecraft.world.level.block.Block>>, path: String) =
@@ -88,4 +104,12 @@ private val WORLDS = listOf("stone", "sand", "gravel", "glass", "pumpkin", "obsi
 
 private val NOT_WORLDS = listOf(
     "oak_sign", "chest", "white_carpet", "stone_slab", "oak_stairs", "iron_chain", "scaffolding", "torch",
+)
+
+private val SEAS = listOf(
+    "air", "water", "lava", "ice", "frosted_ice", "magma_block", "stone", "sand", "glass", "cobweb", "stone_slab",
+)
+
+private val NOT_SEAS = listOf(
+    "bamboo", "sugar_cane", "cactus", "kelp", "poppy", "short_grass", "torch", "white_carpet", "snow", "chest",
 )

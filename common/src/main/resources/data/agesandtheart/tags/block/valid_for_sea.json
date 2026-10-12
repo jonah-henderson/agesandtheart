@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "Blocks an Age's sea may be made of though `Materials.makesASea` refuses them -- the exception channel,",
+    "for a block whose survival rule never fails in a sea, or a block entity cheap enough to fill one with.",
+    "It skips the whole rule, so a block named here had better hold up a volume of itself over a cave."
+  ],
+  "replace": false,
+  "values": []
+}

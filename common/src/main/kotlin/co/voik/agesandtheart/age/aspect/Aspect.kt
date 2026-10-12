@@ -369,10 +369,14 @@ enum class Aspect(
      * **The sea is why this is not simply `Word.aspects`.** A solid does not volunteer for the sea and
      * still reaches it by being aimed there (`DerivedWords.substance`), so a block's declared aspects are
      * deliberately narrower than where it may be laid. What decides is the parameter that would hold it: the
-     * rock refuses anything a player would fall through ([Materials]) and nothing else refuses anything.
+     * rock refuses anything a player would fall through ([Materials]). The sea has no material parameter, so
+     * it asks [Materials.makesASea] itself.
      */
-    fun canBeMadeOf(named: String): Boolean =
-        understood.filter { it.material }.all { it.accepts(named) }
+    fun canBeMadeOf(named: String): Boolean {
+        val everyMaterialAccepts = understood.filter { it.material }.all { it.accepts(named) }
+        val aSeaCannotBeIt = this == SEA && !Materials.makesASea(named)
+        return everyMaterialAccepts && !aSeaCannotBeIt
+    }
 
     /**
      * Whether a parameter by this name means anything here — its own [parameters], or a parameter one of its

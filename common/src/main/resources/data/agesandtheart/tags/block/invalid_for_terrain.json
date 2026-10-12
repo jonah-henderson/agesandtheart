@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Blocks an Age's rock or sea may not be made of, though their shape says they could -- see `Materials`.",
+    "Blocks an Age's rock may not be made of, though their shape says it could -- see `Materials`.",
     "The shape rule asks whether a block is a whole cube you cannot fall through, and cannot ask whether it",
     "will still be there tomorrow.",
     "",

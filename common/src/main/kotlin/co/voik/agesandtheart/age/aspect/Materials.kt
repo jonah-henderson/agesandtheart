@@ -7,8 +7,12 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.EmptyBlockGetter
+import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.LiquidBlock
+import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.world.level.block.state.BlockState
+import java.lang.reflect.Method
 
 /**
  * What an Age's **rock** may be made of — the fill a world is built from (§3.2's material parameters).
@@ -44,14 +48,6 @@ import net.minecraft.world.level.block.LiquidBlock
 object Materials {
 
     /**
-     * Blocks the shape rule keeps that a rock should not be made of anyway — behaviour rather than form,
-     * which nothing about a block's shape can answer.
-     *
-     * Leaves are the case: a full cube, no block entity, and they **decay** where no log stands near, so a
-     * world of them would quietly evaporate after it was written. A better answer exists — place them
-     * `persistent` — and it is a placement change rather than a rule, so this is the honest stopgap.
-     */
-    /**
      * **What a named block is laid as, where that is not itself** — the one place a word's block and the
      * block a world is built of part company.
      *
@@ -67,6 +63,14 @@ object Materials {
     /** [named] as a world is built of it — itself, unless it has a stand-in. */
     fun laidAs(named: Identifier): Identifier = STAND_INS[named] ?: named
 
+    /**
+     * Blocks the shape rule keeps that a rock should not be made of anyway — behaviour rather than form,
+     * which nothing about a block's shape can answer.
+     *
+     * Leaves are the case: a full cube, no block entity, and they **decay** where no log stands near, so a
+     * world of them would quietly evaporate after it was written. A better answer exists — place them
+     * `persistent` — and it is a placement change rather than a rule, so this is the honest stopgap.
+     */
     val INVALID_FOR_TERRAIN: TagKey<Block> = TagKey.create(Registries.BLOCK, "invalid_for_terrain".location())
 
     /**
@@ -116,9 +120,55 @@ object Materials {
         value.startsWith(QUERY_MARK) && ':' !in value && value.length > QUERY_MARK.length
 
     /** The same, of whatever a writer named — false where the pack has no such block. */
-    fun makesAWorld(named: String): Boolean {
-        val id = Identifier.tryParse(named) ?: return false
-        val block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null) ?: return false
-        return makesAWorld(block)
+    fun makesAWorld(named: String): Boolean = blockNamed(named)?.let(::makesAWorld) ?: false
+
+    /** Blocks a sea may not be made of though the sea's rule would allow them. */
+    val INVALID_FOR_SEA: TagKey<Block> = TagKey.create(Registries.BLOCK, "invalid_for_sea".location())
+
+    /** And blocks it may be made of though the rule refuses them. */
+    val VALID_FOR_SEA: TagKey<Block> = TagKey.create(Registries.BLOCK, "valid_for_sea".location())
+
+    /**
+     * Whether an Age's sea may be made of [block]: anything but a block entity or a block that needs
+     * support. A sea fills a volume over whatever the rock left, so a block that checks what it stands on
+     * breaks wherever that is stone or a cave, and drops itself — a sea of bamboo became tens of thousands
+     * of items and a server ticking twice a second. Shape is not asked: a sea is not stood on.
+     *
+     * Air is an open sea. Both tags are empty offline, as the rock's are.
+     */
+    fun makesASea(block: Block): Boolean {
+        val state = block.defaultBlockState()
+        if (state.isAir) return true
+        val holder = state.typeHolder()
+        if (holder.`is`(INVALID_FOR_SEA)) return false
+        if (holder.`is`(VALID_FOR_SEA)) return true
+        if (state.hasBlockEntity()) return false
+        if (state.block is LiquidBlock) return true
+        return !needsSupport(block)
+    }
+
+    /** The same, of whatever a writer named — false where the pack has no such block. */
+    fun makesASea(named: String): Boolean = blockNamed(named)?.let(::makesASea) ?: false
+
+    /**
+     * Whether [block] has a survival rule at all, read as whether its class overrides `canSurvive`.
+     * Asking the rule itself needs a whole `LevelReader` to answer against; every block that checks what
+     * it stands on or hangs from says so by overriding it, and a block that might survive some
+     * arrangements is refused with the rest.
+     */
+    private fun needsSupport(block: Block): Boolean =
+        generateSequence<Class<*>>(block.javaClass) { it.superclass }
+            .takeWhile { it != BlockBehaviour::class.java }
+            .any { owner -> owner.declaredMethods.any(::isCanSurvive) }
+
+    private fun isCanSurvive(method: Method): Boolean =
+        method.name == "canSurvive" && method.parameterTypes.contentEquals(CAN_SURVIVE_PARAMETERS)
+
+    private val CAN_SURVIVE_PARAMETERS =
+        arrayOf(BlockState::class.java, LevelReader::class.java, BlockPos::class.java)
+
+    private fun blockNamed(named: String): Block? {
+        val id = Identifier.tryParse(named) ?: return null
+        return BuiltInRegistries.BLOCK.getOptional(id).orElse(null)
     }
 }
