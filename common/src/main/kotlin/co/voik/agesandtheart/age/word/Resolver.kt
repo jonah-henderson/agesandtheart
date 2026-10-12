@@ -474,7 +474,7 @@ object Resolver {
             val materials = materialsOf(phrase, draw) ?: return@mapNotNull null
             // **Every quantifier in the clause counts the thing it mints.** One qualifies the page after
             // it, so `teeming gold_ore veins` hung its amount on the material and the veins never saw it.
-            val amount = phrase.modifiers.fold(subject.density) { standing, said -> standing * said.density }
+            val amount = scaledByRungs(phrase.modifiers, from = subject.density)
             Claim(
                 pattern,
                 subject.polarity,
@@ -711,6 +711,17 @@ object Resolver {
      */
     private fun wereJoined(one: Constraint, other: Constraint): Boolean =
         one.group != null && one.group == other.group
+
+    /**
+     * [from] scaled by the rungs in [said], **each run's counted once**: a rung leads its `and`-run and every
+     * word of the run carries it, so `teeming undead and beasts` is teeming once for a creature both reach.
+     * Words standing apart each count, and `teeming` said twice is very teeming.
+     */
+    private fun scaledByRungs(said: List<Constraint>, from: Double = Rung.ORDINARY): Double {
+        val standingAlone = said.filter { it.group == null }
+        val leadingEachRun = said.filter { it.group != null }.distinctBy { it.group }
+        return (standingAlone + leadingEachRun).fold(from) { standing, constraint -> standing * constraint.density }
+    }
 
     /**
      * A [Register.FRACTURE] for each of [contenders] dividing [aspect] against [leading]. A division the
@@ -1620,7 +1631,7 @@ object Resolver {
         // *less than the world would have had*: a quarter of an ordinary claim is a quarter, where a
         // quarter added to it would still be more. Ordinary is one, so an unquantified word changes
         // nothing, and two quantified words compound — `teeming` said twice is very teeming.
-        val rung = wanting.fold(Rung.ORDINARY) { standing, said -> standing * said.density }
+        val rung = scaledByRungs(wanting)
         // **A rung says the amount outright, so the mention's own bump is not stacked under it** (Jonah,
         // 2026-10-05): `few villages` is half of vanilla's villages and `plentiful villages` twice them,
         // exactly, where a bare `villages` is half as many again.

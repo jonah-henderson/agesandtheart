@@ -105,25 +105,21 @@ object Readout {
         return said
     }
 
-    /** One `and`-joined run, with whatever `only`/`no` the writer put in front of it. */
+    /** One `and`-joined run, with whatever `only`/`no` and rung the writer put in front of it. */
     private fun runOf(run: List<Constraint>): List<String> {
         val said = mutableListOf<String>()
-        when (run.first().polarity) {
+        val first = run.first()
+        when (first.polarity) {
             Polarity.ASSERTED -> Unit
             Polarity.ONLY -> said += "only"
             Polarity.EXCEPT -> said += "no"
         }
+        first.quantifier?.takeUnless { Rung.isOrdinary(first.density) }?.let { said += it }
         for ((position, term) in run.withIndex()) {
             if (position > 0) said += "and"
-            said += termOf(term)
+            said += term.word.name
         }
         return said
-    }
-
-    /** One term, carrying the rung the writer quantified it with. */
-    private fun termOf(term: Constraint): List<String> {
-        val quantified = term.quantifier?.takeUnless { Rung.isOrdinary(term.density) }
-        return listOfNotNull(quantified, term.word.name)
     }
 
     /**

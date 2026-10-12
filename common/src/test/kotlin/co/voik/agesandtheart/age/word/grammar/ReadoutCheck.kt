@@ -123,10 +123,10 @@ class ReadoutCheck : FunSpec({
         check("no blackstone" in struck) { "'no' vanished from the reading: '$struck'" }
     }
 
-    /** A rung is bound to one term, so the reading has to put it back on that term and no other. */
-    test("a rung is said against the thing it counts") {
-        val reading = readingOf("basalt", "and", "teeming", "deepslate", "landmass")
-        check(reading == "basalt and teeming deepslate landmass.") { "read back as '$reading'" }
+    /** A rung leads its run, so the reading says it once, at the head of the run, as it was laid. */
+    test("a rung is said once, at the head of the run it counts") {
+        val reading = readingOf("teeming", "basalt", "and", "deepslate", "landmass")
+        check(reading == "teeming basalt and deepslate landmass.") { "read back as '$reading'" }
     }
 
     /**

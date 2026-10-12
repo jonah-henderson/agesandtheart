@@ -18,9 +18,11 @@ import net.minecraft.resources.Identifier
  * clause   : modifier* close
  * close    : SUBJECT siting? | siting
  * siting   : IN biome | EVERYWHERE
- * modifier : (ONLY | EXCEPT)? term (AND term)*
- * term     : QUANTIFIER? word
+ * modifier : (ONLY | EXCEPT)? QUANTIFIER? word (AND word)*
  * ```
+ *
+ * A polarity and a rung lead the run they govern, so `teeming zombie and skeleton` is both teeming; two
+ * amounts are two runs, `teeming zombie scarce skeleton`.
  *
  * **Every clause ends with the thing it is about**, which is the whole shape of the language: *a beautiful
  * floating Age*, *pillared and gentle landmass*, *in jungles, an end stone surface*. Modifiers lead and the
@@ -322,7 +324,7 @@ internal object ArtReading {
                 }
             }
 
-        /** `(ONLY | EXCEPT)? term (AND term)*` — the shape every clause's modifiers share. */
+        /** `(ONLY | EXCEPT)? QUANTIFIER? word (AND word)*` — the shape every clause's modifiers share. */
         private fun modifier(
             until: Int,
             aim: Set<Aspect>,
@@ -334,9 +336,10 @@ internal object ArtReading {
                 PageClass.EXCLUDER -> Polarity.EXCEPT.also { take() }
                 else -> Polarity.ASSERTED
             }
-            val terms = mutableListOf<Pair<Page, Page?>>()
-            // A polarity or a rung standing in front of nothing is a refusal, as is a trailing `and`: the
-            // page is there, it means something, and there is no term for it to mean it about.
+            val quantifier = here?.takeIf { it.kind == PageClass.QUANTIFIER }?.also { take() }
+            val terms = mutableListOf<Page>()
+            // A polarity or a rung standing in front of nothing is a refusal, as is a trailing `and` or a rung
+            // after one: the page is there, it means something, and there is no term for it to mean it about.
             terms += term(until) ?: return emptyList<Constraint>().also { refused = true }
             while (at < until && here?.kind == PageClass.JOINER) {
                 take()
@@ -345,15 +348,15 @@ internal object ArtReading {
             // A group identifies words a writer joined; standing alone is *not* a group of one, because
             // unjoined juxtaposition has to keep meaning contention (§3.2).
             val group = if (terms.size > 1) Group(nextGroup++) else null
-            return terms.mapNotNull { (page, quantifier) ->
+            return terms.mapNotNull { page ->
                 val word = page.word ?: return@mapNotNull null
                 Constraint(
                     word,
                     scopeFor(word, aim),
                     polarity,
                     group,
-                    // The rung sits on the page before the term it counts, and travels with the value from
-                    // here on: what a quantifier modifies is the *claim*, never the word (§3.2).
+                    // The rung leads the run it counts, and travels with each value from here on: what a
+                    // quantifier modifies is the *claim*, never the word (§3.2).
                     quantifier?.rung ?: Rung.ORDINARY,
                     quantifier?.written,
                     confinedTo = confinedTo,
@@ -366,14 +369,12 @@ internal object ArtReading {
             }
         }
 
-        /** `QUANTIFIER? word` — the page, and the rung standing in front of it if there is one. */
-        private fun term(until: Int): Pair<Page, Page?>? {
-            if (at >= until) return null
-            val quantifier = here?.takeIf { it.kind == PageClass.QUANTIFIER }?.also { take() }
+        /** One word of a run, or null where the next page is not one. */
+        private fun term(until: Int): Page? {
             if (at >= until) return null
             val page = here?.takeIf { it.kind == PageClass.TERM || it.kind == PageClass.MATERIAL } ?: return null
             take()
-            return page to quantifier
+            return page
         }
 
         /**

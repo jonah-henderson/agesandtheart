@@ -88,9 +88,8 @@ object ProseWriting {
         private fun shaped(minted: ProseShape): String {
             val qualities = minted.qualities.map(::nameOf)
             val named = (qualities + plural(minted.shape)).joinToString(" ")
-            val counted = quantified(minted.shape, named)
             val madeOf = if (minted.madeOf.isEmpty()) "" else framed("shape_of", listOf(list(things(minted.madeOf))))
-            return polarised(listOf(minted.shape), except = { "no" }) { counted + madeOf }.single()
+            return polarised(listOf(minted.shape), except = { "no" }) { named + madeOf }.single()
         }
 
         /**
@@ -127,14 +126,14 @@ object ProseWriting {
 
         /** Qualities, each with its rung, and `only` or `except` said as the writer laid them. */
         private fun qualities(terms: List<ProseTerm>): List<String> =
-            polarised(terms, except = { "not" }) { quantified(it, nameOf(it)) }
+            polarised(terms, except = { "not" }, say = ::nameOf)
 
         /** Things there are, said as many where they can be counted. */
         private fun things(terms: List<ProseTerm>): List<String> =
-            polarised(terms, except = { if (it.speech == Speech.MASS) "anything_but" else "no" }, say = ::bare)
+            polarised(terms, except = { if (it.speech == Speech.MASS) "anything_but" else "no" }, say = ::plural)
 
         /** A thing as itself, with no `only` or `except` — for where the frame already says which. */
-        private fun bare(term: ProseTerm): String = quantified(term, plural(term))
+        private fun bare(term: ProseTerm): String = quantified(term.quantifier, plural(term))
 
         /**
          * [terms] said, with **one `only` or `except` over each run that shares it** — `only wolf and witch`
@@ -154,16 +153,30 @@ object ProseWriting {
             }
             return runs.flatMap { run ->
                 val first = run.first()
+                val said = quantifiedOnce(run, say)
                 when (first.polarity) {
-                    Polarity.ASSERTED -> run.map(say)
-                    Polarity.ONLY -> listOf(framed("only", listOf(list(run.map(say)))))
-                    Polarity.EXCEPT -> listOf(framed(except(first), listOf(list(run.map(say)))))
+                    Polarity.ASSERTED -> said
+                    Polarity.ONLY -> listOf(framed("only", listOf(list(said))))
+                    Polarity.EXCEPT -> listOf(framed(except(first), listOf(list(said))))
                 }
             }
         }
 
-        private fun quantified(term: ProseTerm, said: String): String {
-            val rung = term.quantifier ?: return said
+        /**
+         * [run] said with **one rung over each stretch that shares it**, as the writer laid it at the head of
+         * their run — `teeming zombie and skeleton` is "teeming zombies and skeletons".
+         */
+        private fun quantifiedOnce(run: List<ProseTerm>, say: (ProseTerm) -> String): List<String> {
+            val stretches = mutableListOf<MutableList<ProseTerm>>()
+            for (term in run) {
+                val rung = stretches.lastOrNull()?.last()?.quantifier
+                if (rung != null && rung == term.quantifier) stretches.last() += term else stretches += mutableListOf(term)
+            }
+            return stretches.map { stretch -> quantified(stretch.first().quantifier, list(stretch.map(say))) }
+        }
+
+        private fun quantified(rung: String?, said: String): String {
+            if (rung == null) return said
             val rungSaid = said(key(rung)) ?: rung.replace('_', ' ')
             return framed("quantified", listOf(rungSaid, said))
         }

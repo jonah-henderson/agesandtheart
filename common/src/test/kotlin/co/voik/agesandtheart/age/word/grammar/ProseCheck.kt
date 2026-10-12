@@ -88,6 +88,11 @@ class ProseCheck : FunSpec({
         check(except == "An Age. It features no villages.") { "read as '$except'" }
     }
 
+    test("a rung is said once over the run it counts") {
+        val said = prose("age", "teeming", "zombie", "and", "skeleton", "spawns")
+        check(said == "An Age. Teeming zombies and skeletons dwell in it.") { "read as '$said'" }
+    }
+
     test("a quality and a population in one clause are two sentences") {
         val said = prose("age", "savage", "beasts", "spawns")
         check(said == "An Age. Its creatures are savage. Beasts dwell in it.") { "read as '$said'" }

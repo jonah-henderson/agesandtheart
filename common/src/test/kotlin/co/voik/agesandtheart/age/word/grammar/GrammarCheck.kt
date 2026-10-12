@@ -161,19 +161,27 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * §4.5's third rung: a quantifier binds to **the term after it**, and to no other. The rung travels on
-     * the claim rather than the word, so what the parser owes is putting it on the right constraint.
+     * §4.5's third rung: a quantifier **leads the run it counts**, as `only` and `no` do. The rung travels on
+     * the claim rather than the word, so what the parser owes is putting it on every constraint of the run.
      */
-    test("a quantifier binds to the term it precedes") {
-        val read = read(listOf("age", "basalt", "and", "teeming", "deepslate", "landmass"))
+    test("a quantifier counts every word of the run it leads") {
+        val read = read(listOf("age", "teeming", "zombie", "and", "skeleton", "spawns"))
         check(read.dropped.isEmpty()) { "a quantified book lost pages: ${read.dropped}" }
-        val counted = read.constraints.first { it.word.name == "deepslate" }
-        check(counted.density == TEEMING) { "'teeming deepslate' resolved to ${counted.density}" }
-        // And it remembers the page that asked, which is what the reading says back rather than the number.
-        check(counted.quantifier == "teeming") { "the rung forgot the page it came from: ${counted.quantifier}" }
-        val uncounted = read.constraints.first { it.word.name == "basalt" }
-        check(uncounted.density == Rung.ORDINARY) {
-            "the rung leaked onto the term before it, which is not the one it counts"
+        for (name in listOf("zombie", "skeleton")) {
+            val counted = read.constraints.first { it.word.name == name }
+            check(counted.density == TEEMING) { "'$name' in a teeming run resolved to ${counted.density}" }
+            // And it remembers the page that asked, which is what the reading says back rather than the number.
+            check(counted.quantifier == "teeming") { "the rung forgot the page it came from: ${counted.quantifier}" }
+        }
+    }
+
+    /** Two amounts are two runs; a rung inside a run is refused, as a polarity there is. */
+    test("a quantifier stops at the run it leads, and never stands inside one") {
+        val read = read(listOf("age", "teeming", "zombie", "scarce", "skeleton", "spawns"))
+        val skeleton = read.constraints.first { it.word.name == "skeleton" }
+        check(skeleton.density < Rung.ORDINARY) { "'teeming' leaked into the next run: ${skeleton.density}" }
+        check(!Grammar.parses(vocabulary, listOf("age", "zombie", "and", "teeming", "skeleton", "spawns"))) {
+            "a rung after 'and' was read as laid"
         }
     }
 
