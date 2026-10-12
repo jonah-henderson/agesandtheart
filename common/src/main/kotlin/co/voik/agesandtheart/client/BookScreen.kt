@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.age.word.grammar.ProseWriting
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookPage
@@ -19,6 +20,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
+import net.minecraft.resources.Identifier
+import net.minecraft.util.FormattedCharSequence
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
 
@@ -182,17 +185,8 @@ class BookScreen(
         val page = pages.getOrNull(at) ?: return
         var y = top + writingBeginsOn(at)
         for (line in page) {
-            var column = x
-            for (word in line.words) {
-                scaled(graphics, column, y, SCRIPT_SCALE) {
-                    graphics.text(font, word.script, 0, 0, ParchmentSurface.INK, false)
-                }
-                scaled(graphics, column, y + scriptHeight(), READING_SCALE) {
-                    graphics.text(font, word.reading, 0, 0, ParchmentSurface.FAINT_INK, false)
-                }
-                column += word.width
-            }
-            y += lineHeight()
+            line.draw(graphics, x, y)
+            y += line.height
         }
     }
 
@@ -214,57 +208,78 @@ class BookScreen(
     }
 
     /**
-     * The book's prose packed into lines, and the lines into pages.
-     *
-     * **Each word is set over its own transliteration**, the D'ni as ornament on an English account, so a
-     * line is a run of columns rather than a run of text and a page break can only fall between columns.
+     * The book cut into pages: its pages as laid, glossed word for word, and then what they say in English,
+     * starting on a page of its own.
      */
     private fun paginate(): List<List<Line>> {
+        val glossed = pagesOf(glossedLines(), firstPage = 0)
+        return glossed + pagesOf(proseLines(), firstPage = glossed.size)
+    }
+
+    /** [lines] cut into pages, the first of them being page [firstPage] of the book. */
+    private fun pagesOf(lines: List<Line>, firstPage: Int): List<List<Line>> {
         val cut = mutableListOf<List<Line>>()
         var page = mutableListOf<Line>()
-        for (line in linesOfWriting()) {
-            if (page.isNotEmpty() && (page.size + 1) * lineHeight() > roomOn(cut.size)) {
+        var used = 0
+        for (line in lines) {
+            if (page.isNotEmpty() && used + line.height > roomOn(firstPage + cut.size)) {
                 cut += page
                 page = mutableListOf()
+                used = 0
             }
             page += line
+            used += line.height
         }
         if (page.isNotEmpty()) cut += page
         return cut
     }
 
-    /** The columns packed left to right into lines that fit the writing column. */
-    private fun linesOfWriting(): List<Line> {
+    /**
+     * The pages the writer laid, in their order, each set over its reading.
+     *
+     * A line is a run of columns rather than a run of text, so a page break can only fall between columns.
+     */
+    private fun glossedLines(): List<Line> {
         val lines = mutableListOf<Line>()
         var line = mutableListOf<Column>()
         var used = 0
-        for (word in wordsOfWriting().map(::columnOf)) {
-            if (line.isNotEmpty() && used + word.width > COLUMN_WIDTH) {
-                lines += Line(line)
+        for (column in book.get(AgeComponents.BOOK_WORDS).orEmpty().flatMap(::columnsOf)) {
+            if (line.isNotEmpty() && used + column.width > COLUMN_WIDTH) {
+                lines += GlossedLine(line)
                 line = mutableListOf()
                 used = 0
             }
-            line += word
-            used += word.width
+            line += column
+            used += column.width
         }
-        if (line.isNotEmpty()) lines += Line(line)
+        if (line.isNotEmpty()) lines += GlossedLine(line)
         return lines
     }
 
-    /** The prose, written in this client's language and broken into its words. */
-    private fun wordsOfWriting(): List<String> {
-        val clauses = book.get(AgeComponents.BOOK_READING).orEmpty()
-        return ProseWriting.sentencesOf(clauses)
-            .flatMap { it.split(' ') }
-            .filter { it.isNotBlank() }
+    /**
+     * One page, **broken into a column per part**: `polished_deepslate` is two words wearing one name, and
+     * setting it whole would put "Polished Deepslate" under a script that plainly has two pieces. Where the
+     * two sides do not divide alike — an authored name need not follow its id — the word is set whole.
+     */
+    private fun columnsOf(word: Identifier): List<Column> {
+        val script = KnownWords.scriptParts(word.path)
+        val reading = WordNames.readable(word)
+        val readParts = reading.string.split(' ').filter { it.isNotBlank() }
+        if (script.isEmpty() || script.size != readParts.size) {
+            return listOf(Column(KnownWords.scriptText(word), reading))
+        }
+        return script.indices.map { Column(script[it], Component.literal(readParts[it])) }
     }
 
-    /** One word, under the script that spells it. */
-    private fun columnOf(word: String): Column = Column(KnownWords.scriptLine(word), Component.literal(word))
+    /** What the book says, written in this client's language and wrapped to the writing column. */
+    private fun proseLines(): List<Line> {
+        val clauses = book.get(AgeComponents.BOOK_READING).orEmpty()
+        val prose = ProseWriting.sentencesOf(clauses).joinToString(" ")
+        if (prose.isEmpty()) return emptyList()
+        return font.split(Component.literal(prose), (COLUMN_WIDTH / PROSE_SCALE).toInt()).map(::ProseLine)
+    }
 
     private fun scriptHeight(): Int = (font.lineHeight * SCRIPT_SCALE).toInt() + 1
-
-    private fun lineHeight(): Int = scriptHeight() + (font.lineHeight * READING_SCALE).toInt() + LINE_GAP
 
     /** Where writing starts down a page — the first one begins under the title, the rest at the top. */
     private fun writingBeginsOn(page: Int): Int = if (page == 0) TEXT_Y else TOP_MARGIN
@@ -278,8 +293,41 @@ class BookScreen(
 
     private fun canTurnForward(): Boolean = leftPageOf(spread + 1) <= pages.lastIndex
 
+    /** One line of a page, which draws itself and says how much of the page it takes. */
+    private sealed interface Line {
+        val height: Int
+
+        fun draw(graphics: GuiGraphicsExtractor, x: Int, y: Int)
+    }
+
     /** A run of columns that fits the writing column, set as script over reading. */
-    private class Line(val words: List<Column>)
+    private inner class GlossedLine(private val words: List<Column>) : Line {
+        override val height: Int = scriptHeight() + (font.lineHeight * READING_SCALE).toInt() + LINE_GAP
+
+        override fun draw(graphics: GuiGraphicsExtractor, x: Int, y: Int) {
+            var column = x
+            for (word in words) {
+                scaled(graphics, column, y, SCRIPT_SCALE) {
+                    graphics.text(font, word.script, 0, 0, ParchmentSurface.INK, false)
+                }
+                scaled(graphics, column, y + scriptHeight(), READING_SCALE) {
+                    graphics.text(font, word.reading, 0, 0, ParchmentSurface.FAINT_INK, false)
+                }
+                column += word.width
+            }
+        }
+    }
+
+    /** A line of the English, with no script over it. */
+    private inner class ProseLine(private val text: FormattedCharSequence) : Line {
+        override val height: Int = (font.lineHeight * PROSE_SCALE).toInt() + PROSE_LEADING
+
+        override fun draw(graphics: GuiGraphicsExtractor, x: Int, y: Int) {
+            scaled(graphics, x, y, PROSE_SCALE) {
+                graphics.text(font, text, 0, 0, ParchmentSurface.INK, false)
+            }
+        }
+    }
 
     /**
      * One column: a word as the script sets it, over what it says.
@@ -402,8 +450,14 @@ class BookScreen(
         const val SCRIPT_SCALE = 0.9f
         const val READING_SCALE = 0.7f
 
+        /** The English at the back, a step up from a gloss's reading since it is read on its own. */
+        const val PROSE_SCALE = 0.8f
+
         /** Between one glossed line and the next, so a pair reads as a pair. */
         const val LINE_GAP = 5
+
+        /** Between one line of the English and the next. */
+        const val PROSE_LEADING = 2
 
         /** Clear space after a column, so two of them do not read as one word. */
         const val COLUMN_GAP = 4
