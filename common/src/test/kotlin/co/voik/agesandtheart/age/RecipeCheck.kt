@@ -424,13 +424,14 @@ class RecipeCheck : FunSpec({
             listOf(
                 Flaw(
                     Register.FRACTURE, listOf("riddled", "unbroken"), Aspect.CARVERS,
-                    listOf("cavernous", "solid"), severity = 3,
+                    listOf("cavernous", "solid"),
                 ),
                 Flaw(
                     Register.TENSION, listOf("riddled", "unbroken"), Aspect.CARVERS,
-                    listOf("cavernous", "solid"), severity = 1,
+                    listOf("cavernous", "solid"),
                 ),
             ),
+            pages = SAMPLE_PAGES,
         )
         val recipe = AgeRecipe(
             AgeWorld.Composed(composition),
@@ -448,7 +449,7 @@ class RecipeCheck : FunSpec({
         }
         // The severity is stored rather than recomputed, so retuning the charges cannot rewrite an Age that
         // has already been written — the same argument as persisting the recipe rather than the words (§4.6).
-        check(instability.index == EXPECTED_SAMPLE_INDEX) { "the sample flaws no longer sum to what they did" }
+        check(instability.index == EXPECTED_SAMPLE_INDEX) { "a tension and a fracture between the same two words counted ${instability.index}" }
     }
 
     /**
@@ -591,9 +592,13 @@ private const val NOT_STAMPED = -1
 
 
 /** What the sample flaws add up to: a division at exact precision, plus the tension behind it. */
-private const val EXPECTED_SAMPLE_INDEX = 4
+/** One: the two flaws are raised by the same two words, so they are one mistake. */
+private const val EXPECTED_SAMPLE_INDEX = 1
 
 private const val SAMPLE_SEED = 0x5EED_A9EL
+
+/** A twelve-page book, so a round trip carries a page count that is not the default. */
+private const val SAMPLE_PAGES = 12
 
 /** What `art/grammar/teeming.json` asks for — four times as many. */
 private const val TEEMING = 4.0

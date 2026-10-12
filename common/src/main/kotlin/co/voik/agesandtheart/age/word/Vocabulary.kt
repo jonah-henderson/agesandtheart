@@ -110,14 +110,6 @@ data class Vocabulary(
     val stock: WriterStock,
     /** The grammars the Art writes *out* of — books it could have written, names, repairs. */
     val generation: GenerationGrammars,
-    /**
-     * What a flaw of each kind earns towards the instability budget (design §5.0), by register key.
-     *
-     * Here rather than beside the manifestation prices because the charge is applied at *resolution*, and
-     * resolution has the corpus and nothing else. A register nobody wrote a file for keeps its shipped
-     * default, so an absent directory changes nothing.
-     */
-    val charges: Map<String, Int>,
     /** Which words came from registry content rather than from a `art/word/` file. See [isDerived]. */
     private val derivedIds: Set<Identifier>,
     /** How the world's own tags and facts become ours, per aspect — see [Derivation]. */
@@ -291,9 +283,6 @@ data class Vocabulary(
         candidatesFor(aspect).any { it.honoursParameterNamed(parameter) } ||
             aspect.parameters.any { it.name == parameter }
 
-    /** What a flaw of this [register] earns towards the budget here — its shipped default unless a pack says. */
-    fun earnedBy(register: Register): Int = charges[register.key] ?: register.base
-
     /** Whether these two tags are known opposites, and how badly. */
     fun opposition(first: String, second: String): Antonym? = antonyms.firstOrNull { antonym ->
         (antonym.first == first && antonym.second == second) || (antonym.first == second && antonym.second == first)
@@ -369,9 +358,6 @@ data class Vocabulary(
         /** Where a pack puts antonym pages. */
         const val ANTONYM_DIRECTORY = "art/antonyms"
 
-        /** What each contradiction earns towards the budget — the accumulation half of design §5.0. */
-        const val CHARGE_DIRECTORY = "art/instability"
-
         /** Where a pack puts the structural words — one file per word, naming a production. */
         const val GRAMMAR_DIRECTORY = "art/grammar"
 
@@ -435,9 +421,8 @@ data class Vocabulary(
             // Authored wins every collision above, so a derived id that an authored word displaced is not
             // in `words` and must not be counted derived.
             val derivedIds = fromContent.map { it.id }.toSet() - authored.values.map { it.id }.toSet()
-            val charges = readCharges(resources, problems)
             val read = Vocabulary(
-                words, structural, described, antonyms, script, rarity, ink, stock, generation, charges,
+                words, structural, described, antonyms, script, rarity, ink, stock, generation,
                 derivedIds, rules, materials, spawning, shippedButNotLoaded, problems,
             )
             return read.copy(byName = read.byName.mapValues { (_, word) -> read.reached(word) })
@@ -567,24 +552,6 @@ data class Vocabulary(
             chooses = word.chooses + also.chooses,
             entryOf = word.entryOf ?: also.entryOf,
         )
-
-        /**
-         * What each contradiction earns, from `art/instability/<register>.json`.
-         *
-         * Keyed by the register's own key rather than by the enum, so a file naming one this version does
-         * not have is *reported* and skipped rather than failing the load — a pack written against a
-         * newer register set should still give a working corpus.
-         */
-        private fun readCharges(resources: ResourceManager, problems: MutableList<String>): Map<String, Int> =
-            buildMap {
-                for ((file, resource) in resources.listResources(CHARGE_DIRECTORY, ResourceParsing::isJson)) {
-                    val earns = ResourceParsing.parse(resource, file, EARNS, problems) ?: continue
-                    put(ResourceParsing.nameUnder(file, CHARGE_DIRECTORY), earns)
-                }
-            }
-
-        /** A charge file says one thing: what a contradiction of its kind earns. */
-        private val EARNS: Codec<Int> = Codec.INT.fieldOf("earns").codec()
 
         /**
          * **One aiming page per aspect**, synthesised rather than authored (`the-world-model.md` §3).

@@ -242,7 +242,8 @@ class ResolverCheck : FunSpec({
      * things a book contradicts, so repeating one clause buys nothing more. A page there is nowhere for is
      * the exception, and is charged every time (Jonah).
      */
-    test("a contradiction written twice is charged once, and an impossible page every time") {
+    /** "A sentence can't be wildly more incorrect than it looks" (Jonah, 2026-10-12): a page repeated is one mistake. */
+    test("a contradiction written twice counts once, and so does an impossible page") {
         fun indexOf(row: String): Int {
             val sentence = Grammar.read(vocabulary, row.split(" ")) ?: error("'$row' is not a book")
             return Resolver.resolve(vocabulary, sentence, SAMPLE_SEED).instability.index
@@ -250,7 +251,8 @@ class ResolverCheck : FunSpec({
         val once = indexOf("age verdant dusty air")
         check(once > 0) { "the clause meant to contradict itself was charged nothing" }
         check(indexOf("age verdant dusty air verdant dusty air") == once) { "a repeated clause was charged again" }
-        check(indexOf("age age age") > indexOf("age age")) { "a repeated impossible page was not charged again" }
+        check(indexOf("age age age") == indexOf("age age")) { "a repeated impossible page counted again" }
+        check(indexOf("age age") == 1) { "a second age page counted ${indexOf("age age")}" }
     }
 
     /**
@@ -354,9 +356,8 @@ class ResolverCheck : FunSpec({
         check(displaced.words.containsAll(listOf("tunnels", "lattice"))) {
             "the loss does not name both words: ${displaced.words}"
         }
-        // Two words deciding against each other is the design's dangerous case, so it must not come cheap.
-        check(resolution.instability.index >= Register.DISPLACED.charge(Firmness.DECIDES)) {
-            "deciding against deciding in a singular aspect cost only ${resolution.instability.index}"
+        check(resolution.instability.index == 1) {
+            "one word losing a singular aspect counted ${resolution.instability.index} flaws"
         }
     }
 
@@ -1114,7 +1115,7 @@ class ResolverCheck : FunSpec({
     /**
      * **The two failure channels cost different things** (§4.3), which is the whole reason they are kept
      * apart at the type level: a page nobody can read makes the Age vaguer and is charged nothing, where a
-     * page no sentence has room for is the dearest thing a writer can do.
+     * page no sentence has room for is a flaw.
      */
     test("an unreadable page and an impossible one are not the same complaint") {
         val said = listOf(Constraint(vocabulary.word("starless")!!, setOf(Aspect.SKY)))
@@ -1128,9 +1129,7 @@ class ResolverCheck : FunSpec({
         val charged = Resolver.resolve(vocabulary, nonsense, SAMPLE_SEED)
         val flaws = charged.instability.flaws.filter { it.register == Register.IMPOSSIBLE }
         check(flaws.single().words == listOf("age")) { "an impossible page gave ${charged.instability.flaws}" }
-        check(flaws.single().severity > Register.REHOMED.charge(Firmness.DECIDES)) {
-            "an impossibility cost ${flaws.single().severity}, no more than the cheapest way to be wrong"
-        }
+        check(charged.instability.index == 1) { "an impossible page counted ${charged.instability.index} flaws" }
     }
 
     /**

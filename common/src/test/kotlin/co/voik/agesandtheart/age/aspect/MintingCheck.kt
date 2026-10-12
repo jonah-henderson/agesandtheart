@@ -86,7 +86,7 @@ class MintingCheck : FunSpec({
         check(flaw.words.first() == "gold_block") {
             "the flaw names ${flaw.words} — the material is the word that lost and belongs first"
         }
-        check(flaw.severity > 0) { "'gold_block springs' was charged nothing" }
+        check(flaw.register.counts) { "'gold_block springs' was charged nothing" }
         check("gold_block" in flaw.describe() && "springs" in flaw.describe()) {
             "the reading does not name both words: ${flaw.describe()}"
         }

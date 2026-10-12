@@ -12,9 +12,9 @@ import co.voik.agesandtheart.book.FoundBookKind
 import kotlin.random.Random
 
 /**
- * **A SPIKE — do not build on this.** It answers, with numbers, what instability today's grammar lets a
- * book reach, against the thresholds the manifestations open at (16 for phenomena, 120 for worsening
- * wounds, 200 for tectonics and certain collapse) and the desk's page limits (5, 20, unlimited).
+ * **A SPIKE — do not build on this.** It answers, with numbers, how many distinct flaws today's grammar lets
+ * a book reach — the index the instability tiers are set by (`notes/instability-tiers-plan.md`) — against
+ * the desk's page limits (5, 20, unlimited).
  *
  * Four questions: what the found books carry; which registers a random row reaches at all; how high a
  * greedy writer can climb within each page limit, both writing rows that read exactly as laid and writing
@@ -77,7 +77,7 @@ private fun instabilityOf(vocabulary: Vocabulary, pages: List<String>): Instabil
 
 private fun Instability.byRegister(): String =
     flaws.groupBy { it.register }.entries.sortedBy { it.key.ordinal }
-        .joinToString(" ") { (register, flaws) -> "${register.key}=${flaws.sumOf { it.severity }}(${flaws.size})" }
+        .joinToString(" ") { (register, flaws) -> "${register.key}=${flaws.size}" }
 
 private fun reportFoundBooks(vocabulary: Vocabulary) {
     println("=== Found books: instability over 500 seeds ===")
@@ -99,7 +99,6 @@ private fun reportRegistersInRandomRows(vocabulary: Vocabulary) {
     println("=== Registers reached by 2000 random rows of 2..20 pages ===")
     val sayable = vocabulary.authoredWords.map { it.name } + vocabulary.grammarWords.map { it.name }
     val counts = mutableMapOf<Register, Int>()
-    val charged = mutableMapOf<Register, Int>()
     val indices = mutableListOf<Int>()
     for (seed in 1L..2000L) {
         val random = Random(seed)
@@ -108,11 +107,10 @@ private fun reportRegistersInRandomRows(vocabulary: Vocabulary) {
         indices += instability.index
         for (flaw in instability.flaws) {
             counts.merge(flaw.register, 1, Int::plus)
-            charged.merge(flaw.register, flaw.severity, Int::plus)
         }
     }
     for (register in Register.entries) {
-        println("%-11s flaws %5d  charged %6d".format(register.key, counts[register] ?: 0, charged[register] ?: 0))
+        println("%-11s flaws %5d".format(register.key, counts[register] ?: 0))
     }
     val sorted = indices.sorted()
     println("index: median %d  p90 %d  max %d".format(sorted[sorted.size / 2], sorted[sorted.size * 9 / 10], sorted.last()))
@@ -181,10 +179,8 @@ private fun reportHonestCeiling(vocabulary: Vocabulary, limit: Int, varietyOnly:
     val clauses = aims.flatMap { aim ->
         opposedWords.map { listOf(it, aim) } + pairs.map { (first, second) -> listOf(first, second, aim) }
     }
-    // Repeats counted once: the index a once-per-flaw rule would charge.
-    fun indexOf(instability: Instability): Int =
-        if (!varietyOnly) instability.index
-        else instability.flaws.distinctBy { Triple(it.register, it.words.sorted(), it.aspect) }.sumOf { it.severity }
+    // The index already counts each distinct flaw once, so the two ways of asking now agree.
+    fun indexOf(instability: Instability): Int = instability.index
     var book = listOf("age")
     var best = Instability.NONE
     val used = mutableSetOf<List<String>>()

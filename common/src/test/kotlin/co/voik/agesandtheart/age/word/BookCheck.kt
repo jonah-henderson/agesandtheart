@@ -116,7 +116,8 @@ class BookCheck : FunSpec({
             }
             // Against the book as written rather than against nothing, since an unstable one starts flawed.
             val garbled = Resolver.resolve(vocabulary, read, book.seed).instability
-            check(garbled == book.instability) {
+            // The flaws, not the whole instability: the garbling page is one more page laid.
+            check(garbled.flaws == book.instability?.flaws) {
                 "an unreadable page changed $book from ${book.instability} to $garbled: ${garbled.flaws.joinToString("; ")}"
             }
         }

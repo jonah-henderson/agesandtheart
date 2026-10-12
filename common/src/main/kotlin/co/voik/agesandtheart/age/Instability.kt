@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.word.Firmness
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -9,25 +8,15 @@ import net.minecraft.util.StringRepresentable
 import java.util.Optional
 
 /**
- * The ways a sentence can be at odds with the world, in ascending order of how much trouble it is.
+ * The ways a sentence can be at odds with the world.
  *
- * Registers rather than one severity dial: "nothing carries this word" and "an earlier word crowded it
- * out" look identical from outside and must not be charged as the same complaint.
+ * Registers so a flaw can be said to a writer for what it is: "nothing carries this word" and "an earlier
+ * word crowded it out" look identical from outside. They name a flaw and never price it — every flaw but a
+ * misplaced page counts one (`notes/instability-tiers-plan.md`).
  */
-enum class Register(
-    val key: String,
-    /**
-     * What a flaw of this kind earns towards the budget before precision is taken into account.
-     *
-     * **The default, which `art/instability/<key>.json` overrides** (design §5.0). These are the
-     * accumulation half of the budget where `art/manifestation/` is the spending half, and both are
-     * datapack because retuning them makes a different mod rather than the same mod run differently
-     * (`notes/config-research.md`). Shipped values are here so a pack that says nothing still works.
-     */
-    val base: Int,
-) : StringRepresentable {
+enum class Register(val key: String) : StringRepresentable {
     /** Two words meant opposite things and the world honoured both anyway, in one aspect. */
-    TENSION("tension", base = 1),
+    TENSION("tension"),
 
     /**
      * Two words meant opposite things and **never met** — they landed in different aspects, so nothing in
@@ -43,16 +32,15 @@ enum class Register(
      *
      * Charged **once per pair**, and only where nothing else already charged the same two words.
      */
-    OPPOSED("opposed", base = 1),
+    OPPOSED("opposed"),
 
     /**
      * A page could not be read where it was laid, so the Art moved it somewhere it could (§4.3.1).
      *
-     * Cheap, because the word still did what it means — `starless` under the land ends up meaning a
-     * starless sky. What it is charged for is the writing rather than the outcome: the writer aimed a page
-     * at a part of the world that had no use for it, and aiming is a precision lever they chose to pull.
+     * **Said, and never counted** (Jonah, 2026-10-12): what the page does where it was moved to is its
+     * consequence — `starless` under the land ends up meaning a starless sky.
      */
-    REHOMED("rehomed", base = 1),
+    REHOMED("rehomed"),
 
     /**
      * An aspect had to break into fragments to honour everything asked of it.
@@ -61,7 +49,7 @@ enum class Register(
      * answers, which is harmony and charged nothing (see [Aspect.appetiteForCompany]). Only the charged
      * case is a flaw.
      */
-    FRACTURE("fracture", base = 1),
+    FRACTURE("fracture"),
 
     /**
      * A word lost outright: something else already had the aspect, and the aspect cannot divide.
@@ -72,7 +60,7 @@ enum class Register(
      * reason it rather than [UNBACKED]: that one says "a gap in the vocabulary, not something you did",
      * and writing a solid into a spring is squarely something you did.
      */
-    DISPLACED("displaced", base = 2),
+    DISPLACED("displaced"),
 
     /**
      * Nothing in the aspect could ever be what the word asked for.
@@ -80,28 +68,18 @@ enum class Register(
      * A content bug rather than a play outcome (design §3.3) — `VocabularyCheck` keeps it from shipping.
      * A register anyway, because a word that slips through must be reported, never silently dropped.
      */
-    UNBACKED("unbacked", base = 4),
+    UNBACKED("unbacked"),
 
     /**
      * A page there was nowhere for **in any sentence at all** — a second `Age`, or an `and` with nothing
-     * on one side of it (§4.3.1).
-     *
-     * The dearest, and the only register that costs a writer a page outright. Everything else here is a
-     * world at odds with itself, where this is a book that was not one: repair fits a page in wherever it
-     * can, so reaching this means there was no such place anywhere in a complete sentence.
+     * on one side of it (§4.3.1). The only register that costs a writer a page outright: everything else
+     * here is a world at odds with itself, where this is a book that was not one.
      */
-    IMPOSSIBLE("impossible", base = 6),
+    IMPOSSIBLE("impossible"),
     ;
 
-    /**
-     * What a flaw of this kind costs when the word that caused it claimed as firmly as [firmness] — flat
-     * where the page carried no word, since a structural page claims nothing.
-     *
-     * [earns] is what a pack says this register is worth, defaulting to [base]. Read from the corpus at
-     * resolution rather than at generation, because the charge is frozen onto the `Flaw` — retuning it
-     * moves what the *next* Age costs and can never rewrite one already written.
-     */
-    fun charge(firmness: Firmness?, earns: Int = base): Int = earns * (firmness?.weight ?: 1)
+    /** Whether a flaw of this kind counts towards the index, which every one does but a misplaced page. */
+    val counts: Boolean get() = this != REHOMED
 
     override fun getSerializedName(): String = key
 
@@ -124,8 +102,6 @@ data class Flaw(
     val aspect: Aspect?,
     /** The tags that disagreed, where two did. */
     val tags: List<String>,
-    /** What it cost, frozen — so retuning the charges cannot rewrite an Age already written. */
-    val severity: Int,
 ) {
     /** What makes two flaws the same one: the kind, the words whichever way round, and the place. */
     val identity: Triple<Register, List<String>, Aspect?> get() = Triple(register, words.sorted(), aspect)
@@ -152,7 +128,7 @@ data class Flaw(
         }
     }
 
-    override fun toString(): String = "${register.key} +$severity: ${describe()}"
+    override fun toString(): String = "${register.key}: ${describe()}"
 
     companion object {
         val CODEC: Codec<Flaw> = RecordCodecBuilder.create { instance ->
@@ -161,10 +137,7 @@ data class Flaw(
                 Codec.STRING.listOf().fieldOf("words").forGetter(Flaw::words),
                 ASPECT_CODEC.optionalFieldOf("aspect").forGetter { Optional.ofNullable(it.aspect) },
                 Codec.STRING.listOf().optionalFieldOf("tags", emptyList()).forGetter(Flaw::tags),
-                Codec.INT.fieldOf("severity").forGetter(Flaw::severity),
-            ).apply(instance) { register, words, aspect, tags, severity ->
-                Flaw(register, words, aspect.orElse(null), tags, severity)
-            }
+            ).apply(instance) { register, words, aspect, tags -> Flaw(register, words, aspect.orElse(null), tags) }
         }
     }
 }
@@ -174,11 +147,16 @@ private val ASPECT_CODEC: Codec<Aspect> = StringRepresentable.fromEnum(Aspect::v
 /**
  * How far an Age is at odds with itself, and why. Part of the recipe, and never re-derived (design §4.6).
  *
- * The index is the sum of the flaws rather than a field of its own, so the number and the reasons cannot
- * disagree.
+ * The index is counted off the flaws rather than kept beside them, so the number and the reasons cannot
+ * disagree. [pages] is how long the book was, which caps how far its instability may reach.
  */
-data class Instability(val flaws: List<Flaw>) {
-    val index: Int get() = flaws.sumOf { it.severity }
+data class Instability(val flaws: List<Flaw>, val pages: Int = 0) {
+    /**
+     * **How many distinct things are wrong** (`notes/instability-tiers-plan.md` §2). Flaws raised by the same
+     * words are one — `frozen molten` is a tension and a fracture and one mistake — so a sentence can never
+     * be much more wrong than it looks; and a misplaced page is not counted at all.
+     */
+    val index: Int get() = flaws.filter { it.register.counts }.distinctBy { it.words.toSet() }.size
 
     val isCoherent: Boolean get() = flaws.isEmpty()
 
@@ -192,20 +170,20 @@ data class Instability(val flaws: List<Flaw>) {
          * An index set by hand rather than earned — **for `/age decay <name> unstable <n>` and nothing
          * else**.
          *
-         * The index is the sum of the flaws precisely so the number and the reasons cannot disagree, and
-         * this is the one place that is deliberately sidestepped: it fabricates a single flaw carrying the
-         * whole weight, so everything downstream — the price list, the manifestations, the reports — reads
-         * a real [Instability] and none of it needs to know.
-         *
-         * It exists because reaching the dire registers honestly wants a book of two dozen pages opposing
-         * two dozen different things, which is a great deal of fighting the vocabulary to test arithmetic
-         * that has nothing to do with vocabulary. **Nothing in the game may build one of these.**
+         * It fabricates [index] distinct flaws in a book long enough for any tier, so everything downstream —
+         * the spending, the manifestations, the reports — reads a real [Instability] and none of it needs to
+         * know. Reaching the verdicts honestly wants a long book opposing many different things, which is a
+         * great deal of fighting the vocabulary to test what has nothing to do with vocabulary. **Nothing in
+         * the game may build one of these.**
          */
         fun forced(index: Int): Instability = if (index <= 0) {
             NONE
         } else {
-            Instability(listOf(Flaw(Register.IMPOSSIBLE, listOf(BY_HAND), null, emptyList(), index)))
+            val flaws = (1..index).map { Flaw(Register.IMPOSSIBLE, listOf("$BY_HAND $it"), null, emptyList()) }
+            Instability(flaws, pages = LONG_ENOUGH_FOR_ANY_TIER)
         }
+
+        private const val LONG_ENOUGH_FOR_ANY_TIER = 100
 
         /** What a forced flaw names as its cause, so a report never claims a sentence did it. */
         const val BY_HAND = "an index set by hand"
@@ -213,6 +191,7 @@ data class Instability(val flaws: List<Flaw>) {
         val MAP_CODEC: MapCodec<Instability> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Flaw.CODEC.listOf().optionalFieldOf("flaws", emptyList()).forGetter(Instability::flaws),
+                Codec.INT.optionalFieldOf("pages", 0).forGetter(Instability::pages),
             ).apply(instance, ::Instability)
         }
 

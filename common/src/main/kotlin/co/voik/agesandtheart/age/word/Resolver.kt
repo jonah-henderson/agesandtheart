@@ -281,7 +281,7 @@ object Resolver {
         val said = offered(vocabulary, kept.map { it.materialisedAt(vocabulary, draw) }, draw)
         val flaws = mutableListOf<Flaw>()
         flaws += rehomings(vocabulary, sentence)
-        flaws += impossibilities(vocabulary, sentence)
+        flaws += impossibilities(sentence)
         val filled = Aspect.entries.associateWith { aspect -> fill(vocabulary, aspect, said, draw, flaws) }
         flaws += tensions(vocabulary, said, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
@@ -304,13 +304,9 @@ object Resolver {
 
         return Resolution(
             composition = composition,
-            // A contradiction written twice is one contradiction, so the index counts their variety (design
-            // §5.0). A page there is nowhere for is charged every time: a book of nothing but `age` should
-            // tear itself apart (Jonah).
-            instability = Instability(
-                flaws.filter { it.register == Register.IMPOSSIBLE } +
-                    flaws.filter { it.register != Register.IMPOSSIBLE }.distinctBy(Flaw::identity),
-            ),
+            // A contradiction written twice is one contradiction; how many distinct ones there are is
+            // `Instability.index`'s to count, so every flaw is kept for the readout.
+            instability = Instability(flaws.distinctBy(Flaw::identity), pages = pagesLaidIn(sentence)),
             // Structure is priced too: every page a writer lays costs ink, and a page that made no
             // claim still came out of the pot. A latent page came out of nobody's pot.
             cost = sentence.written.sumOf { it.word.price } + sentence.structural.sumOf { it.cost },
@@ -319,6 +315,10 @@ object Resolver {
             dropped = sentence.unreadable,
         )
     }
+
+    /** Every page the writer laid: what they wrote, the structure, and whatever reached no clause. */
+    private fun pagesLaidIn(sentence: Sentence): Int =
+        sentence.written.size + sentence.structural.size + sentence.dropped.size
 
     /**
      * **A pattern asked to be made of something it cannot hold** — `gold_block springs`, where the word
@@ -343,7 +343,7 @@ object Resolver {
             if (flows(substance.word.material)) return@mapNotNull null
             // The material first: it is the word that lost, and `describe` names the first as displaced
             // and the second as what displaced it.
-            flaw(vocabulary, Register.DISPLACED, listOf(substance, minting), Aspect.FEATURES, emptyList(), substance.word.firmness)
+            flaw(Register.DISPLACED, listOf(substance, minting), Aspect.FEATURES, emptyList())
         }
 
     /**
@@ -361,7 +361,7 @@ object Resolver {
             Aspect.MOON in reachOf(constraint) && parameter.name in constraint.word.setsIn(Aspect.MOON)
         val removing = said.filter { setsOnTheMoon(it, SkyBodies.ABSENT) }
         return said.filter { setsOnTheMoon(it, SkyBodies.PULL) }.map { pulling ->
-            flaw(vocabulary, Register.TENSION, listOf(pulling) + removing, Aspect.MOON, emptyList(), pulling.word.firmness)
+            flaw(Register.TENSION, listOf(pulling) + removing, Aspect.MOON, emptyList())
         }
     }
 
@@ -437,7 +437,7 @@ object Resolver {
             val materials = materialsOf(phrase, draw) ?: return@flatMap emptyList()
             val leading = materials.leading ?: return@flatMap emptyList()
             materials.displaced.map { loser ->
-                flaw(vocabulary, Register.DISPLACED, listOf(loser, leading), Aspect.FEATURES, emptyList(), loser.word.firmness)
+                flaw(Register.DISPLACED, listOf(loser, leading), Aspect.FEATURES, emptyList())
             }
         }
 
@@ -538,7 +538,7 @@ object Resolver {
     private fun rehomings(vocabulary: Vocabulary, sentence: Sentence): List<Flaw> =
         sentence.written.filter { it.rehomed }.map { said ->
             val landedIn = reachOf(said).firstOrNull()
-            flaw(vocabulary, Register.REHOMED, listOf(said), landedIn, tags = emptyList(), firmness = said.word.firmness)
+            flaw(Register.REHOMED, listOf(said), landedIn, tags = emptyList())
         }
 
     /**
@@ -558,23 +558,11 @@ object Resolver {
     }
 
     /**
-     * Pages there was nowhere for in any sentence at all. The dearest register and the only one that costs
-     * a page outright — repair fits a page in wherever it can, so reaching this means nowhere would do.
-     *
-     * Charged at the word's own precision where it carried one, and flat where it did not: a structural
-     * page has no precision to scale by.
+     * Pages there was nowhere for in any sentence at all — repair fits a page in wherever it can, so reaching
+     * this means nowhere would do.
      */
-    private fun impossibilities(vocabulary: Vocabulary, sentence: Sentence): List<Flaw> =
-        sentence.impossible.map { page ->
-            val firmness = vocabulary.word(page)?.firmness
-            Flaw(
-                Register.IMPOSSIBLE,
-                listOf(page),
-                aspect = null,
-                tags = emptyList(),
-                Register.IMPOSSIBLE.charge(firmness, vocabulary.earnedBy(Register.IMPOSSIBLE)),
-            )
-        }
+    private fun impossibilities(sentence: Sentence): List<Flaw> =
+        sentence.impossible.map { page -> Flaw(Register.IMPOSSIBLE, listOf(page), aspect = null, tags = emptyList()) }
 
     /**
      * Which aspects a constraint speaks to — the grammar's answer, not a search (§4.3.1): where its clause
@@ -628,7 +616,7 @@ object Resolver {
                 if (steersInstead(vocabulary, aspect, said)) continue
                 // Word against world: nothing in the aspect can be this, so no arrangement of the others is
                 // to blame. A content bug per §3.3, reported rather than dropped.
-                flaws += flaw(vocabulary, Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.firmness)
+                flaws += flaw(Register.UNBACKED, listOf(said), aspect, emptyList())
                 continue
             }
             val home = territories.indexOfFirst { it.candidates.any { candidate -> candidate in carriers } }
@@ -710,14 +698,7 @@ object Resolver {
         val leading = kept.firstOrNull()?.words?.firstOrNull() ?: return
         flaws += fracturesAgainst(vocabulary, aspect, leading, kept.drop(1).map { it.words.first() })
         for (said in lost.flatMap { it.words }) {
-            flaws += flaw(
-                vocabulary,
-                Register.DISPLACED,
-                listOf(said, leading),
-                aspect,
-                opposedTags(vocabulary, said, leading),
-                said.word.firmness,
-            )
+            flaws += flaw(Register.DISPLACED, listOf(said, leading), aspect, opposedTags(vocabulary, said, leading))
         }
     }
 
@@ -749,14 +730,7 @@ object Resolver {
         leading: Constraint,
         contenders: List<Constraint>,
     ): List<Flaw> = contenders.filterNot { wereJoined(it, leading) }.map { contender ->
-        flaw(
-            vocabulary,
-            Register.FRACTURE,
-            listOf(contender, leading),
-            aspect,
-            opposedTags(vocabulary, contender, leading),
-            maxOf(contender.word.firmness, leading.word.firmness),
-        )
+        flaw(Register.FRACTURE, listOf(contender, leading), aspect, opposedTags(vocabulary, contender, leading))
     }
 
     /**
@@ -961,7 +935,6 @@ object Resolver {
                         listOf(first.word.name, second.word.name),
                         aspect,
                         opposition.over,
-                        opposed(vocabulary, Register.TENSION, opposition, first, second),
                     ),
                 )
             }
@@ -1005,19 +978,9 @@ object Resolver {
                     // No aspect: the sentence owns this one, since landing nowhere together is the point.
                     aspect = null,
                     opposition.over,
-                    opposed(vocabulary, Register.OPPOSED, opposition, first, second),
                 ),
             )
         }
-    }
-
-    /**
-     * What a disagreement costs: the register's charge at the firmer of the two words, times how severe the
-     * antonym table says the pair is — so a contradiction weighs what any other flaw from those words would.
-     */
-    private fun opposed(vocabulary: Vocabulary, register: Register, opposition: Disagreement, first: Constraint, second: Constraint): Int {
-        val firmer = maxOf(first.word.firmness, second.word.firmness)
-        return register.charge(firmer, vocabulary.earnedBy(register)) * opposition.severity
     }
 
     /** Whether [first] and [second] both set [parameter] in some one aspect both of them reach. */
@@ -1033,14 +996,8 @@ object Resolver {
     private fun opposedTags(vocabulary: Vocabulary, first: Constraint, second: Constraint): List<String> =
         vocabulary.disagreement(first.word, second.word)?.over ?: emptyList()
 
-    private fun flaw(
-        vocabulary: Vocabulary,
-        register: Register,
-        said: List<Constraint>,
-        aspect: Aspect?,
-        tags: List<String>,
-        firmness: Firmness,
-    ) = Flaw(register, said.map { it.word.name }, aspect, tags, register.charge(firmness, vocabulary.earnedBy(register)))
+    private fun flaw(register: Register, said: List<Constraint>, aspect: Aspect?, tags: List<String>) =
+        Flaw(register, said.map { it.word.name }, aspect, tags)
 
     /**
      * The composition these fillings describe. The stand-in terrain is overwritten immediately — every
@@ -1333,7 +1290,7 @@ object Resolver {
             if (climates.size > 1) {
                 val leading = groups.first().first()
                 for (group in groups.drop(1)) {
-                    flaws += flaw(vocabulary, Register.DISPLACED, listOf(group.first(), leading), aspect, emptyList(), group.first().word.firmness)
+                    flaws += flaw(Register.DISPLACED, listOf(group.first(), leading), aspect, emptyList())
                 }
             }
             val agreed = settledWith(bentTo(climates.first()))
@@ -1828,7 +1785,7 @@ object Resolver {
             said.polarity == Polarity.ASSERTED && !said.word.aims && said.word.narrows && !joinedToAnythingSingledOut(said)
         val crowdedOut = contenders.filter(::couldBeCrowdedOut)
         return crowdedOut.map { said ->
-            flaw(vocabulary, Register.DISPLACED, listOf(said, singledOut.first()), aspect, emptyList(), said.word.firmness)
+            flaw(Register.DISPLACED, listOf(said, singledOut.first()), aspect, emptyList())
         }
     }
 
@@ -1857,7 +1814,7 @@ object Resolver {
                 said.word.setsIn(aspect)[parameter] == winner.word.setsIn(aspect)[parameter]
             val mingled = rivals.filter { it == winner || wereJoined(it, winner) || asksWhatTheWinnerAsks(it) }
             for (loser in rivals - mingled.toSet()) {
-                flaws += flaw(vocabulary, Register.DISPLACED, listOf(loser, winner), aspect, emptyList(), loser.word.firmness)
+                flaws += flaw(Register.DISPLACED, listOf(loser, winner), aspect, emptyList())
             }
             return ordered(mingled, parameter, aspect, asWritten)
         }
@@ -1948,7 +1905,7 @@ object Resolver {
         // And only where the word addressed this aspect's parameters at all — see [holds].
         val addressing = setting.filter { said -> said.word.canSet.keys.any { holds(composition, aspect, it) } }
         val wentUnheeded = addressing.filter { said -> said.word.canSet.keys.none(::anythingSeatedHonours) }
-        return wentUnheeded.map { said -> flaw(vocabulary, Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.firmness) }
+        return wentUnheeded.map { said -> flaw(Register.UNBACKED, listOf(said), aspect, emptyList()) }
     }
 
     /**

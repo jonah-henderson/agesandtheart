@@ -313,7 +313,7 @@ object AgeCommand {
                 "register" to flaw.register.key,
                 "words" to flaw.words,
                 "aspect" to flaw.aspect?.key,
-                "severity" to flaw.severity,
+                "counts" to flaw.register.counts,
             )
             report.entry("flaws", fields) { "  ! $flaw" }
         }
