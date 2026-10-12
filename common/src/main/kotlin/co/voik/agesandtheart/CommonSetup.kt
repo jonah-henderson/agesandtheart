@@ -16,7 +16,6 @@ import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.phenomena.PhenomenaCeiling
 import co.voik.agesandtheart.page.PageLearning
-import co.voik.agesandtheart.book.LinksUnderway
 import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.content.AgeContent
@@ -92,8 +91,8 @@ object CommonSetup {
         ChargedMetal.stir(server)
         // And the linking panel's own beat: an open the pace was holding, and a lectern's panel its viewer has left.
         PanelViews.tick(server)
-        // And every link waiting for its arrival to be built.
-        LinksUnderway.tick(server)
+        // And the arrivals visitors were sent to before their ground was built, carved once it is.
+        Ages.openUpWaitingArrivals()
         // And whoever has fallen through one of an Age's tears and come out of the bottom of the field.
         TheFall.letGo(server)
         // And the rubble the tears have sent home, a little at a time.
@@ -111,7 +110,7 @@ object CommonSetup {
         PanelWarming.serverStopped()
         LocalMaps.serverStopped()
         PhenomenaCeiling.serverStopped()
-        LinksUnderway.serverStopped()
+        Ages.serverStopped()
     }
 
     /** An entity entering a server level, freshly spawned or loaded with its chunk. */
@@ -183,7 +182,6 @@ object CommonSetup {
      */
     fun playerLeft(server: MinecraftServer, player: ServerPlayer) {
         PanelViews.forget(server, player)
-        LinksUnderway.cancel(player)
     }
 
     /** Vanilla's own odds for TNT, which fire takes almost at once. */

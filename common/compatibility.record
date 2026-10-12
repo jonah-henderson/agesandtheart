@@ -301,7 +301,6 @@ payload agesandtheart:fall_resumed
 payload agesandtheart:learned_words
 payload agesandtheart:lexicon
 payload agesandtheart:link
-payload agesandtheart:link_cancel
 payload agesandtheart:link_ended
 payload agesandtheart:machine_fill
 payload agesandtheart:machine_recipes
@@ -335,7 +334,6 @@ recipe_type agesandtheart:pulping
 sound_event agesandtheart:blizzard_exposed
 sound_event agesandtheart:blizzard_sheltered
 sound_event agesandtheart:surf
-ticket_type agesandtheart:link
 ticket_type agesandtheart:panel
 trigger_type agesandtheart:desk_furnished
 trigger_type agesandtheart:entered_age

@@ -412,7 +412,7 @@ class BookScreen(
         if (clickedThePanel && held is BookBeingRead.InHand) {
             sendToServer(LinkRequest(held.hand))
             handingTheLinkOver = true
-            LinkTransitOpener.begin(held, panelOnScreen())
+            LinkTransitOpener.begin(held)
             return true
         }
         if (canTurnForward() && overRightPage(event.x, event.y)) {

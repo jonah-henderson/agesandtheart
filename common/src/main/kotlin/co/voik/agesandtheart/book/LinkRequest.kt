@@ -9,9 +9,10 @@ import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.location
+import co.voik.agesandtheart.platform.Services
 import co.voik.ephemeris.sky.LevelAppearance
 import io.netty.buffer.ByteBuf
-import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
@@ -22,7 +23,6 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
-import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 
 /**
@@ -56,34 +56,14 @@ data class LinkRequest(val hand: InteractionHand) : CustomPacketPayload {
 object Linking {
 
     fun handle(player: ServerPlayer, request: LinkRequest) {
+        val level = player.level()
         val stack = player.getItemInHand(request.hand)
-        if (!LecternBooks.isOurs(stack)) return LinksUnderway.endedWithoutGoing(player)
-        LinksUnderway.begin(player, LinksUnderway.Departure.FromHand(request.hand, stack.copy()))
+        val went = LecternBooks.isOurs(stack) && link(player, level, stack, request.hand)
+        if (!went) endedWithoutGoing(player)
     }
 
-    /**
-     * Where [stack] would take [player] from [level], worked out without anybody moving — or null, with the
-     * reason said, where it will not. What [go] does too, so a link that waited is refused for exactly what
-     * one that went at once would be.
-     */
-    fun journeyFor(player: ServerPlayer, level: ServerLevel, stack: ItemStack): Journey? = when {
-        stack.item === AgeContent.DESCRIPTIVE_BOOK -> journeyToTheAge(player, level, stack)
-        stack.item === AgeContent.LINKING_BOOK -> journeyToThePlace(player, level, stack)
-        else -> null
-    }
-
-    /** A link worked out: the world it arrives in, the chunk it arrives at, and the going. */
-    class Journey(
-        val into: ServerLevel,
-        val arrivingAt: ChunkPos,
-        private val called: String,
-        private val travel: (ServerPlayer) -> Unit,
-    ) {
-        fun take(player: ServerPlayer) {
-            travel(player)
-            player.sendSystemMessage(Component.translatable("book.agesandtheart.linked", called), true)
-        }
-    }
+    /** Tells [player]'s client that a link it is showing in transit is not going to happen. */
+    fun endedWithoutGoing(player: ServerPlayer) = Services.NETWORK.sendToPlayer(player, LinkEnded)
 
     /** Goes through the book in [hand] and spends it to the spot [player] stood on, answering whether they went. */
     fun link(player: ServerPlayer, level: ServerLevel, stack: ItemStack, hand: InteractionHand): Boolean {
@@ -106,10 +86,13 @@ object Linking {
     fun go(player: ServerPlayer, level: ServerLevel, stack: ItemStack): Boolean {
         // Asked before going: arriving marks the Age visited, and it does so inside the teleport.
         val firstVisit = destinationOf(stack)?.let { !AgeSavedData.get(level.server).hasBeenVisited(it) } ?: true
-        val journey = journeyFor(player, level, stack) ?: return false
-        journey.take(player)
-        AgeTriggers.LINKED.trigger(player, linkAsLanded(player, stack, firstVisit))
-        return true
+        val went = when {
+            stack.item === AgeContent.DESCRIPTIVE_BOOK -> goToTheAge(player, level, stack)
+            stack.item === AgeContent.LINKING_BOOK -> goToThePlace(player, level, stack)
+            else -> false
+        }
+        if (went) AgeTriggers.LINKED.trigger(player, linkAsLanded(player, stack, firstVisit))
+        return went
     }
 
     /** The world [stack] leads to, or null for a descriptive book whose Age has not been made yet. */
@@ -129,10 +112,10 @@ object Linking {
         return Link(into, with, carriesALinkingBook, firstVisit = into == LinkedInto.AN_AGE && firstVisit)
     }
 
-    private fun journeyToTheAge(player: ServerPlayer, level: ServerLevel, stack: ItemStack): Journey? {
+    private fun goToTheAge(player: ServerPlayer, level: ServerLevel, stack: ItemStack): Boolean {
         // **A book is a door to somewhere else.** Carry one into the Age it describes — through a linking
         // book, say — and using it would spend the book on the room you are already standing in, which is
-        // the same claim `journeyToThePlace` refuses and for the same reason.
+        // the same claim `goToThePlace` refuses and for the same reason.
         if (stack.get(AgeComponents.AGE_ID) == level.dimension().identifier()) return refuse(player, "same_world")
         // `BookAge` and not a second copy of this: the linking panel opens the same Age from the same
         // stack, and a book that previewed one world and sent you to another would be the worst fault
@@ -140,11 +123,13 @@ object Linking {
         val isStillBeingRenamed = stack.get(AgeComponents.AGE_ID)?.let(AgeSavedData.get(level.server)::isReserved) == true
         if (isStillBeingRenamed) return refuse(player, "still_settling")
         val age = BookAge.of(level.server, stack) ?: return refuse(player, "failed")
+        Ages.teleport(player, age)
         val called = stack.get(AgeComponents.BOOK_TITLE) ?: age.dimension().identifier().path
-        return Journey(age, ChunkPos.containing(Ages.arrivalIn(age)), called) { Ages.teleport(it, age) }
+        player.sendSystemMessage(Component.translatable("book.agesandtheart.linked", called), true)
+        return true
     }
 
-    private fun journeyToThePlace(player: ServerPlayer, level: ServerLevel, stack: ItemStack): Journey? {
+    private fun goToThePlace(player: ServerPlayer, level: ServerLevel, stack: ItemStack): Boolean {
         val target = stack.get(AgeComponents.LINK_TARGET) ?: return refuse(player, "no_destination")
         // Linking is travel *between* worlds. A book that moves you within one is not a linking book —
         // which is both the lore and, incidentally, what stops this being an overland taxi.
@@ -153,20 +138,20 @@ object Linking {
         // it back — same terrain, deterministically, and empty of whatever was built in it. Only a
         // vanilla dimension can still be genuinely unreachable, and none of those is ours to restore.
         val destination = destinationOf(target, level.server) ?: return refuse(player, "no_destination")
-        return Journey(destination, ChunkPos.containing(BlockPos.containing(target.position)), target.name) { traveller ->
-            // Before the move, not after: one stream carries both, so a sky sent first cannot arrive late.
-            LevelAppearance.expecting(traveller, destination.dimension())
-            traveller.teleportTo(
-                destination,
-                target.position.x,
-                target.position.y,
-                target.position.z,
-                emptySet(),
-                target.yaw,
-                traveller.xRot,
-                true,
-            )
-        }
+        // Before the move, not after: one stream carries both, so a sky sent first cannot arrive late.
+        LevelAppearance.expecting(player, destination.dimension())
+        player.teleportTo(
+            destination,
+            target.position.x,
+            target.position.y,
+            target.position.z,
+            emptySet(),
+            target.yaw,
+            player.xRot,
+            true,
+        )
+        player.sendSystemMessage(Component.translatable("book.agesandtheart.linked", target.name), true)
+        return true
     }
 
     /**
@@ -183,13 +168,22 @@ object Linking {
         return Ages.ensure(server, target.dimension.identifier(), recipe)
     }
 
-    /** Says why [player] is not going, and ends any wait a client is showing for it. */
-    fun refuse(player: ServerPlayer, reason: String): Nothing? {
+    private fun refuse(player: ServerPlayer, reason: String): Boolean {
         player.sendSystemMessage(Component.translatable("book.agesandtheart.$reason"), true)
-        LinksUnderway.endedWithoutGoing(player)
-        return null
+        endedWithoutGoing(player)
+        return false
     }
 
     /** Where a dropped book leaves the hand, as vanilla drops an item: this far below the eyes. */
     private const val HAND_BELOW_THE_EYES = 0.3
+}
+
+/** A link a client is showing in transit, ended without going: refused, or the book gone from the hand. */
+object LinkEnded : CustomPacketPayload {
+    override fun type(): CustomPacketPayload.Type<LinkEnded> = TYPE
+
+    /** An `object` for `StreamCodec.unit`, as `PanelCloseRequest` is. */
+    val TYPE: CustomPacketPayload.Type<LinkEnded> = CustomPacketPayload.Type("link_ended".location())
+
+    val STREAM_CODEC: StreamCodec<ByteBuf, LinkEnded> = StreamCodec.unit(LinkEnded)
 }

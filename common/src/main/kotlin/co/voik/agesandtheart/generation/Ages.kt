@@ -9,6 +9,7 @@ import co.voik.ephemeris.RuntimeLevels
 import co.voik.ephemeris.sky.LevelAppearance
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
@@ -191,7 +192,11 @@ object Ages {
         // the places a player starts travelling.
         LevelAppearance.expecting(player, level.dimension())
         val arrival = arrivals.getOrPut(level) { workOutTheArrivalIn(level) }
-        openUpArrival(level, arrival)
+        // **Carved now only where the ground is already whole.** Reading it otherwise builds the chunk on this
+        // thread — seconds on a cold Age, with every player on the server stopped and the visitor looking at
+        // the world they were leaving. The visitor goes at once instead, into vanilla's loading screen, which
+        // waits on the chunk as a portal's does, and the room is carved the tick it is whole.
+        if (isWhole(level, arrival)) openUpArrival(level, arrival) else waitingToOpen += WaitingArrival(level, arrival)
         // `teleportTo` gained a relative-movement set and a "set camera" flag. Nothing here is relative and
         // the camera should follow, which is the empty set and `true`.
         player.teleportTo(
@@ -199,6 +204,34 @@ object Ages {
             emptySet(), arrival.facing?.toYRot() ?: player.yRot, player.xRot, true,
         )
     }
+
+    /** An arrival a visitor was sent to before its chunk was whole, still to be carved. */
+    private class WaitingArrival(val level: ServerLevel, val arrival: Arrival, var ticksWaited: Int = 0)
+
+    private val waitingToOpen = mutableListOf<WaitingArrival>()
+
+    /**
+     * Carves every waiting arrival whose chunk has become whole. One whose visitor left before it was is given
+     * up after a while, since nothing then holds the chunk loaded.
+     */
+    fun openUpWaitingArrivals() {
+        if (waitingToOpen.isEmpty()) return
+        waitingToOpen.removeAll { waiting ->
+            waiting.ticksWaited++
+            val whole = isWhole(waiting.level, waiting.arrival)
+            if (whole) openUpArrival(waiting.level, waiting.arrival)
+            whole || waiting.ticksWaited > MOST_TICKS_AN_ARRIVAL_WAITS
+        }
+    }
+
+    /** An integrated server stopping: the next world has none of these levels. */
+    fun serverStopped() = waitingToOpen.clear()
+
+    private fun isWhole(level: ServerLevel, arrival: Arrival): Boolean =
+        level.chunkSource.getChunkNow(SectionPos.blockToSectionCoord(arrival.at.x), SectionPos.blockToSectionCoord(arrival.at.z)) != null
+
+    /** A minute: a cold Age's arrival takes seconds, and one still not whole after this has nobody waiting on it. */
+    private const val MOST_TICKS_AN_ARRIVAL_WAITS = 20 * 60
 
     /**
      * Where a visitor lands and which way they face. [facing] is null for footing found in the rock, where

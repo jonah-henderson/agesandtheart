@@ -1576,7 +1576,6 @@ object AgeContent {
         .build(ResourceKey.create(Registries.ENTITY_TYPE, "lava_droplet".location()))
 
     private const val DROPLET_SIZE = 0.4f
-    private const val LINK_TICKET_TICKS = 300L
     private const val DROPLET_TRACKING_CHUNKS = 4
 
     /**
@@ -1597,18 +1596,7 @@ object AgeContent {
     val PANEL_TICKET: TicketType =
         TicketType(TicketType.NO_TIMEOUT, TicketType.FLAG_LOADING or TicketType.FLAG_KEEP_DIMENSION_ACTIVE)
 
-    /**
-     * The ticket that builds a link's arrival while the link waits for it (`LinksUnderway`).
-     *
-     * Vanilla's portal ticket's shape: a timeout of fifteen seconds, renewed every tick of the wait and left to
-     * run out after it, which carries the chunk across to the arriving player's own tickets. Loading without
-     * simulating, since nothing there should run until somebody is there.
-     */
-    val LINK_TICKET: TicketType =
-        TicketType(LINK_TICKET_TICKS, TicketType.FLAG_LOADING or TicketType.FLAG_KEEP_DIMENSION_ACTIVE)
-
-    val tickets: List<Pair<Identifier, TicketType>> =
-        listOf("panel".location() to PANEL_TICKET, "link".location() to LINK_TICKET)
+    val tickets: List<Pair<Identifier, TicketType>> = listOf("panel".location() to PANEL_TICKET)
 
     /**
      * A body out of a meteor storm. See [co.voik.agesandtheart.age.phenomena.Meteor].
