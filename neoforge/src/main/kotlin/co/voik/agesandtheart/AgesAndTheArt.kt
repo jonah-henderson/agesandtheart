@@ -345,6 +345,6 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     }
 
     private companion object {
-        const val PAYLOAD_VERSION = "4"
+        const val PAYLOAD_VERSION = "5"
     }
 }

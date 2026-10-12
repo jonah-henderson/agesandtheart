@@ -8,6 +8,7 @@ import co.voik.agesandtheart.book.NearbyOpenBook
 import co.voik.agesandtheart.book.OpenBookPanelChoice
 import co.voik.agesandtheart.client.BookScreen
 import co.voik.agesandtheart.client.CrystalViewerScreen
+import co.voik.agesandtheart.client.LinkTransit
 import net.minecraft.client.DeltaTracker
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
@@ -49,9 +50,10 @@ object OpenBookPanels {
         val level = minecraft.level ?: return
         val player = minecraft.player ?: return
         // An open book screen owns the panel and ticks it; the choice resumes from its lectern once it closes.
-        // A crystal viewer's screen outranks them as a book's does.
+        // A crystal viewer's screen outranks them as a book's does, and so does a link in transit, which holds
+        // the panel it was made from until it arrives.
         val screen = minecraft.gui.screen()
-        if (screen is BookScreen || screen is CrystalViewerScreen) return
+        if (screen is BookScreen || screen is CrystalViewerScreen || LinkTransit.isUnderway) return
 
         val showing = shown
         val wanted = OpenBookPanelChoice.choose(showing, openBooksNear(level, player.position()))
@@ -93,6 +95,7 @@ object OpenBookPanels {
     }
 
     private fun isComposedByItsScreen(book: BookBeingRead): Boolean {
+        if (LinkTransit.isUnderway) return true
         val screen = Minecraft.getInstance().gui.screen() as? BookScreen ?: return false
         return screen.held == book && screen.isShowingItsPanel
     }

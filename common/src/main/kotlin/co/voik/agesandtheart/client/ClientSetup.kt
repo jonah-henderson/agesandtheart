@@ -28,6 +28,8 @@ object ClientSetup {
         LureLooks.pulse(minecraft)
         // Which lectern's panel this client shows, since a lectern has no screen to tick it as a book's does.
         OpenBookPanels.tick(minecraft)
+        // And a link in transit, which ends once the player has arrived.
+        LinkTransit.tick(minecraft)
         // Whether a tear is being fallen through, settled once here rather than per fissure per frame.
         StarFissureVeil.tick(minecraft)
         // Waves on a palm beach: the shore is found and the foam laid on the client, and nowhere else.
@@ -68,6 +70,7 @@ object ClientSetup {
         // A book open when the connection drops never reaches `Screen.removed`, so its preview level and
         // renderer would outlive the connection that fed them.
         LinkingPanel.forget()
+        LinkTransit.forget()
         Storms.forget()
         Downpours.forget()
         StarFissureVeil.forget()

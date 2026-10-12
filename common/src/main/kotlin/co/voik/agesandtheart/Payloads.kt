@@ -4,8 +4,11 @@ import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.age.phenomena.DelugePayload
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
+import co.voik.agesandtheart.book.LinkCancelRequest
+import co.voik.agesandtheart.book.LinkEnded
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.book.Linking
+import co.voik.agesandtheart.book.LinksUnderway
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
 import co.voik.agesandtheart.book.panel.PanelChunksWanted
 import co.voik.agesandtheart.book.panel.PanelCloseRequest
@@ -80,6 +83,8 @@ object Payloads {
         Serverbound(ArchiveWritePayload.TYPE, ArchiveWritePayload.STREAM_CODEC, ArchiveCommands::write),
         Serverbound(ArchiveWithdrawPayload.TYPE, ArchiveWithdrawPayload.STREAM_CODEC, ArchiveCommands::withdraw),
         Serverbound(LinkRequest.TYPE, LinkRequest.STREAM_CODEC, Linking::handle),
+        Serverbound(LinkCancelRequest.TYPE, LinkCancelRequest.STREAM_CODEC) { player, _ -> LinksUnderway.cancel(player) },
+        Clientbound(LinkEnded.TYPE, LinkEnded.STREAM_CODEC),
         // A machine's recipe list, and a click on one of its lines.
         Clientbound(MachineRecipesPayload.TYPE, MachineRecipesPayload.STREAM_CODEC),
         Serverbound(MachineFillPayload.TYPE, MachineFillPayload.STREAM_CODEC, MachineRecipeLists::fill),

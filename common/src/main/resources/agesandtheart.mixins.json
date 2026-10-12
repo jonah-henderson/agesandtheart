@@ -39,6 +39,7 @@
     "client.CameraMixin",
     "client.ClientLevelMixin",
     "client.GameRendererMixin",
+    "client.LevelLoadingScreenMixin",
     "client.LevelRendererMixin",
     "client.LiquidBlockMixin",
     "client.MainRenderTargetMixin",

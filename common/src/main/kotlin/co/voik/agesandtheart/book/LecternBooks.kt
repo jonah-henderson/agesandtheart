@@ -4,6 +4,7 @@ import net.minecraft.util.Prediction
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.client.BookScreenOpener
+import co.voik.agesandtheart.client.LinkTransitOpener
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
@@ -162,11 +163,17 @@ object LecternBooks {
         }
     }
 
-    /** Goes, and leaves the book on the lectern for the next reader — which is the whole of a lectern's point. */
+    /**
+     * Goes, and leaves the book on the lectern for the next reader — which is the whole of a lectern's point.
+     * The client shows the link under way from the click, as a hand's book does from its panel.
+     */
     private fun linkFrom(level: Level, lectern: LecternBlockEntity, player: Player) {
+        // Guarded so the screen class is never loaded on a dedicated server.
+        if (level.isClientSide) LinkTransitOpener.begin(BookBeingRead.OnALectern(lectern.blockPos))
         if (level !is ServerLevel || player !is ServerPlayer) return
-        // A descriptive book is stamped with its Age the first time it links, and the lectern keeps the stamp.
-        if (Linking.go(player, level, lectern.book)) lectern.setChanged()
+        // A descriptive book is stamped with its Age the first time it links, and the lectern keeps the stamp —
+        // which `LinksUnderway` marks when the link goes.
+        LinksUnderway.begin(player, LinksUnderway.Departure.FromLectern(level.dimension(), lectern.blockPos))
     }
 
     private fun read(level: Level, lectern: LecternBlockEntity, player: Player) {

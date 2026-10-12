@@ -99,8 +99,11 @@ class BookScreen(
      */
     override fun removed() {
         super.removed()
-        if (held is BookBeingRead.InHand) LinkingPanel.release()
+        if (held is BookBeingRead.InHand && !handingTheLinkOver) LinkingPanel.release()
     }
+
+    /** Set as the panel is clicked: the link's transit takes the panel over, and gives it back on arriving. */
+    private var handingTheLinkOver = false
 
     override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
         super.extractRenderState(graphics, mouseX, mouseY, a)
@@ -363,10 +366,17 @@ class BookScreen(
     private fun panelAcrossTheBook(): Int = PANEL_X + if (panelPage == BookPage.RIGHT) WIDTH / 2 else 0
 
     private fun overPanel(mouseX: Double, mouseY: Double): Boolean {
-        val x = (width - WIDTH) / 2 + panelAcrossTheBook()
-        val y = (height - HEIGHT) / 2 + PANEL_Y
-        return mouseX >= x && mouseX <= x + PanelPicture.WIDTH && mouseY >= y && mouseY <= y + PanelPicture.HEIGHT
+        val panel = panelOnScreen()
+        return mouseX >= panel.x && mouseX <= panel.right && mouseY >= panel.y && mouseY <= panel.bottom
     }
+
+    /** Where the panel's picture is on screen, inside its frame. */
+    private fun panelOnScreen(): Rect = Rect(
+        (width - WIDTH) / 2 + panelAcrossTheBook(),
+        (height - HEIGHT) / 2 + PANEL_Y,
+        PanelPicture.WIDTH,
+        PanelPicture.HEIGHT,
+    )
 
     private fun overLeftPage(mouseX: Double, mouseY: Double): Boolean =
         overLeaf(mouseX, mouseY, from = 1, to = WIDTH / 2 - 1)
@@ -401,7 +411,8 @@ class BookScreen(
         val clickedThePanel = spread == 0 && overPanel(event.x, event.y)
         if (clickedThePanel && held is BookBeingRead.InHand) {
             sendToServer(LinkRequest(held.hand))
-            onClose()
+            handingTheLinkOver = true
+            LinkTransitOpener.begin(held, panelOnScreen())
             return true
         }
         if (canTurnForward() && overRightPage(event.x, event.y)) {
