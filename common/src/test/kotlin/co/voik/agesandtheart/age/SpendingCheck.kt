@@ -81,11 +81,21 @@ class SpendingCheck : FunSpec({
         }
     }
 
-    /** Nothing is built at the strange tier yet, so a short book shows nothing — and must not show more. */
     test("a short book never buys a hazard, however wrong it is") {
         for (seed in seeds) {
-            val bought = tiersBought(spent(flaws = 12, seed, pages = Spending.PAGES_KEPT_STRANGE))
-            check(bought.all { it == Spending.STRANGE }) { "a five-page book bought tiers $bought under seed $seed" }
+            for (setting in listOf(SpendingSetting.UNKNOWN, divided)) {
+                val bought = tiersBought(spent(flaws = 12, seed, setting, pages = Spending.PAGES_KEPT_STRANGE))
+                check(bought.all { it == Spending.STRANGE }) { "a five-page book bought tiers $bought under seed $seed" }
+            }
+        }
+    }
+
+    /** The strange tier's first manifestation (Jonah, 2026-10-12): one slip in a divided Age tears its seams. */
+    test("one flaw in a divided Age tears its seams") {
+        for (seed in seeds) {
+            check(spent(1, seed, divided).bought(Manifestation.TORN_SEAMS) == 1) {
+                "one flaw in a divided Age under seed $seed bought ${spent(1, seed, divided)}"
+            }
         }
     }
 
@@ -221,7 +231,7 @@ private fun tiers(vararg each: Int) = DialSteps(each.toList())
  * server runs. `ShippedLaddersCheck` fails if it drifts from the files.
  */
 internal val SHIPPED_LADDERS = mapOf(
-    Manifestation.TORN_SEAMS to Ladder.flat(Manifestation.TORN_SEAMS, tier = 1, most = 4).copy(needsRegions = true),
+    Manifestation.TORN_SEAMS to Ladder.flat(Manifestation.TORN_SEAMS, tier = 0, most = 4).copy(needsRegions = true),
     Manifestation.WOUNDS to Ladder.flat(Manifestation.WOUNDS, tier = 2, most = 4),
     Manifestation.WORSENING_WOUNDS to Ladder.flat(Manifestation.WORSENING_WOUNDS, tier = 3, most = 3),
     Manifestation.SANDFALL to Ladder(

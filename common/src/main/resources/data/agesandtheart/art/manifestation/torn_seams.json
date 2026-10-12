@@ -5,10 +5,11 @@
     "",
     "Only in an Age divided into territories, since an undivided one has no seam to tear and a step here",
     "would show nothing -- which is what it did for most Ages while it was the commonest first purchase",
-    "(Jonah, 2026-10-12). Unsettling: the ground is wrong, and nothing about it hurts."
+    "(Jonah, 2026-10-12). Strange: the ground is wrong, and nothing about it hurts, so it is the first thing a",
+    "barely flawed Age with seams shows."
   ],
   "dials": {
-    "width": {"tier": 1, "most": 4}
+    "width": {"tier": 0, "most": 4}
   },
   "needs_regions": true
 }
