@@ -43,15 +43,19 @@ object AgeLooks {
                     level,
                     Storms.paint(
                         level,
-                        // A deluge greys the air under the storms and over the wounds, as a blizzard does.
-                        Downpours.paint(
+                        // A bank of fog under the storms, so a whiteout in a fog is still a whiteout.
+                        Fogs.paint(
                             level,
-                            Corruption.paint(
+                            // A deluge greys the air under the storms and over the wounds, as a blizzard does.
+                            Downpours.paint(
                                 level,
-                                // Over the Age's air, because `murk` is a word about the Age's seas and an
-                                // abyss is not one of them — a clear Age still has a black abyss.
-                                // A palm beach's dusk deepens whatever sunset the Age's air already had.
-                                DeepWaterFog.paint(level, PalmDusk.paint(level, AgeAir.paint(level, layers))),
+                                Corruption.paint(
+                                    level,
+                                    // Over the Age's air, because `murk` is a word about the Age's seas and an
+                                    // abyss is not one of them — a clear Age still has a black abyss.
+                                    // A palm beach's dusk deepens whatever sunset the Age's air already had.
+                                    DeepWaterFog.paint(level, PalmDusk.paint(level, AgeAir.paint(level, layers))),
+                                ),
                             ),
                         ),
                     ),

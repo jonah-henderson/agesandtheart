@@ -73,5 +73,9 @@
       "dark": 0.5,
       "eroded": 0.4
     }
+  },
+  "fog": {
+    "_comment": "Instability's alone for now: no word names it, and no vague word may reach it until one does.",
+    "available_to_broad_words": false
   }
 }

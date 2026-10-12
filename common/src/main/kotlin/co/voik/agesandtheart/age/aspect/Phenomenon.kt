@@ -226,6 +226,17 @@ enum class Phenomenon(
      * instability adds is worked out where the weather is steered.
      */
     DELUGE("deluge", WeatherConditions(rainfall = OFTEN), inflictedBy = Manifestation.DELUGE),
+
+    /**
+     * Banks of heavy fog that roll over the Age and lift again ([co.voik.agesandtheart.age.phenomena.Fog]).
+     *
+     * **Seen and never done**: it shortens the view to a few blocks and greys the air, and nothing in it can
+     * hurt you — the strange tier's first phenomenon (`the-art-design.md` §5.0), which a barely flawed Age can
+     * show without the world being any more dangerous for it. It insists on no weather: a fog is not a rain.
+     *
+     * **Inflicted only, for now**: no word names it, so a book cannot ask for one.
+     */
+    FOG("fog", inflictedBy = Manifestation.FOG),
     ;
 
     override val aspect = Aspect.PHENOMENA

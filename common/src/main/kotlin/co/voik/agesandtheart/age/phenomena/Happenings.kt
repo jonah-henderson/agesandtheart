@@ -65,6 +65,7 @@ object Happenings {
         if (level.server.tickCount % TELLING_THE_CLIENT == 0) {
             Blizzard.tellTheClients(level, befalls, spending)
             Deluge.tellTheClients(level, befalls[Phenomenon.DELUGE]?.let { Deluge.risingOf(it, spending) })
+            Fog.tellTheClients(level, befalls[Phenomenon.FOG], FogDials.of(spending))
         }
     }
 
@@ -178,7 +179,7 @@ object Happenings {
         }
         Phenomenon.DELUGE -> WeatherConditions(rainfall = Deluge.risingOf(density, spending).rainShare)
         Phenomenon.TEMPEST, Phenomenon.INFERNO, Phenomenon.AURORA, Phenomenon.RAINBOW,
-        Phenomenon.SANDFALL, Phenomenon.METEORS, Phenomenon.TECTONICS -> insistsOn
+        Phenomenon.SANDFALL, Phenomenon.METEORS, Phenomenon.TECTONICS, Phenomenon.FOG -> insistsOn
     }
 
     /**
@@ -211,6 +212,8 @@ object Happenings {
                 Deluge.raise(level)
                 Deluge.pool(level)
             }
+            // Nothing: a fog is seen rather than done, and what the client is told is sent with the rest below.
+            Phenomenon.FOG -> Unit
         }
     }
 

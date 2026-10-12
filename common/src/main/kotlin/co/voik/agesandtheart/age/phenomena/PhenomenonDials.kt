@@ -98,6 +98,18 @@ data class InfernoDials(val burnDamage: Double, val lightIntensity: Double) {
     }
 }
 
+/** A fog's: [often] how much of the time a bank lies over the Age, [thickness] how close one closes in. */
+data class FogDials(val often: Double, val thickness: Double) {
+    companion object {
+        val NONE = FogDials(often = 0.0, thickness = 0.0)
+
+        fun of(spending: Spending) = FogDials(
+            often = spending.reach(Manifestation.FOG, Manifestation.BANKS_OFTEN),
+            thickness = spending.reach(Manifestation.FOG, Manifestation.BANKS_THICKNESS),
+        )
+    }
+}
+
 /**
  * **What a dial bought in full is worth: what `teeming` is to a written claim.** One figure for every dial
  * that scales a rate, so an Age that has spent everything on how often storms come has storms as often as

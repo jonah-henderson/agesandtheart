@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Setting
@@ -322,6 +323,9 @@ class VocabularyCheck : FunSpec({
                 // so demanding one here asks the wrong question, and asks it of a corpus that cannot answer:
                 // biomes are datapack content, so their words exist only once a server has loaded.
                 if (namesARegistryEntry(preset.key)) continue
+                // A phenomenon instability inflicts is reached by instability, which is a deliberate way to
+                // arrive: the fog is instability's alone until a word names it.
+                if ((preset as? Phenomenon)?.inflictedBy != null && !vocabulary.isAvailableToBroadWords(preset)) continue
                 // **Where the word reaches**, every aspect of it: a clause aimed at any one is how a word
                 // narrows there — `unbroken` asks for a solid underground.
                 val reachable = vocabulary.words.any { word ->

@@ -72,6 +72,7 @@ object ClientSetup {
         LinkingPanel.forget()
         LinkTransit.forget()
         Storms.forget()
+        Fogs.forget()
         Downpours.forget()
         StarFissureVeil.forget()
     }

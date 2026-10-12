@@ -46,6 +46,8 @@ private const val TEMPEST_BLAST = "blast"
 private const val TEMPEST_FIRE = "fire"
 private const val INFERNO_BURN_DAMAGE = "burn_damage"
 private const val INFERNO_LIGHT_INTENSITY = "light_intensity"
+private const val FOG_OFTEN = "often"
+private const val FOG_THICKNESS = "thickness"
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -152,6 +154,13 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
      * the tear spreads.
      */
     COLLAPSE("collapse", "spread"),
+
+    /**
+     * Banks of heavy fog roll over the Age and lift again (Jonah, 2026-10-12) — strange, the first phenomenon
+     * that is only ever seen. **Two dials**: how much of the time a bank lies over the Age, and how close it
+     * closes in.
+     */
+    FOG("fog", FOG_OFTEN, FOG_THICKNESS),
     ;
 
     /** What this manifestation's ladder sells steps of, in the order its file is read. */
@@ -224,6 +233,12 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
         /** How dim the light may be before an inferno stops burning. */
         const val LIGHT_INTENSITY = INFERNO_LIGHT_INTENSITY
+
+        /** How much of the time a bank of fog lies over the Age. */
+        const val BANKS_OFTEN = FOG_OFTEN
+
+        /** How close a bank of fog closes in. */
+        const val BANKS_THICKNESS = FOG_THICKNESS
     }
 }
 

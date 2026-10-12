@@ -89,12 +89,15 @@ class SpendingCheck : FunSpec({
         }
     }
 
-    /** The strange tier's first manifestation (Jonah, 2026-10-12): one slip in a divided Age tears its seams. */
-    test("one flaw in a divided Age tears its seams") {
+    /** One slip is strange: a divided Age's seams tear, or a bank of fog comes over it. */
+    test("one flaw is a strange step, and a divided Age's seams can be it") {
         for (seed in seeds) {
-            check(spent(1, seed, divided).bought(Manifestation.TORN_SEAMS) == 1) {
-                "one flaw in a divided Age under seed $seed bought ${spent(1, seed, divided)}"
-            }
+            val bought = spent(1, seed, divided)
+            val strange = bought.bought(Manifestation.TORN_SEAMS) + bought.bought(Manifestation.FOG)
+            check(strange == 1) { "one flaw in a divided Age under seed $seed bought $bought" }
+        }
+        check(seeds.any { spent(1, it, divided).bought(Manifestation.TORN_SEAMS) == 1 }) {
+            "no divided Age in forty tore its seams for one flaw"
         }
     }
 
@@ -284,4 +287,5 @@ internal val SHIPPED_LADDERS = mapOf(
         leans = mapOf("humidity" to 1.0),
     ),
     Manifestation.COLLAPSE to Ladder.flat(Manifestation.COLLAPSE, tier = 3, most = 3),
+    Manifestation.FOG to Ladder.flat(Manifestation.FOG, tier = 1, most = 4).copy(leans = mapOf("humidity" to 0.3)),
 )

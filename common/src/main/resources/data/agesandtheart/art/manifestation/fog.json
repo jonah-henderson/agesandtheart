@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "How banks of heavy fog come over an Age (Jonah, 2026-10-12): `often` is how much of the time a bank",
+    "lies over it, and `thickness` how close one closes in.",
+    "",
+    "Strange throughout: it is only ever seen, and nothing in it can hurt you. Any step brings a whole fog,",
+    "rolling in about a quarter of the time and closing the view to a couple of dozen blocks; the dials only",
+    "make it more often and closer. Leans a little wet."
+  ],
+  "dials": {
+    "often": {"tier": 1, "most": 4},
+    "thickness": {"tier": 1, "most": 4}
+  },
+  "leans": {"humidity": 0.3}
+}
