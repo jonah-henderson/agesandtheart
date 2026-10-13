@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Motes hang in the Age's air that no air should hold (Jonah, 2026-10-12): `density` is how many and `size`",
+    "how big. Each Age draws its own from its seed: whether they rise or hang perfectly still, and whether they",
+    "are pale specks, a faint glow, dark specks or a colour from the wandering sky's palette.",
+    "",
+    "Strange throughout: seen only. Any step brings the whole thing, sparse and small; the dials thicken it."
+  ],
+  "dials": {
+    "density": {"tier": 1, "most": 2},
+    "size": {"tier": 1, "most": 2}
+  }
+}

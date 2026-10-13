@@ -44,8 +44,8 @@ object StrangeSky {
         )
     }
 
-    /** A few of [UNCANNY] in an order of this Age's own. */
-    private fun paletteFor(seed: Long): List<Rgba> = UNCANNY.shuffled(Random(seed xor WANDER_SALT)).take(COLOURS_WANDERED)
+    /** A few of [UNCANNY] in an order of this Age's own — the wander's colours, and a tinted mote's first. */
+    fun paletteFor(seed: Long): List<Rgba> = UNCANNY.shuffled(Random(seed xor WANDER_SALT)).take(COLOURS_WANDERED)
 
     /** Where the cloud layer is brought down to, as [Look.ceiling]'s fraction — null where nothing was bought. */
     private fun cloudsFor(spending: Spending): Float? {

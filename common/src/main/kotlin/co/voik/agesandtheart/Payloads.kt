@@ -1,5 +1,6 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.age.consequence.MotesPayload
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.age.phenomena.DelugePayload
 import co.voik.agesandtheart.age.phenomena.FogPayload
@@ -68,6 +69,7 @@ object Payloads {
         Clientbound(BlizzardPayload.TYPE, BlizzardPayload.STREAM_CODEC),
         Clientbound(DelugePayload.TYPE, DelugePayload.STREAM_CODEC),
         Clientbound(FogPayload.TYPE, FogPayload.STREAM_CODEC),
+        Clientbound(MotesPayload.TYPE, MotesPayload.STREAM_CODEC),
         Clientbound(LearnedWordsPayload.TYPE, LearnedWordsPayload.STREAM_CODEC),
         Clientbound(DeskSyncPayload.TYPE, DeskSyncPayload.STREAM_CODEC),
         Clientbound(DeskNoticePayload.TYPE, DeskNoticePayload.STREAM_CODEC),

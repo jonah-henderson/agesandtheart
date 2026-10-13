@@ -56,6 +56,8 @@ private const val STILL_CREATURES_ROOTED = "rooted"
 private const val STAMPED_SHAPES_STAMPED = "stamped"
 private const val LEAFLESS_TREES_BARE = "bare"
 private const val ABANDONED_VILLAGES_ABANDONED = "abandoned"
+private const val UNCANNY_MOTES_DENSITY = "density"
+private const val UNCANNY_MOTES_SIZE = "size"
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -193,6 +195,12 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
     /** Every village in the Age is vanilla's abandoned one, cobwebs and zombie villagers. Strange. */
     ABANDONED_VILLAGES("abandoned_villages", ABANDONED_VILLAGES_ABANDONED),
+
+    /**
+     * Motes hang in the Age's air that no air should hold: they rise, or they hang perfectly still, in a look
+     * the Age draws for itself. **Two dials**: how many, and how big. Strange.
+     */
+    UNCANNY_MOTES("uncanny_motes", UNCANNY_MOTES_DENSITY, UNCANNY_MOTES_SIZE),
     ;
 
     /** What this manifestation's ladder sells steps of, in the order its file is read. */
@@ -283,6 +291,12 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
         /** How far the cloud layer comes down. */
         const val CLOUDS_LOWNESS = LOW_CLOUDS_LOWNESS
+
+        /** How many uncanny motes hang in the air. */
+        const val MOTES_DENSITY = UNCANNY_MOTES_DENSITY
+
+        /** How big an uncanny mote is. */
+        const val MOTES_SIZE = UNCANNY_MOTES_SIZE
     }
 }
 

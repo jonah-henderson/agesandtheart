@@ -305,6 +305,7 @@ payload agesandtheart:link
 payload agesandtheart:link_ended
 payload agesandtheart:machine_fill
 payload agesandtheart:machine_recipes
+payload agesandtheart:motes
 payload agesandtheart:panel_chunk
 payload agesandtheart:panel_chunks_wanted
 payload agesandtheart:panel_close

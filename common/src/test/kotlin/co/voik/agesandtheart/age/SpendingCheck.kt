@@ -304,4 +304,5 @@ internal val SHIPPED_LADDERS = mapOf(
     Manifestation.STAMPED_SHAPES to Ladder.flat(Manifestation.STAMPED_SHAPES, tier = 1, most = 1),
     Manifestation.LEAFLESS_TREES to Ladder.flat(Manifestation.LEAFLESS_TREES, tier = 1, most = 1),
     Manifestation.ABANDONED_VILLAGES to Ladder.flat(Manifestation.ABANDONED_VILLAGES, tier = 1, most = 1),
+    Manifestation.UNCANNY_MOTES to Ladder.flat(Manifestation.UNCANNY_MOTES, tier = 1, most = 2),
 )
