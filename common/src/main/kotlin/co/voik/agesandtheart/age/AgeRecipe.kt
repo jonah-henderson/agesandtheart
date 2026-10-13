@@ -75,6 +75,11 @@ data class AgeRecipe(
      * costs a player a reward they can write again and never hands one out that was not earned.
      */
     val authored: Boolean = false,
+    /**
+     * Steps of a manifestation set by hand with `/age unstable <name> force`, over whatever the instability
+     * drew — nought turns one off. **Never written by the codec**, so a restart forgets it.
+     */
+    val forced: Map<Manifestation, Int> = emptyMap(),
 ) {
     /** How long this Age has existed, in ticks, against [server]'s overworld clock. Never negative. */
     fun ageAt(server: MinecraftServer): Long =

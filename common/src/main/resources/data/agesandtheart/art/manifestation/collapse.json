@@ -4,7 +4,7 @@
     "Age: fissures open at the world floor, widen, and put whatever falls in back in the overworld.",
     "",
     "A verdict, so failing throughout. Its first step is the collapse and each further one how fast the tear",
-    "grows. `/age decay <name> unstable <n>` is how it is reached for testing."
+    "grows. `/age unstable <name> index <n>` is how it is reached for testing."
   ],
   "dials": {
     "spread": {"tier": 3, "most": 3}

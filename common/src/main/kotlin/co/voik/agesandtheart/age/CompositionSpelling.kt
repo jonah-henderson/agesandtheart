@@ -32,7 +32,7 @@ object CompositionSpelling {
         /**
          * An index set by hand rather than earned by contradiction — `unstable=42`.
          *
-         * **Here because it has to be set when the Age is written, not after.** `/age decay` rewrites a
+         * **Here because it has to be set when the Age is written, not after.** `/age unstable` rewrites a
          * recipe that is already open, and an Age's generator settles what it places when it opens — so
          * anything the consequence registers reach through *generation* is untestable from decay and
          * perfectly testable from here.

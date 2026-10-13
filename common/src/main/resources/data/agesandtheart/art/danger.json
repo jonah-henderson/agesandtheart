@@ -5,7 +5,7 @@
     "Content rather than config, on the same argument art/manifestation/ is: a pack that makes lava cheap",
     "is a pack where nothing has to be committed to, which is a different mod rather than the same one run",
     "differently. Every number here is a first guess and wants a walk -- read them together, because they",
-    "are only meaningful against each other, and `/age danger score <name>` prints the arithmetic.",
+    "are only meaningful against each other, and `/age unstable <name> score` prints the arithmetic.",
     "",
     "Blocks and entities are named by id rather than by tag, because a tag binds on a server and this must",
     "be readable offline -- the same bargain Materials.INVALID_FOR_TERRAIN already makes.",

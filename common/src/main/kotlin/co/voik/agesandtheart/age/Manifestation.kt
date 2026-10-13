@@ -491,6 +491,28 @@ data class Spending(
     fun reach(manifestation: Manifestation): Double =
         manifestation.dials.sumOf { reach(manifestation, it) } / manifestation.dials.size
 
+    /**
+     * This with each of [overrides] set by hand: every dial of the manifestation at that many steps, or as many
+     * as it sells on [ladders], and nought taking it away — whatever was drawn and whatever it excludes.
+     */
+    fun forced(overrides: Map<Manifestation, Int>, ladders: Map<Manifestation, Ladder>): Spending {
+        if (overrides.isEmpty()) return this
+        val laddered = Manifestation.entries.associateWith { manifestation ->
+            (ladders[manifestation] ?: Ladder.ordinaryFor(manifestation)).dials.mapValues { it.value.most }
+        }
+        val forcedSteps = steps.toMutableMap()
+        for ((manifestation, wanted) in overrides) {
+            if (wanted <= 0) {
+                forcedSteps.remove(manifestation)
+                continue
+            }
+            forcedSteps[manifestation] = manifestation.dials.associateWith { dial ->
+                wanted.coerceAtMost(laddered.getValue(manifestation)[dial] ?: wanted)
+            }
+        }
+        return Spending(forcedSteps, laddered)
+    }
+
     override fun toString(): String {
         if (steps.isEmpty()) return "nothing bought"
         return steps.entries.joinToString { (manifestation, dials) ->
@@ -613,9 +635,10 @@ data class Spending(
             val drawnSoFar = alreadyDrawn.of(server)
             if (drawnSoFar.size > MOST_REMEMBERED) drawnSoFar.clear()
             val setting = SpendingSetting.of(server, recipe.composition, recipe.template, recipe.seed)
-            return drawnSoFar.computeIfAbsent(Drawn(recipe.instability.index, recipe.instability.pages, recipe.seed, setting)) {
+            val drawn = drawnSoFar.computeIfAbsent(Drawn(recipe.instability.index, recipe.instability.pages, recipe.seed, setting)) {
                 of(recipe.instability, recipe.seed, Ladder.list(server), setting)
             }
+            return drawn.forced(recipe.forced, Ladder.list(server))
         }
 
         /** What a draw depends on, and so what one is remembered by. */

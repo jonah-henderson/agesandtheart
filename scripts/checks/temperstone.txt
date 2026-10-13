@@ -18,7 +18,7 @@
 # Hot enough that every climate sits at or above the desert (0.55), standing in lava. Composed rather
 # than written because no word reaches a numeric temperature span — the gate sentence is still open.
 age compose baked 11 landmass=gentle sea=lava rock=solid climate.temperature=0.6..0.9
-age danger score baked
+age unstable baked score
 
 # --- its two halves alone, which the offline gate check says must grow nothing ---------------------
 age compose dryheat 11 landmass=gentle sea=water rock=solid climate.temperature=0.6..0.9

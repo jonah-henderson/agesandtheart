@@ -69,7 +69,7 @@ object Features {
      * The claim naming [feature] in this composition, or null where nothing asks for it.
      *
      * Read off the claim rather than the placed feature registry, so it answers the same before an Age is
-     * opened as after — which is what lets the desk survey and `/age danger score` ask it of a recipe that
+     * opened as after — which is what lets the desk survey and `/age unstable <name> score` ask it of a recipe that
      * has never been built. The amount rides on the claim, so a caller wanting one takes it from here
      * rather than asking a second time.
      *

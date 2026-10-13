@@ -306,7 +306,7 @@ class AgeChunkGenerator(
      * nothing).
      *
      * A generator is built once when its Age is opened and lives as long as the dimension does, so anything
-     * captured in the constructor is what was true at *open*. `/age decay` rewrites the recipe — which every
+     * captured in the constructor is what was true at *open*. `/age unstable` rewrites the recipe — which every
      * report reads, and which is right on the next open — but decoration kept reading the stale copy, so an
      * Age would say it had stood a month and generate as though it were new.
      *

@@ -21,6 +21,15 @@ import co.voik.agesandtheart.age.reward.EarlyGameRareMaterials
 import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.age.reward.DangerTable
 import co.voik.agesandtheart.generation.AgeChunkGenerator
+import co.voik.agesandtheart.generation.Skies
+import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.Rung
+import co.voik.agesandtheart.age.phenomena.Fog
+import co.voik.agesandtheart.age.phenomena.FogDials
+import co.voik.agesandtheart.age.phenomena.Happenings
+import net.minecraft.commands.SharedSuggestionProvider
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
@@ -34,23 +43,40 @@ import net.minecraft.server.level.ServerLevel
 
 internal object ConsequenceInstruments {
 
-    /** What an Age's instability has bought it, and what it will have bought by a given day. */
+    /**
+     * `/age unstable` — everything about how an Age is coming apart, in one place: what its instability drew and
+     * what shows now, forcing any manifestation by hand, its index and its age, and what its ground and its
+     * recipe are worth.
+     */
     fun addTo(age: LiteralArgumentBuilder<CommandSourceStack>) {
-        age.then(decaySubcommand())
-            .then(dangerSubcommand())
-            .then(woundsSubcommand())
+        age.then(unstableSubcommand())
     }
 
-    /** `/age decay <name> age <days>` — the literal, and how far back it may reach. */
-    private const val AGED_LITERAL = "age"
-
-    /** `/age danger here` — a literal rather than a bare executable, so the tree stays uniform. */
+    /** `/age unstable here …` — the Age being stood in, and the ground underfoot. */
     private const val HERE_LITERAL = "here"
 
-    /** `/age danger score <name>` — the recipe's worth, as against [HERE_LITERAL]'s worth of the ground. */
+    /** `/age unstable <name> age <days>` — the literal, and how far back it may reach. */
+    private const val AGED_LITERAL = "age"
+
+    /** `/age unstable <name> index <n>` — the index, set by hand rather than earned. */
+    private const val INDEX_LITERAL = "index"
+
+    /** `/age unstable <name> score` — the recipe's worth, as against `here danger`'s worth of the ground. */
     private const val SCORE_LITERAL = "score"
 
-    /** How far `/age wounds here` looks — a good deal further than a wound corrupts, so it can say "none". */
+    /** `/age unstable here danger` — what the ground underfoot is worth in vanilla's terms. */
+    private const val DANGER_LITERAL = "danger"
+
+    /** `/age unstable here wounds` — wanted against held, in this chunk. */
+    private const val WOUNDS_LITERAL = "wounds"
+
+    /** `/age unstable <name> force <manifestation> <steps>` — a manifestation set by hand, until a restart. */
+    private const val FORCE_LITERAL = "force"
+
+    /** `/age unstable <name> clear` — every forced manifestation back to what was drawn. */
+    private const val CLEAR_LITERAL = "clear"
+
+    /** How far `/age unstable here wounds` looks — a good deal further than a wound corrupts, so it can say "none". */
     private const val LOOKS_FOR_WOUNDS_WITHIN = 128.0
 
     /** Vanilla's chance that a mob arrives with anything on at all, before the multiplier scales it. */
@@ -60,104 +86,199 @@ internal object ConsequenceInstruments {
 
     private const val MOST_DAYS = 100_000
 
-    /** `/age decay <name> unstable <n>` — the index, set by hand rather than earned. */
-    private const val UNSTABLE_LITERAL = "unstable"
-
     private const val INDEX_ARGUMENT = "index"
 
     private const val MOST_INSTABILITY = 10_000
 
-    /**
-     * `/age decay <name>` — how far an Age has come apart, and `/age decay <name> age <days>` to make it
-     * older than it is.
-     *
-     * **Without the second form none of this is observable.** Worsening and collapse are read against the
-     * Age's own age (design §5.4), so the mildest of them takes four of its days to open one more wound per
-     * chunk and the gentlest collapse a fortnight to be worth looking at. Backdating rewrites the one field
-     * the clock is measured from, which is the whole of what "wait a month" means to everything downstream
-     * — no separate debug path, and nothing that could disagree with the real one.
-     */
-    private fun decaySubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("decay").then(
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                .executes { context -> runDecay(context, Report.prose(context.source)) }
-                .then(
-                    Commands.literal(AGED_LITERAL).then(
-                        Commands.argument(DAYS_ARGUMENT, IntegerArgumentType.integer(0, MOST_DAYS))
-                            .executes { context ->
-                                runBackdate(
-                                    context,
-                                    IntegerArgumentType.getInteger(context, DAYS_ARGUMENT),
-                                    Report.prose(context.source),
-                                )
-                            },
-                    ),
-                )
-                .then(
-                    Commands.literal(UNSTABLE_LITERAL).then(
-                        Commands.argument(INDEX_ARGUMENT, IntegerArgumentType.integer(0, MOST_INSTABILITY))
-                            .executes { context ->
-                                runForceInstability(
-                                    context,
-                                    IntegerArgumentType.getInteger(context, INDEX_ARGUMENT),
-                                    Report.prose(context.source),
-                                )
-                            },
-                    ),
-                ),
-        )
+    private const val MANIFESTATION_ARGUMENT = "manifestation"
 
-    /**
-     * **Two different questions that are both "how dangerous is this", kept in one branch** because a
-     * reader looking for either would look here.
-     *
-     * `/age danger here` — what the ground you are standing on is worth, in vanilla's own terms.
-     *
-     * **Written because the register is otherwise unobservable** (Jonah, 2026-08-09, walked): a wound arms
-     * what comes out of it by ageing the ground (§5.1), which is `DifficultyInstance` doing the work, and
-     * `getSpecialMultiplier` is a probability rather than a visible state. A walk that sees no armoured
-     * skeleton has learned nothing — the chance is a few per cent a mob — so this says the number instead.
-     *
-     * **F3 will not show this.** The debug screen computes local difficulty from the *client's* level, and
-     * the seam a wound raises is on `ServerLevel.getCurrentDifficultyAt`, so the two legitimately disagree
-     * and the client's is the one that is wrong.
-     *
-     * `/age danger score <name>` — what a written *recipe* is worth to §7.7's rewards, scored before the
-     * Age exists rather than measured in it. That is what the geologic survey will read at the desk, and
-     * what decides whether anything pays out at all.
-     *
-     * **Numbers, because this is an operator's tool.** §3.2 forbids showing a number to the *player*, and
-     * the survey obeys that by saying "a trace" against "a great deal". Calibrating [DangerTable] means
-     * seeing the arithmetic, so here it is spelled out.
-     */
-    private fun dangerSubcommand(): LiteralArgumentBuilder<CommandSourceStack> {
-        fun scoreBranch(reportFor: ReportFor) = Commands.literal(SCORE_LITERAL).then(
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                .executes { context -> runAgeDanger(context, reportFor(context)) },
-        )
-        return Commands.literal("danger")
+    private const val STEPS_ARGUMENT = "steps"
+
+    /** More steps than any ladder sells; a forced dial is held to what its own ladder does. */
+    private const val MOST_STEPS = 64
+
+    private fun unstableSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("unstable")
             .then(
                 Commands.literal(HERE_LITERAL)
-                    .executes { context -> runDanger(context, Report.prose(context.source)) },
+                    .executes { context -> runUnstableHere(context, Report.prose(context.source)) }
+                    .then(
+                        Commands.literal(DANGER_LITERAL)
+                            .executes { context -> runDanger(context, Report.prose(context.source)) },
+                    )
+                    .then(
+                        Commands.literal(WOUNDS_LITERAL)
+                            .executes { context -> runWounds(context, Report.prose(context.source)) },
+                    ),
             )
-            .then(scoreBranch { context -> Report.prose(context.source) })
+            .then(namedBranch { context -> Report.prose(context.source) })
             .then(
                 Commands.literal(Report.STRUCTURED_LITERAL)
-                    .then(scoreBranch { context -> Report.structured(context.source) }),
+                    .then(namedBranch { context -> Report.structured(context.source) }),
             )
+
+    /**
+     * Everything asked of a named Age. Built twice, once per way of answering — see [reporting].
+     *
+     * `age <days>` exists because **without it none of the decay is observable**: worsening and collapse are
+     * read against the Age's own age (design §5.4), so the mildest takes four of its days to open one more
+     * wound per chunk. Backdating rewrites the one field the clock is measured from — no separate debug path,
+     * and nothing that could disagree with the real one.
+     */
+    private fun namedBranch(reportFor: ReportFor) =
+        Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+            .executes { context -> runUnstableNamed(context, reportFor(context)) }
+            .then(
+                Commands.literal(AGED_LITERAL).then(
+                    Commands.argument(DAYS_ARGUMENT, IntegerArgumentType.integer(0, MOST_DAYS))
+                        .executes { context ->
+                            runBackdate(context, IntegerArgumentType.getInteger(context, DAYS_ARGUMENT), reportFor(context))
+                        },
+                ),
+            )
+            .then(
+                Commands.literal(INDEX_LITERAL).then(
+                    Commands.argument(INDEX_ARGUMENT, IntegerArgumentType.integer(0, MOST_INSTABILITY))
+                        .executes { context ->
+                            runForceInstability(
+                                context,
+                                IntegerArgumentType.getInteger(context, INDEX_ARGUMENT),
+                                reportFor(context),
+                            )
+                        },
+                ),
+            )
+            .then(Commands.literal(SCORE_LITERAL).executes { context -> runAgeDanger(context, reportFor(context)) })
+            .then(
+                Commands.literal(FORCE_LITERAL).then(
+                    Commands.argument(MANIFESTATION_ARGUMENT, StringArgumentType.word())
+                        .suggests { _, builder ->
+                            SharedSuggestionProvider.suggest(Manifestation.entries.map { it.key }, builder)
+                        }
+                        .then(
+                            Commands.argument(STEPS_ARGUMENT, IntegerArgumentType.integer(0, MOST_STEPS))
+                                .executes { context -> runForce(context, reportFor(context)) },
+                        ),
+                ),
+            )
+            .then(Commands.literal(CLEAR_LITERAL).executes { context -> runClear(context, reportFor(context)) })
+
+    private fun runUnstableHere(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val level = context.source.level
+        val recipe = Ages.recipeOf(level) ?: return report.fail("Not standing in an Age — /age tp <name> first")
+        return reportUnstable(context.source, level.dimension().identifier(), recipe, report)
+    }
+
+    private fun runUnstableNamed(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val (id, recipe) = namedAge(context.source, name, report) ?: return FAILURE
+        return reportUnstable(context.source, id, recipe, report)
     }
 
     /**
-     * `/age wounds here` — **what this ground should hold against what it does.**
-     *
-     * The one question a walk cannot answer by looking: a landscape with no wounds in it is either an Age
-     * that never bought any, ground that has not caught up, or placement putting them somewhere nobody
-     * goes — and those look identical from a hilltop. Wanted against held tells the three apart in a line.
+     * How far an Age has come apart: what its instability drew, what is forced over that, what each
+     * manifestation is doing now, and how holed it is by its age.
      */
-    private fun woundsSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("wounds").then(
-            Commands.literal(HERE_LITERAL).executes { context -> runWounds(context, Report.prose(context.source)) },
-        )
+    private fun reportUnstable(source: CommandSourceStack, id: Identifier, recipe: AgeRecipe, report: Report): Int {
+        val server = source.server
+        val drawn = Spending.of(server, recipe.copy(forced = emptyMap()))
+        val spending = Spending.of(server, recipe)
+        val setting = SpendingSetting.of(server, recipe.composition, recipe.template, recipe.seed)
+        val days = recipe.ageAt(server) / Tearing.TICKS_PER_DAY
+        val written = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
+        val perDay = Tearing.woundsPerDayAt(spending.bought(Manifestation.WORSENING_WOUNDS))
+        val density = Tearing.densityAt(written, perDay, days)
+        val tears = Collapse.tearsPerCellAt(spending.bought(Manifestation.COLLAPSE))
+
+        report.say { "${id.path}: instability ${recipe.instability.index}, $days days old" }
+        report.fact("days", days) { "  days: $days" }
+        report.fact("drawn", drawn.toString()) { "  drew: $drawn" }
+        report.fact("forced", recipe.forced.mapKeys { it.key.key }) {
+            if (recipe.forced.isEmpty()) "  nothing forced"
+            else "  forced: " + recipe.forced.entries.joinToString { "${it.key.key}×${it.value}" } + " (until a restart)"
+        }
+        report.fact("has", setting.has.map { it.serializedName }) {
+            "  has ${setting.has.joinToString { it.serializedName }.ifEmpty { "nothing" }} to show on"
+        }
+        val level = server.getLevel(ResourceKey.create(Registries.DIMENSION, id))
+        val showing = Manifestation.entries.filter { spending.bought(it) > 0 }
+        if (showing.isEmpty()) report.say { "  shows nothing" }
+        for (manifestation in showing) {
+            val now = if (level == null) "not open, so nothing is happening" else nowIn(level, recipe, spending, manifestation)
+            report.say { "  ${manifestation.key} ${stepsOf(spending, manifestation)}: $now" }
+        }
+        report.fact("woundsWritten", written) { "  wounds the book tore: %.3f per chunk".format(written) }
+        report.fact("woundsPerDay", perDay) { "  worsening: %.3f more per chunk each day".format(perDay) }
+        report.fact("woundsNow", density) { "  wounds now: %.3f per chunk".format(density) }
+        report.fact("collapseTears", tears) {
+            if (tears <= Collapse.NONE) "  no tears in the floor" else "  $tears tear(s) to every 96 blocks, widening"
+        }
+        // Where to walk. One tear to a 512-block cell is not something anybody finds by looking.
+        if (tears > Collapse.NONE) {
+            val opened = Ages.open(server, id)
+            val here = BlockPos.containing(source.position)
+            val (originX, originZ) = Collapse.nearestOriginTo(opened.seed, here.x, here.z, tears)
+            report.say { "  nearest tear opened at $originX, $originZ" }
+        }
+        report.finish()
+        return SUCCESS
+    }
+
+    private fun stepsOf(spending: Spending, manifestation: Manifestation): String =
+        if (manifestation.dials.size == 1) "×${spending.bought(manifestation)}"
+        else manifestation.dials.joinToString(prefix = "(", postfix = ")") { "$it×${spending.bought(manifestation, it)}" }
+
+    /** What [manifestation] is doing in [level] at this moment, in a few words. */
+    private fun nowIn(level: ServerLevel, recipe: AgeRecipe, spending: Spending, manifestation: Manifestation): String {
+        val raining = if (level.isRaining) "raining now" else "not raining now"
+        return when (manifestation) {
+            Manifestation.TORN_SEAMS, Manifestation.STAMPED_SHAPES, Manifestation.LEAFLESS_TREES,
+            Manifestation.ABANDONED_VILLAGES -> "in ground generated since it was bought"
+            Manifestation.WOUNDS, Manifestation.WORSENING_WOUNDS, Manifestation.COLLAPSE -> "see the wound lines below"
+            Manifestation.SKY_DRIFT, Manifestation.DAY_STARS, Manifestation.LOW_CLOUDS, Manifestation.UNCANNY_MOTES,
+            Manifestation.MONOCHROME, Manifestation.SKY_TEARS -> "always, for anyone in it"
+            Manifestation.STILL_CREATURES -> "on every creature as it loads"
+            Manifestation.SLOW_RAIN -> "whenever it rains — $raining"
+            Manifestation.BLIZZARD, Manifestation.DELUGE -> "with the weather — $raining"
+            Manifestation.TEMPEST -> if (level.isThundering) "thundering now" else "not thundering now"
+            Manifestation.INFERNO -> if (level.isBrightOutside) "under open light — burning now" else "dark now, so not burning"
+            Manifestation.SANDFALL, Manifestation.METEORS, Manifestation.TECTONICS -> "comes and goes on its own clock"
+            Manifestation.FOG -> {
+                val composition = recipe.composition
+                val written = if (composition == null) emptyList() else Happenings.claimsIn(composition)
+                val density = Happenings.befalling(written, spending)[Phenomenon.FOG] ?: Rung.ORDINARY
+                val lying = Fog.lyingAt(level, density, FogDials.of(spending))
+                if (lying <= 0.0) "no bank lying now" else "a bank %.0f%% in now".format(lying * PER_CENT)
+            }
+        }
+    }
+
+    /** Set one manifestation by hand, over the draw, until the server restarts. */
+    private fun runForce(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val key = StringArgumentType.getString(context, MANIFESTATION_ARGUMENT)
+        val steps = IntegerArgumentType.getInteger(context, STEPS_ARGUMENT)
+        val manifestation = Manifestation.entries.firstOrNull { it.key == key }
+            ?: return report.fail("No manifestation '$key' — one of ${Manifestation.entries.joinToString { it.key }}")
+        val (id, recipe) = namedAge(source, name, report) ?: return FAILURE
+        val forced = recipe.copy(forced = recipe.forced + (manifestation to steps))
+        retell(source.server, id, forced)
+        report.say { "Age '$name' now shows ${manifestation.key} at $steps step(s) whatever it drew, until a restart." }
+        report.say { "  it buys ${Spending.of(source.server, forced)}" }
+        report.say { "  what shapes the ground shows only in ground generated from now; a creature takes it as it loads." }
+        return SUCCESS
+    }
+
+    private fun runClear(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val (id, recipe) = namedAge(source, name, report) ?: return FAILURE
+        val cleared = recipe.copy(forced = emptyMap())
+        retell(source.server, id, cleared)
+        report.say { "Age '$name' shows what it drew again: ${Spending.of(source.server, cleared)}" }
+        return SUCCESS
+    }
 
     private fun runWounds(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val source = context.source
@@ -305,36 +426,6 @@ internal object ConsequenceInstruments {
         return SUCCESS
     }
 
-    private fun runDecay(context: CommandContext<CommandSourceStack>, report: Report): Int {
-        val source = context.source
-        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val (id, recipe) = namedAge(source, name, report) ?: return FAILURE
-        val spending = Spending.of(source.server, recipe)
-        val days = recipe.ageAt(source.server) / Tearing.TICKS_PER_DAY
-        val written = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
-        val perDay = Tearing.woundsPerDayAt(spending.bought(Manifestation.WORSENING_WOUNDS))
-        val density = Tearing.densityAt(written, perDay, days)
-        val tears = Collapse.tearsPerCellAt(spending.bought(Manifestation.COLLAPSE))
-
-        report.say { "Age '$name' has stood $days days (instability ${recipe.instability.index}):" }
-        report.fact("days", days) { "  days: $days" }
-        report.fact("spending", spending.toString()) { "  bought: $spending" }
-        report.fact("woundsWritten", written) { "  wounds the book tore: %.3f per chunk".format(written) }
-        report.fact("woundsPerDay", perDay) { "  worsening: %.3f more per chunk each day".format(perDay) }
-        report.fact("woundsNow", density) { "  wounds now: %.3f per chunk".format(density) }
-        report.fact("collapseTears", tears) {
-            if (tears <= Collapse.NONE) "  no tears in the floor" else "  $tears tear(s) to every 96 blocks, widening"
-        }
-        // Where to walk. One tear to a 512-block cell is not something anybody finds by looking.
-        if (tears > Collapse.NONE) {
-            val level = Ages.open(source.server, id)
-            val here = BlockPos.containing(source.position)
-            val (originX, originZ) = Collapse.nearestOriginTo(level.seed, here.x, here.z, tears)
-            report.say { "  nearest tear opened at $originX, $originZ — /age tp $name then go there" }
-        }
-        return SUCCESS
-    }
-
     /**
      * Make an Age older than it is, by moving the tick it was written on backwards.
      *
@@ -349,26 +440,27 @@ internal object ConsequenceInstruments {
         val (id, recipe) = namedAge(source, name, report) ?: return FAILURE
         val now = source.server.overworld().gameTime
         val aged = recipe.copy(writtenAt = now - days * Tearing.TICKS_PER_DAY)
-        AgeSavedData.get(source.server).add(id, aged)
         // **And the live generator, or nothing changes until the Age is reopened** (walked 2026-08-09).
         // A generator is built once at open and keeps its own copy of the clock, so rewriting the recipe
         // alone left an Age reporting a month and generating as though it were new.
-        retellTheGenerator(source.server, id, aged)
+        retell(source.server, id, aged)
         report.say { "Age '$name' now reads as $days days old." }
         report.say { "  ground it has not generated comes out at the new age; ground that exists catches up as it reloads, if the Age worsens." }
         return SUCCESS
     }
 
     /**
-     * Tell a running Age that its recipe changed, so generation stops answering from the one it opened with.
+     * File [recipe] as [id]'s and tell the running Age, so generation and its look stop answering from the
+     * recipe it opened with.
      *
      * Without this a rewritten recipe reaches every *report* and no *chunk*, which is exactly the shape of
      * bug that had collapse announcing a radius of 240 and generating a solid world (walked 2026-08-09).
      */
-    private fun retellTheGenerator(server: MinecraftServer, id: Identifier, recipe: AgeRecipe) {
+    private fun retell(server: MinecraftServer, id: Identifier, recipe: AgeRecipe) {
+        AgeSavedData.get(server).add(id, recipe)
         val level = Ages.open(server, id)
-        val generator = level.chunkSource.generator as? AgeChunkGenerator ?: return
-        generator.rewriteConsequence(Consequence.of(server, recipe))
+        (level.chunkSource.generator as? AgeChunkGenerator)?.rewriteConsequence(Consequence.of(server, recipe))
+        Skies.describe(level)
     }
 
     /**
@@ -385,8 +477,7 @@ internal object ConsequenceInstruments {
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
         val (id, recipe) = namedAge(source, name, report) ?: return FAILURE
         val forced = recipe.copy(instability = Instability.forced(index))
-        AgeSavedData.get(source.server).add(id, forced)
-        retellTheGenerator(source.server, id, forced)
+        retell(source.server, id, forced)
         val spending = Spending.of(source.server, forced)
         report.say { "Age '$name' is now instability $index, which buys $spending." }
         val setting = SpendingSetting.of(source.server, forced.composition, forced.template, forced.seed)
