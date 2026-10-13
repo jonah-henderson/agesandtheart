@@ -33,6 +33,19 @@ class ForcedManifestationOnServerCheck : FunSpec({
         check("shows nothing" in cleared && "nothing forced" in cleared) { "clearing left:\n$cleared" }
     }
 
+    test("a pull set by hand shows either way, until it is cleared") {
+        server.run("age compose pullcheck 5 landmass=gentle sea=water")
+        server.run("age instability pullcheck gravity 1.75")
+        val heavy = server.run("age instability pullcheck")
+        check("gravity set to 175%" in heavy) { "a heavy pull was not reported:\n$heavy" }
+        server.run("age instability pullcheck gravity 0.5")
+        val light = server.run("age instability pullcheck")
+        check("gravity set to 50%" in light) { "a light pull was not reported:\n$light" }
+        server.run("age instability pullcheck clear")
+        val cleared = server.run("age instability pullcheck")
+        check("gravity set to" !in cleared) { "clearing left a pull:\n$cleared" }
+    }
+
     test("without a name it asks about the Age stood in, and says so when there is none") {
         val unnamed = server.run("age instability")
         check("Not standing in an Age" in unnamed) { "the console is in no Age, and was answered:\n$unnamed" }

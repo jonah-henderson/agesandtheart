@@ -80,6 +80,11 @@ data class AgeRecipe(
      * drew — nought turns one off. **Never written by the codec**, so a restart forgets it.
      */
     val forced: Map<Manifestation, Int> = emptyMap(),
+    /**
+     * How hard the Age pulls, as a share of vanilla's gravity, set by hand with `/age instability gravity` over
+     * whatever its instability bought. **Never written by the codec**, like [forced].
+     */
+    val forcedPull: Double? = null,
 ) {
     /** How long this Age has existed, in ticks, against [server]'s overworld clock. Never negative. */
     fun ageAt(server: MinecraftServer): Long =

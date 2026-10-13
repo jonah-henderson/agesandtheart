@@ -32,6 +32,7 @@ import co.voik.agesandtheart.age.phenomena.Happenings
 import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
+import com.mojang.brigadier.arguments.DoubleArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.ArgumentBuilder
@@ -75,7 +76,16 @@ internal object ConsequenceInstruments {
     /** `… force <manifestation> <steps>` — a manifestation set by hand, until a restart. */
     private const val FORCE_LITERAL = "force"
 
-    /** `… clear` — every forced manifestation back to what was drawn. */
+    /** `… gravity <pull>` — the Age's pull set outright, as a share of vanilla's, until a restart. */
+    private const val GRAVITY_LITERAL = "gravity"
+
+    private const val PULL_ARGUMENT = "pull"
+
+    /** A tenth of vanilla's pull to four times it — past what any step buys either way. */
+    private const val LIGHTEST_PULL = 0.1
+    private const val HEAVIEST_PULL = 4.0
+
+    /** `… clear` — every forced manifestation and pull back to what was drawn. */
     private const val CLEAR_LITERAL = "clear"
 
     /** How far `… wounds` looks — a good deal further than a wound corrupts, so it can say "none". */
@@ -162,6 +172,12 @@ internal object ConsequenceInstruments {
             )
             .then(Commands.literal(CLEAR_LITERAL).executes(answering(::runClear)))
             .then(
+                Commands.literal(GRAVITY_LITERAL).then(
+                    Commands.argument(PULL_ARGUMENT, DoubleArgumentType.doubleArg(LIGHTEST_PULL, HEAVIEST_PULL))
+                        .executes(answering(::runGravity)),
+                ),
+            )
+            .then(
                 Commands.literal(INDEX_LITERAL).then(
                     Commands.argument(INDEX_ARGUMENT, IntegerArgumentType.integer(0, MOST_INSTABILITY))
                         .executes(answering(::runSetIndex)),
@@ -179,7 +195,7 @@ internal object ConsequenceInstruments {
     private fun runReport(context: CommandContext<CommandSourceStack>, age: NamedAge, report: Report): Int {
         val (id, recipe) = age
         val server = context.source.server
-        val drawn = Spending.of(server, recipe.copy(forced = emptyMap()))
+        val drawn = Spending.of(server, recipe.copy(forced = emptyMap(), forcedPull = null))
         val spending = Spending.of(server, recipe)
         val setting = SpendingSetting.of(server, recipe.composition, recipe.template, recipe.seed)
         val days = recipe.ageAt(server) / Tearing.TICKS_PER_DAY
@@ -190,6 +206,9 @@ internal object ConsequenceInstruments {
         report.fact("forced", recipe.forced.mapKeys { it.key.key }) {
             if (recipe.forced.isEmpty()) "  nothing forced"
             else "  forced: " + recipe.forced.entries.joinToString { "${it.key.key}×${it.value}" } + " (until a restart)"
+        }
+        recipe.forcedPull?.let { pull ->
+            report.fact("forcedPull", pull) { "  gravity set to %.0f%% of vanilla's (until a restart)".format(pull * PER_CENT) }
         }
         report.fact("has", setting.has.map { it.serializedName }) {
             "  has ${setting.has.joinToString { it.serializedName }.ifEmpty { "nothing" }} to show on"
@@ -221,7 +240,7 @@ internal object ConsequenceInstruments {
             Manifestation.MONOCHROME, Manifestation.SKY_TEARS -> "always, for anyone in it"
             Manifestation.STILL_CREATURES -> "on every creature as it loads"
             Manifestation.STRANGE_GRAVITY ->
-                "everything falls at %.0f%% of vanilla's pull".format(StrangeGravity.factorFor(spending, recipe.seed) * PER_CENT)
+                "everything falls at %.0f%% of vanilla's pull".format(StrangeGravity.pullOf(recipe, spending) * PER_CENT)
             Manifestation.SLOW_RAIN -> "whenever it rains — $raining"
             Manifestation.BLIZZARD, Manifestation.DELUGE -> "with the weather — $raining"
             Manifestation.TEMPEST -> if (level.isThundering) "thundering now" else "not thundering now"
@@ -265,9 +284,22 @@ internal object ConsequenceInstruments {
         return SUCCESS
     }
 
+    /** Set the Age's pull outright, whatever its instability bought, until the server restarts. */
+    private fun runGravity(context: CommandContext<CommandSourceStack>, age: NamedAge, report: Report): Int {
+        val (id, recipe) = age
+        val pull = DoubleArgumentType.getDouble(context, PULL_ARGUMENT)
+        retell(context.source.server, id, recipe.copy(forcedPull = pull))
+        report.fact("pull", pull) {
+            "${id.path} now pulls at %.0f%% of vanilla's, until a restart or clear".format(pull * PER_CENT)
+        }
+        sayWhenNotStoodIn(context, id, report)
+        report.finish()
+        return SUCCESS
+    }
+
     private fun runClear(context: CommandContext<CommandSourceStack>, age: NamedAge, report: Report): Int {
         val (id, recipe) = age
-        val cleared = recipe.copy(forced = emptyMap())
+        val cleared = recipe.copy(forced = emptyMap(), forcedPull = null)
         retell(context.source.server, id, cleared)
         report.fact("drawn", Spending.of(context.source.server, cleared).toString()) {
             "${id.path} shows what it drew again: ${Spending.of(context.source.server, cleared)}"

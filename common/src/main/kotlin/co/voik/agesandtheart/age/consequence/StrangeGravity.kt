@@ -42,6 +42,9 @@ object StrangeGravity {
         return if (lighter) ORDINARY / (ORDINARY + LIGHTER_BY_STEPS[step]) else ORDINARY + HEAVIER_BY_STEPS[step]
     }
 
+    /** How hard the Age of [recipe] that bought [spending] pulls — its pull set by hand, where one is. */
+    fun pullOf(recipe: AgeRecipe, spending: Spending): Double = recipe.forcedPull ?: factorFor(spending, recipe.seed)
+
     /** The share of vanilla's gravity [level] pulls with, on whichever side it is — vanilla's own outside an Age. */
     @JvmStatic
     fun of(level: Level): Double {
@@ -52,7 +55,7 @@ object StrangeGravity {
 
     /** Settles [level]'s pull from what it bought, and tells the clients in it on the motes' beat. */
     fun keep(level: ServerLevel, recipe: AgeRecipe, spending: Spending) {
-        val factor = factorFor(spending, recipe.seed)
+        val factor = pullOf(recipe, spending)
         if (factor == ORDINARY) onServer.remove(level.dimension()) else onServer[level.dimension()] = factor
         if (level.server.tickCount % TELLING_THE_CLIENT != 0) return
         val telling = GravityPayload(level.dimension().identifier(), factor)
