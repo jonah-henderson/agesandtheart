@@ -312,6 +312,7 @@ payload agesandtheart:panel_close
 payload agesandtheart:panel_level
 payload agesandtheart:panel_open
 payload agesandtheart:server_build
+payload agesandtheart:tears
 payload agesandtheart:tuner_proposal
 point_of_interest_type agesandtheart:scarab_nest
 point_of_interest_type agesandtheart:scarab_pillar

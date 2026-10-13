@@ -65,6 +65,7 @@ object ClientSetup {
         KnownWords.forgetAll()
         Surf.forget()
         StrangeMotes.forget()
+        TornSky.forget()
         DeskModel.forget()
         Wounds.forget()
         TintedLights.forget()

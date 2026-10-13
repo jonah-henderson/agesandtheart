@@ -327,5 +327,5 @@ internal val SHIPPED_LADDERS = mapOf(
         leans = mapOf("humidity" to 0.3),
         needs = setOf(Showing.RAIN),
     ),
-    Manifestation.SKY_TEARS to Ladder.flat(Manifestation.SKY_TEARS, tier = 1, most = 2),
+    Manifestation.SKY_TEARS to Ladder.flat(Manifestation.SKY_TEARS, tier = 1, most = 3),
 )

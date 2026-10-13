@@ -3,6 +3,7 @@ package co.voik.agesandtheart
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.consequence.Hostility
+import co.voik.agesandtheart.age.consequence.TornSky
 import co.voik.agesandtheart.age.consequence.UncannyMotes
 import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.phenomena.Deluge
@@ -55,6 +56,8 @@ object AgeTick {
             Happenings.befallAll(level, composition, happening, spending)
             // Not a phenomenon: motes no air should hold, which the clients draw — see [UncannyMotes].
             UncannyMotes.tellTheClients(level, recipe, spending)
+            // Nor this: tears in the sky, which the clients lay out and draw — see [TornSky].
+            TornSky.tellTheClients(level, recipe, spending)
             // Not a phenomenon either: the sea following whichever moons pull it — see [Tide].
             Tide.flow(level, Tide.pullsIn(composition, recipe.seed))
             // Not a phenomenon — a wound is what the Age could not hold rather than something it does — but

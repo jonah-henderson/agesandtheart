@@ -8,15 +8,13 @@ import co.voik.ephemeris.sky.LevelLook
 import co.voik.ephemeris.sky.Look
 import co.voik.ephemeris.sky.RainLook
 import co.voik.ephemeris.sky.SkySpec
-import co.voik.ephemeris.sky.SkyTears
 import co.voik.ephemeris.sky.SkyWander
 import net.minecraft.resources.Identifier
-import kotlin.math.roundToInt
 import kotlin.random.Random
 
 /**
  * What the strange tier does to an Age's sky: it wanders through wrong colours, keeps its stars by day, brings
- * its clouds down to the ground, tears it, drains the whole Age of colour, or slows its rain. Seen only, and settled when the Age opens, since none of it changes
+ * its clouds down to the ground, drains the whole Age of colour, or slows its rain. Seen only, and settled when the Age opens, since none of it changes
  * unless the book does.
  */
 object StrangeSky {
@@ -41,9 +39,6 @@ object StrangeSky {
         )
     }
 
-    /** [sky] as instability left it: its stars kept through the day, and torn, as far as each was bought. */
-    fun skyOver(sky: SkySpec, spending: Spending, seed: Long): SkySpec = tornOver(starsOn(sky, spending), spending, seed)
-
     /** [sky] with its stars kept through the day as far as was bought. */
     fun starsOn(sky: SkySpec, spending: Spending): SkySpec {
         val byDay = spending.reach(Manifestation.DAY_STARS, Manifestation.STARS_BY_DAY).toFloat()
@@ -51,13 +46,7 @@ object StrangeSky {
         return sky.copy(stars = sky.stars.copy(byDay = byDay))
     }
 
-    /** [sky] torn by as many tears as were bought: a few for the first step, twice that bought in full. */
-    fun tornOver(sky: SkySpec, spending: Spending, seed: Long): SkySpec {
-        val many = spending.reach(Manifestation.SKY_TEARS, Manifestation.TEARS_MANY)
-        if (many <= NONE) return sky
-        val count = (TEARS_BOUGHT_IN_FULL * many).roundToInt().coerceAtLeast(1)
-        return sky.copy(tears = SkyTears(count = count, seed = seed xor TEARS_SALT))
-    }
+
 
     /**
      * A step of either dial brings the whole wander; [Manifestation.DRIFT_STRENGTH] pushes it further from the
@@ -121,10 +110,6 @@ object StrangeSky {
     private const val PACE_LOST_IN_FULL = 0.4
     private const val FIRST_PITCH = 0.95
     private const val PITCH_LOST_IN_FULL = 0.3
-
-    /** How many tears hang in a sky that bought every step of them. */
-    private const val TEARS_BOUGHT_IN_FULL = 6.0
-    private const val TEARS_SALT = 0x3C71_9A0E_55D2_B86FL
 
     private const val NONE = 0.0
     private const val WANDER_SALT = 0x5A7E_D21F_7C4B_93E1L

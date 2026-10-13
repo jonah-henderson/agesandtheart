@@ -1,10 +1,11 @@
 {
   "_comment": [
-    "Tears in the sky (Jonah, 2026-10-12): thin jagged rifts of light, a white core in a violet glow, hanging",
-    "still and high above the land, day and night. Three at one step, six at two. Ephemeris's sky tears, drawn",
-    "over whatever the sky is. Strange."
+    "Tears in the sky (Jonah, 2026-10-12): thin jagged rifts high above the land, ten for one step, then twenty-five,",
+    "then fifty, each shimmering and now and then sealing for a minute or two. Every tear in an Age alike, in one of",
+    "three styles drawn from its seed: glowing, dark, or the End's starfield. The mod's own geometry on Ephemeris's",
+    "sky. Strange."
   ],
   "dials": {
-    "many": {"tier": 1, "most": 2}
+    "many": {"tier": 1, "most": 3}
   }
 }

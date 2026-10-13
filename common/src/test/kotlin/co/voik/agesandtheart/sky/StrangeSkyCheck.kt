@@ -49,14 +49,6 @@ class StrangeSkyCheck : FunSpec({
         check(rain(2).pitch < rain(1).pitch && rain(1).pitch < 1f) { "the rain sounded at ${rain(1).pitch} then ${rain(2).pitch}" }
     }
 
-    test("a torn sky has more tears for every step, and an untorn one none") {
-        check(StrangeSky.tornOver(SkySpec.VANILLA, Spending.NOTHING, SEED).tears == null) { "nothing bought still tore the sky" }
-        fun tears(steps: Int) =
-            StrangeSky.tornOver(SkySpec.VANILLA, bought(Manifestation.SKY_TEARS, Manifestation.TEARS_MANY, steps, 2), SEED)
-                .tears?.count ?: 0
-        check(tears(1) in 1..<tears(2)) { "the sky tore ${tears(1)} then ${tears(2)} times" }
-    }
-
     test("low clouds come lower with every step") {
         fun ceiling(steps: Int) =
             StrangeSky.lookFor(bought(Manifestation.LOW_CLOUDS, Manifestation.CLOUDS_LOWNESS, steps, 2), SEED).ceiling

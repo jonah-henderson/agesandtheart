@@ -25,6 +25,8 @@ object AgeLooks {
         // A meteor storm's first thirty seconds, which are the sky and nothing else. An overlay rather
         // than a sky of our own, so an Age keeps whatever sun and stars it was written with underneath.
         MeteorSky.register()
+        // Tears in an Age's sky, likewise an overlay — see [TornSky].
+        TornSky.register()
 
         // A palm beach's sunset stands taller, in vanilla's sky and in ephemeris's alike — see [PalmDusk].
         LevelRendering.horizonHeight(PalmDusk::standsTaller)
