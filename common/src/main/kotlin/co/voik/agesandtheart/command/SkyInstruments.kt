@@ -92,7 +92,7 @@ internal object SkyInstruments {
      */
     private fun skySubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("sky").then(
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+            ageNameArgument()
                 .executes { context -> runSkyReport(context, preview = null) }
                 .then(
                     Commands.argument(SPECIFICATION_ARGUMENT, StringArgumentType.greedyString())

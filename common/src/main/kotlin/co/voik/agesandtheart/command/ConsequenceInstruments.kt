@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.command
 
-import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.compat.center
@@ -114,20 +113,13 @@ internal object ConsequenceInstruments {
         val structured: ReportFor = { context -> Report.structured(context.source) }
         return Commands.literal(INSTABILITY_LITERAL)
             .askingAbout(::theAgeStoodIn, prose)
-            .then(namedAge().askingAbout(::theAgeNamed, prose))
+            .then(ageNameArgument().askingAbout(::theAgeNamed, prose))
             .then(
                 Commands.literal(Report.STRUCTURED_LITERAL)
                     .askingAbout(::theAgeStoodIn, structured)
-                    .then(namedAge().askingAbout(::theAgeNamed, structured)),
+                    .then(ageNameArgument().askingAbout(::theAgeNamed, structured)),
             )
     }
-
-    private fun namedAge() =
-        Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-            .suggests { context, builder ->
-                val ages = AgeSavedData.get(context.source.server).ages.filter { it.namespace == Constants.MOD_ID }
-                SharedSuggestionProvider.suggest(ages.map { it.path }, builder)
-            }
 
     private fun theAgeStoodIn(context: CommandContext<CommandSourceStack>, report: Report): NamedAge? {
         val level = context.source.level

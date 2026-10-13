@@ -67,7 +67,7 @@ internal object TerrainInstruments {
      */
     private fun hangingSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         reporting("hanging") { reportFor ->
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).then(
+            ageNameArgument().then(
                 Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(0, WIDEST_HANGING_SEARCH)).executes { context ->
                     runHanging(context, IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT), reportFor(context))
                 },
@@ -166,7 +166,7 @@ internal object TerrainInstruments {
      */
     private fun probeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         reporting("probe") { reportFor ->
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).then(
+            ageNameArgument().then(
                 Commands.argument(PROBE_X, IntegerArgumentType.integer()).then(
                     Commands.argument(PROBE_Z, IntegerArgumentType.integer()).executes { context ->
                         runProbe(
@@ -321,14 +321,14 @@ internal object TerrainInstruments {
 
     private fun locateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("locate").then(
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).then(
+            ageNameArgument().then(
                 Commands.argument(PRESET_ARGUMENT, StringArgumentType.word()).executes(::runLocate),
             ),
         )
 
     private fun generateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("gen").then(
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runGenerate),
+            ageNameArgument().executes(::runGenerate),
         )
 
     /**
@@ -344,7 +344,7 @@ internal object TerrainInstruments {
      */
     private fun cliffSurveySubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         reporting("cliffs") { reportFor ->
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+            ageNameArgument()
                 .executes { context -> runCliffSurvey(context, DEFAULT_CLIFF_RADIUS, reportFor(context)) }
                 .then(
                     Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(1, MAX_CLIFF_RADIUS))
@@ -364,7 +364,7 @@ internal object TerrainInstruments {
      */
     private fun biomeCensusSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         reporting("biomes") { reportFor ->
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+            ageNameArgument()
                 .executes { context -> runBiomeCensus(context, SURVEY_RADIUS_CHUNKS, reportFor(context)) }
                 .then(
                     Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(1, MAX_CENSUS_RADIUS))
@@ -385,7 +385,7 @@ internal object TerrainInstruments {
      */
     private fun spawnsSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         reporting("spawns") { reportFor ->
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+            ageNameArgument()
                 .executes { context -> runSpawnCensus(context, SPAWN_SAMPLE_RADIUS, reportFor(context)) }
                 .then(
                     Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(0, MAX_CENSUS_RADIUS))
@@ -398,7 +398,7 @@ internal object TerrainInstruments {
 
     private fun benchmarkSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("bench").then(
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+            ageNameArgument()
                 .executes { context -> runBenchmark(context, DEFAULT_BENCHMARK_RADIUS) }
                 .then(
                     Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(1, MAX_BENCHMARK_RADIUS))
@@ -410,8 +410,8 @@ internal object TerrainInstruments {
 
     private fun compareSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         reporting("compare") { reportFor ->
-            Commands.argument(FIRST_ARGUMENT, StringArgumentType.word()).then(
-                Commands.argument(SECOND_ARGUMENT, StringArgumentType.word())
+            ageNameArgument(FIRST_ARGUMENT).then(
+                ageNameArgument(SECOND_ARGUMENT)
                     .executes { context -> runCompare(context, DEFAULT_COMPARE_RADIUS, reportFor(context)) }
                     .then(
                         Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(0, MAX_COMPARE_RADIUS))

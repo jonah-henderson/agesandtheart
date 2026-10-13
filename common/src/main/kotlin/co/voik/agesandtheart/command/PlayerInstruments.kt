@@ -51,7 +51,7 @@ internal object PlayerInstruments {
      */
     private fun bindSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("bind").then(
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runBind),
+            ageNameArgument().executes(::runBind),
         )
 
     private fun runBind(context: CommandContext<CommandSourceStack>): Int {

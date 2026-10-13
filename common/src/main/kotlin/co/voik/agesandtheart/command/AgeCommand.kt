@@ -173,13 +173,13 @@ object AgeCommand {
             .then(Commands.literal("overworld").executes { runVanillaTeleport(it, Level.OVERWORLD) })
             .then(Commands.literal("nether").executes { runVanillaTeleport(it, Level.NETHER) })
             .then(Commands.literal("end").executes { runVanillaTeleport(it, Level.END) })
-            .then(Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runTeleport))
+            .then(ageNameArgument().executes(::runTeleport))
 
     /** `all` is a literal rather than a name, so it cannot collide with an Age actually called "all". */
     private fun deleteSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("delete")
             .then(Commands.literal("all").executes(::runDeleteAll))
-            .then(Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runDelete))
+            .then(ageNameArgument().executes(::runDelete))
 
     /**
      * `/age rename <name> <new name>` — the move a bound book makes of the crystal viewer's preview, by hand,
@@ -187,7 +187,7 @@ object AgeCommand {
      */
     private fun renameSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("rename").then(
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).then(
+            ageNameArgument().then(
                 Commands.argument(NEW_NAME_ARGUMENT, StringArgumentType.word()).executes(::runRename),
             ),
         )

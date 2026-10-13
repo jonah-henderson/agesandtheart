@@ -6,7 +6,10 @@ import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.ReportFor
+import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.ArgumentBuilder
+import com.mojang.brigadier.builder.RequiredArgumentBuilder
+import net.minecraft.commands.SharedSuggestionProvider
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
@@ -59,6 +62,17 @@ internal fun reporting(
             Commands.literal(Report.STRUCTURED_LITERAL)
                 .then(arguments { context -> Report.structured(context.source) }),
         )
+
+/**
+ * An argument naming an Age that already exists, offering every one by tab. Not for a name being given to a new
+ * Age, where offering the taken ones would only suggest a clash.
+ */
+internal fun ageNameArgument(name: String = NAME_ARGUMENT): RequiredArgumentBuilder<CommandSourceStack, String> =
+    Commands.argument(name, StringArgumentType.word())
+        .suggests { context, builder ->
+            val ages = AgeSavedData.get(context.source.server).ages.filter { it.namespace == Constants.MOD_ID }
+            SharedSuggestionProvider.suggest(ages.map { it.path }, builder)
+        }
 
 internal fun ageId(name: String): Identifier =
     Identifier.fromNamespaceAndPath(Constants.MOD_ID, name.lowercase())
