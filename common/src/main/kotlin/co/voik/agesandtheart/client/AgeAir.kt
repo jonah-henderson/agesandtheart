@@ -6,6 +6,7 @@ import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.CloudDeck
 import co.voik.ephemeris.sky.LevelLooks
 import co.voik.ephemeris.sky.Look
+import co.voik.ephemeris.sky.SkyWander
 import net.minecraft.world.attribute.EnvironmentAttributeLayer
 import net.minecraft.world.attribute.WeatherAttributes
 import net.minecraft.client.multiplayer.ClientLevel
@@ -51,7 +52,18 @@ object AgeAir {
         }
         // Last, so it sits over the flat colour it darkens.
         deepened(told.air, decks)?.let { under -> under.onto(layers) }
+        told.air.wander?.let { wander -> wandering(layers, level, wander) }
         return layers
+    }
+
+    /** The sky leant along its wander over whatever was painted under it, and the fog a share of the way. */
+    private fun wandering(layers: EnvironmentAttributeSystem.Builder, level: ClientLevel, wander: SkyWander) {
+        layers.addTimeBasedLayer(EnvironmentAttributes.SKY_COLOR) { was, _ ->
+            wander.over(Rgba.of(was), level.gameTime).rgb()
+        }
+        layers.addTimeBasedLayer(EnvironmentAttributes.FOG_COLOR) { was, _ ->
+            wander.over(Rgba.of(was), level.gameTime, FOG_SHARE_OF_THE_WANDER).rgb()
+        }
     }
 
     /**
@@ -249,4 +261,7 @@ object AgeAir {
      * than as two unrelated greys, and a third deck needs nothing added.
      */
     private const val UNDER_EACH_DECK = 0.62f
+
+    /** How far the fog follows a wandering sky — most of the way, or the horizon stays the colour it was. */
+    private const val FOG_SHARE_OF_THE_WANDER = 0.7f
 }

@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "The sky wanders slowly through colours no sky should be (Jonah, 2026-10-12): `strength` is how far it is",
+    "drawn from its own colour, and `pace` how fast it moves from one to the next.",
+    "",
+    "Strange throughout: seen only. The colours come from a short uncanny palette, drawn per Age from its seed,",
+    "and keep the brightness of the sky they tint, so the night stays dark."
+  ],
+  "dials": {
+    "strength": {"tier": 1, "most": 3},
+    "pace": {"tier": 1, "most": 2}
+  }
+}

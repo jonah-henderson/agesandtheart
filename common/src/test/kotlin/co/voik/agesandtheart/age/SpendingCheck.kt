@@ -89,11 +89,13 @@ class SpendingCheck : FunSpec({
         }
     }
 
-    /** One slip is strange: a divided Age's seams tear, or a bank of fog comes over it. */
+    /** One slip is strange: a divided Age's seams tear, or something comes over its sky. */
     test("one flaw is a strange step, and a divided Age's seams can be it") {
+        fun isStrange(manifestation: Manifestation) =
+            SHIPPED_LADDERS.getValue(manifestation).dials.values.all { steps -> steps.tiers.all { it == Spending.STRANGE } }
         for (seed in seeds) {
             val bought = spent(1, seed, divided)
-            val strange = bought.bought(Manifestation.TORN_SEAMS) + bought.bought(Manifestation.FOG)
+            val strange = Manifestation.entries.filter(::isStrange).sumOf { bought.bought(it) }
             check(strange == 1) { "one flaw in a divided Age under seed $seed bought $bought" }
         }
         check(seeds.any { spent(1, it, divided).bought(Manifestation.TORN_SEAMS) == 1 }) {
@@ -288,4 +290,14 @@ internal val SHIPPED_LADDERS = mapOf(
     ),
     Manifestation.COLLAPSE to Ladder.flat(Manifestation.COLLAPSE, tier = 3, most = 3),
     Manifestation.FOG to Ladder.flat(Manifestation.FOG, tier = 1, most = 4).copy(leans = mapOf("humidity" to 0.3)),
+    Manifestation.SKY_DRIFT to Ladder(
+        mapOf(
+            Manifestation.DRIFT_STRENGTH to DialSteps.flat(tier = 1, most = 3),
+            Manifestation.DRIFT_PACE to DialSteps.flat(tier = 1, most = 2),
+        ),
+    ),
+    Manifestation.DAY_STARS to Ladder.flat(Manifestation.DAY_STARS, tier = 1, most = 2)
+        .copy(leans = mapOf("humidity" to -0.3)),
+    Manifestation.LOW_CLOUDS to Ladder.flat(Manifestation.LOW_CLOUDS, tier = 1, most = 2)
+        .copy(leans = mapOf("humidity" to 0.3)),
 )

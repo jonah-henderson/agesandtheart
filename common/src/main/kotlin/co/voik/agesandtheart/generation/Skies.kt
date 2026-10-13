@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.generation
 
 import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.consequence.StrangeSky
 import co.voik.agesandtheart.age.aspect.AgeParts
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.SunLight
@@ -39,7 +41,7 @@ object Skies {
     /** Says what an Age looks like, and tells everyone who should know. Silent for a level that is not ours. */
     fun describe(level: ServerLevel) {
         val recipe = Ages.recipeOf(level) ?: return
-        LevelAppearance.give(level, lookOf(recipe))
+        LevelAppearance.give(level, lookOf(recipe, Spending.of(level.server, recipe)))
     }
 
     /**
@@ -49,7 +51,7 @@ object Skies {
      * differently and conflating them would make a lost packet look deliberate — which is why the caller
      * decides what "not an Age of ours" means, by having no recipe to hand.
      */
-    fun lookOf(recipe: AgeRecipe): LevelLook {
+    fun lookOf(recipe: AgeRecipe, spending: Spending = Spending.NOTHING): LevelLook {
         // One reader over the whole composition, because the look is assembled from several aspects now —
         // the water's clarity, the air's fog and tint, the vault's colour and cloud.
         val parts = recipe.composition ?: AgeParts.NONE
@@ -57,14 +59,18 @@ object Skies {
         // anything, so a writer who repaints one colour of a Spire-skied Age keeps the rest. And under *that*
         // whatever the Age's own switches insist on — a lightless Age is dark to look at as well as to stand in.
         // And under everything, what the Age's sun does to the light where nobody said what the light is.
-        val sky = AgeGeneration.skySpec(recipe)
+        val sky = StrangeSky.starsOn(AgeGeneration.skySpec(recipe), spending)
         val painted = AgeGeneration.lookUnderTheSentence(recipe)
             .over(Atmosphere.unlitLook(parts, recipe.template))
             .over(SunLight.lookUnder(sky))
+        // What instability did to the sky goes over everything the words said.
+        val strange = StrangeSky.lookFor(spending, recipe.seed)
         return LevelLook(
             sky,
-            Atmosphere.lookIn(parts, recipe.seed).over(painted),
-            Atmosphere.cornersOf(parts).associateWith { Atmosphere.lookIn(parts, recipe.seed, it).over(painted) },
+            strange.over(Atmosphere.lookIn(parts, recipe.seed).over(painted)),
+            Atmosphere.cornersOf(parts).associateWith {
+                strange.over(Atmosphere.lookIn(parts, recipe.seed, it).over(painted))
+            },
             // **Named, not copied.** The client holds every dimension type already; what it cannot know is
             // which world this Age was written over, its own being one our roofed and lightless Ages all
             // share. One key crosses and every number stays vanilla's. See [BorrowedAir].

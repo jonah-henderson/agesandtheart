@@ -48,6 +48,10 @@ private const val INFERNO_BURN_DAMAGE = "burn_damage"
 private const val INFERNO_LIGHT_INTENSITY = "light_intensity"
 private const val FOG_OFTEN = "often"
 private const val FOG_THICKNESS = "thickness"
+private const val SKY_DRIFT_STRENGTH = "strength"
+private const val SKY_DRIFT_PACE = "pace"
+private const val DAY_STARS_BRIGHTNESS = "brightness"
+private const val LOW_CLOUDS_LOWNESS = "lowness"
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -161,6 +165,18 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
      * closes in.
      */
     FOG("fog", FOG_OFTEN, FOG_THICKNESS),
+
+    /**
+     * The sky wanders slowly through colours no sky should be (Jonah, 2026-10-12). Strange: seen only.
+     * **Two dials**: how far it is drawn from its own colour, and how fast it wanders.
+     */
+    SKY_DRIFT("sky_drift", SKY_DRIFT_STRENGTH, SKY_DRIFT_PACE),
+
+    /** The stars stay out through the day — faint at first, then as bright as at midnight. Strange. */
+    DAY_STARS("day_stars", DAY_STARS_BRIGHTNESS),
+
+    /** The cloud layer comes down to where people walk. Strange. */
+    LOW_CLOUDS("low_clouds", LOW_CLOUDS_LOWNESS),
     ;
 
     /** What this manifestation's ladder sells steps of, in the order its file is read. */
@@ -239,6 +255,18 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
         /** How close a bank of fog closes in. */
         const val BANKS_THICKNESS = FOG_THICKNESS
+
+        /** How far a drifting sky is drawn from its own colour. */
+        const val DRIFT_STRENGTH = SKY_DRIFT_STRENGTH
+
+        /** How fast a drifting sky wanders between colours. */
+        const val DRIFT_PACE = SKY_DRIFT_PACE
+
+        /** How bright the stars stay by day. */
+        const val STARS_BY_DAY = DAY_STARS_BRIGHTNESS
+
+        /** How far the cloud layer comes down. */
+        const val CLOUDS_LOWNESS = LOW_CLOUDS_LOWNESS
     }
 }
 

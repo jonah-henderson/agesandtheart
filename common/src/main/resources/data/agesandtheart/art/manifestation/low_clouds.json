@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "The cloud layer comes down to where people walk (Jonah, 2026-10-12): one step brings it a few blocks over",
+    "the sea, the second down onto it, so on most land you stand inside the cloud. Strange: seen only. Leans a",
+    "little wet."
+  ],
+  "dials": {
+    "lowness": {"tier": 1, "most": 2}
+  },
+  "leans": {"humidity": 0.3}
+}
