@@ -13,7 +13,7 @@
         {
           "type": "minecraft:item",
           "name": "agesandtheart:page",
-          "weight": 70,
+          "weight": 50,
           "modifier": [
             {
               "rarity": [
@@ -26,7 +26,7 @@
         {
           "type": "minecraft:item",
           "name": "agesandtheart:page",
-          "weight": 15,
+          "weight": 25,
           "modifier": [
             {
               "rarity": [
@@ -39,7 +39,7 @@
         {
           "type": "minecraft:item",
           "name": "agesandtheart:page",
-          "weight": 15,
+          "weight": 25,
           "modifier": [
             {
               "rarity": [
