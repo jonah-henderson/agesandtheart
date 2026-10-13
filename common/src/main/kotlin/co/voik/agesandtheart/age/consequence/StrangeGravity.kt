@@ -37,9 +37,9 @@ object StrangeGravity {
     fun factorFor(spending: Spending, seed: Long): Double {
         val steps = spending.bought(Manifestation.STRANGE_GRAVITY, Manifestation.GRAVITY_STRENGTH)
         if (steps <= 0) return ORDINARY
-        val away = AWAY_BY_STEPS[steps.coerceAtMost(AWAY_BY_STEPS.size - 1)]
+        val step = steps.coerceAtMost(HEAVIER_BY_STEPS.size - 1)
         val lighter = Random(seed xor DIRECTION_SALT).nextBoolean()
-        return if (lighter) ORDINARY - away else ORDINARY + away
+        return if (lighter) ORDINARY / (ORDINARY + LIGHTER_BY_STEPS[step]) else ORDINARY + HEAVIER_BY_STEPS[step]
     }
 
     /** The share of vanilla's gravity [level] pulls with, on whichever side it is — vanilla's own outside an Age. */
@@ -70,8 +70,11 @@ object StrangeGravity {
 
     const val ORDINARY = 1.0
 
-    /** How far from vanilla's each step reaches: a little for the first, a great deal for the second. */
-    private val AWAY_BY_STEPS = listOf(0.0, 0.15, 0.40)
+    /** How much heavier than vanilla's each step pulls. */
+    private val HEAVIER_BY_STEPS = listOf(0.0, 0.40, 0.75, 1.00)
+
+    /** How much heavier vanilla's pull is than the Age's at each step — a third of it at the last. */
+    private val LIGHTER_BY_STEPS = listOf(0.0, 0.40, 1.00, 2.00)
 
     private const val TELLING_THE_CLIENT = 20
     private const val DIRECTION_SALT = 0x2B6E_91C4_07FA_3D85L

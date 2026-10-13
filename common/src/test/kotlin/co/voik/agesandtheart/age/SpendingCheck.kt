@@ -325,5 +325,5 @@ internal val SHIPPED_LADDERS = mapOf(
         needs = setOf(Showing.RAIN),
     ),
     Manifestation.SKY_TEARS to Ladder.flat(Manifestation.SKY_TEARS, tier = 1, most = 3),
-    Manifestation.STRANGE_GRAVITY to Ladder(mapOf(Manifestation.GRAVITY_STRENGTH to tiers(1, 2))),
+    Manifestation.STRANGE_GRAVITY to Ladder(mapOf(Manifestation.GRAVITY_STRENGTH to tiers(1, 2, 3))),
 )

@@ -10,19 +10,20 @@ class StrangeGravityCheck : FunSpec({
 
     fun bought(steps: Int) = Spending(
         mapOf(Manifestation.STRANGE_GRAVITY to mapOf(Manifestation.GRAVITY_STRENGTH to steps)),
-        mapOf(Manifestation.STRANGE_GRAVITY to mapOf(Manifestation.GRAVITY_STRENGTH to 2)),
+        mapOf(Manifestation.STRANGE_GRAVITY to mapOf(Manifestation.GRAVITY_STRENGTH to 3)),
     )
 
     test("nothing bought is vanilla's gravity") {
         check(StrangeGravity.factorFor(Spending.NOTHING, 1L) == StrangeGravity.ORDINARY) { "nothing bought moved gravity" }
     }
 
-    test("a little for the first step and a great deal for the second, the same way for one seed") {
+    test("each step pulls further from vanilla's, the same way for one seed") {
+        val heavy = listOf(1.4, 1.75, 2.0)
+        val light = listOf(1 / 1.4, 1 / 2.0, 1 / 3.0)
         for (seed in 0L..<20L) {
-            val first = StrangeGravity.factorFor(bought(1), seed)
-            val second = StrangeGravity.factorFor(bought(2), seed)
-            check(abs(first - 1.0) in 0.1..0.2 && abs(second - 1.0) in 0.35..0.45) { "seed $seed pulled $first then $second" }
-            check((first > 1.0) == (second > 1.0)) { "seed $seed turned from ${first} to ${second}" }
+            val pulls = (1..3).map { StrangeGravity.factorFor(bought(it), seed) }
+            val expected = if (pulls.first() > 1.0) heavy else light
+            check(pulls.zip(expected).all { (pull, wanted) -> abs(pull - wanted) < 1e-9 }) { "seed $seed pulled $pulls" }
         }
     }
 
