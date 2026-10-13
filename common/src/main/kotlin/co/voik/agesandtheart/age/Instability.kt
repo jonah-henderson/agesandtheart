@@ -167,7 +167,7 @@ data class Instability(val flaws: List<Flaw>, val pages: Int = 0) {
         val NONE = Instability(emptyList())
 
         /**
-         * An index set by hand rather than earned — **for `/age unstable <name> index <n>` and nothing
+         * An index set by hand rather than earned — **for `/age instability <name> index <n>` and nothing
          * else**.
          *
          * It fabricates [index] distinct flaws in a book long enough for any tier, so everything downstream —

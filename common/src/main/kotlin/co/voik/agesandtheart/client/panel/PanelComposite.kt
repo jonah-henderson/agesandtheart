@@ -86,6 +86,7 @@ object PanelComposite {
     /** Made on first use and kept for the life of the client, as [PanelTarget]'s fields are. */
     private var live: RenderTarget? = null
     private var misted: RenderTarget? = null
+    private var lastLive: List<PanelStroke> = emptyList()
     /**
      * 26.2's immediate-mode path: a draw is appended, written into, uploaded and then executed, where a
      * `BufferBuilder` used to be built and handed straight to the render type.
@@ -100,8 +101,18 @@ object PanelComposite {
     fun composeLive(preview: PreviewLevel?, delta: DeltaTracker): GpuTextureView {
         val age = preview?.takeIf { PanelRenderer.draw(it, delta) }?.let(AgeInView::of)
         val stillMissing = 1.0f - (preview?.load?.wholeness ?: 0.0f)
+        lastLive = PanelPicture.strokes(age, stillMissing)
         val target = live ?: newTarget("live", LIVE_TEXELS_PER_PAGE_PIXEL).also { live = it }
-        return compose(target, PanelPicture.strokes(age, stillMissing))
+        return compose(target, lastLive)
+    }
+
+    /**
+     * The live picture laid down again from the Age as last drawn, without drawing it — so its mist keeps
+     * curling behind vanilla's loading screen, where the preview cannot be rendered. Null before it ever was.
+     */
+    fun recomposeLive(): GpuTextureView? {
+        val target = live ?: return null
+        return compose(target, lastLive)
     }
 
     /** Lays the misted picture down: the one every panel wears that is not showing an Age. */

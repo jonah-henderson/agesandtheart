@@ -15,7 +15,7 @@ import net.minecraft.world.level.chunk.ChunkAccess
  *
  * **One object rather than four fields, because they change together or not at all.** A generator is built
  * once when its Age opens and outlives any number of commands; what the Age *is* can be rewritten under it
- * — by `/age unstable`, and by book editing when that exists — and every one of these has to move at once or
+ * — by `/age instability`, and by book editing when that exists — and every one of these has to move at once or
  * the world generates against a mixture of two answers.
  *
  * Derived, never stored: a pure function of the recipe and the price list, so it comes out the same on

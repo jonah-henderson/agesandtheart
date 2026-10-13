@@ -76,7 +76,7 @@ data class AgeRecipe(
      */
     val authored: Boolean = false,
     /**
-     * Steps of a manifestation set by hand with `/age unstable <name> force`, over whatever the instability
+     * Steps of a manifestation set by hand with `/age instability <name> force`, over whatever the instability
      * drew — nought turns one off. **Never written by the codec**, so a restart forgets it.
      */
     val forced: Map<Manifestation, Int> = emptyMap(),

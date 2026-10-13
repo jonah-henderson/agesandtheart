@@ -85,9 +85,9 @@ object LinkTransit {
         draw(graphics, PanelTexture.LIVE.location, width, height)
     }
 
-    /** Behind vanilla's loading screen: the picture as last laid down. */
+    /** Behind vanilla's loading screen: the Age as last drawn, under mist that goes on moving. */
     fun drawHeld(graphics: GuiGraphicsExtractor, width: Int, height: Int) {
-        val picture = if (PanelComposite.liveView() != null) {
+        val picture = if (PanelComposite.recomposeLive() != null) {
             PanelTexture.LIVE.location
         } else {
             PanelComposite.composeMisted()

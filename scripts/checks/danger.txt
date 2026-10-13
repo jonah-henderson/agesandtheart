@@ -1,4 +1,4 @@
-# The danger evaluator: does the table load off a real resource stack, and does `/age unstable <name> score` answer?
+# The danger evaluator: does the table load off a real resource stack, and does `/age instability <name> danger` answer?
 # Run with: scripts/drive-server.sh scripts/checks/danger.txt
 #
 # **Both risks here are ones the offline checks structurally cannot reach.** `DangerCheck` scores against a
@@ -16,25 +16,25 @@
 
 # The floor: an Age nobody said anything dangerous about.
 age compose quiet 11 landmass=gentle sea=water rock=solid
-age unstable quiet score
+age instability quiet danger
 
 # What the Age is made of, over the whole of it, and then over half of it — the averaging rule on real
 # recipes. Read the two together: the same lava, half the ground, half the materials score.
 age compose alllava 11 landmass=gentle sea=lava rock=solid
-age unstable alllava score
+age instability alllava danger
 age compose halflava 11 landmass=gentle sea=lava,water rock=solid
-age unstable halflava score
+age instability halflava danger
 
 # What lives here, and what happens here.
 age write teeming 11 age teeming ghast spawns
-age unstable teeming score
+age instability teeming danger
 age write burning 11 age inferno phenomena
-age unstable burning score
+age instability burning danger
 
 # A written Age over a template that brings its own lava and its own roof — the claim that a template needs
 # no special case, because what it supplied is merged into the composition before the recipe holds it.
 age write hellish 11 infernal age
-age unstable hellish score
+age instability hellish danger
 
 # **The price, which fails silently and can fail no other way.** Deretheni is a word, but one that demands
 # masterwork ink (`requires_masterwork_ink`, 2026-09-06). The tag is empty offline, so only a bound registry
@@ -62,14 +62,14 @@ execute in agesandtheart:alllava run fill 0 -56 0 15 39 15 minecraft:air replace
 execute in agesandtheart:quiet run fill 0 -56 0 15 39 15 minecraft:air replace agesandtheart:pitchstone
 
 # And the structured form, which is what a check would assert on.
-age unstable json hellish score
+age instability json hellish danger
 
 # The raid (§7.7): a doomed Age is stuffed, and its hoard sits in the band the tear takes. `unstable=` sets
 # the index *before the Age opens*, which is the only moment anything reaching generation can be steered —
-# `/age unstable` rewrites a recipe that is already open and so never reaches the deposit.
+# `/age instability` rewrites a recipe that is already open and so never reaches the deposit.
 # Measured 2026-09-05: 3794 against 0 in the same band.
 age compose doomed 11 unstable=400 landmass=gentle sea=lava rock=solid
-age unstable doomed score
+age instability doomed danger
 age gen doomed
 execute in agesandtheart:doomed run forceload add 0 0 15 15
 execute in agesandtheart:doomed run fill 0 -62 0 15 -40 15 minecraft:air replace agesandtheart:pitchstone

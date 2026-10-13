@@ -44,7 +44,7 @@ internal object PlayerInstruments {
      * **The instrument the panel had no way of reaching.** A book is bound by being written, at the desk
      * or in a loot chest, and both decide the Age for you — so there was no way to look at a *chosen* Age
      * through a panel, and in particular no way to look at one whose index had been set by hand with
-     * `/age unstable <name> index <n>`, which is how the panel's distortion is looked at at all.
+     * `/age instability <name> index <n>`, which is how the panel's distortion is looked at at all.
      *
      * The book is a real one and not a shim: the pages carry the Age's own sentence, so it reads, links
      * and previews exactly as a written one does.

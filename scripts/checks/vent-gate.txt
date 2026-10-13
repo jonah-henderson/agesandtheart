@@ -13,8 +13,8 @@
 #     shallows      a deluge over an ordinary    grows none of the early materials
 #                   sea
 age write abyssonly 7 age insular landmass deep water sea
-age unstable abyssonly score
+age instability abyssonly danger
 age write drenched 7 age insular landmass deep water sea deluge phenomena
-age unstable drenched score
+age instability drenched danger
 age write shallows 7 age insular landmass water sea deluge phenomena
-age unstable shallows score
+age instability shallows danger

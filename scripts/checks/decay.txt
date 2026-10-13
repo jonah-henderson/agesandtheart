@@ -6,16 +6,16 @@
 # working together: a sentence resolving to an instability index, that index buying manifestations off
 # the price list, and those manifestations reading the clock.
 #
-# `/age unstable <name> age <days>` is the load-bearing part. Blight is a rate over an Age's *days*, so
+# `/age instability <name> age <days>` is the load-bearing part. Blight is a rate over an Age's *days*, so
 # the mildest step takes four of them to add one wound per chunk and the gentlest collapse a fortnight
 # to be worth walking to. Backdating rewrites `AgeRecipe.writtenAt`, which is the one field everything
 # downstream measures from — so there is no separate debug path that could disagree with the real one.
 
 # --- A coherent Age, which must never decay however long it stands -----------------------------------
 /age write calm age gentle landmass
-/age unstable calm
-/age unstable calm age 3650
-/age unstable calm
+/age instability calm wounds
+/age instability calm age 3650
+/age instability calm wounds
 
 # --- Something written to contradict itself, hard --------------------------------------------------
 # Two things about the sentence. **A book opens with the `age` page** and every clause closes with the
@@ -25,24 +25,29 @@
 # What matters below is the `bought:` line: whether the budget reaches blight, and how much went on the
 # cheap registers first.
 /age write ruin age beautiful foreboding homely desolate lifeless ancient frozen drenched arid dusty ashen atmosphere flat looming floating hollow patchy landmass clear firmament
-/age unstable ruin
+/age instability ruin
+/age instability ruin wounds
 
 # What it looks like new, one day in, a fortnight in, and after a season.
-/age unstable ruin age 0
-/age unstable ruin age 1
-/age unstable ruin age 14
-/age unstable ruin age 90
+/age instability ruin age 0
+/age instability ruin wounds
+/age instability ruin age 1
+/age instability ruin wounds
+/age instability ruin age 14
+/age instability ruin wounds
+/age instability ruin age 90
+/age instability ruin wounds
 
 # --- And the world it actually makes ----------------------------------------------------------------
 # Generated *after* backdating, so these chunks come out at the aged density rather than the written
 # one — which is the whole of what "a chunk generated late comes out as torn as its neighbours" means.
-/age unstable ruin age 30
+/age instability ruin age 30
 /age gen ruin
 /age probe ruin 0 0
 
 # The fissures collapse opens sit at the world floor, so a probe of the column is where they show.
 # `/age locate` finds the ordinary structural fissure; these are not that and are not locatable — they
-# are wherever the derived origin grid puts them, which `/age unstable` reports the reach of.
+# are wherever the derived origin grid puts them, which `/age instability <name> wounds` reports the reach of.
 #
 # **Collapse is hard to reach on purpose and therefore hard to walk.** The sentence above tops out around
 # instability 31, which maxes wounds; collapse needs roughly 69, which wants a book of about twenty-six
