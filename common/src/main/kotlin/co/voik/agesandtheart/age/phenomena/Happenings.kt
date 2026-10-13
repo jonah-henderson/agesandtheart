@@ -1,9 +1,7 @@
 package co.voik.agesandtheart.age.phenomena
 
-import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Atmosphere
-import co.voik.agesandtheart.age.aspect.ORDINARY_SHARE
 import co.voik.agesandtheart.age.aspect.ORDINARY_SPELL
 import co.voik.agesandtheart.age.aspect.WeatherConditions
 import co.voik.agesandtheart.age.AgeComposition
@@ -150,8 +148,7 @@ object Happenings {
         spending: Spending,
     ): WeatherConditions {
         val air = composition.optionsFor(Aspect.WEATHER, 0)
-        fun asked(parameter: Parameter) =
-            air.steer(parameter, WEATHER_SALT)?.let(Span.NATURAL::fractionOf) ?: ORDINARY_SHARE
+        fun asked(parameter: Parameter) = Atmosphere.weatherAsked(air, parameter)
         val dialled = WeatherConditions(asked(Atmosphere.RAINFALL), asked(Atmosphere.THUNDER))
         return befalls.entries.fold(dialled) { wants, (phenomenon, density) ->
             wants.atLeast(phenomenon.insistsAt(density, spending))
@@ -220,13 +217,6 @@ object Happenings {
     /** How often a client is reminded what the weather here is, in ticks. */
     private const val TELLING_THE_CLIENT = 20
 
-    /**
-     * Fixed, so an Age's weather does not wander about inside the span a word bounded it to.
-     *
-     * Everywhere else a span is steered by the Age's seed, which spreads two Ages bounded alike. Weather is
-     * read every tick, and a value that moved with the tick would be a different Age every time.
-     */
-    private const val WEATHER_SALT = 0L
 
     /** How many times over an ordinary claim asks for something. A rung multiplies it. */
     fun timesFor(density: Double, ordinary: Int): Int =

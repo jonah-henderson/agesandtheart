@@ -6,14 +6,17 @@ import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.LevelLook
 import co.voik.ephemeris.sky.Look
+import co.voik.ephemeris.sky.RainLook
 import co.voik.ephemeris.sky.SkySpec
+import co.voik.ephemeris.sky.SkyTears
 import co.voik.ephemeris.sky.SkyWander
 import net.minecraft.resources.Identifier
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 /**
  * What the strange tier does to an Age's sky: it wanders through wrong colours, keeps its stars by day, brings
- * its clouds down to the ground, or drains the whole Age of colour. Seen only, and settled when the Age opens, since none of it changes
+ * its clouds down to the ground, tears it, drains the whole Age of colour, or slows its rain. Seen only, and settled when the Age opens, since none of it changes
  * unless the book does.
  */
 object StrangeSky {
@@ -28,11 +31,32 @@ object StrangeSky {
     fun filtersFor(spending: Spending): List<Identifier> =
         if (spending.bought(Manifestation.MONOCHROME) > 0) listOf(LevelLook.MONOCHROME) else emptyList()
 
+    /** How the Age's rain falls and sounds: slower and lower the further that was bought, vanilla's otherwise. */
+    fun rainFor(spending: Spending): RainLook {
+        val slowness = spending.reach(Manifestation.SLOW_RAIN, Manifestation.RAIN_SLOWNESS)
+        if (slowness <= NONE) return RainLook()
+        return RainLook(
+            pace = (FIRST_PACE - slowness * PACE_LOST_IN_FULL).toFloat(),
+            pitch = (FIRST_PITCH - slowness * PITCH_LOST_IN_FULL).toFloat(),
+        )
+    }
+
+    /** [sky] as instability left it: its stars kept through the day, and torn, as far as each was bought. */
+    fun skyOver(sky: SkySpec, spending: Spending, seed: Long): SkySpec = tornOver(starsOn(sky, spending), spending, seed)
+
     /** [sky] with its stars kept through the day as far as was bought. */
     fun starsOn(sky: SkySpec, spending: Spending): SkySpec {
         val byDay = spending.reach(Manifestation.DAY_STARS, Manifestation.STARS_BY_DAY).toFloat()
         if (byDay <= NONE) return sky
         return sky.copy(stars = sky.stars.copy(byDay = byDay))
+    }
+
+    /** [sky] torn by as many tears as were bought: a few for the first step, twice that bought in full. */
+    fun tornOver(sky: SkySpec, spending: Spending, seed: Long): SkySpec {
+        val many = spending.reach(Manifestation.SKY_TEARS, Manifestation.TEARS_MANY)
+        if (many <= NONE) return sky
+        val count = (TEARS_BOUGHT_IN_FULL * many).roundToInt().coerceAtLeast(1)
+        return sky.copy(tears = SkyTears(count = count, seed = seed xor TEARS_SALT))
     }
 
     /**
@@ -88,6 +112,19 @@ object StrangeSky {
 
     /** How much higher than [LOWEST_CLOUDS] the layer sits for the smallest step. */
     private const val LOW_CLOUD_BAND = 16.0
+
+    /**
+     * Slow rain's pace and pitch as shares of vanilla's, and what the rest of the dial takes off: two steps
+     * fall at 0.4 and then 0.2 of the speed, pitched at 0.8 and then 0.65.
+     */
+    private const val FIRST_PACE = 0.6
+    private const val PACE_LOST_IN_FULL = 0.4
+    private const val FIRST_PITCH = 0.95
+    private const val PITCH_LOST_IN_FULL = 0.3
+
+    /** How many tears hang in a sky that bought every step of them. */
+    private const val TEARS_BOUGHT_IN_FULL = 6.0
+    private const val TEARS_SALT = 0x3C71_9A0E_55D2_B86FL
 
     private const val NONE = 0.0
     private const val WANDER_SALT = 0x5A7E_D21F_7C4B_93E1L

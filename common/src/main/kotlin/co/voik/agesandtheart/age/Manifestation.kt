@@ -56,6 +56,8 @@ private const val ABANDONED_VILLAGES_ABANDONED = "abandoned"
 private const val UNCANNY_MOTES_DENSITY = "density"
 private const val UNCANNY_MOTES_SIZE = "size"
 private const val MONOCHROME_DRAINED = "drained"
+private const val SLOW_RAIN_SLOWNESS = "slowness"
+private const val SKY_TEARS_MANY = "many"
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -202,6 +204,12 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
     /** The whole Age is seen in grey, all the time. Strange. */
     MONOCHROME("monochrome", MONOCHROME_DRAINED),
+
+    /** The rain falls slowly, and patters lower. **One dial**: how slowly. Strange. */
+    SLOW_RAIN("slow_rain", SLOW_RAIN_SLOWNESS),
+
+    /** Thin rifts of light hang torn high in the sky, still. **One dial**: how many. Strange. */
+    SKY_TEARS("sky_tears", SKY_TEARS_MANY),
     ;
 
     /** What this manifestation's ladder sells steps of, in the order its file is read. */
@@ -298,6 +306,12 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
         /** How big an uncanny mote is. */
         const val MOTES_SIZE = UNCANNY_MOTES_SIZE
+
+        /** How slowly the rain falls. */
+        const val RAIN_SLOWNESS = SLOW_RAIN_SLOWNESS
+
+        /** How many tears hang in the sky. */
+        const val TEARS_MANY = SKY_TEARS_MANY
     }
 }
 

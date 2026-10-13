@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Features
@@ -9,6 +10,7 @@ import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.datapack.PerReload
 import com.mojang.serialization.Codec
+import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.server.MinecraftServer
 import net.minecraft.tags.StructureTags
@@ -31,6 +33,9 @@ enum class Showing(private val key: String) : StringRepresentable {
 
     /** Anything living at all. */
     CREATURES("creatures"),
+
+    /** Rain: weather that is ever wet, over biomes warm enough for it to fall as rain. */
+    RAIN("rain"),
     ;
 
     override fun getSerializedName(): String = key
@@ -101,6 +106,7 @@ data class SpendingSetting(val climate: Map<String, Double>, val has: Set<Showin
             return buildSet {
                 if (growsTrees(server, composition, biomes, seed)) add(Showing.TREES)
                 if (buildsVillages(server, composition, template, biomes)) add(Showing.VILLAGES)
+                if (rains(composition, biomes)) add(Showing.RAIN)
             }
         }
 
@@ -135,6 +141,17 @@ data class SpendingSetting(val climate: Map<String, Double>, val has: Set<Showin
             }
             return sets.any { set -> set.value().structures().any(::isAVillageThatCanStand) }
         }
+
+        private fun rains(composition: AgeComposition, biomes: Set<Holder<Biome>>): Boolean {
+            val rainfall = Atmosphere.weatherAsked(composition.optionsFor(Aspect.WEATHER, 0), Atmosphere.RAINFALL)
+            fun rainsOver(biome: Holder<Biome>) =
+                biome.value().hasPrecipitation() && biome.value().warmEnoughToRain(AT_SEA_LEVEL, SEA_LEVEL)
+            return rainfall > NEVER && biomes.any(::rainsOver)
+        }
+
+        private const val SEA_LEVEL = 63
+        private val AT_SEA_LEVEL = BlockPos(0, SEA_LEVEL, 0)
+        private const val NEVER = 0.0
 
         /** The middle of [composition]'s range on [axis], averaged over its climates — nought where nothing bent it. */
         private fun middleOf(composition: AgeComposition, axis: String): Double {

@@ -322,4 +322,10 @@ internal val SHIPPED_LADDERS = mapOf(
         .copy(needs = setOf(Showing.VILLAGES)),
     Manifestation.UNCANNY_MOTES to Ladder.flat(Manifestation.UNCANNY_MOTES, tier = 1, most = 2),
     Manifestation.MONOCHROME to Ladder.flat(Manifestation.MONOCHROME, tier = 1, most = 1),
+    Manifestation.SLOW_RAIN to Ladder(
+        mapOf(Manifestation.RAIN_SLOWNESS to DialSteps.flat(tier = 1, most = 2)),
+        leans = mapOf("humidity" to 0.3),
+        needs = setOf(Showing.RAIN),
+    ),
+    Manifestation.SKY_TEARS to Ladder.flat(Manifestation.SKY_TEARS, tier = 1, most = 2),
 )

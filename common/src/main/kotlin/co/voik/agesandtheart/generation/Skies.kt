@@ -59,7 +59,7 @@ object Skies {
         // anything, so a writer who repaints one colour of a Spire-skied Age keeps the rest. And under *that*
         // whatever the Age's own switches insist on — a lightless Age is dark to look at as well as to stand in.
         // And under everything, what the Age's sun does to the light where nobody said what the light is.
-        val sky = StrangeSky.starsOn(AgeGeneration.skySpec(recipe), spending)
+        val sky = StrangeSky.skyOver(AgeGeneration.skySpec(recipe), spending, recipe.seed)
         val painted = AgeGeneration.lookUnderTheSentence(recipe)
             .over(Atmosphere.unlitLook(parts, recipe.template))
             .over(SunLight.lookUnder(sky))
@@ -78,6 +78,7 @@ object Skies {
                 it.identifier() != AgeGeneration.dimensionType(recipe)
             },
             filters = StrangeSky.filtersFor(spending),
+            rain = StrangeSky.rainFor(spending),
         )
     }
 }

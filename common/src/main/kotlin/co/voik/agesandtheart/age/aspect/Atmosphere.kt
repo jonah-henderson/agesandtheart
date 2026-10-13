@@ -88,6 +88,21 @@ object Atmosphere {
             ),
         )
 
+    /**
+     * How much of [parameter]'s axis — [RAINFALL] or [THUNDER] — [weather] asks for, [ORDINARY_SHARE] where
+     * nothing said.
+     */
+    fun weatherAsked(weather: Options, parameter: Parameter): Double =
+        weather.steer(parameter, WEATHER_SALT)?.let(Span.NATURAL::fractionOf) ?: ORDINARY_SHARE
+
+    /**
+     * Fixed, so an Age's weather does not wander about inside the span a word bounded it to.
+     *
+     * Everywhere else a span is steered by the Age's seed, which spreads two Ages bounded alike. Weather is
+     * read every tick, and a value that moved with the tick would be a different Age every time.
+     */
+    private const val WEATHER_SALT = 0L
+
     /** The band the cloud deck moves through, in blocks — what [CEILING]'s nought and one stand for. */
     const val LOWEST_CLOUD = 96f
     const val HIGHEST_CLOUD = 256f
