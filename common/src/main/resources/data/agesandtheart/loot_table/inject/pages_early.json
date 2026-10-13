@@ -3,8 +3,8 @@
     "A page from somewhere found early: mostly the words the world is made of, with some staples and some",
     "critical words -- which the critical bucket picks from what the finder lacks while any are left. Always on",
     "here: only the late pages make their critical entry wait on the finder lacking one (finder_lacks).",
-    "One or two pages, each drawn on its own. Which containers and how often is PageLoot's business (and the",
-    "NeoForge loot modifiers')."
+    "One to four, each drawn on its own, and a fifth of the derived ones a filled notebook instead. Which",
+    "containers and how often is PageLoot's business (and the NeoForge loot modifiers')."
   ],
   "type": "minecraft:chest",
   "pools": [
@@ -12,13 +12,13 @@
       "rolls": {
         "type": "minecraft:uniform",
         "min": 1,
-        "max": 2
+        "max": 4
       },
       "entries": [
         {
           "type": "minecraft:item",
           "name": "agesandtheart:page",
-          "weight": 50,
+          "weight": 40,
           "modifier": [
             {
               "rarity": [
@@ -27,6 +27,11 @@
               "type": "agesandtheart:roll_page_word"
             }
           ]
+        },
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:inject/notebook",
+          "weight": 10
         },
         {
           "type": "minecraft:item",

@@ -16,7 +16,7 @@ class PageLootOnServerCheck : FunSpec({
 
     val server = DrivenServer.shared
 
-    test("every page container holds pages at its chance, one or more at a time") {
+    test("every page container holds writing at its chance, several pages at a time, early ones now and then a notebook") {
         val opened = server.ask("loot", "$TIMES").getAsJsonArray("containers").map { it.asJsonObject }
         check(opened.size == PageLoot.TARGETS.count { it.injected in PageLoot.PAGE_TABLES }) {
             "opened ${opened.size} containers"
@@ -26,10 +26,12 @@ class PageLootOnServerCheck : FunSpec({
             val chance = container["chance"].asDouble
             val share = container["found"].asDouble / TIMES
             val spread = SIGMAS * sqrt(chance * (1 - chance) / TIMES)
-            check(abs(share - chance) <= spread) { "$table held a page ${share * 100}% of the time, given ${chance * 100}%" }
+            check(abs(share - chance) <= spread) { "$table held writing ${share * 100}% of the time, given ${chance * 100}%" }
             val perFind = container["pages"].asDouble / container["found"].asDouble
-            check(perFind > 1.0) { "$table never held more than one page at a time" }
+            check(perFind > 1.5) { "$table held only $perFind pages a time" }
         }
+        val early = opened.filter { container -> PageLoot.TARGETS.any { "${it.table.identifier()}" == container["table"].asString && it.injected == PageLoot.EARLY_PAGES } }
+        check(early.sumOf { it["notebooks"].asInt } > 0) { "no early container ever held a notebook in place of a page" }
     }
 }) {
     private companion object {

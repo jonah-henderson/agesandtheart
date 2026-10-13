@@ -20,7 +20,7 @@ internal object LootInstruments {
 
     /**
      * `/age loot [<times>]` — every container pages are put in, opened [times] times over through vanilla's own
-     * table: how often one held a page against the chance it was given, and how many it held. Proof that the
+     * table: how often one held a page or a notebook against the chance it was given, and how many it held. Proof that the
      * injection reaches each table on this loader, which a list of targets cannot be.
      */
     fun addTo(age: LiteralArgumentBuilder<CommandSourceStack>) {
@@ -63,6 +63,7 @@ internal object LootInstruments {
                     "chance" to target.chance,
                     "found" to opened.found,
                     "pages" to opened.pages,
+                    "notebooks" to opened.notebooks,
                     "times" to times,
                 ),
             ) { sayingOf(path, target, opened, times) }
@@ -71,25 +72,30 @@ internal object LootInstruments {
         return SUCCESS
     }
 
-    private data class Opened(val found: Int, val pages: Int)
+    /** How many openings held writing of either kind, and how much of each there was. */
+    private data class Opened(val found: Int, val pages: Int, val notebooks: Int)
 
     private fun openedTimes(table: LootTable, params: LootParams, times: Int): Opened {
         var found = 0
         var pages = 0
+        var notebooks = 0
         repeat(times) {
-            val held = table.getRandomItems(params).filter { it.`is`(AgeContent.PAGE) }.sumOf { it.count }
-            if (held > 0) found++
-            pages += held
+            val items = table.getRandomItems(params)
+            val heldPages = items.filter { it.`is`(AgeContent.PAGE) }.sumOf { it.count }
+            val heldNotebooks = items.filter { it.`is`(AgeContent.NOTEBOOK) }.sumOf { it.count }
+            if (heldPages + heldNotebooks > 0) found++
+            pages += heldPages
+            notebooks += heldNotebooks
         }
-        return Opened(found, pages)
+        return Opened(found, pages, notebooks)
     }
 
     private fun sayingOf(path: String, target: PageLootTarget, opened: Opened, times: Int): String {
         val share = opened.found.toDouble() / times
         val perFind = if (opened.found == 0) 0.0 else opened.pages.toDouble() / opened.found
         val reached = if (opened.found == 0) "  — NEVER" else ""
-        return "  %s: %.0f%% held a page (given %.0f%%), %.1f a time$reached"
-            .format(path, share * PER_CENT, target.chance * PER_CENT, perFind)
+        return "  %s: %.0f%% held writing (given %.0f%%), %.1f pages a time, %d notebook(s)$reached"
+            .format(path, share * PER_CENT, target.chance * PER_CENT, perFind, opened.notebooks)
     }
 
 }
