@@ -52,7 +52,8 @@ object TornSky {
         return styles[Random(seed xor STYLE_SALT).nextInt(styles.size)]
     }
 
-    private val TEARS_BY_STEPS = listOf(0, 10, 25, 50)
+    /** Over the whole sphere, so about half of each are up at once. */
+    private val TEARS_BY_STEPS = listOf(0, 20, 60, 150)
     private const val TELLING_THE_CLIENT = 20
     private const val STYLE_SALT = 0x61D2_0B7E_93A4_C55FL
 }

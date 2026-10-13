@@ -73,8 +73,8 @@ object StrangeGravity {
 
     const val ORDINARY = 1.0
 
-    /** How much heavier than vanilla's each step pulls. */
-    private val HEAVIER_BY_STEPS = listOf(0.0, 0.40, 0.75, 1.00)
+    /** How much heavier than vanilla's each step pulls: the first as much as a jump can take and still clear a block. */
+    private val HEAVIER_BY_STEPS = listOf(0.0, 0.25, 0.75, 1.00)
 
     /** How much heavier vanilla's pull is than the Age's at each step — a third of it at the last. */
     private val LIGHTER_BY_STEPS = listOf(0.0, 0.40, 1.00, 2.00)

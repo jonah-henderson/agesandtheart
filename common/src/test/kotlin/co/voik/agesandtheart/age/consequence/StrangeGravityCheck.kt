@@ -18,7 +18,7 @@ class StrangeGravityCheck : FunSpec({
     }
 
     test("each step pulls further from vanilla's, the same way for one seed") {
-        val heavy = listOf(1.4, 1.75, 2.0)
+        val heavy = listOf(1.25, 1.75, 2.0)
         val light = listOf(1 / 1.4, 1 / 2.0, 1 / 3.0)
         for (seed in 0L..<20L) {
             val pulls = (1..3).map { StrangeGravity.factorFor(bought(it), seed) }

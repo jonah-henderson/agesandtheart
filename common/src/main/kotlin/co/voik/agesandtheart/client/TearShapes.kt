@@ -5,11 +5,15 @@ import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.client.SkyBlend
 import co.voik.ephemeris.client.SkyCorner
 import co.voik.ephemeris.client.SkyQuad
+import co.voik.ephemeris.client.SkyShapes
+import org.joml.Quaternionfc
 import org.joml.Vector3f
+import kotlin.math.abs
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
+import kotlin.math.sqrt
 import kotlin.math.tan
 import kotlin.random.Random
 
@@ -42,17 +46,19 @@ object TearShapes {
         return List(count) { oneTear(random) }
     }
 
+    /**
+     * One tear, centred anywhere on the whole sphere with every part of it as likely as any other — the sine of
+     * its height drawn evenly rather than the height itself, which crowded them overhead. Half are below the
+     * horizon at any moment, rising and setting as the stars turn them round.
+     */
     private fun oneTear(random: Random): Tear {
         val length = SHORTEST + (LONGEST - SHORTEST) * random.nextDouble().pow(LENGTH_SKEW)
-        val lowest = (LOWEST_ELEVATION + length / 2).coerceAtMost(HIGHEST_ELEVATION)
-        val elevation = Math.toRadians(random.nextDouble(lowest, HIGHEST_ELEVATION + NEXT_TO_NOTHING))
+        val height = random.nextDouble(-1.0, 1.0)
+        val level = sqrt(1 - height * height)
         val bearing = random.nextDouble(0.0, 2 * PI)
-        val centre = Vector3f(
-            (cos(elevation) * sin(bearing)).toFloat(),
-            sin(elevation).toFloat(),
-            (-cos(elevation) * cos(bearing)).toFloat(),
-        )
-        val east = Vector3f(0f, 1f, 0f).cross(centre, Vector3f()).normalize()
+        val centre = Vector3f((level * sin(bearing)).toFloat(), height.toFloat(), (-level * cos(bearing)).toFloat())
+        val notAlongCentre = if (abs(height) > NEARLY_A_POLE) Vector3f(1f, 0f, 0f) else Vector3f(0f, 1f, 0f)
+        val east = notAlongCentre.cross(centre, Vector3f()).normalize()
         val north = Vector3f(centre).cross(east).normalize()
         val heading = random.nextDouble(0.0, 2 * PI)
         val along = Vector3f(east).mul(cos(heading).toFloat()).add(Vector3f(north).mul(sin(heading).toFloat())).normalize()
@@ -82,35 +88,42 @@ object TearShapes {
         return eased * eased * (3 - 2 * eased)
     }
 
-    /** Every tear as quads at [ticks], grouped by how Ephemeris should lay each group on the sky. */
-    fun quadsAt(tears: List<Tear>, ticks: Double, style: TearStyle, brightness: Float): Map<SkyBlend, List<SkyQuad>> {
-        val bySkyBlend = mutableMapOf<SkyBlend, MutableList<SkyQuad>>()
-        fun add(blend: SkyBlend, quads: List<SkyQuad>) = bySkyBlend.getOrPut(blend) { mutableListOf() }.addAll(quads)
+    /**
+     * Every tear as shapes at [ticks], turned by [turn] with the stars: **every halo before any core**, so where
+     * two tears cross their cores run together and neither's fringe is laid across the other's.
+     */
+    fun shapesAt(tears: List<Tear>, ticks: Double, style: TearStyle, brightness: Float, turn: Quaternionfc): List<SkyShapes> {
+        val halos = mutableListOf<SkyQuad>()
+        val cores = mutableListOf<SkyQuad>()
         for (tear in tears) {
             val open = openness(tear, ticks)
             if (open <= SHUT) continue
             val seconds = ticks / TICKS_PER_SECOND
             val glimmer = (1 - SHIMMER + SHIMMER * sin(seconds * tear.shimmerRate + tear.shimmerPhase)).toFloat() * brightness
             val swell = 1 - SWELL + SWELL * sin(seconds * tear.shimmerRate * SWELL_RATE + tear.shimmerPhase * 2)
-            val path = pathOf(tear, open)
+            val path = pathOf(tear, open).map { Point(turn.transform(it.at, Vector3f()), it.taper) }
             val width = tear.width * swell * open.pow(WIDTH_WITH_OPENNESS)
             when (style) {
                 TearStyle.GLOWING -> {
-                    add(SkyBlend.LIGHT, ribbon(path, CORE_WIDTH * width, GLOW_CORE.dimmed(glimmer)))
-                    add(SkyBlend.LIGHT, halo(path, CORE_WIDTH * width, HALO_WIDTH * width, GLOW_HALO.dimmed(glimmer), NOTHING))
+                    cores += ribbon(path, CORE_WIDTH * width, GLOW_CORE.dimmed(glimmer))
+                    halos += halo(path, CORE_WIDTH * width, HALO_WIDTH * width, GLOW_HALO.dimmed(glimmer), NOTHING)
                 }
                 TearStyle.DARK -> {
-                    val core = DARK_CORE.withAlpha(DARK_CORE.alpha * glimmer)
-                    add(SkyBlend.SHADE, ribbon(path, CORE_WIDTH * width, core))
-                    add(SkyBlend.SHADE, halo(path, CORE_WIDTH * width, HALO_WIDTH * width, DARK_HALO.withAlpha(DARK_HALO.alpha * glimmer), CLEAR))
+                    cores += ribbon(path, CORE_WIDTH * width, DARK_CORE.withAlpha(DARK_CORE.alpha * glimmer))
+                    halos += halo(path, CORE_WIDTH * width, HALO_WIDTH * width, DARK_HALO.withAlpha(DARK_HALO.alpha * glimmer), CLEAR)
                 }
                 TearStyle.STARFIELD -> {
-                    add(SkyBlend.STARFIELD, ribbon(path, PORTAL_WIDTH * width, NOTHING))
-                    add(SkyBlend.LIGHT, halo(path, PORTAL_WIDTH * width, HALO_WIDTH * width, PORTAL_RIM.dimmed(glimmer), NOTHING))
+                    cores += ribbon(path, PORTAL_WIDTH * width, NOTHING)
+                    halos += halo(path, PORTAL_WIDTH * width, HALO_WIDTH * width, PORTAL_RIM.dimmed(glimmer), NOTHING)
                 }
             }
         }
-        return bySkyBlend
+        val (haloBlend, coreBlend) = when (style) {
+            TearStyle.GLOWING -> SkyBlend.LIGHT to SkyBlend.LIGHT
+            TearStyle.DARK -> SkyBlend.SHADE to SkyBlend.SHADE
+            TearStyle.STARFIELD -> SkyBlend.LIGHT to SkyBlend.STARFIELD
+        }
+        return listOf(SkyShapes(halos, haloBlend), SkyShapes(cores, coreBlend))
     }
 
     /** A point of the tear's centre line, and how wide it is there as a share of its widest, from end to end. */
@@ -190,9 +203,8 @@ object TearShapes {
     private const val LONGEST = 45.0
     /** Above one, so most tears are short and a few run long. */
     private const val LENGTH_SKEW = 1.6
-    private const val LOWEST_ELEVATION = 30.0
-    private const val HIGHEST_ELEVATION = 80.0
-    private const val NEXT_TO_NOTHING = 0.001
+    /** Past this the vertical is too close to a tear's centre to reckon its east from. */
+    private const val NEARLY_A_POLE = 0.99
     private const val LEAST_WINDING = 0.01
     private const val MOST_WINDING = 0.16
     private const val FEWEST_BENDS = 3
