@@ -71,7 +71,7 @@ object StrangeSky {
         val lowness = spending.reach(Manifestation.LOW_CLOUDS, Manifestation.CLOUDS_LOWNESS)
         if (lowness <= NONE) return null
         val height = LOWEST_CLOUDS + (1.0 - lowness) * LOW_CLOUD_BAND
-        return Atmosphere.ceilingAt(height.toInt())
+        return Atmosphere.ceilingAt(height.toInt() + OFF_THE_BLOCK_GRID)
     }
 
     /**
@@ -110,6 +110,9 @@ object StrangeSky {
     private const val PACE_LOST_IN_FULL = 0.4
     private const val FIRST_PITCH = 0.95
     private const val PITCH_LOST_IN_FULL = 0.3
+
+    /** Half a block, so a cloud layer's faces never lie in a block's and flicker against the ground. */
+    private const val OFF_THE_BLOCK_GRID = 0.5f
 
     private const val NONE = 0.0
     private const val WANDER_SALT = 0x5A7E_D21F_7C4B_93E1L

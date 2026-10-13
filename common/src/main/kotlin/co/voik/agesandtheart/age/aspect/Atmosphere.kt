@@ -108,7 +108,7 @@ object Atmosphere {
     const val HIGHEST_CLOUD = 256f
 
     /** A cloud height as a share of the band, which may fall outside it for a deck laid below the band. */
-    fun ceilingAt(cloudsY: Int): Float = (cloudsY - LOWEST_CLOUD) / (HIGHEST_CLOUD - LOWEST_CLOUD)
+    fun ceilingAt(cloudsY: Float): Float = (cloudsY - LOWEST_CLOUD) / (HIGHEST_CLOUD - LOWEST_CLOUD)
 
     /**
      * Whether the sky's colours darken at night as the day's own do (Jonah, walk 2026-10-06): a coloured
@@ -240,7 +240,7 @@ object Atmosphere {
             waterFog = colourOf(water, WATERCOLOUR, biome)?.dimmed(WATER_FOG_SHARE),
             haze = band(air, HAZE),
             // The book's word on it first, then wherever the shape of the Age puts its clouds.
-            ceiling = band(vault, CEILING) ?: parts.cloudsAtY?.let(::ceilingAt),
+            ceiling = band(vault, CEILING) ?: parts.cloudsAtY?.let { ceilingAt(it.toFloat()) },
             grass = colourOf(parts.optionsFor(Aspect.GRASS), GRASSCOLOUR, biome),
             // **One word for every leaf.** Litter and dead brush are leaves that have dried, and a world
             // with purple trees over green leaf litter is the same mistake as purple grass under green
