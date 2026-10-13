@@ -301,4 +301,5 @@ internal val SHIPPED_LADDERS = mapOf(
     Manifestation.LOW_CLOUDS to Ladder.flat(Manifestation.LOW_CLOUDS, tier = 1, most = 2)
         .copy(leans = mapOf("humidity" to 0.3)),
     Manifestation.STILL_CREATURES to Ladder.flat(Manifestation.STILL_CREATURES, tier = 1, most = 1),
+    Manifestation.STAMPED_SHAPES to Ladder.flat(Manifestation.STAMPED_SHAPES, tier = 1, most = 1),
 )

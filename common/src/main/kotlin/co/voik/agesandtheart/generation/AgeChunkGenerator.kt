@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.generation
 
+import co.voik.agesandtheart.age.consequence.StampedShapes
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.phenomena.Deluge
@@ -1291,7 +1292,9 @@ class AgeChunkGenerator(
      * generated today and the same chunk generated next year must agree about whether it holds one.
      */
     override fun applyBiomeDecoration(level: WorldGenLevel, chunk: ChunkAccess, structures: StructureManager) {
-        super.applyBiomeDecoration(level, chunk, structures)
+        StampedShapes.decorating(consequence.stampsShapes, level.seed) {
+            super.applyBiomeDecoration(level, chunk, structures)
+        }
         // **The abyss is put right first, and before the early return below.** A structure brings its own
         // ordinary water — an ocean monument most of all — and vegetation grows in that water in this same
         // stage, so there is nowhere to stand between the two. See `DeepWater.settleTheAbyss`.

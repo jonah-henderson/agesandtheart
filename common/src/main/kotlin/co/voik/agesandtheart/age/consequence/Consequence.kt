@@ -30,6 +30,8 @@ data class Consequence(
     val collapseTears: Int,
     /** The overworld tick the Age was written on, which the two rates are counted from. */
     val writtenAt: Long,
+    /** Whether every feature in the Age comes out the same shape — [StampedShapes]. */
+    val stampsShapes: Boolean = false,
 ) {
     /** Whether anything at all is wrong, so a coherent Age can skip the whole pass. */
     val isNothing: Boolean
@@ -80,7 +82,7 @@ data class Consequence(
         val NONE = Consequence(Tearing.NONE, Tearing.NONE, Collapse.NONE, UNWRITTEN)
 
         /**
-         * The four keys a generator writes down, with the defaults a coherent Age omits.
+         * The keys a generator writes down, with the defaults a coherent Age omits.
          *
          * **One codec rather than four loose fields on the generator's**, so the object whose whole reason
          * is that these change together is also the object that reads and writes them. The keys and the
@@ -96,6 +98,8 @@ data class Consequence(
                     .forGetter(Consequence::collapseTears),
                 Codec.LONG.optionalFieldOf("written_at", UNWRITTEN)
                     .forGetter(Consequence::writtenAt),
+                Codec.BOOL.optionalFieldOf("stamps_shapes", false)
+                    .forGetter(Consequence::stampsShapes),
             ).apply(instance, ::Consequence)
         }
 
@@ -107,6 +111,7 @@ data class Consequence(
                 woundsPerDay = Tearing.woundsPerDayAt(spending.bought(Manifestation.WORSENING_WOUNDS)),
                 collapseTears = Collapse.tearsPerCellAt(spending.bought(Manifestation.COLLAPSE)),
                 writtenAt = recipe.writtenAt,
+                stampsShapes = spending.bought(Manifestation.STAMPED_SHAPES) > 0,
             )
         }
     }

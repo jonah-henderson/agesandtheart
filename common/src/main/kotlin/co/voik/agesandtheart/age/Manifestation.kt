@@ -53,6 +53,7 @@ private const val SKY_DRIFT_PACE = "pace"
 private const val DAY_STARS_BRIGHTNESS = "brightness"
 private const val LOW_CLOUDS_LOWNESS = "lowness"
 private const val STILL_CREATURES_ROOTED = "rooted"
+private const val STAMPED_SHAPES_STAMPED = "stamped"
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -181,6 +182,9 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
     /** Every creature in the Age is rooted where it stands, though it still watches and strikes. Strange. */
     STILL_CREATURES("still_creatures", STILL_CREATURES_ROOTED),
+
+    /** Every tree, boulder and patch in the Age comes out the same shape, as if stamped. Strange. */
+    STAMPED_SHAPES("stamped_shapes", STAMPED_SHAPES_STAMPED),
     ;
 
     /** What this manifestation's ladder sells steps of, in the order its file is read. */
