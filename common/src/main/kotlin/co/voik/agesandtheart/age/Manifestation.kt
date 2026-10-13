@@ -58,6 +58,7 @@ private const val UNCANNY_MOTES_SIZE = "size"
 private const val MONOCHROME_DRAINED = "drained"
 private const val SLOW_RAIN_SLOWNESS = "slowness"
 private const val SKY_TEARS_MANY = "many"
+private const val STRANGE_GRAVITY_STRENGTH = "strength"
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -210,6 +211,13 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
     /** Thin rifts of light hang torn high in the sky, still. **One dial**: how many. Strange. */
     SKY_TEARS("sky_tears", SKY_TEARS_MANY),
+
+    /**
+     * Everything in the Age falls lighter or heavier than it should, the seed deciding which (Jonah, 2026-10-13).
+     * **One dial** climbing the tiers: a little at its first step, which is strange, and a great deal at its
+     * second, which is harmful.
+     */
+    STRANGE_GRAVITY("strange_gravity", STRANGE_GRAVITY_STRENGTH),
     ;
 
     /** What this manifestation's ladder sells steps of, in the order its file is read. */
@@ -312,6 +320,9 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
         /** How many tears hang in the sky. */
         const val TEARS_MANY = SKY_TEARS_MANY
+
+        /** How far an Age's gravity is from vanilla's. */
+        const val GRAVITY_STRENGTH = STRANGE_GRAVITY_STRENGTH
     }
 }
 

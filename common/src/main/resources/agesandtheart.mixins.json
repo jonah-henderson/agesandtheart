@@ -15,6 +15,7 @@
     "EnderDragonMixin",
     "EntityCollidersMixin",
     "EntityFluidInteractionMixin",
+    "EntityGravityMixin",
     "FeaturePlacerMixin",
     "FireBlockInvoker",
     "ItemRemainderAccessor",

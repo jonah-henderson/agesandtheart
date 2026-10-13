@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "Everything in the Age falls lighter or heavier than it should (Jonah, 2026-10-13), the seed deciding which:",
+    "players, mobs, items, sand and arrows alike, and a fall hurts as hard as the vanilla fall that lands as fast.",
+    "15% from vanilla's at the first step, which is strange; 40% at the second, which is harmful -- heavy enough",
+    "that a jump no longer clears a block, or light enough to drift."
+  ],
+  "dials": {
+    "strength": {"tiers": [1, 2]}
+  }
+}

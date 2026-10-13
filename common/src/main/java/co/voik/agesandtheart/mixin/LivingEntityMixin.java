@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.mixin;
 
+import co.voik.agesandtheart.age.consequence.StrangeGravity;
 import co.voik.agesandtheart.content.RimeSkates;
 import co.voik.agesandtheart.content.Temperstone;
 import co.voik.agesandtheart.content.Toolbox;
@@ -31,7 +32,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * up around the replacement.
  *
  * <p>It also carries the skates' grip on the ground, which is a second thing with no event on either side.
- * See {@link #agesandtheart$skatingOverIt}.
+ * See {@link #agesandtheart$skatingOverIt}. And how far a fall counts for in an Age that pulls harder or softer,
+ * which is a third — see {@link #agesandtheart$fallenUnderTheAgesPull}.
  */
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin {
@@ -135,5 +137,15 @@ public abstract class LivingEntityMixin {
         if (held != null) {
             callback.setReturnValue(new Vec3(climbed.x, held, climbed.z));
         }
+    }
+
+    /**
+     * A fall counted as the vanilla fall that lands as hard: a body lands at the speed it would from its height
+     * times the Age's pull ({@link StrangeGravity}), so light gravity forgives a long drop and heavy gravity
+     * punishes a short one, and the safe distance moves with it.
+     */
+    @ModifyVariable(method = "calculateFallDamage", at = @At("HEAD"), argsOnly = true, ordinal = 0)
+    private double agesandtheart$fallenUnderTheAgesPull(double fallDistance) {
+        return fallDistance * StrangeGravity.of(((LivingEntity) (Object) this).level());
     }
 }

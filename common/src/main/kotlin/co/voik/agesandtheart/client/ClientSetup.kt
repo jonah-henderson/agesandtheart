@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.consequence.StrangeGravity
 import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.client.light.DeepLights
 import co.voik.agesandtheart.client.light.TintedLights
@@ -66,6 +67,7 @@ object ClientSetup {
         Surf.forget()
         StrangeMotes.forget()
         TornSky.forget()
+        StrangeGravity.disconnected()
         DeskModel.forget()
         Wounds.forget()
         TintedLights.forget()

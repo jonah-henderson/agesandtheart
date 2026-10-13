@@ -3,6 +3,7 @@ package co.voik.agesandtheart
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.consequence.Hostility
+import co.voik.agesandtheart.age.consequence.StrangeGravity
 import co.voik.agesandtheart.age.consequence.TornSky
 import co.voik.agesandtheart.age.consequence.UncannyMotes
 import co.voik.agesandtheart.age.consequence.Worsening
@@ -51,6 +52,8 @@ object AgeTick {
             // *got* may only advance while somebody is there and the rain is falling. See [Deluge].
             val rising = Deluge.risingIn(happening, spending)
             Deluge.stand(level, rising, saved.presenceIn(age))
+            // Before the emptiness check too: a chunk loading with nobody watching still has things in it that fall.
+            StrangeGravity.keep(level, recipe, spending)
             if (Sampling.watchers(level).isEmpty()) continue
             if (rising != null && level.isRaining) saved.spendATickIn(age)
             Happenings.befallAll(level, composition, happening, spending)

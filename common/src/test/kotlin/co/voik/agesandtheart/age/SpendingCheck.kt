@@ -92,12 +92,9 @@ class SpendingCheck : FunSpec({
 
     /** One slip is strange: a divided Age's seams tear, or something comes over its sky. */
     test("one flaw is a strange step, and a divided Age's seams can be it") {
-        fun isStrange(manifestation: Manifestation) =
-            SHIPPED_LADDERS.getValue(manifestation).dials.values.all { steps -> steps.tiers.all { it == Spending.STRANGE } }
         for (seed in seeds) {
             val bought = spent(1, seed, divided)
-            val strange = Manifestation.entries.filter(::isStrange).sumOf { bought.bought(it) }
-            check(strange == 1) { "one flaw in a divided Age under seed $seed bought $bought" }
+            check(tiersBought(bought) == listOf(Spending.STRANGE)) { "one flaw in a divided Age under seed $seed bought $bought" }
         }
         check(seeds.any { spent(1, it, divided).bought(Manifestation.TORN_SEAMS) == 1 }) {
             "no divided Age in forty tore its seams for one flaw"
@@ -328,4 +325,5 @@ internal val SHIPPED_LADDERS = mapOf(
         needs = setOf(Showing.RAIN),
     ),
     Manifestation.SKY_TEARS to Ladder.flat(Manifestation.SKY_TEARS, tier = 1, most = 3),
+    Manifestation.STRANGE_GRAVITY to Ladder(mapOf(Manifestation.GRAVITY_STRENGTH to tiers(1, 2))),
 )

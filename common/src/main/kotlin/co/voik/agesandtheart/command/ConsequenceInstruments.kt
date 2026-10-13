@@ -12,6 +12,7 @@ import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.SpendingSetting
 import co.voik.agesandtheart.age.consequence.Collapse
 import co.voik.agesandtheart.age.consequence.Consequence
+import co.voik.agesandtheart.age.consequence.StrangeGravity
 import net.minecraft.server.MinecraftServer
 import co.voik.agesandtheart.age.consequence.Wounds
 import net.minecraft.world.Difficulty
@@ -238,6 +239,8 @@ internal object ConsequenceInstruments {
             Manifestation.SKY_DRIFT, Manifestation.DAY_STARS, Manifestation.LOW_CLOUDS, Manifestation.UNCANNY_MOTES,
             Manifestation.MONOCHROME, Manifestation.SKY_TEARS -> "always, for anyone in it"
             Manifestation.STILL_CREATURES -> "on every creature as it loads"
+            Manifestation.STRANGE_GRAVITY ->
+                "everything falls at %.0f%% of vanilla's pull".format(StrangeGravity.factorFor(spending, recipe.seed) * PER_CENT)
             Manifestation.SLOW_RAIN -> "whenever it rains — $raining"
             Manifestation.BLIZZARD, Manifestation.DELUGE -> "with the weather — $raining"
             Manifestation.TEMPEST -> if (level.isThundering) "thundering now" else "not thundering now"

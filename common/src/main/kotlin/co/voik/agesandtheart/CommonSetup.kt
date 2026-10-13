@@ -1,6 +1,7 @@
 package co.voik.agesandtheart
 
 import co.voik.agesandtheart.age.consequence.StillCreatures
+import co.voik.agesandtheart.age.consequence.StrangeGravity
 import co.voik.agesandtheart.worldgen.structure.LocalMaps
 import co.voik.agesandtheart.worldgen.structure.RandomPaintings
 import net.minecraft.world.entity.Entity
@@ -111,6 +112,7 @@ object CommonSetup {
         PanelWarming.serverStopped()
         LocalMaps.serverStopped()
         PhenomenaCeiling.serverStopped()
+        StrangeGravity.serverStopped()
         Ages.serverStopped()
     }
 
