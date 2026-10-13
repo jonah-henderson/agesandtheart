@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.reward
 
 import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Ladder
@@ -28,9 +29,17 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
         fun of(
             server: MinecraftServer,
             composition: AgeComposition,
+            template: AgeTemplate,
             instability: Instability,
             seed: Long,
-        ): Survey = of(composition, instability, seed, DangerTable.of(server), Ladder.list(server))
+        ): Survey = of(
+            composition,
+            instability,
+            seed,
+            DangerTable.of(server),
+            Ladder.list(server),
+            SpendingSetting.of(server, composition, template, seed),
+        )
 
         /** The same, against a table and the ladders handed in — offline, and what the checks use. */
         fun of(
@@ -39,11 +48,12 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
             seed: Long,
             table: DangerTable,
             ladders: Map<Manifestation, Ladder>,
+            setting: SpendingSetting = SpendingSetting.of(composition),
         ): Survey {
             // Surveyed at a desk by somebody about to write the book, which is the whole of what `authored`
             // asks. A found Age is never surveyed, because a found Age was never composed here.
-            val danger = Danger.of(composition, instability, seed, authored = true, table, ladders)
-            val spending = Spending.of(instability, seed, ladders, SpendingSetting.of(composition))
+            val danger = Danger.of(composition, instability, seed, authored = true, table, ladders, setting)
+            val spending = Spending.of(instability, seed, ladders, setting)
             return Survey(
                 deposit = Yield.forVeins(Deposits.veinsPerChunk(danger)),
                 earlyMaterials = EarlyGameRareMaterials.grownIn(composition, seed, spending),

@@ -11,5 +11,5 @@
   "dials": {
     "width": {"tier": 1, "most": 4}
   },
-  "needs_regions": true
+  "needs": ["regions"]
 }

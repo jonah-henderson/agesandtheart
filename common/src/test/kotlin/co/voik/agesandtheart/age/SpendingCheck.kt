@@ -15,9 +15,10 @@ class SpendingCheck : FunSpec({
     /** Enough seeds that a rule holding for all of them is not a property of one draw. */
     val seeds = (0L..<40L).map { it * 7_919L + 13L }
 
-    val cold = SpendingSetting(mapOf("temperature" to -0.8, "humidity" to 0.0), hasRegions = false)
-    val hot = SpendingSetting(mapOf("temperature" to 0.8, "humidity" to -0.4), hasRegions = false)
-    val divided = SpendingSetting(emptyMap(), hasRegions = true)
+    val cold = SpendingSetting(mapOf("temperature" to -0.8, "humidity" to 0.0), emptySet())
+    val hot = SpendingSetting(mapOf("temperature" to 0.8, "humidity" to -0.4), emptySet())
+    val divided = SpendingSetting(emptyMap(), setOf(Showing.REGIONS))
+    val everythingShows = Showing.entries.toSet()
 
     fun spent(flaws: Int, seed: Long, setting: SpendingSetting = SpendingSetting.UNKNOWN, pages: Int = LONG_BOOK) =
         Spending.of(Instability.forced(flaws).copy(pages = pages), seed, SHIPPED_LADDERS, setting)
@@ -155,6 +156,17 @@ class SpendingCheck : FunSpec({
         }
     }
 
+    test("nothing is bought where the Age has nothing for it to show on") {
+        val needing = SHIPPED_LADDERS.filterValues { it.needs.isNotEmpty() }
+        for (seed in seeds) {
+            for (flaws in listOf(1, 3, 12)) {
+                val bought = spent(flaws, seed)
+                val shownOnNothing = needing.keys.filter { bought.bought(it) > 0 }
+                check(shownOnNothing.isEmpty()) { "an Age with nothing to show on bought $shownOnNothing under seed $seed" }
+            }
+        }
+    }
+
     /**
      * And every dial is bought somewhere, or it is dead content whatever the draw does — at flaw counts a book
      * reaches, and in the climate it leans towards, since a blizzard keeps the inferno out of an Age that is
@@ -163,7 +175,7 @@ class SpendingCheck : FunSpec({
      */
     test("every dial is bought by some Age with many flaws") {
         val manySeeds = (0L..<100L).map { it * 104_729L + 3L }
-        val climates = listOf(divided, hot.copy(hasRegions = true), cold.copy(hasRegions = true))
+        val climates = listOf(divided, hot, cold).map { it.copy(has = everythingShows) }
         for (manifestation in Manifestation.entries) {
             for (dial in manifestation.dials) {
                 val bought = climates.any { setting ->
@@ -235,7 +247,7 @@ private fun tiers(vararg each: Int) = DialSteps(each.toList())
  * server runs. `ShippedLaddersCheck` fails if it drifts from the files.
  */
 internal val SHIPPED_LADDERS = mapOf(
-    Manifestation.TORN_SEAMS to Ladder.flat(Manifestation.TORN_SEAMS, tier = 1, most = 4).copy(needsRegions = true),
+    Manifestation.TORN_SEAMS to Ladder.flat(Manifestation.TORN_SEAMS, tier = 1, most = 4).copy(needs = setOf(Showing.REGIONS)),
     Manifestation.WOUNDS to Ladder.flat(Manifestation.WOUNDS, tier = 2, most = 4),
     Manifestation.WORSENING_WOUNDS to Ladder.flat(Manifestation.WORSENING_WOUNDS, tier = 3, most = 3),
     Manifestation.SANDFALL to Ladder(
@@ -300,9 +312,13 @@ internal val SHIPPED_LADDERS = mapOf(
         .copy(leans = mapOf("humidity" to -0.3)),
     Manifestation.LOW_CLOUDS to Ladder.flat(Manifestation.LOW_CLOUDS, tier = 1, most = 2)
         .copy(leans = mapOf("humidity" to 0.3)),
-    Manifestation.STILL_CREATURES to Ladder.flat(Manifestation.STILL_CREATURES, tier = 1, most = 1),
-    Manifestation.STAMPED_SHAPES to Ladder.flat(Manifestation.STAMPED_SHAPES, tier = 1, most = 1),
-    Manifestation.LEAFLESS_TREES to Ladder.flat(Manifestation.LEAFLESS_TREES, tier = 1, most = 1),
-    Manifestation.ABANDONED_VILLAGES to Ladder.flat(Manifestation.ABANDONED_VILLAGES, tier = 1, most = 1),
+    Manifestation.STILL_CREATURES to Ladder.flat(Manifestation.STILL_CREATURES, tier = 1, most = 1)
+        .copy(needs = setOf(Showing.CREATURES)),
+    Manifestation.STAMPED_SHAPES to Ladder.flat(Manifestation.STAMPED_SHAPES, tier = 1, most = 1)
+        .copy(needs = setOf(Showing.TREES)),
+    Manifestation.LEAFLESS_TREES to Ladder.flat(Manifestation.LEAFLESS_TREES, tier = 1, most = 1)
+        .copy(needs = setOf(Showing.TREES)),
+    Manifestation.ABANDONED_VILLAGES to Ladder.flat(Manifestation.ABANDONED_VILLAGES, tier = 1, most = 1)
+        .copy(needs = setOf(Showing.VILLAGES)),
     Manifestation.UNCANNY_MOTES to Ladder.flat(Manifestation.UNCANNY_MOTES, tier = 1, most = 2),
 )

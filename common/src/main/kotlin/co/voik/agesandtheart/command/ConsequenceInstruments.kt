@@ -9,6 +9,7 @@ import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.ReportFor
 import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.SpendingSetting
 import co.voik.agesandtheart.age.consequence.Collapse
 import co.voik.agesandtheart.age.consequence.Consequence
 import net.minecraft.server.MinecraftServer
@@ -388,6 +389,8 @@ internal object ConsequenceInstruments {
         retellTheGenerator(source.server, id, forced)
         val spending = Spending.of(source.server, forced)
         report.say { "Age '$name' is now instability $index, which buys $spending." }
+        val setting = SpendingSetting.of(source.server, forced.composition, forced.template, forced.seed)
+        report.say { "  it has ${setting.has.joinToString { it.serializedName }.ifEmpty { "nothing" }} to show on." }
         report.say { "  walk to ground it has not generated yet. What exists catches up as it reloads if this bought worsening wounds; without them, existing ground keeps what it was made with." }
         return SUCCESS
     }

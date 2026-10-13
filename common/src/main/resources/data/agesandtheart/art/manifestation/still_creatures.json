@@ -2,9 +2,11 @@
   "_comment": [
     "Every creature in the Age is rooted where it stands (Jonah, 2026-10-12): it cannot walk, fly or jump, but",
     "still turns to watch you and still strikes or shoots at whatever comes into reach. Strange, and whole at",
-    "one step: there is nothing to dial."
+    "one step: there is nothing to dial.",
+    "Only in an Age where something lives, since a lifeless one would show nothing."
   ],
   "dials": {
     "rooted": {"tier": 1, "most": 1}
-  }
+  },
+  "needs": ["creatures"]
 }

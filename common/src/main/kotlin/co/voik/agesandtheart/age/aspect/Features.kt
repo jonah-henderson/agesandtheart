@@ -56,6 +56,15 @@ object Features {
         confinable = true,
     )
 
+    /** The book's feature claims, and those its landforms carry of their own ([Terrain.carriedFeatures]). */
+    fun writtenAndCarried(composition: AgeComposition): Options {
+        val written = composition.optionsFor(Aspect.FEATURES, 0)
+        val carried = composition.terrains.flatMap { it.carriedFeatures }.distinct()
+        if (carried.isEmpty()) return written
+        val places = PLACES.name
+        return Options(written.chosen + (places to (written.chosen[places].orEmpty() + carried).distinct()))
+    }
+
     /**
      * The claim naming [feature] in this composition, or null where nothing asks for it.
      *

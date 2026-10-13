@@ -2,9 +2,11 @@
   "_comment": [
     "Every village in the Age is vanilla's abandoned one (Jonah, 2026-10-12): the rare zombie variant, cobwebs,",
     "broken glass and zombie villagers. Only villages started after the Age is written. Strange, whole at one",
-    "step."
+    "step.",
+    "Only in an Age that builds villages, since one with none would show nothing."
   ],
   "dials": {
     "abandoned": {"tier": 1, "most": 1}
-  }
+  },
+  "needs": ["villages"]
 }

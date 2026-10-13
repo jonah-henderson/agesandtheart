@@ -126,8 +126,12 @@ data class Danger(
         private const val EVERY_STEP_OF_IT = 1.0
 
         /** How dangerous the Age [recipe] describes is, on the server running it. */
-        fun of(server: MinecraftServer, recipe: AgeRecipe): Danger =
-            of(recipe, DangerTable.of(server), Ladder.list(server))
+        fun of(server: MinecraftServer, recipe: AgeRecipe): Danger = of(
+            recipe,
+            DangerTable.of(server),
+            Ladder.list(server),
+            SpendingSetting.of(server, recipe.composition, recipe.template, recipe.seed),
+        )
 
         /**
          * The same, against a table and the ladders handed in — offline, and what the checks use.
@@ -135,10 +139,15 @@ data class Danger(
          * A bespoke Age scores nothing: it has no composition to read, and none of them is a thing a
          * writer wrote.
          */
-        fun of(recipe: AgeRecipe, table: DangerTable, ladders: Map<Manifestation, Ladder>): Danger {
+        fun of(
+            recipe: AgeRecipe,
+            table: DangerTable,
+            ladders: Map<Manifestation, Ladder>,
+            setting: SpendingSetting = SpendingSetting.of(recipe.composition),
+        ): Danger {
             val composition = (recipe.world as? AgeWorld.Composed)?.composition
                 ?: return nothing(table, recipe.authored)
-            return of(composition, recipe.instability, recipe.seed, recipe.authored, table, ladders)
+            return of(composition, recipe.instability, recipe.seed, recipe.authored, table, ladders, setting)
         }
 
         /**
@@ -155,8 +164,9 @@ data class Danger(
             authored: Boolean,
             table: DangerTable,
             ladders: Map<Manifestation, Ladder>,
+            setting: SpendingSetting = SpendingSetting.of(composition),
         ): Danger {
-            val spent = Spending.of(instability, seed, ladders, SpendingSetting.of(composition))
+            val spent = Spending.of(instability, seed, ladders, setting)
             return Danger(
                 materials = materialsOf(composition, table),
                 spawns = spawnsOf(composition, table, spent),

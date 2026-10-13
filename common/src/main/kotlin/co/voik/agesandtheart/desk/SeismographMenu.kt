@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.reward.Footing
 import co.voik.agesandtheart.age.reward.Tremor
@@ -111,10 +112,10 @@ private class LiveReading(player: ServerPlayer?, pos: BlockPos) : InstrumentRead
     }
 
     override fun ofTheSentence(writer: ServerPlayer, resolved: Resolution): Tremor =
-        Tremor.of(writer.level().server, resolved.instability, writer.writingSeed, resolved.composition)
+        Tremor.of(writer.level().server, resolved.instability, writer.writingSeed, resolved.composition, resolved.template)
 
     override fun ofAnIdleDesk(writer: ServerPlayer): Tremor =
-        Tremor.of(writer.level().server, Instability.NONE, writer.writingSeed, composition = null)
+        Tremor.of(writer.level().server, Instability.NONE, writer.writingSeed, composition = null, AgeTemplate.ORDINARY)
 
     /**
      * What the world the instrument is standing in is doing.
@@ -129,6 +130,7 @@ private class LiveReading(player: ServerPlayer?, pos: BlockPos) : InstrumentRead
             recipe?.instability ?: Instability.NONE,
             recipe?.seed ?: writer.writingSeed,
             recipe?.composition,
+            recipe?.template ?: AgeTemplate.ORDINARY,
         )
 
     override fun record(reading: Tremor) {

@@ -12,9 +12,6 @@ import net.minecraft.util.StringRepresentable
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import java.util.Optional
 import java.util.concurrent.ConcurrentHashMap
-import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.Claim
-import co.voik.agesandtheart.age.aspect.Span
 import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.pow
@@ -365,8 +362,11 @@ data class Ladder(
     val leans: Map<String, Double> = emptyMap(),
     /** What it can never share an Age with. Read both ways, so a pair need only be written on one side. */
     val excludes: Set<Manifestation> = emptySet(),
-    /** Whether it shows only in an Age divided into territories — torn seams, which tear what divides. */
-    val needsRegions: Boolean = false,
+    /**
+     * What an Age must have for it to show at all — torn seams need territories to tear, barren trees need
+     * trees. Never bought where one is missing, since a step there would show nothing (Jonah, 2026-10-12).
+     */
+    val needs: Set<Showing> = emptySet(),
 ) {
     companion object {
         private const val DEFAULT_TIER = Spending.HARMFUL
@@ -385,8 +385,8 @@ data class Ladder(
                 Codec.unboundedMap(Codec.STRING, DialSteps.CODEC).fieldOf("dials").forGetter(Ladder::dials),
                 Codec.unboundedMap(Codec.STRING, Codec.DOUBLE).optionalFieldOf("leans", emptyMap()).forGetter(Ladder::leans),
                 Manifestation.CODEC.listOf().optionalFieldOf("excludes", emptyList()).forGetter { it.excludes.toList() },
-                Codec.BOOL.optionalFieldOf("needs_regions", false).forGetter(Ladder::needsRegions),
-            ).apply(instance) { dials, leans, excludes, needsRegions -> Ladder(dials, leans, excludes.toSet(), needsRegions) }
+                Showing.CODEC.listOf().optionalFieldOf("needs", emptyList()).forGetter { it.needs.toList() },
+            ).apply(instance) { dials, leans, excludes, needs -> Ladder(dials, leans, excludes.toSet(), needs.toSet()) }
         }
 
         const val DIRECTORY = "art/manifestation"
@@ -432,38 +432,6 @@ data class Ladder(
                 }
             }
             return ladder.copy(dials = dials)
-        }
-    }
-}
-
-/**
- * What a finished Age is like, as far as choosing what its instability shows: its climate on each axis, from
- * −1 to 1, and whether it is divided into territories.
- */
-data class SpendingSetting(val climate: Map<String, Double>, val hasRegions: Boolean) {
-    companion object {
-        /** An Age nothing is known about: vanilla's whole climate, undivided. */
-        val UNKNOWN = SpendingSetting(emptyMap(), hasRegions = false)
-
-        /** The axes a ladder may lean on, as the climate parameters are named. */
-        val AXES = listOf("temperature", "humidity")
-
-        /** [composition]'s setting, or [UNKNOWN] for an Age that is not a composition. */
-        fun of(composition: AgeComposition?): SpendingSetting {
-            if (composition == null) return UNKNOWN
-            val climate = AXES.associateWith { axis -> middleOf(composition, axis) }
-            return SpendingSetting(climate, hasRegions = composition.membersIn(Aspect.TERRAIN) > 1)
-        }
-
-        /** The middle of [composition]'s range on [axis], averaged over its climates — nought where nothing bent it. */
-        private fun middleOf(composition: AgeComposition, axis: String): Double {
-            val territories = composition.membersIn(Aspect.CLIMATE).coerceAtLeast(1)
-            return (0..<territories).map { member ->
-                val written = composition.optionsFor(Aspect.CLIMATE, member).chosen[axis].orEmpty()
-                    .map(Claim::read).firstOrNull { it.confinedTo == null }?.value
-                val span = written?.let(Span::read) ?: Span.NATURAL
-                (span.least + span.most) / 2
-            }.average()
         }
     }
 }
@@ -579,7 +547,7 @@ data class Spending(
 
             fun isShutOut(manifestation: Manifestation): Boolean {
                 val ladder = ladderOf(manifestation)
-                val needsWhatIsNotThere = ladder.needsRegions && !setting.hasRegions
+                val needsWhatIsNotThere = !setting.has.containsAll(ladder.needs)
                 val barredByWhatCame = bought.keys.any { other ->
                     other in ladder.excludes || manifestation in ladderOf(other).excludes
                 }
@@ -626,7 +594,7 @@ data class Spending(
         fun of(server: MinecraftServer, recipe: AgeRecipe): Spending {
             val drawnSoFar = alreadyDrawn.of(server)
             if (drawnSoFar.size > MOST_REMEMBERED) drawnSoFar.clear()
-            val setting = SpendingSetting.of(recipe.composition)
+            val setting = SpendingSetting.of(server, recipe.composition, recipe.template, recipe.seed)
             return drawnSoFar.computeIfAbsent(Drawn(recipe.instability.index, recipe.instability.pages, recipe.seed, setting)) {
                 of(recipe.instability, recipe.seed, Ladder.list(server), setting)
             }

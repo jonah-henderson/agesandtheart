@@ -3,9 +3,12 @@
     "Every tree, boulder and patch in the Age comes out the same shape (Jonah, 2026-10-12): where things grow",
     "is left alone, but each feature is drawn from one seed of the Age's own, so every oak is the same oak.",
     "A random choice inside a feature comes out the same too, so a forest of mixed trees is one kind. Only",
-    "ground generated after the Age is written; a sapling grown by hand is its own. Strange, whole at one step."
+    "ground generated after the Age is written; a sapling grown by hand is its own. Strange, whole at one step.",
+    "Only in an Age whose biomes grow trees: identical trees are what reads as stamped, and the rest alone would",
+    "go unnoticed."
   ],
   "dials": {
     "stamped": {"tier": 1, "most": 1}
-  }
+  },
+  "needs": ["trees"]
 }

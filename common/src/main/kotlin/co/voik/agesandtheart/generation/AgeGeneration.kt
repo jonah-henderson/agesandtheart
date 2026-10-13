@@ -315,7 +315,7 @@ object AgeGeneration {
             // deposits sit nearest the biome's own and the character materials furthest out, which is the
             // order the four nested wrappers this replaced happened to produce. See [Decoration].
             Decoration.laidOver(
-                Features.placedIn(server, featuresWithWhatTheLandCarries(composition), seed, rockBlocks),
+                Features.placedIn(server, Features.writtenAndCarried(composition), seed, rockBlocks),
                 listOfNotNull(
                     Deposits.layer(Danger.of(server, recipe), rockBlocks),
                     // The buried lava tubes were laid here until 2026-09-11. They are their own page now
@@ -420,17 +420,7 @@ object AgeGeneration {
      *
      * **Only a scarp reaches it.** A rift is already kept out by `SeaFill.dry`, and a wall *adds* rock,
      * which must not put a wall of water up alongside it.
-     */
-    /** The book's feature claims, and those its landforms carry of their own ([Terrain.carriedFeatures]). */
-    private fun featuresWithWhatTheLandCarries(composition: AgeComposition): Options {
-        val written = composition.optionsFor(Aspect.FEATURES, 0)
-        val carried = composition.terrains.flatMap { it.carriedFeatures }.distinct()
-        if (carried.isEmpty()) return written
-        val places = Features.PLACES.name
-        return Options(written.chosen + (places to (written.chosen[places].orEmpty() + carried).distinct()))
-    }
-
-    /**
+     *
      * The rivers the terrains run of their own, as one body of water divided as the rock is — water whatever
      * the Age's sea is made of, since an island's river is there whether it has a sea or none.
      */
