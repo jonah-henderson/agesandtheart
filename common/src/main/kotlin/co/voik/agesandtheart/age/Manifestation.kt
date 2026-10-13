@@ -52,6 +52,7 @@ private const val SKY_DRIFT_STRENGTH = "strength"
 private const val SKY_DRIFT_PACE = "pace"
 private const val DAY_STARS_BRIGHTNESS = "brightness"
 private const val LOW_CLOUDS_LOWNESS = "lowness"
+private const val STILL_CREATURES_ROOTED = "rooted"
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -177,6 +178,9 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
     /** The cloud layer comes down to where people walk. Strange. */
     LOW_CLOUDS("low_clouds", LOW_CLOUDS_LOWNESS),
+
+    /** Every creature in the Age is rooted where it stands, though it still watches and strikes. Strange. */
+    STILL_CREATURES("still_creatures", STILL_CREATURES_ROOTED),
     ;
 
     /** What this manifestation's ladder sells steps of, in the order its file is read. */

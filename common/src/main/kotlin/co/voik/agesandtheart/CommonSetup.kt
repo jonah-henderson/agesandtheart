@@ -1,5 +1,6 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.age.consequence.StillCreatures
 import co.voik.agesandtheart.worldgen.structure.LocalMaps
 import co.voik.agesandtheart.worldgen.structure.RandomPaintings
 import net.minecraft.world.entity.Entity
@@ -119,6 +120,7 @@ object CommonSetup {
             is Painting -> RandomPaintings.loaded(entity)
             is ItemFrame -> LocalMaps.loaded(entity)
         }
+        StillCreatures.loaded(entity)
     }
 
     /** An entity leaving a server level, removed or unloaded with its chunk. */
