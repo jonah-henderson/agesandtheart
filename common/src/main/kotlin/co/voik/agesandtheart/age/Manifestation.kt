@@ -55,6 +55,7 @@ private const val LEAFLESS_TREES_BARE = "bare"
 private const val ABANDONED_VILLAGES_ABANDONED = "abandoned"
 private const val UNCANNY_MOTES_DENSITY = "density"
 private const val UNCANNY_MOTES_SIZE = "size"
+private const val MONOCHROME_DRAINED = "drained"
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -198,6 +199,9 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
      * the Age draws for itself. **Two dials**: how many, and how big. Strange.
      */
     UNCANNY_MOTES("uncanny_motes", UNCANNY_MOTES_DENSITY, UNCANNY_MOTES_SIZE),
+
+    /** The whole Age is seen in grey, all the time. Strange. */
+    MONOCHROME("monochrome", MONOCHROME_DRAINED),
     ;
 
     /** What this manifestation's ladder sells steps of, in the order its file is read. */

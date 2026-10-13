@@ -3,6 +3,7 @@ package co.voik.agesandtheart.sky
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.consequence.StrangeSky
+import co.voik.ephemeris.sky.LevelLook
 import co.voik.ephemeris.sky.SkySpec
 import io.kotest.core.spec.style.FunSpec
 
@@ -33,6 +34,12 @@ class StrangeSkyCheck : FunSpec({
         check(!StrangeSky.starsOn(SkySpec.VANILLA, bought(Manifestation.DAY_STARS, Manifestation.STARS_BY_DAY, 1, 2)).isOrdinary) {
             "a sky keeping its stars by day was left to vanilla, which cannot draw it"
         }
+    }
+
+    test("a monochrome Age is seen through the monochrome filter, and no other is") {
+        check(StrangeSky.filtersFor(Spending.NOTHING).isEmpty()) { "nothing bought still filtered the Age" }
+        val drained = StrangeSky.filtersFor(bought(Manifestation.MONOCHROME, "drained", 1, 1))
+        check(drained == listOf(LevelLook.MONOCHROME)) { "a monochrome Age was filtered by $drained" }
     }
 
     test("low clouds come lower with every step") {

@@ -321,4 +321,5 @@ internal val SHIPPED_LADDERS = mapOf(
     Manifestation.ABANDONED_VILLAGES to Ladder.flat(Manifestation.ABANDONED_VILLAGES, tier = 1, most = 1)
         .copy(needs = setOf(Showing.VILLAGES)),
     Manifestation.UNCANNY_MOTES to Ladder.flat(Manifestation.UNCANNY_MOTES, tier = 1, most = 2),
+    Manifestation.MONOCHROME to Ladder.flat(Manifestation.MONOCHROME, tier = 1, most = 1),
 )

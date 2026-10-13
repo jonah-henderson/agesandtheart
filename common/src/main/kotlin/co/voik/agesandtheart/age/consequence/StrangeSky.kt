@@ -4,14 +4,16 @@ import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.ephemeris.Rgba
+import co.voik.ephemeris.sky.LevelLook
 import co.voik.ephemeris.sky.Look
 import co.voik.ephemeris.sky.SkySpec
 import co.voik.ephemeris.sky.SkyWander
+import net.minecraft.resources.Identifier
 import kotlin.random.Random
 
 /**
- * What the strange tier does to an Age's sky: it wanders through wrong colours, keeps its stars by day, or
- * brings its clouds down to the ground. Seen only, and settled when the Age opens, since none of it changes
+ * What the strange tier does to an Age's sky: it wanders through wrong colours, keeps its stars by day, brings
+ * its clouds down to the ground, or drains the whole Age of colour. Seen only, and settled when the Age opens, since none of it changes
  * unless the book does.
  */
 object StrangeSky {
@@ -21,6 +23,10 @@ object StrangeSky {
         ceiling = cloudsFor(spending),
         wander = wanderFor(spending, seed),
     )
+
+    /** What the whole Age is seen through — drained of colour, where that was bought. */
+    fun filtersFor(spending: Spending): List<Identifier> =
+        if (spending.bought(Manifestation.MONOCHROME) > 0) listOf(LevelLook.MONOCHROME) else emptyList()
 
     /** [sky] with its stars kept through the day as far as was bought. */
     fun starsOn(sky: SkySpec, spending: Spending): SkySpec {
