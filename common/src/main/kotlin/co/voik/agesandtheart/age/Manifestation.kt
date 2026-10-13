@@ -54,6 +54,8 @@ private const val DAY_STARS_BRIGHTNESS = "brightness"
 private const val LOW_CLOUDS_LOWNESS = "lowness"
 private const val STILL_CREATURES_ROOTED = "rooted"
 private const val STAMPED_SHAPES_STAMPED = "stamped"
+private const val LEAFLESS_TREES_BARE = "bare"
+private const val ABANDONED_VILLAGES_ABANDONED = "abandoned"
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -185,6 +187,12 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
     /** Every tree, boulder and patch in the Age comes out the same shape, as if stamped. Strange. */
     STAMPED_SHAPES("stamped_shapes", STAMPED_SHAPES_STAMPED),
+
+    /** The Age's trees grow bare: trunk and branches and no leaves at all. Strange. */
+    LEAFLESS_TREES("leafless_trees", LEAFLESS_TREES_BARE),
+
+    /** Every village in the Age is vanilla's abandoned one, cobwebs and zombie villagers. Strange. */
+    ABANDONED_VILLAGES("abandoned_villages", ABANDONED_VILLAGES_ABANDONED),
     ;
 
     /** What this manifestation's ladder sells steps of, in the order its file is read. */

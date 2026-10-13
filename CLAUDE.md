@@ -360,7 +360,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Thirty-nine Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Forty-one Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -411,10 +411,12 @@ When shared code needs something loader-specific, it goes through an interface, 
   this refuses that conversion only for the sea's water in the open, inside the tide's band and above where
   it stands (`Tide.holdsBack`), since `canConvertToSource` takes no position and its caller `getNewLiquid`
   does. Water still flows there; it only cannot become new sea.
-- **`FeaturePlacerMixin`** — every feature alike in an Age whose shapes are stamped (`StampedShapes`). The
-  random a feature is drawn with is the one its placement modifiers just used, and the two are told apart only
-  at the call between them in `FeaturePlacer`; neither loader has a placement event. Answered off a thread-local
-  the Age's generator sets around its own decoration, so it costs one read anywhere else.
+- **`FeaturePlacerMixin`**, **`TreeFeatureMixin`** and **`JigsawPlacementMixin`** — what the strange tier does to
+  new ground (`StrangeGround`): every feature drawn from one random per feature, trees handed a foliage setter
+  that places nothing, and a village's start drawn from its pool's abandoned pieces. Each is the one call where
+  the thing is decided, and neither loader has a placement, tree or jigsaw event. All three answer off
+  thread-locals the Age's generator sets around its own decoration and structure starts, so they cost one read
+  anywhere else.
 - **`BubbleColumnBlockMixin`** — in a level with an abyss, every bubble column is `DeepBubbleColumnBlock`'s, so one column runs on through ordinary water and deep water, each block keeping the water it replaced. In 26.1 a column is raised by the liquid over magma or soul sand calling the static `updateColumn`; neither loader has an event for it, and vanilla places its blocks without notifying anything, so a column stopped at the abyss had nothing to tell the deep water above to carry it on. Only vanilla's own column, only where there is an abyss.
 
 The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.

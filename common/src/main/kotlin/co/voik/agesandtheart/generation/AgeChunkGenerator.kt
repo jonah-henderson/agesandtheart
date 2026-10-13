@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.generation
 
-import co.voik.agesandtheart.age.consequence.StampedShapes
+import co.voik.agesandtheart.age.consequence.StrangeGround
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.phenomena.Deluge
@@ -620,7 +620,9 @@ class AgeChunkGenerator(
         structureTemplateManager: StructureTemplateManager,
         level: ResourceKey<Level>,
     ) {
-        super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
+        StrangeGround.startingStructures(consequence) {
+            super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
+        }
         for ((structure, start) in centerChunk.allStarts) {
             if (!start.isValid) continue
             val settled = settledOverTheVoid(start, centerChunk, state.randomState())
@@ -1292,7 +1294,7 @@ class AgeChunkGenerator(
      * generated today and the same chunk generated next year must agree about whether it holds one.
      */
     override fun applyBiomeDecoration(level: WorldGenLevel, chunk: ChunkAccess, structures: StructureManager) {
-        StampedShapes.decorating(consequence.stampsShapes, level.seed) {
+        StrangeGround.decorating(consequence, level.seed) {
             super.applyBiomeDecoration(level, chunk, structures)
         }
         // **The abyss is put right first, and before the early return below.** A structure brings its own

@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "Every village in the Age is vanilla's abandoned one (Jonah, 2026-10-12): the rare zombie variant, cobwebs,",
+    "broken glass and zombie villagers. Only villages started after the Age is written. Strange, whole at one",
+    "step."
+  ],
+  "dials": {
+    "abandoned": {"tier": 1, "most": 1}
+  }
+}

@@ -19,6 +19,7 @@
     "FireBlockInvoker",
     "ItemRemainderAccessor",
     "FlowingFluidMixin",
+    "JigsawPlacementMixin",
     "LecternBlockEntityMixin",
     "LecternBlockMixin",
     "LifelessLevelMixin",
@@ -34,7 +35,8 @@
     "ProjectileMixin",
     "ServerLevelMixin",
     "ServerPlayerMixin",
-    "StateDefinitionBuilderMixin"
+    "StateDefinitionBuilderMixin",
+    "TreeFeatureMixin"
   ],
   "client": [
     "client.CameraMixin",

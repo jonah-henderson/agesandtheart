@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.mixin;
 
-import co.voik.agesandtheart.age.consequence.StampedShapes;
+import co.voik.agesandtheart.age.consequence.StrangeGround;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 /**
- * Hands a feature a fixed random in an Age whose shapes are stamped ({@link StampedShapes}).
+ * Hands a feature a fixed random in an Age whose shapes are stamped ({@link StrangeGround}).
  *
  * <p><b>Why a mixin.</b> The random a feature is drawn with is the same one its placement modifiers just
  * used to choose where it goes, and the two are only told apart here, at the call between them. Neither
@@ -45,6 +45,6 @@ public abstract class FeaturePlacerMixin {
         BlockPos origin,
         boolean biomeCheck
     ) {
-        return feature.place(level, generator, StampedShapes.randomFor(placed, random), at);
+        return feature.place(level, generator, StrangeGround.randomFor(placed, random), at);
     }
 }

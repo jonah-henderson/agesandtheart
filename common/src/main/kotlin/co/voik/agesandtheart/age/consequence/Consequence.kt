@@ -30,8 +30,12 @@ data class Consequence(
     val collapseTears: Int,
     /** The overworld tick the Age was written on, which the two rates are counted from. */
     val writtenAt: Long,
-    /** Whether every feature in the Age comes out the same shape — [StampedShapes]. */
+    /** Whether every feature in the Age comes out the same shape — [StrangeGround]. */
     val stampsShapes: Boolean = false,
+    /** Whether the Age's trees grow without leaves — [StrangeGround]. */
+    val leafless: Boolean = false,
+    /** Whether every village in the Age is the abandoned one — [StrangeGround]. */
+    val abandonsVillages: Boolean = false,
 ) {
     /** Whether anything at all is wrong, so a coherent Age can skip the whole pass. */
     val isNothing: Boolean
@@ -100,6 +104,10 @@ data class Consequence(
                     .forGetter(Consequence::writtenAt),
                 Codec.BOOL.optionalFieldOf("stamps_shapes", false)
                     .forGetter(Consequence::stampsShapes),
+                Codec.BOOL.optionalFieldOf("leafless", false)
+                    .forGetter(Consequence::leafless),
+                Codec.BOOL.optionalFieldOf("abandons_villages", false)
+                    .forGetter(Consequence::abandonsVillages),
             ).apply(instance, ::Consequence)
         }
 
@@ -112,6 +120,8 @@ data class Consequence(
                 collapseTears = Collapse.tearsPerCellAt(spending.bought(Manifestation.COLLAPSE)),
                 writtenAt = recipe.writtenAt,
                 stampsShapes = spending.bought(Manifestation.STAMPED_SHAPES) > 0,
+                leafless = spending.bought(Manifestation.LEAFLESS_TREES) > 0,
+                abandonsVillages = spending.bought(Manifestation.ABANDONED_VILLAGES) > 0,
             )
         }
     }
