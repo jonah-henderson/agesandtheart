@@ -1,0 +1,14 @@
+{
+  "type": "neoforge:add_table",
+  "condition": { "type": "minecraft:all_of", "terms": [
+    {
+      "type": "neoforge:loot_table_id",
+      "loot_table_id": "minecraft:barrels/abandoned_camp_barrel"
+    },
+    {
+      "type": "minecraft:random_chance",
+      "chance": 0.30
+    }
+  ] },
+  "table": "agesandtheart:inject/pages_early"
+}

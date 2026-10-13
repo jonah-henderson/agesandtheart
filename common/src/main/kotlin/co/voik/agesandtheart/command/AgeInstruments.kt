@@ -31,6 +31,7 @@ object AgeInstruments {
         ConsequenceInstruments.addTo(age)
         PlayerInstruments.addTo(age)
         RewardInstruments.addTo(age)
+        LootInstruments.addTo(age)
         ReleaseInstruments.addTo(age)
         StructureInstruments.addTo(age)
     }

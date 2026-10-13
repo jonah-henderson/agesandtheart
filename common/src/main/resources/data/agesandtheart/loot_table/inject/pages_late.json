@@ -2,12 +2,17 @@
   "_comment": [
     "A page from somewhere found later: staple, uncommon and rare words, and a critical word only while the",
     "finder still lacks one. By the time a player is opening these, the early finds should usually have",
-    "filled the critical set, so this entry mostly steps aside rather than retreading it."
+    "filled the critical set, so this entry mostly steps aside rather than retreading it. One to three pages,",
+    "each drawn on its own."
   ],
   "type": "minecraft:chest",
   "pools": [
     {
-      "rolls": 1,
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 1,
+        "max": 3
+      },
       "entries": [
         {
           "type": "minecraft:item",

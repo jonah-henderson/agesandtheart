@@ -85,6 +85,25 @@ object PageLoot {
         vanilla("chests/trial_chambers/entrance", 0.30f, EARLY_PAGES),
         vanilla("chests/trial_chambers/intersection", 0.30f, EARLY_PAGES),
         vanilla("chests/trial_chambers/intersection_barrel", 0.30f, EARLY_PAGES),
+        // A vault's reward nests its common, rare and unique tables, so the page goes in the parent alone.
+        vanilla("chests/trial_chambers/reward", 0.45f, EARLY_PAGES),
+        vanilla("chests/abandoned_camp_common_chest", 0.45f, EARLY_PAGES),
+        vanilla("barrels/abandoned_camp_barrel", 0.30f, EARLY_PAGES),
+        // Every house in a village, so pitched low: a village is a dozen of them.
+        vanilla("chests/village/village_armorer", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_butcher", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_desert_house", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_fisher", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_fletcher", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_mason", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_plains_house", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_savanna_house", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_shepherd", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_snowy_house", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_taiga_house", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_tannery", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_toolsmith", 0.15f, EARLY_PAGES),
+        vanilla("chests/village/village_weaponsmith", 0.15f, EARLY_PAGES),
 
         // Late pages: further in, more often, and from further up the rarities.
         vanilla("chests/stronghold_library", 0.70f, LATE_PAGES),
@@ -97,6 +116,9 @@ object PageLoot {
         vanilla("chests/nether_bridge", 0.30f, LATE_PAGES),
         vanilla("chests/bastion_other", 0.30f, LATE_PAGES),
         vanilla("chests/bastion_bridge", 0.30f, LATE_PAGES),
+        vanilla("chests/trial_chambers/reward_ominous", 0.60f, LATE_PAGES),
+        vanilla("chests/abandoned_camp_secret_chest", 0.60f, LATE_PAGES),
+        vanilla("chests/buried_treasure", 0.60f, LATE_PAGES),
 
         // Notebooks: someone's whole collection, so only where a person kept one, and rarely.
         vanilla("chests/stronghold_library", 0.12f, NOTEBOOK),

@@ -3,12 +3,17 @@
     "A page from somewhere found early: mostly the words the world is made of, with some staples and some",
     "critical words -- which the critical bucket picks from what the finder lacks while any are left. Always on",
     "here: only the late pages make their critical entry wait on the finder lacking one (finder_lacks).",
-    "Which containers and how often is PageLoot's business (and the NeoForge loot modifiers')."
+    "One or two pages, each drawn on its own. Which containers and how often is PageLoot's business (and the",
+    "NeoForge loot modifiers')."
   ],
   "type": "minecraft:chest",
   "pools": [
     {
-      "rolls": 1,
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 1,
+        "max": 2
+      },
       "entries": [
         {
           "type": "minecraft:item",
