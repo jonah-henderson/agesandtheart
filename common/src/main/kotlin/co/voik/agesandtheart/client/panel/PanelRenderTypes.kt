@@ -107,11 +107,6 @@ object PanelRenderTypes {
         RenderSetup.builder(
             RenderPipeline.builder(LAID)
                 .withLocation("pipeline/linking_panel_mist".location())
-                .withBindGroupLayout(
-                    BindGroupLayout.builder()
-                        .withUniform("Globals", UniformType.UNIFORM_BUFFER)
-                        .build(),
-                )
                 .withVertexShader("panel_mist".location())
                 .withFragmentShader("panel_mist".location())
                 .withVertexBinding(ONLY_VERTEX_BINDING, DefaultVertexFormat.POSITION_COLOR)

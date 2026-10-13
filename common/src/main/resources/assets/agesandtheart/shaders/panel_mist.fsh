@@ -3,7 +3,6 @@
 #extension GL_ARB_separate_shader_objects : require
 
 #include <minecraft:dynamictransforms.glsl>
-#include <minecraft:globals.glsl>
 #include <ephemeris:noise.glsl>
 
 layout(location = 0) in vec4 vertexColor;
@@ -14,7 +13,7 @@ layout(location = 0) out vec4 fragColor;
 // How wide a bank of mist is, in pixels of the page.
 const float BANK = 26.0;
 
-// How far the field moves per unit of `GameTime`, which runs nought to one across a day.
+// How far the field moves per unit of the clock, which runs nought to one across twenty real minutes.
 const float DRIFT = 1350.0;
 
 // How far the field drags itself about. This is the whole difference between mist that curls and a
@@ -31,7 +30,10 @@ const float LIGHTEST = 0.66;
 
 void main() {
     vec2 at = acrossThePage / BANK;
-    float phase = GameTime * DRIFT;
+    // The clock rides in the vertex colour's red and green as a high and a low byte, since `GameTime` stands
+    // still while a level is loading — which is when a link's mist is on screen.
+    float clock = (vertexColor.r * 255.0 * 256.0 + vertexColor.g * 255.0) / 65535.0;
+    float phase = clock * DRIFT;
 
     vec2 pull = vec2(
         ephemerisFbm(at + vec2(phase * 0.05, 0.0), FIELD, 3),

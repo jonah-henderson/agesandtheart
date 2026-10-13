@@ -20,6 +20,7 @@ import net.minecraft.client.renderer.ProjectionMatrixBuffer
 import net.minecraft.client.renderer.rendertype.PreparedRenderType
 import net.minecraft.client.renderer.rendertype.RenderType
 import net.minecraft.util.ARGB
+import net.minecraft.util.Util
 import org.joml.Matrix4f
 
 /**
@@ -54,6 +55,16 @@ object PanelComposite {
     private const val FURTHEST_DEPTH = 0.0
     private const val WHOLLY_MISTED = 1.0f
     private const val UNTINTED = -1
+
+    /**
+     * Where the mist's drift stands, as sixteen bits of a twenty-minute cycle — the same pace vanilla's day gave
+     * it through `GameTime`, which stands still while a level loads. `panel_mist.fsh` reads it back.
+     */
+    private fun mistClock(): Int = ((Util.getMillis() % MIST_CYCLE_MILLIS) * SIXTEEN_BITS / MIST_CYCLE_MILLIS).toInt()
+
+    private const val MIST_CYCLE_MILLIS = 1_200_000L
+    private const val SIXTEEN_BITS = 65_535L
+    private const val BYTE = 8
     private const val FULLY = 255
 
     /** Room for the busiest picture, a torn Age's cut, without the builder having to grow. */
@@ -250,7 +261,8 @@ object PanelComposite {
                 builder.addVertex(right, top, 0.0f).setUv(stroke.u1, stroke.v0).setColor(UNTINTED)
             }
             is PanelStroke.Mist -> {
-                val colour = ARGB.color((stroke.strength * FULLY).toInt(), FULLY, FULLY, FULLY)
+                val clock = mistClock()
+                val colour = ARGB.color((stroke.strength * FULLY).toInt(), clock shr BYTE, clock and FULLY, FULLY)
                 builder.addVertex(left, top, 0.0f).setColor(colour)
                 builder.addVertex(left, bottom, 0.0f).setColor(colour)
                 builder.addVertex(right, bottom, 0.0f).setColor(colour)
