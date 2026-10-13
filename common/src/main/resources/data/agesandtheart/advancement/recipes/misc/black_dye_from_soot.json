@@ -1,0 +1,10 @@
+{
+  "_comment": "Learned on first holding soot.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_soot": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [{ "items": "agesandtheart:soot" }] } },
+    "has_the_recipe": { "trigger": "minecraft:recipe_unlocked", "conditions": { "recipes": "agesandtheart:black_dye_from_soot" } }
+  },
+  "requirements": [["has_soot", "has_the_recipe"]],
+  "rewards": { "recipes": ["agesandtheart:black_dye_from_soot"] }
+}

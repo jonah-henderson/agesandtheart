@@ -1,0 +1,8 @@
+{
+  "_comment": "Soot is not a dye in itself; it makes one, and black dye is what goes into ink and wool.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "black_dye",
+  "ingredients": ["agesandtheart:soot"],
+  "result": { "id": "minecraft:black_dye", "count": 1 }
+}
