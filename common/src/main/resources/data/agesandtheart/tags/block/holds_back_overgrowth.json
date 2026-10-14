@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "What stops an overgrowth spreading and burns its thorns (design 5.2.2): the hot things themselves, which",
+    "keeps the answer active -- a fire has to be kept burning. Lava and a *lit* campfire are read off their",
+    "state rather than their block, so they are not listed. Netherrack is deliberately not here: it is how a",
+    "fire is kept lit, not a fire."
+  ],
+  "replace": false,
+  "values": ["minecraft:fire", "minecraft:soul_fire", "minecraft:magma_block"]
+}

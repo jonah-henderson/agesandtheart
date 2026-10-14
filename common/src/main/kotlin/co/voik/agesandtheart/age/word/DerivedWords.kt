@@ -87,7 +87,7 @@ object DerivedWords {
             // **Only if a world could be made of it** (§3.2, [Materials]). A word that claimed the rock and
             // was refused there would reach the landmass, set nothing and cost a page — §3.3's silent drop.
             // A sign keeps its word and keeps every other use of it; what it stops being is a world.
-            if (Materials.makesAWorld(id.toString())) add(Aspect.TERRAIN)
+            if (Materials.makesARock(id.toString())) add(Aspect.TERRAIN)
         },
 
         // **A block, and nothing else.** The sea is the one aspect whose values are blocks, so saying so
@@ -96,7 +96,7 @@ object DerivedWords {
         entryOf = Registries.BLOCK,
         sets = buildMap {
             put(Surface.MATERIAL.name, id.toString())
-            if (Materials.makesAWorld(id.toString())) put(Terrain.STONE.name, id.toString())
+            if (Materials.makesARock(id.toString())) put(Terrain.STONE.name, id.toString())
         },
     )
 

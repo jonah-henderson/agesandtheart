@@ -1,0 +1,5 @@
+{
+  "_comment": "Plants an overgrowth never raises, however it finds a plant to raise: yema is tended, not found.",
+  "replace": false,
+  "values": ["agesandtheart:paper_tree_sapling", "agesandtheart:dead_paper_tree_sapling"]
+}

@@ -71,6 +71,22 @@ class MaterialsCheck : FunSpec({
         check(Surface.MATERIAL.accepts("minecraft:air")) { "a skin of air is how the ground wears nothing" }
     }
 
+    /**
+     * **Rock does not fall.** Sand and gravel are worlds a player can stand on and still not rock: carved
+     * under, they come down and bring down what is above, so a gravel Age with caves went to twenty-five
+     * thousand falling blocks. The skin may still be one.
+     */
+    test("the rock refuses a block that falls, and the skin does not") {
+        for (name in FALLING) {
+            val block = blockNamed(blocks, name)
+            check(Materials.makesAWorld(block)) { "'$name' stopped being a world, which this rule did not mean" }
+            check(!Materials.makesARock(block)) { "'$name' can be the rock and falls" }
+            check(!Terrain.STONE.accepts("minecraft:$name")) { "'$name' landmass is still a sentence" }
+            check(Surface.MATERIAL.accepts("minecraft:$name")) { "the skin refused '$name', which dresses a desert" }
+        }
+        check(Materials.makesARock(blockNamed(blocks, "sandstone"))) { "sandstone cannot be the rock" }
+    }
+
     /** A fluid holds nobody up and is allowed, because an ocean world is a thing somebody meant. */
     test("a world may be a fluid") {
         check(Materials.makesAWorld(blockNamed(blocks, "water"))) { "an ocean world was refused" }
@@ -89,6 +105,9 @@ class MaterialsCheck : FunSpec({
         for (name in NOT_SEAS) {
             check(!Materials.makesASea(blockNamed(blocks, name))) { "'$name' can be a sea and should not be" }
         }
+        for (name in FALLING) {
+            check(!Materials.makesASea(blockNamed(blocks, name))) { "'$name' can be a sea and falls" }
+        }
         check(!Aspect.SEA.canBeMadeOf("minecraft:bamboo")) { "'bamboo sea' is still a sentence" }
         check(Aspect.SEA.canBeMadeOf("minecraft:water")) { "'water sea' stopped being a sentence" }
     }
@@ -102,12 +121,14 @@ private const val ENOUGH_TO_CHOOSE_FROM = 380
 
 private val WORLDS = listOf("stone", "sand", "gravel", "glass", "pumpkin", "obsidian", "gold_block")
 
+private val FALLING = listOf("sand", "red_sand", "gravel", "white_concrete_powder")
+
 private val NOT_WORLDS = listOf(
     "oak_sign", "chest", "white_carpet", "stone_slab", "oak_stairs", "iron_chain", "scaffolding", "torch",
 )
 
 private val SEAS = listOf(
-    "air", "water", "lava", "ice", "frosted_ice", "magma_block", "stone", "sand", "glass", "cobweb", "stone_slab",
+    "air", "water", "lava", "ice", "frosted_ice", "magma_block", "stone", "glass", "cobweb", "stone_slab",
 )
 
 private val NOT_SEAS = listOf(

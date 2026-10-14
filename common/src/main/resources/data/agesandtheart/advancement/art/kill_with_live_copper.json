@@ -1,0 +1,20 @@
+{
+  "parent": "agesandtheart:art/visit_a_charged_age",
+  "criteria": {
+    "done": {
+      "trigger": "agesandtheart:killed_with_live_copper"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "minecraft:copper_block"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.kill_with_live_copper.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.kill_with_live_copper.description"
+    },
+    "frame": "goal"
+  }
+}

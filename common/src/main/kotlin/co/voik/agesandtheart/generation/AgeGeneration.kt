@@ -37,7 +37,9 @@ import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.CeilingField
 import co.voik.agesandtheart.worldgen.MagmaChamberField
+import co.voik.agesandtheart.worldgen.Dislocation
 import co.voik.agesandtheart.worldgen.Overlay
+import co.voik.agesandtheart.worldgen.field.Dislocated
 import co.voik.agesandtheart.worldgen.VolcanoField
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.VanillaDelegate
@@ -111,6 +113,7 @@ object AgeGeneration {
         // Derived rather than stored: a pure function of the recipe, so it comes out the same on every open.
         val spending = Spending.of(server, recipe)
         val torn = spending.reach(Manifestation.TORN_SEAMS)
+        val dislocation = Dislocation(seed xor DISLOCATION_SALT, spending.reach(Manifestation.FOREIGN_GROUND))
 
         // One band for every Age, and the same one every dimension type admits — see [VerticalWindow].
         val window = VerticalWindow.DEFAULT
@@ -127,7 +130,7 @@ object AgeGeneration {
         // are all the same object — see the note on `ourGround`'s parameter.
         val overlay = volcanicOverlay(composition, seed)
         val ourGround = if (composition.terrains.any { it.isVanillas }) null
-        else ourGround(composition, landmass, ground, window, seed, torn, overlay)
+        else ourGround(composition, landmass, ground, window, seed, torn, overlay, dislocation)
 
         val chasm = ourGround?.chasm
         val standing = ourGround?.standing
@@ -341,6 +344,7 @@ object AgeGeneration {
             bought = Consequence.of(server, recipe),
             // Read only where the rock is vanilla's; a landform of ours folded the same object in already.
             overlay = if (ourGround == null) overlay else Overlay.NONE,
+            dislocation = if (ourGround == null) dislocation else Dislocation.NONE,
         )
     }
 
@@ -610,6 +614,7 @@ object AgeGeneration {
          * about: a second field is free to disagree with the first.
          */
         volcanic: Overlay,
+        dislocation: Dislocation,
     ): OurGround {
         val grounds = composition.terrains.mapIndexed { member, terrain ->
             terrain.ground(
@@ -624,7 +629,7 @@ object AgeGeneration {
         // field, where the profile and the shape were designed together. There is no Age-wide pass.
         val weathered = Regions.of(grounds.map { it.shape }, ground)
         // The fault comes last, over the finished rock — see [Fault].
-        val shape = faulted(weathered, landmass.seam, ground, seed, torn)
+        val shape = Dislocated.over(faulted(weathered, landmass.seam, ground, seed, torn), dislocation)
         val riftCut = riftVolume(landmass.seam, ground, torn)
         // **A world shut overhead needs something to shut it.** A template's roof is part of its rock, so
         // naming a landform took it away and left `sealed=always` saying only what the dimension type says
@@ -662,7 +667,7 @@ object AgeGeneration {
             // for the other. What that space wants is the same three-way `WaterTable` a carved cave meets.
             AgeRock.Ours(
                 field = standingRock,
-                hollows = openedBy(hollowedRock(grounds, ground), riftCut),
+                hollows = openedBy(hollowedRock(grounds, ground)?.let { Dislocated.over(it, dislocation) }, riftCut),
                 // The land kept apart from the lid, since a ceiling is not ground however solid it is. A
                 // cone is ground, so it stays in — what this separates is the roof, not everything added.
                 ground = Union(listOfNotNull(shape, cones)).takeIf { lid != null },
@@ -673,6 +678,9 @@ object AgeGeneration {
     }
 
     private val LAVA = Blocks.LAVA.defaultBlockState()
+
+    /** So where the ground is foreign is decorrelated from everything else this seed decides. */
+    private const val DISLOCATION_SALT = 0x464F_5245_4947_4EL
 
     /** So which sea wins is decorrelated from everything else this seed decides. */
     private const val WATERLINE_SALT = 0x5EA_1E7EL

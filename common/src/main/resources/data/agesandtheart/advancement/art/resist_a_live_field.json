@@ -1,0 +1,20 @@
+{
+  "parent": "agesandtheart:art/visit_a_charged_age",
+  "criteria": {
+    "done": {
+      "trigger": "agesandtheart:caged_from_a_field"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "minecraft:chainmail_chestplate"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.resist_a_live_field.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.resist_a_live_field.description"
+    },
+    "frame": "goal"
+  }
+}

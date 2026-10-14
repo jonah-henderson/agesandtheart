@@ -150,6 +150,8 @@ val SPECS_BY_FEATURE: Map<String, List<String>> = mapOf(
     "phenomena" to listOf(
         "co.voik.agesandtheart.age.phenomena.*",
         "co.voik.agesandtheart.server.TempestCheck",
+        "co.voik.agesandtheart.server.OvergrowthOnServerCheck",
+        "co.voik.agesandtheart.server.OvergrownGroundOnServerCheck",
     ),
     "advancements" to listOf("co.voik.agesandtheart.advancement.*"),
     "compatibility" to listOf(

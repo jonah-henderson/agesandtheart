@@ -1,0 +1,5 @@
+{
+  "_comment": "The mushrooms an overgrowth raises, the second of what it favours; one of these may be grown huge.",
+  "replace": false,
+  "values": ["minecraft:brown_mushroom", "minecraft:red_mushroom"]
+}

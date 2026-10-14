@@ -105,7 +105,7 @@ data class Parameter(
         // **Rock has to hold somebody up** ([Materials]). Asked here because this is the one gate every
         // reader already goes through: `Options.of` filters on it and `unreadableValues` reports what it
         // filtered, so a refused block falls back and is *said* rather than quietly becoming stone.
-        return !holdsYouUp || Materials.makesAWorld(option)
+        return !holdsYouUp || Materials.makesARock(option)
     }
 
     /**

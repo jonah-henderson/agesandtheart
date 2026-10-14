@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.location
 import kotlin.math.roundToLong
 import net.minecraft.core.BlockPos
@@ -15,6 +16,7 @@ import net.minecraft.world.damagesource.DamageType
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Items
 import java.util.WeakHashMap
 import net.minecraft.world.level.Level
@@ -146,7 +148,13 @@ object ChargedMetal {
         val over = HashMap<Entity, MutableList<Arcs.Run>>()
         for (run in runs) {
             val beam = beamOf(run) ?: continue
-            for (entity in level.getEntities(null as Entity?, beam) { movedByAField(it) }) {
+            // Spectators only are exempt. A creative player is *not*, and that is deliberate: creative is how
+            // this gets looked at, and a field somebody cannot feel while testing it is a field nobody can tune.
+            for (entity in level.getEntities(null as Entity?, beam) { !it.isSpectator }) {
+                if (isCaged(entity)) {
+                    if (entity is ServerPlayer) AgeTriggers.CAGED_FROM_A_FIELD.trigger(entity)
+                    continue
+                }
                 over.getOrPut(entity) { mutableListOf() } += run
             }
         }
@@ -184,7 +192,11 @@ object ChargedMetal {
         entity.push(along.scale(-sense * strength))
         // A server that moves a player has to say so, or their own client puts them straight back — the
         // same flag an explosion sets.
-        if (entity is ServerPlayer) entity.syncVelocity = true
+        if (entity is ServerPlayer) {
+            entity.syncVelocity = true
+            val trigger = if (sense == TOWARD) AgeTriggers.PULLED_BY_LIVE_IRON else AgeTriggers.PUSHED_BY_LIVE_GOLD
+            trigger.trigger(entity)
+        }
     }
 
     private fun alongOf(run: Arcs.Run): Vec3? =
@@ -215,7 +227,16 @@ object ChargedMetal {
         if (struck.isEmpty()) return
         val from = throwsFrom(rods, run, struck.first().position())
         for (entity in struck) ArcBolt.thrown(level, from, entity.boundingBox.center)
+        struck.filter { it !is Player && it.isDeadOrDying }.forEach { creditTheKill(level, it) }
         spendACharge(level, run)
+    }
+
+    /** Credits a kill to each player within [CREDITED_WITHIN] of the victim, since a bite has no attacker. */
+    private fun creditTheKill(level: ServerLevel, victim: Entity) {
+        for (player in level.players()) {
+            if (player.isSpectator) continue
+            if (player.distanceToSqr(victim) <= CREDITED_WITHIN * CREDITED_WITHIN) AgeTriggers.KILLED_WITH_LIVE_COPPER.trigger(player)
+        }
     }
 
     /**
@@ -399,7 +420,7 @@ object ChargedMetal {
         run.blocks.fold(AABB(run.blocks.first())) { box, block -> box.minmax(AABB(block)) }
 
     /**
-     * Whether a field may move this at all.
+     * Whether a field cannot move this.
      *
      * **Chainmail is the shield, and it is a mesh rather than a metaphor** (Jonah, 2026-09-09): a Faraday
      * cage is a conducting mesh, which is what chainmail is, and vanilla's one armour set with no crafting
@@ -410,14 +431,8 @@ object ChargedMetal {
      * Worn by anything, not only a player. A chainmail zombie walking unbothered through a grinder is the
      * kind of oddity worth keeping.
      */
-    private fun movedByAField(entity: Entity): Boolean {
-        // Spectators only. A creative player is *not* exempt, and that is deliberate: creative is how this
-        // gets looked at, and a field somebody cannot feel while testing it is a field nobody can tune.
-        if (entity.isSpectator) return false
-        val caged = entity is LivingEntity &&
-            entity.getItemBySlot(EquipmentSlot.CHEST).`is`(Items.CHAINMAIL_CHESTPLATE)
-        return !caged
-    }
+    private fun isCaged(entity: Entity): Boolean =
+        entity is LivingEntity && entity.getItemBySlot(EquipmentSlot.CHEST).`is`(Items.CHAINMAIL_CHESTPLATE)
 
     /**
      * Arc green at the operative end — **the far end of the run**, which is where a field is doing its
@@ -455,6 +470,8 @@ object ChargedMetal {
 
     /** How often the machines turn over. Fine enough to feel continuous, coarse enough to be cheap. */
     const val LOOKED_FOR_EVERY = 5L
+
+    private const val CREDITED_WITHIN = 16.0
 
     /**
      * How hard a one-to-one array shoves at point blank, per turn.

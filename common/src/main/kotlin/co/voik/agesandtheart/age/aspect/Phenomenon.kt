@@ -237,6 +237,18 @@ enum class Phenomenon(
      * **Inflicted only, for now**: no word names it, so a book cannot ask for one.
      */
     FOG("fog", inflictedBy = Manifestation.FOG),
+
+    /**
+     * An Age that grows over itself: roots that eat the ground and raise thorns and plants from it
+     * ([co.voik.agesandtheart.age.phenomena.Overgrowth], design §5.2.2).
+     *
+     * **The spreading is the block's own**, on vanilla's random ticks, so all this phenomenon does each tick
+     * is put new roots down near the players. **It can be won**: fire halts a root and burns its thorns, and
+     * the ground inside a held clearing grows crops faster than any ordinary Age's.
+     *
+     * Insists on no weather, and is written only: nothing instability buys is an overgrowth yet.
+     */
+    OVERGROWTH("overgrowth"),
     ;
 
     override val aspect = Aspect.PHENOMENA

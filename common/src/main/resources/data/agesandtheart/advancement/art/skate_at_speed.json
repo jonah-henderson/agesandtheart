@@ -1,0 +1,39 @@
+{
+  "parent": "agesandtheart:art/make_rime_skates",
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:tick",
+      "conditions": {
+        "player": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:equipment": {
+              "feet": {
+                "items": "agesandtheart:rime_skates"
+              }
+            },
+            "minecraft:movement": {
+              "horizontal_speed": {
+                "min": 10
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:rime_skates"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.skate_at_speed.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.skate_at_speed.description"
+    },
+    "frame": "goal",
+    "hidden": true
+  }
+}

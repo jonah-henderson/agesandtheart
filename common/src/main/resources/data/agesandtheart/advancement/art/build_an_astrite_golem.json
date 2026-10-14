@@ -1,0 +1,29 @@
+{
+  "parent": "agesandtheart:art/visit_a_meteor_age",
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:tame_animal",
+      "conditions": {
+        "entity": {
+          "type": "minecraft:entity_properties",
+          "entity": "this",
+          "predicate": {
+            "minecraft:entity_type": "agesandtheart:astrite_golem"
+          }
+        }
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:astrite_block"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.build_an_astrite_golem.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.build_an_astrite_golem.description"
+    },
+    "frame": "goal"
+  }
+}

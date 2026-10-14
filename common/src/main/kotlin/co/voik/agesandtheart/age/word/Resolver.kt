@@ -187,7 +187,7 @@ object Resolver {
         return parameters.mapNotNull { (parameter, value) ->
             if (!MaterialTable.asksByTag(parameter, value)) return@mapNotNull parameter to value
             val seed = draw xor word.id.hashCode().toLong() xor parameter.hashCode().toLong() xor MATERIAL_SALT
-            vocabulary.materials.drawFor(value, seed)?.let { parameter to it }
+            vocabulary.materials.drawFor(value, seed, MaterialTable.mayDrawFor(parameter))?.let { parameter to it }
         }.toMap()
     }
 

@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "Patches of the ground are another country's: the Age's own terrain read from far away, so the land breaks",
+    "off at a patch's edge and carries on as something that was never meant to be there, a mountain beside a",
+    "sea, in a single region as much as across a seam. Up to two fifths of the ground at the top of the ladder.",
+    "Only ground generated after the Age is written. Strange: nothing about it hurts, and it needs nothing to show on."
+  ],
+  "dials": {
+    "extent": {"tier": 1, "most": 4}
+  }
+}

@@ -103,6 +103,17 @@ public abstract class LivingEntityMixin {
     }
 
     /**
+     * Tells the advancements a climber in temperstone climbers is going up. After the move, like the
+     * blades above, for the same reason: only then does the player's known movement say where they went.
+     *
+     * @see co.voik.agesandtheart.content.Temperstone#noteClimbing
+     */
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void agesandtheart$notingTheClimb(CallbackInfo callback) {
+        Temperstone.noteClimbing((LivingEntity) (Object) this);
+    }
+
+    /**
      * Lets temperstone climbers make any face of the stuff a ladder.
      *
      * <p>Climbability is normally the block's own business through {@code BlockTags.CLIMBABLE}, and a tag

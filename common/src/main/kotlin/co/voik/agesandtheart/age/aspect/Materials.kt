@@ -9,6 +9,7 @@ import net.minecraft.tags.TagKey
 import net.minecraft.world.level.EmptyBlockGetter
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.FallingBlock
 import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
@@ -109,6 +110,19 @@ object Materials {
         return Block.isShapeFullBlock(state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO))
     }
 
+    /**
+     * Whether an Age's rock may be made of [block]: a world ([makesAWorld]) that does not fall.
+     *
+     * Sand, gravel, concrete powder and an anvil have nothing under them wherever the rock is carved, and
+     * each one that comes down frees the one above it. A gravel Age with flooded caves reached twenty-five
+     * thousand falling blocks within seventeen seconds of server time. The skin may still be one, being a
+     * single layer over rock that holds.
+     */
+    fun makesARock(block: Block): Boolean = makesAWorld(block) && block !is FallingBlock
+
+    /** The same, of whatever a writer named — false where the pack has no such block. */
+    fun makesARock(named: String): Boolean = blockNamed(named)?.let(::makesARock) ?: false
+
     /** What opens a material query: `#frozen` asks for a frozen block, where `minecraft:ice` names one. */
     const val QUERY_MARK = "#"
 
@@ -134,6 +148,9 @@ object Materials {
      * breaks wherever that is stone or a cave, and drops itself — a sea of bamboo became tens of thousands
      * of items and a server ticking twice a second. Shape is not asked: a sea is not stood on.
      *
+     * A block that falls is refused for the rock's reason ([makesARock]): the volume a sea fills is over
+     * caves.
+     *
      * Air is an open sea. Both tags are empty offline, as the rock's are.
      */
     fun makesASea(block: Block): Boolean {
@@ -141,6 +158,7 @@ object Materials {
         if (state.isAir) return true
         val holder = state.typeHolder()
         if (holder.`is`(INVALID_FOR_SEA)) return false
+        if (block is FallingBlock) return false
         if (holder.`is`(VALID_FOR_SEA)) return true
         if (state.hasBlockEntity()) return false
         if (state.block is LiquidBlock) return true

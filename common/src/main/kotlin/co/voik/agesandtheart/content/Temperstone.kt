@@ -1,7 +1,9 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.advancement.AgeTriggers
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
@@ -61,8 +63,22 @@ object Temperstone {
         return maxOf(rising, HOLDING)
     }
 
+    /**
+     * Tells the advancements a climber is going up temperstone. Server-side, on the movement the client
+     * reported, since the server never runs a player's own climbing.
+     */
+    @JvmStatic
+    fun noteClimbing(entity: LivingEntity) {
+        if (entity !is ServerPlayer) return
+        if (!climbing(entity)) return
+        val isGoingUp = entity.knownMovement.y > GOING_UP
+        if (isGoingUp) AgeTriggers.CLIMBED_TEMPERSTONE.trigger(entity)
+    }
+
     /** A ladder's slide, borrowed so going down feels like something players already know. */
     private const val LADDER_RATE = 0.15
 
     private const val HOLDING = 0.0
+
+    private const val GOING_UP = 0.05
 }

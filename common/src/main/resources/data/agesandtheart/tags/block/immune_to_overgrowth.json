@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "What an overgrowth will not eat, beyond whatever has no breaking speed at all (design 5.2.2).",
+    "",
+    "Starts from the cave-in's fence. **Obsidian and crying obsidian are not in it** (Jonah, 2026-10-14): they",
+    "are too easy to come by, and a wall of them would answer the phenomenon without fire. Reinforced deepslate",
+    "and nara are the end-game set."
+  ],
+  "replace": false,
+  "values": ["#agesandtheart:immune_to_collapse", "minecraft:reinforced_deepslate"]
+}

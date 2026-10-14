@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.generation
 
 import co.voik.agesandtheart.age.consequence.StrangeGround
+import co.voik.agesandtheart.worldgen.Dislocation
+import co.voik.agesandtheart.worldgen.DislocatedNoiseChunk
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.phenomena.Deluge
@@ -200,6 +202,12 @@ class AgeChunkGenerator(
      * stops a word like `volcano` being accepted and then ignored.
      */
     val overlay: Overlay = Overlay.NONE,
+
+    /**
+     * Where vanilla's fill reads its density from somewhere else. Only for vanilla's rock: a field of ours
+     * carries the same [Dislocation] inside its tree.
+     */
+    private val dislocation: Dislocation = Dislocation.NONE,
 ) : NoiseBasedChunkGenerator(
     biomes,
     when (rock) {
@@ -977,21 +985,21 @@ class AgeChunkGenerator(
      */
     private fun noiseChunkFor(chunk: ChunkAccess, randomState: RandomState, structureManager: StructureManager): NoiseChunk {
         val settings = generationSettings.noiseSettings().clampToHeightAccessor(chunk.heightAccessorForGeneration)
-        return NoiseChunk(
-            randomState,
-            // The real beardifier rather than the inert marker: it is public, and it is what will
-            // let structures flatten the ground around themselves once they are switched on.
-            Beardifier.forStructuresInChunk(structureManager, chunk.pos),
-            generationSettings,
-            ambientFluid,
-            Blender.empty(),
-            // Vanilla's own `chunkVolume`, which is private and is this: the chunk, as deep as the
-            // settings say, anchored at its corner.
-            DensityVolume(
-                BLOCKS_ACROSS_A_CHUNK, settings.height(), BLOCKS_ACROSS_A_CHUNK,
-                chunk.pos.minBlockX, settings.minY(), chunk.pos.minBlockZ,
-            ),
+        // The real beardifier rather than the inert marker: it is public, and it is what will
+        // let structures flatten the ground around themselves once they are switched on.
+        val beardifier = Beardifier.forStructuresInChunk(structureManager, chunk.pos)
+        // Vanilla's own `chunkVolume`, which is private and is this: the chunk, as deep as the
+        // settings say, anchored at its corner.
+        val volume = DensityVolume(
+            BLOCKS_ACROSS_A_CHUNK, settings.height(), BLOCKS_ACROSS_A_CHUNK,
+            chunk.pos.minBlockX, settings.minY(), chunk.pos.minBlockZ,
         )
+        val isReadFromElsewhere = dislocation.touchesChunkAt(chunk.pos.minBlockX, chunk.pos.minBlockZ)
+        return if (isReadFromElsewhere) {
+            DislocatedNoiseChunk(randomState, beardifier, generationSettings, ambientFluid, Blender.empty(), volume, dislocation)
+        } else {
+            NoiseChunk(randomState, beardifier, generationSettings, ambientFluid, Blender.empty(), volume)
+        }
     }
 
     /**

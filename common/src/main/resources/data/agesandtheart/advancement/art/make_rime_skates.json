@@ -1,0 +1,27 @@
+{
+  "parent": "agesandtheart:art/visit_a_frozen_age",
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:rime_skates"
+          }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:rime_skates"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.make_rime_skates.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.make_rime_skates.description"
+    },
+    "frame": "task"
+  }
+}

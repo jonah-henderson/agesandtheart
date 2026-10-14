@@ -1,7 +1,7 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.4
-generator=11
+line=0.5
+generator=12
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
 block agesandtheart:analysis_machine
@@ -40,6 +40,7 @@ block agesandtheart:magenta_rime_crystal
 block agesandtheart:masterwork_ink
 block agesandtheart:observation_device
 block agesandtheart:orange_rime_crystal
+block agesandtheart:overgrowth
 block agesandtheart:palm_button
 block agesandtheart:palm_door
 block agesandtheart:palm_fence
@@ -80,6 +81,7 @@ block agesandtheart:stripped_palm_wood
 block agesandtheart:stripped_paper_tree_log
 block agesandtheart:surveying_device
 block agesandtheart:temperstone
+block agesandtheart:thorn_vine
 block agesandtheart:toolbox
 block agesandtheart:transcriber
 block agesandtheart:unstable_plasma
@@ -194,6 +196,7 @@ item agesandtheart:masterwork_paper
 item agesandtheart:notebook
 item agesandtheart:observation_device
 item agesandtheart:orange_rime_crystal
+item agesandtheart:overgrowth
 item agesandtheart:page
 item agesandtheart:palm_boat
 item agesandtheart:palm_button
@@ -251,6 +254,7 @@ item agesandtheart:sunlit_age_survey
 item agesandtheart:surveying_device
 item agesandtheart:temperstone
 item agesandtheart:temperstone_climbers
+item agesandtheart:thorn_vine
 item agesandtheart:toolbox
 item agesandtheart:transcriber
 item agesandtheart:unstable_plasma
@@ -339,14 +343,19 @@ sound_event agesandtheart:blizzard_exposed
 sound_event agesandtheart:blizzard_sheltered
 sound_event agesandtheart:surf
 ticket_type agesandtheart:panel
+trigger_type agesandtheart:caged_from_a_field
+trigger_type agesandtheart:climbed_temperstone
 trigger_type agesandtheart:desk_furnished
 trigger_type agesandtheart:entered_age
 trigger_type agesandtheart:fell_home
 trigger_type agesandtheart:gave_a_book_to_a_fissure
+trigger_type agesandtheart:killed_with_live_copper
 trigger_type agesandtheart:learned_word
 trigger_type agesandtheart:linked
 trigger_type agesandtheart:mined_with_compounded_stone
 trigger_type agesandtheart:opened_linking_portal
+trigger_type agesandtheart:pulled_by_live_iron
+trigger_type agesandtheart:pushed_by_live_gold
 trigger_type agesandtheart:repaired_compounder
 trigger_type agesandtheart:wrote_age
 villager_profession agesandtheart:writer

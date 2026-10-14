@@ -119,6 +119,7 @@
     "meteors": 0.85,
     "tectonics": 0.9,
     "deluge": 0.75,
+    "overgrowth": 0.5,
     "tempest": 0.7,
     "aurora": 0.0,
     "fog": 0.0,

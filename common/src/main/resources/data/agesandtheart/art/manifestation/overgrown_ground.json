@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Large patches of overgrowth lie over the ground the Age generates, about twenty-five blocks across, and",
+    "spread from there as roots do. Each step makes a chunk likelier to hold one, so an Age reaches the top",
+    "of this ladder with a patch every handful of chunks rather than a single patch nobody walks into.",
+    "",
+    "Harmful, since the thorns hurt and the roots eat what they reach. Only ground generated after the Age is",
+    "written, and leans humid, where an overgrowth is likeliest to be believed."
+  ],
+  "dials": {
+    "patches": {"tier": 2, "most": 4}
+  },
+  "leans": {"humidity": 1.0}
+}

@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.Spending
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import co.voik.agesandtheart.age.phenomena.OvergrowthPatches
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.chunk.ChunkAccess
@@ -36,12 +37,15 @@ data class Consequence(
     val leafless: Boolean = false,
     /** Whether every village in the Age is the abandoned one — [StrangeGround]. */
     val abandonsVillages: Boolean = false,
+    /** How many steps of overgrown ground the Age bought, which is how many chunks hold a patch. */
+    val overgrowthPatches: Int = 0,
 ) {
     /** Whether anything at all is wrong, so a coherent Age can skip the whole pass. */
     val isNothing: Boolean
         get() = woundsPerChunk <= Tearing.NONE &&
             woundsPerDay <= Tearing.NONE &&
-            collapseTears <= Collapse.NONE
+            collapseTears <= Collapse.NONE &&
+            overgrowthPatches <= 0
 
     /** How long the Age has stood by [now], in its own days — what both rates are multiplied by. */
     fun daysBy(now: Long): Long = (now - writtenAt).coerceAtLeast(0L) / Tearing.TICKS_PER_DAY
@@ -73,6 +77,7 @@ data class Consequence(
             Tearing.wantedIn(chunk.pos, level.getSeed(), density),
             alreadyRunning = false,
         )
+        OvergrowthPatches.layInto(level, chunk, level.getSeed(), OvergrowthPatches.chanceAt(overgrowthPatches))
     }
 
     companion object {
@@ -108,6 +113,8 @@ data class Consequence(
                     .forGetter(Consequence::leafless),
                 Codec.BOOL.optionalFieldOf("abandons_villages", false)
                     .forGetter(Consequence::abandonsVillages),
+                Codec.INT.optionalFieldOf("overgrowth_patches", 0)
+                    .forGetter(Consequence::overgrowthPatches),
             ).apply(instance, ::Consequence)
         }
 
@@ -122,6 +129,7 @@ data class Consequence(
                 stampsShapes = spending.bought(Manifestation.STAMPED_SHAPES) > 0,
                 leafless = spending.bought(Manifestation.LEAFLESS_TREES) > 0,
                 abandonsVillages = spending.bought(Manifestation.ABANDONED_VILLAGES) > 0,
+                overgrowthPatches = spending.bought(Manifestation.OVERGROWN_GROUND),
             )
         }
     }

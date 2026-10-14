@@ -176,7 +176,8 @@ object Happenings {
         }
         Phenomenon.DELUGE -> WeatherConditions(rainfall = Deluge.risingOf(density, spending).rainShare)
         Phenomenon.TEMPEST, Phenomenon.INFERNO, Phenomenon.AURORA, Phenomenon.RAINBOW,
-        Phenomenon.SANDFALL, Phenomenon.METEORS, Phenomenon.TECTONICS, Phenomenon.FOG -> insistsOn
+        Phenomenon.SANDFALL, Phenomenon.METEORS, Phenomenon.TECTONICS, Phenomenon.FOG,
+        Phenomenon.OVERGROWTH -> insistsOn
     }
 
     /**
@@ -211,6 +212,8 @@ object Happenings {
             }
             // Nothing: a fog is seen rather than done, and what the client is told is sent with the rest below.
             Phenomenon.FOG -> Unit
+            // Only the seeding. The roots spread on their own random ticks. See [Overgrowth].
+            Phenomenon.OVERGROWTH -> Overgrowth.seed(level, density)
         }
     }
 

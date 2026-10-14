@@ -1,0 +1,30 @@
+{
+  "parent": "agesandtheart:art/visit_a_deep_sea_age",
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:brewed_potion",
+      "conditions": {
+        "potion": {
+          "potions": "agesandtheart:crushing_resistance"
+        }
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "minecraft:potion",
+      "components": {
+        "minecraft:potion_contents": {
+          "potion": "agesandtheart:crushing_resistance"
+        }
+      }
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.brew_crushing_resistance.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.brew_crushing_resistance.description"
+    },
+    "frame": "goal"
+  }
+}

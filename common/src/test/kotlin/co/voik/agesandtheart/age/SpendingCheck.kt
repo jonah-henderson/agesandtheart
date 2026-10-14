@@ -311,6 +311,9 @@ internal val SHIPPED_LADDERS = mapOf(
         .copy(leans = mapOf("humidity" to 0.3)),
     Manifestation.STILL_CREATURES to Ladder.flat(Manifestation.STILL_CREATURES, tier = 1, most = 1)
         .copy(needs = setOf(Showing.CREATURES)),
+    Manifestation.FOREIGN_GROUND to Ladder.flat(Manifestation.FOREIGN_GROUND, tier = 1, most = 4),
+    Manifestation.OVERGROWN_GROUND to Ladder.flat(Manifestation.OVERGROWN_GROUND, tier = 2, most = 4)
+        .copy(leans = mapOf("humidity" to 1.0)),
     Manifestation.STAMPED_SHAPES to Ladder.flat(Manifestation.STAMPED_SHAPES, tier = 1, most = 1)
         .copy(needs = setOf(Showing.TREES)),
     Manifestation.LEAFLESS_TREES to Ladder.flat(Manifestation.LEAFLESS_TREES, tier = 1, most = 1)

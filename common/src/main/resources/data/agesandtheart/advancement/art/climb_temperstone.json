@@ -1,0 +1,20 @@
+{
+  "parent": "agesandtheart:art/make_temperstone_climbers",
+  "criteria": {
+    "done": {
+      "trigger": "agesandtheart:climbed_temperstone"
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:temperstone"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.climb_temperstone.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.climb_temperstone.description"
+    },
+    "frame": "goal"
+  }
+}

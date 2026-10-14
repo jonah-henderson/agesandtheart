@@ -224,7 +224,7 @@ internal object ConsequenceInstruments {
     private fun nowIn(level: ServerLevel, recipe: AgeRecipe, spending: Spending, manifestation: Manifestation): String {
         val raining = if (level.isRaining) "raining now" else "not raining now"
         return when (manifestation) {
-            Manifestation.TORN_SEAMS, Manifestation.STAMPED_SHAPES, Manifestation.LEAFLESS_TREES,
+            Manifestation.TORN_SEAMS, Manifestation.FOREIGN_GROUND, Manifestation.OVERGROWN_GROUND, Manifestation.STAMPED_SHAPES, Manifestation.LEAFLESS_TREES,
             Manifestation.ABANDONED_VILLAGES -> "in ground generated since it was bought"
             Manifestation.WOUNDS, Manifestation.WORSENING_WOUNDS, Manifestation.COLLAPSE ->
                 "see /age $INSTABILITY_LITERAL $WOUNDS_LITERAL"

@@ -59,6 +59,8 @@ private const val MONOCHROME_DRAINED = "drained"
 private const val SLOW_RAIN_SLOWNESS = "slowness"
 private const val SKY_TEARS_MANY = "many"
 private const val STRANGE_GRAVITY_STRENGTH = "strength"
+private const val FOREIGN_GROUND_EXTENT = "extent"
+private const val OVERGROWN_GROUND_PATCHES = "patches"
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -218,6 +220,22 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
      * second, which is harmful.
      */
     STRANGE_GRAVITY("strange_gravity", STRANGE_GRAVITY_STRENGTH),
+
+    /**
+     * Patches of the ground are another country's: the Age's own terrain read from far away, so the land
+     * breaks off at a patch's edge and carries on as something that was never meant to be there. **One dial**:
+     * how much of the Age is foreign. Strange, and only in ground generated afterwards.
+     */
+    FOREIGN_GROUND("foreign_ground", FOREIGN_GROUND_EXTENT),
+
+    /**
+     * Large patches of overgrowth lie over the new ground ([co.voik.agesandtheart.age.phenomena.OvergrowthPatches]),
+     * about twenty-five blocks across, which then spread as roots do. **One dial**: how many chunks hold one.
+     *
+     * **Not the phenomenon**: nothing seeds blocks at random here, so a book that wrote no overgrowth gets the
+     * patches and nothing else. Harmful, and only in ground generated afterwards.
+     */
+    OVERGROWN_GROUND("overgrown_ground", OVERGROWN_GROUND_PATCHES),
     ;
 
     /** What this manifestation's ladder sells steps of, in the order its file is read. */

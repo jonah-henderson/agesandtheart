@@ -1,0 +1,27 @@
+{
+  "parent": "agesandtheart:art/visit_a_volcanic_age",
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:temperstone_climbers"
+          }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "agesandtheart:temperstone_climbers"
+    },
+    "title": {
+      "translate": "advancements.agesandtheart.make_temperstone_climbers.title"
+    },
+    "description": {
+      "translate": "advancements.agesandtheart.make_temperstone_climbers.description"
+    },
+    "frame": "task"
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "_comment": [
+    "Placeholder sprites until the asset pass. Chosen by the two directions a segment stores: `vertical`",
+    "along y, `horizontal` along z (turned a quarter for x), and the elbow, whose default pose has its arms toward",
+    "down and north, either arm standing for either end. `turn_flat` is the same elbow lying with both arms",
+    "horizontal, toward north and east, because a blockstate cannot turn about z. `reach` does not change the look."
+  ],
+  "variants": {
+    "anchor=down,heading=up": {
+      "model": "agesandtheart:block/thorn_vine_vertical"
+    },
+    "anchor=down,heading=north": {
+      "model": "agesandtheart:block/thorn_vine_turn"
+    },
+    "anchor=down,heading=south": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "y": 180
+    },
+    "anchor=down,heading=east": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "y": 90
+    },
+    "anchor=down,heading=west": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "y": 270
+    },
+    "anchor=up,heading=down": {
+      "model": "agesandtheart:block/thorn_vine_vertical"
+    },
+    "anchor=up,heading=north": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "x": 180,
+      "y": 180
+    },
+    "anchor=up,heading=south": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "x": 180
+    },
+    "anchor=up,heading=east": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "x": 180,
+      "y": 270
+    },
+    "anchor=up,heading=west": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "x": 180,
+      "y": 90
+    },
+    "anchor=north,heading=down": {
+      "model": "agesandtheart:block/thorn_vine_turn"
+    },
+    "anchor=north,heading=up": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "x": 180,
+      "y": 180
+    },
+    "anchor=north,heading=south": {
+      "model": "agesandtheart:block/thorn_vine_horizontal"
+    },
+    "anchor=north,heading=east": {
+      "model": "agesandtheart:block/thorn_vine_turn_flat"
+    },
+    "anchor=north,heading=west": {
+      "model": "agesandtheart:block/thorn_vine_turn_flat",
+      "y": 270
+    },
+    "anchor=south,heading=down": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "y": 180
+    },
+    "anchor=south,heading=up": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "x": 180
+    },
+    "anchor=south,heading=north": {
+      "model": "agesandtheart:block/thorn_vine_horizontal"
+    },
+    "anchor=south,heading=east": {
+      "model": "agesandtheart:block/thorn_vine_turn_flat",
+      "y": 90
+    },
+    "anchor=south,heading=west": {
+      "model": "agesandtheart:block/thorn_vine_turn_flat",
+      "y": 180
+    },
+    "anchor=east,heading=down": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "y": 90
+    },
+    "anchor=east,heading=up": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "x": 180,
+      "y": 270
+    },
+    "anchor=east,heading=north": {
+      "model": "agesandtheart:block/thorn_vine_turn_flat"
+    },
+    "anchor=east,heading=south": {
+      "model": "agesandtheart:block/thorn_vine_turn_flat",
+      "y": 90
+    },
+    "anchor=east,heading=west": {
+      "model": "agesandtheart:block/thorn_vine_horizontal",
+      "y": 90
+    },
+    "anchor=west,heading=down": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "y": 270
+    },
+    "anchor=west,heading=up": {
+      "model": "agesandtheart:block/thorn_vine_turn",
+      "x": 180,
+      "y": 90
+    },
+    "anchor=west,heading=north": {
+      "model": "agesandtheart:block/thorn_vine_turn_flat",
+      "y": 270
+    },
+    "anchor=west,heading=south": {
+      "model": "agesandtheart:block/thorn_vine_turn_flat",
+      "y": 180
+    },
+    "anchor=west,heading=east": {
+      "model": "agesandtheart:block/thorn_vine_horizontal",
+      "y": 90
+    }
+  }
+}

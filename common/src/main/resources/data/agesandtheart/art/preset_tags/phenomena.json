@@ -74,6 +74,13 @@
       "eroded": 0.4
     }
   },
+  "overgrowth": {
+    "_comment": "Thick with growth, so `lush` is what it is made of and what it leaves. `hostile` at about half the sandfall's: the thorns hurt whoever moves in them, and nothing else about it does, and it is slow enough to outwalk.",
+    "tags": {
+      "lush": 1.0,
+      "hostile": 0.5
+    }
+  },
   "fog": {
     "_comment": "Instability's alone for now: no word names it, and no vague word may reach it until one does.",
     "available_to_broad_words": false

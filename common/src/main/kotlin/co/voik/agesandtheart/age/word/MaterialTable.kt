@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Materials
+import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.math.mix64
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -34,9 +35,10 @@ data class MaterialTable(
      * tag, times how readily the Art reaches for it. Sorted, so a draw made by position cannot move when a
      * file is reordered.
      */
-    fun carriersOf(tag: String): List<Pair<String, Double>> =
+    fun carriersOf(tag: String, mayDraw: (String) -> Boolean = { true }): List<Pair<String, Double>> =
         tags.described.sorted()
             .filter(::isAvailableToBroadWords)
+            .filter(mayDraw)
             .mapNotNull { block ->
                 val profile = tags.byKey(block)
                 val weight = (profile.tags[tag] ?: 0.0) * (profile.readiness ?: PresetProfile.ORDINARY_READINESS)
@@ -46,10 +48,10 @@ data class MaterialTable(
     /**
      * The block [query] draws for this Age, or null where nothing may answer it. Seeded by the Age, the
      * word and the parameter, so the same book always builds the same rock and two material parameters
-     * asking the same tag need not land on the same block.
+     * asking the same tag need not land on the same block. Only a block [mayDraw] answers is drawn.
      */
-    fun drawFor(query: String, seed: Long): String? {
-        val carriers = carriersOf(query.removePrefix(Materials.QUERY_MARK))
+    fun drawFor(query: String, seed: Long, mayDraw: (String) -> Boolean = { true }): String? {
+        val carriers = carriersOf(query.removePrefix(Materials.QUERY_MARK), mayDraw)
         val total = carriers.sumOf { it.second }
         if (total <= 0.0) return null
         var remaining = Random(mix64(seed)).nextDouble() * total
@@ -61,6 +63,10 @@ data class MaterialTable(
     }
 
     companion object {
+        /** What a query for [parameter] may land on: the rock must not fall ([Materials.makesARock]). */
+        fun mayDrawFor(parameter: String): (String) -> Boolean =
+            if (parameterIn(parameter) == Terrain.STONE.name) Materials::makesARock else { _ -> true }
+
         /** Whether [parameter] with [value], spelled as a word spells them, is a material asked for by tag. */
         fun asksByTag(parameter: String, value: String): Boolean =
             parameterIn(parameter) in MATERIAL_PARAMETERS && Materials.isQuery(value)

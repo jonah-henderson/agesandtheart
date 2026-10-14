@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "An Age that grows over itself (design 5.2.2). It means the phenomenon outright rather than searching for",
+    "one, which is what `means_exactly` is for and what `VocabularyCheck` insists on -- a tag query would also",
+    "have found whatever else grew.",
+    "",
+    "**One aspect, and the climate is not touched.** An overgrowth wants no weather of its own, and a second",
+    "part narrowed is a second part paid for. A writer who wants a wet jungle has `verdant` and `drenched`."
+  ],
+  "chooses": {
+    "phenomena": "overgrowth"
+  },
+  "speech": "noun"
+}

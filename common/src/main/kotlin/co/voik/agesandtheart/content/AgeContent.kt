@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.age.phenomena.Overgrowth
 import co.voik.agesandtheart.page.FillNotebookFunction
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.reward.ScarabHabitat
@@ -1917,6 +1918,8 @@ object AgeContent {
         ARC_CRYSTAL_BLOCK_ID to ARC_CRYSTAL_BLOCK_BLOCK,
         ASTRITE_SHARD_ID to ASTRITE_SHARD_BLOCK,
         ALGAE_ID to ALGAE_BLOCK,
+        Overgrowth.ID to Overgrowth.BLOCK,
+        Overgrowth.THORNS_ID to Overgrowth.THORNS,
         *RIME_CRYSTAL_BLOCKS.map { (colour, block) -> colour.id.location() to block }.toTypedArray(),
         TEMPERSTONE_ID to TEMPERSTONE_BLOCK,
         SCORCHED_TEMPERSTONE_ID to SCORCHED_TEMPERSTONE_BLOCK,
@@ -2152,6 +2155,8 @@ object AgeContent {
         ARC_CRYSTAL_BLOCK_ID to ARC_CRYSTAL_BLOCK,
         ASTRITE_SHARD_ID to ASTRITE_SHARD,
         ALGAE_ID to ALGAE,
+        Overgrowth.ID to Overgrowth.ITEM,
+        Overgrowth.THORNS_ID to Overgrowth.THORNS_ITEM,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK,
     ) + PalmBeach.items + PalmWood.items + CompoundedStone.items + MasterworkCrafts.items + Plasma.items + placedByHand
 
