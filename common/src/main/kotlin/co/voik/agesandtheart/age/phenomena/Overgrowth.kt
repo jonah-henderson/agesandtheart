@@ -122,6 +122,10 @@ object Overgrowth {
     /** How often a mushroom the overgrowth raises is given a bone meal's worth of growth. */
     private const val HUGE_MUSHROOM_CHANCE = 0.25f
 
+    /** How far from a root a vine may be put, in blocks, and how many cells are tried before it gives up. */
+    private const val VINE_REACH = 4
+    private const val VINE_PROBES = 8
+
     /** How many plants are tried before an attempt to raise one gives up. */
     private const val FLORA_ATTEMPTS = 4
 
@@ -302,37 +306,51 @@ object Overgrowth {
     }
 
     /**
-     * Hangs one of vanilla's other vines on [root], where it can: a vine on a side or the underside, cave and
-     * weeping vines below, twisting vines above. Each is asked whether it can stand there rather than told
-     * which face suits it, and a growing one carries on growing by its own random ticks.
+     * Hangs one of vanilla's other vines near [root]: a few cells within [VINE_REACH] are tried, and a vine
+     * goes in the first that is open and has something solid to cling to or hang from. So a vine finds the
+     * cap of a huge mushroom, a trunk, a wall or the ground beside it, and not only the root itself.
+     *
+     * Each kind is asked whether it can stand rather than told which face suits it. A growing one carries on
+     * by its own random ticks. Twisting vines are left out, since they climb without end.
      */
     private fun sproutVines(level: ServerLevel, root: BlockPos, random: RandomSource) {
-        repeat(FLORA_ATTEMPTS) {
-            val way = Direction.getRandom(random)
-            val cell = root.relative(way)
+        repeat(VINE_PROBES) {
+            val cell = root.offset(offsetWithinVineReach(random), offsetWithinVineReach(random), offsetWithinVineReach(random))
             if (!level.hasChunkAt(cell) || !level.getBlockState(cell).isAir) return@repeat
-            val vine = vineGrowing(way, random) ?: return@repeat
+            val supports = solidSidesOf(level, cell)
+            if (supports.isEmpty()) return@repeat
+            val vine = vineClinging(supports[random.nextInt(supports.size)], random) ?: return@repeat
             if (!vine.canSurvive(level, cell)) return@repeat
             level.setBlock(cell, vine, Block.UPDATE_ALL)
             return
         }
     }
 
-    /** A vine that could grow in the cell [way] from a root: the ones hanging below, the one climbing above, or a plain vine on its face. */
-    private fun vineGrowing(way: Direction, random: RandomSource): BlockState? = when (way) {
-        Direction.DOWN -> {
+    /** The sides of [cell] with something solid on them, as the direction toward it. */
+    private fun solidSidesOf(level: ServerLevel, cell: BlockPos): List<Direction> = Direction.entries.filter { toward ->
+        val beside = cell.relative(toward)
+        level.hasChunkAt(beside) && level.getBlockState(beside).isFaceSturdy(level, beside, toward.opposite)
+    }
+
+    private fun offsetWithinVineReach(random: RandomSource): Int = random.nextInt(2 * VINE_REACH + 1) - VINE_REACH
+
+    /**
+     * A vine that could cling to the block [towardSupport] from where it stands: the hanging kinds when that
+     * is above, and a plain vine on its face otherwise. Null where vines have no such face, which is below.
+     */
+    private fun vineClinging(towardSupport: Direction, random: RandomSource): BlockState? = when (towardSupport) {
+        Direction.UP -> {
             val hanging = listOfNotNull(
-                Blocks.CAVE_VINES.defaultBlockState(), Blocks.WEEPING_VINES.defaultBlockState(), vineAgainst(way),
+                Blocks.CAVE_VINES.defaultBlockState(), Blocks.WEEPING_VINES.defaultBlockState(), vineOn(towardSupport),
             )
             hanging[random.nextInt(hanging.size)]
         }
-        Direction.UP -> Blocks.TWISTING_VINES.defaultBlockState()
-        else -> vineAgainst(way)
+        Direction.DOWN -> null
+        else -> vineOn(towardSupport)
     }
 
-    /** A vine in the cell [way] from a root, clinging to the root's face; null where vines have no such face. */
-    private fun vineAgainst(way: Direction): BlockState? =
-        VineBlock.PROPERTY_BY_DIRECTION[way.opposite]?.let { Blocks.VINE.defaultBlockState().setValue(it, true) }
+    private fun vineOn(face: Direction): BlockState? =
+        VineBlock.PROPERTY_BY_DIRECTION[face]?.let { Blocks.VINE.defaultBlockState().setValue(it, true) }
 
     private fun thornsAround(level: LevelReader, cell: BlockPos): Int =
         BlockPos.betweenClosed(cell.offset(-1, -1, -1), cell.offset(1, 1, 1))
