@@ -310,6 +310,7 @@ class Release:
         if compatibility_line(self.version) < number_parts(recorded_line):
             fail(f"the content at {commit[:8]} needs a release on line {recorded_line} or later, and {self.version} is not")
 
+        self.check_tools()
         self.check_ephemeris()
         self.check_pack()
         self.check_settings()
@@ -332,6 +333,12 @@ class Release:
             fail(f"'{PACK_BRANCH}' has commits origin's does not: push or reconcile it, then run again")
         git("update-ref", f"refs/heads/{PACK_BRANCH}", remote, *([local] if local else []))
         say(f"'{PACK_BRANCH}' was behind origin's; brought it up to {remote[:8]}")
+        
+    def check_tools(self) -> None:
+        needed = ["packwiz"] if self.offline else ["packwiz", "gh"]
+        missing = [tool for tool in needed if shutil.which(tool) is None]
+        if missing:
+            fail(f"not on PATH: {', '.join(missing)} (notes/release-process.md)")
 
     def check_ephemeris(self) -> None:
         if not (EPHEMERIS / ".git").exists():
