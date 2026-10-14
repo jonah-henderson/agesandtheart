@@ -4,11 +4,11 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * The two tags that overrule what an Age's rock may be made of (`Materials`).
+ * What an Age's rock may be made of (`Materials`), through the real path a writer's block takes.
  *
  * **Here rather than offline, because a tag binds nowhere else.** `Materials`' shape rule is a pure
- * question about a block and `MaterialsCheck` holds it without a server; the exceptions are datapack
- * content, so offline they are empty and an offline check would pass on a rule that had lost both of them.
+ * question about a block and `MaterialsCheck` holds it without a server; `invalid_for_terrain` is datapack
+ * content, so offline it is empty and an offline check would pass on a rule that had lost it.
  * That is the same reason the tag layer's derivation is held by a server check.
  *
  * A parameter a composition cannot read is *reported* rather than refused, since a composition is a save — so
@@ -43,15 +43,12 @@ class TerrainMaterialCheck : FunSpec({
         }
     }
 
-    /**
-     * **`valid_for_terrain` is the exception channel**, and cake is what it was made for: not a full cube,
-     * refused by the shape rule, and a world of it is a thing the Art should be able to say.
-     */
-    test("a block the tag admits is kept though its shape refuses it") {
+    /** **There is no exception channel**: cake, which once had one, is refused like any other part-block. */
+    test("a rock of cake is refused") {
         val said = rockOf("rockcake", "minecraft:cake")
         val mine = said.substringAfter("rockcake")
-        check("ignored" !in mine.substringBefore("agesandtheart:", missingDelimiterValue = mine)) {
-            "cake is in valid_for_terrain and was still refused, so the tag is not binding:\n$said"
+        check("ignored" in mine.substringBefore("agesandtheart:", missingDelimiterValue = mine)) {
+            "a world of cake was accepted, and nothing should admit a block that is not a whole cube:\n$said"
         }
     }
 

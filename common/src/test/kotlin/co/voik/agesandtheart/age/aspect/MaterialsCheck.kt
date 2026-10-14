@@ -87,6 +87,18 @@ class MaterialsCheck : FunSpec({
         check(Materials.makesARock(blockNamed(blocks, "sandstone"))) { "sandstone cannot be the rock" }
     }
 
+    /**
+     * **What the grammar guide says a page applies to** is `Grammar.placesFor`, which asks `canBeMadeOf` —
+     * so a block refused here is never offered as a landmass or a sea.
+     */
+    test("a part-block is offered as neither a landmass nor a sea") {
+        for (name in listOf("cake", "cobweb", "stone_slab")) {
+            check(!Aspect.TERRAIN.canBeMadeOf("minecraft:$name")) { "'$name landmass' is still a sentence" }
+            check(!Aspect.SEA.canBeMadeOf("minecraft:$name")) { "'$name sea' is still a sentence" }
+        }
+        check(Aspect.TERRAIN.canBeMadeOf("minecraft:stone")) { "'stone landmass' stopped being a sentence" }
+    }
+
     /** A fluid holds nobody up and is allowed, because an ocean world is a thing somebody meant. */
     test("a world may be a fluid") {
         check(Materials.makesAWorld(blockNamed(blocks, "water"))) { "an ocean world was refused" }
@@ -95,10 +107,10 @@ class MaterialsCheck : FunSpec({
 
     /**
      * **A sea is never a block that checks what it stands on**: it fills a volume over stone and caves, and
-     * a sea of bamboo broke and dropped itself into tens of thousands of items. Shape is not asked, so a sea
-     * of cobweb or slabs stays a sentence.
+     * a sea of bamboo broke and dropped itself into tens of thousands of items. Nor is it anything short of
+     * a whole cube: a sea of cobweb barely ran.
      */
-    test("a sea refuses what needs support, and nothing for its shape") {
+    test("a sea refuses what needs support, and what is not a whole cube") {
         for (name in SEAS) {
             check(Materials.makesASea(blockNamed(blocks, name))) { "'$name' cannot be a sea and should be" }
         }
@@ -109,6 +121,7 @@ class MaterialsCheck : FunSpec({
             check(!Materials.makesASea(blockNamed(blocks, name))) { "'$name' can be a sea and falls" }
         }
         check(!Aspect.SEA.canBeMadeOf("minecraft:bamboo")) { "'bamboo sea' is still a sentence" }
+        check(!Aspect.SEA.canBeMadeOf("minecraft:cobweb")) { "'cobweb sea' is still a sentence" }
         check(Aspect.SEA.canBeMadeOf("minecraft:water")) { "'water sea' stopped being a sentence" }
     }
 })
@@ -124,13 +137,14 @@ private val WORLDS = listOf("stone", "sand", "gravel", "glass", "pumpkin", "obsi
 private val FALLING = listOf("sand", "red_sand", "gravel", "white_concrete_powder")
 
 private val NOT_WORLDS = listOf(
-    "oak_sign", "chest", "white_carpet", "stone_slab", "oak_stairs", "iron_chain", "scaffolding", "torch",
+    "oak_sign", "chest", "white_carpet", "stone_slab", "oak_stairs", "iron_chain", "scaffolding", "torch", "cake",
 )
 
 private val SEAS = listOf(
-    "air", "water", "lava", "ice", "frosted_ice", "magma_block", "stone", "glass", "cobweb", "stone_slab",
+    "air", "water", "lava", "ice", "frosted_ice", "magma_block", "stone", "glass",
 )
 
 private val NOT_SEAS = listOf(
     "bamboo", "sugar_cane", "cactus", "kelp", "poppy", "short_grass", "torch", "white_carpet", "snow", "chest",
+    "cobweb", "stone_slab", "cake",
 )

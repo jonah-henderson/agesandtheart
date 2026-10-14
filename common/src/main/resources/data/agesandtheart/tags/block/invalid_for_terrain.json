@@ -5,10 +5,7 @@
     "will still be there tomorrow.",
     "",
     "Leaves decay wherever no log stands near, and frosted ice melts on its own, so a world of either would",
-    "evaporate shortly after it was written.",
-    "",
-    "This wins over `valid_for_terrain` where a block is somehow in both, because a refusal is the safe",
-    "way to read an authoring mistake."
+    "evaporate shortly after it was written."
   ],
   "values": [
     "#minecraft:leaves",

@@ -75,40 +75,29 @@ object Materials {
     val INVALID_FOR_TERRAIN: TagKey<Block> = TagKey.create(Registries.BLOCK, "invalid_for_terrain".location())
 
     /**
-     * And blocks the shape rule refuses that a rock may be made of anyway — the exception channel, for
-     * where one question is wrong about one block.
-     *
-     * Cake is what it was made for: seven sixteenths high, so not a full cube, and a world of it is
-     * exactly the sort of thing the Art should be able to say.
-     */
-    val VALID_FOR_TERRAIN: TagKey<Block> = TagKey.create(Registries.BLOCK, "valid_for_terrain".location())
-
-    /**
      * Whether an Age's rock may be made of [block] — see the rule above.
      *
-     * **Both tags are empty offline**, since a tag binds on a server: the shape rule is the whole of what
-     * an offline check sees, and holding the exceptions honest is a server check's job. That is the same
-     * bargain `DerivedWords.DOES_NOT_HAVE_A_WORD` already makes.
+     * There is no exception channel: a block that is not a whole cube is never a world. Cake was one, and a
+     * cake Age ran badly with no cake in sight.
+     *
+     * **The refusal tag is empty offline**, since a tag binds on a server: the shape rule is the whole of
+     * what an offline check sees. That is the same bargain `DerivedWords.DOES_NOT_HAVE_A_WORD` makes.
      */
     fun makesAWorld(block: Block): Boolean {
         val state = block.defaultBlockState()
         // Nothing is a world made of nothing, and no tag may say otherwise.
         if (state.isAir) return false
-        val holder = state.typeHolder()
-        // **Refusal first**, so a block written into both files is refused: a contradiction between two
-        // authored lists is a mistake, and the safe way to read a mistake is the strict one.
-        if (holder.`is`(INVALID_FOR_TERRAIN)) return false
-        // **And the exception skips the whole rule, block entity and all.** That is a real way to make a
-        // world nobody can load, and it is left possible: writing a block into a tag file is as deliberate
-        // as an author gets, and a rule with no override is one that is simply wrong where it is wrong.
-        if (holder.`is`(VALID_FOR_TERRAIN)) return true
+        if (state.typeHolder().`is`(INVALID_FOR_TERRAIN)) return false
         if (state.hasBlockEntity()) return false
         // **A fluid is allowed though nothing stands on it**, and the distinction is accident against
         // intent: an ocean world and a world of lava are Ages somebody meant, with a boat and a potion as
         // the answers, where a world of signs is a block nobody thought of as a world at all.
         if (state.block is LiquidBlock) return true
-        return Block.isShapeFullBlock(state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO))
+        return isWholeCube(state)
     }
+
+    private fun isWholeCube(state: BlockState): Boolean =
+        Block.isShapeFullBlock(state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO))
 
     /**
      * Whether an Age's rock may be made of [block]: a world ([makesAWorld]) that does not fall.
@@ -139,30 +128,26 @@ object Materials {
     /** Blocks a sea may not be made of though the sea's rule would allow them. */
     val INVALID_FOR_SEA: TagKey<Block> = TagKey.create(Registries.BLOCK, "invalid_for_sea".location())
 
-    /** And blocks it may be made of though the rule refuses them. */
-    val VALID_FOR_SEA: TagKey<Block> = TagKey.create(Registries.BLOCK, "valid_for_sea".location())
-
     /**
-     * Whether an Age's sea may be made of [block]: anything but a block entity or a block that needs
-     * support. A sea fills a volume over whatever the rock left, so a block that checks what it stands on
-     * breaks wherever that is stone or a cave, and drops itself — a sea of bamboo became tens of thousands
-     * of items and a server ticking twice a second. Shape is not asked: a sea is not stood on.
+     * Whether an Age's sea may be made of [block]: air, a fluid, or a whole cube that carries no block entity
+     * and needs no support. A sea fills a volume over whatever the rock left, so a block that checks what it
+     * stands on breaks wherever that is stone or a cave, and drops itself — a sea of bamboo became tens of
+     * thousands of items and a server ticking twice a second. A sea of cobweb, which is not a whole cube,
+     * held up but barely ran.
      *
      * A block that falls is refused for the rock's reason ([makesARock]): the volume a sea fills is over
      * caves.
      *
-     * Air is an open sea. Both tags are empty offline, as the rock's are.
+     * Air is an open sea. The refusal tag is empty offline, as the rock's is.
      */
     fun makesASea(block: Block): Boolean {
         val state = block.defaultBlockState()
         if (state.isAir) return true
-        val holder = state.typeHolder()
-        if (holder.`is`(INVALID_FOR_SEA)) return false
+        if (state.typeHolder().`is`(INVALID_FOR_SEA)) return false
         if (block is FallingBlock) return false
-        if (holder.`is`(VALID_FOR_SEA)) return true
         if (state.hasBlockEntity()) return false
         if (state.block is LiquidBlock) return true
-        return !needsSupport(block)
+        return isWholeCube(state) && !needsSupport(block)
     }
 
     /** The same, of whatever a writer named — false where the pack has no such block. */
