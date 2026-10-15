@@ -36,13 +36,18 @@ object PageLearning {
      *
      * The two filters are vanilla's own: a `ResultSlot` holds a crafting *preview*, which is not yet the
      * player's, and slots belonging to some other container are the chest they are looking into.
+     *
+     * **The stack a listener is handed is vanilla's copy of the slot**, the one it keeps to notice the next
+     * change and sends to the client, so a page drawn for its finder is written on the slot's own item.
      */
     @JvmStatic
     fun listenerFor(player: ServerPlayer): ContainerListener = object : ContainerListener {
         override fun slotChanged(container: AbstractContainerMenu, slotIndex: Int, itemStack: ItemStack) {
             val slot = container.getSlot(slotIndex)
             if (slot is ResultSlot || slot.container !== player.inventory) return
-            observe(player, itemStack)
+            val held = slot.item
+            PageWordFunction.writeForFinder(player, held)
+            observe(player, held)
         }
 
         override fun dataChanged(container: AbstractContainerMenu, id: Int, value: Int) = Unit
@@ -56,7 +61,6 @@ object PageLearning {
      * archive that lists what you know, where nothing could see or reach them again.
      */
     fun observe(player: ServerPlayer, stack: ItemStack) {
-        PageWordFunction.writeForFinder(player, stack)
         val page = stack.get(AgeComponents.PAGE_WORD)
         if (page != null) {
             teach(player, listOf(page))
