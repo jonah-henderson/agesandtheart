@@ -70,16 +70,23 @@ class EarlyGameRareMaterialsCheck : FunSpec({
      * The gate reads the aurora off the spec a client is sent rather than off the dials behind it, so what
      * a writer is promised at the desk and what they look up at are the same curtain.
      */
-    test("an Age with tempests and constant fierce curtains grows arc crystal") {
+    test("an Age with tempests and fierce curtains grows arc crystal") {
         check(EarlyGameRareMaterials.growsArcCrystal(charged(), SEED, Spending.NOTHING)) {
             "an Age with both halves of the gate put nothing in its sky"
         }
     }
 
-    test("storms with an ordinary curtain grow nothing") {
+    test("storms with an ordinary curtain grow arc crystal") {
         val stormy = plain().withOptions(Aspect.PHENOMENA, HAPPENS, listOf(TEMPEST, AURORA))
+        check(EarlyGameRareMaterials.growsArcCrystal(stormy, SEED, Spending.NOTHING)) {
+            "a tempest and a curtain nobody leaned on did not count, which asks a beginner for `electromagnetic`"
+        }
+    }
+
+    test("storms with no curtain grow nothing") {
+        val stormy = plain().withOptions(Aspect.PHENOMENA, HAPPENS, listOf(TEMPEST))
         check(!EarlyGameRareMaterials.growsArcCrystal(stormy, SEED, Spending.NOTHING)) {
-            "a curtain nobody leaned on counted as charged, so `tempests auroral` is the whole gate"
+            "a tempest alone counted as a charged sky"
         }
     }
 

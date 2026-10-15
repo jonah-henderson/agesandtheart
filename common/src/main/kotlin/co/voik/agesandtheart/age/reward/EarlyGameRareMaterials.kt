@@ -112,10 +112,11 @@ object EarlyGameRareMaterials {
     /**
      * Whether the sky here is charged enough to put ore up in it.
      *
-     * **Two halves, as rime's gate has two**: the storms, and curtains that are both frequent and fierce.
-     * `electromagnetic` is the word written for it and clears both comfortably, but nothing here asks
-     * whether that word was said — a writer who reaches the same sky another way earns the same reward,
-     * which is what the whole class means by rewarding an Age for *being* a certain way.
+     * **Two halves, as rime's gate has two**: the storms, and a curtain of any kind. A beginner has five
+     * words, and none of them is `electromagnetic`, so how strong the curtain is asks more than the
+     * reward is worth. Nothing here asks whether that word was said — a writer who reaches the same sky
+     * another way earns the same reward, which is what the whole class means by rewarding an Age for
+     * *being* a certain way.
      *
      * **The curtain is read off the spec the client is sent**, rather than off the dials behind it. That
      * is the same aurora a player looks up at, so the reward cannot come to disagree with the sky that is
@@ -126,12 +127,10 @@ object EarlyGameRareMaterials {
         seed: Long,
         spending: Spending,
     ): Boolean = befalls(Phenomenon.TEMPEST, composition, spending) &&
-        theCurtainsAreConstant(composition, seed)
+        hasACurtain(composition, seed)
 
-    private fun theCurtainsAreConstant(composition: AgeComposition, seed: Long): Boolean {
-        val curtain = Sky.specFor(composition, seed).aurora ?: return false
-        return curtain.frequency >= MOST_NIGHTS && curtain.glow >= FIERCE_CURTAIN
-    }
+    private fun hasACurtain(composition: AgeComposition, seed: Long): Boolean =
+        Sky.specFor(composition, seed).aurora != null
 
     /**
      * Whether stone is baked into temperstone here.
@@ -300,7 +299,6 @@ object EarlyGameRareMaterials {
         )
     }
 
-
     /**
      * Where `OverworldBiomeBuilder` stops calling a temperature snowy, read off [ClimateAxis.landmarks].
      *
@@ -311,17 +309,6 @@ object EarlyGameRareMaterials {
 
     /** Where `OverworldBiomeBuilder` starts calling a temperature desert, read off [ClimateAxis.landmarks]. */
     private const val DESERT = 0.55
-
-    /**
-     * What "frequent, intense auroras" is, in the units the spec actually carries.
-     *
-     * An undescribed curtain is drawn around a quarter to three fifths of nights at an ordinary glow of
-     * one, so these sit above anything an Age gets by accident and below what `electromagnetic` asks for.
-     * A writer who reaches them by describing the curtain instead has earned the same reward, which is the
-     * gate working rather than leaking.
-     */
-    private const val MOST_NIGHTS = 0.75f
-    private const val FIERCE_CURTAIN = 1.2f
 
     private val WATER: Identifier = Identifier.withDefaultNamespace("water")
 
