@@ -76,6 +76,10 @@ def git(*arguments: str, cwd: Path = ROOT, check: bool = True) -> str:
     return result.stdout.strip()
 
 
+def is_ancestor(older: str, newer: str) -> bool:
+    return subprocess.run(["git", "merge-base", "--is-ancestor", older, newer], cwd=ROOT).returncode == 0
+
+
 def repository_slug(repository: Path) -> str:
     """`owner/name` of a repository's origin, from either spelling of a GitHub address."""
     address = git("remote", "get-url", "origin", cwd=repository)
@@ -273,6 +277,11 @@ class Release:
                 fail("origin cannot be reached; fix the remote or pass --offline")
             if result.stdout.strip():
                 fail(f"{self.tag} already exists on origin")
+            git("fetch", "-q", "origin", "main", PACK_BRANCH)
+            # A release from a commit origin's main lacks leaves the next release, from any machine, without it.
+            if not self.rehearsal and not is_ancestor(commit, "origin/main"):
+                fail(f"{commit[:8]} is not on origin's main: push main first, so the next release starts from it")
+            self.catch_the_pack_up()
 
         record = git("show", f"{commit}:common/compatibility.record")
         recorded_line = next(line.split("=", 1)[1] for line in record.splitlines() if line.startswith("line="))
@@ -286,6 +295,21 @@ class Release:
         if missing_run_files:
             fail("the server checks need fabric/runs/server set up: run ./gradlew :fabric:runServer once")
         self.state["last_tag"] = versions[-1][1] if versions else None
+
+    def catch_the_pack_up(self) -> None:
+        """
+        Fast-forwards the local pack branch to origin's, so a release is never committed on a pack another
+        machine has moved on from — that push is the last step, after the release is already public. Refuses a
+        pack with commits origin does not have. Expects `origin/pack` freshly fetched.
+        """
+        local = git("rev-parse", "-q", "--verify", f"refs/heads/{PACK_BRANCH}", check=False)
+        remote = git("rev-parse", f"origin/{PACK_BRANCH}")
+        if local == remote:
+            return
+        if local and not is_ancestor(local, remote):
+            fail(f"'{PACK_BRANCH}' has commits origin's does not: push or reconcile it, then run again")
+        git("update-ref", f"refs/heads/{PACK_BRANCH}", remote, *([local] if local else []))
+        say(f"'{PACK_BRANCH}' was behind origin's; brought it up to {remote[:8]}")
 
     def check_ephemeris(self) -> None:
         if not (EPHEMERIS / ".git").exists():
@@ -554,6 +578,10 @@ class Release:
         worktree = self.work / "pack"
         git("worktree", "remove", "--force", str(worktree), check=False)
         git("worktree", "prune")
+        if not self.offline:
+            # Asked again: a release takes minutes, and another machine may have moved the pack meanwhile.
+            git("fetch", "-q", "origin", PACK_BRANCH)
+            self.catch_the_pack_up()
         git("worktree", "add", str(worktree), PACK_BRANCH)
         for prefix in JAR_ENTRIES:
             shutil.copy2(self.dist / "pack" / "mods" / f"{prefix}.pw.toml", worktree / "mods" / f"{prefix}.pw.toml")
