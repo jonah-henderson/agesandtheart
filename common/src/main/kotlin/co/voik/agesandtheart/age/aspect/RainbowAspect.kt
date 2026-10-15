@@ -61,7 +61,7 @@ object RainbowAspect {
      *
      * **The aurora's two ways in, for the aurora's reason.** A writer may *name* the phenomenon
      * (`rainbows`) or *describe* it (`red and yellow rainbow`), and either is having said the Age has them.
-     * A bare `rainbow` page with nothing leading it says neither, and is inert rather than wrong.
+     * A bare `rainbow` page says it too: the resolver gives it the phenomenon's claim (`Resolver.announcingTheirPhenomena`).
      *
      * **Where it stands is not decided here and could not be.** A bow is a circle about the point opposite
      * whatever lights it, so it is placed by the Age's own suns at the instant it is drawn — which is why

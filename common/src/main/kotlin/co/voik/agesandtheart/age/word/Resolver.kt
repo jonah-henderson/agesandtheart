@@ -19,6 +19,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Holds
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.word.grammar.ArtReading
 import co.voik.agesandtheart.age.word.grammar.Phrase
 import co.voik.agesandtheart.age.word.grammar.Constraint
@@ -86,6 +87,8 @@ data class Standing(val strength: Double, val kept: Boolean)
  * A pure function of (vocabulary, words, seed): an Age is rebuilt from its recipe on every open.
  */
 object Resolver {
+    private val SEEN_PHENOMENA = mapOf(Aspect.AURORA to Phenomenon.AURORA, Aspect.RAINBOW to Phenomenon.RAINBOW)
+
     /**
      * How many ways one aspect may divide. A limit on legibility rather than machinery — region maps
      * handle any number. Words that do not fit are displaced and charged, never dropped.
@@ -243,6 +246,28 @@ object Resolver {
         }
     }
 
+    /**
+     * Every bare `aurora` or `rainbow` page a writer laid (not the Art's own filler), followed by a claim on the phenomenon it is the page of: naming
+     * the sky's curtain or bow is saying the Age has one, even where nothing else was said about it.
+     * It keeps the page's rung, so `teeming rainbow` insists as `teeming rainbows` does.
+     */
+    private fun announcingTheirPhenomena(said: List<Constraint>): List<Constraint> =
+        said.flatMap { constraint ->
+            val announced = constraint.word.takeIf { it.aims && !constraint.latent }
+                ?.aspects?.firstNotNullOfOrNull(SEEN_PHENOMENA::get)
+            val claim = announced?.let { phenomenon ->
+                constraint.copy(
+                    word = Word(
+                        id = constraint.word.id,
+                        aspects = setOf(Aspect.PHENOMENA),
+                        chooses = mapOf(Aspect.PHENOMENA to phenomenon.key),
+                    ),
+                    aimedAt = setOf(Aspect.PHENOMENA),
+                )
+            }
+            listOfNotNull(constraint, claim)
+        }
+
     /** How a parameter names the aspect it is meant for — `sun.colour`. Spelled on [Word] and matched here. */
     private const val QUALIFIED = "."
 
@@ -278,7 +303,7 @@ object Resolver {
             if (!isSpentIn(constraint)) constraint
             else constraint.copy(word = constraint.word.withoutItsSize().withoutItsHeight())
         }.map { rolledBare(it, draw) }
-        val said = offered(vocabulary, kept.map { it.materialisedAt(vocabulary, draw) }, draw)
+        val said = announcingTheirPhenomena(offered(vocabulary, kept.map { it.materialisedAt(vocabulary, draw) }, draw))
         val flaws = mutableListOf<Flaw>()
         flaws += rehomings(vocabulary, sentence)
         flaws += impossibilities(sentence)

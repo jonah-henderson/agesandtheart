@@ -78,7 +78,7 @@ object AuroraAspect {
      * member here the way a clause mints a sun, the aspect holding nothing, so a dial with anything on it is
      * the description.
      *
-     * A bare `aurora` page with nothing leading it says neither, and is inert rather than wrong.
+     * A bare `aurora` page says it too: the resolver gives it the phenomenon's claim (`Resolver.announcingTheirPhenomena`).
      */
     fun auroraIn(parts: AgeParts, seed: Long): Aurora? {
         val own = parts.optionsFor(Aspect.AURORA)

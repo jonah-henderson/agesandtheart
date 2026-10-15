@@ -214,11 +214,11 @@ enum class Aspect(
      * **Its own aspect rather than a corner of the vault**, for the same reason the stars have one: it is a
      * separate thing overhead, and a writer aiming a clause at it — `red and green aurora` — must be able to
      * say the colours are the *curtain's* and not the sky's. `Vocabulary.aimingPages` mints the page, which
-     * is also why there is no `art/word/aurora.json`: an aspect already is its page, and `auroral` is the
-     * word that asks for one.
+     * is also why there is no `art/word/aurora.json`: an aspect already is its page, and naming it
+     * asks for one.
      *
-     * **Describing it asserts it.** It holds nothing, so no clause can mint a member the way a clause mints
-     * a sun; what it has is parameters, and anything set on one is a writer saying the Age has an aurora. See
+     * **Describing it asserts it, and so does naming it.** It holds nothing, so no clause can mint a member the way a
+     * clause mints a sun; what it has is parameters, and anything set on one — or the bare page — is a writer saying the Age has an aurora. See
      * [AuroraAspect.auroraIn].
      */
     AURORA("aurora"),
@@ -228,11 +228,11 @@ enum class Aspect(
      *
      * **Its own aspect for the aurora's reason**: a writer aiming a clause at it — `red and yellow rainbow`
      * — must be able to say the colours are the *bow's* and not the sky's. `Vocabulary.aimingPages` mints
-     * the page, which is why there is no `art/word/rainbow.json`; `rainbows` is the word that asks for one.
+     * the page, which is why there is no `art/word/rainbow.json`; naming it, or `rainbows`, asks for one.
      *
-     * **Describing it asserts it**, likewise. It holds nothing, so no clause can mint a member the way a
-     * clause mints a sun; what it has is parameters, and anything set on one is a writer saying the Age has
-     * bows. See [RainbowAspect.rainbowIn].
+     * **Describing it asserts it, and so does naming it**, likewise. It holds nothing, so no clause can mint a
+     * member the way a clause mints a sun; what it has is parameters, and anything set on one — or the bare
+     * page — is a writer saying the Age has bows. See [RainbowAspect.rainbowIn].
      *
      * **Almost nothing about where it goes is written here**, which is the whole of what makes it cheap: a
      * bow is a circle about the point opposite whatever lights it, so an Age with two suns has two of them
