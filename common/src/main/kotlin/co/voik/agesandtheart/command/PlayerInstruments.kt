@@ -67,7 +67,7 @@ internal object PlayerInstruments {
         // Set even where the Age was made by hand and has no sentence, so that a book with nothing to say
         // is not taken for a blank one and written over as a found book on the next tick.
         book.set(AgeComponents.BOOK_WORDS, recipe.words.map { it.location() })
-        readingOf(source, recipe.words)?.let { book.set(AgeComponents.BOOK_READING, it) }
+        readingOf(source, recipe.words, recipe.seed)?.let { book.set(AgeComponents.BOOK_READING, it) }
         player.inventory.placeItemBackInInventory(book, Prediction.SERVER_ONLY)
 
         source.sendSuccess({
@@ -77,9 +77,9 @@ internal object PlayerInstruments {
     }
 
     /** What the pages say, or null where they say nothing the grammar can read. */
-    private fun readingOf(source: CommandSourceStack, pages: List<String>): List<ProseClause>? {
+    private fun readingOf(source: CommandSourceStack, pages: List<String>, seed: Long): List<ProseClause>? {
         if (pages.isEmpty()) return null
-        val sentence = Grammar.read(Vocabulary.of(source.server), pages) ?: return null
+        val sentence = Grammar.read(Vocabulary.of(source.server), pages, seed) ?: return null
         return Prose.of(sentence)
     }
 

@@ -22,7 +22,11 @@ object ShippedCorpus {
     }
 
     /** A book, read — null being a row that forgot the `age` page, which is a fixture bug (§4.3.1). */
-    fun read(pages: List<String>): Sentence = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
+    fun read(pages: List<String>, seed: Long = ANY_SEED): Sentence =
+        Grammar.read(vocabulary, pages, seed) ?: error("not a book: $pages")
+
+    /** For a book read where nothing depends on how a repair breaks a tie. */
+    const val ANY_SEED = 0L
 
     /**
      * A book of [pages], resolved at [seed] — after an `age` page, unless [pages] lays its own, which is how
@@ -30,7 +34,7 @@ object ShippedCorpus {
      */
     fun resolved(seed: Long, vararg pages: String): Resolution {
         val book = if (NUCLEUS in pages) pages.toList() else listOf(NUCLEUS, *pages)
-        return Resolver.resolve(vocabulary, read(book), seed)
+        return Resolver.resolve(vocabulary, read(book, seed), seed)
     }
 
     private const val NUCLEUS = "age"

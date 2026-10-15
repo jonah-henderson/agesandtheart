@@ -245,7 +245,7 @@ class ResolverCheck : FunSpec({
     /** "A sentence can't be wildly more incorrect than it looks" (Jonah, 2026-10-12): a page repeated is one mistake. */
     test("a contradiction written twice counts once, and so does an impossible page") {
         fun indexOf(row: String): Int {
-            val sentence = Grammar.read(vocabulary, row.split(" ")) ?: error("'$row' is not a book")
+            val sentence = Grammar.read(vocabulary, row.split(" "), SAMPLE_SEED) ?: error("'$row' is not a book")
             return Resolver.resolve(vocabulary, sentence, SAMPLE_SEED).instability.index
         }
         val once = indexOf("age verdant dusty air")

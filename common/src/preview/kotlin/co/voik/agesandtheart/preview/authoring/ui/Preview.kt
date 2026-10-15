@@ -147,7 +147,7 @@ object Preview {
                 listOf(Line("no word called ${unknown.joinToString(" ")}", Palette.refused)),
             )
         }
-        val read = Grammar.read(vocabulary, pages)
+        val read = Grammar.read(vocabulary, pages, SEED)
             ?: return Reader(
                 "Try a sentence",
                 listOf(

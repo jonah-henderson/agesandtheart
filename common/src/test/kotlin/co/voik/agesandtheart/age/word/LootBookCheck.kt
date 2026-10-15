@@ -33,7 +33,7 @@ class LootBookCheck : FunSpec({
     /** What an Age written from [rule] at [seed] grows, and the book it was written from. */
     fun grownFrom(rule: String, seed: Long): Pair<List<String>, Grown> {
         val pages = grammar.copy(start = rule).expand(Random(seed))
-        val sentence = Grammar.read(vocabulary, pages) ?: error("'${pages.joinToString(" ")}' is not a book")
+        val sentence = Grammar.read(vocabulary, pages, seed) ?: error("'${pages.joinToString(" ")}' is not a book")
         val resolved = Resolver.resolve(vocabulary, sentence, seed)
         val composition = resolved.composition
         // A coherent book inflicts nothing, which is what an empty spending says.

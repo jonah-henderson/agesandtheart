@@ -16,12 +16,8 @@ import io.kotest.core.spec.style.FunSpec
  * sentence is really asserting on the wording.
  *
  * **Every sentence here carries `age`, and it has to.** The nucleus is mandatory and refused outright
- * without it (§4.3.1); a book that has one but does not parse is filled in against a sentence the Art
- * draws for itself — which keeps the
- * writer's content pages and silently drops the structural ones, `only` and the rungs among them. These
- * checks were written before that rule and asserted on repaired books for a while: `teeming villages` came
- * back as plain `villages`, and the assertion that the rung had reached the recipe was the only thing that
- * noticed. A sentence here that stops parsing does not fail loudly; it quietly starts testing repair.
+ * without it (§4.3.1), and a book that has one but does not parse is repaired, which can move or drop a
+ * page. A sentence here that stops parsing does not fail loudly; it quietly starts testing repair.
  */
 @Tags(NEEDS_SERVER)
 class WritingCheck : FunSpec({

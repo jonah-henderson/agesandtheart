@@ -25,7 +25,7 @@ class UnstableBookCheck : FunSpec({
         test("every $rule book has ${band.first} to ${band.last} distinct mistakes") {
             val strayed = (1L..SEEDS).mapNotNull { seed ->
                 val pages = grammar.copy(start = rule).expand(Random(seed))
-                val sentence = Grammar.read(vocabulary, pages) ?: error("'${pages.joinToString(" ")}' is not a book")
+                val sentence = Grammar.read(vocabulary, pages, seed) ?: error("'${pages.joinToString(" ")}' is not a book")
                 val instability = Resolver.resolve(vocabulary, sentence, seed).instability.index
                 if (instability in band) null else "seed $seed, $instability flaws: '${pages.joinToString(" ")}'"
             }

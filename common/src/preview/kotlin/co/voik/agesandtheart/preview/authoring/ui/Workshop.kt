@@ -365,7 +365,7 @@ class Workshop(
 
     private fun resolution(): Resolution? {
         if (!suggesting.isASentence(laid)) return null
-        val read = Grammar.read(corpus.vocabulary, laid) ?: return null
+        val read = Grammar.read(corpus.vocabulary, laid, seedNow()) ?: return null
         return runCatching { Resolver.resolve(corpus.vocabulary, read, seedNow()) }.getOrNull()
     }
 
@@ -616,7 +616,7 @@ class Workshop(
      */
     private fun readingLines(): List<Line> = buildList {
         add(aimLine())
-        val read = if (laid.isEmpty()) null else Grammar.read(corpus.vocabulary, laid)
+        val read = if (laid.isEmpty()) null else Grammar.read(corpus.vocabulary, laid, seedNow())
         val resolved = resolution()
         add(
             Line("  reads as         ", Palette.faint) +

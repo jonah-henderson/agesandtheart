@@ -51,8 +51,8 @@ data class Constraint(
      */
     val confinedTo: Identifier? = null,
     /**
-     * Whether the Art supplied this page rather than the writer — the natural course of a world nobody
-     * described that far.
+     * Whether the Art supplied this page rather than the writer — an aiming page [Repair] laid in so the
+     * book would read.
      *
      * It constrains the Age exactly as a written page does, and differs in the two places a *page* differs
      * from a *claim*: it costs no ink, because nobody spent any, and the book never shows it.
@@ -146,7 +146,7 @@ data class Sentence(
      */
     val unreadable: List<String> = emptyList(),
     /**
-     * Pages [Repair] could find no position for in any sentence at all — **charged**, and heavily
+     * Pages [Repair] took out because no cheaper edit made the book read — **charged**, and heavily
      * (§4.3.1). A second `Age`, or an `and` with nothing on one side of it.
      */
     val impossible: List<String> = emptyList(),

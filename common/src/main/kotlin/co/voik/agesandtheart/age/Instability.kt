@@ -12,7 +12,7 @@ import java.util.Optional
  *
  * Registers so a flaw can be said to a writer for what it is: "nothing carries this word" and "an earlier
  * word crowded it out" look identical from outside. They name a flaw and never price it — every flaw but a
- * misplaced page counts one (`notes/instability-tiers-plan.md`).
+ * repaired book's moved pages count one between them (`notes/instability-tiers-plan.md`).
  */
 enum class Register(val key: String) : StringRepresentable {
     /** Two words meant opposite things and the world honoured both anyway, in one aspect. */
@@ -37,8 +37,8 @@ enum class Register(val key: String) : StringRepresentable {
     /**
      * A page could not be read where it was laid, so the Art moved it somewhere it could (§4.3.1).
      *
-     * **Said, and never counted** (Jonah, 2026-10-12): what the page does where it was moved to is its
-     * consequence — `starless` under the land ends up meaning a starless sky.
+     * **Every one in a book counts one between them** (Jonah, 2026-10-14): small, but enough that the
+     * linking panel shows a book that did not read as written was not written right.
      */
     REHOMED("rehomed"),
 
@@ -78,8 +78,6 @@ enum class Register(val key: String) : StringRepresentable {
     IMPOSSIBLE("impossible"),
     ;
 
-    /** Whether a flaw of this kind counts towards the index, which every one does but a misplaced page. */
-    val counts: Boolean get() = this != REHOMED
 
     override fun getSerializedName(): String = key
 
@@ -154,9 +152,13 @@ data class Instability(val flaws: List<Flaw>, val pages: Int = 0) {
     /**
      * **How many distinct things are wrong** (`notes/instability-tiers-plan.md` §2). Flaws raised by the same
      * words are one — `frozen molten` is a tension and a fracture and one mistake — so a sentence can never
-     * be much more wrong than it looks; and a misplaced page is not counted at all.
+     * be much more wrong than it looks; and every page a repair moved is one between them.
      */
-    val index: Int get() = flaws.filter { it.register.counts }.distinctBy { it.words.toSet() }.size
+    val index: Int get() {
+        val (moved, rest) = flaws.partition { it.register == Register.REHOMED }
+        val repaired = if (moved.isEmpty()) 0 else 1
+        return rest.distinctBy { it.words.toSet() }.size + repaired
+    }
 
     val isCoherent: Boolean get() = flaws.isEmpty()
 

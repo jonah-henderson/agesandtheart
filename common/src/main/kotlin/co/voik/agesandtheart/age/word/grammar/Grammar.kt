@@ -84,8 +84,8 @@ object Grammar {
      * reason, and it is the only refusal in the Art.
      *
      * **Design §2's one exception: a book must carry the `age` page.** Everything else the pen forgives —
-     * a book that does not read is not an error but a [Repair], where the Art writes a sentence of its own
-     * and lays the writer's pages into it, and a page nobody recognises is dropped and reported and the
+     * a book that does not read is not an error but a [Repair], the fewest edits that make it read with ties
+     * broken by [seed], and a page nobody recognises is dropped and reported and the
      * Age comes out vaguer (§4.3). Naming the thing you are making is different in kind: without it an
      * empty book is a free reroll on a random Age, and the ink, the paper and the one piece of grammar are
      * the ante for playing at all (Jonah, 2026-08-07).
@@ -93,13 +93,13 @@ object Grammar {
      * Callers refuse rather than repair. Repair is for a book that said what it was and said the rest
      * badly.
      */
-    fun read(vocabulary: Vocabulary, pages: List<String>): Sentence? {
+    fun read(vocabulary: Vocabulary, pages: List<String>, seed: Long): Sentence? {
         val laid = pages.map { written -> classify(vocabulary, written) }
         // A page nobody recognises never reaches the parser: it has no class to be read as, and letting the
         // parser discover that would turn a vague sentence into a refusal (§4.3).
         val readable = laid.filter { it.kind != null }
         if (readable.none { it.kind == PageClass.NUCLEUS }) return null
-        val read = ArtReading.parse(readable) ?: Repair.of(vocabulary, readable)
+        val read = ArtReading.parse(readable) ?: Repair.of(vocabulary, readable, seed)
         return read.copy(unreadable = laid.filter { it.kind == null }.map(Page::written))
     }
 

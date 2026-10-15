@@ -41,9 +41,9 @@ object DescriptiveBookRecipe {
         val spoken = words.map { it.path }
         // Null is a book with no `age` page, which the desk refuses to bind and no generated book lacks —
         // so this is reachable only from a hand-built stack, and it falls in with "says nothing readable".
-        val read = Grammar.read(vocabulary, spoken) ?: return sayingNothing(server, ageId)
-        if (read.isEmpty) return sayingNothing(server, ageId)
         val drawnAt = seed ?: AgeRecipe.seedFor(ageId)
+        val read = Grammar.read(vocabulary, spoken, drawnAt) ?: return sayingNothing(server, ageId)
+        if (read.isEmpty) return sayingNothing(server, ageId)
         return AgeRecipe.written(server, Resolver.resolve(vocabulary, read, drawnAt), spoken, drawnAt, authored)
     }
 
@@ -54,8 +54,8 @@ object DescriptiveBookRecipe {
      */
     fun sayingNothing(server: MinecraftServer, ageId: Identifier): AgeRecipe {
         val vocabulary = Vocabulary.of(server)
-        val read = requireNotNull(Grammar.read(vocabulary, listOf(AGE_PAGE))) { "a book of `age` alone does not read" }
         val drawnAt = AgeRecipe.seedFor(ageId)
+        val read = requireNotNull(Grammar.read(vocabulary, listOf(AGE_PAGE), drawnAt)) { "a book of `age` alone does not read" }
         return AgeRecipe.written(server, Resolver.resolve(vocabulary, read, drawnAt), listOf(AGE_PAGE), drawnAt, false)
     }
 

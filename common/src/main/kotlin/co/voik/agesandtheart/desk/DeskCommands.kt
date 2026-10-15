@@ -112,7 +112,7 @@ object DeskCommands {
         val desk = menu.deskOf(player) ?: return
         refusalFor(player, desk, payload)?.let { return complain(player, it) }
         val words = TemplateReading.learnedWords(DeskTemplates.read(player, desk.templateFor(player.uuid)))
-        val sentence = Grammar.read(WritersDeskMenu.vocabularyFor(player), words.map { it.path })
+        val sentence = Grammar.read(WritersDeskMenu.vocabularyFor(player), words.map { it.path }, player.writingSeed)
             ?: return complain(player, "no_age")
 
         val supply = WritersDeskMenu.supplyFor(player, desk)

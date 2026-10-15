@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word.grammar
 
+import co.voik.agesandtheart.ShippedCorpus.ANY_SEED
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.read
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
@@ -423,14 +424,14 @@ class GrammarCheck : FunSpec({
      * the outside.
      */
     test("a book without the Age page is not a book at all") {
-        check(Grammar.read(vocabulary, emptyList()) == null) { "an empty book was read as a sentence" }
-        check(Grammar.read(vocabulary, listOf("landmass", "flat")) == null) {
+        check(Grammar.read(vocabulary, emptyList(), ANY_SEED) == null) { "an empty book was read as a sentence" }
+        check(Grammar.read(vocabulary, listOf("landmass", "flat"), ANY_SEED) == null) {
             "a book with no Age page was read as a sentence"
         }
-        check(Grammar.read(vocabulary, listOf("age")) != null) { "the Age page alone is a book and must read" }
+        check(Grammar.read(vocabulary, listOf("age"), ANY_SEED) != null) { "the Age page alone is a book and must read" }
         // **Not repaired.** Repair would hand back a whole drawn world, which is the free reroll this rule
         // exists to stop: an empty book must cost a page, some ink, and knowing that `age` opens a book.
-        check(Grammar.read(vocabulary, NONSENSE.first()) == null) { "a nucleus-less book was repaired" }
+        check(Grammar.read(vocabulary, NONSENSE.first(), ANY_SEED) == null) { "a nucleus-less book was repaired" }
     }
 
     /**
@@ -443,11 +444,11 @@ class GrammarCheck : FunSpec({
     test("the parser never refuses a book that names an Age") {
         for (pages in NONSENSE) {
             val asABook = listOf("age") + pages
-            val read = runCatching { Grammar.read(vocabulary, asABook) }
+            val read = runCatching { Grammar.read(vocabulary, asABook, ANY_SEED) }
                 .getOrElse { failure -> error("the pen refused '${asABook.joinToString(" ")}': $failure") }
             check(read != null) { "'${asABook.joinToString(" ")}' names an Age and was still refused" }
             // And the same pages without it are refused, so the two halves cannot both be tested by luck.
-            check(Grammar.read(vocabulary, pages) == null) {
+            check(Grammar.read(vocabulary, pages, ANY_SEED) == null) {
                 "'${pages.joinToString(" ")}' has no Age page and was read anyway"
             }
         }

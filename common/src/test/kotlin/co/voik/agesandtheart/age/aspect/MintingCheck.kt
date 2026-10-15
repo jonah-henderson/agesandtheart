@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.ShippedCorpus.ANY_SEED
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.resolved
@@ -86,7 +87,6 @@ class MintingCheck : FunSpec({
         check(flaw.words.first() == "gold_block") {
             "the flaw names ${flaw.words} — the material is the word that lost and belongs first"
         }
-        check(flaw.register.counts) { "'gold_block springs' was charged nothing" }
         check("gold_block" in flaw.describe() && "springs" in flaw.describe()) {
             "the reading does not name both words: ${flaw.describe()}"
         }
@@ -277,7 +277,7 @@ class MintingCheck : FunSpec({
     test("the material does not also become the rock") {
         // The whole point of the clause: `lava` is qualifying the springs, not saying what the world is
         // made of. Attachment is what keeps it there, and this is the case that would prove it lost.
-        val composition = Grammar.read(vocabulary, listOf("age", "lava", "springs"))
+        val composition = Grammar.read(vocabulary, listOf("age", "lava", "springs"), ANY_SEED)
             ?.let { Resolver.resolve(vocabulary, it, SAMPLE_SEED).composition }
             ?: error("'lava springs' is not a book")
         val rock = composition.optionsFor(Aspect.TERRAIN, 0).allSpelled(Terrain.STONE.name)

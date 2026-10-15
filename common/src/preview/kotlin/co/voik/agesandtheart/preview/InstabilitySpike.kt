@@ -71,7 +71,7 @@ private const val SEED = 1L
 private val PAGE_LIMITS = listOf(5, 20, 40, 80)
 
 private fun instabilityOf(vocabulary: Vocabulary, pages: List<String>): Instability? {
-    val sentence = Grammar.read(vocabulary, pages) ?: return null
+    val sentence = Grammar.read(vocabulary, pages, SEED) ?: return null
     return runCatching { Resolver.resolve(vocabulary, sentence, SEED).instability }.getOrNull()
 }
 

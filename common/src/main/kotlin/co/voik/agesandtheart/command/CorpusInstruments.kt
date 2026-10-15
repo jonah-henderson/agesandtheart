@@ -355,7 +355,7 @@ internal object CorpusInstruments {
         // only way to judge whether a generated book is a good one.
         // A generation grammar that forgot the Age page has written something no player could bind, and
         // saying so here is the whole point of drafting against it.
-        val sentence = Grammar.read(vocabulary, pages)
+        val sentence = Grammar.read(vocabulary, pages, seed)
         val reading = sentence?.let(Readout::of) ?: "nothing — this book has no Age page, so it is not a book"
         source.sendSuccess({ Component.literal("  reads as: $reading") }, false)
         // Said because an unstable book is meant to be flawed, and a coherent one is meant not to be.
@@ -399,7 +399,7 @@ internal object CorpusInstruments {
         // A word grammar is meant to produce a book, so it is judged the way a book is: by what the parser
         // makes of it, not by whether the words look plausible in a row.
         if (grammar.terminals == TerminalKind.WORD) {
-            val sentence = Grammar.read(vocabulary, produced)
+            val sentence = Grammar.read(vocabulary, produced, seed)
             val reading = sentence?.let(Readout::of) ?: "nothing — no Age page, so this is not a book"
             source.sendSuccess({ Component.literal("  reads as: $reading") }, false)
             if (sentence != null && sentence.dropped.isNotEmpty()) {

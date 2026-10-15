@@ -68,6 +68,16 @@ internal object ArtReading {
         return Sentence(phrases, structural = spelled)
     }
 
+    /** Where [pages] stop reading, or null where they read: the clause the parser was in and the page it could not take. */
+    fun refusal(pages: List<Page>): Refusal? {
+        val reading = Reading(pages)
+        if (reading.book() != null) return null
+        return reading.refusal ?: Refusal(clause = 0, page = 0)
+    }
+
+    /** The first page of the clause [ArtReading] refused, and the page in it that could not be read. */
+    data class Refusal(val clause: Int, val page: Int)
+
     private class Reading(private val pages: List<Page>) {
         private var at = 0
         private var nextGroup = 0
@@ -88,6 +98,18 @@ internal object ArtReading {
          * go at all.
          */
         private var refused = false
+
+        /** The first refusal met, which is the one a repair has to answer. */
+        var refusal: Refusal? = null
+            private set
+
+        private var clauseFrom = 0
+
+        private fun refuseAt(page: Int) {
+            if (refusal == null) refusal = Refusal(clauseFrom, page)
+        }
+
+        private fun refusingAt(page: Int): Phrase? = null.also { refuseAt(page) }
 
         private val here: Page? get() = pages.getOrNull(at)
 
@@ -122,27 +144,28 @@ internal object ArtReading {
          * when it says what it is about — see [speaksForItself].
          */
         private fun clause(nucleus: Boolean): Phrase? {
+            clauseFrom = at
             // The *index* is what is searched for, never the page. A `Page` is a data class, so a book that
             // lays the same word twice has equal pages in it and `indexOf` answers with the first — which
             // walked the cursor backwards and read the same clause forever.
             val aimedAt = (at..<pages.size).firstOrNull { closes(pages[it]) }
             val closesAt = aimedAt?.let { unambiguousTermBefore(it) ?: it }
                 ?: (if (nucleus) null else trailingCloseAt()?.let { unambiguousTermBefore(it) ?: it })
-                ?: return null
+                ?: return refusingAt(at)
             // Meeting the wrong kind is a book that does not read rather than a page swallowed: a second
             // `age` mid-book is `Repair`'s to report, not ours to absorb.
-            if ((pages[closesAt].kind == PageClass.NUCLEUS) != nucleus) return null
+            if ((pages[closesAt].kind == PageClass.NUCLEUS) != nucleus) return refusingAt(closesAt)
 
             // A siting closes a clause on its own, so the subject is whatever is not one.
             fun isASiting(page: Page) = page.kind == PageClass.CONFINER || page.kind == PageClass.WIDENER
             val subject = pages[closesAt].takeUnless(::isASiting)
             val sitingAt = if (subject == null) closesAt else closesAt + 1
-            val confinedTo = sitingIn(sitingAt) ?: if (refused) return null else null
+            val confinedTo = sitingIn(sitingAt) ?: if (refused) return refusingAt(sitingAt) else null
             val everywhere = !nucleus && pages.getOrNull(sitingAt)?.kind == PageClass.WIDENER
             val aim = if (nucleus) emptySet() else subject?.word?.aspects.orEmpty()
             // A subject the sentence sited must be something vanilla resolves through the biome. Where there
             // is no subject the terms answer for themselves, which `belongsHere` asks of each in turn.
-            if (confinedTo != null && subject != null && aim.none { it.confinable }) return null
+            if (confinedTo != null && subject != null && aim.none { it.confinable }) return refusingAt(closesAt)
 
             // A term closing its own clause keeps the rung and the `only` or `except` laid in front of it,
             // which a modifier would otherwise be read as having with nothing after it.
@@ -157,11 +180,11 @@ internal object ArtReading {
             val owned = pages.subList(ownedFrom, closesAt)
             val said = modifiers(
                 until = ownedFrom, aim = aim, confinedTo = confinedTo, closes = subject, everywhere = everywhere,
-            ) ?: return null
+            ) ?: return refusingAt(at)
             // `everywhere` widens what grows in places, and a clause about nothing that does is a page
             // laid for nothing — refused, as `in` with no biome after it is.
             val reached = (said.flatMap { it.aimedAt } + aim + subject?.word?.aspects.orEmpty()).toSet()
-            if (everywhere && reached.none { it in WIDENED }) return null
+            if (everywhere && reached.none { it in WIDENED }) return refusingAt(sitingAt)
             val subjectsRung = owned.firstOrNull { it.kind == PageClass.QUANTIFIER }
             val subjectsPolarity = when (owned.firstOrNull()?.kind) {
                 PageClass.RESTRICTOR -> Polarity.ONLY
@@ -344,10 +367,10 @@ internal object ArtReading {
             val terms = mutableListOf<Page>()
             // A polarity or a rung standing in front of nothing is a refusal, as is a trailing `and` or a rung
             // after one: the page is there, it means something, and there is no term for it to mean it about.
-            terms += term(until) ?: return emptyList<Constraint>().also { refused = true }
+            terms += term(until) ?: return emptyList<Constraint>().also { refusedBefore() }
             while (at < until && here?.kind == PageClass.JOINER) {
                 take()
-                terms += term(until) ?: return emptyList<Constraint>().also { refused = true }
+                terms += term(until) ?: return emptyList<Constraint>().also { refusedBefore() }
             }
             // A group identifies words a writer joined; standing alone is *not* a group of one, because
             // unjoined juxtaposition has to keep meaning contention (§3.2).
@@ -371,6 +394,12 @@ internal object ArtReading {
                     everywhere = everywhere,
                 )
             }
+        }
+
+        /** A rung, a polarity or an `and` standing in front of nothing: the page before the cursor is the one. */
+        private fun refusedBefore() {
+            refused = true
+            refuseAt((at - 1).coerceAtLeast(clauseFrom))
         }
 
         /** One word of a run, or null where the next page is not one. */

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.ShippedCorpus.ANY_SEED
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -54,7 +55,7 @@ class StrictnessCheck : FunSpec({
     }
 
     fun claimedAt(seed: Long): Set<String> {
-        val sentence = Grammar.read(vocabulary, listOf("age", subject.word.name))
+        val sentence = Grammar.read(vocabulary, listOf("age", subject.word.name, subject.aspect.page), ANY_SEED)
             ?: error("'${subject.word.name}' is not a book on its own")
         val composition = Resolver.resolve(vocabulary, sentence, seed).composition
         val pool = subject.aspect.pool ?: error("${subject.aspect} holds no pool")
@@ -112,7 +113,7 @@ class StrictnessCheck : FunSpec({
     test("only is read strictly, whatever the Age") {
         val pool = subject.aspect.pool ?: error("${subject.aspect} holds no pool")
         fun claimsOnly(seed: Long): Set<String> {
-            val sentence = Grammar.read(vocabulary, listOf("age", "only", subject.word.name))
+            val sentence = Grammar.read(vocabulary, listOf("age", "only", subject.word.name, subject.aspect.page), ANY_SEED)
                 ?: error("'only ${subject.word.name}' is not a book")
             return Resolver.resolve(vocabulary, sentence, seed).composition
                 .optionsFor(subject.aspect, 0).allSpelled(pool.name)

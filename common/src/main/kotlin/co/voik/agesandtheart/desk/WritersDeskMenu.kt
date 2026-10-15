@@ -64,7 +64,7 @@ class WritersDeskMenu(
         // Resolving it is dearer still and only the conflicts ask for that — so it is done at most once, and
         // only where something in the room can show what it says.
         val said = words.takeIf { it.isNotEmpty() }
-            ?.let { Grammar.read(vocabularyFor(player), it.map(Identifier::getPath)) }
+            ?.let { Grammar.read(vocabularyFor(player), it.map(Identifier::getPath), player.writingSeed) }
         val resolved = said
             ?.takeIf { DeskCapability.REVEAL_CONFLICTS in capabilities.capabilities }
             ?.let { Resolver.resolve(vocabularyFor(player), it, player.writingSeed) }

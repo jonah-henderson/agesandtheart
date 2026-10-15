@@ -39,7 +39,7 @@ data class FoundBookDraft(
             fun productionOf(page: String) = vocabulary.grammarWord(page)?.production
             val modifiers = pages.filter { page -> productionOf(page).let { it != null && it != Production.NUCLEUS } }
             val hasAnAge = pages.any { page -> productionOf(page) == Production.NUCLEUS }
-            val read = Grammar.read(vocabulary, pages)
+            val read = Grammar.read(vocabulary, pages, seed)
             val resolved = read?.let { runCatching { Resolver.resolve(vocabulary, it, seed) } }
             return FoundBookDraft(
                 kind = kind,

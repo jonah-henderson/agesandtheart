@@ -1,348 +1,207 @@
 package co.voik.agesandtheart.age.word.grammar
 
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.Word
 import kotlin.random.Random
 
 /**
- * What a book that does not read becomes (design §2, §4.3.1).
+ * What a book that does not read becomes (design §2, §4.3.1): **the writer's own book, with the fewest
+ * edits that make it read.**
  *
- * The Art draws a sentence of its own — a whole world, one section per part of it — and lays the writer's
- * pages into it. **Nothing is recovered from and nothing is guessed at**: every placement is a page put
- * somewhere the book still reads, tried in an order a reader can follow, so what a writer gets back is a
- * sentence they can be shown rather than whatever a parser managed to salvage.
+ * The parser says where it gave up, and only that clause is touched. Each step takes the cheapest edits
+ * that let the parser read past the page it refused, so what the rest of the book said is left exactly as
+ * it was written. The edits, cheapest first:
  *
- * The rule is one sentence, and every part of it is load-bearing:
+ * - **an aiming page laid in** — `tempest [phenomena] aurora`, `starless [stars] landmass`. Every written
+ *   page stays, in order. Never one for a part of the world the book already aims at, which would open a
+ *   second sky or mint a second sun.
+ * - **a page moved** to wherever the book reads with it.
+ * - **a page taken out** — a second `age`, an `and` with nothing after it; a word only where nothing else
+ *   will do.
  *
- * > The Art reads **on** from where the writer left off and lays each page in the first place the book still
- * > reads, turning back only where there is nowhere ahead; and where the Art already drew that very page,
- * > the writer's *is* that one.
+ * **Where several repairs cost the same, the Age's seed picks one** (Jonah, 2026-10-14), so the same
+ * mistake made twice may come out differently. That is where the unexpected is allowed in, and nowhere
+ * else.
  *
- * *Reading on* is what keeps written order wherever written order can be kept, which is what makes a repair
- * followable — `landmass starless` puts the sky word in the sky, not at the front of the book. *Turning
- * back* is what makes `sky flat` land in the land, since a section already passed is still a home. *Already
- * drew that one* keeps a writer's `sky` from opening a second sky beside the Art's. A page with no position
- * anywhere is dropped, which is the only page repair ever loses.
- *
- * **A clause that already reads is laid whole.** What the parser refused is one clause or two, and the
- * rest of the book said what it meant: such a clause takes the place of the Art's own clause about the
- * same part of the world, with its pages together, and is never charged as moved.
- *
- * **The Art speaks only where the writer did not.** A section a writer put a page into keeps theirs and
- * loses the Art's, so what stays latent is the part of the world nobody described rather than a second
- * opinion about the part they did.
- *
- * **Deterministic, because an Age rebuilds from its recipe on every open.** The skeleton is drawn from the
- * pages themselves, so a book reads the same wherever it is carried and whatever seed it is later written
- * at — the reading belongs to the book, and the seed belongs to the Age.
+ * **Every edit is charged.** A page moved, or now speaking to a different part of the world, is `rehomed`, and a page taken out is
+ * `impossible`. A page the Art laid in is latent: it costs no ink and the book never shows it.
  */
 internal object Repair {
-    /** The grammar the Art draws its own sentence from — `art/generation/repair.json`. */
-    const val GRAMMAR = "repair"
 
-    // Arbitrary, and only ever needed so a book of one page does not draw the same world as no book at all.
-    private const val SKELETON_SALT = 0x5A17_0F1E_C0DEL
-
-    // Which clause a page is in, as a number the writer's book and the filled sentence can be compared by.
-    // A writer's own page is named by where they wrote it, and neither of these can be mistaken for one.
-    private const val A_CLAUSE_THE_ART_OPENED = -1
-    private const val NO_CLAUSE_AT_ALL = -2
-
-    /** [laid] filled into a sentence the Art wrote for itself. */
-    fun of(vocabulary: Vocabulary, laid: List<Page>): Sentence =
-        Filling(skeletonFor(vocabulary, laid)).fill(laid)
+    private const val INSERTING = 1
+    private const val MOVING = 2
+    private const val DROPPING_STRUCTURE = 3
+    private const val DROPPING_A_WORD = 4
 
     /**
-     * The Art's own sentence, complete: something said about every part of the world, drawn from the
-     * curated pool and never from derived content (§8.2), so a writer cannot reroll their way into an Age
-     * of diamond.
-     *
-     * A pack whose repair grammar writes something the parser cannot read falls back to the nucleus alone —
-     * the one sentence that always reads, and one whose loose modifiers admit a term of any aspect, so a
-     * page still has somewhere to go.
+     * Each other page an edit sends to a different part of the world than it was written for. Dearer than
+     * moving the page that would not read, so a repair keeps what was said right over what is cheap to lay.
      */
-    private fun skeletonFor(vocabulary: Vocabulary, laid: List<Page>): List<Page> {
-        val drawn = drawn(vocabulary, laid)
-        val reads = drawn.isNotEmpty() && ArtReading.parse(drawn) != null
-        return if (reads) drawn else nucleusOf(vocabulary)
-    }
+    private const val REAIMING_ANOTHER = 2
 
-    /**
-     * The Art's own sentence — **the quietest draw, with anything still arguing taken back out**.
-     *
-     * A skeleton describes a whole world, so its words carry tags like any others, and a word that
-     * contradicts one of the writer's is a contradiction they did not write, cannot see and cannot do
-     * anything about. [Filling.deferringToTheWriter] already refuses that within a clause; this is the same
-     * promise across the sentence, where it actually bites — a `sea` word and an `atmosphere` word are
-     * never in each other's clause and instability is read across the whole book.
-     *
-     * **Quietest rather than first quiet, and then pruned.** Taking the first candidate that argued about
-     * nothing threw away a skeleton right about everything but its sea, and fell back on one *known* to
-     * argue whenever all of them did — charging the writer for exactly what this promises they never pay
-     * for. Scoring keeps the best of a bad draw; [pruned] then drops the words still quarrelling, which is
-     * cheap where forcing them is not: a section with no modifiers is a legal section, and what a book does
-     * not say the **template** answers (world model §4).
-     *
-     * **Still deterministic**, which the whole class depends on: the candidates come from one seeded
-     * sequence drawn off the pages, and the choice between them is a pure function of the words. No Age
-     * seed is involved, so a book still reads the same wherever it is carried.
-     */
-    private fun drawn(vocabulary: Vocabulary, laid: List<Page>): List<Page> {
-        val grammar = vocabulary.generation.grammar(GRAMMAR) ?: return emptyList()
-        val random = Random(seedFor(laid))
-        val candidates = (1..DRAWS).map { grammar.expand(random) }
-        fun pagesOf(words: List<String>) =
-            words.map { Grammar.classify(vocabulary, it, latent = true) }.filter { it.kind != null }
-        val drawn = candidates.map(::pagesOf)
-        val quietest = drawn.minByOrNull { arguing(vocabulary, it, laid).size } ?: return emptyList()
-        return pruned(vocabulary, quietest, laid)
-    }
+    /** Two edits are enough for a clause with two pages out of place; past that a page is taken out. */
+    private const val MOST_EDITS_PER_STEP = 2
 
-    /**
-     * The Art's own pages that contradict something the writer laid.
-     *
-     * **Asked of everything a word *may* do, not only what it always does.** A pool is drawn per Age
-     * (`Constraint.drawnAt`), so whether two words quarrel can depend on a seed repair does not have and
-     * must not have: `scorching` pools a murk band that argues with `clear`'s at some seeds and not others,
-     * and a repair that read only the core would promise quiet and deliver it two Ages in three. Repair
-     * therefore avoids what *could* argue, which is the only promise it can keep deterministically.
-     */
-    private fun arguing(vocabulary: Vocabulary, skeleton: List<Page>, laid: List<Page>): List<Page> {
-        fun asItMayLand(word: Word) = word.copy(sets = word.canSet)
-        val written = laid.mapNotNull { it.word }.map(::asItMayLand)
-        if (written.isEmpty()) return emptyList()
-        return skeleton.filter { page ->
-            val drawn = page.word?.let(::asItMayLand) ?: return@filter false
-            written.any { vocabulary.disagreement(drawn, it) != null }
-        }
-    }
+    /** Steps before the repair stops looking and takes out what it is stuck on, so it always ends. */
+    private const val STEPS_PER_PAGE = 4
 
-    /**
-     * [skeleton] with each arguing page dropped, keeping only the drops the sentence still reads without.
-     *
-     * **By identity, not by value**: the same word may be drawn twice into different clauses, and only the
-     * one that quarrels should go. An aiming page is never dropped because it never argues — it says
-     * nothing itself, which is the whole of what makes it an aiming page.
-     */
-    private fun pruned(vocabulary: Vocabulary, skeleton: List<Page>, laid: List<Page>): List<Page> {
-        var kept = skeleton
-        for (page in arguing(vocabulary, skeleton, laid)) {
-            val without = kept.filterNot { it === page }
-            if (ArtReading.parse(without) != null) kept = without
-        }
-        return kept
-    }
+    // Arbitrary, and only so the tie-break is not the seed's first draw for everything else too.
+    private const val TIE_SALT = 0x5A17_0F1E_C0DEL
 
-    /**
-     * How many worlds to draw before settling for the first.
-     *
-     * The shipped grammar offers three, so this is enough to see each of them several times over and cheap
-     * enough not to matter — expansion is a walk of a handful of rules, and repair happens once per book.
-     */
-    private const val DRAWS = 24
+    /** [laid] made to read with the fewest edits, ties broken by [seed]. */
+    fun of(vocabulary: Vocabulary, laid: List<Page>, seed: Long): Sentence =
+        Mending(vocabulary, laid, Random(seed xor TIE_SALT)).mended()
 
-    private fun nucleusOf(vocabulary: Vocabulary): List<Page> {
-        val age = vocabulary.grammarWords.firstOrNull { it.production == Production.NUCLEUS } ?: return emptyList()
-        return listOf(Grammar.classify(vocabulary, age.name, latent = true))
-    }
+    /** One page of the row being mended: [id] follows it through a move, and [wroteAt] says it was the writer's. */
+    private data class Laid(val page: Page, val id: Int, val wroteAt: Int?, val moved: Boolean = false)
 
-    /** The pages themselves, so the same book always repairs the same way. */
-    private fun seedFor(laid: List<Page>): Long =
-        laid.fold(SKELETON_SALT) { seed, page -> seed * 31 + page.written.hashCode() }
+    private data class Candidate(val row: List<Laid>, val cost: Int)
 
-    /** One page of the sentence being filled, and where in the writer's book it came from. */
-    private data class Laid(val page: Page, val wroteAt: Int?)
+    private class Mending(vocabulary: Vocabulary, written: List<Page>, private val random: Random) {
+        private val original = written.mapIndexed { at, page -> Laid(page, id = at, wroteAt = at) }
+        private var nextId = written.size
+        private val dropped = mutableListOf<String>()
 
-    /**
-     * What the writer wrote after the `age` page, cut into the clauses that read on their own and the
-     * pages that do not. A clause is cut at each aiming page; one followed by a siting is left to the
-     * pages, since the siting would be cut from it.
-     */
-    private fun partsOf(written: List<Page>): List<List<Int>> {
-        val nucleusAt = written.indexOfFirst { it.kind == PageClass.NUCLEUS }
-        if (nucleusAt < 0) return written.indices.map(::listOf)
-        val nucleus = written[nucleusAt]
-        fun readsAlone(clause: List<Int>) = ArtReading.parse(listOf(nucleus) + clause.map(written::get)) != null
-        fun isFollowedByASiting(at: Int) = written.getOrNull(at + 1)?.kind.let {
-            it == PageClass.CONFINER || it == PageClass.WIDENER
-        }
-        val parts = mutableListOf<List<Int>>()
-        (0..nucleusAt).forEach { parts += listOf(it) }
-        var clause = mutableListOf<Int>()
-        for (at in nucleusAt + 1 until written.size) {
-            clause += at
-            if (written[at].kind != PageClass.SUBJECT) continue
-            val whole = clause.size > 1 && !isFollowedByASiting(at) && readsAlone(clause)
-            if (whole) parts += clause.toList() else clause.forEach { parts += listOf(it) }
-            clause = mutableListOf()
-        }
-        clause.forEach { parts += listOf(it) }
-        return parts
-    }
+        private val aimingPages: List<Page> = Aspect.entries
+            .map { Grammar.classify(vocabulary, it.page, latent = true) }
+            .filter { it.kind == PageClass.SUBJECT }
 
-    /**
-     * The skeleton as it is being filled. Every placement is decided by asking the parser, so a page is
-     * only ever somewhere the book still reads.
-     */
-    private class Filling(skeleton: List<Page>) {
-        private val laid = skeleton.map { Laid(it, wroteAt = null) }.toMutableList()
-        private val impossible = mutableListOf<String>()
-
-        /** Where written order says the next page belongs: just after the one before it. */
-        private var anchor = 0
-
-        /** The writer's pages that were laid together as a clause, which is not a move however far it went. */
-        private val keptTogether = mutableSetOf<Int>()
-
-        fun fill(written: List<Page>): Sentence {
-            for (part in partsOf(written)) {
-                val laidWhole = part.size > 1 && layWhole(part.map(written::get), part)
-                if (laidWhole) keptTogether += part else part.forEach { lay(written[it], it) }
+        fun mended(): Sentence {
+            var row = original
+            val mostSteps = STEPS_PER_PAGE * (original.size + 1)
+            for (step in 0..<mostSteps) {
+                val refusal = ArtReading.refusal(pagesOf(row)) ?: break
+                row = cheapestPast(row, refusal) ?: takingOut(row, refusal.page)
             }
-            markWhatMoved(written)
-            val read = ArtReading.parse(pages())
-            // Every placement was accepted by the parser and marking a move changes only whose page a page
-            // is, so this cannot fail. If it ever does, the pages are **reported** rather than dropped: a
-            // repair that quietly loses a book is the one failure §3.3 forbids, and the empty sentence this
-            // used to fall back to was exactly that.
-            if (read == null) return Sentence(emptyList(), impossible = impossible + written.map(Page::written))
-            return deferringToTheWriter(read).copy(impossible = impossible.toList())
+            val marked = markingWhatMoved(row)
+            val read = ArtReading.parse(pagesOf(marked))
+                ?: return Sentence(emptyList(), impossible = original.map { it.page.written })
+            return read.copy(impossible = dropped.toList())
         }
 
-        private fun pages(): List<Page> = laid.map { it.page }
-
-        private fun lay(page: Page, wroteAt: Int) {
-            val standing = positionsFromTheAnchor().firstOrNull { at -> theArtAlreadyDrew(at, page) }
-            if (standing != null) {
-                // The writer's page *is* that one, so it stops being the Art's.
-                laid[standing] = Laid(page, wroteAt)
-                anchor = standing + 1
-                return
-            }
-            for (at in positionsFromTheAnchor()) {
-                if (!canOpenAt(at)) continue
-                if (ArtReading.parse(pagesWith(at, page)) == null) continue
-                laid.add(at, Laid(page, wroteAt))
-                anchor = at + 1
-                return
-            }
-            impossible += page.written
-        }
+        private fun pagesOf(row: List<Laid>) = row.map(Laid::page)
 
         /**
-         * A clause that reads, laid as it is: in place of the Art's own page about the same part of the
-         * world where it drew one, and otherwise wherever the book still reads. False where nowhere does.
+         * The cheapest rows, within [MOST_EDITS_PER_STEP] edits, that read past the page [refusal] names —
+         * one of them, drawn where several cost the same. Null where none does.
          */
-        private fun layWhole(clause: List<Page>, wroteAt: List<Int>): Boolean {
-            val closer = clause.last()
-            val modifiers = clause.dropLast(1).zip(wroteAt).map { (page, at) -> Laid(page, at) }
-            val whole = modifiers + Laid(closer, wroteAt.last())
-            val before = laid.toList()
-            val standing = positionsFromTheAnchor().firstOrNull { at -> theArtAlreadyDrew(at, closer) }
-            if (standing != null) {
-                laid[standing] = Laid(closer, wroteAt.last())
-                laid.addAll(standing, modifiers)
-                if (ArtReading.parse(pages()) != null) {
-                    anchor = standing + whole.size
-                    return true
+        private fun cheapestPast(row: List<Laid>, refusal: ArtReading.Refusal): List<Laid>? {
+            val settled = row.take(refusal.page + 1).map(Laid::id).toSet()
+            fun readsPast(candidate: List<Laid>): Boolean {
+                val stillSettled = candidate.withIndex()
+                    .filter { (_, entry) -> entry.id in settled && !entry.moved }
+                    .maxOfOrNull { it.index } ?: -1
+                val next = ArtReading.refusal(pagesOf(candidate)) ?: return true
+                return next.page > stillSettled
+            }
+            val reaching = mutableListOf<Candidate>()
+            var frontier = listOf(Candidate(row, cost = 0))
+            for (depth in 1..MOST_EDITS_PER_STEP) {
+                val cheapestSoFar = reaching.minOfOrNull { it.cost }
+                if (cheapestSoFar != null && cheapestSoFar <= depth * INSERTING) break
+                frontier = frontier.flatMap { from ->
+                    val at = if (from.row === row) refusal else ArtReading.refusal(pagesOf(from.row))
+                    if (at == null) emptyList() else editsOf(from, at)
                 }
-                laid.clear()
-                laid.addAll(before)
+                reaching += frontier.filter { readsPast(it.row) }
+                frontier = frontier.filterNot { readsPast(it.row) }
             }
-            for (at in positionsFromTheAnchor()) {
-                if (!canOpenAt(at)) continue
-                laid.addAll(at, whole)
-                if (ArtReading.parse(pages()) != null) {
-                    anchor = at + whole.size
-                    return true
+            val stuckId = row[refusal.page].id
+            val priced = reaching.map { it.copy(cost = it.cost + REAIMING_ANOTHER * reaimedBy(it.row, besides = stuckId)) }
+            val cheapest = priced.minOfOrNull { it.cost } ?: return null
+            val choices = priced.filter { it.cost == cheapest }.distinctBy { signatureOf(it.row) }
+            return choices[random.nextInt(choices.size)].row
+        }
+
+        /** How many of the writer's pages [row] has speaking to a part other than the one meant, [besides] the stuck one. */
+        private fun reaimedBy(row: List<Laid>, besides: Int): Int {
+            val reaching = reachOfEachPage(row)
+            return row.withIndex().count { (at, entry) ->
+                val isAnotherOfTheWriters = entry.wroteAt != null && entry.id != besides && !entry.moved
+                isAnotherOfTheWriters && reaching[at] != null && reaching[at] != meantFor(entry)
+            }
+        }
+
+        /** Every single edit to [from] around the page [refusal] could not read. */
+        private fun editsOf(from: Candidate, refusal: ArtReading.Refusal): List<Candidate> {
+            val row = from.row
+            val stuck = row.getOrNull(refusal.page) ?: return emptyList()
+            val aimedAlready = row.filter { it.page.kind == PageClass.SUBJECT }.map { it.page.written }.toSet()
+            val wanted = row.subList(refusal.clause, refusal.page + 1).flatMap { aspectsFor(it.page) }.toSet()
+            val worthAiming = aimingPages.filter { it.written !in aimedAlready && it.aspect in wanted }
+            // A rung or a polarity binds to the page after it, so an aiming page laid there would be counted.
+            fun bindsTheNextPage(at: Int) = row.getOrNull(at - 1)?.page?.kind.let {
+                it == PageClass.QUANTIFIER || it == PageClass.RESTRICTOR || it == PageClass.EXCLUDER
+            }
+
+            val insertions = (refusal.clause + 1..refusal.page + 1).filterNot(::bindsTheNextPage).flatMap { at ->
+                worthAiming.map { aiming ->
+                    Candidate(row.take(at) + Laid(aiming, id = nextId++, wroteAt = null) + row.drop(at), from.cost + INSERTING)
                 }
-                laid.clear()
-                laid.addAll(before)
             }
-            return false
+            val mayMove = stuck.wroteAt != null && !stuck.moved
+            val without = row.filterIndexed { at, _ -> at != refusal.page }
+            val moves = if (!mayMove) emptyList() else (0..without.size)
+                .filter { it != refusal.page }
+                .map { at -> Candidate(without.take(at) + stuck.copy(moved = true) + without.drop(at), from.cost + MOVING) }
+            val dropCost = if (stuck.page.word == null) DROPPING_STRUCTURE else DROPPING_A_WORD
+            val drop = Candidate(without, from.cost + dropCost)
+            return insertions + moves + drop
         }
 
-        /** Every position a page could take: on from the anchor, and only then back towards the front. */
-        private fun positionsFromTheAnchor(): List<Int> = (anchor..laid.size) + (anchor - 1 downTo 0)
-
-        /**
-         * Whether the Art's own page at [at] is the one the writer wrote, so the writer may simply claim it.
-         *
-         * **The same word is not always the same page.** A term at home in several parts of the world takes
-         * its terminal from the section it sits in (`Grammar`), so two pages spelling `clear` can be a sky
-         * term and an atmosphere term — and swapping one for the other here is the one placement nothing
-         * asks the parser about, which turned a sentence that read into one that did not.
-         */
-        private fun theArtAlreadyDrew(at: Int, page: Page): Boolean {
-            val standing = laid.getOrNull(at) ?: return false
-            val isTheArtsOwn = standing.page.latent && standing.page.written == page.written
-            return isTheArtsOwn && standing.page.aspect == page.aspect
+        /** The parts of the world an aiming page could be laid in front of [page] for. */
+        private fun aspectsFor(page: Page): Set<Aspect> {
+            val word = page.word ?: return emptySet()
+            return Grammar.placesFor(word).ifEmpty { Aspect.entries.toSet() }
         }
 
-        /**
-         * A rung binds to the page after it and to no other (§4.5), so nothing may be laid between the two.
-         * The parser would take such a page happily and quietly count it instead.
-         */
-        private fun canOpenAt(at: Int): Boolean = laid.getOrNull(at - 1)?.page?.kind != PageClass.QUANTIFIER
-
-        private fun pagesWith(at: Int, page: Page): List<Page> {
-            val standing = pages()
-            return standing.take(at) + page + standing.drop(at)
-        }
+        /** What a repair that found nothing does: takes out the page it is stuck on, which always ends. */
+        private fun takingOut(row: List<Laid>, page: Int): List<Laid> = row.filterIndexed { at, _ -> at != page }
 
         /**
-         * Which of the writer's pages ended up in a clause other than the one they wrote it in — the whole
-         * of what a re-homing is, and what repair charges for.
-         *
-         * **Compared by clause, never by position.** A repaired sentence is a different row of pages
-         * entirely, so every page has moved in the trivial sense; what a writer needs told is only that a
-         * page changed what it is *about*.
+         * The row with every writer's page marked `rehomed` that was moved, or that now speaks to a different
+         * part of the world than the clause it was written in — read off the parse itself, so a page that
+         * closes a clause of its own where it stands is never charged for the aiming page laid after it.
+         * A page the repair took out is charged as `impossible`.
          */
-        private fun markWhatMoved(written: List<Page>) {
-            val wroteItUnder = clausesIn(written)
-            for ((at, entry) in laid.withIndex()) {
-                val wroteAt = entry.wroteAt ?: continue
-                if (wroteAt in keptTogether || clauseAt(at) == wroteItUnder[wroteAt]) continue
-                laid[at] = entry.copy(page = entry.page.copy(rehomed = true))
+        private fun markingWhatMoved(row: List<Laid>): List<Laid> {
+            val kept = row.mapNotNull { it.wroteAt }.toSet()
+            dropped += original.filter { it.wroteAt !in kept }.map { it.page.written }
+            val reaching = reachOfEachPage(row)
+            return row.mapIndexed { at, entry ->
+                val wasTheWriters = entry.wroteAt != null
+                val changedPart = wasTheWriters && reaching[at] != null && reaching[at] != meantFor(entry)
+                if (wasTheWriters && (entry.moved || changedPart)) entry.copy(page = entry.page.copy(rehomed = true)) else entry
             }
         }
 
-        /** For each page of a book, which clause it is in, named by the page that opens it. */
-        private fun clausesIn(book: List<Page>): List<Int> {
-            var opened = NO_CLAUSE_AT_ALL
-            return book.mapIndexed { at, page ->
-                if (opensAClause(page)) opened = at
-                opened
+        /** What [entry] was written to speak to: the part its clause closes on, or its own where `age` closes it. */
+        private fun meantFor(entry: Laid): Set<Aspect> = meant.getOrPut(entry.id) {
+            val from = original.indexOfFirst { it.id == entry.id }
+            val closer = original.drop(from).firstOrNull { it.page.kind == PageClass.SUBJECT || it.page.kind == PageClass.NUCLEUS }
+            val aimed = closer?.page?.takeIf { it.kind == PageClass.SUBJECT }?.aspect
+            if (aimed != null) setOf(aimed) else entry.page.word?.aspects.orEmpty()
+        }
+
+        private val meant = mutableMapOf<Int, Set<Aspect>>()
+
+        /**
+         * For each page of [row], the parts of the world the parse has it speaking to, or null for a page that
+         * makes no claim. Constraints come out in the order their pages were laid, a siting's biome being
+         * the one word page that makes none.
+         */
+        private fun reachOfEachPage(row: List<Laid>): List<Set<Aspect>?> {
+            val said = ArtReading.parse(pagesOf(row))?.constraints ?: return row.map { null }
+            var next = 0
+            return row.mapIndexed { at, entry ->
+                val namesASiting = row.getOrNull(at - 1)?.page?.kind == PageClass.CONFINER
+                val claims = entry.page.word != null && !namesASiting
+                val constraint = if (claims) said.getOrNull(next++) else null
+                constraint?.takeIf { it.word === entry.page.word }?.aimedAt
             }
         }
 
-        /** The same for the filled sentence, said in the writer's numbering so the two can be compared. */
-        private fun clauseAt(at: Int): Int {
-            val opened = (at downTo 0).firstOrNull { opensAClause(laid[it].page) } ?: return NO_CLAUSE_AT_ALL
-            return laid[opened].wroteAt ?: A_CLAUSE_THE_ART_OPENED
-        }
-
-        private fun opensAClause(page: Page): Boolean =
-            page.kind == PageClass.SUBJECT || page.kind == PageClass.NUCLEUS
-
-        /**
-         * The Art's own words taken back out of every clause the writer spoke in, so that filling in is
-         * never arguing back — a latent page contending with a written one would charge a writer for a
-         * contradiction they did not write and cannot see.
-         *
-         * Done to the reading rather than to the pages, because taking a page out could change where the
-         * ones around it attach, and where a writer's page landed is settled by now.
-         *
-         * **A latent subject survives it**: the writer said nothing about that part of the world, they only
-         * put a word under it, and it is the clause that says where their word went.
-         */
-        private fun deferringToTheWriter(read: Sentence): Sentence =
-            read.copy(phrases = read.phrases.map(::deferring))
-
-        private fun deferring(phrase: Phrase): Phrase {
-            val theWriterSpokeHere = phrase.modifiers.any { !it.latent }
-            if (!theWriterSpokeHere) return phrase
-            return phrase.copy(modifiers = phrase.modifiers.filterNot { it.latent })
-        }
+        private fun signatureOf(row: List<Laid>): List<String> =
+            row.map { "${it.page.written}:${it.wroteAt}" }
     }
 }

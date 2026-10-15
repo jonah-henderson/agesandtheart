@@ -101,7 +101,7 @@ abstract class InstrumentReading<Reading>(private val player: ServerPlayer?, pos
     private fun resolvedFrom(writer: ServerPlayer, laid: List<Identifier>): Resolution? {
         if (laid.isEmpty()) return null
         val vocabulary = Vocabulary.of(writer.level().server)
-        val said = Grammar.read(vocabulary, laid.map(Identifier::getPath)) ?: return null
+        val said = Grammar.read(vocabulary, laid.map(Identifier::getPath), writer.writingSeed) ?: return null
         return Resolver.resolve(vocabulary, said, writer.writingSeed)
     }
 

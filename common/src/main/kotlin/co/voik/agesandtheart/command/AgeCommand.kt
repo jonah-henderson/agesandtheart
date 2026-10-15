@@ -289,14 +289,14 @@ object AgeCommand {
         }
         // The one refusal in the Art (§4.3.1): name the thing you are making, or there is no book. Without
         // it an empty book would be a free reroll on a random Age, which is what repair would hand back.
-        val read = Grammar.read(vocabulary, pages)
+        // **An omitted seed is a roll, not the name's hash.** See `AgeRecipe.freshSeed`; the seed is
+        // printed with the Age, so a world worth keeping can be pinned by writing it back.
+        val chosenSeed = seed ?: AgeRecipe.freshSeed()
+        val read = Grammar.read(vocabulary, pages, chosenSeed)
             ?: return report.fail("A book opens with the Age page — write 'age' first, then what it is like")
         if (read.isEmpty) return report.fail("An Age needs at least one word the Art can read")
         reportParse(report, read)
 
-        // **An omitted seed is a roll, not the name's hash.** See `AgeRecipe.freshSeed`; the seed is
-        // printed with the Age, so a world worth keeping can be pinned by writing it back.
-        val chosenSeed = seed ?: AgeRecipe.freshSeed()
         val resolution = Resolver.resolve(vocabulary, read, chosenSeed)
         val recipe = AgeRecipe.written(source.server, resolution, pages, chosenSeed)
         val result = open(source, name, id, recipe, report)
@@ -313,7 +313,6 @@ object AgeCommand {
                 "register" to flaw.register.key,
                 "words" to flaw.words,
                 "aspect" to flaw.aspect?.key,
-                "counts" to flaw.register.counts,
             )
             report.entry("flaws", fields) { "  ! $flaw" }
         }
@@ -355,14 +354,13 @@ object AgeCommand {
             )
             report.entry("said", fields) { "    ${said.word.name} → $aimed$joined$whose" }
         }
-        // A book that was not a sentence is repaired against one the Art draws for itself, and what it drew
-        // is the natural course of a world nobody described that far. The book never shows it, so this is
-        // the only place a writer can be told.
+        // A book that was not a sentence is repaired with the fewest edits, and the aiming pages the Art laid
+        // in are never shown in the book, so this is the only place a writer can be told.
         val supplied = read.constraints.filter { it.latent }.map { it.word.name }
         report.only("supplied", supplied)
         if (supplied.isNotEmpty()) {
             report.styled {
-                Component.literal("  your book was not a sentence, so the Art wrote the rest of it: ")
+                Component.literal("  your book was not a sentence, so the Art laid in: ")
                     .append(Component.literal(supplied.joinToString(" ")).withStyle(ChatFormatting.GRAY))
             }
         }

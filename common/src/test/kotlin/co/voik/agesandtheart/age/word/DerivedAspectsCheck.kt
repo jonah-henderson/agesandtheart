@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.ShippedCorpus.ANY_SEED
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -216,7 +217,7 @@ class DerivedAspectsCheck : FunSpec({
         check(beautiful.aspects.containsAll(keyed) && beautiful.aspects.size > keyed.size + 2) {
             "'beautiful' reaches only ${beautiful.aspects}"
         }
-        val read = Grammar.read(vocabulary, listOf("beautiful", "age"))
+        val read = Grammar.read(vocabulary, listOf("beautiful", "age"), ANY_SEED)
         checkNotNull(read) { "'beautiful age' is not a book" }
         val laid = read.phrases.flatMap { it.modifiers }.single { it.word.name == "beautiful" }
         check(laid.aimedAt == beautiful.aspects) { "'beautiful' laid bare was aimed at ${laid.aimedAt}" }

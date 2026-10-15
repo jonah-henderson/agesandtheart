@@ -60,7 +60,7 @@ object FoundBook {
     fun write(stack: ItemStack, server: MinecraftServer, seed: Long, kind: FoundBookKind) {
         val vocabulary = Vocabulary.of(server)
         val pages = vocabulary.generation.grammar(kind.grammar)?.expand(Random(seed)).orEmpty()
-        writePages(stack, vocabulary, pages) { AgeName.drawn(vocabulary, seed)?.read ?: UNNAMED }
+        writePages(stack, vocabulary, pages, seed) { AgeName.drawn(vocabulary, seed)?.read ?: UNNAMED }
     }
 
     /**
@@ -68,18 +68,24 @@ object FoundBook {
      * the report calls it — its sentence and its seed, so every copy of it leads to the same world.
      */
     fun writeSurveyed(stack: ItemStack, server: MinecraftServer, report: SurveyReport, ageName: String) {
-        writePages(stack, Vocabulary.of(server), report.sentence) { ageName }
+        writePages(stack, Vocabulary.of(server), report.sentence, report.ageSeed) { ageName }
         stack.set(AgeComponents.BOOK_SEED, report.ageSeed)
     }
 
-    private fun writePages(stack: ItemStack, vocabulary: Vocabulary, pages: List<String>, title: () -> String) {
+    private fun writePages(
+        stack: ItemStack,
+        vocabulary: Vocabulary,
+        pages: List<String>,
+        seed: Long,
+        title: () -> String,
+    ) {
         val words = pages.mapNotNull { page -> vocabulary.word(page)?.id ?: vocabulary.grammarWord(page)?.id }
         stack.set(AgeComponents.BOOK_WORDS, words)
         if (words.isEmpty()) return
         stack.set(AgeComponents.BOOK_TITLE, title())
         // A sentence that dropped the `age` page is something no player could bind, so the book goes out
         // unread rather than carrying a reading of a sentence it does not spell.
-        val read = Grammar.read(vocabulary, pages) ?: return
+        val read = Grammar.read(vocabulary, pages, seed) ?: return
         stack.set(AgeComponents.BOOK_READING, Prose.of(read))
     }
 }

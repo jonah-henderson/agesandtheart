@@ -12,9 +12,9 @@ import io.kotest.core.spec.style.FunSpec
 /**
  * What becomes of a book that does not read (design §2, §4.3.1).
  *
- * The parser refuses such a book outright now, so everything here is [Repair]'s work: a sentence the Art
- * draws for itself, with the writer's pages laid into it. The properties are the promises that make it
- * something a writer can be *shown* rather than something that merely happened to them.
+ * The parser refuses such a book outright, so everything here is [Repair]'s work: the writer's own book with
+ * the fewest edits that make it read. The properties are the promises that make it something a writer can
+ * be *shown* rather than something that merely happened to them.
  */
 @Tags(NEEDS_REGISTRIES)
 class RepairCheck : FunSpec({
@@ -31,7 +31,7 @@ class RepairCheck : FunSpec({
         val read = read(misaimed)
         check(read.dropped.isEmpty()) { "a re-homable page was dropped: ${read.dropped}" }
         val kept = read.written.map { it.word.name }
-        check(kept == listOf("landmass", "starless")) { "the writer's pages came back as $kept" }
+        check(kept == listOf("starless", "landmass")) { "the writer's pages came back as $kept, out of the order laid" }
     }
 
     /**
@@ -48,8 +48,7 @@ class RepairCheck : FunSpec({
 
     /**
      * **Every page is one or the other**, and which is never in doubt: a writer's page is what the book
-     * shows and what the ink was spent on, and the Art's is the natural course of a world nobody described
-     * that far.
+     * shows and what the ink was spent on, and the Art's is an aiming page it laid in to make the book read.
      */
     test("the writer's pages are theirs and the Art's are not") {
         val read = read(misaimed)
@@ -99,23 +98,6 @@ class RepairCheck : FunSpec({
     }
 
     /**
-     * **The Art speaks only where the writer did not.** Filling in must never argue back: a latent page
-     * contending with a written one would charge a writer for a contradiction they did not write, in a
-     * clause they cannot see.
-     */
-    test("the Art says nothing about a part of the world the writer spoke of") {
-        val read = read(listOf("age", "landmass", "flat", "sky", "landmass"))
-        val spokenIn = read.phrases.filter { phrase -> phrase.modifiers.any { !it.latent } }
-        check(spokenIn.isNotEmpty()) { "the writer's pages reached no clause at all: ${read.phrases}" }
-        for (phrase in spokenIn) {
-            val secondOpinion = phrase.modifiers.filter { it.latent }.map { it.word.name }
-            check(secondOpinion.isEmpty()) {
-                "the Art answered back under ${phrase.subject?.word}: ${secondOpinion.joinToString(" ")}"
-            }
-        }
-    }
-
-    /**
      * **A repaired book is shown as its writer wrote it** (§4.3.1). The Art's own pages are the world's,
      * not the book's — a readout carrying them would tell a writer they had said things they never wrote.
      */
@@ -147,22 +129,7 @@ class RepairCheck : FunSpec({
     }
 
     /**
-     * **Moving an evocative page to the nucleus is free** (§4.3.1). `rehomed` charges for an aiming a writer
-     * could not see was wrong, and an evocative word has exactly one place it can go — so there was no
-     * choice to get wrong, nothing to diagnose, and nothing to price. A narrowing page moved off a clause it
-     * did not belong to is still charged, which the check below it holds.
-     */
-    test("an evocative page moved to the nucleus is not charged") {
-        val read = read(listOf("age", "beautiful", "floating", "landmass"))
-        val charged = Resolver.resolve(vocabulary, read, SAMPLE_SEED).instability.flaws
-            .filter { it.register == Register.REHOMED }
-        check(charged.none { flaw -> "beautiful" in flaw.words }) {
-            "moving an evocative page to its only possible home was charged: ${charged.map { it.words }}"
-        }
-    }
-
-    /**
-     * The one page repair does lose: a page with **no position anywhere**. A second `Age` is the clearest
+     * The one page repair does lose: a page **no cheaper edit can make read**. A second `Age` is the clearest
      * case — a book has one head and there is nowhere in a sentence for a second — and losing it must be
      * reported rather than silent (§3.3).
      */
@@ -210,54 +177,44 @@ class RepairCheck : FunSpec({
     }
 
     /**
-     * **A writer is never charged for a word the Art chose.**
-     *
-     * Repair completes a book by writing a whole world around the writer's pages, and those pages carry
-     * tags like any others — so a fill-in can contradict the one word a writer actually laid, and the
-     * instability lands on somebody who could not have seen it coming and cannot do anything about it.
-     * Found in a walk (Jonah, 2026-08-06): every repair skeleton said `sea open`, whose `empty` is the
-     * antonym of `watery`, so writing `drenched` and nothing else bought a contradiction outright.
-     *
-     * `Repair.deferringToTheWriter` already takes the Art's words back out of every clause the writer spoke
-     * in, which is the same promise — but a clause is not far enough. Instability is read across the whole
-     * sentence, so a word in the *sea* can fight a word in the *atmosphere* and neither is in the other's
-     * clause.
-     *
-     * This is a **content** check, not a mechanism one: what it asks is whether the shipped grammar can
-     * write a world that argues with an ordinary word. If it can, the grammar is what changes.
+     * **Where several repairs cost the same, the Age's seed picks** (Jonah, 2026-10-14). `blue` belongs to
+     * many parts of the world and none of them is the land, so the same slip made at different seeds should
+     * not always land in the same place — and the same book at the same seed always must.
      */
-    test("repair never contradicts the one word a writer laid") {
-        val quarrelsome = vocabulary.authoredWords.filterNot { it.everyTagAsked.isEmpty() }
-        val complaints = mutableListOf<String>()
-        for (word in quarrelsome) {
-            // Aimed at a section the word is not about, which is what sends a book through repair at all —
-            // a word laid under the nucleus alone reads fine, and a book that reads is never filled in.
-            for (aimedAt in MISAIMED_AT.filterNot { it in word.aspects.map(Aspect::key) }) {
-                val laid = listOf("age", aimedAt, word.name)
-                val read = read(laid)
-                for (seed in REPAIR_SEEDS) {
-                    val flaws = Resolver.resolve(vocabulary, read, seed).instability.flaws
-                    val theArtsOwn = flaws.filterNot { flaw -> flaw.words.all { it in laid } }
-                    if (theArtsOwn.isEmpty()) continue
-                    complaints += "'${laid.joinToString(" ")}' at seed $seed: " +
-                        theArtsOwn.joinToString("; ") { it.describe() }
-                }
-            }
+    test("the seed breaks a tie, and only the seed") {
+        val book = listOf("age", "blue", "landmass")
+        fun landedUnder(seed: Long) = read(book, seed).phrases
+            .first { phrase -> phrase.modifiers.any { it.word.name == "blue" } }
+            .subject?.word?.name
+        val places = TIE_SEEDS.mapNotNull(::landedUnder).toSet()
+        check(places.size > 1) { "`blue landmass` landed under $places at every seed" }
+        check(TIE_SEEDS.all { landedUnder(it) == landedUnder(it) }) { "one book at one seed was repaired two ways" }
+    }
+
+    /** The Art never lays in a second aiming page for a part the book already aims at: a second sun is a sun. */
+    test("repair never opens a second clause about a part the book already aims at") {
+        for (seed in TIE_SEEDS) {
+            val read = read(listOf("age", "red", "sun", "blue", "landmass"), seed)
+            val suns = read.phrases.count { it.subject?.word?.name == "sun" }
+            check(suns == 1) { "`red sun blue landmass` at seed $seed read as ${Readout.of(read)}" }
         }
-        check(complaints.isEmpty()) {
-            "repair wrote a world that argues with a word the writer laid alone:\n" +
-                complaints.take(MOST_COMPLAINTS_SHOWN).joinToString("\n") +
-                if (complaints.size > MOST_COMPLAINTS_SHOWN) "\n(and ${complaints.size - MOST_COMPLAINTS_SHOWN} more)" else ""
-        }
+    }
+
+    /**
+     * **A repaired book shows on the panel, and only just** (Jonah, 2026-10-14). Every page a repair moved
+     * counts one between them, so a book that did not read as written is never coherent and is never much
+     * less so than a single mistake.
+     */
+    test("every page a repair moved counts one between them") {
+        val read = read(listOf("age", "starless", "tempest", "landmass"))
+        val instability = Resolver.resolve(vocabulary, read, SAMPLE_SEED).instability
+        val moved = instability.flaws.count { it.register == Register.REHOMED }
+        check(moved == 2) { "two pages were misaimed and $moved were charged: $instability" }
+        check(instability.index == 1) { "two moved pages counted ${instability.index}" }
     }
 })
 
-/** The aiming pages a misaimed book is written under — enough to send every word through repair. */
-private val MISAIMED_AT = listOf("landmass", "climate", "sky", "sea")
-
-/** A few, because a flaw can depend on the seed the book is written at. */
-private val REPAIR_SEEDS = listOf(1L, 7L, 20260806L)
-
-private const val MOST_COMPLAINTS_SHOWN = 12
+/** Enough seeds that a word with several homes is seen to land in more than one. */
+private val TIE_SEEDS = (1L..12L).toList()
 
 private const val SAMPLE_SEED = 20260802L

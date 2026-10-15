@@ -52,7 +52,7 @@ class ProposedBookCheck : FunSpec({
     test("print a few, to read") {
         for (seed in seeds.take(PRINTED)) {
             val pages = ProposedBook.of(vocabulary, everyWord, seed, PAGE_LIMIT).map(Identifier::getPath)
-            val said = Grammar.read(vocabulary, pages)?.let(Readout::of)
+            val said = Grammar.read(vocabulary, pages, seed)?.let(Readout::of)
             println("PROPOSED ${pages.joinToString(" ")}  —  $said")
         }
     }
