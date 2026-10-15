@@ -24,6 +24,10 @@ import kotlin.random.Random
  * drew that one* keeps a writer's `sky` from opening a second sky beside the Art's. A page with no position
  * anywhere is dropped, which is the only page repair ever loses.
  *
+ * **A clause that already reads is laid whole.** What the parser refused is one clause or two, and the
+ * rest of the book said what it meant: such a clause takes the place of the Art's own clause about the
+ * same part of the world, with its pages together, and is never charged as moved.
+ *
  * **The Art speaks only where the writer did not.** A section a writer put a page into keeps theirs and
  * loses the Art's, so what stays latent is the part of the world nobody described rather than a second
  * opinion about the part they did.
@@ -150,6 +154,33 @@ internal object Repair {
     private data class Laid(val page: Page, val wroteAt: Int?)
 
     /**
+     * What the writer wrote after the `age` page, cut into the clauses that read on their own and the
+     * pages that do not. A clause is cut at each aiming page; one followed by a siting is left to the
+     * pages, since the siting would be cut from it.
+     */
+    private fun partsOf(written: List<Page>): List<List<Int>> {
+        val nucleusAt = written.indexOfFirst { it.kind == PageClass.NUCLEUS }
+        if (nucleusAt < 0) return written.indices.map(::listOf)
+        val nucleus = written[nucleusAt]
+        fun readsAlone(clause: List<Int>) = ArtReading.parse(listOf(nucleus) + clause.map(written::get)) != null
+        fun isFollowedByASiting(at: Int) = written.getOrNull(at + 1)?.kind.let {
+            it == PageClass.CONFINER || it == PageClass.WIDENER
+        }
+        val parts = mutableListOf<List<Int>>()
+        (0..nucleusAt).forEach { parts += listOf(it) }
+        var clause = mutableListOf<Int>()
+        for (at in nucleusAt + 1 until written.size) {
+            clause += at
+            if (written[at].kind != PageClass.SUBJECT) continue
+            val whole = clause.size > 1 && !isFollowedByASiting(at) && readsAlone(clause)
+            if (whole) parts += clause.toList() else clause.forEach { parts += listOf(it) }
+            clause = mutableListOf()
+        }
+        clause.forEach { parts += listOf(it) }
+        return parts
+    }
+
+    /**
      * The skeleton as it is being filled. Every placement is decided by asking the parser, so a page is
      * only ever somewhere the book still reads.
      */
@@ -160,8 +191,14 @@ internal object Repair {
         /** Where written order says the next page belongs: just after the one before it. */
         private var anchor = 0
 
+        /** The writer's pages that were laid together as a clause, which is not a move however far it went. */
+        private val keptTogether = mutableSetOf<Int>()
+
         fun fill(written: List<Page>): Sentence {
-            for ((wroteAt, page) in written.withIndex()) lay(page, wroteAt)
+            for (part in partsOf(written)) {
+                val laidWhole = part.size > 1 && layWhole(part.map(written::get), part)
+                if (laidWhole) keptTogether += part else part.forEach { lay(written[it], it) }
+            }
             markWhatMoved(written)
             val read = ArtReading.parse(pages())
             // Every placement was accepted by the parser and marking a move changes only whose page a page
@@ -190,6 +227,39 @@ internal object Repair {
                 return
             }
             impossible += page.written
+        }
+
+        /**
+         * A clause that reads, laid as it is: in place of the Art's own page about the same part of the
+         * world where it drew one, and otherwise wherever the book still reads. False where nowhere does.
+         */
+        private fun layWhole(clause: List<Page>, wroteAt: List<Int>): Boolean {
+            val closer = clause.last()
+            val modifiers = clause.dropLast(1).zip(wroteAt).map { (page, at) -> Laid(page, at) }
+            val whole = modifiers + Laid(closer, wroteAt.last())
+            val before = laid.toList()
+            val standing = positionsFromTheAnchor().firstOrNull { at -> theArtAlreadyDrew(at, closer) }
+            if (standing != null) {
+                laid[standing] = Laid(closer, wroteAt.last())
+                laid.addAll(standing, modifiers)
+                if (ArtReading.parse(pages()) != null) {
+                    anchor = standing + whole.size
+                    return true
+                }
+                laid.clear()
+                laid.addAll(before)
+            }
+            for (at in positionsFromTheAnchor()) {
+                if (!canOpenAt(at)) continue
+                laid.addAll(at, whole)
+                if (ArtReading.parse(pages()) != null) {
+                    anchor = at + whole.size
+                    return true
+                }
+                laid.clear()
+                laid.addAll(before)
+            }
+            return false
         }
 
         /** Every position a page could take: on from the anchor, and only then back towards the front. */
@@ -232,7 +302,7 @@ internal object Repair {
             val wroteItUnder = clausesIn(written)
             for ((at, entry) in laid.withIndex()) {
                 val wroteAt = entry.wroteAt ?: continue
-                if (clauseAt(at) == wroteItUnder[wroteAt]) continue
+                if (wroteAt in keptTogether || clauseAt(at) == wroteItUnder[wroteAt]) continue
                 laid[at] = entry.copy(page = entry.page.copy(rehomed = true))
             }
         }

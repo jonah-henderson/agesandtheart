@@ -35,6 +35,18 @@ class RepairCheck : FunSpec({
     }
 
     /**
+     * **What read is left alone.** `tempest aurora obsidian landmass` fails at `tempest aurora`, and the
+     * clause after it said exactly what it meant — it keeps its stone, in its own clause, uncharged.
+     */
+    test("a clause that reads survives the repair of the one beside it") {
+        val read = read(listOf("age", "tempest", "aurora", "obsidian", "landmass"))
+        val landmass = read.phrases.first { it.subject?.word?.aspects == setOf(Aspect.TERRAIN) }
+        val kept = landmass.modifiers.firstOrNull { it.word.name == "obsidian" }
+        check(kept != null) { "`obsidian landmass` was pulled apart: ${Readout.of(read)}" }
+        check(!kept.rehomed) { "a page that stayed in its own clause was charged as moved" }
+    }
+
+    /**
      * **Every page is one or the other**, and which is never in doubt: a writer's page is what the book
      * shows and what the ink was spent on, and the Art's is the natural course of a world nobody described
      * that far.
