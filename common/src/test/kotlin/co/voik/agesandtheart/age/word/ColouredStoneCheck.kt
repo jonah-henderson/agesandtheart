@@ -4,14 +4,16 @@ import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.resolved
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.registries.BuiltInRegistries
 
 /**
- * **A colour aimed at the land builds it of that colour** — `blue landmass` is a world of blue stone, for
- * every colour a writer can say, and a colour laid bare only now and then.
+ * **A colour aimed at the land or the surface builds it of that colour** — `blue landmass` is a world of blue
+ * stone and `blue surface` one dressed in blue, for every colour a writer can say, and a colour laid bare only
+ * now and then.
  */
 @Tags(NEEDS_REGISTRIES)
 class ColouredStoneCheck : FunSpec({
@@ -26,6 +28,21 @@ class ColouredStoneCheck : FunSpec({
                 val stone = stoneOf(seed, colour, Aspect.TERRAIN.page)
                 val carries = stone != null && vocabulary.materials.carriersOf(colour).any { it.first == stone }
                 if (carries) null else "`$colour landmass` at seed $seed was built of $stone"
+            }
+        }
+        check(missing.isEmpty()) { missing.joinToString("\n") }
+    }
+
+    fun surfaceOf(seed: Long, vararg pages: String): String? =
+        resolved(seed, *pages).composition.optionsFor(Aspect.SURFACE, 0).materialsOf(Surface.MATERIAL)
+            .firstOrNull()?.let { BuiltInRegistries.BLOCK.getKey(it.block).toString() }
+
+    test("every colour aimed at the surface dresses it in a block of that colour") {
+        val missing = COLOURS.flatMap { colour ->
+            SEEDS.mapNotNull { seed ->
+                val surface = surfaceOf(seed, colour, Aspect.SURFACE.page)
+                val carries = surface != null && vocabulary.materials.carriersOf(colour).any { it.first == surface }
+                if (carries) null else "`$colour surface` at seed $seed was dressed in $surface"
             }
         }
         check(missing.isEmpty()) { missing.joinToString("\n") }
