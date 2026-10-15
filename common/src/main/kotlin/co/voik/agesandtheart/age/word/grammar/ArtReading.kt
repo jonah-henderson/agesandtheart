@@ -127,7 +127,7 @@ internal object ArtReading {
             // walked the cursor backwards and read the same clause forever.
             val aimedAt = (at..<pages.size).firstOrNull { closes(pages[it]) }
             val closesAt = aimedAt?.let { unambiguousTermBefore(it) ?: it }
-                ?: (if (nucleus) null else trailingCloseAt())
+                ?: (if (nucleus) null else trailingCloseAt()?.let { unambiguousTermBefore(it) ?: it })
                 ?: return null
             // Meeting the wrong kind is a book that does not read rather than a page swallowed: a second
             // `age` mid-book is `Repair`'s to report, not ours to absorb.
@@ -211,15 +211,19 @@ internal object ArtReading {
          * gentle landmass` is two clauses rather than a cat refused by the landmass (and moved into it by
          * `Repair`, where it said nothing).
          *
-         * Only before an aiming page: everything before the `age` page is the nucleus's, and a siting with
-         * no subject lets every term answer for itself. Only where **something laid after it still belongs
-         * to [closer]**, so the aiming page is left a clause to close: `starless landmass` aims the land at
+         * Before an aiming page, or before the last term of a book nothing else closes (`tempest lost_library`):
+         * everything before the `age` page is the nucleus's, and a siting with no subject lets every term
+         * answer for itself. Before an aiming page, only where **something laid after it still belongs to
+         * [closer]**, so the aiming page is left a clause to close: `starless landmass` aims the land at
          * nothing, and is `Repair`'s as it always was. And never a term joined to the one before it by `and`,
          * which the writer laid as one modifier. A book that reads without this reads the same with it,
          * since such a term would have been refused where it stood.
          */
         private fun unambiguousTermBefore(closer: Int): Int? {
-            if (pages[closer].kind != PageClass.SUBJECT) return null
+            // A term closing its own clause has nothing to leave an aiming page without, so a page after
+            // the earlier term is only needed where the closer is an aiming page.
+            val closerIsATerm = pages[closer].kind == PageClass.TERM
+            if (pages[closer].kind != PageClass.SUBJECT && !closerIsATerm) return null
             val aim = pages[closer].word?.aspects.orEmpty()
             fun speaksOnlyElsewhere(index: Int): Boolean {
                 val page = pages[index]
@@ -234,7 +238,7 @@ internal object ArtReading {
                 return isATerm && (declared.isEmpty() || declared.any { it in aim })
             }
             return (at..<closer).firstOrNull { index ->
-                speaksOnlyElsewhere(index) && (index + 1..<closer).any(::belongsToTheCloser)
+                speaksOnlyElsewhere(index) && (closerIsATerm || (index + 1..<closer).any(::belongsToTheCloser))
             }
         }
 

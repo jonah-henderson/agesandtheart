@@ -2,6 +2,8 @@ package co.voik.agesandtheart.sky
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.resolved
+import co.voik.agesandtheart.ShippedCorpus.vocabulary
+import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
@@ -33,6 +35,11 @@ class SeenPhenomenaPagesCheck : FunSpec({
         check(!claimed(Phenomenon.RAINBOW, "tempest", "landmass", "aurora")) {
             "the Art's own filler `rainbow` page brought a bow nobody wrote"
         }
+    }
+
+    test("a phenomenon beside a trailing term reads as laid") {
+        val row = listOf("age", "blue", "aurora", "tempest", "zombie")
+        check(Grammar.parses(vocabulary, row)) { "`tempest zombie` was refused and the book repaired" }
     }
 }) {
     private companion object {
