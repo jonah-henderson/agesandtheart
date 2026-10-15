@@ -87,9 +87,10 @@ internal object Repair {
          */
         private fun cheapestPast(row: List<Laid>, refusal: ArtReading.Refusal): List<Laid>? {
             val settled = row.take(refusal.page + 1).map(Laid::id).toSet()
+            // A moved page is still one of them where it landed, so a move cannot carry the problem further on.
             fun readsPast(candidate: List<Laid>): Boolean {
                 val stillSettled = candidate.withIndex()
-                    .filter { (_, entry) -> entry.id in settled && !entry.moved }
+                    .filter { (_, entry) -> entry.id in settled }
                     .maxOfOrNull { it.index } ?: -1
                 val next = ArtReading.refusal(pagesOf(candidate)) ?: return true
                 return next.page > stillSettled
@@ -113,12 +114,20 @@ internal object Repair {
             return choices[random.nextInt(choices.size)].row
         }
 
-        /** How many of the writer's pages [row] has speaking to a part other than the one meant, [besides] the stuck one. */
+        /**
+         * How many of the writer's pages that stood where they were written [row] has speaking elsewhere,
+         * [besides] the stuck one. A page that could never have stood under its clause's closer is not lost by
+         * being pulled away from it.
+         */
         private fun reaimedBy(row: List<Laid>, besides: Int): Int {
             val reaching = reachOfEachPage(row)
+            fun stoodWhereWritten(entry: Laid): Boolean {
+                val word = entry.page.word ?: return false
+                return meantFor(entry).all { it in Grammar.placesFor(word) || word.aspects.isEmpty() }
+            }
             return row.withIndex().count { (at, entry) ->
                 val isAnotherOfTheWriters = entry.wroteAt != null && entry.id != besides && !entry.moved
-                isAnotherOfTheWriters && reaching[at] != null && reaching[at] != meantFor(entry)
+                isAnotherOfTheWriters && reaching[at] != null && reaching[at] != meantFor(entry) && stoodWhereWritten(entry)
             }
         }
 

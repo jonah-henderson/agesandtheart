@@ -178,25 +178,38 @@ class RepairCheck : FunSpec({
 
     /**
      * **Where several repairs cost the same, the Age's seed picks** (Jonah, 2026-10-14). `blue` belongs to
-     * many parts of the world and none of them is the land, so the same slip made at different seeds should
+     * many parts of the world and none of them is a structure, so the same slip made at different seeds should
      * not always land in the same place — and the same book at the same seed always must.
      */
     test("the seed breaks a tie, and only the seed") {
-        val book = listOf("age", "blue", "landmass")
+        val book = listOf("age", "blue", "structures")
         fun landedUnder(seed: Long) = read(book, seed).phrases
             .first { phrase -> phrase.modifiers.any { it.word.name == "blue" } }
             .subject?.word?.name
         val places = TIE_SEEDS.mapNotNull(::landedUnder).toSet()
-        check(places.size > 1) { "`blue landmass` landed under $places at every seed" }
+        check(places.size > 1) { "`blue structures` landed under $places at every seed" }
         check(TIE_SEEDS.all { landedUnder(it) == landedUnder(it) }) { "one book at one seed was repaired two ways" }
     }
 
     /** The Art never lays in a second aiming page for a part the book already aims at: a second sun is a sun. */
     test("repair never opens a second clause about a part the book already aims at") {
         for (seed in TIE_SEEDS) {
-            val read = read(listOf("age", "red", "sun", "blue", "landmass"), seed)
+            val read = read(listOf("age", "red", "sun", "blue", "structures"), seed)
             val suns = read.phrases.count { it.subject?.word?.name == "sun" }
-            check(suns == 1) { "`red sun blue landmass` at seed $seed read as ${Readout.of(read)}" }
+            check(suns == 1) { "`red sun blue structures` at seed $seed read as ${Readout.of(read)}" }
+        }
+    }
+
+    /**
+     * **A move has to leave the moved page reading.** A rung laid before a part it cannot count was moved to
+     * the end of the book once, failed there, and was dropped as impossible when `teeming zombie` was right
+     * there in the book.
+     */
+    test("a page moved is moved somewhere it reads") {
+        for (seed in TIE_SEEDS) {
+            val read = read(listOf("age", "biomes", "teeming", "spawns", "sky", "zombie", "orange", "aurora"), seed)
+            check(read.impossible.isEmpty()) { "at seed $seed the rung was dropped: ${Readout.of(read)}" }
+            check(read.constraints.any { it.quantifier == "teeming" }) { "at seed $seed the rung went nowhere: ${Readout.of(read)}" }
         }
     }
 
