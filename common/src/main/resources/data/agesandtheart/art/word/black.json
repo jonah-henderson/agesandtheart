@@ -9,12 +9,20 @@
     "aurora` the ramp from its crown to its hem, and `a red Age` means all of them at once.",
     "",
     "It declares no aspects: `Word.aspects` is widened from the parameters a word sets, so the `sets` map is",
-    "the whole of the declaration and one line is the whole of the map.",
+    "the whole of the declaration.",
     "",
     "The light is deliberately *not* among them, which is why `tint` is still named apart. Saying the light",
-    "here is red is a different claim from saying the sky is, and `witchlight` is the idiom that makes it."
+    "here is red is a different claim from saying the sky is, and `witchlight` is the idiom that makes it.",
+    "",
+    "Aimed at the land it asks for a stone of its colour (`#black`, preset_tags/materials.json): dyed",
+    "concrete and terracotta, and what the world already makes in it. Laid bare, only one Age in ten is",
+    "built of it, so a plain coloured Age is not a world of concrete."
   ],
   "sets": {
-    "colour": "black"
+    "colour": "black",
+    "stone": "#black"
+  },
+  "unaimed": {
+    "landmass": 0.1
   }
 }
