@@ -24,6 +24,8 @@ class RainbowCommandCheck : FunSpec({
     beforeSpec {
         server.run("age write $bowed 7 rainbows age")
         server.run("age compose $bare 5 landmass=gentle sea=minecraft:water")
+        // A bow needs its light up, and an Age keeps a day of its own that starts wherever its seed says.
+        server.run("execute in agesandtheart:$bowed run time set noon")
     }
 
     test("an Age with no bow says so, and says how to get one") {

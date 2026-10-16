@@ -38,49 +38,55 @@ class SkyClockCheck : FunSpec({
 
     fun litAsOf(age: String): Long? = numberAfter(server.run("age sky $age"), SkyInstruments.LIT_AS_LABEL)
 
+    /** Runs `/time` [arguments] inside the Age [age], which sets that Age's own clock. */
+    fun timeIn(age: String, arguments: String) = server.run("execute in agesandtheart:$age run time $arguments")
+
     /**
      * **An Age's clock and the hour it is lit as are two numbers, and only the second decides a colour.**
      *
-     * The Spire keeps the overworld's clock like every other Age and has never had a sun, so every one of
-     * `OVERWORLD_DAY`'s tracks — the sky-light colour, the sunrise band, the light itself — used to run on
-     * the overworld's schedule beneath a sky pinned at midnight. It glowed warm at dusk and went dark at
-     * midnight under stars that were always out (Jonah, 2026-08-27, walked). Nothing rises there, so the
-     * hour is midnight and stays there.
+     * The Spire has never had a sun, so every one of `OVERWORLD_DAY`'s tracks — the sky-light colour, the sunrise
+     * band, the light itself — used to run on its clock beneath a sky pinned at midnight. It glowed warm at dusk
+     * and went dark at midnight under stars that were always out (Jonah, 2026-08-27, walked). Nothing rises
+     * there, so the hour is midnight and stays there.
      */
     test("a sky with no suns is lit as midnight whatever the clock says") {
         server.run("age create spire spirelit")
 
-        server.run("time set noon")
+        timeIn("spirelit", "set noon")
         val atNoon = litAsOf("spirelit")
-        server.run("time set midnight")
+        timeIn("spirelit", "set midnight")
         val atMidnight = litAsOf("spirelit")
 
         check(atNoon == 18_000L && atMidnight == 18_000L) {
             "The Spire was lit as $atNoon at noon and $atMidnight at midnight, where a sunless sky has " +
                 "only the one hour"
         }
-        // The control: its *clock* does still run, so this is a mapping and not a stopped level.
+        // The control: its *clock* does still move, so this is a mapping and not a stopped level.
         check(clockOf("spirelit") % 24_000 in (18_000 - slack)..(18_000 + slack)) {
-            "The Spire's own clock did not follow the overworld, so the mapping above proves nothing"
+            "The Spire's own clock did not take the time it was set to, so the mapping above proves nothing"
         }
     }
 
-    test("an Age keeps the overworld's time of day") {
+    /**
+     * **An Age keeps a day of its own** (`notes/strange-words-plan.md` §5): the overworld's `/time` does not reach
+     * it, and `/time` run inside it sets its own. Named values rather than "the two differ", so an Age whose clock
+     * is stopped, or still the overworld's, fails too.
+     */
+    test("an Age keeps its own time of day, set by the time command run in it") {
         server.run("age compose clockage 7 landmass=gentle sea=minecraft:water rock=caves")
 
-        server.run("time set noon")
-        val atNoon = clockOf("clockage")
+        timeIn("clockage", "set noon")
         server.run("time set midnight")
-        val atMidnight = clockOf("clockage")
-
-        // Named values rather than "the two differ", so an Age on a clock of its own that happens to tick
-        // fails too.
-        check(atNoon % 24_000 in (6_000 - slack)..(6_000 + slack)) {
-            "At overworld noon the Age's clock read $atNoon, which is not noon — its clock is not the overworld's"
+        val afterTheOverworldsMidnight = clockOf("clockage")
+        check(afterTheOverworldsMidnight % 24_000 in (6_000 - slack)..(6_000 + slack)) {
+            "Setting the overworld to midnight left the Age at $afterTheOverworldsMidnight, which is not the noon " +
+                "it was set to — its clock is still the overworld's"
         }
+
+        timeIn("clockage", "set midnight")
+        val atMidnight = clockOf("clockage")
         check(atMidnight % 24_000 in (18_000 - slack)..(18_000 + slack)) {
-            "At overworld midnight the Age's clock read $atMidnight, which is not midnight — the Age has no night, " +
-                "so it has no stars either"
+            "The Age read $atMidnight after being set to midnight — '/time' run in it did not reach its own clock"
         }
     }
 })

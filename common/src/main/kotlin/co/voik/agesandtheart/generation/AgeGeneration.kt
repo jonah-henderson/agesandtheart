@@ -10,7 +10,9 @@ import co.voik.agesandtheart.age.consequence.Consequence
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.ephemeris.OwnClock
 import co.voik.ephemeris.sky.Look
+import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.biome.Grounding
@@ -31,6 +33,7 @@ import co.voik.agesandtheart.worldgen.field.StandingFluid
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Weathered
 import co.voik.agesandtheart.worldgen.field.TerrainFill
+import kotlin.random.Random
 import net.minecraft.world.level.levelgen.material.MaterialRules
 import net.minecraft.world.level.block.Blocks
 import co.voik.agesandtheart.location
@@ -689,6 +692,8 @@ object AgeGeneration {
     /** A dial bought in full. */
     private const val ALL_OF_IT = 1.0
 
+    private const val CLOCK_SALT = 0x434C_4F43_4B53_4146L
+
     /** So which sea wins is decorrelated from everything else this seed decides. */
     private const val WATERLINE_SALT = 0x5EA_1E7EL
 
@@ -880,6 +885,14 @@ object AgeGeneration {
         val theirs = Sky.dimensionType(rocksWorld.world())
         return if (ours == theirs) rocksWorld.dimensionType.identifier() else ours
     }
+
+    /**
+     * **A day of the Age's own**, starting at an hour its seed draws — so linking in can put you at dusk somewhere
+     * it is noon at home, and sleeping there moves its morning and nobody else's (`notes/strange-words-plan.md`
+     * §5). Only where it starts: where it stands after that is saved with the level.
+     */
+    fun clockFor(recipe: AgeRecipe): OwnClock =
+        OwnClock(startsAt = Random(recipe.seed xor CLOCK_SALT).nextLong(Orbit.TICKS_PER_VANILLA_DAY.toLong()))
 
     /**
      * Whether any of this Age's land hangs over the void — which is what keeps its sky blue below the

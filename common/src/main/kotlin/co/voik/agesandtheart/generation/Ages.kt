@@ -120,6 +120,7 @@ object Ages {
                 seed = recipe.seed,
                 customSpawners = AgeGeneration.spawnersFor(server, recipe),
                 horizonAtTheFloor = AgeGeneration.hasNothingBeneathIt(recipe),
+                clock = AgeGeneration.clockFor(recipe),
             ),
         )
     }
