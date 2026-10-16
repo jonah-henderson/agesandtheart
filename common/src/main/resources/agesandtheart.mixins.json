@@ -36,6 +36,7 @@
     "ProjectileMixin",
     "ServerLevelMixin",
     "ServerPlayerMixin",
+    "SkaterHungerMixin",
     "StateDefinitionBuilderMixin",
     "TreeFeatureMixin"
   ],

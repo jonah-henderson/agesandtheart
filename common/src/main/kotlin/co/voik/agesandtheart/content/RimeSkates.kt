@@ -81,6 +81,23 @@ object RimeSkates {
         entity.getItemBySlot(EquipmentSlot.FEET).hurtAndBreak(ONE_POINT, entity, EquipmentSlot.FEET)
     }
 
+    /**
+     * What a sprinted stride on the ground costs a skater in hunger: **what a walked one does**, which in
+     * vanilla is nothing, however fast they are going (Jonah, 2026-10-15).
+     *
+     * The momentum does the work, so going fast is not effort. The blades already charge for the speed in
+     * durability; a sprint's per-block cost at their speed burned more than twice the hunger a sprint on
+     * foot does.
+     */
+    @JvmStatic
+    fun hungerForAStride(entity: LivingEntity, vanilla: Float): Float =
+        if (skating(entity)) A_WALKED_STRIDE else vanilla
+
+    /** What a jump costs a skater: a walking jump's, even sprinting — see [hungerForAStride]. */
+    @JvmStatic
+    fun hungerForAJump(entity: LivingEntity, vanilla: Float): Float =
+        if (skating(entity)) A_WALKED_JUMP else vanilla
+
     private fun skating(entity: LivingEntity): Boolean = entity is Player && wornBy(entity)
 
     /**
@@ -140,9 +157,10 @@ object RimeSkates {
      * **Set at what the ground already gives**, so the air's freedom from drag lets a skater *keep* their
      * speed over a gap and never build it: hopping is not a way to go faster than skating.
      *
-     * It is also the hard limit the design has always owed (§7.1.2): skates must not outrun a boat on blue
-     * ice, which is believed to be about forty blocks a second. **That forty is quoted and never measured**
-     * — if it turns out lower, this is the number that has to come down.
+     * It is also the hard limit the design has always owed (§7.1.2): skates must not outrun the fastest
+     * horse or a boat on blue ice. **The horse is the one that binds** — a horse at the top of its speed
+     * roll keeps about 0.74 a tick on open ground, near fifteen blocks a second, where the boat runs to
+     * seventy. Both worked out from vanilla's movement code rather than measured.
      */
     private const val TOP_SPEED = 0.66
 
@@ -164,4 +182,8 @@ object RimeSkates {
     private const val BLOCKS_PER_POINT = 40.0
 
     private const val ONE_POINT = 1
+
+    /** `ServerPlayer.checkMovementStatistics` charges a walked stride nothing, and a jump `0.05`. */
+    private const val A_WALKED_STRIDE = 0.0f
+    private const val A_WALKED_JUMP = 0.05f
 }

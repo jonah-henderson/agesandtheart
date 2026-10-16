@@ -63,8 +63,11 @@ public abstract class LivingEntityMixin {
      * <p>Friction is only half of what a skate is; the other half is a movement-speed modifier on the boots
      * themselves, because {@code getFrictionInfluencedSpeed} divides acceleration by the cube of friction
      * and so makes a slicker floor accelerate you *worse*. {@link RimeSkates} carries the reasoning.
+     *
+     * <p>Matched by name, as the damping below is: 26.x ships its local names, and a name that goes missing
+     * fails at load under {@code defaultRequire} where an ordinal quietly lands on whichever float is next.
      */
-    @ModifyVariable(method = "travelInAir", at = @At("STORE"), ordinal = 0)
+    @ModifyVariable(method = "travelInAir", at = @At("STORE"), name = "blockFriction")
     private float agesandtheart$skatingOverIt(float blockFriction) {
         Float skated = RimeSkates.gripUnderfoot((LivingEntity) (Object) this);
         return skated == null ? blockFriction : skated;
@@ -73,15 +76,21 @@ public abstract class LivingEntityMixin {
     /**
      * Lets rime skates decide how much of their wearer's speed survives the tick.
      *
-     * <p><b>The second float stored in {@code travelInAir}, and it has to be its own injection.</b> Vanilla
-     * works this out as {@code blockFriction * 0.91} from the very local above, so the one number sets both
-     * how fast a skater accelerates and how long they keep it — and sets them against each other, the
-     * acceleration going as the inverse cube. Modifying the product separately is what takes the two dials
-     * apart, and it is also the only place that can say "and nothing at all is lost in the air".
+     * <p><b>The local {@code friction} in {@code travelInAir}, and it has to be its own injection.</b> Vanilla
+     * works this out as {@code blockFriction} times an air drag of {@code 0.91} from the very local above, so
+     * the one number sets both how fast a skater accelerates and how long they keep it — and sets them
+     * against each other, the acceleration going as the inverse cube. Modifying the product separately is
+     * what takes the two dials apart, and it is also the only place that can say "and nothing at all is
+     * lost in the air".
+     *
+     * <p><b>By name, because by position broke.</b> This was {@code ordinal = 1}, the second float, until 26.3
+     * stored the {@code AIR_DRAG_MODIFIER} attribute and the drag it modifies ahead of the product. The
+     * injection then rewrote the attribute instead, a skater kept roughly a sprint's speed on the ground
+     * and lost speed in the air, and nothing failed.
      *
      * <p>{@link RimeSkates} carries the reasoning and the governor that airborne freedom needs.
      */
-    @ModifyVariable(method = "travelInAir", at = @At("STORE"), ordinal = 1)
+    @ModifyVariable(method = "travelInAir", at = @At("STORE"), name = "friction")
     private float agesandtheart$keepingItsSpeed(float damping) {
         return RimeSkates.dampingOn((LivingEntity) (Object) this, damping);
     }

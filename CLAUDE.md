@@ -360,7 +360,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Forty-two Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Forty-three Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -415,6 +415,11 @@ When shared code needs something loader-specific, it goes through an interface, 
   the one method every falling thing asks, where the `GRAVITY` attribute reaches only living things; both sides
   read their own copy of the Age's factor, since the client moves its own player. A fall's damage follows it
   in `LivingEntityMixin`, which counts the fall as the vanilla one that lands as hard.
+- **`SkaterHungerMixin`** — a skater pays a walker's hunger at any speed (`RimeSkates`). Both
+  `causeFoodExhaustion` charges are worked out inline, in `checkMovementStatistics` and `jumpFromGround`, and
+  neither loader has a food-exhaustion event. The sprint's charge is found by slicing between the
+  `SPRINT_ONE_CM` and `CROUCH_ONE_CM` stats rather than by ordinal, as `LivingEntityMixin`'s skate locals are
+  found by name: 26.3 slid a local in front of an ordinal there and nothing failed.
 - **`FeaturePlacerMixin`**, **`TreeFeatureMixin`** and **`JigsawPlacementMixin`** — what the strange tier does to
   new ground (`StrangeGround`): every feature drawn from one random per feature, trees handed a foliage setter
   that places nothing, and a village's start drawn from its pool's abandoned pieces. Each is the one call where
