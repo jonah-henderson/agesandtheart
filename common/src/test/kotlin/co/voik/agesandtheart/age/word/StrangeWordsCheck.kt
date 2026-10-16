@@ -4,6 +4,7 @@ import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.AuroraAspect
 import co.voik.agesandtheart.age.aspect.Features
@@ -16,6 +17,7 @@ import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.generation.Incongruity
 import co.voik.ephemeris.sky.ClockPace
 import co.voik.ephemeris.sky.LevelLook
 import io.kotest.core.annotation.Tags
@@ -108,6 +110,23 @@ class StrangeWordsCheck : FunSpec({
         for (seed in SEEDS) {
             val land = aimed(seed, "incongruous", "landmass")
             check(land.anyMemberSays(Aspect.TERRAIN, Terrain.INCONGRUOUS)) { "seed $seed: 'incongruous landmass' did nothing" }
+        }
+    }
+
+    test("incongruous lets each part loose on its own, and all of them laid bare") {
+        val everything = aimed(SEEDS.first, "incongruous", "age")
+        check(Incongruity.of(everything) == Incongruity(features = true, spawns = true, structures = true)) {
+            "an incongruous Age let loose only ${Incongruity.of(everything)}"
+        }
+        check(!Biomes.groundsBiomes(everything.optionsFor(Aspect.BIOMES))) { "an incongruous Age kept its biomes on the land" }
+        check(Incongruity.of(aimed(SEEDS.first, "incongruous", "spawns")) == Incongruity(spawns = true)) {
+            "'incongruous spawns' let loose more than what lives"
+        }
+        check(Incongruity.of(aimed(SEEDS.first, "incongruous", "structures")) == Incongruity(structures = true)) {
+            "'incongruous structures' let loose more than what is built"
+        }
+        check(!Biomes.groundsBiomes(aimed(SEEDS.first, "incongruous", "biomes").optionsFor(Aspect.BIOMES))) {
+            "'incongruous biomes' kept the biomes on the land"
         }
     }
 

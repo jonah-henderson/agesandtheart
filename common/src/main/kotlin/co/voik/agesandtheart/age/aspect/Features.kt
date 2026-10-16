@@ -99,6 +99,12 @@ object Features {
      * named thing there are; these say what *this Age* is like, so they apply to everything it grows. A
      * word bends them exactly as `arid` bends a climate axis.
      */
+    /**
+     * Whether everything the Age grows grows anywhere — every biome's features in every biome, at any height —
+     * `incongruous features`. Yema keep to where they grow.
+     */
+    val INCONGRUOUS = Parameter.flag("incongruous", help = "Whether anything the Age grows may grow anywhere, at any height.")
+
     /** Whether everything that grows comes out the same shape, as if stamped — `uniform features`, `uniform trees`. */
     val UNIFORM = Parameter.flag("uniform", help = "Whether every tree and boulder comes out the same shape.").perMember()
 

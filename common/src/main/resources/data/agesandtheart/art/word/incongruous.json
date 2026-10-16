@@ -1,10 +1,22 @@
 {
   "_comment": [
-    "Where it does not belong (Jonah, 2026-10-16; notes/strange-words-plan.md 4). `incongruous landmass` reads",
-    "patches of the Age's own terrain from far away, so the land breaks off at a patch's edge and carries on as",
-    "something that was never meant to be there -- the foreign-ground step at its widest, written on purpose."
+    "Where it does not belong (Jonah, 2026-10-16; notes/strange-words-plan.md 4), and visibly: a player cannot",
+    "see what should have been somewhere, so this is nonsense or it is nothing. `incongruous` is one name on the",
+    "land, the biomes, what grows, what lives and what is built.",
+    "",
+    "- `incongruous landmass` reads patches of the Age's own terrain from far away, so the land breaks off at a",
+    "  patch's edge -- the foreign-ground step at its widest, written on purpose.",
+    "- `incongruous biomes` stops the biomes following the shape of the land (`footing: free`, as `dreamlike`",
+    "  says it): ocean biomes on hilltops, deserts in the sea.",
+    "- `incongruous features` grows every biome's features in every biome, at any height: ore anywhere, trees out",
+    "  of their biomes. Yema keep to where they grow.",
+    "- `incongruous spawns` offers every biome's creatures everywhere and past their own rules: fish on hillsides,",
+    "  monsters at noon. Scarabs keep their own.",
+    "- `incongruous structures` builds in any biome and at any height: a taiga village on the plains, a trail ruin",
+    "  out of the ground, an ancient city in the open."
   ],
   "sets": {
-    "incongruous": "true"
+    "incongruous": "true",
+    "footing": "free"
   }
 }

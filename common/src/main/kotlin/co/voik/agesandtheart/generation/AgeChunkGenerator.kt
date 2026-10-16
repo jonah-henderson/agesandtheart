@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.generation
 
 import co.voik.agesandtheart.age.consequence.StrangeGround
+import co.voik.agesandtheart.worldgen.feature.FreeForAll
 import co.voik.agesandtheart.worldgen.Dislocation
 import co.voik.agesandtheart.worldgen.DislocatedNoiseChunk
 import co.voik.agesandtheart.age.aspect.Features
@@ -180,6 +181,8 @@ class AgeChunkGenerator(
      * and this is code, rebuilt from the Age's claims on every open.
      */
     private val lives: Spawns.Living? = null,
+    /** What this Age lets turn up where it does not belong — see [Incongruity]. Not serialised, like [lives]. */
+    val incongruity: Incongruity = Incongruity.NONE,
     /** Whether no new living thing may be made in this Age by anything at all — see [Lifeless]. */
     val nothingLives: Boolean = false,
     /**
@@ -341,7 +344,12 @@ class AgeChunkGenerator(
         // `featuresPerStep`. Assigning only the getter moves what decoration looks up and leaves the
         // sorted list it looks up *in* built from the biome defaults — and that list is indexed by
         // identity, so a feature this Age added comes back as -1 in the middle of generation.
-        places?.let { settings ->
+        val grows = if (incongruity.features) {
+            FreeForAll.over(places ?: { biome -> biome.value().generationSettings }, biomeSource.possibleBiomes())
+        } else {
+            places
+        }
+        grows?.let { settings ->
             generationSettingsGetter = java.util.function.Function(settings)
             featuresPerStep = Suppliers.memoize {
                 FeatureSorter.buildFeaturesPerStep(
@@ -360,13 +368,19 @@ class AgeChunkGenerator(
      * the biome's, so narrowing *its* answer means one sentence covers a fortress and the open field alike
      * — and it needs no widener, unlike the feature seam beside it.
      */
+    /** What every biome of this Age offers, per pass — the menu everywhere in an `incongruous spawns` Age. */
+    private val offeredAnywhere: Map<MobCategory, WeightedList<MobSpawnSettings.SpawnerData>> by lazy {
+        MobCategory.entries.associateWith { IncongruousSpawns.offeredAnywhere(biomeSource.possibleBiomes(), it) }
+    }
+
     override fun getMobsAt(
         level: Level,
         structures: StructureManager,
         category: MobCategory,
         at: BlockPos,
     ): WeightedList<MobSpawnSettings.SpawnerData> {
-        val offered = super.getMobsAt(level, structures, category, at)
+        val offered = if (incongruity.spawns) offeredAnywhere.getValue(category)
+            else super.getMobsAt(level, structures, category, at)
         val living = lives ?: return offered
         // The biome off the level rather than handed in: 26.3 passes the level, which is also what
         // retired the widener line that used to reach one through the structure manager.
@@ -629,7 +643,13 @@ class AgeChunkGenerator(
         level: ResourceKey<Level>,
     ) {
         StrangeGround.startingStructures(consequence) {
-            super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
+            if (incongruity.structures) {
+                IncongruousStructures.starting(state.levelSeed, biomeSource.possibleBiomes()) {
+                    super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
+                }
+            } else {
+                super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
+            }
         }
         for ((structure, start) in centerChunk.allStarts) {
             if (!start.isValid) continue

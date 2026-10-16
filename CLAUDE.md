@@ -366,7 +366,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Forty-three Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Forty-seven Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -433,6 +433,17 @@ When shared code needs something loader-specific, it goes through an interface, 
   thread-locals the Age's generator sets around its own decoration and structure starts, so they cost one read
   anywhere else.
 - **`BubbleColumnBlockMixin`** — in a level with an abyss, every bubble column is `DeepBubbleColumnBlock`'s, so one column runs on through ordinary water and deep water, each block keeping the water it replaced. In 26.1 a column is raised by the liquid over magma or soul sand calling the static `updateColumn`; neither loader has an event for it, and vanilla places its blocks without notifying anything, so a column stopped at the abyss had nothing to tell the deep water above to carry it on. Only vanilla's own column, only where there is an abyss.
+- **`ChunkGeneratorMixin`**, **`JigsawStructureMixin`** and **`StructureMixin`** — what an `incongruous structures`
+  Age builds where it does not belong (`generation/IncongruousStructures`): any structure in any biome, at a height
+  drawn per start among as written, the surface, the sea floor, the sky, buried and deep. The biome test is built
+  inline in the private `tryGenerateStructure`; a jigsaw start's height is its final `startHeight` and projection,
+  handed to `JigsawPlacement.addPieces` in one call; every structure that sits on the ground asks through two
+  shared `Structure` helpers. No loader event reaches any of them, and all three answer off a thread-local the
+  Age's generator sets around its own structure starts.
+- **`NaturalSpawnerMixin`** — what an `incongruous spawns` Age lets live anywhere (`generation/IncongruousSpawns`):
+  vanilla's placement check, the type's spawn predicate and the creature's own spawn rule all pass, the peaceful
+  rule and the collision checks kept, scarabs excepted. Fabric has no natural-spawning event and NeoForge's
+  spawn-placement event is per type at registration rather than per level.
 
 The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.
 

@@ -38,6 +38,12 @@ object Structures {
      */
     val ABANDONED = Parameter.flag("abandoned", help = "Whether villages are found abandoned.").perMember()
 
+    /**
+     * Whether what the Age builds may stand in any biome and at any height — a taiga village on the plains, a trail
+     * ruin out of the ground, an ancient city in the open — `incongruous structures`.
+     */
+    val INCONGRUOUS = Parameter.flag("incongruous", help = "Whether structures may stand in any biome and at any height.")
+
     /** The structure set vanilla's villages are, which is what [ABANDONED] is asked of. */
     const val VILLAGES = "minecraft:villages"
 

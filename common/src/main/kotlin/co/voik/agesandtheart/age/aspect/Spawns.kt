@@ -46,6 +46,12 @@ object Spawns {
      */
     val STILL = Parameter.flag("still", help = "Whether every creature is rooted where it stands.").perMember()
 
+    /**
+     * Whether any creature the Age offers may turn up anywhere, past its own placement rules — fish on hillsides,
+     * monsters at noon — `incongruous spawns`. Scarabs keep their own rules.
+     */
+    val INCONGRUOUS = Parameter.flag("incongruous", help = "Whether any creature may turn up anywhere, past its own rules.")
+
     /** How fast every creature moves, member by member — `slow monsters`, `swift spawns`. */
     val PACE = Parameter.ranged(
         "pace",
