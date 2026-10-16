@@ -99,14 +99,11 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
     override fun tick() {
         super.tick()
-        val before = position()
-        if (level().isClientSide) {
-            // **The client never simulates one, it only catches up.** Both sides running the physics was
-            // the jitter: the client's `deltaMovement` starts at nothing and is never sent, so the two
-            // drift apart and every position packet snapped the body back. A plain `Entity` returns no
-            // interpolation handler, so a packet *is* a snap — see [createInterpolationHandler].
-            interpolation.interpolate()
-        } else {
+        // **The client never simulates one, it only catches up**, and the catching up is vanilla's:
+        // `commonTick` steps the interpolation before `tick` runs. Both sides running the physics was the
+        // jitter — the client's `deltaMovement` starts at nothing and is never sent, so the two drift apart
+        // and every position packet snapped the body back. See [createInterpolationHandler].
+        if (!level().isClientSide) {
             // **The push first, because it is the only term that can be expensive**, and it answers zero
             // for nearly every body on nearly every tick — see [pushedFromRock].
             val pushed = pushedFromRock()
@@ -123,7 +120,8 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         // when the box falls, so adding the vertical delta on top applied it twice: a rider was shoved up,
         // resolved down, shoved up again — a shudder that got worse the smaller the body was, because a
         // player on a two-cube has nowhere to settle. Sideways is the part vanilla does not do.
-        val moved = position().subtract(before)
+        // Measured from the old position, which `commonTick` sets before the client's interpolation step.
+        val moved = position().subtract(oldPosition())
         carryWhatStandsOnIt(Vec3(moved.x, 0.0, moved.z))
     }
 
