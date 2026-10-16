@@ -61,6 +61,10 @@ object IncongruousStructures {
         doing.drawn = Drawn(height, by)
     }
 
+    /** Whether this thread is building an incongruous Age's structures — asked by `OceanMonumentStructureMixin`. */
+    @JvmStatic
+    fun isBuildingAnywhere(): Boolean = placing.get() != null
+
     /** The biomes [structure] may stand in: every one, while this thread builds anywhere. */
     @JvmStatic
     fun biomesFor(structure: Structure): HolderSet<Biome> = placing.get()?.everyBiome ?: structure.biomes()

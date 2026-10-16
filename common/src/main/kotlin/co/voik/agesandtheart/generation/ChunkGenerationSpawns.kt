@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.generation
 
+import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.Constants
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -29,7 +30,17 @@ import net.minecraft.world.level.gamerules.GameRules
  */
 internal object ChunkGenerationSpawns {
 
-    fun spawn(level: WorldGenRegion, mobs: WeightedList<MobSpawnSettings.SpawnerData>, random: RandomSource) {
+    /**
+     * Places what [mobs] offers in the chunk [level] is making. [anywhere] is an `incongruous spawns` Age, where a
+     * creature stands wherever it lands, past its own placement rules — the collision checks and the peaceful rule
+     * kept ([IncongruousSpawns]).
+     */
+    fun spawn(
+        level: WorldGenRegion,
+        mobs: WeightedList<MobSpawnSettings.SpawnerData>,
+        random: RandomSource,
+        anywhere: Boolean = false,
+    ) {
         if (!serverLevelOf(level).gameRules.get(GameRules.SPAWN_MOBS) || mobs.isEmpty) return
         val center = level.center
         val sourcePos = center.worldPosition.atY(level.maxY)
@@ -39,7 +50,7 @@ internal object ChunkGenerationSpawns {
         val zo = center.minBlockZ
         while (random.nextFloat() < creatureProbability) {
             val spawnerData = mobs.getRandom(random).orElse(null) ?: continue
-            spawnGroup(level, spawnerData, random, xo, zo)
+            spawnGroup(level, spawnerData, random, xo, zo, anywhere)
         }
     }
 
@@ -49,8 +60,11 @@ internal object ChunkGenerationSpawns {
         random: RandomSource,
         xo: Int,
         zo: Int,
+        anywhere: Boolean,
     ) {
-        val group = Group(level, spawnerData.type(), random, xo, zo)
+        val freed = anywhere && spawnerData.type() !== AgeContent.SCARAB
+        if (freed && !IncongruousSpawns.allowedAtThisDifficulty(serverLevelOf(level), spawnerData.type())) return
+        val group = Group(level, spawnerData.type(), random, xo, zo, freed)
         repeat(spawnerData.count().sample(random)) {
             var success = false
             var attempts = 0
@@ -76,6 +90,8 @@ internal object ChunkGenerationSpawns {
         private val random: RandomSource,
         private val xo: Int,
         private val zo: Int,
+        /** Whether this creature stands wherever it lands — see [spawn]. */
+        private val anywhere: Boolean,
     ) {
         private var x = xo + random.nextInt(CHUNK)
         private var z = zo + random.nextInt(CHUNK)
@@ -85,19 +101,20 @@ internal object ChunkGenerationSpawns {
 
         fun tryHere(): Tried {
             val pos = topNonCollidingPos(level, type, x, z)
-            val mayStandHere = type.canSummon() && SpawnPlacements.isSpawnPositionOk(type, level, pos)
+            val mayStandHere = type.canSummon() && (anywhere || SpawnPlacements.isSpawnPositionOk(type, level, pos))
             if (!mayStandHere) return Tried.MOVE_ON
             val width = type.width.toDouble()
             val fx = Mth.clamp(x.toDouble(), xo + width, xo + CHUNK - width)
             val fz = Mth.clamp(z.toDouble(), zo + width, zo + CHUNK - width)
             val clear = level.noCollision(type.getSpawnAABB(fx, pos.y.toDouble(), fz))
             val at = BlockPos.containing(fx, pos.y.toDouble(), fz)
-            val ruled = clear &&
-                SpawnPlacements.checkSpawnRules(type, level, EntitySpawnReason.CHUNK_GENERATION, at, level.random)
+            val ruled = clear && (anywhere ||
+                SpawnPlacements.checkSpawnRules(type, level, EntitySpawnReason.CHUNK_GENERATION, at, level.random))
             if (!ruled) return Tried.REFUSED_ON_THE_SPOT
             val mob = created(level, type) ?: return Tried.REFUSED_ON_THE_SPOT
             mob.snapTo(fx, pos.y.toDouble(), fz, random.nextFloat() * FULL_TURN, 0.0f)
-            val fits = mob.checkSpawnRules(level, EntitySpawnReason.CHUNK_GENERATION) && mob.checkSpawnObstruction(level)
+            val willing = anywhere || mob.checkSpawnRules(level, EntitySpawnReason.CHUNK_GENERATION)
+            val fits = willing && mob.checkSpawnObstruction(level)
             if (!fits) return Tried.MOVE_ON
             // NeoForge deprecates this for an extension of its own, which common cannot call.
             @Suppress("DEPRECATION")

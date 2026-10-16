@@ -368,6 +368,11 @@ class AgeChunkGenerator(
      * the biome's, so narrowing *its* answer means one sentence covers a fortress and the open field alike
      * — and it needs no widener, unlike the feature seam beside it.
      */
+    /** Every creature of every kind every biome here offers — what an `incongruous spawns` Age's chunks are made with. */
+    private val madeAnywhere: WeightedList<MobSpawnSettings.SpawnerData> by lazy {
+        WeightedList.of(offeredAnywhere.values.flatMap { it.unwrap() })
+    }
+
     /** What every biome of this Age offers, per pass — the menu everywhere in an `incongruous spawns` Age. */
     private val offeredAnywhere: Map<MobCategory, WeightedList<MobSpawnSettings.SpawnerData>> by lazy {
         MobCategory.entries.associateWith { IncongruousSpawns.offeredAnywhere(biomeSource.possibleBiomes(), it) }
@@ -1297,17 +1302,19 @@ class AgeChunkGenerator(
     ): ChunkGeneratorStructureState {
         // Registered means "came out of the registry untouched". Anything we rescaled is a direct holder.
         val everyOneIsRegistered = structureSets.all { it.kind() == Holder.Kind.REFERENCE }
+        // An incongruous Age keeps every set, whatever biomes it grows — see [StructuresAnywhere].
+        val seenBy = if (incongruity.structures) StructuresAnywhere(biomes, structureSets) else biomes
         if (everyOneIsRegistered) {
             return ChunkGeneratorStructureState.createForNormal(
                 randomState,
                 seed,
                 getOrigin(randomState),
-                biomes,
+                seenBy,
                 structureSetLookup.restrictedTo(structureSets),
             )
         }
         return ChunkGeneratorStructureState.createForFlat(
-            randomState, seed, getOrigin(randomState), biomes, structureSets.stream(),
+            randomState, seed, getOrigin(randomState), seenBy, structureSets.stream(),
         )
     }
 
@@ -1378,14 +1385,14 @@ class AgeChunkGenerator(
     override fun spawnOriginalMobs(level: WorldGenRegion) {
         val isOurShape = rock is AgeRock.Ours
         val living = lives
-        if (!isOurShape && living == null) return super.spawnOriginalMobs(level)
+        if (!isOurShape && living == null && !incongruity.spawns) return super.spawnOriginalMobs(level)
         // Deprecated in vanilla with no replacement, and vanilla still calls it.
         @Suppress("DEPRECATION")
         if (!isOurShape && generatorSettings().value().disableMobGeneration()) return
         val center = level.center
         val random = WorldgenRandom(LegacyRandomSource(RandomSupport.generateUniqueSeed()))
         random.setDecorationSeed(level.seed, center.minBlockX, center.minBlockZ)
-        ChunkGenerationSpawns.spawn(level, creaturesMadeWith(level, living), random)
+        ChunkGenerationSpawns.spawn(level, creaturesMadeWith(level, living), random, anywhere = incongruity.spawns)
     }
 
     /**
@@ -1405,7 +1412,9 @@ class AgeChunkGenerator(
         living: Spawns.Living?,
     ): WeightedList<MobSpawnSettings.SpawnerData> {
         val at = level.center.worldPosition.atY(level.maxY)
-        val offered = level.environmentAttributes()
+        // An incongruous Age is made with every creature any of its biomes offers, of every kind: fish on the
+        // hillside and monsters standing in the sun from the moment the ground exists.
+        val offered = if (incongruity.spawns) madeAnywhere else level.environmentAttributes()
             .getValue(EnvironmentAttributes.NATURAL_MOB_SPAWNS, at)
             .getMobsToSpawn(MobCategory.CREATURE)
         if (living == null) return offered

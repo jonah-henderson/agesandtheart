@@ -366,7 +366,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Forty-seven Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Forty-eight Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -439,11 +439,15 @@ When shared code needs something loader-specific, it goes through an interface, 
   inline in the private `tryGenerateStructure`; a jigsaw start's height is its final `startHeight` and projection,
   handed to `JigsawPlacement.addPieces` in one call; every structure that sits on the ground asks through two
   shared `Structure` helpers. No loader event reaches any of them, and all three answer off a thread-local the
-  Age's generator sets around its own structure starts.
+  Age's generator sets around its own structure starts. **`OceanMonumentStructureMixin`** joins them for the one
+  structure with a biome check of its own, the ring of ocean a monument asks for around it. And the structure
+  state is built over `StructuresAnywhere`, so no set is dropped for want of its biomes before any of this is asked.
 - **`NaturalSpawnerMixin`** — what an `incongruous spawns` Age lets live anywhere (`generation/IncongruousSpawns`):
   vanilla's placement check, the type's spawn predicate and the creature's own spawn rule all pass, the peaceful
   rule and the collision checks kept, scarabs excepted. Fabric has no natural-spawning event and NeoForge's
-  spawn-placement event is per type at registration rather than per level.
+  spawn-placement event is per type at registration rather than per level. The chunk-generation pass is ours
+  already (`ChunkGenerationSpawns`) and frees itself. **`MixinsRegisteredCheck` holds every Mixin class listed in
+  the config** — an unlisted one is never applied and nothing says so.
 
 The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.
 

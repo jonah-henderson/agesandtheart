@@ -31,6 +31,8 @@
     "MaceItemMixin",
     "MerchantQuickMoveMixin",
     "MerchantResultSlotMixin",
+    "NaturalSpawnerMixin",
+    "OceanMonumentStructureMixin",
     "PistonStructureResolverMixin",
     "PlayerMixin",
     "PlayerStepSoundMixin",
@@ -40,6 +42,7 @@
     "ServerPlayerMixin",
     "SkaterHungerMixin",
     "StateDefinitionBuilderMixin",
+    "StructureMixin",
     "TreeFeatureMixin"
   ],
   "client": [
