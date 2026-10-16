@@ -171,9 +171,13 @@ object Structures {
         help = "Which structures are built here.",
     )
 
+    /** The pack's own set the overworld builds, and so an Age as well. */
+    private val LOST_LIBRARIES: ResourceKey<VanillaStructureSet> =
+        ResourceKey.create(Registries.STRUCTURE_SET, "lost_library".location())
+
     /**
-     * The base an Age starts from. Nether and end sets are left out because no overworld biome could
-     * admit them — an Age reaches them by naming them *and* the biomes that would have them.
+     * The base an Age starts from: what the overworld builds. Nether and end sets are left out because no
+     * overworld biome could admit them — an Age reaches them by naming them *and* the biomes that would have them.
      */
     val OVERWORLD_STRUCTURE_SETS = listOf(
         BuiltinStructureSets.VILLAGES,
@@ -193,5 +197,6 @@ object Structures {
         BuiltinStructureSets.STRONGHOLDS,
         BuiltinStructureSets.TRAIL_RUINS,
         BuiltinStructureSets.TRIAL_CHAMBERS,
+        LOST_LIBRARIES,
     )
 }
