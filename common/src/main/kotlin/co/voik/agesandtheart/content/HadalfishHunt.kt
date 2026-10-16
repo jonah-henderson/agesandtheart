@@ -127,7 +127,7 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
      * stop looking like it is swimming and start looking like it has been fired.
      */
     private fun charge(quarry: LivingEntity) {
-        fish.deltaMovement = quarry.eyePosition.subtract(fish.eyePosition).normalize().scale(CHARGE_SPEED)
+        fish.deltaMovement = quarry.eyePosition.subtract(fish.eyePosition).normalize().scale(CHARGE_SPEED * fish.paceShare)
         if (withinReach(quarry)) {
             phase = Phase.STRIKING
             bitesLeft = BITES_A_RUN
@@ -167,7 +167,7 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
         // Straight up is as good as any direction when it is directly on top of them, and picking one
         // stops a normalize() on a zero vector answering with NaN and freezing the fish.
         val heading = if (away.lengthSqr() < TOO_CLOSE_TO_AIM) Vec3(0.0, 1.0, 0.0) else away.normalize()
-        fish.deltaMovement = fish.deltaMovement.lerp(heading.scale(WITHDRAW_SPEED), WITHDRAW_EASE)
+        fish.deltaMovement = fish.deltaMovement.lerp(heading.scale(WITHDRAW_SPEED * fish.paceShare), WITHDRAW_EASE)
         if (away.length() >= ORBIT_RADIUS || --patience <= 0) circle()
     }
 
@@ -206,7 +206,7 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
     private fun steer(station: Vec3, speed: Double, ease: Double) {
         val toward = station.subtract(fish.position())
         if (toward.lengthSqr() < TOO_CLOSE_TO_AIM) return
-        fish.deltaMovement = fish.deltaMovement.lerp(toward.normalize().scale(speed), ease)
+        fish.deltaMovement = fish.deltaMovement.lerp(toward.normalize().scale(speed * fish.paceShare), ease)
     }
 
     companion object {

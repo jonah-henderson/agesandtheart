@@ -58,6 +58,25 @@ class MemberScopingCheck : FunSpec({
             check(bare.only.none { it.startsWith(ORE_FEATURE) }) { "seed $seed: 'bare trees' reached an ore" }
         }
     }
+
+    test("monsters said to be motionless are only picked out, and no more of them are asked for") {
+        fun asked(vararg pages: String) = aimed(SEEDS.first, *pages).optionsFor(Aspect.SPAWNS).claimsOn(Spawns.LIVES)
+        check(asked("monsters").isNotEmpty()) { "'monsters' on its own asked for nothing, so this proves nothing" }
+        check(asked("motionless", "monsters").isEmpty()) {
+            "'motionless monsters' asked for more monsters: ${asked("motionless", "monsters")}"
+        }
+        check(asked("motionless", "teeming", "monsters").isNotEmpty()) {
+            "'motionless teeming monsters' lost the rung it laid on the monsters"
+        }
+    }
+
+    test("a page costs the same said of members as said of an aspect") {
+        fun costOf(vararg pages: String) = ShippedCorpus.resolved(SEEDS.first, *pages).cost
+        val alone = costOf("deserted", "age") + costOf("villages") - costOf()
+        check(costOf("deserted", "villages") == alone) {
+            "'deserted villages' cost ${costOf("deserted", "villages")}, where its two pages cost $alone apart"
+        }
+    }
 })
 
 private val SEEDS = 0L..<10L

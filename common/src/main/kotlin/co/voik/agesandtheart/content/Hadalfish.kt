@@ -99,6 +99,12 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
     override fun isWithinMeleeAttackRange(target: LivingEntity): Boolean =
         boundingBox.inflate(BITES_FROM).intersects(target.boundingBox)
 
+    /**
+     * How fast it is against its own speed — what a written pace or a rooting does to the attribute, carried to
+     * the hunt, which drives its velocity itself and would otherwise never hear of either.
+     */
+    val paceShare: Double get() = (getAttributeValue(Attributes.MOVEMENT_SPEED) / CRUISE).coerceAtLeast(0.0)
+
     companion object {
         /**
          * **Where one may be spawned at all: in water, within reach of the deep.**

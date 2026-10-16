@@ -287,7 +287,14 @@ object Resolver {
                 ?: return@map phrase
             val members = vocabulary.carriersOf(subject.word, aspect).map(Taggable::key)
             if (members.isEmpty()) return@map phrase
-            phrase.copy(modifiers = phrase.modifiers.map { it.saidOf(aspect, members) })
+            val modifiers = phrase.modifiers.map { it.saidOf(aspect, members) }
+            // **Said of, the members are only picked out** (Jonah, 2026-10-16): `motionless monsters` roots the
+            // monsters there are, and asks for no more of them — which it did, bringing a deep-water fish to the
+            // open sea. A rung or an `only` laid on the subject is still asked for.
+            val describesThem = modifiers.any { it.members != null }
+            val asksNothingOfItsOwn = subject.polarity == Polarity.ASSERTED && Rung.isOrdinary(subject.density)
+            val picked = if (describesThem && asksNothingOfItsOwn) subject.copy(word = subject.word.withoutChoosingIn(aspect)) else subject
+            phrase.copy(modifiers = modifiers, subject = picked)
         })
 
     private fun Constraint.saidOf(aspect: Aspect, members: List<String>): Constraint {
@@ -363,7 +370,8 @@ object Resolver {
             instability = Instability(flaws.distinctBy(Flaw::identity), pages = pagesLaidIn(sentence)),
             // Structure is priced too: every page a writer lays costs ink, and a page that made no
             // claim still came out of the pot. A latent page came out of nobody's pot.
-            cost = sentence.written.sumOf { it.word.price } + sentence.structural.sumOf { it.cost },
+            // The book as written, not as scoped: a page costs the same wherever it is laid (world model §9).
+            cost = book.written.sumOf { it.word.price } + book.structural.sumOf { it.cost },
             words = sentence.words,
             template = template,
             dropped = sentence.unreadable,
