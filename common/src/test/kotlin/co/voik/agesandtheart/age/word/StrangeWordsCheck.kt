@@ -163,11 +163,11 @@ class StrangeWordsCheck : FunSpec({
         }
     }
 
-    test("a sky that never moves stops the Age's clock, and a slow sun slows it") {
-        val stopped = Sky.specFor(aimed(SEEDS.first, "motionless", "sun", "motionless", "moon"), SEEDS.first)
-        check(ClockPace.of(stopped).paused) { "a still sun and a still moon left the clock running" }
+    test("a sky that never moves keeps the overworld's pace, and a slow sun slows the Age's clock") {
+        val locked = Sky.specFor(aimed(SEEDS.first, "motionless", "sun", "motionless", "moon"), SEEDS.first)
+        check(ClockPace.of(locked) == ClockPace.ORDINARY) { "a still sun and a still moon ran the clock at ${ClockPace.of(locked)}" }
         val slow = ClockPace.of(Sky.specFor(aimed(SEEDS.first, "slow", "sun"), SEEDS.first))
-        check(!slow.paused && slow.rate < 1f) { "a slow sun ran the clock at $slow" }
+        check(slow.rate < 1f) { "a slow sun ran the clock at $slow" }
         val swift = ClockPace.of(Sky.specFor(aimed(SEEDS.first, "swift", "sun"), SEEDS.first))
         check(swift.rate > 1f) { "a swift sun ran the clock at $swift" }
     }

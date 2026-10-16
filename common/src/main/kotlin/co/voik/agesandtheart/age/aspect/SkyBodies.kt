@@ -166,16 +166,17 @@ object SkyBodies {
      * value is how a writer would ask for it lower or higher.
      */
     /**
-     * Whether this body has stopped where it stood when the Age's day began — `motionless sun`. `still`, the name a
-     * rooted creature shares, so `motionless` says both. What a stopped sun does to the day is Ephemeris'
-     * (`ClockPace`): every body still stops the Age's clock, and a first sun still beneath moving bodies holds the
-     * hour where it stands.
+     * Whether this body has stopped where it stood when the Age's day began — `motionless sun`, a world it keeps one
+     * face to. `still`, the name a rooted creature shares, so `motionless` says both. The Age's clock runs on
+     * regardless (Ephemeris' `ClockPace`): it keeps time by the largest body still moving, at the overworld's pace
+     * where none is, and the light is lit as the hour a still sun's place says.
      */
     val STILL = Parameter.flag("still", help = "Whether this body stands still in the sky.")
 
     /**
      * How long this body takes over its path against vanilla's — `slow sun` is a longer day, `swift moon` a quicker
-     * month. `pace`, the name the rain and the creatures share. The first sun's is the Age's day ([STILL]'s note).
+     * month. `pace`, the name the rain and the creatures share. The body the clock keeps time by sets the Age's day
+     * ([STILL]'s note).
      */
     val BODYPACE = Parameter.ranged(
         "pace",
