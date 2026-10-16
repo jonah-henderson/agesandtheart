@@ -99,6 +99,12 @@ object Features {
      * named thing there are; these say what *this Age* is like, so they apply to everything it grows. A
      * word bends them exactly as `arid` bends a climate axis.
      */
+    /** Whether everything that grows comes out the same shape, as if stamped — `uniform features`. */
+    val UNIFORM = Parameter.flag("uniform", help = "Whether every tree and boulder comes out the same shape.")
+
+    /** Whether trees grow with no leaves at all — `bare features`. */
+    val BARE = Parameter.flag("bare", help = "Whether the trees grow bare, with no leaves.")
+
     val SIZE = Parameter.ranged(
         "size",
         help = "How big one of a thing is.",

@@ -3,6 +3,8 @@ package co.voik.agesandtheart.age.consequence
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
 import io.netty.buffer.ByteBuf
@@ -35,9 +37,16 @@ object TornSky {
     fun tellTheClients(level: ServerLevel, recipe: AgeRecipe, spending: Spending) {
         if (level.server.tickCount % TELLING_THE_CLIENT != 0) return
         val age = level.dimension().identifier()
-        val count = countFor(spending)
+        val count = countFor(recipe, spending)
         val telling = if (count == 0) TearsPayload.noneIn(age) else TearsPayload(age, count, styleFor(recipe.seed), recipe.seed)
         for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
+    }
+
+    /** How many tears hang: as many as the last step's where the book tore the sky, and as the steps bought otherwise. */
+    fun countFor(recipe: AgeRecipe, spending: Spending): Int {
+        val written = recipe.composition?.optionsFor(Aspect.SKY)?.isTrue(Sky.TORN) == true
+        if (written) return TEARS_BY_STEPS.last()
+        return countFor(spending)
     }
 
     /** How many tears the steps bought hang: ten for the first, then twenty-five, then fifty. */

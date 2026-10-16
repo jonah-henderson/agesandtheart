@@ -39,6 +39,12 @@ object Spawns {
      * asks for one that was not there rather than for more of one that was. And it may be emptied, a
      * lifeless world being a world a writer might well want.
      */
+    /**
+     * Whether every creature is rooted where it stands, still watching and striking — `motionless spawns`.
+     * Named for what a still body is too, so the word that stops one stops the other.
+     */
+    val STILL = Parameter.flag("still", help = "Whether every creature is rooted where it stands.")
+
     val LIVES = Pool(
         "lives",
         // `lives=nothing` is no natural spawning at all, whatever the Age's biomes would hold.

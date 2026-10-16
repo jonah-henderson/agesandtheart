@@ -257,7 +257,8 @@ private fun tiers(vararg each: Int) = DialSteps(each.toList())
  * server runs. `ShippedLaddersCheck` fails if it drifts from the files.
  */
 internal val SHIPPED_LADDERS = mapOf(
-    Manifestation.TORN_SEAMS to Ladder.flat(Manifestation.TORN_SEAMS, tier = 1, most = 4).copy(needs = setOf(Showing.REGIONS)),
+    Manifestation.TORN_SEAMS to Ladder.flat(Manifestation.TORN_SEAMS, tier = 1, most = 4)
+        .copy(needs = setOf(Showing.REGIONS), heldBy = setOf("landmass.torn")),
     Manifestation.WOUNDS to Ladder.flat(Manifestation.WOUNDS, tier = 2, most = 4),
     Manifestation.WORSENING_WOUNDS to Ladder.flat(Manifestation.WORSENING_WOUNDS, tier = 3, most = 3),
     Manifestation.SANDFALL to Ladder(
@@ -323,14 +324,15 @@ internal val SHIPPED_LADDERS = mapOf(
     Manifestation.LOW_CLOUDS to Ladder.flat(Manifestation.LOW_CLOUDS, tier = 1, most = 2)
         .copy(leans = mapOf("humidity" to 0.3), heldBy = setOf("clouds.ceiling")),
     Manifestation.STILL_CREATURES to Ladder.flat(Manifestation.STILL_CREATURES, tier = 1, most = 1)
-        .copy(needs = setOf(Showing.CREATURES)),
-    Manifestation.FOREIGN_GROUND to Ladder.flat(Manifestation.FOREIGN_GROUND, tier = 1, most = 4),
+        .copy(needs = setOf(Showing.CREATURES), heldBy = setOf("spawns.still")),
+    Manifestation.FOREIGN_GROUND to Ladder.flat(Manifestation.FOREIGN_GROUND, tier = 1, most = 4)
+        .copy(heldBy = setOf("landmass.incongruous")),
     Manifestation.OVERGROWN_GROUND to Ladder.flat(Manifestation.OVERGROWN_GROUND, tier = 2, most = 4)
         .copy(leans = mapOf("humidity" to 1.0)),
     Manifestation.STAMPED_SHAPES to Ladder.flat(Manifestation.STAMPED_SHAPES, tier = 1, most = 1)
-        .copy(needs = setOf(Showing.TREES)),
+        .copy(needs = setOf(Showing.TREES), heldBy = setOf("features.uniform")),
     Manifestation.LEAFLESS_TREES to Ladder.flat(Manifestation.LEAFLESS_TREES, tier = 1, most = 1)
-        .copy(needs = setOf(Showing.TREES)),
+        .copy(needs = setOf(Showing.TREES), heldBy = setOf("features.bare")),
     Manifestation.ABANDONED_VILLAGES to Ladder.flat(Manifestation.ABANDONED_VILLAGES, tier = 1, most = 1)
         .copy(needs = setOf(Showing.VILLAGES)),
     Manifestation.UNCANNY_MOTES to Ladder.flat(Manifestation.UNCANNY_MOTES, tier = 1, most = 2),
@@ -341,7 +343,8 @@ internal val SHIPPED_LADDERS = mapOf(
         leans = mapOf("humidity" to 0.3),
         needs = setOf(Showing.RAIN),
     ),
-    Manifestation.SKY_TEARS to Ladder.flat(Manifestation.SKY_TEARS, tier = 1, most = 3),
+    Manifestation.SKY_TEARS to Ladder.flat(Manifestation.SKY_TEARS, tier = 1, most = 3)
+        .copy(heldBy = setOf("sky.torn")),
     Manifestation.STRANGE_GRAVITY to Ladder(
         mapOf(Manifestation.GRAVITY_STRENGTH to tiers(1, 2, 3)),
         heldBy = setOf("gravity.pull"),

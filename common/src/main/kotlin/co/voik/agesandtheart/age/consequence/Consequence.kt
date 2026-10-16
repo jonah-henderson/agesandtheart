@@ -3,6 +3,9 @@ package co.voik.agesandtheart.age.consequence
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.age.aspect.Parameter
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -121,13 +124,14 @@ data class Consequence(
         /** What [recipe] bought, at the prices [server] is running. */
         fun of(server: MinecraftServer, recipe: AgeRecipe): Consequence {
             val spending = Spending.of(server, recipe)
+            fun said(flag: Parameter) = recipe.composition?.optionsFor(Aspect.FEATURES)?.isTrue(flag) == true
             return Consequence(
                 woundsPerChunk = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS)),
                 woundsPerDay = Tearing.woundsPerDayAt(spending.bought(Manifestation.WORSENING_WOUNDS)),
                 collapseTears = Collapse.tearsPerCellAt(spending.bought(Manifestation.COLLAPSE)),
                 writtenAt = recipe.writtenAt,
-                stampsShapes = spending.bought(Manifestation.STAMPED_SHAPES) > 0,
-                leafless = spending.bought(Manifestation.LEAFLESS_TREES) > 0,
+                stampsShapes = spending.bought(Manifestation.STAMPED_SHAPES) > 0 || said(Features.UNIFORM),
+                leafless = spending.bought(Manifestation.LEAFLESS_TREES) > 0 || said(Features.BARE),
                 abandonsVillages = spending.bought(Manifestation.ABANDONED_VILLAGES) > 0,
                 overgrowthPatches = spending.bought(Manifestation.OVERGROWN_GROUND),
             )

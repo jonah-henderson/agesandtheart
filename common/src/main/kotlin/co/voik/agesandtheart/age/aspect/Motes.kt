@@ -75,8 +75,14 @@ object Motes {
         "underwater" to { ParticleTypes.UNDERWATER },
     )
 
+    /**
+     * Motes no air should hold, drawn by the Age's own client particles rather than vanilla's — their look and
+     * how they move drawn from its seed (`UncannyMotes`). The one mote that is not a vanilla particle.
+     */
+    const val UNCANNY = "uncanny"
+
     /** Every mote a writer may hang in the air, in the order they read. */
-    val ALL: List<String> = NAMED.keys.toList()
+    val ALL: List<String> = NAMED.keys.toList() + UNCANNY
 
     /** The particle [named], or null where the word is not one of ours. */
     fun named(name: String): ParticleOptions? = NAMED[name]?.invoke()

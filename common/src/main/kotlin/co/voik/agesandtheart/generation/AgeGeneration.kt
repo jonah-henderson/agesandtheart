@@ -112,8 +112,12 @@ object AgeGeneration {
         // What this Age's instability bought, as a fraction of everything tearing could be (design §5.0).
         // Derived rather than stored: a pure function of the recipe, so it comes out the same on every open.
         val spending = Spending.of(server, recipe)
-        val torn = spending.reach(Manifestation.TORN_SEAMS)
-        val dislocation = Dislocation(seed xor DISLOCATION_SALT, spending.reach(Manifestation.FOREIGN_GROUND))
+        // What the book wrote of the land takes the top of each, where instability would have climbed to it.
+        val torn = if (composition.anyMemberSays(Aspect.TERRAIN, Terrain.TORN)) ALL_OF_IT
+            else spending.reach(Manifestation.TORN_SEAMS)
+        val dislocated = if (composition.anyMemberSays(Aspect.TERRAIN, Terrain.INCONGRUOUS)) ALL_OF_IT
+            else spending.reach(Manifestation.FOREIGN_GROUND)
+        val dislocation = Dislocation(seed xor DISLOCATION_SALT, dislocated)
 
         // One band for every Age, and the same one every dimension type admits — see [VerticalWindow].
         val window = VerticalWindow.DEFAULT
@@ -681,6 +685,9 @@ object AgeGeneration {
 
     /** So where the ground is foreign is decorrelated from everything else this seed decides. */
     private const val DISLOCATION_SALT = 0x464F_5245_4947_4EL
+
+    /** A dial bought in full. */
+    private const val ALL_OF_IT = 1.0
 
     /** So which sea wins is decorrelated from everything else this seed decides. */
     private const val WATERLINE_SALT = 0x5EA_1E7EL

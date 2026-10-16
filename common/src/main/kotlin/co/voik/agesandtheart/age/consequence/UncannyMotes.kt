@@ -3,6 +3,9 @@ package co.voik.agesandtheart.age.consequence
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Atmosphere
+import co.voik.agesandtheart.age.aspect.Motes
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
 import io.netty.buffer.ByteBuf
@@ -22,7 +25,10 @@ object UncannyMotes {
     fun tellTheClients(level: ServerLevel, recipe: AgeRecipe, spending: Spending) {
         if (level.server.tickCount % TELLING_THE_CLIENT != 0) return
         val age = level.dimension().identifier()
-        val telling = if (spending.bought(Manifestation.UNCANNY_MOTES) == 0) {
+        val written = recipe.composition?.optionsFor(Aspect.AIR)?.of(Atmosphere.MOTES) == Motes.UNCANNY
+        val telling = if (written) {
+            MotesPayload(age, present = true, seed = recipe.seed, density = ALL_OF_IT, size = ALL_OF_IT)
+        } else if (spending.bought(Manifestation.UNCANNY_MOTES) == 0) {
             MotesPayload.noneIn(age)
         } else {
             MotesPayload(
@@ -37,6 +43,9 @@ object UncannyMotes {
     }
 
     private const val TELLING_THE_CLIENT = 20
+
+    /** A dial bought in full, which is what a book writing the motes gets. */
+    private const val ALL_OF_IT = 1.0
 }
 
 /**

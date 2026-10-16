@@ -2,6 +2,8 @@ package co.voik.agesandtheart.age.consequence
 
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.location
 import net.minecraft.server.level.ServerLevel
@@ -24,7 +26,8 @@ object StillCreatures {
         val mob = entity as? Mob ?: return
         val level = mob.level() as? ServerLevel ?: return
         val recipe = Ages.recipeOf(level) ?: return
-        if (Spending.of(level.server, recipe).bought(Manifestation.STILL_CREATURES) == 0) return
+        val written = recipe.composition?.optionsFor(Aspect.SPAWNS)?.isTrue(Spawns.STILL) == true
+        if (!written && Spending.of(level.server, recipe).bought(Manifestation.STILL_CREATURES) == 0) return
         for (attribute in ROOTED) {
             val instance = mob.getAttribute(attribute) ?: continue
             if (!instance.hasModifier(ROOTED_ID)) instance.addTransientModifier(ROOTING)

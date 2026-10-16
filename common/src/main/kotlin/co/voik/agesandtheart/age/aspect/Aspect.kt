@@ -310,7 +310,7 @@ enum class Aspect(
             // is *worn*, not which.
             BIOMES -> listOf(Biomes.FOOTING)
             SURFACE -> listOf(Surface.MATERIAL)
-            FEATURES -> listOf(Features.SIZE, Features.THICKNESS, Features.HEIGHT)
+            FEATURES -> listOf(Features.SIZE, Features.THICKNESS, Features.HEIGHT, Features.UNIFORM, Features.BARE)
             AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE, Atmosphere.DRAINED)
             WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR)
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER)
@@ -346,13 +346,17 @@ enum class Aspect(
                 Atmosphere.SKY,
                 Atmosphere.FADES,
                 Sky.SEALED,
+                Sky.TORN,
             )
             CLOUD -> listOf(Atmosphere.CLOUD, Atmosphere.CEILING)
             GRAVITY -> listOf(Gravity.PULL)
             SEA -> listOf(Sea.DEPTH)
-            // **Nothing settable at all**, which for the last three is because their whole answer is a
+            // What holds of every landform and every creature, whichever is seated or lives there.
+            TERRAIN -> listOf(Terrain.TORN, Terrain.INCONGRUOUS)
+            SPAWNS -> listOf(Spawns.STILL)
+            // **Nothing settable at all**, which for the last two is because their whole answer is a
             // [pool]: members are added, removed and leaned rather than set to a value.
-            TERRAIN, CARVERS, UNDERGROUND, STRUCTURES, SPAWNS, PHENOMENA -> emptyList()
+            CARVERS, UNDERGROUND, STRUCTURES, PHENOMENA -> emptyList()
         }
 
     /**

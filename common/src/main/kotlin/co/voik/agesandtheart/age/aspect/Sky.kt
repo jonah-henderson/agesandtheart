@@ -91,6 +91,9 @@ object Sky {
      */
     val SEALED = Parameter.flag("sealed", help = "Whether the world is roofed over, like the nether.")
 
+    /** Whether rifts hang torn in the sky — as many as instability ever tears. `torn sky`. */
+    val TORN = Parameter.flag("torn", help = "Whether rifts hang torn in the sky.")
+
     /**
      * Whether the Age is shut overhead — **because its book said so, or because its rock does it**.
      *

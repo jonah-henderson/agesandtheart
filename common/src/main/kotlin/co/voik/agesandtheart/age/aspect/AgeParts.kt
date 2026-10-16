@@ -22,6 +22,13 @@ interface AgeParts {
     fun membersIn(aspect: Aspect): Int
 
     /**
+     * Whether any member of [aspect] has [flag] set — a torn landmass is torn in whichever territory said so,
+     * since a seam belongs to both sides of it.
+     */
+    fun anyMemberSays(aspect: Aspect, flag: Parameter): Boolean =
+        (0..<membersIn(aspect).coerceAtLeast(1)).any { optionsFor(aspect, it).isTrue(flag) }
+
+    /**
      * Whether the **shape** of this Age shuts it overhead, as against its sky having been told to — see
      * [Terrain.roofsTheWorld].
      *

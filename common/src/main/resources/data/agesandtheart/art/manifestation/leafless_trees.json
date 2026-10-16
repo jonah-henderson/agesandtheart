@@ -3,10 +3,12 @@
     "The Age's trees grow bare (Jonah, 2026-10-12): trunks and branches with no leaves at all, so no saplings",
     "fall and wood can only be farmed from saplings brought in. Only trees generated after the Age is written;",
     "one grown from a sapling keeps its leaves. Strange, whole at one step.",
-    "Only in an Age whose biomes grow trees, since one with none would show nothing."
+    "Only in an Age whose biomes grow trees, since one with none would show nothing.",
+    "Never bought where the book set `features.bare`."
   ],
   "dials": {
     "bare": {"tier": 1, "most": 1}
   },
-  "needs": ["trees"]
+  "needs": ["trees"],
+  "held_by": ["features.bare"]
 }

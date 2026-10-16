@@ -578,6 +578,21 @@ enum class Terrain(
             "vanilla's own rock has no field of ours; AgeGeneration.ourGround is not reached for it"
 
         /**
+         * Whether the seams between territories are torn as wide as instability tears them — `torn landmass`.
+         * The aspect's own, so it holds whatever landform is seated.
+         */
+        val TORN = Parameter.flag("torn", help = "Whether the seams between territories are torn wide open.")
+
+        /**
+         * Whether patches of the ground are another country's, as far as instability shifts them —
+         * `incongruous landmass` (`Dislocation`).
+         */
+        val INCONGRUOUS = Parameter.flag(
+            "incongruous",
+            help = "Whether patches of the ground are the Age's own terrain read from far away.",
+        )
+
+        /**
          * **The three axes a word may bend a landform along**, and the reason they are ranged rather than
          * named steps: a word carries the *band* it means, so `sparse` and `scattered` can sit on
          * different stretches of one axis without either needing a step minted for it. See

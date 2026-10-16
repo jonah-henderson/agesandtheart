@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "Stripped (notes/strange-words-plan.md 4). `bare features` grows the trees with no leaves at all, so no",
+    "sapling ever falls -- the leafless step, written on purpose."
+  ],
+  "sets": {
+    "bare": "true"
+  }
+}

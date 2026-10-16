@@ -14,8 +14,8 @@ import io.kotest.core.spec.style.FunSpec
 @Tags(NEEDS_REGISTRIES)
 class MotesCheck : FunSpec({
 
-    test("every named mote resolves to a particle") {
-        val unresolved = Motes.ALL.filter { Motes.named(it) == null }
+    test("every named mote resolves to a particle, but the uncanny ones, which are drawn by our own") {
+        val unresolved = (Motes.ALL - Motes.UNCANNY).filter { Motes.named(it) == null }
         check(unresolved.isEmpty()) { "these motes name no particle: $unresolved" }
     }
 })

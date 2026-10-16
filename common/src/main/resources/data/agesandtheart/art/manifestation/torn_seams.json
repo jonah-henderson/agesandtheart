@@ -6,10 +6,12 @@
     "Only in an Age divided into territories, since an undivided one has no seam to tear and a step here",
     "would show nothing -- which is what it did for most Ages while it was the commonest first purchase",
     "(Jonah, 2026-10-12). Strange: the ground is wrong, and nothing about it hurts, so it is the first thing a",
-    "barely flawed Age with seams shows."
+    "barely flawed Age with seams shows.",
+    "Never bought where the book set `landmass.torn`."
   ],
   "dials": {
     "width": {"tier": 1, "most": 4}
   },
-  "needs": ["regions"]
+  "needs": ["regions"],
+  "held_by": ["landmass.torn"]
 }

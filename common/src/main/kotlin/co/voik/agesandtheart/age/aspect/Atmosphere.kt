@@ -245,7 +245,8 @@ object Atmosphere {
             fog = colourOf(air, FOG, biome) ?: colourOf(vault, SKY, biome)?.let(::fogUnder),
             cloud = colourOf(clouds, CLOUD, biome),
             tint = colourOf(air, TINT, biome),
-            motes = air.of(MOTES, biome).takeUnless { it == Parameter.DEFAULT },
+            // Uncanny motes are drawn by the Age's own particles, not handed to vanilla's (`UncannyMotes`).
+            motes = air.of(MOTES, biome).takeUnless { it == Parameter.DEFAULT || it == Motes.UNCANNY },
             murk = band(water, MURK),
             fadesAtNight = if (vault.of(FADES, biome) == NEVER_FADES) false else null,
             water = colourOf(water, WATERCOLOUR, biome),

@@ -12,6 +12,7 @@
     "agesandtheart:subterranean",
     "agesandtheart:tunnels",
     "ancient",
+    "bare",
     "burning",
     "delved",
     "deserted",
@@ -156,7 +157,9 @@
     "stormy",
     "temperate",
     "tropical",
+    "uncanny",
     "unfading",
+    "uniform",
     "veins",
     "verdant"
   ],
