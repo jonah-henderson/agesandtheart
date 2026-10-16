@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen.structure
 
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.generation.IncongruousStructures
 import com.mojang.datafixers.util.Either
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -66,19 +67,24 @@ class EntranceOnGroundStructure(
         return Entrance(named.pos(), JigsawBlock.getFrontFacing(named.state()))
     }
 
-    /** The first free height in the lowest column across the doorway, one block out from the entrance. */
+    /**
+     * The first free height in the lowest column across the doorway, one block out from the entrance — or, in an
+     * `incongruous structures` Age, the height drawn for this start, which the snap would otherwise undo.
+     */
     private fun groundOutside(door: Entrance, context: GenerationContext): Int {
         val outside = door.position.relative(door.outward)
         val across = door.outward.clockWise
         return (ENTRANCE_START_OFFSET until ENTRANCE_START_OFFSET + ENTRANCE_WIDTH).minOf { step ->
             val column = outside.relative(across, step)
-            context.chunkGenerator().getFirstFreeHeight(
+            val occupied = IncongruousStructures.groundAt(
+                context.chunkGenerator(),
                 column.x,
                 column.z,
                 Heightmap.Types.WORLD_SURFACE_WG,
                 context.heightAccessor(),
                 context.randomState(),
             )
+            occupied + 1
         }
     }
 
