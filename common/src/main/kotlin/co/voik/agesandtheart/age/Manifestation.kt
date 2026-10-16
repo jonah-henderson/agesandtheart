@@ -414,6 +414,11 @@ data class Ladder(
      * trees. Never bought where one is missing, since a step there would show nothing (Jonah, 2026-10-12).
      */
     val needs: Set<Showing> = emptySet(),
+    /**
+     * The parameters a word sets to the same effect, as `page.parameter` — `gravity.pull`. Never bought where
+     * the book already set one, since the writer's word is law (`notes/strange-words-plan.md` §1).
+     */
+    val heldBy: Set<String> = emptySet(),
 ) {
     companion object {
         private const val DEFAULT_TIER = Spending.HARMFUL
@@ -433,7 +438,10 @@ data class Ladder(
                 Codec.unboundedMap(Codec.STRING, Codec.DOUBLE).optionalFieldOf("leans", emptyMap()).forGetter(Ladder::leans),
                 Manifestation.CODEC.listOf().optionalFieldOf("excludes", emptyList()).forGetter { it.excludes.toList() },
                 Showing.CODEC.listOf().optionalFieldOf("needs", emptyList()).forGetter { it.needs.toList() },
-            ).apply(instance) { dials, leans, excludes, needs -> Ladder(dials, leans, excludes.toSet(), needs.toSet()) }
+                Codec.STRING.listOf().optionalFieldOf("held_by", emptyList()).forGetter { it.heldBy.toList() },
+            ).apply(instance) { dials, leans, excludes, needs, heldBy ->
+                Ladder(dials, leans, excludes.toSet(), needs.toSet(), heldBy.toSet())
+            }
         }
 
         const val DIRECTORY = "art/manifestation"
@@ -620,7 +628,8 @@ data class Spending(
                 val barredByWhatCame = bought.keys.any { other ->
                     other in ladder.excludes || manifestation in ladderOf(other).excludes
                 }
-                return needsWhatIsNotThere || barredByWhatCame
+                val theBookAlreadySaid = ladder.heldBy.any { it in setting.written }
+                return needsWhatIsNotThere || barredByWhatCame || theBookAlreadySaid
             }
 
             fun dialsOpenAt(manifestation: Manifestation, tier: Int): List<String> =

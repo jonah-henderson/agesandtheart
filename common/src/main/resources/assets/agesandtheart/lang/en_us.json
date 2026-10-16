@@ -528,6 +528,8 @@
   "prose.agesandtheart.features.is": "Its features are %1$s%2$s.",
   "prose.agesandtheart.grass.has": "Its grass holds %1$s%2$s.",
   "prose.agesandtheart.grass.is": "Its grass is %1$s%2$s.",
+  "prose.agesandtheart.gravity.has": "Its gravity holds %1$s%2$s.",
+  "prose.agesandtheart.gravity.is": "Its gravity is %1$s%2$s.",
   "prose.agesandtheart.in": " in its %s",
   "prose.agesandtheart.lattice": "lattice passages",
   "prose.agesandtheart.leaves.has": "Its leaves hold %1$s%2$s.",
@@ -636,6 +638,7 @@
   "word.agesandtheart.flooded": "Flooded",
   "word.agesandtheart.foreboding": "Foreboding",
   "word.agesandtheart.frozen": "Frozen",
+  "word.agesandtheart.gravity": "Gravity",
   "word.agesandtheart.hollow": "Hollow",
   "word.agesandtheart.homely": "Homely",
   "word.agesandtheart.landmass": "Landmass",
@@ -668,6 +671,7 @@
   "word.agesandtheart.starless": "Starless",
   "word.agesandtheart.starlit": "Starlit",
   "word.agesandtheart.stormy": "Stormy",
+  "word.agesandtheart.strong": "Strong",
   "word.agesandtheart.structures": "Structures",
   "word.agesandtheart.tectonics": "Tectonics",
   "word.agesandtheart.temperate": "Temperate",
@@ -678,6 +682,7 @@
   "word.agesandtheart.untouched": "Untouched",
   "word.agesandtheart.verdant": "Verdant",
   "word.agesandtheart.wandering": "Wandering",
+  "word.agesandtheart.weak": "Weak",
   "word.agesandtheart.wondrous": "Wondrous",
   "word.agesandtheart.worn": "Worn"
 }

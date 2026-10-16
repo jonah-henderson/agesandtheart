@@ -3,6 +3,8 @@ package co.voik.agesandtheart.age.consequence
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Gravity
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
 import io.netty.buffer.ByteBuf
@@ -42,8 +44,18 @@ object StrangeGravity {
         return if (lighter) ORDINARY / (ORDINARY + LIGHTER_BY_STEPS[step]) else ORDINARY + HEAVIER_BY_STEPS[step]
     }
 
-    /** How hard the Age of [recipe] that bought [spending] pulls — its pull set by hand, where one is. */
-    fun pullOf(recipe: AgeRecipe, spending: Spending): Double = recipe.forcedPull ?: factorFor(spending, recipe.seed)
+    /**
+     * How hard the Age of [recipe] that bought [spending] pulls: its pull set by hand, then what its book wrote,
+     * then what its instability bought.
+     */
+    fun pullOf(recipe: AgeRecipe, spending: Spending): Double =
+        recipe.forcedPull ?: writtenPullOf(recipe) ?: factorFor(spending, recipe.seed)
+
+    /** The pull [recipe]'s book wrote, or null where it left gravity alone. */
+    fun writtenPullOf(recipe: AgeRecipe): Double? {
+        val gravity = recipe.composition?.optionsFor(Aspect.GRAVITY, 0) ?: return null
+        return gravity.steer(Gravity.PULL, recipe.seed)?.let(Gravity::factorAt)
+    }
 
     /** The share of vanilla's gravity [level] pulls with, on whichever side it is — vanilla's own outside an Age. */
     @JvmStatic

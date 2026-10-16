@@ -262,6 +262,12 @@ enum class Aspect(
      * already written.
      */
     CLOUD("cloud", page = "clouds"),
+
+    /**
+     * How hard the world pulls things down — its own part of the world, since nothing else it holds bears on
+     * it. Appended, for [CLOUD]'s reason.
+     */
+    GRAVITY("gravity"),
     ;
 
     /** What a writer calls this part of the world — [key] where no other name was given. */
@@ -284,7 +290,7 @@ enum class Aspect(
             // biome or a structure set is weighed rather than chosen. See [parameters] and [Holds.WEIGHTED_SET].
             PHENOMENA -> Phenomenon.entries
             SEA, SKY, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, AIR, WATERS, WEATHER,
-            SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW,
+            SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW, GRAVITY,
             -> emptyList()
         }
 
@@ -343,6 +349,7 @@ enum class Aspect(
                 Sky.SEALED,
             )
             CLOUD -> listOf(Atmosphere.CLOUD)
+            GRAVITY -> listOf(Gravity.PULL)
             SEA -> listOf(Sea.DEPTH)
             // **Nothing settable at all**, which for the last three is because their whole answer is a
             // [pool]: members are added, removed and leaned rather than set to a value.
@@ -420,7 +427,7 @@ enum class Aspect(
             SPAWNS -> Spawns.LIVES
             PHENOMENA -> Phenomena.HAPPENS
             TERRAIN, SEA, CARVERS, UNDERGROUND, SKY, CLIMATE, SURFACE,
-            AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW,
+            AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW, GRAVITY,
             -> null
         }
 
@@ -459,7 +466,7 @@ enum class Aspect(
         FEATURES -> PlacedFeature.named(key)
         SPAWNS -> Spawn.named(key)
         TERRAIN, CARVERS, UNDERGROUND, SKY, CLIMATE, SURFACE, PHENOMENA,
-        AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW,
+        AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW, GRAVITY,
         -> authored.firstOrNull { it.key == key }
     }
 

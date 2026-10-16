@@ -47,9 +47,14 @@ enum class Showing(private val key: String) : StringRepresentable {
 
 /**
  * What a finished Age is like, as far as choosing what its instability shows: its climate on each axis, from
- * −1 to 1, and what it [has] for a manifestation to show on.
+ * −1 to 1, what it [has] for a manifestation to show on, and the parameters its book [written] a value for, as
+ * `page.parameter`.
  */
-data class SpendingSetting(val climate: Map<String, Double>, val has: Set<Showing>) {
+data class SpendingSetting(
+    val climate: Map<String, Double>,
+    val has: Set<Showing>,
+    val written: Set<String> = emptySet(),
+) {
     companion object {
         /** An Age nothing is known about: vanilla's whole climate, and nothing promised to show on. */
         val UNKNOWN = SpendingSetting(emptyMap(), emptySet())
@@ -68,7 +73,19 @@ data class SpendingSetting(val climate: Map<String, Double>, val has: Set<Showin
                 if (composition.membersIn(Aspect.TERRAIN) > 1) add(Showing.REGIONS)
                 if (!Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0))) add(Showing.CREATURES)
             }
-            return SpendingSetting(climate, has)
+            return SpendingSetting(climate, has, writtenIn(composition))
+        }
+
+        /** Every aspect parameter [composition] holds a value for, as `page.parameter`. */
+        private fun writtenIn(composition: AgeComposition): Set<String> = buildSet {
+            for (aspect in Aspect.entries) {
+                for (member in 0..<composition.membersIn(aspect).coerceAtLeast(1)) {
+                    val options = composition.optionsFor(aspect, member)
+                    aspect.parameters
+                        .filter { options.allSpelled(it.name).isNotEmpty() }
+                        .forEach { add("${aspect.page}.${it.name}") }
+                }
+            }
         }
 
         /**

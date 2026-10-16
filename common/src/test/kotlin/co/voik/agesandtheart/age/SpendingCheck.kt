@@ -164,6 +164,19 @@ class SpendingCheck : FunSpec({
         }
     }
 
+    test("nothing is bought that the book already wrote") {
+        val held = SHIPPED_LADDERS.filterValues { it.heldBy.isNotEmpty() }
+        check(held.isNotEmpty()) { "no shipped ladder is held by a written parameter" }
+        val writtenEverything = SpendingSetting(emptyMap(), everythingShows, held.values.flatMap { it.heldBy }.toSet())
+        for (seed in seeds) {
+            val overruled = held.keys.filter { spent(12, seed, writtenEverything).bought(it) > 0 }
+            check(overruled.isEmpty()) { "an Age whose book wrote their parameters bought $overruled under seed $seed" }
+        }
+        check(seeds.any { seed -> held.keys.any { spent(12, seed).bought(it) > 0 } }) {
+            "no Age whose book left them alone bought a held manifestation"
+        }
+    }
+
     /**
      * And every dial is bought somewhere, or it is dead content whatever the draw does — at flaw counts a book
      * reaches, and in the climate it leans towards, since a blizzard keeps the inferno out of an Age that is
@@ -328,5 +341,8 @@ internal val SHIPPED_LADDERS = mapOf(
         needs = setOf(Showing.RAIN),
     ),
     Manifestation.SKY_TEARS to Ladder.flat(Manifestation.SKY_TEARS, tier = 1, most = 3),
-    Manifestation.STRANGE_GRAVITY to Ladder(mapOf(Manifestation.GRAVITY_STRENGTH to tiers(1, 2, 3))),
+    Manifestation.STRANGE_GRAVITY to Ladder(
+        mapOf(Manifestation.GRAVITY_STRENGTH to tiers(1, 2, 3)),
+        heldBy = setOf("gravity.pull"),
+    ),
 )
