@@ -45,6 +45,6 @@ public abstract class FeaturePlacerMixin {
         BlockPos origin,
         boolean biomeCheck
     ) {
-        return feature.place(level, generator, StrangeGround.randomFor(placed, random), at);
+        return StrangeGround.place(placed, random, drawing -> feature.place(level, generator, drawing, at));
     }
 }

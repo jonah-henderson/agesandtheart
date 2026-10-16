@@ -32,6 +32,15 @@ import net.minecraft.world.level.levelgen.structure.StructureSet as VanillaStruc
  */
 object Structures {
 
+    /**
+     * Whether a village is its abandoned self — cobwebs, broken glass, zombie villagers. Held member by member, so
+     * `deserted villages` abandons them; vanilla keeps abandoned pieces for villages and for nothing else.
+     */
+    val ABANDONED = Parameter.flag("abandoned", help = "Whether villages are found abandoned.").perMember()
+
+    /** The structure set vanilla's villages are, which is what [ABANDONED] is asked of. */
+    const val VILLAGES = "minecraft:villages"
+
     /** Every Age has these, whatever its sentence said — see [escapeHatch]. */
     private val STAR_FISSURE: Identifier = "star_fissure".location()
 

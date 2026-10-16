@@ -39,6 +39,12 @@ data class Parameter(
      */
     val confinable: Boolean = false,
     /**
+     * Whether this is something **each member of a weighted set may hold for itself** — a village abandoned,
+     * a creature rooted — so a clause closing on members says it of them alone: `deserted villages`,
+     * `motionless monsters` (`notes/strange-words-plan.md` §2). Set with [perMember].
+     */
+    val ownedByEachMember: Boolean = false,
+    /**
      * Whether this parameter's value is a **block** — the palette's stone, a surface's skin, a minted
      * pattern's substance.
      *
@@ -88,6 +94,9 @@ data class Parameter(
 ) {
     /** This parameter, sited-in-a-biome — see [confinable]. */
     fun perBiome(): Parameter = copy(confinable = true)
+
+    /** This parameter, held member by member — see [ownedByEachMember]. */
+    fun perMember(): Parameter = copy(ownedByEachMember = true)
 
     val default: String get() = options.first()
 

@@ -334,7 +334,7 @@ internal val SHIPPED_LADDERS = mapOf(
     Manifestation.LEAFLESS_TREES to Ladder.flat(Manifestation.LEAFLESS_TREES, tier = 1, most = 1)
         .copy(needs = setOf(Showing.TREES), heldBy = setOf("features.bare")),
     Manifestation.ABANDONED_VILLAGES to Ladder.flat(Manifestation.ABANDONED_VILLAGES, tier = 1, most = 1)
-        .copy(needs = setOf(Showing.VILLAGES)),
+        .copy(needs = setOf(Showing.VILLAGES), heldBy = setOf("structures.abandoned")),
     Manifestation.UNCANNY_MOTES to Ladder.flat(Manifestation.UNCANNY_MOTES, tier = 1, most = 2),
     Manifestation.MONOCHROME to Ladder.flat(Manifestation.MONOCHROME, tier = 1, most = 1)
         .copy(heldBy = setOf("air.drained")),

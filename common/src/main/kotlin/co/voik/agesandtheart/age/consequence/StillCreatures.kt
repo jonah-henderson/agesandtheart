@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.generation.Ages
 import co.voik.agesandtheart.location
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.Mob
@@ -26,7 +27,8 @@ object StillCreatures {
         val mob = entity as? Mob ?: return
         val level = mob.level() as? ServerLevel ?: return
         val recipe = Ages.recipeOf(level) ?: return
-        val written = recipe.composition?.optionsFor(Aspect.SPAWNS)?.isTrue(Spawns.STILL) == true
+        val kind = BuiltInRegistries.ENTITY_TYPE.getKey(mob.type).toString()
+        val written = recipe.composition?.optionsFor(Aspect.SPAWNS)?.isTrue(Spawns.STILL, member = kind) == true
         if (!written && Spending.of(level.server, recipe).bought(Manifestation.STILL_CREATURES) == 0) return
         for (attribute in ROOTED) {
             val instance = mob.getAttribute(attribute) ?: continue

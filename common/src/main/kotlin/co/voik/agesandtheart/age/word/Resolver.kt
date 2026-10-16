@@ -268,6 +268,34 @@ object Resolver {
             listOfNotNull(constraint, claim)
         }
 
+    /**
+     * [book] with what each clause closing on members of a weighted set says *of* them scoped to them —
+     * `deserted villages`, `motionless monsters` (`notes/strange-words-plan.md` §2): what a minting clause
+     * already does with its size, for any clause about members.
+     *
+     * Only a modifier holding something a member holds for itself is touched. Its member-level values are said
+     * of the subject's members, and what it said about *which* members there are yields to the subject — which
+     * is what keeps `deserted villages` from striking the villages it describes. Every other modifier reads as
+     * it always did.
+     */
+    private fun saidOfTheirMembers(vocabulary: Vocabulary, book: Sentence): Sentence =
+        book.copy(phrases = book.phrases.map { phrase ->
+            val subject = phrase.subject ?: return@map phrase
+            val namesMembers = !subject.word.aims && subject.word.mints == null
+            val aspect = subject.word.aspects.singleOrNull()
+                ?.takeIf { namesMembers && it.holds == Holds.WEIGHTED_SET }
+                ?: return@map phrase
+            val members = vocabulary.carriersOf(subject.word, aspect).map(Taggable::key)
+            if (members.isEmpty()) return@map phrase
+            phrase.copy(modifiers = phrase.modifiers.map { it.saidOf(aspect, members) })
+        })
+
+    private fun Constraint.saidOf(aspect: Aspect, members: List<String>): Constraint {
+        val holdsSomethingOfEach = word.setsIn(aspect).keys.any(aspect::ownsMemberParameterNamed)
+        if (!holdsSomethingOfEach || aspect !in aimedAt) return this
+        return copy(word = word.withoutChoosingIn(aspect), members = members)
+    }
+
     /** How a parameter names the aspect it is meant for — `sun.colour`. Spelled on [Word] and matched here. */
     private const val QUALIFIED = "."
 
@@ -275,7 +303,8 @@ object Resolver {
      * The world [sentence] describes at [seed]. Aspects resolve independently and in ordinal order, so an
      * aspect's filling cannot depend on what another happened to draw.
      */
-    fun resolve(vocabulary: Vocabulary, sentence: Sentence, seed: Long): Resolution {
+    fun resolve(vocabulary: Vocabulary, book: Sentence, seed: Long): Resolution {
+        val sentence = saidOfTheirMembers(vocabulary, book)
         // §4.6: the unconstrained should still vary with what was written, or two different sentences at
         // one seed draw identical filler wherever neither constrains anything.
         val draw = seed xor saltOf(sentence.words)
@@ -1069,8 +1098,15 @@ object Resolver {
                 // already are, so writing it into the options would record the same fact in two places and
                 // let them disagree. [cast] read it before any of this ran.
                 .filter { it != Parameter.CAST && it !in settled && holds(steered, aspect, it) }) {
-                val contenders = setting.filter { parameter in it.word.setsIn(aspect) }
+                val claimants = setting.filter { parameter in it.word.setsIn(aspect) }
                     .sortedWith(FIRMEST_FIRST.thenBy { tieBreak(draw, aspect, it.word) })
+                // **What was said of some members is written beside what was said of all of them**, as a
+                // value sited in a biome is, and never contends with it (`notes/strange-words-plan.md` §2).
+                val (ofSomeMembers, contenders) = claimants.partition {
+                    it.members != null && aspect.ownsMemberParameterNamed(parameter)
+                }
+                steered = steered.saidOfMembers(aspect, parameter, ofSomeMembers)
+                if (contenders.isEmpty()) continue
                 // **A body is steered on its own.** Each clause that minted one carries its index, so what
                 // was said about the second sun never reaches the first — the one place a claim is written
                 // to a member rather than across the aspect.
@@ -1104,6 +1140,16 @@ object Resolver {
             flaws += wordsNothingHonours(vocabulary, steered, aspect, setting)
         }
         return steered
+    }
+
+    /** [said]'s values for [parameter], each written for the members its clause named. */
+    private fun AgeComposition.saidOfMembers(aspect: Aspect, parameter: String, said: List<Constraint>): AgeComposition {
+        if (said.isEmpty()) return this
+        val written = said.map { claim ->
+            Claim(claim.word.setsIn(aspect).getValue(parameter), members = claim.members.orEmpty()).spelled()
+        }
+        val already = optionsFor(aspect, 0).allSpelled(parameter)
+        return withOptions(aspect, parameter, (already + written).distinct().toList())
     }
 
     /**

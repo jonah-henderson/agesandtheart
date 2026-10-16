@@ -87,6 +87,12 @@ data class Constraint(
      * rather than more of it where it already grows.
      */
     val everywhere: Boolean = false,
+    /**
+     * The members of its aspect this claim is said of, or null where it is said of the whole aspect — a
+     * modifier in a clause closing on `villages` or `monsters` (`notes/strange-words-plan.md` §2). Set by the
+     * resolver from the clause's subject; the parser never does.
+     */
+    val members: List<String>? = null,
 )
 
 /**

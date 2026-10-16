@@ -732,6 +732,18 @@ data class Word(
         ?.let(Span::read)
         ?.let { (it.least + it.most) / 2.0 }
 
+    /**
+     * The same word with nothing left to say about **which** of [aspect]'s members there are — what it chose,
+     * admitted, struck, barred or leaned on there — for a word said of members a clause already named.
+     */
+    fun withoutChoosingIn(aspect: Aspect): Word = copy(
+        chooses = chooses - aspect,
+        admits = admits - aspect,
+        excludes = excludes - aspect,
+        restricts = restricts - aspect,
+        biases = biases - aspect,
+    )
+
     /** The same word with its height taken away — [withoutItsSize]'s twin, for a height a minting spent. */
     fun withoutItsHeight(): Word {
         val kept = sets.filterKeys { parameterIn(it) != HEIGHT_PARAMETER }

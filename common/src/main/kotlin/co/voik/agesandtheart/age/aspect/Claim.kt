@@ -81,6 +81,12 @@ data class Claim(
     val size: Double? = null,
     /** How deep in the column this one sits, or null to take the Age's own — [size]'s twin. */
     val height: Double? = null,
+    /**
+     * Which members of its aspect a **dial's** value is said of, or empty where it is said of the whole aspect
+     * — `abandoned=true[for=minecraft:villages]` is `deserted villages` (`notes/strange-words-plan.md` §2).
+     * [confinedTo]'s twin, scoping to members rather than to ground.
+     */
+    val members: List<String> = emptyList(),
 ) {
     /**
      * Whether this could not bring its member about — a **description** ([onlyWhereItGrows]) asking for no
@@ -133,6 +139,7 @@ data class Claim(
             ownSize?.let { add("$SIZE$SETS${Rung.spelled(it)}") }
             ownHeight?.let { add("$HEIGHT$SETS${Rung.spelled(it)}") }
             confinedTo?.let { add("$IN$SETS$it") }
+            if (members.isNotEmpty()) add("$FOR$SETS${members.joinToString(AMONG.toString())}")
         }
         if (parts.isEmpty()) return value
         return "$value$OPEN${parts.joinToString(BETWEEN.toString())}$CLOSE"
@@ -158,6 +165,10 @@ data class Claim(
         const val OF = "of"
         const val SIZE = "size"
         const val HEIGHT = "height"
+        const val FOR = "for"
+
+        /** Between the members one value is said of: `for=minecraft:zombie|minecraft:husk`. */
+        const val AMONG = '|'
 
         /** Between the substances of one mingled minting: `of=minecraft:mud+minecraft:sand`. */
         const val MINGLED = '+'
@@ -189,6 +200,7 @@ data class Claim(
                 introducedIfAbsent = parts.any { it == INTRODUCED_IF_ABSENT },
                 size = valueOf(parts, SIZE)?.toDoubleOrNull(),
                 height = valueOf(parts, HEIGHT)?.toDoubleOrNull(),
+                members = valueOf(parts, FOR)?.split(AMONG)?.filter(String::isNotEmpty).orEmpty(),
             )
         }
 

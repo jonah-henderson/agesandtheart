@@ -40,10 +40,11 @@ object Spawns {
      * lifeless world being a world a writer might well want.
      */
     /**
-     * Whether every creature is rooted where it stands, still watching and striking — `motionless spawns`.
+     * Whether every creature is rooted where it stands, still watching and striking — `motionless spawns`,
+     * `motionless monsters`.
      * Named for what a still body is too, so the word that stops one stops the other.
      */
-    val STILL = Parameter.flag("still", help = "Whether every creature is rooted where it stands.")
+    val STILL = Parameter.flag("still", help = "Whether every creature is rooted where it stands.").perMember()
 
     val LIVES = Pool(
         "lives",

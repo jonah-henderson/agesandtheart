@@ -30,18 +30,29 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
      * spellings for the same idea — and the aspects a dial may be confined on are the same four §3.1 names
      * for a claim, since it is the same fact about vanilla that makes either meaningful.
      */
-    fun of(parameter: Parameter, biome: Identifier? = null): String {
+    fun of(parameter: Parameter, biome: Identifier? = null, member: String? = null): String {
         val said = chosen[parameter.name].orEmpty().map(Claim::read).filter { parameter.accepts(it.value) }
-        val here = said.firstOrNull { it.confinedTo != null && it.confinedTo == biome }
-        return (here ?: said.firstOrNull { it.confinedTo == null })?.value ?: parameter.default
+        val ofThisMember = member?.let { asked -> said.firstOrNull { asked in it.members } }
+        val ofEveryMember = said.filter { it.members.isEmpty() }
+        val here = ofEveryMember.firstOrNull { it.confinedTo != null && it.confinedTo == biome }
+        return (ofThisMember ?: here ?: ofEveryMember.firstOrNull { it.confinedTo == null })?.value ?: parameter.default
+    }
+
+    /**
+     * Who holds [value] for [parameter]: everyone, where it was said of the whole aspect, or the members it was
+     * said of — what a consumer asking member by member needs to be handed in one piece.
+     */
+    fun holders(parameter: Parameter, value: String = Parameter.TRUE): Holders {
+        val said = chosen[parameter.name].orEmpty().map(Claim::read).filter { it.value == value }
+        return Holders(everyone = said.any { it.members.isEmpty() }, only = said.flatMap { it.members }.toSet())
     }
 
     /**
      * Whether a flag was set — the only reading a [Parameter.flag] has, and the reason it is here rather
      * than at each call site comparing against a constant.
      */
-    fun isTrue(parameter: Parameter, biome: Identifier? = null): Boolean =
-        of(parameter, biome) == Parameter.TRUE
+    fun isTrue(parameter: Parameter, biome: Identifier? = null, member: String? = null): Boolean =
+        of(parameter, biome, member) == Parameter.TRUE
 
     /** Everything written for [parameter], brackets and all — what a second ground is appended to. */
     fun allSpelled(parameter: String): Set<String> = chosen[parameter].orEmpty().toSet()
@@ -164,5 +175,20 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
                 { many -> if (many.size == 1) Either.right(many.first()) else Either.left(many) },
             ),
         ).xmap(::Options, Options::chosen)
+    }
+}
+
+/** Who holds a value: every member of an aspect, or only the members named — see [Options.holders]. */
+data class Holders(val everyone: Boolean = false, val only: Set<String> = emptySet()) {
+    val isNobody: Boolean get() = !everyone && only.isEmpty()
+
+    fun includes(member: String?): Boolean = everyone || (member != null && member in only)
+
+    /** Both at once: everyone where either is, and every member either names. */
+    infix fun and(other: Holders): Holders = Holders(everyone || other.everyone, only + other.only)
+
+    companion object {
+        val NOBODY = Holders()
+        val EVERYONE = Holders(everyone = true)
     }
 }

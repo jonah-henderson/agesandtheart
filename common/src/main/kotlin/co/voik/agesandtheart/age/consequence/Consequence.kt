@@ -4,8 +4,11 @@ import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.AgeParts
 import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.age.aspect.Holders
 import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.aspect.Structures
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -34,10 +37,10 @@ data class Consequence(
     val collapseTears: Int,
     /** The overworld tick the Age was written on, which the two rates are counted from. */
     val writtenAt: Long,
-    /** Whether every feature in the Age comes out the same shape — [StrangeGround]. */
-    val stampsShapes: Boolean = false,
-    /** Whether the Age's trees grow without leaves — [StrangeGround]. */
-    val leafless: Boolean = false,
+    /** Which placed features come out the same shape every time — [StrangeGround]. */
+    val stamped: Holders = Holders.NOBODY,
+    /** Which placed features' trees grow without leaves — [StrangeGround]. */
+    val leafless: Holders = Holders.NOBODY,
     /** Whether every village in the Age is the abandoned one — [StrangeGround]. */
     val abandonsVillages: Boolean = false,
     /** How many steps of overgrown ground the Age bought, which is how many chunks hold a patch. */
@@ -90,6 +93,14 @@ data class Consequence(
          */
         const val UNWRITTEN = 0L
 
+        /** Who holds a strange shape: `everyone`, and the placed features named besides. */
+        private val HOLDERS_CODEC: Codec<Holders> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                Codec.BOOL.optionalFieldOf("everyone", false).forGetter(Holders::everyone),
+                Codec.STRING.listOf().optionalFieldOf("only", emptyList()).forGetter { it.only.toList() },
+            ).apply(instance) { everyone, only -> Holders(everyone, only.toSet()) }
+        }
+
         /** A coherent Age, which tears nowhere. Nearly all of them. */
         val NONE = Consequence(Tearing.NONE, Tearing.NONE, Collapse.NONE, UNWRITTEN)
 
@@ -110,9 +121,9 @@ data class Consequence(
                     .forGetter(Consequence::collapseTears),
                 Codec.LONG.optionalFieldOf("written_at", UNWRITTEN)
                     .forGetter(Consequence::writtenAt),
-                Codec.BOOL.optionalFieldOf("stamps_shapes", false)
-                    .forGetter(Consequence::stampsShapes),
-                Codec.BOOL.optionalFieldOf("leafless", false)
+                HOLDERS_CODEC.optionalFieldOf("stamped", Holders.NOBODY)
+                    .forGetter(Consequence::stamped),
+                HOLDERS_CODEC.optionalFieldOf("leafless", Holders.NOBODY)
                     .forGetter(Consequence::leafless),
                 Codec.BOOL.optionalFieldOf("abandons_villages", false)
                     .forGetter(Consequence::abandonsVillages),
@@ -124,15 +135,20 @@ data class Consequence(
         /** What [recipe] bought, at the prices [server] is running. */
         fun of(server: MinecraftServer, recipe: AgeRecipe): Consequence {
             val spending = Spending.of(server, recipe)
-            fun said(flag: Parameter) = recipe.composition?.optionsFor(Aspect.FEATURES)?.isTrue(flag) == true
+            val parts = recipe.composition ?: AgeParts.NONE
+            fun bought(manifestation: Manifestation) =
+                if (spending.bought(manifestation) > 0) Holders.EVERYONE else Holders.NOBODY
+            fun written(flag: Parameter) = parts.optionsFor(Aspect.FEATURES).holders(flag)
+            val villagesWritten = parts.optionsFor(Aspect.STRUCTURES)
+                .isTrue(Structures.ABANDONED, member = Structures.VILLAGES)
             return Consequence(
                 woundsPerChunk = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS)),
                 woundsPerDay = Tearing.woundsPerDayAt(spending.bought(Manifestation.WORSENING_WOUNDS)),
                 collapseTears = Collapse.tearsPerCellAt(spending.bought(Manifestation.COLLAPSE)),
                 writtenAt = recipe.writtenAt,
-                stampsShapes = spending.bought(Manifestation.STAMPED_SHAPES) > 0 || said(Features.UNIFORM),
-                leafless = spending.bought(Manifestation.LEAFLESS_TREES) > 0 || said(Features.BARE),
-                abandonsVillages = spending.bought(Manifestation.ABANDONED_VILLAGES) > 0,
+                stamped = bought(Manifestation.STAMPED_SHAPES) and written(Features.UNIFORM),
+                leafless = bought(Manifestation.LEAFLESS_TREES) and written(Features.BARE),
+                abandonsVillages = spending.bought(Manifestation.ABANDONED_VILLAGES) > 0 || villagesWritten,
                 overgrowthPatches = spending.bought(Manifestation.OVERGROWN_GROUND),
             )
         }

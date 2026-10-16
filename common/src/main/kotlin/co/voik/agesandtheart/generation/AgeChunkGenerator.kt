@@ -1302,7 +1302,8 @@ class AgeChunkGenerator(
      * generated today and the same chunk generated next year must agree about whether it holds one.
      */
     override fun applyBiomeDecoration(level: WorldGenLevel, chunk: ChunkAccess, structures: StructureManager) {
-        StrangeGround.decorating(consequence, level.seed) {
+        val placedFeatures = level.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
+        StrangeGround.decorating(consequence, level.seed, { placedFeatures.getKey(it)?.toString() }) {
             super.applyBiomeDecoration(level, chunk, structures)
         }
         // **The abyss is put right first, and before the early return below.** A structure brings its own

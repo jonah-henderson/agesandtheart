@@ -354,9 +354,10 @@ enum class Aspect(
             // What holds of every landform and every creature, whichever is seated or lives there.
             TERRAIN -> listOf(Terrain.TORN, Terrain.INCONGRUOUS)
             SPAWNS -> listOf(Spawns.STILL)
-            // **Nothing settable at all**, which for the last two is because their whole answer is a
-            // [pool]: members are added, removed and leaned rather than set to a value.
-            CARVERS, UNDERGROUND, STRUCTURES, PHENOMENA -> emptyList()
+            STRUCTURES -> listOf(Structures.ABANDONED)
+            // **Nothing settable at all**, which for the last one is because its whole answer is a [pool]:
+            // members are added, removed and leaned rather than set to a value.
+            CARVERS, UNDERGROUND, PHENOMENA -> emptyList()
         }
 
     /**
@@ -398,6 +399,9 @@ enum class Aspect(
      * its parameters, so for the question of *which aspect owns a name* the two agree.
      */
     fun ownsParameterNamed(name: String): Boolean = understood.any { it.name == name }
+
+    /** Whether a parameter by this name is one each member here holds for itself — [Parameter.ownedByEachMember]. */
+    fun ownsMemberParameterNamed(name: String): Boolean = understood.any { it.name == name && it.ownedByEachMember }
 
     /**
      * The registry this aspect's presets are entries of, or null where they are designs this pack wrote.
