@@ -30,6 +30,12 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   design §5.0: the strange tier (cosmetic manifestations, the beginner's whole experience of instability,
   and nothing in it yet), the mirage experiment, and the wounds' rework. Read it before adding a manifestation
   or touching `art/manifestation/`.
+- **`notes/strange-words-plan.md`** — the words that let a writer ask for what instability inflicts (`fog`,
+  `colourless`, `strong`/`weak` and a `gravity` aspect, `motionless`, …), each carrying as many meanings as
+  attachment can pick between. **Unbuilt.** Holds the one language change they need — a modifier in a clause
+  closed by a member term (`slow monsters`, `deserted villages`) lands on those members, generalising what
+  minting already does with size — and the case for giving every Age a clock of its own in Ephemeris, through
+  `level.clockManager()`, which is what a slow or stopped sun and per-Age sleep both stand on.
 - **`notes/tag-matching-research.md`** — how a vague word's reach actually resolves into densities, measured
   rather than reasoned (`./gradlew :common:tagreachspike` prints the numbers). Its three findings: reach is
   **per aspect**, so `monumental` on a feature is read by nothing; **wanting has a floor and striking has
