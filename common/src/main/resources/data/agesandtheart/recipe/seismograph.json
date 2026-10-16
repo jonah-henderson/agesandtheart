@@ -14,7 +14,10 @@
     "Deliberately lighter than the geologist's tools, and the pair divides by ERA rather than by cost. The",
     "tools span the vanilla worlds -- Nether, deep dark, a geode, a diamond, a lodestone -- and are the",
     "early instrument. This one gates on a written Age survived: one unassuming shard carries a meteoric",
-    "Age and a storm caught or a crater hunted, which is why the list reads cheaper than the instrument is."
+    "Age and a storm caught or a crater hunted, which is why the list reads cheaper than the instrument is.",
+    "",
+    "Plain paper, not fine (Jonah, 2026-10-15). Fine paper takes deretheni, which opens the midgame, so it",
+    "made the shard the lesser of this recipe's two gates."
   ],
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
@@ -30,7 +33,7 @@
     "b": "agesandtheart:ink_bottle",
     "I": "minecraft:iron_ingot",
     "K": "minecraft:clock",
-    "p": "agesandtheart:fine_paper"
+    "p": "minecraft:paper"
   },
   "result": { "id": "agesandtheart:seismograph" }
 }
