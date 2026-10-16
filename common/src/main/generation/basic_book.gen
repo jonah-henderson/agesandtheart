@@ -218,7 +218,9 @@ flavour = [sky]@4 | [formation]@3 | [underground]@2 | [ground] | [life]
 # pass a gate. `foreboding` leans hostile too.
 mood = wondrous | ancient | looming | desolate | pristine | homely | moonless
 
-size = minuscule | small | large | colossal
+# Large and small mostly: they are what common ink writes, where minuscule and colossal take fine ink and are
+# rare finds (Jonah, 2026-10-16).
+size = large@3 | small@3 | minuscule | colossal
 
 stone = blackstone | calcite | deepslate | tuff | sandstone | red_sandstone | andesite | granite | diorite
 
@@ -233,6 +235,7 @@ sky =
     [sky_colour] sky@3
     | [colour] sun@2
     | colossal sun
+    | large sun
     | small sun
     | [colour] sun [colour] sun
     | [rising] sun
@@ -245,7 +248,7 @@ sky =
     | clear air
 
 # A colour is not said of a moon; its size and where it rises are.
-moon = colossal moon | small moon | [rising] moon
+moon = colossal moon | large moon | small moon | [rising] moon
 
 # Wet weather only, and never beside a barren climate: drenched is watery against dry. `parched` is a
 # climate's word as much as the weather's, so it is left to the climates.
@@ -260,11 +263,13 @@ aurora =
     | restless aurora
     | glimmering [aurora_colour] aurora
     | colossal [aurora_colour] aurora
+    | large [aurora_colour] aurora
 
 rainbow =
     rainbows phenomena@2
     | rainbows phenomena [colour] rainbow
     | rainbows phenomena colossal rainbow
+    | rainbows phenomena large rainbow
     | rainbows phenomena prismatic rainbow
 
 formation = [formation_shape] features@2 | [stone] [formation_shape] features@2 | [size] [formation_shape] features

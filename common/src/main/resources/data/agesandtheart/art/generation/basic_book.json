@@ -243,9 +243,9 @@
       {"produce":["moonless"]}
     ],
     "size": [
+      {"weight":3.0,"produce":["large"]},
+      {"weight":3.0,"produce":["small"]},
       {"produce":["minuscule"]},
-      {"produce":["small"]},
-      {"produce":["large"]},
       {"produce":["colossal"]}
     ],
     "stone": [
@@ -287,6 +287,7 @@
       {"weight":3.0,"produce":["[sky_colour]","sky"]},
       {"weight":2.0,"produce":["[colour]","sun"]},
       {"produce":["colossal","sun"]},
+      {"produce":["large","sun"]},
       {"produce":["small","sun"]},
       {"produce":["[colour]","sun","[colour]","sun"]},
       {"produce":["[rising]","sun"]},
@@ -300,6 +301,7 @@
     ],
     "moon": [
       {"produce":["colossal","moon"]},
+      {"produce":["large","moon"]},
       {"produce":["small","moon"]},
       {"produce":["[rising]","moon"]}
     ],
@@ -321,12 +323,14 @@
       {"weight":3.0,"produce":["[aurora_colour]","aurora"]},
       {"produce":["restless","aurora"]},
       {"produce":["glimmering","[aurora_colour]","aurora"]},
-      {"produce":["colossal","[aurora_colour]","aurora"]}
+      {"produce":["colossal","[aurora_colour]","aurora"]},
+      {"produce":["large","[aurora_colour]","aurora"]}
     ],
     "rainbow": [
       {"weight":2.0,"produce":["rainbows","phenomena"]},
       {"produce":["rainbows","phenomena","[colour]","rainbow"]},
       {"produce":["rainbows","phenomena","colossal","rainbow"]},
+      {"produce":["rainbows","phenomena","large","rainbow"]},
       {"produce":["rainbows","phenomena","prismatic","rainbow"]}
     ],
     "formation": [
