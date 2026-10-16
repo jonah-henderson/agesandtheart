@@ -1086,8 +1086,16 @@ object Resolver {
     ): AgeComposition {
         var steered = composition
         for (aspect in Aspect.entries) {
-            val setting = sentence.filter { it.word.canSet.isNotEmpty() && aspect in reachOf(it) }
-            if (setting.isEmpty()) continue
+            val reaching = sentence.filter { it.word.canSet.isNotEmpty() && aspect in reachOf(it) }
+            // **What was said of some members is written beside what was said of all of them**, as a value
+            // sited in a biome is, and never contends with it (`notes/strange-words-plan.md` §2) — so the rest
+            // is steered as if it had never been said, and it is written after, where nothing overwrites it.
+            val ofSomeMembers = reaching.filter { it.members != null }
+            val setting = reaching.map { it.withoutMemberValuesIn(aspect) }.filter { it.word.canSet.isNotEmpty() }
+            if (setting.isEmpty()) {
+                steered = steered.saidOfMembers(aspect, ofSomeMembers)
+                continue
+            }
             // Every ranged axis at once, before the rest: a fragment is a whole climate, not a temperature.
             // One at a time, `tropical frozen` fractured on temperature and then displaced humidity,
             // leaving the frozen fragment carrying tropical's wetness. See [spanned].
@@ -1098,15 +1106,8 @@ object Resolver {
                 // already are, so writing it into the options would record the same fact in two places and
                 // let them disagree. [cast] read it before any of this ran.
                 .filter { it != Parameter.CAST && it !in settled && holds(steered, aspect, it) }) {
-                val claimants = setting.filter { parameter in it.word.setsIn(aspect) }
+                val contenders = setting.filter { parameter in it.word.setsIn(aspect) }
                     .sortedWith(FIRMEST_FIRST.thenBy { tieBreak(draw, aspect, it.word) })
-                // **What was said of some members is written beside what was said of all of them**, as a
-                // value sited in a biome is, and never contends with it (`notes/strange-words-plan.md` §2).
-                val (ofSomeMembers, contenders) = claimants.partition {
-                    it.members != null && aspect.ownsMemberParameterNamed(parameter)
-                }
-                steered = steered.saidOfMembers(aspect, parameter, ofSomeMembers)
-                if (contenders.isEmpty()) continue
                 // **A body is steered on its own.** Each clause that minted one carries its index, so what
                 // was said about the second sun never reaches the first — the one place a claim is written
                 // to a member rather than across the aspect.
@@ -1138,18 +1139,26 @@ object Resolver {
                 }
             }
             flaws += wordsNothingHonours(vocabulary, steered, aspect, setting)
+            steered = steered.saidOfMembers(aspect, ofSomeMembers)
         }
         return steered
     }
 
-    /** [said]'s values for [parameter], each written for the members its clause named. */
-    private fun AgeComposition.saidOfMembers(aspect: Aspect, parameter: String, said: List<Constraint>): AgeComposition {
-        if (said.isEmpty()) return this
-        val written = said.map { claim ->
-            Claim(claim.word.setsIn(aspect).getValue(parameter), members = claim.members.orEmpty()).spelled()
+    /** Every member-level value [said] sets in [aspect], each written for the members its clause named. */
+    private fun AgeComposition.saidOfMembers(aspect: Aspect, said: List<Constraint>): AgeComposition =
+        said.fold(this) { held, claim ->
+            claim.word.setsIn(aspect).filterKeys(aspect::ownsMemberParameterNamed).entries.fold(held) { writing, (parameter, value) ->
+                val spelled = Claim(value, members = claim.members.orEmpty()).spelled()
+                val already = writing.optionsFor(aspect, 0).allSpelled(parameter)
+                writing.withOptions(aspect, parameter, (already + spelled).distinct().toList())
+            }
         }
-        val already = optionsFor(aspect, 0).allSpelled(parameter)
-        return withOptions(aspect, parameter, (already + written).distinct().toList())
+
+    /** This claim with what it said of members taken out — what is left for the aspect as a whole to steer. */
+    private fun Constraint.withoutMemberValuesIn(aspect: Aspect): Constraint {
+        if (members == null) return this
+        val ofTheAspect = word.setsIn(aspect).filterKeys { !aspect.ownsMemberParameterNamed(it) }
+        return copy(word = word.settingOnlyIn(aspect, ofTheAspect))
     }
 
     /**

@@ -10,6 +10,7 @@ import net.minecraft.world.attribute.EnvironmentAttributes
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.LevelLook
 import co.voik.ephemeris.sky.Look
+import co.voik.ephemeris.sky.RainLook
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 
@@ -88,6 +89,38 @@ object Atmosphere {
                 Parameter.Landmark(1.0, "every storm"),
             ),
         )
+
+    /**
+     * How fast the rain falls — `pace`, the name a shifting sky and the creatures share, so `slow` reaches all of
+     * them. Snow is left alone. The slow-rain step's two speeds are on this axis.
+     */
+    val RAINPACE = Parameter.ranged(
+        "pace",
+        help = "How fast the rain falls.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "a fifth of vanilla's speed"),
+            Parameter.Landmark(0.0, "vanilla's", isVanilla = true),
+            Parameter.Landmark(1.0, "twice vanilla's"),
+        ),
+    )
+
+    /** How the rain falls and sounds as the book wrote it, or null where it said nothing of its pace. */
+    fun rainIn(parts: AgeParts, salt: Long): RainLook? {
+        val pace = parts.optionsFor(Aspect.WEATHER).steer(RAINPACE, salt) ?: return null
+        val slower = pace < 0.0
+        return RainLook(
+            pace = (1.0 + pace * if (slower) RAIN_SLOWED_IN_FULL else RAIN_QUICKENED_IN_FULL).toFloat(),
+            pitch = (1.0 + pace * if (slower) PATTER_LOWERED_IN_FULL else PATTER_RAISED_IN_FULL).toFloat(),
+        )
+    }
+
+    /** How much of its speed the rain loses at the bottom of [RAINPACE], and gains at the top. */
+    private const val RAIN_SLOWED_IN_FULL = 0.8
+    private const val RAIN_QUICKENED_IN_FULL = 1.0
+
+    /** How much its patter's pitch drops with it, and rises — the slow-rain step's 0.65 at the bottom. */
+    private const val PATTER_LOWERED_IN_FULL = 0.35
+    private const val PATTER_RAISED_IN_FULL = 0.2
 
     /**
      * How much of [parameter]'s axis — [RAINFALL] or [THUNDER] — [weather] asks for, [ORDINARY_SHARE] where
@@ -254,6 +287,7 @@ object Atmosphere {
             haze = band(air, HAZE),
             // The book's word on it first, then wherever the shape of the Age puts its clouds.
             ceiling = band(clouds, CEILING) ?: parts.cloudsAtY?.let { ceilingAt(it.toFloat()) },
+            wander = Drift.writtenIn(vault, salt),
             grass = colourOf(parts.optionsFor(Aspect.GRASS), GRASSCOLOUR, biome),
             // **One word for every leaf.** Litter and dead brush are leaves that have dried, and a world
             // with purple trees over green leaf litter is the same mistake as purple grass under green

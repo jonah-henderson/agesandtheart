@@ -1,11 +1,13 @@
 {
   "_comment": [
     "Pulling less (notes/strange-words-plan.md 4): `strong`'s other end. `weak gravity` is a light world, from",
-    "1/1.4 of vanilla's pull down to a third, and `weak moon` a slack tide.",
+    "1/1.4 of vanilla's pull down to a third, and `weak moon` a slack tide. `weak monsters` have half their",
+    "health and hit half as hard.",
     "",
     "Laid bare it never touches the gravity (`unaimed` 0), for `strong`'s reason."
   ],
   "sets": {
+    "strength": "-1.0..-0.3",
     "pull": "-1.0..-0.2"
   },
   "unaimed": {

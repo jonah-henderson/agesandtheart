@@ -4,10 +4,12 @@
     "drawn from its own colour, and `pace` how fast it moves from one to the next.",
     "",
     "Strange throughout: seen only. The colours come from a short uncanny palette, drawn per Age from its seed,",
-    "and keep the brightness of the sky they tint, so the night stays dark."
+    "and keep the brightness of the sky they tint, so the night stays dark.",
+    "Never bought where the book set `sky.shifting`."
   ],
   "dials": {
     "strength": {"tier": 1, "most": 3},
     "pace": {"tier": 1, "most": 2}
-  }
+  },
+  "held_by": ["sky.shifting"]
 }

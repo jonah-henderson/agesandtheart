@@ -108,9 +108,50 @@ class StrangeWordsCheck : FunSpec({
             check(Atmosphere.lookIn(air, seed).motes == null) { "seed $seed: the uncanny motes reached vanilla's" }
         }
     }
+
+    test("slow rain falls slowly and patters lower, and swift rain falls fast") {
+        for (seed in SEEDS) {
+            val slow = Atmosphere.rainIn(aimed(seed, "slow", "weather"), seed)
+            val swift = Atmosphere.rainIn(aimed(seed, "swift", "weather"), seed)
+            check(slow != null && slow.pace < HALF_SPEED && slow.pitch < 1f) { "seed $seed: 'slow weather' rained $slow" }
+            check(swift != null && swift.pace > 1f) { "seed $seed: 'swift weather' rained $swift" }
+        }
+    }
+
+    test("a shifting sky wanders, through the colours written for it where there are several") {
+        for (seed in SEEDS) {
+            val wander = Atmosphere.lookIn(aimed(seed, "shifting", "sky"), seed).wander
+            check(wander != null) { "seed $seed: 'shifting sky' stood still" }
+        }
+        val written = Atmosphere.lookIn(aimed(SEEDS.first, "red", "and", "blue", "shifting", "sky"), SEEDS.first).wander
+        check(written?.colours?.size == 2) { "'red and blue shifting sky' wandered through ${written?.colours}" }
+    }
+
+    test("slow monsters crawl, strong monsters are strong, and the cows are left as they are") {
+        for (seed in SEEDS) {
+            val slow = aimed(seed, "slow", "monsters").optionsFor(Aspect.SPAWNS)
+            val strong = aimed(seed, "strong", "monsters").optionsFor(Aspect.SPAWNS)
+            val zombiesPace = slow.steer(Spawns.PACE, seed, member = ZOMBIE)
+            val zombiesStrength = strong.steer(Spawns.STRENGTH, seed, member = ZOMBIE)
+            check(zombiesPace != null && zombiesPace < 0.0) { "seed $seed: 'slow monsters' left a zombie at $zombiesPace" }
+            check(zombiesStrength != null && zombiesStrength > 0.0) { "seed $seed: 'strong monsters' left a zombie at $zombiesStrength" }
+            check(slow.steer(Spawns.PACE, seed, member = COW) == null) { "seed $seed: 'slow monsters' slowed a cow" }
+        }
+    }
+
+    test("a slow Age is slow rain and slow creatures together") {
+        val age = aimed(SEEDS.first, "slow", "age")
+        check(Atmosphere.rainIn(age, SEEDS.first) != null) { "a slow Age rained at vanilla's pace" }
+        check(age.optionsFor(Aspect.SPAWNS).steer(Spawns.PACE, SEEDS.first, member = COW) != null) {
+            "a slow Age's cows walked at their own pace"
+        }
+    }
 })
 
 private val SEEDS = 0L..<20L
+private const val HALF_SPEED = 0.55f
+private const val ZOMBIE = "minecraft:zombie"
+private const val COW = "minecraft:cow"
 private val UNIFORM_LANDFORMS = setOf(Terrain.FLATLANDS, Terrain.PILLARS, Terrain.PYRAMIDS)
 
 /** A few blocks over the sea, where the low-clouds step puts them. */

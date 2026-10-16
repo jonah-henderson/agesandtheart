@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.consequence.MotesPayload
-import co.voik.agesandtheart.age.consequence.StrangeSky
+import co.voik.agesandtheart.age.aspect.Drift
 import co.voik.ephemeris.Rgba
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
@@ -64,7 +64,7 @@ object StrangeMotes {
                     PALE -> Kind(Rgba(0.86f, 0.86f, 0.82f), 0.8f, glows = false, rises)
                     GLOWING -> Kind(Rgba(1.0f, 0.96f, 0.82f), 0.55f, glows = true, rises)
                     DARK -> Kind(Rgba(0.07f, 0.07f, 0.08f), 0.8f, glows = false, rises)
-                    else -> Kind(StrangeSky.paletteFor(seed).first(), 0.75f, glows = false, rises)
+                    else -> Kind(Drift.paletteFor(seed).first(), 0.75f, glows = false, rises)
                 }
             }
 

@@ -46,6 +46,28 @@ object Spawns {
      */
     val STILL = Parameter.flag("still", help = "Whether every creature is rooted where it stands.").perMember()
 
+    /** How fast every creature moves, member by member — `slow monsters`, `swift spawns`. */
+    val PACE = Parameter.ranged(
+        "pace",
+        help = "How fast creatures move.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "at a crawl"),
+            Parameter.Landmark(0.0, "their own pace", isVanilla = true),
+            Parameter.Landmark(1.0, "half again as fast"),
+        ),
+    ).perMember()
+
+    /** How hard every creature is to kill and how hard it hits, member by member — `strong monsters`. */
+    val STRENGTH = Parameter.ranged(
+        "strength",
+        help = "How much health creatures have, and how hard they hit.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "half their own"),
+            Parameter.Landmark(0.0, "their own", isVanilla = true),
+            Parameter.Landmark(1.0, "twice their own"),
+        ),
+    ).perMember()
+
     val LIVES = Pool(
         "lives",
         // `lives=nothing` is no natural spawning at all, whatever the Age's biomes would hold.

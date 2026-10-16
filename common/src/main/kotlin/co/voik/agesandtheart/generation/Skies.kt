@@ -78,7 +78,7 @@ object Skies {
                 it.identifier() != AgeGeneration.dimensionType(recipe)
             },
             filters = (Atmosphere.filtersIn(parts) + StrangeSky.filtersFor(spending)).distinct(),
-            rain = StrangeSky.rainFor(spending),
+            rain = Atmosphere.rainIn(parts, recipe.seed) ?: StrangeSky.rainFor(spending),
         )
     }
 }

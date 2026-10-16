@@ -2,12 +2,14 @@
   "_comment": [
     "Pulling harder (notes/strange-words-plan.md 4). `pull` is one name on the gravity and on each moon, so",
     "`strong gravity` is a heavy world -- 1.25 to 2 times vanilla's, the first being about the most a jump still",
-    "clears a block under -- and `strong moon` a high tide.",
+    "clears a block under -- and `strong moon` a high tide. `strength` is the creatures': `strong monsters` have",
+    "twice their health and hit twice as hard.",
     "",
     "Laid bare it never touches the gravity (`unaimed` 0): `a strong Age` is strong tides, and a world nobody can",
     "jump in has to be asked for by name."
   ],
   "sets": {
+    "strength": "0.3..1.0",
     "pull": "0.25..1.0"
   },
   "unaimed": {

@@ -1,6 +1,7 @@
 package co.voik.agesandtheart
 
 import co.voik.agesandtheart.age.consequence.StillCreatures
+import co.voik.agesandtheart.age.consequence.WrittenCreatures
 import co.voik.agesandtheart.age.consequence.StrangeGravity
 import co.voik.agesandtheart.worldgen.structure.LocalMaps
 import co.voik.agesandtheart.worldgen.structure.RandomPaintings
@@ -123,6 +124,7 @@ object CommonSetup {
             is ItemFrame -> LocalMaps.loaded(entity)
         }
         StillCreatures.loaded(entity)
+        WrittenCreatures.loaded(entity)
     }
 
     /** An entity leaving a server level, removed or unloaded with its chunk. */

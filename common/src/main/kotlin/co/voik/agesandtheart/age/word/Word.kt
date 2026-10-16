@@ -744,6 +744,20 @@ data class Word(
         biases = biases - aspect,
     )
 
+    /**
+     * The same word setting only [kept] of what it set in [aspect], and everything it set elsewhere — for a
+     * word whose member-level values a clause has already written to members.
+     */
+    fun settingOnlyIn(aspect: Aspect, kept: Map<String, String>): Word {
+        val dropped = setsIn(aspect).keys - kept.keys
+        if (dropped.isEmpty()) return this
+        return copy(sets = sets.filterKeys { spelled ->
+            val meant = aspectNamedBy(spelled)
+            val landsHere = meant == aspect || (meant == null && landsOn(spelled, aspect))
+            !(landsHere && parameterIn(spelled) in dropped)
+        })
+    }
+
     /** The same word with its height taken away — [withoutItsSize]'s twin, for a height a minting spent. */
     fun withoutItsHeight(): Word {
         val kept = sets.filterKeys { parameterIn(it) != HEIGHT_PARAMETER }

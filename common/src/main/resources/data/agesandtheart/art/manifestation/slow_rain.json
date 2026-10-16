@@ -2,11 +2,13 @@
   "_comment": [
     "The rain falls slowly (Jonah, 2026-10-12): vanilla's rain, each streak falling at 0.4 of its speed and then",
     "0.2, and its patter pitched a little lower with it. Snow is left alone. Strange; leans wet, and only in an",
-    "Age where it ever rains, since one that never does would show nothing."
+    "Age where it ever rains, since one that never does would show nothing.",
+    "Never bought where the book set `weather.pace`."
   ],
   "dials": {
     "slowness": {"tier": 1, "most": 2}
   },
   "leans": {"humidity": 0.3},
-  "needs": ["rain"]
+  "needs": ["rain"],
+  "held_by": ["weather.pace"]
 }

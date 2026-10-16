@@ -120,8 +120,8 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
      * [salt] decides where inside the span the value lands, so an Age rebuilds identically while two
      * axes bounded alike do not move together.
      */
-    fun steer(parameter: Parameter, salt: Long, biome: Identifier? = null): Double? {
-        val span = Span.read(of(parameter, biome)) ?: return null
+    fun steer(parameter: Parameter, salt: Long, biome: Identifier? = null, member: String? = null): Double? {
+        val span = Span.read(of(parameter, biome, member)) ?: return null
         if (span == Span.NATURAL) return null
         return span.least + XoroshiroRandomSource(salt xor parameter.name.hashCode().toLong())
             .nextDouble() * span.width

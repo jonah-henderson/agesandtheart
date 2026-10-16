@@ -318,6 +318,7 @@ internal val SHIPPED_LADDERS = mapOf(
             Manifestation.DRIFT_STRENGTH to DialSteps.flat(tier = 1, most = 3),
             Manifestation.DRIFT_PACE to DialSteps.flat(tier = 1, most = 2),
         ),
+        heldBy = setOf("sky.shifting"),
     ),
     Manifestation.DAY_STARS to Ladder.flat(Manifestation.DAY_STARS, tier = 1, most = 2)
         .copy(leans = mapOf("humidity" to -0.3), heldBy = setOf("stars.fades")),
@@ -342,6 +343,7 @@ internal val SHIPPED_LADDERS = mapOf(
         mapOf(Manifestation.RAIN_SLOWNESS to DialSteps.flat(tier = 1, most = 2)),
         leans = mapOf("humidity" to 0.3),
         needs = setOf(Showing.RAIN),
+        heldBy = setOf("weather.pace"),
     ),
     Manifestation.SKY_TEARS to Ladder.flat(Manifestation.SKY_TEARS, tier = 1, most = 3)
         .copy(heldBy = setOf("sky.torn")),

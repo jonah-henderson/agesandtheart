@@ -313,7 +313,7 @@ enum class Aspect(
             FEATURES -> listOf(Features.SIZE, Features.THICKNESS, Features.HEIGHT, Features.UNIFORM, Features.BARE)
             AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE, Atmosphere.DRAINED)
             WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR)
-            WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER)
+            WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER, Atmosphere.RAINPACE)
             SUN -> listOf(
                 SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.SUNCOLOUR, SkyBodies.RISING, SkyBodies.PATH,
                 Parameter.cast(),
@@ -347,13 +347,15 @@ enum class Aspect(
                 Atmosphere.FADES,
                 Sky.SEALED,
                 Sky.TORN,
+                Drift.SHIFTING,
+                Drift.PACE,
             )
             CLOUD -> listOf(Atmosphere.CLOUD, Atmosphere.CEILING)
             GRAVITY -> listOf(Gravity.PULL)
             SEA -> listOf(Sea.DEPTH)
             // What holds of every landform and every creature, whichever is seated or lives there.
             TERRAIN -> listOf(Terrain.TORN, Terrain.INCONGRUOUS)
-            SPAWNS -> listOf(Spawns.STILL)
+            SPAWNS -> listOf(Spawns.STILL, Spawns.PACE, Spawns.STRENGTH)
             STRUCTURES -> listOf(Structures.ABANDONED)
             // **Nothing settable at all**, which for the last one is because its whole answer is a [pool]:
             // members are added, removed and leaned rather than set to a value.
