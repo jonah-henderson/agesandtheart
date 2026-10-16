@@ -1,10 +1,12 @@
 {
   "_comment": [
     "The stars stay out through the day (Jonah, 2026-10-12): the first step shows them faintly against the",
-    "day sky, the second as bright as at midnight. Strange: seen only. Leans a little dry, where skies are clear."
+    "day sky, the second as bright as at midnight. Strange: seen only. Leans a little dry, where skies are clear.",
+    "Never bought where the book set `stars.fades`."
   ],
   "dials": {
     "brightness": {"tier": 1, "most": 2}
   },
-  "leans": {"humidity": -0.3}
+  "leans": {"humidity": -0.3},
+  "held_by": ["stars.fades"]
 }

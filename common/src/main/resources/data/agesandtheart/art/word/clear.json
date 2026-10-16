@@ -3,6 +3,6 @@
   "sets": {
     "murk": "-1.0..-0.55",
     "air.haze": "-1.0..-0.5",
-    "sky.ceiling": "0.3..0.8"
+    "clouds.ceiling": "0.3..0.8"
   }
 }

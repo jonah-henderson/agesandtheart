@@ -4,7 +4,7 @@
     "both dials, which is where the two words are told apart."
   ],
   "sets": {
-    "sky.ceiling": "-0.6..-0.2",
+    "clouds.ceiling": "-0.6..-0.2",
     "air.haze": "0.1..0.4",
     "clouds.colour": "grey"
   }

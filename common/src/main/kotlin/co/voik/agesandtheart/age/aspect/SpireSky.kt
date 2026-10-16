@@ -36,14 +36,14 @@ object SpireSky {
      * Held here as exact colours rather than drawn from `Colour`'s nine: nothing resolves to this sky, a
      * preset pins it, so these are the numbers a person chose and not a word's answer.
      *
-     * [Look.ceiling] is a fraction of the cloud band rather than a height, so 0.656 is the 201 blocks the
-     * dimension type used to declare.
+     * [Look.ceiling] is a fraction of the cloud band rather than a height, so the 201 blocks the dimension type
+     * used to declare are read onto it.
      */
     val LOOK = Look(
         sky = Rgba(0.22f, 0.25f, 0.26f),
         fog = Rgba(0.30f, 0.33f, 0.34f),
         cloud = Rgba(0.30f, 0.33f, 0.34f, alpha = 0.80f),
-        ceiling = SPIRE_CLOUD_CEILING,
+        ceiling = Atmosphere.ceilingAt(SPIRE_CLOUDS_Y),
         // **Locked at midnight** (Jonah, 2026-08-05). The Spire has never had a sun, so a day cycle over it
         // only ever meant its stars going out for half of it — which is what made the reveal look broken
         // when it was working exactly as written.
@@ -52,8 +52,8 @@ object SpireSky {
 
     private const val MIDNIGHT = 1.0f
 
-    /** Where 201 blocks sits on `AgeAir`'s 96..256 cloud band. */
-    private const val SPIRE_CLOUD_CEILING = 0.656f
+    /** The height the Spire's clouds sit at, in blocks. */
+    private const val SPIRE_CLOUDS_Y = 201f
 
     /**
      * Mostly light grey with cool blue-grey darker spots, drifting faster than the deck below.

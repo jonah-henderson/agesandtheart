@@ -8,6 +8,7 @@ import net.minecraft.world.attribute.EnvironmentAttributeMap
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
 import co.voik.ephemeris.Rgba
+import co.voik.ephemeris.sky.LevelLook
 import co.voik.ephemeris.sky.Look
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
@@ -103,8 +104,11 @@ object Atmosphere {
      */
     private const val WEATHER_SALT = 0L
 
-    /** The band the cloud deck moves through, in blocks — what [CEILING]'s nought and one stand for. */
-    const val LOWEST_CLOUD = 96f
+    /**
+     * The band the cloud deck moves through, in blocks — what [CEILING]'s nought and one stand for. The bottom is
+     * among the land, so a book can bring its clouds down to where people walk.
+     */
+    const val LOWEST_CLOUD = 64f
     const val HIGHEST_CLOUD = 256f
 
     /** A cloud height as a share of the band, which may fall outside it for a deck laid below the band. */
@@ -112,12 +116,13 @@ object Atmosphere {
 
     /**
      * Whether the sky's colours darken at night as the day's own do (Jonah, walk 2026-10-06): a coloured
-     * sky is a colour of the day, and goes dark with it, unless a book says it holds — `unfading`.
+     * sky is a colour of the day, and goes dark with it, unless a book says it holds — `unfading`. The stars
+     * share the name, so `unfading stars` keeps them out through the day.
      */
     val FADES = Parameter(
         "fades",
         listOf(Parameter.DEFAULT, NEVER_FADES),
-        help = "Whether the sky's colour darkens at night.",
+        help = "Whether the sky's colour darkens at night, or the stars go out by day.",
     )
 
     /** How high the clouds sit, on the same argument: one number a word bends. */
@@ -125,7 +130,7 @@ object Atmosphere {
         "ceiling",
         help = "How high the clouds sit.",
         landmarks = listOf(
-                Parameter.Landmark(-1.0, "low overhead"),
+                Parameter.Landmark(-1.0, "among the land"),
                 Parameter.Landmark(0.0, "vanilla's", isVanilla = true),
                 Parameter.Landmark(1.0, "far above"),
             ),
@@ -143,6 +148,12 @@ object Atmosphere {
                 Parameter.Landmark(1.0, "you can barely see"),
             ),
         ).perBiome()
+
+    /**
+     * Whether everything in the Age is seen drained of colour — every frame, the GUI left alone. The same filter
+     * the monochrome step lays; `colourless air` writes it.
+     */
+    val DRAINED = Parameter.flag("drained", help = "Whether everything is seen drained of colour.")
 
     /**
      * What colour the light itself is — a world *lit* red, which is a different thing from a red sky.
@@ -224,6 +235,7 @@ object Atmosphere {
     fun lookIn(parts: AgeParts, salt: Long, biome: Identifier? = null): Look {
         val air = parts.optionsFor(Aspect.AIR)
         val vault = parts.optionsFor(Aspect.SKY)
+        val clouds = parts.optionsFor(Aspect.CLOUD)
         val water = parts.optionsFor(Aspect.WATERS)
         fun band(options: Options, parameter: Parameter) =
             options.steer(parameter, salt, biome)?.let(Span.NATURAL::fractionOf)?.toFloat()
@@ -231,7 +243,7 @@ object Atmosphere {
             sky = colourOf(vault, SKY, biome),
             // The air's own colour, or the sky's carried towards white as vanilla's fog is (Jonah, walk 2026-10-06).
             fog = colourOf(air, FOG, biome) ?: colourOf(vault, SKY, biome)?.let(::fogUnder),
-            cloud = colourOf(parts.optionsFor(Aspect.CLOUD), CLOUD, biome),
+            cloud = colourOf(clouds, CLOUD, biome),
             tint = colourOf(air, TINT, biome),
             motes = air.of(MOTES, biome).takeUnless { it == Parameter.DEFAULT },
             murk = band(water, MURK),
@@ -240,7 +252,7 @@ object Atmosphere {
             waterFog = colourOf(water, WATERCOLOUR, biome)?.dimmed(WATER_FOG_SHARE),
             haze = band(air, HAZE),
             // The book's word on it first, then wherever the shape of the Age puts its clouds.
-            ceiling = band(vault, CEILING) ?: parts.cloudsAtY?.let { ceilingAt(it.toFloat()) },
+            ceiling = band(clouds, CEILING) ?: parts.cloudsAtY?.let { ceilingAt(it.toFloat()) },
             grass = colourOf(parts.optionsFor(Aspect.GRASS), GRASSCOLOUR, biome),
             // **One word for every leaf.** Litter and dead brush are leaves that have dried, and a world
             // with purple trees over green leaf litter is the same mistake as purple grass under green
@@ -300,6 +312,10 @@ object Atmosphere {
             val names = aspect.confinableParameters.map(Parameter::name) + listOfNotNull(aspect.confinablePool?.name)
             names.flatMap(options::confinedIn)
         }.distinct()
+
+    /** What the whole Age is seen through, as its book wrote it. */
+    fun filtersIn(parts: AgeParts): List<Identifier> =
+        if (parts.optionsFor(Aspect.AIR).isTrue(DRAINED)) listOf(LevelLook.MONOCHROME) else emptyList()
 
     private fun colourOf(options: Options, parameter: Parameter, biome: Identifier?): Rgba? =
         Colour.named(options.of(parameter, biome))

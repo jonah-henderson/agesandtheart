@@ -240,7 +240,7 @@ sky =
     | [colour] sun [colour] sun
     | [rising] sun
     | [colour] clouds
-    | overcast sky
+    | overcast clouds
     | bright stars
     | glimmering stars
     | [colour] air@2

@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Without colour (notes/strange-words-plan.md 4). On the air it is the drain -- the whole Age seen in grey,",
+    "every frame, the monochrome step written on purpose. Aimed at anything else that holds a colour it bleaches",
+    "that thing white: a white sun, pale grass, clear water. A colourless Age does all of it, and under the drain",
+    "the white is only ever seen as the palest grey.",
+    "",
+    "Told apart from `grey`, which paints and builds: this takes colour away rather than choosing one."
+  ],
+  "sets": {
+    "drained": "true",
+    "colour": "white"
+  }
+}

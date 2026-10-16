@@ -292,7 +292,7 @@
       {"produce":["[colour]","sun","[colour]","sun"]},
       {"produce":["[rising]","sun"]},
       {"produce":["[colour]","clouds"]},
-      {"produce":["overcast","sky"]},
+      {"produce":["overcast","clouds"]},
       {"produce":["bright","stars"]},
       {"produce":["glimmering","stars"]},
       {"weight":2.0,"produce":["[colour]","air"]},

@@ -234,7 +234,7 @@ enum class Phenomenon(
      * hurt you — the strange tier's first phenomenon (`the-art-design.md` §5.0), which a barely flawed Age can
      * show without the world being any more dangerous for it. It insists on no weather: a fog is not a rain.
      *
-     * **Inflicted only, for now**: no word names it, so a book cannot ask for one.
+     * **Written as well as inflicted**: `fog` names it, and is told apart from `smothered`, a haze that never lifts.
      */
     FOG("fog", inflictedBy = Manifestation.FOG),
 

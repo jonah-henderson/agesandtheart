@@ -85,7 +85,7 @@
             "air.motes": "snow"
           },
           {
-            "sky.ceiling": "-0.3"
+            "clouds.ceiling": "-0.3"
           },
           {
             "sky.colour": "default|blue|white|grey"

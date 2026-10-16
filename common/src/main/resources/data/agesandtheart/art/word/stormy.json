@@ -6,7 +6,7 @@
   "sets": {
     "rainfall": "0.6..1.0",
     "thunder": "0.6..1.0",
-    "sky.ceiling": "-0.7..-0.3",
+    "clouds.ceiling": "-0.7..-0.3",
     "clouds.colour": "grey"
   }
 }

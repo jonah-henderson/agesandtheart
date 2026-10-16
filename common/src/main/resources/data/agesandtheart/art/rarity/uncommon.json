@@ -18,8 +18,10 @@
     "desolate",
     "drowned",
     "flooded",
+    "fog",
     "hollow",
     "homely",
+    "low",
     "minecraft:abandoned_camp",
     "minecraft:armadillo",
     "minecraft:barrel",
@@ -154,6 +156,7 @@
     "stormy",
     "temperate",
     "tropical",
+    "unfading",
     "veins",
     "verdant"
   ],

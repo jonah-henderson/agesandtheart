@@ -319,9 +319,9 @@ internal val SHIPPED_LADDERS = mapOf(
         ),
     ),
     Manifestation.DAY_STARS to Ladder.flat(Manifestation.DAY_STARS, tier = 1, most = 2)
-        .copy(leans = mapOf("humidity" to -0.3)),
+        .copy(leans = mapOf("humidity" to -0.3), heldBy = setOf("stars.fades")),
     Manifestation.LOW_CLOUDS to Ladder.flat(Manifestation.LOW_CLOUDS, tier = 1, most = 2)
-        .copy(leans = mapOf("humidity" to 0.3)),
+        .copy(leans = mapOf("humidity" to 0.3), heldBy = setOf("clouds.ceiling")),
     Manifestation.STILL_CREATURES to Ladder.flat(Manifestation.STILL_CREATURES, tier = 1, most = 1)
         .copy(needs = setOf(Showing.CREATURES)),
     Manifestation.FOREIGN_GROUND to Ladder.flat(Manifestation.FOREIGN_GROUND, tier = 1, most = 4),
@@ -334,7 +334,8 @@ internal val SHIPPED_LADDERS = mapOf(
     Manifestation.ABANDONED_VILLAGES to Ladder.flat(Manifestation.ABANDONED_VILLAGES, tier = 1, most = 1)
         .copy(needs = setOf(Showing.VILLAGES)),
     Manifestation.UNCANNY_MOTES to Ladder.flat(Manifestation.UNCANNY_MOTES, tier = 1, most = 2),
-    Manifestation.MONOCHROME to Ladder.flat(Manifestation.MONOCHROME, tier = 1, most = 1),
+    Manifestation.MONOCHROME to Ladder.flat(Manifestation.MONOCHROME, tier = 1, most = 1)
+        .copy(heldBy = setOf("air.drained")),
     Manifestation.SLOW_RAIN to Ladder(
         mapOf(Manifestation.RAIN_SLOWNESS to DialSteps.flat(tier = 1, most = 2)),
         leans = mapOf("humidity" to 0.3),

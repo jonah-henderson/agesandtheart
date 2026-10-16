@@ -19,7 +19,7 @@
       {
         "draws": "2",
         "facets": {
-          "sky.ceiling": "-0.4",
+          "clouds.ceiling": "-0.4",
           "clouds.colour": "grey|black",
           "haze": "+0.3",
           "sky.colour": "grey"

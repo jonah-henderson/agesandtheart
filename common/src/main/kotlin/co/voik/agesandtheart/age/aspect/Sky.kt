@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.ephemeris.sky.Look
 import co.voik.ephemeris.sky.SkySpec
+import co.voik.ephemeris.sky.StarField
 import co.voik.agesandtheart.location
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
@@ -57,10 +58,15 @@ object Sky {
         }
         return drawn.copy(
             bodies = told,
+            stars = starsKeptByDay(drawn.stars, parts.optionsFor(Aspect.STARS)),
             aurora = AuroraAspect.auroraIn(parts, seed),
             rainbow = RainbowAspect.rainbowIn(parts, seed),
         )
     }
+
+    /** [stars] as bright by day as at midnight, where the book said they never fade — `unfading stars`. */
+    private fun starsKeptByDay(stars: StarField, said: Options): StarField =
+        if (said.of(Atmosphere.FADES) == Atmosphere.NEVER_FADES) stars.copy(byDay = AS_AT_MIDNIGHT) else stars
 
     /**
      * The look painted under whatever the sentence asked for, or [Look.NOTHING] where the Age has none of
@@ -160,6 +166,9 @@ object Sky {
      * is nothing left for it to mean.
      */
     private const val ORDINARY_SPREAD = 0.45
+
+    /** A star field's `byDay` for stars as bright at noon as at midnight. */
+    private const val AS_AT_MIDNIGHT = 1f
 
     internal fun colour(name: String, help: String) =
         Parameter(name, listOf(Parameter.DEFAULT) + Colour.ALL, help = help)

@@ -311,7 +311,7 @@ enum class Aspect(
             BIOMES -> listOf(Biomes.FOOTING)
             SURFACE -> listOf(Surface.MATERIAL)
             FEATURES -> listOf(Features.SIZE, Features.THICKNESS, Features.HEIGHT)
-            AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE)
+            AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE, Atmosphere.DRAINED)
             WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR)
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER)
             SUN -> listOf(
@@ -322,7 +322,7 @@ enum class Aspect(
                 SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.RISING, SkyBodies.PATH, SkyBodies.PULL,
                 Parameter.cast(),
             )
-            STARS -> listOf(SkyBodies.STARS, SkyBodies.STARGLOW)
+            STARS -> listOf(SkyBodies.STARS, SkyBodies.STARGLOW, Atmosphere.FADES)
             GRASS -> listOf(Atmosphere.GRASSCOLOUR)
             LEAVES -> listOf(Atmosphere.LEAFCOLOUR)
             AURORA -> listOf(
@@ -344,11 +344,10 @@ enum class Aspect(
             // is laid over a level that is already open — which is also why it cannot be confined to a biome.
             SKY -> listOf(
                 Atmosphere.SKY,
-                Atmosphere.CEILING,
                 Atmosphere.FADES,
                 Sky.SEALED,
             )
-            CLOUD -> listOf(Atmosphere.CLOUD)
+            CLOUD -> listOf(Atmosphere.CLOUD, Atmosphere.CEILING)
             GRAVITY -> listOf(Gravity.PULL)
             SEA -> listOf(Sea.DEPTH)
             // **Nothing settable at all**, which for the last three is because their whole answer is a

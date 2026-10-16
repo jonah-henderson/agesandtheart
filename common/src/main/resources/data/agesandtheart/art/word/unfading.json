@@ -1,8 +1,9 @@
 {
   "_comment": [
-    "A sky that keeps its colour through the night (Jonah, 2026-10-06). Any sky goes dark with the day,",
-    "coloured ones too, so `purple sky` is purple by day and black by night; `unfading purple sky` is",
-    "purple at midnight."
+    "What does not go with the day (Jonah, 2026-10-06; notes/strange-words-plan.md 4). Any sky goes dark with the",
+    "day, coloured ones too, so `purple sky` is purple by day and black by night; `unfading purple sky` is purple",
+    "at midnight. `fades` is one name on the vault and the stars, so `unfading stars` keeps them out through the",
+    "day as bright as at midnight -- the day-stars step, written on purpose -- and an unfading Age does both."
   ],
   "sets": {
     "fades": "never"

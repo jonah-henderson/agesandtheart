@@ -77,7 +77,7 @@ object Skies {
             airFrom = recipe.template.dimensionType.takeIf {
                 it.identifier() != AgeGeneration.dimensionType(recipe)
             },
-            filters = StrangeSky.filtersFor(spending),
+            filters = (Atmosphere.filtersIn(parts) + StrangeSky.filtersFor(spending)).distinct(),
             rain = StrangeSky.rainFor(spending),
         )
     }
