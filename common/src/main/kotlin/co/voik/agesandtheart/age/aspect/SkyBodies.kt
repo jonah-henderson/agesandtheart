@@ -6,10 +6,12 @@ import co.voik.ephemeris.sky.Appearance
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.CelestialPath
 import co.voik.ephemeris.sky.Corona
+import co.voik.ephemeris.sky.Held
 import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.Palette
 import co.voik.ephemeris.sky.SkySpec
 import kotlin.math.roundToInt
+import kotlin.random.Random
 
 /**
  * The bodies overhead — the suns, the moons and the star field — and what a clause may say about
@@ -163,6 +165,39 @@ object SkyBodies {
      * (design §7.1.2). Its height is [POLAR_LIFT]; the design leaves where the circle sits open, and a second
      * value is how a writer would ask for it lower or higher.
      */
+    /**
+     * Whether this body has stopped where it stood when the Age's day began — `motionless sun`. `still`, the name a
+     * rooted creature shares, so `motionless` says both. What a stopped sun does to the day is Ephemeris'
+     * (`ClockPace`): every body still stops the Age's clock, and a first sun still beneath moving bodies holds the
+     * hour where it stands.
+     */
+    val STILL = Parameter.flag("still", help = "Whether this body stands still in the sky.")
+
+    /**
+     * How long this body takes over its path against vanilla's — `slow sun` is a longer day, `swift moon` a quicker
+     * month. `pace`, the name the rain and the creatures share. The first sun's is the Age's day ([STILL]'s note).
+     */
+    val BODYPACE = Parameter.ranged(
+        "pace",
+        help = "How fast this body crosses the sky.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "twice as long"),
+            Parameter.Landmark(0.0, "its own pace", isVanilla = true),
+            Parameter.Landmark(1.0, "half as long"),
+        ),
+    )
+
+    /**
+     * The tick of its day an Age's clock starts at, drawn from its [seed] — so linking in can land at dusk where it
+     * is noon at home — and where a still body stands.
+     */
+    fun dayBeginsAt(seed: Long): Long = Random(seed xor DAY_BEGINS_SALT).nextLong(Orbit.TICKS_PER_VANILLA_DAY.toLong())
+
+    /** How many times as long a body of [pace] takes over its path: twice at the slowest, half at the quickest. */
+    fun lengthAt(pace: Double): Double = if (pace < 0.0) 1.0 - pace else 1.0 / (1.0 + pace)
+
+    private const val DAY_BEGINS_SALT = 0x434C_4F43_4B53_4146L
+
     val PATH = Parameter(
         "path",
         listOf(Parameter.DEFAULT, POLAR),
@@ -198,7 +233,9 @@ object SkyBodies {
         // the horizon it comes up over moves.
         val risen = rising?.let { Orbit.risingAt(it, body.path as? Orbit ?: Orbit.VANILLA_SUN) } ?: body.path
         // A polar body circles the horizon, so which horizon it rises over has nothing left to say.
-        val path = if (own.of(PATH) == POLAR) polarPathFrom(body.path) else risen
+        val shaped = if (own.of(PATH) == POLAR) polarPathFrom(body.path) else risen
+        val paced = own.steer(BODYPACE, seed)?.let { shaped.paced(lengthAt(it)) } ?: shaped
+        val path = if (own.isTrue(STILL)) Held(paced, dayBeginsAt(seed)) else paced
         return body.copy(appearance = appearance, path = path)
     }
 

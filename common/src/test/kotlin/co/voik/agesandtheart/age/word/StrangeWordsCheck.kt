@@ -12,6 +12,7 @@ import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.ephemeris.sky.ClockPace
 import co.voik.ephemeris.sky.LevelLook
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -145,6 +146,30 @@ class StrangeWordsCheck : FunSpec({
         check(age.optionsFor(Aspect.SPAWNS).steer(Spawns.PACE, SEEDS.first, member = COW) != null) {
             "a slow Age's cows walked at their own pace"
         }
+    }
+
+    test("a motionless sun or moon stops on its own, and only when aimed") {
+        for (seed in SEEDS) {
+            fun stillnessOf(vararg pages: String): Pair<Boolean, Boolean> {
+                val bodies = Sky.specFor(aimed(seed, *pages), seed).bodies
+                val sun = bodies.first { it.phase == null }.path.isStill
+                val moon = bodies.first { it.phase != null }.path.isStill
+                return sun to moon
+            }
+            check(stillnessOf("motionless", "sun") == (true to false)) { "seed $seed: 'motionless sun' moved the wrong body" }
+            check(stillnessOf("motionless", "moon") == (false to true)) { "seed $seed: 'motionless moon' moved the wrong body" }
+            val bare = Sky.specFor(aimed(seed, "motionless", "age"), seed).bodies
+            check(bare.none { it.path.isStill }) { "seed $seed: a motionless Age stopped a body nobody named" }
+        }
+    }
+
+    test("a sky that never moves stops the Age's clock, and a slow sun slows it") {
+        val stopped = Sky.specFor(aimed(SEEDS.first, "motionless", "sun", "motionless", "moon"), SEEDS.first)
+        check(ClockPace.of(stopped).paused) { "a still sun and a still moon left the clock running" }
+        val slow = ClockPace.of(Sky.specFor(aimed(SEEDS.first, "slow", "sun"), SEEDS.first))
+        check(!slow.paused && slow.rate < 1f) { "a slow sun ran the clock at $slow" }
+        val swift = ClockPace.of(Sky.specFor(aimed(SEEDS.first, "swift", "sun"), SEEDS.first))
+        check(swift.rate > 1f) { "a swift sun ran the clock at $swift" }
     }
 })
 

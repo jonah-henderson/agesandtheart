@@ -1,7 +1,8 @@
 {
   "_comment": [
     "Quicker than it should be (notes/strange-words-plan.md 4): `slow`'s other end. The rain comes down hard and",
-    "fast, a shifting sky races through its colours, and swift creatures move half again as fast as their own."
+    "fast, a shifting sky races through its colours, swift creatures move half again as fast as their own, and a",
+    "swift sun makes the day as short as half."
   ],
   "sets": {
     "pace": "0.5..1.0"

@@ -12,7 +12,6 @@ import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.ephemeris.OwnClock
 import co.voik.ephemeris.sky.Look
-import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.biome.Grounding
@@ -33,7 +32,6 @@ import co.voik.agesandtheart.worldgen.field.StandingFluid
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Weathered
 import co.voik.agesandtheart.worldgen.field.TerrainFill
-import kotlin.random.Random
 import net.minecraft.world.level.levelgen.material.MaterialRules
 import net.minecraft.world.level.block.Blocks
 import co.voik.agesandtheart.location
@@ -72,6 +70,7 @@ import co.voik.agesandtheart.age.aspect.WhereThingsGrow
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Volcanoes
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.AgeComposition
@@ -692,8 +691,6 @@ object AgeGeneration {
     /** A dial bought in full. */
     private const val ALL_OF_IT = 1.0
 
-    private const val CLOCK_SALT = 0x434C_4F43_4B53_4146L
-
     /** So which sea wins is decorrelated from everything else this seed decides. */
     private const val WATERLINE_SALT = 0x5EA_1E7EL
 
@@ -891,8 +888,7 @@ object AgeGeneration {
      * it is noon at home, and sleeping there moves its morning and nobody else's (`notes/strange-words-plan.md`
      * §5). Only where it starts: where it stands after that is saved with the level.
      */
-    fun clockFor(recipe: AgeRecipe): OwnClock =
-        OwnClock(startsAt = Random(recipe.seed xor CLOCK_SALT).nextLong(Orbit.TICKS_PER_VANILLA_DAY.toLong()))
+    fun clockFor(recipe: AgeRecipe): OwnClock = OwnClock(startsAt = SkyBodies.dayBeginsAt(recipe.seed))
 
     /**
      * Whether any of this Age's land hangs over the void — which is what keeps its sky blue below the
