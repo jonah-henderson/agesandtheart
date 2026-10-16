@@ -379,8 +379,10 @@ object AgeGeneration {
         // Only a skin the writer actually named: `Surface.ruleFor` would otherwise delegate to the biomes
         // *through the field tree*, and there is none here to delegate through. Silence means vanilla's own
         // rule, which is what a nether floor of netherrack is.
-        val named = composition.optionsFor(Aspect.SURFACE, 0).materialsOf(Surface.MATERIAL)
+        val surface = composition.optionsFor(Aspect.SURFACE, 0)
+        val named = surface.materialsOf(Surface.MATERIAL)
         val skin: Holder<MaterialRule> = when {
+            surface.isTrue(Surface.BARE) -> Holder.direct(SurfacingStrategy.NO_SKIN)
             // **Patches over the rock, not instead of it** — see [SurfacingStrategy.asPatchesOver]. The
             // nether's tree and the End's each end in an unconditional arm that would repaint whatever
             // block was substituted below, and removing it changes nothing until one has been.

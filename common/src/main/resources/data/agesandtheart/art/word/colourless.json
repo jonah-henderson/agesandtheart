@@ -2,13 +2,29 @@
   "_comment": [
     "Without colour (notes/strange-words-plan.md 4). On the air it is the drain -- the whole Age seen in grey,",
     "every frame, the monochrome step written on purpose. Aimed at anything else that holds a colour it bleaches",
-    "that thing white: a white sun, pale grass, clear water. A colourless Age does all of it, and under the drain",
-    "the white is only ever seen as the palest grey.",
+    "that thing white: a white sun, pale grass, clear water. Aimed at the land or the surface it builds or dresses",
+    "them from black to white -- concrete, wool, terracotta, the greyer stones -- as `grey` does with grey alone,",
+    "and aimed at what grows it takes the flowers out.",
     "",
-    "Told apart from `grey`, which paints and builds: this takes colour away rather than choosing one."
+    "A colourless Age does all of it, the land and the surface one Age in ten as `grey`'s are. It never brings a",
+    "rainbow or an aurora about (`unaimed` 0): naming either's colour would say the Age has one, and one it has",
+    "already is seen in grey through the drain. `colourless rainbow`, written on purpose, bleaches a bow."
   ],
+  "excludes": {
+    "features": [
+      "#flowering"
+    ]
+  },
   "sets": {
     "drained": "true",
-    "colour": "white"
+    "colour": "white",
+    "stone": "#black|#grey|#white",
+    "material": "#black|#grey|#white"
+  },
+  "unaimed": {
+    "landmass": 0.1,
+    "surface": 0.1,
+    "aurora": 0.0,
+    "rainbow": 0.0
   }
 }

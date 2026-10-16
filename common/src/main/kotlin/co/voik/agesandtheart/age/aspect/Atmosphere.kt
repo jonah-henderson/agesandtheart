@@ -158,6 +158,12 @@ object Atmosphere {
         help = "Whether the sky's colour darkens at night, or the stars go out by day.",
     )
 
+    /**
+     * Whether there are no clouds at all — `bare clouds`. Drawn as a cloud colour with nothing to it, which vanilla
+     * takes as no clouds and does not draw.
+     */
+    val CLOUDS_ABSENT = Parameter.flag("absent", help = "Whether there are no clouds at all.")
+
     /** How high the clouds sit, on the same argument: one number a word bends. */
     val CEILING = Parameter.ranged(
         "ceiling",
@@ -276,7 +282,7 @@ object Atmosphere {
             sky = colourOf(vault, SKY, biome),
             // The air's own colour, or the sky's carried towards white as vanilla's fog is (Jonah, walk 2026-10-06).
             fog = colourOf(air, FOG, biome) ?: colourOf(vault, SKY, biome)?.let(::fogUnder),
-            cloud = colourOf(clouds, CLOUD, biome),
+            cloud = if (clouds.isTrue(CLOUDS_ABSENT)) NO_CLOUD else colourOf(clouds, CLOUD, biome),
             tint = colourOf(air, TINT, biome),
             // Uncanny motes are drawn by the Age's own particles, not handed to vanilla's (`UncannyMotes`).
             motes = air.of(MOTES, biome).takeUnless { it == Parameter.DEFAULT || it == Motes.UNCANNY },

@@ -34,6 +34,12 @@ object Surface {
     val MATERIAL = Parameter.material("material", help = "The block the ground is dressed in: its top layer.")
 
     /**
+     * Whether the ground wears no skin at all, whatever it would have — `bare surface`, the rock showing wherever
+     * it would have worn grass or sand. `bare`, the name the leafless trees share; read as a skin of air.
+     */
+    val BARE = Parameter.flag("bare", help = "Whether the ground wears nothing, so its rock shows.")
+
+    /**
      * The rule this Age's ground wears, over the rock that has to say which blocks are the top of the
      * ground and which are the floor of a cave.
      *

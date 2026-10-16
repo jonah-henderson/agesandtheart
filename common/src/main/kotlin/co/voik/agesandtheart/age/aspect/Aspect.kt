@@ -309,7 +309,7 @@ enum class Aspect(
             // A biome's population is the aspect's [pool] rather than a setting; `footing` says how it
             // is *worn*, not which.
             BIOMES -> listOf(Biomes.FOOTING)
-            SURFACE -> listOf(Surface.MATERIAL)
+            SURFACE -> listOf(Surface.MATERIAL, Surface.BARE)
             FEATURES -> listOf(Features.SIZE, Features.THICKNESS, Features.HEIGHT, Features.UNIFORM, Features.BARE)
             AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE, Atmosphere.DRAINED)
             WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR)
@@ -350,7 +350,7 @@ enum class Aspect(
                 Drift.SHIFTING,
                 Drift.PACE,
             )
-            CLOUD -> listOf(Atmosphere.CLOUD, Atmosphere.CEILING)
+            CLOUD -> listOf(Atmosphere.CLOUD, Atmosphere.CEILING, Atmosphere.CLOUDS_ABSENT)
             GRAVITY -> listOf(Gravity.PULL)
             SEA -> listOf(Sea.DEPTH)
             // What holds of every landform and every creature, whichever is seated or lives there.

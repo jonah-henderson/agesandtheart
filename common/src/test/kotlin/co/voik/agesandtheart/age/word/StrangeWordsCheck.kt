@@ -5,12 +5,16 @@ import co.voik.agesandtheart.ShippedCorpus
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
+import co.voik.agesandtheart.age.aspect.AuroraAspect
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Motes
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.Polarity
+import co.voik.agesandtheart.age.aspect.RainbowAspect
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Spawns
+import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.ephemeris.sky.ClockPace
 import co.voik.ephemeris.sky.LevelLook
@@ -52,6 +56,32 @@ class StrangeWordsCheck : FunSpec({
             check(kept == AS_AT_MIDNIGHT) { "seed $seed: 'unfading stars' kept them at $kept by day" }
             check(left == NONE) { "seed $seed: 'unfading sky' kept the stars at $left by day" }
         }
+    }
+
+    test("a bare surface wears nothing, and bare clouds are no clouds") {
+        check(aimed(SEEDS.first, "bare", "surface").optionsFor(Aspect.SURFACE).isTrue(Surface.BARE)) {
+            "'bare surface' still wore its skin"
+        }
+        val cloud = Atmosphere.lookIn(aimed(SEEDS.first, "bare", "clouds"), SEEDS.first).cloud
+        check(cloud != null && cloud.alpha == 0f) { "'bare clouds' left clouds of $cloud" }
+        check(Atmosphere.lookIn(aimed(SEEDS.first, "bare", "features"), SEEDS.first).cloud?.alpha != 0f) {
+            "'bare features' took the clouds away"
+        }
+    }
+
+    test("a colourless Age never brings a rainbow or an aurora about, and grows no flowers") {
+        for (seed in SEEDS) {
+            val age = aimed(seed, "colourless", "age")
+            check(RainbowAspect.rainbowIn(age, seed) == null) { "seed $seed: a colourless Age brought a rainbow about" }
+            check(AuroraAspect.auroraIn(age, seed) == null) { "seed $seed: a colourless Age brought an aurora about" }
+            val struck = age.optionsFor(Aspect.FEATURES).claimsOn(Features.PLACES).filter { it.polarity == Polarity.EXCEPT }
+            check(struck.isNotEmpty()) { "seed $seed: a colourless Age struck no flowers" }
+        }
+        check(RainbowAspect.rainbowIn(aimed(SEEDS.first, "colourless", "rainbow"), SEEDS.first) != null) {
+            "'colourless rainbow' brought no bow"
+        }
+        val greyscaleLand = aimed(SEEDS.first, "colourless", "landmass").optionsFor(Aspect.TERRAIN).allOf(Terrain.STONE)
+        check(greyscaleLand.isNotEmpty()) { "'colourless landmass' left the land as it was" }
     }
 
     test("colourless air drains the Age, and a colourless sun does not") {
