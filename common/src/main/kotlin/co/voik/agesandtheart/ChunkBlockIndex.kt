@@ -107,6 +107,11 @@ class ChunkBlockIndex<V : Any>(
         }
     }
 
+    /** Every indexed block in [level]. */
+    fun eachIn(level: Level, visit: (BlockPos) -> Unit) {
+        for (chunk in byLevel[level]?.values ?: return) chunk.keys.forEach(visit)
+    }
+
     private fun chunkHolding(at: BlockPos) = ChunkPos.pack(at.x shr CHUNK_BITS, at.z shr CHUNK_BITS)
 
     companion object {

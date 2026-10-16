@@ -256,8 +256,54 @@ object TintedLights {
     private fun atFullSaturation(channel: Double, peak: Double): Int =
         (channel / peak * FULL_CHANNEL).toInt().coerceIn(NONE, FULL_CHANNEL)
 
-    /** How far a tint carries, in blocks. Shorter than the light itself, so the colour fades first. */
-    const val REACH = 10.0
+    /**
+     * The sky's brightness as the lightmap last drew it, in tenths — what the painter weighs a crystal's
+     * tint against, since a surface the sky has already made as bright as it goes can take colour only by
+     * losing brightness.
+     *
+     * Kept in steps rather than followed exactly because **every change is a rebuild**: the tint is baked
+     * into the mesh, so a sky that moved continuously would rebuild every section near a crystal on every
+     * tick of every dawn. Ten steps is a handful of waves across a sunrise.
+     */
+    @Volatile
+    var skyFactor: Float = FULL_SKY
+        private set
+
+    /**
+     * Follows the lightmap's sky brightness, rebuilding what the casters reach when it crosses a step.
+     *
+     * Read from the lightmap's own render state rather than worked out again, so a per-Age sky, a storm,
+     * the End's flash and a boss's darkening all arrive as the lightmap itself takes them.
+     */
+    fun followTheSky(minecraft: Minecraft) {
+        val drawn = minecraft.gameRenderer.gameRenderState().lightmapRenderState.skyFactor
+        val stepped = Math.round(drawn.coerceIn(NO_SKY, FULL_SKY) * SKY_STEPS) / SKY_STEPS
+        if (stepped == skyFactor) return
+        skyFactor = stepped
+        val level = minecraft.level ?: return
+        if (!anythingPlaced) return
+        // Every section holding a caster, and its neighbours — [REACH] is under a section, so that is all of
+        // what one can tint. Collected first so a field of crystals marks each section once.
+        val holding = HashSet<Long>()
+        index.eachIn(level) { source -> holding.add(SectionPos.asLong(source)) }
+        for (section in holding) {
+            level.setSectionDirtyWithNeighbors(SectionPos.x(section), SectionPos.y(section), SectionPos.z(section))
+        }
+    }
+
+    /**
+     * How far a tint carries, in blocks — **everywhere the brightest light reaches**, so a crystal's colour
+     * ends exactly where its light does, faded by the light itself.
+     *
+     * Light falls a level per block of Manhattan path, and a straight line is never longer than that path,
+     * so a fifteen covers every block a light of fifteen touches. It was ten, inside a powered crystal's
+     * light, and the colour stopped dead at it while the light went on.
+     */
+    const val REACH = 15.0
+
+    private const val SKY_STEPS = 10.0f
+    private const val NO_SKY = 0.0f
+    private const val FULL_SKY = 1.0f
 
     private const val NOTHING = 0.0
     private const val FULL_CHANNEL = 255

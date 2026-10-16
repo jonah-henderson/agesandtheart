@@ -54,13 +54,55 @@ object TintedLightPainter {
         // every quad of a block asks it, so it is answered once and read from memory thereafter.
         tintAt(world, pos.x, pos.y, pos.z) ?: return
         for (corner in 0..<CORNERS) {
-            val lit = LightCoordsUtil.smoothBlock(quad.lightAt(corner))
+            val light = quad.lightAt(corner)
+            val lit = LightCoordsUtil.smoothBlock(light)
             if (lit <= UNLIT) continue
             if (lit > brightestSeen) noteTheBrightest(lit)
             val tint = tintAtVertex(world, pos, quad, corner) ?: continue
-            quad.tint(corner, ARGB.multiply(quad.colourAt(corner), softened(tint, shareOfTheTint(lit))))
+            val before = quad.colourAt(corner)
+            val tinted = ARGB.multiply(before, softened(tint, shareOfTheTint(lit)))
+            val inTheSun = skyLightingNow(LightCoordsUtil.smoothSky(light))
+            quad.tint(corner, ARGB.srgbLerp(inTheSun, tinted, asBrightAs(before, tinted)))
         }
     }
+
+    /**
+     * How brightly the sky lights a corner right now, from none to as bright as the lightmap goes — the
+     * lightmap's own `sky_brightness`, from `lightmap.fsh`, against the sky as `TintedLights` last read it.
+     */
+    private fun skyLightingNow(sky: Int): Float {
+        val level = (sky / FULLY_LIT).coerceIn(NONE, ALL_OF_IT)
+        val brightness = level / (BRIGHTNESS_CURVE - (BRIGHTNESS_CURVE - ALL_OF_IT) * level)
+        return (brightness * TintedLights.skyFactor).coerceIn(NONE, ALL_OF_IT)
+    }
+
+    /**
+     * [tinted] scaled back up to [before]'s brightness, as near as it can go.
+     *
+     * **A tint is a multiply, and under the sun that is all it can be.** The lightmap is already at full
+     * white there and nothing draws brighter, so a crystal's light adds nothing and its tint only took the
+     * other channels away — a dark stain. Scaling back up recovers the brightness wherever the channels have
+     * room, which a shaded face has: vanilla draws it darker than white. Where a channel would pass full it
+     * stops, and what is left over shows as a paler tint rather than a darker one.
+     */
+    private fun asBrightAs(before: Int, tinted: Int): Int {
+        val wanted = luminanceOf(before)
+        val got = luminanceOf(tinted)
+        if (got <= NONE) return tinted
+        val raise = wanted / got
+        return ARGB.color(
+            ARGB.alpha(tinted),
+            raised(ARGB.red(tinted), raise),
+            raised(ARGB.green(tinted), raise),
+            raised(ARGB.blue(tinted), raise),
+        )
+    }
+
+    private fun raised(channel: Int, by: Float): Int = (channel * by).toInt().coerceAtMost(FULL_CHANNEL)
+
+    /** Rec. 709's weights, which are how bright each channel reads. */
+    private fun luminanceOf(colour: Int): Float =
+        RED_WEIGHT * ARGB.red(colour) + GREEN_WEIGHT * ARGB.green(colour) + BLUE_WEIGHT * ARGB.blue(colour)
 
     /**
      * How much of the tint a corner takes, from the block light that actually reached it.
@@ -228,6 +270,14 @@ object TintedLightPainter {
     private const val FULLY_LIT = 240.0f
 
     private const val UNLIT = 0
+
+    /** `lightmap.fsh`'s `get_brightness` is `level / (4 - 3 * level)`. */
+    private const val BRIGHTNESS_CURVE = 4.0f
+
+    private const val FULL_CHANNEL = 255
+    private const val RED_WEIGHT = 0.2126f
+    private const val GREEN_WEIGHT = 0.7152f
+    private const val BLUE_WEIGHT = 0.0722f
     private const val NONE = 0.0f
     private const val ALL_OF_IT = 1.0f
     private const val WHITE = 255
