@@ -264,21 +264,19 @@ object Spawns {
         livesSomewhere: Set<Identifier>,
     ): List<Arriving> {
         // A creature named without `everywhere` comes in only where the pack offers it nowhere; one that
-        // lives somewhere is thickened there by [narrowed] instead.
-        fun mayBeAdded(claim: Claim): Boolean =
-            if (claim.introducedIfAbsent) claim.introduces(claim.id in livesSomewhere) else !claim.bringsNothingAbout
+        // lives somewhere is thickened there by [narrowed] instead. **A description never stocks a menu**
+        // (Jonah, 2026-10-16): `teeming monsters` is more monsters where monsters live, and it was putting
+        // zombie nautiluses and hadalfish on offer in every biome. `everywhere` is how a writer asks for
+        // them in every place, and its claims are not descriptions.
+        fun mayBeAdded(claim: Claim): Boolean = when {
+            claim.introducedIfAbsent -> claim.introduces(claim.id in livesSomewhere)
+            claim.onlyWhereItGrows -> false
+            else -> !claim.bringsNothingAbout
+        }
         return asked.wanted
-            // **A description may still stock a menu, but only with what it asks more of.** Adding here is
-            // safe by construction — vanilla re-checks every placement, which is what lets `villagers`
-            // work at all in a world whose biomes offer none — but an evocative word's faintest reaches
-            // are held at a floor rather than dropped (§3.3), so `beautiful` was asking for a fifth of a
-            // ghast and getting a ghast (Jonah, 2026-09-03). [narrowed] is where such a claim belongs.
-            //
-            // **What makes "safe by construction" true is [Spawning.placeWhereTheyBelong]**, and it was
-            // not: a creature of ours with no registered placement is put on dry ground by vanilla's own
-            // default, which is how a hadalfish reached by one evocative page hunted a hillside (Jonah,
-            // 2026-09-17, the Age Tumar). The gate belongs there rather than here, because a word aimed at
-            // an aspect — `villagers`, `undead` — is a description that *should* introduce.
+            // **What keeps an added creature where it can live is [Spawning.placeWhereTheyBelong]**: a
+            // creature of ours with no registered placement is put on dry ground by vanilla's own default,
+            // which is how a hadalfish hunted a hillside (Jonah, 2026-09-17, the Age Tumar).
             .filter(::mayBeAdded)
             .mapNotNull { claim -> claim.id?.let { it to claim.density } }
             .mapNotNull { (id, density) ->

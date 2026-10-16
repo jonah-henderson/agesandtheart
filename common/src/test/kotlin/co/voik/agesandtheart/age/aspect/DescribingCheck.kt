@@ -81,13 +81,17 @@ class DescribingCheck : FunSpec({
         check(hostile.isEmpty()) { "a beautiful Age was given $hostile to spawn" }
     }
 
-    test("a description still stocks a menu with what it asks more of") {
-        // No biome in the game offers a wandering trader, so this can only ever be an introduction — and
-        // it is the case that says a description may make one at all.
-        check("minecraft:wandering_trader" in stocks("villagers")) {
-            "'villagers' put nobody on the menu: ${stocks("villagers")}"
+    test("a description never stocks a menu, and everywhere does") {
+        // **More where it lives, never where it does not** (Jonah, 2026-10-16): `teeming monsters` was putting
+        // zombie nautiluses and hadalfish on offer in every biome. No biome in the game offers a wandering
+        // trader, so it can only ever arrive as an introduction — which a description no longer makes.
+        check("minecraft:wandering_trader" !in stocks("villagers")) {
+            "'villagers' put a wandering trader on the menu: ${stocks("villagers")}"
         }
-        check("minecraft:zombie" in stocks("undead")) { "'undead' stocked no zombie: ${stocks("undead")}" }
+        check("minecraft:zombie" !in stocks("undead")) { "'undead' stocked a zombie: ${stocks("undead")}" }
+        check("minecraft:wandering_trader" in stocks("villagers", "everywhere")) {
+            "'villagers everywhere' put nobody on the menu: ${stocks("villagers", "everywhere")}"
+        }
     }
 
     /**
