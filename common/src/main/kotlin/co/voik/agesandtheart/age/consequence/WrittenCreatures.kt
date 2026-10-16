@@ -28,16 +28,21 @@ object WrittenCreatures {
         val spawns = recipe.composition?.optionsFor(Aspect.SPAWNS) ?: return
         val kind = BuiltInRegistries.ENTITY_TYPE.getKey(mob.type).toString()
         spawns.steer(Spawns.PACE, recipe.seed, member = kind)?.let { pace ->
-            val change = pace * if (pace < 0.0) SLOWED_IN_FULL else QUICKENED_IN_FULL
-            for (attribute in MOVING) changeBy(mob, attribute, PACED, change)
+            for (attribute in MOVING) changeBy(mob, attribute, PACED, paceAt(pace) - AS_IT_IS)
         }
         spawns.steer(Spawns.STRENGTH, recipe.seed, member = kind)?.let { strength ->
-            val change = strength * if (strength < 0.0) WEAKENED_IN_FULL else STRENGTHENED_IN_FULL
             val wasWhole = mob.health >= mob.maxHealth
-            for (attribute in STRONG) changeBy(mob, attribute, STRENGTHENED, change)
+            for (attribute in STRONG) changeBy(mob, attribute, STRENGTHENED, strengthAt(strength) - AS_IT_IS)
             mob.health = if (wasWhole) mob.maxHealth else mob.health.coerceAtMost(mob.maxHealth)
         }
     }
+
+    /** How many times its own speed a creature of [pace] moves at — what the danger score reads too. */
+    fun paceAt(pace: Double): Double = AS_IT_IS + pace * if (pace < 0.0) SLOWED_IN_FULL else QUICKENED_IN_FULL
+
+    /** How many times its own health and blows a creature of [strength] has — what the danger score reads too. */
+    fun strengthAt(strength: Double): Double =
+        AS_IT_IS + strength * if (strength < 0.0) WEAKENED_IN_FULL else STRENGTHENED_IN_FULL
 
     /** [mob]'s [attribute] multiplied by one and [change], once, however often it enters. */
     private fun changeBy(mob: Mob, attribute: Holder<Attribute>, id: Identifier, change: Double) {
@@ -48,6 +53,8 @@ object WrittenCreatures {
 
     private val MOVING = listOf(Attributes.MOVEMENT_SPEED, Attributes.FLYING_SPEED)
     private val STRONG = listOf(Attributes.MAX_HEALTH, Attributes.ATTACK_DAMAGE)
+
+    private const val AS_IT_IS = 1.0
 
     private val PACED = "written_pace".location()
     private val STRENGTHENED = "written_strength".location()

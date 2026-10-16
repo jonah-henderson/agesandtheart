@@ -42,8 +42,13 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
      * Who holds [value] for [parameter]: everyone, where it was said of the whole aspect, or the members it was
      * said of — what a consumer asking member by member needs to be handed in one piece.
      */
-    fun holders(parameter: Parameter, value: String = Parameter.TRUE): Holders {
-        val said = chosen[parameter.name].orEmpty().map(Claim::read).filter { it.value == value }
+    fun holders(parameter: Parameter, value: String = Parameter.TRUE): Holders = holdersWhere(parameter) { it == value }
+
+    /** Who holds any value at all of [parameter] — every member, or the members a value was said of. */
+    fun holdersOfAny(parameter: Parameter): Holders = holdersWhere(parameter) { true }
+
+    private fun holdersWhere(parameter: Parameter, wanted: (String) -> Boolean): Holders {
+        val said = chosen[parameter.name].orEmpty().map(Claim::read).filter { wanted(it.value) }
         return Holders(everyone = said.any { it.members.isEmpty() }, only = said.flatMap { it.members }.toSet())
     }
 

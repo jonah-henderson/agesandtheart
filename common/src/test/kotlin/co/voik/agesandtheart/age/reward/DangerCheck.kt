@@ -173,6 +173,29 @@ class DangerCheck : FunSpec({
         check(insisted > asked) { "asking for four times as many ghasts scored $insisted against $asked" }
     }
 
+    test("monsters made stronger or quicker are more dangerous, asked for or already here") {
+        fun spawnsWith(vararg parameters: Pair<String, String>) = parameters.fold(oneTerritory()) { held, (name, value) ->
+            held.withOptions(Aspect.SPAWNS, name, listOf(value))
+        }
+        val nothing = score(oneTerritory()).spawns
+        val strongZombies = score(spawnsWith("strength" to "1.0..1.0[for=$ZOMBIE]")).spawns
+        val swiftEverything = score(spawnsWith("pace" to "1.0..1.0")).spawns
+        check(strongZombies > nothing) { "strong zombies scored $strongZombies, no more than nothing at $nothing" }
+        check(swiftEverything > strongZombies) { "every monster quickened scored $swiftEverything, below one kind strengthened" }
+
+        val ghasts = score(oneTerritory().withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(GHASTS))).spawns
+        val strongGhasts = score(
+            oneTerritory().withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(GHASTS))
+                .withOptions(Aspect.SPAWNS, "strength", listOf("1.0..1.0")),
+        ).spawns
+        check(strongGhasts > ghasts) { "strong ghasts scored $strongGhasts against $ghasts for ordinary ones" }
+    }
+
+    test("weakened monsters take danger away, but never below the biomes' own") {
+        val weak = score(oneTerritory().withOptions(Aspect.SPAWNS, "strength", listOf("-1.0..-1.0"))).spawns
+        check(weak == 0.0) { "weakening the monsters already here scored $weak" }
+    }
+
     /** A claim confined to one biome is one biome's worth of danger, not an Age's worth. */
     test("a hazard confined to one biome is scored at less than the same hazard everywhere") {
         val everywhere = oneTerritory().withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(GHASTS))
@@ -261,6 +284,10 @@ class DangerCheck : FunSpec({
         private const val MAGMA = "minecraft:magma_block"
         private const val ORDINARY_STONE = "minecraft:stone"
         private const val GHASTS = "minecraft:ghast"
+        private const val ZOMBIE = "minecraft:zombie"
+
+        /** What the table calls any monster it has no line for. */
+        private const val ANY_MONSTER = "monsters"
         private const val INFERNO = "inferno"
         private const val AURORA = "aurora"
         private const val A_TWENTIETH = 0.05
@@ -307,7 +334,7 @@ class DangerCheck : FunSpec({
             confinedWeight = 0.25,
             woundHostility = 0.5,
             materials = mapOf(MAGMA to 1.0, "minecraft:lava" to 1.0),
-            spawns = mapOf(GHASTS to 0.5),
+            spawns = mapOf(GHASTS to 0.5, ANY_MONSTER to 0.3),
             phenomena = mapOf(INFERNO to 1.0, "sandfall" to 1.0, AURORA to 0.0),
             lighting = mapOf("sealed" to 1.0, "lightless" to 0.5),
             features = emptyMap(),

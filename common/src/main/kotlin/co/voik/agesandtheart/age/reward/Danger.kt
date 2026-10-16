@@ -9,6 +9,8 @@ import co.voik.agesandtheart.age.Ladder
 import co.voik.agesandtheart.age.SpendingSetting
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Options
+import co.voik.agesandtheart.age.consequence.WrittenCreatures
 import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Skew
@@ -23,6 +25,7 @@ import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.MinecraftServer
 
 /**
@@ -169,7 +172,7 @@ data class Danger(
             val spent = Spending.of(instability, seed, ladders, setting)
             return Danger(
                 materials = materialsOf(composition, table),
-                spawns = spawnsOf(composition, table, spent),
+                spawns = spawnsOf(composition, table, spent, seed),
                 phenomena = phenomenaOf(composition, table, spent),
                 lighting = lightingOf(composition, table),
                 features = featuresOf(composition, table),
@@ -247,10 +250,20 @@ data class Danger(
             composition: AgeComposition,
             table: DangerTable,
             spent: Spending,
+            seed: Long,
         ): Double {
-            val claims = composition.optionsFor(Aspect.SPAWNS, 0).claimsOn(Spawns.LIVES)
-            val asked = wanted(claims).sumOf { claim ->
-                table.spawn(claim.value) * claim.density * confinement(claim, table)
+            val spawns = composition.optionsFor(Aspect.SPAWNS, 0)
+            val claims = wanted(spawns.claimsOn(Spawns.LIVES))
+            fun hardiness(member: String) = hardinessOf(spawns, seed, member)
+            val asked = claims.sumOf { claim ->
+                table.spawn(claim.value) * claim.density * confinement(claim, table) * hardiness(claim.value)
+            }
+            // **What a book made of the monsters already here scores what it changed**: zero is still the
+            // biomes' own, so `strong monsters`, which asks for none of them, scores only how much harder it
+            // made them, and `weak monsters` takes some away.
+            val askedFor = claims.map(Claim::value).toSet()
+            val madeOfThemselves = madeHardier(spawns, table).filterNot { it in askedFor }.sumOf { member ->
+                table.spawn(member) * (hardiness(member) - AS_THEY_ARE)
             }
             // **Wounds are hostile-spawn pressure, and that is what they physically are**: `Hostility`
             // makes what comes nastier and makes more of it come, and both registers are the population.
@@ -260,8 +273,29 @@ data class Danger(
             // at the only moment the score is asked for, worsening has done nothing. Scoring it here would
             // be measuring in play, which §7.7 says this never does.
             val wounds = spent.reach(Manifestation.WOUNDS) * table.woundHostility
-            return (asked / table.spawnsFull) + wounds
+            // Never below the biomes' own: a book can make an Age safer than what it asked for, not safer than nothing.
+            return ((asked + madeOfThemselves) / table.spawnsFull).coerceAtLeast(NONE) + wounds
         }
+
+        /**
+         * How much more dangerous the book made [member] than its own — its strength and its speed together, read
+         * as `WrittenCreatures` lays them on, so a score and a creature agree.
+         */
+        private fun hardinessOf(spawns: Options, seed: Long, member: String): Double {
+            val strength = spawns.steer(Spawns.STRENGTH, seed, member = member)?.let(WrittenCreatures::strengthAt)
+            val pace = spawns.steer(Spawns.PACE, seed, member = member)?.let(WrittenCreatures::paceAt)
+            return (strength ?: AS_THEY_ARE) * (pace ?: AS_THEY_ARE)
+        }
+
+        /** Every creature the book made stronger, weaker, quicker or slower — every monster, where it said all. */
+        private fun madeHardier(spawns: Options, table: DangerTable): Set<String> {
+            val said = spawns.holdersOfAny(Spawns.STRENGTH) and spawns.holdersOfAny(Spawns.PACE)
+            if (!said.everyone) return said.only
+            return said.only + BuiltInRegistries.ENTITY_TYPE.keySet().map { it.toString() }.filter { table.spawn(it) > NONE }
+        }
+
+        private const val AS_THEY_ARE = 1.0
+        private const val NONE = 0.0
 
         /**
          * What happens here — written and inflicted alike, and where they meet they compound.
