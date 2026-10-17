@@ -5,6 +5,28 @@ import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.worldgen.SizeScale
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
+import net.minecraft.core.HolderLookup
+import net.minecraft.world.level.levelgen.feature.BlockColumnFeature
+import net.minecraft.world.level.levelgen.feature.BonusChestFeature
+import net.minecraft.world.level.levelgen.feature.EndGatewayFeature
+import net.minecraft.world.level.levelgen.feature.EndIslandFeature
+import net.minecraft.world.level.levelgen.feature.EndPlatformFeature
+import net.minecraft.world.level.levelgen.feature.EndPodiumFeature
+import net.minecraft.world.level.levelgen.feature.EndSpikeFeature
+import net.minecraft.world.level.levelgen.feature.FillLayerFeature
+import net.minecraft.world.level.levelgen.feature.MonsterRoomFeature
+import net.minecraft.world.level.levelgen.feature.MultifaceGrowthFeature
+import net.minecraft.world.level.levelgen.feature.NoOpFeature
+import net.minecraft.world.level.levelgen.feature.OverlayFeature
+import net.minecraft.world.level.levelgen.feature.RandomNeighborSpreadFeature
+import net.minecraft.world.level.levelgen.feature.ReplaceBlobsFeature
+import net.minecraft.world.level.levelgen.feature.ReplaceBlockFeature
+import net.minecraft.world.level.levelgen.feature.SculkPatchFeature
+import net.minecraft.world.level.levelgen.feature.SnowAndFreezeFeature
+import net.minecraft.world.level.levelgen.feature.UnderwaterMagmaFeature
+import net.minecraft.world.level.levelgen.feature.VinesFeature
+import net.minecraft.world.level.levelgen.feature.VoidStartPlatformFeature
+import net.minecraft.world.level.levelgen.placement.RarityFilter
 import net.minecraft.world.level.levelgen.VerticalAnchor
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.core.registries.BuiltInRegistries
@@ -43,15 +65,14 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.BlockMatchTes
 /**
  * What an Age's features are *like*, as opposed to how many of them there are ([FeatureDensity]).
  *
- * Three parameters, chosen from a survey of every placement modifier and configuration 26.1.2 ships (design
- * §7.2): how big one ore vein is, how thickly a vegetation patch fills, and how deep in the column a thing
- * sits.
- * Each is a single number in vanilla's own data, and each is reached by **rebuilding the record that holds
- * it** — a public constructor and no codec surgery, which is why these three and not the other thirty.
+ * Three parameters (design §7.2): how big one of a thing is, how thickly a vegetation patch fills, and how
+ * deep in the column a thing sits. Each is reached by **rebuilding the record that holds it** where vanilla
+ * keeps one — an ore's vein, a patch's spread, a tree's trunk and crown ([ResizedFeatures]) — and a size that
+ * no record holds is reached by laying the finished feature out bigger ([ScaledFeature]).
  *
  * **They apply to everything the Age places**, named or not: a dial is about how this world makes things,
- * where a rung is about one of them. A feature the parameter does not fit — a lake, for a vein size — comes
- * back untouched rather than approximated.
+ * where a rung is about one of them. Thickness and height reach only what has them, and anything else comes
+ * back untouched.
  */
 object FeatureShape {
 
@@ -194,14 +215,26 @@ object FeatureShape {
         thickness: Double?,
         height: Double?,
         rock: List<BlockState>,
+        registries: HolderLookup.Provider? = null,
     ): Holder<PlacedFeature> {
         val placed = feature.value()
-        val shaped = withShape(placed.feature(), size, thickness, height, rock)
-        val isAPatch = placed.feature().value() is SimpleBlockFeature
+        val shaped = withShape(placed.feature(), size, thickness, height, rock, registries)
+        val isAPatch = placed.feature().value().let { it is SimpleBlockFeature || it is BlockColumnFeature }
         val spread = if (isAPatch) withSpread(placed.placement(), size) else placed.placement()
-        val placement = withHeight(spread, height)
+        val thinned = thinnedFor(shaped, spread)
+        val placement = withHeight(thinned, height)
         if (shaped === placed.feature() && placement === placed.placement()) return feature
         return Holder.direct(PlacedFeature(shaped, placement))
+    }
+
+    /**
+     * A feature resized whole made rarer by as much as it was grown, so a colossal one covers about as much
+     * ground as the ordinary ones would together rather than piling into its neighbours.
+     */
+    private fun thinnedFor(shaped: Holder<Feature>, placement: List<PlacementModifier>): List<PlacementModifier> {
+        val scale = (shaped.value() as? ScaledFeature)?.scale ?: return placement
+        val onceEvery = scale.roundToInt()
+        return if (onceEvery > 1) placement + RarityFilter.onAverageOnceEvery(onceEvery) else placement
     }
 
     /**
@@ -257,6 +290,7 @@ object FeatureShape {
         thickness: Double?,
         height: Double?,
         rock: List<BlockState>,
+        registries: HolderLookup.Provider?,
     ): Holder<Feature> {
         val rebuilt = when (val feature = held.value()) {
             // Scattered before plain, for the reason [mintedFrom] gives.
@@ -357,10 +391,56 @@ object FeatureShape {
 
             is Heap -> size?.let { feature.copy(scale = feature.scale * sizeFactor(it)) }
 
-            else -> null
+            else -> size?.let { resizedWhole(held, it, registries) }
         } ?: return held
         return Holder.direct(rebuilt)
     }
+
+    /**
+     * Any other feature at [size]: through its own record where that says how big it is ([ResizedFeatures]),
+     * and otherwise drafted and laid out bigger ([ScaledFeature]) — but never one that works across a whole
+     * chunk, lays a fluid's source, or is one of ours, which carry their own size where they have one.
+     */
+    private fun resizedWhole(held: Holder<Feature>, size: Double, registries: HolderLookup.Provider?): Feature? {
+        val feature = held.value()
+        val factor = sizeFactor(size)
+        fun resized(chosen: Holder<PlacedFeature>) = reshaped(chosen, size, null, null, emptyList(), registries)
+        ResizedFeatures.of(feature, factor, ::resized, registries)?.let { return it }
+        val isOurs = feature.javaClass.packageName.startsWith(OUR_PACKAGE)
+        val isLeftAsItIs = NEVER_SCALED_WHOLE.any { it.isInstance(feature) }
+        return if (isOurs || isLeftAsItIs) null else ScaledFeature(held, factor)
+    }
+
+    private const val OUR_PACKAGE = "co.voik.agesandtheart"
+
+    /**
+     * What resizing whole would make nonsense of: work across a chunk, scatter, sources and set pieces — and
+     * the one block of a patch, whose size is its spread ([withSpread]).
+     */
+    private val NEVER_SCALED_WHOLE: List<Class<out Feature>> = listOf(
+        SimpleBlockFeature::class.java,
+        BlockColumnFeature::class.java,
+        SpringFeature::class.java,
+        MonsterRoomFeature::class.java,
+        SnowAndFreezeFeature::class.java,
+        FillLayerFeature::class.java,
+        OverlayFeature::class.java,
+        VinesFeature::class.java,
+        MultifaceGrowthFeature::class.java,
+        SculkPatchFeature::class.java,
+        UnderwaterMagmaFeature::class.java,
+        ReplaceBlockFeature::class.java,
+        ReplaceBlobsFeature::class.java,
+        RandomNeighborSpreadFeature::class.java,
+        BonusChestFeature::class.java,
+        EndGatewayFeature::class.java,
+        EndIslandFeature::class.java,
+        EndPlatformFeature::class.java,
+        EndPodiumFeature::class.java,
+        EndSpikeFeature::class.java,
+        VoidStartPlatformFeature::class.java,
+        NoOpFeature::class.java,
+    )
 
     /**
      * This ore's targets with the Age's own [rock] added, or null where it could already reach it.

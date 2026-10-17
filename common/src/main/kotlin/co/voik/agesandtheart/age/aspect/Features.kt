@@ -157,6 +157,7 @@ object Features {
         val shape = Shape(
             options = options,
             salt = salt,
+            registries = server.registryAccess(),
             // **Not a parameter a writer turns.** An ore replaces what its rule matches, and vanilla's rules
             // match vanilla's stone — so an Age made of anything else grows no ore at all unless the rock
             // it *is* gets added to them. Carried here because this is where a feature is rebuilt.
@@ -219,6 +220,7 @@ object Features {
     private class Shape(
         private val options: Options,
         private val salt: Long,
+        val registries: HolderLookup.Provider,
         val rock: List<BlockState>,
     ) {
         /** Nothing turned, and nothing to reach — the case where a feature is handed back untouched. */
@@ -245,7 +247,7 @@ object Features {
                 feature
             } else {
                 rebuilt.computeIfAbsent(feature) {
-                    FeatureShape.reshaped(it, sizeOf(it), thicknessOf(it), heightOf(it), rock)
+                    FeatureShape.reshaped(it, sizeOf(it), thicknessOf(it), heightOf(it), rock, registries)
                 }
             }
     }
@@ -308,6 +310,7 @@ object Features {
                     thickness = shape.thicknessOf(found),
                     height = claim.height ?: shape.heightOf(found),
                     rock = shape.rock,
+                    registries = shape.registries,
                 )
                 val confined = claim.confinedTo?.let { FeatureShape.confinedTo(reshaped, it) } ?: reshaped
                 FeatureDensity.applied(confined, claim.density)
