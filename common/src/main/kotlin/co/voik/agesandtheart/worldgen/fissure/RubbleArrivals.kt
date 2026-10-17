@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.worldgen.fissure
 
+import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
+import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
@@ -11,20 +13,21 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.saveddata.SavedData
 import net.minecraft.world.level.saveddata.SavedDataType
+import java.util.Optional
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * Rubble a star fissure sends home: kept as it falls in, and let down over the world's spawn a little at a
- * time, faster the more is waiting (Jonah's walk of G12).
+ * Rubble a star fissure sends out: kept as it falls in, and let down over the fissure's exit — the world's
+ * spawn unless a book led it elsewhere ([FissureExits]) — a little at a time, faster the more is waiting.
  *
  * **Kept rather than moved.** Rubble arriving the moment it fell in came down all at once when a tear
  * widened; each block now joins a backlog of at most [KEPT_AT_MOST] — see [RubbleBacklog] for which go
- * first. The backlog is saved with the overworld, so what an Age lost is still owed after a restart.
+ * first. The backlog is saved with the level it is owed to, so what an Age lost is still owed after a restart.
  *
- * **Let down only while the spawn is ticking.** It is not kept loaded, and rubble dropped into a chunk that
+ * **Let down only while the exit is ticking.** It is not kept loaded, and rubble dropped into a chunk that
  * is not running would hang in the air until somebody came back.
  *
  * **Each block falls onto open ground of its own.** Rubble dropped at one point lands in the heap it has
@@ -35,33 +38,41 @@ import kotlin.math.sqrt
 object RubbleArrivals {
 
     /**
-     * Keeps [rubble]'s block for the spawn, and takes the entity out of the Age. A block nobody could break,
-     * such as bedrock, is never sent: a heap of it at the spawn could never be cleared.
+     * Keeps [rubble]'s block for [exit], and takes the entity out of the Age. A block nobody could break,
+     * such as bedrock, is never sent: a heap of it at the exit could never be cleared.
      */
-    fun deliver(home: ServerLevel, rubble: FallingBlockEntity) {
-        keep(home, rubble.blockState)
+    fun deliver(exit: FissureExits.Exit, rubble: FallingBlockEntity) {
+        keep(exit, rubble.blockState)
         rubble.discard()
     }
 
-    /** Keeps [state] for the spawn, for a block that fell in without ever being an entity. */
-    fun keep(home: ServerLevel, state: BlockState) {
-        if (!isUnbreakable(home, state)) RubbleBacklog.of(home).keep(state)
+    /** Keeps [state] for [exit], for a block that fell in without ever being an entity. */
+    fun keep(exit: FissureExits.Exit, state: BlockState) {
+        if (!isUnbreakable(exit.level, state)) RubbleBacklog.of(exit.level).keep(state, exit.at)
     }
 
-    private fun isUnbreakable(home: ServerLevel, state: BlockState): Boolean =
-        state.getDestroySpeed(home, BlockPos.ZERO) < 0.0f
+    private fun isUnbreakable(level: ServerLevel, state: BlockState): Boolean =
+        state.getDestroySpeed(level, BlockPos.ZERO) < 0.0f
 
-    /** One tick's worth of the backlog, dropped over the spawn. */
+    /** One tick's worth of every level's backlog, dropped over the columns it is owed to. */
     fun letDown(server: MinecraftServer) {
-        val home = server.overworld()
-        val backlog = RubbleBacklog.of(home)
+        for (level in server.allLevels) letDown(level)
+    }
+
+    /**
+     * One tick's worth of [level]'s backlog. Stops at the first block whose column is not ticking, so
+     * rubble owed to two places in one level waits on the newer while it is away.
+     */
+    private fun letDown(level: ServerLevel) {
+        val backlog = RubbleBacklog.of(level)
         if (backlog.isEmpty) return
-        val spawn = home.levelData.respawnData.pos()
-        if (!home.isPositionEntityTicking(spawn)) return
-        repeat(dropsThisTick(backlog.size, home.random.nextDouble())) {
-            val state = backlog.next() ?: return
+        repeat(dropsThisTick(backlog.size, level.random.nextDouble())) {
+            val (state, owedTo) = backlog.newest() ?: return
+            val over = owedTo ?: level.levelData.respawnData.pos()
+            if (!level.isPositionEntityTicking(over)) return
+            backlog.letGoOfNewest()
             // A backlog saved before unbreakable blocks were refused may still hold some.
-            if (!isUnbreakable(home, state)) drop(home, spawn, state)
+            if (!isUnbreakable(level, state)) drop(level, over, state)
         }
     }
 
@@ -79,18 +90,18 @@ object RubbleArrivals {
     /** A block every couple of seconds when little is waiting, rising to about sixteen a second when full. */
     fun dropsPerSecond(waiting: Int): Double = SLOWEST_PER_SECOND + waiting.toDouble() / WAITING_PER_EXTRA_BLOCK
 
-    private fun drop(home: ServerLevel, spawn: BlockPos, state: BlockState) {
-        val random = home.random
+    private fun drop(level: ServerLevel, over: BlockPos, state: BlockState) {
+        val random = level.random
         val angle = random.nextDouble() * FULL_TURN
         // The square root spreads them evenly over the disc rather than bunching them at its middle.
         val distance = sqrt(random.nextDouble()) * SCATTER_RADIUS
-        val x = spawn.x + cos(angle) * distance
-        val z = spawn.z + sin(angle) * distance
-        val ground = home.getHeight(Heightmap.Types.MOTION_BLOCKING, x.toInt(), z.toInt())
+        val x = over.x + cos(angle) * distance
+        val z = over.z + sin(angle) * distance
+        val ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x.toInt(), z.toInt())
         val at = BlockPos.containing(x, (ground + DROPPED_FROM + random.nextInt(EXTRA_HEIGHT_DRAWN)).toDouble(), z)
         // `fall` clears the block it starts from, so it must start in the air.
-        if (!home.getBlockState(at).isAir) return
-        FallingBlockEntity.fall(home, at, state)
+        if (!level.getBlockState(at).isAir) return
+        FallingBlockEntity.fall(level, at, state)
     }
 
     /** How many blocks can be waiting at once. */
@@ -107,36 +118,56 @@ object RubbleArrivals {
 }
 
 /**
- * The rubble still owed to the overworld's spawn — **newest first**, so after visiting several collapsing
- * Ages it is the latest one's rock that comes down, and when full it is the oldest that is let go.
+ * The rubble still owed to one level — **newest first**, so after visiting several collapsing Ages it is the
+ * latest one's rock that comes down, and when full it is the oldest that is let go.
  */
-class RubbleBacklog private constructor(private val waiting: ArrayDeque<BlockState>) : SavedData() {
+class RubbleBacklog private constructor(private val waiting: ArrayDeque<Owed>) : SavedData() {
 
     constructor() : this(ArrayDeque())
+
+    /** A block, and the column it comes down over — the level's spawn where that is null. */
+    data class Owed(val state: BlockState, val over: BlockPos?)
 
     val size: Int get() = waiting.size
 
     val isEmpty: Boolean get() = waiting.isEmpty()
 
-    /** Keeps [state], letting the oldest go if there is no room. */
-    fun keep(state: BlockState) {
+    /** Keeps [state] for the column [over], letting the oldest go if there is no room. */
+    fun keep(state: BlockState, over: BlockPos) {
         if (waiting.size >= RubbleArrivals.KEPT_AT_MOST) waiting.removeFirst()
-        waiting.addLast(state)
+        waiting.addLast(Owed(state, over))
         setDirty()
     }
 
-    fun next(): BlockState? = waiting.removeLastOrNull()?.also { setDirty() }
+    fun newest(): Owed? = waiting.lastOrNull()
+
+    fun letGoOfNewest() {
+        waiting.removeLastOrNull()?.also { setDirty() }
+    }
 
     companion object {
         private const val NAME = "agesandtheart_rubble"
 
-        private val CODEC: Codec<RubbleBacklog> = BlockState.CODEC.listOf()
+        private val OWED_CODEC: Codec<Owed> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                BlockState.CODEC.fieldOf("state").forGetter(Owed::state),
+                BlockPos.CODEC.optionalFieldOf("over").forGetter { Optional.ofNullable(it.over) },
+            ).apply(instance) { state, over -> Owed(state, over.orElse(null)) }
+        }
+
+        /** A bare block state is what the backlog held when every fissure led to the spawn. */
+        private val OWED_OR_BARE_STATE: Codec<Owed> = Codec.either(OWED_CODEC, BlockState.CODEC).xmap(
+            { either -> either.map({ it }, { Owed(it, null) }) },
+            { Either.left(it) },
+        )
+
+        private val CODEC: Codec<RubbleBacklog> = OWED_OR_BARE_STATE.listOf()
             .xmap({ RubbleBacklog(ArrayDeque(it)) }, { it.waiting.toList() })
 
         /** [DataFixTypes.LEVEL] for the same reason `AgeSavedData` names it: the record demands one. */
         private val TYPE: SavedDataType<RubbleBacklog> =
             SavedDataType(Identifier.withDefaultNamespace(NAME), ::RubbleBacklog, CODEC, DataFixTypes.LEVEL)
 
-        fun of(home: ServerLevel): RubbleBacklog = home.dataStorage.computeIfAbsent(TYPE)
+        fun of(level: ServerLevel): RubbleBacklog = level.dataStorage.computeIfAbsent(TYPE)
     }
 }

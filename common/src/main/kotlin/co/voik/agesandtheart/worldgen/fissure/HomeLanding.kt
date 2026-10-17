@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.worldgen.fissure
 
 import co.voik.agesandtheart.generation.Ages
-import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.stats.Stats
 import net.minecraft.world.entity.Entity
@@ -10,25 +9,27 @@ import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.Vec3
 
 /**
- * Where something fallen out of an Age comes down in the overworld: over the world's spawn, already falling, so
- * it reads as having come *out* of somewhere rather than as a teleport.
+ * Where something fallen out of an Age comes down — over its [FissureExits.Exit], already falling, so it reads as
+ * having come *out* of somewhere rather than as a teleport.
  *
- * **Over whatever stands there**, not over the spawn's own height: a collapsing Age lets its rubble down around
- * the spawn ([RubbleArrivals]), and a heap taller than the drop put whoever fell next inside it.
+ * **Over whatever stands there**, not over the exit's own height: a collapsing Age lets its rubble down around
+ * the same place ([RubbleArrivals]), and a heap taller than the drop put whoever fell next inside it.
  */
 object HomeLanding {
 
-    /** Puts [entity] down falling, a little over the highest thing standing at [home]'s spawn. */
-    fun putDown(entity: Entity, home: ServerLevel) {
-        val spawn = home.levelData.respawnData.pos()
-        val standing = home.getHeight(Heightmap.Types.MOTION_BLOCKING, spawn.x, spawn.z)
-        val from = (standing + FALL_OUT_ABOVE).coerceAtMost(home.maxY - HEADROOM.toDouble())
-        entity.teleportTo(
-            home,
-            spawn.x + HALF_A_BLOCK, from, spawn.z + HALF_A_BLOCK,
-            emptySet(), entity.yRot, entity.xRot, entity is Player,
-        )
+    /** Puts [entity] down falling, a little over the highest thing standing at [exit]. */
+    fun putDown(entity: Entity, exit: FissureExits.Exit) {
+        val from = fallingFrom(exit)
+        entity.teleportTo(exit.level, from.x, from.y, from.z, emptySet(), entity.yRot, entity.xRot, entity is Player)
         entity.deltaMovement = Vec3(0.0, -GENTLY_DOWN, 0.0)
+    }
+
+    /** Where something comes out over [exit]: the middle of its column, a little over whatever stands there. */
+    fun fallingFrom(exit: FissureExits.Exit): Vec3 {
+        val (level, at) = exit
+        val standing = level.getHeight(Heightmap.Types.MOTION_BLOCKING, at.x, at.z)
+        val y = (standing + FALL_OUT_ABOVE).coerceAtMost(level.maxY - HEADROOM.toDouble())
+        return Vec3(at.x + HALF_A_BLOCK, y, at.z + HALF_A_BLOCK)
     }
 
     /**

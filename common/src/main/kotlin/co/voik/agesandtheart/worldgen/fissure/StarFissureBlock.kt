@@ -1,7 +1,10 @@
 package co.voik.agesandtheart.worldgen.fissure
 
 import co.voik.agesandtheart.advancement.AgeTriggers
+import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.generation.Ages
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
@@ -88,9 +91,9 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
         val thereIsAFall = level.dimension() != Level.OVERWORLD
         if (entity is ServerPlayer && thereIsAFall) return
         if (thereIsAFall) letRidersFall(entity, pos)
-        if (entity is FallingBlockEntity) return RubbleArrivals.deliver(level.server.overworld(), entity)
-        if (entity is ItemEntity) answerTheThrower(entity)
-        // A mob, an item, or a player where there is no fall to be had: straight home, at once.
+        if (entity is FallingBlockEntity) return RubbleArrivals.deliver(FissureExits.of(level), entity)
+        if (entity is ItemEntity && answerTheThrower(level, entity)) return
+        // A mob, an item, or a player where there is no fall to be had: straight out, at once.
         sendHome(level, entity)
     }
 
@@ -106,15 +109,29 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
         }
     }
 
-    /** A linking or descriptive book somebody threw in tells the advancements whose it was. */
-    private fun answerTheThrower(item: ItemEntity) {
-        val isABook = item.item.`is`(AgeContent.LINKING_BOOK) || item.item.`is`(AgeContent.DESCRIPTIVE_BOOK)
+    /**
+     * A linking or descriptive book somebody threw in: it tells the advancements whose it was, and a **bound** one
+     * thrown into an Age's fissure leads every fissure in that Age to its own destination — until another says
+     * otherwise — and is laid down there open, as a book is left behind where somebody linked from it. Answers
+     * whether the book was taken, so it is not also sent out as an item.
+     */
+    private fun answerTheThrower(level: ServerLevel, item: ItemEntity): Boolean {
+        val book = item.item
+        val isABook = book.`is`(AgeContent.LINKING_BOOK) || book.`is`(AgeContent.DESCRIPTIVE_BOOK)
         val thrower = item.owner as? ServerPlayer
         if (isABook && thrower != null) AgeTriggers.GAVE_A_BOOK_TO_A_FISSURE.trigger(thrower)
+        val isAnAge = Ages.recipeOf(level) != null
+        val leadsTo = if (isABook && isAnAge) FissureExits.namedBy(book, level) else null
+        if (leadsTo == null) return false
+        AgeSavedData.get(level.server).leadFissures(level.dimension().identifier(), leadsTo)
+        val exit = FissureExits.of(level)
+        BookEntity.leaveBehind(exit.level, HomeLanding.fallingFrom(exit), item.yRot, book)
+        item.discard()
+        return true
     }
 
-    /** Over the world's spawn — **the way out**. See [HomeLanding]. */
-    private fun sendHome(level: ServerLevel, entity: Entity) = HomeLanding.putDown(entity, level.server.overworld())
+    /** Out where this level's fissures lead — **the way out**. See [FissureExits] and [HomeLanding]. */
+    private fun sendHome(level: ServerLevel, entity: Entity) = HomeLanding.putDown(entity, FissureExits.of(level))
 
     /**
      * How long you fall before the Age lets go — about a second, which is fifteen blocks of falling.

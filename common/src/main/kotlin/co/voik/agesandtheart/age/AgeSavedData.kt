@@ -42,18 +42,31 @@ class AgeSavedData() : SavedData() {
     /** Ages a player has set foot in, which is all "You and I Will Live Here… Forever" asks. */
     private val visited: MutableSet<Identifier> = linkedSetOf()
 
+    /** Where each Age's fissures lead, for an Age a book has been thrown into — see [FissureExit]. */
+    private val fissureExits: MutableMap<Identifier, FissureExit> = linkedMapOf()
+
     private constructor(
         written: List<WrittenAge>,
         counter: Int,
         presence: List<TimeSpent>,
         renames: List<PendingRename>,
         visited: List<Identifier>,
+        fissureExits: List<LedFissures>,
     ) : this() {
         written.forEach { recipes[it.id] = it.recipe }
         this.counter = counter
         presence.forEach { this.presence[it.id] = it.ticks }
         renames.forEach { this.renames[it.from] = it.to }
         this.visited += visited
+        fissureExits.forEach { this.fissureExits[it.age] = it.exit }
+    }
+
+    /** Where [id]'s fissures lead, or null where no book has said and they lead home. */
+    fun fissureExitOf(id: Identifier): FissureExit? = fissureExits[id]
+
+    /** Leads every fissure in [id] to [exit], until another book says otherwise. */
+    fun leadFissures(id: Identifier, exit: FissureExit) {
+        if (fissureExits.put(id, exit) != exit) setDirty()
     }
 
     /** Every rename still owed, from where each Age is to where it is going. */
@@ -87,6 +100,7 @@ class AgeSavedData() : SavedData() {
         if (visited.remove(id)) setDirty()
         // And a rename owed to it, which would otherwise hold its new id for ever.
         forgetRename(id)
+        if (fissureExits.remove(id) != null) setDirty()
     }
 
     /** Files [from]'s recipe and clock under [to] instead, for an Age whose folder has moved there. */
@@ -95,6 +109,7 @@ class AgeSavedData() : SavedData() {
         recipes[to] = recipe
         presence.remove(from)?.let { presence[to] = it }
         if (visited.remove(from)) visited += to
+        fissureExits.remove(from)?.let { fissureExits[to] = it }
         renames.remove(from)
         setDirty()
     }
@@ -147,6 +162,8 @@ class AgeSavedData() : SavedData() {
                 PendingRename.LIST_CODEC.optionalFieldOf("renames", emptyList())
                     .forGetter { saved -> saved.renames.map { (from, to) -> PendingRename(from, to) } },
                 Identifier.CODEC.listOf().optionalFieldOf("visited", emptyList()).forGetter { it.visited.toList() },
+                LedFissures.LIST_CODEC.optionalFieldOf("fissure_exits", emptyList())
+                    .forGetter { saved -> saved.fissureExits.map { (age, exit) -> LedFissures(age, exit) } },
             ).apply(instance, ::AgeSavedData)
         }
 
@@ -195,6 +212,18 @@ private data class TimeSpent(val id: Identifier, val ticks: Long) {
                 Identifier.CODEC.fieldOf("id").forGetter(TimeSpent::id),
                 Codec.LONG.fieldOf("ticks").forGetter(TimeSpent::ticks),
             ).apply(instance, ::TimeSpent)
+        }.listOf()
+    }
+}
+
+/** One Age's fissures and where a book has led them. */
+private data class LedFissures(val age: Identifier, val exit: FissureExit) {
+    companion object {
+        val LIST_CODEC: Codec<List<LedFissures>> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                Identifier.CODEC.fieldOf("age").forGetter(LedFissures::age),
+                FissureExit.CODEC.fieldOf("exit").forGetter(LedFissures::exit),
+            ).apply(instance, ::LedFissures)
         }.listOf()
     }
 }

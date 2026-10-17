@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen.fissure
 import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 
 /**
@@ -20,7 +21,7 @@ import net.minecraft.server.level.ServerPlayer
  */
 object TheFall {
 
-    /** Everyone the field has finished with, put back in the overworld. */
+    /** Everyone the field has finished with, put out where the Age's fissures lead. */
     fun letGo(server: MinecraftServer) {
         val home = server.overworld()
         for (level in server.allLevels) {
@@ -51,11 +52,12 @@ object TheFall {
         Services.NETWORK.sendToPlayer(player, FallResumedPayload)
     }
 
-    /** Back over the world's spawn — see [HomeLanding]. */
+    /** Out where the Age's fissures lead — see [FissureExits] and [HomeLanding]. */
     private fun putBackInTheOverworld(player: ServerPlayer, server: MinecraftServer) {
         player.noPhysics = false
         player.resetFallDistance()
-        HomeLanding.putDown(player, server.overworld())
+        val exit = (player.level() as? ServerLevel)?.let(FissureExits::of) ?: FissureExits.home(server)
+        HomeLanding.putDown(player, exit)
         AgeTriggers.FELL_HOME.trigger(player)
     }
 }
