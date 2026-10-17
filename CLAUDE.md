@@ -284,7 +284,7 @@ word. `--rewrite` puts the whole corpus back in that layout and is run by hand, 
 ./gradlew :common:test -Pfast              # and without the specs that need Minecraft's registries
 ./gradlew :common:test --tests "*Grammar*" # one spec
 ./gradlew :common:serverTest               # boots a real server, drives it over RCON, ~4min
-./gradlew :common:serverTest -Pfast        # ...without the two specs that *are* the runtime, ~25s
+./gradlew :common:serverTest -Pfast        # ...without the specs that wait on time or fresh Ages, ~1.5min
 ./gradlew :common:landformTest             # the shape of the rock — opt-in, ~220s, and it only *warns*
 ```
 
@@ -301,10 +301,13 @@ already mirror the code they check — so this is a name for a directory rather 
 keep in step. A feature with nothing in a given task runs nothing rather than failing, so `-Pon=desk` is a
 fair thing to say to `serverTest`. A misspelled one lists what it should have been.
 
-**The server suite is two specs and a rounding error**, measured 2026-08-10: of 167 seconds, `TempestCheck`
-was 87 and `DeletionCheck` 62, and the other eight came to **two seconds between them**. Both earn it — one
-waits out real weather, the other builds and destroys whole worlds — so they carry `NEEDS_TIME` and `-Pfast`
-drops them, which is four minutes down to twenty-five seconds while still running eight tenths of the suite.
+**`-Pfast` drops the specs that wait on time or on fresh Ages** (`NEEDS_TIME`), measured 2026-10-16 at a minute
+and a half against seven minutes for what it ran before. Two kinds carry the tag: `TempestCheck` and
+`DeletionCheck` wait out real weather and whole worlds, and the specs that generate fresh Ages pay seconds per
+Age — mostly vanilla placing strongholds, which reads the biome at every ring through our terrain and its caves.
+**A wait in a server spec asks the server, never the clock**: `forceload add` returns once its chunks are
+generated, `DrivenServer.waitUntil` asks until a chunk counts as loaded, and `sprint` and `step` return when the
+server says the ticks have run.
 **Iterate on one loader**; `-Pchecks.loader=neoforge` and the unfiltered run are what a merge is for.
 
 **`landformTest` warns rather than fails, deliberately** (`ignoreFailures`), and

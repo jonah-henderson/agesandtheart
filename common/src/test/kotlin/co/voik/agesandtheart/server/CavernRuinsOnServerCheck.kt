@@ -12,7 +12,7 @@ import io.kotest.core.spec.style.FunSpec
  * On a server because `algae` is a page minted from our own placed feature, which the offline corpus
  * does not have.
  */
-@Tags(NEEDS_SERVER)
+@Tags(NEEDS_SERVER, NEEDS_TIME)
 class CavernRuinsOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 

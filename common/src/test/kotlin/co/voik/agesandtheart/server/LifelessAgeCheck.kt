@@ -22,7 +22,7 @@ import io.kotest.core.spec.style.FunSpec
  * done, so both Ages are polled with `if loaded` until the ground is really there. Read too early, this
  * passed with the fix taken out.
  */
-@Tags(NEEDS_SERVER)
+@Tags(NEEDS_SERVER, NEEDS_TIME)
 class LifelessAgeCheck : FunSpec({
 
     val server = DrivenServer.shared

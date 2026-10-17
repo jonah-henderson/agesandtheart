@@ -11,7 +11,7 @@ import io.kotest.core.spec.style.FunSpec
  * that minting swaps a substance, and it cannot prove that the word reaches the shipped shape at all.
  * Everything between the page a writer lays and the feature an Age grows lives here.
  */
-@Tags(NEEDS_SERVER)
+@Tags(NEEDS_SERVER, NEEDS_TIME)
 class FormationOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 

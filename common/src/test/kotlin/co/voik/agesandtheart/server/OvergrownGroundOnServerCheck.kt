@@ -9,7 +9,7 @@ import io.kotest.core.spec.style.FunSpec
  *
  * The step is forced before any chunk exists, since only ground generated afterwards takes it.
  */
-@Tags(NEEDS_SERVER)
+@Tags(NEEDS_SERVER, NEEDS_TIME)
 class OvergrownGroundOnServerCheck : FunSpec({
 
     val server = DrivenServer.shared

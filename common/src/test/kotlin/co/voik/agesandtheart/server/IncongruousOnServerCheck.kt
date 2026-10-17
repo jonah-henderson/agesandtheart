@@ -9,7 +9,7 @@ import io.kotest.core.spec.style.FunSpec
  * is a Mixin into vanilla's own worldgen (`notes/strange-words-plan.md` §4). A structure or a feature that throws
  * during generation is caught on a worker thread and abandons the chunk in silence; the log is the only witness.
  */
-@Tags(NEEDS_SERVER)
+@Tags(NEEDS_SERVER, NEEDS_TIME)
 class IncongruousOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 

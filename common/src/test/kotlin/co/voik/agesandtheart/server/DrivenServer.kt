@@ -213,16 +213,12 @@ class DrivenServer private constructor(
 const val NEEDS_SERVER = "NeedsServer"
 
 /**
- * Marks a server spec that is expensive **even among server specs** — dropped by `-Pfast`.
+ * Marks a server spec that is expensive **even among server specs** — dropped by `-Pfast`, and run by every
+ * unfiltered `serverTest`, which is what a merge should use.
  *
- * Measured 2026-08-10, and the shape of it is why this tag exists rather than a general belief that server
- * checks are slow: of 167 seconds of server suite, `TempestCheck` was 87 and `DeletionCheck` 62. The other
- * eight specs came to **two seconds between them**. So dropping two specs turns four minutes into about
- * twenty seconds while still running eight tenths of the suite, which is a different instrument from the
- * full one rather than a worse version of it.
- *
- * Both earn their cost honestly — one waits out real weather, the other builds and destroys whole worlds —
- * so this is about *when* they run, not whether. They run on every unfiltered `serverTest`, which is what a
- * merge should use.
+ * Two kinds earn it. One waits out the game's own time: `TempestCheck` real weather, `DeletionCheck` whole
+ * worlds built and destroyed. The other generates fresh Ages, whose first chunks cost seconds apiece — most of
+ * it vanilla placing strongholds, which reads the biome at every ring — where nearly every other spec here
+ * takes under a second. So this is about *when* they run, not whether.
  */
 const val NEEDS_TIME = "NeedsTime"
