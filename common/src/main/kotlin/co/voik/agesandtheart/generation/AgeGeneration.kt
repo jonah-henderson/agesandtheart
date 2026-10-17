@@ -347,6 +347,7 @@ object AgeGeneration {
             ),
             nothingLives = Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0)),
             incongruity = Incongruity.of(composition),
+            structuresBuiltOf = StructureMaterials.Written.of(composition.optionsFor(Aspect.STRUCTURES)),
             // What the Age's instability bought. Derived here rather than restated: these were three lines
             // recomputing `Consequence.of`'s own arithmetic, which is how a copy comes to drift from it.
             bought = Consequence.of(server, recipe),

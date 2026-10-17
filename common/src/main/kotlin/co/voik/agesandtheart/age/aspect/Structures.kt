@@ -44,6 +44,12 @@ object Structures {
      */
     val INCONGRUOUS = Parameter.flag("incongruous", help = "Whether structures may stand in any biome and at any height.")
 
+    /**
+     * The block a structure is built of in place of its own commonest one — `nether_bricks structures`,
+     * `nether_bricks villages`. Shares its name with the surface's, since a block word sets that name.
+     */
+    val MATERIAL = Parameter.material("material", help = "The block the structures are built of.").perMember()
+
     /** The structure set vanilla's villages are, which is what [ABANDONED] is asked of. */
     const val VILLAGES = "minecraft:villages"
 

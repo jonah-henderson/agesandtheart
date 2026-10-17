@@ -177,17 +177,17 @@ class RepairCheck : FunSpec({
     }
 
     /**
-     * **Where several repairs cost the same, the Age's seed picks** (Jonah, 2026-10-14). `blue` belongs to
+     * **Where several repairs cost the same, the Age's seed picks** (Jonah, 2026-10-14). `bright` belongs to
      * many parts of the world and none of them is a structure, so the same slip made at different seeds should
      * not always land in the same place — and the same book at the same seed always must.
      */
     test("the seed breaks a tie, and only the seed") {
-        val book = listOf("age", "blue", "structures")
+        val book = listOf("age", "bright", "structures")
         fun landedUnder(seed: Long) = read(book, seed).phrases
-            .first { phrase -> phrase.modifiers.any { it.word.name == "blue" } }
+            .first { phrase -> phrase.modifiers.any { it.word.name == "bright" } }
             .subject?.word?.name
         val places = TIE_SEEDS.mapNotNull(::landedUnder).toSet()
-        check(places.size > 1) { "`blue structures` landed under $places at every seed" }
+        check(places.size > 1) { "`bright structures` landed under $places at every seed" }
         check(TIE_SEEDS.all { landedUnder(it) == landedUnder(it) }) { "one book at one seed was repaired two ways" }
     }
 

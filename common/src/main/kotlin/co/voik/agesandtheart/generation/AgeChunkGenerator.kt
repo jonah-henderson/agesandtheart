@@ -183,6 +183,8 @@ class AgeChunkGenerator(
     private val lives: Spawns.Living? = null,
     /** What this Age lets turn up where it does not belong — see [Incongruity]. Not serialised, like [lives]. */
     val incongruity: Incongruity = Incongruity.NONE,
+    /** What the book built this Age's structures of — see [StructureMaterials]. Not serialised, like [lives]. */
+    private val structuresBuiltOf: StructureMaterials.Written = StructureMaterials.Written.NONE,
     /** Whether no new living thing may be made in this Age by anything at all — see [Lifeless]. */
     val nothingLives: Boolean = false,
     /**
@@ -1331,7 +1333,9 @@ class AgeChunkGenerator(
     override fun applyBiomeDecoration(level: WorldGenLevel, chunk: ChunkAccess, structures: StructureManager) {
         val placedFeatures = level.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
         StrangeGround.decorating(consequence, level.seed, { placedFeatures.getKey(it)?.toString() }) {
-            super.applyBiomeDecoration(level, chunk, structures)
+            StructureMaterials.building(structuresBuiltOf, level.registryAccess()) {
+                super.applyBiomeDecoration(level, chunk, structures)
+            }
         }
         // **The abyss is put right first, and before the early return below.** A structure brings its own
         // ordinary water — an ocean monument most of all — and vegetation grows in that water in this same

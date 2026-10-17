@@ -42,6 +42,7 @@
     "ServerLevelMixin",
     "ServerPlayerMixin",
     "SkaterHungerMixin",
+    "StructureStartMixin",
     "StateDefinitionBuilderMixin",
     "StructureMixin",
     "TreeFeatureMixin"

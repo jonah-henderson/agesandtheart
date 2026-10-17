@@ -358,7 +358,7 @@ enum class Aspect(
             // What holds of every landform and every creature, whichever is seated or lives there.
             TERRAIN -> listOf(Terrain.TORN, Terrain.INCONGRUOUS)
             SPAWNS -> listOf(Spawns.STILL, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS)
-            STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS)
+            STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL)
             // **Nothing of its own**: each phenomenon carries the dials it has (`Phenomenon.parameters`), since an
             // inferno has no "how often" and only the overgrowth grows.
             CARVERS, UNDERGROUND, PHENOMENA -> emptyList()
