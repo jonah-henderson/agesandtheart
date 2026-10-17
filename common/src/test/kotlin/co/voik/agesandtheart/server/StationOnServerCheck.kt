@@ -26,10 +26,7 @@ class StationOnServerCheck : FunSpec({
         server.run("item replace block ${at(x)} container.${INPUT_SLOT} with $item $count")
     }
 
-    fun runPastOneRun() {
-        server.run("tick sprint $SPRINTED_TICKS")
-        Thread.sleep(SPRINT_WAIT_MILLIS)
-    }
+    fun runPastOneRun() = server.sprint(SPRINTED_TICKS)
 
     fun contents(x: Int): String = server.run("data get block ${at(x)} Items")
 
@@ -107,6 +104,5 @@ class StationOnServerCheck : FunSpec({
 
         /** Past the pulper's 300-tick run, with room to spare. */
         const val SPRINTED_TICKS = 400
-        const val SPRINT_WAIT_MILLIS = 3_000L
     }
 }

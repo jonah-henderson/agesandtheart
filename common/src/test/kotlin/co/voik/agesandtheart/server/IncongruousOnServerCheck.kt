@@ -16,8 +16,8 @@ class IncongruousOnServerCheck : FunSpec({
     test("an incongruous Age generates its ground without throwing") {
         val before = server.saidSoFar().length
         server.run("age write nonsenseworld 4242 incongruous age")
+        // A forceload returns once its chunks are generated, so whatever generating them threw has been said.
         server.run("execute in agesandtheart:nonsenseworld run forceload add -8 -8 8 8")
-        Thread.sleep(GENERATION_WAIT_MILLIS)
         val said = server.saidSoFar().drop(before)
         check(said.isNotEmpty()) { "the server said nothing at all, so this is watching nothing" }
         val thrown = said.lineSequence()
@@ -28,4 +28,3 @@ class IncongruousOnServerCheck : FunSpec({
     }
 })
 
-private const val GENERATION_WAIT_MILLIS = 20_000L

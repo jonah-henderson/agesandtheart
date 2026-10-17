@@ -19,24 +19,11 @@ class OvergrowthOnServerCheck : FunSpec({
     fun inWorld(command: String) = server.run("execute in minecraft:overworld run $command")
     fun isAt(x: Int, y: Int, z: Int, block: String) = inWorld("execute if block $x $y $z $block").startsWith("Test passed")
 
-    /** Runs [ticks] ticks and waits for them: a sprint is answered at once and carries on over the following ticks. */
-    fun sprint(ticks: Int) {
-        server.run("tick sprint $ticks")
-        var waited = 0
-        while (waited < SPRINT_TRIES && server.run("tick query").contains("is sprinting")) {
-            Thread.sleep(SPRINT_POLL_MILLIS)
-            waited++
-        }
-        check(waited < SPRINT_TRIES) { "a sprint of $ticks ticks never finished" }
-    }
+    fun sprint(ticks: Int) = server.sprint(ticks)
 
     val loaded by lazy {
         inWorld("forceload add 0 0 31 31")
-        val loaded = (1..LOAD_TRIES).any {
-            Thread.sleep(LOAD_WAIT_MILLIS)
-            inWorld("execute if loaded 31 $PLATFORM_Y 31").startsWith("Test passed")
-        }
-        check(loaded) { "the platform's chunks never loaded" }
+        server.waitUntil("the platform's chunks loading") { inWorld("execute if loaded 31 $PLATFORM_Y 31").startsWith("Test passed") }
     }
 
     /** A bare stone floor with nothing on it, so one test's growth cannot reach another's. */
@@ -94,10 +81,6 @@ class OvergrowthOnServerCheck : FunSpec({
     }
 }) {
     private companion object {
-        const val LOAD_TRIES = 20
-        const val LOAD_WAIT_MILLIS = 500L
-        const val SPRINT_POLL_MILLIS = 250L
-        const val SPRINT_TRIES = 960
         const val PLATFORM_Y = 200
         const val OVERGROWTH = "agesandtheart:overgrowth"
         const val THORNS = "agesandtheart:thorn_vine"

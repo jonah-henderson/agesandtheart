@@ -125,8 +125,14 @@ data class Vocabulary(
     /** What could not be read, in the words a content author needs to hear. Empty in a healthy pack. */
     val problems: List<String>,
 ) {
-    /** Distinct, because a derived word answers to both its bare path and its full id (see [load]). */
-    val words: List<Word> get() = byName.values.distinct().sortedBy { it.name }
+    /**
+     * Distinct, because a derived word answers to both its bare path and its full id (see [load]). Worked out
+     * once: a corpus is fixed until the next reload, and a found page asks for it on every draw.
+     */
+    val words: List<Word> by lazy { byName.values.distinct().sortedBy { it.name } }
+
+    /** [words] by the rarity bucket each is found in, worked out once for the same reason. */
+    val wordsByBucket: Map<RarityBucket?, List<Word>> by lazy { words.groupBy(rarity::bucketOf) }
 
     /**
      * The word a writer means by [name], or null if the corpus has never heard of it. A retired name means what

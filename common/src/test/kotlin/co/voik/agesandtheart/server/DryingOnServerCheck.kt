@@ -19,14 +19,12 @@ class DryingOnServerCheck : FunSpec({
 
     fun inLevel(age: String?, command: String) = server.run("execute in ${dimensionOf(age)} run $command")
 
-    /** Forceloads the chunk and waits for it: a just-written Age is still making its ground. */
+    /** Forceloads the chunk, returning once it is there. */
     fun loaded(age: String?, x: Int) {
         inLevel(age, "forceload add $x 0")
-        val isThere = (1..LOAD_TRIES).any {
-            Thread.sleep(LOAD_WAIT_MILLIS)
+        server.waitUntil("the chunk at ($x, 0) in ${dimensionOf(age)} loading") {
             server.run("execute in ${dimensionOf(age)} if loaded $x 0 0").startsWith("Test passed")
         }
-        check(isThere) { "the chunk at ($x, 0) in ${dimensionOf(age)} never loaded" }
     }
 
     fun rackIn(age: String?, x: Int, item: String, inputs: Int = 1) {
@@ -89,8 +87,6 @@ class DryingOnServerCheck : FunSpec({
         /** Two items at the rack's 400 ticks apiece, and a margin over. */
         const val BOTH_DRIED_AND_A_LITTLE = 1_000
 
-        const val LOAD_TRIES = 20
-        const val LOAD_WAIT_MILLIS = 500L
 
         /**
          * A sprint runs off the command's thread, and slowly while two new Ages are still making their ground.

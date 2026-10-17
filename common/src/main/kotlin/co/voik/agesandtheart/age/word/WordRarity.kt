@@ -91,23 +91,38 @@ data class WordRarity(
         isNew: ((Word) -> Boolean)? = null,
         keep: (Word) -> Boolean = { true },
     ): Word? {
-        val byBucket = vocabulary.words.groupBy(::bucketOf)
+        val byBucket = if (vocabulary.rarity === this) vocabulary.wordsByBucket else vocabulary.words.groupBy(::bucketOf)
         val offered = buckets.filter { only == null || it.name in only }.toMutableList()
         while (true) {
             val bucket = pick(offered, random, RarityBucket::weight) ?: return null
-            val words = byBucket[bucket].orEmpty().filter(keep)
-            if (words.isNotEmpty()) {
-                val unlearned = if (bucket.prefersTheUnknown && isNew != null) words.filter(isNew) else emptyList()
-                val from = unlearned.ifEmpty { words }
-                return from[random.nextInt(from.size)]
-            }
+            val words = byBucket[bucket].orEmpty()
+            val prefersUnlearned = bucket.prefersTheUnknown && isNew != null
+            val unlearned = if (prefersUnlearned) uniformlyAmong(words, random) { keep(it) && isNew(it) } else null
+            val drawn = unlearned ?: uniformlyAmong(words, random, keep)
+            if (drawn != null) return drawn
             offered -= bucket
         }
     }
 
+    /**
+     * One of [words] that [accepts], uniformly among those it accepts — tried at random first, since nearly every
+     * word is accepted and filtering a thousand of them for each page was most of what a draw cost; filtered
+     * only once a few tries have missed, which also answers null where none is accepted.
+     */
+    private fun uniformlyAmong(words: List<Word>, random: RandomSource, accepts: (Word) -> Boolean): Word? {
+        if (words.isEmpty()) return null
+        repeat(TRIES_BEFORE_FILTERING) {
+            val tried = words[random.nextInt(words.size)]
+            if (accepts(tried)) return tried
+        }
+        val accepted = words.filter(accepts)
+        return if (accepted.isEmpty()) null else accepted[random.nextInt(accepted.size)]
+    }
+
     /** What [bucket] can actually offer on this server. */
     fun wordsIn(bucket: RarityBucket, vocabulary: Vocabulary): List<Word> =
-        vocabulary.words.filter { bucketOf(it) == bucket }
+        if (vocabulary.rarity === this) vocabulary.wordsByBucket[bucket].orEmpty()
+        else vocabulary.words.filter { bucketOf(it) == bucket }
 
     private fun <T> pick(from: List<T>, random: RandomSource, weight: (T) -> Double): T? {
         val total = from.sumOf(weight)
@@ -121,6 +136,9 @@ data class WordRarity(
     }
 
     companion object {
+        /** How many words a draw tries at random before filtering its bucket for one it may take. */
+        private const val TRIES_BEFORE_FILTERING = 16
+
         /** Where a pack puts rarity buckets, one file per rarity. */
         const val RARITY_DIRECTORY = "art/rarity"
 

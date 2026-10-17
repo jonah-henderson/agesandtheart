@@ -62,20 +62,15 @@ class FormationOnServerCheck : FunSpec({
         // around spawn can miss it entirely, and did.
         server.run("execute in agesandtheart:formationworld run forceload add -7 -7 7 7")
 
-        // **Waited for rather than forced.** Creating an Age generates its spawn chunks on worker threads,
-        // so the failure lands a few seconds later and on another thread entirely — and `/age gen` cannot
-        // be used to hurry it, because a chunk that throws never completes and the command never returns.
+        // The forceload returns once its chunks are generated and decorated, on worker threads, so whatever
+        // that threw has been said by the time it does.
         fun saidSince() = server.saidSoFar().drop(before)
         fun thrown() = saidSince().lineSequence()
             .filter { "ReportedException" in it || "Biome decoration" in it }
             .toList()
-        val waited = (1..DECORATION_ATTEMPTS).firstOrNull {
-            Thread.sleep(DECORATION_WAIT_MILLIS)
-            thrown().isNotEmpty()
-        }
 
         check(saidSince().isNotEmpty()) { "the server said nothing at all, so this is watching nothing" }
-        check(waited == null) {
+        check(thrown().isEmpty()) {
             "generating an Age with formations threw:\n  ${thrown().take(4).joinToString("\n  ")}"
         }
     }
@@ -96,9 +91,8 @@ class FormationOnServerCheck : FunSpec({
         val before = server.saidSoFar().length
         server.run("execute in agesandtheart:bareobelisks run forceload add -3 -3 3 3")
         fun saidSince() = server.saidSoFar().drop(before)
-        // Long enough for the forceloaded chunks to have been decorated, which is when the pool is drawn
-        // from; the assertion below would pass on an empty log, so the log is checked for being one.
-        Thread.sleep(DRAW_ATTEMPTS * DECORATION_WAIT_MILLIS)
+        // The forceload has returned, so its chunks are decorated and the pool drawn from; the assertion below
+        // would pass on an empty log, so the log is checked for being one.
         check(saidSince().isNotEmpty()) { "the server said nothing at all, so this is watching nothing" }
 
         val complained = saidSince().lineSequence().filter { "made of nothing in particular" in it }.toList()
@@ -117,6 +111,3 @@ class FormationOnServerCheck : FunSpec({
     }
 })
 
-private const val DECORATION_ATTEMPTS = 12
-private const val DECORATION_WAIT_MILLIS = 2_500L
-private const val DRAW_ATTEMPTS = 4

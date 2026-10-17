@@ -77,8 +77,7 @@ class CompounderOnServerCheck : FunSpec({
 
     fun signal(x: Int) {
         server.run("setblock $x ${COMPOUNDER_Y + 1} 0 minecraft:redstone_block")
-        server.run("tick sprint $A_FEW_TICKS")
-        Thread.sleep(SPRINT_WAIT_MILLIS)
+        server.sprint(A_FEW_TICKS)
     }
 
     test("a signal compounds into the container in front, and the inputs are spent for it") {
@@ -122,8 +121,7 @@ class CompounderOnServerCheck : FunSpec({
         val hopper = "$HOPPER_X ${COMPOUNDER_Y - 1} 0"
         server.run("setblock $hopper minecraft:hopper")
         load(HOPPER_X, 0, "minecraft:coal_block", A_STACK)
-        server.run("tick sprint $A_FEW_HOPPER_BEATS")
-        Thread.sleep(SPRINT_WAIT_MILLIS)
+        server.sprint(A_FEW_HOPPER_BEATS)
         val kept = server.run("execute if items block ${at(HOPPER_X)} container.0 minecraft:coal_block[count=$A_STACK]")
         check(kept.startsWith("Test passed")) { "the coal blocks went somewhere without a signal: $kept" }
         val inHopper = server.run("data get block $hopper Items")
@@ -163,8 +161,6 @@ class CompounderOnServerCheck : FunSpec({
         /** A thrown item's flight and fall in those few ticks. */
         const val NEAR_ENOUGH = 6
 
-        /** A sprint runs off the command's thread; forty ticks of an idle server take well under this. */
-        const val SPRINT_WAIT_MILLIS = 1500L
         const val A_STACK = 64
         const val NARA_EACH = 16
     }

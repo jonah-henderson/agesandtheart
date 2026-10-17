@@ -13,11 +13,7 @@ class CrushingResistanceOnServerCheck : FunSpec({
 
     fun loaded(x: Int) {
         server.run("forceload add $x 0")
-        val isThere = (1..LOAD_TRIES).any {
-            Thread.sleep(LOAD_WAIT_MILLIS)
-            server.run("execute if loaded $x 0 0").startsWith("Test passed")
-        }
-        check(isThere) { "the chunk at ($x, 0) never loaded" }
+        server.waitUntil("the chunk at ($x, 0) loading") { server.run("execute if loaded $x 0 0").startsWith("Test passed") }
     }
 
     fun potion(named: String) = "minecraft:potion[minecraft:potion_contents={potion:\"$named\"}]"
@@ -49,7 +45,5 @@ class CrushingResistanceOnServerCheck : FunSpec({
         /** A brew is 400 ticks. */
         const val ONE_BREW_AND_A_LITTLE = 500
 
-        const val LOAD_TRIES = 20
-        const val LOAD_WAIT_MILLIS = 500L
     }
 }

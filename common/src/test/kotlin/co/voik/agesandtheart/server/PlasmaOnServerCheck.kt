@@ -17,19 +17,12 @@ class PlasmaOnServerCheck : FunSpec({
     fun inAge(command: String) = server.run("execute in agesandtheart:$AGE run $command")
     fun isIn(x: Int, y: Int, z: Int, block: String) = inAge("execute if block $x $y $z $block").startsWith("Test passed")
 
-    fun sprint(ticks: Int) {
-        server.run("tick sprint $ticks")
-        Thread.sleep(SPRINT_WAIT_MILLIS)
-    }
+    fun sprint(ticks: Int) = server.sprint(ticks)
 
     val surface by lazy {
         server.run("age write $AGE 7 age plasma sea")
         inAge("forceload add 0 0")
-        val loaded = (1..LOAD_TRIES).any {
-            Thread.sleep(LOAD_WAIT_MILLIS)
-            inAge("execute if loaded 0 0 0").startsWith("Test passed")
-        }
-        check(loaded) { "the plasma Age's origin never loaded" }
+        server.waitUntil("the plasma Age's origin loading") { inAge("execute if loaded 0 0 0").startsWith("Test passed") }
         (SCAN_FROM downTo BOTTOM).firstOrNull { y -> isIn(0, y, 0, PLASMA) }
             ?: error("no plasma anywhere in the column at the origin")
     }
@@ -51,11 +44,9 @@ class PlasmaOnServerCheck : FunSpec({
         server.run("age write $COAST_AGE 7 age gentle landmass plasma sea")
         fun inCoast(command: String) = server.run("execute in agesandtheart:$COAST_AGE run $command")
         inCoast("forceload add -16 -16 31 31")
-        val loaded = (1..LOAD_TRIES).any {
-            Thread.sleep(LOAD_WAIT_MILLIS)
+        server.waitUntil("the coast loading") {
             inCoast("execute if loaded 31 0 31").startsWith("Test passed") && inCoast("execute if loaded -16 0 -16").startsWith("Test passed")
         }
-        check(loaded) { "the coast never loaded" }
         fun isAt(x: Int, y: Int, z: Int, block: String) = inCoast("execute if block $x $y $z $block").startsWith("Test passed")
         fun whatIsAt(x: Int, y: Int, z: Int) = SUSPECTS.firstOrNull { isAt(x, y, z, it) } ?: "something else"
         val notSea = (-16..31).flatMap { x -> (-16..31).map { z -> x to z } }.flatMap { (x, z) ->
@@ -151,14 +142,10 @@ class PlasmaOnServerCheck : FunSpec({
 
     fun at(x: Int, y: Int, z: Int, block: String) = server.run("execute if block $x $y $z $block").startsWith("Test passed")
 
-    /** Forceloads the overworld chunk holding ([x], [z]) and waits until it is there to build in. */
+    /** Forceloads the overworld chunk holding ([x], [z]), returning once it is there to build in. */
     fun loaded(x: Int, z: Int) {
         server.run("forceload add $x $z")
-        val isThere = (1..LOAD_TRIES).any {
-            Thread.sleep(LOAD_WAIT_MILLIS)
-            server.run("execute if loaded $x 0 $z").startsWith("Test passed")
-        }
-        check(isThere) { "the chunk at ($x, $z) never loaded" }
+        server.waitUntil("the chunk at ($x, $z) loading") { server.run("execute if loaded $x 0 $z").startsWith("Test passed") }
     }
 
     test("a hanging unit that loses its hold lets the plasma loose, and drops nothing") {
@@ -200,11 +187,10 @@ class PlasmaOnServerCheck : FunSpec({
         loaded(x, z)
         server.run("setblock ${x + 1} $y $z minecraft:stone")
         server.run("summon minecraft:item ${x + 0.5} $y ${z + 1.5} {NoGravity:1b,Item:{id:\"minecraft:stone\",count:1},Tags:[\"erased\"]}")
-        // Frozen and stepped, since a sprint is followed by a wait the clock keeps running through.
+        // Frozen and stepped, so the clock stands still between the step and the looking.
         server.run("tick freeze")
         server.run("setblock $x $y $z agesandtheart:unstable_plasma")
-        server.run("tick step $TO_THE_FIRST_BOLTS")
-        Thread.sleep(STEP_WAIT_MILLIS)
+        server.step(TO_THE_FIRST_BOLTS)
         check(!at(x + 1, y, z, "minecraft:stone")) { "the stone beside the release stood" }
         val stillThere = server.run("execute if entity @e[tag=erased]")
         check(!stillThere.startsWith("Test passed")) { "the item in a bolt's way was not erased: $stillThere" }
@@ -230,9 +216,6 @@ class PlasmaOnServerCheck : FunSpec({
 
         /** Vanilla's bedrock floor thins out over its five lowest layers. */
         const val ABOVE_THE_BEDROCK = -59
-        const val LOAD_TRIES = 20
-        const val LOAD_WAIT_MILLIS = 500L
-        const val SPRINT_WAIT_MILLIS = 3_000L
         const val REFILL_AND_A_LITTLE = 40
         const val FALL_AND_A_LITTLE = 60
         const val SCORCHED_HEIGHT = 12
@@ -251,7 +234,6 @@ class PlasmaOnServerCheck : FunSpec({
 
         /** The release sends out its bolts a tick on, and they reach the block beyond a tick after. */
         const val TO_THE_FIRST_BOLTS = 3
-        const val STEP_WAIT_MILLIS = 1_000L
         const val THE_WHOLE_ERUPTION = 80
         const val UNIT_Y = 240
         const val ONE_SMELT_AND_A_LITTLE = 260

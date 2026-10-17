@@ -91,12 +91,7 @@ class LifelessAgeCheck : FunSpec({
             "not on vanilla's rock, so the pass this guards never runs: $ground"
         }
 
-        var waited = 0
-        while (waited < TRIES && !written.keys.all(::isLoaded)) {
-            Thread.sleep(BETWEEN_TRIES)
-            waited++
-        }
-        check(waited < TRIES) { "the forced chunks never loaded, so this check cannot see what it guards" }
+        server.waitUntil("the forced chunks loading") { written.keys.all { isLoaded(it) } }
 
         val living = creaturesIn(ALIVE)
         val lifeless = creaturesIn(LIFELESS)
@@ -116,11 +111,9 @@ class LifelessAgeCheck : FunSpec({
     test("nothing new lives in an Age where nothing lives, however it is made") {
         fun hasAPig(age: String): Boolean {
             inThe(age, "forceload add $FAR $FAR")
-            val loaded = (1..TRIES).any {
-                Thread.sleep(BETWEEN_TRIES)
+            server.waitUntil("the chunk a pig is summoned into loading in '$age'") {
                 inThe(age, "execute if loaded $FAR $PROBE_HEIGHT $FAR").startsWith("Test passed")
             }
-            check(loaded) { "the chunk a pig is summoned into never loaded in '$age'" }
             inThe(age, "summon minecraft:pig $FAR $PROBE_HEIGHT $FAR")
             val found = inThe(age, "execute if entity @e[distance=0..,type=minecraft:pig]").startsWith("Test passed")
             inThe(age, "forceload remove all")
@@ -149,8 +142,6 @@ private const val FAR = 5000
 /** Above any sea floor and below any ceiling, so `if loaded` is asked somewhere a column exists. */
 private const val PROBE_HEIGHT = 64
 
-private const val TRIES = 120
-private const val BETWEEN_TRIES = 500L
 
 private val COUNT = Regex("to (\\d+) entit")
 

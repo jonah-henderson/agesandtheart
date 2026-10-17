@@ -46,12 +46,7 @@ class OvergrownGroundOnServerCheck : FunSpec({
         for (name in listOf(OVERGROWN, PLAIN)) {
             inThe(name, "forceload add $FAR $FAR ${FAR + REACH} ${FAR + REACH}")
         }
-        var waited = 0
-        while (waited < TRIES && !listOf(OVERGROWN, PLAIN).all(::isLoaded)) {
-            Thread.sleep(BETWEEN_TRIES)
-            waited++
-        }
-        check(waited < TRIES) { "the forced chunks never loaded, so this check cannot see what it guards" }
+        server.waitUntil("the forced chunks loading") { listOf(OVERGROWN, PLAIN).all { isLoaded(it) } }
 
         val patched = overgrowthIn(OVERGROWN)
         val control = overgrowthIn(PLAIN)
@@ -74,8 +69,6 @@ class OvergrownGroundOnServerCheck : FunSpec({
         const val SCAN_FROM = 48
         const val SCAN_TO = 112
         const val ENOUGH_FOR_A_PATCH = 200
-        const val TRIES = 120
-        const val BETWEEN_TRIES = 500L
         val CHANGED = Regex("filled (\\d+) block")
     }
 }
