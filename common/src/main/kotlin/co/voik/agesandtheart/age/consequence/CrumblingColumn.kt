@@ -113,7 +113,9 @@ class CrumblingColumn(type: EntityType<out CrumblingColumn>, level: Level) : Ent
             if (random.nextFloat() < SENDS_A_SOURCE_THROUGH) RubbleArrivals.keep(FissureExits.of(level), standing)
             return
         }
-        val throwsRubble = random.nextFloat() < LEAVES_RUBBLE && standing.isSolidRender
+        // Bedrock and anything else nobody could break is never thrown, so it can never come through a fissure.
+        val couldBeBroken = standing.getDestroySpeed(level, at) >= 0.0f
+        val throwsRubble = random.nextFloat() < LEAVES_RUBBLE && standing.isSolidRender && couldBeBroken
         if (throwsRubble && threwRubbleAt != y - 1) {
             threwRubbleAt = y
             FallingBlockEntity.fall(level, at, standing)
