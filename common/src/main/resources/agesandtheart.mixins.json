@@ -38,6 +38,7 @@
     "PlayerStepSoundMixin",
     "PowderSnowBlockMixin",
     "ProjectileMixin",
+    "RubbleLandingMixin",
     "ServerLevelMixin",
     "ServerPlayerMixin",
     "SkaterHungerMixin",

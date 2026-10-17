@@ -369,7 +369,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Forty-eight Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Forty-nine Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -420,6 +420,11 @@ When shared code needs something loader-specific, it goes through an interface, 
   this refuses that conversion only for the sea's water in the open, inside the tide's band and above where
   it stands (`Tide.holdsBack`), since `canConvertToSource` takes no position and its caller `getNewLiquid`
   does. Water still flows there; it only cannot become new sea.
+- **`RubbleLandingMixin`** — rubble a fissure lets down settles before vanilla places it (`RubbleArrivals.settle`):
+  a flower under it is crushed, and a slab, stairs or carpet is stood on rather than breaking the block into an
+  item. `FallingBlockEntity.tick` reads the landing position once, straight after `move`, and neither loader has
+  a falling-block event; a subclass would need the private `blockState` widened and an entity type of its own.
+  Only falling blocks carrying the rubble tag are touched.
 - **`EntityGravityMixin`** — an Age whose gravity is strange (`StrangeGravity`). `Entity.getGravity` is final and
   the one method every falling thing asks, where the `GRAVITY` attribute reaches only living things; both sides
   read their own copy of the Age's factor, since the client moves its own player. A fall's damage follows it

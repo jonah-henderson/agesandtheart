@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen.fissure
 
 import co.voik.agesandtheart.generation.Ages
+import net.minecraft.core.SectionPos
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.stats.Stats
 import net.minecraft.world.entity.Entity
@@ -27,6 +28,8 @@ object HomeLanding {
     /** Where something comes out over [exit]: the middle of its column, a little over whatever stands there. */
     fun fallingFrom(exit: FissureExits.Exit): Vec3 {
         val (level, at) = exit
+        // A chunk not loaded answers the heightmap with the bottom of the world.
+        level.getChunk(SectionPos.blockToSectionCoord(at.x), SectionPos.blockToSectionCoord(at.z))
         val standing = level.getHeight(Heightmap.Types.MOTION_BLOCKING, at.x, at.z)
         val y = (standing + FALL_OUT_ABOVE).coerceAtMost(level.maxY - HEADROOM.toDouble())
         return Vec3(at.x + HALF_A_BLOCK, y, at.z + HALF_A_BLOCK)

@@ -11,15 +11,20 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.InsideBlockEffectApplier
+import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.item.FallingBlockEntity
 import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.LevelAccessor
 import net.minecraft.world.level.block.BaseEntityBlock
+import net.minecraft.world.level.block.LiquidBlockContainer
 import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.TheEndPortalBlockEntity
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.Fluid
+import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
 
@@ -47,8 +52,7 @@ import net.minecraft.world.phys.shapes.VoxelShape
  * a little above the world's spawn already falling, so the last thing the fissure does is the same thing it
  * started with. That is the escape hatch's whole shape: found rather than carried, and never a route back.
  */
-open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties) {
-
+open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties), LiquidBlockContainer {
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = StarFissureBlockEntity(pos, state)
 
@@ -58,6 +62,12 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
     /** Nothing to stand on: a fissure you could walk over would not be one. */
     override fun getShape(state: BlockState, level: BlockGetter, pos: BlockPos, context: CollisionContext): VoxelShape =
         net.minecraft.world.phys.shapes.Shapes.empty()
+
+    /** Fluid falls in and is gone, rather than lying across the tear as it would across a floor. */
+    override fun canPlaceLiquid(placer: LivingEntity?, level: BlockGetter, at: BlockPos, state: BlockState, fluid: Fluid) =
+        true
+
+    override fun placeLiquid(level: LevelAccessor, at: BlockPos, state: BlockState, fluid: FluidState) = true
 
     /**
      * The whole cube counts as inside, so a player falling fast still registers on every block they pass.
