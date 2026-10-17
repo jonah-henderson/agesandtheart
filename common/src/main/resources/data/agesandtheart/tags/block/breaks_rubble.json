@@ -6,20 +6,10 @@
   "replace": false,
   "values": [
     "minecraft:end_rod",
-    "#minecraft:lightning_rods",
     "minecraft:stonecutter",
-    "#minecraft:chains",
     "minecraft:pointed_dripstone",
-    "minecraft:amethyst_cluster",
-    "minecraft:large_amethyst_bud",
-    "minecraft:medium_amethyst_bud",
-    "minecraft:small_amethyst_bud",
     "#minecraft:lanterns",
     "minecraft:bell",
-    "minecraft:brewing_stand",
-    "minecraft:cactus",
-    "minecraft:campfire",
-    "minecraft:soul_campfire",
-    "#minecraft:flower_pots"
+    "minecraft:brewing_stand"
   ]
 }
