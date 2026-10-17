@@ -307,22 +307,23 @@ object Meteors {
     /** A body every this many ticks — four a second. */
     private const val EVERY = 5
 
-    /** What a rung adds to a storm's length: an ordinary Age ten seconds, a teeming one a minute. */
+    /** What the book's frequency adds to a storm's length: an ordinary Age ten seconds, a frequent one a minute. */
     private const val LONGER_WHEN_TEEMING = 1.0
 
     /**
-     * How long an ordinary meteoric Age waits between storms, in ticks — **twenty minutes** (Jonah).
+     * How long an ordinary meteoric Age waits between storms, in ticks — **ten minutes** on average. The roll
+     * and the lure's thinning in [fall] cancel, so this is the average.
      *
-     * **The rung divides this rather than multiplying a base nobody sees.** The old shape was
+     * **The frequency divides this rather than multiplying a base nobody sees.** The old shape was
      * `3600 / (1 + density × 5)`, which put an *ordinary* claim at six times its own base rate and left
      * the written figure meaning nothing — thirty seconds between storms, which is a siege rather than
-     * weather. A rung now says what it does: twice the claim, twice as often.
+     * weather. The frequency says what it does: twice as frequent, twice as often.
      *
      * Rain is the scale this is pitched against: vanilla begins a downpour about every eighty minutes.
      * A storm being rarer than the material's own farm wants is deliberate — the crater deposit (§5.2)
      * is the trickle that makes the first astrite affordable, and the lure is what makes the rest of it.
      */
-    private const val BETWEEN_STORMS = 24000.0
+    private const val BETWEEN_STORMS = 12000.0
 
     /** No rung goes to nothing; a claim this faint still means the Age has meteors in it. */
     private const val A_TRICKLE = 0.1
