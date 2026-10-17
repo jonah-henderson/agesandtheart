@@ -48,12 +48,12 @@ class DepositsCheck : FunSpec({
      * The raid's trigger, asked of the same values [Deposits] reads.
      *
      * The deposit it produces cannot be built here — see the note above — so what is pinned is the decision
-     * in front of it: a dangerous Age is not a doomed one, and only a full reach of collapse is.
+     * in front of it: a dangerous Age is not a doomed one, and any collapse at all is.
      */
     test("a dangerous Age is not a doomed one") {
         check(!danger(materials = 1.0, authored = true).isTerminal) { "an ordinary hellish Age read as doomed" }
-        check(!danger(materials = 1.0, authored = true, terminal = A_PART_OF_IT).isTerminal) {
-            "an Age part of the way into collapse read as doomed"
+        check(danger(materials = 1.0, authored = true, terminal = A_PART_OF_IT).isTerminal) {
+            "an Age part of the way into collapse did not read as doomed"
         }
         check(danger(materials = 1.0, authored = true, terminal = ALL_OF_IT).isTerminal) {
             "an Age that bought every step of collapse did not read as doomed"

@@ -388,7 +388,7 @@ object SurfacingStrategy {
         )
 
     /** How far the bedrock floor dissolves upward, matching vanilla's own five-block fade. */
-    private const val BEDROCK_FADE = 5
+    const val BEDROCK_FADE = 5
 
     private const val DEEPSLATE_SOLID_BELOW = -8
     private const val DEEPSLATE_ABSENT_ABOVE = 8

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.reward
 
+import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.Holder
@@ -112,15 +113,16 @@ object Deposits {
      * being consumed is drama, one already consumed before you arrive is an empty band.
      *
      * **A tear is one layer now**, so there is no band to reach a multiple of: the hoard sits in the few
-     * layers directly over it, close enough that the floor is visibly coming for it and shallow enough that
-     * what the floor takes is one layer rather than a third of the seam.
+     * layers over it, close enough that the floor is visibly coming for it and shallow enough that what the
+     * floor takes is one layer rather than a third of the seam — **starting where the bedrock floor has faded
+     * out**, since a vein cannot take bedrock and the fade is most of the layers nearest the bottom.
      *
      * Uniform rather than triangular, so the part that survives reads as the same seam continuing down into
      * the part that does not.
      */
     private fun inTheFloorItself(): HeightRangePlacement = HeightRangePlacement.uniform(
-        VerticalAnchor.aboveBottom(JUST_OFF_THE_FLOOR),
-        VerticalAnchor.aboveBottom(REACHES_OVER_THE_TEAR),
+        VerticalAnchor.aboveBottom(SurfacingStrategy.BEDROCK_FADE),
+        VerticalAnchor.aboveBottom(SurfacingStrategy.BEDROCK_FADE + REACHES_OVER_THE_BEDROCK),
     )
 
     /**
@@ -182,19 +184,10 @@ object Deposits {
      */
     private const val TERMINAL_VEIN_SIZE = 10
 
-    /**
-     * How far over the tear the hoard reaches, in layers above the world's floor.
-     *
-     * The tear is the world's floor itself, so this is the handful of layers sitting straight on top of it:
-     * near enough that the floor is plainly coming for the seam, shallow enough that what it takes is a
-     * layer rather than a third of the hoard.
-     */
-    private const val REACHES_OVER_THE_TEAR = 6
+    /** How many layers the hoard is laid through, from where the bedrock floor has faded out. */
+    private const val REACHES_OVER_THE_BEDROCK = 6
 
     private const val ORDINARY_MULTIPLE = 1
-
-    /** The layer over the floor, which is where a tear stands. */
-    private const val JUST_OFF_THE_FLOOR = 1
 
     /** Vanilla's own diamond vein, which is the scarcity this is aiming at. */
     private const val VEIN_SIZE = 4

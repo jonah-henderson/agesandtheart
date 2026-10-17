@@ -111,23 +111,20 @@ data class Danger(
     val allowsRuins: Boolean get() = score < paysAbove
 
     /**
-     * Whether this Age will not last, and its rewards are turned up to absurd amounts (§7.7).
-     *
-     * **The trigger is a full reach rather than a slope** (Jonah, 2026-09-05): the Age has bought every
-     * step of collapse there is to buy, which is the top of the instability ladder as it currently stands.
-     * Deliberately a threshold and deliberately the highest one — the raid is meant to be the Age nobody
-     * could have lived in, not a bonus that creeps in as an Age gets worse. Expected to be relaxed once
-     * there is play behind it.
+     * Whether this Age will not last, and its rewards are turned up to absurd amounts (§7.7): **any collapse
+     * bought** (Jonah, 2026-10-17). A threshold rather than a slope — the raid is the Age that is coming apart,
+     * not a bonus creeping in as an Age gets worse — and the lowest one, since the grammar grew forgiving enough
+     * that a collapse at all is hard to reach.
      */
-    val isTerminal: Boolean get() = terminal >= EVERY_STEP_OF_IT
+    val isTerminal: Boolean get() = terminal > NO_COLLAPSE
 
     override fun toString(): String =
         "danger %.3f (materials %.3f, spawns %.3f, phenomena %.3f, lighting %.3f, features %.3f)"
             .format(score, materials, spawns, phenomena, lighting, features)
 
     companion object {
-        /** A collapse bought as far as it goes — see [isTerminal]. */
-        private const val EVERY_STEP_OF_IT = 1.0
+        /** No step of collapse bought — see [isTerminal]. */
+        private const val NO_COLLAPSE = 0.0
 
         /** How dangerous the Age [recipe] describes is, on the server running it. */
         fun of(server: MinecraftServer, recipe: AgeRecipe): Danger = of(
