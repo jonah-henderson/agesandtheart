@@ -2,6 +2,8 @@ package co.voik.agesandtheart.age.consequence
 
 import co.voik.agesandtheart.age.phenomena.CaveIn
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.worldgen.fissure.FissureExits
+import co.voik.agesandtheart.worldgen.fissure.RubbleArrivals
 import net.minecraft.core.BlockPos
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.server.level.ServerLevel
@@ -92,8 +94,9 @@ class CrumblingColumn(type: EntityType<out CrumblingColumn>, level: Level) : Ent
 
     /**
      * The floor of the column becomes the tear; anything above is simply removed, with no drops, and sometimes
-     * falls as rubble instead. What `#immune_to_collapse` names, and what nara holds, stays where it stands,
-     * as a cave-in leaves it.
+     * falls as rubble instead. A fluid's source now and then comes out where the fissures lead, and its running
+     * fluid never does. What `#immune_to_collapse` names, and what nara holds, stays where it stands, as a
+     * cave-in leaves it.
      */
     private fun giveWay(level: ServerLevel, y: Int) {
         val at = at(y)
@@ -106,6 +109,10 @@ class CrumblingColumn(type: EntityType<out CrumblingColumn>, level: Level) : Ent
         }
         if (standing.isAir) return
         level.setBlock(at, AIR, Block.UPDATE_ALL)
+        if (RubbleArrivals.isAFluidSource(standing)) {
+            if (random.nextFloat() < SENDS_A_SOURCE_THROUGH) RubbleArrivals.keep(FissureExits.of(level), standing)
+            return
+        }
         val throwsRubble = random.nextFloat() < LEAVES_RUBBLE && standing.isSolidRender
         if (throwsRubble && threwRubbleAt != y - 1) {
             threwRubbleAt = y
@@ -170,6 +177,9 @@ class CrumblingColumn(type: EntityType<out CrumblingColumn>, level: Level) : Ent
 
         /** The share of what gives way that falls as a block rather than vanishing. */
         private const val LEAVES_RUBBLE = 0.08f
+
+        /** The share of the fluid sources that give way that come out where the fissures lead. */
+        private const val SENDS_A_SOURCE_THROUGH = 0.02f
 
         private const val NOT_STARTED = Long.MIN_VALUE
         private const val UNREAD = Int.MIN_VALUE

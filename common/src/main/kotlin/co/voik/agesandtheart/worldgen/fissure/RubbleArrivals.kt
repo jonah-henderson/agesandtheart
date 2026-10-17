@@ -9,6 +9,7 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.datafix.DataFixTypes
 import net.minecraft.world.entity.item.FallingBlockEntity
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.saveddata.SavedData
@@ -30,6 +31,9 @@ import kotlin.math.sqrt
  * **Let down only while the exit is ticking.** It is not kept loaded, and rubble dropped into a chunk that
  * is not running would hang in the air until somebody came back.
  *
+ * **A fluid's source is placed rather than dropped**, in the first open space over the ground where it is drawn
+ * to come down: a falling block of fluid has nothing to land as.
+ *
  * **Each block falls onto open ground of its own.** Rubble dropped at one point lands in the heap it has
  * already built, cannot be placed there, and breaks into an item — a collapsing Age once left the spawn
  * littered with thousands of them. So each is scattered across a small disc and let go above the ground
@@ -49,6 +53,12 @@ object RubbleArrivals {
     /** Keeps [state] for [exit], for a block that fell in without ever being an entity. */
     fun keep(exit: FissureExits.Exit, state: BlockState) {
         if (!isUnbreakable(exit.level, state)) RubbleBacklog.of(exit.level).keep(state, exit.at)
+    }
+
+    /** Whether [state] is a fluid's own source block, rather than running fluid or a block holding some. */
+    fun isAFluidSource(state: BlockState): Boolean {
+        val fluid = state.fluidState
+        return fluid.isSource && fluid.createLegacyBlock() == state
     }
 
     private fun isUnbreakable(level: ServerLevel, state: BlockState): Boolean =
@@ -98,10 +108,15 @@ object RubbleArrivals {
         val x = over.x + cos(angle) * distance
         val z = over.z + sin(angle) * distance
         val ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x.toInt(), z.toInt())
+        if (isAFluidSource(state)) return pour(level, BlockPos.containing(x, ground.toDouble(), z), state)
         val at = BlockPos.containing(x, (ground + DROPPED_FROM + random.nextInt(EXTRA_HEIGHT_DRAWN)).toDouble(), z)
         // `fall` clears the block it starts from, so it must start in the air.
         if (!level.getBlockState(at).isAir) return
         FallingBlockEntity.fall(level, at, state)
+    }
+
+    private fun pour(level: ServerLevel, at: BlockPos, source: BlockState) {
+        if (level.getBlockState(at).canBeReplaced()) level.setBlock(at, source, Block.UPDATE_ALL)
     }
 
     /** How many blocks can be waiting at once. */
