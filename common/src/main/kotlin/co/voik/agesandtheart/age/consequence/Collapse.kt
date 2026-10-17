@@ -145,6 +145,16 @@ object Collapse {
         CrumblingColumn.begin(level, at.x, at.z)
     }
 
+    /**
+     * The column over [tear], crumbled again where anything stands in it — built there, fallen in, or a fluid
+     * standing over the tear — as the column beside a tear is taken ([CrumblingColumn]), warning and all.
+     */
+    fun takeBackItsOwnColumn(level: ServerLevel, tear: BlockPos) {
+        val surface = level.getHeight(Heightmap.Types.MOTION_BLOCKING, tear.x, tear.z)
+        val somethingStandsOverIt = surface > floorOfATear(level) + 1
+        if (somethingStandsOverIt) CrumblingColumn.begin(level, tear.x, tear.z)
+    }
+
     /** The layer a tear's column stands on, which becomes the tear itself. */
     fun floorOfATear(level: LevelAccessor): Int = level.minY + KEPT_UNDERFOOT
 

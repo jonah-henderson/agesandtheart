@@ -57,10 +57,14 @@ class CollapsingFissureBlock(properties: Properties) : StarFissureBlock(properti
      * what keeps a tear costing its edge rather than its volume, while a block somebody has floored over is
      * still the top of its column and goes on taking the ground beside it. What it spreads into loses
      * whatever was over it anyway ([Collapse.takeColumnBeside]).
+     *
+     * **And it takes back its own column**: a tear in the middle of a fissure has nothing left beside it to
+     * take, so without this whatever was built over it after it opened — a staircase, a floor — stood for ever.
      */
     override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
         if (level.getBlockState(pos.above()).`is`(this)) return
         Collapse.keepTearing(level, pos)
+        Collapse.takeBackItsOwnColumn(level, pos)
         val towards = SIDEWAYS[random.nextInt(SIDEWAYS.size)]
         Collapse.takeColumnBeside(level, pos.relative(towards))
     }
