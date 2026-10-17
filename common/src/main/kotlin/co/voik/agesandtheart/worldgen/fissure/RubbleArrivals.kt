@@ -1,18 +1,18 @@
 package co.voik.agesandtheart.worldgen.fissure
 
+import co.voik.agesandtheart.location
 import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.tags.BlockTags
+import net.minecraft.tags.TagKey
 import net.minecraft.util.datafix.DataFixTypes
 import net.minecraft.world.entity.item.FallingBlockEntity
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.saveddata.SavedData
@@ -119,10 +119,9 @@ object RubbleArrivals {
     }
 
     /**
-     * Where rubble let down here has landed, before vanilla decides whether it can be placed. A plant there is
-     * crushed under it, and a block it cannot replace whose collision covers the whole square — a slab, stairs,
-     * a carpet — is stood on, as a block placed by hand would be. Anything narrower, a torch or an end rod,
-     * still breaks it into an item.
+     * Where rubble let down here has landed, before vanilla decides whether it can be placed. What is
+     * [CRUSHABLE] there is broken under it; what [BREAKS_RUBBLE], in it or under it, breaks it into an item; and
+     * anything else holds it up, so it comes to rest on top as a block placed by hand would.
      */
     @JvmStatic
     fun settle(rubble: FallingBlockEntity) {
@@ -131,31 +130,33 @@ object RubbleArrivals {
         if (!isOurs || !rubble.onGround()) return
         val at = rubble.blockPosition()
         val landedIn = level.getBlockState(at)
-        when {
-            isAPlant(landedIn) -> level.setBlock(at, AIR, Block.UPDATE_ALL)
-            coversTheWholeSquare(level, at, landedIn) -> rubble.setPos(rubble.x, at.y + 1.0, rubble.z)
+        val restsOn = when {
+            // Vanilla breaks it on anything it cannot replace.
+            landedIn.`is`(BREAKS_RUBBLE) -> return
+            landedIn.`is`(CRUSHABLE) -> at.below().also { crush(level, at) }
+            // Water and the rest of what vanilla replaces by itself.
+            landedIn.canBeReplaced() -> at.below()
+            else -> at.also { rubble.setPos(rubble.x, at.y + 1.0, rubble.z) }
         }
+        if (level.getBlockState(restsOn).`is`(BREAKS_RUBBLE)) breakApart(level, rubble)
     }
 
-    /** Grass or a flower, with no fluid in it. */
-    private fun isAPlant(state: BlockState): Boolean {
-        val growsThere = state.canBeReplaced() || state.`is`(BlockTags.FLOWERS)
-        return growsThere && state.fluidState.isEmpty && !state.isAir
-    }
-
-    private fun coversTheWholeSquare(level: ServerLevel, at: BlockPos, state: BlockState): Boolean {
-        if (state.canBeReplaced()) return false
-        val shape = state.getCollisionShape(level, at)
-        if (shape.isEmpty) return false
-        val spansX = shape.min(Direction.Axis.X) <= 0.0 && shape.max(Direction.Axis.X) >= 1.0
-        val spansZ = shape.min(Direction.Axis.Z) <= 0.0 && shape.max(Direction.Axis.Z) >= 1.0
-        return spansX && spansZ
-    }
-
-    /** A source poured over a plant crushes it, as rubble landing does. */
-    private fun pour(level: ServerLevel, at: BlockPos, source: BlockState) {
+    /** Breaks what is crushed at [at] with its drops. Air and fluids are left for vanilla to replace. */
+    private fun crush(level: ServerLevel, at: BlockPos) {
         val there = level.getBlockState(at)
-        if (there.canBeReplaced() || isAPlant(there)) level.setBlock(at, source, Block.UPDATE_ALL)
+        if (!there.isAir && there.fluidState.isEmpty) level.destroyBlock(at, true)
+    }
+
+    /** As vanilla breaks a falling block that cannot be placed: dropped as its item, and gone. */
+    private fun breakApart(level: ServerLevel, rubble: FallingBlockEntity) {
+        rubble.spawnAtLocation(level, rubble.blockState.block)
+        rubble.discard()
+    }
+
+    /** A source poured over something [CRUSHABLE] crushes it, as rubble landing does. */
+    private fun pour(level: ServerLevel, at: BlockPos, source: BlockState) {
+        if (level.getBlockState(at).`is`(CRUSHABLE)) crush(level, at)
+        if (level.getBlockState(at).canBeReplaced()) level.setBlock(at, source, Block.UPDATE_ALL)
     }
 
     /** How many blocks can be waiting at once. */
@@ -170,7 +171,11 @@ object RubbleArrivals {
     private const val EXTRA_HEIGHT_DRAWN = 8
     private const val FULL_TURN = 2 * Math.PI
 
-    private val AIR = Blocks.AIR.defaultBlockState()
+    /** What rubble breaks where it lands, rather than breaking on it. */
+    val CRUSHABLE: TagKey<Block> = TagKey.create(Registries.BLOCK, "crushable".location())
+
+    /** What rubble breaks on, landing in it or on top of it. */
+    val BREAKS_RUBBLE: TagKey<Block> = TagKey.create(Registries.BLOCK, "breaks_rubble".location())
 
     /** Marks the rubble let down here, so [settle] leaves every other falling block to vanilla. */
     private const val RUBBLE_TAG = "agesandtheart.rubble"

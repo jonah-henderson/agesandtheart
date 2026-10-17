@@ -421,8 +421,8 @@ When shared code needs something loader-specific, it goes through an interface, 
   it stands (`Tide.holdsBack`), since `canConvertToSource` takes no position and its caller `getNewLiquid`
   does. Water still flows there; it only cannot become new sea.
 - **`RubbleLandingMixin`** — rubble a fissure lets down settles before vanilla places it (`RubbleArrivals.settle`):
-  a flower under it is crushed, and a slab, stairs or carpet is stood on rather than breaking the block into an
-  item. `FallingBlockEntity.tick` reads the landing position once, straight after `move`, and neither loader has
+  what is `#agesandtheart:crushable` is broken under it, what is `#agesandtheart:breaks_rubble` breaks it, and
+  anything else holds it up. `FallingBlockEntity.tick` reads the landing position once, straight after `move`, and neither loader has
   a falling-block event; a subclass would need the private `blockState` widened and an entity type of its own.
   Only falling blocks carrying the rubble tag are touched.
 - **`EntityGravityMixin`** — an Age whose gravity is strange (`StrangeGravity`). `Entity.getGravity` is final and

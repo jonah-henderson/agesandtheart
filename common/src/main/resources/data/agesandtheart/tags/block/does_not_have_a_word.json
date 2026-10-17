@@ -21,7 +21,11 @@
     "**Yema is one word and none of its states are** (Jonah, 2026-09-29): the living log is `yema`, and a",
     "world written of it comes out of dead yema, so nothing written can stand in for a tended tree. Its",
     "leaves, roots, sapling, stripped wood and heart are wordless, and so is dead yema, which would otherwise",
-    "be the same world by its own name."
+    "be the same world by its own name.",
+    "",
+    "**The fissures and the D'ni machines are things you find or build, not ground** (Jonah, 2026-10-17): a",
+    "world written of star fissure read as coherent and did nothing, and one of observation devices would be",
+    "a nonsense."
   ],
   "replace": false,
   "values": [
@@ -205,6 +209,13 @@
     "minecraft:zombie_wall_head",
     "agesandtheart:unstable_plasma",
     "agesandtheart:contained_plasma",
-    "agesandtheart:plasma_containment_unit"
+    "agesandtheart:plasma_containment_unit",
+    "agesandtheart:star_fissure",
+    "agesandtheart:collapsing_fissure",
+    "agesandtheart:observation_device",
+    "agesandtheart:surveying_device",
+    "agesandtheart:analysis_machine",
+    "agesandtheart:advanced_analysis_machine",
+    "agesandtheart:fusion_compounder"
   ]
 }
