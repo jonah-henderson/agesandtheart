@@ -29,12 +29,12 @@ object CaveIns {
      * could have had: `teeming tectonics` is the ground giving way four times as often, and an Age at odds
      * with itself is the ground giving way over more of itself, faster, or both. Where both, they compound.
      */
-    fun stir(level: ServerLevel, density: Double, dials: TectonicsDials) {
+    fun stir(level: ServerLevel, often: Double, dials: TectonicsDials) {
         val watching = Sampling.watchers(level)
         if (watching.isEmpty()) return
         val behaviour = TectonicsBehaviour.of(level.server)
         val random = level.random
-        repeat(Happenings.timesFor(density, ROLLS)) {
+        repeat(Happenings.timesFor(often, ROLLS)) {
             val owed = PhenomenaCeiling.isOwed(level, Phenomenon.TECTONICS)
             if (!owed && random.nextInt(SELDOM) != 0) return@repeat
             val near = watching[random.nextInt(watching.size)].blockPosition()
@@ -68,7 +68,7 @@ object CaveIns {
     /**
      * How many chances a pass gets and how rarely each one takes.
      *
-     * Split in two on purpose: the rolls are what a density scales, and [SELDOM] is what keeps a tectonic
+     * Split in two on purpose: the rolls are what a frequency scales, and [SELDOM] is what keeps a tectonic
      * Age to a collapse every minute or so rather than a landscape dissolving. One cave-in is a long,
      * loud event — this is not a tempest, which wants to be happening constantly and faintly.
      */

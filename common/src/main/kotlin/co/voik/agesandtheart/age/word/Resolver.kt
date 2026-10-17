@@ -280,22 +280,71 @@ object Resolver {
      */
     private fun saidOfTheirMembers(vocabulary: Vocabulary, book: Sentence): Sentence =
         book.copy(phrases = book.phrases.map { phrase ->
-            val subject = phrase.subject ?: return@map phrase
-            val namesMembers = !subject.word.aims && subject.word.mints == null
-            val aspect = subject.word.aspects.singleOrNull()
-                ?.takeIf { namesMembers && it.holds == Holds.WEIGHTED_SET }
-                ?: return@map phrase
-            val members = vocabulary.carriersOf(subject.word, aspect).map(Taggable::key)
-            if (members.isEmpty()) return@map phrase
-            val modifiers = phrase.modifiers.map { it.saidOf(aspect, members) }
-            // **Said of, the members are only picked out** (Jonah, 2026-10-16): `motionless monsters` roots the
-            // monsters there are, and asks for no more of them — which it did, bringing a deep-water fish to the
-            // open sea. A rung or an `only` laid on the subject is still asked for.
-            val describesThem = modifiers.any { it.members != null }
-            val asksNothingOfItsOwn = subject.polarity == Polarity.ASSERTED && Rung.isOrdinary(subject.density)
-            val picked = if (describesThem && asksNothingOfItsOwn) subject.copy(word = subject.word.withoutChoosingIn(aspect)) else subject
-            phrase.copy(modifiers = modifiers, subject = picked)
+            saidOfTheMembersAfterThem(vocabulary, saidOfTheSubjectsMembers(vocabulary, phrase))
         })
+
+    /** The weighted set [constraint] names members of, and which, or null where it names none. */
+    private fun membersNamedBy(vocabulary: Vocabulary, constraint: Constraint): Pair<Aspect, List<String>>? {
+        val namesMembers = !constraint.word.aims && constraint.word.mints == null
+        val aspect = constraint.word.aspects.singleOrNull()
+            ?.takeIf { namesMembers && it.holds == Holds.WEIGHTED_SET }
+            ?: return null
+        val members = vocabulary.carriersOf(constraint.word, aspect).map(Taggable::key)
+        return if (members.isEmpty()) null else aspect to members
+    }
+
+    /**
+     * **Said of, the members are only picked out** (Jonah, 2026-10-16): `motionless monsters` roots the monsters
+     * there are, and asks for no more of them — which it did, bringing a deep-water fish to the open sea. A rung or
+     * an `only` laid on [named] is still asked for, and where an Age holds none until one is brought — nothing
+     * happens unwritten — `frequent tempest` brings the tempest it describes.
+     */
+    private fun pickedOut(named: Constraint, aspect: Aspect, describedBy: List<Constraint>): Constraint {
+        val describesThem = describedBy.any { it.members != null }
+        val asksNothingOfItsOwn = named.polarity == Polarity.ASSERTED && Rung.isOrdinary(named.density)
+        val thereAreSomeToPick = aspect.pool?.startsEmpty != true
+        val onlyPicksThem = describesThem && asksNothingOfItsOwn && thereAreSomeToPick
+        return if (onlyPicksThem) named.copy(word = named.word.withoutChoosingIn(aspect)) else named
+    }
+
+    /** What a clause closing on members says of them, scoped to them — `deserted villages`, `slow monsters`. */
+    private fun saidOfTheSubjectsMembers(vocabulary: Vocabulary, phrase: Phrase): Phrase {
+        val subject = phrase.subject ?: return phrase
+        val (aspect, members) = membersNamedBy(vocabulary, subject) ?: return phrase
+        val modifiers = phrase.modifiers.map { it.saidOf(aspect, members) }
+        return phrase.copy(modifiers = modifiers, subject = pickedOut(subject, aspect, modifiers))
+    }
+
+    /**
+     * What a modifier says of the members named right after it in its clause, scoped to them, wherever the clause
+     * closes: `frequent tempest phenomena` is a frequent tempest, and `frequent tempest strong meteors phenomena`
+     * a frequent tempest and strong meteors. A modifier with no members after it is said of the whole aspect.
+     */
+    private fun saidOfTheMembersAfterThem(vocabulary: Vocabulary, phrase: Phrase): Phrase {
+        val modifiers = phrase.modifiers.toMutableList()
+        var describingFrom = 0
+        var at = 0
+        while (at < modifiers.size) {
+            val named = membersNamedBy(vocabulary, modifiers[at])
+            if (named == null) {
+                at++
+                continue
+            }
+            val (aspect, _) = named
+            val runEnds = (at..<modifiers.size).firstOrNull { membersNamedBy(vocabulary, modifiers[it])?.first != aspect }
+                ?: modifiers.size
+            val members = (at..<runEnds).flatMap { membersNamedBy(vocabulary, modifiers[it])?.second.orEmpty() }
+            val describers = (describingFrom..<at).map { index ->
+                val modifier = modifiers[index]
+                val scoped = if (modifier.members == null) modifier.saidOf(aspect, members) else modifier
+                scoped.also { modifiers[index] = it }
+            }
+            for (index in at..<runEnds) modifiers[index] = pickedOut(modifiers[index], aspect, describers)
+            describingFrom = runEnds
+            at = runEnds
+        }
+        return phrase.copy(modifiers = modifiers)
+    }
 
     private fun Constraint.saidOf(aspect: Aspect, members: List<String>): Constraint {
         val holdsSomethingOfEach = word.setsIn(aspect).keys.any(aspect::ownsMemberParameterNamed)

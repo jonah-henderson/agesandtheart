@@ -50,13 +50,13 @@ object AgeTick {
             // the sea *stands* has to be right whenever a chunk is made, and a chunk can be made in an Age
             // nobody is in — a forceload, a teleport arriving, a neighbouring player's view. How far it has
             // *got* may only advance while somebody is there and the rain is falling. See [Deluge].
-            val rising = Deluge.risingIn(happening, spending)
+            val rising = Deluge.risingIn(composition, recipe.seed, spending)
             Deluge.stand(level, rising, saved.presenceIn(age))
             // Before the emptiness check too: a chunk loading with nobody watching still has things in it that fall.
             StrangeGravity.keep(level, recipe, spending)
             if (Sampling.watchers(level).isEmpty()) continue
             if (rising != null && level.isRaining) saved.spendATickIn(age)
-            Happenings.befallAll(level, composition, happening, spending)
+            Happenings.befallAll(level, composition, happening, spending, recipe.seed)
             // Not a phenomenon: motes no air should hold, which the clients draw — see [UncannyMotes].
             UncannyMotes.tellTheClients(level, recipe, spending)
             // Nor this: tears in the sky, which the clients lay out and draw — see [TornSky].

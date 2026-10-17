@@ -118,6 +118,8 @@ data class Vocabulary(
     val materials: MaterialTable,
     /** How a creature the world never offered arrives in one — see [Spawning]. */
     val spawning: Spawning,
+    /** Words that have gone, and what they became. */
+    val retired: RetiredWords,
     /** Names of worldgen a pack ships that the registries this was loaded over did not hold. See [awaitsAServer]. */
     private val shippedButNotLoaded: Set<String>,
     /** What could not be read, in the words a content author needs to hear. Empty in a healthy pack. */
@@ -126,8 +128,16 @@ data class Vocabulary(
     /** Distinct, because a derived word answers to both its bare path and its full id (see [load]). */
     val words: List<Word> get() = byName.values.distinct().sortedBy { it.name }
 
-    /** The word a writer means by [name], or null if the corpus has never heard of it. */
-    fun word(name: String): Word? = byName[name]
+    /**
+     * The word a writer means by [name], or null if the corpus has never heard of it. A retired name means what
+     * it became, even where a derived word answers to it now — `drowned` is still a flooded world, and the
+     * creature is `minecraft:drowned`, as it was while an authored word held the name.
+     */
+    fun word(name: String): Word? = retired.successorOf(name)?.let(byName::get) ?: byName[name]
+
+    /** The id [id] has become, where it is one of our words that was retired. */
+    fun successorId(id: Identifier): Identifier? =
+        if (id.namespace != Constants.MOD_ID) null else retired.successorOf(id.path)?.let(byName::get)?.id
 
     /**
      * Whether [name] would be a word on a server and is not one here: a placed feature, biome or structure
@@ -412,6 +422,12 @@ data class Vocabulary(
             val stock = WriterStock.load(resources, problems)
             // After the words, since a grammar naming one that does not exist is the fault worth reporting.
             val shippedButNotLoaded = worldgenShippedButNotLoaded(resources, registries)
+            val retired = RetiredWords.load(resources, problems)
+            for (name in retired.names) {
+                if (retired.successorOf(name)?.let { it in words } != true) {
+                    problems += "retired word '$name' leads to no word that exists"
+                }
+            }
             val generation = GenerationGrammars.load(
                 resources,
                 isAWord = { it in words || it in structural || it in shippedButNotLoaded },
@@ -423,7 +439,7 @@ data class Vocabulary(
             val derivedIds = fromContent.map { it.id }.toSet() - authored.values.map { it.id }.toSet()
             val read = Vocabulary(
                 words, structural, described, antonyms, script, rarity, ink, stock, generation,
-                derivedIds, rules, materials, spawning, shippedButNotLoaded, problems,
+                derivedIds, rules, materials, spawning, retired, shippedButNotLoaded, problems,
             )
             return read.copy(byName = read.byName.mapValues { (_, word) -> read.reached(word) })
         }

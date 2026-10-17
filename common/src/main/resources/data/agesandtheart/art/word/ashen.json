@@ -1,4 +1,8 @@
 {
+  "_comment": [
+    "Burnt out: grey wherever there is a colour, ash falling through a haze, and only the barren biomes.",
+    "`dusty` is the dry sister, all sand and yellow light."
+  ],
   "restricts": {
     "biomes": {
       "barren": ">0.37"
@@ -6,6 +10,7 @@
   },
   "sets": {
     "colour": "grey",
-    "haze": "0.4..0.8"
+    "air.haze": "0.4..0.8",
+    "motes": "ash"
   }
 }

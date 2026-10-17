@@ -12,6 +12,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.consequence.WrittenCreatures
 import co.voik.agesandtheart.age.aspect.Claim
+import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Skew
 import co.voik.agesandtheart.age.aspect.Parameter
@@ -173,7 +174,7 @@ data class Danger(
             return Danger(
                 materials = materialsOf(composition, table),
                 spawns = spawnsOf(composition, table, spent, seed),
-                phenomena = phenomenaOf(composition, table, spent),
+                phenomena = phenomenaOf(composition, table, spent, seed),
                 lighting = lightingOf(composition, table),
                 features = featuresOf(composition, table),
                 terminal = spent.reach(Manifestation.COLLAPSE),
@@ -297,6 +298,9 @@ data class Danger(
         private const val AS_THEY_ARE = 1.0
         private const val NONE = 0.0
 
+        /** How much heavier a phenomenon written at full strength weighs, and lighter at its gentlest: half again. */
+        private const val HARDNESS_WRITTEN = 0.5
+
         /**
          * What happens here — written and inflicted alike, and where they meet they compound.
          *
@@ -309,10 +313,19 @@ data class Danger(
             composition: AgeComposition,
             table: DangerTable,
             spent: Spending,
+            seed: Long,
         ): Double {
             val options = composition.optionsFor(Aspect.PHENOMENA, 0)
+            // How much of it there is, how often it comes, how hard and how fast it grows: the rung counts it,
+            // the frequency times it, the strength weighs it as it moves the dials, and the pace as it grows.
+            fun asWritten(claim: Claim): Double {
+                val phenomenon = Phenomenon.named(claim.value) ?: return Recurrence.ORDINARY.often
+                val often = Phenomena.recurrenceOf(options, phenomenon, seed).often
+                val hardness = Rung.ORDINARY + Phenomena.strengthOf(options, phenomenon, seed) * HARDNESS_WRITTEN
+                return often * hardness * Phenomena.growthOf(options, phenomenon, seed)
+            }
             val written = Phenomena.claimsIn(options).sumOf { claim ->
-                table.phenomenon(claim.value) * claim.density * confinement(claim, table)
+                table.phenomenon(claim.value) * claim.density * asWritten(claim) * confinement(claim, table)
             }
             val inflicted = Phenomenon.entries.sumOf { phenomenon ->
                 val manifestation = phenomenon.inflictedBy ?: return@sumOf 0.0

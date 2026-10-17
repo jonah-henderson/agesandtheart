@@ -177,7 +177,7 @@ internal object SkyInstruments {
         if (aurora == null) {
             report.say { "Nothing hangs a curtain in ${level.dimension().identifier()}." }
             report.fact("hasAurora", false) {
-                "  Describe one — `green aurora`, `restless aurora`. `beautiful` sometimes brings one too."
+                "  Describe one — `green aurora`, `frequent aurora`. `beautiful` sometimes brings one too."
             }
             report.finish()
             return SUCCESS

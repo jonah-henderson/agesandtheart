@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "Whatever comes and goes, coming more often. `frequency` is one name on the curtain, the bow, the rain and",
+    "every phenomenon, so this is the same word about all of them: a curtain most nights, rain most of the time, a",
+    "tempest's bolts and a sandfall's columns coming quicker. `frequent tempest` is the tempest's alone. A rung",
+    "counts things in space and never says how often; this does.",
+    "",
+    "Laid bare it never brings a curtain or a bow into an Age that had none. It replaced `restless` (retired.json)."
+  ],
+  "sets": {
+    "frequency": "0.6..1.0"
+  },
+  "unaimed": {
+    "aurora": 0.0,
+    "rainbow": 0.0
+  }
+}

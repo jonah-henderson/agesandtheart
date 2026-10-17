@@ -1,5 +1,66 @@
 {
+  "_comment": [
+    "Where nothing has to agree with anything else. The biomes stop following the land (`footing: free`), and",
+    "everything leans towards the fantastic: land that floats or hangs inverted, colour, glow, things aloft and",
+    "mushroom woods, creatures that fly rather than bite.",
+    "",
+    "Three of a soft haze tinted a colour no air is, a rainbow in a clear sky, pastel sky and cloud, motes of",
+    "light and petals drifting, a second sun, a vast moon and brighter stars are offered to every dreamlike Age,",
+    "each yielding to anything the book says."
+  ],
+  "biases": {
+    "landmass": {
+      "tangled": 0.8
+    },
+    "all": {
+      "#floating": 0.9,
+      "#colourful": 0.7,
+      "#glowing": 0.5,
+      "#fungal": 0.4,
+      "#aloft": 0.4,
+      "#hostile": -0.4
+    }
+  },
   "sets": {
     "footing": "free"
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "3",
+        "facets": [
+          {
+            "rainbow.frequency": "0.7..1.0",
+            "rainbow.rain": "-1.0..-0.5"
+          },
+          {
+            "air.tint": "purple|magenta|cyan",
+            "air.haze": "+0.2"
+          },
+          {
+            "sky.colour": "purple|magenta|cyan|indigo"
+          },
+          {
+            "clouds.colour": "magenta|cyan|white"
+          },
+          {
+            "motes": "glimmer|firefly|cherry_petals|starlight|spore_blossom"
+          },
+          {
+            "sun.cast": "2"
+          },
+          {
+            "moon.size": "+0.7"
+          },
+          {
+            "stars.glow": "+0.4",
+            "stars.density": "+0.3"
+          },
+          {
+            "stone": "#colourful"
+          }
+        ]
+      }
+    ]
   }
 }

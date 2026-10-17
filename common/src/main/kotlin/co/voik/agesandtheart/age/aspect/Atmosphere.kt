@@ -72,7 +72,7 @@ object Atmosphere {
      * have to be the other.
      */
     val RAINFALL = Parameter.ranged(
-        "rainfall",
+        "frequency",
         help = "How much of the time it rains.",
         landmarks = listOf(
                 Parameter.Landmark(-1.0, "never"),

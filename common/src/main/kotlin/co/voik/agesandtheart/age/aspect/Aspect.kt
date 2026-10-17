@@ -359,8 +359,8 @@ enum class Aspect(
             TERRAIN -> listOf(Terrain.TORN, Terrain.INCONGRUOUS)
             SPAWNS -> listOf(Spawns.STILL, Spawns.PACE, Spawns.STRENGTH, Spawns.INCONGRUOUS)
             STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS)
-            // **Nothing settable at all**, which for the last one is because its whole answer is a [pool]:
-            // members are added, removed and leaned rather than set to a value.
+            // **Nothing of its own**: each phenomenon carries the dials it has (`Phenomenon.parameters`), since an
+            // inferno has no "how often" and only the overgrowth grows.
             CARVERS, UNDERGROUND, PHENOMENA -> emptyList()
         }
 

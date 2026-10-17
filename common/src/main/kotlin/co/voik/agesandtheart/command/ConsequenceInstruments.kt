@@ -24,6 +24,7 @@ import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.generation.AgeChunkGenerator
 import co.voik.agesandtheart.generation.Skies
 import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.phenomena.Fog
 import co.voik.agesandtheart.age.phenomena.FogDials
@@ -240,9 +241,8 @@ internal object ConsequenceInstruments {
             Manifestation.SANDFALL, Manifestation.METEORS, Manifestation.TECTONICS -> "comes and goes on its own clock"
             Manifestation.FOG -> {
                 val composition = recipe.composition
-                val written = if (composition == null) emptyList() else Happenings.claimsIn(composition)
-                val density = Happenings.befalling(written, spending)[Phenomenon.FOG] ?: Rung.ORDINARY
-                val lying = Fog.lyingAt(level, density, FogDials.of(spending))
+                val befalling = composition?.let { Happenings.befallingIn(it, recipe.seed, spending)[Phenomenon.FOG] }
+                val lying = Fog.lyingAt(level, befalling?.recurrence ?: Recurrence.ORDINARY, FogDials.of(spending))
                 if (lying <= 0.0) "no bank lying now" else "a bank %.0f%% in now".format(lying * PER_CENT)
             }
         }

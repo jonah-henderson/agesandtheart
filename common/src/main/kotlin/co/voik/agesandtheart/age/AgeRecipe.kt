@@ -200,7 +200,7 @@ data class AgeRecipe(
                 world, seed, version, character, instability, words, writtenAt, template, authored,
                 ->
                 AgeRecipe(
-                    world = world,
+                    world = if (version <= FormerRungs.LAST_GENERATOR_BEFORE_THE_SPLIT) FormerRungs.carriedOver(world) else world,
                     seed = seed,
                     character = character,
                     // An Age written before the page count was kept reads it off the pages it was laid with,

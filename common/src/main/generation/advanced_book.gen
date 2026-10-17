@@ -61,7 +61,7 @@ singled_age =
 
 # `no`: something a world would have, left out where a visitor would miss it.
 spared_age =
-    age [land] landmass no monsters spawns glimmering stars colossal moon@2
+    age [land] landmass no monsters spawns bright stars colossal moon@2
     | age floating landmass no monsters spawns [colour] sky [colour] clouds
     | age [land] landmass no undead spawns bright stars [aurora_colour] aurora
     | age [land] landmass no undead and arthropods spawns [sun_colour] sun
@@ -106,7 +106,7 @@ wonder_age =
     | age [land] landmass delved underground glowstone and shroomlight veins
     | age colossal chambered underground only lush_caves biomes
     | age floating landmass hollow underground [colour] sky only plains biomes
-    | wondrous age skyborne landmass glimmering stars [aurora_colour] aurora only plains biomes
+    | wondrous age skyborne landmass bright stars [aurora_colour] aurora only plains biomes
 
 # Danger in common ink: a hostile crowd and a phenomenon that falls on whoever is out in it. Each pairs a
 # creature with the weather it suits. Scored 0.32 at the least against a threshold of 0.25.
@@ -144,7 +144,7 @@ semiprecious = copper_block | amethyst_block | prismarine | quartz_block | obsid
 
 shape = spikes | obelisks | arches | pyramids | rings
 
-night = glimmering stars | bright stars | [aurora_colour] aurora | small moon | colossal moon
+night = bright stars | [aurora_colour] aurora | small moon | colossal moon
 
 land = gentle | eroded | continental | archipelagic | insular | mountainous | riverine | canyoned | pillared
 

@@ -29,6 +29,6 @@ age bench unpocked 6
 
 # And a teeming one, which buys craters more often -- the rarity divides by the rung, so this should be
 # visibly more pocked than `pocked` and is the fastest way to see the shape of one at all.
-age write hammered 4242 teeming meteors phenomena age
+age write hammered 4242 frequent meteors phenomena age
 age gen hammered
 age bench hammered 6

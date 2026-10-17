@@ -36,7 +36,7 @@ import kotlin.math.roundToInt
  */
 object Tempest {
 
-    fun strike(level: ServerLevel, density: Double, dials: TempestDials) {
+    fun strike(level: ServerLevel, often: Double, dials: TempestDials) {
         val watching = Sampling.watchers(level)
         if (watching.isEmpty()) return
 
@@ -44,7 +44,7 @@ object Tempest {
         // Read once per pass rather than per roll: this runs hundreds of times a tick.
         val behaviour = PhenomenonBehaviour.of(level.server)
         val reach = behaviour.reach
-        repeat(Happenings.timesFor(asIfTeeming(density, dials.often), behaviour.rolls)) {
+        repeat(Happenings.timesFor(asIfTeeming(often, dials.often), behaviour.rolls)) {
             val near = watching[random.nextInt(watching.size)].chunkPosition()
             val chunk = level.chunkSource.getChunkNow(
                 near.x + random.nextInt(reach * 2 + 1) - reach,
@@ -127,7 +127,7 @@ object Tempest {
         if (!level.canSpreadFireAround(around)) return
         val behaviour = PhenomenonBehaviour.of(level.server)
         // [TempestDials.fire] in full is as many tries again as `teeming` would be, over twice the ring.
-        val attempts = asIfTeeming(behaviour.fireAttempts.toDouble(), fire).roundToInt()
+        val attempts = asIfTeeming(behaviour.fireAttempts.toDouble(), fire).roundToInt().coerceAtLeast(NO_ATTEMPTS)
         val reach = (behaviour.fireReach * (ONE_WHOLE + fire * FURTHER_WHEN_BOUGHT)).roundToInt()
         repeat(attempts) {
             val at = around.offset(scatter(random, reach), scatter(random, reach), scatter(random, reach))
@@ -146,4 +146,7 @@ object Tempest {
 
     /** What [TempestDials.blast] in full adds to a bolt's blast: as much again, a charged creeper's. */
     private const val BIGGER_WHEN_BOUGHT = 1.0
+
+    /** A weak storm sets nothing alight, and never fewer than nothing. */
+    private const val NO_ATTEMPTS = 0
 }

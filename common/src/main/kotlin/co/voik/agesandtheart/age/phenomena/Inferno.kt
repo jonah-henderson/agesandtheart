@@ -188,7 +188,7 @@ object Inferno {
         val alight = intensity.harm * intensity.betweenHarms / TICKS_PER_SECOND
         // [InfernoDials.burnDamage] on top of vanilla's burning, and still fire damage: fire resistance
         // answers it, and a thing that dies of it still drops its meat cooked.
-        val extra = burnDamage * MOST_EXTRA_BURN_PER_SECOND * intensity.betweenHarms / TICKS_PER_SECOND
+        val extra = (burnDamage * MOST_EXTRA_BURN_PER_SECOND * intensity.betweenHarms / TICKS_PER_SECOND).coerceAtLeast(NO_EXTRA_BURN)
         for (living in nearSomebody(level)) {
             // **The sun says how much burn there may be, and cover takes it off** (Jonah, 2026-09-23), as it
             // takes off a blizzard's cold: a lip of rock shortens it, a cave or a roof ends it. Read the
@@ -240,4 +240,7 @@ object Inferno {
 
     /** What [InfernoDials.burnDamage] in full adds, in health a second — a heart, on top of vanilla's burn. */
     private const val MOST_EXTRA_BURN_PER_SECOND = 2.0
+
+    /** A weak inferno burns no harder than vanilla's fire, and never heals. */
+    private const val NO_EXTRA_BURN = 0.0
 }

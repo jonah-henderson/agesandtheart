@@ -26,6 +26,9 @@ data class Pool(
     /** How a recipe says this population holds nothing at all, or null where it may never be emptied. */
     val emptiedBy: String? = null,
 
+    /** Whether an Age holds none of these until something brings one, as nothing happens until written. */
+    val startsEmpty: Boolean = false,
+
     /**
      * The least a claim may be scaled to and still be kept — nothing at all where the pool may be emptied,
      * and otherwise [Rung.ORDINARY]. Below it the member is struck out instead.

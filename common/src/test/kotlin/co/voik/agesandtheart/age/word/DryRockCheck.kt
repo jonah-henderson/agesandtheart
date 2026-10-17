@@ -10,7 +10,7 @@ import io.kotest.core.spec.style.FunSpec
 
 /**
  * **A dry underground** (Jonah, 2026-09-29): `dry rock` switches the rock's water table dry, and asking for
- * it beside flooded rock is charged rather than lost. Whether the rock then holds no water is a generation
+ * it beside drowned rock is charged rather than lost. Whether the rock then holds no water is a generation
  * question, and `/age compare` against the same Age with wet rock answers it (31,868 blocks, water to air,
  * at seed 7, radius 6).
  */

@@ -1,10 +1,12 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.AuthoredPreset
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.RANGED_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.math.mix64
@@ -408,6 +410,39 @@ data class Word(
 
     /** Whether this word narrows anything at all, as opposed to only leaning, offering and bending. */
     val narrows: Boolean get() = firmness != Firmness.LEANS
+
+    /** The designs this word names that carry dials of their own, as each phenomenon does. */
+    private val namedDesignsWithDials: List<AuthoredPreset>
+        get() = chooses.mapNotNull { (aspect, key) -> aspect.authored.firstOrNull { it.key == key } }
+            .filter { design -> design.parameters.any(Parameter::ownedByEachMember) }
+
+    /**
+     * Whether everything this says of [member]'s part of the world is a dial [member] does not have —
+     * `frequent inferno`, since an inferno never comes and goes. Such a page says nothing and is refused.
+     */
+    fun saysNothingThatCanBeSaidOf(member: Word): Boolean {
+        val designs = member.namedDesignsWithDials
+        if (designs.isEmpty()) return false
+        return designs.all { design ->
+            val aspect = design.aspect
+            val saidHere = setsIn(aspect).keys.filter(aspect::ownsParameterNamed)
+            val saysOnlyDials = saidHere.isNotEmpty() && saidHere.all(aspect::ownsMemberParameterNamed)
+            val leansHereToo = aspect in chooses || aspect in admits || aspect in excludes ||
+                aspect in restricts || aspect in biases || leansEverywhere.isNotEmpty() || requestsIn(aspect).isNotEmpty()
+            val held = design.parameters.map(Parameter::name).toSet()
+            saysOnlyDials && !leansHereToo && saidHere.none(held::contains)
+        }
+    }
+
+    /**
+     * Whether a rung laid before this has anything to count. A rung counts in space, so a phenomenon that is
+     * one state over the whole Age — a fog, a blizzard, a tempest — has nothing for it and refuses one;
+     * how often it comes is its frequency instead.
+     */
+    val takesARung: Boolean get() {
+        val phenomenon = chooses[Aspect.PHENOMENA]?.let(Phenomenon::named) ?: return true
+        return phenomenon.countsInSpace
+    }
 
     /** The highest at-least bar this word sets anywhere — what breaks a tie between two words that bar. */
     val highestBar: Double get() = restricts.values.flatMap { it.values }.filter(Bars::isAtLeast).maxOrNull() ?: 0.0

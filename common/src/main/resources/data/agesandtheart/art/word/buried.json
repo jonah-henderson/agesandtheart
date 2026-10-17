@@ -1,7 +1,16 @@
 {
+  "_comment": [
+    "Under the ground: features that lie buried, set low, and every part leaning to what is buried — ore, geodes,",
+    "fossils, what was built and went under."
+  ],
   "restricts": {
     "features": {
       "buried": ">0.3"
+    }
+  },
+  "biases": {
+    "all": {
+      "#buried": 0.6
     }
   },
   "sets": {

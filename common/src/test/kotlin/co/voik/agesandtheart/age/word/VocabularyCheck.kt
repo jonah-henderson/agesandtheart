@@ -467,7 +467,7 @@ class VocabularyCheck : FunSpec({
     test("a phenomenon's climate is demanded rather than merely preferred") {
         val inferno = vocabulary.words.firstOrNull { it.name == INFERNO }
         check(inferno != null) { "there is no inferno in the corpus" }
-        for (axis in listOf("temperature", "rainfall")) {
+        for (axis in listOf("temperature", "weather.frequency")) {
             val said = inferno.sets[axis]
             check(said != null) { "the inferno says nothing about $axis, so a frozen one costs nothing" }
             check(Setting.read(said) is Setting.Fixed) {

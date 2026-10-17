@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
+import kotlin.math.pow
+
 /**
  * What *happens* here — storms, fire, a column of sand walking the world (design §3.1, §5.2).
  *
@@ -36,9 +38,69 @@ object Phenomena {
         "happens",
         // `happens=nothing` is a quiet Age: nothing befalls it, whatever its instability would otherwise bring.
         emptiedBy = Pool.NOTHING,
+        startsEmpty = true,
         named = Phenomenon.entries.map { it.key },
             help = "What happens here: a tempest, an inferno, an aurora.",
         )
+
+    /**
+     * How often each phenomenon comes — `frequency`, the name the curtain, the bow and the rain share, so
+     * `frequent` reaches all of them. Said of members, so `frequent tempest` is the tempest's alone.
+     */
+    val FREQUENCY = Parameter.ranged(
+        "frequency",
+        help = "How often it comes, against its own ordinary rate.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "a sixth as often"),
+            Parameter.Landmark(0.0, "as often as it would", isVanilla = true),
+            Parameter.Landmark(1.0, "never stopping"),
+        ),
+    ).perMember()
+
+    /**
+     * How hard each phenomenon is while it lasts — `strength`, the name the creatures hold too, so `strong` and
+     * `weak` reach both. It moves the dials instability buys, toward their fury and below ordinary.
+     */
+    val STRENGTH = Parameter.ranged(
+        "strength",
+        help = "How hard it is while it lasts, against an ordinary one.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "gentler than ordinary"),
+            Parameter.Landmark(0.0, "an ordinary one", isVanilla = true),
+            Parameter.Landmark(1.0, "half way to its fury"),
+        ),
+    ).perMember()
+
+    /**
+     * How fast a phenomenon that grows does it — `pace`, the name the rain, the creatures and the bodies share, so
+     * `slow` and `swift` reach it. Only the overgrowth grows.
+     */
+    val PACE = Parameter.ranged(
+        "pace",
+        help = "How fast it grows, against its own ordinary pace.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "half as fast"),
+            Parameter.Landmark(0.0, "its own pace", isVanilla = true),
+            Parameter.Landmark(1.0, "twice as fast"),
+        ),
+    ).perMember()
+
+    /** How fast [phenomenon] was written to grow, as a multiple of its own pace: half as fast to twice. */
+    fun growthOf(options: Options, phenomenon: Phenomenon, seed: Long): Double =
+        FASTEST_GROWTH.pow(options.steer(PACE, seed, member = phenomenon.key) ?: UNSAID_PACE)
+
+    private const val UNSAID_PACE = 0.0
+    private const val FASTEST_GROWTH = 2.0
+
+    /** How hard [phenomenon] was written in these options, from -1 to 1, nought where nothing was said. */
+    fun strengthOf(options: Options, phenomenon: Phenomenon, seed: Long): Double =
+        options.steer(STRENGTH, seed, member = phenomenon.key) ?: UNSAID_STRENGTH
+
+    private const val UNSAID_STRENGTH = 0.0
+
+    /** How often [phenomenon] was written to come in these options, salted by the Age's [seed]. */
+    fun recurrenceOf(options: Options, phenomenon: Phenomenon, seed: Long): Recurrence =
+        Recurrence.of(options.steer(FREQUENCY, seed, member = phenomenon.key))
 
     /**
      * What these options say befalls the Age — empty where they say nothing.

@@ -22,7 +22,7 @@
     "phenomena": "deluge"
   },
   "sets": {
-    "rainfall": "0.7..1.0"
+    "weather.frequency": "0.7..1.0"
   },
   "speech": "noun"
 }

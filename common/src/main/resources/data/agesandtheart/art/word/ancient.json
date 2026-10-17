@@ -1,14 +1,15 @@
 {
   "_comment": [
-    "Worn, great and laid out long ago, and faded with it: two of more weathering, a yellowed or grey light,",
-    "dust in the air, a faint haze, and old stone underfoot are offered to every ancient Age, each yielding",
-    "to anything the book says."
+    "Worn, great and laid out long ago, and faded with it, its builders' works gone to ruin: two of more weathering,",
+    "a yellowed or grey light, dust in the air, a faint haze, and old stone underfoot are offered to every ancient Age,",
+    "each yielding to anything the book says."
   ],
   "biases": {
     "all": {
       "#eroded": 1.0,
       "#monumental": 0.7,
-      "#ordered": 0.5
+      "#ordered": 0.5,
+      "#ruined": 0.5
     }
   },
   "requests": {

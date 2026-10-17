@@ -13,10 +13,10 @@ data class MeteorDials(val often: Double, val long: Double, val power: Double) {
         /** What an Age that bought nothing inflicts — a written storm as written. */
         val NONE = MeteorDials(often = 0.0, long = 0.0, power = 0.0)
 
-        fun of(spending: Spending) = MeteorDials(
+        fun of(spending: Spending, written: Double = UNSAID) = MeteorDials(
             often = spending.reach(Manifestation.METEORS, Manifestation.STORMS_OFTEN),
             long = spending.reach(Manifestation.METEORS, Manifestation.STORMS_LONG),
-            power = spending.reach(Manifestation.METEORS, Manifestation.STORMS_POWER),
+            power = harderBy(spending.reach(Manifestation.METEORS, Manifestation.STORMS_POWER), written),
         )
     }
 }
@@ -29,9 +29,9 @@ data class TectonicsDials(val size: Double, val speed: Double) {
     companion object {
         val NONE = TectonicsDials(size = 0.0, speed = 0.0)
 
-        fun of(spending: Spending) = TectonicsDials(
-            size = spending.reach(Manifestation.TECTONICS, Manifestation.CAVE_IN_SIZE),
-            speed = spending.reach(Manifestation.TECTONICS, Manifestation.CAVE_IN_SPEED),
+        fun of(spending: Spending, written: Double = UNSAID) = TectonicsDials(
+            size = harderBy(spending.reach(Manifestation.TECTONICS, Manifestation.CAVE_IN_SIZE), written),
+            speed = harderBy(spending.reach(Manifestation.TECTONICS, Manifestation.CAVE_IN_SPEED), written),
         )
     }
 }
@@ -44,11 +44,11 @@ data class SandfallDials(val often: Double, val long: Double, val size: Double, 
     companion object {
         val NONE = SandfallDials(often = 0.0, long = 0.0, size = 0.0, depth = 0.0)
 
-        fun of(spending: Spending) = SandfallDials(
+        fun of(spending: Spending, written: Double = UNSAID) = SandfallDials(
             often = spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_OFTEN),
             long = spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_LONG),
-            size = spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_SIZE),
-            depth = spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_DEPTH),
+            size = harderBy(spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_SIZE), written),
+            depth = harderBy(spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_DEPTH), written),
         )
     }
 }
@@ -61,11 +61,11 @@ data class BlizzardDials(val often: Double, val long: Double, val visibility: Do
     companion object {
         val NONE = BlizzardDials(often = 0.0, long = 0.0, visibility = 0.0, frostbite = 0.0)
 
-        fun of(spending: Spending) = BlizzardDials(
+        fun of(spending: Spending, written: Double = UNSAID) = BlizzardDials(
             often = spending.reach(Manifestation.BLIZZARD, Manifestation.SNOWSTORMS_OFTEN),
             long = spending.reach(Manifestation.BLIZZARD, Manifestation.SNOWSTORMS_LONG),
-            visibility = spending.reach(Manifestation.BLIZZARD, Manifestation.SNOWSTORMS_VISIBILITY),
-            frostbite = spending.reach(Manifestation.BLIZZARD, Manifestation.SNOWSTORMS_FROSTBITE),
+            visibility = harderBy(spending.reach(Manifestation.BLIZZARD, Manifestation.SNOWSTORMS_VISIBILITY), written),
+            frostbite = harderBy(spending.reach(Manifestation.BLIZZARD, Manifestation.SNOWSTORMS_FROSTBITE), written),
         )
     }
 }
@@ -75,10 +75,10 @@ data class TempestDials(val often: Double, val blast: Double, val fire: Double) 
     companion object {
         val NONE = TempestDials(often = 0.0, blast = 0.0, fire = 0.0)
 
-        fun of(spending: Spending) = TempestDials(
+        fun of(spending: Spending, written: Double = UNSAID) = TempestDials(
             often = spending.reach(Manifestation.TEMPEST, Manifestation.BOLTS_OFTEN),
-            blast = spending.reach(Manifestation.TEMPEST, Manifestation.BOLTS_BLAST),
-            fire = spending.reach(Manifestation.TEMPEST, Manifestation.BOLTS_FIRE),
+            blast = harderBy(spending.reach(Manifestation.TEMPEST, Manifestation.BOLTS_BLAST), written),
+            fire = harderBy(spending.reach(Manifestation.TEMPEST, Manifestation.BOLTS_FIRE), written),
         )
     }
 }
@@ -91,9 +91,9 @@ data class InfernoDials(val burnDamage: Double, val lightIntensity: Double) {
     companion object {
         val NONE = InfernoDials(burnDamage = 0.0, lightIntensity = 0.0)
 
-        fun of(spending: Spending) = InfernoDials(
-            burnDamage = spending.reach(Manifestation.INFERNO, Manifestation.BURN_DAMAGE),
-            lightIntensity = spending.reach(Manifestation.INFERNO, Manifestation.LIGHT_INTENSITY),
+        fun of(spending: Spending, written: Double = UNSAID) = InfernoDials(
+            burnDamage = harderBy(spending.reach(Manifestation.INFERNO, Manifestation.BURN_DAMAGE), written),
+            lightIntensity = harderBy(spending.reach(Manifestation.INFERNO, Manifestation.LIGHT_INTENSITY), written),
         )
     }
 }
@@ -103,12 +103,27 @@ data class FogDials(val often: Double, val thickness: Double) {
     companion object {
         val NONE = FogDials(often = 0.0, thickness = 0.0)
 
-        fun of(spending: Spending) = FogDials(
+        fun of(spending: Spending, written: Double = UNSAID) = FogDials(
             often = spending.reach(Manifestation.FOG, Manifestation.BANKS_OFTEN),
-            thickness = spending.reach(Manifestation.FOG, Manifestation.BANKS_THICKNESS),
+            thickness = harderBy(spending.reach(Manifestation.FOG, Manifestation.BANKS_THICKNESS), written),
         )
     }
 }
+
+/**
+ * A harsh dial with how hard the book wrote the phenomenon laid on it: [written] from -1 to 1 moves it up to
+ * half way on toward its fury, or as far below ordinary — a reach under nought is a gentler one than an Age
+ * that bought nothing has, which every reader of a harsh dial takes.
+ */
+internal fun harderBy(reach: Double, written: Double): Double =
+    (reach + written * WRITTEN_SHARE_OF_A_DIAL).coerceIn(GENTLEST_REACH, WHOLE_REACH)
+
+private const val WRITTEN_SHARE_OF_A_DIAL = 0.5
+private const val GENTLEST_REACH = -0.5
+private const val WHOLE_REACH = 1.0
+
+/** What a dial carries where the book said nothing of how hard. */
+private const val UNSAID = 0.0
 
 /**
  * **What a dial bought in full is worth: what `teeming` is to a written claim.** One figure for every dial

@@ -1,5 +1,15 @@
 {
+  "_comment": [
+    "Dug into: great halls cut under the ground, ore leaning in where somebody would have dug for it, and what was",
+    "built leaning to the abandoned workings — mineshafts and the like."
+  ],
   "chooses": {
     "underground": "great_halls"
+  },
+  "biases": {
+    "all": {
+      "#ore": 0.5,
+      "#ruined": 0.4
+    }
   }
 }

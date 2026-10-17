@@ -186,6 +186,7 @@ internal object ArtReading {
             val reached = (said.flatMap { it.aimedAt } + aim + subject?.word?.aspects.orEmpty()).toSet()
             if (everywhere && reached.none { it in WIDENED }) return refusingAt(sitingAt)
             val subjectsRung = owned.firstOrNull { it.kind == PageClass.QUANTIFIER }
+            if (subjectsRung != null && subject?.word?.takesARung == false) return refusingAt(ownedFrom + owned.indexOf(subjectsRung))
             val subjectsPolarity = when (owned.firstOrNull()?.kind) {
                 PageClass.RESTRICTOR -> Polarity.ONLY
                 PageClass.EXCLUDER -> Polarity.EXCEPT
@@ -346,6 +347,7 @@ internal object ArtReading {
             buildList {
                 while (at < until) {
                     if (!belongsHere(here, aim, sited = confinedTo != null, closing = closes)) return null
+                    if (saysNothingOfWhatItDescribes(here, until, closes)) return null
                     addAll(modifier(until, aim, confinedTo, everywhere))
                     if (refused) return@buildList
                 }
@@ -363,6 +365,7 @@ internal object ArtReading {
                 PageClass.EXCLUDER -> Polarity.EXCEPT.also { take() }
                 else -> Polarity.ASSERTED
             }
+            val quantifierAt = at
             val quantifier = here?.takeIf { it.kind == PageClass.QUANTIFIER }?.also { take() }
             val terms = mutableListOf<Page>()
             // A polarity or a rung standing in front of nothing is a refusal, as is a trailing `and` or a rung
@@ -371,6 +374,12 @@ internal object ArtReading {
             while (at < until && here?.kind == PageClass.JOINER) {
                 take()
                 terms += term(until) ?: return emptyList<Constraint>().also { refusedBefore() }
+            }
+            // A rung counts in space, and before something with nothing to count it means nothing: refused.
+            if (quantifier != null && terms.any { it.word?.takesARung == false }) {
+                refused = true
+                refuseAt(quantifierAt)
+                return emptyList()
             }
             // A group identifies words a writer joined; standing alone is *not* a group of one, because
             // unjoined juxtaposition has to keep meaning contention (§3.2).
@@ -418,6 +427,20 @@ internal object ArtReading {
          * where it declares it belongs, and a word declaring nothing belongs anywhere. An empty [aim] is
          * the nucleus, which is about the whole Age and so admits everything.
          */
+        /**
+         * Whether [page] says only what the member it describes has no dial for — `frequent inferno`, which
+         * reads as laid and means nothing. The member is the first named after it in the clause, or the page
+         * closing it.
+         */
+        private fun saysNothingOfWhatItDescribes(page: Page?, until: Int, closing: Page?): Boolean {
+            val word = page?.word ?: return false
+            fun namesAMember(later: Page) = later.kind == PageClass.TERM && later.word != null
+            val described = ((at + 1)..<until).map { pages[it] }.firstOrNull(::namesAMember)?.word
+                ?: closing?.word
+                ?: return false
+            return word.saysNothingThatCanBeSaidOf(described)
+        }
+
         private fun belongsHere(page: Page?, aim: Set<Aspect>, sited: Boolean, closing: Page? = null): Boolean {
             if (page == null) return false
             // Structure carries no aspect of its own; what it joins or qualifies is checked on its own.

@@ -176,7 +176,7 @@ class OfferCheck : FunSpec({
      */
     test("a sea the writer asked for is the sea they get") {
         for (seed in SEEDS) {
-            val resolved = resolve(seed, "inferno", "age", "drowned", "sea")
+            val resolved = resolve(seed, "inferno", "age", "flooded", "sea")
             val seas = resolved.composition.seas.map { it.key }
             check(seas.isNotEmpty() && seas.all { it.contains("water") }) {
                 "the writer's drowned sea came out $seas at seed $seed"

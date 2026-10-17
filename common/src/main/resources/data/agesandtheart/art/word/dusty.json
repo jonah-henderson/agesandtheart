@@ -1,4 +1,8 @@
 {
+  "_comment": [
+    "Dry and blown: sand on the wind, a haze of it in the air, a yellow light, the ground barren and dry. Offered,",
+    "yielding to the book: a yellow or orange sky, sandy ground, yellowed grass. `ashen` is the burnt sister."
+  ],
   "restricts": {
     "biomes": {
       "barren": ">0.3",
@@ -6,7 +10,20 @@
     }
   },
   "sets": {
-    "motes": "ash",
-    "haze": "0.3..0.7"
+    "motes": "grit",
+    "air.haze": "0.3..0.7",
+    "air.tint": "yellow"
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "2",
+        "facets": {
+          "sky.colour": "yellow|orange",
+          "material": "#sandy",
+          "grass.colour": "yellow"
+        }
+      }
+    ]
   }
 }

@@ -1,8 +1,29 @@
 {
+  "_comment": [
+    "Never touched by anybody: nothing built or lived in, and the wild leaning in — lush and wooded. Offered,",
+    "yielding to the book: air and water clean of anything people put there."
+  ],
   "excludes": {
     "structures": [
       "#built",
       "#inhabited"
+    ]
+  },
+  "biases": {
+    "all": {
+      "#lush": 0.4,
+      "#wooded": 0.3
+    }
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "1",
+        "facets": {
+          "air.haze": "-0.3",
+          "murk": "-0.3"
+        }
+      }
     ]
   }
 }

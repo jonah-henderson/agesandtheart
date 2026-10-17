@@ -1,7 +1,32 @@
 {
-  "restricts": {
-    "sea": {
-      "empty": ">0.3"
+  "_comment": [
+    "Wide and unobstructed: flat open country with little standing on it, few trees, nothing sheer or high, and",
+    "what there is set far apart. Offered, yielding to the book: clear air, a high cloud and a blue sky over it.",
+    "",
+    "It was a sea of empty air until 2026-10-16, which read as nothing the word says; `floating` leans there now."
+  ],
+  "biases": {
+    "all": {
+      "#flat": 1.0,
+      "#wooded": -0.6,
+      "#sheer": -0.6,
+      "#mountainous": -0.5
     }
+  },
+  "bends": {
+    "relief": "-0.8..-0.2",
+    "spacing": "0.3..1.0"
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "2",
+        "facets": {
+          "air.haze": "-0.4",
+          "clouds.ceiling": "+0.4",
+          "sky.colour": "blue"
+        }
+      }
+    ]
   }
 }

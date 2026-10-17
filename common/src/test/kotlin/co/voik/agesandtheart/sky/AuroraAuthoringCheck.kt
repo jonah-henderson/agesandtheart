@@ -5,7 +5,6 @@ import co.voik.agesandtheart.age.aspect.Colour
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
-import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.AuroraAspect
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.ephemeris.sky.Aurora
@@ -105,13 +104,17 @@ class AuroraAuthoringCheck : FunSpec({
         }
     }
 
-    test("the rung is how hard it comes") {
+    test("how often every phenomenon comes reaches the curtain, where its own dial says nothing") {
         val ordinary = curtain(happens("aurora"))
-        val teeming = curtain(happens("aurora[amount=${Rung.spelled(Rung.ORDINARY * 2)}]"))
-        check(teeming.frequency > ordinary.frequency) {
-            "A teeming aurora comes on ${teeming.frequency} of nights against an ordinary ${ordinary.frequency}"
+        val frequent = curtain(
+            Aspect.PHENOMENA to options(
+                Phenomena.HAPPENS.name to listOf("aurora"),
+                Phenomena.FREQUENCY.name to listOf("0.8..0.8[for=aurora]"),
+            ),
+        )
+        check(frequent.frequency > ordinary.frequency) {
+            "A frequent aurora comes on ${frequent.frequency} of nights against an ordinary ${ordinary.frequency}"
         }
-        check(teeming.glow > ordinary.glow) { "A teeming aurora is no brighter than an ordinary one" }
     }
 
     test("a curtain reproduces from its Age's seed") {

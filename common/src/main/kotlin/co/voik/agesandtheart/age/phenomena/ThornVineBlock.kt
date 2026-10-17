@@ -129,7 +129,7 @@ class ThornVineBlock(properties: BlockBehaviour.Properties) : Block(properties),
     /** One look at whether the tip grows: it does with some chance, and looks again while it still could. */
     private fun beat(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
         if (Overgrowth.isHotWithin(level, pos, Overgrowth.BURN_RADIUS)) return
-        if (random.nextFloat() < GROWTH_PER_BEAT) grow(state, level, pos, random) else level.scheduleTick(pos, this, HEARTBEAT)
+        if (random.nextFloat() < GROWTH_PER_BEAT * Overgrowth.growthIn(level)) grow(state, level, pos, random) else level.scheduleTick(pos, this, HEARTBEAT)
     }
 
     override fun randomTick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {

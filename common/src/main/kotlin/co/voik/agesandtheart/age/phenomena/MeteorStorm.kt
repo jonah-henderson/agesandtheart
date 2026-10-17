@@ -306,9 +306,10 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         // place, which asking the ground a second time in this method is precisely how it stopped doing.
         val from = seenFrom(flight, ARRIVING)
         val toTheGround = landingOf(flight).subtract(from)
-        val speed = SLOWEST_ARRIVAL + (FASTEST_ARRIVAL - SLOWEST_ARRIVAL) * fury
+        // A weak storm's fury is under nought, which lands softer and slower, down to a floor.
+        val speed = (SLOWEST_ARRIVAL + (FASTEST_ARRIVAL - SLOWEST_ARRIVAL) * fury).coerceAtLeast(SLOWEST_ARRIVAL * GENTLEST_SHARE)
         val body = Meteor(AgeContent.METEOR, level)
-        body.blast = (AT_REST + (AT_FULL_FURY - AT_REST) * fury).toFloat()
+        body.blast = (AT_REST + (AT_FULL_FURY - AT_REST) * fury).coerceAtLeast(AT_REST * GENTLEST_SHARE).toFloat()
         body.setPos(from.x, from.y, from.z)
         body.setDeltaMovement(toTheGround.normalize().scale(speed))
         // Aged from the moment it was *due* rather than the moment it was thrown, so one whose moment went
@@ -430,6 +431,9 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
          * shelter from; a ruined Age's is the hardest thing in the modpack.
          */
         private const val AT_REST = 2.5
+
+        /** The least of an ordinary landing a weak storm's body keeps, in speed and in blast. */
+        private const val GENTLEST_SHARE = 0.25
         private const val AT_FULL_FURY = 11.0
 
         /**

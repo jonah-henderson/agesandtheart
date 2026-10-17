@@ -1,6 +1,10 @@
 {
+  "_comment": [
+    "Black as ink, and as hard to see through: every colour black, a thick haze in the air and dark, murky water."
+  ],
   "sets": {
     "colour": "black",
-    "haze": "0.6..0.9"
+    "air.haze": "0.6..0.9",
+    "murk": "0.4..0.8"
   }
 }

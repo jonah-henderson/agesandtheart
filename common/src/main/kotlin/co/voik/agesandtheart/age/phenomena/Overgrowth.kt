@@ -1,6 +1,11 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.generation.Ages
+import java.util.Collections
+import java.util.WeakHashMap
 import co.voik.agesandtheart.location
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -212,8 +217,36 @@ object Overgrowth {
 
     /** Turns blocks next to [root] into more of itself, as many tries as [SPREAD_ATTEMPTS] allows. */
     fun spreadFrom(level: ServerLevel, root: BlockPos, random: RandomSource) {
-        repeat(SPREAD_ATTEMPTS) { eatBesides(level, root, random) }
+        repeat(atPace(SPREAD_ATTEMPTS, growthIn(level), random)) { eatBesides(level, root, random) }
     }
+
+    /**
+     * How fast the overgrowth grows in [level], as a multiple of its own pace — what `slow` and `swift` say of it,
+     * and nothing anywhere a book did not. Spreading, raising, thorns and the crops it ripens all go at it, so a
+     * swift overgrowth is worse to hold back and better to hold.
+     */
+    fun growthIn(level: LevelReader): Double {
+        val server = level as? ServerLevel ?: return OWN_PACE
+        return growthByLevel.getOrPut(server) { growthWrittenFor(server) }
+    }
+
+    private val growthByLevel: MutableMap<ServerLevel, Double> = Collections.synchronizedMap(WeakHashMap())
+
+    private fun growthWrittenFor(level: ServerLevel): Double {
+        val recipe = Ages.recipeOf(level) ?: return OWN_PACE
+        val composition = recipe.composition ?: return OWN_PACE
+        return Phenomena.growthOf(composition.optionsFor(Aspect.PHENOMENA, 0), Phenomenon.OVERGROWTH, recipe.seed)
+    }
+
+    /** [ordinary] tries at [growth] times the pace, the fraction left over taken by chance. */
+    private fun atPace(ordinary: Int, growth: Double, random: RandomSource): Int {
+        val tries = ordinary * growth
+        val whole = tries.toInt()
+        return if (random.nextDouble() < tries - whole) whole + 1 else whole
+    }
+
+    private const val OWN_PACE = 1.0
+    private const val SOONEST = 1
 
     private fun eatBesides(level: ServerLevel, root: BlockPos, random: RandomSource) {
         val target = root.relative(Direction.getRandom(random))
@@ -244,11 +277,15 @@ object Overgrowth {
     fun growthDelay(level: LevelReader, at: BlockPos, state: BlockState): Int? {
         val age = ageOf(state)
         return when {
-            age != null && isRipening(state) -> RIPENING_TICKS / maxAgeOf(age)
-            age == null && canTakeBonemeal(level, at, state) -> BONEMEAL_INTERVAL
+            age != null && isRipening(state) -> ripeningStep(level, maxAgeOf(age))
+            age == null && canTakeBonemeal(level, at, state) -> (BONEMEAL_INTERVAL / growthIn(level)).toInt().coerceAtLeast(SOONEST)
             else -> null
         }
     }
+
+    /** How long a crop of [stages] waits between stages, so it ripens in [RIPENING_TICKS] at the overgrowth's pace. */
+    private fun ripeningStep(level: LevelReader, stages: Int): Int =
+        (RIPENING_TICKS / stages / growthIn(level)).toInt().coerceAtLeast(SOONEST)
 
     /**
      * Grows the plant standing on [root] one step: a crop one stage on, anything else a bone meal's worth.
@@ -264,7 +301,7 @@ object Overgrowth {
             val last = maxAgeOf(age)
             if (stage >= last) return null
             level.setBlock(above, plant.setValue(age, stage + 1), Block.UPDATE_CLIENTS)
-            return if (stage + 1 < last) RIPENING_TICKS / last else null
+            return if (stage + 1 < last) ripeningStep(level, last) else null
         }
         val block = plant.block as? BonemealableBlock ?: return null
         if (!canTakeBonemeal(level, above, plant)) return null
@@ -279,14 +316,14 @@ object Overgrowth {
         val above = root.above()
         // An overgrowth above would quicken the one above it in turn, and a column of them is exponential.
         if (level.getBlockState(above).`is`(BLOCK)) return
-        repeat(EXTRA_PLANT_TICKS) {
+        repeat(atPace(EXTRA_PLANT_TICKS, growthIn(level), random)) {
             val plant = level.getBlockState(above)
             if (plant.isRandomlyTicking) plant.randomTick(level, above, random)
         }
     }
 
     fun maybeRaiseFrom(level: ServerLevel, root: BlockPos, random: RandomSource) {
-        if (random.nextFloat() >= RAISE_CHANCE) return
+        if (random.nextFloat() >= RAISE_CHANCE * growthIn(level)) return
         when (Raising.at(random.nextDouble())) {
             Raising.THORNS -> sproutThorns(level, root, random)
             Raising.MUSHROOM -> raise(level, root, random, mushrooms(), mayGrowHuge = true)

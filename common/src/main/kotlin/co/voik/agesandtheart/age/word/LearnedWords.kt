@@ -47,6 +47,19 @@ class LearnedWords {
         known += packed.words
     }
 
+    /**
+     * Swaps each word [successorOf] names for what it became, keeping its place and dropping a repeat.
+     *
+     * @return whether anything changed.
+     */
+    fun migrate(successorOf: (Identifier) -> Identifier?): Boolean {
+        val migrated = known.map { successorOf(it) ?: it }.toCollection(LinkedHashSet())
+        val changed = migrated != known
+        known.clear()
+        known += migrated
+        return changed
+    }
+
     /** The saved form. A list, not a set: the order is part of the record. */
     data class Packed(val words: List<Identifier>) {
         companion object {

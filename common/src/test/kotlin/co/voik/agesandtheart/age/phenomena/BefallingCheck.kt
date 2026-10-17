@@ -27,7 +27,7 @@ class BefallingCheck : FunSpec({
 
     test("a coherent Age gets exactly what its book asked for and nothing else") {
         val befalling = Happenings.befalling(listOf(sandfall()), spendingAt(0))
-        check(befalling == mapOf(Phenomenon.SANDFALL to Rung.ORDINARY)) {
+        check(befalling == mapOf(Phenomenon.SANDFALL to Befalling.ORDINARY)) {
             "a coherent Age was given something other than what it wrote: $befalling"
         }
     }
@@ -52,7 +52,7 @@ class BefallingCheck : FunSpec({
         check(befalling.keys.all { Happenings.furyOf(ruined, it) > 0.0 }) {
             "instability inflicted something it bought no fury for: ${befalling.keys}"
         }
-        check(befalling[Phenomenon.SANDFALL] == Rung.ORDINARY) {
+        check(befalling[Phenomenon.SANDFALL]?.amount == Rung.ORDINARY) {
             "an inflicted sandfall did not come at an ordinary rung: $befalling"
         }
     }
@@ -64,7 +64,7 @@ class BefallingCheck : FunSpec({
     test("a written rung is not overwritten by an inflicted one") {
         val teeming = 4.0
         val befalling = Happenings.befalling(listOf(sandfall(density = teeming)), spendingAt(RUINED))
-        check(befalling[Phenomenon.SANDFALL] == teeming) {
+        check(befalling[Phenomenon.SANDFALL]?.amount == teeming) {
             "the writer's own rung was lost when instability reached the same phenomenon: $befalling"
         }
     }

@@ -3,7 +3,8 @@ package co.voik.agesandtheart.age.phenomena
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Spending
-import co.voik.agesandtheart.age.aspect.Claim
+import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.generation.AgeChunkGenerator
@@ -94,22 +95,25 @@ object Deluge {
      * What the deluge does in an Age whose book claims [written] and whose instability bought [spending],
      * or null where no deluge befalls it from either direction.
      */
-    fun risingIn(written: List<Claim>, spending: Spending): Rising? =
-        Happenings.befalling(written, spending)[Phenomenon.DELUGE]?.let { risingOf(it, spending) }
+    fun risingIn(composition: AgeComposition, seed: Long, spending: Spending): Rising? =
+        Happenings.befallingIn(composition, seed, spending)[Phenomenon.DELUGE]?.let { risingOf(it.recurrence, spending, it.strength) }
 
-    /** What a deluge claimed at [density] does in an Age that bought [spending]. */
-    fun risingOf(density: Double, spending: Spending): Rising {
-        val rate = spending.reach(Manifestation.DELUGE, Manifestation.RISE_RATE)
+    /**
+     * What a deluge written to come this [recurrence] and this hard ([written], -1 to 1, which moves how fast
+     * the sea rises) does in an Age that bought [spending].
+     */
+    fun risingOf(recurrence: Recurrence, spending: Spending, written: Double = UNSAID_STRENGTH): Rising {
+        val rate = harderBy(spending.reach(Manifestation.DELUGE, Manifestation.RISE_RATE), written)
         val downpour = spending.reach(Manifestation.DELUGE, Manifestation.DOWNPOUR)
         val height = spending.reach(Manifestation.DELUGE, Manifestation.RISE_HEIGHT)
         // Geometric, so every step of rate is the same proportion quicker rather than the last ones counting
         // for nothing against a figure already small.
         val quickening = (FASTEST_TICKS_PER_BLOCK.toDouble() / ORDINARY_TICKS_PER_BLOCK).pow(rate)
-        val asked = (ORDINARY_DOWNPOUR * density / Rung.ORDINARY).coerceAtMost(ALMOST_CONSTANT)
+        val asked = (ORDINARY_DOWNPOUR * recurrence.often).coerceAtMost(ALMOST_CONSTANT)
         return Rising(
             ticksPerBlock = (ORDINARY_TICKS_PER_BLOCK * quickening).roundToLong(),
             heightReach = height,
-            rainShare = asked + (ALMOST_CONSTANT - asked) * downpour,
+            rainShare = if (recurrence.isConstant) ALWAYS else asked + (ALMOST_CONSTANT - asked) * downpour,
             heaviness = spending.reach(Manifestation.DELUGE),
         )
     }
@@ -356,6 +360,8 @@ object Deluge {
 
     /** The most of the time any deluge can ask to be raining: dry spells of well under a minute. */
     private const val ALMOST_CONSTANT = 0.98
+    private const val ALWAYS = 1.0
+    private const val UNSAID_STRENGTH = 0.0
 
     /**
      * How the pooling rain is sampled: one chance per chunk per tick through [Sampling.sweep], and one drop in

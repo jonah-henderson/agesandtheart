@@ -396,8 +396,21 @@ data class AspectOptions(private val bySlot: Map<Aspect, List<Options>> = emptyM
                 { either -> either.map({ many -> many }, ::listOf) },
                 { many -> if (many.size == 1) Either.right(many.first()) else Either.left(many) },
             ),
-        ).xmap(::AspectOptions, AspectOptions::bySlot)
+        ).xmap({ saved -> AspectOptions(saved).withCurrentParameterNames() }, AspectOptions::bySlot)
+
+        /** Parameters that were renamed, by aspect, so an Age saved under the old name still reads. */
+        private val FORMER_PARAMETER_NAMES = mapOf(Aspect.WEATHER to mapOf("rainfall" to "frequency"))
     }
+
+    private fun withCurrentParameterNames(): AspectOptions = AspectOptions(
+        bySlot.mapValues { (aspect, perMember) ->
+            val former = FORMER_PARAMETER_NAMES[aspect] ?: return@mapValues perMember
+            perMember.map { options ->
+                val renamed = options.chosen.mapKeys { (name, _) -> former[name] ?: name }
+                if (renamed.size == options.chosen.size) Options(renamed) else options
+            }
+        },
+    )
 }
 
 /** A spatial population always has ground for one member, whatever the book said — see [AgeComposition.membersIn]. */

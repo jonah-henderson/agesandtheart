@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "The top of the frequency scale, as `colossal` is the top of size, and uninterrupted wherever a thing can be:",
+    "rain that never stops (`AgeWeather.keepRaining`), a fog or a blizzard that never lifts, a tempest that never",
+    "breaks, a sandfall always walking, meteor storms back to back; a curtain every night and a bow every day.",
+    "",
+    "Laid bare, the weather and the phenomena each feel it one Age in four, since none of that is a thing to stumble",
+    "into; a curtain and a bow are never brought in unasked."
+  ],
+  "sets": {
+    "frequency": "1.0..1.0"
+  },
+  "unaimed": {
+    "weather": 0.25,
+    "aurora": 0.0,
+    "rainbow": 0.0,
+    "phenomena": 0.25
+  }
+}

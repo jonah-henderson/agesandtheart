@@ -31,19 +31,22 @@ object Sandfall {
     /**
      * One tick of it: whether another column stands up, and where.
      *
-     * **The rung is the brief's two levers at once.** A stronger claim raises how many may stand together
-     * *and* shortens the wait between them — `teeming sandfall` is four columns arriving four times as
-     * often, `scarce sandfall` is one arriving four times as rarely — and the phenomenon needs no parameter of
-     * its own to be dialled.
+     * **The brief's two levers, one each.** The rung is how many may stand together — `teeming sandfall` is
+     * four columns at once — and the book's frequency is the wait between them, so `frequent sandfall` is one
+     * column arriving more often and `constant sandfall` is never a moment without one.
      */
-    fun wander(level: ServerLevel, density: Double, dials: SandfallDials) {
+    fun wander(level: ServerLevel, befalling: Befalling, dials: SandfallDials) {
         val behaviour = SandfallBehaviour.of(level.server)
         // A pack that wants an Age with none says so by writing none, and is not overruled by a rung.
         if (behaviour.atMost <= NONE) return
 
-        if (standingIn(level) >= behaviour.atMostFor(density, dials.often)) return
-        val owed = PhenomenaCeiling.isOwed(level, Phenomenon.SANDFALL)
-        if (!owed && level.random.nextInt(behaviour.betweenSpawnsFor(density, dials.often)) != NOW) return
+        val standing = standingIn(level)
+        if (standing >= behaviour.atMostFor(befalling.amount, dials.often)) return
+        // A constant sandfall always has a column walking: the next arrives as soon as none is.
+        val owed = PhenomenaCeiling.isOwed(level, Phenomenon.SANDFALL) ||
+            (befalling.recurrence.isConstant && standing == NONE)
+        val between = behaviour.betweenSpawnsFor(befalling.recurrence.often, dials.often)
+        if (!owed && level.random.nextInt(between) != NOW) return
         if (!PhenomenaCeiling.mayBegin(level, Phenomenon.SANDFALL)) return
 
         raiseOneNearSomebody(level, behaviour, dials)

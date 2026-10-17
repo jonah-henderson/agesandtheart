@@ -36,7 +36,7 @@
       {"produce":["age","only","plains","biomes","slime_block","surface","meteors","phenomena","[colour]","sky"]}
     ],
     "spared_age": [
-      {"weight":2.0,"produce":["age","[land]","landmass","no","monsters","spawns","glimmering","stars","colossal","moon"]},
+      {"weight":2.0,"produce":["age","[land]","landmass","no","monsters","spawns","bright","stars","colossal","moon"]},
       {"produce":["age","floating","landmass","no","monsters","spawns","[colour]","sky","[colour]","clouds"]},
       {"produce":["age","[land]","landmass","no","undead","spawns","bright","stars","[aurora_colour]","aurora"]},
       {"produce":["age","[land]","landmass","no","undead","and","arthropods","spawns","[sun_colour]","sun"]},
@@ -76,7 +76,7 @@
       {"produce":["age","[land]","landmass","delved","underground","glowstone","and","shroomlight","veins"]},
       {"produce":["age","colossal","chambered","underground","only","lush_caves","biomes"]},
       {"produce":["age","floating","landmass","hollow","underground","[colour]","sky","only","plains","biomes"]},
-      {"produce":["wondrous","age","skyborne","landmass","glimmering","stars","[aurora_colour]","aurora","only","plains","biomes"]}
+      {"produce":["wondrous","age","skyborne","landmass","bright","stars","[aurora_colour]","aurora","only","plains","biomes"]}
     ],
     "beset_age": [
       {"produce":["age","[land]","landmass","teeming","[monster]","spawns","meteors","phenomena","lightless","sky"]},
@@ -123,7 +123,6 @@
       {"produce":["rings"]}
     ],
     "night": [
-      {"produce":["glimmering","stars"]},
       {"produce":["bright","stars"]},
       {"produce":["[aurora_colour]","aurora"]},
       {"produce":["small","moon"]},

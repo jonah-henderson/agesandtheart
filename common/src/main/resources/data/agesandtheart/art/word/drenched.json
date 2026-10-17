@@ -1,10 +1,34 @@
 {
+  "_comment": [
+    "Wet through: rain most of the time over wet country, water standing in it and everything that grows leaning",
+    "lush. Offered, yielding to the book: a low grey sky to rain from."
+  ],
   "restricts": {
     "features": {
       "watery": ">0.3"
     }
   },
+  "biases": {
+    "biomes": {
+      "#watery": 0.6,
+      "#lush": 0.4
+    }
+  },
+  "bends": {
+    "humidity": "+0.4"
+  },
   "sets": {
-    "rainfall": "0.6..1.0"
+    "weather.frequency": "0.6..1.0"
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "1",
+        "facets": {
+          "clouds.colour": "grey",
+          "clouds.ceiling": "-0.3"
+        }
+      }
+    ]
   }
 }

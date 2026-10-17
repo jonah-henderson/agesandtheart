@@ -1,6 +1,23 @@
 {
+  "_comment": [
+    "The far end of not seeing, as `constant` is the far end of frequency: air you can barely see through, cloud",
+    "down on the ground and water as murky. `overcast` is the mild lid. Offered, yielding to the book: the cloud",
+    "grey or black, or smoke or ash hanging in it."
+  ],
   "sets": {
-    "haze": "0.7..1.0",
-    "ceiling": "-1.0..-0.5"
+    "air.haze": "0.85..1.0",
+    "ceiling": "-1.0..-0.85",
+    "murk": "0.55..1.0"
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "1",
+        "facets": {
+          "clouds.colour": "grey|black",
+          "motes": "smoke|ash"
+        }
+      }
+    ]
   }
 }

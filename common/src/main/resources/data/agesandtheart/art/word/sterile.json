@@ -1,12 +1,18 @@
 {
+  "_comment": [
+    "Nothing grows: every growing feature struck out, every part leaning barren and away from the lush, and what",
+    "lives leaning away from what would graze."
+  ],
   "excludes": {
     "features": [
       "#grown"
     ]
   },
   "biases": {
-    "features": {
-      "#lush": -1.0
+    "all": {
+      "#barren": 0.6,
+      "#lush": -1.0,
+      "#grazing": -0.6
     }
   }
 }

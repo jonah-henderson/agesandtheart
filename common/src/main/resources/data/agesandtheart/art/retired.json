@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Words that were merged or renamed, and what they became. A saved book, notebook or learned word that",
+    "names one still reads, as its successor (Vocabulary.word); a player's learned set is carried over on",
+    "joining. Add to this and never remove from it."
+  ],
+  "words": {
+    "glimmering": "bright",
+    "restless": "frequent",
+    "burning": "molten",
+    "drowned": "flooded",
+    "battered": "worn"
+  }
+}

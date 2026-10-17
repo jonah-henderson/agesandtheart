@@ -1,7 +1,31 @@
 {
+  "_comment": [
+    "Fire under and around: a sea of lava, and the land, its features and its biomes leaning molten, lava lakes",
+    "and magma among them. Offered, yielding to the book: rock of basalt or magma, a red or orange sky, a light",
+    "the colour of the fire. No embers in the air: they are the inferno's warning that an Age burns now.",
+    "",
+    "It absorbed `burning`, which barred the same tag lower and so chose the same sea (retired.json)."
+  ],
   "restricts": {
     "sea": {
       "molten": ">0.7"
     }
+  },
+  "biases": {
+    "all": {
+      "#molten": 0.8
+    }
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "2",
+        "facets": {
+          "stone": "#molten",
+          "sky.colour": "red|orange",
+          "air.tint": "red|orange"
+        }
+      }
+    ]
   }
 }

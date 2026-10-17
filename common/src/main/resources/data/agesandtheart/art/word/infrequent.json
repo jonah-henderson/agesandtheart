@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Whatever comes and goes, seldom coming: a curtain on a few nights, rain only now and then, a phenomenon",
+    "coming a fraction as often as it would. `frequent`'s opposite, and never brings a curtain or a bow into an Age",
+    "that had none when laid bare."
+  ],
+  "sets": {
+    "frequency": "-1.0..-0.6"
+  },
+  "unaimed": {
+    "aurora": 0.0,
+    "rainbow": 0.0
+  }
+}

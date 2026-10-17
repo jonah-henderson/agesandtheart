@@ -98,6 +98,10 @@ object AgeWeather {
     fun steer(level: ServerLevel, wants: WeatherConditions) {
         if (wants.saysNothing || beingHumoured(level)) return
         val weather = level.dataStorage.computeIfAbsent(WeatherData.TYPE)
+        if (wants.rainfall >= FULLY) {
+            keepRaining(weather, keepThundering = wants.thunder >= FULLY)
+            return
+        }
         lengthenANewSpell(level, weather, wants.spellLength)
         val rainTime = capped(wants.rainfall, weather.isRaining, weather.rainTime, ORDINARY_RAIN)
         val thunderTime = capped(wants.thunder, weather.isThundering, weather.thunderTime, ORDINARY_THUNDER)
@@ -108,6 +112,29 @@ object AgeWeather {
         if (wants.rainfall > ORDINARY_SHARE) weather.clearWeatherTime = 0
         weather.setDirty()
     }
+
+    /**
+     * A spell that is never allowed to end, and its thunder where that is asked for too: renewed whenever it runs low, which is once every ten minutes
+     * rather than every tick, so [steer]'s rule about not raising a timer tick by tick still holds.
+     */
+    private fun keepRaining(weather: WeatherData, keepThundering: Boolean) {
+        val rainRunsLow = !weather.isRaining || weather.rainTime < RENEW_A_SPELL_BELOW
+        val thunderRunsLow = keepThundering && (!weather.isThundering || weather.thunderTime < RENEW_A_SPELL_BELOW)
+        if (!rainRunsLow && !thunderRunsLow) return
+        if (rainRunsLow) {
+            weather.isRaining = true
+            weather.rainTime = ORDINARY_RAIN
+        }
+        if (thunderRunsLow) {
+            weather.setThundering(true)
+            weather.thunderTime = ORDINARY_RAIN
+        }
+        weather.clearWeatherTime = 0
+        weather.setDirty()
+    }
+
+    /** How little of a spell is left, in ticks, when an unending one is renewed. */
+    private const val RENEW_A_SPELL_BELOW = 200
 
     /**
      * **The one place a timer is raised, and only once a spell.** [steer] must never raise a timer tick by

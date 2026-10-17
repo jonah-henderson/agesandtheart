@@ -315,9 +315,9 @@ class GrammarCheck : FunSpec({
 
     /** The other half: a word that narrows candidates narrows where it speaks. */
     test("a narrowing word is confined") {
-        val read = read(listOf("floating", "age"))
-        val floating = read.constraints.single()
-        check(floating.aimedAt == setOf(Aspect.TERRAIN)) { "'floating' reaches ${floating.aimedAt}" }
+        val read = read(listOf("deep", "age"))
+        val deep = read.constraints.single()
+        check(deep.aimedAt == setOf(Aspect.SEA)) { "'deep' reaches ${deep.aimedAt}" }
     }
 
     /**

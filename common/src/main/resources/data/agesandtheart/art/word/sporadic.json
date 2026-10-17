@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "The bottom of the frequency scale, as `minuscule` is the bottom of size: rain only in brief showers, a",
+    "curtain on a very few nights, a phenomenon a sixth as often as it would come. Short of `rainless`, which never",
+    "rains at all. Laid bare, the weather and the phenomena each feel it one Age in four, and a curtain or a bow is",
+    "never brought in unasked."
+  ],
+  "sets": {
+    "frequency": "-1.0..-0.9"
+  },
+  "unaimed": {
+    "weather": 0.25,
+    "aurora": 0.0,
+    "rainbow": 0.0,
+    "phenomena": 0.25
+  }
+}

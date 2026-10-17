@@ -50,7 +50,7 @@
   "sets": {
     "motes": "embers|flames",
     "temperature": "0.5..1.0",
-    "rainfall": "-1.0..-0.4"
+    "weather.frequency": "-1.0..-0.4"
   },
   "requests": {
     "pools": [

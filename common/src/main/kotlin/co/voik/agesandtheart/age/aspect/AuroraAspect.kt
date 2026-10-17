@@ -82,12 +82,13 @@ object AuroraAspect {
      */
     fun auroraIn(parts: AgeParts, seed: Long): Aurora? {
         val own = parts.optionsFor(Aspect.AURORA)
-        val claim = Phenomena.claimFor(parts.optionsFor(Aspect.PHENOMENA, 0), Phenomenon.AURORA)
+        val happening = parts.optionsFor(Aspect.PHENOMENA, 0)
+        val claim = Phenomena.claimFor(happening, Phenomenon.AURORA)
         if (claim == null && own.chosen.isEmpty()) return null
-        // **The rung is how hard it comes**, which is the populative machinery doing the job it already
-        // does: a phenomenon claimed strongly is more nights and a brighter curtain, and no dial had to be
-        // invented for it. Ordinary is one, so a claim that named no quantity changes nothing.
-        val insistence = (claim?.density ?: Rung.ORDINARY) / Rung.ORDINARY
+        // The curtain's own dial first; then what was said of every phenomenon, as `frequent phenomena` says it.
+        val nights = own.steer(AURORAFREQUENCY, seed)
+            ?: happening.steer(Phenomena.FREQUENCY, seed, member = Phenomenon.AURORA.key)
+            ?: Sky.drawn(seed, NIGHTS_SALT, DRAWN_NIGHTS)
         // **Drawn where nothing said, rather than defaulted.** A curtain drawn in by a word's lean says
         // nothing about itself, so without this every undescribed curtain in every Age would be the same. The seed
         // is where the bearing already came from, and an aurora nobody described should still differ
@@ -95,12 +96,11 @@ object AuroraAspect {
         val size = own.steer(AURORASIZE, seed) ?: Sky.drawn(seed, SIZE_SALT, DRAWN_BAND)
         return Aurora(
             colours = rampIn(own),
-            glow = (glowAt(own.steer(AURORAGLOW, seed) ?: Sky.drawn(seed, GLOW_SALT, Sky.DRAWN_GLOW)) * insistence)
+            glow = glowAt(own.steer(AURORAGLOW, seed) ?: Sky.drawn(seed, GLOW_SALT, Sky.DRAWN_GLOW))
                 .toFloat().coerceIn(FAINTEST_CURTAIN, BRIGHTEST_CURTAIN),
             breadth = Sky.bandAt(size, NARROWEST_BAND, WIDEST_BAND),
             height = Sky.bandAt(size, SHORTEST_BAND, TALLEST_BAND),
-            frequency = (nightsAt(own.steer(AURORAFREQUENCY, seed) ?: Sky.drawn(seed, NIGHTS_SALT, DRAWN_NIGHTS))
-                * insistence).toFloat().coerceIn(RAREST_NIGHTS, EVERY_NIGHT),
+            frequency = nightsAt(nights).toFloat().coerceIn(RAREST_NIGHTS, EVERY_NIGHT),
             // Drawn rather than written: which way a band lies is a fact about this Age's sky and not
             // something §3.2 would put in front of a writer.
             bearingDegrees = XoroshiroRandomSource(seed xor AURORA_SALT).nextInt(WHOLE_COMPASS).toFloat(),

@@ -109,12 +109,12 @@
     ],
     "tempest_options": [
       {"weight":3.0,"produce":["tempest","phenomena"]},
-      {"produce":["teeming","tempest","phenomena"]}
+      {"produce":["frequent","tempest","phenomena"]}
     ],
     "aurora_options": [
-      {"weight":3.0,"produce":["restless","glimmering","aurora"]},
-      {"weight":2.0,"produce":["restless","glimmering","[aurora_colour]","aurora"]},
-      {"produce":["restless","glimmering","colossal","aurora"]}
+      {"weight":3.0,"produce":["frequent","bright","aurora"]},
+      {"weight":2.0,"produce":["frequent","bright","[aurora_colour]","aurora"]},
+      {"produce":["frequent","bright","colossal","aurora"]}
     ],
     "phasmium_age": [
       {"produce":["age","[phasmium_landmasses]","landmass","deep","water","sea","deluge","phenomena"]},
@@ -163,7 +163,6 @@
     ],
     "night": [
       {"produce":["bright","stars"]},
-      {"produce":["glimmering","stars"]},
       {"produce":["[sky_colour]","sky"]}
     ],
     "typical_landmass": [
@@ -294,7 +293,6 @@
       {"produce":["[colour]","clouds"]},
       {"produce":["overcast","clouds"]},
       {"produce":["bright","stars"]},
-      {"produce":["glimmering","stars"]},
       {"weight":2.0,"produce":["[colour]","air"]},
       {"produce":["inky","air"]},
       {"produce":["clear","air"]}
@@ -321,8 +319,8 @@
     ],
     "aurora": [
       {"weight":3.0,"produce":["[aurora_colour]","aurora"]},
-      {"produce":["restless","aurora"]},
-      {"produce":["glimmering","[aurora_colour]","aurora"]},
+      {"produce":["frequent","aurora"]},
+      {"produce":["bright","[aurora_colour]","aurora"]},
       {"produce":["colossal","[aurora_colour]","aurora"]},
       {"produce":["large","[aurora_colour]","aurora"]}
     ],
@@ -377,8 +375,7 @@
       {"produce":["snow_block"]}
     ],
     "sea": [
-      {"weight":2.0,"produce":["drowned","sea"]},
-      {"produce":["open","sea"]},
+      {"weight":2.0,"produce":["flooded","sea"]},
       {"produce":["shallow","water","sea"]},
       {"produce":["murky","waters"]},
       {"produce":["clear","waters"]},

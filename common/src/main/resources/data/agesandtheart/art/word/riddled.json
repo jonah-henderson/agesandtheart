@@ -1,10 +1,19 @@
 {
+  "_comment": [
+    "Full of holes: cavernous rock and a cavernous underground, and every part leaning to caves — the dripstone and",
+    "the sculk, a landmass hollowed out."
+  ],
   "restricts": {
     "rock": {
       "cavernous": ">0.3"
     },
     "underground": {
       "cavernous": ">0.3"
+    }
+  },
+  "biases": {
+    "all": {
+      "#cavernous": 0.8
     }
   }
 }

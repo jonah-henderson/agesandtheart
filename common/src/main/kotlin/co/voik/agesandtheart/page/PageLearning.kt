@@ -78,7 +78,8 @@ object PageLearning {
      * the toast cycles through a batch where a packet each would raise a wall of them.
      */
     fun teach(player: ServerPlayer, words: Collection<Identifier>, by: LearnedBy = LearnedBy.READING): List<Identifier> {
-        val learned = words.filter(player.learnedWords::learn)
+        val vocabulary = Vocabulary.of(player.level().server)
+        val learned = words.map { vocabulary.successorId(it) ?: it }.distinct().filter(player.learnedWords::learn)
         if (learned.isNotEmpty()) Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(learned))
         for (word in learned) AgeTriggers.LEARNED_WORD.trigger(player, word, by)
         return learned
@@ -95,12 +96,14 @@ object PageLearning {
     }
 
     /**
-     * Tells a joining player what they know.
+     * Tells a joining player what they know, having carried any retired word they learned over to its successor.
      *
      * Sent even though the client could not have forgotten it: a client may have connected to another
      * server since.
      */
     fun tellEverything(player: ServerPlayer) {
+        val vocabulary = Vocabulary.of(player.level().server)
+        player.learnedWords.migrate(vocabulary::successorId)
         Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.whole(player.learnedWords.words))
     }
 

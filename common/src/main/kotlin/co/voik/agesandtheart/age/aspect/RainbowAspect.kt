@@ -69,15 +69,17 @@ object RainbowAspect {
      */
     fun rainbowIn(parts: AgeParts, seed: Long): Rainbow? {
         val own = parts.optionsFor(Aspect.RAINBOW)
-        val claim = Phenomena.claimFor(parts.optionsFor(Aspect.PHENOMENA, 0), Phenomenon.RAINBOW)
+        val happening = parts.optionsFor(Aspect.PHENOMENA, 0)
+        val claim = Phenomena.claimFor(happening, Phenomenon.RAINBOW)
         if (claim == null && own.chosen.isEmpty()) return null
-        // The rung is how hard it comes, as it is for a curtain: `teeming rainbows` is more days and a
-        // brighter bow, off the populative machinery rather than a dial invented for it.
-        val insistence = (claim?.density ?: Rung.ORDINARY) / Rung.ORDINARY
+        // The bow's own dial first; then what was said of every phenomenon, as `frequent phenomena` says it.
+        val days = own.steer(RAINBOWFREQUENCY, seed)
+            ?: happening.steer(Phenomena.FREQUENCY, seed, member = Phenomenon.RAINBOW.key)
+            ?: Sky.drawn(seed, BOW_DAYS_SALT, DRAWN_BOW_DAYS)
         return Rainbow(
             colours = bandIn(own),
-            glow = (Sky.bandAt(own.steer(RAINBOWGLOW, seed) ?: Sky.drawn(seed, BOW_GLOW_SALT, Sky.DRAWN_GLOW),
-                FAINTEST_BOW, BRIGHTEST_BOW) * insistence)
+            glow = Sky.bandAt(own.steer(RAINBOWGLOW, seed) ?: Sky.drawn(seed, BOW_GLOW_SALT, Sky.DRAWN_GLOW),
+                FAINTEST_BOW, BRIGHTEST_BOW)
                 .toFloat().coerceIn(FAINTEST_BOW, BRIGHTEST_BOW),
             // **Not drawn from the seed, where a curtain's size is** — and the difference is the point. How
             // large a curtain hangs is a fact about the display, so an Age nobody described should still
@@ -87,11 +89,7 @@ object RainbowAspect {
                 ?.let { Sky.bandAt(it, NARROWEST_BOW, WIDEST_BOW) } ?: Rainbow.WATERS_OWN,
             needsRain = own.steer(RAINBOWRAIN, seed)
                 ?.let { Sky.bandAt(it, NO_RAIN_AT_ALL, ALL_THE_RAIN) } ?: Rainbow.ORDINARY_RAIN_NEEDED,
-            frequency = (Sky.bandAt(
-                own.steer(RAINBOWFREQUENCY, seed) ?: Sky.drawn(seed, BOW_DAYS_SALT, DRAWN_BOW_DAYS),
-                RAREST_DAYS, EVERY_DAY,
-            ) * insistence)
-                .toFloat().coerceIn(RAREST_DAYS, EVERY_DAY),
+            frequency = Sky.bandAt(days, RAREST_DAYS, EVERY_DAY).toFloat().coerceIn(RAREST_DAYS, EVERY_DAY),
             seed = seed,
         )
     }

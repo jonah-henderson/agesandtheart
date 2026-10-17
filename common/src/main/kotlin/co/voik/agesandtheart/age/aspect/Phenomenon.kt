@@ -54,6 +54,12 @@ enum class Phenomenon(
      * Age comes apart, unpredictably.
      */
     val inflictedBy: Manifestation? = null,
+    /**
+     * Whether a rung counts this in space — how many stand at once, how much ground it is laid in — where
+     * every other phenomenon is one state over the whole Age and has no amount to count. How often a
+     * phenomenon comes is its [Phenomena.FREQUENCY], never its rung.
+     */
+    val countsInSpace: Boolean = false,
 ) : AuthoredPreset {
     /**
      * A world in permanent storm, struck far more often than weather alone would, and cratered where it
@@ -144,7 +150,7 @@ enum class Phenomenon(
      * which is the trap `auroral` paid for — a narrowing word is priced in its lowest-ordinal aspect and
      * phenomena are last, so a second parameter would reprice the word as one about climate.
      */
-    SANDFALL("sandfall", inflictedBy = Manifestation.SANDFALL),
+    SANDFALL("sandfall", inflictedBy = Manifestation.SANDFALL, countsInSpace = true),
 
     /**
      * Snow driven sideways: an Age you cannot see across, cannot stand out in, and cannot keep your ground
@@ -248,10 +254,23 @@ enum class Phenomenon(
      *
      * Insists on no weather, and is written only: nothing instability buys is an overgrowth yet.
      */
-    OVERGROWTH("overgrowth"),
+    OVERGROWTH("overgrowth", countsInSpace = true),
     ;
 
     override val aspect = Aspect.PHENOMENA
+
+    /**
+     * The dials this phenomenon has, said of it alone: how often it comes where it comes and goes, how hard it
+     * is where instability has harsh dials for it, and how fast it grows where it grows. A page that says only
+     * what this has no dial for is refused before it. A getter, since [Phenomena] is built from these entries.
+     */
+    override val parameters: List<Parameter>
+        get() = when (this) {
+            TEMPEST, METEORS, SANDFALL, BLIZZARD, FOG, TECTONICS, DELUGE -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH)
+            AURORA, RAINBOW -> listOf(Phenomena.FREQUENCY)
+            INFERNO -> listOf(Phenomena.STRENGTH)
+            OVERGROWTH -> listOf(Phenomena.PACE)
+        }
 
     override fun getSerializedName(): String = key
 

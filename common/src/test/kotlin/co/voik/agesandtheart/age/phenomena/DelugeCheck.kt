@@ -4,7 +4,7 @@ import co.voik.agesandtheart.age.DialSteps
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Ladder
 import co.voik.agesandtheart.age.Spending
-import co.voik.agesandtheart.age.aspect.Rung
+import co.voik.agesandtheart.age.aspect.Recurrence
 import io.kotest.core.spec.style.FunSpec
 
 /**
@@ -69,19 +69,19 @@ class DelugeCheck : FunSpec({
     }
 
     test("every dial moves its own figure the right way, and nothing else") {
-        val ordinary = Deluge.risingOf(Rung.ORDINARY, Spending.NOTHING)
+        val ordinary = Deluge.risingOf(Recurrence.ORDINARY, Spending.NOTHING)
         check(ordinary.ticksPerBlock == Deluge.ORDINARY_TICKS_PER_BLOCK) { "an ordinary deluge's rate moved" }
         check(ordinary.heightReach == 0.0) { "an ordinary deluge was given height" }
 
-        val quick = Deluge.risingOf(Rung.ORDINARY, bought(rate = 10))
+        val quick = Deluge.risingOf(Recurrence.ORDINARY, bought(rate = 10))
         check(quick.ticksPerBlock == Deluge.FASTEST_TICKS_PER_BLOCK) { "a bought-out rate is ${quick.ticksPerBlock}" }
         check(quick.rainShare == ordinary.rainShare) { "buying rate changed how often it rains" }
 
-        val wet = Deluge.risingOf(Rung.ORDINARY, bought(downpour = 10))
+        val wet = Deluge.risingOf(Recurrence.ORDINARY, bought(downpour = 10))
         check(wet.rainShare > ordinary.rainShare && wet.rainShare < 1.0) { "a bought-out downpour asks ${wet.rainShare}" }
         check(wet.ticksPerBlock == ordinary.ticksPerBlock) { "buying downpour changed the rate" }
 
-        val high = Deluge.risingOf(Rung.ORDINARY, bought(height = 5))
+        val high = Deluge.risingOf(Recurrence.ORDINARY, bought(height = 5))
         check(high.heightReach == 0.5) { "half the height steps read as ${high.heightReach}" }
     }
 })

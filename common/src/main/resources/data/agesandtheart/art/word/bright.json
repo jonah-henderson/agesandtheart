@@ -1,11 +1,17 @@
 {
   "_comment": [
-    "Whatever burns, burning as hard as it can. `glow` is one name on the stars, the curtain and the",
-    "bow, so this is the same word about all three and about anything that grows a glow later.",
+    "Whatever shines, shining as hard as it can. `glow` is one name on the stars, the curtain and the bow, so",
+    "this is the same word about all three and about anything that grows a glow later; on land, biomes and",
+    "what grows it leans towards what is pale, well lit or gives off light of its own.",
     "",
-    "It was `brilliant` and the aurora's alone. Once the three glows shared a name the word was already",
-    "reaching all of them, so what was left was a name that did not say so (Jonah, 2026-08-31)."
+    "It absorbed `glimmering`, which set the same glow (retired.json)."
   ],
+  "biases": {
+    "all": {
+      "#bright": 0.8,
+      "#glowing": 0.6
+    }
+  },
   "sets": {
     "glow": "1.0..1.0"
   }

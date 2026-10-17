@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "Nothing there: a sea of empty air under the land, so what falls off falls forever. The sense `open` held until",
+    "2026-10-16, given its own page."
+  ],
+  "restricts": {
+    "sea": {
+      "empty": ">0.3"
+    }
+  }
+}

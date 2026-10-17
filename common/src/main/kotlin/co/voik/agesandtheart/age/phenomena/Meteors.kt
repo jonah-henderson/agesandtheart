@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.content.Lures
 import net.minecraft.core.BlockPos
@@ -36,15 +37,17 @@ object Meteors {
      * two at once over the same country would read as weather rather than as an arrival — so the count is
      * what a rung raises first.
      */
-    fun fall(level: ServerLevel, density: Double, dials: MeteorDials) {
+    fun fall(level: ServerLevel, recurrence: Recurrence, dials: MeteorDials) {
         if (Sampling.watchers(level).isEmpty()) return
         // **Rolled at the quickened rate, and thinned back out again when nothing drew it.** A lure
         // shortens the wait, but asking whether one exists is a scan — so doing it on every tick to
         // decide whether to roll would cost a thousand times what it saves. Rolling at the faster rate
         // and letting three in four through without a lure comes to the same two rates and asks the
         // question about three times an hour instead.
-        val owed = PhenomenaCeiling.isOwed(level, Phenomenon.METEORS)
-        if (!owed && level.random.nextInt(quickenedFor(asIfTeeming(density, dials.often))) != NOW) return
+        // A constant shower gathers its next storm as soon as the last is spent, asked on a slow beat.
+        val owed = PhenomenaCeiling.isOwed(level, Phenomenon.METEORS) ||
+            (recurrence.isConstant && level.random.nextInt(CONSTANT_BEAT) == NOW)
+        if (!owed && level.random.nextInt(quickenedFor(asIfTeeming(recurrence.often, dials.often))) != NOW) return
         // **Counted after the roll, not before it.** This walks the level's whole entity list, and asking
         // it on every tick of every meteoric Age is thousands of class checks twenty times a second for an
         // answer that is nearly always the same. Behind the roll it is asked about three times an hour,
@@ -54,7 +57,8 @@ object Meteors {
         val drawn = drawnNear(level, somebody.position())
         if (!owed && drawn == null && level.random.nextDouble() > WITHOUT_A_LURE) return
         if (!PhenomenaCeiling.mayBegin(level, Phenomenon.METEORS)) return
-        gatherOneNearSomebody(level, somebody, drawn, density, dials)
+        // How often is also how long: a frequent shower spends more of the time falling, each storm longer.
+        gatherOneNearSomebody(level, somebody, drawn, recurrence.often, dials)
     }
 
     /**
@@ -159,7 +163,7 @@ object Meteors {
         level: ServerLevel,
         somebody: Player,
         drawn: Lures.Drawn?,
-        density: Double,
+        often: Double,
         dials: MeteorDials,
     ) {
         val random = level.random
@@ -167,7 +171,7 @@ object Meteors {
         val room = roomFor(level)
         val away = room * (NEAREST_SHARE + random.nextDouble() * (FURTHEST_SHARE - NEAREST_SHARE))
         val spot = BlockPos.containing(somebody.x + cos(bearing) * away, somebody.y, somebody.z + sin(bearing) * away)
-        raise(level, spot, density, dials, drawn)
+        raise(level, spot, often, dials, drawn)
     }
 
     /**
@@ -184,7 +188,7 @@ object Meteors {
     fun raise(
         level: ServerLevel,
         otherwise: BlockPos,
-        density: Double,
+        often: Double,
         dials: MeteorDials,
         drawn: Lures.Drawn?,
         slant: Double? = null,
@@ -201,7 +205,7 @@ object Meteors {
         val falling = lasting ?: lengthenedBy(
             MeteorStorm.SHORTEST_FALL +
                 level.random.nextInt(MeteorStorm.ORDINARY_FALL - MeteorStorm.SHORTEST_FALL + ONE),
-            asIfTeeming(density, dials.long),
+            asIfTeeming(often, dials.long),
         )
         val storm = MeteorStorm.gatherAt(level, where, bodiesFor(falling), falling, dials.power, slant, reach)
         PhenomenaCeiling.began(level, Phenomenon.METEORS, storm)
@@ -249,8 +253,8 @@ object Meteors {
      * A minute of bodies at full weight drills a landscape down rather than pocking it, which is what the
      * top of this scale is meant to be: not a longer nuisance but a different order of event.
      */
-    private fun lengthenedBy(falling: Int, density: Double): Int =
-        (falling * (ONE_WHOLE + (density - Rung.ORDINARY) * LONGER_WHEN_TEEMING))
+    private fun lengthenedBy(falling: Int, often: Double): Int =
+        (falling * (ONE_WHOLE + (often - Rung.ORDINARY) * LONGER_WHEN_TEEMING))
             .roundToInt()
             .coerceIn(MeteorStorm.SHORTEST_FALL, MeteorStorm.LONGEST_FALL)
 
@@ -260,12 +264,12 @@ object Meteors {
      * A quiet Age goes minutes between them; a teeming one is scarcely out of one. Divided rather than
      * subtracted so the ends of the range stay proportionate however the middle is tuned.
      */
-    private fun betweenStormsFor(density: Double): Int =
-        (BETWEEN_STORMS / (density / Rung.ORDINARY).coerceAtLeast(A_TRICKLE)).roundToInt().coerceAtLeast(ONE)
+    private fun betweenStormsFor(often: Double): Int =
+        (BETWEEN_STORMS / (often / Rung.ORDINARY).coerceAtLeast(A_TRICKLE)).roundToInt().coerceAtLeast(ONE)
 
     /** The wait a lure would buy, which is what the roll is actually made at — see [fall]. */
-    private fun quickenedFor(density: Double): Int =
-        (betweenStormsFor(density) * WITH_A_LURE).roundToInt().coerceAtLeast(ONE)
+    private fun quickenedFor(often: Double): Int =
+        (betweenStormsFor(often) * WITH_A_LURE).roundToInt().coerceAtLeast(ONE)
 
     private const val NOW = 0
     private const val ONE = 1
@@ -296,6 +300,9 @@ object Meteors {
      * between them, and two at once is every light in the sky drawn twice a frame.
      */
     private const val MOST_AT_ONCE = 1
+
+    /** How often a constant shower asks whether its last storm is spent, in ticks: every five seconds. */
+    private const val CONSTANT_BEAT = 100
 
     /** A body every this many ticks — four a second. */
     private const val EVERY = 5

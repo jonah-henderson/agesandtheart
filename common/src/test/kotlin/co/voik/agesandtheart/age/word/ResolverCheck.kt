@@ -397,16 +397,14 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * **A page is charged for what it narrows** (world model §3, "Retiring tier"): `drowned` narrows the sea
-     * and the rock where `molten` narrows the sea alone, so it is the dearer page; `burning` and `molten` bar
-     * the same tag at different heights and narrow the same one part, so they cost the same.
+     * **A page is charged for what it narrows** (world model §3, "Retiring tier"): `flooded` narrows the sea
+     * and the rock where `molten` narrows the sea alone, so it is the dearer page — and what each only leans
+     * on and offers is free, however far it reaches.
      */
-    test("reach costs more, and precision does not") {
+    test("reach costs more, and leaning does not") {
         val one = resolve(vocabulary, "molten").cost
-        val two = resolve(vocabulary, "drowned").cost
-        check(two > one) { "'drowned' cost $two and 'molten' cost $one, so reach is free" }
-        val burning = resolve(vocabulary, "burning").cost
-        check(burning == one) { "'burning' cost $burning and 'molten' $one, where both narrow the sea alone" }
+        val two = resolve(vocabulary, "flooded").cost
+        check(two > one) { "'flooded' cost $two and 'molten' cost $one, so reach is free" }
     }
 
     /**
@@ -1228,11 +1226,11 @@ class ResolverCheck : FunSpec({
         check(ordinary.stars.glow == SkySpec.ORDINARY_STAR_GLOW) {
             "a sky nobody spoke to about stars burns at ${ordinary.stars.glow} times vanilla's"
         }
-        check(skyOf("glimmering").stars.glow > SkySpec.ORDINARY_STAR_GLOW) {
-            "'glimmering' burns at ${skyOf("glimmering").stars.glow} times vanilla's, which is no brighter"
+        check(skyOf("bright").stars.glow > SkySpec.ORDINARY_STAR_GLOW) {
+            "'bright' burns at ${skyOf("bright").stars.glow} times vanilla's, which is no brighter"
         }
-        check(skyOf("glimmering").stars.count == SkySpec.VANILLA_STAR_COUNT) {
-            "'glimmering' also added stars (${skyOf("glimmering").stars.count}), so it says two things"
+        check(skyOf("bright").stars.count == SkySpec.VANILLA_STAR_COUNT) {
+            "'bright' also added stars (${skyOf("bright").stars.count}), so it says two things"
         }
         check(skyOfBook("teeming", "stars").stars.glow == SkySpec.ORDINARY_STAR_GLOW) {
             "'teeming stars' also brightened them, so the two axes are one word between them"

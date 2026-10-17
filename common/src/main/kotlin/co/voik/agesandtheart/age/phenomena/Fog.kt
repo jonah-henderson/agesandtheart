@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
@@ -24,11 +25,11 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
  */
 object Fog {
 
-    /** How much of a bank lies over [level] now, from none of one to all of it, for a fog of [density] and [dials]. */
-    fun lyingAt(level: ServerLevel, density: Double, dials: FogDials): Double {
+    /** How much of a bank lies over [level] now, from none of one to all of it, for a fog this [recurrence] and [dials]. */
+    fun lyingAt(level: ServerLevel, recurrence: Recurrence, dials: FogDials): Double {
         val spell = level.gameTime / SPELL_TICKS
         val intoIt = level.gameTime % SPELL_TICKS
-        val share = shareOfTheTime(density, dials.often)
+        val share = shareOfTheTime(recurrence, dials.often)
         val now = if (isFoggy(level.seed, spell, share)) WHOLLY else NONE
         val next = if (isFoggy(level.seed, spell + 1, share)) WHOLLY else NONE
         val turning = ((intoIt - (SPELL_TICKS - ROLLING_TICKS)).toDouble() / ROLLING_TICKS).coerceIn(NONE, WHOLLY)
@@ -37,10 +38,11 @@ object Fog {
 
     /**
      * How much of the time a bank lies over an Age this foggy: an ordinary fog about a quarter of it, and one
-     * bought in full more often than not. A written rung would scale it too, as a rung does the weather.
+     * bought in full more often than not. The book's frequency scales it, and a constant fog never lifts.
      */
-    fun shareOfTheTime(density: Double, often: Double): Double =
-        ((SOMETIMES + often * (MOSTLY - SOMETIMES)) * density / Rung.ORDINARY).coerceIn(NONE, MOSTLY)
+    fun shareOfTheTime(recurrence: Recurrence, often: Double): Double =
+        if (recurrence.isConstant) WHOLLY
+        else ((SOMETIMES + often * (MOSTLY - SOMETIMES)) * recurrence.often).coerceIn(NONE, MOSTLY)
 
     /** How close a bank closes in: one for an ordinary fog, and twice as close bought in full. */
     fun thicknessAt(reach: Double): Double = Rung.ORDINARY + reach * THICKER_BOUGHT_IN_FULL
@@ -52,12 +54,12 @@ object Fog {
      * Tell everyone in [level] how much fog lies over it, and how thick. Sent where there is none too, so a
      * client leaving a foggy Age for a clear one does not carry the bank with it.
      */
-    fun tellTheClients(level: ServerLevel, density: Double?, dials: FogDials) {
+    fun tellTheClients(level: ServerLevel, recurrence: Recurrence?, dials: FogDials) {
         val age = level.dimension().identifier()
-        val telling = if (density == null) {
+        val telling = if (recurrence == null) {
             FogPayload.noneIn(age)
         } else {
-            FogPayload(age, lyingAt(level, density, dials), thicknessAt(dials.thickness))
+            FogPayload(age, lyingAt(level, recurrence, dials), thicknessAt(dials.thickness))
         }
         for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
     }

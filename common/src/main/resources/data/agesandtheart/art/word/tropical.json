@@ -43,7 +43,7 @@
     {
       "draws": "2",
       "facets": {
-        "rainfall": "0.5..1.0",
+        "weather.frequency": "0.5..1.0",
         "thunder": "0.3..0.8",
         "haze": "0.2..0.5",
         "motes": "firefly|spore_blossom"

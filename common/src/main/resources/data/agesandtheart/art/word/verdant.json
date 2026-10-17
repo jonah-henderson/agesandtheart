@@ -24,7 +24,7 @@
     {
       "draws": "2",
       "facets": {
-        "rainfall": "0.3..0.8",
+        "weather.frequency": "0.3..0.8",
         "grass.colour": "green",
         "leaves.colour": "green",
         "motes": "spore_blossom|cherry_petals|firefly"

@@ -1,13 +1,17 @@
 {
+  "_comment": [
+    "Few things, thinly: what grows thinned out, what stands set far apart, every part leaning barren and scattered",
+    "and away from the lush. `open` is the shape of the land and the sky; this is how little is on it."
+  ],
   "biases": {
     "all": {
       "#barren": 0.8,
       "#scattered": 0.6,
-      "#flat": 0.4,
       "#lush": -0.5
     }
   },
   "bends": {
-    "spacing": "0.4..1.0"
+    "spacing": "0.4..1.0",
+    "thickness": "-0.8..-0.3"
   }
 }

@@ -67,12 +67,12 @@ look_beside_a_mood = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground]@2 | [weather]
 
 thing = [landed_thing]@4 | [sea]
 
-# Without the sea, for beside a climate: a drowned sea and an arid climate are watery against dry.
+# Without the sea, for beside a climate: a flooded sea and an arid climate are watery against dry.
 landed_thing = [formation]@3 | [underground]@3 | [life]@2
 
-# And without dry rock, for beside a sea: `dry rock` and `drowned sea` are dry against watery, which
+# And without dry rock, for beside a sea: `dry rock` and `flooded sea` are dry against watery, which
 # BookCheck caught at seed 341 once the palm beach's shape moved which book each seed draws.
-# And without a settlement, for beside a sea: `settled structures` and `open sea` are inhabited against empty.
+# And without a settlement, for beside a sea: `settled structures` beside an empty sea are inhabited against empty.
 thing_beside_a_sea = [formation]@3 | [underground_beside_a_sea]@3 | [life_beside_a_sea]@2
 
 # A barren climate only beside what does not live or grow: herds and trees are grazing and wooded against
@@ -99,14 +99,14 @@ arc_crystal_age =
 # Open to the sky: a roofed world has no curtains to stand in it.
 arc_crystal_landmasses = [open_landmass]@3 | skyborne | end | tangled
 
-tempest_options = tempest phenomena@3 | teeming tempest phenomena
+tempest_options = tempest phenomena@3 | frequent tempest phenomena
 
 # Described rather than named: a curtain with anything said of it is one, and this says it comes every
 # night and burns bright, which is the gate's half.
 aurora_options =
-    restless glimmering aurora@3
-    | restless glimmering [aurora_colour] aurora@2
-    | restless glimmering colossal aurora
+    frequent bright aurora@3
+    | frequent bright [aurora_colour] aurora@2
+    | frequent bright colossal aurora
 
 # Phasmium: a water sea raised to an abyss, and a deluge. The shapes whose seas are broad and flat-floored,
 # since those are where the abyss grows.
@@ -143,7 +143,7 @@ astrite_age =
 
 astrite_landmasses = [open_landmass]@3 | cratered@3 | flat | pyramidal
 
-night = bright stars | glimmering stars | [sky_colour] sky
+night = bright stars | [sky_colour] sky
 
 # Reusable components
 
@@ -242,7 +242,6 @@ sky =
     | [colour] clouds
     | overcast clouds
     | bright stars
-    | glimmering stars
     | [colour] air@2
     | inky air
     | clear air
@@ -256,12 +255,12 @@ weather = drenched weather | stormy weather
 
 rising = rising_east | rising_north | rising_northeast | rising_northwest | rising_south | rising_southeast | rising_southwest | rising_west
 
-# A curtain is had by describing it. Never both restless and glimmering here, which with a tempest drawn in
+# A curtain is had by describing it. Never both frequent and bright here, which with a tempest drawn in
 # by a mood would be the arc crystal's gate.
 aurora =
     [aurora_colour] aurora@3
-    | restless aurora
-    | glimmering [aurora_colour] aurora
+    | frequent aurora
+    | bright [aurora_colour] aurora
     | colossal [aurora_colour] aurora
     | large [aurora_colour] aurora
 
@@ -294,7 +293,7 @@ ground = [colour] grass@2 | [colour] leaves@2 | [colour] grass [colour] leaves |
 # What the ground is laid with where grass would be.
 surface_block = sand | red_sand | moss_block | podzol | mud | gravel | calcite | mycelium | snow_block
 
-sea = drowned sea@2 | open sea | shallow water sea | murky waters | clear waters | [colour] waters
+sea = flooded sea@2 | shallow water sea | murky waters | clear waters | [colour] waters
 
 life = teeming herds spawns | fish spawns | fliers spawns | beasts spawns | ruins structures | settled structures | untouched structures
 

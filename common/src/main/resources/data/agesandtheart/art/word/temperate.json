@@ -21,7 +21,7 @@
       {
         "draws": "2",
         "facets": {
-          "rainfall": "0.2..0.6",
+          "weather.frequency": "0.2..0.6",
           "clouds.colour": "white",
           "sky.colour": "blue",
           "rainbow.frequency": "0.3..0.7"

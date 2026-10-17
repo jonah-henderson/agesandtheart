@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
@@ -56,7 +57,7 @@ object Blizzard {
      * Does nothing at all unless the Age is actually in weather: a blizzard *is* the storm, so what makes
      * it come and go is [shareOfTheTime] steering the Age's own weather rather than anything decided here.
      */
-    fun blow(level: ServerLevel, density: Double, dials: BlizzardDials) {
+    fun blow(level: ServerLevel, dials: BlizzardDials) {
         if (!level.isRaining) return
         // How *hard*, not how often: by the time this runs the storm is already here, and what is left to
         // decide is what it does while it lasts — how thick it blows, and how fast it bites.
@@ -175,16 +176,16 @@ object Blizzard {
      */
     fun tellTheClients(
         level: ServerLevel,
-        befalls: Map<Phenomenon, Double>,
+        befalls: Map<Phenomenon, Befalling>,
         spending: Spending,
     ) {
         val age = level.dimension().identifier()
-        val density = befalls[Phenomenon.BLIZZARD]
-        val telling = if (density == null) {
+        val blizzard = befalls[Phenomenon.BLIZZARD]
+        val telling = if (blizzard == null) {
             BlizzardPayload.noneIn(age)
         } else {
             // The client draws the whiteout, so it is told how thick the storm is and nothing about the cold.
-            val thickness = visibilityIn(level, BlizzardDials.of(spending).visibility)
+            val thickness = visibilityIn(level, BlizzardDials.of(spending, blizzard.strength).visibility)
             BlizzardPayload(age, thickness, bearingIn(level).get2DDataValue())
         }
         // Every player rather than [Sampling.watchers]: a spectator draws no storm but still sees it.
@@ -194,12 +195,17 @@ object Blizzard {
     /**
      * How much of the time an Age this often in a storm spends in one, as
      * [co.voik.agesandtheart.age.aspect.WeatherConditions] wants it — an ordinary blizzard comes about as
-     * often as vanilla's rain, where one bought in full is scarcely ever gone. How *long* each lasts is its
-     * own dial, [BlizzardDials.long], and reaches the weather as a spell length rather than through this.
+     * often as vanilla's rain, where one bought in full is scarcely ever gone, one written seldom comes that
+     * much less, and a constant one never lifts. How *long* each lasts is its own dial, [BlizzardDials.long],
+     * and reaches the weather as a spell length rather than through this.
      */
-    fun shareOfTheTime(howOften: Double): Double =
-        (AS_OFTEN_AS_RAIN + (howOften - Rung.ORDINARY) * MORE_OF_THE_TIME)
-            .coerceIn(AS_OFTEN_AS_RAIN, ALMOST_ALWAYS)
+    fun shareOfTheTime(recurrence: Recurrence, often: Double): Double {
+        if (recurrence.isConstant) return ALWAYS
+        val howOften = howOftenOf(recurrence.often, often)
+        val isSeldom = howOften < Rung.ORDINARY
+        return if (isSeldom) AS_OFTEN_AS_RAIN * howOften
+        else (AS_OFTEN_AS_RAIN + (howOften - Rung.ORDINARY) * MORE_OF_THE_TIME).coerceAtMost(ALMOST_ALWAYS)
+    }
 
     /**
      * A storm set by hand, for looking at one — `/age weather blizzard <visibility> [<frostbite>]`.
@@ -232,22 +238,17 @@ object Blizzard {
     fun frostbiteIn(level: ServerLevel, reach: Double): Double = forcedIn(level)?.frostbite ?: hardnessAt(reach)
 
     /**
-     * **How often it blows** — the rung and [BlizzardDials.often] together.
-     *
-     * A rung is *how much of a thing there is* (`Rung`), which for weather is how much of the time it is
-     * happening: `teeming blizzard` is an Age that is often in one, not an Age whose storms are worse.
-     * That distinction is Jonah's (2026-09-05) and it is what keeps the quantifiers meaning one thing
-     * across every aspect they reach.
+     * **How often it blows** — the book's frequency and [BlizzardDials.often] together. A rung has nothing to
+     * count in a blizzard, which is one state over the whole Age.
      */
-    fun howOftenOf(density: Double, often: Double): Double =
-        (density / Rung.ORDINARY) + often * FURY_ALSO_LINGERS
+    fun howOftenOf(written: Double, often: Double): Double = written + often * FURY_ALSO_LINGERS
 
     /**
      * **How hard a storm is on one of its two harsh dials** — how thick it blows, or how fast it bites — at
      * this far into that dial. Instability's, and nothing a quantifier can say: asking for *more* blizzard is
      * asking for more of the time in one.
      */
-    fun hardnessAt(reach: Double): Double = Rung.ORDINARY + reach * FURY_DRIVES
+    fun hardnessAt(reach: Double): Double = (Rung.ORDINARY + reach * FURY_DRIVES).coerceAtLeast(GENTLEST_STORM)
 
     /**
      * Which way the wind blows here today — the same answer for everyone, from nothing written down.
@@ -569,6 +570,8 @@ object Blizzard {
     private const val MOST_DRIFTS = 20
 
     /** About as much of the time as vanilla rains, which is what an ordinary blizzard should feel like. */
+    private const val ALWAYS = 1.0
+
     private const val AS_OFTEN_AS_RAIN = 0.3
 
     /** Scarcely ever out of one, which is the top of the ladder rather than a value a writer reaches. */
@@ -579,6 +582,9 @@ object Blizzard {
 
     /** What a dial bought in full adds to how thick a storm blows, or how fast it bites. */
     private const val FURY_DRIVES = 2.0
+
+    /** How gentle a storm a weak blizzard comes down to, against an ordinary one's one. */
+    private const val GENTLEST_STORM = 0.25
 
     /** And what [BlizzardDials.often] in full adds to how often one comes, on top of whatever rung was written. */
     private const val FURY_ALSO_LINGERS = 2.0
