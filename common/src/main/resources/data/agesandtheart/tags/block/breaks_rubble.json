@@ -7,9 +7,6 @@
   "values": [
     "minecraft:end_rod",
     "minecraft:stonecutter",
-    "minecraft:pointed_dripstone",
-    "#minecraft:lanterns",
-    "minecraft:bell",
-    "minecraft:brewing_stand"
+    "minecraft:pointed_dripstone"
   ]
 }
