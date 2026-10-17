@@ -6,7 +6,6 @@ import co.voik.agesandtheart.worldgen.SizeScale
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
-import net.minecraft.world.level.levelgen.feature.BlockColumnFeature
 import net.minecraft.world.level.levelgen.feature.BonusChestFeature
 import net.minecraft.world.level.levelgen.feature.EndGatewayFeature
 import net.minecraft.world.level.levelgen.feature.EndIslandFeature
@@ -219,7 +218,7 @@ object FeatureShape {
     ): Holder<PlacedFeature> {
         val placed = feature.value()
         val shaped = withShape(placed.feature(), size, thickness, height, rock, registries)
-        val isAPatch = placed.feature().value().let { it is SimpleBlockFeature || it is BlockColumnFeature }
+        val isAPatch = placed.feature().value() is SimpleBlockFeature
         val spread = if (isAPatch) withSpread(placed.placement(), size) else placed.placement()
         val thinned = thinnedFor(shaped, spread)
         val placement = withHeight(thinned, height)
@@ -419,7 +418,6 @@ object FeatureShape {
      */
     private val NEVER_SCALED_WHOLE: List<Class<out Feature>> = listOf(
         SimpleBlockFeature::class.java,
-        BlockColumnFeature::class.java,
         SpringFeature::class.java,
         MonsterRoomFeature::class.java,
         SnowAndFreezeFeature::class.java,

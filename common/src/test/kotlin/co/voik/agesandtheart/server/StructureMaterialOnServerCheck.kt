@@ -5,8 +5,8 @@ import io.kotest.core.spec.style.FunSpec
 
 /**
  * What a book builds the Age's structures of, and how big it grows its trees, on the ground a server generates:
- * a village written of nether bricks has nether bricks in it, and colossal trees stand taller than ordinary ones.
- * Not more of them, nor more wood: a colossal crown leaves the trees after it nowhere to stand.
+ * a village written of nether bricks has nether bricks in it, and colossal trees stand taller than ordinary ones on
+ * trunks thick enough to be more wood. Not more of them: a colossal crown leaves the trees after it nowhere to stand.
  */
 @Tags(NEEDS_SERVER, NEEDS_TIME)
 class StructureMaterialOnServerCheck : FunSpec({
@@ -21,10 +21,10 @@ class StructureMaterialOnServerCheck : FunSpec({
             Regex("""filled (\d+)""").find(said)?.groupValues?.get(1)?.toInt() ?: 0
         }
 
-    /** The bottom of the highest of the columns' 8-block layers holding any [block] around [x], [z], or null where none does. */
+    /** The bottom of the highest of the columns' 8-block layers holding any [block] around [x], [z], or null where none does. Clears what it finds. */
     fun highestOf(age: String, block: String, x: Int, z: Int): Int? =
         (COUNTED_FROM..<COUNTED_TO step SLICE).lastOrNull { bottom ->
-            val said = inAge(age, "fill ${x - HALF} $bottom ${z - HALF} ${x + HALF - 1} ${bottom + SLICE - 1} ${z + HALF - 1} minecraft:glass replace $block")
+            val said = inAge(age, "fill ${x - HALF} $bottom ${z - HALF} ${x + HALF - 1} ${bottom + SLICE - 1} ${z + HALF - 1} minecraft:air replace $block")
             Regex("""filled (\d+)""").containsMatchIn(said)
         }
 
@@ -49,14 +49,17 @@ class StructureMaterialOnServerCheck : FunSpec({
         check(!server.saidSoFar().contains("StructureMaterials")) { "placing it threw: see the boot log" }
     }
 
-    test("colossal trees stand taller than ordinary trees") {
+    test("colossal trees stand taller than ordinary trees, on trunks that make them more wood") {
         server.run("age write ordinarytrees $SEED age trees features")
         server.run("age write colossaltrees $SEED age colossal trees features")
         val (x, z) = located("ordinarytrees", "biome #minecraft:is_forest")
         generatedAround("ordinarytrees", x, z)
         generatedAround("colossaltrees", x, z)
-        val ordinary = highestOf("ordinarytrees", "#minecraft:logs", x, z)
-        val colossal = highestOf("colossaltrees", "#minecraft:logs", x, z)
+        val ordinaryWood = countOf("ordinarytrees", "#minecraft:logs", x, z)
+        val colossalWood = countOf("colossaltrees", "#minecraft:logs", x, z)
+        check(colossalWood > ordinaryWood) { "colossal trees were $colossalWood logs against ordinary trees' $ordinaryWood" }
+        val ordinary = highestOf("ordinarytrees", "minecraft:glass", x, z)
+        val colossal = highestOf("colossaltrees", "minecraft:glass", x, z)
         check(ordinary != null) { "the forest at $x, $z had no trees in it, so this compares nothing" }
         check(colossal != null && colossal > ordinary) { "colossal trees reached y $colossal against ordinary trees' $ordinary" }
     }

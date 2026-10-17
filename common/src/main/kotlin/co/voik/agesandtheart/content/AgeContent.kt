@@ -127,6 +127,7 @@ import net.minecraft.world.level.material.PushReaction
 import co.voik.agesandtheart.worldgen.feature.Formation
 import co.voik.agesandtheart.worldgen.feature.Heap
 import co.voik.agesandtheart.worldgen.feature.ScaledFeature
+import co.voik.agesandtheart.worldgen.feature.ThickTrunk
 import co.voik.agesandtheart.worldgen.feature.OreVein
 import co.voik.agesandtheart.worldgen.feature.Algae
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
@@ -2250,6 +2251,7 @@ object AgeContent {
         "pit_clearing".location() to PitClearing.CODEC,
         "heap".location() to Heap.CODEC,
         "scaled".location() to ScaledFeature.CODEC,
+        "thick_trunk".location() to ThickTrunk.CODEC,
         "ore_vein".location() to OreVein.CODEC,
         "rime_crystal".location() to RimeCrystal.CODEC,
         "tempered_ground".location() to TemperedGround.CODEC,

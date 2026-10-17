@@ -14,6 +14,7 @@ import net.minecraft.util.valueproviders.FloatProvider
 import net.minecraft.util.valueproviders.IntProvider
 import net.minecraft.util.valueproviders.UniformFloat
 import net.minecraft.util.valueproviders.UniformInt
+import net.minecraft.world.level.levelgen.feature.BlockColumnFeature
 import net.minecraft.world.level.levelgen.feature.CoralTreeFeature
 import net.minecraft.world.level.levelgen.feature.DeltaFeature
 import net.minecraft.world.level.levelgen.feature.DiskFeature
@@ -38,8 +39,9 @@ import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import kotlin.math.roundToInt
 
 /**
- * Features resized through their own records: a tree's trunk and crown, a huge mushroom's cap, the reach of a
- * disk, a delta or a cluster of columns, a dripstone's girth. A chooser among features resizes each feature it
+ * Features resized through their own records: a tree's trunk and crown (and its girth, through [ThickTrunk]), a
+ * column's height — sugar cane, cactus — a huge mushroom's cap, the reach of a disk, a delta or a cluster of
+ * columns, a dripstone's girth. A chooser among features resizes each feature it
  * chooses between. What is not here is resized whole by [ScaledFeature].
  */
 object ResizedFeatures {
@@ -55,7 +57,11 @@ object ResizedFeatures {
         resized: (Holder<PlacedFeature>) -> Holder<PlacedFeature>,
         registries: HolderLookup.Provider?,
     ): Feature? = when (feature) {
-        is TreeFeature -> tree(feature, factor, registries)
+        is TreeFeature -> thickened(tree(feature, factor, registries), factor)
+        is BlockColumnFeature -> BlockColumnFeature(
+            feature.layers().map { BlockColumnFeature.Layer(scaled(it.height(), factor, MOST_HEIGHT), it.state()) },
+            feature.direction(), feature.allowedPlacement(), feature.prioritizeTip(),
+        )
         is HugeRedMushroomFeature -> HugeRedMushroomFeature(
             feature.capProvider(), feature.stemProvider(), scaled(feature.foliageRadius(), factor, MOST_REACH), feature.canPlaceOn(),
         )
@@ -119,6 +125,12 @@ object ResizedFeatures {
             tree.trunkProvider(), trunk, tree.foliageProvider(), crown, tree.rootPlacer(), tree.minimumSize(),
             tree.decorators(), tree.ignoreVines(), tree.belowTrunkProvider(),
         )
+    }
+
+    /** [tree] with a trunk as many logs across as its size warrants, where that is more than one. */
+    private fun thickened(tree: TreeFeature, factor: Double): Feature {
+        val girth = (factor * GIRTH_PER_TIMES_AS_BIG).roundToInt()
+        return if (girth > 1) ThickTrunk(Holder.direct(tree), girth) else tree
     }
 
     private fun <T : Any> rescaled(
@@ -191,6 +203,9 @@ object ResizedFeatures {
 
     /** The fields an int provider is written with. */
     private val PROVIDER_NUMBERS = setOf("value", "min_inclusive", "max_inclusive", "min", "max")
+
+    /** How many logs across a trunk is for each time as big as ordinary its tree is: two for large, three for colossal. */
+    private const val GIRTH_PER_TIMES_AS_BIG = 0.75
 
     /** As far from its middle as a feature may reach and still write only in the chunks next door. */
     private const val MOST_REACH = 16

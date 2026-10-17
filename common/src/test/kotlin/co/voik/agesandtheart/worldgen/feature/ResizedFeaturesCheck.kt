@@ -6,6 +6,7 @@ import com.mojang.serialization.JsonOps
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.registries.Registries
+import net.minecraft.world.level.levelgen.feature.BlockColumnFeature
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.feature.TreeFeature
 import net.minecraft.world.level.levelgen.feature.trunkplacers.TrunkPlacer
@@ -41,12 +42,29 @@ class ResizedFeaturesCheck : FunSpec({
 
     test("a doubled tree has a different trunk from the tree it was") {
         val unchanged = trees.filter { tree ->
-            val resized = ResizedFeatures.of(tree, 2.0, { it }, registries) as TreeFeature
-            trunkOf(resized) == trunkOf(tree)
+            val resized = ResizedFeatures.of(tree, 2.0, { it }, registries) as ThickTrunk
+            trunkOf(resized.tree.value() as TreeFeature) == trunkOf(tree)
         }
         check(unchanged.isEmpty()) {
             "these trunks did not grow: ${unchanged.map(::trunkOf).distinct().joinToString()}"
         }
+    }
+
+    test("a large tree's trunk is two logs across, a colossal one's three, and an ordinary one's one") {
+        val oak = trees.first()
+        check((ResizedFeatures.of(oak, 2.0, { it }, registries) as? ThickTrunk)?.girth == 2) { "a large tree was not two across" }
+        check((ResizedFeatures.of(oak, 4.0, { it }, registries) as? ThickTrunk)?.girth == 3) { "a colossal tree was not three across" }
+        check(ResizedFeatures.of(oak, 1.0, { it }, registries) is TreeFeature) { "an ordinary tree was thickened" }
+    }
+
+    test("sugar cane grows taller rather than wider") {
+        val cane = registries.lookupOrThrow(Registries.PLACED_FEATURE).listElements().toList()
+            .map { it.value().feature().value() }
+            .filterIsInstance<BlockColumnFeature>()
+            .first { column -> column.layers().any { it.height().maxInclusive() > 1 } }
+        val tallest = cane.layers().maxOf { it.height().maxInclusive() }
+        val resized = ResizedFeatures.of(cane, 4.0, { it }, registries) as BlockColumnFeature
+        check(resized.layers().maxOf { it.height().maxInclusive() } == tallest * 4) { "a colossal column was not four times as tall" }
     }
 
     test("a chooser among trees resizes every tree it chooses between") {
