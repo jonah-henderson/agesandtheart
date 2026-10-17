@@ -74,6 +74,20 @@ object Spawns {
         ),
     ).perMember()
 
+    /**
+     * How big every creature is, member by member — `colossal monsters`, `minuscule fish` — and its health, how
+     * hard it hits and how much it drops with it. `size`, the name a sun, a feature and a landform share.
+     */
+    val SIZE = Parameter.ranged(
+        "size",
+        help = "How big creatures are, and their health, their blows and their drops with it.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "two fifths of their own"),
+            Parameter.Landmark(0.0, "their own", isVanilla = true),
+            Parameter.Landmark(1.0, "two and a half times their own"),
+        ),
+    ).perMember()
+
     val LIVES = Pool(
         "lives",
         // `lives=nothing` is no natural spawning at all, whatever the Age's biomes would hold.

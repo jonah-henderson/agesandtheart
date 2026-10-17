@@ -119,7 +119,7 @@ object Features {
                 Parameter.Landmark(0.0, "ordinary"),
                 Parameter.Landmark(1.0, "as big as it gets"),
             ),
-        ).perBiome()
+        ).perBiome().perMember()
     val THICKNESS = Parameter.ranged(
         "thickness",
         help = "How thick a patch of them is.",
@@ -128,7 +128,7 @@ object Features {
                 Parameter.Landmark(0.0, "ordinary"),
                 Parameter.Landmark(1.0, "a thicket"),
             ),
-        ).perBiome()
+        ).perBiome().perMember()
     val HEIGHT = Parameter.ranged(
         "height",
         help = "How deep in the column they sit.",
@@ -137,7 +137,7 @@ object Features {
                 Parameter.Landmark(0.0, "mid-column"),
                 Parameter.Landmark(1.0, "at the surface"),
             ),
-        ).perBiome()
+        ).perBiome().perMember()
 
     /**
      * A biome's own generation settings, adjusted by whatever the sentence said — the function
@@ -155,9 +155,8 @@ object Features {
         val claims = options.claimsOn(PLACES)
         val asked = PLACES.skewOf(claims)
         val shape = Shape(
-            size = options.steer(SIZE, salt),
-            thickness = options.steer(THICKNESS, salt),
-            height = options.steer(HEIGHT, salt),
+            options = options,
+            salt = salt,
             // **Not a parameter a writer turns.** An ore replaces what its rule matches, and vanilla's rules
             // match vanilla's stone — so an Age made of anything else grows no ore at all unless the rock
             // it *is* gets added to them. Carried here because this is where a feature is rebuilt.
@@ -218,17 +217,26 @@ object Features {
      * up an identity it does not hold, and gets -1 into a list in the middle of generation.
      */
     private class Shape(
-        val size: Double?,
-        val thickness: Double?,
-        val height: Double?,
+        private val options: Options,
+        private val salt: Long,
         val rock: List<BlockState>,
     ) {
         /** Nothing turned, and nothing to reach — the case where a feature is handed back untouched. */
         val asksForNothing: Boolean
             get() {
-                val nothingWasTurned = size == null && thickness == null && height == null
+                val nothingWasTurned = listOf(SIZE, THICKNESS, HEIGHT).none { it.name in options.chosen }
                 return nothingWasTurned && FeatureShape.oresCanReach(rock)
             }
+
+        /** How big [feature] is to be — its own size where one was said of it (`colossal trees`), else the Age's. */
+        fun sizeOf(feature: Holder<VanillaPlacedFeature>): Double? = options.steer(SIZE, salt, member = keyOf(feature))
+
+        fun thicknessOf(feature: Holder<VanillaPlacedFeature>): Double? =
+            options.steer(THICKNESS, salt, member = keyOf(feature))
+
+        fun heightOf(feature: Holder<VanillaPlacedFeature>): Double? = options.steer(HEIGHT, salt, member = keyOf(feature))
+
+        private fun keyOf(feature: Holder<VanillaPlacedFeature>): String? = idOf(feature)?.toString()
 
         private val rebuilt = ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>()
 
@@ -236,7 +244,9 @@ object Features {
             if (asksForNothing) {
                 feature
             } else {
-                rebuilt.computeIfAbsent(feature) { FeatureShape.reshaped(it, size, thickness, height, rock) }
+                rebuilt.computeIfAbsent(feature) {
+                    FeatureShape.reshaped(it, sizeOf(it), thicknessOf(it), heightOf(it), rock)
+                }
             }
     }
 
@@ -294,9 +304,9 @@ object Features {
                 // amount prepends to.
                 val reshaped = FeatureShape.reshaped(
                     shaped,
-                    size = claim.size ?: shape.size,
-                    thickness = shape.thickness,
-                    height = claim.height ?: shape.height,
+                    size = claim.size ?: shape.sizeOf(found),
+                    thickness = shape.thicknessOf(found),
+                    height = claim.height ?: shape.heightOf(found),
                     rock = shape.rock,
                 )
                 val confined = claim.confinedTo?.let { FeatureShape.confinedTo(reshaped, it) } ?: reshaped

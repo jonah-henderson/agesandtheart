@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.consequence.StrangeGravity
 import co.voik.agesandtheart.worldgen.structure.LocalMaps
 import co.voik.agesandtheart.worldgen.structure.RandomPaintings
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.entity.decoration.ItemFrame
 import net.minecraft.world.entity.decoration.painting.Painting
 import co.voik.agesandtheart.advancement.AgeTriggers
@@ -173,6 +174,15 @@ object CommonSetup {
     /** A creature dying on the server, of [source]. */
     fun livingDied(victim: LivingEntity, source: DamageSource) {
         PlasmaBurst.died(victim, source)
+    }
+
+    /**
+     * What [victim] drops as its own death loot, as [drops], in the count its Age's size for it says — a colossal
+     * creature leaves more, a minuscule one less. Answers the drops to leave, unchanged where nothing was written.
+     */
+    fun deathLootDropped(victim: Entity, drops: List<ItemStack>): List<ItemStack> {
+        val times = WrittenCreatures.dropsOf(victim) ?: return drops
+        return WrittenCreatures.scaled(drops, times, victim.random)
     }
 
     /** Datapack contents going to [player] — on joining, and to everyone after a `/reload`. */

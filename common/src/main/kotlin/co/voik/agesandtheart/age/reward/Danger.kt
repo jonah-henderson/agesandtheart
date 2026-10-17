@@ -279,18 +279,20 @@ data class Danger(
         }
 
         /**
-         * How much more dangerous the book made [member] than its own — its strength and its speed together, read
-         * as `WrittenCreatures` lays them on, so a score and a creature agree.
+         * How much more dangerous the book made [member] than its own — its strength, its speed and its size (which
+         * scales its health and blow as strength does) together, read as `WrittenCreatures` lays them on, so a score and a creature agree.
          */
         private fun hardinessOf(spawns: Options, seed: Long, member: String): Double {
             val strength = spawns.steer(Spawns.STRENGTH, seed, member = member)?.let(WrittenCreatures::strengthAt)
             val pace = spawns.steer(Spawns.PACE, seed, member = member)?.let(WrittenCreatures::paceAt)
-            return (strength ?: AS_THEY_ARE) * (pace ?: AS_THEY_ARE)
+            val size = spawns.steer(Spawns.SIZE, seed, member = member)?.let(WrittenCreatures::sizeAt)
+            return (strength ?: AS_THEY_ARE) * (pace ?: AS_THEY_ARE) * (size ?: AS_THEY_ARE)
         }
 
-        /** Every creature the book made stronger, weaker, quicker or slower — every monster, where it said all. */
+        /** Every creature the book made stronger, weaker, quicker, slower, bigger or smaller — every monster, where it said all. */
         private fun madeHardier(spawns: Options, table: DangerTable): Set<String> {
-            val said = spawns.holdersOfAny(Spawns.STRENGTH) and spawns.holdersOfAny(Spawns.PACE)
+            val said = spawns.holdersOfAny(Spawns.STRENGTH) and spawns.holdersOfAny(Spawns.PACE) and
+                spawns.holdersOfAny(Spawns.SIZE)
             if (!said.everyone) return said.only
             return said.only + BuiltInRegistries.ENTITY_TYPE.keySet().map { it.toString() }.filter { table.spawn(it) > NONE }
         }

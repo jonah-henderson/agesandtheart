@@ -4,9 +4,16 @@
     "geometric, so the five words -- minuscule, small, unsaid, large, colossal -- are equal steps.",
     "",
     "No query, where `colossal` restricts the landmass to `monumental`: a large thing is still an",
-    "ordinary one, and only the end of the axis should pull the draw towards the landforms built big."
+    "ordinary one, and only the end of the axis should pull the draw towards the landforms built big.",
+    "",
+    "Creatures are sized too — `large monsters` — through their scale, with health, blows and drops in",
+    "proportion; laid bare, the word leaves them as they are (`unaimed`), since a world of giants is a thing to",
+    "say on purpose."
   ],
   "sets": {
     "size": "0.5..0.5"
+  },
+  "unaimed": {
+    "spawns": 0.0
   }
 }

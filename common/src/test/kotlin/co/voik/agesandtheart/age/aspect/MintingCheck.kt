@@ -337,8 +337,8 @@ class MintingCheck : FunSpec({
 
     /** And a size nothing minted still steers the aspect, which is what makes the spending a scoping. */
     test("a size outside a minting still reaches the aspect") {
-        check(sizeOf("colossal", "trees", "features") != sizeOf()) {
-            "'colossal trees features' left the features aspect at its default size"
+        check(sizeOf("colossal", "features") != sizeOf()) {
+            "'colossal features' left the features aspect at its default size"
         }
     }
 
@@ -374,7 +374,7 @@ class MintingCheck : FunSpec({
      * back: `minuscule springs` cost two pages and left the Age neither a spring nor a smaller one.
      */
     test("a size is not spent by a clause that mints nothing") {
-        check(sizeOf("minuscule", "springs") == sizeOf("minuscule", "trees", "features")) {
+        check(sizeOf("minuscule", "springs") == sizeOf("minuscule", "features")) {
             "'minuscule springs' minted nothing and spent 'minuscule' anyway: ${sizeOf("minuscule", "springs")}"
         }
     }

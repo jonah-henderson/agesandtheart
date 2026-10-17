@@ -1,6 +1,8 @@
 package co.voik.agesandtheart
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents
 import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab
 import co.voik.agesandtheart.content.AgeCreativeTab
@@ -141,6 +143,14 @@ fun init() {
         CommonSetup.playerChangedLevel(player, to)
     }
     ServerLivingEntityEvents.AFTER_DEATH.register { victim, source -> CommonSetup.livingDied(victim, source) }
+    // Only a creature's own death loot: every other table this fires for — a block, a chest — is left alone.
+    LootTableEvents.MODIFY_DROPS.register { table, context, drops ->
+        val victim = context.getOptional(LootContextParams.THIS_ENTITY) as? LivingEntity ?: return@register
+        if (table.unwrapKey().orElse(null) != victim.lootTable.orElse(null)) return@register
+        val scaled = CommonSetup.deathLootDropped(victim, drops.toList())
+        drops.clear()
+        drops.addAll(scaled)
+    }
     ServerLifecycleEvents.SYNC_DATA_PACK_CONTENTS.register { player, _ ->
         CommonSetup.datapackSynced(player)
     }

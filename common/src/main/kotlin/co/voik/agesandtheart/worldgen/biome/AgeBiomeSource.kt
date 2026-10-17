@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen.biome
 
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.Holder
@@ -16,6 +17,7 @@ import net.minecraft.world.level.levelgen.densityfunction.DensityVolume
 import net.minecraft.world.level.levelgen.densityfunction.SamplerContext
 import java.util.Optional
 import java.util.stream.Stream
+import kotlin.math.floor
 
 /**
  * **An Age's own way of seeing whatever world it grows its biomes from** — the template's, or a table of
@@ -56,20 +58,24 @@ class AgeBiomeSource(
      * second. Read in order, so the first band covering a height wins.
      */
     private val bands: List<BiomeBand> = emptyList(),
+    /** How many times wider than vanilla's each biome spreads — `colossal biomes`. One is vanilla's. */
+    private val stretch: Double = UNSTRETCHED,
 ) : BiomeSource() {
 
     override fun codec(): MapCodec<out BiomeSource> = CODEC
 
-    fun sampledForDepth(): AgeBiomeSource = AgeBiomeSource(under, AsSampled, bent, grounding, bands)
+    fun sampledForDepth(): AgeBiomeSource = AgeBiomeSource(under, AsSampled, bent, grounding, bands, stretch)
 
     fun groundedIn(terrain: TerrainField): AgeBiomeSource =
-        AgeBiomeSource(under, BelowTerrain(terrain), bent, grounding, bands)
+        AgeBiomeSource(under, BelowTerrain(terrain), bent, grounding, bands, stretch)
 
-    fun suitedTo(grounding: Grounding?): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands)
+    fun suitedTo(grounding: Grounding?): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands, stretch)
 
-    fun banded(bands: List<BiomeBand>): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands)
+    fun banded(bands: List<BiomeBand>): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands, stretch)
 
-    fun told(bent: RegionalClimate): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands)
+    fun told(bent: RegionalClimate): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands, stretch)
+
+    fun stretched(by: Double): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands, by)
 
     /**
      * **A factory now, where 26.3 asked a source for one biome at a time.** That is what retired the memo
@@ -116,7 +122,7 @@ class AgeBiomeSource(
 
     /** Whether anything here would move a single number. */
     private val bendsNothing: Boolean
-        get() = depth == AsSampled && grounding == null && bent.isIdle
+        get() = depth == AsSampled && grounding == null && bent.isIdle && stretch == UNSTRETCHED
 
     /**
      * **The End must be handed the sampler it was given, not one of ours.**
@@ -151,38 +157,49 @@ class AgeBiomeSource(
             // Bent first, then chilled by however far this column stands above the Age's floor — the bias is
             // what the writer asked for and the lapse is what the mountain does to it, so a warm Age still
             // has cold summits and a cold one has colder. See [Elevation].
-            asThisAgeReadsIt(climate.temperature()) { blockX, _, blockZ, vanillas ->
+            asThisAgeReadsIt(climate.temperature(), stretched = true) { blockX, _, blockZ, vanillas ->
                 val warmth = biasAt(blockX, blockZ).shift(ClimateAxis.TEMPERATURE, vanillas)
                 grounding?.temperatureAt(blockX, blockZ, warmth) ?: warmth
             },
-            asThisAgeReadsIt(climate.humidity()) { blockX, _, blockZ, vanillas ->
+            asThisAgeReadsIt(climate.humidity(), stretched = true) { blockX, _, blockZ, vanillas ->
                 biasAt(blockX, blockZ).shift(ClimateAxis.HUMIDITY, vanillas)
             },
             // Continentalness describes shape, and an Age's shape is the field tree's rather than the
             // climate's — so by default it passes through untouched and the two simply disagree. A
             // *grounded* Age reads it off the shape instead. See [Grounding] and [ClimateAxis].
-            asThisAgeReadsIt(climate.continentalness()) { blockX, _, blockZ, vanillas ->
+            asThisAgeReadsIt(climate.continentalness(), stretched = grounding == null) { blockX, _, blockZ, vanillas ->
                 grounding?.continentalnessAt(blockX, blockZ) ?: vanillas
             },
             // Erosion means how worn flat the ground is, so a grounded Age reads it off its own fall rather
             // than off a noise that never saw the terrain — which decides a sandy beach from a stony shore.
-            asThisAgeReadsIt(climate.erosion()) { blockX, _, blockZ, vanillas ->
+            asThisAgeReadsIt(climate.erosion(), stretched = grounding == null) { blockX, _, blockZ, vanillas ->
                 grounding?.erosionAt(blockX, blockZ) ?: vanillas
             },
             depthAsThisAgeReadsIt(climate.depth()),
             // Weirdness passes through too. A grounded Age pushes it into the valley band where its own
             // rivers run, which is where vanilla files them. See [ClimateAxis].
-            asThisAgeReadsIt(climate.weirdness()) { blockX, _, blockZ, vanillas ->
+            asThisAgeReadsIt(climate.weirdness(), stretched = true) { blockX, _, blockZ, vanillas ->
                 grounding?.weirdnessAt(blockX, blockZ, vanillas) ?: vanillas
             },
         )
     }
 
-    /** One axis of the climate sampler, read the way this Age reads it. */
+    /**
+     * One axis of the climate sampler, read the way this Age reads it — and where [stretched], the world's own
+     * value read from [stretch] times nearer the origin, so each biome it decides spreads that much wider. An
+     * axis a grounded Age reads off its own land is not stretched, or the biomes would leave the land behind.
+     */
     private fun asThisAgeReadsIt(
         vanillas: DensitySampler.Bound,
+        stretched: Boolean = false,
         read: (Int, Int, Int, Float) -> Float,
-    ): DensitySampler.Bound = bound(vanillas) { x, y, z -> read(x, y, z, vanillas.sampleValue(x, y, z)) }
+    ): DensitySampler.Bound = bound(vanillas) { x, y, z ->
+        val readFrom = stretched && stretch != UNSTRETCHED
+        val sampled = if (readFrom) vanillas.sampleValue(nearer(x), y, nearer(z)) else vanillas.sampleValue(x, y, z)
+        read(x, y, z, sampled)
+    }
+
+    private fun nearer(block: Int): Int = floor(block / stretch).toInt()
 
     /**
      * Depth, which alone decides whether to *ask* the world below at all — two of the three depths answer
@@ -203,8 +220,9 @@ class AgeBiomeSource(
                 Grounding.CODEC.optionalFieldOf("grounding").forGetter { Optional.ofNullable(it.grounding) },
                 // Empty for every Age with nothing indoors and no abyss, which is most of them.
                 BiomeBand.CODEC.listOf().optionalFieldOf("bands", emptyList()).forGetter { it.bands },
-            ).apply(instance) { under, depth, bias, grounded, bands ->
-                AgeBiomeSource(under, depth, bias, grounded.orElse(null), bands)
+                Codec.DOUBLE.optionalFieldOf("stretch", UNSTRETCHED).forGetter { it.stretch },
+            ).apply(instance) { under, depth, bias, grounded, bands, stretch ->
+                AgeBiomeSource(under, depth, bias, grounded.orElse(null), bands, stretch)
             }
         }
     }
@@ -229,6 +247,9 @@ private fun bound(vanillas: DensitySampler.Bound, read: (Int, Int, Int) -> Float
         },
         vanillas.context(),
     )
+
+/** Biomes as wide as vanilla's own. */
+private const val UNSTRETCHED = 1.0
 
 /** What stands in for vanilla's depth where the Age's own depth never reads it — see [ClimateDepth.readsVanillas]. */
 private const val UNREAD = 0.0f

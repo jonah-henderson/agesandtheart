@@ -14,7 +14,11 @@
     "the writer was charged for a contradiction they did not make (Jonah, 2026-09-01).",
     "",
     "The query is flat rather than keyed because `monumental` means the same thing everywhere it is",
-    "carried; a sun carries no tags at all, so asking it costs nothing and finds nothing."
+    "carried; a sun carries no tags at all, so asking it costs nothing and finds nothing.",
+    "",
+    "Creatures are sized too — `colossal monsters` — through their scale, with health, blows and drops in",
+    "proportion; laid bare, the word leaves them as they are (`unaimed`), since a world of giants is a thing to",
+    "say on purpose."
   ],
   "restricts": {
     "landmass": {
@@ -23,5 +27,8 @@
   },
   "sets": {
     "size": "1.0..1.0"
+  },
+  "unaimed": {
+    "spawns": 0.0
   }
 }

@@ -308,7 +308,7 @@ enum class Aspect(
             CLIMATE -> ClimateAxis.entries.map { it.parameter } + Atmosphere.EVAPORATION + Parameter.cast()
             // A biome's population is the aspect's [pool] rather than a setting; `footing` says how it
             // is *worn*, not which.
-            BIOMES -> listOf(Biomes.FOOTING)
+            BIOMES -> listOf(Biomes.FOOTING, Biomes.SIZE)
             SURFACE -> listOf(Surface.MATERIAL, Surface.BARE)
             FEATURES -> listOf(
                 Features.SIZE, Features.THICKNESS, Features.HEIGHT, Features.UNIFORM, Features.BARE, Features.INCONGRUOUS,
@@ -357,7 +357,7 @@ enum class Aspect(
             SEA -> listOf(Sea.DEPTH)
             // What holds of every landform and every creature, whichever is seated or lives there.
             TERRAIN -> listOf(Terrain.TORN, Terrain.INCONGRUOUS)
-            SPAWNS -> listOf(Spawns.STILL, Spawns.PACE, Spawns.STRENGTH, Spawns.INCONGRUOUS)
+            SPAWNS -> listOf(Spawns.STILL, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS)
             STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS)
             // **Nothing of its own**: each phenomenon carries the dials it has (`Phenomenon.parameters`), since an
             // inferno has no "how often" and only the overgrowth grows.

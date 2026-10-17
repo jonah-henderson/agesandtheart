@@ -17,8 +17,22 @@
     "Aimed at the land or the surface it asks for a block of its colour (`#cyan`,",
     "preset_tags/materials.json): dyed concrete, wool, terracotta and glass, and what the world already makes in",
     "it. Laid bare, only one Age in ten is built of it and one in ten wears it, so a plain coloured Age is not a",
-    "world of concrete."
+    "world of concrete.",
+    "",
+    "And it leans, never forcing, towards the biomes and the growth of its colour: warm seas and warped woods,",
+    "glow lichen."
   ],
+  "biases": {
+    "biomes": {
+      "minecraft:warm_ocean": 0.5,
+      "minecraft:warped_forest": 0.4,
+      "minecraft:lush_caves": 0.3
+    },
+    "features": {
+      "minecraft:warped_fungi": 0.5,
+      "minecraft:glow_lichen": 0.4
+    }
+  },
   "sets": {
     "colour": "cyan",
     "stone": "#cyan",

@@ -3,9 +3,16 @@
     "Little, one step down the size axis: half of what was tuned, where `minuscule` is a quarter. The",
     "axis is geometric, so the five words -- minuscule, small, unsaid, large, colossal -- are equal steps.",
     "",
-    "No query, as `large` has none: the axis is what this word means, so the axis is all it sets."
+    "No query, as `large` has none: the axis is what this word means, so the axis is all it sets.",
+    "",
+    "Creatures are sized too — `small monsters` — through their scale, with health, blows and drops in",
+    "proportion; laid bare, the word leaves them as they are (`unaimed`), since a world of giants is a thing to",
+    "say on purpose."
   ],
   "sets": {
     "size": "-0.5..-0.5"
+  },
+  "unaimed": {
+    "spawns": 0.0
   }
 }

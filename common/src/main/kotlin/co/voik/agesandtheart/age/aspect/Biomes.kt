@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
+import kotlin.math.pow
+
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.TerrainField
@@ -89,6 +91,27 @@ object Biomes {
          * relationship to where our field put the rock. Sixty-three per cent is not a licence for the
          * occasional strange Age, it is the normal case — so the lever stays and points the other way.
          */
+        /**
+         * How wide each biome spreads — `size`, the name a sun, a feature and a creature share, so `colossal
+         * biomes` are vast and `minuscule biomes` a patchwork. A quarter of vanilla's to four times it, which is
+         * what Large Biomes does.
+         */
+        val SIZE = Parameter.ranged(
+            "size",
+            help = "How wide each biome spreads.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "a quarter of vanilla's"),
+                Parameter.Landmark(0.0, "vanilla's", isVanilla = true),
+                Parameter.Landmark(1.0, "four times, as Large Biomes"),
+            ),
+        )
+
+        /** How many times wider than vanilla's the biomes spread in these options. */
+        fun stretchIn(options: Options, seed: Long): Double = WIDEST_STRETCH.pow(options.steer(SIZE, seed) ?: VANILLAS)
+
+        private const val WIDEST_STRETCH = 4.0
+        private const val VANILLAS = 0.0
+
         val FOOTING = Parameter(
             "footing",
             listOf(GROUNDED_FOOTING, FREE_FOOTING),

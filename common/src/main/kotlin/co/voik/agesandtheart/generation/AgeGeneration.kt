@@ -210,6 +210,7 @@ object AgeGeneration {
                 ),
             )
                 .told(climate)
+                .stretched(Biomes.stretchIn(biomeOptions, seed))
                 .let { if (ourGround == null) it.sampledForDepth() else it.groundedIn(ourGround.landform) }
                 // On unless the Age said otherwise — `biomes.footing=free` is the lever, and an Age whose
                 // biomes ignore its land is allowed rather than broken. See [Grounding] and [Biomes.FOOTING].

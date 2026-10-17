@@ -30,6 +30,8 @@ import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.OnDatapackSyncEvent
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent
+import net.neoforged.neoforge.event.entity.living.LivingDropsEvent
+import net.minecraft.world.entity.item.ItemEntity
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import net.neoforged.neoforge.event.server.ServerStartedEvent
 import net.neoforged.neoforge.event.server.ServerStoppedEvent
@@ -76,6 +78,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedOut)
         NeoForge.EVENT_BUS.addListener(::onPlayerChangedDimension)
         NeoForge.EVENT_BUS.addListener(::onLivingDeath)
+        NeoForge.EVENT_BUS.addListener(::onLivingDrops)
         NeoForge.EVENT_BUS.addListener(::onDatapackSync)
         NeoForge.EVENT_BUS.addListener(::onServerStarted)
         NeoForge.EVENT_BUS.addListener(::onServerStopped)
@@ -291,6 +294,19 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     private fun onLivingDeath(event: LivingDeathEvent) {
         if (event.entity.level().isClientSide || event.isCanceled) return
         CommonSetup.livingDied(event.entity, event.source)
+    }
+
+    /** A creature's drops at the count its size says; a stack scaled past its limit is split across items. */
+    private fun onLivingDrops(event: LivingDropsEvent) {
+        if (event.entity.level().isClientSide) return
+        val split = mutableListOf<ItemEntity>()
+        event.drops.removeIf { dropped ->
+            val scaled = CommonSetup.deathLootDropped(event.entity, listOf(dropped.item))
+            scaled.firstOrNull()?.let { dropped.item = it }
+            scaled.drop(1).mapTo(split) { ItemEntity(dropped.level(), dropped.x, dropped.y, dropped.z, it) }
+            scaled.isEmpty()
+        }
+        event.drops.addAll(split)
     }
 
     private fun onDatapackSync(event: OnDatapackSyncEvent) {
