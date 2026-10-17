@@ -4,7 +4,6 @@ import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.world.phys.Vec3
 
 /**
  * Letting go of whoever has fallen through a tear (design §7.8).
@@ -52,29 +51,11 @@ object TheFall {
         Services.NETWORK.sendToPlayer(player, FallResumedPayload)
     }
 
-    /**
-     * A little over the world's spawn, already falling.
-     *
-     * Arriving at rest reads as a teleport; arriving still moving reads as having come *out* of somewhere,
-     * which is the thing the fall started with.
-     */
+    /** Back over the world's spawn — see [HomeLanding]. */
     private fun putBackInTheOverworld(player: ServerPlayer, server: MinecraftServer) {
-        val home = server.overworld()
-        // The world spawn moved behind `LevelData.RespawnData`, which carries a `GlobalPos`.
-        val spawn = home.levelData.respawnData.pos()
         player.noPhysics = false
         player.resetFallDistance()
-        player.teleportTo(
-            home,
-            spawn.x + HALF_A_BLOCK, spawn.y + FALL_OUT_ABOVE, spawn.z + HALF_A_BLOCK,
-            emptySet(), player.yRot, player.xRot, true,
-        )
-        player.deltaMovement = Vec3(0.0, -GENTLY_DOWN, 0.0)
+        HomeLanding.putDown(player, server.overworld())
         AgeTriggers.FELL_HOME.trigger(player)
     }
-
-    /** A little over the spawn, so the last thing the fall does is the thing it started with. */
-    private const val FALL_OUT_ABOVE = 8.0
-    private const val GENTLY_DOWN = 0.2
-    private const val HALF_A_BLOCK = 0.5
 }

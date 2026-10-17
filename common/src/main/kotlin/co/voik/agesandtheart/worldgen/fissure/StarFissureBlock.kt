@@ -17,7 +17,6 @@ import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.entity.TheEndPortalBlockEntity
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
 
@@ -114,27 +113,8 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
         if (isABook && thrower != null) AgeTriggers.GAVE_A_BOOK_TO_A_FISSURE.trigger(thrower)
     }
 
-    /**
-     * A little above the world's spawn, already falling — **the way out**.
-     *
-     * The push down is the illusion's other half: arriving at rest reads as a teleport, where arriving in
-     * the air still moving reads as having come *out* of somewhere.
-     */
-    private fun sendHome(level: ServerLevel, entity: Entity) {
-        val home = level.server.overworld()
-        val spawn = home.levelData.respawnData.pos()
-        entity.teleportTo(
-            home,
-            spawn.x + HALF_A_BLOCK,
-            spawn.y + FALL_OUT_ABOVE,
-            spawn.z + HALF_A_BLOCK,
-            emptySet(),
-            entity.yRot,
-            entity.xRot,
-            false,
-        )
-        entity.deltaMovement = Vec3(0.0, -GENTLY_DOWN, 0.0)
-    }
+    /** Over the world's spawn — **the way out**. See [HomeLanding]. */
+    private fun sendHome(level: ServerLevel, entity: Entity) = HomeLanding.putDown(entity, level.server.overworld())
 
     /**
      * How long you fall before the Age lets go — about a second, which is fifteen blocks of falling.
@@ -149,8 +129,6 @@ open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties
 
     companion object {
 
-        private const val FALL_OUT_ABOVE = 8.0
-        private const val GENTLY_DOWN = 0.2
         private const val HALF_A_BLOCK = 0.5
     }
 }

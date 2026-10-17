@@ -306,14 +306,15 @@ object Ages {
     }
 
     /**
-     * Clears somewhere to stand at [arrival], for an Age that has no room there.
+     * Clears somewhere to stand at [arrival], for a level that has no room there — an Age linked into, or the
+     * overworld's spawn under a heap of rubble fallen out of one.
      *
      * Only on the way in, never on the way to a panel: a book that carved a pocket merely by being opened
      * would edit an Age nobody had visited.
      *
      * At a built doorway only the visitor's own column: the city's arrival is one block from its frame.
      */
-    private fun openUpArrival(level: ServerLevel, arrival: Arrival) {
+    internal fun openUpArrival(level: ServerLevel, arrival: Arrival) {
         val (at, facing) = arrival
         val cursor = BlockPos.MutableBlockPos()
         fun blocked(y: Int) = !level.getBlockState(cursor.set(at.x, y, at.z)).isAir
