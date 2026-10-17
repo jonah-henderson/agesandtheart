@@ -1,55 +1,49 @@
 package co.voik.agesandtheart.worldgen.fissure
 
 import co.voik.agesandtheart.generation.Ages
-import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.stats.Stats
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.Vec3
 
 /**
- * Where something fallen out of an Age comes down in the overworld: a little over the world's spawn, already
- * falling, so it reads as having come *out* of somewhere rather than as a teleport.
+ * Where something fallen out of an Age comes down in the overworld: over the world's spawn, already falling, so
+ * it reads as having come *out* of somewhere rather than as a teleport.
  *
- * **Unless the spawn is buried, for a player.** A collapsing Age lets its rubble down around the spawn
- * ([RubbleArrivals]), and a heap taller than the drop put whoever fell next inside it. Where the column a player
- * would fall through is not clear, a pocket is carved at the spawn as linking carves one, and they arrive
- * standing. Anything else comes down as it always has: an item thrown in carves nothing.
+ * **Over whatever stands there**, not over the spawn's own height: a collapsing Age lets its rubble down around
+ * the spawn ([RubbleArrivals]), and a heap taller than the drop put whoever fell next inside it.
  */
 object HomeLanding {
 
-    /** Puts [entity] down over [home]'s spawn, falling where there is room to and standing where there is not. */
+    /** Puts [entity] down falling, a little over the highest thing standing at [home]'s spawn. */
     fun putDown(entity: Entity, home: ServerLevel) {
         val spawn = home.levelData.respawnData.pos()
-        val isAPlayer = entity is Player
-        val hasRoomToFall = !isAPlayer || isClear(home, spawn)
-        if (!hasRoomToFall) Ages.openUpArrival(home, Ages.Arrival(spawn))
-        val above = if (hasRoomToFall) FALL_OUT_ABOVE else ON_THE_GROUND
+        val standing = home.getHeight(Heightmap.Types.MOTION_BLOCKING, spawn.x, spawn.z)
+        val from = (standing + FALL_OUT_ABOVE).coerceAtMost(home.maxY - HEADROOM.toDouble())
         entity.teleportTo(
             home,
-            spawn.x + HALF_A_BLOCK, spawn.y + above, spawn.z + HALF_A_BLOCK,
-            emptySet(), entity.yRot, entity.xRot, isAPlayer,
+            spawn.x + HALF_A_BLOCK, from, spawn.z + HALF_A_BLOCK,
+            emptySet(), entity.yRot, entity.xRot, entity is Player,
         )
-        entity.deltaMovement = if (hasRoomToFall) Vec3(0.0, -GENTLY_DOWN, 0.0) else Vec3.ZERO
+        entity.deltaMovement = Vec3(0.0, -GENTLY_DOWN, 0.0)
     }
 
-    /** Whether the three-wide column from [spawn] up past where the drop starts holds nothing but air. */
-    private fun isClear(home: ServerLevel, spawn: BlockPos): Boolean {
-        val cursor = BlockPos.MutableBlockPos()
-        val top = spawn.y + FALL_OUT_ABOVE.toInt() + HEADROOM
-        return (spawn.y..top).all { y ->
-            (-REACH..REACH).all { dx ->
-                (-REACH..REACH).all { dz -> home.getBlockState(cursor.set(spawn.x + dx, y, spawn.z + dz)).isAir }
-            }
-        }
+    /**
+     * A player here for the first time who would start inside the rubble heaped on the spawn: carved a pocket,
+     * as linking carves one. Vanilla puts a new player at the spawn without asking what has fallen on it since.
+     */
+    fun joined(player: ServerPlayer) {
+        val isTheirFirstTime = player.stats.getValue(Stats.CUSTOM.get(Stats.PLAY_TIME)) == NEVER_PLAYED
+        if (!isTheirFirstTime || !player.isInWall) return
+        Ages.openUpArrival(player.level(), Ages.Arrival(player.blockPosition()))
     }
 
     private const val FALL_OUT_ABOVE = 8.0
-    private const val ON_THE_GROUND = 0.0
     private const val GENTLY_DOWN = 0.2
     private const val HALF_A_BLOCK = 0.5
-
-    /** The column a falling player takes up, as a pocket carved for one is wide. */
-    private const val REACH = 1
     private const val HEADROOM = 2
+    private const val NEVER_PLAYED = 0
 }

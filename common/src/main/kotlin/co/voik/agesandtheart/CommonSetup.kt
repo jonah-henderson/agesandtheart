@@ -1,5 +1,6 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.worldgen.fissure.HomeLanding
 import co.voik.agesandtheart.age.consequence.StillCreatures
 import co.voik.agesandtheart.age.consequence.WrittenCreatures
 import co.voik.agesandtheart.age.consequence.StrangeGravity
@@ -159,6 +160,8 @@ object CommonSetup {
      * bookkeeping, and it does it from its own entrypoint.
      */
     fun playerJoined(player: ServerPlayer) {
+        // Before anything else, so a newcomer is never asked to read a page from inside a heap of rubble.
+        HomeLanding.joined(player)
         PageLearning.tellEverything(player)
         // And a fall through a tear resumes, or ends where the tear no longer does.
         TheFall.resumed(player)
