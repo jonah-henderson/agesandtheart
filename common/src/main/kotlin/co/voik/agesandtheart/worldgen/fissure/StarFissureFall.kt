@@ -118,36 +118,72 @@ object StarFissureFall {
      *
      * **One layer is enough to look at**, because every tear is cut at one: a collapse tear stands at the
      * Age's own floor and a natural fissure is levelled across its whole crack ([StarFissurePiece]).
+     *
+     * **Followed as far as it runs**, column to column and corner to corner, through every chunk the client
+     * holds, so a tear that has spread across several chunks opens the whole of itself overhead.
      */
     fun openingAround(player: Player, tear: BlockPos): Opening {
-        val torn = BooleanArray(SIDE * SIDE)
+        val level = player.level()
         val cursor = BlockPos.MutableBlockPos()
-        for (awayX in -SPREADS_OVER..SPREADS_OVER) {
-            for (awayZ in -SPREADS_OVER..SPREADS_OVER) {
-                cursor.set(tear.x + awayX, tear.y, tear.z + awayZ)
-                val column = (awayX + SPREADS_OVER) * SIDE + (awayZ + SPREADS_OVER)
-                torn[column] = player.level().getBlockState(cursor).block is StarFissureBlock
+        fun isTorn(x: Int, z: Int): Boolean {
+            return level.hasChunkAtColumn(x, z) && level.getBlockState(cursor.set(x, tear.y, z)).block is StarFissureBlock
+        }
+        val start = columnKey(tear.x, tear.z)
+        val torn = hashSetOf(start)
+        val looked = hashSetOf(start)
+        val waiting = ArrayDeque(listOf(start))
+        while (waiting.isNotEmpty() && torn.size < MOST_COLUMNS_FOLLOWED) {
+            val column = waiting.removeFirst()
+            val (x, z) = BlockPos.getX(column) to BlockPos.getZ(column)
+            for (awayX in -1..1) for (awayZ in -1..1) {
+                val next = columnKey(x + awayX, z + awayZ)
+                if (!looked.add(next)) continue
+                if (!isTorn(x + awayX, z + awayZ)) continue
+                torn += next
+                waiting.addLast(next)
             }
         }
-        return Opening(tear.x - SPREADS_OVER, tear.z - SPREADS_OVER, SIDE, torn)
+        return Opening.of(torn)
     }
 
-    /**
-     * The hole in the veil's lid: which of the columns around a tear are themselves torn, in blocks.
-     *
-     * Everything outside the square this was searched over is lid, which is what [leastX], [leastZ] and
-     * [side] are for — the veil frames that square once and only goes column by column inside it.
-     */
-    class Opening(val leastX: Int, val leastZ: Int, val side: Int, private val torn: BooleanArray) {
+    private fun columnKey(x: Int, z: Int): Long = BlockPos.asLong(x, 0, z)
 
-        val mostX: Int get() = leastX + side - 1
-        val mostZ: Int get() = leastZ + side - 1
+    /**
+     * The hole in the veil's lid: which columns of a tear are torn, in blocks, over the rectangle they span.
+     *
+     * Everything outside that rectangle is lid, which is what [leastX], [mostX], [leastZ] and [mostZ] are for —
+     * the veil frames it once and only goes column by column inside it.
+     */
+    class Opening private constructor(
+        val leastX: Int,
+        val leastZ: Int,
+        private val width: Int,
+        private val depth: Int,
+        private val torn: BooleanArray,
+    ) {
+
+        val mostX: Int get() = leastX + width - 1
+        val mostZ: Int get() = leastZ + depth - 1
 
         fun isTorn(x: Int, z: Int): Boolean {
             val alongX = x - leastX
             val alongZ = z - leastZ
-            if (alongX !in 0..<side || alongZ !in 0..<side) return false
-            return torn[alongX * side + alongZ]
+            if (alongX !in 0..<width || alongZ !in 0..<depth) return false
+            return torn[alongX * depth + alongZ]
+        }
+
+        companion object {
+            /** The opening the [columns] make, each packed as `BlockPos.asLong(x, 0, z)`. */
+            fun of(columns: Set<Long>): Opening {
+                if (columns.isEmpty()) return Opening(0, 0, 0, 0, BooleanArray(0))
+                val leastX = columns.minOf(BlockPos::getX)
+                val leastZ = columns.minOf(BlockPos::getZ)
+                val width = columns.maxOf(BlockPos::getX) - leastX + 1
+                val depth = columns.maxOf(BlockPos::getZ) - leastZ + 1
+                val torn = BooleanArray(width * depth)
+                for (column in columns) torn[(BlockPos.getX(column) - leastX) * depth + (BlockPos.getZ(column) - leastZ)] = true
+                return Opening(leastX, leastZ, width, depth, torn)
+            }
         }
     }
 
@@ -204,9 +240,8 @@ object StarFissureFall {
      */
     private const val CLEAR_OF_THE_VOID = 8
 
-    /** How far a tear is followed sideways when measuring the opening, and the square that makes. */
-    private const val SPREADS_OVER = 8
-    private const val SIDE = SPREADS_OVER * 2 + 1
+    /** How many columns of a tear are followed when measuring the opening: far past any collapse seen yet. */
+    private const val MOST_COLUMNS_FOLLOWED = 65_536
 
     /** What a tick of falling adds, which the tick has not added yet when a fall is looked for. */
     private const val GRAVITY = 0.08

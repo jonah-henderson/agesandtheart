@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.core.BlockPos
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.phys.Vec3
 
 /**
@@ -45,6 +46,9 @@ object StarFissureVeil {
 
     private data class Showing(val tear: BlockPos, val opening: StarFissureFall.Opening)
 
+    /** Ticks since the opening was last measured; it is followed across the whole tear, so not every tick. */
+    private var ticksSinceMeasured = 0
+
     /** Work out whether the veil is up, at the end of each client tick. */
     fun tick(minecraft: Minecraft) {
         val player = minecraft.player
@@ -52,9 +56,21 @@ object StarFissureVeil {
             player == null || !StarFissureFall.isFalling(player) -> null
             else -> StarFissureFall.tearOfTheFall(player)
                 ?.takeIf { StarFissureFall.eyesInside(player, it) }
-                ?.let { Showing(it, StarFissureFall.openingAround(player, it)) }
+                ?.let { Showing(it, openingFor(player, it)) }
         }
         BelowTheLid.changeTo(showing?.let(::cutOf), minecraft)
+    }
+
+    /** The opening over [tear], measured again once [REMEASURED_EVERY] ticks so a spreading tear keeps up. */
+    private fun openingFor(player: Player, tear: BlockPos): StarFissureFall.Opening {
+        val last = showing
+        val isTheSameTear = last != null && last.tear == tear
+        if (isTheSameTear && ticksSinceMeasured < REMEASURED_EVERY) {
+            ticksSinceMeasured++
+            return last.opening
+        }
+        ticksSinceMeasured = 0
+        return StarFissureFall.openingAround(player, tear)
     }
 
     private fun cutOf(shown: Showing): BelowTheLid.Cut = BelowTheLid.Cut(
@@ -85,25 +101,24 @@ object StarFissureVeil {
         val lidY = tear.y + A_BLOCK
         val eye = Eye(camera, closeness(lidY - camera.y))
         val floorY = camera.y - DROPS_BELOW
-        val leastX = tear.x + HALF_A_BLOCK - REACHES_OUT
-        val mostX = tear.x + HALF_A_BLOCK + REACHES_OUT
-        val leastZ = tear.z + HALF_A_BLOCK - REACHES_OUT
-        val mostZ = tear.z + HALF_A_BLOCK + REACHES_OUT
+        val leastX = opening.leastX - REACHES_OUT
+        val mostX = opening.mostX + A_BLOCK + REACHES_OUT
+        val leastZ = opening.leastZ - REACHES_OUT
+        val mostZ = opening.mostZ + A_BLOCK + REACHES_OUT
         val searchedLeastX = opening.leastX.toDouble()
         val searchedMostX = opening.mostX + A_BLOCK
         val searchedLeastZ = opening.leastZ.toDouble()
         val searchedMostZ = opening.mostZ + A_BLOCK
         collector.submitCustomGeometry(poseStack, AgeRenderTypes.starFissureVeil) { pose, buffer ->
-            // The lid, as a frame of four around every column the tear could have taken...
+            // The lid, as a frame of four around every column the tear took...
             overhead(pose, buffer, eye, lidY, leastX, mostX, leastZ, searchedLeastZ)
             overhead(pose, buffer, eye, lidY, leastX, mostX, searchedMostZ, mostZ)
             overhead(pose, buffer, eye, lidY, leastX, searchedLeastX, searchedLeastZ, searchedMostZ)
             overhead(pose, buffer, eye, lidY, searchedMostX, mostX, searchedLeastZ, searchedMostZ)
-            // ...and then one quad for each it did not, so the hole left is the tear's own shape.
+            // ...and then a quad for each run of columns inside it that it did not, so the hole is its own shape.
             for (x in opening.leastX..opening.mostX) {
-                for (z in opening.leastZ..opening.mostZ) {
-                    if (opening.isTorn(x, z)) continue
-                    overhead(pose, buffer, eye, lidY, x.toDouble(), x + A_BLOCK, z.toDouble(), z + A_BLOCK)
+                for (run in untornRunsAlong(opening, x)) {
+                    overhead(pose, buffer, eye, lidY, x.toDouble(), x + A_BLOCK, run.first.toDouble(), run.last + A_BLOCK)
                 }
             }
             // And everything else.
@@ -113,6 +128,21 @@ object StarFissureVeil {
             acrossZ(pose, buffer, eye, mostZ, floorY, lidY, leastX, mostX, facingLess = true)
             acrossZ(pose, buffer, eye, leastZ, floorY, lidY, leastX, mostX, facingLess = false)
         }
+    }
+
+    /** The runs of untorn columns along z in the row [x] of [opening], so a wide tear is not a quad a column. */
+    private fun untornRunsAlong(opening: StarFissureFall.Opening, x: Int): List<IntRange> {
+        val runs = mutableListOf<IntRange>()
+        var runStart: Int? = null
+        for (z in opening.leastZ..opening.mostZ + 1) {
+            val isLid = z <= opening.mostZ && !opening.isTorn(x, z)
+            if (isLid && runStart == null) runStart = z
+            if (!isLid && runStart != null) {
+                runs += runStart..<z
+                runStart = null
+            }
+        }
+        return runs
     }
 
     /** Where the eye is, and how much nearer it than it stands the box is drawn. */
@@ -241,13 +271,11 @@ object StarFissureVeil {
         )
     }
 
-    /**
-     * How far the veil stands out from the tear's column.
-     *
-     * Wider than [StarFissureFall] follows a tear sideways, so the hole can never reach the edge of the lid
-     * and leave a gap where the frame runs out.
-     */
+    /** How far the veil stands out past the opening on every side. */
     private const val REACHES_OUT = 16.0
+
+    /** How often the opening is measured again during a fall: once a second. */
+    private const val REMEASURED_EVERY = 20
 
     /** How far under the eye its floor is laid, which is further than the fall ever gets to see. */
     private const val DROPS_BELOW = 24.0
@@ -261,6 +289,5 @@ object StarFissureVeil {
     /** Drawing it further off than it stands would move the picture, so the scale never goes above one. */
     private const val NO_FURTHER_THAN_IT_STANDS = 1.0
 
-    private const val HALF_A_BLOCK = 0.5
     private const val A_BLOCK = 1.0
 }
