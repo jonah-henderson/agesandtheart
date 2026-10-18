@@ -12,6 +12,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.ORDINARY_SHARE
 import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.word.grammar.Grammar
@@ -87,6 +88,11 @@ class FrequencySplitCheck : FunSpec({
         check(Fog.shareOfTheTime(constant, often = 0.0) == 1.0) { "a constant fog lifts" }
         check(Blizzard.shareOfTheTime(constant, often = 0.0) == 1.0) { "a constant blizzard lifts" }
         check(Deluge.risingOf(constant, Spending.NOTHING).rainShare == 1.0) { "a constant deluge lets up" }
+    }
+
+    test("an ordinary blizzard storms more of the time than vanilla's weather rains") {
+        val share = Blizzard.shareOfTheTime(Recurrence.ORDINARY, 0.0)
+        check(share > ORDINARY_SHARE) { "an ordinary blizzard asks $share, which cuts vanilla's rain short" }
     }
 
     test("seldom is less often than ordinary, even where ordinary was the floor") {

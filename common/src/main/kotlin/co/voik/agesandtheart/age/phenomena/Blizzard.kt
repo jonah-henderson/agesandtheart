@@ -194,17 +194,17 @@ object Blizzard {
 
     /**
      * How much of the time an Age this often in a storm spends in one, as
-     * [co.voik.agesandtheart.age.aspect.WeatherConditions] wants it — an ordinary blizzard comes about as
-     * often as vanilla's rain, where one bought in full is scarcely ever gone, one written seldom comes that
-     * much less, and a constant one never lifts. How *long* each lasts is its own dial, [BlizzardDials.long],
+     * [co.voik.agesandtheart.age.aspect.WeatherConditions] wants it — an ordinary blizzard a little more than
+     * vanilla rains ([ORDINARY_STORMS]), one bought in full scarcely ever gone, one written seldom that much less,
+     * and a constant one never lifts. How *long* each lasts is its own dial, [BlizzardDials.long],
      * and reaches the weather as a spell length rather than through this.
      */
     fun shareOfTheTime(recurrence: Recurrence, often: Double): Double {
         if (recurrence.isConstant) return ALWAYS
         val howOften = howOftenOf(recurrence.often, often)
         val isSeldom = howOften < Rung.ORDINARY
-        return if (isSeldom) AS_OFTEN_AS_RAIN * howOften
-        else (AS_OFTEN_AS_RAIN + (howOften - Rung.ORDINARY) * MORE_OF_THE_TIME).coerceAtMost(ALMOST_ALWAYS)
+        return if (isSeldom) ORDINARY_STORMS * howOften
+        else (ORDINARY_STORMS + (howOften - Rung.ORDINARY) * MORE_OF_THE_TIME).coerceAtMost(ALMOST_ALWAYS)
     }
 
     /**
@@ -569,10 +569,13 @@ object Blizzard {
     private const val DRIFTS_ORDINARILY = 3
     private const val MOST_DRIFTS = 20
 
-    /** About as much of the time as vanilla rains, which is what an ordinary blizzard should feel like. */
     private const val ALWAYS = 1.0
 
-    private const val AS_OFTEN_AS_RAIN = 0.3
+    /**
+     * An ordinary blizzard's share, on the weather's scale where a half is vanilla's own cadence: a little over it,
+     * which caps the clear spells and keeps the Age in a storm a little over half the time.
+     */
+    private val ORDINARY_STORMS = Phenomenon.BLIZZARD.insistsOn.rainfall
 
     /** Scarcely ever out of one, which is the top of the ladder rather than a value a writer reaches. */
     private const val ALMOST_ALWAYS = 0.98
