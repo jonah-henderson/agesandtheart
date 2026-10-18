@@ -14,6 +14,8 @@ import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.BlockTags
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
@@ -74,6 +76,24 @@ object Deluge {
     }
 
     fun isForcedIn(level: ServerLevel): Boolean = level in forced
+
+    /** Ages a deluge is falling on now, as `Happenings` last found — where it rains whatever the biome. */
+    private val pouring: MutableSet<ServerLevel> = Collections.newSetFromMap(Collections.synchronizedMap(WeakHashMap()))
+
+    /** Whether a deluge befalls [level] now. Told by `Happenings` on every tick it is watched. */
+    fun pours(level: ServerLevel, isPouring: Boolean) {
+        if (isPouring) pouring += level else pouring -= level
+    }
+
+    /**
+     * What falls at a place whose biome answers [biomes]: rain, under a deluge, where the biome would have none.
+     * Snow stays snow. Asked by `LevelRainMixin`, inside vanilla's own refusals for no rain, no sky and cover.
+     */
+    @JvmStatic
+    fun precipitationIn(level: Level, biomes: Biome.Precipitation): Biome.Precipitation {
+        val isDryButDrowning = biomes == Biome.Precipitation.NONE && level is ServerLevel && level in pouring
+        return if (isDryButDrowning) Biome.Precipitation.RAIN else biomes
+    }
 
     /**
      * What one Age's deluge does — its three dials, read off its rung and what its instability bought.
@@ -277,8 +297,8 @@ object Deluge {
             // inside whatever the sea has not reached yet — the sealed room the promise above depends on.
             if (top.y <= standing) return@sweep
             val onto = top.above()
-            // Only where the rain is seen to fall: not in a savanna or a desert, and not as snow.
-            if (!level.canSeeSky(onto) || !Sampling.rainsAt(level, onto)) return@sweep
+            // Only where rain falls — a deluge's falls on dry biomes too ([precipitationIn]), never as snow.
+            if (level.precipitationAt(onto) != Biome.Precipitation.RAIN) return@sweep
             val ground = level.getBlockState(top)
             val lying = ground.fluidState
             if (lying.`is`(Fluids.WATER) || lying.`is`(Fluids.FLOWING_WATER)) {

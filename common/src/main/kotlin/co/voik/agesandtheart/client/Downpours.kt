@@ -14,6 +14,7 @@ import net.minecraft.sounds.SoundSource
 import net.minecraft.util.ARGB
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
+import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.Vec3
 
@@ -37,6 +38,20 @@ object Downpours {
         if (!heard.pouring || !level.isRaining) return null
         return heard.heaviness
     }
+
+    /**
+     * What falls at a place whose biome answers [biomes]: rain, under a deluge, where the biome would have none,
+     * so a deluge rains on a savanna and a desert — a sign that something is wrong. Snow stays snow. Asked by
+     * `ClientLevelRainMixin`.
+     */
+    @JvmStatic
+    fun precipitationUnder(level: ClientLevel, biomes: Biome.Precipitation): Biome.Precipitation {
+        val isDryButDrowning = biomes == Biome.Precipitation.NONE && heavinessIn(level) != null
+        return if (isDryButDrowning) Biome.Precipitation.RAIN else biomes
+    }
+
+    /** Whether rain falls at [at] — the level's own answer, which a deluge has already carried into dry biomes. */
+    private fun rainsAt(level: ClientLevel, at: BlockPos): Boolean = level.getPrecipitationAt(at) == Biome.Precipitation.RAIN
 
     fun remember(payload: DelugePayload) {
         told = payload
@@ -109,7 +124,7 @@ object Downpours {
     private fun outInIt(level: ClientLevel, at: Vec3): Float? {
         val heaviness = heavinessIn(level) ?: return null
         val sampled = BlockPos.containing(at)
-        if (!Sampling.rainsAt(level, sampled)) return null
+        if (!rainsAt(level, sampled)) return null
         val exposed = Sampling.exposureAt(level, sampled)
         if (exposed <= NONE) return null
         val raining = level.getRainLevel(WHOLE_TICK)
@@ -126,7 +141,7 @@ object Downpours {
      *
      * Vanilla spawns about a fifth of a splash per column per tick in full rain; this adds as many again at
      * an ordinary deluge and several times that at the heaviest. Skipped where the ground is far above or
-     * below you, and where the biome does not rain, as vanilla's are.
+     * below you, and where no rain falls, as vanilla's are.
      */
     fun pour(client: Minecraft) {
         val level = client.level ?: return
@@ -142,7 +157,7 @@ object Downpours {
                 at.offset(random.nextInt(-AROUND, AROUND + 1), 0, random.nextInt(-AROUND, AROUND + 1)),
             ).below()
             if (ground.y !in at.y - WITHIN_HEIGHT..at.y + WITHIN_HEIGHT) return@repeat
-            if (!Sampling.rainsAt(level, ground.above())) return@repeat
+            if (!rainsAt(level, ground.above())) return@repeat
             val state = level.getBlockState(ground)
             val x = random.nextDouble()
             val z = random.nextDouble()
@@ -158,7 +173,7 @@ object Downpours {
     /** vanilla's own rain sound, played louder and lower than it plays it, muffled under cover. */
     private fun roar(level: ClientLevel, at: BlockPos, heaviness: Double, raining: Float) {
         if (level.random.nextInt(ROAR_EVERY) != 0) return
-        if (!Sampling.rainsAt(level, at)) return
+        if (!rainsAt(level, at)) return
         val exposed = Sampling.exposureAt(level, at)
         val loud = (QUIETEST_ROAR + (LOUDEST_ROAR - QUIETEST_ROAR) * heaviness.toFloat()) * raining
         val sound = if (exposed > HALF) SoundEvents.WEATHER_RAIN else SoundEvents.WEATHER_RAIN_ABOVE

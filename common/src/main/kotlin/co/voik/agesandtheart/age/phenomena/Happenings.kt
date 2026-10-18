@@ -55,6 +55,7 @@ object Happenings {
             if (Deluge.isForcedIn(level)) putIfAbsent(Phenomenon.DELUGE, Befalling.ORDINARY)
         }
         AgeWeather.steer(level, wanted(composition, befalls, spending))
+        Deluge.pours(level, Phenomenon.DELUGE in befalls)
         PhenomenaCeiling.holdTheWeather(level, befalls.keys)
         for ((phenomenon, befalling) in befalls) {
             befall(level, phenomenon, befalling, spending)

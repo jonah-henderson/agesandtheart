@@ -373,7 +373,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Fifty Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Fifty-two Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -460,6 +460,12 @@ When shared code needs something loader-specific, it goes through an interface, 
   pieces and coded ones alike, and neither loader has a structure-placement event; a `StructureProcessor` would
   reach only the templates. The structure is placed again through a level that swaps what is set, off a
   thread-local the Age's generator sets around its decoration.
+- **`LevelRainMixin`** and **`client/ClientLevelRainMixin`** — a deluge's rain falls on biomes that never see rain
+  (`Deluge.precipitationIn`, `Downpours.precipitationUnder`), as a sign that something is wrong; snow stays snow.
+  Precipitation is a fixed property of each biome rather than an environment attribute, and neither loader has an
+  event for it. Each redirects the biome's own answer inside the one method its side funnels through —
+  `Level.precipitationAt` for `isRainingAt`, `ClientLevel.getPrecipitationAt` for the weather renderer and its
+  splashes — so vanilla's refusals for no rain, no sky and cover stand.
 - **`NaturalSpawnerMixin`** — what an `incongruous spawns` Age lets live anywhere (`generation/IncongruousSpawns`):
   vanilla's placement check, the type's spawn predicate and the creature's own spawn rule all pass, the peaceful
   rule and the collision checks kept, scarabs excepted. Fabric has no natural-spawning event and NeoForge's

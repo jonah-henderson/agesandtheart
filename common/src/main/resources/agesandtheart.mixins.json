@@ -25,6 +25,7 @@
     "JigsawStructureMixin",
     "LecternBlockEntityMixin",
     "LecternBlockMixin",
+    "LevelRainMixin",
     "LifelessLevelMixin",
     "LightningBoltMixin",
     "LivingEntityMixin",
@@ -50,6 +51,7 @@
   "client": [
     "client.CameraMixin",
     "client.ClientLevelMixin",
+    "client.ClientLevelRainMixin",
     "client.GameRendererMixin",
     "client.LevelLoadingScreenMixin",
     "client.LevelRendererMixin",
