@@ -4,8 +4,8 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * An Age of stone turns to deepslate at depth, as vanilla's overworld does, whichever landform shapes it; an Age
- * of anything else keeps its own rock all the way down.
+ * An Age of stone turns to deepslate at depth, as vanilla's overworld does, whichever landform shapes it, vanilla's
+ * own included; an Age of anything else keeps its own rock all the way down.
  */
 @Tags(NEEDS_SERVER, NEEDS_TIME)
 class DeepslateOnServerCheck : FunSpec({
@@ -27,6 +27,14 @@ class DeepslateOnServerCheck : FunSpec({
     test("an Age of blackstone keeps blackstone all the way down") {
         server.run("age write blackstonedeep 7 age blackstone cratered landmass")
         check(deepslateUnder("blackstonedeep") == 0) { "deepslate repainted an Age of blackstone" }
+    }
+
+    test("vanilla's terrain of stone is deepslate at depth, and of granite is not") {
+        val stone = server.run("age write vanillastone 7 age overworld landmass")
+        check(deepslateUnder("vanillastone") > 0) { "no deepslate deep under vanilla's terrain of stone: $stone" }
+        val granite = server.run("age write vanillagranite 7 age granite overworld landmass")
+        check("Created Age" in granite) { "the granite Age was not written: $granite" }
+        check(deepslateUnder("vanillagranite") == 0) { "deepslate repainted vanilla's terrain of granite: $granite" }
     }
 })
 

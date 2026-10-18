@@ -162,5 +162,8 @@ data class Sea(override val id: Identifier) : RegistryReference {
         }
 
         private const val AS_THE_TERRAIN_LEFT_IT = 0
+
+        /** The least raise `deep` writes (`art/word/deep.json`, 0.85 on the cubic), in blocks over the terrain's waterline. */
+        const val ABYSSAL_RAISE = 59
     }
 }

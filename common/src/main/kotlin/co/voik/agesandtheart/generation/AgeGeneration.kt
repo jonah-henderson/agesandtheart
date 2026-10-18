@@ -178,6 +178,9 @@ object AgeGeneration {
         // and where the sea's top stands is read off that level — the abyss and its wreckage are laid against it.
         val vanillasSeaShift = Sea.depthShift(composition.optionsFor(Aspect.SEA, 0), seed)
         val vanillasSeaFluid = composition.seas.firstOrNull()?.substance() ?: vanillasRockSettings.value().defaultFluid()
+        // **An abyss on vanilla's rock only where a deep sea was asked for** (Jonah, 2026-10-17), where a rock of
+        // ours has one wherever its sea runs deep enough.
+        val vanillasAbyssAsked = vanillasSeaShift >= Sea.ABYSSAL_RAISE
         val seaSurfaceY = seaFill.surfaceY ?: if (ourGround == null && !vanillasSeaFluid.isAir) {
             vanillasRockSettings.value().seaLevel() + vanillasSeaShift - 1
         } else {
@@ -318,7 +321,8 @@ object AgeGeneration {
                 server,
                 composition.optionsFor(Aspect.STRUCTURES, 0),
                 recipe.template.standingStructures,
-                if (abyssLineOf(seaSurfaceY, window) == null) emptyMap() else WRECKAGE_ON_AN_ABYSS_FLOOR,
+                if (abyssLineOf(seaSurfaceY.takeIf { ourGround != null || vanillasAbyssAsked }, window) == null) emptyMap()
+                else WRECKAGE_ON_AN_ABYSS_FLOOR,
                 withoutWhatIsBuiltUnderground = composition.hasNothingBeneathIt,
             ) + CavernRuins.structureSets(server, composition),
             // **The climate the biomes are looked up by, and it comes from the same world they do.** This
@@ -358,6 +362,7 @@ object AgeGeneration {
             ),
             nothingLives = Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0)),
             incongruity = Incongruity.of(composition),
+            abyssOnVanillasRock = vanillasAbyssAsked,
             structuresBuiltOf = StructureMaterials.Written.of(composition.optionsFor(Aspect.STRUCTURES)),
             // What the Age's instability bought. Derived here rather than restated: these were three lines
             // recomputing `Consequence.of`'s own arithmetic, which is how a copy comes to drift from it.
@@ -412,7 +417,9 @@ object AgeGeneration {
             // a rule that is character for character the one it already pointed at.
             named.isEmpty() -> {
                 val theirRule = theirs.materialRule()
-                val patches = SurfacingStrategy.asPatchesOver(theirRule.value())
+                val rockOfStone = SurfacingStrategy.deepensToDeepslate(fill.blocks.flatten())
+                val faded = if (rockOfStone) theirRule.value() else SurfacingStrategy.withoutTheDeepslateFade(theirRule.value())
+                val patches = SurfacingStrategy.asPatchesOver(faded)
                 val theirSkin = if (patches === theirRule.value()) theirRule else Holder.direct(patches)
                 ourBiomes?.let { Holder.direct(MaterialRules.sequence(it, theirSkin.value())) } ?: theirSkin
             }

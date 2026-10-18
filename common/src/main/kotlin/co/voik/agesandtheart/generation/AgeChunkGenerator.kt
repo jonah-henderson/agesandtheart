@@ -183,6 +183,11 @@ class AgeChunkGenerator(
     private val lives: Spawns.Living? = null,
     /** What this Age lets turn up where it does not belong — see [Incongruity]. Not serialised, like [lives]. */
     val incongruity: Incongruity = Incongruity.NONE,
+    /**
+     * Whether vanilla's rock under this Age has an abyss — only where the book asked for a deep sea, unlike a rock
+     * of ours, which has one wherever its sea is deep enough. Not serialised, like [lives].
+     */
+    private val abyssOnVanillasRock: Boolean = false,
     /** What the book built this Age's structures of — see [StructureMaterials]. Not serialised, like [lives]. */
     private val structuresBuiltOf: StructureMaterials.Written = StructureMaterials.Written.NONE,
     /** Whether no new living thing may be made in this Age by anything at all — see [Lifeless]. */
@@ -460,7 +465,17 @@ class AgeChunkGenerator(
      *
      * Below `window.minY` where the Age has no sea worth the name, which is the same as "never".
      */
-    private val abyssLine get() = standingSeaSurfaceY?.let(DeepWater::lineBelow) ?: (window.minY - 1)
+    private val abyssLine get() = abyssPlane ?: (window.minY - 1)
+
+    /**
+     * The plane under which this Age's water is abyss, or null where it has none: under its sea, on a rock of ours
+     * or on vanilla's where the book asked for a deep sea.
+     */
+    val abyssPlane: Int?
+        get() {
+            val mayHaveOne = rock is AgeRock.Ours || abyssOnVanillasRock
+            return if (mayHaveOne) standingSeaSurfaceY?.let(DeepWater::lineBelow) else null
+        }
 
     /**
      * Whether this column genuinely has an abyss over it — **the sea's own water standing at the line**.

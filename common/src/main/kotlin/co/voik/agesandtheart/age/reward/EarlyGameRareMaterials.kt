@@ -100,13 +100,13 @@ object EarlyGameRareMaterials {
      * Whether the sea is water and stands high enough over its ground to hold an abyss.
      *
      * Deep water only ever replaces a plain water sea, and only where the water over it is deeper than any
-     * vanilla ocean. [ABYSSAL_RAISE] is where `deep` begins, which is where it was measured to start
+     * vanilla ocean. [Sea.ABYSSAL_RAISE] is where `deep` begins, which is where it was measured to start
      * growing deep water on the flat-floored landforms — nothing short of it grows any on any landform.
      */
     private fun holdsAnAbyss(composition: AgeComposition, seed: Long): Boolean {
         val isWater = composition.seas.any { sea -> !sea.isEmpty && sea.id == WATER }
         val raise = Sea.depthShift(composition.optionsFor(Aspect.SEA, 0), seed)
-        return isWater && raise >= ABYSSAL_RAISE
+        return isWater && raise >= Sea.ABYSSAL_RAISE
     }
 
     /**
@@ -312,8 +312,6 @@ object EarlyGameRareMaterials {
 
     private val WATER: Identifier = Identifier.withDefaultNamespace("water")
 
-    /** The least raise `deep` writes (`art/word/deep.json`, 0.85 on the cubic), in blocks over the terrain's waterline. */
-    private const val ABYSSAL_RAISE = 59
 
     /**
      * One chunk in this many tries for a vent. UNWALKED: it puts one within a few hundred blocks of wherever

@@ -14,7 +14,9 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.material.MaterialRules
 import net.minecraft.world.level.levelgen.material.condition.MaterialCondition
+import net.minecraft.world.level.levelgen.material.condition.VerticalGradientCondition
 import net.minecraft.world.level.levelgen.material.rule.BlockRule
+import net.minecraft.world.level.levelgen.material.rule.ConditionRule
 import net.minecraft.world.level.levelgen.material.rule.MaterialRule
 import net.minecraft.world.level.levelgen.material.rule.SequenceRule
 import net.minecraft.world.level.levelgen.VerticalAnchor
@@ -336,6 +338,45 @@ object SurfacingStrategy {
         }
         else -> skin
     }
+
+    /**
+     * **A world's own skin without its deepslate fade**, for a rock that is not stone. Vanilla's overworld tree ends
+     * its underground in the gradient, and the surface pass applies it wherever the block is the rock, so an Age of
+     * granite or blackstone came out deepslate below y=8 ([deepensToDeepslate] says when it belongs).
+     *
+     * Rebuilt only where an arm came off, as [asPatchesOver] is, so a tree with no fade comes back as it was.
+     */
+    fun withoutTheDeepslateFade(rule: MaterialRule): MaterialRule = when (rule) {
+        is MaterialRule.HolderHolder -> {
+            val named = rule.holder().value()
+            val stripped = withoutTheDeepslateFade(named)
+            if (stripped === named) rule else stripped
+        }
+        is SequenceRule -> {
+            val arms = rule.sequence()
+            val kept = arms.filterNot(::isTheDeepslateFade).map(::withoutTheDeepslateFade)
+            val unchanged = kept.size == arms.size && kept.indices.all { kept[it] === arms[it] }
+            when {
+                unchanged -> rule
+                kept.isEmpty() -> SUPPRESSED
+                else -> MaterialRules.sequence(*kept.toTypedArray())
+            }
+        }
+        is ConditionRule -> {
+            val inner = withoutTheDeepslateFade(rule.thenRun())
+            if (inner === rule.thenRun()) rule else ConditionRule(rule.ifTrue(), inner)
+        }
+        else -> rule
+    }
+
+    private fun isTheDeepslateFade(arm: MaterialRule): Boolean {
+        val condition = (arm as? ConditionRule)?.ifTrue() ?: return false
+        val unwrapped = (condition as? MaterialCondition.HolderHolder)?.holder()?.value() ?: condition
+        return (unwrapped as? VerticalGradientCondition)?.randomName() == DEEPSLATE_FADE
+    }
+
+    /** What vanilla names its deepslate gradient's randomness, and so the gradient itself. */
+    private val DEEPSLATE_FADE: Identifier = Identifier.withDefaultNamespace("deepslate")
 
     /** How far a named skin reaches below the face — thin, since below it is what the Age is made of. */
     private const val SKIN_DEPTH = 2
