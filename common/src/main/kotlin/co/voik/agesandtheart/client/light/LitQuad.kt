@@ -1,11 +1,13 @@
 package co.voik.agesandtheart.client.light
 
+import net.minecraft.core.Direction
+
 /**
  * One quad, at the moment its lighting has been worked out and before it is written to a buffer.
  *
- * **The whole of what the two renderers have to agree on**, and it is six accessors. `TintedLightPainter`
- * needs a corner's light coordinate, its colour, somewhere to put a new colour, and where the corner sits
- * within its block; nothing else about a quad matters to a tint. Vanilla's chunk mesher offers those on
+ * **The whole of what the two renderers have to agree on**, and it is seven accessors. `TintedLightPainter`
+ * needs a corner's light coordinate, its colour, somewhere to put a new colour, where the corner sits within its
+ * block and which way the quad faces; nothing else about a quad matters to a tint. Vanilla's chunk mesher offers those on
  * `QuadInstance` plus `BakedQuad`, and Fabric's on a single `MutableQuadView` — so the painter is written
  * against this and neither renderer's types reach it.
  *
@@ -27,4 +29,7 @@ interface LitQuad {
     fun cornerY(corner: Int): Float
 
     fun cornerZ(corner: Int): Float
+
+    /** The way the face looks out, which says which blocks in front of it its corners are lit from. */
+    val facing: Direction
 }

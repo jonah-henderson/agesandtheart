@@ -38,8 +38,6 @@ object ClientSetup {
         StrangeMotes.tick(minecraft)
         // The haze over a plasma sea, found under the player's feet and drawn as a post effect.
         PlasmaHaze.tick(minecraft)
-        // Coloured light is baked into the mesh against the sky as it stood, so a dawn has to rebuild it.
-        TintedLights.followTheSky(minecraft)
     }
 
     /**

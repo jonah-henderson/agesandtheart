@@ -81,6 +81,9 @@ class ChunkBlockIndex<V : Any>(
     /** Whether any level holds anything. */
     fun holdsAnything(): Boolean = byLevel.isNotEmpty()
 
+    /** Every indexed block in [at], with its value. */
+    fun valuesIn(level: Level, at: ChunkPos): Map<BlockPos, V> = byLevel[level]?.get(ChunkPos.pack(at.x, at.z)).orEmpty()
+
     fun countIn(level: Level, at: ChunkPos): Int = byLevel[level]?.get(ChunkPos.pack(at.x, at.z))?.size ?: 0
 
     /**

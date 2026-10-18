@@ -10,6 +10,7 @@ import net.minecraft.client.color.block.BlockColors
 import net.minecraft.client.renderer.block.BlockAndTintGetter
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.world.level.block.state.BlockState
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Consumer
@@ -146,4 +147,6 @@ private class FabricQuad : LitQuad {
     override fun cornerY(corner: Int): Float = quad.y(corner) - originY
 
     override fun cornerZ(corner: Int): Float = quad.z(corner) - originZ
+
+    override val facing: Direction get() = quad.lightFace()
 }

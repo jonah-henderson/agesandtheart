@@ -34,5 +34,6 @@ object AgeInstruments {
         LootInstruments.addTo(age)
         ReleaseInstruments.addTo(age)
         StructureInstruments.addTo(age)
+        LightInstruments.addTo(age)
     }
 }

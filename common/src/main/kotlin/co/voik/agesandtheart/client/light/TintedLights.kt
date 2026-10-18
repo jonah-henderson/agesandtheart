@@ -5,14 +5,13 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
-import net.minecraft.core.SectionPos
 import net.minecraft.util.ARGB
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.lighting.LightEngine
 import net.minecraft.world.level.chunk.ChunkAccess
-import net.minecraft.world.phys.Vec3
 
 /**
  * Blocks that give their light a colour, and where they are (see `notes/coloured-light-research.md`).
@@ -105,7 +104,6 @@ object TintedLights {
     private var anythingPlaced = false
 
     private fun restock() {
-        version++
         val nowHolding = index.holdsAnything()
         // **Said once at each crossing, and it earns the line.** Whether anything is indexed at all is the
         // first question when no tint appears, and it is otherwise invisible from inside the game: a
@@ -126,7 +124,7 @@ object TintedLights {
 
     /**
      * The colour [state] casts, or null — **with its light level in the alpha**, which a colour of light has no
-     * use for, so [reaching] can tell how bright a source's own light could be anywhere it reaches.
+     * use for, so its flood ([ColouredLightField]) starts at the level vanilla's does.
      */
     fun colourOf(state: BlockState): Int? = casts[state.block]?.invoke(state)?.let { ARGB.color(state.lightEmission, it) }
 
@@ -143,15 +141,6 @@ object TintedLights {
     private val index = ChunkBlockIndex(::colourOf, readAcrossThreads = true)
 
     /**
-     * Bumped whenever the index moves, so a reader that remembers an answer can tell that it has gone
-     * stale — see `TintedLightPainter`'s vertex cache, which lives on mesher threads and would otherwise
-     * repaint a section from the colours that stood there before the change that asked for the repaint.
-     */
-    @Volatile
-    var version: Int = 0
-        private set
-
-    /**
      * Reads [chunk] into the index, dismissing each section off its palette first.
      *
      * A section holding nothing that tints is settled without a single position being read, which is what
@@ -160,169 +149,38 @@ object TintedLights {
     fun stocked(level: Level, chunk: ChunkAccess) {
         if (casts.isEmpty()) return
         index.stocked(level, chunk)
+        ColouredLightField.chunkArrived(level, chunk.pos.x, chunk.pos.z, index.valuesIn(level, chunk.pos))
         restock()
     }
 
     fun emptied(level: Level, at: ChunkPos) {
         index.emptied(level, at)
+        ColouredLightField.chunkLeft(level, at.x, at.z)
         restock()
     }
 
     fun forget() {
         index.forget()
+        ColouredLightField.forget()
         restock()
     }
 
     /**
-     * One block changed — kept in step by hand, because a chunk is only read whole when it arrives.
-     *
-     * Returns whether the index moved, so the caller only pays for a section rebuild when something a
-     * player can see actually changed.
+     * One block changed — kept in step by hand, because a chunk is only read whole when it arrives. A source that
+     * came, went or changed is flooded again, and any other change that lets light through differently redoes
+     * the floods that could reach it.
      */
-    fun noticed(level: Level, at: BlockPos, was: BlockState, now: BlockState): Boolean {
+    fun noticed(level: Level, at: BlockPos, was: BlockState, now: BlockState) {
+        if (casts.isEmpty()) return
         val before = colourOf(was)
         val after = colourOf(now)
-        if (before == after) return false
-        if (after == null) index.gone(level, at) else index.arrived(level, at, after)
-        restock()
-        rebuildAround(at)
-        return true
-    }
-
-    /**
-     * Marks everything this source could have been colouring for a rebuild.
-     *
-     * **The colour lives in the mesh, so nothing changes until the mesh is built again** — and vanilla only
-     * rebuilds the section the block is *in*. A crystal lighting ten blocks reaches into its neighbours, so
-     * they have to be told too.
-     *
-     * This is the same cost a torch already pays: placing one relights and rebuilds everything in range,
-     * every time, and nobody notices. Doing it here rather than in the Mixin keeps that Mixin to one line
-     * and puts the reach beside the reach it has to agree with.
-     */
-    private fun rebuildAround(at: BlockPos) {
-        val reach = REACH.toInt()
-        // 26.2 moved this off the renderer and onto the level, and what is left counts in *sections*
-        // rather than blocks — so the reach is converted rather than handed over as it was.
-        val level = Minecraft.getInstance().level ?: return
-        level.setSectionRangeDirty(
-            SectionPos.blockToSectionCoord(at.x - reach),
-            SectionPos.blockToSectionCoord(at.y - reach),
-            SectionPos.blockToSectionCoord(at.z - reach),
-            SectionPos.blockToSectionCoord(at.x + reach),
-            SectionPos.blockToSectionCoord(at.y + reach),
-            SectionPos.blockToSectionCoord(at.z + reach),
-        )
-    }
-
-    /**
-     * The colour reaching [at], or nothing — every tinting block in range, weighted by how near it is — with,
-     * in its alpha, **the brightest any of them could light [at] by itself**, out of [FULLEST_LIGHT].
-     *
-     * **Blended rather than nearest**, so two crystals of different colours standing together give the
-     * mixture a player would expect rather than a hard line down the middle of the room.
-     *
-     * The alpha is what keeps the tint from stopping dead at [REACH] where something else lights the same
-     * ground: the painter takes the tint by the block light it finds, and a torch beside a crystal keeps that
-     * high right out to the edge, where the crystal's hue would otherwise end on a block-by-block step.
-     */
-    fun reaching(level: Level, at: BlockPos): Int? {
-        var red = 0.0
-        var green = 0.0
-        var blue = 0.0
-        var weight = 0.0
-        var brightestOwnLight = 0.0
-        // From the middle of [at] to the middle of each source, which is the same distance as corner to corner.
-        index.eachValueWithin(level, Vec3.atCenterOf(at), REACH) { _, colour, away ->
-            val distance = Math.sqrt(away)
-            val near = 1.0 - distance / REACH
-            val share = near * near
-            red += ARGB.red(colour) * share
-            green += ARGB.green(colour) * share
-            blue += ARGB.blue(colour) * share
-            weight += share
-            // A straight line is never longer than the path light takes, so this never undercuts the source.
-            brightestOwnLight = maxOf(brightestOwnLight, ARGB.alpha(colour) - distance)
-        }
-        if (weight <= NOTHING || brightestOwnLight <= NOTHING) return null
-        // **Light adds, and the peak is what is normalised away.** Dividing by the weight was a weighted
-        // *average*, which is how paint mixes: two complementary hues average to grey, so a red and a cyan
-        // crystal cancelled each other into white light with no colour left in it. Light does not work
-        // that way — red and blue make magenta, red and green make yellow, and red and cyan genuinely do
-        // make white. So the contributions are summed, and the sum is scaled until its brightest channel
-        // is full.
-        //
-        // Scaling by the peak rather than clamping is what keeps the obvious case right: two red crystals
-        // sum to twice red, which clamped would be a *duller* red than one of them and normalised is the
-        // same red. What survives is the **hue**; how bright it lands is the light engine's, and how
-        // strongly it is taken is the painter's.
-        val peak = maxOf(red, green, blue)
-        if (peak <= NOTHING) return null
-        return ARGB.color(
-            (brightestOwnLight / FULLEST_LIGHT * FULL_CHANNEL).toInt().coerceIn(NONE, FULL_CHANNEL),
-            atFullSaturation(red, peak),
-            atFullSaturation(green, peak),
-            atFullSaturation(blue, peak),
-        )
-    }
-
-    /** The brightest light a block can give, vanilla's fifteen. */
-    const val FULLEST_LIGHT = 15.0
-
-    /** One channel of a summed colour, against its brightest — see the reading in [reaching]. */
-    private fun atFullSaturation(channel: Double, peak: Double): Int =
-        (channel / peak * FULL_CHANNEL).toInt().coerceIn(NONE, FULL_CHANNEL)
-
-    /**
-     * The sky's brightness as the lightmap last drew it, in tenths — what the painter weighs a crystal's
-     * tint against, since a surface the sky has already made as bright as it goes can take colour only by
-     * losing brightness.
-     *
-     * Kept in steps rather than followed exactly because **every change is a rebuild**: the tint is baked
-     * into the mesh, so a sky that moved continuously would rebuild every section near a crystal on every
-     * tick of every dawn. Ten steps is a handful of waves across a sunrise.
-     */
-    @Volatile
-    var skyFactor: Float = FULL_SKY
-        private set
-
-    /**
-     * Follows the lightmap's sky brightness, rebuilding what the casters reach when it crosses a step.
-     *
-     * Read from the lightmap's own render state rather than worked out again, so a per-Age sky, a storm,
-     * the End's flash and a boss's darkening all arrive as the lightmap itself takes them.
-     */
-    fun followTheSky(minecraft: Minecraft) {
-        val drawn = minecraft.gameRenderer.gameRenderState().lightmapRenderState.skyFactor
-        val stepped = Math.round(drawn.coerceIn(NO_SKY, FULL_SKY) * SKY_STEPS) / SKY_STEPS
-        if (stepped == skyFactor) return
-        skyFactor = stepped
-        val level = minecraft.level ?: return
-        if (!anythingPlaced) return
-        // Every section holding a caster, and its neighbours — [REACH] is under a section, so that is all of
-        // what one can tint. Collected first so a field of crystals marks each section once.
-        val holding = HashSet<Long>()
-        index.eachIn(level) { source -> holding.add(SectionPos.asLong(source)) }
-        for (section in holding) {
-            level.setSectionDirtyWithNeighbors(SectionPos.x(section), SectionPos.y(section), SectionPos.z(section))
+        if (before != after) {
+            if (after == null) index.gone(level, at) else index.arrived(level, at, after)
+            restock()
+            ColouredLightField.sourceChanged(level, at, after)
+        } else if (LightEngine.hasDifferentLightProperties(was, now)) {
+            ColouredLightField.blocksChanged(level, at)
         }
     }
 
-    /**
-     * How far a tint carries, in blocks — **everywhere the brightest light reaches**, so a crystal's colour
-     * ends exactly where its light does, faded by the light itself.
-     *
-     * Light falls a level per block of Manhattan path, and a straight line is never longer than that path,
-     * so a fifteen covers every block a light of fifteen touches. It was ten, inside a powered crystal's
-     * light, and the colour stopped dead at it while the light went on.
-     */
-    const val REACH = 15.0
-
-    private const val SKY_STEPS = 10.0f
-    private const val NO_SKY = 0.0f
-    private const val FULL_SKY = 1.0f
-
-    private const val NOTHING = 0.0
-    private const val FULL_CHANNEL = 255
-    private const val NONE = 0
 }
