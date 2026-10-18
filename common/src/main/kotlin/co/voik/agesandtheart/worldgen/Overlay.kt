@@ -56,6 +56,13 @@ data class Overlay(
 
     val isEmpty: Boolean get() = raises == null && hollows == null && pours.isEmpty()
 
+    /** This overlay raising [more] rock as well, or itself where there is none to add. */
+    fun alsoRaising(more: TerrainField?): Overlay = when {
+        more == null -> this
+        raises == null -> copy(raises = more)
+        else -> copy(raises = Union(listOf(raises, more)))
+    }
+
     /**
      * What this overlay does to one column, resolved once.
      *

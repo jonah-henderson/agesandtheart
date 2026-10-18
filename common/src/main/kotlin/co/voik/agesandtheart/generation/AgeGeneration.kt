@@ -368,7 +368,9 @@ object AgeGeneration {
             // recomputing `Consequence.of`'s own arithmetic, which is how a copy comes to drift from it.
             bought = Consequence.of(server, recipe),
             // Read only where the rock is vanilla's; a landform of ours folded the same object in already.
-            overlay = if (ourGround == null) overlay else Overlay.NONE,
+            // On vanilla's rock the overlay also carries the roof a sealed sky needs, which a landform of ours
+            // builds into its own shape ([ourGround]); vanilla's overworld and End have none of their own.
+            overlay = if (ourGround == null) overlay.alsoRaising(roofOverVanillasRock(composition, window, seed)) else Overlay.NONE,
             dislocation = if (ourGround == null) dislocation else Dislocation.NONE,
         )
     }
@@ -780,6 +782,14 @@ object AgeGeneration {
      * **The chambers answer their own claim**, so deep magma with no surface expression is a world a writer
      * may ask for. What stands above one is the volcano's business and not theirs.
      */
+    /**
+     * The roof a sealed sky needs over vanilla's rock, or null where it needs none: the sky is open, or the rock
+     * is its own roof, as the nether's is. Without it a sealed overworld was open air in endless dark, and an
+     * arrival took the ground for the roof and dug down through it.
+     */
+    private fun roofOverVanillasRock(composition: AgeComposition, window: VerticalWindow, seed: Long): TerrainField? =
+        if (composition.roofedByItsRock || !Sky.isRoofed(composition)) null else CeilingField.over(window, seed)
+
     internal fun volcanicOverlay(composition: AgeComposition, seed: Long): Overlay {
         // **The amount, not merely the fact.** Read as a number here so a quantifier reaches the rock: a
         // claim's density scales the scatter that places these, where until 2026-09-11 the terrain asked a
