@@ -17,6 +17,10 @@ import kotlin.math.abs
  * What a feature lays, kept rather than written, so it can be written out changed — bigger ([ScaledFeature]) or
  * with its trunk thickened ([ThickTrunk]). The feature reads the real world through [level] with its own blocks
  * laid over it, so it places itself exactly as it would have.
+ *
+ * **Past the chunks worldgen may touch, it reads open air.** A feature grown bigger than vanilla made it asks about
+ * blocks farther out than it ever did — a colossal crown two chunks away — and worldgen forbids reading there.
+ * What it lays there is never written either ([canWrite]).
  */
 class FeatureDraft(val real: WorldGenLevel) {
 
@@ -31,16 +35,18 @@ class FeatureDraft(val real: WorldGenLevel) {
         arrayOf(WorldGenLevel::class.java),
     ) { _, method, arguments -> answer(method, arguments ?: emptyArray()) } as WorldGenLevel
 
-    private fun stateAt(at: BlockPos): BlockState = drawn[at] ?: real.getBlockState(at)
+    private fun stateAt(at: BlockPos): BlockState = drawn[at] ?: if (canWrite(at)) real.getBlockState(at) else AIR
+
+    private fun fluidAt(at: BlockPos): FluidState = drawn[at]?.fluidState ?: if (canWrite(at)) real.getFluidState(at) else AIR.fluidState
 
     @Suppress("UNCHECKED_CAST")
     private fun answer(method: Method, arguments: Array<Any?>): Any? = when (method.name) {
         "setBlock" -> true.also { drawn[(arguments[0] as BlockPos).immutable()] = arguments[1] as BlockState }
         "removeBlock", "destroyBlock" -> true.also { drawn[(arguments[0] as BlockPos).immutable()] = AIR }
         "getBlockState" -> stateAt(arguments[0] as BlockPos)
-        "getFluidState" -> drawn[arguments[0] as BlockPos]?.fluidState ?: real.getFluidState(arguments[0] as BlockPos)
+        "getFluidState" -> fluidAt(arguments[0] as BlockPos)
         "isStateAtPosition" -> (arguments[1] as Predicate<BlockState>).test(stateAt(arguments[0] as BlockPos))
-        "isFluidAtPosition" -> (arguments[1] as Predicate<FluidState>).test(stateAt(arguments[0] as BlockPos).fluidState)
+        "isFluidAtPosition" -> (arguments[1] as Predicate<FluidState>).test(fluidAt(arguments[0] as BlockPos))
         "isEmptyBlock" -> stateAt(arguments[0] as BlockPos).isAir
         else -> try {
             method.invoke(real, *arguments)
