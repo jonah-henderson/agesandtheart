@@ -37,6 +37,7 @@ import net.minecraft.world.level.levelgen.feature.foliageplacers.FoliagePlacer
 import net.minecraft.world.level.levelgen.feature.trunkplacers.TrunkPlacer
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * Features resized through their own records: a tree's trunk and crown (and its girth, through [ThickTrunk]), a
@@ -114,9 +115,11 @@ object ResizedFeatures {
     }
 
     /**
-     * A tree with its trunk and crown scaled. Each of vanilla's dozen trunk and foliage placers keeps its
-     * heights and radii under its own names, so they are rewritten through the placer's codec by name, and a
-     * placer that does not read back is kept as it was.
+     * A tree with its trunk and crown scaled — **up rather than out**, as a jungle tree is big: the trunk and the
+     * crown's height by the whole factor, the crown's reach by its root and never past [MOST_CROWN_REACH], so a
+     * colossal tree stays inside a chunk. Each of vanilla's dozen trunk and foliage placers keeps its heights and
+     * radii under its own names, so they are rewritten through the placer's codec by name, and a placer that does
+     * not read back is kept as it was.
      */
     private fun tree(tree: TreeFeature, factor: Double, registries: HolderLookup.Provider?): TreeFeature {
         val trunk = rescaled(TrunkPlacer.CODEC, tree.trunkPlacer(), factor, TRUNK_MEASURES, registries) ?: tree.trunkPlacer()
@@ -144,7 +147,7 @@ object ResizedFeatures {
         val written = codec.encodeStart(ops, value).result().orElse(null) as? JsonObject ?: return null
         for ((name, measure) in measures) {
             val held = written.get(name) ?: continue
-            written.add(name, scaledJson(held, measure.scaledBy(factor), measure.most))
+            written.add(name, scaledJson(held, measure.growth.of(factor), measure.most))
         }
         return codec.parse(ops, written).result().orElse(null)
     }
@@ -178,10 +181,17 @@ object ResizedFeatures {
         return if (least == greatest) ConstantFloat.of(least) else UniformFloat.of(least, greatest)
     }
 
-    /** How a placer's measure scales: along with the feature, or with its area, as a count of leaves does. */
-    private data class Measure(val most: Int, val byArea: Boolean = false) {
-        fun scaledBy(factor: Double): Double = if (byArea) factor * factor else factor
+    /** How a placer's measure grows with the tree: by the whole factor, or by its root, as a crown's reach does. */
+    private enum class Growth {
+        WHOLE, ROOT;
+
+        fun of(factor: Double): Double = when (this) {
+            WHOLE -> factor
+            ROOT -> sqrt(factor)
+        }
     }
+
+    private data class Measure(val most: Int, val growth: Growth = Growth.WHOLE)
 
     /** Vanilla's own ceilings on a trunk's height, which its codec refuses to read past. */
     private val TRUNK_MEASURES = mapOf(
@@ -190,16 +200,22 @@ object ResizedFeatures {
         "height_rand_b" to Measure(most = 24),
     )
 
-    /** And on a crown's: its radius and offset, and whichever height a placer of its kind keeps. */
+    /**
+     * And a crown's: its reach by the root, and whichever height a placer of its kind keeps by the whole factor.
+     * Its offset is left alone, so the crown stays on its trunk; the count of leaves a scattering placer tries goes
+     * with the area its reach covers, which is the whole factor again.
+     */
     private val CROWN_MEASURES = mapOf(
-        "radius" to Measure(most = 16),
-        "offset" to Measure(most = 16),
+        "radius" to Measure(most = MOST_CROWN_REACH, growth = Growth.ROOT),
         "height" to Measure(most = 16),
         "trunk_height" to Measure(most = 24),
         "crown_height" to Measure(most = 24),
         "foliage_height" to Measure(most = 512),
-        "leaf_placement_attempts" to Measure(most = 256, byArea = true),
+        "leaf_placement_attempts" to Measure(most = 256),
     )
+
+    /** As far as a crown reaches from its trunk: seven each side of a trunk three across is one chunk. */
+    private const val MOST_CROWN_REACH = 7
 
     /** The fields an int provider is written with. */
     private val PROVIDER_NUMBERS = setOf("value", "min_inclusive", "max_inclusive", "min", "max")

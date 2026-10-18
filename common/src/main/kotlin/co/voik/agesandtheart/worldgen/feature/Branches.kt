@@ -3,20 +3,23 @@ package co.voik.agesandtheart.worldgen.feature
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.tags.BlockTags
+import net.minecraft.util.Mth
 import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.RotatedPillarBlock
 import net.minecraft.world.level.block.state.BlockState
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * Branches run out from a tree's trunk into a crown too wide for it, so no leaf is left decaying. A leaf holds while
  * it is within [FARTHEST_HELD] steps of a log through other leaves, and a colossal crown reaches past that.
  *
- * A branch goes from the trunk towards the farthest leaf left unheld, stopping a little short of it so the leaves
- * round its end are held too, and branches are added until the crown holds or nothing more can be grown. Then every
- * leaf is given its true distance, since a leaf keeps the one it was placed with until a neighbour changes.
+ * **Grown as vanilla's big oaks grow theirs**: each leaves the trunk below the leaves it is for and climbs out to
+ * them, aimed at the middle of the cluster still unheld rather than at one far leaf, and a block off true. Branches
+ * are added until the crown holds or nothing more can be grown. Then every leaf is given its true distance, since a
+ * leaf keeps the one it was placed with until a neighbour changes.
  */
 object Branches {
 
@@ -35,6 +38,14 @@ object Branches {
         val middleZ = trunk.map { it.z }.average()
         val top = trunk.maxOf { it.y }
         val bottom = trunk.minOf { it.y }
+        val lowestLeaf = tree.filterValues(::isLeaf).keys.minOfOrNull { it.y } ?: return
+        // A branch never leaves the trunk below the crown it is for, nor above the trunk's top.
+        val lowestStart = maxOf(bottom, lowestLeaf - BELOW_THE_CROWN).coerceAtMost(top)
+        fun outFromTheTrunk(at: BlockPos): Double {
+            val acrossX = at.x - middleX
+            val acrossZ = at.z - middleZ
+            return sqrt(acrossX * acrossX + acrossZ * acrossZ)
+        }
         /** How far [at] is from the nearest point of the trunk's middle, squared: out from it, or up past its top. */
         fun outFromTheMiddle(at: BlockPos): Double {
             val acrossX = at.x - middleX
@@ -49,9 +60,12 @@ object Branches {
             if (grown >= MOST_BRANCHES) return settleDistances(tree, isLog)
             val held = distancesFromLogs(tree, isLog)
             fun needsABranch(at: BlockPos) = isLeaf(tree.getValue(at)) && at !in held && at !in unreachable
-            val farthest = tree.keys.filter(::needsABranch).maxByOrNull(::outFromTheMiddle) ?: return settleDistances(tree, isLog)
-            val from = BlockPos(middleX.roundToInt(), minOf(farthest.y, top), middleZ.roundToInt())
-            if (branch(tree, from, farthest, log, mayGrowAt, isLog)) grown++ else unreachable += farthest
+            val unheld = tree.keys.filter(::needsABranch)
+            val farthest = unheld.maxByOrNull(::outFromTheMiddle) ?: return settleDistances(tree, isLog)
+            val aim = nudged(middleOf(unheld.filter { it.distManhattan(farthest) <= CLUSTER_STEPS }))
+            val climb = (outFromTheTrunk(aim) * RISE_PER_BLOCK_OUT).roundToInt()
+            val from = BlockPos(middleX.roundToInt(), (aim.y - climb).coerceIn(lowestStart, top), middleZ.roundToInt())
+            if (branch(tree, from, aim, log, mayGrowAt, isLog)) grown++ else unreachable += farthest
         }
         settleDistances(tree, isLog)
     }
@@ -83,6 +97,20 @@ object Branches {
             grew = true
         }
         return grew
+    }
+
+    private fun middleOf(cluster: List<BlockPos>): BlockPos = BlockPos(
+        cluster.map { it.x }.average().roundToInt(),
+        cluster.map { it.y }.average().roundToInt(),
+        cluster.map { it.z }.average().roundToInt(),
+    )
+
+    /** [at] moved a block or none each way across, drawn from where it is, so a crown's branches are not symmetrical. */
+    private fun nudged(at: BlockPos): BlockPos {
+        val drawn = Mth.getSeed(at)
+        val acrossX = Math.floorMod(drawn shr NUDGE_X_BITS, NUDGES) - 1
+        val acrossZ = Math.floorMod(drawn shr NUDGE_Z_BITS, NUDGES) - 1
+        return at.offset(acrossX.toInt(), 0, acrossZ.toInt())
     }
 
     /** How far every leaf of [tree] is from a log, stepping through leaves, for the leaves within [FARTHEST_HELD]. */
@@ -131,8 +159,22 @@ object Branches {
     /** The farthest a leaf may be from a log and hold: one short of where vanilla lets it decay. */
     const val FARTHEST_HELD = LeavesBlock.DECAY_DISTANCE - 1
 
-    /** How many steps short of the leaf it reaches for a branch stops, so the leaves round its end are held. */
-    private const val STOPS_SHORT_BY = 3
+    /** How many steps short of where it is aimed a branch stops, so the leaves round its end are held. */
+    private const val STOPS_SHORT_BY = 2
+
+    /** How far round the farthest unheld leaf the cluster a branch is aimed at reaches, in steps. */
+    private const val CLUSTER_STEPS = 4
+
+    /** How much a branch climbs for each block it reaches out from the trunk: about thirty degrees. */
+    private const val RISE_PER_BLOCK_OUT = 0.6
+
+    /** How far below its crown a branch may leave the trunk. */
+    private const val BELOW_THE_CROWN = 2
+
+    /** A nudge is one of three, each way across, drawn from separate bits of the position's seed. */
+    private const val NUDGES = 3L
+    private const val NUDGE_X_BITS = 8
+    private const val NUDGE_Z_BITS = 24
 
     /** Enough for the widest crown a colossal tree grows, with room to spare. */
     private const val MOST_BRANCHES = 64

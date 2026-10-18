@@ -18,8 +18,9 @@ import kotlin.math.floor
  * and the draft is then laid out [scale] times as big about the feature's origin, a block of the draft becoming a
  * cube of blocks or a cube of the draft one block.
  *
- * Only what it lays down is scaled: it places itself as it would at its ordinary size. What would land outside
- * the chunks worldgen may still write is left out, so a colossal one standing near a chunk's edge is cut off.
+ * Only what it lays down is scaled: it places itself as it would at its ordinary size. **It grows up rather than
+ * out**: no wider than a chunk, however big it was asked to be, while its height takes the whole factor. What would
+ * land outside the chunks worldgen may still write is left out.
  */
 data class ScaledFeature(val feature: Holder<Feature>, val scale: Double) : Feature {
 
@@ -40,22 +41,28 @@ data class ScaledFeature(val feature: Holder<Feature>, val scale: Double) : Feat
         val laid = draft.laid
         if (laid.isEmpty()) return
         val offsets = laid.keys.map { it.subtract(origin) }
-        fun span(along: (BlockPos) -> Int): IntRange {
-            val least = floor(offsets.minOf(along) * scale).toInt()
-            val most = ceil((offsets.maxOf(along) + 1) * scale).toInt() - 1
+        fun across(along: (BlockPos) -> Int) = offsets.maxOf(along) - offsets.minOf(along) + 1
+        val widest = maxOf(across(BlockPos::getX), across(BlockPos::getZ))
+        val sideways = if (scale > 1.0) scale.coerceAtMost(maxOf(1.0, MOST_ACROSS.toDouble() / widest)) else scale
+        fun span(along: (BlockPos) -> Int, by: Double): IntRange {
+            val least = floor(offsets.minOf(along) * by).toInt()
+            val most = ceil((offsets.maxOf(along) + 1) * by).toInt() - 1
             return least..most
         }
         val cursor = BlockPos.MutableBlockPos()
-        for (x in span(BlockPos::getX)) for (y in span(BlockPos::getY)) for (z in span(BlockPos::getZ)) {
-            val drawn = laid[origin.offset(underneath(x), underneath(y), underneath(z))] ?: continue
+        for (x in span(BlockPos::getX, sideways)) for (y in span(BlockPos::getY, scale)) for (z in span(BlockPos::getZ, sideways)) {
+            val drawn = laid[origin.offset(underneath(x, sideways), underneath(y, scale), underneath(z, sideways))] ?: continue
             cursor.set(origin.x + x, origin.y + y, origin.z + z)
             if (draft.canWrite(cursor)) draft.real.setBlock(cursor, drawn, Block.UPDATE_CLIENTS)
         }
     }
 
-    private fun underneath(scaled: Int): Int = floor(scaled / scale).toInt()
+    private fun underneath(scaled: Int, by: Double): Int = floor(scaled / by).toInt()
 
     companion object {
+        /** The widest a feature resized whole is laid out: one chunk. */
+        private const val MOST_ACROSS = 16
+
         val CODEC: MapCodec<ScaledFeature> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Feature.CODEC.fieldOf("feature").forGetter(ScaledFeature::feature),

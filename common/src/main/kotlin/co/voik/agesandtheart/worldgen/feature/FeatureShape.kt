@@ -227,12 +227,12 @@ object FeatureShape {
     }
 
     /**
-     * A feature resized whole made rarer by as much as it was grown, so a colossal one covers about as much
-     * ground as the ordinary ones would together rather than piling into its neighbours.
+     * A feature resized whole made rarer as it grows, so a colossal one does not pile into its neighbours — by the
+     * root of its size, since it grows up more than it grows out ([ScaledFeature]).
      */
     private fun thinnedFor(shaped: Holder<Feature>, placement: List<PlacementModifier>): List<PlacementModifier> {
         val scale = (shaped.value() as? ScaledFeature)?.scale ?: return placement
-        val onceEvery = scale.roundToInt()
+        val onceEvery = sqrt(scale).roundToInt()
         return if (onceEvery > 1) placement + RarityFilter.onAverageOnceEvery(onceEvery) else placement
     }
 
