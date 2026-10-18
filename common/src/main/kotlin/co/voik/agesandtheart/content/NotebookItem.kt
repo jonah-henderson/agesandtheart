@@ -35,34 +35,44 @@ import java.util.function.Consumer
  */
 class NotebookItem(properties: Properties) : Item(properties) {
 
-    /** Right-clicking the notebook while it is the carried stack, onto a slot. */
+    /**
+     * Clicking with the notebook carried, onto a slot — **a bundle's controls**: a left click on a page files it,
+     * and a right click on an empty slot puts the most recently filed page back out.
+     */
     override fun overrideStackedOnOther(
         self: ItemStack,
         slot: Slot,
         clickAction: ClickAction,
         player: Player,
     ): Boolean {
-        if (clickAction != ClickAction.SECONDARY) return false
         val held = pagesIn(self)
         val target = slot.item
-        return if (target.isEmpty) {
-            // Onto an empty slot: the most recently filed page comes back out.
-            val top = held.lastOrNull() ?: return false
-            if (!slot.mayPlace(top)) return false
-            slot.setByPlayer(top)
-            setPages(self, held.dropLast(1))
-            play(player, false)
-            true
-        } else {
-            // Onto something: file it, if it is a page.
-            if (!isPage(target)) return false
-            setPages(self, held + slot.safeTake(target.count, target.count, player))
-            play(player, true)
-            true
+        val filesIt = clickAction == ClickAction.PRIMARY && !target.isEmpty
+        val takesOneOut = clickAction == ClickAction.SECONDARY && target.isEmpty
+        return when {
+            filesIt -> {
+                if (!isPage(target)) return false
+                setPages(self, held + slot.safeTake(target.count, target.count, player))
+                play(player, true)
+                true
+            }
+            takesOneOut -> {
+                val top = held.lastOrNull() ?: return false
+                if (!slot.mayPlace(top)) return false
+                slot.setByPlayer(top)
+                setPages(self, held.dropLast(1))
+                play(player, false)
+                true
+            }
+            else -> false
         }
     }
 
-    /** Right-clicking something onto the notebook while the notebook sits in a slot. */
+    /**
+     * Clicking onto the notebook where it sits in a slot — **a bundle's controls**: a left click with a page files
+     * it, and a right click with an empty hand takes the top page out. A left click with nothing picks the
+     * notebook up, as it does a bundle.
+     */
     override fun overrideOtherStackedOnMe(
         self: ItemStack,
         other: ItemStack,
@@ -71,21 +81,27 @@ class NotebookItem(properties: Properties) : Item(properties) {
         player: Player,
         carriedItem: SlotAccess,
     ): Boolean {
-        if (clickAction != ClickAction.SECONDARY || !slot.allowModification(player)) return false
+        if (!slot.allowModification(player)) return false
         val held = pagesIn(self)
-        if (other.isEmpty) {
-            // Empty hand: take the top page into it.
-            val top = held.lastOrNull() ?: return false
-            carriedItem.set(top)
-            setPages(self, held.dropLast(1))
-            play(player, false)
-            return true
+        val filesIt = clickAction == ClickAction.PRIMARY && !other.isEmpty
+        val takesOneOut = clickAction == ClickAction.SECONDARY && other.isEmpty
+        return when {
+            filesIt -> {
+                if (!isPage(other)) return false
+                setPages(self, held + other.copy())
+                other.setCount(0)
+                play(player, true)
+                true
+            }
+            takesOneOut -> {
+                val top = held.lastOrNull() ?: return false
+                carriedItem.set(top)
+                setPages(self, held.dropLast(1))
+                play(player, false)
+                true
+            }
+            else -> false
         }
-        if (!isPage(other)) return false
-        setPages(self, held + other.copy())
-        other.setCount(0)
-        play(player, true)
-        return true
     }
 
     /** The bundle preview grid, borrowed — it shows the first few and says how many are behind them. */
