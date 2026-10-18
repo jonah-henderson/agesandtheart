@@ -283,13 +283,18 @@ object Resolver {
             saidOfTheMembersAfterThem(vocabulary, saidOfTheSubjectsMembers(vocabulary, phrase))
         })
 
-    /** The weighted set [constraint] names members of, and which, or null where it names none. */
+    /**
+     * The weighted set [constraint] names members of, and which, or null where it names none. A pattern names the
+     * one it mints, so `minuscule lakes` shrinks the lakes and not every feature in the Age.
+     */
     private fun membersNamedBy(vocabulary: Vocabulary, constraint: Constraint): Pair<Aspect, List<String>>? {
-        val namesMembers = !constraint.word.aims && constraint.word.mints == null
-        val aspect = constraint.word.aspects.singleOrNull()
-            ?.takeIf { namesMembers && it.holds == Holds.WEIGHTED_SET }
+        val word = constraint.word
+        val pattern = word.mints
+        if (pattern != null) return Aspect.FEATURES to listOf(pattern)
+        val aspect = word.aspects.singleOrNull()
+            ?.takeIf { !word.aims && it.holds == Holds.WEIGHTED_SET }
             ?: return null
-        val members = vocabulary.carriersOf(constraint.word, aspect).map(Taggable::key)
+        val members = vocabulary.carriersOf(word, aspect).map(Taggable::key)
         return if (members.isEmpty()) null else aspect to members
     }
 
@@ -1094,8 +1099,15 @@ object Resolver {
         }
     }
 
-    /** Whether [first] and [second] both set [parameter] in some one aspect both of them reach. */
+    /**
+     * Whether [first] and [second] both set [parameter] in some one aspect both of them reach, and of some one
+     * member: `colossal trees` and `minuscule lakes` bound two different things.
+     */
     private fun boundTogether(vocabulary: Vocabulary, first: Constraint, second: Constraint, parameter: String): Boolean {
+        val firstMembers = first.members
+        val secondMembers = second.members
+        val saidOfDifferentMembers = firstMembers != null && secondMembers != null && firstMembers.none { it in secondMembers }
+        if (saidOfDifferentMembers) return false
         val shared = reachOf(first) intersect reachOf(second).toSet()
         fun setsItIn(said: Constraint, aspect: Aspect) = parameter in said.word.setsIn(aspect)
         return shared.any { aspect ->

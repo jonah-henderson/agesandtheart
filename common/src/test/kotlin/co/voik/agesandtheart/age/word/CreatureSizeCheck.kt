@@ -44,6 +44,7 @@ class CreatureSizeCheck : FunSpec({
 })
 
 private const val SEED = 4242L
+private const val LAVA_LAKE = "minecraft:lake_lava_surface"
 private const val LARGEST = 64
 
 /** A size said of some features is theirs alone: `colossal trees` leaves the boulders as they were. */
@@ -51,6 +52,15 @@ private const val LARGEST = 64
 class FeatureSizeCheck : FunSpec({
 
     fun featuresOf(vararg pages: String) = ShippedCorpus.resolved(SEED, *pages).composition.optionsFor(Aspect.FEATURES)
+
+    test("colossal trees beside minuscule lakes are two sizes of two things, and no contradiction") {
+        val resolution = ShippedCorpus.resolved(SEED, "colossal", "trees", "features", "minuscule", "lakes", "features")
+        val features = resolution.composition.optionsFor(Aspect.FEATURES)
+        check(features.steer(Features.SIZE, SEED, member = TREE) == 1.0) { "the trees were not made colossal" }
+        check(features.steer(Features.SIZE, SEED, member = LAVA_LAKE) == -1.0) { "the lakes were not made minuscule" }
+        check(features.steer(Features.SIZE, SEED, member = BOULDER) == null) { "the boulders were sized too" }
+        check(resolution.instability.flaws.isEmpty()) { "they were read as a contradiction: ${resolution.instability.flaws}" }
+    }
 
     test("colossal trees are the trees' size, and not the boulders'") {
         val features = featuresOf("colossal", "trees")

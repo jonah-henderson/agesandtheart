@@ -57,9 +57,15 @@ class MintingCheck : FunSpec({
     }
 
     /** Where a book left the features aspect's own size dial. */
-    fun sizeOf(vararg pages: String): String {
+    /** The bottom of the size axis, which is where `minuscule` sets it. */
+    val MINUSCULE = -1.0
+
+    /** A feature no spring is. */
+    val BOULDER = "minecraft:forest_rock"
+
+    fun sizeOf(vararg pages: String, member: String? = null): String {
         val composition = resolved(SAMPLE_SEED, *pages).composition
-        return composition.optionsFor(Aspect.FEATURES, 0).of(Features.SIZE)
+        return composition.optionsFor(Aspect.FEATURES, 0).of(Features.SIZE, member = member)
     }
 
     test("a material and a pattern said together mint one") {
@@ -367,15 +373,21 @@ class MintingCheck : FunSpec({
     }
 
     /**
-     * **A clause that mints nothing spends nothing.**
+     * **A clause that mints nothing spends nothing, and its size is the pattern's.**
      *
      * `springs`, `lakes` and `deposits` all declare `mints` with no `unstated`, so a clause naming one without
      * a material mints nothing at all. Charging it for the size anyway took the word away and gave nothing
-     * back: `minuscule springs` cost two pages and left the Age neither a spring nor a smaller one.
+     * back; and leaving it on the whole aspect made `minuscule lakes` shrink every feature in the Age. It is
+     * said of the pattern the word mints from, as `colossal trees` is said of the trees.
      */
-    test("a size is not spent by a clause that mints nothing") {
-        check(sizeOf("minuscule", "springs") == sizeOf("minuscule", "features")) {
-            "'minuscule springs' minted nothing and spent 'minuscule' anyway: ${sizeOf("minuscule", "springs")}"
+    test("a size in a clause that mints nothing is said of the pattern, and of nothing else") {
+        val spring = vocabulary.word("springs")?.mints ?: error("springs mint nothing")
+        val springs = resolved(SAMPLE_SEED, "minuscule", "springs").composition.optionsFor(Aspect.FEATURES, 0)
+        check(springs.steer(Features.SIZE, SAMPLE_SEED, member = spring) == MINUSCULE) {
+            "'minuscule springs' did not make the springs minuscule: ${sizeOf("minuscule", "springs", member = spring)}"
+        }
+        check(springs.steer(Features.SIZE, SAMPLE_SEED, member = BOULDER) == null) {
+            "'minuscule springs' sized the boulders too: ${sizeOf("minuscule", "springs", member = BOULDER)}"
         }
     }
 
