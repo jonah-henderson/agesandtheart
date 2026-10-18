@@ -11,13 +11,17 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.damagesource.DamageSource
+import net.minecraft.world.damagesource.DamageTypes
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.Mob
 import net.minecraft.world.entity.MoverType
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.gameevent.GameEvent
+import net.minecraft.world.level.gamerules.GameRules
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.Vec3
@@ -31,6 +35,10 @@ import net.minecraft.world.phys.Vec3
  *
  * Where it lands is the spectrum the design wants: solid ground and it is recoverable, a chasm or lava
  * and it is gone — the star fissure, reproduced as ordinary physics rather than a scripted set piece.
+ *
+ * **And it can be destroyed, as a dropped item can**: burned, blown up, pricked by a cactus. That is what makes a
+ * safe place for one worth building. A player's own blow is the exception, since this is a thing you click to
+ * pick up and a slipped click should not cost anyone their way home.
  */
 class BookEntity(type: EntityType<out BookEntity>, level: Level) : Entity(type, level) {
 
@@ -38,6 +46,8 @@ class BookEntity(type: EntityType<out BookEntity>, level: Level) : Entity(type, 
     var book: ItemStack
         get() = entityData.get(BOOK)
         set(value) = entityData.set(BOOK, value)
+
+    private var health = HEALTH
 
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         builder.define(BOOK, ItemStack.EMPTY)
@@ -54,11 +64,17 @@ class BookEntity(type: EntityType<out BookEntity>, level: Level) : Entity(type, 
         deltaMovement = deltaMovement.multiply(DRAG, if (onGround()) 0.0 else DRAG, DRAG)
     }
 
-    /**
-     * A book on the ground cannot be destroyed by being hit — only by the world eating it, which is the
-     * fiction. Nothing here takes damage.
-     */
-    override fun hurtServer(level: ServerLevel, source: DamageSource, damage: Float): Boolean = false
+    /** Damaged as a dropped item is, by vanilla's own rules, except by a player's blow — see the class doc. */
+    override fun hurtServer(level: ServerLevel, source: DamageSource, damage: Float): Boolean {
+        val mobsMayNotGrief = !level.gameRules.get(GameRules.MOB_GRIEFING) && source.entity is Mob
+        val spared = isInvulnerableToBase(source) || source.`is`(DamageTypes.PLAYER_ATTACK) || mobsMayNotGrief
+        if (spared || !book.canBeHurtBy(source)) return false
+        markHurt()
+        health = (health - damage).toInt()
+        gameEvent(GameEvent.ENTITY_DAMAGE, source.entity)
+        if (health <= 0) discard()
+        return true
+    }
 
     /** Picking it back up. The book is the item; the entity was only ever where it was resting. */
     override fun interact(player: Player, hand: InteractionHand, location: Vec3): InteractionResult {
@@ -83,10 +99,12 @@ class BookEntity(type: EntityType<out BookEntity>, level: Level) : Entity(type, 
 
     override fun readAdditionalSaveData(input: ValueInput) {
         book = input.read(BOOK_KEY, ItemStack.CODEC).orElse(ItemStack.EMPTY)
+        health = input.getIntOr(HEALTH_KEY, HEALTH)
     }
 
     override fun addAdditionalSaveData(output: ValueOutput) {
         if (!book.isEmpty) output.store(BOOK_KEY, ItemStack.CODEC, book)
+        output.putInt(HEALTH_KEY, health)
     }
 
     companion object {
@@ -94,6 +112,10 @@ class BookEntity(type: EntityType<out BookEntity>, level: Level) : Entity(type, 
             SynchedEntityData.defineId(BookEntity::class.java, EntityDataSerializers.ITEM_STACK)
 
         private const val BOOK_KEY = "book"
+        private const val HEALTH_KEY = "health"
+
+        /** A dropped item's: lava takes it in a moment, a fire in a few seconds. */
+        private const val HEALTH = 5
         private const val GRAVITY = 0.04
         private const val DRAG = 0.98
 
