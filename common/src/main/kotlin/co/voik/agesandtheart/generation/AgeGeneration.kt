@@ -116,6 +116,7 @@ object AgeGeneration {
         // What this Age's instability bought, as a fraction of everything tearing could be (design §5.0).
         // Derived rather than stored: a pure function of the recipe, so it comes out the same on every open.
         val spending = Spending.of(server, recipe)
+        val earlyMaterials = EarlyGameRareMaterials.grownIn(composition, seed, spending)
         // What the book wrote of the land takes the top of each, where instability would have climbed to it.
         val torn = if (composition.anyMemberSays(Aspect.TERRAIN, Terrain.TORN)) ALL_OF_IT
             else spending.reach(Manifestation.TORN_SEAMS)
@@ -367,7 +368,8 @@ object AgeGeneration {
                     PaperTreeWindow.layer(recipe, skySpec(recipe)),
                     // The scarab colonies an Age that would hold one is found with (design §7.1.2).
                     ScarabHabitat.colonyLayer(server.registryAccess(), recipe),
-                ) + EarlyGameRareMaterials.layers(EarlyGameRareMaterials.grownIn(composition, seed, spending)),
+                ) + EarlyGameRareMaterials.layers(earlyMaterials),
+                EarlyGameRareMaterials.swaps(earlyMaterials),
             ),
             // What lives here, narrowing what vanilla resolves per biome and per structure.
             Spawns.livingIn(

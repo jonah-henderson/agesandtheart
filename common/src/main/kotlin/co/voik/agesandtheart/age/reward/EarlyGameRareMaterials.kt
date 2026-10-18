@@ -12,13 +12,16 @@ import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.worldgen.feature.DeepSeaVent
+import co.voik.agesandtheart.worldgen.feature.IceSpikeRime
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.placement.HeightmapPlacement
 import net.minecraft.world.level.levelgen.placement.RarityFilter
 import co.voik.agesandtheart.worldgen.feature.TemperedGround
 import net.minecraft.core.Holder
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
 import net.minecraft.tags.BlockTags
 import net.minecraft.world.level.levelgen.VerticalAnchor
 import net.minecraft.world.level.levelgen.feature.BlockReplacement
@@ -219,6 +222,19 @@ object EarlyGameRareMaterials {
             .flatMap(::placementsOf)
             .groupBy({ it.first }, { it.second })
             .mapNotNull { (step, features) -> Decoration.layerOf(step, features) }
+
+    /**
+     * The biomes' own features the early materials [grown] names wrap, so they grow as those are placed: rime round
+     * the tops of the ice spikes.
+     */
+    fun swaps(grown: Set<EarlyGameRareMaterial>): List<Decoration.Swap> =
+        if (EarlyGameRareMaterial.RIME in grown) listOf(Decoration.Swap(ICE_SPIKE, ::rimed)) else emptyList()
+
+    private fun rimed(spike: Holder<PlacedFeature>): Holder<PlacedFeature> =
+        Holder.direct(PlacedFeature(Holder.direct(IceSpikeRime(spike.value().feature())), spike.value().placement()))
+
+    private val ICE_SPIKE: ResourceKey<PlacedFeature> =
+        ResourceKey.create(Registries.PLACED_FEATURE, Identifier.withDefaultNamespace("ice_spike"))
 
     /** How a material is placed, and at which step — one pass, or several where it arrives more than one way. */
     private fun placementsOf(material: EarlyGameRareMaterial): List<Pair<GenerationStep.Decoration, Holder<PlacedFeature>>> =

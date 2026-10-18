@@ -130,6 +130,7 @@ import co.voik.agesandtheart.worldgen.feature.ScaledFeature
 import co.voik.agesandtheart.worldgen.feature.ThickTrunk
 import co.voik.agesandtheart.worldgen.feature.OreVein
 import co.voik.agesandtheart.worldgen.feature.Algae
+import co.voik.agesandtheart.worldgen.feature.IceSpikeRime
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
 import co.voik.agesandtheart.worldgen.feature.TemperedGround
@@ -2254,6 +2255,7 @@ object AgeContent {
         "thick_trunk".location() to ThickTrunk.CODEC,
         "ore_vein".location() to OreVein.CODEC,
         "rime_crystal".location() to RimeCrystal.CODEC,
+        "ice_spike_rime".location() to IceSpikeRime.CODEC,
         "tempered_ground".location() to TemperedGround.CODEC,
         // One kind now: the body of lava is a field, so the two an Age may carry are two entries in
         // `worldgen/feature/` rather than the same code registered under two ids — see [VolcanoVents].

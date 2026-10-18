@@ -14,7 +14,8 @@ import net.minecraft.world.level.levelgen.feature.Feature
 import com.mojang.serialization.MapCodec
 
 /**
- * Rime crystals, which grow only where a cliff is sheer (design §7.1.2, `SheerFace`).
+ * Rime crystals, which grow where a cliff is sheer (design §7.1.2, `SheerFace`) — and round the tops of ice spikes,
+ * which is [IceSpikeRime].
  *
  * **A feature rather than a placement**, and for two reasons that are both about what vanilla cannot say.
  * A cliff is a *relationship* between a column and its neighbours, which `BlockPredicateFilter` can only
@@ -90,7 +91,7 @@ object RimeCrystal : Feature {
      * changes every so often. Drawing it per crystal would be confetti, and per Age would put a puzzle
      * needing several colours behind writing several books.
      */
-    private fun grow(level: WorldGenLevel, face: Standing): Boolean {
+    fun grow(level: WorldGenLevel, face: Standing): Boolean {
         val colour = RimeColour.around(level.seed, face.at.x, face.at.z)
         val crystal = AgeContent.RIME_CRYSTAL_BLOCKS.getValue(colour).defaultBlockState()
             .setValue(BlockStateProperties.FACING, face.growingFrom)
@@ -99,8 +100,8 @@ object RimeCrystal : Feature {
         return true
     }
 
-    /** An open block against a cliff, and the way a crystal there points — out from the rock. */
-    private data class Standing(val at: BlockPos, val growingFrom: Direction) {
+    /** An open block against the rock, and the way a crystal there points — out from it. */
+    data class Standing(val at: BlockPos, val growingFrom: Direction) {
         val y: Int get() = at.y
     }
 

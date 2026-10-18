@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.reward
 
 import net.minecraft.core.Holder
+import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeGenerationSettings
 import net.minecraft.world.level.levelgen.GenerationStep
@@ -27,6 +28,9 @@ object Decoration {
     /** Features one reward adds, and the step they are added at. */
     data class Layer(val step: GenerationStep.Decoration, val features: List<Holder<PlacedFeature>>)
 
+    /** The biomes' own [replaced] feature, wherever it is placed, wrapped by [by]. */
+    data class Swap(val replaced: ResourceKey<PlacedFeature>, val by: (Holder<PlacedFeature>) -> Holder<PlacedFeature>)
+
     /** One layer of several features at a single step, or null where the reward laid nothing. */
     fun layerOf(step: GenerationStep.Decoration, features: List<Holder<PlacedFeature>>): Layer? =
         if (features.isEmpty()) null else Layer(step, features)
@@ -41,16 +45,28 @@ object Decoration {
     fun laidOver(
         base: (Holder<Biome>) -> BiomeGenerationSettings,
         layers: List<Layer>,
+        swaps: List<Swap> = emptyList(),
     ): (Holder<Biome>) -> BiomeGenerationSettings {
-        if (layers.isEmpty()) return base
+        if (layers.isEmpty() && swaps.isEmpty()) return base
         val settled = ConcurrentHashMap<Holder<Biome>, BiomeGenerationSettings>()
-        return { biome -> settled.computeIfAbsent(biome) { added(base(it), layers) } }
+        // One wrapped feature for every biome placing the original, for the same identity reason.
+        val swapped = ConcurrentHashMap<ResourceKey<PlacedFeature>, Holder<PlacedFeature>>()
+        fun swappedFor(feature: Holder<PlacedFeature>): Holder<PlacedFeature> {
+            val key = feature.unwrapKey().orElse(null) ?: return feature
+            val swap = swaps.firstOrNull { it.replaced == key } ?: return feature
+            return swapped.computeIfAbsent(key) { swap.by(feature) }
+        }
+        return { biome -> settled.computeIfAbsent(biome) { added(base(it), layers, ::swappedFor) } }
     }
 
-    private fun added(settings: BiomeGenerationSettings, layers: List<Layer>): BiomeGenerationSettings {
+    private fun added(
+        settings: BiomeGenerationSettings,
+        layers: List<Layer>,
+        swappedFor: (Holder<PlacedFeature>) -> Holder<PlacedFeature>,
+    ): BiomeGenerationSettings {
         val built = BiomeGenerationSettings.PlainBuilder()
         settings.carvers.forEach(built::addCarver)
-        settings.features().forEachIndexed { step, atStep -> atStep.forEach { built.addFeature(step, it) } }
+        settings.features().forEachIndexed { step, atStep -> atStep.forEach { built.addFeature(step, swappedFor(it)) } }
         for (layer in layers) layer.features.forEach { built.addFeature(layer.step.ordinal, it) }
         return built.build()
     }
