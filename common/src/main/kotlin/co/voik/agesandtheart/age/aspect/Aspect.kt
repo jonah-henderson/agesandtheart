@@ -356,7 +356,7 @@ enum class Aspect(
             GRAVITY -> listOf(Gravity.PULL)
             SEA -> listOf(Sea.DEPTH)
             // What holds of every landform and every creature, whichever is seated or lives there.
-            TERRAIN -> listOf(Terrain.TORN, Terrain.INCONGRUOUS)
+            TERRAIN -> listOf(Terrain.TORN, Terrain.INCONGRUOUS, Terrain.FORMER_SIZES)
             SPAWNS -> listOf(Spawns.STILL, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS)
             STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL)
             // **Nothing of its own**: each phenomenon carries the dials it has (`Phenomenon.parameters`), since an

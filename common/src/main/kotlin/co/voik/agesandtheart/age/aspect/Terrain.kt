@@ -15,6 +15,7 @@ import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.PyramidField
 import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShatteredField
+import co.voik.agesandtheart.worldgen.LandSize
 import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.SolidField
 import co.voik.agesandtheart.worldgen.SkylandsField
@@ -48,14 +49,23 @@ private val ISLAND_PONDS: String by lazy {
 
 private const val ISLAND_POND_RATE = 8.0
 
-/** [Terrain.SIZE] as [SizeScale]'s factor, which is what every landform's builder is handed. */
-private fun scaleOf(options: Options, salt: Long): Double = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
+/** [Terrain.SIZE] as the power [SizeScale] raises its base to, read by [LandSize] unless the Age predates it. */
+private fun sizeOf(options: Options, salt: Long): Double? {
+    val said = options.steer(Terrain.SIZE, salt)
+    return if (options.isTrue(Terrain.FORMER_SIZES)) said else LandSize.powerFor(said)
+}
+
+/** [sizeOf] as [SizeScale]'s factor, which is what every landform's builder is handed. */
+private fun scaleOf(options: Options, salt: Long): Double = SizeScale.factorAt(sizeOf(options, salt))
+
+/** [Terrain.SIZE] as written, for the landforms hanging in the void, which [LandSize] leaves alone. */
+private fun scaleAsWritten(options: Options, salt: Long): Double = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
 
 private fun craterSteer(options: Options, salt: Long) = CraterlandsField.Steer(
     wear = options.steer(Terrain.WEAR, salt),
     relief = options.steer(Terrain.RELIEF, salt),
     spacing = options.steer(Terrain.SPACING, salt),
-    size = options.steer(Terrain.SIZE, salt),
+    size = sizeOf(options, salt),
 )
 
 /**
@@ -91,7 +101,7 @@ enum class Terrain(
     SPIRE_ISLANDS(
         "spire_islands",
         waterline = SpireField.SEA_LEVEL,
-        build = { options, salt -> SpireField.world(salt, scaleOf(options, salt)) },
+        build = { options, salt -> SpireField.world(salt, scaleAsWritten(options, salt)) },
         axes = { listOf(SIZE) },
         // The Spire's own rock, reached by its preset and never by a writer.
         page = null,
@@ -104,7 +114,7 @@ enum class Terrain(
     SKYLANDS(
         "skyborne",
         waterline = null,
-        build = { options, salt -> SkylandsField.world(salt, scaleOf(options, salt)) },
+        build = { options, salt -> SkylandsField.world(salt, scaleAsWritten(options, salt)) },
         waterlineWhenASeaIsNamed = SkylandsField.NAMED_SEA_LEVEL,
         axes = { listOf(SIZE) },
     ),
@@ -212,7 +222,7 @@ enum class Terrain(
     ISLANDS(
         "archipelagic",
         waterline = IslandsField.SEA_LEVEL,
-        build = { options, salt -> IslandsField.world(options.steer(SIZE, salt), salt) },
+        build = { options, salt -> IslandsField.world(sizeOf(options, salt), salt) },
         axes = { listOf(SIZE) },
     ),
 
@@ -226,7 +236,7 @@ enum class Terrain(
     ISLE(
         "insular",
         waterline = IslandsField.SEA_LEVEL,
-        build = { options, salt -> IslandsField.lone(options.steer(SIZE, salt), salt) },
+        build = { options, salt -> IslandsField.lone(sizeOf(options, salt), salt) },
         axes = { listOf(SIZE) },
     ),
 
@@ -262,7 +272,7 @@ enum class Terrain(
     INVERSE_CAVES(
         "tangled",
         waterline = null,
-        build = { options, salt -> InverseCavesField.world(salt, scaleOf(options, salt)) },
+        build = { options, salt -> InverseCavesField.world(salt, scaleAsWritten(options, salt)) },
         waterlineWhenASeaIsNamed = InverseCavesField.NAMED_SEA_LEVEL,
         axes = { listOf(SIZE) },
     ),
@@ -517,7 +527,7 @@ enum class Terrain(
      * whether the Age has a sea or not. See `SkylandsField.rivers`.
      */
     fun rivers(options: Options, salt: Long): TerrainField? =
-        if (this == SKYLANDS) SkylandsField.rivers(salt, scaleOf(options, salt)) else null
+        if (this == SKYLANDS) SkylandsField.rivers(salt, scaleAsWritten(options, salt)) else null
 
     fun standingWater(options: Options, salt: Long): TerrainField? = when (this) {
         RIVERLANDS -> RiverlandsField.water(salt, scaleOf(options, salt))
@@ -593,6 +603,15 @@ enum class Terrain(
         )
 
         /**
+         * Whether [SIZE] is read as it was before [LandSize] — set on every Age written before generator 15, so the
+         * land it has already generated still meets what it generates next. No word sets it.
+         */
+        val FORMER_SIZES = Parameter.flag(
+            "former_sizes",
+            help = "Whether the landform's size is read as it was before ordinary land grew to vanilla's scale.",
+        )
+
+        /**
          * **The three axes a word may bend a landform along**, and the reason they are ranged rather than
          * named steps: a word carries the *band* it means, so `sparse` and `scattered` can sit on
          * different stretches of one axis without either needing a step minted for it. See
@@ -665,8 +684,8 @@ enum class Terrain(
         )
 
         /**
-         * How big the landform is, on five geometric steps from a quarter of what was tuned to four times it
-         * ([SizeScale]). **What grows is each landform's own business**: an island's footprint more than its
+         * How big the landform is, from a quarter of what was tuned to four times it, unsaid being twice it
+         * ([LandSize]). **What grows is each landform's own business**: an island's footprint more than its
          * height, a cave system's noise, a canyon's depth and width over a floor that stays put, a range's
          * spacing with the ice still capping its peaks. The builders say which.
          *
