@@ -56,6 +56,9 @@ data class Overlay(
 
     val isEmpty: Boolean get() = raises == null && hollows == null && pours.isEmpty()
 
+    /** This overlay with [body] standing in it as well. */
+    fun alsoPouring(body: StandingFluid): Overlay = copy(pours = pours + body)
+
     /** This overlay raising [more] rock as well, or itself where there is none to add. */
     fun alsoRaising(more: TerrainField?): Overlay = when {
         more == null -> this

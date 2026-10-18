@@ -68,6 +68,9 @@ object SurfacingStrategy {
      * to decide, and a material least of all. Relative anchors rather than our own min-Y, so this stays
      * correct if an Age's height band moves.
      */
+    /** [skin] with the world's bedrock floor laid first — for a sea laid on a floor vanilla's rock never had. */
+    fun withTheWorldFloor(skin: MaterialRule): MaterialRule = MaterialRules.sequence(worldFloor(), skin)
+
     private fun worldFloor(): MaterialRule = MaterialRules.ifTrue(
         MaterialRules.verticalGradient(
             "bedrock_floor",

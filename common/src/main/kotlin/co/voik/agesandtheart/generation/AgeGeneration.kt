@@ -34,6 +34,7 @@ import co.voik.agesandtheart.worldgen.field.Weathered
 import co.voik.agesandtheart.worldgen.field.TerrainFill
 import net.minecraft.world.level.levelgen.material.MaterialRules
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.CeilingField
@@ -181,10 +182,15 @@ object AgeGeneration {
         // **An abyss on vanilla's rock only where a deep sea was asked for** (Jonah, 2026-10-17), where a rock of
         // ours has one wherever its sea runs deep enough.
         val vanillasAbyssAsked = vanillasSeaShift >= Sea.ABYSSAL_RAISE
-        val seaSurfaceY = seaFill.surfaceY ?: if (ourGround == null && !vanillasSeaFluid.isAir) {
-            vanillasRockSettings.value().seaLevel() + vanillasSeaShift - 1
-        } else {
-            null
+        // **A rock that pours no sea of its own takes one only where a book names it** (Jonah, 2026-10-17): the End's
+        // sea level is the bottom of its own noise, so it never pours one, and a named sea is laid by the overlay
+        // instead — on bedrock, at the bottom of the world, as a sealess landform of ours takes one.
+        val vanillasPoursNoSea = vanillasRockSettings.value().let { it.seaLevel() <= it.noiseSettings().minY() }
+        val seaUnderVanillasVoid = ourGround == null && vanillasPoursNoSea && composition.seaNamed && !vanillasSeaFluid.isAir
+        val seaSurfaceY = seaFill.surfaceY ?: when {
+            ourGround != null || vanillasSeaFluid.isAir -> null
+            vanillasPoursNoSea -> if (seaUnderVanillasVoid) window.minY + SEA_UNDER_THE_VOID - 1 else null
+            else -> vanillasRockSettings.value().seaLevel() + vanillasSeaShift - 1
         }
         val fill = TerrainFill(
             composition.terrains.mapIndexed { member, terrain ->
@@ -286,6 +292,7 @@ object AgeGeneration {
                             Biomes.grownIn(biomeOptions),
                         ),
                         vanillasSeaShift,
+                        flooredForASea = seaUnderVanillasVoid,
                     ),
                 ),
             ),
@@ -370,7 +377,13 @@ object AgeGeneration {
             // Read only where the rock is vanilla's; a landform of ours folded the same object in already.
             // On vanilla's rock the overlay also carries the roof a sealed sky needs, which a landform of ours
             // builds into its own shape ([ourGround]); vanilla's overworld and End have none of their own.
-            overlay = if (ourGround == null) overlay.alsoRaising(roofOverVanillasRock(composition, window, seed)) else Overlay.NONE,
+            overlay = if (ourGround == null) {
+                overlay.alsoRaising(roofOverVanillasRock(composition, window, seed))
+                    .let { if (seaUnderVanillasVoid) it.withASeaUnderTheVoid(window, vanillasSeaFluid) else it }
+            } else {
+                Overlay.NONE
+            },
+            vanillasSeaSurfaceY = seaSurfaceY.takeIf { ourGround == null },
             dislocation = if (ourGround == null) dislocation else Dislocation.NONE,
         )
     }
@@ -401,6 +414,8 @@ object AgeGeneration {
          * caves to the level its settings say, so moving that is what makes a `deep` sea deep on this rock.
          */
         seaLevelShift: Int = 0,
+        /** Whether a sea is laid under this rock's void, on a floor its own skin would never paint bedrock. */
+        flooredForASea: Boolean = false,
     ): NoiseGeneratorSettings {
         // Only a skin the writer actually named: `Surface.ruleFor` would otherwise delegate to the biomes
         // *through the field tree*, and there is none here to delegate through. Silence means vanilla's own
@@ -435,12 +450,13 @@ object AgeGeneration {
         // every `sea=` one of them ever named: lava asked for over the overworld came out water, and water
         // asked for over the nether came out lava (Jonah, 2026-08-25, walked).
         val sea = composition.seas.firstOrNull()?.substance() ?: theirs.defaultFluid()
+        val floored = if (flooredForASea) Holder.direct(SurfacingStrategy.withTheWorldFloor(skin.value())) else skin
         return NoiseGeneratorSettings(
             theirs.noiseSettings(),
             fill.representative.takeUnless { fill == TerrainFill.PLAIN } ?: theirs.defaultBlock(),
             sea,
             theirs.noiseRouter(),
-            skin,
+            floored,
             theirs.spawnTarget(),
             theirs.seaLevel() + seaLevelShift,
             // Deprecated on the record and still required by its constructor, so this hands back
@@ -782,6 +798,14 @@ object AgeGeneration {
      * **The chambers answer their own claim**, so deep magma with no surface expression is a world a writer
      * may ask for. What stands above one is the volcano's business and not theirs.
      */
+    /** A sea poured under the void of vanilla's rock: a floor at the bottom of the world, and the sea over it. */
+    private fun Overlay.withASeaUnderTheVoid(window: VerticalWindow, fluid: BlockState): Overlay =
+        alsoRaising(Slab(lowY = window.minY, highY = window.minY))
+            .alsoPouring(StandingFluid(Slab(lowY = window.minY + 1, highY = window.minY + SEA_UNDER_THE_VOID - 1), fluid))
+
+    /** How deep a sea laid under a world's void stands, floor included — tangled's and skyborne's own. */
+    private const val SEA_UNDER_THE_VOID = 16
+
     /**
      * The roof a sealed sky needs over vanilla's rock, or null where it needs none: the sky is open, or the rock
      * is its own roof, as the nether's is. Without it a sealed overworld was open air in endless dark, and an

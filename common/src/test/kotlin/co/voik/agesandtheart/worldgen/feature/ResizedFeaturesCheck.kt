@@ -61,7 +61,8 @@ class ResizedFeaturesCheck : FunSpec({
         val cane = registries.lookupOrThrow(Registries.PLACED_FEATURE).listElements().toList()
             .map { it.value().feature().value() }
             .filterIsInstance<BlockColumnFeature>()
-            .first { column -> column.layers().any { it.height().maxInclusive() > 1 } }
+            // Short enough that four times as tall stays under the ceiling a resized column is held to.
+            .first { column -> column.layers().maxOf { it.height().maxInclusive() } in 2..SHORT_COLUMN }
         val tallest = cane.layers().maxOf { it.height().maxInclusive() }
         val resized = ResizedFeatures.of(cane, 4.0, { it }, registries) as BlockColumnFeature
         check(resized.layers().maxOf { it.height().maxInclusive() } == tallest * 4) { "a colossal column was not four times as tall" }
@@ -77,3 +78,5 @@ class ResizedFeaturesCheck : FunSpec({
     }
 })
 
+/** Sugar cane's height and less: four times it stays under the forty-eight blocks a column may grow. */
+private const val SHORT_COLUMN = 12

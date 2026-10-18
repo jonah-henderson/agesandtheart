@@ -188,6 +188,11 @@ class AgeChunkGenerator(
      * of ours, which has one wherever its sea is deep enough. Not serialised, like [lives].
      */
     private val abyssOnVanillasRock: Boolean = false,
+    /**
+     * Where the sea on vanilla's rock stands, or null where there is none: vanilla's own level moved by the book's
+     * depth, or a sea laid under the End's void. Not serialised, like [lives].
+     */
+    private val vanillasSeaSurfaceY: Int? = null,
     /** What the book built this Age's structures of — see [StructureMaterials]. Not serialised, like [lives]. */
     private val structuresBuiltOf: StructureMaterials.Written = StructureMaterials.Written.NONE,
     /** Whether no new living thing may be made in this Age by anything at all — see [Lifeless]. */
@@ -255,16 +260,16 @@ class AgeChunkGenerator(
 
     /**
      * The surface of the sea as it was written, or null where the Age has none — **vanilla's rock's own sea
-     * where the Age wears vanilla's rock**, which pours its sea itself and declares no waterline of ours. Its sea
-     * level is the block over the water, where a surface is the top block of it.
+     * where the Age wears vanilla's rock**, which pours its sea itself and declares no waterline of ours —
+     * worked out where the Age is assembled, since a rock that pours none may still have a sea laid under it.
      */
-    val writtenSeaSurfaceY: Int? get() = writtenSea.surfaceY ?: vanillasSea?.let { generatorSettings().value().seaLevel() - 1 }
+    val writtenSeaSurfaceY: Int? get() = writtenSea.surfaceY ?: vanillasSeaSurfaceY
 
     /** Where the sea stands now, risen by whatever has drowned the Age, or null where there is none. */
     val standingSeaSurfaceY: Int? get() = seaFill.surfaceY ?: writtenSeaSurfaceY?.plus(risenBy)
 
     /** What the sea is made of, or null where there is none. */
-    val seaBlock: BlockState? get() = if (seaFill.surfaceY != null) seaFill.representative else vanillasSea
+    val seaBlock: BlockState? get() = if (seaFill.surfaceY != null) seaFill.representative else vanillasSea?.takeIf { vanillasSeaSurfaceY != null }
 
     /** The fluid vanilla's rock pours its sea of, or null for a rock of ours or one that pours nothing. */
     private val vanillasSea: BlockState?
