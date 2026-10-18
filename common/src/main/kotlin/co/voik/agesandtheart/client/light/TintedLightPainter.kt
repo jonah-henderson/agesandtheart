@@ -55,16 +55,22 @@ object TintedLightPainter {
         tintAt(world, pos.x, pos.y, pos.z) ?: return
         for (corner in 0..<CORNERS) {
             val light = quad.lightAt(corner)
-            val lit = LightCoordsUtil.smoothBlock(light)
-            if (lit <= UNLIT) continue
-            if (lit > brightestSeen) noteTheBrightest(lit)
-            val tint = tintAtVertex(world, pos, quad, corner) ?: continue
+            val litByAnything = LightCoordsUtil.smoothBlock(light)
+            if (litByAnything <= UNLIT) continue
+            if (litByAnything > brightestSeen) noteTheBrightest(litByAnything)
+            val reaching = tintAtVertex(world, pos, quad, corner) ?: continue
+            // **No more of the light than the source itself could have cast here**: a torch beside a crystal
+            // lights the corner too, and taking the tint by all of it ended the hue on a hard edge at its reach.
+            val lit = minOf(litByAnything, ownLightOf(reaching))
             val before = quad.colourAt(corner)
-            val tinted = ARGB.multiply(before, softened(tint, shareOfTheTint(lit)))
+            val tinted = ARGB.multiply(before, softened(ARGB.opaque(reaching), shareOfTheTint(lit)))
             val inTheSun = skyLightingNow(LightCoordsUtil.smoothSky(light))
             quad.tint(corner, ARGB.srgbLerp(inTheSun, tinted, asBrightAs(before, tinted)))
         }
     }
+
+    /** The light the source behind [reaching] could cast by itself, in [LightCoordsUtil.smoothBlock]'s units. */
+    private fun ownLightOf(reaching: Int): Int = (ARGB.alpha(reaching) / FULL_CHANNEL.toFloat() * FULLY_LIT).toInt()
 
     /**
      * How brightly the sky lights a corner right now, from none to as bright as the lightmap goes — the

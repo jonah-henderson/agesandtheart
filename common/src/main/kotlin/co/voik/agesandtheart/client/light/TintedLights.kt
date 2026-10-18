@@ -124,7 +124,11 @@ object TintedLights {
         anythingPlaced = nowHolding
     }
 
-    fun colourOf(state: BlockState): Int? = casts[state.block]?.invoke(state)
+    /**
+     * The colour [state] casts, or null — **with its light level in the alpha**, which a colour of light has no
+     * use for, so [reaching] can tell how bright a source's own light could be anywhere it reaches.
+     */
+    fun colourOf(state: BlockState): Int? = casts[state.block]?.invoke(state)?.let { ARGB.color(state.lightEmission, it) }
 
     /**
      * Where they are and what colour each casts, by chunk, because the mesher runs on worker threads against
@@ -212,26 +216,35 @@ object TintedLights {
     }
 
     /**
-     * The colour reaching [at], or nothing — every tinting block in range, weighted by how near it is.
+     * The colour reaching [at], or nothing — every tinting block in range, weighted by how near it is — with,
+     * in its alpha, **the brightest any of them could light [at] by itself**, out of [FULLEST_LIGHT].
      *
      * **Blended rather than nearest**, so two crystals of different colours standing together give the
      * mixture a player would expect rather than a hard line down the middle of the room.
+     *
+     * The alpha is what keeps the tint from stopping dead at [REACH] where something else lights the same
+     * ground: the painter takes the tint by the block light it finds, and a torch beside a crystal keeps that
+     * high right out to the edge, where the crystal's hue would otherwise end on a block-by-block step.
      */
     fun reaching(level: Level, at: BlockPos): Int? {
         var red = 0.0
         var green = 0.0
         var blue = 0.0
         var weight = 0.0
+        var brightestOwnLight = 0.0
         // From the middle of [at] to the middle of each source, which is the same distance as corner to corner.
         index.eachValueWithin(level, Vec3.atCenterOf(at), REACH) { _, colour, away ->
-            val near = 1.0 - Math.sqrt(away) / REACH
+            val distance = Math.sqrt(away)
+            val near = 1.0 - distance / REACH
             val share = near * near
             red += ARGB.red(colour) * share
             green += ARGB.green(colour) * share
             blue += ARGB.blue(colour) * share
             weight += share
+            // A straight line is never longer than the path light takes, so this never undercuts the source.
+            brightestOwnLight = maxOf(brightestOwnLight, ARGB.alpha(colour) - distance)
         }
-        if (weight <= NOTHING) return null
+        if (weight <= NOTHING || brightestOwnLight <= NOTHING) return null
         // **Light adds, and the peak is what is normalised away.** Dividing by the weight was a weighted
         // *average*, which is how paint mixes: two complementary hues average to grey, so a red and a cyan
         // crystal cancelled each other into white light with no colour left in it. Light does not work
@@ -246,11 +259,15 @@ object TintedLights {
         val peak = maxOf(red, green, blue)
         if (peak <= NOTHING) return null
         return ARGB.color(
+            (brightestOwnLight / FULLEST_LIGHT * FULL_CHANNEL).toInt().coerceIn(NONE, FULL_CHANNEL),
             atFullSaturation(red, peak),
             atFullSaturation(green, peak),
             atFullSaturation(blue, peak),
         )
     }
+
+    /** The brightest light a block can give, vanilla's fifteen. */
+    const val FULLEST_LIGHT = 15.0
 
     /** One channel of a summed colour, against its brightest — see the reading in [reaching]. */
     private fun atFullSaturation(channel: Double, peak: Double): Int =
