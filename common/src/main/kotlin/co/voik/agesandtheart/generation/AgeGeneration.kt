@@ -174,6 +174,15 @@ object AgeGeneration {
         // overworld sky is the nether's settings with the overworld's biomes over them.
         val vanillasWorld = composition.terrains.firstNotNullOfOrNull(AgeTemplate::ofRock) ?: recipe.template
         val vanillasRockSettings = noiseSettings.getOrThrow(vanillasWorld.rock)
+        // **Vanilla's rock pours its own sea**, so the book's depth moves its level rather than a fill of ours,
+        // and where the sea's top stands is read off that level — the abyss and its wreckage are laid against it.
+        val vanillasSeaShift = Sea.depthShift(composition.optionsFor(Aspect.SEA, 0), seed)
+        val vanillasSeaFluid = composition.seas.firstOrNull()?.substance() ?: vanillasRockSettings.value().defaultFluid()
+        val seaSurfaceY = seaFill.surfaceY ?: if (ourGround == null && !vanillasSeaFluid.isAir) {
+            vanillasRockSettings.value().seaLevel() + vanillasSeaShift - 1
+        } else {
+            null
+        }
         val fill = TerrainFill(
             composition.terrains.mapIndexed { member, terrain ->
                 terrain.fillBlocks(terrainOptions(member)).ifEmpty { listOf(theirRock) }
@@ -255,7 +264,7 @@ object AgeGeneration {
                         // from growing down there — a feature list is a biome's, so an empty one is a rule.
                         // **Above the sea bed only**, or every cave under the floor comes out as abyss and
                         // the ordinary cave biomes are clobbered — see [BiomeBand.above].
-                        abyssLineOf(seaFill, window)
+                        abyssLineOf(seaSurfaceY, window)
                             ?.takeIf { ourGround != null }
                             ?.let { line ->
                                 BiomeBand(abyssBiome(server), window.minY, line, ourGround?.rock?.landform)
@@ -273,6 +282,7 @@ object AgeGeneration {
                             vanillasRockSettings.value().seaLevel(),
                             Biomes.grownIn(biomeOptions),
                         ),
+                        vanillasSeaShift,
                     ),
                 ),
             ),
@@ -308,7 +318,7 @@ object AgeGeneration {
                 server,
                 composition.optionsFor(Aspect.STRUCTURES, 0),
                 recipe.template.standingStructures,
-                if (abyssLineOf(seaFill, window) == null) emptyMap() else WRECKAGE_ON_AN_ABYSS_FLOOR,
+                if (abyssLineOf(seaSurfaceY, window) == null) emptyMap() else WRECKAGE_ON_AN_ABYSS_FLOOR,
                 withoutWhatIsBuiltUnderground = composition.hasNothingBeneathIt,
             ) + CavernRuins.structureSets(server, composition),
             // **The climate the biomes are looked up by, and it comes from the same world they do.** This
@@ -379,6 +389,11 @@ object AgeGeneration {
          * and paints a palm beach in grass to the water (Jonah, walk 2026-10-06). Null where it grows none.
          */
         ourBiomes: MaterialRule? = null,
+        /**
+         * How far the book's sea depth moves vanilla's sea level ([Sea.depthShift]): vanilla fills its seas and
+         * caves to the level its settings say, so moving that is what makes a `deep` sea deep on this rock.
+         */
+        seaLevelShift: Int = 0,
     ): NoiseGeneratorSettings {
         // Only a skin the writer actually named: `Surface.ruleFor` would otherwise delegate to the biomes
         // *through the field tree*, and there is none here to delegate through. Silence means vanilla's own
@@ -418,7 +433,7 @@ object AgeGeneration {
             theirs.noiseRouter(),
             skin,
             theirs.spawnTarget(),
-            theirs.seaLevel(),
+            theirs.seaLevel() + seaLevelShift,
             // Deprecated on the record and still required by its constructor, so this hands back
             // exactly what the settings we were given already said.
             @Suppress("DEPRECATION") theirs.disableMobGeneration(),
@@ -780,8 +795,8 @@ object AgeGeneration {
      *
      * One place, because two things read it: the biome band and the wreckage below.
      */
-    private fun abyssLineOf(seaFill: SeaFill, window: VerticalWindow): Int? =
-        seaFill.surfaceY?.let(DeepWater::lineBelow)?.takeIf { it > window.minY }
+    private fun abyssLineOf(seaSurfaceY: Int?, window: VerticalWindow): Int? =
+        seaSurfaceY?.let(DeepWater::lineBelow)?.takeIf { it > window.minY }
 
     /**
      * What an abyss gets more of, and why it is structures rather than a biome that carries it.

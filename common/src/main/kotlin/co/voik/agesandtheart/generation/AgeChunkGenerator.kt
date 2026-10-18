@@ -460,7 +460,7 @@ class AgeChunkGenerator(
      *
      * Below `window.minY` where the Age has no sea worth the name, which is the same as "never".
      */
-    private val abyssLine get() = seaFill.surfaceY?.let(DeepWater::lineBelow) ?: (window.minY - 1)
+    private val abyssLine get() = standingSeaSurfaceY?.let(DeepWater::lineBelow) ?: (window.minY - 1)
 
     /**
      * Whether this column genuinely has an abyss over it — **the sea's own water standing at the line**.
@@ -477,7 +477,7 @@ class AgeChunkGenerator(
      * the sea stands over that column at the line even though the pocket itself is sealed.
      */
     fun abyssReachesAt(chunk: ChunkAccess, worldX: Int, worldZ: Int): Boolean {
-        val ours = rock as? AgeRock.Ours ?: return false
+        val ours = rock as? AgeRock.Ours ?: return vanillasSeaReachesTheLine(chunk, worldX, worldZ)
         return isAbyssal(
             ours,
             worldX,
@@ -493,6 +493,17 @@ class AgeChunkGenerator(
             },
             biomeAtTheLine = { biomeAtTheLineIn(chunk, worldX, worldZ) },
         )
+    }
+
+    /**
+     * The same question on vanilla's rock, which has no shape of ours to ask: whether the sea floor lies below the
+     * line. Vanilla fills every open column under its sea level, so the sea then stands at the line, and a cave
+     * sealed under rock does not count, its floor being the rock over it.
+     */
+    private fun vanillasSeaReachesTheLine(chunk: ChunkAccess, worldX: Int, worldZ: Int): Boolean {
+        if (standingSeaSurfaceY == null) return false
+        val floor = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, worldX and CHUNK_MASK, worldZ and CHUNK_MASK)
+        return floor < abyssLine
     }
 
     /** The biome at the abyss line, off a chunk whose biomes are already laid. */
@@ -1537,6 +1548,9 @@ class AgeChunkGenerator(
         private const val CARVE_REACH_CHUNKS = 8
 
         private const val BLOCKS_ACROSS_A_CHUNK = 16
+
+        /** A world column's offset within its chunk, as a mask. */
+        private const val CHUNK_MASK = BLOCKS_ACROSS_A_CHUNK - 1
 
         /** What a carved block's density reads as: a cut is open, whatever the shape said. */
         private const val NO_CAVE_DENSITY = 0.0

@@ -157,7 +157,7 @@ object DeepWater {
      */
     fun lineIn(level: LevelReader): Int? {
         val generator = (level as? ServerLevel)?.chunkSource?.generator as? AgeChunkGenerator ?: return null
-        return generator.seaFill.surfaceY?.let(::lineBelow)
+        return generator.standingSeaSurfaceY?.let(::lineBelow)
     }
 
     /** The abyss line under a sea whose topmost water block is [surfaceY]. */
