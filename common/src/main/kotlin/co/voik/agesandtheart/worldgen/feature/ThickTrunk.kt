@@ -5,7 +5,6 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
-import net.minecraft.tags.BlockTags
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Block
@@ -20,7 +19,8 @@ import net.minecraft.world.level.levelgen.feature.TreeFeature
  * cannot be added to without widening a private constructor, so the thickening is done to what the tree laid.
  *
  * A widened log goes only where a tree may grow ([TreeFeature.validTreePos]), so it never cuts into the hillside,
- * and the columns beside the base reach down to the ground so a thick trunk does not stand on air.
+ * and the columns beside the base reach down to the ground so a thick trunk does not stand on air. A crown grown too
+ * wide for its trunk to hold is given [Branches].
  */
 data class ThickTrunk(val tree: Holder<Feature>, val girth: Int) : Feature {
 
@@ -29,16 +29,23 @@ data class ThickTrunk(val tree: Holder<Feature>, val girth: Int) : Feature {
     override fun place(level: WorldGenLevel, generator: ChunkGenerator, random: RandomSource, origin: BlockPos): Boolean {
         val draft = FeatureDraft(level)
         if (!tree.value().place(draft.level, generator, random, origin)) return false
-        for ((at, state) in draft.laid) {
-            if (draft.canWrite(at)) level.setBlock(at, state, Block.UPDATE_CLIENTS)
+        val grown = draft.laid.toMutableMap()
+        fun mayGrowAt(at: BlockPos): Boolean {
+            val standing = grown[at] ?: return draft.canWrite(at) && TreeFeature.validTreePos(draft.real, at)
+            return draft.canWrite(at) && !Branches.isLog(standing)
         }
-        val logs = draft.laid.filterValues { it.`is`(BlockTags.LOGS) }
-        val base = logs.keys.minOfOrNull { it.y } ?: return true
+        val logs = draft.laid.filterValues(Branches::isLog)
+        val base = logs.keys.minOfOrNull { it.y }
         for ((at, log) in logs) {
             for (beside in squareAround(at)) {
-                if (!widenInto(draft, beside, log)) continue
-                if (at.y == base) reachDown(draft, beside, log)
+                if (!mayGrowAt(beside)) continue
+                grown[beside] = log
+                if (at.y == base) reachDown(grown, beside, log, ::mayGrowAt)
             }
+        }
+        Branches.grownInto(grown, ::mayGrowAt)
+        for ((at, state) in grown) {
+            if (draft.canWrite(at)) level.setBlock(at, state, Block.UPDATE_CLIENTS)
         }
         return true
     }
@@ -50,16 +57,11 @@ data class ThickTrunk(val tree: Holder<Feature>, val girth: Int) : Feature {
             .filter { it != at }
     }
 
-    private fun widenInto(draft: FeatureDraft, at: BlockPos, log: BlockState): Boolean {
-        val mayGrowThere = draft.canWrite(at) && TreeFeature.validTreePos(draft.real, at)
-        if (mayGrowThere) draft.real.setBlock(at, log, Block.UPDATE_CLIENTS)
-        return mayGrowThere
-    }
-
-    private fun reachDown(draft: FeatureDraft, from: BlockPos, log: BlockState) {
+    private fun reachDown(grown: MutableMap<BlockPos, BlockState>, from: BlockPos, log: BlockState, mayGrowAt: (BlockPos) -> Boolean) {
         var below = from.below()
         repeat(MOST_REACHED_DOWN) {
-            if (!widenInto(draft, below, log)) return
+            if (!mayGrowAt(below)) return
+            grown[below] = log
             below = below.below()
         }
     }
