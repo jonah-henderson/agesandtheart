@@ -292,6 +292,7 @@ object AgeGeneration {
                     server.registryAccess().lookupOrThrow(Registries.BIOME),
                     seaFill.surfaceY,
                     Biomes.grownIn(biomeOptions),
+                    deepslateBelow = SurfacingStrategy.deepensToDeepslate(rockBlocks),
                 )
                 // A landform that is its own roof closes it with bedrock, as vanilla closes the nether's.
                 if (composition.roofedByItsRock) SurfacingStrategy.shutOverhead(skin) else skin
@@ -401,7 +402,7 @@ object AgeGeneration {
                 ourBiomes?.let { Holder.direct(MaterialRules.sequence(it, theirSkin.value())) } ?: theirSkin
             }
             named.all { it.isAir } -> Holder.direct(SurfacingStrategy.NO_SKIN)
-            else -> Holder.direct(SurfacingStrategy.laidOnVanilla(named))
+            else -> Holder.direct(SurfacingStrategy.laidOnVanilla(named, SurfacingStrategy.deepensToDeepslate(fill.blocks.flatten())))
         }
         // **The substance alone, read off the book rather than off the fill.** A `SeaFill` answers where a
         // sea of *ours* is poured, and vanilla's rocks declare no waterline at all — vanilla's own

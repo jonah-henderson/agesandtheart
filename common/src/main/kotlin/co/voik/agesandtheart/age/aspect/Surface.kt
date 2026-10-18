@@ -64,6 +64,8 @@ object Surface {
         waterline: Int? = null,
         /** The biomes the book asked for, which says which of ours this Age has a skin to lay for. */
         grown: Set<Identifier> = emptySet(),
+        /** Whether the rock turns to deepslate at depth — see [SurfacingStrategy.deepensToDeepslate]. */
+        deepslateBelow: Boolean = false,
     ): MaterialRule {
         // What the world paints deep in its rock goes on whatever the skin is: a book naming its ground's
         // top layer has said nothing about a sulfur cave's walls.
@@ -74,12 +76,12 @@ object Surface {
             // that has a skin of its own is a coast.
             val ours = if (biomes != null && waterline != null) SurfacingStrategy.ofOurBiomes(biomes, waterline, grown) else null
             val skin = ours?.let { MaterialRules.sequence(it, template.skin(rules)) } ?: template.skin(rules)
-            return SurfacingStrategy.delegatedToBiomes(rock.landform, skin, beneath)
+            return SurfacingStrategy.delegatedToBiomes(rock.landform, skin, beneath, deepslateBelow)
         }
         // Air is how a writer says "no skin", the same way `open` says "no sea" — and it is only bare when
         // *everything* named is air, since air mingled with a rock is a skin full of holes and a fine thing
         // for a book to ask for.
         if (blocks.all { it.isAir }) return SurfacingStrategy.NO_SKIN
-        return SurfacingStrategy.laidOn(rock.landform, blocks, beneath)
+        return SurfacingStrategy.laidOn(rock.landform, blocks, beneath, deepslateBelow)
     }
 }

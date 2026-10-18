@@ -141,8 +141,19 @@ object SurfacingStrategy {
      * 2026-08-14, walked). The nether's own tree dresses nether biomes; the overworld's does not know them
      * and falls through to its default, which is dirt with grass on top.
      */
-    fun delegatedToBiomes(terrain: TerrainField, skin: MaterialRule, beneath: MaterialRule? = null): MaterialRule =
-        layers(*listOfNotNull(worldFloor(), MaterialRules.ifTrue(NearTheSurface(terrain), skin), beneath).toTypedArray())
+    fun delegatedToBiomes(
+        terrain: TerrainField,
+        skin: MaterialRule,
+        beneath: MaterialRule? = null,
+        deepslateBelow: Boolean = false,
+    ): MaterialRule = layers(
+        *listOfNotNull(
+            worldFloor(),
+            MaterialRules.ifTrue(NearTheSurface(terrain), skin),
+            beneath,
+            deepslateFloor().takeIf { deepslateBelow },
+        ).toTypedArray(),
+    )
 
     /**
      * **The skins of our own biomes**, laid before a template's: a template's tree knows only the game's
@@ -227,13 +238,18 @@ object SurfacingStrategy {
      * speckle: `noiseCondition` names a *registered* noise, so a per-Age number would need a condition
      * source of our own, the way [NearTheSurface] carries a terrain field.
      */
-    fun laidOn(terrain: TerrainField, blocks: List<BlockState>, beneath: MaterialRule? = null): MaterialRule = layers(
+    fun laidOn(
+        terrain: TerrainField,
+        blocks: List<BlockState>,
+        beneath: MaterialRule? = null,
+        deepslateBelow: Boolean = false,
+    ): MaterialRule = layers(
         *listOfNotNull(
             worldFloor(),
             MaterialRules.ifTrue(NearTheSurface(terrain), MaterialRules.ifTrue(withinDepth(SKIN_DEPTH), mingled(blocks))),
             // Before the deepslate, as vanilla's own underground tree orders them: the first rule to apply wins.
             beneath,
-            deepslateFloor(),
+            deepslateFloor().takeIf { deepslateBelow },
         ).toTypedArray(),
     )
 
@@ -243,11 +259,19 @@ object SurfacingStrategy {
      * [NearTheSurface] reads a `TerrainField`, and an Age wearing vanilla's terrain has none — so the face
      * is [onTheFloor] instead, which is the condition vanilla's own rules are written against.
      */
-    fun laidOnVanilla(blocks: List<BlockState>): MaterialRule = layers(
-        worldFloor(),
-        MaterialRules.ifTrue(onTheFloor(), MaterialRules.ifTrue(withinDepth(SKIN_DEPTH), mingled(blocks))),
-        deepslateFloor(),
+    fun laidOnVanilla(blocks: List<BlockState>, deepslateBelow: Boolean = false): MaterialRule = layers(
+        *listOfNotNull(
+            worldFloor(),
+            MaterialRules.ifTrue(onTheFloor(), MaterialRules.ifTrue(withinDepth(SKIN_DEPTH), mingled(blocks))),
+            deepslateFloor().takeIf { deepslateBelow },
+        ).toTypedArray(),
     )
+
+    /**
+     * Whether a rock of [blocks] turns to deepslate at depth, as vanilla's overworld does: only a rock of stone.
+     * The gradient repaints whatever the rock is, so a world of blackstone or tuff would come out deepslate.
+     */
+    fun deepensToDeepslate(blocks: List<BlockState>): Boolean = blocks.isNotEmpty() && blocks.all { it.`is`(Blocks.STONE) }
 
     /**
      * The first block of rock counting down from open air — vanilla's own `on_floor`.
