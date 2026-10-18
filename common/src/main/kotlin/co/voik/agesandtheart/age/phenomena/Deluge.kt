@@ -277,7 +277,8 @@ object Deluge {
             // inside whatever the sea has not reached yet — the sealed room the promise above depends on.
             if (top.y <= standing) return@sweep
             val onto = top.above()
-            if (!level.canSeeSky(onto)) return@sweep
+            // Only where the rain is seen to fall: not in a savanna or a desert, and not as snow.
+            if (!level.canSeeSky(onto) || !Sampling.rainsAt(level, onto)) return@sweep
             val ground = level.getBlockState(top)
             val lying = ground.fluidState
             if (lying.`is`(Fluids.WATER) || lying.`is`(Fluids.FLOWING_WATER)) {
@@ -301,16 +302,14 @@ object Deluge {
         return block.isFaceSturdy(level, at, Direction.UP) && !block.`is`(BlockTags.LEAVES)
     }
 
-    /** This Age's own sea material, or null where it has no sea to raise. */
-    private fun ServerLevel.seaBlock(): BlockState? {
-        val generator = chunkSource.generator as? AgeChunkGenerator ?: return null
-        if (generator.seaFill.surfaceY == null) return null
-        return generator.seaFill.representative
-    }
+    /**
+     * This Age's own sea material, or null where it has no sea to raise — vanilla's rock's where it wears it,
+     * whose new chunks come out at its own level and are raised to the line as they come into view.
+     */
+    private fun ServerLevel.seaBlock(): BlockState? = (chunkSource.generator as? AgeChunkGenerator)?.seaBlock
 
     /** Where this Age's sea currently stands, or null where it has none. */
-    private fun ServerLevel.seaSurfaceY(): Int? =
-        (chunkSource.generator as? AgeChunkGenerator)?.seaFill?.surfaceY
+    private fun ServerLevel.seaSurfaceY(): Int? = (chunkSource.generator as? AgeChunkGenerator)?.standingSeaSurfaceY
 
     /** An Age with nothing drowning it stands at what it was written with. */
     private const val NOT_DROWNING = 0

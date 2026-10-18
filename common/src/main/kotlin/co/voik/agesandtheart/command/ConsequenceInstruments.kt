@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.command
 
+import co.voik.agesandtheart.age.phenomena.Deluge
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.compat.center
@@ -213,8 +214,25 @@ internal object ConsequenceInstruments {
             val now = if (level == null) "not open, so nothing is happening" else nowIn(level, recipe, spending, manifestation)
             report.say { "    ${manifestation.key} ${stepsOf(spending, manifestation)}: $now" }
         }
+        level?.let { sayWhereTheSeaStands(it, recipe, spending, report) }
         report.finish()
         return SUCCESS
+    }
+
+    /** Where a drowning Age's sea stands against where it was written, and the rain counted towards it. */
+    private fun sayWhereTheSeaStands(level: ServerLevel, recipe: AgeRecipe, spending: Spending, report: Report) {
+        val composition = recipe.composition ?: return
+        Deluge.risingIn(composition, recipe.seed, spending) ?: return
+        val generator = level.chunkSource.generator as? AgeChunkGenerator ?: return
+        val standing = generator.standingSeaSurfaceY
+        val written = generator.writtenSeaSurfaceY
+        val rained = AgeSavedData.get(level.server).presenceIn(level.dimension().identifier())
+        report.fact("seaStanding", standing) {
+            if (standing == null) "  a deluge, and no sea for it to raise"
+            else "  the sea stands at y=$standing, written at y=$written, after $rained ticks of rain with somebody here"
+        }
+        report.only("seaWritten", written)
+        report.only("rainTicks", rained)
     }
 
     private fun stepsOf(spending: Spending, manifestation: Manifestation): String =

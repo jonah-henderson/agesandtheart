@@ -5,8 +5,10 @@ import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.LightLayer
+import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.Heightmap
 
@@ -85,6 +87,13 @@ object Sampling {
      */
     fun exposureAt(level: LevelReader, at: BlockPos): Float =
         (level.getBrightness(LightLayer.SKY, at).toFloat() / OPEN_TO_THE_SKY).coerceIn(0.0f, 1.0f)
+
+    /**
+     * Whether the weather falls as rain at [at] — not where the biome has none (a savanna, a desert) nor where it
+     * falls as snow. Vanilla draws its rain and its splashes only where this holds.
+     */
+    fun rainsAt(level: Level, at: BlockPos): Boolean =
+        level.getBiome(at).value().getPrecipitationAt(at, level.seaLevel) == Biome.Precipitation.RAIN
 
     /** Sky light where nothing covers a place at all. */
     private const val OPEN_TO_THE_SKY = 15.0f

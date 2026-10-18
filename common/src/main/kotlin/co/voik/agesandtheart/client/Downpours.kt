@@ -108,7 +108,9 @@ object Downpours {
      */
     private fun outInIt(level: ClientLevel, at: Vec3): Float? {
         val heaviness = heavinessIn(level) ?: return null
-        val exposed = Sampling.exposureAt(level, BlockPos.containing(at))
+        val sampled = BlockPos.containing(at)
+        if (!Sampling.rainsAt(level, sampled)) return null
+        val exposed = Sampling.exposureAt(level, sampled)
         if (exposed <= NONE) return null
         val raining = level.getRainLevel(WHOLE_TICK)
         return (ORDINARY_HARDNESS + (ALL_OF_IT - ORDINARY_HARDNESS) * heaviness.toFloat()) * exposed * raining
@@ -124,7 +126,7 @@ object Downpours {
      *
      * Vanilla spawns about a fifth of a splash per column per tick in full rain; this adds as many again at
      * an ordinary deluge and several times that at the heaviest. Skipped where the ground is far above or
-     * below you, as vanilla's are.
+     * below you, and where the biome does not rain, as vanilla's are.
      */
     fun pour(client: Minecraft) {
         val level = client.level ?: return
@@ -140,6 +142,7 @@ object Downpours {
                 at.offset(random.nextInt(-AROUND, AROUND + 1), 0, random.nextInt(-AROUND, AROUND + 1)),
             ).below()
             if (ground.y !in at.y - WITHIN_HEIGHT..at.y + WITHIN_HEIGHT) return@repeat
+            if (!Sampling.rainsAt(level, ground.above())) return@repeat
             val state = level.getBlockState(ground)
             val x = random.nextDouble()
             val z = random.nextDouble()
@@ -155,6 +158,7 @@ object Downpours {
     /** vanilla's own rain sound, played louder and lower than it plays it, muffled under cover. */
     private fun roar(level: ClientLevel, at: BlockPos, heaviness: Double, raining: Float) {
         if (level.random.nextInt(ROAR_EVERY) != 0) return
+        if (!Sampling.rainsAt(level, at)) return
         val exposed = Sampling.exposureAt(level, at)
         val loud = (QUIETEST_ROAR + (LOUDEST_ROAR - QUIETEST_ROAR) * heaviness.toFloat()) * raining
         val sound = if (exposed > HALF) SoundEvents.WEATHER_RAIN else SoundEvents.WEATHER_RAIN_ABOVE

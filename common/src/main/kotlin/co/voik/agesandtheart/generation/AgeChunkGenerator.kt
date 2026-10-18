@@ -248,8 +248,22 @@ class AgeChunkGenerator(
      */
     val seaFill: SeaFill get() = standingSea
 
-    /** The surface of the sea as it was written, or null where the Age has none. */
-    val writtenSeaSurfaceY: Int? get() = writtenSea.surfaceY
+    /**
+     * The surface of the sea as it was written, or null where the Age has none — **vanilla's rock's own sea
+     * where the Age wears vanilla's rock**, which pours its sea itself and declares no waterline of ours. Its sea
+     * level is the block over the water, where a surface is the top block of it.
+     */
+    val writtenSeaSurfaceY: Int? get() = writtenSea.surfaceY ?: vanillasSea?.let { generatorSettings().value().seaLevel() - 1 }
+
+    /** Where the sea stands now, risen by whatever has drowned the Age, or null where there is none. */
+    val standingSeaSurfaceY: Int? get() = seaFill.surfaceY ?: writtenSeaSurfaceY?.plus(risenBy)
+
+    /** What the sea is made of, or null where there is none. */
+    val seaBlock: BlockState? get() = if (seaFill.surfaceY != null) seaFill.representative else vanillasSea
+
+    /** The fluid vanilla's rock pours its sea of, or null for a rock of ours or one that pours nothing. */
+    private val vanillasSea: BlockState?
+        get() = generatorSettings().value().defaultFluid().takeIf { rock is AgeRock.Vanillas && !it.isAir }
 
     /**
      * Stand the sea [blocks] over what was written.
