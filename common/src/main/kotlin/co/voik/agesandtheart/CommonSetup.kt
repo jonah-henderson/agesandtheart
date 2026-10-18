@@ -42,6 +42,12 @@ import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.Blocks
+import co.voik.agesandtheart.book.LecternBooks
+import net.minecraft.world.InteractionHand
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.Level
+import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.level.chunk.ChunkAccess
 
 /**
@@ -172,6 +178,23 @@ object CommonSetup {
         val arrival = Arrival.at(to) ?: return
         AgeTriggers.ENTERED_AGE.trigger(player, arrival)
         AgeSavedData.get(to.server).visit(to.dimension().identifier())
+    }
+
+    /**
+     * A player using a block with [hand], on either side, before vanilla's own handling — or null to leave it to
+     * vanilla.
+     *
+     * **A book of ours takes priority over the offhand** (Jonah, 2026-10-18): vanilla skips a block's own action
+     * whenever a player sneaks holding anything in either hand, so a shield in the offhand was raised instead of
+     * the book being taken off the lectern. With the main hand empty, a lectern holding one of our books answers
+     * here, sneaking or not, and the offhand is never tried.
+     */
+    fun blockUsed(player: Player, level: Level, hand: InteractionHand, hit: BlockHitResult): InteractionResult? {
+        val isTheEmptyMainHand = hand == InteractionHand.MAIN_HAND && player.mainHandItem.isEmpty
+        if (!isTheEmptyMainHand) return null
+        val state = level.getBlockState(hit.blockPos)
+        if (!state.`is`(Blocks.LECTERN)) return null
+        return LecternBooks.use(state, level, hit.blockPos, player, hit)
     }
 
     /** A creature dying on the server, of [source]. */
