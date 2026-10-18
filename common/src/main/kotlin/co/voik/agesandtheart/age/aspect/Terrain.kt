@@ -27,6 +27,8 @@ import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.MountainRange
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.TerrainFill
+import co.voik.agesandtheart.worldgen.field.Slab
+import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
@@ -431,8 +433,10 @@ enum class Terrain(
         SOLID -> SolidField.UNDERGROUND_CEILING
         // Islands in the void have no ground under them to hollow.
         SPIRE_ISLANDS, SKYLANDS, MOUNTAINOUS, INVERSE_CAVES -> null
-        // Vanilla's rock carries its own caves, and there is no shape of ours to hollow under it.
-        OVERWORLD, NETHER, END -> null
+        // Vanilla's overworld has its underground cut after its own fill, under an ordinary landform's ceiling
+        // ([undergroundCutFromVanilla]); the nether is open caverns already and the End has no ground to cut.
+        OVERWORLD -> ORDINARY_SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
+        NETHER, END -> null
     }
 
     override fun getSerializedName(): String = key
@@ -457,6 +461,28 @@ enum class Terrain(
         val ceiling = undergroundCeiling(options, salt) ?: return Ground(uncut)
         return underground.carve(uncut, window.minY + BEDROCK_MARGIN, ceiling, window, undergroundOptions, salt)
     }
+
+    /**
+     * What [underground] takes out of rock that is not ours, and the lakes it stands — what an Age wearing vanilla's
+     * rock has cut into it after vanilla's own fill, between this terrain's floor and ceiling. Null where the
+     * terrain has no room under it, or the underground takes nothing.
+     */
+    fun undergroundCutFromVanilla(
+        underground: Underground,
+        undergroundOptions: Options,
+        options: Options,
+        window: VerticalWindow,
+        salt: Long,
+    ): UndergroundCut? {
+        if (underground == Underground.NONE || underground == Underground.NOISE_CAVES) return null
+        val ceiling = undergroundCeiling(options, salt) ?: return null
+        val whole = Slab(lowY = window.minY, highY = window.topY)
+        val carved = underground.carve(whole, window.minY + BEDROCK_MARGIN, ceiling, window, undergroundOptions, salt)
+        return UndergroundCut(void = Subtract(whole, carved.shape), lakes = carved.wet)
+    }
+
+    /** What an underground takes out of rock that is not ours, and the lakes standing in it. */
+    data class UndergroundCut(val void: TerrainField, val lakes: TerrainField?)
 
     /**
      * The band of world this terrain's underground is **indoors** in, or null where it has none.

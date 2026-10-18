@@ -10,6 +10,7 @@ import co.voik.agesandtheart.age.consequence.Consequence
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.aspect.Underground
 import co.voik.ephemeris.OwnClock
 import co.voik.ephemeris.sky.Look
 import co.voik.ephemeris.sky.SkySpec
@@ -39,6 +40,7 @@ import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.CeilingField
 import co.voik.agesandtheart.worldgen.ClimateStretch
+import co.voik.agesandtheart.worldgen.WithoutCaves
 import co.voik.agesandtheart.worldgen.MagmaChamberField
 import co.voik.agesandtheart.worldgen.Dislocation
 import co.voik.agesandtheart.worldgen.Overlay
@@ -180,7 +182,22 @@ object AgeGeneration {
         // **How wide the biomes are**, which on vanilla's overworld rock is how wide the land is too: its router is
         // read wider ([ClimateStretch]), as vanilla's large biomes is, where stretching only the biomes would pull
         // ocean biomes onto dry land. Elsewhere the biome source stretches its own reading.
-        val vanillasClimateStretched = ourGround == null && vanillasWorld.rock == NoiseGeneratorSettings.OVERWORLD
+        val onVanillasOverworld = ourGround == null && vanillasWorld.rock == NoiseGeneratorSettings.OVERWORLD
+        val vanillasClimateStretched = onVanillasOverworld
+        // **What the book built under vanilla's overworld**, cut after its fill, and vanilla's own noise caves taken
+        // out of its router where the book asked for another underground or for none.
+        val vanillasUnderground = composition.terrains.withIndex().firstOrNull { it.value.isVanillas }
+            ?.takeIf { ourGround == null }
+            ?.let { (member, terrain) ->
+                terrain.undergroundCutFromVanilla(
+                    composition.underground,
+                    composition.optionsFor(Aspect.UNDERGROUND, 0),
+                    terrainOptions(member),
+                    window,
+                    saltFor(seed, member),
+                )
+            }
+        val vanillasCavesTaken = onVanillasOverworld && composition.underground != Underground.NOISE_CAVES
         // **Vanilla's rock pours its own sea**, so the book's depth moves its level rather than a fill of ours,
         // and where the sea's top stands is read off that level — the abyss and its wreckage are laid against it.
         val vanillasSeaShift = Sea.depthShift(composition.optionsFor(Aspect.SEA, 0), seed)
@@ -265,7 +282,7 @@ object AgeGeneration {
                     listOfNotNull(
                         // Age-wide like the shore and the treeline: the band is a pair of heights, and an
                         // Age has one set of those however many territories divide it.
-                        if (ourGround == null) null else composition.terrains
+                        composition.terrains
                             .withIndex()
                             .firstNotNullOfOrNull { (member, terrain) ->
                                 terrain.undergroundBand(
@@ -302,6 +319,7 @@ object AgeGeneration {
                         vanillasSeaShift,
                         flooredForASea = seaUnderVanillasVoid,
                         climateStretch = if (vanillasClimateStretched) biomeStretch else UNSTRETCHED,
+                        withoutCaves = vanillasCavesTaken,
                     ),
                 ),
             ),
@@ -390,6 +408,7 @@ object AgeGeneration {
             overlay = if (ourGround == null) {
                 overlay.alsoRaising(roofOverVanillasRock(composition, window, seed))
                     .let { if (seaUnderVanillasVoid) it.withASeaUnderTheVoid(window, vanillasSeaFluid) else it }
+                    .let { if (vanillasUnderground == null) it else it.cutBeneath(vanillasUnderground, vanillasSeaFluid) }
             } else {
                 Overlay.NONE
             },
@@ -428,6 +447,8 @@ object AgeGeneration {
         flooredForASea: Boolean = false,
         /** How much wider the router reads its climate — see [ClimateStretch]. */
         climateStretch: Double = UNSTRETCHED,
+        /** Whether vanilla's own noise caves are taken out of the router — see [WithoutCaves]. */
+        withoutCaves: Boolean = false,
     ): NoiseGeneratorSettings {
         // Only a skin the writer actually named: `Surface.ruleFor` would otherwise delegate to the biomes
         // *through the field tree*, and there is none here to delegate through. Silence means vanilla's own
@@ -467,7 +488,8 @@ object AgeGeneration {
             theirs.noiseSettings(),
             fill.representative.takeUnless { fill == TerrainFill.PLAIN } ?: theirs.defaultBlock(),
             sea,
-            ClimateStretch.of(theirs.noiseRouter(), climateStretch),
+            // Uncaved first, while the router still names what it reaches: stretching it inlines every name.
+            ClimateStretch.of(if (withoutCaves) WithoutCaves.of(theirs.noiseRouter()) else theirs.noiseRouter(), climateStretch),
             floored,
             theirs.spawnTarget(),
             theirs.seaLevel() + seaLevelShift,
@@ -814,6 +836,17 @@ object AgeGeneration {
      * **The chambers answer their own claim**, so deep magma with no surface expression is a world a writer
      * may ask for. What stands above one is the volcano's business and not theirs.
      */
+    /**
+     * [cut] taken out under vanilla's ground, its lakes standing in the Age's sea or, where it has none, in water —
+     * the chambers carry their own lakes whatever the world around them pours.
+     */
+    private fun Overlay.cutBeneath(cut: Terrain.UndergroundCut, seaFluid: BlockState): Overlay = copy(
+        beneath = cut.void,
+        poursBeneath = listOfNotNull(cut.lakes?.let { StandingFluid(it, if (seaFluid.isAir) WATER else seaFluid) }),
+    )
+
+    private val WATER = Blocks.WATER.defaultBlockState()
+
     /** A sea poured under the void of vanilla's rock: a floor at the bottom of the world, and the sea over it. */
     private fun Overlay.withASeaUnderTheVoid(window: VerticalWindow, fluid: BlockState): Overlay =
         alsoRaising(Slab(lowY = window.minY, highY = window.minY))

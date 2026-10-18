@@ -20,6 +20,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
 import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool
 import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece
@@ -619,8 +620,12 @@ class AgeChunkGenerator(
         noiseChunkFor(chunk, randomState, structureManager).use { noiseChunk ->
             val ours = rock as? AgeRock.Ours
             if (ours == null) doFill(noiseChunk, chunk) else fillOurGround(ours, chunk, randomState, structureManager)
-            // Only where the rock is vanilla's: an Age of ours folds its overlay into the field tree.
-            if (ours == null) layOverlayInto(chunk)
+            // Only where the rock is vanilla's: an Age of ours folds its overlay into the field tree, and lays its
+            // own rock mingled as it fills.
+            if (ours == null) {
+                layOverlayInto(chunk)
+                mingleVanillasRockIn(chunk)
+            }
             val empty = emptyColumnsOf(chunk)
             randomState.surfaceSystem().buildSurface(
                 randomState,
@@ -870,6 +875,50 @@ class AgeChunkGenerator(
                         worldSurface.update(localX, y, localZ, laid)
                     }
                 }
+            }
+        }
+        cutBeneathTheGroundIn(chunk, oceanFloor, cursor)
+    }
+
+    /**
+     * The overlay's underground, cut into each column [Overlay.CRUST] under its own ground or seabed as vanilla's
+     * fill and the overlay above left it — after both, so it is measured from the ground actually standing.
+     */
+    private fun cutBeneathTheGroundIn(chunk: ChunkAccess, oceanFloor: Heightmap, cursor: BlockPos.MutableBlockPos) {
+        if (overlay.beneath == null) return
+        val rockHere = generationSettings.defaultBlock
+        val lowest = chunk.minY
+        for (localX in 0..<BLOCKS_PER_SECTION) {
+            for (localZ in 0..<BLOCKS_PER_SECTION) {
+                val worldX = chunk.pos.minBlockX + localX
+                val worldZ = chunk.pos.minBlockZ + localZ
+                val groundTop = oceanFloor.getFirstAvailable(localX, localZ) - 1
+                val column = overlay.beneathAt(worldX, worldZ, groundTop) ?: continue
+                column.forEachBlock(rockHere) { y, state ->
+                    if (y >= lowest) chunk.setBlockState(cursor.set(worldX, y, worldZ), state)
+                }
+            }
+        }
+    }
+
+    /**
+     * Vanilla's rock laid as the Age's own mingled rock: vanilla fills with one block, [fill]'s first, and this
+     * puts the mixture in its place, as our own fill lays it. Before the surface, so the skin still goes on top.
+     * A section that never held the block is passed over off its palette.
+     */
+    private fun mingleVanillasRockIn(chunk: ChunkAccess) {
+        if (fill.blocks.none { it.size > 1 }) return
+        val laidByVanilla = generationSettings.defaultBlock
+        val cursor = BlockPos.MutableBlockPos()
+        for ((index, section) in chunk.sections.withIndex()) {
+            if (section.hasOnlyAir() || !section.maybeHas { it == laidByVanilla }) continue
+            val bottomY = SectionPos.sectionToBlockCoord(chunk.minSectionY + index)
+            for (y in 0..<BLOCKS_PER_SECTION) for (z in 0..<BLOCKS_PER_SECTION) for (x in 0..<BLOCKS_PER_SECTION) {
+                if (section.getBlockState(x, y, z) != laidByVanilla) continue
+                val worldX = chunk.pos.minBlockX + x
+                val worldY = bottomY + y
+                val worldZ = chunk.pos.minBlockZ + z
+                section.setBlockState(x, y, z, fill.blockAt(worldX, worldY, worldZ), false)
             }
         }
     }

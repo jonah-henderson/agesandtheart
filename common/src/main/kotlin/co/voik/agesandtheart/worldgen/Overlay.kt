@@ -52,9 +52,32 @@ data class Overlay(
      * [StandingFluid.named].
      */
     val pours: List<StandingFluid> = emptyList(),
+
+    /**
+     * Rock taken out **only under the ground**: an underground cut into vanilla's rock, kept [CRUST] under each
+     * column's own ground or seabed, so it never opens onto a surface or lets a sea in from above. Only the fill
+     * reads it ([beneathAt]); being under the ground, it moves no height a structure places against.
+     */
+    val beneath: TerrainField? = null,
+
+    /** What stands in [beneath], kept under the ground the same way — a chamber's lake. */
+    val poursBeneath: List<StandingFluid> = emptyList(),
 ) {
 
-    val isEmpty: Boolean get() = raises == null && hollows == null && pours.isEmpty()
+    val isEmpty: Boolean get() = raises == null && hollows == null && pours.isEmpty() && beneath == null
+
+    /**
+     * What [beneath] and [poursBeneath] make of one column whose ground or seabed tops out at [groundTopY]: the air
+     * and the fluids, each cut off [CRUST] under it.
+     */
+    fun beneathAt(worldX: Int, worldZ: Int, groundTopY: Int): Column? {
+        val cut = beneath ?: return null
+        val underTheGround = Spans.of(Spans.LOWEST_Y, groundTopY - CRUST)
+        val fluids = poursBeneath.mapNotNull { body ->
+            body.where.columnSpans(worldX, worldZ).intersect(underTheGround).takeIf { it.ranges.isNotEmpty() }?.let { body.fluid to it }
+        }
+        return Column(rock = Spans.EMPTY, air = cut.columnSpans(worldX, worldZ).intersect(underTheGround), fluids = fluids)
+    }
 
     /** This overlay with [body] standing in it as well. */
     fun alsoPouring(body: StandingFluid): Overlay = copy(pours = pours + body)
@@ -152,6 +175,9 @@ data class Overlay(
     companion object {
         val NONE = Overlay()
 
+        /** How much rock is left over [beneath], under each column's ground — deep enough for dirt and roots. */
+        const val CRUST = 8
+
         /** Takes the recursive field codec directly, as `SeaFill` does — it owns no shape of its own. */
         val CODEC: MapCodec<Overlay> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -161,8 +187,12 @@ data class Overlay(
                     .forGetter { java.util.Optional.ofNullable(it.hollows) },
                 StandingFluid.codec(TerrainField.CODEC).codec().listOf()
                     .optionalFieldOf("pours", emptyList()).forGetter(Overlay::pours),
-            ).apply(instance) { raises, hollows, pours ->
-                Overlay(raises.orElse(null), hollows.orElse(null), pours)
+                TerrainField.CODEC.optionalFieldOf("beneath")
+                    .forGetter { java.util.Optional.ofNullable(it.beneath) },
+                StandingFluid.codec(TerrainField.CODEC).codec().listOf()
+                    .optionalFieldOf("pours_beneath", emptyList()).forGetter(Overlay::poursBeneath),
+            ).apply(instance) { raises, hollows, pours, beneath, poursBeneath ->
+                Overlay(raises.orElse(null), hollows.orElse(null), pours, beneath.orElse(null), poursBeneath)
             }
         }
     }
