@@ -38,6 +38,7 @@ import net.minecraft.world.level.block.state.BlockState
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.CeilingField
+import co.voik.agesandtheart.worldgen.ClimateStretch
 import co.voik.agesandtheart.worldgen.MagmaChamberField
 import co.voik.agesandtheart.worldgen.Dislocation
 import co.voik.agesandtheart.worldgen.Overlay
@@ -175,6 +176,10 @@ object AgeGeneration {
         // overworld sky is the nether's settings with the overworld's biomes over them.
         val vanillasWorld = composition.terrains.firstNotNullOfOrNull(AgeTemplate::ofRock) ?: recipe.template
         val vanillasRockSettings = noiseSettings.getOrThrow(vanillasWorld.rock)
+        // **How wide the biomes are**, which on vanilla's overworld rock is how wide the land is too: its router is
+        // read wider ([ClimateStretch]), as vanilla's large biomes is, where stretching only the biomes would pull
+        // ocean biomes onto dry land. Elsewhere the biome source stretches its own reading.
+        val vanillasClimateStretched = ourGround == null && vanillasWorld.rock == NoiseGeneratorSettings.OVERWORLD
         // **Vanilla's rock pours its own sea**, so the book's depth moves its level rather than a fill of ours,
         // and where the sea's top stands is read off that level — the abyss and its wreckage are laid against it.
         val vanillasSeaShift = Sea.depthShift(composition.optionsFor(Aspect.SEA, 0), seed)
@@ -215,6 +220,7 @@ object AgeGeneration {
         // One biome source for the whole Age, and no region map: one climate table spans the world however
         // many terrains carve it up (design §3.1).
         val biomeOptions = composition.optionsFor(Aspect.BIOMES, 0)
+        val biomeStretch = Biomes.stretchIn(biomeOptions, seed)
         return AgeChunkGenerator(
             // **The world the book was written over decides which biomes there are to choose between.**
             // This was the overworld's list for every Age, so an infernal one grew overworld biomes over
@@ -228,7 +234,8 @@ object AgeGeneration {
                 ),
             )
                 .told(climate)
-                .stretched(Biomes.stretchIn(biomeOptions, seed))
+                // On vanilla's overworld rock the stretch is in the rock's own router, land and biomes together.
+                .stretched(if (vanillasClimateStretched) UNSTRETCHED else biomeStretch)
                 .let { if (ourGround == null) it.sampledForDepth() else it.groundedIn(ourGround.landform) }
                 // On unless the Age said otherwise — `biomes.footing=free` is the lever, and an Age whose
                 // biomes ignore its land is allowed rather than broken. See [Grounding] and [Biomes.FOOTING].
@@ -293,6 +300,7 @@ object AgeGeneration {
                         ),
                         vanillasSeaShift,
                         flooredForASea = seaUnderVanillasVoid,
+                        climateStretch = if (vanillasClimateStretched) biomeStretch else UNSTRETCHED,
                     ),
                 ),
             ),
@@ -416,6 +424,8 @@ object AgeGeneration {
         seaLevelShift: Int = 0,
         /** Whether a sea is laid under this rock's void, on a floor its own skin would never paint bedrock. */
         flooredForASea: Boolean = false,
+        /** How much wider the router reads its climate — see [ClimateStretch]. */
+        climateStretch: Double = UNSTRETCHED,
     ): NoiseGeneratorSettings {
         // Only a skin the writer actually named: `Surface.ruleFor` would otherwise delegate to the biomes
         // *through the field tree*, and there is none here to delegate through. Silence means vanilla's own
@@ -455,15 +465,16 @@ object AgeGeneration {
             theirs.noiseSettings(),
             fill.representative.takeUnless { fill == TerrainFill.PLAIN } ?: theirs.defaultBlock(),
             sea,
-            theirs.noiseRouter(),
+            ClimateStretch.of(theirs.noiseRouter(), climateStretch),
             floored,
             theirs.spawnTarget(),
             theirs.seaLevel() + seaLevelShift,
             // Deprecated on the record and still required by its constructor, so this hands back
             // exactly what the settings we were given already said.
             @Suppress("DEPRECATION") theirs.disableMobGeneration(),
-            // Vanilla's rock keeps vanilla's aquifer, whatever the settings we were handed carried.
-            theirs.aquifers(),
+            // Vanilla's rock keeps vanilla's aquifer, whatever the settings we were handed carried, reading the land
+            // as wide as the router does.
+            theirs.aquifers().map { ClimateStretch.of(it, climateStretch) },
             theirs.getRandomSource() == net.minecraft.world.level.levelgen.WorldgenRandom.Algorithm.LEGACY,
             theirs.debugFunctions(),
         )
@@ -736,6 +747,9 @@ object AgeGeneration {
 
     /** A dial bought in full. */
     private const val ALL_OF_IT = 1.0
+
+    /** A climate read at the size vanilla reads it. */
+    private const val UNSTRETCHED = 1.0
 
     /** So which sea wins is decorrelated from everything else this seed decides. */
     private const val WATERLINE_SALT = 0x5EA_1E7EL
