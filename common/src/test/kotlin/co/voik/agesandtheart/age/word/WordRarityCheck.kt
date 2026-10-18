@@ -129,6 +129,19 @@ class WordRarityCheck : FunSpec({
         check(indifferent.size == three.size) { "a bucket that does not prefer the unknown still did: ${indifferent.map { it?.name }}" }
     }
 
+    /** The library's shelf page is still worth taking once every critical word is known. */
+    test("a finder who knows every critical word is handed an uncommon or rare one instead") {
+        val critical = vocabulary.rarity.buckets.first { it.name == "critical" }
+        check(critical.onceAllKnown == setOf("uncommon", "rare")) { "the critical bucket hands on to ${critical.onceAllKnown}" }
+        val handedOn = (1L..200L).mapNotNull { seed ->
+            vocabulary.rarity.draw(vocabulary, RandomSource.create(seed), only = setOf("critical"), isNew = { false })
+        }
+        val buckets = handedOn.mapNotNull { vocabulary.rarity.bucketOf(it)?.name }.toSet()
+        check(handedOn.size == 200 && buckets.isNotEmpty() && buckets.all { it in critical.onceAllKnown }) {
+            "a finder who knew every critical word was handed words from $buckets (${handedOn.size} of 200 draws)"
+        }
+    }
+
     test("only the critical bucket prefers the unknown, and electromagnetic is not in it") {
         val preferring = vocabulary.rarity.buckets.filter { it.prefersTheUnknown }.map { it.name }
         check(preferring == listOf("critical")) { "the buckets preferring the unknown are $preferring" }

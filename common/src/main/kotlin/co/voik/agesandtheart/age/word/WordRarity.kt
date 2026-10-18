@@ -27,6 +27,8 @@ data class RarityBucket(
     val itemRarity: Rarity = Rarity.COMMON,
     /** Whether a page drawn for a known finder takes a word they have not learned, while one is left. */
     val prefersTheUnknown: Boolean = false,
+    /** The buckets a finder who has learned every word of this one draws from instead, or none to draw from it anyway. */
+    val onceAllKnown: Set<String> = emptySet(),
 ) {
     /** This bucket with [later] laid over it — a higher-priority pack retuning it. */
     fun mergedWith(later: RarityBucket): RarityBucket = RarityBucket(
@@ -36,6 +38,7 @@ data class RarityBucket(
         isDefault = later.isDefault,
         itemRarity = later.itemRarity,
         prefersTheUnknown = later.prefersTheUnknown,
+        onceAllKnown = later.onceAllKnown,
     )
 
     fun lists(word: Word): Boolean = word.name in words || word.id.toString() in words
@@ -49,8 +52,9 @@ data class RarityBucket(
                 Codec.BOOL.optionalFieldOf("default", false).forGetter(RarityBucket::isDefault),
                 Rarity.CODEC.optionalFieldOf("item_rarity", Rarity.COMMON).forGetter(RarityBucket::itemRarity),
                 Codec.BOOL.optionalFieldOf("prefers_the_unknown", false).forGetter(RarityBucket::prefersTheUnknown),
-            ).apply(instance) { weight, words, isDefault, itemRarity, prefersTheUnknown ->
-                RarityBucket(name, weight, words.toSet(), isDefault, itemRarity, prefersTheUnknown)
+                Codec.STRING.listOf().optionalFieldOf("once_all_known", emptyList()).forGetter { it.onceAllKnown.toList() },
+            ).apply(instance) { weight, words, isDefault, itemRarity, prefersTheUnknown, onceAllKnown ->
+                RarityBucket(name, weight, words.toSet(), isDefault, itemRarity, prefersTheUnknown, onceAllKnown.toSet())
             }
         }
     }
@@ -98,6 +102,11 @@ data class WordRarity(
             val words = byBucket[bucket].orEmpty()
             val prefersUnlearned = bucket.prefersTheUnknown && isNew != null
             val unlearned = if (prefersUnlearned) uniformlyAmong(words, random) { keep(it) && isNew(it) } else null
+            // A finder who knows every word here is given one from the buckets this one hands on to.
+            val handedOn = bucket.onceAllKnown - bucket.name
+            if (prefersUnlearned && unlearned == null && handedOn.isNotEmpty()) {
+                draw(vocabulary, random, handedOn, isNew, keep)?.let { return it }
+            }
             val drawn = unlearned ?: uniformlyAmong(words, random, keep)
             if (drawn != null) return drawn
             offered -= bucket

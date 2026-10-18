@@ -103,7 +103,10 @@ class PageWordFunction(
         fun writeForFinder(finder: ServerPlayer, stack: ItemStack) {
             val rarity = stack.get(AgeComponents.PAGE_DRAWN_FOR) ?: return
             val vocabulary = Vocabulary.of(finder.level().server)
-            val drawn = drawFoundWord(vocabulary, finder.level().registryAccess(), finder.random, rarity.ifEmpty { null }, finder)
+            val registries = finder.level().registryAccess()
+            // **Never left blank**: what its own buckets cannot offer, any bucket can.
+            val drawn = drawFoundWord(vocabulary, registries, finder.random, rarity.ifEmpty { null }, finder)
+                ?: drawFoundWord(vocabulary, registries, finder.random, null, finder)
             stack.remove(AgeComponents.PAGE_DRAWN_FOR)
             if (drawn != null) PageItem.write(stack, drawn, vocabulary)
         }
