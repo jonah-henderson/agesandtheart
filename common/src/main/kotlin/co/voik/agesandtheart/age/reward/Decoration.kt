@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.age.reward
 
 import net.minecraft.core.Holder
-import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeGenerationSettings
 import net.minecraft.world.level.levelgen.GenerationStep
@@ -28,8 +27,11 @@ object Decoration {
     /** Features one reward adds, and the step they are added at. */
     data class Layer(val step: GenerationStep.Decoration, val features: List<Holder<PlacedFeature>>)
 
-    /** The biomes' own [replaced] feature, wherever it is placed, wrapped by [by]. */
-    data class Swap(val replaced: ResourceKey<PlacedFeature>, val by: (Holder<PlacedFeature>) -> Holder<PlacedFeature>)
+    /** Each of the biomes' own features that [replaces], wherever it is placed, wrapped by [by]. */
+    data class Swap(
+        val replaces: (Holder<PlacedFeature>) -> Boolean,
+        val by: (Holder<PlacedFeature>) -> Holder<PlacedFeature>,
+    )
 
     /** One layer of several features at a single step, or null where the reward laid nothing. */
     fun layerOf(step: GenerationStep.Decoration, features: List<Holder<PlacedFeature>>): Layer? =
@@ -50,11 +52,10 @@ object Decoration {
         if (layers.isEmpty() && swaps.isEmpty()) return base
         val settled = ConcurrentHashMap<Holder<Biome>, BiomeGenerationSettings>()
         // One wrapped feature for every biome placing the original, for the same identity reason.
-        val swapped = ConcurrentHashMap<ResourceKey<PlacedFeature>, Holder<PlacedFeature>>()
+        val swapped = ConcurrentHashMap<Holder<PlacedFeature>, Holder<PlacedFeature>>()
         fun swappedFor(feature: Holder<PlacedFeature>): Holder<PlacedFeature> {
-            val key = feature.unwrapKey().orElse(null) ?: return feature
-            val swap = swaps.firstOrNull { it.replaced == key } ?: return feature
-            return swapped.computeIfAbsent(key) { swap.by(feature) }
+            val swap = swaps.firstOrNull { it.replaces(feature) } ?: return feature
+            return swapped.computeIfAbsent(feature) { swap.by(feature) }
         }
         return { biome -> settled.computeIfAbsent(biome) { added(base(it), layers, ::swappedFor) } }
     }

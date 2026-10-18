@@ -11,8 +11,8 @@ import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.feature.Feature
 
 /**
- * An ice spike that grows a small cluster of rime crystals round its top as it is raised, so a frozen Age with no
- * high ground still has a climb to them, and one with cliffs ([RimeCrystal]) has more.
+ * An ice spike that grows a small cluster of rime crystals round its top as it is raised, if it is one of the tall
+ * ones, so a frozen Age with no high ground still has a climb to them, and one with cliffs ([RimeCrystal]) has more.
  *
  * Wraps vanilla's spike rather than looking for one afterwards: the spike stands on the column it was placed at,
  * so its top is found by walking down that column, where a scan of the finished chunk cannot tell a spike from an
@@ -25,13 +25,17 @@ data class IceSpikeRime(val spike: Holder<Feature>) : Feature {
     override fun place(level: WorldGenLevel, generator: ChunkGenerator, random: RandomSource, origin: BlockPos): Boolean {
         if (!spike.value().place(level, generator, random, origin)) return false
         val top = topOf(level, origin) ?: return true
-        growAround(level, top, random)
+        val isTall = top.y - origin.y >= TALL_SPIKE * resizedBy
+        if (isTall) growAround(level, top, random)
         return true
     }
 
+    /** How much bigger than vanilla's the spike is, where a book resized it whole. */
+    private val resizedBy: Double get() = (spike.value() as? ScaledFeature)?.scale ?: 1.0
+
     /** The highest block on [origin]'s column within reach of a spike, or null where nothing stands over it. */
     private fun topOf(level: WorldGenLevel, origin: BlockPos): BlockPos? =
-        (origin.y + TALLEST_SPIKE downTo origin.y + 1)
+        (origin.y + (TALLEST_SPIKE * resizedBy).toInt() downTo origin.y + 1)
             .map { BlockPos(origin.x, it, origin.z) }
             .firstOrNull { !level.getBlockState(it).isAir }
 
@@ -66,6 +70,12 @@ data class IceSpikeRime(val spike: Holder<Feature>) : Feature {
 
         /** Above the tallest spike vanilla raises. */
         private const val TALLEST_SPIKE = 64
+
+        /**
+         * How far over where it was placed a spike's top must stand to be a tall one. Vanilla raises a short spike
+         * at most thirteen and one in sixty at least seventeen.
+         */
+        private const val TALL_SPIKE = 16
 
         /** How far down from its top a spike's crystals grow, and how far out from its centre. */
         private const val TOP_BAND = 4

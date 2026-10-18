@@ -14,6 +14,7 @@ import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.worldgen.feature.DeepSeaVent
 import co.voik.agesandtheart.worldgen.feature.IceSpikeRime
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
+import co.voik.agesandtheart.worldgen.feature.ScaledFeature
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.placement.HeightmapPlacement
 import net.minecraft.world.level.levelgen.placement.RarityFilter
@@ -228,13 +229,22 @@ object EarlyGameRareMaterials {
      * the tops of the ice spikes.
      */
     fun swaps(grown: Set<EarlyGameRareMaterial>): List<Decoration.Swap> =
-        if (EarlyGameRareMaterial.RIME in grown) listOf(Decoration.Swap(ICE_SPIKE, ::rimed)) else emptyList()
+        if (EarlyGameRareMaterial.RIME in grown) listOf(Decoration.Swap(::isAnIceSpike, ::rimed)) else emptyList()
+
+    /** Vanilla's ice spike, or a copy of it a book resized whole, which has lost the name but keeps the spike. */
+    private fun isAnIceSpike(placed: Holder<PlacedFeature>): Boolean {
+        val feature = placed.value().feature()
+        val resizedFrom = (feature.value() as? ScaledFeature)?.feature
+        return placed.`is`(ICE_SPIKE) || feature.`is`(ICE_SPIKE_FEATURE) || resizedFrom?.`is`(ICE_SPIKE_FEATURE) == true
+    }
 
     private fun rimed(spike: Holder<PlacedFeature>): Holder<PlacedFeature> =
         Holder.direct(PlacedFeature(Holder.direct(IceSpikeRime(spike.value().feature())), spike.value().placement()))
 
     private val ICE_SPIKE: ResourceKey<PlacedFeature> =
         ResourceKey.create(Registries.PLACED_FEATURE, Identifier.withDefaultNamespace("ice_spike"))
+    private val ICE_SPIKE_FEATURE: ResourceKey<Feature> =
+        ResourceKey.create(Registries.FEATURE, Identifier.withDefaultNamespace("ice_spike"))
 
     /** How a material is placed, and at which step — one pass, or several where it arrives more than one way. */
     private fun placementsOf(material: EarlyGameRareMaterial): List<Pair<GenerationStep.Decoration, Holder<PlacedFeature>>> =
