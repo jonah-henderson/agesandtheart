@@ -310,6 +310,7 @@ internal val SHIPPED_LADDERS = mapOf(
             Manifestation.RISE_HEIGHT to tiers(2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3),
         ),
         leans = mapOf("humidity" to 1.0),
+        needs = setOf(Showing.WATER_SEA),
     ),
     Manifestation.COLLAPSE to Ladder.flat(Manifestation.COLLAPSE, tier = 3, most = 3),
     Manifestation.FOG to Ladder.flat(Manifestation.FOG, tier = 1, most = 4).copy(leans = mapOf("humidity" to 0.3)),
