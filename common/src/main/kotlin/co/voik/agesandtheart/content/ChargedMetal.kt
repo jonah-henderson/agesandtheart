@@ -189,7 +189,11 @@ object ChargedMetal {
         // feel shorter than it is. In or out is the whole of it.
         val strength = PULL_AT_ONE_TO_ONE * run.force.coerceAtMost(MOST_FORCE)
         // Attraction hauls back *up* the beam toward the metal; repulsion drives on down it.
-        entity.push(along.scale(-sense * strength))
+        val shoved = along.scale(-sense * strength)
+        entity.push(shoved)
+        // A field that holds you up breaks your fall, as hay or slime does: vanilla charges a landing by the
+        // height fallen rather than the speed it lands at, so slowing the descent alone saved nothing.
+        if (shoved.y > 0) entity.resetFallDistance()
         // A server that moves a player has to say so, or their own client puts them straight back — the
         // same flag an explosion sets.
         if (entity is ServerPlayer) {
