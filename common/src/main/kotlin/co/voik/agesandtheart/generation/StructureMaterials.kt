@@ -190,6 +190,10 @@ object StructureMaterials {
                 "isStateAtPosition" -> (given[1] as Predicate<BlockState>).test(stateAt(given[0] as BlockPos))
                 "isEmptyBlock" -> stateAt(given[0] as BlockPos).isAir
                 "ensureCanWrite" -> true
+                // No level to spawn into, so a template's entities are never made: vanilla creates them inside a
+                // try that skips one it cannot make. Made, a cat would ask the server's own structure manager
+                // where it stands, which blocks this worker on a chunk the server is waiting on it to finish.
+                "getLevel" -> throw UnsupportedOperationException("a draft has no level to spawn into")
                 in ANSWERED_BY_THE_LEVEL -> invokeOn(real, method, given)
                 else -> if (method.declaringClass == LevelHeightAccessor::class.java) invokeOn(real, method, given) else nothing(method, given)
             }
@@ -227,7 +231,7 @@ object StructureMaterials {
 
     /** What a draft may still ask the real level: what it is, never what is in it. */
     private val ANSWERED_BY_THE_LEVEL = setOf(
-        "registryAccess", "getSeed", "getLevel", "getRandom", "enabledFeatures", "dimensionType", "holderLookup",
+        "registryAccess", "getSeed", "getRandom", "enabledFeatures", "dimensionType", "holderLookup",
         "getServer", "equals", "hashCode", "toString",
     )
 

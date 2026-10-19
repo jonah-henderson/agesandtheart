@@ -49,6 +49,16 @@ class StructureMaterialOnServerCheck : FunSpec({
         check(!server.saidSoFar().contains("StructureMaterials")) { "placing it threw: see the boot log" }
     }
 
+    test("a village whose cats stand outside the chunk being decorated still generates") {
+        // This seed's village has a cat in a piece chunks from its start, which the count of its blocks once
+        // spawned and so deadlocked the generator: nothing ever came back.
+        server.run("age write bluevillages $CAT_SEED age blue villages structures")
+        generatedAround("bluevillages", 0, 0)
+        val (x, z) = located("bluevillages", "structure #minecraft:village")
+        generatedAround("bluevillages", x, z)
+        check(countOf("bluevillages", "#minecraft:wool", x, z) > 0) { "the village at $x, $z had no wool in it" }
+    }
+
     test("colossal trees stand taller than ordinary trees, on trunks that make them more wood") {
         server.run("age write ordinarytrees $SEED age trees features")
         server.run("age write colossaltrees $SEED age colossal trees features")
@@ -66,6 +76,9 @@ class StructureMaterialOnServerCheck : FunSpec({
 })
 
 private const val SEED = 7L
+
+/** The seed whose village spawned a cat chunks from its start (2026-10-18). */
+private const val CAT_SEED = -6446760600093126732L
 private const val HALF = 16
 private const val REACH = 32
 private const val COUNTED_FROM = 40
