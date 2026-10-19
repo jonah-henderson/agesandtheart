@@ -27,8 +27,9 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   §5.1 and §5.2 are what that tool refuses and nudges about. Read it before authoring a word or touching
   `art/word/` — and author with the tool rather than by hand.
 - **`notes/vocabulary-representation-review.md`** — whether the vocabulary's underlying representation should be
-  refactored, opened 2026-10-17 because the model has needed so many exceptions. **Not started, and Jonah has ideas
-  of his own**: it holds only the evidence — every special case carved out so far — and what any redesign must keep.
+  refactored, opened 2026-10-17 because the model has needed so many exceptions. **Not started.** It holds the
+  evidence — every special case carved out so far — and Jonah's proposal (2026-10-18): words carry meanings that
+  look right for the first word that accepts them, members name themselves and most aiming words retire.
   Read it before adding another exception to how a word is read.
 - **`notes/instability-tiers-plan.md`** — what is left of the instability tiers, which are **built** and live in
   design §5.0: the strange tier (cosmetic manifestations, the beginner's whole experience of instability,
