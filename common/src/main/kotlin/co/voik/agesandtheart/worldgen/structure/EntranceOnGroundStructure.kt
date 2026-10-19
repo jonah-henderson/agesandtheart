@@ -46,7 +46,8 @@ class EntranceOnGroundStructure(
     private fun setOnGround(placed: GenerationStub, context: GenerationContext): GenerationStub {
         val pieces = placed.getPiecesBuilder()
         val door = entranceOf(pieces, context)
-        val rise = if (door == null) 0 else groundOutside(door, context) - door.position.y
+        // The entrance is the cell over the bottom step, so it stands one over the first free height and the step on it.
+        val rise = if (door == null) 0 else groundOutside(door, context) + OVER_THE_STEP - door.position.y
         // Deprecated in vanilla with no replacement, and vanilla still calls it.
         @Suppress("DEPRECATION")
         pieces.offsetPiecesVertically(rise)
@@ -91,6 +92,9 @@ class EntranceOnGroundStructure(
     override fun type(): StructureType<*> = AgeContent.ENTRANCE_ON_GROUND_STRUCTURE
 
     companion object {
+        /** The entrance jigsaw's height over the step under it. */
+        private const val OVER_THE_STEP = 1
+
         /** The steps run from one block to the entrance's left to two to its right, as seen leaving. */
         private const val ENTRANCE_START_OFFSET = -1
         private const val ENTRANCE_WIDTH = 4
