@@ -2,26 +2,24 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.client.light.DeepLights
 import co.voik.agesandtheart.content.Hadalfish
-import co.voik.agesandtheart.location
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.world.phys.Vec3
-import kotlin.math.cos
-import kotlin.math.sin
+import net.minecraft.client.model.geom.ModelPart
+import org.joml.Matrix4f
+import org.joml.Quaternionf
+import org.joml.Vector3f
 import kotlin.math.sqrt
 import net.minecraft.client.model.monster.guardian.GuardianModel
 import net.minecraft.client.model.geom.ModelLayers
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.entity.MobRenderer
-import net.minecraft.client.renderer.entity.layers.EyesLayer
 import net.minecraft.client.renderer.entity.state.GuardianRenderState
-import net.minecraft.client.renderer.rendertype.RenderType
-import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.resources.Identifier
 
 /**
- * The hadalfish, drawn as a guardian with a lit eye.
+ * The hadalfish, drawn as a guardian whose eye is a light.
  *
  * **Vanilla's model and vanilla's texture**, the bargain the astrite golem and the rime crystal already
  * make: it references Mojang's art rather than shipping any, and the asset pass gives this an anglerfish of
@@ -38,17 +36,32 @@ import net.minecraft.resources.Identifier
  * the beam's whole apparatus, and its frustum override, out of this class entirely.
  */
 class HadalfishRenderer(context: EntityRendererProvider.Context) :
-    MobRenderer<Hadalfish, GuardianRenderState, GuardianModel>(
+    MobRenderer<Hadalfish, HadalfishRenderState, GuardianModel>(
         context,
-        GuardianModel(context.bakeLayer(ModelLayers.GUARDIAN)),
+        HadalfishModel(context.bakeLayer(ModelLayers.GUARDIAN)),
         SHADOW,
     ) {
 
-    init {
-        addLayer(LitEye(this))
+    /**
+     * The guardian's, with its eye put out wherever its light is drawn on it: a glow is added light, so the pupil
+     * behind it showed through rather than being covered, and gave the fish away against the sea lanterns.
+     */
+    private class HadalfishModel(root: ModelPart) : GuardianModel(root) {
+        private val eye = root.getChild("head").getChild("eye")
+
+        override fun setupAnim(state: GuardianRenderState) {
+            super.setupAnim(state)
+            eye.visible = (state as? HadalfishRenderState)?.showsItsLight != true
+        }
     }
 
-    override fun createRenderState(): GuardianRenderState = GuardianRenderState()
+    override fun createRenderState(): HadalfishRenderState = HadalfishRenderState()
+
+    override fun extractRenderState(entity: Hadalfish, state: HadalfishRenderState, partialTicks: Float) {
+        super.extractRenderState(entity, state, partialTicks)
+        state.isHunting = entity.isHunting
+        state.showsItsLight = !state.isInvisible && (state.isHunting || DeepLights.litAt(sqrt(state.distanceToCameraSq)) != null)
+    }
 
     /**
      * The fish, and then the light its eye is.
@@ -57,22 +70,19 @@ class HadalfishRenderer(context: EntityRendererProvider.Context) :
      * which `super` pushes and pops, so what is left is the entity's position with nothing turned.
      */
     override fun submit(
-        state: GuardianRenderState,
+        state: HadalfishRenderState,
         poseStack: PoseStack,
         collector: SubmitNodeCollector,
         camera: CameraRenderState,
     ) {
         super.submit(state, poseStack, collector, camera)
-        if (!state.isInvisible) submitTheEye(state, poseStack, collector, camera)
+        if (state.showsItsLight) submitTheEye(state, poseStack, collector, camera)
     }
 
     /**
-     * A red point that the abyss does not put out.
-     *
-     * **The eye's texture is not enough on its own, and cannot be.** `RenderTypes.eyes` is built on
-     * `MATRICES_FOG_SNIPPET`, so the layer above fades with the water like everything else and the fish is
-     * invisible exactly where it matters — at the range the circling phase is meant to be read from. This
-     * is drawn on [AgeRenderTypes.lightThroughFog] instead, which no fog touches.
+     * A point of light that the abyss does not put out, drawn on [AgeRenderTypes.lightThroughFog], which no
+     * fog touches: anything lit through the model fades with the water and is gone at the range the circling
+     * phase is read from.
      *
      * **And it is meant to carry as far as anything can** (Jonah, 2026-09-10). An abyss has no dynamic
      * light in it, so a diver with twenty-four blocks of sight and nothing on the horizon is not being
@@ -86,25 +96,21 @@ class HadalfishRenderer(context: EntityRendererProvider.Context) :
      * distance, which caps tracking at sixteen blocks a chunk.
      */
     private fun submitTheEye(
-        state: GuardianRenderState,
+        state: HadalfishRenderState,
         poseStack: PoseStack,
         collector: SubmitNodeCollector,
         camera: CameraRenderState,
     ) {
         val range = sqrt(state.distanceToCameraSq)
-        val lit = DeepLights.litAt(range) ?: return
-        // Where the eye is: up the body, then out through the face it is set in. The head's yaw rather
-        // than the body's, because a guardian's eye follows what it is looking at and so does the model.
-        //
-        // **Hung clear of the face rather than sitting on it**, or the fish's own model cuts most of the
-        // bloom away — the same fault the blocks had, and the same distance. Out along the *facing* rather
-        // than toward the camera, which is what a lure is: it hangs in front of the thing, so it is
-        // visible when the fish is looking at you and hidden when it is not.
-        val yaw = state.yRot * DEGREES_TO_RADIANS
-        val outward = state.boundingBoxWidth / 2.0 + DeepLights.CLEAR_OF_ITS_OWN_BLOCK * state.scale
-        // Said once: the offset the pose is moved by and the point the bloom is turned to face are the
-        // same three numbers, not two readings of them.
-        val fromTheMiddle = Vec3(-sin(yaw) * outward, state.eyeHeight.toDouble(), cos(yaw) * outward)
+        val lit = if (state.isHunting) DeepLights.litWhileHunting(range, state.ageInTicks) else DeepLights.litAt(range)
+        if (lit == null) return
+        val across = if (state.isHunting) DeepLights.acrossWhileHunting(range, state.ageInTicks) else DeepLights.acrossAt(range)
+        // **On the eye itself** (Jonah, 2026-10-19), where it hung clear of the face as a lure: a guardian has
+        // nothing for a lure to hang from. Found by the model's own transforms, so it follows the head's turn and
+        // pitch, then lifted a little toward whoever is looking so the head's faces do not cut the bloom away.
+        val face = eyeOnTheModel(state)
+        val towardCamera = camera.pos.subtract(Vec3(state.x, state.y, state.z).add(face))
+        val fromTheMiddle = face.add(towardCamera.normalize().scale(LIFTED_OFF_THE_EYE))
         val at = Vec3(state.x, state.y, state.z).add(fromTheMiddle)
         poseStack.pushPose()
         poseStack.translate(fromTheMiddle.x, fromTheMiddle.y, fromTheMiddle.z)
@@ -115,39 +121,35 @@ class HadalfishRenderer(context: EntityRendererProvider.Context) :
             lit,
             // **Not scaled by the fish**, however tempting: a lure two and a half times the size of a sea
             // lantern is a lure you can pick out at a glance, and the whole design is that you cannot.
-            DeepLights.acrossAt(range),
+            across,
             drawnOn = AgeRenderTypes.lightThroughFog,
         )
         poseStack.popPose()
     }
 
-    override fun getTextureLocation(state: GuardianRenderState): Identifier = BORROWED
-
-    override fun getModelTint(state: GuardianRenderState): Int = ABYSSAL
-
     /**
-     * The one eye, at full brightness and close to.
-     *
-     * **This is the near half of a pair.** `RenderTypes.eyes` ignores the lightmap but is built on
-     * `MATRICES_FOG_SNIPPET`, so it fades with the water like everything else — which is right for what
-     * this is, the detail you see once the fish is on you. What carries across an abyss is the unfogged
-     * bloom in [submitTheEye], and the two are the same colour on purpose.
-     *
-     * The texture is the guardian's own eye and nothing else: `hadalfish_eye.png` is a copy of Mojang's
-     * sheet with every pixel dropped except the sixteen that are the eye, in [DeepLights.LIT]'s pale cyan
-     * rather than the guardian's red — because every light in the deep has to look like every other one.
-     * Generated rather than drawn, so it lines up with the model's UVs exactly by construction.
+     * The front of the model's eye, from the fish's feet: the same transforms `LivingEntityRenderer.submit` lays
+     * the model out by, and then the head's, which carries the eye. The body's turn and the head's are separate,
+     * since a render state's `yRot` is the head's turn from the body rather than its own heading.
      */
-    private class LitEye(renderer: HadalfishRenderer) :
-        EyesLayer<GuardianRenderState, GuardianModel>(renderer) {
-        override fun renderType(): RenderType = GLOW
+    private fun eyeOnTheModel(state: HadalfishRenderState): Vec3 {
+        val eye = Matrix4f()
+            .scale(state.scale)
+            .rotateY((HALF_A_TURN - state.bodyRot) * DEGREES_TO_RADIANS)
+            .scale(-1.0f, -1.0f, 1.0f)
+            .translate(0.0f, MODEL_FLOOR, 0.0f)
+            .rotate(Quaternionf().rotationZYX(0.0f, state.yRot * DEGREES_TO_RADIANS, state.xRot * DEGREES_TO_RADIANS))
+            .transformPosition(Vector3f(0.0f, EYE_DOWN, EYE_FRONT))
+        return Vec3(eye.x.toDouble(), eye.y.toDouble(), eye.z.toDouble())
     }
+
+    override fun getTextureLocation(state: HadalfishRenderState): Identifier = BORROWED
+
+    override fun getModelTint(state: HadalfishRenderState): Int = ABYSSAL
 
     companion object {
         private val BORROWED: Identifier =
             Identifier.withDefaultNamespace("textures/entity/guardian/guardian.png")
-
-        private val GLOW: RenderType = RenderTypes.eyes("textures/entity/hadalfish_eye.png".location())
 
         /**
          * A cold, drowned cast over the guardian's teal, so it does not read as one that swam down here.
@@ -158,5 +160,23 @@ class HadalfishRenderer(context: EntityRendererProvider.Context) :
         private const val SHADOW = 0.9f
 
         private const val DEGREES_TO_RADIANS = (Math.PI / 180.0).toFloat()
+
+        /** The front of the guardian model's eye, in its head's own space: 16 pixels down and 8.25 forward. */
+        private const val EYE_DOWN = 16.0f / 16.0f
+        private const val EYE_FRONT = -8.25f / 16.0f
+
+        /** Where `LivingEntityRenderer` puts a model's origin, which is its own floor turned upside down. */
+        private const val MODEL_FLOOR = -1.501f
+
+        private const val HALF_A_TURN = 180.0f
+
+        /** In blocks, and unscaled: enough to clear the curve of the face at an angle. */
+        private const val LIFTED_OFF_THE_EYE = 0.4
     }
+}
+
+/** A guardian's, whether the fish is hunting, which its lure shows, and whether its light is drawn at all. */
+class HadalfishRenderState : GuardianRenderState() {
+    var isHunting = false
+    var showsItsLight = false
 }

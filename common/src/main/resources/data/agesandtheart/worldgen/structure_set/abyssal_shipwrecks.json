@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "One start in every five-by-five of chunks, the tightest a separation of four allows: about one wreck in",
+    "every twenty-five chunks of abyss, against a whalefall's one in ten. Vanilla's own set goes on beside it."
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "salt": 1932475031,
+    "separation": 4,
+    "spacing": 5
+  },
+  "structures": [
+    {
+      "structure": "agesandtheart:abyssal_shipwreck",
+      "weight": 1
+    }
+  ]
+}

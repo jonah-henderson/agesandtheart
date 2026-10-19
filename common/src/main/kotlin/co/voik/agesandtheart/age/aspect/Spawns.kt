@@ -130,14 +130,35 @@ object Spawns {
         // the pass filter and the entry itself are the same answer every time, and only a *position*
         // decides whether one of them may be tried here.
         val couldArrive = ConcurrentHashMap<Arrivals, List<Arriving>>()
-        return Living { biome, category, where, offered ->
-            val asked = biome?.let { here.computeIfAbsent(it) { where -> LIVES.skewOf(claims, where) } }
-                ?: LIVES.skewOf(claims)
-            val kept = narrowed(offered, asked)
-            val candidates = couldArrive.computeIfAbsent(Arrivals(biome, category)) {
-                resolved(asked, category, spawning, livesSomewhere)
+        val everywhere = LIVES.skewOf(claims)
+        fun askedIn(biome: Identifier?): Skew =
+            biome?.let { here.computeIfAbsent(it) { where -> LIVES.skewOf(claims, where) } } ?: everywhere
+        return object : Living {
+            override fun at(
+                biome: Identifier?,
+                category: MobCategory,
+                where: Situation,
+                offered: WeightedList<MobSpawnSettings.SpawnerData>,
+            ): WeightedList<MobSpawnSettings.SpawnerData> {
+                val asked = askedIn(biome)
+                val kept = narrowed(offered, asked)
+                val candidates = couldArrive.computeIfAbsent(Arrivals(biome, category)) {
+                    resolved(asked, category, spawning, livesSomewhere)
+                }
+                return added(kept, candidates, where)
             }
-            added(kept, candidates, where)
+
+            override fun rungOf(creature: Identifier, biome: Identifier?): Double {
+                val asked = askedIn(biome)
+                val isStruck = creature.toString() in asked.struck
+                val named = asked.wanted.firstOrNull { it.id == creature }?.density
+                return when {
+                    isStruck -> 0.0
+                    named != null -> named
+                    asked.startsFromNothing -> 0.0
+                    else -> Rung.ORDINARY
+                }
+            }
         }
     }
 
@@ -155,6 +176,13 @@ object Spawns {
             where: Situation,
             offered: WeightedList<MobSpawnSettings.SpawnerData>,
         ): WeightedList<MobSpawnSettings.SpawnerData>
+
+        /**
+         * How thickly the sentence asks for [creature] in [biome]: the rung it was named or leaned at, nothing where
+         * it was struck or left out of an `only`, and the ordinary rung where nothing was said of it. For a creature
+         * that is rare by its own spawn rule, whose weight alone in a list would move nothing.
+         */
+        fun rungOf(creature: Identifier, biome: Identifier?): Double = Rung.ORDINARY
     }
 
     /**

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.reward
 
+import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
@@ -323,7 +324,7 @@ data class Danger(
                 val hardness = Rung.ORDINARY + Phenomena.strengthOf(options, phenomenon, seed) * HARDNESS_WRITTEN
                 return often * hardness * Phenomena.growthOf(options, phenomenon, seed)
             }
-            val written = Phenomena.claimsIn(options).sumOf { claim ->
+            val written = Happenings.claimsIn(composition).sumOf { claim ->
                 table.phenomenon(claim.value) * claim.density * asWritten(claim) * confinement(claim, table)
             }
             val inflicted = Phenomenon.entries.sumOf { phenomenon ->

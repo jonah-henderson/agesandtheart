@@ -2,6 +2,9 @@ package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.DeepWater
+import net.minecraft.server.level.ColumnPos
+import co.voik.agesandtheart.generation.AgeChunkGenerator
+import co.voik.agesandtheart.content.HadalfishArrivals
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.WorldGenLevel
@@ -60,17 +63,20 @@ object DeepSeaVent : Feature {
         val floor = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, origin.x, origin.z)
         val chimneyHeight = SHORTEST_CHIMNEY + random.nextInt(TALLEST_CHIMNEY - SHORTEST_CHIMNEY + 1)
         if (!standsInOpenAbyss(level, origin.x, origin.z, floor, chimneyHeight)) return false
+        if (!isDeepEnoughForTheTry(generator, floor, random)) return false
         val vent = Silhouette(random, leansFrom = floor)
         val chamberHeight = SHALLOWEST_CHAMBER + random.nextInt(DEEPEST_CHAMBER - SHALLOWEST_CHAMBER + 1)
         val chamberTop = floor - NECK_BLOCKS - 1
         val chamberBottom = chamberTop - chamberHeight + 1
         if (chamberBottom - 1 <= level.minY) return false
 
+        setTheFooting(level, origin, vent, floor, chamberBottom - 1)
         cutTheChamber(level, origin, vent, chamberBottom, chamberTop)
         cutTheNeck(level, origin, vent, chamberTop + 1, floor - 1)
         raiseTheChimney(level, origin, vent, floor, floor + chimneyHeight - 1)
         layTheMagma(level, origin, vent, chamberBottom - 1)
         hangTheLanterns(level, origin, vent, floor, chimneyHeight, random)
+        HadalfishArrivals.keepOneByTheVent(level, random, BlockPos(origin.x, floor + chimneyHeight, origin.z))
         return true
     }
 
@@ -93,6 +99,46 @@ object DeepSeaVent : Feature {
         if (!atTheFoot.`is`(DeepWater.DEEP_WATER)) return false
         val overTheMouth = BlockPos(x, floor + chimneyHeight + CLEAR_OVER_THE_MOUTH, z)
         return level.getFluidState(overTheMouth).`is`(DeepWater.DEEP_WATER)
+    }
+
+    /**
+     * **Likelier the deeper the abyss over it** (Jonah, 2026-10-19), so trenches and fissures hold more of them: a try
+     * is kept in proportion to the deep water over the floor, every one of them at [SURELY_FROM] blocks and up.
+     */
+    private fun isDeepEnoughForTheTry(generator: ChunkGenerator, floor: Int, random: RandomSource): Boolean {
+        val line = (generator as? AgeChunkGenerator)?.abyssPlane ?: return false
+        val deepWaterOverTheFloor = line - floor + 1
+        return random.nextDouble() * SURELY_FROM < deepWaterOverTheFloor
+    }
+
+    /**
+     * Stone under the vent wherever the sea bed falls away beneath it (Jonah, 2026-10-19): on a slope or a ledge
+     * the chimney hung over open water and the chamber's lining showed through the side of the ground. Laid
+     * before anything is cut, so the chamber, the neck and the bore are cut out of it, and in the chimney's
+     * stone, so the lining stays the inside's alone. Every open block within the chamber's reach down to the
+     * vent's floor, and under that, each column down to the first ground, no more than [FOOTING_BELOW_AT_MOST].
+     */
+    private fun setTheFooting(level: WorldGenLevel, origin: BlockPos, vent: Silhouette, floor: Int, ventsFloor: Int) {
+        val outer = CHAMBER_RADIUS + CHAMBER_WALL + FOOTING_SKIN
+        val span = ceil(outer * MOST_A_LOBE_ADDS).toInt() + 1
+        val grounded = HashSet<Long>()
+        val lowest = maxOf(ventsFloor - FOOTING_BELOW_AT_MOST, level.minY + 1)
+        for (y in (floor - 1) downTo lowest) {
+            val leanX = vent.leanXAt(y)
+            val leanZ = vent.leanZAt(y)
+            for (offsetX in -span..span) {
+                for (offsetZ in -span..span) {
+                    val reach = hypot(offsetX.toDouble(), offsetZ.toDouble())
+                    if (reach > outer * vent.lobeAt(atan2(offsetZ.toDouble(), offsetX.toDouble()))) continue
+                    val at = BlockPos(origin.x + leanX + offsetX, y, origin.z + leanZ + offsetZ)
+                    val column = ColumnPos.asLong(at.x, at.z)
+                    if (y < ventsFloor && column in grounded) continue
+                    val isOpen = level.getBlockState(at).canBeReplaced()
+                    if (isOpen) setBlock(level, at, CHIMNEY_STONE)
+                    else if (y < ventsFloor) grounded.add(column)
+                }
+            }
+        }
     }
 
     /** The room under the sea floor: lined all round, open in the middle. */
@@ -286,6 +332,13 @@ object DeepSeaVent : Feature {
     private const val LEAN_PER_BLOCK = 0.18
 
     private const val SHORTEST_CHIMNEY = 7
+
+    /** Blocks of deep water over the floor at and past which every try at a vent is kept. */
+    private const val SURELY_FROM = 48.0
+
+    /** The footing's reach past the chamber's own wall, and how far under the vent it may go to find ground. */
+    private const val FOOTING_SKIN = 1.0
+    private const val FOOTING_BELOW_AT_MOST = 24
     private const val TALLEST_CHIMNEY = 15
 
     /** Deep water wanted over the mouth, so a chimney never breaks the surface. */

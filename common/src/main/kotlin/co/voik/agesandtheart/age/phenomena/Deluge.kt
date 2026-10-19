@@ -1,5 +1,13 @@
 package co.voik.agesandtheart.age.phenomena
 
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.level.material.Fluid
+import net.minecraft.world.level.block.Block
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.network.protocol.game.ClientboundMoveVehiclePacket
+import net.minecraft.tags.FluidTags
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.entity.vehicle.boat.AbstractBoat
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Spending
@@ -214,19 +222,51 @@ object Deluge {
         val standing = level.seaSurfaceY() ?: return
         val inView = Sampling.inViewNearestFirst(level)
         if (inView.isEmpty()) return
-        // **Where a pass starts is derived from the clock rather than remembered**, so nothing has to hold a
-        // cursor. The list is sorted near to far, so each cycle through it sweeps outward from the player —
-        // which is the animation, and it repeats without anything scheduling it.
-        val from = ((level.gameTime * CHUNKS_A_TICK) % inView.size).toInt()
-        for (step in 0..<CHUNKS_A_TICK) {
-            val packed = inView[(from + step) % inView.size]
+        // **A step of the sea starts the sweep over from the nearest chunk** (2026-10-19), so each block of rise comes
+        // in as a ring rolling out from whoever is there. The list is sorted near to far, and the sweep goes on
+        // round it after, cheaply, for whatever comes back into view behind.
+        val sweep = sweeps.getOrPut(level) { Sweep(standing) }
+        sweep.restartIfTheSeaHasMovedTo(standing)
+        // **No more than [CHUNKS_RAISED_A_TICK] whole chunks a tick**, which is the client's limit rather than the
+        // server's: each block of rise re-lights the water under it and rebuilds every section it touches, and
+        // sixteen chunks a tick of that dropped frames. Whole, so each section is rebuilt once a step.
+        // Counters rather than a fold, being the two things this loop carries.
+        var raisedChunks = 0
+        var lookedAt = 0
+        while (lookedAt < CHUNKS_A_TICK && raisedChunks < CHUNKS_RAISED_A_TICK) {
+            val packed = inView[sweep.nextOf(inView.size)]
+            lookedAt++
             val chunk = level.chunkSource.getChunkNow(ChunkPos.getX(packed), ChunkPos.getZ(packed)) ?: continue
-            raiseIn(level, chunk, standing, sea)
+            if (raiseIn(level, chunk, standing, sea)) {
+                raisedChunks++
+                floatTheBoatsIn(level, chunk, standing)
+            }
         }
     }
 
-    /** One chunk: the two rules, at the top of each of its two hundred and fifty-six columns. */
-    private fun raiseIn(level: ServerLevel, chunk: LevelChunk, standing: Int, sea: BlockState) {
+    /** Where in the chunks in view [raise] has got to, and the sea it was raising them to. */
+    private class Sweep(private var standing: Int) {
+        private var next = 0
+
+        fun restartIfTheSeaHasMovedTo(now: Int) {
+            if (now == standing) return
+            standing = now
+            next = 0
+        }
+
+        /** The index to look at next in a list of [size], round again from the nearest at its end. */
+        fun nextOf(size: Int): Int {
+            if (next >= size) next = 0
+            return next++
+        }
+    }
+
+    /** Each drowning level's sweep, kept as long as the level is. Read on the server thread only. */
+    private val sweeps = WeakHashMap<ServerLevel, Sweep>()
+
+    /** One chunk: the two rules, at the top of each of its two hundred and fifty-six columns. Answers whether any rose. */
+    private fun raiseIn(level: ServerLevel, chunk: LevelChunk, standing: Int, sea: BlockState): Boolean {
+        var raisedAny = false
         val seaFluid = sea.fluidState.type
         // **Both halves of the fluid count**, which is the whole of the flowing rule: a spill is
         // `flowing_water` and its `FluidState` is not of the source's type.
@@ -234,10 +274,13 @@ object Deluge {
         val cursor = BlockPos.MutableBlockPos()
         val originX = chunk.pos.minBlockX
         val originZ = chunk.pos.minBlockZ
+        val laidQuietly = ArrayList<BlockPos>()
         for (offsetX in 0..<CHUNK_WIDTH) {
             for (offsetZ in 0..<CHUNK_WIDTH) {
-                // A chunk's `getHeight` is the top block itself, where a level's is the space over it.
-                val top = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING, offsetX, offsetZ)
+                // A chunk's `getHeight` is the top block itself, where a level's is the space over it. **Leaves are not a
+                // roof** (Jonah, 2026-10-19): read with them, the top under a tree was its canopy, so the sea never rose
+                // under it and left dry pockets round every tree it drowned.
+                val top = chunk.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, offsetX, offsetZ)
                 if (top > standing) continue
                 val x = originX + offsetX
                 val z = originZ + offsetZ
@@ -248,6 +291,7 @@ object Deluge {
                     // Immutable: `setBlockAndUpdate` hands the position to neighbour updates, and a cursor
                     // that moves under them is the classic way to poison a tick queue.
                     level.setBlockAndUpdate(BlockPos(x, top, z), sea)
+                    raisedAny = true
                     continue
                 }
                 // Up to the line in one visit, stopping under whatever roofs the column: every block of it
@@ -256,12 +300,116 @@ object Deluge {
                 var risen = top
                 while (risen < standing) {
                     cursor.set(x, risen + 1, z)
-                    if (!chunk.getBlockState(cursor).canBeReplaced(seaFluid)) break
-                    level.setBlockAndUpdate(BlockPos(x, risen + 1, z), sea)
+                    val above = chunk.getBlockState(cursor)
+                    if (above.`is`(BlockTags.LEAVES)) {
+                        // Through a canopy, taking the leaves in as it goes, where the sea is water and they can hold it.
+                        if (!takesIn(level, chunk, cursor, above, seaFluid, laidQuietly)) break
+                        raisedAny = true
+                        risen++
+                        continue
+                    }
+                    if (!above.canBeReplaced(seaFluid)) break
+                    val at = BlockPos(x, risen + 1, z)
+                    if (lay(level, chunk, at, sea, flowingSea)) laidQuietly += at
+                    raisedAny = true
                     risen++
                 }
             }
         }
+        letInWhereTheSeaMeetsAir(level, laidQuietly, seaFluid)
+        return raisedAny
+    }
+
+    /**
+     * Whether the sea goes on up through [leaves] at [at]: waterlogging them, written quietly as open sea is and
+     * remembered with it, so the air beside them can be let in. A sea of anything but water stops at a canopy.
+     */
+    private fun takesIn(
+        level: ServerLevel,
+        chunk: LevelChunk,
+        at: BlockPos,
+        leaves: BlockState,
+        seaFluid: Fluid,
+        laidQuietly: MutableList<BlockPos>,
+    ): Boolean {
+        val canHoldTheSea = seaFluid.isSame(Fluids.WATER) && leaves.hasProperty(BlockStateProperties.WATERLOGGED)
+        if (!canHoldTheSea) return false
+        if (leaves.getValue(BlockStateProperties.WATERLOGGED)) return true
+        val drowned = leaves.setValue(BlockStateProperties.WATERLOGGED, true)
+        val held = at.immutable()
+        if (chunk.setBlockState(held, drowned, Block.UPDATE_SKIP_ON_PLACE) != null) level.chunkSource.blockChanged(held)
+        laidQuietly += held
+        return true
+    }
+
+    /**
+     * A fluid tick for every block laid quietly that still has air beside it once its chunk is up (2026-10-19), so the
+     * sea spills in under an overhang or into a doorway as it did when every block was placed with all its updates.
+     * Asked after the chunk rather than as each block goes down, because then the sea beside it in the same chunk has
+     * risen too, and only the edges of what rose are left: the chunk's border, and the mouths of what stayed dry.
+     */
+    private fun letInWhereTheSeaMeetsAir(level: ServerLevel, laidQuietly: List<BlockPos>, seaFluid: Fluid) {
+        for (at in laidQuietly) {
+            val hasAirBeside = Direction.Plane.HORIZONTAL.any { side -> level.getBlockState(at.relative(side)).isAir }
+            if (hasAirBeside) level.scheduleTick(at, seaFluid, seaFluid.getTickDelay(level))
+        }
+    }
+
+    /**
+     * One block of risen sea, **written into the chunk itself where nothing beside it could care** (2026-10-19). Out in
+     * open sea, with only the sea and air beside it, everything a level's own placing adds is wasted: neighbour and
+     * shape updates that nothing answers, and above all the water's own `onPlace`, which schedules a fluid tick for
+     * every block laid — a search for somewhere to flow that open sea never has, thousands a tick. The chunk's own
+     * write keeps what has to stay true, its heightmaps and its light, and the client is told as vanilla tells it,
+     * batched a section a tick. Beside anything else — a shore, a plant, lava — it is placed with every update, so the
+     * sea spills and meets as before. Answers whether it was laid quietly, so the air it may yet spill into can be
+     * looked for once its chunk is up — see [letInWhereTheSeaMeetsAir].
+     */
+    private fun lay(level: ServerLevel, chunk: LevelChunk, at: BlockPos, sea: BlockState, flowingSea: Fluid): Boolean {
+        val seaFluid = sea.fluidState.type
+        fun isSeaOrAir(state: BlockState) = state.isAir || state.fluidState.type == seaFluid || state.fluidState.type == flowingSea
+        val inOpenSea = Direction.Plane.HORIZONTAL.all { side -> isSeaOrAir(level.getBlockState(at.relative(side))) }
+        if (!inOpenSea) {
+            level.setBlock(at, sea, Block.UPDATE_ALL)
+            return false
+        }
+        if (chunk.setBlockState(at, sea, Block.UPDATE_SKIP_ON_PLACE) != null) level.chunkSource.blockChanged(at)
+        return true
+    }
+
+    /**
+     * Back onto the surface, every boat the rise put under it (testing, 2026-10-19). The sea comes up over a boat
+     * rather than under it, and a boat with water over it sinks, its buoyancy there a sliver of its weight, and throws
+     * its riders out after three seconds of it. Set at vanilla's own floating height for the water there,
+     * and only where nothing is in the way.
+     */
+    private fun floatTheBoatsIn(level: ServerLevel, chunk: LevelChunk, standing: Int) {
+        val within = AABB(
+            chunk.pos.minBlockX.toDouble(), level.minY.toDouble(), chunk.pos.minBlockZ.toDouble(),
+            chunk.pos.maxBlockX + 1.0, standing + ABOVE_THE_LINE, chunk.pos.maxBlockZ + 1.0,
+        )
+        for (boat in level.getEntitiesOfClass(AbstractBoat::class.java, within)) {
+            val floatsAt = floatingHeightOver(level, boat) ?: continue
+            val lifted = boat.boundingBox.move(0.0, floatsAt - boat.y, 0.0)
+            if (!level.noCollision(boat, lifted)) continue
+            boat.setPos(boat.x, floatsAt, boat.z)
+            boat.deltaMovement = boat.deltaMovement.multiply(1.0, 0.0, 1.0)
+            // A boat somebody is steering goes where their client says, so the server's move has to be told to it,
+            // as vanilla tells it when it corrects one — or the client sinks it again.
+            (boat.controllingPassenger as? ServerPlayer)?.connection?.send(ClientboundMoveVehiclePacket.fromEntity(boat))
+        }
+    }
+
+    /** Where [boat] floats, if water stands over it: vanilla's own height for a boat on that water, or null. */
+    private fun floatingHeightOver(level: ServerLevel, boat: AbstractBoat): Double? {
+        val overItsTop = BlockPos.containing(boat.x, boat.boundingBox.maxY + OVER_ITS_TOP, boat.z)
+        val fluid = level.getFluidState(overItsTop)
+        val isUnderTheSea = fluid.`is`(FluidTags.WATER) && boat.boundingBox.maxY < overItsTop.y + fluid.getHeight(level, overItsTop)
+        if (!isUnderTheSea) return null
+        val surface = BlockPos.MutableBlockPos(overItsTop.x, overItsTop.y, overItsTop.z)
+        while (level.getFluidState(surface.above()).`is`(FluidTags.WATER)) surface.move(0, 1, 0)
+        val waterTop = surface.y + level.getFluidState(surface).getHeight(level, surface)
+        return waterTop - boat.bbHeight + VANILLAS_FLOATING_CLEARANCE
     }
 
     /**
@@ -338,19 +486,29 @@ object Deluge {
     private const val CHUNK_WIDTH = 16
 
     /**
-     * How many chunks a tick gets a pass over.
-     *
-     * **This is the animation and it is the number to walk against.** At a view distance of twelve the
-     * visible region is some six hundred chunks, so thirty-two a tick cycles the whole of it in about a
-     * second — which is how long a layer takes to travel from under your feet out to the horizon. Too fast
-     * and the layer pops; too slow and the far water visibly lags the near.
-     *
-     * **Nothing is rationed but this.** A pass costs one heightmap read per column and at most one block
-     * state, so there is no cheaper question to ask first and no budget for the near chunks to eat before
-     * the far ones are reached — which is the trap the two versions before this both fell into, at two
-     * hundred blocks and then at four chunks.
+     * How many chunks a tick the sweep looks at. A look costs one heightmap read per column and at most one block
+     * state, so at a view distance of twelve, some six hundred chunks, it is round the whole of it in about a second.
      */
     private const val CHUNKS_A_TICK = 32
+
+    /**
+     * How many whole chunks one tick may raise — **the animation, and the number to walk against** (2026-10-19). Eighty
+     * a second, so a ring of rise rolls from under your feet to the horizon in several seconds, which the client can
+     * draw; sixteen chunks a tick dropped its frames.
+     *
+     * The near chunks cannot eat it before the far ones are reached: the sweep starts from the nearest only when the
+     * sea steps up, and a chunk already at the line costs it nothing.
+     */
+    private const val CHUNKS_RAISED_A_TICK = 4
+
+    /** How far over the line a boat may sit and still have been under it: it floats a little above the water. */
+    private const val ABOVE_THE_LINE = 3.0
+
+    /** `AbstractBoat.isUnderwater`'s own nudge over the box's top. */
+    private const val OVER_ITS_TOP = 0.001
+
+    /** What `AbstractBoat.floatBoat` adds to the water's surface less the boat's height, landing from the air. */
+    private const val VANILLAS_FLOATING_CLEARANCE = 0.101
 
     /**
      * How far over its written level an ordinary deluge carries the sea, in blocks — what an Age that

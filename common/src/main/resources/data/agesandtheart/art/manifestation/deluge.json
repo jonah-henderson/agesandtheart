@@ -9,12 +9,14 @@
     "`height` is how far over its written level the sea is carried; its last steps are failing, so only a",
     "failing Age drowns to the build limit.",
     "",
-    "Leans wet."
+    "Leans wet, and needs a sea of water to raise (Jonah, 2026-10-19): a deluge of lava wants rain of its own",
+    "first."
   ],
   "dials": {
     "rate": {"tier": 2, "most": 10},
     "downpour": {"tier": 2, "most": 10},
     "height": {"tiers": [2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3]}
   },
-  "leans": {"humidity": 1.0}
+  "leans": {"humidity": 1.0},
+  "needs": ["water_sea"]
 }

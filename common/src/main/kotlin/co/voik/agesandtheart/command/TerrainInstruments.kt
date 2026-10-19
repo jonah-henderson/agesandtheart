@@ -8,6 +8,7 @@ import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.worldgen.feature.SheerFace
 import co.voik.agesandtheart.age.aspect.AgeSpawner
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.generation.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.field.RegionMap
@@ -687,7 +688,10 @@ internal object TerrainInstruments {
         report.only("generator", generator.javaClass.simpleName)
 
         val offered = sortedMapOf<String, MutableSet<String>>()
+        // The rung each is asked at where the book said one, which a spawn rule may read where a weight cannot.
+        val asked = sortedMapOf<String, MutableSet<String>>()
         val spread = radiusChunks * BLOCKS_PER_CHUNK
+        val abyssLine = DeepWater.lineIn(level)
         for (blockX in -spread..spread step SPAWN_SAMPLE_STRIDE) {
             for (blockZ in -spread..spread step SPAWN_SAMPLE_STRIDE) {
                 // **Generated first, and it is not ceremony.** The ground rule reads the level's own
@@ -697,7 +701,11 @@ internal object TerrainInstruments {
                 val ground = level.getHeight(Heightmap.Types.WORLD_SURFACE, blockX, blockZ)
                 // The two heights a spawn attempt can be at, and the whole of what the ground rule reads:
                 // vanilla draws its own uniformly between the world's floor and one above the surface.
-                for ((where, blockY) in listOf("above" to ground, "below" to (ground + level.minY) / 2)) {
+                // And the floor of an abyss, where there is one: a band too thin for either of those to land in.
+                val seaBed = level.getHeight(Heightmap.Types.OCEAN_FLOOR, blockX, blockZ)
+                val inTheAbyss = ("abyss" to seaBed).takeIf { abyssLine != null && seaBed < abyssLine }
+                val heights = listOfNotNull("above" to ground, "below" to (ground + level.minY) / 2, inTheAbyss)
+                for ((where, blockY) in heights) {
                     val here = BlockPos(blockX, blockY, blockZ)
                     for (pass in MobCategory.entries) {
                         val list = generator.getMobsAt(level, structures, pass, here)
@@ -705,6 +713,11 @@ internal object TerrainInstruments {
                             val creature = BuiltInRegistries.ENTITY_TYPE.getKey(entry.value().type())
                             offered.getOrPut("${pass.getName()} $where") { sortedSetOf() }
                                 .add("$creature x${entry.weight()}")
+                            val rung = (generator as? AgeChunkGenerator)?.rungOf(creature, level, here) ?: Rung.ORDINARY
+                            if (!Rung.isOrdinary(rung)) {
+                                asked.getOrPut("${pass.getName()} $where") { sortedSetOf() }
+                                    .add("$creature at ${Rung.spelled(rung)}")
+                            }
                         }
                     }
                 }
@@ -743,6 +756,11 @@ internal object TerrainInstruments {
         for ((where, creatures) in offered) {
             report.entry("offered", mapOf("where" to where, "creatures" to creatures.toList())) {
                 "  $where: ${creatures.joinToString(", ")}"
+            }
+        }
+        for ((where, creatures) in asked) {
+            report.entry("asked", mapOf("where" to where, "creatures" to creatures.toList())) {
+                "  $where, as the book asks: ${creatures.joinToString(", ")}"
             }
         }
         report.finish()

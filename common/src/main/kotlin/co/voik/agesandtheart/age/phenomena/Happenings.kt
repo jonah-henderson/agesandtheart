@@ -11,6 +11,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Rung
 import net.minecraft.server.level.ServerLevel
@@ -158,8 +159,12 @@ object Happenings {
     private const val NOTHING_INFLICTED = 0.0
 
     /** What the Age says befalls it, as claims — empty for one that says nothing. */
-    fun claimsIn(composition: AgeComposition): List<Claim> =
-        Phenomena.claimsIn(composition.optionsFor(Aspect.PHENOMENA, 0))
+    fun claimsIn(composition: AgeComposition): List<Claim> {
+        val written = Phenomena.claimsIn(composition.optionsFor(Aspect.PHENOMENA, 0))
+        if (Sea.areWater(composition.seas)) return written
+        // A deluge raises a sea of water, and nothing else yet — see [Sea.areWater].
+        return written.filterNot { it.value == Phenomenon.DELUGE.key }
+    }
 
     /**
      * The weather an Age is asking for: its own parameters, raised by anything befalling it that needs more.

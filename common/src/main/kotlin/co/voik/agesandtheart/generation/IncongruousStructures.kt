@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.generation
 
+import co.voik.agesandtheart.worldgen.DeepWrecks
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderSet
@@ -67,7 +68,8 @@ object IncongruousStructures {
 
     /** The biomes [structure] may stand in: every one, while this thread builds anywhere. */
     @JvmStatic
-    fun biomesFor(structure: Structure): HolderSet<Biome> = placing.get()?.everyBiome ?: structure.biomes()
+    fun biomesFor(structure: Structure): HolderSet<Biome> =
+        placing.get()?.everyBiome ?: DeepWrecks.biomesFor(structure) ?: structure.biomes()
 
     /** Where a jigsaw structure's start is, and what it is projected onto — vanilla's own unless drawn otherwise. */
     class JigsawStart(val at: BlockPos, val projection: Optional<Heightmap.Types>)

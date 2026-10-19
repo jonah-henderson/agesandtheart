@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age
 
+import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Biomes
@@ -36,6 +37,9 @@ enum class Showing(private val key: String) : StringRepresentable {
 
     /** Rain: weather that is ever wet, over biomes warm enough for it to fall as rain. */
     RAIN("rain"),
+
+    /** A sea of water, every sea that pours anything — what a deluge raises. See `Sea.areWater`. */
+    WATER_SEA("water_sea"),
     ;
 
     override fun getSerializedName(): String = key
@@ -72,6 +76,7 @@ data class SpendingSetting(
             val has = buildSet {
                 if (composition.membersIn(Aspect.TERRAIN) > 1) add(Showing.REGIONS)
                 if (!Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0))) add(Showing.CREATURES)
+                if (Sea.areWater(composition.seas)) add(Showing.WATER_SEA)
             }
             return SpendingSetting(climate, has, writtenIn(composition))
         }

@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.phys.Vec3
+import kotlin.math.sin
 
 /**
  * Lights you can see from across an abyss, and where they are.
@@ -128,7 +129,7 @@ object DeepLights {
 
     /** The colour a light this far off is drawn in, or null where it has faded out entirely. */
     fun litAt(range: Double): Rgba? {
-        val strength = carriesTo(range)
+        val strength = carriesTo(range, HIDDEN_WITHIN, FULLY_BY)
         if (strength <= GONE) return null
         return LIT.copy(alpha = LIT.alpha * strength)
     }
@@ -136,10 +137,31 @@ object DeepLights {
     /** How wide a light this far off is drawn — see [BLOCK_SIZED] and [STAYS_READABLE]. */
     fun acrossAt(range: Double): Double = maxOf(BLOCK_SIZED, range * STAYS_READABLE)
 
+    /**
+     * A hunter's lure while it hunts, and the one light in the deep that does not look like the others
+     * (Jonah, 2026-10-19): brighter, pulsing fast, and lit however near you are, so a fight never loses it.
+     * [ticks] is the fish's age, which sets where in its pulse it is.
+     */
+    fun litWhileHunting(range: Double, ticks: Float): Rgba? {
+        val strength = carriesTo(range, hiddenWithin = 0.0, fullyBy = 0.0)
+        if (strength <= GONE) return null
+        return LIT.copy(alpha = HUNTING_ALPHA * strength * pulseAt(ticks))
+    }
+
+    /** How wide a lure is drawn while it hunts: wider, and swelling with its pulse. */
+    fun acrossWhileHunting(range: Double, ticks: Float): Double =
+        acrossAt(range) * HUNTING_WIDER * pulseAt(ticks)
+
+    /** Between [PULSE_LEAST] and one, [PULSES_EVERY] ticks round. */
+    private fun pulseAt(ticks: Float): Float {
+        val wave = (sin(ticks * FULL_TURN / PULSES_EVERY) + 1.0) / 2.0
+        return (PULSE_LEAST + (1.0 - PULSE_LEAST) * wave).toFloat()
+    }
+
     /** Nothing, up into full strength, along the plateau, and out again — with no corner at any end. */
-    private fun carriesTo(range: Double): Float = when {
-        range <= HIDDEN_WITHIN -> 0.0f
-        range < FULLY_BY -> eased((range - HIDDEN_WITHIN) / (FULLY_BY - HIDDEN_WITHIN))
+    private fun carriesTo(range: Double, hiddenWithin: Double, fullyBy: Double): Float = when {
+        range <= hiddenWithin -> 0.0f
+        range < fullyBy -> eased((range - hiddenWithin) / (fullyBy - hiddenWithin))
         range <= SEEN_FULLY -> 1.0f
         range >= SEEN_UNTIL -> 0.0f
         else -> eased((SEEN_UNTIL - range) / (SEEN_UNTIL - SEEN_FULLY))
@@ -207,4 +229,13 @@ object DeepLights {
 
     /** From a block's corner to its middle, which is where its light is drawn. */
     private const val HALF = 0.5
+
+    /** A hunting lure at full strength — the whole of what a light here can add, where [LIT] holds back. */
+    private const val HUNTING_ALPHA = 1.0f
+    private const val HUNTING_WIDER = 1.5
+
+    /** Four ticks round, five times a second, and never dimmer than this share of itself. */
+    private const val PULSES_EVERY = 4.0
+    private const val PULSE_LEAST = 0.55
+    private const val FULL_TURN = 2.0 * Math.PI
 }

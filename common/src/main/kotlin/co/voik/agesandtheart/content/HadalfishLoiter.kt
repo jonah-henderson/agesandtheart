@@ -102,8 +102,9 @@ class HadalfishLoiter(private val fish: Hadalfish) : Goal() {
      */
     private fun somewhereElseDeep(): BlockPos? {
         val level = fish.level()
+        val from = towardHome()
         repeat(TRIES) {
-            val at = fish.blockPosition().offset(
+            val at = from.offset(
                 fish.random.nextInt(-REACHES, REACHES),
                 // **Down further than up**, so idling settles it deeper rather than letting a long series
                 // of even draws walk it toward the ceiling of the abyss. Where its reward is, is where it
@@ -111,9 +112,27 @@ class HadalfishLoiter(private val fish: Hadalfish) : Goal() {
                 fish.random.nextInt(-SINKS, RISES),
                 fish.random.nextInt(-REACHES, REACHES),
             )
-            if (level.getFluidState(at).`is`(DeepWater.DEEP_WATER)) return at
+            if (level.getFluidState(at).`is`(DeepWater.DEEP_WATER) && keepsToHome(at)) return at
         }
         return null
+    }
+
+    /**
+     * Where its darts are thrown from: where it is, or for a fish a hunt has taken from its home (a vent's), a
+     * step back toward it, so it works its way home a move at a time.
+     */
+    private fun towardHome(): BlockPos {
+        val here = fish.blockPosition()
+        if (fish.isWithinHome()) return here
+        val home = Vec3.atCenterOf(fish.homePosition).subtract(Vec3.atCenterOf(here))
+        val step = if (home.length() > REACHES) home.normalize().scale(REACHES.toDouble()) else home
+        return BlockPos.containing(Vec3.atCenterOf(here).add(step))
+    }
+
+    /** Inside its home, or at least nearer it than it is. A fish with no home is at home anywhere. */
+    private fun keepsToHome(at: BlockPos): Boolean {
+        val isNearerHome = at.distSqr(fish.homePosition) < fish.blockPosition().distSqr(fish.homePosition)
+        return fish.isWithinHome(at) || isNearerHome
     }
 
     /** How long it holds still, which is deliberately a long and uneven time. */

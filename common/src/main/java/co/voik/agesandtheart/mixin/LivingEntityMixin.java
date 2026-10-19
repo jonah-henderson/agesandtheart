@@ -1,12 +1,15 @@
 package co.voik.agesandtheart.mixin;
 
 import co.voik.agesandtheart.age.consequence.StrangeGravity;
+import co.voik.agesandtheart.content.AbyssSight;
 import co.voik.agesandtheart.content.RimeSkates;
 import co.voik.agesandtheart.content.Temperstone;
 import co.voik.agesandtheart.content.Toolbox;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -33,7 +36,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *
  * <p>It also carries the skates' grip on the ground, which is a second thing with no event on either side.
  * See {@link #agesandtheart$skatingOverIt}. And how far a fall counts for in an Age that pulls harder or softer,
- * which is a third — see {@link #agesandtheart$fallenUnderTheAgesPull}.
+ * which is a third — see {@link #agesandtheart$fallenUnderTheAgesPull}. And whether a creature can see across the
+ * surface of an abyss, which is a fourth — see {@link #agesandtheart$notAcrossTheAbyss}.
  */
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin {
@@ -167,5 +171,29 @@ public abstract class LivingEntityMixin {
     @ModifyVariable(method = "calculateFallDamage", at = @At("HEAD"), argsOnly = true, ordinal = 0)
     private double agesandtheart$fallenUnderTheAgesPull(double fallDistance) {
         return fallDistance * StrangeGravity.of(((LivingEntity) (Object) this).level());
+    }
+
+    /**
+     * Lets no creature but the hadalfish see across the surface of an abyss ({@link AbyssSight}).
+     *
+     * <p>Every sighting goes through this overload: a mob's {@code Sensing}, and so its target selection and every
+     * ranged attack goal. Neither loader has a line-of-sight event, and NeoForge's {@code LivingChangeTargetEvent}
+     * sees a target being chosen, not a drowned that already has one deciding whether to throw.
+     */
+    @Inject(
+        method = "hasLineOfSight(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/level/ClipContext$Block;Lnet/minecraft/world/level/ClipContext$Fluid;D)Z",
+        at = @At("HEAD"),
+        cancellable = true
+    )
+    private void agesandtheart$notAcrossTheAbyss(
+        Entity target,
+        ClipContext.Block blocks,
+        ClipContext.Fluid fluids,
+        double eyeHeight,
+        CallbackInfoReturnable<Boolean> callback
+    ) {
+        if (AbyssSight.isHiddenAcrossTheAbyss((LivingEntity) (Object) this, target, eyeHeight)) {
+            callback.setReturnValue(false);
+        }
     }
 }

@@ -60,22 +60,36 @@ class AgeBiomeSource(
     private val bands: List<BiomeBand> = emptyList(),
     /** How many times wider than vanilla's each biome spreads — `colossal biomes`. One is vanilla's. */
     private val stretch: Double = UNSTRETCHED,
+    /**
+     * Biomes the generator lays into a chunk after its fill rather than any lookup here hands out — the abyss on
+     * vanilla's rock, which needs the sea bed to be laid first. Declared, since vanilla decorates only a source's
+     * possible biomes.
+     */
+    private val laidAfterTheFill: List<Holder<Biome>> = emptyList(),
 ) : BiomeSource() {
 
     override fun codec(): MapCodec<out BiomeSource> = CODEC
 
-    fun sampledForDepth(): AgeBiomeSource = AgeBiomeSource(under, AsSampled, bent, grounding, bands, stretch)
+    fun sampledForDepth(): AgeBiomeSource =
+        AgeBiomeSource(under, AsSampled, bent, grounding, bands, stretch, laidAfterTheFill)
 
     fun groundedIn(terrain: TerrainField): AgeBiomeSource =
-        AgeBiomeSource(under, BelowTerrain(terrain), bent, grounding, bands, stretch)
+        AgeBiomeSource(under, BelowTerrain(terrain), bent, grounding, bands, stretch, laidAfterTheFill)
 
-    fun suitedTo(grounding: Grounding?): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands, stretch)
+    fun suitedTo(grounding: Grounding?): AgeBiomeSource =
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill)
 
-    fun banded(bands: List<BiomeBand>): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands, stretch)
+    fun banded(bands: List<BiomeBand>): AgeBiomeSource =
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill)
 
-    fun told(bent: RegionalClimate): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands, stretch)
+    fun told(bent: RegionalClimate): AgeBiomeSource =
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill)
 
-    fun stretched(by: Double): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands, by)
+    fun stretched(by: Double): AgeBiomeSource =
+        AgeBiomeSource(under, depth, bent, grounding, bands, by, laidAfterTheFill)
+
+    fun alsoLaying(biomes: List<Holder<Biome>>): AgeBiomeSource =
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill + biomes)
 
     /**
      * **A factory now, where 26.3 asked a source for one biome at a time.** That is what retired the memo
@@ -116,9 +130,12 @@ class AgeBiomeSource(
     fun climateAt(climate: Climate.Sampler, blockX: Int, blockY: Int, blockZ: Int): Climate.TargetPoint =
         asThisAgeSeesIt(climate).sample(QuartPos.fromBlock(blockX), QuartPos.fromBlock(blockY), QuartPos.fromBlock(blockZ))
 
-    /** The world below's own, plus anything only a [BiomeBand] hands out — in no table, so it must be said. */
+    /** The world below's own, plus anything only a [BiomeBand] or the generator hands out — in no table, so it must be said. */
     override fun collectPossibleBiomes(): Stream<Holder<Biome>> =
-        Stream.concat(under.possibleBiomes().stream(), bands.stream().map(BiomeBand::biome))
+        Stream.concat(
+            Stream.concat(under.possibleBiomes().stream(), bands.stream().map(BiomeBand::biome)),
+            laidAfterTheFill.stream(),
+        )
 
     /** Whether anything here would move a single number. */
     private val bendsNothing: Boolean
@@ -221,8 +238,9 @@ class AgeBiomeSource(
                 // Empty for every Age with nothing indoors and no abyss, which is most of them.
                 BiomeBand.CODEC.listOf().optionalFieldOf("bands", emptyList()).forGetter { it.bands },
                 Codec.DOUBLE.optionalFieldOf("stretch", UNSTRETCHED).forGetter { it.stretch },
-            ).apply(instance) { under, depth, bias, grounded, bands, stretch ->
-                AgeBiomeSource(under, depth, bias, grounded.orElse(null), bands, stretch)
+                Biome.CODEC.listOf().optionalFieldOf("laid_after_the_fill", emptyList()).forGetter { it.laidAfterTheFill },
+            ).apply(instance) { under, depth, bias, grounded, bands, stretch, laid ->
+                AgeBiomeSource(under, depth, bias, grounded.orElse(null), bands, stretch, laid)
             }
         }
     }

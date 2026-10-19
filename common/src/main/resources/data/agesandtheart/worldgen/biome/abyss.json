@@ -17,8 +17,11 @@
     "that lists nothing is an abyss where nothing can grow -- which is what finally keeps kelp and seagrass",
     "out of it, rather than sweeping them away after the fact.",
     "",
-    "Spawners are empty for now. This is where the hadalfish goes once the material's gating is settled, and",
-    "it is the reason an abyss wants a biome of its own rather than a fog layer.",
+    "**Nothing spawns here but the hadalfish**, one at a time, as vanilla spawns any monster: so a book's",
+    "words about its creatures reach it as they reach every list. It is rare by its own spawn rule, which",
+    "passes one natural attempt in many as vanilla's drowned and guardian rules thin theirs, and spread out",
+    "by its spawn cost: a charge of 1 against a budget of 0.0104 refuses one within 96 blocks of another,",
+    "the fish a vent keeps among them (`HadalfishArrivals`).",
     "",
     "**The one thing in `features`** stands at the UNDERGROUND_STRUCTURES step (index 3), where vanilla",
     "puts its own fossils: the whalefall. The deep-sea vent the material of SS7.1.2 is won from stands at",
@@ -37,7 +40,18 @@
     "minecraft:visual/water_fog_color": "#000a0a",
     "minecraft:visual/water_fog_start_distance": 0.0,
     "minecraft:visual/water_fog_end_distance": 24.0,
-    "minecraft:visual/fog_end_distance": 32.0
+    "minecraft:visual/fog_end_distance": 32.0,
+    "minecraft:gameplay/natural_mob_spawns": {
+      "argument": {
+        "spawn_costs": {
+          "agesandtheart:hadalfish": { "charge": 1.0, "energy_budget": 0.0104 }
+        },
+        "spawns_by_category": {
+          "monster": [{ "type": "agesandtheart:hadalfish", "count": 1, "weight": 1 }]
+        }
+      },
+      "modifier": "overlay"
+    }
   },
   "effects": {
     "water_color": "#0b1a24",
@@ -48,17 +62,6 @@
       "offset": 2.0
     }
   },
-  "spawners": {
-    "ambient": [],
-    "axolotls": [],
-    "creature": [],
-    "misc": [],
-    "monster": [],
-    "underground_water_creature": [],
-    "water_ambient": [],
-    "water_creature": []
-  },
-  "spawn_costs": {},
   "carvers": [],
   "features": [
     [],

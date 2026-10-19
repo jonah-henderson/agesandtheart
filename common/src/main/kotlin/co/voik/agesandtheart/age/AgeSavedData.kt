@@ -142,6 +142,12 @@ class AgeSavedData() : SavedData() {
         setDirty()
     }
 
+    /** Set how long somebody has been in [id] outright — `/age instability rained`, for testing a deluge. */
+    fun setPresenceIn(id: Identifier, ticks: Long) {
+        presence[id] = ticks.coerceAtLeast(0L)
+        setDirty()
+    }
+
     /** Returns the next distinct Age index (1, 2, 3, …), persisting the advance. */
     fun allocateIndex(): Int {
         counter += 1

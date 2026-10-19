@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.reward
 
+import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -108,7 +109,7 @@ object EarlyGameRareMaterials {
      * growing deep water on the flat-floored landforms — nothing short of it grows any on any landform.
      */
     private fun holdsAnAbyss(composition: AgeComposition, seed: Long): Boolean {
-        val isWater = composition.seas.any { sea -> !sea.isEmpty && sea.id == WATER }
+        val isWater = Sea.areWater(composition.seas)
         val raise = Sea.depthShift(composition.optionsFor(Aspect.SEA, 0), seed)
         return isWater && raise >= Sea.ABYSSAL_RAISE
     }
@@ -204,8 +205,7 @@ object EarlyGameRareMaterials {
         composition: AgeComposition,
         spending: Spending,
     ): Boolean {
-        val written = Phenomena.claimsIn(composition.optionsFor(Aspect.PHENOMENA, 0))
-            .any { it.value == phenomenon.key }
+        val written = Happenings.claimsIn(composition).any { it.value == phenomenon.key }
         val manifestation = phenomenon.inflictedBy ?: return written
         return written || spending.reach(manifestation) > NOTHING_INFLICTED
     }
@@ -336,14 +336,14 @@ object EarlyGameRareMaterials {
     /** Where `OverworldBiomeBuilder` starts calling a temperature desert, read off [ClimateAxis.landmarks]. */
     private const val DESERT = 0.55
 
-    private val WATER: Identifier = Identifier.withDefaultNamespace("water")
 
 
     /**
-     * One chunk in this many tries for a vent. UNWALKED: it puts one within a few hundred blocks of wherever
-     * a diver goes down, which may be too many for a landmark.
+     * One chunk in this many tries for a vent, each kept as the abyss is deep there (`DeepSeaVent`): a third of
+     * them over the sixteen blocks of abyss vanilla's terrain averages, which is the one in thirty-two this was
+     * before depth counted, and all of them in a trench.
      */
-    private const val VENT_RARITY = 32
+    private const val VENT_RARITY = 12
 
     /**
      * How much raw stone an Age that bakes it holds.

@@ -408,8 +408,11 @@ object AgeContent {
             .mapColor(MapColor.COLOR_BLACK)
             .forceSolidOn()
             .noOcclusion()
-            .sound(SoundType.AMETHYST_CLUSTER)
-            .strength(CRYSTAL_STRENGTH),
+            // A grit and not a crystal (Jonah, 2026-10-19): broken at once by anything, hand included, which is
+            // what it takes to be minable at all where it grows — under water and off the ground, both of which
+            // divide the speed of a dig by five.
+            .sound(SoundType.SAND)
+            .instabreak(),
     )
 
     val GLOOMGRIT: Item = BlockItem(

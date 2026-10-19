@@ -163,7 +163,29 @@ data class Sea(override val id: Identifier) : RegistryReference {
 
         private const val AS_THE_TERRAIN_LEFT_IT = 0
 
+        /**
+         * Whether [seas] are water, every one of them that pours anything — what a deluge raises and an abyss is made
+         * of (Jonah, 2026-10-19). A deluge of lava wants rain of its own first, so until then a sea of anything else,
+         * or of water and something else, has neither.
+         */
+        fun areWater(seas: List<Sea>): Boolean {
+            val poured = seas.filterNot(Sea::isEmpty)
+            return poured.isNotEmpty() && poured.all { it == WATER }
+        }
+
         /** The least raise `deep` writes (`art/word/deep.json`, 0.85 on the cubic), in blocks over the terrain's waterline. */
         const val ABYSSAL_RAISE = 59
+
+        /**
+         * The raise a book's depth puts on vanilla's own sea, which is less than on a rock of ours: vanilla's land is
+         * low and wide, and the whole of `deep`'s raise left 2% of it standing. Two thirds of it puts `deep` at +40 to
+         * +61, which leaves 7% to 2% of vanilla's land as islands (`:common:vanillasea`). A lowered sea is as written.
+         */
+        fun raiseOnVanillasRock(shift: Int): Int =
+            if (shift > 0) (shift * VANILLAS_SHARE_OF_A_RAISE).roundToInt() else shift
+
+        private const val VANILLAS_LEAST_ABYSSAL_RAISE = 40
+
+        private const val VANILLAS_SHARE_OF_A_RAISE = VANILLAS_LEAST_ABYSSAL_RAISE.toDouble() / ABYSSAL_RAISE
     }
 }

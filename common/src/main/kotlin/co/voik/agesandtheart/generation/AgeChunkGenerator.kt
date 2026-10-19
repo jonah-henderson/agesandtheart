@@ -1,5 +1,8 @@
 package co.voik.agesandtheart.generation
 
+import co.voik.agesandtheart.worldgen.DeepWrecks
+import net.minecraft.world.level.LevelReader
+import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.consequence.StrangeGround
 import co.voik.agesandtheart.worldgen.feature.FreeForAll
 import co.voik.agesandtheart.worldgen.Dislocation
@@ -185,10 +188,13 @@ class AgeChunkGenerator(
     /** What this Age lets turn up where it does not belong — see [Incongruity]. Not serialised, like [lives]. */
     val incongruity: Incongruity = Incongruity.NONE,
     /**
-     * Whether vanilla's rock under this Age has an abyss — only where the book asked for a deep sea, unlike a rock
-     * of ours, which has one wherever its sea is deep enough. Not serialised, like [lives].
+     * The biome vanilla's rock wears over its abyss, or null where it has none — it has one only where the book
+     * asked for a deep sea, unlike a rock of ours, which has one wherever its sea is deep enough. Not serialised,
+     * like [lives].
      */
-    private val abyssOnVanillasRock: Boolean = false,
+    private val vanillasAbyss: Holder<Biome>? = null,
+    /** Whether this Age's sea is water, which an abyss has to be — see `Sea.areWater`. Not serialised, like [lives]. */
+    private val seaIsWater: Boolean = true,
     /**
      * Where the sea on vanilla's rock stands, or null where there is none: vanilla's own level moved by the book's
      * depth, or a sea laid under the End's void. Not serialised, like [lives].
@@ -405,6 +411,12 @@ class AgeChunkGenerator(
         MobCategory.entries.associateWith { IncongruousSpawns.offeredAnywhere(biomeSource.possibleBiomes(), it) }
     }
 
+    /** How thickly this Age's book asks for [creature] at [at] — see [Spawns.Living.rungOf]. */
+    fun rungOf(creature: Identifier, level: LevelReader, at: BlockPos): Double {
+        val living = lives ?: return Rung.ORDINARY
+        return living.rungOf(creature, level.getBiome(at).unwrapKey().orElse(null)?.identifier())
+    }
+
     override fun getMobsAt(
         level: Level,
         structures: StructureManager,
@@ -479,8 +491,9 @@ class AgeChunkGenerator(
      */
     val abyssPlane: Int?
         get() {
-            val mayHaveOne = rock is AgeRock.Ours || abyssOnVanillasRock
-            return if (mayHaveOne) standingSeaSurfaceY?.let(DeepWater::lineBelow) else null
+            val mayHaveOne = (rock is AgeRock.Ours && seaIsWater) || vanillasAbyss != null
+            val onVanillasRock = rock is AgeRock.Vanillas
+            return if (mayHaveOne) standingSeaSurfaceY?.let { DeepWater.lineBelow(it, onVanillasRock) } else null
         }
 
     /**
@@ -639,6 +652,8 @@ class AgeChunkGenerator(
             clearWhatTheSurfaceStoodIn(chunk, empty)
             if (ours == null) {
                 region?.let { generateCarvers(chunk, blender, noiseChunk, randomState, biomeManager, it, surfacedBy) }
+                raiseVanillasSeaToWhereItStands(chunk)
+                layTheAbyssOverVanillasRock(chunk)
             } else {
                 region?.let { carveOurGround(ours, chunk, randomState, biomeManager, noiseChunk, it) }
             }
@@ -647,6 +662,71 @@ class AgeChunkGenerator(
         }
         chunk
     }, Util.backgroundExecutor())
+
+    /**
+     * **Vanilla's rock pours its sea at the level its settings say, so a deluge's rise is laid here**, over every
+     * column whose ground stands under where the sea now does — as a rock of ours pours it there to begin with.
+     * Left to `Deluge.raise`, every new chunk in view came up the whole height one updated block at a time, which
+     * stalled the server for seconds on arriving in a drowned Age. Set without updates, as vanilla's fill sets its
+     * own sea.
+     */
+    private fun raiseVanillasSeaToWhereItStands(chunk: ChunkAccess) {
+        if (risenBy <= 0) return
+        val sea = seaBlock ?: return
+        val standing = standingSeaSurfaceY ?: return
+        val at = BlockPos.MutableBlockPos()
+        val originX = chunk.pos.minBlockX
+        val originZ = chunk.pos.minBlockZ
+        val laid = ArrayList<BlockPos>()
+        for (column in 0..<CHUNK_COLUMNS) {
+            val localX = column % CHUNK_WIDTH
+            val localZ = column / CHUNK_WIDTH
+            // A chunk's height is the top block itself, where a level's is the space over it.
+            val top = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, localX, localZ)
+            for (y in (top + 1)..minOf(standing, chunk.maxY)) {
+                at.set(originX + localX, y, originZ + localZ)
+                if (!chunk.getBlockState(at).isAir) continue
+                chunk.setBlockState(at, sea)
+                laid += at.immutable()
+            }
+        }
+        // **And where it meets air beside it, a fluid update when the chunk is up**, as vanilla's own fill asks one
+        // for an aquifer: the sea is laid over each column's top only, so the room under a ledge is still dry until
+        // the water flows into it. Inside this chunk only, which is all a chunk being generated may read.
+        for (risen in laid) {
+            val hasAirBeside = Direction.Plane.HORIZONTAL.any { side ->
+                val beside = risen.relative(side)
+                val isInThisChunk = (beside.x shr SECTION_SHIFT) == chunk.pos.x() && (beside.z shr SECTION_SHIFT) == chunk.pos.z()
+                isInThisChunk && chunk.getBlockState(beside).isAir
+            }
+            if (hasAirBeside) chunk.markPosForPostProcessing(risen)
+        }
+    }
+
+    /**
+     * **Vanilla's rock pours ordinary water, so its abyss is laid here**, before anything is decorated: the vents
+     * stand only in deep water and the whalefall only in the abyss biome, and the settling after decoration came
+     * too late for both. A rock of ours lays both as it fills.
+     *
+     * The biome goes into the chunk rather than coming from the biome source, because the abyss stops at the sea
+     * bed and this is the first moment vanilla's is known. A cell is abyss where it starts above the bed and at or
+     * under the line, which is [BiomeBand]'s rule on a rock of ours; the cell holding the bed keeps its own biome,
+     * so the floor is surfaced and its ores placed as vanilla's.
+     */
+    private fun layTheAbyssOverVanillasRock(chunk: ChunkAccess) {
+        val abyss = vanillasAbyss ?: return
+        val line = abyssPlane ?: return
+        if (line < chunk.minY) return
+        DeepWater.takeInTheAbyss(chunk, line) { x, z -> vanillasSeaReachesTheLine(chunk, x, z) }
+        chunk.fillBiomesFromNoise { quartX, quartY, quartZ ->
+            val blockX = QuartPos.toBlock(quartX)
+            val blockY = QuartPos.toBlock(quartY)
+            val blockZ = QuartPos.toBlock(quartZ)
+            val firstAboveTheBed = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, blockX and CHUNK_MASK, blockZ and CHUNK_MASK)
+            val isOpenAbyss = blockY in firstAboveTheBed..line && vanillasSeaReachesTheLine(chunk, blockX, blockZ)
+            if (isOpenAbyss) abyss else chunk.getNoiseBiome(quartX, quartY, quartZ)
+        }
+    }
 
     /**
      * The columns of [chunk] the fill left holding nothing at all — the void under an island, or beside one —
@@ -700,19 +780,55 @@ class AgeChunkGenerator(
         level: ResourceKey<Level>,
     ) {
         StrangeGround.startingStructures(consequence) {
-            if (incongruity.structures) {
-                IncongruousStructures.starting(state.levelSeed, biomeSource.possibleBiomes()) {
+            DeepWrecks.starting(biomeSource.possibleBiomes()) {
+                if (incongruity.structures) {
+                    IncongruousStructures.starting(state.levelSeed, biomeSource.possibleBiomes()) {
+                        super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
+                    }
+                } else {
                     super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
                 }
-            } else {
-                super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
             }
         }
         for ((structure, start) in centerChunk.allStarts) {
             if (!start.isValid) continue
+            val misplacedInTheAbyss = DeepWrecks.standsInTheAbyss(structure) && !isOverTheAbyss(start, centerChunk, state.randomState())
+            if (misplacedInTheAbyss || floatsOnTheSea(start, centerChunk, state.randomState())) {
+                centerChunk.setStartForStructure(structure, StructureStart.INVALID_START)
+                continue
+            }
             val settled = settledOverTheVoid(start, centerChunk, state.randomState())
             if (settled !== start) centerChunk.setStartForStructure(structure, settled)
         }
+    }
+
+    /**
+     * **Whether [start] was set down on the sea rather than the ground** (Jonah, 2026-10-19): ground under the sea, the
+     * structure standing clear of it, and reaching up to the sea's surface. A raised sea is the surface a structure
+     * that stands on the land is measured to, water not being air, so in a deep sea villages, libraries and beached
+     * wrecks were built floating on the drowned land. A wreck or a ruin on the bed, and a monument, which stands at a
+     * fixed height and builds its own foundation down to the bed, are none of these. An `incongruous structures` Age
+     * means its structures to stand anywhere, the sky included, so it keeps them.
+     */
+    private fun floatsOnTheSea(start: StructureStart, chunk: ChunkAccess, randomState: RandomState): Boolean {
+        if (incongruity.structures) return false
+        val surface = standingSeaSurfaceY ?: return false
+        // The start's own piece — a village's centre, a library — so a coastal town whose outskirts reach the water stays.
+        val box = start.pieces.firstOrNull()?.boundingBox ?: return false
+        val bed = getBaseHeight(box.center.x, box.center.z, Heightmap.Types.OCEAN_FLOOR_WG, chunk, randomState) - 1
+        val isOverTheSea = bed < surface
+        val standsClearOfTheBed = box.minY() > bed + SETTLES_INTO_THE_BED
+        val reachesTheSurface = box.maxY() >= surface - SETTLES_INTO_THE_BED
+        return isOverTheSea && standsClearOfTheBed && reachesTheSurface
+    }
+
+    /** Whether [start]'s chunk has its sea bed under the abyss's line, as the abyss's own structures need. */
+    private fun isOverTheAbyss(start: StructureStart, chunk: ChunkAccess, randomState: RandomState): Boolean {
+        val line = abyssPlane ?: return false
+        val firstAboveTheBed = getBaseHeight(
+            start.chunkPos.middleBlockX, start.chunkPos.middleBlockZ, Heightmap.Types.OCEAN_FLOOR_WG, chunk, randomState,
+        )
+        return firstAboveTheBed - 1 < line
     }
 
     /**
@@ -1435,6 +1551,8 @@ class AgeChunkGenerator(
         // ordinary water — an ocean monument most of all — and vegetation grows in that water in this same
         // stage, so there is nowhere to stand between the two. See `DeepWater.settleTheAbyss`.
         DeepWater.settleTheAbyss(level, chunk, abyssLine) { x, z -> abyssReachesAt(chunk, x, z) }
+        // And what sank into it carries more for the dive — see [DeepWrecks].
+        DeepWrecks.enrich(chunk, abyssLine) { x, z -> abyssReachesAt(chunk, x, z) }
         // And then whatever the Age's instability bought, which is the register's own pass rather than
         // this hook's: the order those steps run in is a fact about §5, not about chunk generation.
         consequence.writeInto(level, chunk)
@@ -1540,6 +1658,12 @@ class AgeChunkGenerator(
 
     companion object {
         private const val CHUNK_WIDTH = 16
+
+        /** How far a structure standing on the sea bed may sit above it, or a floating one below the surface. */
+        private const val SETTLES_INTO_THE_BED = 3
+
+        /** A block's chunk coordinate is its own shifted down by this. */
+        private const val SECTION_SHIFT = 4
         private const val CHUNK_COLUMNS = CHUNK_WIDTH * CHUNK_WIDTH
 
         /** How far past a piece hanging over the void there may be ground for it to be carried to. */

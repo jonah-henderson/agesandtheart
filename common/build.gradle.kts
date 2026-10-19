@@ -490,3 +490,8 @@ instrument(
     "oceandepth", "documentation", "co.voik.agesandtheart.preview.OceanDepthSurveyKt",
     "How deep vanilla's oceans get, from vanilla's own generator — the number DeepWater's threshold clears.",
 )
+
+instrument(
+    "vanillasea", "documentation", "co.voik.agesandtheart.preview.VanillaSeaSurveyKt",
+    "How much of vanilla's land a raised sea leaves above water, and how deep an abyss each line gives.",
+)

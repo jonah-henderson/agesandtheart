@@ -161,7 +161,18 @@ object DeepWater {
     }
 
     /** The abyss line under a sea whose topmost water block is [surfaceY]. */
-    fun lineBelow(surfaceY: Int): Int = surfaceY - DEEPEST_VANILLA_SEA
+    fun lineBelow(surfaceY: Int, onVanillasRock: Boolean = false): Int =
+        surfaceY - if (onVanillasRock) ABYSS_UNDER_VANILLAS_SURFACE else DEEPEST_VANILLA_SEA
+
+    /**
+     * How far under its sea's surface vanilla's rock has its abyss, where a rock of ours has it [DEEPEST_VANILLA_SEA]
+     * under. Vanilla's rock grows one only where a deep sea was asked for, so it needs no margin over vanilla's own
+     * oceans, and those average fourteen blocks: the line our rock uses lay under their floors and left an abyss
+     * eight blocks deep. Under the least raise `deep` puts on vanilla's rock (`Sea.raiseOnVanillasRock`), 31 puts the
+     * line at y=71, where the abyss averages 16 blocks deep wherever it is and lies under three quarters of the world
+     * (`:common:vanillasea`).
+     */
+    const val ABYSS_UNDER_VANILLAS_SURFACE = 31
 
     /**
      * Whether deep water may **stay** at [pos] — under the plane, and with no air just overhead.
@@ -351,8 +362,13 @@ object DeepWater {
         }
     }
 
-    /** Ordinary water turned into abyss under [line], and the space inside a block that holds some. */
-    private fun takeInTheAbyss(chunk: ChunkAccess, line: Int, abyssReaches: (Int, Int) -> Boolean) {
+    /**
+     * Ordinary water turned into abyss under [line], and the space inside a block that holds some.
+     *
+     * Also run straight after vanilla's fill, which pours ordinary water only, so a feature looking for the abyss
+     * finds it there.
+     */
+    fun takeInTheAbyss(chunk: ChunkAccess, line: Int, abyssReaches: (Int, Int) -> Boolean) {
         val top = minOf(line, chunk.maxY)
         val deep = deepWater()
         val at = BlockPos.MutableBlockPos()

@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Where an abyssal shipwreck may stand: the abyss, which no vanilla dimension has, so the set is never",
+    "offered outside an Age. Inside one the biome is not what decides it -- a wreck starts on the sea bed, under",
+    "the abyss's band -- and the Age's generator keeps a start only where its bed lies under the abyss line",
+    "(DeepWrecks)."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:abyss"
+  ]
+}

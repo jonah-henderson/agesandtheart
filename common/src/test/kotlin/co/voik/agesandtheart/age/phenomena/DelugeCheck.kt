@@ -4,7 +4,16 @@ import co.voik.agesandtheart.age.DialSteps
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Ladder
 import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.Showing
+import co.voik.agesandtheart.age.SpendingSetting
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Phenomena
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Recurrence
+import co.voik.agesandtheart.age.aspect.Sea
+import co.voik.agesandtheart.age.aspect.Terrain
+import net.minecraft.resources.Identifier
 import io.kotest.core.spec.style.FunSpec
 
 /**
@@ -34,6 +43,28 @@ class DelugeCheck : FunSpec({
         )
         val ceilings = tenEach.mapValues { (_, ladder) -> ladder.dials.mapValues { it.value.most } }
         return Spending(steps, ceilings)
+    }
+
+    /** A hill Age over a sea of [sea], whose book writes a deluge. */
+    fun drowningIn(sea: String): AgeComposition =
+        AgeComposition(terrains = listOf(Terrain.HILLS), seas = listOf(Sea(Identifier.withDefaultNamespace(sea))))
+            .withOptions(Aspect.PHENOMENA, Phenomena.HAPPENS.name, listOf(Phenomenon.DELUGE.key))
+
+    fun writesADeluge(composition: AgeComposition): Boolean =
+        Happenings.claimsIn(composition).any { it.value == Phenomenon.DELUGE.key }
+
+    test("a deluge written over a sea of water befalls it") {
+        check(writesADeluge(drowningIn("water"))) { "a deluge over a sea of water was dropped" }
+    }
+
+    /** A deluge of lava wants rain of its own first (Jonah, 2026-10-19). */
+    test("a deluge written over a sea of anything but water does not") {
+        check(!writesADeluge(drowningIn("lava"))) { "a deluge over a sea of lava was kept, with nothing for it to raise" }
+    }
+
+    test("only a sea of water has anything for instability's deluge to raise") {
+        check(Showing.WATER_SEA in SpendingSetting.of(drowningIn("water")).has) { "a sea of water was not one" }
+        check(Showing.WATER_SEA !in SpendingSetting.of(drowningIn("lava")).has) { "a sea of lava counted as one of water" }
     }
 
     test("an Age nobody has stood in the rain in opens at the sea its book names") {

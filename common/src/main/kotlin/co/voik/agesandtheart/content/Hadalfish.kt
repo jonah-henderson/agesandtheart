@@ -1,5 +1,12 @@
 package co.voik.agesandtheart.content
 
+import net.minecraft.world.damagesource.DamageSource
+import net.minecraft.network.syncher.EntityDataAccessor
+import net.minecraft.network.syncher.EntityDataSerializers
+import net.minecraft.network.syncher.SynchedEntityData
+import net.minecraft.core.registries.BuiltInRegistries
+import co.voik.agesandtheart.generation.AgeChunkGenerator
+import co.voik.agesandtheart.age.aspect.Rung
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.FluidTags
@@ -77,19 +84,44 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
      * so naming `LivingEntity` as the type is the whole of it. What vanilla's monsters have instead of a
      * truce is simply no goal telling them to bother.
      *
-     * **The one condition is water, and it is about reach rather than mercy.** Something absurdly hostile
-     * that fixated on a cow across a beach would spend the rest of its life failing to arrive, which reads
-     * as broken rather than as vicious — and the retaliation goal above ignores this, so shooting one from
-     * dry land still brings it as far as it can come.
-     *
-     * **And within reach of the deep**: nothing above the height a hunt gives up at. Letting go of a quarry
-     * that rose out of reach is only letting go if it is not taken up again the moment after.
+     * **The one condition is deep water** (Jonah, 2026-10-19): it takes up nothing outside the abyss, so it
+     * leaves the deep only after quarry that fled it, and then no further than a hunt goes. The retaliation
+     * goal above ignores this, so shooting one still brings it as far as it can come.
      *
      * A baby of its own kind is meant to be the exception. There is no baby yet, so there is nothing here
      * to exempt — the exemption belongs in this predicate when there is.
      */
     private fun worthBiting(candidate: LivingEntity, level: ServerLevel): Boolean =
-        candidate.isInWater && !HadalfishHunt.isAboveTheHunt(level, candidate.blockY)
+        level.getFluidState(candidate.blockPosition()).`is`(DeepWater.DEEP_WATER)
+
+    /** Whether it is hunting something, which its lure shows — see `HadalfishRenderer`. Set by [HadalfishHunt]. */
+    var isHunting: Boolean
+        get() = entityData.get(HUNTING_SOMETHING)
+        set(value) = entityData.set(HUNTING_SOMETHING, value)
+
+    /** True only while it is being hit, which is what turns off the guardian's spikes — see [hurtServer]. */
+    private var isTakingAHit = false
+
+    /**
+     * **No guardian's spikes** (Jonah, 2026-10-19). A guardian hurts whatever strikes it with its own thorns while it
+     * is not moving, and moving is its pathing's flag, which the hunt stops to drive the fish itself — so every hit
+     * on one stung back. It counts as moving for the length of a hit, and nowhere else, so its look is the guardian's.
+     */
+    override fun hurtServer(level: ServerLevel, source: DamageSource, damage: Float): Boolean {
+        isTakingAHit = true
+        try {
+            return super.hurtServer(level, source, damage)
+        } finally {
+            isTakingAHit = false
+        }
+    }
+
+    override fun isMoving(): Boolean = isTakingAHit || super.isMoving()
+
+    override fun defineSynchedData(entityData: SynchedEntityData.Builder) {
+        super.defineSynchedData(entityData)
+        entityData.define(HUNTING_SOMETHING, false)
+    }
 
     /**
      * A little more reach than vanilla's, and all round rather than only sideways, so a bite lands from
@@ -119,6 +151,10 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
          * heightmap. That is how one came to hunt a frozen hillside (Jonah, 2026-09-17, the Age Tumar) —
          * and it is what `Spawns.resolved` means by vanilla re-checking every placement, which it can only
          * do for a creature that told it what to check.
+         *
+         * **And one natural attempt in [NATURAL_ODDS]**, which is how vanilla's own drowned and guardian rules thin
+         * theirs: the abyss offers nothing else, so every monster attempt landing in it would otherwise be one.
+         * Times the rung the book asks for it at, since its weight, alone in the abyss's list, can move nothing.
          */
         fun spawnsHere(
             type: EntityType<Hadalfish>,
@@ -128,8 +164,23 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
             random: RandomSource,
         ): Boolean {
             val isInWater = level.getFluidState(at).`is`(FluidTags.WATER)
-            return isInWater && !HadalfishHunt.isAboveTheHunt(level, at.y)
+            val passesTheOdds = reason != EntitySpawnReason.NATURAL ||
+                random.nextDouble() * NATURAL_ODDS < askedFor(type, level, at)
+            return isInWater && !HadalfishHunt.isAboveTheHunt(level, at.y) && passesTheOdds
         }
+
+        /** The rung this Age's book asks for hadalfish at here — ordinary outside an Age. */
+        private fun askedFor(type: EntityType<Hadalfish>, level: ServerLevelAccessor, at: BlockPos): Double {
+            val generator = level.level.chunkSource.generator as? AgeChunkGenerator ?: return Rung.ORDINARY
+            return generator.rungOf(BuiltInRegistries.ENTITY_TYPE.getKey(type), level, at)
+        }
+
+        /**
+         * Worked out rather than measured, and unwalked: about 150 attempts a tick reach this rule across an abyss
+         * around a player, so a fish arrives every minute or so, and one in nine lands within the [SEES_YOU_FROM]
+         * it hunts from — a stray that finds you about once in ten minutes. The rest despawn unseen, as vanilla's do.
+         */
+        private const val NATURAL_ODDS = 200_000
 
         /**
          * A mini-boss's numbers, and the shape of them is the design rather than the values.
@@ -160,7 +211,7 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
         private const val BITE = 9.0
 
         /** How far past its own body a bite reaches, every way. Vanilla's is about 0.83, and sideways only. */
-        private const val BITES_FROM = 1.5
+        const val BITES_FROM = 1.5
 
         /** Only what it loiters at. The charge is not this number. */
         private const val CRUISE = 0.4
@@ -186,5 +237,8 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
         private const val IDLING = 8
 
         private const val WATCHES_FROM = 16.0f
+
+        private val HUNTING_SOMETHING: EntityDataAccessor<Boolean> =
+            SynchedEntityData.defineId(Hadalfish::class.java, EntityDataSerializers.BOOLEAN)
     }
 }

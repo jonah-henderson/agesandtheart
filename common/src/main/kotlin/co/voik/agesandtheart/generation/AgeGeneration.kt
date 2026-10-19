@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.generation
 
+import co.voik.agesandtheart.worldgen.DeepWrecks
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.worldgen.ruins.CavernRuins
@@ -200,11 +201,14 @@ object AgeGeneration {
         val vanillasCavesTaken = onVanillasOverworld && composition.underground != Underground.NOISE_CAVES
         // **Vanilla's rock pours its own sea**, so the book's depth moves its level rather than a fill of ours,
         // and where the sea's top stands is read off that level — the abyss and its wreckage are laid against it.
-        val vanillasSeaShift = Sea.depthShift(composition.optionsFor(Aspect.SEA, 0), seed)
+        val writtenSeaShift = Sea.depthShift(composition.optionsFor(Aspect.SEA, 0), seed)
+        val vanillasSeaShift = Sea.raiseOnVanillasRock(writtenSeaShift)
         val vanillasSeaFluid = composition.seas.firstOrNull()?.substance() ?: vanillasRockSettings.value().defaultFluid()
         // **An abyss on vanilla's rock only where a deep sea was asked for** (Jonah, 2026-10-17), where a rock of
         // ours has one wherever its sea runs deep enough.
-        val vanillasAbyssAsked = vanillasSeaShift >= Sea.ABYSSAL_RAISE
+        // **And only in a sea of water** (Jonah, 2026-10-19), on either rock — see [Sea.areWater].
+        val seaIsWater = Sea.areWater(composition.seas)
+        val vanillasAbyssAsked = writtenSeaShift >= Sea.ABYSSAL_RAISE && seaIsWater
         // **A rock that pours no sea of its own takes one only where a book names it** (Jonah, 2026-10-17): the End's
         // sea level is the bottom of its own noise, so it never pours one, and a named sea is laid by the overlay
         // instead — on bedrock, at the bottom of the world, as a sealess landform of ours takes one.
@@ -214,6 +218,12 @@ object AgeGeneration {
             ourGround != null || vanillasSeaFluid.isAir -> null
             vanillasPoursNoSea -> if (seaUnderVanillasVoid) window.minY + SEA_UNDER_THE_VOID - 1 else null
             else -> vanillasRockSettings.value().seaLevel() + vanillasSeaShift - 1
+        }
+        // **The abyss on vanilla's rock is laid into each chunk once its rock is poured**, rather than banded by the
+        // biome source as ours is: the band stops at the sea bed, and vanilla's is not known until then.
+        val hasAnAbyss = abyssLineOf(seaSurfaceY.takeIf { (ourGround != null && seaIsWater) || vanillasAbyssAsked }, window, ourGround == null) != null
+        val vanillasAbyss = abyssBiome(server).takeIf {
+            ourGround == null && vanillasAbyssAsked && abyssLineOf(seaSurfaceY, window, onVanillasRock = true) != null
         }
         val fill = TerrainFill(
             composition.terrains.mapIndexed { member, terrain ->
@@ -254,6 +264,7 @@ object AgeGeneration {
                 .told(climate)
                 // On vanilla's overworld rock the stretch is in the rock's own router, land and biomes together.
                 .stretched(if (vanillasClimateStretched) UNSTRETCHED else biomeStretch)
+                .alsoLaying(listOfNotNull(vanillasAbyss))
                 .let { if (ourGround == null) it.sampledForDepth() else it.groundedIn(ourGround.landform) }
                 // On unless the Age said otherwise — `biomes.footing=free` is the lever, and an Age whose
                 // biomes ignore its land is allowed rather than broken. See [Grounding] and [Biomes.FOOTING].
@@ -299,7 +310,7 @@ object AgeGeneration {
                         // **Above the sea bed only**, or every cave under the floor comes out as abyss and
                         // the ordinary cave biomes are clobbered — see [BiomeBand.above].
                         abyssLineOf(seaSurfaceY, window)
-                            ?.takeIf { ourGround != null }
+                            ?.takeIf { ourGround != null && seaIsWater }
                             ?.let { line ->
                                 BiomeBand(abyssBiome(server), window.minY, line, ourGround?.rock?.landform)
                             },
@@ -355,10 +366,10 @@ object AgeGeneration {
                 server,
                 composition.optionsFor(Aspect.STRUCTURES, 0),
                 recipe.template.standingStructures,
-                if (abyssLineOf(seaSurfaceY.takeIf { ourGround != null || vanillasAbyssAsked }, window) == null) emptyMap()
-                else WRECKAGE_ON_AN_ABYSS_FLOOR,
+                if (hasAnAbyss) WRECKAGE_ON_AN_ABYSS_FLOOR else emptyMap(),
                 withoutWhatIsBuiltUnderground = composition.hasNothingBeneathIt,
-            ) + CavernRuins.structureSets(server, composition),
+            ).let { built -> built + DeepWrecks.structureSets(server, hasAnAbyss, built) } +
+                CavernRuins.structureSets(server, composition),
             // **The climate the biomes are looked up by, and it comes from the same world they do.** This
             // was the overworld's for every Age, so a landform of ours over the infernal template chose
             // nether biomes with overworld noise — and over the dark void, where the End picks by distance
@@ -397,7 +408,8 @@ object AgeGeneration {
             ),
             nothingLives = Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0)),
             incongruity = Incongruity.of(composition),
-            abyssOnVanillasRock = vanillasAbyssAsked,
+            vanillasAbyss = vanillasAbyss,
+            seaIsWater = seaIsWater,
             structuresBuiltOf = StructureMaterials.Written.of(composition.optionsFor(Aspect.STRUCTURES)),
             // What the Age's instability bought. Derived here rather than restated: these were three lines
             // recomputing `Consequence.of`'s own arithmetic, which is how a copy comes to drift from it.
@@ -885,8 +897,8 @@ object AgeGeneration {
      *
      * One place, because two things read it: the biome band and the wreckage below.
      */
-    private fun abyssLineOf(seaSurfaceY: Int?, window: VerticalWindow): Int? =
-        seaSurfaceY?.let(DeepWater::lineBelow)?.takeIf { it > window.minY }
+    private fun abyssLineOf(seaSurfaceY: Int?, window: VerticalWindow, onVanillasRock: Boolean = false): Int? =
+        seaSurfaceY?.let { DeepWater.lineBelow(it, onVanillasRock) }?.takeIf { it > window.minY }
 
     /**
      * What an abyss gets more of, and why it is structures rather than a biome that carries it.
@@ -901,7 +913,8 @@ object AgeGeneration {
      * the abyss biome's own feature list is the other half of the same answer.
      */
     private val WRECKAGE_ON_AN_ABYSS_FLOOR: Map<Identifier, Double> = mapOf(
-        "minecraft:shipwrecks".asStructureSet() to FOUR_TIMES,
+        // Not the shipwrecks, which the abyss has a set of its own for (`DeepWrecks`), so the Age's other seas keep
+        // vanilla's.
         "minecraft:ocean_ruin_cold".asStructureSet() to FOUR_TIMES,
         "minecraft:ocean_ruin_warm".asStructureSet() to FOUR_TIMES,
         // Gently: a monument is enormous and several of them close together stop reading as landmarks.
@@ -909,6 +922,7 @@ object AgeGeneration {
     )
 
     private const val FOUR_TIMES = 4.0
+
 
     private const val HALF_AGAIN = 1.5
 

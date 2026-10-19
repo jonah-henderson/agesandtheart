@@ -66,6 +66,11 @@ internal object ConsequenceInstruments {
     /** `… age <days>` — the Age made older by hand. */
     private const val AGED_LITERAL = "age"
 
+    /** `… rained <ticks>` — the rain a deluge has fallen with somebody there, set by hand. */
+    private const val RAINED_LITERAL = "rained"
+
+    private const val TICKS_ARGUMENT = "ticks"
+
     /** `… index <n>` — the index, set by hand rather than earned. */
     private const val INDEX_LITERAL = "index"
 
@@ -176,6 +181,12 @@ internal object ConsequenceInstruments {
                 Commands.literal(INDEX_LITERAL).then(
                     Commands.argument(INDEX_ARGUMENT, IntegerArgumentType.integer(0, MOST_INSTABILITY))
                         .executes(answering(::runSetIndex)),
+                ),
+            )
+            .then(
+                Commands.literal(RAINED_LITERAL).then(
+                    Commands.argument(TICKS_ARGUMENT, IntegerArgumentType.integer(0))
+                        .executes(answering(::runRained)),
                 ),
             )
             .then(
@@ -513,6 +524,19 @@ internal object ConsequenceInstruments {
         report.fact("days", days) { "${id.path} now reads as $days days old." }
         report.say { "  ground it has not generated comes out at the new age; ground that exists catches up as it reloads, if the Age worsens." }
         sayWhenNotStoodIn(context, id, report)
+        report.finish()
+        return SUCCESS
+    }
+
+    /**
+     * Set how long it has rained in a drowning Age with somebody there, which is what the sea's rise is counted
+     * from, so a deluge can be tested risen without anybody standing in the rain. The sea is stood where that puts
+     * it on the next tick, as it is every tick.
+     */
+    private fun runRained(context: CommandContext<CommandSourceStack>, age: NamedAge, report: Report): Int {
+        val ticks = IntegerArgumentType.getInteger(context, TICKS_ARGUMENT)
+        AgeSavedData.get(context.source.server).setPresenceIn(age.id, ticks.toLong())
+        report.fact("rainTicks", ticks) { "${age.id.path} has now been rained on for $ticks ticks with somebody there." }
         report.finish()
         return SUCCESS
     }

@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "Vanilla's sunk shipwreck, as the abyss's own: the same structure in a set of its own, so an abyss holds",
+    "wrecks as often as its separation allows without the rest of the Age's seas doing so (Jonah, 2026-10-19)."
+  ],
+  "type": "minecraft:shipwreck",
+  "biomes": "#agesandtheart:has_structure/abyssal_shipwreck",
+  "is_beached": false,
+  "spawn_overrides": {},
+  "step": "surface_structures"
+}

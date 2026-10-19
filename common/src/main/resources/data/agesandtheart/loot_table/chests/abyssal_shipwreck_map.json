@@ -1,0 +1,39 @@
+{
+  "_comment": [
+    "A shipwreck's map chest that sank into an abyss (DeepWrecks): vanilla's own, and rarely a linking book",
+    "home, which is what a ship that did not arrive was carrying somebody back on (Jonah, 2026-10-19)."
+  ],
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "minecraft:chests/shipwreck_map"
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:linking_book",
+          "weight": 1,
+          "modifier": [
+            {
+              "type": "agesandtheart:bind_linking_book",
+              "stray_chance": 0.0
+            }
+          ]
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 7
+        }
+      ]
+    }
+  ],
+  "random_sequence": "agesandtheart:chests/abyssal_shipwreck_map"
+}

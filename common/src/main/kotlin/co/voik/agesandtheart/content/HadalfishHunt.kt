@@ -28,7 +28,7 @@ import kotlin.math.sin
  */
 class HadalfishHunt(private val fish: Hadalfish) : Goal() {
 
-    private enum class Phase { CIRCLING, CHARGING, STRIKING, WITHDRAWING }
+    private enum class Phase { CIRCLING, CHARGING, STRIKING, LINGERING, WITHDRAWING }
 
     private var phase = Phase.CIRCLING
 
@@ -44,6 +44,9 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
 
     /** Which way round. Drawn once a hunt so two fish on one player do not shadow each other exactly. */
     private var handedness = 1.0
+
+    /** The side it came at the quarry from, level and of unit length — where it keeps to while it bites. */
+    private var cameFrom = Vec3(1.0, 0.0, 0.0)
 
     init {
         flags = EnumSet.of(Flag.MOVE, Flag.LOOK)
@@ -75,6 +78,7 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
 
     override fun start() {
         fish.navigation.stop()
+        fish.isHunting = true
         circle()
         bearing = fish.random.nextDouble() * FULL_TURN
         handedness = if (fish.random.nextBoolean()) 1.0 else -1.0
@@ -83,6 +87,7 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
     override fun stop() {
         fish.navigation.stop()
         phase = Phase.CIRCLING
+        fish.isHunting = false
         // Given up rather than interrupted, so it lets go: holding the quarry left it hanging where it gave up,
         // since `HadalfishLoiter` only runs for a fish hunting nobody (Jonah, walked A7 2026-09-14).
         if (hasRisenTooFar()) fish.target = null
@@ -95,6 +100,7 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
             Phase.CIRCLING -> orbit(quarry)
             Phase.CHARGING -> charge(quarry)
             Phase.STRIKING -> strike(quarry)
+            Phase.LINGERING -> linger()
             Phase.WITHDRAWING -> withdraw(quarry)
         }
     }
@@ -104,15 +110,19 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
      *
      * The orbit is computed against the quarry's *current* position every tick, so a player who swims does
      * not shake it — they drag the circle along with them, which is what makes it read as being stalked.
+     *
+     * **But a player swimming at it gains on it** (Jonah, 2026-10-19): it gives ground no faster than
+     * [GIVES_GROUND_AT], so it can be reached before it decides to come.
      */
     private fun orbit(quarry: LivingEntity) {
         bearing += TURN_RATE * handedness
-        val station = quarry.position().add(
-            cos(bearing) * ORBIT_RADIUS,
-            ABOVE_THE_QUARRY,
-            sin(bearing) * ORBIT_RADIUS,
+        val station = Vec3(
+            quarry.x + cos(bearing) * ORBIT_RADIUS,
+            levelWith(quarry),
+            quarry.z + sin(bearing) * ORBIT_RADIUS,
         )
         steer(station, ORBIT_SPEED, ORBIT_EASE)
+        givingGroundNoFasterThan(quarry, GIVES_GROUND_AT)
         facePlainly(quarry)
         if (--patience <= 0) {
             phase = Phase.CHARGING
@@ -121,18 +131,44 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
     }
 
     /**
-     * Straight at them, fast.
+     * The height it circles and backs off at: level with the quarry (Jonah, 2026-10-19), and while the quarry is in
+     * the deep, no higher than keeps the whole fish in it — above the abyss's surface it cannot be seen from below.
+     */
+    private fun levelWith(quarry: LivingEntity): Double {
+        val level = fish.level()
+        val line = DeepWater.lineIn(level) ?: return quarry.y
+        val quarryIsInTheDeep = level.getFluidState(quarry.blockPosition()).`is`(DeepWater.DEEP_WATER)
+        val highestStillInTheDeep = line + 1.0 - fish.bbHeight
+        return if (quarryIsInTheDeep) minOf(quarry.y, highestStillInTheDeep) else quarry.y
+    }
+
+    /** Takes off whatever of its velocity carries it away from [quarry] faster than [most] blocks a tick. */
+    private fun givingGroundNoFasterThan(quarry: LivingEntity, most: Double) {
+        val away = fish.position().subtract(quarry.position())
+        if (away.lengthSqr() < TOO_CLOSE_TO_AIM) return
+        val outward = away.normalize()
+        val retreating = fish.deltaMovement.dot(outward)
+        if (retreating > most) fish.deltaMovement = fish.deltaMovement.subtract(outward.scale(retreating - most))
+    }
+
+    /**
+     * Straight at them, fast, and **stopping where its bite reaches** (Jonah, 2026-10-19): at full speed it carried on
+     * past the quarry and bit from behind, round a shield. It comes no nearer than [standingOff].
      *
      * **Set rather than eased**, unlike every other phase: the charge is the one moment the thing should
      * stop looking like it is swimming and start looking like it has been fired.
      */
     private fun charge(quarry: LivingEntity) {
-        fish.deltaMovement = quarry.eyePosition.subtract(fish.eyePosition).normalize().scale(CHARGE_SPEED * fish.paceShare)
+        val toward = quarry.eyePosition.subtract(fish.eyePosition)
+        val leftToGo = (toward.length() - standingOff(quarry)).coerceAtLeast(0.0)
+        val speed = minOf(CHARGE_SPEED * fish.paceShare, leftToGo)
+        fish.deltaMovement = if (toward.lengthSqr() < TOO_CLOSE_TO_AIM) Vec3.ZERO else toward.normalize().scale(speed)
         if (withinReach(quarry)) {
             phase = Phase.STRIKING
             bitesLeft = BITES_A_RUN
             betweenBites = 0
             patience = GIVES_UP_STRIKING_AFTER
+            cameFrom = levelAwayFrom(quarry) ?: cameFrom
         } else if (--patience <= 0) {
             // Missed, or it lost the line — break off rather than tail them at charge speed forever.
             beginWithdrawing()
@@ -140,36 +176,67 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
     }
 
     /**
-     * Three bites, quickly, while pressing in.
+     * Three bites, quickly, from the side it came from.
      *
-     * It keeps closing between them at a fraction of the charge, so a player backing off is followed for
-     * the length of the run and no longer.
+     * It holds a station [standingOff] from the quarry on that side, eye to eye, and follows it there at a fraction
+     * of the charge, so a player backing off is followed for the length of the run and no longer, and a bite comes
+     * from where the charge was seen coming — never from behind a shield it went round.
      */
     private fun strike(quarry: LivingEntity) {
-        // Closing only while out of reach, and pulling up once in it: steered at the quarry's own position
-        // for the whole run, with the charge's speed still on it, a two-block fish ended up around them.
-        if (withinReach(quarry)) fish.deltaMovement = fish.deltaMovement.scale(KEEPS_IN_REACH)
-        else steer(quarry.position(), CHARGE_SPEED * PRESSING_IN, STRIKE_EASE)
+        val station = quarry.position()
+            .add(cameFrom.scale(standingOff(quarry)))
+            .add(0.0, quarry.eyeHeight - fish.eyeHeight.toDouble(), 0.0)
+        if (station.distanceToSqr(fish.position()) < ON_STATION) fish.deltaMovement = fish.deltaMovement.scale(KEEPS_IN_REACH)
+        else steer(station, CHARGE_SPEED * PRESSING_IN, STRIKE_EASE)
         if (betweenBites > 0) betweenBites--
         if (betweenBites <= 0 && withinReach(quarry)) {
             val level = fish.level()
             if (level is ServerLevel) fish.doHurtTarget(level, quarry)
             betweenBites = BETWEEN_BITES
-            if (--bitesLeft <= 0) beginWithdrawing()
+            if (--bitesLeft <= 0) beginLingering()
         } else if (--patience <= 0) {
             beginWithdrawing()
         }
     }
 
-    /** Back out to where it can circle again — by distance, with a timeout so it cannot get stuck out. */
-    private fun withdraw(quarry: LivingEntity) {
-        val away = fish.position().subtract(quarry.position())
-        // Straight up is as good as any direction when it is directly on top of them, and picking one
-        // stops a normalize() on a zero vector answering with NaN and freezing the fish.
-        val heading = if (away.lengthSqr() < TOO_CLOSE_TO_AIM) Vec3(0.0, 1.0, 0.0) else away.normalize()
-        fish.deltaMovement = fish.deltaMovement.lerp(heading.scale(WITHDRAW_SPEED * fish.paceShare), WITHDRAW_EASE)
-        if (away.length() >= ORBIT_RADIUS || --patience <= 0) circle()
+    /**
+     * Hangs where the last bite left it for [LINGERS_FOR], so a player who took the run can answer it
+     * (Jonah, 2026-10-19).
+     */
+    private fun linger() {
+        fish.deltaMovement = fish.deltaMovement.scale(KEEPS_IN_REACH)
+        if (--patience <= 0) beginWithdrawing()
     }
+
+    private fun beginLingering() {
+        phase = Phase.LINGERING
+        patience = LINGERS_FOR
+    }
+
+    /**
+     * Back out to where it can circle again, **outward and level with the quarry** rather than straight away from it,
+     * which so often meant up and out of the deep, where it was gone. By distance, with a timeout so it cannot get
+     * stuck out.
+     */
+    private fun withdraw(quarry: LivingEntity) {
+        val outward = levelAwayFrom(quarry) ?: cameFrom
+        val rising = ((levelWith(quarry) - fish.y) * LEVELS_OUT_BY).coerceIn(-LEVELS_AT_MOST, LEVELS_AT_MOST)
+        val heading = outward.scale(WITHDRAW_SPEED * fish.paceShare).add(0.0, rising, 0.0)
+        fish.deltaMovement = fish.deltaMovement.lerp(heading, WITHDRAW_EASE)
+        val outFar = fish.position().subtract(quarry.position()).horizontalDistance() >= ORBIT_RADIUS
+        if (outFar || --patience <= 0) circle()
+    }
+
+    /** The level direction from [quarry] to the fish, or null when it is right over or under them. */
+    private fun levelAwayFrom(quarry: LivingEntity): Vec3? {
+        val away = fish.position().subtract(quarry.position())
+        val level = Vec3(away.x, 0.0, away.z)
+        return if (level.lengthSqr() < TOO_CLOSE_TO_AIM) null else level.normalize()
+    }
+
+    /** How far off the quarry it bites from, middle to middle: the two bodies' half-widths and half its reach. */
+    private fun standingOff(quarry: LivingEntity): Double =
+        (fish.bbWidth + quarry.bbWidth) / 2.0 + Hadalfish.BITES_FROM / 2.0
 
     private fun beginWithdrawing() {
         phase = Phase.WITHDRAWING
@@ -186,8 +253,8 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
     /**
      * Turn the **body** to the quarry, not only the head.
      *
-     * The lure hangs in front of the face and at this range is the only part of the animal anybody can
-     * see, so it has to stay pointed at the player — and the look control alone cannot manage it. Vanilla
+     * The light on its eye is at this range the only part of the animal anybody can see, so it has to stay
+     * pointed at the player — and the look control alone cannot manage it. Vanilla
      * clamps head yaw to a bound either side of the body, and a body tangential to its own circle is
      * broadside on, which swung the lure in and out of view for reasons a player could not read (Jonah,
      * walked 2026-09-10).
@@ -221,23 +288,21 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
         /**
          * **Beyond the fog, so the body is never seen circling** — the lantern fading out to uncover the
          * fish is the best thing the animal does, and it only happens if the reveal belongs to the charge.
-         * Past `DeepWaterFog`'s reach, where eleven blocks put the whole approach in plain view.
+         * Past `DeepWaterFog`'s reach, where eleven blocks put the whole approach in plain view, and a little
+         * further out than that needs (Jonah, 2026-10-19), where the lure is further up its fade from near.
          */
-        const val ORBIT_RADIUS = 28.0
+        const val ORBIT_RADIUS = 32.0
 
         /**
-         * Radians a tick, and **it had to halve when the orbit widened**.
+         * Radians a tick, and **it falls as the orbit widens**.
          *
-         * Holding station on a circle costs a tangential speed of this times [ORBIT_RADIUS]. At the old
-         * rate over the new radius that is 0.98 blocks a tick — nearly [CHARGE_SPEED], which the steering
-         * cannot deliver and should not, since a circle taken at a run is not a circle. Halved, the station
-         * asks 0.50 and [ORBIT_SPEED] supplies it. A lap is seventeen seconds now, and a circling phase was
-         * never a whole lap anyway.
+         * Holding station on a circle costs a tangential speed of this times [ORBIT_RADIUS], and [ORBIT_SPEED]
+         * supplies about 0.54 blocks a tick of it. At [ORBIT_RADIUS] this asks 0.51, so the fish keeps up; a
+         * circle taken at a run is not a circle. A lap is a little under twenty seconds, and a circling phase
+         * was never a whole lap anyway.
          */
-        const val TURN_RATE = 0.018
+        const val TURN_RATE = 0.016
 
-        /** It hangs a little over you, which is where a thing that is about to drop on you should be. */
-        const val ABOVE_THE_QUARRY = 2.5
 
         /**
          * What the orbit steers at — **a target velocity, of which about five parts in seven survive**.
@@ -265,9 +330,25 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
         /** How much of the charge it keeps while biting, so it stays on a retreating player. */
         const val PRESSING_IN = 0.35
 
-        /** The share of its speed it keeps each tick while in reach, so the charge ends at the bite. */
+        /** The share of its speed it keeps each tick while on station, so the charge ends at the bite. */
         const val KEEPS_IN_REACH = 0.25
+
+        /** Within half a block of where it bites from, squared. */
+        const val ON_STATION = 0.25
+
+        /** How it closes the height between it and the circle as it backs off: a tenth a tick, and at most this. */
+        const val LEVELS_OUT_BY = 0.1
+        const val LEVELS_AT_MOST = 0.3
         const val STRIKE_EASE = 0.35
+
+        /**
+         * How fast it gives ground while circling, in blocks a tick: three a second, under a swimming
+         * player's sprint, so swimming at it closes the distance.
+         */
+        const val GIVES_GROUND_AT = 0.15
+
+        /** Half a second after its last bite before it turns away. */
+        const val LINGERS_FOR = 10
 
         const val WITHDRAW_SPEED = 0.75
         const val WITHDRAW_EASE = 0.25
