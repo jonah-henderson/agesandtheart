@@ -37,6 +37,7 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.level.levelgen.placement.PlacementModifier
 import net.minecraft.world.level.levelgen.placement.OffsetPlacement
 import net.minecraft.world.level.levelgen.placement.CountPlacement
+import kotlin.math.abs
 
 /**
  * **A pattern made of something it is never made of** (world model §2) — `ink springs`, `gold block
@@ -543,7 +544,7 @@ class MintingCheck : FunSpec({
     }
 
     /** A patch's size is its spread and its tries, read off the placement the pack ships. */
-    test("a colossal patch spreads four times as far with sixteen times the tries, and a minuscule one shrinks") {
+    test("a colossal patch spreads as far as the chunk next door, as dense as an ordinary one, and a minuscule one shrinks") {
         val file = File("src/main/resources/data/agesandtheart/worldgen/placed_feature/patches.json")
         val placement = PlacementModifier.CODEC.listOf()
             .parse(JsonOps.INSTANCE, JsonParser.parseString(file.readText()).asJsonObject.get("placement"))
@@ -558,8 +559,17 @@ class MintingCheck : FunSpec({
                 .fold(1) { total, count -> total * (count as CountPlacement).count().maxInclusive() }
             return offset.x().maxInclusive() to tries
         }
-        check(spreadAndTries(null) == (7 to 64)) { "an ordinary patch is ${spreadAndTries(null)}" }
-        check(spreadAndTries(1.0) == (24 to 1024)) { "a colossal patch is ${spreadAndTries(1.0)}" }
+        fun triesPerBlock(spreadAndTries: Pair<Int, Int>): Double {
+            val across = 2 * spreadAndTries.first + 1
+            return spreadAndTries.second.toDouble() / (across * across)
+        }
+        val ordinary = spreadAndTries(null)
+        val colossal = spreadAndTries(1.0)
+        check(ordinary == (7 to 64)) { "an ordinary patch is $ordinary" }
+        check(colossal.first == FeatureShape.MOST_PATCH_REACH) { "a colossal patch spreads ${colossal.first}" }
+        check(abs(triesPerBlock(colossal) / triesPerBlock(ordinary) - 1.0) < DENSITY_TOLERANCE) {
+            "a colossal patch is $colossal, ${triesPerBlock(colossal)} tries a block against ${triesPerBlock(ordinary)}"
+        }
         val minuscule = spreadAndTries(-1.0)
         check(minuscule.first < 7 && minuscule.second < 64) { "a minuscule patch is $minuscule" }
     }
@@ -608,6 +618,9 @@ class MintingCheck : FunSpec({
 })
 
 private const val SAMPLE_SEED = 0x5EEDL
+
+/** How far a grown patch's tries a block may stray from an ordinary one's, which is only the rounding of a count. */
+private const val DENSITY_TOLERANCE = 0.02
 
 /** What the pack's own block tag holds, read off the file — nothing binds a tag without a server. */
 private fun blocksTagged(id: String): List<String> {

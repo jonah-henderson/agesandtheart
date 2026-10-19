@@ -7,7 +7,9 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.registries.Registries
 import net.minecraft.world.level.levelgen.feature.BlockColumnFeature
+import net.minecraft.world.level.levelgen.feature.DiskFeature
 import net.minecraft.world.level.levelgen.feature.Feature
+import net.minecraft.world.level.levelgen.feature.GeodeFeature
 import net.minecraft.world.level.levelgen.feature.TreeFeature
 import net.minecraft.world.level.levelgen.feature.trunkplacers.TrunkPlacer
 
@@ -68,6 +70,37 @@ class ResizedFeaturesCheck : FunSpec({
         check(resized.layers().maxOf { it.height().maxInclusive() } == tallest * 4) { "a colossal column was not four times as tall" }
     }
 
+    fun vanillaFeatures(): List<Feature> =
+        registries.lookupOrThrow(Registries.PLACED_FEATURE).listElements().toList().map { it.value().feature().value() }
+
+    test("a colossal cactus is taller and still wears one flower at most") {
+        val cactus = vanillaFeatures().filterIsInstance<BlockColumnFeature>()
+            .first { column -> column.layers().any { it.height().maxInclusive() == 1 } }
+        val resized = ResizedFeatures.of(cactus, 4.0, { it }, registries) as BlockColumnFeature
+        val caps = resized.layers().filter { it.height().maxInclusive() <= 1 }
+        check(caps.size == cactus.layers().count { it.height().maxInclusive() <= 1 }) { "a cap grew past one block" }
+        check(resized.layers().maxOf { it.height().maxInclusive() } > cactus.layers().maxOf { it.height().maxInclusive() }) {
+            "the column did not grow"
+        }
+    }
+
+    test("a colossal geode grows its shells in proportion, held to what fits the box vanilla builds it in") {
+        val geode = vanillaFeatures().filterIsInstance<GeodeFeature>().first()
+        val resized = ResizedFeatures.of(geode, 4.0, { it }, registries) as GeodeFeature
+        val shellGrowth = resized.layerSettings().outerLayer / geode.layerSettings().outerLayer
+        check(shellGrowth > 1.0 && shellGrowth <= MOST_GEODE_SHELL_GROWTH) { "the outer shell grew $shellGrowth times" }
+        check(resized.outerWallDistance().maxInclusive() <= geode.outerWallDistance().maxInclusive()) {
+            "a grown geode's points moved farther from its origin"
+        }
+    }
+
+    test("a colossal disk spreads by the root of its size and digs no deeper") {
+        val disk = vanillaFeatures().filterIsInstance<DiskFeature>().first()
+        val resized = ResizedFeatures.of(disk, 4.0, { it }, registries) as DiskFeature
+        check(resized.halfHeight() == disk.halfHeight()) { "a disk dug ${resized.halfHeight()} deep, not ${disk.halfHeight()}" }
+        check(resized.radius().maxInclusive() <= disk.radius().maxInclusive() * 2) { "a disk spread past twice as wide" }
+    }
+
     test("a chooser among trees resizes every tree it chooses between") {
         val chooser = registries.lookupOrThrow(Registries.PLACED_FEATURE).listElements().toList()
             .first { placed -> placed.value().feature().value().getSubFeatures().count() > 1 &&
@@ -77,6 +110,9 @@ class ResizedFeaturesCheck : FunSpec({
         check(resizedChoices > 1) { "${chooser.key()} handed $resizedChoices of its choices on to be resized" }
     }
 })
+
+/** A geode grows at most 1.8 times, and its shells are squared distances. */
+private const val MOST_GEODE_SHELL_GROWTH = 1.8 * 1.8 + 0.001
 
 /** Sugar cane's height and less: four times it stays under the forty-eight blocks a column may grow. */
 private const val SHORT_COLUMN = 12

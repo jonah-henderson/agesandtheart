@@ -14,11 +14,14 @@ import net.minecraft.util.valueproviders.FloatProvider
 import net.minecraft.util.valueproviders.IntProvider
 import net.minecraft.util.valueproviders.UniformFloat
 import net.minecraft.util.valueproviders.UniformInt
+import net.minecraft.world.level.levelgen.GeodeCrackSettings
+import net.minecraft.world.level.levelgen.GeodeLayerSettings
 import net.minecraft.world.level.levelgen.feature.BlockColumnFeature
 import net.minecraft.world.level.levelgen.feature.CoralTreeFeature
 import net.minecraft.world.level.levelgen.feature.DeltaFeature
 import net.minecraft.world.level.levelgen.feature.DiskFeature
 import net.minecraft.world.level.levelgen.feature.FallenTreeFeature
+import net.minecraft.world.level.levelgen.feature.GeodeFeature
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.feature.HugeBrownMushroomFeature
 import net.minecraft.world.level.levelgen.feature.HugeRedMushroomFeature
@@ -41,9 +44,8 @@ import kotlin.math.sqrt
 
 /**
  * Features resized through their own records: a tree's trunk and crown (and its girth, through [ThickTrunk]), a
- * column's height — sugar cane, cactus — a huge mushroom's cap, the reach of a disk, a delta or a cluster of
- * columns, a dripstone's girth. A chooser among features resizes each feature it
- * chooses between. What is not here is resized whole by [ScaledFeature].
+ * column's height — sugar cane, cactus — a huge mushroom's cap, a geode's shells, the reach of a disk, a delta or a
+ * cluster of columns, a dripstone's girth. A chooser among features resizes each feature it chooses between.
  */
 object ResizedFeatures {
 
@@ -59,8 +61,12 @@ object ResizedFeatures {
         registries: HolderLookup.Provider?,
     ): Feature? = when (feature) {
         is TreeFeature -> thickened(tree(feature, factor, registries), factor)
+        // A layer of at most one block is a cap — a cactus's flower — and a bigger column still wears one.
         is BlockColumnFeature -> BlockColumnFeature(
-            feature.layers().map { BlockColumnFeature.Layer(scaled(it.height(), factor, MOST_HEIGHT), it.state()) },
+            feature.layers().map { layer ->
+                if (layer.height().maxInclusive() <= 1) layer
+                else BlockColumnFeature.Layer(scaled(layer.height(), factor, MOST_HEIGHT), layer.state())
+            },
             feature.direction(), feature.allowedPlacement(), feature.prioritizeTip(),
         )
         is HugeRedMushroomFeature -> HugeRedMushroomFeature(
@@ -69,10 +75,12 @@ object ResizedFeatures {
         is HugeBrownMushroomFeature -> HugeBrownMushroomFeature(
             feature.capProvider(), feature.stemProvider(), scaled(feature.foliageRadius(), factor, MOST_REACH), feature.canPlaceOn(),
         )
+        // By the root and no deeper, since a disk replaces the ground it covers: at the whole factor a colossal one
+        // paved the land smooth a chunk across and seventeen blocks down.
         is DiskFeature -> DiskFeature(
-            feature.stateProvider(), feature.target(), scaled(feature.radius(), factor, MOST_REACH),
-            scaled(feature.halfHeight(), factor, MOST_REACH),
+            feature.stateProvider(), feature.target(), scaled(feature.radius(), sqrt(factor), MOST_REACH), feature.halfHeight(),
         )
+        is GeodeFeature -> geode(feature, factor)
         is DeltaFeature -> DeltaFeature(
             feature.contents(), feature.rim(), scaled(feature.size(), factor, MOST_REACH), scaled(feature.rimSize(), factor, MOST_REACH),
         )
@@ -127,6 +135,48 @@ object ResizedFeatures {
         return TreeFeature(
             tree.trunkProvider(), trunk, tree.foliageProvider(), crown, tree.rootPlacer(), tree.minimumSize(),
             tree.decorators(), tree.ignoreVines(), tree.belowTrunkProvider(),
+        )
+    }
+
+    /**
+     * A geode at [factor] times its size, every shell in proportion, and never more than [MOST_GEODE_GROWTH]: vanilla
+     * builds one only inside a box sixteen blocks each way from its origin.
+     *
+     * Its shells are thresholds on a sum of inverse distances to a few points, so scaling every distance by `g` is
+     * the same test with the points' offsets and the shells' sizes (both squared distances) times `g²` and the noise
+     * over `g`. The points sit a few blocks off the origin in every axis, which a grown geode cannot afford in its
+     * box, so a growing one keeps them close and spreads them only as far apart as they grew.
+     */
+    private fun geode(geode: GeodeFeature, factor: Double): GeodeFeature {
+        val growth = factor.coerceAtMost(MOST_GEODE_GROWTH)
+        val squared = growth * growth
+        val layers = geode.layerSettings()
+        val crack = geode.crackSettings()
+        val wall = geode.outerWallDistance()
+        val pointsSpread = wall.maxInclusive() - wall.minInclusive()
+        val nearerWall = if (growth > 1.0) {
+            UniformInt.of(NEAREST_GEODE_POINT, NEAREST_GEODE_POINT + (pointsSpread * growth).roundToInt())
+        } else {
+            scaled(wall, growth, MOST_REACH)
+        }
+        return GeodeFeature(
+            geode.blockSettings(),
+            GeodeLayerSettings(
+                layers.filling * squared, layers.innerLayer * squared, layers.middleLayer * squared, layers.outerLayer * squared,
+            ),
+            GeodeCrackSettings(
+                crack.generateCrackChance, crack.baseCrackSize * squared, (crack.crackPointOffset * squared).roundToInt(),
+            ),
+            geode.usePotentialPlacementsChance(),
+            geode.useAlternateLayer0Chance(),
+            geode.placementsRequireLayer0Alternate(),
+            nearerWall,
+            geode.distributionPoints(),
+            scaled(geode.pointOffset(), squared, MOST_REACH * MOST_REACH),
+            geode.minGenOffset(),
+            geode.maxGenOffset(),
+            geode.noiseMultiplier() / growth,
+            geode.invalidBlocksThreshold(),
         )
     }
 
@@ -223,8 +273,18 @@ object ResizedFeatures {
     /** How many logs across a trunk is for each time as big as ordinary its tree is: two for large, three for colossal. */
     private const val GIRTH_PER_TIMES_AS_BIG = 0.75
 
-    /** As far from its middle as a feature may reach and still write only in the chunks next door. */
-    private const val MOST_REACH = 16
+    /**
+     * As far from its middle as a feature may reach and still touch only the chunks next door: a chunk's width, less
+     * the two blocks past what it writes that a feature reads (a dripstone cluster resized to sixteen read a chunk
+     * two away).
+     */
+    private const val MOST_REACH = 14
+
+    /** As big as a geode grows and still fits the box vanilla builds it in, with its points kept near the origin. */
+    private const val MOST_GEODE_GROWTH = 1.8
+
+    /** How near the origin a grown geode's points sit, in every axis; vanilla's are four or five off. */
+    private const val NEAREST_GEODE_POINT = 1
 
     /** As tall as a resized column or cluster is let grow. */
     private const val MOST_HEIGHT = 48
