@@ -30,6 +30,7 @@ import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.phenomena.Fog
 import co.voik.agesandtheart.age.phenomena.FogDials
 import co.voik.agesandtheart.age.phenomena.Happenings
+import co.voik.agesandtheart.age.phenomena.Sampling
 import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
@@ -227,12 +228,15 @@ internal object ConsequenceInstruments {
         val standing = generator.standingSeaSurfaceY
         val written = generator.writtenSeaSurfaceY
         val rained = AgeSavedData.get(level.server).presenceIn(level.dimension().identifier())
+        val isCounting = Sampling.watchers(level).isNotEmpty()
+        val notCounting = if (isCounting) "" else " (not counting: nobody here counts as present, and a spectator does not)"
         report.fact("seaStanding", standing) {
             if (standing == null) "  a deluge, and no sea for it to raise"
-            else "  the sea stands at y=$standing, written at y=$written, after $rained ticks of rain with somebody here"
+            else "  the sea stands at y=$standing, written at y=$written, after $rained ticks of rain with somebody here$notCounting"
         }
         report.only("seaWritten", written)
         report.only("rainTicks", rained)
+        report.only("rainCounting", isCounting)
     }
 
     private fun stepsOf(spending: Spending, manifestation: Manifestation): String =
