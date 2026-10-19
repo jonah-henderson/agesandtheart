@@ -9,9 +9,13 @@ import co.voik.agesandtheart.age.Report
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
+import net.minecraft.core.BlockPos
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.locale.Language
+import net.minecraft.tags.BlockTags
+import net.minecraft.world.level.EmptyBlockGetter
+import net.minecraft.world.level.block.Block
 
 internal object ReleaseInstruments {
 
@@ -19,6 +23,7 @@ internal object ReleaseInstruments {
     fun addTo(age: LiteralArgumentBuilder<CommandSourceStack>) {
         age.then(registeredSubcommand())
             .then(unnamedSubcommand())
+            .then(soliditySubcommand())
     }
 
     /**
@@ -78,6 +83,41 @@ internal object ReleaseInstruments {
                 untranslated("entity_type", BuiltInRegistries.ENTITY_TYPE) { it.descriptionId } +
                 untranslated("mob_effect", BuiltInRegistries.MOB_EFFECT) { it.descriptionId }
             ).sorted()
+    }
+
+    /**
+     * `/age solidity` — every block of ours, by the collision its default state has (`full`, `partial` or `none`)
+     * and whether it is in `#minecraft:blocks_motion`, which since 26.3 is the whole of what the heightmaps,
+     * suffocation and fluid flow mean by solid. `SolidityOnServerCheck` holds the two in step.
+     */
+    private fun soliditySubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("solidity")
+            .executes { context -> runSolidity(Report.prose(context.source)) }
+            .then(
+                Commands.literal(Report.STRUCTURED_LITERAL)
+                    .executes { context -> runSolidity(Report.structured(context.source)) },
+            )
+
+    private fun runSolidity(report: Report): Int {
+        val ours = BuiltInRegistries.BLOCK.entrySet()
+            .filter { (resourceKey, _) -> resourceKey.identifier().namespace == Constants.MOD_ID }
+            .sortedBy { (resourceKey, _) -> resourceKey.identifier().path }
+        for ((resourceKey, block) in ours) {
+            val state = block.defaultBlockState()
+            val shape = state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO)
+            val collision = when {
+                shape.isEmpty -> "none"
+                Block.isShapeFullBlock(shape) -> "full"
+                else -> "partial"
+            }
+            val blocksMotion = state.`is`(BlockTags.BLOCKS_MOTION)
+            val id = resourceKey.identifier().path
+            report.entry("blocks", mapOf("id" to id, "collision" to collision, "blocks_motion" to blocksMotion)) {
+                "$id: $collision collision, ${if (blocksMotion) "blocks motion" else "lets motion through"}"
+            }
+        }
+        report.finish()
+        return SUCCESS
     }
 
     private fun registeredContent(): List<String> {
