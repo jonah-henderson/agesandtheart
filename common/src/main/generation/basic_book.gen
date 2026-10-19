@@ -4,6 +4,9 @@ terminals word
 # What turns up in the world's chests and the lost library (design §4.2): short, flat, plainly attached, and
 # from common words. It stokes curiosity rather than teaching structure, which is the advanced book's job.
 
+# The quantifiers a basic book teaches are the lower and middle rungs, `plentiful`, `few` and `scarce`; `teeming`
+# is the advanced book's, with the other mid-to-late structural words.
+
 # Modifiers lead, the page they modify closes the clause (design §4.3.1): "a desolate Age with packed ice
 # landmass, frozen air" rather than "landmass packed_ice".
 
@@ -271,7 +274,13 @@ rainbow =
     | rainbows phenomena large rainbow
     | rainbows phenomena prismatic rainbow
 
-formation = [formation_shape] features@2 | [stone] [formation_shape] features@2 | [size] [formation_shape] features
+formation =
+    [formation_shape] features@2
+    | [stone] [formation_shape] features@2
+    | [size] [formation_shape] features
+    | [quantity] [formation_shape] features
+
+quantity = plentiful | few | scarce
 
 formation_shape = arches | boulders | obelisks | pyramids | rings | spikes
 
@@ -288,16 +297,24 @@ underground =
     | lattice underground
 
 # The ground and what grows on it, which is mostly colour.
-ground = [colour] grass@2 | [colour] leaves@2 | [colour] grass [colour] leaves | flowers features | trees features | [surface_block] surface
+ground =
+    [colour] grass@2
+    | [colour] leaves@2
+    | [colour] grass [colour] leaves
+    | flowers features
+    | trees features
+    | [quantity] flowers features
+    | [quantity] trees features
+    | [surface_block] surface
 
 # What the ground is laid with where grass would be.
 surface_block = sand | red_sand | moss_block | podzol | mud | gravel | calcite | mycelium | snow_block
 
 sea = flooded sea@2 | shallow water sea | murky waters | clear waters | [colour] waters
 
-life = teeming herds spawns | fish spawns | fliers spawns | beasts spawns | ruins structures | settled structures | untouched structures
+life = [quantity] herds spawns | fish spawns | fliers spawns | beasts spawns | ruins structures | settled structures | untouched structures
 
-life_beside_a_sea = teeming herds spawns | fish spawns | fliers spawns | beasts spawns | ruins structures | untouched structures
+life_beside_a_sea = [quantity] herds spawns | fish spawns | fliers spawns | beasts spawns | ruins structures | untouched structures
 
 mild_climate = temperate climate@2 | warm climate | tropical climate | verdant biomes
 

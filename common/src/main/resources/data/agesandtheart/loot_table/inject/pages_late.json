@@ -3,7 +3,8 @@
     "A page from somewhere found later: staple, uncommon and rare words, and a critical word only while the",
     "finder still lacks one. By the time a player is opening these, the early finds should usually have",
     "filled the critical set, so this entry mostly steps aside rather than retreading it. Two to six pages,",
-    "each drawn on its own."
+    "each drawn on its own, and one or two staple pages besides, since the staple bucket holds every authored",
+    "word no rarer bucket lists and they should go on turning up late."
   ],
   "type": "minecraft:chest",
   "pools": [
@@ -65,6 +66,27 @@
             {
               "rarity": [
                 "rare"
+              ],
+              "type": "agesandtheart:roll_page_word"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 1,
+        "max": 2
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:page",
+          "modifier": [
+            {
+              "rarity": [
+                "staple"
               ],
               "type": "agesandtheart:roll_page_word"
             }
