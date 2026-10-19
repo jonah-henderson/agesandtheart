@@ -1,38 +1,38 @@
 package co.voik.agesandtheart.worldgen.fissure
 
 import co.voik.agesandtheart.generation.Ages
-import net.minecraft.core.SectionPos
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.stats.Stats
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.player.Player
-import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.Vec3
 
 /**
  * Where something fallen out of an Age comes down — over its [FissureExits.Exit], already falling, so it reads as
  * having come *out* of somewhere rather than as a teleport.
  *
- * **Over whatever stands there**, not over the exit's own height: a collapsing Age lets its rubble down around
+ * **Over everything standing there**, not over the exit's own height: a collapsing Age lets its rubble down around
  * the same place ([RubbleArrivals]), and a heap taller than the drop put whoever fell next inside it.
+ *
+ * **Never into fire or lava where there is anywhere else.** The fluids a collapse sends through are poured on the
+ * same heap, so the exit's own column is taken only if it is safe, and otherwise the nearest one that is
+ * ([ExitGround.safestNear]).
  */
 object HomeLanding {
 
-    /** Puts [entity] down falling, a little over the highest thing standing at [exit]. */
+    /** Puts [entity] down falling, a little over everything standing near [exit]. */
     fun putDown(entity: Entity, exit: FissureExits.Exit) {
         val from = fallingFrom(exit)
         entity.teleportTo(exit.level, from.x, from.y, from.z, emptySet(), entity.yRot, entity.xRot, entity is Player)
         entity.deltaMovement = Vec3(0.0, -GENTLY_DOWN, 0.0)
     }
 
-    /** Where something comes out over [exit]: the middle of its column, a little over whatever stands there. */
+    /** Where something comes out over [exit]: the middle of the safest column near it, a little over everything in it. */
     fun fallingFrom(exit: FissureExits.Exit): Vec3 {
         val (level, at) = exit
-        // A chunk not loaded answers the heightmap with the bottom of the world.
-        level.getChunk(SectionPos.blockToSectionCoord(at.x), SectionPos.blockToSectionCoord(at.z))
-        val standing = level.getHeight(Heightmap.Types.MOTION_BLOCKING, at.x, at.z)
-        val y = (standing + FALL_OUT_ABOVE).coerceAtMost(level.maxY - HEADROOM.toDouble())
-        return Vec3(at.x + HALF_A_BLOCK, y, at.z + HALF_A_BLOCK)
+        val column = ExitGround.safestNear(level, at.x, at.z) { x, z -> ExitGround.column(level, x, z) }
+        val y = (column.clearAbove + FALL_OUT_ABOVE).coerceAtMost(level.maxY - HEADROOM.toDouble())
+        return Vec3(column.x + HALF_A_BLOCK, y, column.z + HALF_A_BLOCK)
     }
 
     /**

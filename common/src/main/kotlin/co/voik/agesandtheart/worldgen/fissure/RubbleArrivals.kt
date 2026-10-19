@@ -10,11 +10,11 @@ import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.tags.TagKey
+import net.minecraft.util.Mth
 import net.minecraft.util.datafix.DataFixTypes
 import net.minecraft.world.entity.item.FallingBlockEntity
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.saveddata.SavedData
 import net.minecraft.world.level.saveddata.SavedDataType
 import java.util.Optional
@@ -34,13 +34,13 @@ import kotlin.math.sqrt
  * **Let down only while the exit is ticking.** It is not kept loaded, and rubble dropped into a chunk that
  * is not running would hang in the air until somebody came back.
  *
- * **A fluid's source is placed rather than dropped**, in the first open space over the ground where it is drawn
- * to come down: a falling block of fluid has nothing to land as.
+ * **A fluid's source is placed rather than dropped**, on top of the heap where it is drawn to come down
+ * ([ExitGround.pouredInto]): a falling block of fluid has nothing to land as.
  *
  * **Each block falls onto open ground of its own.** Rubble dropped at one point lands in the heap it has
  * already built, cannot be placed there, and breaks into an item — a collapsing Age once left the spawn
- * littered with thousands of them. So each is scattered across a small disc and let go above the ground
- * *there*, with a little extra height drawn so two sent to one column do not land in the same tick.
+ * littered with thousands of them. So each is scattered across a small disc and let go above everything in
+ * the column *there*, with a little extra height drawn so two sent to one column do not land in the same tick.
  */
 object RubbleArrivals {
 
@@ -108,11 +108,11 @@ object RubbleArrivals {
         val angle = random.nextDouble() * FULL_TURN
         // The square root spreads them evenly over the disc rather than bunching them at its middle.
         val distance = sqrt(random.nextDouble()) * SCATTER_RADIUS
-        val x = over.x + cos(angle) * distance
-        val z = over.z + sin(angle) * distance
-        val ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x.toInt(), z.toInt())
-        if (isAFluidSource(state)) return pour(level, BlockPos.containing(x, ground.toDouble(), z), state)
-        val at = BlockPos.containing(x, (ground + DROPPED_FROM + random.nextInt(EXTRA_HEIGHT_DRAWN)).toDouble(), z)
+        val x = Mth.floor(over.x + cos(angle) * distance)
+        val z = Mth.floor(over.z + sin(angle) * distance)
+        val column = ExitGround.column(level, x, z)
+        if (isAFluidSource(state)) return pour(level, column, state)
+        val at = BlockPos(x, column.clearAbove + DROPPED_FROM + random.nextInt(EXTRA_HEIGHT_DRAWN), z)
         // `fall` clears the block it starts from, so it must start in the air.
         if (!level.getBlockState(at).isAir) return
         FallingBlockEntity.fall(level, at, state).addTag(RUBBLE_TAG)
@@ -153,8 +153,9 @@ object RubbleArrivals {
         rubble.discard()
     }
 
-    /** A source poured over something [CRUSHABLE] crushes it, as rubble landing does. */
-    private fun pour(level: ServerLevel, at: BlockPos, source: BlockState) {
+    /** A source poured on top of [column]'s heap. Over something [CRUSHABLE] it crushes it, as rubble landing does. */
+    private fun pour(level: ServerLevel, column: ExitGround.Column, source: BlockState) {
+        val at = ExitGround.pouredInto(level, column) ?: return
         if (level.getBlockState(at).`is`(CRUSHABLE)) crush(level, at)
         if (level.getBlockState(at).canBeReplaced()) level.setBlock(at, source, Block.UPDATE_ALL)
     }
