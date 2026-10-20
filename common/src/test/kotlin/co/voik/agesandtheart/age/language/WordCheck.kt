@@ -61,14 +61,22 @@ class WordCheck : FunSpec({
         check(parsed("""{"meanings": [{"leans": {"nowhere": {"#lush": 1}}}]}""").isError) { "a lean on no part of the world read" }
     }
 
-    test("a block is the sea only where it pours, and always what things are made of") {
+    test("a block laid bare is the rock or the skin, a sea where it pours, structures only aimed, and now and then a formation") {
         val blocks = DerivedWords.blocks().associateBy { it.id.toString() }
-        fun asTheSea(word: Word) = word.meanings.single { meaning -> meaning.effects.any { it is Effect.Chooses } }
+        fun Word.setting(spelled: String) =
+            meanings.single { meaning -> meaning.effects.any { it is Effect.Sets && it.parameter.spelled == spelled } }
+        fun Word.asTheSea() = meanings.single { meaning -> meaning.effects.any { it is Effect.Chooses } }
         val water = requireNotNull(blocks["minecraft:water"])
         val stone = requireNotNull(blocks["minecraft:stone"])
-        check(asTheSea(water).mustAlwaysApply) { "water laid bare is not a sea" }
-        check(asTheSea(stone).unaimedChanceToApply == Meaning.NEVER) { "stone laid bare floods the world" }
-        check(stone.meanings.count { it.mustAlwaysApply } == 2) { "stone is not both the ground's skin and its rock" }
+        check(water.asTheSea().mustAlwaysApply) { "water laid bare is not a sea" }
+        check(stone.asTheSea().unaimedChanceToApply == Meaning.NEVER) { "stone laid bare floods the world" }
+        check(stone.setting("landmass.stone").mustAlwaysApply) { "stone laid bare is not the rock" }
+        check(!stone.setting("surface.material").mustAlwaysApply) { "stone laid bare is always the skin as well" }
+        check(stone.setting("structures.material").unaimedChanceToApply == Meaning.NEVER) { "stone laid bare builds structures" }
+        val formations = stone.meanings.filter { meaning -> meaning.effects.any { it is Effect.Mints } }
+        check(formations.size == DerivedWords.GEOMETRIC_FORMATIONS.size) { "stone raises ${formations.size} formations" }
+        check(formations.all { it.chanceToApply == Meaning.NEVER && it.asserts }) { "a formation is raised where stone is aimed" }
+        check(water.meanings.none { meaning -> meaning.effects.any { it is Effect.Mints } }) { "water is raised as an obelisk" }
     }
 
     test("the derived populations each give a word per entry, and every part of the world has its page") {

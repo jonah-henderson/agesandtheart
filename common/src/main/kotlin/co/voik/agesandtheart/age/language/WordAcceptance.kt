@@ -20,8 +20,9 @@ interface MemberTags {
 /**
  * What a word takes from the pages waiting before it, or null where it takes nothing — derived from what the word
  * is, never written (`notes/meanings-plan.md` §2). A part of the world's page takes what the part understands; a word
- * naming members takes what they honour; a minting takes a substance and its pattern's dials; anything else takes
- * nothing. [Word.alsoTakes] widens what is derived, and gives a word that takes nothing nowhere to land.
+ * naming members takes what they honour; a word minting where it is aimed takes a substance and its pattern's dials,
+ * where a block raised as a formation only laid bare stays a substance; anything else takes nothing. [Word.alsoTakes]
+ * widens what is derived, and gives a word that takes nothing nowhere to land.
  */
 object WordAcceptance {
 
@@ -37,7 +38,8 @@ object WordAcceptance {
     }
 
     private fun minting(word: Word, registries: HolderLookup.Provider?): Acceptance? {
-        val pattern = word.meanings.flatMap { it.effects }.filterIsInstance<Effect.Mints>().firstOrNull() ?: return null
+        val appliesWhereAimed = word.meanings.filter { it.mustAlwaysApply || it.chanceToApply > Meaning.NEVER }
+        val pattern = appliesWhereAimed.flatMap { it.effects }.filterIsInstance<Effect.Mints>().firstOrNull() ?: return null
         val feature = PlacedFeature.named(pattern.pattern) ?: return null
         return Acceptance.ofMember(feature, registries).copy(takesSubstance = true)
     }

@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.language
 
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Materials
+import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.word.Speech
@@ -34,8 +35,13 @@ object DerivedWords {
     private val WORDLESS_SPAWNS: TagKey<EntityType<*>> = TagKey.create(Registries.ENTITY_TYPE, DOES_NOT_HAVE_A_WORD)
 
     /**
-     * A word for every block: the sea it could be, and what the ground, the rock and the structures could be made
-     * of. Only something that pours is a sea laid bare; anything else is one only where it is aimed at the sea.
+     * A word for every block: the sea it could be, what the rock, the ground and the structures could be made of, and
+     * the formations it could be raised as.
+     *
+     * Laid bare, a block is always the rock where a world could be made of it, the ground's skin otherwise, and the
+     * skin as well by chance; it is a sea only where it pours, and makes structures only where it is aimed at them. A
+     * rock that does not pour now and then raises one of [GEOMETRIC_FORMATIONS] out of itself: `obsidian age`, an
+     * obsidian obelisk.
      */
     fun blocks(): List<Word> = BuiltInRegistries.BLOCK.listElements()
         .filter { holder -> !holder.`is`(WORDLESS_BLOCKS) }
@@ -49,12 +55,33 @@ object DerivedWords {
 
     private fun substance(id: Identifier, pours: Boolean): Word {
         val block = id.toString()
+        val isARock = Materials.makesARock(block)
         val choosesTheSea = Effect.Chooses(Aspect.SEA, block)
-        val asTheSea = if (pours) alwaysApplying(choosesTheSea) else Meaning(listOf(choosesTheSea), unaimedChanceToApply = Meaning.NEVER)
-        val asWhatThingsAreMadeOf = alwaysApplying(Effect.Sets(ParameterKey(Surface.MATERIAL.name), block))
-        val asTheRock = if (Materials.makesARock(block)) alwaysApplying(Effect.Sets(ParameterKey(Terrain.STONE.name), block)) else null
-        return Word(id, listOfNotNull(asTheSea, asWhatThingsAreMadeOf, asTheRock), Speech.MASS)
+        val asTheSea = if (pours) alwaysApplying(choosesTheSea) else onlyWhereAimed(choosesTheSea)
+        val theRock = Effect.Sets(ParameterKey(Terrain.STONE.name, Aspect.TERRAIN), block)
+        val theSkin = Effect.Sets(ParameterKey(Surface.MATERIAL.name, Aspect.SURFACE), block)
+        val asTheRock = if (isARock) alwaysApplying(theRock) else null
+        val asTheSkin = if (isARock) Meaning(listOf(theSkin)) else alwaysApplying(theSkin)
+        val asTheStructures = onlyWhereAimed(Effect.Sets(ParameterKey(Structures.MATERIAL.name, Aspect.STRUCTURES), block))
+        val standsAsAFormation = isARock && !pours
+        val asFormations = if (standsAsAFormation) GEOMETRIC_FORMATIONS.map { raisedAs(it, block) } else emptyList()
+        return Word(id, listOfNotNull(asTheSea, asTheRock, asTheSkin, asTheStructures) + asFormations, Speech.MASS)
     }
+
+    /** One of [GEOMETRIC_FORMATIONS] made of [block], now and then where the block is laid bare. */
+    private fun raisedAs(pattern: String, block: String) = Meaning(
+        listOf(Effect.Mints(pattern, unstated = block, flows = false)),
+        chanceToApply = Meaning.NEVER,
+        unaimedChanceToApply = A_FORMATION_NOW_AND_THEN,
+        asserts = true,
+    )
+
+    /** Our formations that are shapes rather than lumps, which a rock laid bare may be raised as. */
+    val GEOMETRIC_FORMATIONS: List<String> = listOf("obelisks", "pyramids", "rings", "arches", "spikes").map { "agesandtheart:$it" }
+
+    private const val A_FORMATION_NOW_AND_THEN = 0.25
+
+    private fun onlyWhereAimed(effect: Effect) = Meaning(listOf(effect), unaimedChanceToApply = Meaning.NEVER)
 
     /** A word for every biome, which is datapack content and so needs the server's registries. */
     fun biomes(registries: HolderLookup.Provider): List<Word> =
