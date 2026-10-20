@@ -99,6 +99,17 @@ object Features {
      * named thing there are; these say what *this Age* is like, so they apply to everything it grows. A
      * word bends them exactly as `arid` bends a climate axis.
      */
+    /** A dial honoured by the placed features [asks] answers for, each looked up by its id. */
+    private fun honouredWhere(asks: (Holder<VanillaPlacedFeature>, HolderLookup.Provider) -> Boolean) =
+        MemberHonouring { member, registries ->
+            val placed = (member as? PlacedFeature)?.id?.let { id ->
+                registries.lookupOrThrow(Registries.PLACED_FEATURE)
+                    .get(ResourceKey.create(Registries.PLACED_FEATURE, id))
+                    .orElse(null)
+            }
+            placed != null && asks(placed, registries)
+        }
+
     /**
      * Whether everything the Age grows grows anywhere — every biome's features in every biome, at any height —
      * `incongruous features`. Yema keep to where they grow.
@@ -109,7 +120,8 @@ object Features {
     val UNIFORM = Parameter.flag("uniform", help = "Whether every tree and boulder comes out the same shape.").perMember()
 
     /** Whether trees grow with no leaves at all — `bare features`, `bare trees`. */
-    val BARE = Parameter.flag("bare", help = "Whether the trees grow bare, with no leaves.").perMember()
+    val BARE = Parameter.flag("bare", help = "Whether the trees grow bare, with no leaves.")
+        .perMember(honouredWhere { feature, _ -> FeatureShape.growsTrees(feature) })
 
     val SIZE = Parameter.ranged(
         "size",
@@ -119,7 +131,7 @@ object Features {
                 Parameter.Landmark(0.0, "ordinary"),
                 Parameter.Landmark(1.0, "as big as it gets"),
             ),
-        ).perBiome().perMember()
+        ).perBiome().perMember(honouredWhere(FeatureShape::honoursSize))
     val THICKNESS = Parameter.ranged(
         "thickness",
         help = "How thick a patch of them is.",
@@ -128,7 +140,7 @@ object Features {
                 Parameter.Landmark(0.0, "ordinary"),
                 Parameter.Landmark(1.0, "a thicket"),
             ),
-        ).perBiome().perMember()
+        ).perBiome().perMember(honouredWhere { feature, _ -> FeatureShape.honoursThickness(feature) })
     val HEIGHT = Parameter.ranged(
         "height",
         help = "How deep in the column they sit.",
@@ -137,7 +149,7 @@ object Features {
                 Parameter.Landmark(0.0, "mid-column"),
                 Parameter.Landmark(1.0, "at the surface"),
             ),
-        ).perBiome().perMember()
+        ).perBiome().perMember(honouredWhere { feature, _ -> FeatureShape.honoursHeight(feature) })
 
     /**
      * A biome's own generation settings, adjusted by whatever the sentence said — the function

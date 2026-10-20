@@ -44,6 +44,8 @@ data class Parameter(
      * `motionless monsters` (`notes/strange-words-plan.md` §2). Set with [perMember].
      */
     val ownedByEachMember: Boolean = false,
+    /** Which members this does anything to, where [ownedByEachMember] — every one unless its code says otherwise. */
+    val honouredBy: MemberHonouring = MemberHonouring.EVERY,
     /**
      * Whether this parameter's value is a **block** — the palette's stone, a surface's skin, a minted
      * pattern's substance.
@@ -95,8 +97,9 @@ data class Parameter(
     /** This parameter, sited-in-a-biome — see [confinable]. */
     fun perBiome(): Parameter = copy(confinable = true)
 
-    /** This parameter, held member by member — see [ownedByEachMember]. */
-    fun perMember(): Parameter = copy(ownedByEachMember = true)
+    /** This parameter, held member by member by those [honouredBy] answers for — see [ownedByEachMember]. */
+    fun perMember(honouredBy: MemberHonouring = MemberHonouring.EVERY): Parameter =
+        copy(ownedByEachMember = true, honouredBy = honouredBy)
 
     val default: String get() = options.first()
 

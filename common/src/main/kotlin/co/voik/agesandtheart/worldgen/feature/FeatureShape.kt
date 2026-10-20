@@ -29,6 +29,13 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.levelgen.feature.AbstractOreFeature
 import net.minecraft.world.level.levelgen.feature.BlockReplacement
 import net.minecraft.world.level.levelgen.feature.OreFeature
+import net.minecraft.world.level.levelgen.feature.RandomBooleanSelectorFeature
+import net.minecraft.world.level.levelgen.feature.RandomSelectorFeature
+import net.minecraft.world.level.levelgen.feature.RootSystemFeature
+import net.minecraft.world.level.levelgen.feature.SequenceFeature
+import net.minecraft.world.level.levelgen.feature.SimpleRandomSelectorFeature
+import net.minecraft.world.level.levelgen.feature.TreeFeature
+import net.minecraft.world.level.levelgen.feature.WeightedRandomSelectorFeature
 import net.minecraft.world.level.levelgen.feature.ScatteredOreFeature
 import net.minecraft.world.level.levelgen.feature.SpringFeature
 import net.minecraft.world.level.levelgen.feature.VegetationPatchFeature
@@ -208,6 +215,35 @@ object FeatureShape {
         val placement = withHeight(thinned, height)
         if (shaped === placed.feature() && placement === placed.placement()) return feature
         return Holder.direct(PlacedFeature(shaped, placement))
+    }
+
+    /** Whether a size would change [feature] at all — the features `size`, said of one of them, does something to. */
+    fun honoursSize(feature: Holder<PlacedFeature>, registries: HolderLookup.Provider): Boolean =
+        reshaped(feature, size = A_TURNED_DIAL, thickness = null, height = null, rock = emptyList(), registries) !== feature
+
+    /** Whether a thickness would change [feature] at all. */
+    fun honoursThickness(feature: Holder<PlacedFeature>): Boolean =
+        reshaped(feature, size = null, thickness = A_TURNED_DIAL, height = null, rock = emptyList()) !== feature
+
+    /** Whether a height would change [feature] at all. */
+    fun honoursHeight(feature: Holder<PlacedFeature>): Boolean =
+        reshaped(feature, size = null, thickness = null, height = A_TURNED_DIAL, rock = emptyList()) !== feature
+
+    /** Whether [feature] grows a tree, itself or among what it chooses between — what a bare tree is made of. */
+    fun growsTrees(feature: Holder<PlacedFeature>): Boolean {
+        val placed = feature.value().feature().value()
+        return placed is TreeFeature || chosenBetween(placed).any(::growsTrees)
+    }
+
+    /** The features [feature] places one or all of, where it is a chooser or a sequence. */
+    private fun chosenBetween(feature: Feature): List<Holder<PlacedFeature>> = when (feature) {
+        is RandomSelectorFeature -> feature.features().map { it.feature() } + feature.defaultFeature()
+        is RandomBooleanSelectorFeature -> listOf(feature.featureTrue(), feature.featureFalse())
+        is SimpleRandomSelectorFeature -> feature.features().toList()
+        is WeightedRandomSelectorFeature -> feature.features().unwrap().map { it.value() }
+        is SequenceFeature -> feature.features().toList()
+        is RootSystemFeature -> listOf(feature.treeFeature())
+        else -> emptyList()
     }
 
     /**
@@ -470,6 +506,9 @@ object FeatureShape {
 
     /** A formation is authored with its base at the origin, and the ground is where it is put. */
     private const val STANDING_ON_THE_GROUND = 0
+
+    /** A dial at the top of its axis, which every feature that has the dial at all is changed by. */
+    private const val A_TURNED_DIAL = 1.0
 
     /** `Features.HEIGHT`'s "mid-column": above it a thing sits shallow, at or below it deep. */
     private const val MID_COLUMN = 0.0

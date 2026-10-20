@@ -36,7 +36,8 @@ object Structures {
      * Whether a village is its abandoned self — cobwebs, broken glass, zombie villagers. Held member by member, so
      * `deserted villages` abandons them; vanilla keeps abandoned pieces for villages and for nothing else.
      */
-    val ABANDONED = Parameter.flag("abandoned", help = "Whether villages are found abandoned.").perMember()
+    val ABANDONED = Parameter.flag("abandoned", help = "Whether villages are found abandoned.")
+        .perMember(MemberHonouring { member, _ -> member.key == VILLAGES })
 
     /**
      * Whether what the Age builds may stand in any biome and at any height — a taiga village on the plains, a trail
