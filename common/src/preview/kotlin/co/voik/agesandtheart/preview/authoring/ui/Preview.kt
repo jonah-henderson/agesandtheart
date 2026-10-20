@@ -103,12 +103,12 @@ object Preview {
      * Which of the three sources of disagreement this one is.
      *
      * `Disagreement` carries what the quarrel is over and not where it came from, and the three read
-     * identically on screen while wanting completely different fixes: an antonym pair is a line in
-     * `art/antonyms/`, a parameter clash is two bands somebody has to widen, and a pushed tag is one
+     * identically on screen while wanting completely different fixes: a pair of opposed tags is a line in
+     * `art/opposed_tags/`, a parameter clash is two bands somebody has to widen, and a pushed tag is one
      * word's own query. Told apart the way `Vocabulary` asks them, in the same order.
      */
     private fun becauseOf(word: Word, other: Word, why: Disagreement): String {
-        if (why.over.size == 2) return "opposed in the antonym table"
+        if (why.over.size == 2) return "opposed in the opposed-tags table"
         val over = why.over.firstOrNull() ?: return ""
         val bothBind = over in word.sets && over in other.sets
         return if (bothBind) "bands on $over that cannot both hold" else "one asks for it, the other pushes it away"

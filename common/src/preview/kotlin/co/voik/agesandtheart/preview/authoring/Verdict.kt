@@ -264,12 +264,12 @@ object Verdict {
                 )
                 continue
             }
-            if (corpus.vocabulary.antonyms.any { it.first == tag || it.second == tag }) {
+            if (corpus.vocabulary.opposedTags.any { it.first == tag || it.second == tag }) {
                 add(
                     Finding(
                         Standing.NOTED,
                         "'$tag' matches nothing, which is fine here",
-                        "it is in the antonym table, so it describes the word instead of picking anything",
+                        "it is in the opposed-tags table, so it describes the word instead of picking anything",
                         "TagCoverageCheck",
                     ),
                 )

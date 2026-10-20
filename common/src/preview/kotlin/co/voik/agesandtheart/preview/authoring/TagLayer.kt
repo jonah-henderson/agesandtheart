@@ -92,7 +92,7 @@ class TagLayer(private val corpus: Corpus) {
         /** How many words mention it, either way round — a tag nothing asks for is inert. */
         val asked: Int,
         val aspects: List<Aspect>,
-        /** Whether the antonym table can oppose it to anything. */
+        /** Whether the opposed-tags table can oppose it to anything. */
         val opposed: Boolean,
         /** Whether it exists only where a real server binds registry tags — offline this reads as none. */
         val onlyOnAServer: Boolean,
@@ -239,7 +239,7 @@ class TagLayer(private val corpus: Corpus) {
      * is a word that finds nothing. Listing only the carried half would hide the second entirely.
      */
     fun facts(): List<Fact> {
-        val opposed = corpus.vocabulary.antonyms.flatMap { listOf(it.first, it.second) }.toSet()
+        val opposed = corpus.vocabulary.opposedTags.flatMap { listOf(it.first, it.second) }.toSet()
         val serverOnly = corpus.vocabulary.tagsOnlyAServerGrants
         val everything = carriers()
         return (everything.keys + mentions.keys + opposed).sorted().map { tag ->

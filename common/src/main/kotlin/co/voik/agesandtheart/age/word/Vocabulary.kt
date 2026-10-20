@@ -31,17 +31,17 @@ import net.minecraft.server.packs.resources.ResourceManager
  * The table **explains** a tension and prices it where it knows the pair, so gaps in it cost clarity
  * rather than correctness — which is what makes it affordable to author by hand.
  */
-data class Antonym(val first: String, val second: String, val severity: Int) {
+data class OpposedTags(val first: String, val second: String, val severity: Int) {
     companion object {
         /** Tension the world absorbed is charged gently: a remark, not an accusation. */
         const val ORDINARY_SEVERITY = 1
 
-        val CODEC: Codec<Antonym> = RecordCodecBuilder.create { instance ->
+        val CODEC: Codec<OpposedTags> = RecordCodecBuilder.create { instance ->
             instance.group(
-                Codec.STRING.fieldOf("first").forGetter(Antonym::first),
-                Codec.STRING.fieldOf("second").forGetter(Antonym::second),
-                Codec.INT.optionalFieldOf("severity", ORDINARY_SEVERITY).forGetter(Antonym::severity),
-            ).apply(instance, ::Antonym)
+                Codec.STRING.fieldOf("first").forGetter(OpposedTags::first),
+                Codec.STRING.fieldOf("second").forGetter(OpposedTags::second),
+                Codec.INT.optionalFieldOf("severity", ORDINARY_SEVERITY).forGetter(OpposedTags::severity),
+            ).apply(instance, ::OpposedTags)
         }
     }
 }
@@ -64,26 +64,26 @@ data class Disagreement(
     val onParameter: String? = null,
 )
 
-/** One antonym file: a list, so a pack may add pairs without reprinting ours. */
-private data class AntonymPage(val pairs: List<Antonym>) {
+/** One file of opposed tags: a list, so a pack may add pairs without reprinting ours. */
+private data class OpposedTagsFile(val pairs: List<OpposedTags>) {
     companion object {
-        val CODEC: Codec<AntonymPage> = RecordCodecBuilder.create { instance ->
+        val CODEC: Codec<OpposedTagsFile> = RecordCodecBuilder.create { instance ->
             instance.group(
-                Antonym.CODEC.listOf().fieldOf("pairs").forGetter(AntonymPage::pairs),
-            ).apply(instance, ::AntonymPage)
+                OpposedTags.CODEC.listOf().fieldOf("pairs").forGetter(OpposedTagsFile::pairs),
+            ).apply(instance, ::OpposedTagsFile)
         }
     }
 }
 
 /**
  * Everything the Art knows how to say, and everything the world knows how to be: the words, the tags the
- * presets carry, and the antonym table. Loaded from datapacks under `data/<namespace>/art/`:
+ * presets carry, and the opposed-tags table. Loaded from datapacks under `data/<namespace>/art/`:
  *
  * | path | holds |
  * |---|---|
  * | `word/<name>.json` | one word — what it chooses, bars, sets and leans on |
  * | `preset_tags/<aspect>.json` | the tags every preset in that aspect carries |
- * | `antonyms/<page>.json` | pairs of tags that mean opposite things |
+ * | `opposed_tags/<page>.json` | pairs of tags that mean opposite things |
  * | `grammar/<name>.json` | one structural word, naming a production |
  * | `generation/<name>.json` | one weighted grammar the Art writes *out* of |
  *
@@ -99,7 +99,7 @@ data class Vocabulary(
     /** The structural words — `and`, `only`, `except` — keyed by what a writer says (§4.5). */
     private val structural: Map<String, GrammarWord>,
     private val tagsBySlot: Map<Aspect, PresetTags>,
-    val antonyms: List<Antonym>,
+    val opposedTags: List<OpposedTags>,
     /** The script words are written in. Optional content — see [Script]. */
     val script: Script,
     /** How likely each word is to be found on a page. Nothing about resolution reads this. */
@@ -300,8 +300,8 @@ data class Vocabulary(
             aspect.parameters.any { it.name == parameter }
 
     /** Whether these two tags are known opposites, and how badly. */
-    fun opposition(first: String, second: String): Antonym? = antonyms.firstOrNull { antonym ->
-        (antonym.first == first && antonym.second == second) || (antonym.first == second && antonym.second == first)
+    fun opposition(first: String, second: String): OpposedTags? = opposedTags.firstOrNull { pair ->
+        (pair.first == first && pair.second == second) || (pair.first == second && pair.second == first)
     }
 
     /**
@@ -343,7 +343,7 @@ data class Vocabulary(
             val asked = listOfNotNull(Setting.read(mine), Setting.read(theirs))
             val bothAreBands = asked.size == 2
             if (bothAreBands && Setting.settle(asked) == null) {
-                Disagreement(listOf(parameter), Antonym.ORDINARY_SEVERITY, onParameter = parameter)
+                Disagreement(listOf(parameter), OpposedTags.ORDINARY_SEVERITY, onParameter = parameter)
             } else {
                 null
             }
@@ -353,7 +353,7 @@ data class Vocabulary(
     private fun overAPushedTag(first: Word, second: Word): Disagreement? =
         ((first.wanted intersect second.unwanted) + (second.wanted intersect first.unwanted))
             .firstOrNull()
-            ?.let { Disagreement(listOf(it), Antonym.ORDINARY_SEVERITY) }
+            ?.let { Disagreement(listOf(it), OpposedTags.ORDINARY_SEVERITY) }
 
     companion object {
         /** Where a pack puts words. */
@@ -371,8 +371,8 @@ data class Vocabulary(
          */
         const val MATERIALS = "materials"
 
-        /** Where a pack puts antonym pages. */
-        const val ANTONYM_DIRECTORY = "art/antonyms"
+        /** Where a pack puts its opposed tags. */
+        const val OPPOSED_TAGS_DIRECTORY = "art/opposed_tags"
 
         /** Where a pack puts the structural words — one file per word, naming a production. */
         const val GRAMMAR_DIRECTORY = "art/grammar"
@@ -402,7 +402,7 @@ data class Vocabulary(
             val tags = readPresetTags(resources, problems)
             val rules = readDerivations(resources, problems)
             val spawning = readSpawning(resources, problems)
-            val antonyms = readAntonyms(resources, problems)
+            val opposedTags = readOpposedTags(resources, problems)
             // Blocks are built-in and always available; biomes and structures are datapack content, so a
             // corpus read without a server has §8's material half and neither population. Absent rather
             // than wrong, which is what lets `VocabularyCheck` stay offline.
@@ -444,7 +444,7 @@ data class Vocabulary(
             // in `words` and must not be counted derived.
             val derivedIds = fromContent.map { it.id }.toSet() - authored.values.map { it.id }.toSet()
             val read = Vocabulary(
-                words, structural, described, antonyms, script, rarity, ink, stock, generation,
+                words, structural, described, opposedTags, script, rarity, ink, stock, generation,
                 derivedIds, rules, materials, spawning, retired, shippedButNotLoaded, problems,
             )
             return read.copy(byName = read.byName.mapValues { (_, word) -> read.reached(word) })
@@ -707,10 +707,10 @@ data class Vocabulary(
             return structural
         }
 
-        private fun readAntonyms(resources: ResourceManager, problems: MutableList<String>): List<Antonym> {
-            val stacks = resources.listResourceStacks(ANTONYM_DIRECTORY, ResourceParsing::isJson)
+        private fun readOpposedTags(resources: ResourceManager, problems: MutableList<String>): List<OpposedTags> {
+            val stacks = resources.listResourceStacks(OPPOSED_TAGS_DIRECTORY, ResourceParsing::isJson)
             return stacks.entries.sortedBy { it.key.toString() }.flatMap { (file, layers) ->
-                layers.flatMap { layer -> ResourceParsing.parse(layer, file, AntonymPage.CODEC, problems)?.pairs.orEmpty() }
+                layers.flatMap { layer -> ResourceParsing.parse(layer, file, OpposedTagsFile.CODEC, problems)?.pairs.orEmpty() }
             }
         }
 

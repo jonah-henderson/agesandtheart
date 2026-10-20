@@ -321,7 +321,7 @@ class ResolverCheck : FunSpec({
         check(division.aspect == Aspect.CLIMATE) {
             "the division was sited in ${division.aspect}, not the climate"
         }
-        // The fracture still names *which tags* disagreed, which is the provenance §5.1 needs — the antonym
+        // The fracture still names *which tags* disagreed, which is the provenance §5.1 needs — the opposed-tags
         // table earning its keep even though overlap is what decided to fracture.
         check(division.tags == listOf("barren", "lush") || division.tags == listOf("lush", "barren")) {
             "the fracture does not name the tags that disagreed: ${division.tags}"

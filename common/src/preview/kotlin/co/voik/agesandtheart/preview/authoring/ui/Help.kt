@@ -229,7 +229,7 @@ class Help(
             keyRow("^o", "back to the weight a rule gave it \u2014 where a rule gave one"),
             keyRow("tab", "group the members by where they came from, or sort by name"),
             keyRow("^d", "drop a member a rule put in, or restore it"),
-            keyRow("^r", "rename the set \u2014 tables, words and antonyms together"),
+            keyRow("^r", "rename the set \u2014 tables, words and opposed tags together"),
             keyRow("^w", "which words ask for it"),
             keyRow("^x", "delete the set \u2014 the same three, and no undo"),
             Line("", Palette.faint),

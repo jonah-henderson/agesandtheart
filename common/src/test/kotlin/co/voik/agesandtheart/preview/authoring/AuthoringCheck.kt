@@ -198,7 +198,7 @@ class AuthoringCheck : FunSpec({
         }
     }
 
-    /** A tag nothing carries and no antonym opposes — the misspelling catcher, as `TagCoverageCheck` has it. */
+    /** A tag nothing carries and no pair of opposed tags names — the misspelling catcher, as `TagCoverageCheck` has it. */
     test("a tag nothing carries is refused") {
         val invented = Candidate(
             name = "probe",

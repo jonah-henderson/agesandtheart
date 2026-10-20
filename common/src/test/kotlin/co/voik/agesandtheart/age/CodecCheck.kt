@@ -3,7 +3,7 @@ package co.voik.agesandtheart.age
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.consequence.Consequence
-import co.voik.agesandtheart.age.word.Antonym
+import co.voik.agesandtheart.age.word.OpposedTags
 import co.voik.agesandtheart.age.word.PresetTags
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.location
@@ -59,7 +59,7 @@ class CodecCheck : FunSpec({
             "flaw" to Flaw.CODEC,
             "word" to Word.mapCodec("floating".location()).codec(),
             "preset tags" to PresetTags.CODEC,
-            "antonym" to Antonym.CODEC,
+            "opposed tags" to OpposedTags.CODEC,
             "region map" to RegionMap.MAP_CODEC.codec(),
             "placement (dispatch)" to Placement.CODEC,
             // Every kind by name, so adding one to the enum brings it under this check for free — the

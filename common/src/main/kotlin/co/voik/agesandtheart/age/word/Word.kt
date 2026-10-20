@@ -671,7 +671,7 @@ data class Word(
 
     /**
      * The tags this word strikes out or leans away from — [wanted]'s mirror, and half of what lets two
-     * words be found to disagree with no antonym table involved (`Vocabulary.disagreement`).
+     * words be found to disagree with no opposed-tags table involved (`Vocabulary.disagreement`).
      */
     val unwanted: Set<String> get() = (
         excludes.values.flatMap { struck -> struck.filter { it.startsWith(TAG_MARK) }.map { it.drop(1) } } +

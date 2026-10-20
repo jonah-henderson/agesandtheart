@@ -77,7 +77,7 @@ data class Standing(val strength: Double, val kept: Boolean)
  *
  * 1. **A word is confined to the aspects it is about** ([Word.aspects], §4.4) — unscoped, `stormy` pinned
  *    the *terrain* to caverns and threw `floating` away in silence.
- * 2. **Unsatisfiability comes from the tag data, never the antonym table** (§3.3). The table explains and
+ * 2. **Unsatisfiability comes from the tag data, never the opposed-tags table** (§3.3). The table explains and
  *    prices tension; what breaks an Age is two words with no preset between them.
  * 3. **A spatial aspect divides rather than arbitrating** (§3.4), and *only* to absorb a real
  *    disagreement — so seeing two terrains in an Age means something.
@@ -1235,8 +1235,8 @@ object Resolver {
      * one span, and those that do take ground of their own. The one combining rule whose outcome is wider
      * than either input — see [Holds.RANGE].
      *
-     * **Overlap is the arbiter, not the antonym table.** Antonymy is a lossy proxy for "these cannot both
-     * hold": two words with no antonym pair but disjoint spans would broaden into a hull covering ground
+     * **Overlap is the arbiter, not the opposed-tags table.** Opposed tags are a lossy proxy for "these cannot both
+     * hold": two words with no opposed tags but disjoint spans would broaden into a hull covering ground
      * *neither* asked for. The table keeps its own job — [opposedTags] still names *why* they disagreed.
      */
     private fun AgeComposition.spanned(

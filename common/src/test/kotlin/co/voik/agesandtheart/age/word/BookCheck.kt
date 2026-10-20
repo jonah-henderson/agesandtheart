@@ -128,7 +128,7 @@ class BookCheck : FunSpec({
      * A contradiction is semantics, which the grammar cannot see and must not try to (§4.3), so the book
      * has to be read whole and charged afterwards.
      *
-     * Built from the antonym table rather than a hand-picked pair, so it keeps asking the question if the
+     * Built from the opposed-tags table rather than a hand-picked pair, so it keeps asking the question if the
      * vocabulary is retuned.
      *
      * **Every pair the corpus can write, not the first one** (Jonah, 2026-08-05). A spot check passed for
@@ -139,12 +139,12 @@ class BookCheck : FunSpec({
      */
     test("contradicting yourself costs instability, never a parse error") {
         fun wordAsking(tag: String) = vocabulary.words.firstOrNull { it.narrows && tag in it.wanted }
-        val writable = vocabulary.antonyms.mapNotNull { antonym ->
-            val first = wordAsking(antonym.first) ?: return@mapNotNull null
-            val second = wordAsking(antonym.second) ?: return@mapNotNull null
+        val writable = vocabulary.opposedTags.mapNotNull { pair ->
+            val first = wordAsking(pair.first) ?: return@mapNotNull null
+            val second = wordAsking(pair.second) ?: return@mapNotNull null
             first to second
         }
-        check(writable.isNotEmpty()) { "the antonym table names no pair the corpus can write" }
+        check(writable.isNotEmpty()) { "the opposed-tags table names no pair the corpus can write" }
 
         for (opposed in writable) {
             // The two words that disagree, then the nucleus every book must have — modifiers lead the

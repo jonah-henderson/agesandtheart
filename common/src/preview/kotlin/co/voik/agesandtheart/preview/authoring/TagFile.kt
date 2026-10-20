@@ -142,7 +142,7 @@ object TagFile {
 
     /**
      * A tag renamed **everywhere it is written down** — the tables that carry it, the words that ask for
-     * it, and the antonym table that opposes it.
+     * it, and the opposed-tags table that opposes it.
      *
      * This is the operation a text editor is worst at and the pass keeps needing: `brilliant` became
      * `bright` and `sweeping` folded into `colossal`, and each one is three kinds of file. A rename that
@@ -154,13 +154,13 @@ object TagFile {
         return buildList {
             addAll(renameInTables(from, to))
             addAll(renameInWords(from, to))
-            addAll(renameInAntonyms(from, to))
+            addAll(renameInOpposedTags(from, to))
         }
     }
 
     /**
      * A tag **unwritten everywhere it is written down** — the tables that carry it, the words that ask for
-     * it, and the antonym table that opposes it.
+     * it, and the opposed-tags table that opposes it.
      *
      * The same three places a rename reaches, and for the same reason: a deletion that missed the words
      * would leave them asking for a tag nothing carries, which is legal and silent. What it cannot reach
@@ -172,7 +172,7 @@ object TagFile {
         return buildList {
             addAll(forgetInTables(tag))
             addAll(inEveryWord { word -> forgetInWord(word, tag) })
-            addAll(forgetInAntonyms(tag))
+            addAll(forgetInOpposedTags(tag))
         }
     }
 
@@ -202,7 +202,7 @@ object TagFile {
         "preset_tags/$page"
     }
 
-    private fun forgetInAntonyms(tag: String): List<String> = inEveryAntonymFile { pairs ->
+    private fun forgetInOpposedTags(tag: String): List<String> = inEveryOpposedTagsFile { pairs ->
         val left = pairs.filterNot { it.get("first")?.asString == tag || it.get("second")?.asString == tag }
         left.takeIf { it.size != pairs.size }
     }
@@ -263,7 +263,7 @@ object TagFile {
      * mark and does not carry one.
      *
      * **This read `query` and `queries` until 2026-09-02**, which no word has had since the world model
-     * landed — so a rename moved the tables and the antonyms and left every word asking for the old name,
+     * landed — so a rename moved the tables and the opposed tags and left every word asking for the old name,
      * silently, a query for a tag nobody carries being legal and simply finding nothing.
      */
     private fun spellings(word: JsonObject): List<Spelling> = buildList {
@@ -332,7 +332,7 @@ object TagFile {
         return true
     }
 
-    private fun renameInAntonyms(from: String, to: String): List<String> = inEveryAntonymFile { pairs ->
+    private fun renameInOpposedTags(from: String, to: String): List<String> = inEveryOpposedTagsFile { pairs ->
         var moved = false
         for (body in pairs) {
             for (side in listOf("first", "second")) {
@@ -344,9 +344,9 @@ object TagFile {
         pairs.takeIf { moved }
     }
 
-    /** Every antonym file, rewritten where [wanted] hands back a different set of pairs. */
-    private fun inEveryAntonymFile(wanted: (List<JsonObject>) -> List<JsonObject>?): List<String> {
-        val directory = WordFile.art.resolve("antonyms")
+    /** Every file of opposed tags, rewritten where [wanted] hands back a different set of pairs. */
+    private fun inEveryOpposedTagsFile(wanted: (List<JsonObject>) -> List<JsonObject>?): List<String> {
+        val directory = WordFile.art.resolve("opposed_tags")
         return directory.listFiles { file -> file.name.endsWith(JSON_SUFFIX) }.orEmpty().mapNotNull { file ->
             val json = runCatching { JsonParser.parseString(file.readText()).asJsonObject }.getOrNull()
                 ?: return@mapNotNull null
@@ -354,7 +354,7 @@ object TagFile {
             val left = wanted(pairs) ?: return@mapNotNull null
             json.add("pairs", JsonArray().apply { left.forEach(::add) })
             file.writeText(GSON.toJson(json) + "\n")
-            "antonyms/${file.name.removeSuffix(JSON_SUFFIX)}"
+            "opposed_tags/${file.name.removeSuffix(JSON_SUFFIX)}"
         }
     }
 

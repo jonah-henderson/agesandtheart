@@ -19,7 +19,7 @@ enum class Holds {
      *
      * **Self-describing, so no range is ever tagged**: a word bounds it and nothing has to be told which
      * temperatures are hot. Two claims broaden into the span holding both, since a word carrying a span is
-     * evocative about that axis, and they fracture instead where the antonym table says the two disagree —
+     * evocative about that axis, and they fracture instead where the opposed-tags table says the two disagree —
      * without which two spans miles apart would silently average into mush.
      */
     RANGE,

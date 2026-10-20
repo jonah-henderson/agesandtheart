@@ -63,7 +63,7 @@ age compose seadip 7 landmass=gentle sea=water sea.depth=-0.5..-0.5 underground=
 age probe seadip 0 0
 
 # And that the pair genuinely contradict each other. Both words set one parameter opposite ways, so
-# `Vocabulary.antonym` should find them with nothing written into `art/antonyms/` — the write itself is
+# `Vocabulary.disagreement` should find them with nothing written into `art/opposed_tags/` — the write itself is
 # what reports the flaw, there being no subcommand that reads a recipe back.
 age write seaboth 7 age gentle landmass shallow deep water sea
 age list

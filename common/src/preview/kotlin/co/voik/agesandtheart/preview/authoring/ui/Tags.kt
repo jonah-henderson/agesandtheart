@@ -441,7 +441,7 @@ class Tags(
             "needs a server snapshot to populate — sync data from server"
         fact.members == 0 -> "used by a word, but empty"
         fact.asked == 0 -> "has members, not used by any word"
-        fact.opposed -> "opposed in the antonym table"
+        fact.opposed -> "opposed in the opposed-tags table"
         else -> ""
     }
 

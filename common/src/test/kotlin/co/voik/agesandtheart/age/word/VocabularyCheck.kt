@@ -368,23 +368,23 @@ class VocabularyCheck : FunSpec({
     }
 
     /**
-     * Every antonym pair could actually fire.
+     * Every pair of opposed tags could actually fire.
      *
      * A pair naming a tag nothing carries is a dead row: harmless, but it looks like coverage where there is
      * none, and the table's whole job is explaining tensions the data found.
      */
-    test("every antonym could fire") {
-        for (antonym in vocabulary.antonyms) {
-            for (tag in listOf(antonym.first, antonym.second)) {
+    test("every pair of opposed tags could fire") {
+        for (pair in vocabulary.opposedTags) {
+            for (tag in listOf(pair.first, pair.second)) {
                 check(tag in vocabulary.carriedTags) {
-                    "The antonym '${antonym.first} vs ${antonym.second}' names '$tag', which nothing carries"
+                    "The opposed pair '${pair.first} vs ${pair.second}' names '$tag', which nothing carries"
                 }
             }
-            check(vocabulary.words.any { antonym.first in it.wanted }) {
-                "No word asks for '${antonym.first}', so the pair '${antonym.first} vs ${antonym.second}' can never fire"
+            check(vocabulary.words.any { pair.first in it.wanted }) {
+                "No word asks for '${pair.first}', so the pair '${pair.first} vs ${pair.second}' can never fire"
             }
-            check(vocabulary.words.any { antonym.second in it.wanted }) {
-                "No word asks for '${antonym.second}', so the pair '${antonym.first} vs ${antonym.second}' can never fire"
+            check(vocabulary.words.any { pair.second in it.wanted }) {
+                "No word asks for '${pair.second}', so the pair '${pair.first} vs ${pair.second}' can never fire"
             }
         }
     }

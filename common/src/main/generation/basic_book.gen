@@ -79,7 +79,7 @@ landed_thing = [formation]@3 | [underground]@3 | [life]@2
 thing_beside_a_sea = [formation]@3 | [underground_beside_a_sea]@3 | [life_beside_a_sea]@2
 
 # A barren climate only beside what does not live or grow: herds and trees are grazing and wooded against
-# barren (the antonym pairs of 2026-10-04, which made one basic book in four hundred unstable).
+# barren (the pairs of opposed tags of 2026-10-04, which made one basic book in four hundred unstable).
 bare_look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [moon]
 
 bare_thing = [formation]@3 | [underground]@3 | ruins structures | untouched structures

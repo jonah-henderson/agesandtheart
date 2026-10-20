@@ -127,7 +127,7 @@ class TagLayerCheck : FunSpec({
     test("every tag listed is carried, asked for, or opposed") {
         val corpus = Corpus.load()
         val layer = TagLayer(corpus)
-        val opposed = corpus.vocabulary.antonyms.flatMap { listOf(it.first, it.second) }.toSet()
+        val opposed = corpus.vocabulary.opposedTags.flatMap { listOf(it.first, it.second) }.toSet()
         val idle = layer.facts().filter { it.members == 0 && it.asked == 0 && it.tag !in opposed }
         check(idle.isEmpty()) { "listed for no reason: ${idle.map { it.tag }}" }
     }
@@ -172,7 +172,7 @@ class TagLayerCheck : FunSpec({
      * **A rename reaches every place a word spells a tag** — and until 2026-09-02 it reached none of them.
      *
      * It read `query` and `queries`, which no word has carried since the world model landed, so a rename
-     * moved the tables and the antonyms and left every word asking for the old name: legal, silent, and
+     * moved the tables and the opposed tags and left every word asking for the old name: legal, silent, and
      * finding nothing. The three places are `restricts` (bare), `biases` and `excludes` (marked), and the
      * mark is what tells a tag from a member where both are legal.
      */

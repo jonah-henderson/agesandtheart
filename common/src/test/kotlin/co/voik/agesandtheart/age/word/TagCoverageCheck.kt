@@ -40,7 +40,7 @@ class TagCoverageCheck : FunSpec({
      */
     test("every query does something") {
         fun reachOf(word: Word): Collection<Aspect> = word.aspects.ifEmpty { Aspect.entries.toSet() }
-        fun opposable(tag: String) = vocabulary.antonyms.any { it.first == tag || it.second == tag }
+        fun opposable(tag: String) = vocabulary.opposedTags.any { it.first == tag || it.second == tag }
         val onlyAServerKnows = vocabulary.tagsOnlyAServerGrants
         val inert = vocabulary.authoredWords
             .filter { it.everyTagAsked.isNotEmpty() }
@@ -48,7 +48,7 @@ class TagCoverageCheck : FunSpec({
             .filterNot { word -> word.wanted.any(::opposable) }
             .filterNot { word -> word.wanted.any(onlyAServerKnows::contains) }
         check(inert.isEmpty()) {
-            "these words ask for tags nothing carries and no antonym knows, so the query does nothing:\n" +
+            "these words ask for tags nothing carries and no pair of opposed tags knows, so the query does nothing:\n" +
                 inert.joinToString("\n") { word ->
                     "  ${word.name} (${word.aspects.joinToString(" ") { it.key }}) asks ${word.everyTagAsked.keys}"
                 }

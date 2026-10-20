@@ -166,14 +166,14 @@ private const val DERIVED_CANDIDATES = 120
 /**
  * The honest ceiling, a clause at a time: every contradiction needs two pages at least, so a page-at-a-time
  * search never finds one. Candidate clauses are a word and an aiming page, or two words from opposite
- * sides of an antonym pair and an aiming page; each step adds whichever clause raises the index most per
+ * sides of a pair of opposed tags and an aiming page; each step adds whichever clause raises the index most per
  * page, keeping only books that read exactly as laid.
  */
 private fun reportHonestCeiling(vocabulary: Vocabulary, limit: Int, varietyOnly: Boolean = false) {
     val aims = Aspect.entries.map { it.page }.filter { vocabulary.word(it) != null || vocabulary.grammarWord(it) != null }
     fun wanting(tag: String) = vocabulary.authoredWords.filter { it.narrows && tag in it.wanted }.take(WANTERS_A_SIDE)
-    val pairs = vocabulary.antonyms.flatMap { antonym ->
-        wanting(antonym.first).flatMap { first -> wanting(antonym.second).map { second -> first.name to second.name } }
+    val pairs = vocabulary.opposedTags.flatMap { pair ->
+        wanting(pair.first).flatMap { first -> wanting(pair.second).map { second -> first.name to second.name } }
     }
     val opposedWords = pairs.flatMap { listOf(it.first, it.second) }.distinct()
     val clauses = aims.flatMap { aim ->
@@ -258,7 +258,7 @@ private fun reportStuffedClause(vocabulary: Vocabulary, limit: Int) {
     println()
 }
 
-/** Per tag, the authored words that ask for it and against it — what an antonym pair over it would reach. */
+/** Per tag, the authored words that ask for it and against it — what a pair of opposed tags over it would reach. */
 private fun reportWhoWantsEachTag(vocabulary: Vocabulary) {
     val authored = vocabulary.authoredWords
     val tags = authored.flatMap { it.wanted + it.unwanted }.toSortedSet()
@@ -268,7 +268,7 @@ private fun reportWhoWantsEachTag(vocabulary: Vocabulary) {
         println("%-14s wanted by %-3d %s".format(tag, wanting.size, wanting.joinToString(" ")))
         if (against.isNotEmpty()) println("%-14s against  %-3d %s".format("", against.size, against.joinToString(" ")))
     }
-    println("pairs in the table: " + vocabulary.antonyms.joinToString { "${it.first}/${it.second}" })
+    println("pairs in the table: " + vocabulary.opposedTags.joinToString { "${it.first}/${it.second}" })
 }
 
 private val UNSTABLE_CANDIDATES = listOf(
