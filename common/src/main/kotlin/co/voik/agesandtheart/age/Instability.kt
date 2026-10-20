@@ -71,6 +71,13 @@ enum class Register(val key: String) : StringRepresentable {
     UNBACKED("unbacked"),
 
     /**
+     * Two words that could not both be what they said where they landed together — what every disagreement between
+     * words is charged as (`notes/meanings-plan.md` §2, Charging incoherence), read off what each could do there
+     * before anything was drawn.
+     */
+    INCOHERENT("incoherent"),
+
+    /**
      * A page there was nowhere for **in any sentence at all** — a second `Age`, or an `and` with nothing
      * on one side of it (§4.3.1). The only register that costs a writer a page outright: everything else
      * here is a world at odds with itself, where this is a book that was not one.
@@ -121,6 +128,7 @@ data class Flaw(
                 "so the Art laid it under $where instead"
             Register.UNBACKED -> "nothing in $where can be ${quoted.firstOrNull() ?: "that"} — " +
                 "a gap in the vocabulary, not something you did"
+            Register.INCOHERENT -> "$both cannot both be what they said in $where$over"
             Register.IMPOSSIBLE -> "there is nowhere in a sentence for ${quoted.firstOrNull() ?: "that page"}, " +
                 "so it was spent for nothing"
         }

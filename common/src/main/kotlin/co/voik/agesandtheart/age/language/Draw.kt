@@ -83,6 +83,7 @@ internal object Draw {
         effects = claim.effects,
         place = claim.place,
         word = claim.word.name,
+        clause = claim.clause,
         page = claim.page,
         aimed = claim.aimed,
         chance = chanceOf(claim),

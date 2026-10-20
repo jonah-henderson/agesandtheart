@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.resolution.Effect
+import co.voik.agesandtheart.age.resolution.GROWS_IN_PLACES
 import co.voik.agesandtheart.age.resolution.Members
 import co.voik.agesandtheart.age.resolution.Place
 import net.minecraft.resources.Identifier
@@ -30,8 +31,6 @@ object Reader {
         return Draw.of(pass.claims, read, pass.templates.values.firstOrNull(), seed)
     }
 
-    /** The parts of the world `everywhere` can widen, being the ones that grow in places. */
-    val WIDENED: Set<Aspect> = setOf(Aspect.FEATURES, Aspect.SPAWNS)
 
     /** What `and` may join: a page still waiting, or a word that has taken pages. */
     private sealed interface Term
@@ -145,7 +144,7 @@ object Reader {
         /** `everywhere`: the last word that took pages widened to every place, where it is one that grows in places. */
         private fun widening() {
             val taker = lastTaker
-            if (taker == null || taker.place.aspect !in WIDENED) return impossible(at)
+            if (taker == null || taker.place.aspect !in GROWS_IN_PLACES) return impossible(at)
             for (claim in taker.claims) claims[claim] = claims[claim].copy(everywhere = true)
         }
 
@@ -195,7 +194,9 @@ object Reader {
                 }
                 if (joinedTo == null) fates[page.index] = Fate.TakenBy(at)
                 for ((meaning, effects) in taken) {
-                    claims += Claim(page.index, page.word, meaning, place, effects, aimed = true, joined = page.joined ?: joined)
+                    claims += Claim(
+                        page.index, page.word, meaning, place, effects, clause = at, aimed = true, joined = page.joined ?: joined,
+                    )
                 }
             }
             ownMeanings(word, acceptance, place, describedBy = claims.subList(from, claims.size))
@@ -224,13 +225,13 @@ object Reader {
             val membersAreThereAnyway = place.aspect.pool?.startsEmpty != true
             val onlyDescribes = namesMembers && describes && !asksForAnAmount && said == Polarity.ASSERTED && membersAreThereAnyway
             if (place.members is Members.Body) {
-                claims += Claim(at, word, Meaning(emptyList(), mustAlwaysApply = true), place, emptyList(), aimed = true)
+                claims += Claim(at, word, Meaning(emptyList(), mustAlwaysApply = true), place, emptyList(), clause = at, aimed = true)
             }
             for (meaning in word.meanings) {
                 if (onlyDescribes && meaning.effects.all(::namesMembers)) continue
                 namesATemplate(at, meaning)
                 for ((ownPlace, effects) in placesOf(meaning)) {
-                    claims += Claim(at, word, meaning, ownPlace, effects, aimed = true, polarity = said)
+                    claims += Claim(at, word, meaning, ownPlace, effects, clause = at, aimed = true, polarity = said)
                 }
             }
         }
@@ -255,7 +256,7 @@ object Reader {
             for (meaning in asserted) {
                 namesATemplate(page.index, meaning)
                 for ((place, effects) in placesOf(meaning)) {
-                    claims += Claim(page.index, page.word, meaning, place, effects, aimed = true, joined = page.joined)
+                    claims += Claim(page.index, page.word, meaning, place, effects, clause = page.index, aimed = true, joined = page.joined)
                 }
             }
         }
@@ -265,7 +266,7 @@ object Reader {
             for (meaning in page.word.meanings.filter(Meaning::appliesUnaimed)) {
                 namesATemplate(page.index, meaning)
                 for ((place, effects) in placesOf(meaning)) {
-                    claims += Claim(page.index, page.word, meaning, place, effects, aimed = false, joined = page.joined)
+                    claims += Claim(page.index, page.word, meaning, place, effects, clause = null, aimed = false, joined = page.joined)
                 }
             }
         }
@@ -313,6 +314,7 @@ internal data class Claim(
     val meaning: Meaning,
     val place: Place,
     val effects: List<Effect>,
+    val clause: Int?,
     val aimed: Boolean,
     val joined: Int? = null,
     val sitedIn: Identifier? = null,

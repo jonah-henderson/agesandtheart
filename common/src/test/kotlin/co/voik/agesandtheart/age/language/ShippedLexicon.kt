@@ -4,6 +4,9 @@ import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.ShippedCorpus
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Taggable
+import co.voik.agesandtheart.age.resolution.Resolution
+import co.voik.agesandtheart.age.resolution.WorldFacts
+import co.voik.agesandtheart.age.word.MaterialTable
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.preview.meanings.WordConversion
 import com.google.gson.JsonParser
@@ -33,6 +36,25 @@ object ShippedLexicon {
             DerivedWords.features(registries) + DerivedWords.structures(registries) + DerivedWords.designs()
         Lexicon(derived + DerivedWords.aspectPages() + authored() + quantifiers(), structural(), TAGS, registries)
     }
+
+    /** The shipped vocabulary's world, as resolution reads it. */
+    val world: WorldFacts = object : WorldFacts {
+        private val vocabulary get() = ShippedCorpus.vocabulary
+
+        override fun tagsOf(member: Taggable) = vocabulary.tagsOf(member)
+        override fun candidatesFor(aspect: Aspect) = vocabulary.candidatesFor(aspect)
+        override fun availableToBroadWordsIn(aspect: Aspect) = vocabulary.availableToBroadWordsIn(aspect)
+        override fun readinessOf(member: Taggable) = vocabulary.readinessOf(member)
+        override fun isPresentAnyway(member: Taggable) = vocabulary.isPresentAnyway(member)
+        override fun turnsAParameter(aspect: Aspect, parameter: String) = vocabulary.turnsAParameter(aspect, parameter)
+        override fun drawnMaterial(query: String, parameter: String, seed: Long) =
+            vocabulary.materials.drawFor(query, seed, MaterialTable.mayDrawFor(parameter))
+        override fun areOpposed(first: String, second: String) = vocabulary.opposition(first, second) != null
+    }
+
+    /** A book of [pages] read and resolved at [seed], which must read. */
+    fun resolved(pages: String, seed: Long = 0L): Resolution =
+        requireNotNull(Writing.resolve(lexicon, world, pages.split(" "), seed)) { "'$pages' does not read" }
 
     /** A book of [pages] read at [seed], which must read. */
     fun read(pages: String, seed: Long = 0L): Reading =
