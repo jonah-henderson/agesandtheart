@@ -26,11 +26,12 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   line that says to delete it when the last item goes.** Its §5 is the tool, which is `scripts/scrivener.sh`;
   §5.1 and §5.2 are what that tool refuses and nudges about. Read it before authoring a word or touching
   `art/word/` — and author with the tool rather than by hand.
-- **`notes/vocabulary-representation-review.md`** — whether the vocabulary's underlying representation should be
-  refactored, opened 2026-10-17 because the model has needed so many exceptions. **Not started.** It holds the
-  evidence — every special case carved out so far — and Jonah's proposal (2026-10-18): words carry meanings that
-  look right for the first word that accepts them, members name themselves and most aiming words retire.
-  Read it before adding another exception to how a word is read.
+- **`notes/meanings-plan.md`** — the rewrite of how a page becomes a claim: words carry meanings that land on the
+  first word that accepts them, members name themselves and most aiming words retire. **Decided 2026-10-19,
+  unbuilt, on the branch `meanings`.** It opens with the rules that keep the rework from becoming a hybrid of the
+  old model and the new — read §1 before writing a line of it — then the model, the seam with everything outside
+  the layer, and the list of what must be gone before merge. Read it before adding another exception to how a word
+  is read.
 - **`notes/instability-tiers-plan.md`** — what is left of the instability tiers, which are **built** and live in
   design §5.0: the strange tier (cosmetic manifestations, the beginner's whole experience of instability,
   and nothing in it yet), the mirage experiment, and the wounds' rework. Read it before adding a manifestation
