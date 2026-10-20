@@ -8,7 +8,7 @@ import io.kotest.core.spec.style.FunSpec
  * move that level, and the abyss is laid off where it then stands — its deep water, its biome, and the whalefalls and
  * vents on its floor, and the hadalfish the vents keep.
  */
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER)
 class VanillaDeepSeaOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 

@@ -368,7 +368,7 @@ class Release:
 
     def run_checks(self) -> None:
         self.gradle(self.codebase, "checks-compile", ":fabric:compileKotlin")
-        self.gradle(self.codebase, "checks", ":common:serverTest", "-Pfast")
+        self.gradle(self.codebase, "checks", ":common:serverTest", ":common:longTest")
 
     def build_jars(self) -> None:
         self.gradle(self.codebase, "build", ":fabric:build")

@@ -7,7 +7,7 @@ import io.kotest.core.spec.style.FunSpec
  * A sealed sky over vanilla's terrain has a roof: our landforms build one into their own shape, and vanilla's
  * overworld has none of its own, so it was open air in endless dark.
  */
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER)
 class VanillaRoofOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 

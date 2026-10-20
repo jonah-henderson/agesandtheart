@@ -1,8 +1,8 @@
 package co.voik.agesandtheart.preview.authoring
 
+import co.voik.agesandtheart.RUNS_LONG
 import co.voik.agesandtheart.server.LaunchSpec
 import co.voik.agesandtheart.server.NEEDS_SERVER
-import co.voik.agesandtheart.server.NEEDS_TIME
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import java.io.File
@@ -15,7 +15,7 @@ import java.io.File
  * going away again is not tidiness - it is the whole reason the feature is safe to use. The fence that
  * makes the removal safe is `ThrowawayWorldCheck`'s, which needs no server.
  */
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER, RUNS_LONG)
 class PreviewServerCheck : FunSpec({
 
     test("a book becomes an Age you could stand in, and the world goes away after") {

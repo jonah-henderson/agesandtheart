@@ -196,6 +196,9 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOM
 # The server checks — boots a real server, drives it over RCON, asserts in Kotest
 ./gradlew :common:serverTest
 
+# The checks that take ten seconds or more, run before a release (see "Tests")
+./gradlew :common:longTest
+
 # The landform shape checks — opt-in, and they *warn* rather than fail (see "Tests")
 ./gradlew :common:landformTest
 
@@ -275,14 +278,14 @@ It lives in `common/src/preview/kotlin/.../authoring/` and is started by the scr
 because a TTY is what Gradle cannot give a `JavaExec`. `:common:exportAuthoringLaunch` writes the launch
 down; the script runs it.
 
-**Tests:** **Kotest**, in three tasks split by what they cost and what they are worth.
+**Tests:** **Kotest**, in four tasks split by what they cost and what they are worth.
 
 ```bash
-./gradlew :common:test                     # the loop — everything but landforms and the server, ~27s
+./gradlew :common:test                     # the loop — everything but landforms and the server, ~40s
 ./gradlew :common:test -Pfast              # and without the specs that need Minecraft's registries
 ./gradlew :common:test --tests "*Grammar*" # one spec
-./gradlew :common:serverTest               # boots a real server, drives it over RCON, ~4min
-./gradlew :common:serverTest -Pfast        # ...without the specs that wait on time or fresh Ages, ~1.5min
+./gradlew :common:serverTest               # boots a real server, drives it over RCON, ~2min
+./gradlew :common:longTest                 # the checks that take ten seconds or more — before a release, ~2min
 ./gradlew :common:landformTest             # the shape of the rock — opt-in, ~220s, and it only *warns*
 ```
 
@@ -299,10 +302,14 @@ already mirror the code they check — so this is a name for a directory rather 
 keep in step. A feature with nothing in a given task runs nothing rather than failing, so `-Pon=desk` is a
 fair thing to say to `serverTest`. A misspelled one lists what it should have been.
 
-**`-Pfast` drops the specs that wait on time or on fresh Ages** (`NEEDS_TIME`), measured 2026-10-16 at a minute
-and a half against seven minutes for what it ran before. Two kinds carry the tag: `TempestCheck` and
-`DeletionCheck` wait out real weather and whole worlds, and the specs that generate fresh Ages pay seconds per
-Age — mostly vanilla placing strongholds, which reads the biome at every ring through our terrain and its caves.
+**A check is under ten seconds or it is long** (Jonah, 2026-10-20): `RUNS_LONG` on the spec or the one test,
+and only `longTest` runs it, before a release; while developing, what it checks is looked at in the game. A
+test another reads from takes its spec with it. Measured 2026-10-20 at 2m05s for `serverTest` and 2m13s for
+`longTest`, from eleven minutes for the two together. **What made a fresh Age cost seconds was strongholds**:
+every level searches 128 places for their rings when it opens, on the pool chunks generate on, so `DrivenServer`
+writes a data pack into the checks' world giving the stronghold no biome to stand in (`BootLogCheck` holds that
+it loaded). And **a check forces only the chunks it reads, side by side** — a chunk loaded on its own drags its
+neighbours through generation with it.
 **A wait in a server spec asks the server, never the clock**: `forceload add` returns once its chunks are
 generated, `DrivenServer.waitUntil` asks until a chunk counts as loaded, and `sprint` and `step` return when the
 server says the ticks have run.

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.server
 
+import co.voik.agesandtheart.RUNS_LONG_TAG
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -8,7 +9,7 @@ import io.kotest.core.spec.style.FunSpec
  * great halls hollow the rock where its caves would have been. Sampled away from the origin, where this seed stands
  * a structure. And a rock of two blocks is laid as both.
  */
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER)
 class VanillaUndergroundOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 
@@ -32,7 +33,7 @@ class VanillaUndergroundOnServerCheck : FunSpec({
         return open
     }
 
-    test("no underground leaves vanilla's rock without its caves, and great halls hollow it") {
+    test("no underground leaves vanilla's rock without its caves, and great halls hollow it").config(tags = setOf(RUNS_LONG_TAG)) {
         val caves = openAirUnder("noise_caves")
         val none = openAirUnder("none")
         val halls = openAirUnder("great_halls")

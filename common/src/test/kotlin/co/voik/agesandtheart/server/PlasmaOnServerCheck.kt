@@ -10,7 +10,7 @@ import io.kotest.core.spec.style.FunSpec
  *
  * On a server because the sea is laid by generation in a written Age.
  */
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER)
 class PlasmaOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 

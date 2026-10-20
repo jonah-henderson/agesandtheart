@@ -8,7 +8,7 @@ import io.kotest.core.spec.style.FunSpec
  * a village written of nether bricks has nether bricks in it, and colossal trees stand taller than ordinary ones on
  * trunks thick enough to be more wood. Not more of them: a colossal crown leaves the trees after it nowhere to stand.
  */
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER)
 class StructureMaterialOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 

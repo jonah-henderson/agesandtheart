@@ -9,7 +9,7 @@ import io.kotest.core.spec.style.FunSpec
  *
  * The step is forced before any chunk exists, since only ground generated afterwards takes it.
  */
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER)
 class OvergrownGroundOnServerCheck : FunSpec({
 
     val server = DrivenServer.shared
@@ -62,9 +62,11 @@ class OvergrownGroundOnServerCheck : FunSpec({
         const val PLAIN = "plainground"
         const val MOST_STEPS = 4
         const val FAR = 5000
-        const val REACH = 200
         const val PROBE_HEIGHT = 64
         const val SCANNED = 96
+
+        /** Only what [overgrowthIn] scans is forced: chunks cost seconds apiece. */
+        const val REACH = SCANNED
         const val TILE = 32
         const val SCAN_FROM = 48
         const val SCAN_TO = 112

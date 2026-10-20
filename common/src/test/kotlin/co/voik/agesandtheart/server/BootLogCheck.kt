@@ -47,6 +47,14 @@ class BootLogCheck : FunSpec({
         }
     }
 
+    /** The world's own pack loaded, or every fresh Age searches for stronghold rings again (`DrivenServer`). */
+    test("the checks' world has no strongholds to search for") {
+        val enabled = server.run("datapack list enabled")
+        check("agesandtheart-checks" in enabled) { "the checks' pack was not enabled: $enabled" }
+        val located = server.run("locate structure minecraft:stronghold")
+        check("Could not find" in located || "no structure" in located.lowercase()) { "a stronghold was found: $located" }
+    }
+
     test("no mixin of ours failed to apply") {
         // A mixin that misses its target is logged and the game continues without it — the same shape of
         // silent failure, and the one that would take a sky renderer out entirely.

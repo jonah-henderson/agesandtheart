@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.server
 
+import co.voik.agesandtheart.RUNS_LONG_TAG
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -15,11 +16,11 @@ import io.kotest.core.spec.style.FunSpec
  * delete that unlinks before closing succeeds and leaves the directory behind.
  */
 // Two thirds of the server suite between this and its sibling — it builds and destroys whole worlds on disk.
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER)
 class DeletionCheck : FunSpec({
     val server = DrivenServer.shared
 
-    test("a deleted Age takes its saved chunks with it") {
+    test("a deleted Age takes its saved chunks with it").config(tags = setOf(RUNS_LONG_TAG)) {
         server.run("age write gone age gentle landmass")
         // Generated on purpose: an Age nobody has visited has nothing on disk, so deleting one proves
         // nothing about deleting one that does.
@@ -35,7 +36,7 @@ class DeletionCheck : FunSpec({
         check(!server.run("age list").contains("gone")) { "a deleted Age is still listed" }
     }
 
-    test("a renamed Age takes its saved chunks with it and leaves nothing behind") {
+    test("a renamed Age takes its saved chunks with it and leaves nothing behind").config(tags = setOf(RUNS_LONG_TAG)) {
         // The crystal viewer's preview, renamed after its book's title as the book takes it over.
         server.run("age write age_preview age gentle landmass")
         server.run("age gen age_preview")
@@ -68,7 +69,7 @@ class DeletionCheck : FunSpec({
         server.run("age delete kept_b")
     }
 
-    test("the name comes free again, and the new Age is a new world") {
+    test("the name comes free again, and the new Age is a new world").config(tags = setOf(RUNS_LONG_TAG)) {
         server.run("age write reused age gentle landmass")
         server.run("age gen reused")
         server.run("age delete reused")

@@ -8,7 +8,7 @@ import io.kotest.core.spec.style.FunSpec
  * ours, and an Age on it rained for days and drowned nothing. The rise itself waits on somebody being there, so
  * what is held here is that the sea is found, at the level the rock pours it.
  */
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER)
 class DelugeSeaOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 

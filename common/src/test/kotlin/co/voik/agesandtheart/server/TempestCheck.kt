@@ -27,7 +27,7 @@ import io.kotest.core.spec.style.FunSpec
  * nor the fire from one can reach the next.
  */
 // Two thirds of the server suite between this and its sibling — it waits out real weather over real ticks.
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER)
 class TempestCheck : FunSpec({
     val server = DrivenServer.shared
 

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.page
 
+import co.voik.agesandtheart.RUNS_LONG
 import co.voik.agesandtheart.server.DrivenServer
 import co.voik.agesandtheart.server.NEEDS_SERVER
 import io.kotest.core.annotation.Tags
@@ -9,7 +10,7 @@ import io.kotest.core.spec.style.FunSpec
  * Every container pages are put in holds writing, opened through vanilla's own table on a real server — which
  * is the injection reaching it on this loader, not just being listed. How often is tuning, and not checked.
  */
-@Tags(NEEDS_SERVER)
+@Tags(NEEDS_SERVER, RUNS_LONG)
 class PageLootOnServerCheck : FunSpec({
 
     val server = DrivenServer.shared

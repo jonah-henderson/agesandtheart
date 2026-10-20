@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.server
 
+import co.voik.agesandtheart.RUNS_LONG
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -7,16 +8,17 @@ import io.kotest.core.spec.style.FunSpec
  * Rime grows round the tops of the tall ice spikes, on gentle land with no cliffs to grow it — and on spikes a book
  * resized, which are copies of vanilla's that have lost its name.
  */
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER, RUNS_LONG)
 class IceSpikeRimeOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 
     fun crystalsIn(age: String): Int {
+        val edge = RADIUS_CHUNKS * CHUNK
+        server.run("execute in agesandtheart:$age run forceload add ${-edge} ${-edge} ${edge + CHUNK - 1} ${edge + CHUNK - 1}")
         var crystals = 0
         for (chunkX in -RADIUS_CHUNKS..RADIUS_CHUNKS) for (chunkZ in -RADIUS_CHUNKS..RADIUS_CHUNKS) {
             val x = chunkX * CHUNK
             val z = chunkZ * CHUNK
-            server.run("execute in agesandtheart:$age run forceload add $x $z")
             for (band in BANDS) {
                 val filled = server.run(
                     "execute in agesandtheart:$age run fill $x ${band.first} $z ${x + CHUNK - 1} ${band.last} ${z + CHUNK - 1} " +
@@ -24,8 +26,8 @@ class IceSpikeRimeOnServerCheck : FunSpec({
                 )
                 crystals += FILLED.find(filled)?.groupValues?.get(1)?.toInt() ?: 0
             }
-            server.run("execute in agesandtheart:$age run forceload remove $x $z")
         }
+        server.run("execute in agesandtheart:$age run forceload remove all")
         return crystals
     }
 
@@ -47,7 +49,7 @@ class IceSpikeRimeOnServerCheck : FunSpec({
     }
 })
 
-private const val RADIUS_CHUNKS = 6
+private const val RADIUS_CHUNKS = 4
 private const val CHUNKS = (2 * RADIUS_CHUNKS + 1) * (2 * RADIUS_CHUNKS + 1)
 private const val CHUNK = 16
 

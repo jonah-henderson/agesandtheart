@@ -157,6 +157,26 @@ class DrivenServer private constructor(
         private const val BETWEEN_TRIES_MILLIS = 250L
 
         /**
+         * A data pack in the new world giving the stronghold nowhere to stand. Every level searches 128 places for
+         * its rings when it opens, on the pool that generates chunks, and no check asks for a stronghold — so each
+         * fresh Age paid seconds for nothing. A structure with no biomes is dropped before any ring is searched.
+         */
+        private fun withoutStrongholds(world: File) {
+            val pack = world.resolve("datapacks/$CHECKS_PACK")
+            pack.resolve("pack.mcmeta").apply { parentFile.mkdirs() }.writeText(
+                """{"pack": {"description": "The checks' world", "min_format": $DATA_FORMAT, "max_format": $DATA_FORMAT}}""",
+            )
+            pack.resolve("data/minecraft/tags/worldgen/biome/has_structure/stronghold.json")
+                .apply { parentFile.mkdirs() }
+                .writeText("""{"replace": true, "values": []}""")
+        }
+
+        private const val CHECKS_PACK = "agesandtheart-checks"
+
+        /** 26.3's data pack format, from its `version.json`. */
+        private const val DATA_FORMAT = 121
+
+        /**
          * Removes a world **only** if it is one of ours, sitting where we put it, and not a link. Anything
          * else is left exactly alone and said out loud rather than silently skipped.
          */
@@ -180,6 +200,7 @@ class DrivenServer private constructor(
          */
         fun start(level: String): DrivenServer {
             val launch = LaunchSpec.read()
+            withoutStrongholds(launch.workingDirectory.resolve(level))
             val port = ServerLaunch.freePort()
             val started = ServerLaunch.start(
                 launch,
@@ -211,14 +232,3 @@ class DrivenServer private constructor(
  * the worlds have to be generated.
  */
 const val NEEDS_SERVER = "NeedsServer"
-
-/**
- * Marks a server spec that is expensive **even among server specs** — dropped by `-Pfast`, and run by every
- * unfiltered `serverTest`, which is what a merge should use.
- *
- * Two kinds earn it. One waits out the game's own time: `TempestCheck` real weather, `DeletionCheck` whole
- * worlds built and destroyed. The other generates fresh Ages, whose first chunks cost seconds apiece — most of
- * it vanilla placing strongholds, which reads the biome at every ring — where nearly every other spec here
- * takes under a second. So this is about *when* they run, not whether.
- */
-const val NEEDS_TIME = "NeedsTime"

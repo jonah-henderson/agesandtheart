@@ -225,8 +225,8 @@ val NEEDS_SERVER_TAG = "NeedsServer"
 /** Must match `NEEDS_LANDFORMS` in `common/src/test/kotlin/.../worldgen/Landforms.kt`, which says why. */
 val NEEDS_LANDFORMS_TAG = "NeedsLandforms"
 
-/** Must match `NEEDS_TIME` in `common/src/test/kotlin/.../server/DrivenServer.kt`, which says why. */
-val NEEDS_TIME_TAG = "NeedsTime"
+/** Must match `RUNS_LONG` in `common/src/test/kotlin/.../RunsLong.kt`, which says why. */
+val RUNS_LONG_TAG = "RunsLong"
 
 val test: SourceSet = sourceSets.test.get()
 // Minecraft arrives compile-only under ModDevGradle, exactly as for `preview`. The *runtime* half is not
@@ -268,6 +268,7 @@ tasks.named<Test>("test") {
     val excluded = listOfNotNull(
         NEEDS_SERVER_TAG,
         NEEDS_LANDFORMS_TAG,
+        RUNS_LONG_TAG,
         NEEDS_REGISTRIES_TAG.takeIf { project.hasProperty("fast") },
     )
     systemProperty("kotest.tags", excluded.joinToString(" & ") { "!$it" })
@@ -286,10 +287,8 @@ tasks.named<Test>("test") {
 }
 
 /**
- * The checks that need a real server — `./gradlew :common:serverTest`.
- *
- * Same source set and same Kotest suite as `test`, selected by tag rather than split into a source set of
- * its own: they are the same kind of thing written the same way, and only what they *cost* differs.
+ * What a task that may drive a real server needs: the loader's launch written down, the loader named, and one server
+ * driven in sequence.
  *
  * It depends on the loader's `exportServerLaunch` because [co.voik.agesandtheart.server.DrivenServer]
  * starts the server itself rather than through Gradle — a nested build would wait forever on this one's
@@ -299,9 +298,7 @@ tasks.named<Test>("test") {
  * identically on both, so the suite that says whether it does should be the same suite rather than a second
  * one that could drift. Fabric stays the default because it is the loader everything else already assumes.
  */
-tasks.register<Test>("serverTest") {
-    group = "verification"
-    description = "Runs the checks that drive a real dedicated server over RCON. -Pchecks.loader=neoforge for the other side."
+fun Test.drivesAServer(tags: String) {
     useJUnitPlatform()
 
     val loader = (project.findProperty("checks.loader") as String?) ?: "fabric"
@@ -318,12 +315,7 @@ tasks.register<Test>("serverTest") {
     // which looks exactly like passing.
     inputs.property("checksLoader", loader)
 
-    // `-Pfast` drops the two specs that *are* the runtime — see NEEDS_TIME, which carries the measurement.
-    val excluded = listOfNotNull(
-        NEEDS_LANDFORMS_TAG,
-        NEEDS_TIME_TAG.takeIf { project.hasProperty("fast") },
-    )
-    systemProperty("kotest.tags", (listOf(NEEDS_SERVER_TAG) + excluded.map { "!$it" }).joinToString(" & "))
+    systemProperty("kotest.tags", tags)
     narrowedToFeature()
     // One server, driven in sequence — so this task deliberately does *not* name `ConcurrentSpecs`.
     // Specs running together would each start a server and fight over one `server.properties` and one world.
@@ -334,6 +326,27 @@ tasks.register<Test>("serverTest") {
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         showStackTraces = true
     }
+}
+
+/**
+ * The checks that need a real server — `./gradlew :common:serverTest`. Same source set and same Kotest suite as
+ * `test`, selected by tag: they are the same kind of thing written the same way, and only what they *cost* differs.
+ * The ones that run long are `longTest`'s.
+ */
+tasks.register<Test>("serverTest") {
+    group = "verification"
+    description = "Runs the checks that drive a real dedicated server over RCON. -Pchecks.loader=neoforge for the other side."
+    drivesAServer("$NEEDS_SERVER_TAG & !$NEEDS_LANDFORMS_TAG & !$RUNS_LONG_TAG")
+}
+
+/**
+ * The checks that take ten seconds or more — `./gradlew :common:longTest`, run before a release. Most need a
+ * server, so this drives one; what they check is seen in the game while developing (`RunsLong.kt`).
+ */
+tasks.register<Test>("longTest") {
+    group = "verification"
+    description = "Runs the checks that take ten seconds or more, before a release. -Pchecks.loader=neoforge for the other side."
+    drivesAServer("$RUNS_LONG_TAG & !$NEEDS_LANDFORMS_TAG")
 }
 
 /**

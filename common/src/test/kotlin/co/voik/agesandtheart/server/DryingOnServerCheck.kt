@@ -11,7 +11,7 @@ import io.kotest.core.spec.style.FunSpec
  * On a server because the recipes are datapack JSON and the skies are written Ages. Each rack has a roof,
  * so an Age's rain cannot start it again partway.
  */
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER)
 class DryingOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 

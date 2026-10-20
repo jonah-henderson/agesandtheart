@@ -57,7 +57,7 @@ class CompatibilityRecordCheck : FunSpec({
 private val RECORD_FILE = File("compatibility.record")
 private const val RECORDING_PROPERTY = "agesandtheart.recordCompatibility"
 private const val HOW_TO_RECORD =
-    "Re-record with ./gradlew :common:serverTest -Pfast -Pon=compatibility -PrecordCompatibility"
+    "Re-record with ./gradlew :common:serverTest -Pon=compatibility -PrecordCompatibility"
 
 private typealias Line = Pair<Int, Int>
 

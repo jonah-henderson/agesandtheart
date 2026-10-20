@@ -7,7 +7,7 @@ import io.kotest.core.spec.style.FunSpec
  * A world floating over nothing — the End's rock, skyborne — has no sea unless a book names one, and then a
  * shallow one on bedrock at the bottom of the world.
  */
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER)
 class SeaUnderTheVoidOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 

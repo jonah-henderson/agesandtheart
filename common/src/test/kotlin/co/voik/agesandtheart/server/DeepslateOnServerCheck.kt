@@ -7,7 +7,7 @@ import io.kotest.core.spec.style.FunSpec
  * An Age of stone turns to deepslate at depth, as vanilla's overworld does, whichever landform shapes it, vanilla's
  * own included; an Age of anything else keeps its own rock all the way down.
  */
-@Tags(NEEDS_SERVER, NEEDS_TIME)
+@Tags(NEEDS_SERVER)
 class DeepslateOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 
