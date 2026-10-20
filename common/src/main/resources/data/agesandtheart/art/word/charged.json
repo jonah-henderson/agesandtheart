@@ -6,8 +6,9 @@
     "",
     "**The sky's reading is offered to it**, because the sky understands nothing an aurora is: left to what",
     "the sky takes, `charged sky` would land the word's other meanings bare and say nothing of the sky. The",
-    "creeper's charge never lands bare, so `charged age` brings the storms and the curtains and no charged",
-    "creepers; `charged monsters` charges the creepers among them, which is what it says."
+    "creeper's charge never lands bare, and `charged age` thunders and hangs curtains for certain and only",
+    "sometimes brings a tempest, which is a worse thunderstorm: it charges no creepers, where `charged",
+    "monsters` charges the creepers among them, which is what it says."
   ],
   "meanings": [
     {
@@ -41,22 +42,33 @@
     {
       "sets": {
         "thunder": "0.7..1.0"
-      }
+      },
+      "must_always_apply": true
     },
     {
       "admits": {
         "phenomena": [
-          "tempest",
           "aurora"
         ]
       },
       "leans": {
         "phenomena": {
-          "tempest": 1.0,
           "aurora": 1.0
         }
       },
       "must_always_apply": true
+    },
+    {
+      "admits": {
+        "phenomena": [
+          "tempest"
+        ]
+      },
+      "leans": {
+        "phenomena": {
+          "tempest": 1.0
+        }
+      }
     },
     {
       "sets": {
