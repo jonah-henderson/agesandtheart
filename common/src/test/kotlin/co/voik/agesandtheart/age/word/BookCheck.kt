@@ -4,7 +4,10 @@ import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.read
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.word.generation.GenerationGrammar
-import co.voik.agesandtheart.age.word.grammar.Production
+import co.voik.agesandtheart.age.language.Fate
+import co.voik.agesandtheart.age.aspect.Bars
+import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.book.FoundBookDraft
 import co.voik.agesandtheart.book.FoundBookKind
 import io.kotest.core.annotation.Tags
@@ -59,7 +62,7 @@ class BookCheck : FunSpec({
 
     /** Rows of pages drawn from the whole corpus — nonsense on purpose, and never meant to be otherwise. */
     val fuzzed by lazy {
-        val sayable = vocabulary.authoredWords.map { it.name } + vocabulary.grammarWords.map { it.name }
+        val sayable = vocabulary.authoredWords.map { it.name } + vocabulary.structurePages.map { it.name }
         val derived = vocabulary.derivedWords.map { it.name }
         (1L..ROWS_FUZZED).map { seed ->
             val random = Random(seed)
@@ -105,9 +108,9 @@ class BookCheck : FunSpec({
     test("garbling a book costs vagueness, never instability") {
         for (book in judgeable) {
             val junk = "zzzznotaword${book.seed}"
-            val read = read(book.pages + junk)
-            check(read.unreadable == listOf(junk)) {
-                "garbling $book reported ${read.unreadable} rather than the one page nobody can read"
+            val read = read(book.pages + junk, book.seed)
+            check(read.unread.map { it.written } == listOf(junk)) {
+                "garbling $book reported ${read.unread} rather than the one page nobody can read"
             }
             // The other channel must stay empty: an unreadable page is vagueness, and charging it as
             // something no sentence has room for would be the two channels collapsed into one (§4.3).
@@ -115,7 +118,7 @@ class BookCheck : FunSpec({
                 "garbling $book was read as an impossibility: ${read.impossible}"
             }
             // Against the book as written rather than against nothing, since an unstable one starts flawed.
-            val garbled = Resolver.resolve(vocabulary, read, book.seed).instability
+            val garbled = vocabulary.resolve(read, book.seed).instability
             // The flaws, not the whole instability: the garbling page is one more page laid.
             check(garbled.flaws == book.instability?.flaws) {
                 "an unreadable page changed $book from ${book.instability} to $garbled: ${garbled.flaws.joinToString("; ")}"
@@ -132,31 +135,34 @@ class BookCheck : FunSpec({
      * vocabulary is retuned.
      *
      * **Every pair the corpus can write, not the first one** (Jonah, 2026-08-05). A spot check passed for
-     * years because whichever pair it happened to find did collide; `drenched` against `arid` was the one
-     * that did not, and it slipped in unnoticed under a green suite. `Register.OPPOSED` is what makes
-     * sweeping the whole table satisfiable rather than aspirational — and this is the check that will
-     * notice when a new dial quietly separates two words that should still disagree.
+     * years because whichever pair it happened to find did collide. Words that never share a place never clash
+     * (`notes/meanings-plan.md` §2), so each pair is written by two words wanting its two tags in one part of the
+     * world.
      */
     test("contradicting yourself costs instability, never a parse error") {
-        fun wordAsking(tag: String) = vocabulary.words.firstOrNull { it.narrows && tag in it.wanted }
-        val writable = vocabulary.opposedTags.mapNotNull { pair ->
-            val first = wordAsking(pair.first) ?: return@mapNotNull null
-            val second = wordAsking(pair.second) ?: return@mapNotNull null
-            first to second
+        fun wantedWhere(word: Word, tag: String) = word.effects.filterIsInstance<Effect.Restricts>()
+            .filter { restricts -> restricts.bars[tag]?.let(Bars::isAtLeast) == true }
+            .map { it.aspect }.toSet()
+        fun wordsWanting(first: String, second: String): Pair<Word, Word>? {
+            for (one in vocabulary.words) {
+                val places = wantedWhere(one, first).ifEmpty { continue }
+                val other = vocabulary.words.firstOrNull { it != one && wantedWhere(it, second).any(places::contains) }
+                if (other != null) return one to other
+            }
+            return null
         }
+        val writable = vocabulary.opposedTags.mapNotNull { pair -> wordsWanting(pair.first, pair.second) }
         check(writable.isNotEmpty()) { "the opposed-tags table names no pair the corpus can write" }
 
         for (opposed in writable) {
-            // The two words that disagree, then the nucleus every book must have — modifiers lead the
-            // page they modify, so an unaimed book closes with `age` rather than opening on it (§4.3.1).
-            val pages = listOf(opposed.first.name, opposed.second.name, nucleusPage(vocabulary))
+            // The two words that disagree laid bare, then the `age` page that takes them.
+            val pages = listOf(opposed.first.name, opposed.second.name, NUCLEUS_PAGE)
             val written = pages.joinToString(" ")
             val read = read(pages)
-            check(read.dropped.isEmpty()) {
-                "'$written' was a parse error, which a contradiction must never be: ${read.dropped}"
-            }
-            check(read.constraints.size == 2) { "'$written' lost a word: ${read.constraints}" }
-            val resolution = Resolver.resolve(vocabulary, read, SAMPLE_BOOK_SEED)
+            check(read.readsAsLaid) { "'$written' was read as something other than laid:\n${read.readout}" }
+            val landed = read.possible.map { it.page }.toSet()
+            check(landed == setOf(0, 1)) { "'$written' lost a word:\n${read.readout}" }
+            val resolution = vocabulary.resolve(read, SAMPLE_BOOK_SEED)
             check(!resolution.instability.isCoherent) {
                 "'$written' asks for two opposed things and was charged nothing"
             }
@@ -173,9 +179,9 @@ class BookCheck : FunSpec({
         for ((seed, pages) in fuzzed) {
             val read = runCatching { read(pages) }
                 .getOrElse { failure -> error("seed $seed ('${pages.joinToString(" ")}') would not read: $failure") }
-            runCatching { Resolver.resolve(vocabulary, read, seed) }
+            runCatching { vocabulary.resolve(read, seed) }
                 .getOrElse { failure -> error("seed $seed ('${pages.joinToString(" ")}') would not resolve: $failure") }
-            if (read.constraints.any { it.latent }) repaired++
+            if (read.moved.isNotEmpty()) repaired++
             if (read.impossible.isNotEmpty()) lost++
         }
         // The instrument has to be measuring something. A fuzz that happened to draw only well-formed rows
@@ -186,26 +192,23 @@ class BookCheck : FunSpec({
     }
 
     /**
-     * **Nothing vanishes in silence** (§3.3), asked of rows nobody would write. A page is either laid, or
-     * reported unreadable, or reported as having nowhere to go; a page that is none of those means a writer
-     * gets a world their book did not describe and is told nothing about it.
-     *
-     * Structural pages are exempt from being *laid* — `and` speaks by joining two words that do — but not
-     * from being reported, which is what the impossibility channel is for.
+     * **Nothing vanishes in silence** (§3.3), asked of rows nobody would write. Every page a word was laid, so it
+     * could land somewhere, or it is reported unread, impossible or moved. A word laid that could land nowhere means a
+     * writer gets a world their book did not describe and is told nothing about it.
      */
     test("nothing vanishes from a row of pages") {
+        // A moved page is reported, charged as rehomed, wherever it then lands.
+        fun mustLand(fate: Fate) = when (fate) {
+            is Fate.TakenBy, Fate.LaidBare, Fate.AssertedAlone -> true
+            is Fate.Took, is Fate.Structural, Fate.Unread, Fate.Impossible, Fate.Sited, Fate.Moved -> false
+        }
         for ((seed, pages) in fuzzed) {
             val read = read(pages)
-            // **A biome consumed by a siting is used, not lost.** `in <biome>` takes the page that names
-            // the place and makes it the clause's address rather than a claim of its own (§4.3.1), so it
-            // is accounted for by the clause it sited rather than by any constraint.
-            val sited = read.phrases.mapNotNull { it.confinedTo?.path }
-            val accountedFor = read.written.map { it.word.name }.toSet() + read.dropped + sited
-            val content = pages.filter { vocabulary.grammarWord(it) == null }
-            val lost = content.filterNot { it in accountedFor }
+            val couldLand = read.possible.map { it.page }.toSet()
+            val lost = read.pages.filter { mustLand(it.fate) && it.index !in couldLand }
             check(lost.isEmpty()) {
-                "seed $seed ('${pages.joinToString(" ")}') lost ${lost.joinToString()} — neither laid nor " +
-                    "reported, which is the one failure §3.3 forbids"
+                "seed $seed ('${pages.joinToString(" ")}') lost ${lost.joinToString { it.written }} — laid and landing " +
+                    "nowhere, which is the one failure §3.3 forbids:\n${read.readout}"
             }
         }
     }
@@ -225,10 +228,6 @@ class BookCheck : FunSpec({
         }
     }
 })
-
-/** The page every book opens with — structure, so it comes from the grammar words rather than the corpus. */
-private fun nucleusPage(vocabulary: Vocabulary): String =
-    vocabulary.grammarWords.first { it.production == Production.NUCLEUS }.name
 
 /** The one page every book must carry, without which a row is refused rather than read (§4.3.1). */
 private const val NUCLEUS_PAGE = "age"

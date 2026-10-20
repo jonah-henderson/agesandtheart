@@ -12,30 +12,44 @@
     "",
     "A moon taken away (`moonless`) leaves the pull nothing to pull with, which is charged mildly."
   ],
-  "restricts": {
-    "sea": {
-      "watery": ">0.5"
-    }
-  },
-  "biases": {
-    "biomes": {
-      "minecraft:beach": 0.6,
-      "minecraft:mangrove_swamp": 0.4,
-      "minecraft:stony_shore": 0.3
+  "meanings": [
+    {
+      "sets": {
+        "pull": "0..1"
+      },
+      "unaimed_chance_to_apply": 0.0
     },
-    "features": {
-      "#watery": 0.4
+    {
+      "restricts": {
+        "sea": {
+          "watery": ">0.5"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:beach": 0.6,
+          "minecraft:mangrove_swamp": 0.4,
+          "minecraft:stony_shore": 0.3
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "#watery": 0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "moon.size": "0.1..0.3"
+      },
+      "unaimed_chance_to_apply": 0.0
     }
-  },
-  "sets": {
-    "pull": "0..1"
-  },
-  "requests": {
-    "sets": {
-      "moon.size": "0.1..0.3"
-    }
-  },
-  "unaimed": {
-    "moon": 0.0
-  }
+  ]
 }

@@ -6,7 +6,15 @@
     "",
     "The umbrella for vanilla's `iceberg_packed` and `iceberg_blue`, which have no words of their own."
   ],
-  "mints": "minecraft:iceberg_packed",
-  "unstated": "minecraft:packed_ice",
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "minecraft:iceberg_packed",
+        "unstated": "minecraft:packed_ice"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

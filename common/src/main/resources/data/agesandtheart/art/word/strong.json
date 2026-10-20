@@ -8,11 +8,18 @@
     "Laid bare it never touches the gravity (`unaimed` 0): `a strong Age` is strong tides, and a world nobody can",
     "jump in has to be asked for by name."
   ],
-  "sets": {
-    "strength": "0.3..1.0",
-    "pull": "0.25..1.0"
-  },
-  "unaimed": {
-    "gravity": 0.0
-  }
+  "meanings": [
+    {
+      "sets": {
+        "strength": "0.3..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "pull": "0.25..1.0"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

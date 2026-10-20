@@ -9,13 +9,10 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.resolution.Members
 import co.voik.agesandtheart.location
-import co.voik.agesandtheart.preview.meanings.WordConversion
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
-import java.nio.file.Path
-import kotlin.io.path.readText
 
 /** The word on meanings: its file, the words derived for free, what each takes, and its price. */
 @Tags(NEEDS_REGISTRIES)
@@ -24,11 +21,7 @@ class WordCheck : FunSpec({
     fun parsed(json: String) = WordFormat.mapCodec("example".location()).codec()
         .parse(JsonOps.INSTANCE, JsonParser.parseString(json))
 
-    fun shipped(name: String): Word {
-        val file = Path.of("src/main/resources/data/agesandtheart/art/word/$name.json")
-        val converted = WordConversion.converted(name, JsonParser.parseString(file.readText()).asJsonObject)
-        return WordFormat.mapCodec(name.location()).codec().parse(JsonOps.INSTANCE, converted).orThrow
-    }
+    fun shipped(name: String): Word = requireNotNull(ShippedCorpus.vocabulary.word(name)) { "no word '$name'" }
 
     val tags = object : MemberTags {
         override fun availableToBroadWordsIn(aspect: Aspect): List<Taggable> =

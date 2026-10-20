@@ -3,28 +3,53 @@
     "Sheer and high, and pressing down: two of low cloud, grey or black cloud, closing fog and a grey sky are",
     "offered to every looming Age, each yielding to anything the book says."
   ],
-  "biases": {
-    "all": {
-      "#sheer": 1.0,
-      "#monumental": 0.7,
-      "#mountainous": 0.6,
-      "#flat": -0.7
-    }
-  },
-  "bends": {
-    "relief": "0.35..1.0"
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "clouds.ceiling": "-0.4",
-          "clouds.colour": "grey|black",
-          "haze": "+0.3",
-          "sky.colour": "grey"
+  "meanings": [
+    {
+      "bends": {
+        "relief": "0.35..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#sheer": 1.0,
+          "#monumental": 0.7,
+          "#mountainous": 0.6,
+          "#flat": -0.7
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.ceiling": "-0.4"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "clouds.colour": "grey"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "clouds.colour": "black"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "haze": "+0.3"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sky.colour": "grey"
+      },
+      "chance_to_apply": 0.5
+    }
+  ]
 }

@@ -3,7 +3,15 @@
     "A cone standing on its base -- taller than it is wide, and sharper than anything else here.",
     "`ice spikes` says with two pages what vanilla ships as a whole biome."
   ],
-  "mints": "agesandtheart:spikes",
-  "unstated": "#agesandtheart:formation_substance",
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:spikes",
+        "unstated": "#agesandtheart:formation_substance"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

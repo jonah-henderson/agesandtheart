@@ -1,14 +1,16 @@
-package co.voik.agesandtheart.age.word.grammar
+package co.voik.agesandtheart.age.language
 
+import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Polarity
-import co.voik.agesandtheart.age.aspect.Rung
-import co.voik.agesandtheart.age.word.Speech
-import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.resolution.Effect
+import co.voik.agesandtheart.age.resolution.Members
+import co.voik.agesandtheart.age.resolution.Place
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import java.util.Optional
 
@@ -125,122 +127,94 @@ private val ASPECT_CODEC: Codec<Aspect> = Codec.STRING.comapFlatMap(
 )
 
 /**
- * **A parse, said as an account of an Age** — several sentences, each about one part of the world, the way
- * a chronicle describes a place rather than the way a writer laid its pages. This is for where a book is
- * *read*; [Readout] is for where the parse itself is wanted — `/age write`, the desk, the workshop.
+ * **A reading, said as an account of an Age** — several sentences, each about one part of the world, the way a
+ * chronicle describes a place rather than the way a writer laid its pages. For where a book is *read*;
+ * [Reading.readout] is for where the reading itself is wanted.
  *
- * The two rules [Readout] keeps, this keeps too:
+ * - **Every word that took pages is a sentence** about where it landed them, the pages it took said with it.
+ * - **What the Age took is the Age's sentence**, the pages a writer laid bare and those laid there with nowhere else
+ *   to go; it is said whenever the `age` page was laid, even with nothing before it.
+ * - **A minting is said as the shape it mints**, and a landform of ours with only qualities before it as that
+ *   landform: `basalt arches` is arches of basalt, `large tunnels` the tunnels, never two sentences.
+ * - **A quantifier is said as how much there is of what took it**, never as a word of its own; and it says what was
+ *   written, never what it will make.
  *
- * - **It never launders.** A page the Art moved is said in the sentence about where it went, and the Art's
- *   own pages are never said at all.
- * - **It says what you said, never what it will make** (§7.5). `teeming zombies` is said as teeming, not as
- *   however many arrived.
- *
- * Built here, on the server, into [ProseClause]s; written as sentences by [ProseWriting] wherever the book
- * is read.
+ * Built on the server into [ProseClause]s; written as sentences by [ProseWriting] wherever the book is read.
  */
 object Prose {
-    /** [sentence] as the clauses of its prose, the Age first. Empty where nothing was said. */
-    fun of(sentence: Sentence): List<ProseClause> {
-        val clauses = sentence.phrases.flatMap(::clausesOf)
-        // The Age is said whenever its page was laid, even with nothing in front of it: "An Age." is what a
-        // book that opens on a bare `age` says first, and every sentence after is about it.
-        val theAge = clauses.filter { it.about == null }
-        val rest = clauses.filter { it.about != null }
-        val opening = theAge.ifEmpty {
-            if (Production.NUCLEUS in sentence.structural) listOf(ProseClause(about = null, terms = emptyList()))
-            else emptyList()
+    /** [reading] as the clauses of its prose, the Age first. Empty where nothing was said. */
+    fun of(reading: Reading, lexicon: Lexicon): List<ProseClause> {
+        val said = Said(reading, lexicon)
+        val theAge = said.ofTheAge()
+        val rest = reading.pages.sortedBy { it.index }.flatMap { page ->
+            when (val fate = page.fate) {
+                is Fate.Took -> listOfNotNull(said.clauseTakenBy(page, fate.place))
+                Fate.AssertedAlone -> listOfNotNull(said.alone(page))
+                else -> emptyList()
+            }
         }
-        return opening + rest
+        return listOfNotNull(theAge) + rest
     }
 
-    /**
-     * One phrase of the parse, as one clause per part of the world it speaks of.
-     *
-     * The aiming page is never said as a word — it is what the sentence is *about*, "its land" — and nor is
-     * anything the Art laid, a book showing only what its writer wrote (§4.3.1). A subject the Art supplied
-     * still decides what the sentence is about wherever the writer's words hang off it, because that is the
-     * whole of what says where a re-homed page landed.
-     */
-    private fun clausesOf(phrase: Phrase): List<ProseClause> {
-        mintedIn(phrase)?.let { return listOf(it) }
-        val aimingPage = phrase.subject?.takeIf { it.word.aims }
-        val written = phrase.said.filterNot { it.latent || it === aimingPage }
-        if (written.isEmpty()) return emptyList()
-        val confinedTo = phrase.confinedTo?.let(::biomeTerm)
-        val body = phrase.said.firstNotNullOfOrNull { it.describes }
-        val isTheAge = phrase.subject == null && phrase.confinedTo == null && !phrase.everywhere
-        if (isTheAge) return listOf(ProseClause(about = null, terms = written.map(::termOf)))
+    /** A reading with its words at hand. */
+    private class Said(val reading: Reading, val lexicon: Lexicon) {
+        private fun wordOf(page: PageRead): Word? = lexicon.word(page.written)
 
-        val aimedAt = aimingPage?.word?.aspects?.minByOrNull { it.ordinal }
-        if (aimedAt != null) namedDesignIn(aimedAt, written, phrase)?.let { return listOf(it) }
-        val byAspect = if (aimedAt != null) mapOf(aimedAt to written) else written.groupBy(::aspectOf)
-        return byAspect.map { (about, said) ->
-            ProseClause(about, said.map(::termOf), confinedTo, phrase.everywhere, body)
+        private fun isAQuantifier(page: PageRead): Boolean = wordOf(page)?.isAQuantifier == true
+
+        fun ofTheAge(): ProseClause? {
+            val bare = reading.pages.filter { it.fate == Fate.LaidBare || it.fate == Fate.Moved }
+            val ageWasLaid = reading.pages.any { it.fate == Fate.Structural(Structure.AGE) }
+            if (bare.isEmpty()) return if (ageWasLaid) ProseClause(about = null, terms = emptyList()) else null
+            return ProseClause(about = null, terms = bare.mapNotNull(::termOf))
+        }
+
+        fun clauseTakenBy(taker: PageRead, place: Place): ProseClause? {
+            val word = wordOf(taker) ?: return null
+            val taken = reading.pages.filter { it.fate == Fate.TakenBy(taker.index) }
+            val (amounts, described) = taken.partition(::isAQuantifier)
+            val landed = reading.landings.filter { it.clause == taker.index }
+            val confinedTo = landed.firstNotNullOfOrNull { it.sitedIn }?.let(::biomeTerm)
+            val everywhere = landed.any { it.everywhere }
+            val body = (place.members as? Members.Body)?.index
+            val ownPolarity = reading.landings.firstOrNull { it.page == taker.index && it.polarity != Polarity.ASSERTED }?.polarity
+            val counted = termOf(taker)?.copy(quantifier = amounts.firstOrNull()?.written, polarity = ownPolarity ?: Polarity.ASSERTED)
+            val isTheAspectsPage = word.id.namespace == Constants.MOD_ID && Aspect.byPage(word.name) == place.aspect
+            if (isTheAspectsPage) {
+                return ProseClause(place.aspect, taken.mapNotNull(::termOf), confinedTo, everywhere, body)
+            }
+            val shape = shapeOf(word, counted, described)
+            if (shape != null) return ProseClause(place.aspect, emptyList(), confinedTo, everywhere, body, shape)
+            return ProseClause(place.aspect, described.mapNotNull(::termOf) + listOfNotNull(counted), confinedTo, everywhere, body)
+        }
+
+        /**
+         * A minting said as its shape, made of the substances laid before it; or a landform of ours with nothing
+         * but qualities before it, said as that landform. Null for anything else.
+         */
+        private fun shapeOf(word: Word, counted: ProseTerm?, described: List<PageRead>): ProseShape? {
+            val shape = counted ?: return null
+            val (substances, qualities) = described.partition { wordOf(it)?.block != null }
+            if (word.mints != null) {
+                return ProseShape(shape, substances.mapNotNull(::termOf), qualities.mapNotNull(::termOf))
+            }
+            val namesADesign = word.meanings.flatMap { it.effects }.any { effect ->
+                effect is Effect.Chooses && !effect.aspect.open && word.partOfSpeech.names
+            }
+            val onlyQualities = described.all { wordOf(it)?.partOfSpeech == Speech.ADJECTIVE }
+            return if (namesADesign && onlyQualities) ProseShape(shape, qualities = described.mapNotNull(::termOf)) else null
+        }
+
+        fun alone(page: PageRead): ProseClause? {
+            val about = reading.landings.firstOrNull { it.page == page.index }?.place?.aspect ?: return null
+            return ProseClause(about, listOfNotNull(termOf(page)))
+        }
+
+        private fun termOf(page: PageRead): ProseTerm? {
+            val word = wordOf(page) ?: return null
+            return ProseTerm(word.id, word.partOfSpeech, nameKey = nameKeyOf(word), plain = plainNameOf(word))
         }
     }
-
-    /**
-     * A clause closing on a word that **mints** a shape, said as that one shape — or null where it mints
-     * nothing. Such a word looks like an aiming page, but it is the thing itself: `basalt arches` says
-     * "arches of basalt", never "what is in it is made of basalt" with the arches gone.
-     */
-    private fun mintedIn(phrase: Phrase): ProseClause? {
-        val subject = phrase.subject ?: return null
-        if (subject.word.mints == null || subject.latent) return null
-        val written = phrase.modifiers.filterNot { it.latent }
-        val (substances, rest) = written.partition { it.word.material != null }
-        // Every rung in the clause counts the shape, as the resolver reads it.
-        val rung = subject.quantifier ?: written.firstNotNullOfOrNull { it.quantifier }
-        val counted = termOf(subject).copy(quantifier = rung.takeUnless { rung == null || isOrdinaryIn(phrase) })
-        val shape = ProseShape(
-            shape = counted,
-            madeOf = substances.map { termOf(it).copy(quantifier = null) },
-            qualities = rest.map { termOf(it).copy(quantifier = null) },
-        )
-        return ProseClause(
-            about = Aspect.FEATURES,
-            terms = emptyList(),
-            confinedTo = phrase.confinedTo?.let(::biomeTerm),
-            everywhere = phrase.everywhere,
-            shape = shape,
-        )
-    }
-
-    /**
-     * A clause whose one named page is the design its part of the world takes, said as that design with its
-     * qualities in front — `large tunnels underground` is "its depths hold large tunnels", never "its depths
-     * are large" beside "its depths hold tunnels". Null where the clause is not just that.
-     */
-    private fun namedDesignIn(about: Aspect, written: List<Constraint>, phrase: Phrase): ProseClause? {
-        fun isTheDesign(constraint: Constraint) = about in constraint.word.chooses && constraint.word.partOfSpeech.names
-        val design = written.singleOrNull(::isTheDesign) ?: return null
-        val qualities = written.filterNot { it === design }
-        if (qualities.any { it.word.partOfSpeech != Speech.ADJECTIVE }) return null
-        return ProseClause(
-            about = about,
-            terms = emptyList(),
-            confinedTo = phrase.confinedTo?.let(::biomeTerm),
-            everywhere = phrase.everywhere,
-            shape = ProseShape(shape = termOf(design), qualities = qualities.map { termOf(it).copy(quantifier = null) }),
-        )
-    }
-
-    /** Whether every rung laid in [phrase] asks for the ordinary amount, which is the same as none. */
-    private fun isOrdinaryIn(phrase: Phrase): Boolean = phrase.said.all { Rung.isOrdinary(it.density) }
-
-    /** What a word in a clause with no aiming page is about: where it landed, else where it can. */
-    private fun aspectOf(constraint: Constraint): Aspect? =
-        constraint.aimedAt.minByOrNull { it.ordinal } ?: constraint.word.aspects.minByOrNull { it.ordinal }
-
-    private fun termOf(constraint: Constraint): ProseTerm = ProseTerm(
-        word = constraint.word.id,
-        speech = constraint.word.partOfSpeech,
-        polarity = constraint.polarity,
-        quantifier = constraint.quantifier?.takeUnless { Rung.isOrdinary(constraint.density) },
-        nameKey = nameKeyOf(constraint.word),
-        plain = plainNameOf(constraint.word),
-    )
 
     private fun biomeTerm(biome: Identifier): ProseTerm = ProseTerm(
         word = biome,
@@ -249,20 +223,20 @@ object Prose {
         plain = biome.path.replace('_', ' '),
     )
 
-    /**
-     * Vanilla's name for what a derived word is, where vanilla gives it one. A structure set and a placed
-     * feature have none, which is why [plainNameOf] has to work for them.
-     */
-    private fun nameKeyOf(word: Word): String? = when {
-        word.entryOf != null -> BuiltInRegistries.BLOCK.getOptional(word.id).map { it.descriptionId }.orElse(null)
-        Aspect.SPAWNS in word.chooses ->
-            BuiltInRegistries.ENTITY_TYPE.getOptional(word.id).map { it.descriptionId }.orElse(null)
-        Aspect.BIOMES in word.chooses -> "biome.${word.id.namespace}.${word.id.path}"
-        else -> null
+    /** Vanilla's name for what a derived word is, where vanilla gives it one. */
+    private fun nameKeyOf(word: Word): String? {
+        val registries = word.referentRegistries
+        return when {
+            Registries.BLOCK in registries -> BuiltInRegistries.BLOCK.getOptional(word.id).map { it.descriptionId }.orElse(null)
+            Registries.ENTITY_TYPE in registries ->
+                BuiltInRegistries.ENTITY_TYPE.getOptional(word.id).map { it.descriptionId }.orElse(null)
+            Registries.BIOME in registries -> "biome.${word.id.namespace}.${word.id.path}"
+            else -> null
+        }
     }
 
     private fun plainNameOf(word: Word): String =
-        if (Aspect.FEATURES in word.chooses) FeatureNames.legible(word.id.path) else word.id.path.replace('_', ' ')
+        if (Registries.PLACED_FEATURE in word.referentRegistries) FeatureNames.legible(word.id.path) else word.id.path.replace('_', ' ')
 }
 
 /**

@@ -4,15 +4,23 @@
     "landforms -- fungal, glowing, floating, dark; in the air it hangs motes no air should hold, each Age drawing",
     "its own look and motion for them, the uncanny-motes step written on purpose."
   ],
-  "restricts": {
-    "landmass": {
-      "fungal": ">0.43",
-      "glowing": ">0.43",
-      "floating": ">0.5",
-      "dark": ">0.75"
+  "meanings": [
+    {
+      "sets": {
+        "motes": "uncanny"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "landmass": {
+          "fungal": ">0.43",
+          "glowing": ">0.43",
+          "floating": ">0.5",
+          "dark": ">0.75"
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "motes": "uncanny"
-  }
+  ]
 }

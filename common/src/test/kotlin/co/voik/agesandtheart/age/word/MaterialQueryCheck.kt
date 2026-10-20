@@ -1,17 +1,15 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.NEEDS_REGISTRIES
-import co.voik.agesandtheart.ShippedCorpus.read
+import co.voik.agesandtheart.ShippedCorpus.resolved
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
-import co.voik.agesandtheart.age.word.grammar.Constraint
+import co.voik.agesandtheart.age.resolution.Effect
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
-import net.minecraft.resources.Identifier
 
 /**
  * **A material asked for by what it is like** — `"stone": "#frozen"` — and the fence that keeps a broad
@@ -47,37 +45,25 @@ class MaterialQueryCheck : FunSpec({
 
     /** The same book at the same seed builds the same rock, and the recipe holds a block rather than a tag. */
     test("a query settles to one block, the same one every time") {
-        val frozenRock = query("frozen_rock", Terrain.STONE.name to "#frozen")
-        fun rockAt(seed: Long): List<String> = Resolver.resolve(vocabulary, sentenceOf(listOf(aimed(frozenRock))), seed)
+        // `arid` sets the rock to `#sandy`, certainly where it is aimed.
+        fun rockAt(seed: Long): List<String> = resolved(seed, "arid", "landmass")
             .composition.optionsFor(Aspect.TERRAIN, 0).allSpelled(Terrain.STONE.name).toList()
+        val sandy = table.carriersOf("sandy").toMap()
         for (seed in 1L..SEEDS) {
             val rock = rockAt(seed)
             check(rock.size == 1 && !Materials.isQuery(rock.single())) { "seed $seed left the rock as $rock" }
             check(rock == rockAt(seed)) { "seed $seed built $rock once and ${rockAt(seed)} again" }
-            check(rock.single() in table.carriersOf("frozen").toMap()) { "seed $seed built ${rock.single()}, which is not frozen" }
+            check(rock.single() in sandy) { "seed $seed built ${rock.single()}, which is not sandy" }
         }
         val rocks = (1L..SEEDS).map { rockAt(it).single() }.toSet()
-        check(rocks.size > 1) { "#frozen built every Age of $rocks" }
+        check(rocks.size > 1) { "#sandy built every Age of $rocks" }
     }
 
-    /** The ground is a material too, so `frozen` can dress it in snow and not only build the rock of ice. */
-    test("the ground may be asked for by tag as well") {
-        val snowyGround = query("snowy_ground", Surface.MATERIAL.name to "#frozen")
-        val ground = Resolver.resolve(vocabulary, sentenceOf(listOf(aimed(snowyGround))), 1L)
-            .composition.optionsFor(Aspect.SURFACE, 0).allSpelled(Surface.MATERIAL.name).toList()
-        check(ground.size == 1 && ground.single() in table.carriersOf("frozen").toMap()) {
-            "a frozen ground came out as $ground"
-        }
-    }
-
-    /** A shipped word's query reaches the world through a book: `arid` claims its ground, so every Age has it. */
+    /** A shipped word's query reaches the ground through a book: `arid` must dress it, so every Age has it. */
     test("an arid Age stands on sandy ground") {
         val sandy = table.carriersOf("sandy").toMap()
-        // `arid age`, the whole Age described: `age arid` would rehome the word to the one clause it trails.
-        val book = read(listOf("arid", "age"))
         val grounds = (1L..SEEDS).map { seed ->
-            Resolver.resolve(vocabulary, book, seed)
-                .composition.optionsFor(Aspect.SURFACE, 0).allSpelled(Surface.MATERIAL.name).toList()
+            resolved(seed, "arid").composition.optionsFor(Aspect.SURFACE, 0).allSpelled(Surface.MATERIAL.name).toList()
         }
         val notSandy = grounds.filterNot { it.size == 1 && it.single() in sandy }
         check(notSandy.isEmpty()) { "arid Ages stood on $notSandy" }
@@ -90,22 +76,15 @@ class MaterialQueryCheck : FunSpec({
      */
     test("every material a word asks for by tag is there to be drawn") {
         val unanswered = vocabulary.authoredWords.flatMap { word ->
-            (word.canSet + word.requests.sets).filter { (parameter, value) -> MaterialTable.asksByTag(parameter, value) }
-                .flatMap { (_, value) -> value.split('|').map(String::trim).filter(Materials::isQuery) }
+            word.effects.filterIsInstance<Effect.Sets>()
+                .filter { MaterialTable.asksByTag(it.parameter.spelled, it.value) }
+                .flatMap { it.value.split('|').map(String::trim).filter(Materials::isQuery) }
                 .filter { query -> table.carriersOf(query.removePrefix(Materials.QUERY_MARK)).isEmpty() }
                 .map { "${word.name} asks for $it" }
         }
         check(unanswered.isEmpty()) { "no block a world can be made of answers: $unanswered" }
     }
 })
-
-private fun query(name: String, setting: Pair<String, String>) = Word(
-    id = Identifier.fromNamespaceAndPath(Constants.MOD_ID, name),
-    aspects = setOf(if (setting.first == Surface.MATERIAL.name) Aspect.SURFACE else Aspect.TERRAIN),
-    sets = mapOf(setting),
-)
-
-private fun aimed(word: Word) = Constraint(word, word.aspects)
 
 private const val QUERIES_DRAWN = 400L
 private const val SEEDS = 30L

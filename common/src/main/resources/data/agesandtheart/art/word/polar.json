@@ -15,69 +15,142 @@
     "**No refusal of a molten sea** (Jonah, 2026-09-30): a polar Age with a lava sea is fine so long as the",
     "rest of it is plainly polar, and the refusal is `frozen`'s to make."
   ],
-  "admits": {
-    "phenomena": [
-      "aurora"
-    ]
-  },
-  "biases": {
-    "sea": {
-      "#frozen": 0.5
+  "meanings": [
+    {
+      "sets": {
+        "temperature": "-0.95..-0.45"
+      },
+      "must_always_apply": true
     },
-    "biomes": {
-      "#frozen": 0.8,
-      "minecraft:snowy_plains": 0.7,
-      "minecraft:frozen_ocean": 0.6,
-      "minecraft:ice_spikes": 0.4
+    {
+      "sets": {
+        "path": "polar"
+      },
+      "unaimed_chance_to_apply": 0.25
     },
-    "structures": {
-      "minecraft:igloos": 0.8
+    {
+      "bends": {
+        "humidity": "-0.8..-0.2"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:iceberg_packed": 1.0,
-      "minecraft:ice_spike": 0.5,
-      "minecraft:freeze_top_layer": 0.8
+    {
+      "admits": {
+        "phenomena": [
+          "aurora"
+        ]
+      },
+      "must_always_apply": true
     },
-    "spawns": {
-      "minecraft:polar_bear": 1.0,
-      "minecraft:stray": 0.8,
-      "minecraft:fox": 0.7,
-      "minecraft:rabbit": 0.7,
-      "minecraft:wolf": 0.5,
-      "minecraft:goat": 0.3
-    },
-    "phenomena": {
-      "aurora": 1.0,
-      "blizzard": 0.4
-    }
-  },
-  "bends": {
-    "humidity": "-0.8..-0.2"
-  },
-  "sets": {
-    "temperature": "-0.95..-0.45",
-    "path": "polar"
-  },
-  "requests": {
-    "sets": {
-      "aurora.frequency": "0.85..1",
-      "aurora.glow": "+0.8",
-      "aurora.size": "0.85..1"
-    },
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "air.motes": "snow",
-          "sky.colour": "default|blue|white",
-          "stars.glow": "+0.3",
-          "clouds.colour": "white"
+    {
+      "leans": {
+        "sea": {
+          "#frozen": 0.5
         }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "biomes": {
+          "#frozen": 0.8,
+          "minecraft:snowy_plains": 0.7,
+          "minecraft:frozen_ocean": 0.6,
+          "minecraft:ice_spikes": 0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "structures": {
+          "minecraft:igloos": 0.8
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:iceberg_packed": 1.0,
+          "minecraft:ice_spike": 0.5,
+          "minecraft:freeze_top_layer": 0.8
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "spawns": {
+          "minecraft:polar_bear": 1.0,
+          "minecraft:stray": 0.8,
+          "minecraft:fox": 0.7,
+          "minecraft:rabbit": 0.7,
+          "minecraft:wolf": 0.5,
+          "minecraft:goat": 0.3
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "phenomena": {
+          "aurora": 1.0,
+          "blizzard": 0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "aurora.frequency": "0.85..1"
       }
-    ]
-  },
-  "unaimed": {
-    "sun": 0.25,
-    "moon": 0.25
-  }
+    },
+    {
+      "sets": {
+        "aurora.glow": "+0.8"
+      }
+    },
+    {
+      "sets": {
+        "aurora.size": "0.85..1"
+      }
+    },
+    {
+      "sets": {
+        "air.motes": "snow"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sky.colour": "default"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sky.colour": "blue"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sky.colour": "white"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "stars.glow": "+0.3"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "clouds.colour": "white"
+      },
+      "chance_to_apply": 0.5
+    }
+  ]
 }

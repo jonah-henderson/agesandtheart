@@ -11,10 +11,12 @@ import co.voik.agesandtheart.age.resolution.WorldFacts
 object Writing {
 
     /** [pages] read and resolved at [seed], or null where they spell no book. */
-    fun resolve(lexicon: Lexicon, world: WorldFacts, pages: List<String>, seed: Long): Resolution? {
-        val reading = Reader.read(lexicon, pages, seed) ?: return null
-        return Resolver.resolve(world, bookOf(lexicon, reading), seed)
-    }
+    fun resolve(lexicon: Lexicon, world: WorldFacts, pages: List<String>, seed: Long): Resolution? =
+        Reader.read(lexicon, pages, seed)?.let { resolve(lexicon, world, it, seed) }
+
+    /** A book already read, resolved at the [seed] it was read at. */
+    fun resolve(lexicon: Lexicon, world: WorldFacts, reading: Reading, seed: Long): Resolution =
+        Resolver.resolve(world, bookOf(lexicon, reading), seed)
 
     /** What resolution is handed of [reading]: what landed, what could have, its cost, and what the reading charged. */
     fun bookOf(lexicon: Lexicon, reading: Reading): Book = Book(

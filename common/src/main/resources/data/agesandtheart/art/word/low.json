@@ -4,8 +4,18 @@
     "blocks over the sea, so on most land you stand inside it -- the low-clouds step, written on purpose -- and",
     "`low landmass` takes the height out of the land. A low Age does both."
   ],
-  "sets": {
-    "ceiling": "-1.0..-0.85",
-    "relief": "-1.0..-0.5"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "ceiling": "-1.0..-0.85"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "relief": "-1.0..-0.5"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

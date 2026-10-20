@@ -6,13 +6,21 @@
     "",
     "It absorbed `glimmering`, which set the same glow (retired.json)."
   ],
-  "biases": {
-    "all": {
-      "#bright": 0.8,
-      "#glowing": 0.6
+  "meanings": [
+    {
+      "sets": {
+        "glow": "1.0..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#bright": 0.8,
+          "#glowing": 0.6
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "glow": "1.0..1.0"
-  }
+  ]
 }

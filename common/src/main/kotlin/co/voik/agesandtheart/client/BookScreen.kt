@@ -2,7 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.WordNames
-import co.voik.agesandtheart.age.word.grammar.ProseWriting
+import co.voik.agesandtheart.age.language.ProseWriting
 import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.LecternBooks

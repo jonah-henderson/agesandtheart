@@ -4,27 +4,77 @@
     "ash in the air, haze, more thunder, and a dark rock are offered to every savage Age, each yielding to",
     "anything the book says."
   ],
-  "biases": {
-    "all": {
-      "#hostile": 1.0,
-      "#sheer": 0.6,
-      "#inhabited": -0.8,
-      "#flat": -0.5
-    }
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "sky.colour": "red|orange|black",
-          "air.tint": "red|orange",
-          "motes": "embers|ash",
-          "haze": "+0.3",
-          "thunder": "+0.3",
-          "stone": "#dark"
+  "meanings": [
+    {
+      "leans": {
+        "all": {
+          "#hostile": 1.0,
+          "#sheer": 0.6,
+          "#inhabited": -0.8,
+          "#flat": -0.5
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sky.colour": "red"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sky.colour": "orange"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sky.colour": "black"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "air.tint": "red"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "air.tint": "orange"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "motes": "embers"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "motes": "ash"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "haze": "+0.3"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "thunder": "+0.3"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "stone": "#dark"
+      },
+      "chance_to_apply": 0.33
+    }
+  ]
 }

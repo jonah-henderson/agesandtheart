@@ -3,27 +3,35 @@
     "Held up by nothing: a floating landmass over a sea leaning to empty air, and what lives leaning to what flies.",
     "Offered, yielding to the book: the cloud brought down beneath the land."
   ],
-  "restricts": {
-    "landmass": {
-      "floating": ">0.3"
-    }
-  },
-  "biases": {
-    "sea": {
-      "#empty": 0.6
-    },
-    "all": {
-      "#aloft": 0.6
-    }
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "1",
-        "facets": {
-          "clouds.ceiling": "-0.4"
+  "meanings": [
+    {
+      "restricts": {
+        "landmass": {
+          "floating": ">0.3"
         }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "sea": {
+          "#empty": 0.6
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#aloft": 0.6
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.ceiling": "-0.4"
       }
-    ]
-  }
+    }
+  ]
 }

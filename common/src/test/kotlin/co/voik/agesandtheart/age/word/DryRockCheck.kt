@@ -1,8 +1,7 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
-import co.voik.agesandtheart.ShippedCorpus.read
-import co.voik.agesandtheart.ShippedCorpus.vocabulary
+import co.voik.agesandtheart.ShippedCorpus.resolved
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Carvers
 import io.kotest.core.annotation.Tags
@@ -18,7 +17,7 @@ import io.kotest.core.spec.style.FunSpec
 class DryRockCheck : FunSpec({
 
     test("dry rock is rock with its water table switched dry") {
-        val dry = Resolver.resolve(vocabulary, read(listOf("age", "dry", "rock")), SEED)
+        val dry = resolved(SEED, "dry", "rock")
         val rock = dry.composition.carvers
         check(Carvers.FLOODED_CAVES !in rock) { "dry rock seated flooded rock: $rock" }
         check((0..<rock.size).all { dry.composition.optionsFor(Aspect.CARVERS, it).isTrue(Carvers.DRY) }) {
@@ -29,7 +28,7 @@ class DryRockCheck : FunSpec({
 
     /** Flooded rock has no `dry` to set, so without the exclusion it simply won and `dry` went unsaid. */
     test("dry flooded rock is charged, not quietly flooded") {
-        val both = Resolver.resolve(vocabulary, read(listOf("age", "dry", "flooded", "rock")), SEED)
+        val both = resolved(SEED, "dry", "flooded", "rock")
         check(both.instability.flaws.isNotEmpty()) { "dry flooded rock came out coherent as ${both.composition}" }
     }
 })

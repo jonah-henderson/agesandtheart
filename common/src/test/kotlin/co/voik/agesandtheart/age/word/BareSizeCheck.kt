@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -18,7 +19,10 @@ class BareSizeCheck : FunSpec({
 
     test("no authored word laid bare on the Age sizes its creatures, or its land unless it says a size") {
         val strays = ShippedCorpus.vocabulary.authoredWords.flatMap { word ->
-            val saysASizeOfItsOwn = Terrain.SIZE.name in word.sets || Terrain.SIZE.name in word.bends
+            val saysASizeOfItsOwn = word.effects.any { effect ->
+                (effect is Effect.Sets && effect.parameter.name == Terrain.SIZE.name) ||
+                    (effect is Effect.Bends && effect.parameter.name == Terrain.SIZE.name)
+            }
             SEEDS.flatMap { seed ->
                 val composition = runCatching { ShippedCorpus.resolved(seed, word.name, "age").composition }.getOrNull()
                     ?: return@flatMap emptyList()

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.resolved
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
@@ -52,7 +53,9 @@ class DescribingCheck : FunSpec({
                 val word = vocabulary.word(name) ?: error("no '$name' in the corpus")
                 // What a word is *allowed* to introduce: what it admits or chooses outright. Everything
                 // else it says about a population is a lean, and a lean may only bend.
-                val named = word.admits[aspect].orEmpty() + setOfNotNull(word.chooses[aspect])
+                val effects = word.effects
+                val named = effects.filterIsInstance<Effect.Admits>().filter { it.aspect == aspect }.flatMap { it.members } +
+                    effects.filterIsInstance<Effect.Chooses>().filter { it.aspect == aspect }.map { it.member }
                 val introduced = membersOf(aspect, parameter, name, "magma_block", "landmass")
                     // `except` is a strike-out, not an introduction, and carries no `where_it_grows`.
                     .filterNot { it.contains(WHERE_IT_GROWS) || it.contains(STRUCK_OUT) }

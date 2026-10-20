@@ -2,10 +2,8 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.generation.Ages
-import co.voik.agesandtheart.age.word.Resolution
-import co.voik.agesandtheart.age.word.Resolver
+import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerPlayer
@@ -101,8 +99,7 @@ abstract class InstrumentReading<Reading>(private val player: ServerPlayer?, pos
     private fun resolvedFrom(writer: ServerPlayer, laid: List<Identifier>): Resolution? {
         if (laid.isEmpty()) return null
         val vocabulary = Vocabulary.of(writer.level().server)
-        val said = Grammar.read(vocabulary, laid.map(Identifier::getPath), writer.writingSeed) ?: return null
-        return Resolver.resolve(vocabulary, said, writer.writingSeed)
+        return vocabulary.resolve(laid.map(Identifier::getPath), writer.writingSeed)
     }
 
     private fun report(reading: Reading, from: ReadingSource) {

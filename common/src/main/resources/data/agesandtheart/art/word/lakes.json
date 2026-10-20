@@ -13,6 +13,14 @@
     "thing a writer might well want. `LakeFeature` places the fill as blocks and only asks whether it",
     "is water to decide about ice."
   ],
-  "mints": "minecraft:lake_lava_surface",
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "minecraft:lake_lava_surface"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

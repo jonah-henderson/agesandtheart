@@ -12,10 +12,15 @@
     "usual shape of a rule that is nearly the fact it stands for, and the answer is the one `grazing` already",
     "took: the category says what it can, and the rest is hand-authored. It belongs to the tag pass."
   ],
-  "restricts": {
-    "spawns": {
-      "aloft": ">0.3"
+  "speech": "plural",
+  "meanings": [
+    {
+      "restricts": {
+        "spawns": {
+          "aloft": ">0.3"
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "speech": "plural"
+  ]
 }

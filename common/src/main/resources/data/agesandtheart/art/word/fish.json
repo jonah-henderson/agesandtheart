@@ -1,8 +1,13 @@
 {
-  "restricts": {
-    "spawns": {
-      "aquatic": ">0.3"
+  "speech": "plural",
+  "meanings": [
+    {
+      "restricts": {
+        "spawns": {
+          "aquatic": ">0.3"
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "speech": "plural"
+  ]
 }

@@ -22,27 +22,46 @@
     "And it leans, never forcing, towards the biomes and the growth of its colour: jungle and forest, bamboo,",
     "melons and cactus."
   ],
-  "biases": {
-    "biomes": {
-      "minecraft:jungle": 0.5,
-      "minecraft:bamboo_jungle": 0.5,
-      "minecraft:forest": 0.4,
-      "minecraft:lush_caves": 0.4,
-      "minecraft:swamp": 0.3
+  "meanings": [
+    {
+      "sets": {
+        "colour": "green"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:bamboo_vegetation": 0.5,
-      "minecraft:patch_melon": 0.5,
-      "minecraft:patch_cactus_desert": 0.3
+    {
+      "sets": {
+        "stone": "#green"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#green"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:jungle": 0.5,
+          "minecraft:bamboo_jungle": 0.5,
+          "minecraft:forest": 0.4,
+          "minecraft:lush_caves": 0.4,
+          "minecraft:swamp": 0.3
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:bamboo_vegetation": 0.5,
+          "minecraft:patch_melon": 0.5,
+          "minecraft:patch_cactus_desert": 0.3
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "green",
-    "stone": "#green",
-    "material": "#green"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1
-  }
+  ]
 }

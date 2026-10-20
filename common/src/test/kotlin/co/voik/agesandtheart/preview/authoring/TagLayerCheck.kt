@@ -173,23 +173,25 @@ class TagLayerCheck : FunSpec({
      *
      * It read `query` and `queries`, which no word has carried since the world model landed, so a rename
      * moved the tables and the opposed tags and left every word asking for the old name: legal, silent, and
-     * finding nothing. The three places are `restricts` (bare), `biases` and `excludes` (marked), and the
-     * mark is what tells a tag from a member where both are legal.
+     * finding nothing. The three places are `restricts` (bare), `leans` and `excludes` (marked), in every meaning,
+     * and the mark is what tells a tag from a member where both are legal.
      */
-    test("a rename reaches restricts, biases and excludes") {
+    test("a rename reaches restricts, leans and excludes") {
         val word = JsonParser.parseString(
             """
             {
-              "restricts": {"biomes": {"frozen": 1.0}},
-              "biases": {"all": {"#frozen": -0.4, "minecraft:jungle": 0.5}},
-              "excludes": {"sea": ["#frozen", "minecraft:water"]}
+              "meanings": [
+                {"restricts": {"biomes": {"frozen": ">1.0"}}},
+                {"leans": {"all": {"#frozen": -0.4, "minecraft:jungle": 0.5}}},
+                {"excludes": {"sea": ["#frozen", "minecraft:water"]}}
+              ]
             }
             """.trimIndent(),
         ).asJsonObject
         check(TagFile.renameInWord(word, "frozen", "icy")) { "it found nothing to rename" }
         val said = word.toString()
         check("frozen" !in said) { "something still says frozen: $said" }
-        check(""""icy":1.0""" in said) { "the bare weight did not move: $said" }
+        check(""""icy":">1.0"""" in said) { "the bar did not move: $said" }
         check(""""#icy":-0.4""" in said) { "the marked weight did not move, or lost its sign: $said" }
         check("\"#icy\"" in said && "minecraft:water" in said) { "the exclusion did not move: $said" }
     }
@@ -199,9 +201,11 @@ class TagLayerCheck : FunSpec({
         val word = JsonParser.parseString(
             """
             {
-              "restricts": {"biomes": {"frozen": 1.0, "lush": 0.5}},
-              "biases": {"all": {"#frozen": -0.4, "minecraft:jungle": 0.5}},
-              "excludes": {"sea": ["#frozen"]}
+              "meanings": [
+                {"restricts": {"biomes": {"frozen": ">1.0", "lush": ">0.5"}}},
+                {"leans": {"all": {"#frozen": -0.4, "minecraft:jungle": 0.5}}},
+                {"excludes": {"sea": ["#frozen"]}}
+              ]
             }
             """.trimIndent(),
         ).asJsonObject

@@ -18,14 +18,14 @@ class CavernRuinsOnServerCheck : FunSpec({
 
     fun hasACity(name: String, sentence: String): Boolean {
         val written = server.ask("write", "$name 7 $sentence")
-        check(written.getAsJsonArray("supplied").isEmpty) {
-            "'$sentence' did not parse and was filled in: ${written.getAsJsonArray("supplied")}"
+        check(written.getAsJsonArray("moved").isEmpty) {
+            "'$sentence' did not read as laid, and moved ${written.getAsJsonArray("moved")} to the Age"
         }
         return written.get("cavernRuins").asBoolean
     }
 
     test("the reports' words, written out, make an Age with a D'ni city") {
-        val sentence = "age subterranean landmass large chambered underground algae features"
+        val sentence = "age subterranean large chambered algae"
         val taught = SurveyReport.entries.flatMap { it.teaches }.map { it.path }
         val untaught = taught.filterNot { it in sentence.split(' ') }
         check(untaught.isEmpty()) { "the sentence leaves out words a report teaches: $untaught" }
@@ -33,7 +33,7 @@ class CavernRuinsOnServerCheck : FunSpec({
     }
 
     test("an unsized chamber has no city") {
-        check(!hasACity("ruinsunsized", "age subterranean landmass chambered underground algae features")) {
+        check(!hasACity("ruinsunsized", "age subterranean chambered algae")) {
             "an unsized chamber qualified"
         }
     }
@@ -44,7 +44,7 @@ class CavernRuinsOnServerCheck : FunSpec({
     }
 
     test("a report is found with its Age's book") {
-        server.run("age write surveyloot 7 age gentle landmass")
+        server.run("age write surveyloot 7 age gentle")
         server.run("execute in agesandtheart:surveyloot run forceload add -16 -16 16 16")
         // Several rolls, so each of the three reports is likely to have been drawn.
         val rolls = List(ROLLS) {

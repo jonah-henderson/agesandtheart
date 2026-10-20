@@ -37,34 +37,89 @@
     "settled, so only what is *written* can charge -- an inferno the Art inflicted on a broken Age cannot",
     "make it more broken."
   ],
-  "chooses": {
-    "phenomena": "inferno"
-  },
-  "biases": {
-    "sea": {
-      "#molten": 1.0,
-      "#empty": 0.7,
-      "#watery": -0.8
-    }
-  },
-  "sets": {
-    "motes": "embers|flames",
-    "temperature": "0.5..1.0",
-    "weather.frequency": "-1.0..-0.4"
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "3",
-        "facets": {
-          "sun.cast": "2|3",
-          "sun.colour": "red|blue",
-          "sun.size": "0.7..1.0",
-          "sky.colour": "red",
-          "haze": "0.35..0.7"
+  "speech": "noun",
+  "meanings": [
+    {
+      "sets": {
+        "motes": "embers"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "motes": "flames"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "temperature": "0.5..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "weather.frequency": "-1.0..-0.4"
+      },
+      "must_always_apply": true
+    },
+    {
+      "chooses": {
+        "phenomena": "inferno"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "sea": {
+          "#molten": 1.0,
+          "#empty": 0.7,
+          "#watery": -0.8
         }
-      }
-    ]
-  },
-  "speech": "noun"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sun.cast": "2"
+      },
+      "chance_to_apply": 0.6
+    },
+    {
+      "sets": {
+        "sun.cast": "3"
+      },
+      "chance_to_apply": 0.6
+    },
+    {
+      "sets": {
+        "sun.colour": "red"
+      },
+      "chance_to_apply": 0.6
+    },
+    {
+      "sets": {
+        "sun.colour": "blue"
+      },
+      "chance_to_apply": 0.6
+    },
+    {
+      "sets": {
+        "sun.size": "0.7..1.0"
+      },
+      "chance_to_apply": 0.6
+    },
+    {
+      "sets": {
+        "sky.colour": "red"
+      },
+      "chance_to_apply": 0.6
+    },
+    {
+      "sets": {
+        "haze": "0.35..0.7"
+      },
+      "chance_to_apply": 0.6
+    }
+  ]
 }

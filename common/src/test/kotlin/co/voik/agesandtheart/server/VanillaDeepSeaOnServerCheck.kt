@@ -54,7 +54,8 @@ class VanillaDeepSeaOnServerCheck : FunSpec({
             return inTheAbyss["creatures"].asJsonArray.map { it.asString }.firstOrNull { "hadalfish" in it }
         }
         check(hadalfishIn("vanilladeepsea", "offered") != null) { "the abyss of a deep sea offers no hadalfish" }
-        server.run("age write vanillahomely 7 homely age deep sea")
+        // Aimed at the creatures: laid bare, a lean on everything leans only some of what it reaches.
+        server.run("age write vanillahomely 7 age homely spawns deep sea")
         val rung = hadalfishIn("vanillahomely", "asked")?.substringAfterLast(' ')?.toDouble()
         check(rung != null && rung < 1.0) { "a homely Age asks for the hadalfish at $rung, no less than one that said nothing" }
     }

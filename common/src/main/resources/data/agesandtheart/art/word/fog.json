@@ -7,8 +7,13 @@
     "**One aspect, and the climate is not touched**, as `meteors` keeps the sky alone: a word reaching one part",
     "of the world closes its own clause (`age fog`), and a second part would need an aiming page after it."
   ],
-  "chooses": {
-    "phenomena": "fog"
-  },
-  "speech": "noun"
+  "speech": "noun",
+  "meanings": [
+    {
+      "chooses": {
+        "phenomena": "fog"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

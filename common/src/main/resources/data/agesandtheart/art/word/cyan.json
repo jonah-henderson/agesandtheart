@@ -22,24 +22,43 @@
     "And it leans, never forcing, towards the biomes and the growth of its colour: warm seas and warped woods,",
     "glow lichen."
   ],
-  "biases": {
-    "biomes": {
-      "minecraft:warm_ocean": 0.5,
-      "minecraft:warped_forest": 0.4,
-      "minecraft:lush_caves": 0.3
+  "meanings": [
+    {
+      "sets": {
+        "colour": "cyan"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:warped_fungi": 0.5,
-      "minecraft:glow_lichen": 0.4
+    {
+      "sets": {
+        "stone": "#cyan"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#cyan"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:warm_ocean": 0.5,
+          "minecraft:warped_forest": 0.4,
+          "minecraft:lush_caves": 0.3
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:warped_fungi": 0.5,
+          "minecraft:glow_lichen": 0.4
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "cyan",
-    "stone": "#cyan",
-    "material": "#cyan"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1
-  }
+  ]
 }

@@ -17,7 +17,7 @@ import io.kotest.core.spec.style.FunSpec
 class PullCheck : FunSpec({
 
     fun bare(word: String, seed: Long): AgeComposition =
-        Resolver.resolve(ShippedCorpus.vocabulary, ShippedCorpus.read(listOf(word, "age")), seed).composition
+        ShippedCorpus.resolved(seed, word, "age").composition
 
     fun aimed(seed: Long, vararg pages: String): AgeComposition = ShippedCorpus.resolved(seed, *pages).composition
 

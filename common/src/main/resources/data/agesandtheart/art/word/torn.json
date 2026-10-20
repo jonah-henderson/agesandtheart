@@ -5,12 +5,20 @@
     "are torn already -- cleft, canyoned, shattered. `torn` is one name on the sky and the land, so a torn Age",
     "is both."
   ],
-  "biases": {
-    "landmass": {
-      "#eroded": 1.0
+  "meanings": [
+    {
+      "sets": {
+        "torn": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "landmass": {
+          "#eroded": 1.0
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "torn": "true"
-  }
+  ]
 }

@@ -34,7 +34,7 @@ class TidalCheck : FunSpec({
 
     test("a pull with no moon to pull with is a contradiction") {
         val flaws = resolved(SEEDS.first(), "tidal", "moonless", "moon").instability.flaws
-        check(flaws.any { it.register == Register.TENSION && "tidal" in it.words }) {
+        check(flaws.any { it.register == Register.INCOHERENT && "tidal" in it.words }) {
             "a tidal moon in a moonless Age went uncharged: $flaws"
         }
     }

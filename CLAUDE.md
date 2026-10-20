@@ -25,12 +25,13 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   may be the rock, the guided authoring tool, and the corpus audit. **Partly built, and it opens with the
   line that says to delete it when the last item goes.** Its §5 is the tool, which is `scripts/scrivener.sh`;
   §5.1 and §5.2 are what that tool refuses and nudges about. Read it before authoring a word or touching
-  `art/word/` — and author with the tool rather than by hand.
+  `art/word/` — and author with the tool rather than by hand, once its word editor is rebuilt for meanings.
 - **`notes/meanings-plan.md`** — the rewrite of how a page becomes a claim: words carry meanings that land on the
   first word that accepts them, members name themselves and most aiming words retire. **Decided 2026-10-19,
-  unbuilt, on the branch `meanings`.** It opens with the rules that keep the rework from becoming a hybrid of the
-  old model and the new — read §1 before writing a line of it — then the model, the seam with everything outside
-  the layer, and the list of what must be gone before merge. Read it before adding another exception to how a word
+  on the branch `meanings`, cut over 2026-10-20**; Scrivener's rework (phase 6) is what is left. It opens with
+  the rules that keep the rework from becoming a hybrid of the old model and the new — read §1 before writing a
+  line of it — then the model, the seam with everything outside the layer, and the list of what must be gone
+  before merge. Read it before adding another exception to how a word
   is read.
 - **`notes/instability-tiers-plan.md`** — what is left of the instability tiers, which are **built** and live in
   design §5.0: the strange tier (cosmetic manifestations, the beginner's whole experience of instability,
@@ -245,18 +246,15 @@ hour off the timestamp, so `at-least 100` could never pass and `at-most 2000` co
 Run directories are `runs/` (Fabric) and `run/` (NeoForge), both git-ignored. The first build/run downloads Minecraft, mappings, and the loader toolchains — slow once, then cached.
 
 **The age workshop writes books, and opens them in the game.** `scripts/scrivener.sh` → "the age
-workshop" composes a sentence a page at a time: what could come next is computed by running
-`Grammar.parses` over the row with a closing page on the end, so the suggestions **are** what the parser
-accepts rather than a second opinion about it — and then filtered to the pages that would actually *do*
-something, because the grammar admits more than the world does (`decisions.md`). Inert pages are set aside
-and counted rather than dropped; `^i` shows them. The cost, the flaws and the aiming pages still open move as
-each page goes down. `^o` boots a dedicated server, writes the Age, and sends you in when you connect —
-kept up between rewrites, so changing a page and looking again is seconds. The world is thrown away when
-the screen is left, fenced on the name so it can never reach one somebody plays (`ThrowawayWorldCheck`).
+workshop" composes a sentence a page at a time, read by the same `Reader` a book is: the pages that would take
+what is waiting come first, and the cost, the flaws and the parts still open move as each page goes down. Its
+suggestions are the bare minimum until Scrivener is reworked for meanings (`notes/meanings-plan.md`). `^o`
+boots a dedicated server, writes the Age, and sends you in when you connect — kept up between rewrites, so
+changing a page and looking again is seconds. The world is thrown away when the screen is left, fenced on the name so it can never reach one somebody plays (`ThrowawayWorldCheck`).
 Drafts live in `.authoring/ages/` and hold the **pages**, never the recipe.
 
-**Scrivener reaches past the words.** Its main menu is four groups — the words, the world they
-describe, the age workshop, and the tool itself. Its tag screen edits `art/preset_tags/` with the overlay
+**Scrivener reaches past the words.** Its main menu is three groups — the world the words describe, the
+age workshop, and the tool itself. Its tag screen edits `art/preset_tags/` with the overlay
 visible — every carrier says whether its weight was **authored**, **derived**, or **dropped**, because
 setting a weight on a derived tag *writes* an entry, clearing one lets the derived value back, and removing
 a derived tag is `drop` rather than deletion. It also renames a tag across the carriers, every word that
@@ -265,23 +263,17 @@ is **read-only on purpose**: the derivation rules, where enter runs one rule *by
 what it catches. The file already states its rule perfectly and hides only its consequence —
 `notes/decisions.md` carries the split.
 
-**Authoring a word is `scripts/scrivener.sh`, and it works offline.** A full-screen editor over the real
-corpus: `Vocabulary.load(shippedData(), worldgen)` is the same call `VocabularyCheck` makes, so what a
-candidate reaches, what it costs, what its query keeps and what it contradicts are computed from the
-resolver's own code with **no server**. It refuses what the checks would refuse and names the check for
-each; it nudges towards the rulings in `notes/vocabulary-pass-plan.md` §5.2 without barring them. It also
-**does not offer what it would have to refuse** — a count cannot be demanded, a preset a page already
-means is off the list — while what is merely unwise is said rather than hidden (`decisions.md`). What
-offline cannot know is datapack content — a tag only a bound registry grants (`ore`), the pack's own placed
-features, the game's block tags — and `--refresh` drives `/age tags` and `/age holdings` over RCON into
-`.authoring/server-snapshot.json` for every later run to read. A server is an errand, never a condition.
+**Scrivener's word editor is being rebuilt for meanings** (`notes/meanings-plan.md`, phase 6), so for now a word
+is a file in `art/word/` written by hand, as a list of meanings — and `scripts/scrivener.sh <word>`, `--audit` and
+`--rewrite` say so and leave. It works offline: `Vocabulary.load(shippedData(), worldgen)` is the same call
+`VocabularyCheck` makes. What offline cannot know is datapack content — a tag only a bound registry grants
+(`ore`), the pack's own placed features, the game's block tags — and `--refresh` drives `/age tags` and
+`/age holdings` over RCON into `.authoring/server-snapshot.json` for every later run to read. A server is an
+errand, never a condition.
 
 It lives in `common/src/preview/kotlin/.../authoring/` and is started by the script rather than by Gradle,
 because a TTY is what Gradle cannot give a `JavaExec`. `:common:exportAuthoringLaunch` writes the launch
-down; the script runs it. **The tool owns the file text and the codec owns the value** — `Word.mapCodec`
-drops `_comment` and widens `aspects`, so a word written through it would lose its reasoning and freeze
-today's reach into the file. `AuthoringCheck` holds both halves, including a round trip over every authored
-word. `--rewrite` puts the whole corpus back in that layout and is run by hand, like `:common:grammars`.
+down; the script runs it.
 
 **Tests:** **Kotest**, in three tasks split by what they cost and what they are worth.
 
@@ -492,34 +484,25 @@ feature, and keeping them in one package made a cycle of each. Opening a level i
 - **`AgeGeneration`** (in `generation/`) — turns a recipe into a `ChunkGenerator`, in an exhaustive `when` over `AgePreset`. A pure function of the recipe (plus the server, for registries), because an Age must rebuild identically on every open.
 - **`AgeSavedData`** — vanilla `SavedData` on the overworld's data storage, persisting each Age's recipe. Runtime-dimension libraries do **not** auto-restore dimensions on restart, so we track them ourselves.
 - **`Ages`** (in `generation/`) — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (calling `RuntimeLevels.open` / `RuntimeLevels.delete` with the recipe and dimension type, which are ours) and `reloadSaved` (replay on boot).
-- **`age/word/`** — **the Art's language.** `Word` (what it chooses, bars, sets, bends and leans on,
-  keyed by aspect — **a word does not declare where it speaks**, its reach is derived from those claims;
-  a lean keyed `all` reaches every part it likes something in, read against the corpus at load; how
-  firmly it claims, and what it costs, are read off the same claims),
-  `PresetProfile`/`PresetTags` (what the world is like — hung on `Taggable`, which is an `AuthoredPreset`
-  this pack wrote or a `RegistryReference` into one of the game's registries; being describable by tag is
-  the only thing the two share, so the interface is named for it), `Vocabulary` (the corpus, **loaded from datapack
-  JSON** under `data/<namespace>/art/` — words, domains, per-slot tag tables, opposed tags, structural words), and
-  `Resolver` (a parsed sentence + seed → composition, cost and instability). `DerivedWords` gives **every
-  block and biome in the pack a word of its own**, so the corpus is ~1100 offline and more on a server.
-  Resolution is a **pure function of (vocabulary, sentence, seed)**; the resolved composition is what
+- **`age/language/`** — **words, and how a book is read** (`notes/meanings-plan.md`). A `Word` carries
+  **meanings**, each one idea of one or more `Effect`s with its chance to apply where aimed, laid bare, or
+  always; its price is read off them. `Acceptance` is derived, never written: an aspect's page takes what its
+  part of the world owns, a member word what its preset honours, a minting a substance, and blocks take
+  nothing. `Reader` reads a row of pages — a page is taken whole by the first word that accepts any of its
+  meanings, a page nothing takes lands what it asserts or is moved to `age`, and `Draw` decides, page by page
+  off the seed, which candidates land — into a `Reading`: each page's `Fate`, what could land and what did.
+  `Reading.readout` says it back page by page; `Prose.of` is what a book *reads* as, clauses stored on the book
+  and written into English by `ProseWriting` on the client. `DerivedWords` gives **every block and biome in the
+  pack a word of its own**, so the corpus is ~1100 offline and more on a server.
+- **`age/resolution/`** — **landed claims in, `Resolution` out**, and it never imports `age/language/`: a
+  `Book` of `Landing`s and the `WorldFacts` it is resolved against become a composition, a cost and an
+  instability (`Resolver`). Incoherence is charged from what words *could* land, before the draw, one flaw per
+  pair. Resolution is a **pure function of (vocabulary, pages, seed)**; the resolved composition is what
   persists, never the words (design §4.6).
-- **`age/word/grammar/`** — **the parser**, and a boundary worth respecting. `Grammar.read(vocabulary,
-pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope`/`Polarity`/`Group` are
-  ours and carry no parser concepts, which is what lets checks build sentences by hand and lets the parser
-  be replaced by rewriting one file. `ArtReading.kt` **is** that one file: recursive descent over a row of
-  pages already looked up in the `Vocabulary` and stamped with a class, four productions long, and with no
-  lexer because there is nothing left to lex. It names no aspect and no domain — which section admits which
-  page is asked of the data (`Aspect.confinable`, `Aspect.madeOfSomething`, `Word.aspects`), so the
-  player-facing division can be redrawn without touching it. `Grammar.parses` is the other question the
-  port answers: whether a row reads **as laid**, with nothing repaired — `read` cannot say, because it
-  refuses only a missing `age` page and repairs everything else. `Grammar.reading` is the same question
-  with the row classified once, for a screen asking it of a thousand candidates against one row. **Every clause ends with the page it is about** and modifiers lead it —
-  `pillared and gentle landmass`, and a book with no aiming page closes with `age`. A clause is closed by an
-  **aiming page** (`landmass`, `weather`, `sky` — one per aspect, synthesised from `Aspect.page`) and never by a word that fills something —
-  presets are ours, not the player's. `Readout.of(sentence)` says the parse back word for word, which is how attachment is visible at
-  all; `Prose.of` is what a book *reads* as — clauses stored on the book and written into English sentences by
-  `ProseWriting` on the client, from `prose.agesandtheart.*` frames in the language file.
+- **`age/word/`** — what holds the words: `Vocabulary` (the corpus, **loaded from datapack JSON** under
+  `data/<namespace>/art/` — words, per-slot tag tables, opposed tags, structural pages), and
+  `PresetProfile`/`PresetTags` (what the world is like — hung on `Taggable`, which is an `AuthoredPreset`
+  this pack wrote or a `RegistryReference` into one of the game's registries).
 - **`Holds`** — what an aspect holds: a catalogue, a weighted set, a population, or nothing but its own
   properties. One enum where there were two parallel `Kind`s, and what `Aspect` answers with rather than a
   type of its own.
@@ -528,19 +511,18 @@ pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope
 > longer disagree: `Domain` is gone — an aspect *is* its own page, so `art/domain/` no longer exists — and
 > so are `Scope` and both `Kind` enums, replaced by `Holds`. There are no counts, `sky` became the vault
 > against `sun`, `moon` and `stars`, and `in <biome>` (§4.3.1) is built. Read that document before changing
-> anything under `age/aspect/` or `age/word/`; it is normative and current, not a plan.
+> anything under `age/aspect/`, `age/language/` or `age/resolution/`; it is normative and current, not a plan.
 - **`age/word/generation/`** — the grammars the Art writes *out* of, which are **datapack content**
   (`art/generation/<name>.json`, authored as `src/main/generation/<name>.gen` and exported by
   `:common:grammars`): `basic_book`, `advanced_book` and `unstable_book` write the three kinds of found
-  Descriptive Book (`FoundBookKind`, named by `write_found_book`'s `kind`), `repair` writes the sentence a
-  book that does not parse is filled into, `name` draws an Age's syllables. A weighted context-free grammar
-  read forwards, and it shares no machinery with the parser on purpose. `BookCheck` runs every book grammar's
+  Descriptive Book (`FoundBookKind`, named by `write_found_book`'s `kind`), and `name` draws an Age's syllables. A weighted context-free grammar
+  read forwards, and it shares no machinery with the reader on purpose. `BookCheck` runs every book grammar's
   output through the whole pipeline against the rules in `FoundBookRules` — the unstable one must come out
   flawed and the advanced one must use a modifier — and fuzzes 2000 random page rows beside it. A book
   naming the pack's own worldgen (`algae`, `torchflowers`) is skipped offline, where those are not words
   (`Vocabulary.awaitsAServer`), and judged by the same rules in `BookOnServerCheck` through `/age books json`.
   `/age book [<kind>] [<seed>]` reads one back.
-- **`Instability`** — how far an Age is at odds with itself, in six registers, each `Flaw` naming the words,
+- **`Instability`** — how far an Age is at odds with itself, in four registers, each `Flaw` naming the words,
   slot and tags involved. Provenance is the point: a flaw has to be diagnosable, and §5's consequences read
   this long after the book was written. Part of the recipe.
 - **`AgeCommand`** — the `/age` Brigadier tree (vanilla, so it's in `common`), in `co.voik.agesandtheart.command` along with everything that builds it; the operator tools, kept permanently now that books have superseded them in play. `/age write <name> [seed] <words…>` authors an Age from a sentence and `/age words` lists the vocabulary. **The instruments are `AgeInstruments`, added to the same tree only when `Services.PLATFORM.isDevelopment`** — true for `runServer`, the server checks and Scrivener's server, false in a shipped jar. It is only the *list* of them now: one file per family (`CorpusInstruments`, `SkyInstruments`, `TerrainInstruments`, `PhenomenonInstruments`, `ConsequenceInstruments`, `PlayerInstruments`, `RewardInstruments`, `LootInstruments`, `LightInstruments`), each owning its own constants and helpers, where all twenty-six used to share one object and one block of seventy-odd constants. What they genuinely share is named rather than reached for through the command tree: `CommandArguments` carries the argument names, Brigadier's result codes, `reporting` and the two ways of naming an Age, and `Measurements` the units and readouts more than one family says a number with. The debug affordances are among them: `/age bind <name>` hands you a Descriptive Book already bound to an Age that exists (the only way to look at a *chosen* one through a panel), `/age weather` sets the weather of the Age you stand in, and `/age pages` hands out a notebook of every word while `/age forget` unlearns them. `/age compare <a> <b>` generates two Ages and diffs them block for block — write two with the same seed to check a recipe reproduces. The instruments are worth knowing before building another: `/age tags` says what a tag actually carries on a server, `/age spawns` what an Age offers a spawn attempt, `/age instability [<name>]` everything about an Age coming apart, the one stood in unless another is named — what its index drew and what shows now, a manifestation forced to any step count or the pull set outright until a restart (`force <manifestation> <steps>`, `gravity <pull>`, `clear`), its index, age and a deluge's rain set by hand (`index`, `age`, `rained`), how holed it is (`wounds`) and what it and the ground underfoot are worth (`danger`), `/age loot` opens every container pages are put in through vanilla's own tables and says how often each held one, `/age showing` what is being drawn, `/age scarab` brings a scarab in by the same placement a natural arrival takes, `/age tide` runs a tide pinned at a stage or on the moons, `/age paper_tree` reads a paper tree's heart and the Age's window, and `/age lightflood <pos>` floods the light at a block as coloured light does and compares it with the server's own light engine block for block.

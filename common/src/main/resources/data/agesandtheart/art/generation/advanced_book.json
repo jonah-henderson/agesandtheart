@@ -17,80 +17,80 @@
       {"produce":["[pitted_jungle_age]"]}
     ],
     "mingled_age": [
-      {"weight":3.0,"produce":["age","[landform_pair]","landmass","[material_pair]","[shape]","features","[colour]","sky","[colour]","clouds"]},
-      {"weight":2.0,"produce":["age","[landform_pair]","landmass","[material_pair]","[shape]","features","[night]"]},
-      {"produce":["age","archipelagic","and","pillared","landmass","[semiprecious]","arches","features","[colour]","waters","[colour]","sky"]},
-      {"produce":["age","canyoned","and","shattered","landmass","red_sand","surface","sandfall","phenomena","orange","sky"]},
-      {"produce":["wondrous","age","skyborne","and","archipelagic","landmass","[night]"]},
-      {"produce":["age","insular","and","archipelagic","landmass","palm_beach","biomes","[colour]","waters","white","clouds"]},
-      {"produce":["[bleak_mood]","age","patchy","[hot_stone]","and","[dark_stone]","landmass","molten","sea"]},
+      {"weight":3.0,"produce":["age","[landform_pair]","[material_pair]","[shape]","[colour]","sky","[colour]","clouds"]},
+      {"weight":2.0,"produce":["age","[landform_pair]","[material_pair]","[shape]","[night]"]},
+      {"produce":["age","archipelagic","and","pillared","[semiprecious]","arches","[colour]","waters","[colour]","sky"]},
+      {"produce":["age","canyoned","and","shattered","red_sand","surface","sandfall","orange","sky"]},
+      {"produce":["wondrous","age","skyborne","and","archipelagic","[night]"]},
+      {"produce":["age","insular","and","archipelagic","palm_beach","[colour]","waters","white","clouds"]},
+      {"produce":["age","patchy","[hot_stone]","and","[dark_stone]","landmass","molten","sea"]},
       {"produce":["age","patchy","[cold_stone]","and","[pale_stone]","landmass","inferno","phenomena","white","sun"]}
     ],
     "singled_age": [
-      {"produce":["age","only","cherry_grove","and","meadow","biomes","[sun_colour]","sun","[colour]","air"]},
-      {"produce":["age","only","ice_spikes","biomes","blue_ice","spikes","features","[aurora_colour]","aurora","bright","stars"]},
-      {"produce":["age","only","pale_garden","biomes","grey","sky","small","moon"]},
-      {"produce":["uncanny","age","only","pale_garden","biomes","green","sky","red","sun"]},
-      {"produce":["age","only","desert","and","badlands","biomes","amethyst_block","spikes","features","sandfall","phenomena","orange","sky"]},
-      {"produce":["age","only","desert","biomes","colossal","sun","orange","sky"]},
-      {"produce":["age","only","plains","biomes","slime_block","surface","meteors","phenomena","[colour]","sky"]}
+      {"produce":["age","only","cherry_grove","and","meadow","[sun_colour]","sun","[colour]","air"]},
+      {"produce":["age","only","ice_spikes","blue_ice","spikes","[aurora_colour]","aurora","bright","stars"]},
+      {"produce":["age","only","pale_garden","grey","sky","small","moon"]},
+      {"produce":["uncanny","age","only","pale_garden","green","sky","red","sun"]},
+      {"produce":["age","only","desert","and","badlands","amethyst_block","spikes","sandfall","orange","sky"]},
+      {"produce":["age","only","desert","colossal","sun","orange","sky"]},
+      {"produce":["age","only","plains","slime_block","surface","meteors","[colour]","sky"]}
     ],
     "spared_age": [
-      {"weight":2.0,"produce":["age","[land]","landmass","no","monsters","spawns","bright","stars","colossal","moon"]},
-      {"produce":["age","floating","landmass","no","monsters","spawns","[colour]","sky","[colour]","clouds"]},
-      {"produce":["age","[land]","landmass","no","undead","spawns","bright","stars","[aurora_colour]","aurora"]},
-      {"produce":["age","[land]","landmass","no","undead","and","arthropods","spawns","[sun_colour]","sun"]},
-      {"produce":["age","verdant","biomes","no","trees","features","[colour]","grass"]},
-      {"produce":["age","floating","landmass","no","trees","features","[colour]","sky"]}
+      {"weight":2.0,"produce":["age","[land]","no","monsters","bright","stars","colossal","moon"]},
+      {"produce":["age","floating","landmass","no","monsters","[colour]","sky","[colour]","clouds"]},
+      {"produce":["age","[land]","no","undead","bright","stars","[aurora_colour]","aurora"]},
+      {"produce":["age","[land]","no","undead","and","arthropods","[sun_colour]","sun"]},
+      {"produce":["age","verdant","biomes","no","trees","[colour]","grass"]},
+      {"produce":["age","floating","landmass","no","trees","[colour]","sky"]}
     ],
     "thronged_age": [
-      {"produce":["age","[land]","landmass","teeming","[semiprecious]","[shape]","features","[colour]","sky"]},
-      {"produce":["age","[land]","landmass","plentiful","glowstone","rings","features","bright","stars"]}
+      {"produce":["age","[land]","teeming","[semiprecious]","[shape]","[colour]","sky"]},
+      {"produce":["age","[land]","plentiful","glowstone","rings","bright","stars"]}
     ],
     "thinned_age": [
-      {"produce":["age","floating","landmass","few","glowstone","obelisks","features"]},
-      {"produce":["age","[land]","landmass","few","obsidian","obelisks","features","[colour]","sky"]},
-      {"produce":["age","sheer","landmass","scarce","trees","features","white","sky"]}
+      {"produce":["age","floating","landmass","few","glowstone","obelisks"]},
+      {"produce":["age","[land]","few","obsidian","obelisks","[colour]","sky"]},
+      {"produce":["age","sheer","scarce","trees","white","sky"]}
     ],
     "sited_age": [
-      {"produce":["age","[land]","landmass","amethyst_block","spikes","in","desert","yellow","sky"]},
-      {"produce":["age","archipelagic","landmass","prismarine","pyramids","in","beach","[colour]","waters"]},
-      {"produce":["age","[land]","landmass","glowstone","rings","in","plains","bright","stars"]},
-      {"produce":["age","teeming","parrot","spawns","in","jungle","jungle","biomes"]},
-      {"produce":["age","plentiful","axolotl","spawns","in","lush_caves"]}
+      {"produce":["age","[land]","amethyst_block","spikes","in","desert","yellow","sky"]},
+      {"produce":["age","archipelagic","prismarine","pyramids","in","beach","[colour]","waters"]},
+      {"produce":["age","[land]","glowstone","rings","in","plains","bright","stars"]},
+      {"produce":["age","teeming","parrot","in","jungle","jungle"]},
+      {"produce":["age","plentiful","axolotl","in","lush_caves"]}
     ],
     "widened_age": [
-      {"produce":["age","only","swamp","biomes","teeming","frog","everywhere","green","air"]},
+      {"produce":["age","only","swamp","teeming","frog","everywhere","green","air"]},
       {"produce":["age","deep","water","sea","teeming","axolotl","everywhere"]},
-      {"produce":["age","insular","landmass","reefs","features","warm","climate","teeming","axolotl","everywhere","[colour]","waters"]},
+      {"produce":["age","insular","reefs","warm","climate","teeming","axolotl","everywhere","[colour]","waters"]},
       {"produce":["age","teeming","sniffer","everywhere","[colour]","grass"]},
       {"produce":["age","teeming","allay","everywhere","[colour]","leaves"]},
-      {"produce":["age","only","flower_forest","biomes","teeming","bee","everywhere","honey_block","surface"]},
-      {"produce":["age","archipelagic","landmass","palm_beach","biomes","teeming","parrot","everywhere","tropical","climate"]}
+      {"produce":["age","only","flower_forest","teeming","bee","everywhere","honey_block","surface"]},
+      {"produce":["age","archipelagic","palm_beach","teeming","parrot","everywhere","tropical","climate"]}
     ],
     "wonder_age": [
-      {"produce":["age","only","badlands","biomes","red_sand","surface","sandfall","phenomena","orange","sky"]},
-      {"produce":["age","snow_block","surface","inferno","phenomena","only","snowy_plains","biomes"]},
-      {"produce":["age","prismatic","rainbow","rainbows","phenomena","purple","sky","only","cherry_grove","biomes"]},
-      {"produce":["age","[land]","landmass","lattice","underground","glowstone","and","shroomlight","veins"]},
-      {"produce":["age","[land]","landmass","delved","underground","glowstone","and","shroomlight","veins"]},
-      {"produce":["age","colossal","chambered","underground","only","lush_caves","biomes"]},
-      {"produce":["age","floating","landmass","hollow","underground","[colour]","sky","only","plains","biomes"]},
-      {"produce":["wondrous","age","skyborne","landmass","bright","stars","[aurora_colour]","aurora","only","plains","biomes"]}
+      {"produce":["age","only","badlands","red_sand","surface","sandfall","orange","sky"]},
+      {"produce":["age","snow_block","surface","inferno","phenomena","only","snowy_plains"]},
+      {"produce":["age","prismatic","rainbow","purple","sky","only","cherry_grove"]},
+      {"produce":["age","[land]","lattice","glowstone","and","shroomlight","veins"]},
+      {"produce":["age","[land]","delved","underground","glowstone","and","shroomlight","veins"]},
+      {"produce":["age","colossal","chambered","only","lush_caves"]},
+      {"produce":["age","floating","landmass","hollow","underground","[colour]","sky","only","plains"]},
+      {"produce":["wondrous","age","skyborne","bright","stars","[aurora_colour]","aurora","only","plains"]}
     ],
     "beset_age": [
-      {"produce":["age","[land]","landmass","teeming","[monster]","spawns","meteors","phenomena","lightless","sky"]},
-      {"produce":["age","[land]","landmass","teeming","zombie","and","skeleton","spawns","tempest","phenomena"]},
-      {"produce":["age","[land]","landmass","plentiful","zombie","and","skeleton","spawns","meteors","phenomena"]},
-      {"produce":["age","[land]","landmass","teeming","husk","spawns","scorching","climate","meteors","phenomena"]},
-      {"produce":["age","[land]","landmass","teeming","stray","spawns","frozen","climate","blizzard","phenomena"]},
-      {"produce":["age","[land]","landmass","teeming","spider","spawns","deluge","phenomena"]}
+      {"produce":["age","[land]","teeming","[monster]","meteors","lightless","sky"]},
+      {"produce":["age","[land]","teeming","zombie","and","skeleton","tempest"]},
+      {"produce":["age","[land]","plentiful","zombie","and","skeleton","meteors"]},
+      {"produce":["age","[land]","teeming","husk","scorching","climate","meteors"]},
+      {"produce":["age","[land]","teeming","stray","frozen","climate","blizzard","phenomena"]},
+      {"produce":["age","[land]","teeming","spider","deluge","phenomena"]}
     ],
     "flowered_jungle_age": [
-      {"produce":["age","[warm_land]","landmass","torchflowers","features","in","jungle","tropical","climate","jungle","biomes"]}
+      {"produce":["age","[warm_land]","torchflowers","in","jungle","tropical","climate","jungle"]}
     ],
     "pitted_jungle_age": [
-      {"produce":["age","[warm_land]","landmass","mud","and","sand","pits","in","jungle","tropical","climate","jungle","biomes"]}
+      {"produce":["age","[warm_land]","mud","and","sand","pits","in","jungle","tropical","climate","jungle"]}
     ],
     "landform_pair": [
       {"produce":["pillared","and","insular"]},
@@ -144,11 +144,6 @@
       {"produce":["archipelagic"]},
       {"produce":["gentle"]},
       {"produce":["riverine"]}
-    ],
-    "bleak_mood": [
-      {"produce":["desolate"]},
-      {"produce":["ancient"]},
-      {"produce":["foreboding"]}
     ],
     "hot_stone": [
       {"produce":["netherrack"]},

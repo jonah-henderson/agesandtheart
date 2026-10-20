@@ -22,106 +22,227 @@
     "ice spikes and its offers across the rainbow, the air, the vault and the aurora are frozen's now. Two words",
     "that looked as though they should differ and did not, which is the case for having one."
   ],
-  "admits": {
-    "phenomena": [
-      "aurora"
-    ]
-  },
-  "excludes": {
-    "sea": [
-      "#molten"
-    ]
-  },
-  "biases": {
-    "sea": {
-      "#frozen": 0.5
-    },
-    "biomes": {
-      "#frozen": 0.8,
-      "minecraft:ice_spikes": 1.0,
-      "minecraft:frozen_ocean": 0.2
-    }
-  },
-  "sets": {
-    "temperature": "-0.95..-0.45"
-  },
-  "pools": [
+  "meanings": [
     {
-      "draws": "2",
-      "facets": [
-        {
-          "humidity": "-0.3..0.3"
-        },
-        {
-          "colour": "white|grey"
-        },
-        {
-          "sun.size": "-1.0..-0.7",
-          "moon.size": "-1.0..-0.7"
-        },
-        {
-          "haze": "0.2..0.6"
-        },
-        {
-          "material": "#frozen"
-        }
-      ]
-    }
-  ],
-  "requests": {
-    "pools": [
-      {
-        "draws": "1",
-        "facets": {
-          "stone": "#frozen",
-          "motes": "snow",
-          "stars.glow": "+0.2"
+      "sets": {
+        "temperature": "-0.95..-0.45"
+      },
+      "must_always_apply": true
+    },
+    {
+      "admits": {
+        "phenomena": [
+          "aurora"
+        ]
+      },
+      "must_always_apply": true
+    },
+    {
+      "excludes": {
+        "sea": [
+          "#molten"
+        ]
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "sea": {
+          "#frozen": 0.5
         }
       },
-      {
-        "draws": "4",
-        "facets": [
-          {
-            "rainbow.colour": "white|blue",
-            "rainbow.rain": "-1..-1",
-            "rainbow.frequency": "0.7..1",
-            "rainbow.size": "-0.6..-0.2"
-          },
-          {
-            "air.colour": "white|grey"
-          },
-          {
-            "air.haze": "+0.4"
-          },
-          {
-            "air.motes": "snow"
-          },
-          {
-            "clouds.ceiling": "-0.3"
-          },
-          {
-            "sky.colour": "default|blue|white|grey"
-          },
-          {
-            "air.tint": "white|grey|blue"
-          },
-          {
-            "aurora.frequency": "0.7..1"
-          },
-          {
-            "aurora.glow": "+0.5"
-          },
-          {
-            "aurora.size": "0.8..1"
-          },
-          {
-            "clouds.colour": "white|grey"
-          },
-          {
-            "stars.glow": "+0.2"
-          }
-        ]
-      }
-    ]
-  }
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "biomes": {
+          "#frozen": 0.8,
+          "minecraft:ice_spikes": 1.0,
+          "minecraft:frozen_ocean": 0.2
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "humidity": "-0.3..0.3"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "colour": "white"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "colour": "grey"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "sun.size": "-1.0..-0.7",
+        "moon.size": "-1.0..-0.7"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "haze": "0.2..0.6"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "material": "#frozen"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "stone": "#frozen"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "motes": "snow"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "stars.glow": "+0.2"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "rainbow.colour": "white",
+        "rainbow.rain": "-1..-1",
+        "rainbow.frequency": "0.7..1",
+        "rainbow.size": "-0.6..-0.2"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "rainbow.colour": "blue",
+        "rainbow.rain": "-1..-1",
+        "rainbow.frequency": "0.7..1",
+        "rainbow.size": "-0.6..-0.2"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "air.colour": "white"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "air.colour": "grey"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "air.haze": "+0.4"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "air.motes": "snow"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "clouds.ceiling": "-0.3"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sky.colour": "default"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sky.colour": "blue"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sky.colour": "white"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sky.colour": "grey"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "air.tint": "white"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "air.tint": "grey"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "air.tint": "blue"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "aurora.frequency": "0.7..1"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "aurora.glow": "+0.5"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "aurora.size": "0.8..1"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "clouds.colour": "white"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "clouds.colour": "grey"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "stars.glow": "+0.2"
+      },
+      "chance_to_apply": 0.33
+    }
+  ]
 }

@@ -2,7 +2,7 @@ package co.voik.agesandtheart.age.resolution
 
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Taggable
-import co.voik.agesandtheart.age.word.Bars
+import co.voik.agesandtheart.age.aspect.Bars
 
 /** What a landing claims, read off its effects — the questions the resolver asks of every claim it weighs. */
 internal val Landing.aspect: Aspect get() = place.aspect

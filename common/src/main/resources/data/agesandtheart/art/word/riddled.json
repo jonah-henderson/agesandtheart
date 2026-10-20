@@ -3,17 +3,30 @@
     "Full of holes: cavernous rock and a cavernous underground, and every part leaning to caves — the dripstone and",
     "the sculk, a landmass hollowed out."
   ],
-  "restricts": {
-    "rock": {
-      "cavernous": ">0.3"
+  "meanings": [
+    {
+      "restricts": {
+        "rock": {
+          "cavernous": ">0.3"
+        }
+      },
+      "must_always_apply": true
     },
-    "underground": {
-      "cavernous": ">0.3"
+    {
+      "restricts": {
+        "underground": {
+          "cavernous": ">0.3"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#cavernous": 0.8
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "biases": {
-    "all": {
-      "#cavernous": 0.8
-    }
-  }
+  ]
 }

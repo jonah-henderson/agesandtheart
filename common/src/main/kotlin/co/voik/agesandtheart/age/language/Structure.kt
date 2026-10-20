@@ -1,5 +1,11 @@
 package co.voik.agesandtheart.age.language
 
+import com.mojang.serialization.Codec
+import com.mojang.serialization.DataResult
+import com.mojang.serialization.MapCodec
+import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.resources.Identifier
+
 /**
  * The pages that are structure rather than meaning: they say how other pages go together. Named in a pack's
  * `art/grammar/` by the production each is.
@@ -27,5 +33,21 @@ enum class Structure(val production: String, val price: Int) {
     companion object {
         /** The structure a pack's `production` names, or null for any other. */
         fun named(production: String): Structure? = entries.firstOrNull { it.production == production }
+
+        private val CODEC: Codec<Structure> = Codec.STRING.comapFlatMap(
+            { production -> named(production)?.let { DataResult.success(it) } ?: DataResult.error { "'$production' is no structure" } },
+            Structure::production,
+        )
+    }
+
+    /** A structure page as a pack names it: `art/grammar/and.json` is the page `and`. */
+    data class Page(val id: Identifier, val structure: Structure) {
+        val name: String get() = id.path
+
+        companion object {
+            fun mapCodec(id: Identifier): MapCodec<Page> = RecordCodecBuilder.mapCodec { instance ->
+                instance.group(CODEC.fieldOf("production").forGetter(Page::structure)).apply(instance) { Page(id, it) }
+            }
+        }
     }
 }

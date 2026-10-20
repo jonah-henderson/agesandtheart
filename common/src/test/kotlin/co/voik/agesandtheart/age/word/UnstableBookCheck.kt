@@ -2,7 +2,6 @@ package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.book.FoundBookKind
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -25,8 +24,8 @@ class UnstableBookCheck : FunSpec({
         test("every $rule book has ${band.first} to ${band.last} distinct mistakes") {
             val strayed = (1L..SEEDS).mapNotNull { seed ->
                 val pages = grammar.copy(start = rule).expand(Random(seed))
-                val sentence = Grammar.read(vocabulary, pages, seed) ?: error("'${pages.joinToString(" ")}' is not a book")
-                val instability = Resolver.resolve(vocabulary, sentence, seed).instability.index
+                val resolved = vocabulary.resolve(pages, seed) ?: error("'${pages.joinToString(" ")}' is not a book")
+                val instability = resolved.instability.index
                 if (instability in band) null else "seed $seed, $instability flaws: '${pages.joinToString(" ")}'"
             }
             check(strayed.isEmpty()) {

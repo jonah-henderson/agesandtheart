@@ -95,7 +95,7 @@ class BiomeWeightCheck : FunSpec({
 private val FAVOURED = Identifier.withDefaultNamespace("cherry_grove")
 private val IGNORED = Identifier.withDefaultNamespace("badlands")
 
-/** Twice what the Age would have grown anyway — what naming a biome comes to (`Resolver.claimForMember`). */
+/** Twice what the Age would have grown anyway — what naming a biome comes to (`claimForMember` in `age/resolution/Populations.kt`). */
 private const val ABOVE_ORDINARY = 2.0
 
 /** Half of what the Age would have grown anyway — a biome spoken against rather than struck out. */

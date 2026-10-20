@@ -413,7 +413,7 @@ class Tags(
                     asked.map { name ->
                         val word = corpus.vocabulary.word(name)
                         Line(name.padEnd(24), Palette.value) +
-                            Line(word?.let { "${it.firmness.key}  ${it.aspects.joinToString(" ") { on -> on.page }}" }.orEmpty(), Palette.faint)
+                            Line(word?.let { said -> corpus.vocabulary.lexicon.placesFor(said).sortedBy { it.ordinal }.joinToString(" ") { it.page } }.orEmpty(), Palette.faint)
                     }
                 },
             ),

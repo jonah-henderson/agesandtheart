@@ -3,7 +3,15 @@
     "A low ring lying on the ground. Flat on purpose: a ring stood on edge is an arch that closed,",
     "and `arches` is its own page."
   ],
-  "mints": "agesandtheart:rings",
-  "unstated": "#agesandtheart:formation_substance",
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:rings",
+        "unstated": "#agesandtheart:formation_substance"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

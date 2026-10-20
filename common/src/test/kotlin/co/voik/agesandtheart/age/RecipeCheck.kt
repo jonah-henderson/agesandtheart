@@ -15,6 +15,8 @@ import co.voik.agesandtheart.age.aspect.Terrain
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
 import net.minecraft.nbt.CompoundTag
+import net.minecraft.nbt.ListTag
+import net.minecraft.nbt.StringTag
 import net.minecraft.nbt.NbtOps
 import net.minecraft.resources.Identifier
 
@@ -417,19 +419,28 @@ class RecipeCheck : FunSpec({
      * world from them, which is exactly why they are easy to lose without noticing, and the flaws are what
      * makes an unstable Age diagnosable rather than merely punished (§5.1).
      */
+    /** A saved flaw under a register that folded into incoherence still reads, as an incoherence. */
+    test("a flaw under a retired register reads as incoherent") {
+        for (key in listOf("tension", "opposed", "fracture", "displaced")) {
+            val saved = CompoundTag().apply {
+                putString("register", key)
+                put("words", ListTag().apply { add(StringTag.valueOf("riddled")) })
+            }
+            val read = Flaw.CODEC.parse(NbtOps.INSTANCE, saved).getOrThrow()
+            check(read.register == Register.INCOHERENT) { "a saved '$key' flaw read as ${read.register}" }
+        }
+    }
+
     test("a written Age keeps its words and its flaws") {
         val composition = AgeComposition(terrains = listOf(Terrain.HILLS))
             .withPresets(Aspect.CARVERS, listOf(Carvers.CAVES.key, Carvers.SOLID.key))
         val instability = Instability(
             listOf(
                 Flaw(
-                    Register.FRACTURE, listOf("riddled", "unbroken"), Aspect.CARVERS,
+                    Register.INCOHERENT, listOf("riddled", "unbroken"), Aspect.CARVERS,
                     listOf("cavernous", "solid"),
                 ),
-                Flaw(
-                    Register.TENSION, listOf("riddled", "unbroken"), Aspect.CARVERS,
-                    listOf("cavernous", "solid"),
-                ),
+                Flaw(Register.INCOHERENT, listOf("unbroken", "riddled"), Aspect.TERRAIN, emptyList()),
             ),
             pages = SAMPLE_PAGES,
         )
@@ -449,7 +460,7 @@ class RecipeCheck : FunSpec({
         }
         // The severity is stored rather than recomputed, so retuning the charges cannot rewrite an Age that
         // has already been written — the same argument as persisting the recipe rather than the words (§4.6).
-        check(instability.index == EXPECTED_SAMPLE_INDEX) { "a tension and a fracture between the same two words counted ${instability.index}" }
+        check(instability.index == EXPECTED_SAMPLE_INDEX) { "two flaws between the same two words counted ${instability.index}" }
     }
 
     /**
@@ -591,7 +602,6 @@ private const val NOT_STAMPED = -1
 
 
 
-/** What the sample flaws add up to: a division at exact precision, plus the tension behind it. */
 /** One: the two flaws are raised by the same two words, so they are one mistake. */
 private const val EXPECTED_SAMPLE_INDEX = 1
 

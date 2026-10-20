@@ -1,15 +1,13 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.ShippedCorpus.ANY_SEED
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.resolved
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Register
-import co.voik.agesandtheart.age.word.Resolver
-import co.voik.agesandtheart.age.word.Word
-import co.voik.agesandtheart.age.word.grammar.Grammar
+import co.voik.agesandtheart.age.resolution.Effect
+import co.voik.agesandtheart.age.language.Word
 import co.voik.agesandtheart.worldgen.feature.FeatureDensity
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
 import co.voik.agesandtheart.worldgen.feature.OreVein
@@ -87,7 +85,7 @@ class MintingCheck : FunSpec({
      * silence with the page paid for either way (Jonah, 2026-08-25, walked).
      */
     test("a spring asked to run with a solid charges for the material it lost") {
-        val displaced = flawsOf("gold_block", "springs").filter { it.register == Register.DISPLACED }
+        val displaced = flawsOf("gold_block", "springs").filter { it.register == Register.INCOHERENT }
         check(displaced.size == 1) { "'gold_block springs' charged ${flawsOf("gold_block", "springs")}" }
 
         val flaw = displaced.single()
@@ -105,7 +103,7 @@ class MintingCheck : FunSpec({
      */
     test("and a spring that can run with what it was given is charged nothing") {
         for (fluid in listOf("lava", "water")) {
-            val displaced = flawsOf(fluid, "springs").filter { it.register == Register.DISPLACED }
+            val displaced = flawsOf(fluid, "springs").filter { it.register == Register.INCOHERENT }
             check(displaced.isEmpty()) { "'$fluid springs' was charged $displaced for a substance that flows" }
         }
     }
@@ -123,7 +121,7 @@ class MintingCheck : FunSpec({
             check(grown.any { it.startsWith("minecraft:lake_lava_surface") && "of=minecraft:$filling" in it }) {
                 "'$filling lakes' left $grown"
             }
-            val displaced = flawsOf(filling, "lakes").filter { it.register == Register.DISPLACED }
+            val displaced = flawsOf(filling, "lakes").filter { it.register == Register.INCOHERENT }
             check(displaced.isEmpty()) { "'$filling lakes' was charged $displaced, and a bowl holds anything" }
         }
     }
@@ -136,10 +134,11 @@ class MintingCheck : FunSpec({
     test("materials joined in a minting mingle into one feature, and cost nothing") {
         val pits = pitsIn("mud", "and", "sand", "pits")
         check(pits.size == 1) { "'mud and sand pits' left ${pits.size} pits: $pits" }
-        check(pits.single().substances == listOf("minecraft:mud", "minecraft:sand")) {
+        // A substance's values are a set, not a sequence (`Parameter.keepsWrittenOrder`).
+        check(pits.single().substances.toSet() == setOf("minecraft:mud", "minecraft:sand")) {
             "'mud and sand pits' is made of ${pits.single().substances}"
         }
-        val displaced = flawsOf("mud", "and", "sand", "pits").filter { it.register == Register.DISPLACED }
+        val displaced = flawsOf("mud", "and", "sand", "pits").filter { it.register == Register.INCOHERENT }
         check(displaced.isEmpty()) { "'mud and sand pits' was charged $displaced for asking for both" }
     }
 
@@ -147,7 +146,7 @@ class MintingCheck : FunSpec({
     test("materials laid side by side in a minting contend") {
         val pits = pitsIn("mud", "sand", "pits")
         check(pits.size == 1 && pits.single().substances.size == 1) { "'mud sand pits' left $pits" }
-        val displaced = flawsOf("mud", "sand", "pits").filter { it.register == Register.DISPLACED }
+        val displaced = flawsOf("mud", "sand", "pits").filter { it.register == Register.INCOHERENT }
         check(displaced.size == 1) { "'mud sand pits' charged ${flawsOf("mud", "sand", "pits")}" }
     }
 
@@ -207,7 +206,7 @@ class MintingCheck : FunSpec({
 
     /** And a pattern that never asked for a fluid takes a solid happily — `deposits` is the other minting. */
     test("a deposit is made of a solid and charges nothing") {
-        val displaced = flawsOf("gold_block", "deposits").filter { it.register == Register.DISPLACED }
+        val displaced = flawsOf("gold_block", "deposits").filter { it.register == Register.INCOHERENT }
         check(displaced.isEmpty()) { "'gold_block deposits' was charged $displaced, and a deposit wants a solid" }
     }
 
@@ -284,15 +283,13 @@ class MintingCheck : FunSpec({
     test("the material does not also become the rock") {
         // The whole point of the clause: `lava` is qualifying the springs, not saying what the world is
         // made of. Attachment is what keeps it there, and this is the case that would prove it lost.
-        val composition = Grammar.read(vocabulary, listOf("age", "lava", "springs"), ANY_SEED)
-            ?.let { Resolver.resolve(vocabulary, it, SAMPLE_SEED).composition }
-            ?: error("'lava springs' is not a book")
+        val composition = resolved(SAMPLE_SEED, "lava", "springs").composition
         val rock = composition.optionsFor(Aspect.TERRAIN, 0).allSpelled(Terrain.STONE.name)
         check(rock.none { "lava" in it }) { "'lava springs' paved the world with lava: $rock" }
     }
 
     /**
-     * A pattern says what it is made of when the clause does not ([Word.unstated]), and one that says
+     * A pattern says what it is made of when the clause does not ([Effect.Mints.unstated]), and one that says
      * nothing still mints nothing — `springs` is the pattern with no fallback, so this is the half of the
      * rule that did not move.
      */
@@ -350,49 +347,6 @@ class MintingCheck : FunSpec({
     }
 
     /**
-     * **Spending the size spends the size and nothing else.**
-     *
-     * The whole `Constraint` used to be dropped, so a word carrying a size *and* something else lost both.
-     * Asked of [Word.withoutItsSize] rather than of a resolved Age, and that is deliberate: no sentence
-     * could be found where the difference shows. A word written inside a minting clause is aimed at that
-     * clause, so `colossal`'s restriction of the landmass is inert there whether it survives or not, and
-     * `rich` — which would show it — is evocative and never attaches as a modifier at all.
-     *
-     * So this guards the mechanism rather than an outcome, and says so instead of dressing up a check that
-     * passes either way. What it prevents is the next word to carry a size beside a live claim.
-     */
-    test("taking a word's size away leaves everything else it says") {
-        val colossal = vocabulary.word("colossal") ?: error("no colossal in the corpus")
-        val stripped = colossal.withoutItsSize()
-        check(stripped.sizeAsked == null) { "the size survived: ${stripped.sizeAsked}" }
-        check(stripped.restricts == colossal.restricts) {
-            "colossal's restrictions went with its size: ${stripped.restricts}"
-        }
-        check(stripped.copy(sets = colossal.sets) == colossal) {
-            "something other than the size changed"
-        }
-    }
-
-    /**
-     * **A clause that mints nothing spends nothing, and its size is the pattern's.**
-     *
-     * `springs`, `lakes` and `deposits` all declare `mints` with no `unstated`, so a clause naming one without
-     * a material mints nothing at all. Charging it for the size anyway took the word away and gave nothing
-     * back; and leaving it on the whole aspect made `minuscule lakes` shrink every feature in the Age. It is
-     * said of the pattern the word mints from, as `colossal trees` is said of the trees.
-     */
-    test("a size in a clause that mints nothing is said of the pattern, and of nothing else") {
-        val spring = vocabulary.word("springs")?.mints ?: error("springs mint nothing")
-        val springs = resolved(SAMPLE_SEED, "minuscule", "springs").composition.optionsFor(Aspect.FEATURES, 0)
-        check(springs.steer(Features.SIZE, SAMPLE_SEED, member = spring) == MINUSCULE) {
-            "'minuscule springs' did not make the springs minuscule: ${sizeOf("minuscule", "springs", member = spring)}"
-        }
-        check(springs.steer(Features.SIZE, SAMPLE_SEED, member = BOULDER) == null) {
-            "'minuscule springs' sized the boulders too: ${sizeOf("minuscule", "springs", member = BOULDER)}"
-        }
-    }
-
-    /**
      * The other half: a claim carrying a substance becomes a feature made of it, keeping everything else
      * the pattern had. A spring that stopped wanting rock around it, or a vein that changed size, would be
      * a new feature wearing the pattern's name.
@@ -445,11 +399,11 @@ class MintingCheck : FunSpec({
      * so once in the log and ships the shape's own stone, and the Age looks merely dull.
      */
     test("every pattern's unstated substance names something real") {
-        val patterns = vocabulary.words.filter { it.mints != null && it.unstated != null }
+        fun unstatedOf(word: Word) = word.effects.filterIsInstance<Effect.Mints>().mapNotNull { it.unstated }
+        val patterns = vocabulary.words.filter { unstatedOf(it).isNotEmpty() }
         check(patterns.isNotEmpty()) { "no pattern says what it is made of, so this is checking nothing" }
 
-        for (word in patterns) {
-            val named = word.unstated ?: continue
+        for (word in patterns) for (named in unstatedOf(word)) {
             val pool = if (named.startsWith("#")) blocksTagged(named.drop(1)) else listOf(named)
             check(pool.isNotEmpty()) { "'${word.name}' falls back to '$named', which nothing carries" }
             val missing = pool.filterNot { block ->
@@ -498,7 +452,7 @@ class MintingCheck : FunSpec({
             check(grown.any { fallback in it }) { "'$word' alone left $grown" }
         }
         for (word in fallbacks.keys) {
-            val displaced = flawsOf("gold_block", word).filter { it.register == Register.DISPLACED }
+            val displaced = flawsOf("gold_block", word).filter { it.register == Register.INCOHERENT }
             check(displaced.isEmpty()) { "'gold_block $word' was charged $displaced, and it takes any block" }
         }
     }

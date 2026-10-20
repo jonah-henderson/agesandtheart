@@ -647,7 +647,7 @@ enum class Terrain(
          * owns, so a word that bends `spacing` bends a crater field, a pillar grid and an archipelago —
          * each in its own units, none of them told what a block is. A landform declares the ones it can
          * honour and stays silent about the rest, and a word that reaches only silent ones goes unbacked
-         * ([co.voik.agesandtheart.age.word.Resolver]'s `wentUnheeded`) rather than doing nothing quietly.
+         * (`wentUnheeded` in `age/resolution/Steering.kt`) rather than doing nothing quietly.
          *
          * What a landform may reach *through* one of these is its own business, including features
          * nothing else has: `craterlands` reads [RELIEF] as its rim height, its bowl depth **and** whether

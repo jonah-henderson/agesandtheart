@@ -125,8 +125,7 @@ object Reader {
         private fun sitingIn() {
             val taker = lastTaker
             val biome = pages.getOrNull(at + 1)?.let(lexicon::word)?.let(::biomeNamedBy)
-            val sitable = taker != null && taker.place.aspect.confinable
-            if (biome == null || !sitable || taker == null) {
+            if (taker == null || biome == null || !taker.place.aspect.confinable) {
                 impossible(at)
                 at++
                 return
@@ -199,7 +198,7 @@ object Reader {
                     )
                 }
             }
-            ownMeanings(word, acceptance, place, describedBy = claims.subList(from, claims.size))
+            ownMeanings(word, acceptance, place, describedBy = claims.subList(from, claims.size), joined = joined)
             fates[at] = Fate.Took(place)
             lastTaker = Taker(at, place, taking, from..<claims.size, joined)
         }
@@ -211,9 +210,9 @@ object Reader {
          * 2026-10-20): naming a member asks for a little more of it, a consolation for a writer who names one on its
          * own, and `deserted villages` is plainly about the villages there are. It still asks where what it took asks
          * for an amount, where `only` or `no` leads it, or where its members are not there until something brings
-         * them, as a phenomenon is not.
+         * them, as a phenomenon or a catalogue's member is not.
          */
-        private fun ownMeanings(word: Word, acceptance: Acceptance, place: Place, describedBy: List<Claim>) {
+        private fun ownMeanings(word: Word, acceptance: Acceptance, place: Place, describedBy: List<Claim>, joined: Int?) {
             val pending = polarity
             val namesMembers = acceptance.place.members is Members.Named
             if (pending != null && !namesMembers) polarityAt?.let(::impossible)
@@ -222,7 +221,9 @@ object Reader {
             polarityAt = null
             val describes = describedBy.any { claim -> claim.effects.any { it !is Effect.Abundance } }
             val asksForAnAmount = describedBy.any { claim -> claim.effects.any { it is Effect.Abundance } }
-            val membersAreThereAnyway = place.aspect.pool?.startsEmpty != true
+            // A catalogue's member is there only where it is chosen, so `large chambered` still chooses the chambers.
+            val isAPopulationOfMembers = place.aspect.holds == Holds.WEIGHTED_SET
+            val membersAreThereAnyway = isAPopulationOfMembers && place.aspect.pool?.startsEmpty != true
             val onlyDescribes = namesMembers && describes && !asksForAnAmount && said == Polarity.ASSERTED && membersAreThereAnyway
             if (place.members is Members.Body) {
                 claims += Claim(at, word, Meaning(emptyList(), mustAlwaysApply = true), place, emptyList(), clause = at, aimed = true)
@@ -231,7 +232,7 @@ object Reader {
                 if (onlyDescribes && meaning.effects.all(::namesMembers)) continue
                 namesATemplate(at, meaning)
                 for ((ownPlace, effects) in placesOf(meaning)) {
-                    claims += Claim(at, word, meaning, ownPlace, effects, clause = at, aimed = true, polarity = said)
+                    claims += Claim(at, word, meaning, ownPlace, effects, clause = at, aimed = true, polarity = said, joined = joined)
                 }
             }
         }
@@ -250,7 +251,9 @@ object Reader {
 
         /** A page nothing takes says what it asserts alone, or is laid on the Age with nowhere else to land. */
         private fun fell(page: Waiting) {
-            val asserted = page.word.meanings.filter(Meaning::asserts)
+            // A rock's formations assert, and never apply where aimed: a rock nothing took is laid on the Age.
+            fun couldApplyAlone(meaning: Meaning) = meaning.mustAlwaysApply || meaning.chanceToApply > Meaning.NEVER
+            val asserted = page.word.meanings.filter { it.asserts && couldApplyAlone(it) }
             if (asserted.isEmpty()) return laidBare(page, Fate.Moved)
             fates[page.index] = Fate.AssertedAlone
             for (meaning in asserted) {
@@ -261,9 +264,13 @@ object Reader {
             }
         }
 
+        /** A page laid on the Age, or impossible where nothing it means could land anywhere — a quantifier alone. */
         private fun laidBare(page: Waiting, fate: Fate) {
+            val landing = page.word.meanings.filter(Meaning::appliesUnaimed)
+            val couldLand = landing.any { meaning -> placesOf(meaning).isNotEmpty() || meaning.effects.any { it is Effect.Template } }
+            if (!couldLand) return impossible(page.index)
             fates[page.index] = fate
-            for (meaning in page.word.meanings.filter(Meaning::appliesUnaimed)) {
+            for (meaning in landing) {
                 namesATemplate(page.index, meaning)
                 for ((place, effects) in placesOf(meaning)) {
                     claims += Claim(page.index, page.word, meaning, place, effects, clause = null, aimed = false, joined = page.joined)

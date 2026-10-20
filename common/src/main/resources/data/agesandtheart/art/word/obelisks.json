@@ -4,7 +4,15 @@
     "`blackstone obelisks`. The pattern is ours rather than vanilla's -- nothing the game ships is",
     "a standing stone -- and a shape is all it is, so anything a world can be made of can be one."
   ],
-  "mints": "agesandtheart:obelisks",
-  "unstated": "#agesandtheart:formation_substance",
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:obelisks",
+        "unstated": "#agesandtheart:formation_substance"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

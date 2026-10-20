@@ -6,8 +6,18 @@
     "wherever it would have worn grass or sand, and `bare clouds` takes the clouds out of the sky. A bare Age is",
     "all of it."
   ],
-  "sets": {
-    "bare": "true",
-    "clouds.absent": "true"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "bare": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.absent": "true"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

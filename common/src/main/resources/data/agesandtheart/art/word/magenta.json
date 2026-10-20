@@ -22,24 +22,43 @@
     "And it leans, never forcing, towards the biomes and the growth of its colour: cherry groves and mushroom",
     "fields, cherry blossom."
   ],
-  "biases": {
-    "biomes": {
-      "minecraft:cherry_grove": 0.6,
-      "minecraft:flower_forest": 0.4,
-      "minecraft:mushroom_fields": 0.4
+  "meanings": [
+    {
+      "sets": {
+        "colour": "magenta"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:flower_cherry": 0.6,
-      "minecraft:trees_cherry": 0.5
+    {
+      "sets": {
+        "stone": "#magenta"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#magenta"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:cherry_grove": 0.6,
+          "minecraft:flower_forest": 0.4,
+          "minecraft:mushroom_fields": 0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:flower_cherry": 0.6,
+          "minecraft:trees_cherry": 0.5
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "magenta",
-    "stone": "#magenta",
-    "material": "#magenta"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1
-  }
+  ]
 }

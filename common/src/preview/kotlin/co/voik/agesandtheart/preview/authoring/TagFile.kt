@@ -2,8 +2,8 @@ package co.voik.agesandtheart.preview.authoring
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
-import co.voik.agesandtheart.age.word.Word
 import com.google.gson.JsonParser
 import java.io.File
 
@@ -31,7 +31,9 @@ object TagFile {
 
     /** The three fields of a word file a tag can be written in — see [spellings]. */
     private const val RESTRICTS = "restricts"
-    private const val BIASES = "biases"
+    private const val LEANS = "leans"
+    private const val MEANINGS = "meanings"
+    private const val TAG_MARK = "#"
     private const val EXCLUDES = "excludes"
 
     private val directory: File get() = WordFile.art.resolve("preset_tags")
@@ -256,25 +258,21 @@ object TagFile {
         }
 
     /**
-     * **Every place a word file spells a tag** — `restricts` bare, `biases` and `excludes` marked.
-     *
-     * The mark is what tells a tag from a member where both are legal: `biases` may lean `#frozen` or
-     * `minecraft:jungle`, and `excludes` may strike either. `restricts` takes tags alone, so it needs no
-     * mark and does not carry one.
-     *
-     * **This read `query` and `queries` until 2026-09-02**, which no word has had since the world model
-     * landed — so a rename moved the tables and the opposed tags and left every word asking for the old name,
-     * silently, a query for a tag nobody carries being legal and simply finding nothing.
+     * **Every place a word file spells a tag**, in each of its meanings — `restricts` bare, `leans` and `excludes`
+     * marked. The mark tells a tag from a member where both are legal: a lean may be on `#frozen` or on
+     * `minecraft:jungle`, and `excludes` may strike either. `restricts` takes tags alone, so it carries no mark.
      */
     private fun spellings(word: JsonObject): List<Spelling> = buildList {
-        for ((_, byAspect) in word.getAsJsonObject(RESTRICTS)?.entrySet().orEmpty()) {
-            add(Spelling.Weighted(byAspect.asJsonObject, marked = false))
-        }
-        for ((_, byAspect) in word.getAsJsonObject(BIASES)?.entrySet().orEmpty()) {
-            add(Spelling.Weighted(byAspect.asJsonObject, marked = true))
-        }
-        word.getAsJsonObject(EXCLUDES)?.let { struck ->
-            for (page in struck.keySet().toList()) add(Spelling.Struck(struck, page))
+        for (meaning in word.getAsJsonArray(MEANINGS).orEmpty().map { it.asJsonObject }) {
+            for ((_, byAspect) in meaning.getAsJsonObject(RESTRICTS)?.entrySet().orEmpty()) {
+                add(Spelling.Weighted(byAspect.asJsonObject, marked = false))
+            }
+            for ((_, byAspect) in meaning.getAsJsonObject(LEANS)?.entrySet().orEmpty()) {
+                add(Spelling.Weighted(byAspect.asJsonObject, marked = true))
+            }
+            meaning.getAsJsonObject(EXCLUDES)?.let { struck ->
+                for (page in struck.keySet().toList()) add(Spelling.Struck(struck, page))
+            }
         }
     }
 
@@ -285,8 +283,8 @@ object TagFile {
     }
 
     private fun Spelling.spelt(tag: String) = when (this) {
-        is Spelling.Weighted -> if (marked) "${Word.TAG_MARK}$tag" else tag
-        is Spelling.Struck -> "${Word.TAG_MARK}$tag"
+        is Spelling.Weighted -> if (marked) "$TAG_MARK$tag" else tag
+        is Spelling.Struck -> "$TAG_MARK$tag"
     }
 
     /** True where this word file mentioned [from] anywhere it can spell a tag, and now says [to]. */
@@ -302,9 +300,9 @@ object TagFile {
             }
         } > 0
 
-    /** True where this word file said anything about [tag] and now says nothing. */
-    fun forgetInWord(word: JsonObject, tag: String): Boolean =
-        spellings(word).count { where ->
+    /** True where this word file said anything about [tag] and now says nothing. A meaning left saying nothing goes. */
+    fun forgetInWord(word: JsonObject, tag: String): Boolean {
+        val forgot = spellings(word).count { where ->
             when (where) {
                 is Spelling.Weighted -> where.holder.remove(where.spelt(tag)) != null
                 is Spelling.Struck -> restruck(where) { standing ->
@@ -312,6 +310,22 @@ object TagFile {
                 }
             }
         } > 0
+        if (forgot) dropEmptiedMeanings(word)
+        return forgot
+    }
+
+    private fun dropEmptiedMeanings(word: JsonObject) {
+        val meanings = word.getAsJsonArray(MEANINGS) ?: return
+        fun saysNothing(effect: JsonElement) = effect.isJsonObject && effect.asJsonObject.entrySet().all { (_, said) ->
+            said.isJsonObject && said.asJsonObject.isEmpty
+        }
+        // The effects are the objects in a meaning; its chances are plain values.
+        fun isEmptied(meaning: JsonElement) = meaning.asJsonObject.entrySet()
+            .map { it.value }.filter(JsonElement::isJsonObject)
+            .let { effects -> effects.isNotEmpty() && effects.all(::saysNothing) }
+        val kept = JsonArray().apply { meanings.filterNot(::isEmptied).forEach(::add) }
+        word.add(MEANINGS, kept)
+    }
 
     /** A list of struck names rewritten, or left alone where [wanted] has nothing to change. */
     private fun restruck(where: Spelling.Struck, wanted: (List<String>) -> List<String>?): Boolean {
@@ -323,12 +337,11 @@ object TagFile {
         return true
     }
 
-    /** True where the key was there and moved. Weights are signed, so the sign travels with it. */
+    /** True where the key was there and moved, with its weight or bar as it was spelled. */
     private fun renameKey(holder: JsonObject?, from: String, to: String): Boolean {
         if (holder?.has(from) != true) return false
-        val weight = holder.get(from).asDouble
-        holder.remove(from)
-        holder.addProperty(to, weight)
+        val said = holder.remove(from)
+        holder.add(to, said)
         return true
     }
 

@@ -8,7 +8,6 @@ import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterial
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterials
 import co.voik.agesandtheart.age.word.generation.GenerationGrammar
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.book.FoundBookKind
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -33,8 +32,7 @@ class LootBookCheck : FunSpec({
     /** What an Age written from [rule] at [seed] grows, and the book it was written from. */
     fun grownFrom(rule: String, seed: Long): Pair<List<String>, Grown> {
         val pages = grammar.copy(start = rule).expand(Random(seed))
-        val sentence = Grammar.read(vocabulary, pages, seed) ?: error("'${pages.joinToString(" ")}' is not a book")
-        val resolved = Resolver.resolve(vocabulary, sentence, seed)
+        val resolved = vocabulary.resolve(pages, seed) ?: error("'${pages.joinToString(" ")}' is not a book")
         val composition = resolved.composition
         // A coherent book inflicts nothing, which is what an empty spending says.
         val materials = EarlyGameRareMaterials.grownIn(composition, seed, Spending(emptyMap()))

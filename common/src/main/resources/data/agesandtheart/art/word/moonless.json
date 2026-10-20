@@ -3,7 +3,13 @@
     "No moon -- the sun's own word, said about the other body. See `sunless` for why the parameter names the",
     "aspect it is meant for."
   ],
-  "sets": {
-    "moon.absent": "true"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "moon.absent": "true"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

@@ -3,16 +3,24 @@
     "Nothing grows: every growing feature struck out, every part leaning barren and away from the lush, and what",
     "lives leaning away from what would graze."
   ],
-  "excludes": {
-    "features": [
-      "#grown"
-    ]
-  },
-  "biases": {
-    "all": {
-      "#barren": 0.6,
-      "#lush": -1.0,
-      "#grazing": -0.6
+  "meanings": [
+    {
+      "excludes": {
+        "features": [
+          "#grown"
+        ]
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#barren": 0.6,
+          "#lush": -1.0,
+          "#grazing": -0.6
+        }
+      },
+      "must_always_apply": true
     }
-  }
+  ]
 }

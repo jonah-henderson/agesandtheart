@@ -1,11 +1,8 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.word.Firmness
-import co.voik.agesandtheart.age.word.Resolution
-import co.voik.agesandtheart.age.word.Resolver
-import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Readout
+import co.voik.agesandtheart.age.language.Structure
+import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.preview.authoring.AgeDraft
 import co.voik.agesandtheart.preview.authoring.Corpus
 import co.voik.agesandtheart.preview.authoring.GameClient
@@ -78,9 +75,8 @@ class Workshop(
 
     /** Every page that ends a clause - what the row is coloured by, and it never changes while running. */
     private val closingPages: Set<String> by lazy {
-        (Aspect.entries.mapNotNull { it.page } +
-            corpus.vocabulary.grammarWords.map { it.name }
-                .filter { Grammar.isABook(corpus.vocabulary, listOf(it)) }).toSet()
+        (Aspect.entries.map { it.page } +
+            corpus.vocabulary.structurePages.filter { it.structure == Structure.AGE }.map { it.name }).toSet()
     }
 
     private fun draft() = AgeDraft(name, laid, seeding, seed)
@@ -269,7 +265,7 @@ class Workshop(
      */
     private fun lay() {
         val page = exactlyTyped()?.page ?: focused?.page ?: typed.trim().ifEmpty { return }
-        val known = corpus.vocabulary.word(page) != null || corpus.vocabulary.grammarWord(page) != null
+        val known = corpus.vocabulary.word(page) != null || corpus.vocabulary.structurePage(page) != null
         if (!known) {
             message = "no word called '$page'"
             return
@@ -365,8 +361,8 @@ class Workshop(
 
     private fun resolution(): Resolution? {
         if (!suggesting.isASentence(laid)) return null
-        val read = Grammar.read(corpus.vocabulary, laid, seedNow()) ?: return null
-        return runCatching { Resolver.resolve(corpus.vocabulary, read, seedNow()) }.getOrNull()
+        val read = corpus.vocabulary.read(laid, seedNow()) ?: return null
+        return runCatching { corpus.vocabulary.resolve(read, seedNow()) }.getOrNull()
     }
 
     // -- the frame -------------------------------------------------------------------------------------
@@ -616,7 +612,7 @@ class Workshop(
      */
     private fun readingLines(): List<Line> = buildList {
         add(aimLine())
-        val read = if (laid.isEmpty()) null else Grammar.read(corpus.vocabulary, laid, seedNow())
+        val read = if (laid.isEmpty()) null else corpus.vocabulary.read(laid, seedNow())
         val resolved = resolution()
         add(
             Line("  reads as         ", Palette.faint) +
@@ -624,7 +620,7 @@ class Workshop(
                     laid.isEmpty() -> Line("nothing yet", Palette.faint)
                     resolved == null || read == null ->
                         Line("not a book yet - it wants the `age` page and a close", Palette.warned)
-                    else -> Line(Readout.of(read), Palette.value)
+                    else -> Line(read.readout.lines().joinToString("; "), Palette.value)
                 },
         )
         if (resolved != null) {
@@ -876,7 +872,7 @@ class Workshop(
          */
         val COLUMNS: List<Table.Column> = listOf(
             Table.Column("page", PAGE_WIDTH),
-            Table.Column("claims", FIRMNESS_WIDTH, order = Firmness.entries.map { it.key }),
+            Table.Column("takes", FIRMNESS_WIDTH),
             Table.Column("targets", TARGETS_WIDTH),
             Table.Column("what it does", MINIMUM_SAYS, grows = true),
         )

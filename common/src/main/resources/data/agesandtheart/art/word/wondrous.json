@@ -4,28 +4,66 @@
     "vault, starlight in the air, brighter and denser stars, and a colourful rock are offered to every",
     "wondrous Age, each yielding to anything the book says."
   ],
-  "biases": {
-    "all": {
-      "#monumental": 1.0,
-      "#sheer": 0.8,
-      "#floating": 0.7,
-      "#glowing": 0.5,
-      "#colourful": 0.4
-    }
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "sun.cast": "2",
-          "sky.colour": "purple|blue",
-          "motes": "starlight|glimmer",
-          "stars.glow": "+0.4",
-          "stars.density": "+0.3",
-          "stone": "#colourful"
+  "meanings": [
+    {
+      "leans": {
+        "all": {
+          "#monumental": 1.0,
+          "#sheer": 0.8,
+          "#floating": 0.7,
+          "#glowing": 0.5,
+          "#colourful": 0.4
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sun.cast": "2"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sky.colour": "purple"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sky.colour": "blue"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "motes": "starlight"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "motes": "glimmer"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "stars.glow": "+0.4"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "stars.density": "+0.3"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "stone": "#colourful"
+      },
+      "chance_to_apply": 0.33
+    }
+  ]
 }

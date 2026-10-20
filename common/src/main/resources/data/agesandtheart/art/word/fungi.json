@@ -1,8 +1,13 @@
 {
-  "restricts": {
-    "features": {
-      "fungal": ">0.3"
+  "speech": "plural",
+  "meanings": [
+    {
+      "restricts": {
+        "features": {
+          "fungal": ">0.3"
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "speech": "plural"
+  ]
 }

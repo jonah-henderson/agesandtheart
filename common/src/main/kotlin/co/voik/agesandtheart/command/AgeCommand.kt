@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.command
 
+import co.voik.agesandtheart.age.language.Reading
+import co.voik.agesandtheart.age.resolution.Landing
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.generation.AgeGeneration
 import co.voik.agesandtheart.age.AgePreset
@@ -13,12 +15,8 @@ import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Rung
-import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.platform.Services
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Readout
-import co.voik.agesandtheart.age.word.grammar.Sentence
 import co.voik.agesandtheart.worldgen.ruins.CavernRuins
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.LongArgumentType
@@ -267,8 +265,8 @@ object AgeCommand {
     }
 
     /**
-     * `/age write <name> [<seed>] <words…>` — a sentence in, an Age out. [Resolver] does the work; this
-     * reads the words and reports the composition, the cost, and every flaw with its reason.
+     * `/age write <name> [<seed>] <words…>` — a book in, an Age out. The reading and the resolver do the work; this
+     * reports what each page did, the composition, the cost, and every flaw with its reason.
      */
     private fun runWrite(context: CommandContext<CommandSourceStack>, seed: Long?, report: Report): Int {
         val source = context.source
@@ -283,7 +281,7 @@ object AgeCommand {
         // **A page nobody recognises is not a thing that happens in play**: a player assembles a book from
         // pages, and every page carries a real word. Typing one here is a typo, so it fails the command
         // rather than quietly making a vaguer Age out of the rest.
-        val unknown = pages.filter { vocabulary.word(it) == null && vocabulary.grammarWord(it) == null }
+        val unknown = pages.filter { vocabulary.word(it) == null && vocabulary.structurePage(it) == null }
         if (unknown.isNotEmpty()) {
             return report.fail("The Art has never heard of ${unknown.joinToString(" ")}")
         }
@@ -292,12 +290,11 @@ object AgeCommand {
         // **An omitted seed is a roll, not the name's hash.** See `AgeRecipe.freshSeed`; the seed is
         // printed with the Age, so a world worth keeping can be pinned by writing it back.
         val chosenSeed = seed ?: AgeRecipe.freshSeed()
-        val read = Grammar.read(vocabulary, pages, chosenSeed)
-            ?: return report.fail("A book opens with the Age page — write 'age' first, then what it is like")
-        if (read.isEmpty) return report.fail("An Age needs at least one word the Art can read")
-        reportParse(report, read)
+        val read = vocabulary.read(pages, chosenSeed)
+            ?: return report.fail("A book has an Age page — write 'age', and what it is like around it")
+        reportReading(report, read)
 
-        val resolution = Resolver.resolve(vocabulary, read, chosenSeed)
+        val resolution = vocabulary.resolve(read, chosenSeed)
         val recipe = AgeRecipe.written(source.server, resolution, pages, chosenSeed)
         val result = open(source, name, id, recipe, report)
         if (result == FAILURE) return FAILURE
@@ -321,72 +318,57 @@ object AgeCommand {
     }
 
     /**
-     * What the Art made of the book, said out loud before the Age is opened — the stand-in for the desk's
-     * scratch mode (design §7.5) until it exists, and the only way the grammar's attachment is visible at
-     * all, since a book carries no punctuation to show it.
-     *
-     * The prose is the readout proper; the lines under it are this command's own, because `/age write` is
-     * a debug tool and *where* a word reaches is what an author of the vocabulary needs to see. A desk
-     * shows the prose alone.
+     * What the Art made of the book, said out loud before the Age is opened: every page, where it landed and what
+     * it said there, and which pages had nowhere to land. `/age write` is a debug tool, and where a word reaches is
+     * what an author of the vocabulary needs to see; a desk shows the prose alone.
      */
-    private fun reportParse(report: Report, read: Sentence) {
-        report.fact("readout", Readout.of(read)) { "  “${Readout.of(read)}”" }
-        for (said in read.constraints) {
-            val aimed =
-                if (said.aimedAt.isNotEmpty()) said.aimedAt.joinToString(" ") { it.page } else "everywhere"
-            val joined = said.group?.let { " (joined)" } ?: ""
-            // Marked rather than hidden: the Age is built from the Art's own pages too, so a reader owed a
-            // diagnosis has to see them — and they were never in the book, so they must not read as though
-            // the writer had laid them.
-            val whose = when {
-                said.latent -> " (the Art's own)"
-                said.rehomed -> " (moved here)"
-                else -> ""
+    private fun reportReading(report: Report, read: Reading) {
+        report.fact("readout", read.readout) { read.readout.lines().joinToString("\n") { "  $it" } }
+        for (landing in read.landings) {
+            val how = when {
+                landing.aimed -> "aimed"
+                else -> "laid bare"
             }
             val fields = mapOf(
-                "word" to said.word.name,
-                "reaches" to said.aimedAt.sortedBy { it.ordinal }.map { it.page },
-                "polarity" to said.polarity.name.lowercase(),
-                "density" to Rung.spelled(said.density),
-                "joined" to (said.group != null),
-                "latent" to said.latent,
-                "rehomed" to said.rehomed,
+                "word" to landing.word,
+                "page" to landing.page,
+                "reaches" to listOf(landing.aspect().page),
+                "polarity" to landing.polarity.name.lowercase(),
+                "joined" to (landing.joined != null),
+                "aimed" to landing.aimed,
+                "chance" to landing.chance,
             )
-            report.entry("said", fields) { "    ${said.word.name} → $aimed$joined$whose" }
+            report.entry("said", fields) { "    ${landing.word} → ${landing.aspect().page} ($how)" }
         }
-        // A book that was not a sentence is repaired with the fewest edits, and the aiming pages the Art laid
-        // in are never shown in the book, so this is the only place a writer can be told.
-        val supplied = read.constraints.filter { it.latent }.map { it.word.name }
-        report.only("supplied", supplied)
-        if (supplied.isNotEmpty()) {
+        val moved = read.moved.map { it.written }
+        report.only("moved", moved)
+        if (moved.isNotEmpty()) {
             report.styled {
-                Component.literal("  your book was not a sentence, so the Art laid in: ")
-                    .append(Component.literal(supplied.joinToString(" ")).withStyle(ChatFormatting.GRAY))
+                Component.literal("  nothing would take these, so the Art laid them on the Age: ")
+                    .append(Component.literal(moved.joinToString(" ")).withStyle(ChatFormatting.GRAY))
             }
         }
-        // The two ways a page can fail to be in the reading, said apart because they cost different things
-        // (§4.3): one makes the Age vaguer and is charged nothing, the other is charged and charged dearly.
-        // Both are struck through and said plainly, since the readout above renders only what parsed and
-        // prose that quietly omitted a page would read as though it had worked (§4.3.1).
-        report.only("unreadable", read.unreadable)
-        if (read.unreadable.isNotEmpty()) {
+        val unread = read.unread.map { it.written }
+        report.only("unreadable", unread)
+        if (unread.isNotEmpty()) {
             report.styled {
-                val unread = Component.literal(read.unreadable.joinToString(" "))
-                    .withStyle(ChatFormatting.STRIKETHROUGH)
-                Component.literal("  unread, so the Age comes out vaguer: ").append(unread)
+                Component.literal("  unread, so the Age comes out vaguer: ")
+                    .append(Component.literal(unread.joinToString(" ")).withStyle(ChatFormatting.STRIKETHROUGH))
             }
         }
-        report.only("impossible", read.impossible)
-        if (read.impossible.isNotEmpty()) {
+        val impossible = read.impossible.map { it.written }
+        report.only("impossible", impossible)
+        if (impossible.isNotEmpty()) {
             report.styled {
-                val nowhere = Component.literal(read.impossible.joinToString(" "))
-                    .withStyle(ChatFormatting.STRIKETHROUGH)
-                Component.literal("  no sentence has a place for: ").append(nowhere)
+                Component.literal("  nowhere to go, so these do nothing: ")
+                    .append(Component.literal(impossible.joinToString(" ")).withStyle(ChatFormatting.STRIKETHROUGH))
             }
         }
     }
 
-    /** `/age words` — the whole vocabulary, with each word's tier and the aspects it may fill. */
+    private fun Landing.aspect(): Aspect = place.aspect
+
+    /** `/age words` — the whole vocabulary, with each word's meanings, the parts of the world it reaches and its price. */
     private fun runVocabulary(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val source = context.source
         val vocabulary = Vocabulary.of(source.server)
@@ -399,18 +381,21 @@ object AgeCommand {
         report.fact("words", vocabulary.words.size) { "The Art knows ${vocabulary.words.size} words." }
         report.fact("authored", authored.size) { "${authored.size} written by hand:" }
         for (word in authored) {
-            val about = if (word.aspects.isEmpty()) "anywhere" else word.aspects.joinToString(" ") { it.page }
-            // Every tag it asks for, wherever it asks — a global tilt and a keyed one read the same here.
-            val asks = (word.wanted.sorted() + word.unwanted.sorted().map { "-$it" }).joinToString(" ")
+            val places = vocabulary.lexicon.placesFor(word).sortedBy { it.ordinal }.map { it.page }
+            val takes = vocabulary.lexicon.acceptance(word) != null
             val fields = mapOf(
                 "word" to word.name,
-                "firmness" to word.firmness.key,
-                "aspects" to word.aspects.map { it.page },
-                "aims" to word.aims,
+                "meanings" to word.meanings.size,
+                "aspects" to places,
+                "takes" to takes,
+                "price" to word.price,
             )
-            report.entry("authoredWords", fields) { "  ${word.name} — ${word.firmness.key}, $about: $asks" }
+            val taking = if (takes) ", takes pages" else ""
+            report.entry("authoredWords", fields) {
+                "  ${word.name} — ${word.meanings.size} meanings, ${word.price} ink$taking: ${places.joinToString(" ")}"
+            }
         }
-        val structural = vocabulary.grammarWords
+        val structural = vocabulary.structurePages
         report.only("structural", structural.map { it.name })
         if (structural.isNotEmpty()) {
             report.say { "${structural.size} structural: ${structural.joinToString(" ") { it.name }}" }

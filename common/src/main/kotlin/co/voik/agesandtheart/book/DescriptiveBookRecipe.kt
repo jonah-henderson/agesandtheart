@@ -1,9 +1,7 @@
 package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.age.AgeRecipe
-import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.content.AgeComponents
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
@@ -42,9 +40,9 @@ object DescriptiveBookRecipe {
         // Null is a book with no `age` page, which the desk refuses to bind and no generated book lacks —
         // so this is reachable only from a hand-built stack, and it falls in with "says nothing readable".
         val drawnAt = seed ?: AgeRecipe.seedFor(ageId)
-        val read = Grammar.read(vocabulary, spoken, drawnAt) ?: return sayingNothing(server, ageId)
-        if (read.isEmpty) return sayingNothing(server, ageId)
-        return AgeRecipe.written(server, Resolver.resolve(vocabulary, read, drawnAt), spoken, drawnAt, authored)
+        val read = vocabulary.read(spoken, drawnAt) ?: return sayingNothing(server, ageId)
+        if (read.landings.isEmpty()) return sayingNothing(server, ageId)
+        return AgeRecipe.written(server, vocabulary.resolve(read, drawnAt), spoken, drawnAt, authored)
     }
 
     /**
@@ -55,8 +53,8 @@ object DescriptiveBookRecipe {
     fun sayingNothing(server: MinecraftServer, ageId: Identifier): AgeRecipe {
         val vocabulary = Vocabulary.of(server)
         val drawnAt = AgeRecipe.seedFor(ageId)
-        val read = requireNotNull(Grammar.read(vocabulary, listOf(AGE_PAGE), drawnAt)) { "a book of `age` alone does not read" }
-        return AgeRecipe.written(server, Resolver.resolve(vocabulary, read, drawnAt), listOf(AGE_PAGE), drawnAt, false)
+        val written = requireNotNull(vocabulary.resolve(listOf(AGE_PAGE), drawnAt)) { "a book of `age` alone does not read" }
+        return AgeRecipe.written(server, written, listOf(AGE_PAGE), drawnAt, false)
     }
 
     private const val AGE_PAGE = "age"

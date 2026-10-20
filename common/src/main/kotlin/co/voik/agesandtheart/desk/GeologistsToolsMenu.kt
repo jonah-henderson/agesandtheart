@@ -4,7 +4,7 @@ import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterial
 import co.voik.agesandtheart.age.reward.Survey
 import co.voik.agesandtheart.age.reward.Yield
-import co.voik.agesandtheart.age.word.Resolution
+import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component

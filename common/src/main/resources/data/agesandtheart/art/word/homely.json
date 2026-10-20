@@ -4,29 +4,61 @@
     "grass, green or turning leaves, fireflies, and the odd rainbow are offered to every homely Age, each",
     "yielding to anything the book says."
   ],
-  "biases": {
-    "all": {
-      "#inhabited": 0.8,
-      "#flat": 0.8,
-      "#lush": 0.6,
-      "#grown": 0.4,
-      "#hostile": -0.8,
-      "#sheer": -0.5
-    }
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "3",
-        "facets": {
-          "sky.colour": "blue",
-          "clouds.colour": "white",
-          "grass.colour": "green",
-          "leaves.colour": "green|orange",
-          "motes": "firefly",
-          "rainbow.frequency": "0.3..0.6"
+  "meanings": [
+    {
+      "leans": {
+        "all": {
+          "#inhabited": 0.8,
+          "#flat": 0.8,
+          "#lush": 0.6,
+          "#grown": 0.4,
+          "#hostile": -0.8,
+          "#sheer": -0.5
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sky.colour": "blue"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "clouds.colour": "white"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "grass.colour": "green"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "leaves.colour": "green"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "leaves.colour": "orange"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "motes": "firefly"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "rainbow.frequency": "0.3..0.6"
+      },
+      "chance_to_apply": 0.5
+    }
+  ]
 }

@@ -16,7 +16,7 @@ import net.minecraft.world.level.levelgen.feature.Feature
  *
  * A spring runs with a fluid, and `fluidState` of a block that is not one is `Fluids.EMPTY`, so
  * `gold_block springs` describes something the game cannot make. That is charged for as an incoherence
- * ([co.voik.agesandtheart.age.Register.DISPLACED]) and the world says so too: what stands there is the
+ * ([co.voik.agesandtheart.age.Register.INCOHERENT]) and the world says so too: what stands there is the
  * shape a flow would have left if it had been able to happen.
  *
  * **Flowing turns a corner, and that is why this is a feature rather than a composition.** `BLOCK_COLUMN`

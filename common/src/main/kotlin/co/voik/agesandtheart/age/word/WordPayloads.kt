@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.aspect.Aspect
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
@@ -36,8 +35,8 @@ data class LexiconPayload(
         /** What [vocabulary] tells a client. */
         fun of(vocabulary: Vocabulary) = LexiconPayload(
             vocabulary.script,
-            vocabulary.words.associate { it.id to Grammar.placesFor(it) },
-            materials = vocabulary.words.filter { it.material != null }.map { it.id }.toSet(),
+            vocabulary.words.associate { it.id to vocabulary.lexicon.placesFor(it) },
+            materials = vocabulary.words.filter { it.block != null }.map { it.id }.toSet(),
             shapes = vocabulary.words.filter { it.mints != null }.map { it.id }.toSet(),
         )
 

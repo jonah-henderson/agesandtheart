@@ -11,27 +11,34 @@ terminals word
 # - Moderately unstable, three or four: strange, or a phenomenon starting.
 # - Severely unstable, five or six: harmful, and short of the seven that fail.
 
+# Each mistake is two words wanting what cannot both hold in one part of the world, since words that never share a
+# place never clash (notes/meanings-plan.md 2): the two sides of a sea, a rock, a climate, the weather, the waters or
+# the land. Each pair is one mistake however much its two words disagree, so a kind's count is its pairs.
+
 book = [slightly_unstable] | [moderately_unstable] | [severely_unstable]
 
 slightly_unstable =
-    age [land] landmass villagers ruins structures
-    | age arid landmass flooded rock
-    | age [land] landmass molten sea verdant biomes
-    | age [land] landmass blizzard inferno weather
-    | age [land] landmass trees features arid climate
-    | age [land] landmass flooded sea dry rock
+    age [land] molten flooded sea
+    | age [land] dry flooded rock
+    | age [land] blizzard inferno weather
+    | age [land] drenched parched weather
+    | age [land] clear murky waters
+    | age [land] verdant arid climate
     | age colossal minuscule landmass
+    | age pillared gentle
+    | age [land] molten flooded sea dry flooded rock
 
 moderately_unstable =
-    age colossal minuscule landmass blizzard inferno weather flooded sea dry rock
-    | age arid landmass flooded rock drenched weather blizzard inferno weather
-    | age [cold_stone] landmass frozen scorching climate molten sea verdant biomes
-    | age villagers ruins structures trees features arid climate flooded sea dry rock
+    age colossal minuscule landmass blizzard inferno weather dry flooded rock
+    | age [cold_stone] landmass frozen scorching climate molten flooded sea clear murky waters
+    | age pillared gentle frozen scorching climate dry flooded rock molten flooded sea
+    | age dry flooded rock drenched parched weather clear murky waters
 
 severely_unstable =
-    age colossal minuscule landmass frozen scorching climate molten sea verdant biomes
-    | age colossal minuscule landmass villagers ruins structures frozen scorching climate molten sea verdant biomes
-    | age frozen scorching climate blizzard inferno weather molten sea verdant biomes
+    age colossal minuscule landmass frozen scorching climate molten flooded sea drenched parched weather clear murky waters
+    | age colossal minuscule landmass frozen scorching climate molten flooded sea dry flooded rock clear murky waters
+    | age pillared gentle frozen scorching climate molten flooded sea dry flooded rock clear murky waters
+    | age frozen scorching climate blizzard inferno weather molten flooded sea dry flooded rock clear murky waters
 
 land = gentle | eroded | insular | pillared | canyoned | mountainous
 

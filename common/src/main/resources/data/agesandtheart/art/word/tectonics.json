@@ -12,8 +12,13 @@
     "**One aspect, and no climate or weather bound.** Rock does not care what the sky is doing, and a",
     "bound here would make this a word about the weather as well. `sandfall.json` records the rule."
   ],
-  "chooses": {
-    "phenomena": "tectonics"
-  },
-  "speech": "mass"
+  "speech": "mass",
+  "meanings": [
+    {
+      "chooses": {
+        "phenomena": "tectonics"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

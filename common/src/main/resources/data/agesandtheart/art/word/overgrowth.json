@@ -7,8 +7,13 @@
     "**One aspect, and the climate is not touched.** An overgrowth wants no weather of its own, and a second",
     "part narrowed is a second part paid for. A writer who wants a wet jungle has `verdant` and `drenched`."
   ],
-  "chooses": {
-    "phenomena": "overgrowth"
-  },
-  "speech": "noun"
+  "speech": "noun",
+  "meanings": [
+    {
+      "chooses": {
+        "phenomena": "overgrowth"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

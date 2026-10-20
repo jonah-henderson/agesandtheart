@@ -3,10 +3,30 @@
     "Rain most of the time and thunder in most of it, under low grey cloud. A tempest is the",
     "phenomenon, and asking for this does not bring one."
   ],
-  "sets": {
-    "weather.frequency": "0.6..1.0",
-    "thunder": "0.6..1.0",
-    "clouds.ceiling": "-0.7..-0.3",
-    "clouds.colour": "grey"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "weather.frequency": "0.6..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "thunder": "0.6..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.ceiling": "-0.7..-0.3"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.colour": "grey"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

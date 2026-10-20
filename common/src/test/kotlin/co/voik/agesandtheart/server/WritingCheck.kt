@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.server
 
+import com.google.gson.JsonObject
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -16,25 +17,25 @@ import io.kotest.core.spec.style.FunSpec
  * sentence is really asserting on the wording.
  *
  * **Every sentence here carries `age`, and it has to.** The nucleus is mandatory and refused outright
- * without it (§4.3.1), and a book that has one but does not parse is repaired, which can move or drop a
- * page. A sentence here that stops parsing does not fail loudly; it quietly starts testing repair.
+ * without it (§4.3.1), and a page with nowhere to land is moved to the Age. A sentence here that stops
+ * reading as laid does not fail loudly; it quietly starts testing the move.
  */
 @Tags(NEEDS_SERVER)
 class WritingCheck : FunSpec({
     val server = DrivenServer.shared
 
     /**
-     * The readout has to show where each page landed, and two aiming pages means two sections — the
-     * failure it exists to catch is a material attaching to the wrong one.
+     * The reading has to say where each page landed, and two aiming pages take two clauses — the failure it
+     * exists to catch is a material attaching to the wrong one.
      */
-    test("the readout shows what was aimed where") {
+    test("the reading shows what was aimed where") {
         val written = server.ask("write", "readsback age floating basalt landmass molten lava sea")
-        val readout = written.get("readout").asString
-        check(readout == "age: floating, basalt landmass, over molten, lava sea.") {
-            "the sections blurred: '$readout'"
+        val landed = landedIn(written)
+        check(landed["basalt"] == setOf("landmass" to true) && landed["lava"] == setOf("sea" to true)) {
+            "the clauses blurred: $landed\n${written.get("readout").asString}"
         }
-        check(written.getAsJsonArray("supplied").isEmpty) {
-            "the book did not parse and was filled in: ${written.getAsJsonArray("supplied")}"
+        check(written.getAsJsonArray("moved").isEmpty) {
+            "a page was moved to the Age: ${written.getAsJsonArray("moved")}"
         }
     }
 
@@ -60,11 +61,11 @@ class WritingCheck : FunSpec({
      * grew where. Naming one is read the same way, and `everywhere` is what puts it where it was not.
      */
     test("a described or named feature is bent where it grows, a widened one is put there") {
-        val described = server.run("age write describedtrees 7 age teeming trees features")
+        val described = server.run("age write describedtrees 7 age teeming trees")
         check("where_it_grows" in described) {
             "'teeming trees' asked for trees to be *added* everywhere:\n$described"
         }
-        val named = server.run("age write namedtree 7 age acacia features")
+        val named = server.run("age write namedtree 7 age acacia")
         check("minecraft:acacia[where_it_grows,introduced_if_absent" in named) {
             "naming a feature put it where it was not:\n$named"
         }
@@ -74,12 +75,11 @@ class WritingCheck : FunSpec({
         }
     }
 
-    /** Without an aiming page in front of them the same words are the nucleus, not a section of their own. */
-    test("a book that aims at nothing is one section") {
+    /** Without an aiming page after them the same words are laid bare on the Age. */
+    test("a book that aims at nothing lays everything bare") {
         val written = server.ask("write", "unaimed floating basalt age")
-        check(written.get("readout").asString == "age: floating, basalt.") {
-            "an unaimed book read back as '${written.get("readout").asString}'"
-        }
+        val aimed = landedIn(written).filterValues { places -> places.any { (_, aimed) -> aimed } }
+        check(aimed.isEmpty()) { "an unaimed book aimed ${aimed.keys}:\n${written.get("readout").asString}" }
     }
 
     /**
@@ -88,8 +88,8 @@ class WritingCheck : FunSpec({
      * never refusing (design §2) is about books that do not *parse*, which repair handles, not about words
      * that do not exist.
      *
-     * The command's own contract, which is why it is here: offline `RepairCheck` drives `Grammar.read`
-     * directly and never sees the refusal.
+     * The command's own contract, which is why it is here: offline `ReadingCheck` reads rows directly and
+     * never sees the refusal.
      */
     test("a page the Art never heard of is refused") {
         val written = server.ask("write", "laundered age zzzznotaword basalt landmass")
@@ -106,7 +106,7 @@ class WritingCheck : FunSpec({
      */
     test("a rung reaches a population") {
         for ((rung, name) in listOf(TEEMING to "manyvillages", SCARCE to "fewvillages")) {
-            server.ask("write", "${name} age ${rung.said} villages structures")
+            server.ask("write", "${name} age ${rung.said} villages")
             val recipe = recipeOf(server, name)
             check("minecraft:villages[amount=${rung.written}]" in recipe) { "'${rung.said} villages' wrote $recipe" }
         }
@@ -114,12 +114,12 @@ class WritingCheck : FunSpec({
 
     /** A rung leads its run, so every value joined in it carries the rung, and the next run keeps its own. */
     test("a rung counts the whole run it leads") {
-        server.ask("write", "bothteem age teeming woodland_mansions and villages structures")
+        server.ask("write", "bothteem age teeming woodland_mansions and villages")
         val joined = recipeOf(server, "bothteem")
         check("minecraft:villages[amount=${TEEMING.written}]" in joined) { "the rung did not reach the run: $joined" }
         check("woodland_mansions[amount=${TEEMING.written}]" in joined) { "the rung missed its own term: $joined" }
 
-        server.ask("write", "eachitsown age teeming villages scarce woodland_mansions structures")
+        server.ask("write", "eachitsown age teeming villages scarce woodland_mansions")
         val apart = recipeOf(server, "eachitsown")
         check("minecraft:villages[amount=${TEEMING.written}]" in apart) { "the first run lost its rung: $apart" }
         check("woodland_mansions[amount=${SCARCE.written}]" in apart) { "the rung leaked into the next run: $apart" }
@@ -127,7 +127,7 @@ class WritingCheck : FunSpec({
 
     /** `only` and a rung are independent axes on one value, and must not eat each other. */
     test("only and a rung stack on one value") {
-        server.ask("write", "onlyteeming age only teeming villages structures")
+        server.ask("write", "onlyteeming age only teeming villages")
         val recipe = recipeOf(server, "onlyteeming")
         check("minecraft:villages[only,amount=${TEEMING.written}]" in recipe) { "'only teeming villages' wrote $recipe" }
     }
@@ -163,7 +163,7 @@ class WritingCheck : FunSpec({
 
     /**
      * **What one evocative page may bring about** — the bound on an atmosphere's reach
-     * (`Resolver.drawnAmong`), and **the check has to be here**: a tag's reach is only whole on a server,
+     * (`drawnAmong` in `age/resolution/Populations.kt`), and **the check has to be here**: a tag's reach is only whole on a server,
      * so offline `foreboding` touches a fraction of what it touches in play.
      *
      * The sentence and the seed are a real Age's. Written from a found book, it resolved to **forty-nine
@@ -172,20 +172,18 @@ class WritingCheck : FunSpec({
      * should make an Age dreadful, which is a few of the right things rather than the catalogue.
      *
      * The other half matters as much: it must still bring *something* about, or the bound has turned an
-     * evocative word into a word that does nothing.
+     * evocative word into a word that does nothing. Laid bare it leans only some of what it reaches, so the
+     * something may be creatures or phenomena.
      */
     test("one evocative page brings about a few things, not the catalogue") {
         server.ask("write", "dreadful 5134421 foreboding age basalt landmass molten sea")
         val recipe = recipeOf(server, "dreadful")
 
         val creatures = introducedIn(recipe, "spawns.lives")
-        check(creatures.size in SOMETHING..MOST_CREATURES) {
-            "'foreboding' introduced ${creatures.size} creatures: $creatures"
-        }
+        check(creatures.size <= MOST_CREATURES) { "'foreboding' introduced ${creatures.size} creatures: $creatures" }
         val phenomena = introducedIn(recipe, "phenomena.happens")
-        check(phenomena.size in SOMETHING..MOST_PHENOMENA) {
-            "'foreboding' introduced ${phenomena.size} phenomena: $phenomena"
-        }
+        check(phenomena.size <= MOST_PHENOMENA) { "'foreboding' introduced ${phenomena.size} phenomena: $phenomena" }
+        check(creatures.size + phenomena.size >= SOMETHING) { "'foreboding' introduced nothing at all:\n$recipe" }
     }
 })
 
@@ -206,7 +204,7 @@ private const val ORDINARY = 1.0
 /** At least one, or a bound that brings nothing about would pass as well as a working one. */
 private const val SOMETHING = 1
 
-/** `Resolver.INTRODUCES_WHAT_IT_LIFTS`, restated so a change to it is a change here too. */
+/** `INTRODUCES_WHAT_IT_LIFTS` in `age/resolution/Populations.kt`, restated so a change to it is a change here too. */
 private const val MOST_CREATURES = 6
 private const val MOST_PHENOMENA = 2
 
@@ -221,6 +219,13 @@ private const val GLOWING_SEA_SEEDS = 16
 
 private val TEEMING = Quantifier("teeming", "4")
 private val SCARCE = Quantifier("scarce", "0.25")
+
+/** Each word that landed, against the parts of the world it landed on and whether it was aimed there. */
+private fun landedIn(written: JsonObject): Map<String, Set<Pair<String, Boolean>>> =
+    written.getAsJsonArray("said").map { it.asJsonObject }.groupBy(
+        { it.get("word").asString },
+        { said -> said.getAsJsonArray("reaches").single().asString to said.get("aimed").asBoolean },
+    ).mapValues { it.value.toSet() }
 
 /** The recipe an Age was written with, read back out of `/age list`. */
 private fun recipeOf(server: DrivenServer, name: String): String {

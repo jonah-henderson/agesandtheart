@@ -8,8 +8,13 @@
     "seen against, and it is deliberately not asking for one here: a sky bound in this file would make it",
     "a word about the sky as well, and a second part narrowed is a second part paid for."
   ],
-  "chooses": {
-    "phenomena": "meteors"
-  },
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "chooses": {
+        "phenomena": "meteors"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

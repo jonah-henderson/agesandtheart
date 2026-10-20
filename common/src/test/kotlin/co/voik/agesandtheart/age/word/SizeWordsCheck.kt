@@ -1,8 +1,7 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.ShippedCorpus
 import co.voik.agesandtheart.NEEDS_REGISTRIES
-import co.voik.agesandtheart.ShippedCorpus.read
-import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.Register
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -15,8 +14,8 @@ import io.kotest.core.spec.style.FunSpec
 @Tags(NEEDS_REGISTRIES)
 class SizeWordsCheck : FunSpec({
 
-    fun opposed(vararg pages: String) = Resolver.resolve(vocabulary, read(listOf("age", *pages)), SEED)
-        .instability.flaws.filter { it.register == Register.OPPOSED }
+    fun opposed(vararg pages: String) = ShippedCorpus.resolved(SEED, "age", *pages)
+        .instability.flaws.filter { it.register == Register.INCOHERENT }
 
     test("sizes said of different things coexist") {
         val apart = opposed("small", "insular", "landmass", "rainbows", "phenomena", "colossal", "rainbow")
@@ -24,7 +23,7 @@ class SizeWordsCheck : FunSpec({
     }
 
     test("sizes said of one thing still argue") {
-        val together = Resolver.resolve(vocabulary, read(listOf("age", "small", "colossal", "insular", "landmass")), SEED)
+        val together = ShippedCorpus.resolved(SEED, "age", "small", "colossal", "insular", "landmass")
         check(together.instability.flaws.isNotEmpty()) { "a small colossal island came out coherent" }
     }
 })

@@ -4,11 +4,12 @@
     "coming a fraction as often as it would. `frequent`'s opposite, and never brings a curtain or a bow into an Age",
     "that had none when laid bare."
   ],
-  "sets": {
-    "frequency": "-1.0..-0.6"
-  },
-  "unaimed": {
-    "aurora": 0.0,
-    "rainbow": 0.0
-  }
+  "meanings": [
+    {
+      "sets": {
+        "frequency": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

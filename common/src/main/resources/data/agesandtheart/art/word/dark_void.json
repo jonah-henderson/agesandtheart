@@ -4,5 +4,10 @@
     "own, both of which a writer will want elsewhere -- a page that reads as a phrase is what says this",
     "is not an ordinary modifier."
   ],
-  "template": "dark_void"
+  "meanings": [
+    {
+      "template": "dark_void",
+      "must_always_apply": true
+    }
+  ]
 }

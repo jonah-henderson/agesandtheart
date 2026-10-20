@@ -14,12 +14,9 @@ import net.minecraft.commands.SharedSuggestionProvider
 import co.voik.agesandtheart.age.word.DerivationRules
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.TerminalKind
-import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.book.FoundBookDraft
 import co.voik.agesandtheart.book.FoundBookKind
-import co.voik.agesandtheart.age.word.Resolver
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
@@ -355,12 +352,12 @@ internal object CorpusInstruments {
         // only way to judge whether a generated book is a good one.
         // A generation grammar that forgot the Age page has written something no player could bind, and
         // saying so here is the whole point of drafting against it.
-        val sentence = Grammar.read(vocabulary, pages, seed)
-        val reading = sentence?.let(Readout::of) ?: "nothing — this book has no Age page, so it is not a book"
-        source.sendSuccess({ Component.literal("  reads as: $reading") }, false)
+        val read = vocabulary.read(pages, seed)
+        val reading = read?.readout ?: "nothing — this book has no Age page, so it is not a book"
+        source.sendSuccess({ Component.literal("  reads as:\n$reading") }, false)
         // Said because an unstable book is meant to be flawed, and a coherent one is meant not to be.
-        if (sentence != null) {
-            val instability = Resolver.resolve(vocabulary, sentence, seed).instability
+        if (read != null) {
+            val instability = vocabulary.resolve(read, seed).instability
             source.sendSuccess({ Component.literal("  $instability") }, false)
             for (flaw in instability.flaws) source.sendSuccess({ Component.literal("    $flaw") }, false)
         }
@@ -399,12 +396,13 @@ internal object CorpusInstruments {
         // A word grammar is meant to produce a book, so it is judged the way a book is: by what the parser
         // makes of it, not by whether the words look plausible in a row.
         if (grammar.terminals == TerminalKind.WORD) {
-            val sentence = Grammar.read(vocabulary, produced, seed)
-            val reading = sentence?.let(Readout::of) ?: "nothing — no Age page, so this is not a book"
-            source.sendSuccess({ Component.literal("  reads as: $reading") }, false)
-            if (sentence != null && sentence.dropped.isNotEmpty()) {
+            val read = vocabulary.read(produced, seed)
+            val reading = read?.readout ?: "nothing — no Age page, so this is not a book"
+            source.sendSuccess({ Component.literal("  reads as:\n$reading") }, false)
+            val unplaced = (read?.unread.orEmpty() + read?.impossible.orEmpty()).map { it.written }
+            if (unplaced.isNotEmpty()) {
                 source.sendSuccess({
-                    Component.literal("  unread: ${sentence.dropped.joinToString(" ")}").withStyle(ChatFormatting.RED)
+                    Component.literal("  unread: ${unplaced.joinToString(" ")}").withStyle(ChatFormatting.RED)
                 }, false)
             }
         }

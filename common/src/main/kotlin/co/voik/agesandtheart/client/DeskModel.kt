@@ -2,7 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
-import co.voik.agesandtheart.age.word.grammar.ProseWriting
+import co.voik.agesandtheart.age.language.ProseWriting
 import co.voik.agesandtheart.content.AgeFluids
 import co.voik.agesandtheart.desk.DeskCapability
 import co.voik.agesandtheart.desk.DeskNoticePayload

@@ -20,15 +20,20 @@
     "proportion; laid bare, the word leaves them as they are (`unaimed`), since a world of giants is a thing to",
     "say on purpose."
   ],
-  "restricts": {
-    "landmass": {
-      "monumental": ">0.7"
+  "meanings": [
+    {
+      "sets": {
+        "size": "1.0..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "landmass": {
+          "monumental": ">0.7"
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "size": "1.0..1.0"
-  },
-  "unaimed": {
-    "spawns": 0.0
-  }
+  ]
 }

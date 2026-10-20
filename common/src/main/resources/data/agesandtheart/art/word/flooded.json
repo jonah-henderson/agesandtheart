@@ -6,29 +6,43 @@
     "",
     "It absorbed `drowned`, whose watery sea is this word's sea half (retired.json)."
   ],
-  "restricts": {
-    "sea": {
-      "watery": ">0.3"
-    },
-    "rock": {
-      "watery": ">0.7"
-    }
-  },
-  "biases": {
-    "all": {
-      "#watery": 0.8,
-      "#aquatic": 0.6
-    }
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "1",
-        "facets": {
-          "sea.depth": "+0.3",
-          "weather.frequency": "0.3..0.7"
+  "meanings": [
+    {
+      "restricts": {
+        "sea": {
+          "watery": ">0.3"
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "rock": {
+          "watery": ">0.7"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#watery": 0.8,
+          "#aquatic": 0.6
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sea.depth": "+0.3"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "weather.frequency": "0.3..0.7"
+      },
+      "chance_to_apply": 0.5
+    }
+  ]
 }

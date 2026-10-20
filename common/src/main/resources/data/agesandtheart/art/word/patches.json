@@ -7,7 +7,15 @@
     "",
     "The umbrella for vanilla's `patch_*` and `flower_*` features, which have no words of their own."
   ],
-  "mints": "agesandtheart:patches",
-  "unstated": "#agesandtheart:patch_substance",
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:patches",
+        "unstated": "#agesandtheart:patch_substance"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

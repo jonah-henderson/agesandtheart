@@ -2,7 +2,7 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.InkTier
-import co.voik.agesandtheart.age.word.grammar.ProseClause
+import co.voik.agesandtheart.age.language.ProseClause
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec

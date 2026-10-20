@@ -4,17 +4,28 @@
     "cavernous. The underground one is a choice rather than a page minted off the preset, because a minted page",
     "would share this id."
   ],
-  "chooses": {
-    "underground": "hollow"
-  },
-  "restricts": {
-    "landmass": {
-      "cavernous": ">0.3"
+  "meanings": [
+    {
+      "chooses": {
+        "underground": "hollow"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "landmass": {
+          "cavernous": ">0.3"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#cavernous": 0.5
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "biases": {
-    "all": {
-      "#cavernous": 0.5
-    }
-  }
+  ]
 }

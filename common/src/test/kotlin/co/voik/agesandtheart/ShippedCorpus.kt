@@ -1,10 +1,8 @@
 package co.voik.agesandtheart
 
-import co.voik.agesandtheart.age.word.Resolution
-import co.voik.agesandtheart.age.word.Resolver
+import co.voik.agesandtheart.age.language.Reading
+import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Sentence
 
 /**
  * The vocabulary we ship, loaded once per JVM for every spec that reads it.
@@ -21,20 +19,20 @@ object ShippedCorpus {
         }
     }
 
-    /** A book, read — null being a row that forgot the `age` page, which is a fixture bug (§4.3.1). */
-    fun read(pages: List<String>, seed: Long = ANY_SEED): Sentence =
-        Grammar.read(vocabulary, pages, seed) ?: error("not a book: $pages")
+    /** A book, read — failing where the row has no `age` page, which is a fixture bug. */
+    fun read(pages: List<String>, seed: Long = ANY_SEED): Reading =
+        vocabulary.read(pages, seed) ?: error("not a book: $pages")
 
-    /** For a book read where nothing depends on how a repair breaks a tie. */
+    /** For a book read where nothing depends on the draw. */
     const val ANY_SEED = 0L
 
     /**
-     * A book of [pages], resolved at [seed] — after an `age` page, unless [pages] lays its own, which is how
-     * a fixture writes a word bare on the Age (`"beautiful", "age"`) rather than after it.
+     * A book of [pages], resolved at [seed] — with an `age` page after them, unless [pages] lays its own, so a
+     * fixture's pages are taken as they would be in a book: `frozen climate` aimed, `beautiful` laid bare.
      */
     fun resolved(seed: Long, vararg pages: String): Resolution {
-        val book = if (NUCLEUS in pages) pages.toList() else listOf(NUCLEUS, *pages)
-        return Resolver.resolve(vocabulary, read(book, seed), seed)
+        val book = if (NUCLEUS in pages) pages.toList() else listOf(*pages, NUCLEUS)
+        return vocabulary.resolve(book, seed) ?: error("not a book: $book")
     }
 
     private const val NUCLEUS = "age"

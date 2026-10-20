@@ -3,9 +3,24 @@
     "A low grey lid and a little haze under it, and no rain asked for. Milder than `smothered` on",
     "both dials, which is where the two words are told apart."
   ],
-  "sets": {
-    "clouds.ceiling": "-0.6..-0.2",
-    "air.haze": "0.1..0.4",
-    "clouds.colour": "grey"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "clouds.ceiling": "-0.6..-0.2"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.haze": "0.1..0.4"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.colour": "grey"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

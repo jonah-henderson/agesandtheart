@@ -4,7 +4,36 @@
     "fast, a shifting sky races through its colours, swift creatures move half again as fast as their own, and a",
     "swift sun makes the day as short as half."
   ],
-  "sets": {
-    "pace": "0.5..1.0"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "weather.pace": "0.5..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sky.pace": "0.5..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "spawns.pace": "0.5..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sun.pace": "0.5..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "moon.pace": "0.5..1.0",
+        "phenomena.pace": "0.5..1.0"
+      }
+    }
+  ]
 }

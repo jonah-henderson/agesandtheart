@@ -7,11 +7,12 @@
     "",
     "Laid bare it never brings a curtain or a bow into an Age that had none. It replaced `restless` (retired.json)."
   ],
-  "sets": {
-    "frequency": "0.6..1.0"
-  },
-  "unaimed": {
-    "aurora": 0.0,
-    "rainbow": 0.0
-  }
+  "meanings": [
+    {
+      "sets": {
+        "frequency": "0.6..1.0"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.age.word.grammar.ProseClause
+import co.voik.agesandtheart.age.language.ProseClause
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.desk.PageArchive
 import co.voik.agesandtheart.location
@@ -120,7 +120,7 @@ object AgeComponents {
         .build()
 
     /**
-     * What the book **says** — [Prose][co.voik.agesandtheart.age.word.grammar.Prose]'s clauses, written out
+     * What the book **says** — [Prose][co.voik.agesandtheart.age.language.Prose]'s clauses, written out
      * as sentences wherever the book is read.
      *
      * Written down rather than derived, because reading a sentence takes the whole corpus and a client has

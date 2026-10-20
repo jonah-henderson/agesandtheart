@@ -115,11 +115,9 @@ data class Sea(override val id: Identifier) : RegistryReference {
         /**
          * How far the sea stands above or below the level the terrain left it.
          *
-         * **The aspect's own**, though a sea of nothing has no level worth raising. It was the member's
-         * for a while, so that `Resolver.capabilityFactor` would lean the draw away from air whenever a
-         * writer asked for a level — which was a preference wearing a capability's clothes. Air can hold a
-         * depth perfectly well; the result is simply invisible. A word that wants a *deep* sea and not an
-         * empty one says so where preferences belong, by pushing the `empty` tag away.
+         * **The aspect's own**, though a sea of nothing has no level worth raising: air can hold a depth
+         * perfectly well, and the result is simply invisible. A word that wants a *deep* sea and not an empty
+         * one says so by pushing the `empty` tag away.
          */
         val DEPTH = Parameter.ranged(
             "depth",

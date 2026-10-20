@@ -3,8 +3,18 @@
     "Thick to see through, in the water and in the air both: the murk at its heavy end, and a haze over the land",
     "lighter than the water's. The haze words stay in the air; this is the one that reaches both."
   ],
-  "sets": {
-    "murk": "0.55..1.0",
-    "air.haze": "0.3..0.7"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "murk": "0.55..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.haze": "0.3..0.7"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

@@ -11,7 +11,7 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * **What one evocative page may bring about** — the bound on an atmosphere's reach (`Resolver.drawnAmong`).
+ * **What one evocative page may bring about** — the bound on an atmosphere's reach (`drawnAmong` in `age/resolution/Populations.kt`).
  *
  * An evocative word leans on tags and a tag reaches dozens of members, so scaling every one of them made a
  * single page write the catalogue: `foreboding age basalt landmass molten sea` resolved to forty-nine
@@ -112,7 +112,7 @@ class AtmosphereDrawCheck : FunSpec({
         /** Its own seed and a few beside it, since offline the reach at any one seed may be thin. */
         val MANY_SEEDS = (0L..15L).map { TSI_SEED + it }
 
-        /** `Resolver.INTRODUCES_WHAT_IT_LIFTS`, restated so a change to it is a change here too. */
+        /** `INTRODUCES_WHAT_IT_LIFTS` in `age/resolution/Populations.kt`, restated so a change to it is a change here too. */
         const val MOST_CREATURES = 6
         const val MOST_PHENOMENA = 2
         const val ONE_ANSWER = 1

@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.age.word.grammar.GrammarWord
+import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.language.Structure
 import co.voik.agesandtheart.datapack.ResourceParsing
 import co.voik.agesandtheart.location
 import com.mojang.serialization.Codec
@@ -55,8 +56,8 @@ class InkRequirement(private val authored: Map<String, InkTier>) {
     fun tierFor(word: Word, registries: RegistryAccess): InkTier =
         fromTags(word, registries) ?: authored[word.name] ?: InkTier.DEFAULT
 
-    /** What a structural page demands. It names nothing to tag, so only the authored list can raise it. */
-    fun tierFor(word: GrammarWord): InkTier = authored[word.name] ?: InkTier.DEFAULT
+    /** What a structure page demands. It names nothing to tag, so only the authored list can raise it. */
+    fun tierFor(page: Structure.Page): InkTier = authored[page.name] ?: InkTier.DEFAULT
 
     /**
      * The tag answer, or null if nothing carries one. Asked dearest first, so a thing carrying both tags,

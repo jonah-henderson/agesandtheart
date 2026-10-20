@@ -8,59 +8,158 @@
     "light and petals drifting, a second sun, a vast moon and brighter stars are offered to every dreamlike Age,",
     "each yielding to anything the book says."
   ],
-  "biases": {
-    "landmass": {
-      "tangled": 0.8
+  "meanings": [
+    {
+      "sets": {
+        "footing": "free"
+      },
+      "must_always_apply": true
     },
-    "all": {
-      "#floating": 0.9,
-      "#colourful": 0.7,
-      "#glowing": 0.5,
-      "#fungal": 0.4,
-      "#aloft": 0.4,
-      "#hostile": -0.4
+    {
+      "leans": {
+        "landmass": {
+          "tangled": 0.8
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#floating": 0.9,
+          "#colourful": 0.7,
+          "#glowing": 0.5,
+          "#fungal": 0.4,
+          "#aloft": 0.4,
+          "#hostile": -0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "rainbow.frequency": "0.7..1.0",
+        "rainbow.rain": "-1.0..-0.5"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "air.tint": "purple",
+        "air.haze": "+0.2"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "air.tint": "magenta",
+        "air.haze": "+0.2"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "air.tint": "cyan",
+        "air.haze": "+0.2"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sky.colour": "purple"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sky.colour": "magenta"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sky.colour": "cyan"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sky.colour": "indigo"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "clouds.colour": "magenta"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "clouds.colour": "cyan"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "clouds.colour": "white"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "motes": "glimmer"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "motes": "firefly"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "motes": "cherry_petals"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "motes": "starlight"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "motes": "spore_blossom"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sun.cast": "2"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "moon.size": "+0.7"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "stars.glow": "+0.4",
+        "stars.density": "+0.3"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "stone": "#colourful"
+      },
+      "chance_to_apply": 0.33
     }
-  },
-  "sets": {
-    "footing": "free"
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "3",
-        "facets": [
-          {
-            "rainbow.frequency": "0.7..1.0",
-            "rainbow.rain": "-1.0..-0.5"
-          },
-          {
-            "air.tint": "purple|magenta|cyan",
-            "air.haze": "+0.2"
-          },
-          {
-            "sky.colour": "purple|magenta|cyan|indigo"
-          },
-          {
-            "clouds.colour": "magenta|cyan|white"
-          },
-          {
-            "motes": "glimmer|firefly|cherry_petals|starlight|spore_blossom"
-          },
-          {
-            "sun.cast": "2"
-          },
-          {
-            "moon.size": "+0.7"
-          },
-          {
-            "stars.glow": "+0.4",
-            "stars.density": "+0.3"
-          },
-          {
-            "stone": "#colourful"
-          }
-        ]
-      }
-    ]
-  }
+  ]
 }

@@ -22,26 +22,45 @@
     "And it leans, never forcing, towards the biomes and the growth of its colour: desert and sunflower plains,",
     "sunflowers and dandelions."
   ],
-  "biases": {
-    "biomes": {
-      "minecraft:desert": 0.5,
-      "minecraft:sunflower_plains": 0.6,
-      "minecraft:savanna": 0.3
+  "meanings": [
+    {
+      "sets": {
+        "colour": "yellow"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:patch_sunflower": 0.6,
-      "minecraft:flower_default": 0.4,
-      "minecraft:wildflowers_meadow": 0.4,
-      "minecraft:yellow_poplar_leaf_litter": 0.4
+    {
+      "sets": {
+        "stone": "#yellow"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#yellow"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:desert": 0.5,
+          "minecraft:sunflower_plains": 0.6,
+          "minecraft:savanna": 0.3
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:patch_sunflower": 0.6,
+          "minecraft:flower_default": 0.4,
+          "minecraft:wildflowers_meadow": 0.4,
+          "minecraft:yellow_poplar_leaf_litter": 0.4
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "yellow",
-    "stone": "#yellow",
-    "material": "#yellow"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1
-  }
+  ]
 }

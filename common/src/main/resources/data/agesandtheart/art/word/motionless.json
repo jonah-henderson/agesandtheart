@@ -10,11 +10,12 @@
     "Laid bare it never stops a body (`unaimed` 0): a motionless Age roots its creatures, and a sky that never",
     "moves has to be asked for by name."
   ],
-  "sets": {
-    "still": "true"
-  },
-  "unaimed": {
-    "sun": 0.0,
-    "moon": 0.0
-  }
+  "meanings": [
+    {
+      "sets": {
+        "still": "true"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

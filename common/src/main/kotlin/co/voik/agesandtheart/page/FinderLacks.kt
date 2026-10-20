@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.page
 
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.language.Word
 import co.voik.agesandtheart.age.word.WordRarity
 import co.voik.agesandtheart.age.word.learnedWords
 import com.mojang.serialization.MapCodec

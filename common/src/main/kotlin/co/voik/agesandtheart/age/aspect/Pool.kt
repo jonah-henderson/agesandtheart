@@ -7,7 +7,7 @@ import net.minecraft.resources.Identifier
  * the answer it settled on is stored for the recipe to keep.
  *
  * Not a [Parameter], and the difference is who writes it. A parameter is *exposed*: a writer names it and
- * gives it a value, and it holds one. This is *resolved*: nothing sets it directly, `Resolver.weighed`
+ * gives it a value, and it holds one. This is *resolved*: nothing sets it directly, `weighed` in `age/resolution/Populations.kt`
  * compiles what the sentence said about the population into it, and generation reads it back.
  *
  * It was a parameter with [Holds.WEIGHTED_SET] on it, which is a parameter saying it does not hold a

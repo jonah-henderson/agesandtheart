@@ -4,10 +4,8 @@ import net.minecraft.util.Prediction
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.advancement.WrittenAge
-import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.InkTier
-import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Prose
+import co.voik.agesandtheart.age.language.Prose
 import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
@@ -112,8 +110,8 @@ object DeskCommands {
         val desk = menu.deskOf(player) ?: return
         refusalFor(player, desk, payload)?.let { return complain(player, it) }
         val words = TemplateReading.learnedWords(DeskTemplates.read(player, desk.templateFor(player.uuid)))
-        val sentence = Grammar.read(WritersDeskMenu.vocabularyFor(player), words.map { it.path }, player.writingSeed)
-            ?: return complain(player, "no_age")
+        val vocabulary = WritersDeskMenu.vocabularyFor(player)
+        val reading = vocabulary.read(words.map { it.path }, player.writingSeed) ?: return complain(player, "no_age")
 
         val supply = WritersDeskMenu.supplyFor(player, desk)
         val allocation = supply.allocate(words)
@@ -133,7 +131,7 @@ object DeskCommands {
         book.set(AgeComponents.BOOK_SEED, player.writingSeed)
         // Read by the same expression `DescriptiveBookRecipe` reads it by, so what a book says and the Age
         // it makes can never be two different sentences.
-        book.set(AgeComponents.BOOK_READING, Prose.of(sentence))
+        book.set(AgeComponents.BOOK_READING, Prose.of(reading, vocabulary.lexicon))
         // The one place a book is marked as somebody's own work (design §7.7).
         book.set(AgeComponents.BOOK_AUTHORED, true)
         // A crystal viewer's preview of exactly this sentence becomes the book's Age; any other is deleted.
@@ -148,7 +146,7 @@ object DeskCommands {
         // A fresh world for the next book: one desk read over and over must not hand out the same Age.
         val seed = player.writingSeed
         AgeTriggers.WROTE_AGE.trigger(player, WrittenAge(words) {
-            Resolver.resolve(WritersDeskMenu.vocabularyFor(player), sentence, seed).composition
+            vocabulary.resolve(reading, seed).composition
         })
         player.rerollWritingSeed()
         sync(player, menu, desk)

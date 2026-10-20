@@ -8,17 +8,25 @@
     "them from the weather in a single word. Naming the phenomenon would have brought",
     "`Phenomenon.RAINBOW`'s rainfall floor with it, which is the opposite of what this means."
   ],
-  "biases": {
-    "all": {
-      "#colourful": 0.8
+  "meanings": [
+    {
+      "sets": {
+        "rain": "-1.0..-1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#colourful": 0.8
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "rainbow.frequency": "0.4..1.0"
+      }
     }
-  },
-  "sets": {
-    "rain": "-1.0..-1.0"
-  },
-  "requests": {
-    "sets": {
-      "rainbow.frequency": "0.4..1.0"
-    }
-  }
+  ]
 }

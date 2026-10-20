@@ -17,37 +17,81 @@
     "All of it is requested rather than set: a writer who describes a sun of their own gets exactly that",
     "one, and is charged nothing for having disagreed with a word that was only offering."
   ],
-  "restricts": {
-    "climate": {
-      "molten": ">0.3",
-      "dry": ">0.5"
-    }
-  },
-  "sets": {
-    "temperature": "0.55..1.0",
-    "haze": "0.15..0.45"
-  },
-  "pools": [
+  "meanings": [
     {
-      "draws": "2",
-      "facets": {
-        "evaporation": "true",
-        "motes": "ash",
-        "murk": "0.1..0.4",
-        "humidity": "-0.8..-0.2"
-      }
-    }
-  ],
-  "requests": {
-    "pools": [
-      {
-        "draws": "1",
-        "facets": {
-          "sun.cast": "2",
-          "sun.colour": "red|orange|yellow",
-          "sun.size": "0.5..0.75"
+      "sets": {
+        "temperature": "0.55..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "haze": "0.15..0.45"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "climate": {
+          "molten": ">0.3",
+          "dry": ">0.5"
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "evaporation": "true"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "motes": "ash"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "murk": "0.1..0.4"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "humidity": "-0.8..-0.2"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sun.cast": "2"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sun.colour": "red"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sun.colour": "orange"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sun.colour": "yellow"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sun.size": "0.5..0.75"
+      },
+      "chance_to_apply": 0.33
+    }
+  ]
 }

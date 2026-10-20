@@ -16,7 +16,7 @@
     ],
     "curiosity_age": [
       {"produce":["[mood]","age","[open_curious_landmass]","[look_beside_a_mood]"]},
-      {"produce":["[mood]","age","[curious_landmass]","[thing]"]},
+      {"produce":["[mood]","age","[curious_landmass]","[thing_beside_a_mood]"]},
       {"weight":4.0,"produce":["age","[open_curious_landmass]","[look]","[thing]"]},
       {"weight":2.0,"produce":["age","[open_curious_landmass]","[look]","[landed_thing]","[mild_climate]"]},
       {"produce":["age","[open_curious_landmass]","[bare_look]","[bare_thing]","[barren_climate]"]},
@@ -24,8 +24,8 @@
       {"produce":["[palm_beach_age]"]}
     ],
     "palm_beach_age": [
-      {"weight":2.0,"produce":["age","[palm_landmass]","landmass","palm_beach","biomes","[palm_climate]"]},
-      {"produce":["age","[palm_landmass]","landmass","[look]","palm_beach","biomes"]}
+      {"weight":2.0,"produce":["age","[palm_landmass]","palm_beach","[palm_climate]"]},
+      {"produce":["age","[palm_landmass]","[look]","palm_beach"]}
     ],
     "palm_landmass": [
       {"weight":3.0,"produce":["insular"]},
@@ -37,14 +37,14 @@
       {"produce":["warm","climate"]}
     ],
     "curious_landmass": [
-      {"weight":3.0,"produce":["[typical_landmass]","landmass"]},
-      {"weight":2.0,"produce":["[size]","[typical_landmass]","landmass"]},
-      {"produce":["[stone]","[typical_landmass]","landmass"]}
+      {"weight":3.0,"produce":["[typical_landmass]"]},
+      {"weight":2.0,"produce":["[size]","[sized_landmass]"]},
+      {"produce":["[typical_landmass]","[stone]","landmass"]}
     ],
     "open_curious_landmass": [
-      {"weight":3.0,"produce":["[open_landmass]","landmass"]},
-      {"weight":2.0,"produce":["[size]","[open_landmass]","landmass"]},
-      {"produce":["[stone]","[open_landmass]","landmass"]}
+      {"weight":3.0,"produce":["[open_landmass]"]},
+      {"weight":2.0,"produce":["[size]","[open_sized_landmass]"]},
+      {"produce":["[open_landmass]","[stone]","landmass"]}
     ],
     "look": [
       {"weight":4.0,"produce":["[sky]"]},
@@ -55,11 +55,13 @@
       {"produce":["[weather]"]}
     ],
     "look_beside_a_mood": [
-      {"weight":4.0,"produce":["[sky]"]},
       {"weight":2.0,"produce":["[aurora]"]},
       {"weight":2.0,"produce":["[rainbow]"]},
-      {"weight":2.0,"produce":["[ground]"]},
       {"produce":["[weather]"]}
+    ],
+    "thing_beside_a_mood": [
+      {"weight":3.0,"produce":["[formation]"]},
+      {"weight":3.0,"produce":["[underground]"]}
     ],
     "thing": [
       {"weight":4.0,"produce":["[landed_thing]"]},
@@ -84,22 +86,22 @@
     "bare_thing": [
       {"weight":3.0,"produce":["[formation]"]},
       {"weight":3.0,"produce":["[underground]"]},
-      {"produce":["ruins","structures"]},
+      {"produce":["ruins"]},
       {"produce":["untouched","structures"]}
     ],
     "underground_beside_a_sea": [
-      {"weight":4.0,"produce":["tunnels","underground"]},
-      {"weight":4.0,"produce":["fissured","underground"]},
-      {"weight":3.0,"produce":["chambered","underground"]},
+      {"weight":4.0,"produce":["tunnels"]},
+      {"weight":4.0,"produce":["fissured"]},
+      {"weight":3.0,"produce":["chambered"]},
       {"weight":3.0,"produce":["riddled","rock"]},
-      {"weight":2.0,"produce":["[size]","tunnels","underground"]},
+      {"weight":2.0,"produce":["[size]","tunnels"]},
       {"produce":["delved","underground"]},
       {"produce":["hollow","underground"]},
-      {"produce":["lattice","underground"]}
+      {"produce":["lattice"]}
     ],
     "arc_crystal_age": [
-      {"produce":["age","[arc_crystal_landmasses]","landmass","[tempest_options]","[aurora_options]"]},
-      {"weight":2.0,"produce":["age","[arc_crystal_landmasses]","landmass","[tempest_options]","[aurora_options]","[flavour]"]}
+      {"produce":["age","[arc_crystal_landmasses]","[tempest_options]","[aurora_options]"]},
+      {"weight":2.0,"produce":["age","[arc_crystal_landmasses]","[tempest_options]","[aurora_options]","[flavour]"]}
     ],
     "arc_crystal_landmasses": [
       {"weight":3.0,"produce":["[open_landmass]"]},
@@ -108,8 +110,8 @@
       {"produce":["tangled"]}
     ],
     "tempest_options": [
-      {"weight":3.0,"produce":["tempest","phenomena"]},
-      {"produce":["frequent","tempest","phenomena"]}
+      {"weight":3.0,"produce":["tempest"]},
+      {"produce":["frequent","tempest"]}
     ],
     "aurora_options": [
       {"weight":3.0,"produce":["frequent","bright","aurora"]},
@@ -117,8 +119,8 @@
       {"produce":["frequent","bright","colossal","aurora"]}
     ],
     "phasmium_age": [
-      {"produce":["age","[phasmium_landmasses]","landmass","deep","water","sea","deluge","phenomena"]},
-      {"weight":2.0,"produce":["age","[phasmium_landmasses]","landmass","deep","water","sea","deluge","phenomena","[flavour]"]}
+      {"produce":["age","[phasmium_landmasses]","deep","water","sea","deluge","phenomena"]},
+      {"weight":2.0,"produce":["age","[phasmium_landmasses]","deep","water","sea","deluge","phenomena","[flavour]"]}
     ],
     "phasmium_landmasses": [
       {"weight":3.0,"produce":["insular"]},
@@ -130,8 +132,8 @@
       {"produce":["pillared"]}
     ],
     "rime_crystal_age": [
-      {"produce":["age","[rime_crystal_landmasses]","landmass","[cold]","blizzard","phenomena"]},
-      {"weight":2.0,"produce":["age","[rime_crystal_landmasses]","landmass","[cold]","blizzard","phenomena","[flavour]"]}
+      {"produce":["age","[rime_crystal_landmasses]","[cold]","blizzard","phenomena"]},
+      {"weight":2.0,"produce":["age","[rime_crystal_landmasses]","[cold]","blizzard","phenomena","[flavour]"]}
     ],
     "rime_crystal_landmasses": [
       {"weight":3.0,"produce":["[typical_landmass]"]},
@@ -145,15 +147,15 @@
       {"produce":["frozen","climate"]}
     ],
     "temperstone_age": [
-      {"produce":["age","[seaworthy_landmass]","landmass","scorching","climate","volcanic","features"]},
-      {"produce":["age","[seaworthy_landmass]","landmass","scorching","climate","lava","sea","volcanic","features"]},
-      {"weight":2.0,"produce":["age","[seaworthy_landmass]","landmass","scorching","climate","volcanic","features","[flavour]"]}
+      {"produce":["age","[seaworthy_landmass]","scorching","climate","volcanic","features"]},
+      {"produce":["age","[seaworthy_landmass]","scorching","climate","lava","sea","volcanic","features"]},
+      {"weight":2.0,"produce":["age","[seaworthy_landmass]","scorching","climate","volcanic","features","[flavour]"]}
     ],
     "astrite_age": [
-      {"produce":["age","[astrite_landmasses]","landmass","meteors","phenomena"]},
-      {"weight":2.0,"produce":["age","[astrite_landmasses]","landmass","meteors","phenomena","[night]"]},
-      {"produce":["moonless","age","[astrite_landmasses]","landmass","meteors","phenomena"]},
-      {"weight":2.0,"produce":["age","[astrite_landmasses]","landmass","meteors","phenomena","[flavour]"]}
+      {"produce":["age","[astrite_landmasses]","meteors"]},
+      {"weight":2.0,"produce":["age","[astrite_landmasses]","meteors","[night]"]},
+      {"produce":["moonless","age","[astrite_landmasses]","meteors"]},
+      {"weight":2.0,"produce":["age","[astrite_landmasses]","meteors","[flavour]"]}
     ],
     "astrite_landmasses": [
       {"weight":3.0,"produce":["[open_landmass]"]},
@@ -193,6 +195,44 @@
     "exotic_landmasses": [
       {"produce":["end"]},
       {"produce":["flat"]},
+      {"produce":["pyramidal"]},
+      {"produce":["skyborne"]},
+      {"produce":["tangled"]}
+    ],
+    "sized_landmass": [
+      {"weight":10.0,"produce":["[standard_sized_landmasses]"]},
+      {"weight":5.0,"produce":["[uncommon_sized_landmasses]"]},
+      {"produce":["[exotic_sized_landmasses]"]}
+    ],
+    "standard_sized_landmasses": [
+      {"produce":["continental"]},
+      {"produce":["archipelagic"]},
+      {"produce":["canyoned"]},
+      {"produce":["eroded"]},
+      {"produce":["gentle"]},
+      {"produce":["insular"]},
+      {"produce":["mountainous"]},
+      {"produce":["riverine"]}
+    ],
+    "uncommon_sized_landmasses": [
+      {"produce":["cleft"]},
+      {"produce":["cratered"]},
+      {"produce":["pillared"]},
+      {"produce":["shattered"]},
+      {"produce":["sheer"]}
+    ],
+    "exotic_sized_landmasses": [
+      {"produce":["pyramidal"]},
+      {"produce":["skyborne"]},
+      {"produce":["tangled"]}
+    ],
+    "open_sized_landmass": [
+      {"weight":10.0,"produce":["[standard_sized_landmasses]"]},
+      {"weight":2.0,"produce":["cleft"]},
+      {"weight":2.0,"produce":["cratered"]},
+      {"weight":2.0,"produce":["pillared"]},
+      {"weight":2.0,"produce":["shattered"]},
+      {"weight":2.0,"produce":["sheer"]},
       {"produce":["pyramidal"]},
       {"produce":["skyborne"]},
       {"produce":["tangled"]}
@@ -325,17 +365,17 @@
       {"produce":["large","[aurora_colour]","aurora"]}
     ],
     "rainbow": [
-      {"weight":2.0,"produce":["rainbows","phenomena"]},
-      {"produce":["rainbows","phenomena","[colour]","rainbow"]},
-      {"produce":["rainbows","phenomena","colossal","rainbow"]},
-      {"produce":["rainbows","phenomena","large","rainbow"]},
-      {"produce":["rainbows","phenomena","prismatic","rainbow"]}
+      {"weight":2.0,"produce":["rainbows"]},
+      {"produce":["[colour]","rainbow"]},
+      {"produce":["colossal","rainbow"]},
+      {"produce":["large","rainbow"]},
+      {"produce":["prismatic","rainbow"]}
     ],
     "formation": [
-      {"weight":2.0,"produce":["[formation_shape]","features"]},
-      {"weight":2.0,"produce":["[stone]","[formation_shape]","features"]},
-      {"produce":["[size]","[formation_shape]","features"]},
-      {"produce":["[quantity]","[formation_shape]","features"]}
+      {"weight":2.0,"produce":["[formation_shape]"]},
+      {"weight":2.0,"produce":["[stone]","[formation_shape]"]},
+      {"produce":["[size]","[formation_shape]"]},
+      {"produce":["[quantity]","[formation_shape]"]}
     ],
     "quantity": [
       {"produce":["plentiful"]},
@@ -351,24 +391,24 @@
       {"produce":["spikes"]}
     ],
     "underground": [
-      {"weight":4.0,"produce":["tunnels","underground"]},
-      {"weight":4.0,"produce":["fissured","underground"]},
-      {"weight":3.0,"produce":["chambered","underground"]},
+      {"weight":4.0,"produce":["tunnels"]},
+      {"weight":4.0,"produce":["fissured"]},
+      {"weight":3.0,"produce":["chambered"]},
       {"weight":3.0,"produce":["riddled","rock"]},
       {"produce":["dry","rock"]},
-      {"weight":2.0,"produce":["[size]","tunnels","underground"]},
+      {"weight":2.0,"produce":["[size]","tunnels"]},
       {"produce":["delved","underground"]},
       {"produce":["hollow","underground"]},
-      {"produce":["lattice","underground"]}
+      {"produce":["lattice"]}
     ],
     "ground": [
       {"weight":2.0,"produce":["[colour]","grass"]},
       {"weight":2.0,"produce":["[colour]","leaves"]},
       {"produce":["[colour]","grass","[colour]","leaves"]},
-      {"produce":["flowers","features"]},
-      {"produce":["trees","features"]},
-      {"produce":["[quantity]","flowers","features"]},
-      {"produce":["[quantity]","trees","features"]},
+      {"produce":["flowers"]},
+      {"produce":["trees"]},
+      {"produce":["[quantity]","flowers"]},
+      {"produce":["[quantity]","trees"]},
       {"produce":["[surface_block]","surface"]}
     ],
     "surface_block": [
@@ -390,20 +430,20 @@
       {"produce":["[colour]","waters"]}
     ],
     "life": [
-      {"produce":["[quantity]","herds","spawns"]},
-      {"produce":["fish","spawns"]},
-      {"produce":["fliers","spawns"]},
-      {"produce":["beasts","spawns"]},
-      {"produce":["ruins","structures"]},
-      {"produce":["settled","structures"]},
+      {"produce":["[quantity]","herds"]},
+      {"produce":["fish"]},
+      {"produce":["fliers"]},
+      {"produce":["beasts"]},
+      {"produce":["ruins"]},
+      {"produce":["settled"]},
       {"produce":["untouched","structures"]}
     ],
     "life_beside_a_sea": [
-      {"produce":["[quantity]","herds","spawns"]},
-      {"produce":["fish","spawns"]},
-      {"produce":["fliers","spawns"]},
-      {"produce":["beasts","spawns"]},
-      {"produce":["ruins","structures"]},
+      {"produce":["[quantity]","herds"]},
+      {"produce":["fish"]},
+      {"produce":["fliers"]},
+      {"produce":["beasts"]},
+      {"produce":["ruins"]},
       {"produce":["untouched","structures"]}
     ],
     "mild_climate": [

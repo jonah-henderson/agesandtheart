@@ -1,8 +1,6 @@
 package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
-import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.preview.authoring.Corpus
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -13,7 +11,7 @@ import net.minecraft.resources.Identifier
 class ProposedBookCheck : FunSpec({
 
     val vocabulary by lazy { Corpus.load().vocabulary }
-    val everyWord by lazy { vocabulary.words.map { it.id } + vocabulary.grammarWords.map { it.id } }
+    val everyWord by lazy { vocabulary.words.map { it.id } + vocabulary.structurePages.map { it.id } }
     val seeds = (0..<SIGNALS).map { Tuning.CENTRED.withDial(it % Tuning.DIALS, it % Tuning.STEPS).seed + it }
 
     test("every proposal parses as laid, within the page limit, from the writer's own words") {
@@ -23,7 +21,7 @@ class ProposedBookCheck : FunSpec({
             when {
                 proposed.isEmpty() -> "seed $seed proposed nothing"
                 proposed.size > PAGE_LIMIT -> "seed $seed proposed ${proposed.size} pages: $pages"
-                !Grammar.parses(vocabulary, pages) -> "seed $seed proposed a row that does not parse: $pages"
+                vocabulary.read(pages, seed)?.readsAsLaid != true -> "seed $seed proposed a row that does not read as laid: $pages"
                 else -> null
             }
         }
@@ -52,7 +50,7 @@ class ProposedBookCheck : FunSpec({
     test("print a few, to read") {
         for (seed in seeds.take(PRINTED)) {
             val pages = ProposedBook.of(vocabulary, everyWord, seed, PAGE_LIMIT).map(Identifier::getPath)
-            val said = Grammar.read(vocabulary, pages, seed)?.let(Readout::of)
+            val said = vocabulary.read(pages, seed)?.readout
             println("PROPOSED ${pages.joinToString(" ")}  —  $said")
         }
     }

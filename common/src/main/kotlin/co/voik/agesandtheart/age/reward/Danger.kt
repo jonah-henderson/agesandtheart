@@ -49,7 +49,7 @@ import net.minecraft.server.MinecraftServer
  * "ingenuity worth rewarding is solving the problem inside the Age, not at the writing desk" survives.
  *
  * **The template needs no special case.** What a template supplied is already merged into the composition
- * a recipe holds ([co.voik.agesandtheart.age.word.Resolution]), so an infernal Age arrives here with a
+ * a recipe holds ([co.voik.agesandtheart.age.resolution.Resolution]), so an infernal Age arrives here with a
  * lava sea and a sealed sky written down exactly as if a writer had asked for both.
  */
 data class Danger(

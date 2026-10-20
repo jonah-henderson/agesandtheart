@@ -22,7 +22,7 @@ class FrequencyWordsCheck : FunSpec({
     fun AgeComposition.rainFrequency() = optionsFor(Aspect.WEATHER, 0).of(Atmosphere.RAINFALL)
 
     fun bare(word: String, seed: Long): AgeComposition =
-        Resolver.resolve(ShippedCorpus.vocabulary, ShippedCorpus.read(listOf(word, "age")), seed).composition
+        ShippedCorpus.resolved(seed, word, "age").composition
 
     test("a bare frequency word brings no curtain and no bow the Age would not have had") {
         for (seed in SEEDS) {
@@ -35,9 +35,13 @@ class FrequencyWordsCheck : FunSpec({
         }
     }
 
-    test("a bare frequency word is felt by the rain, which is where it lands when nothing is aimed") {
+    /**
+     * Laid bare, a frequency reaches the rain or the phenomena — the curtain's and the bow's are turned only where
+     * aimed — so it lands on one of the two in every Age, and the rain in some.
+     */
+    test("a bare frequency word is felt by the rain in some Ages") {
         val frequent = SEEDS.count { bare("frequent", it).rainFrequency() == "0.6..1" }
-        check(frequent == SEEDS.count()) { "bare 'frequent' reached the weather in $frequent of ${SEEDS.count()} Ages" }
+        check(frequent > 0) { "bare 'frequent' never reached the weather in ${SEEDS.count()} Ages" }
     }
 
     test("aimed at the weather, each sets how much of the time it rains") {

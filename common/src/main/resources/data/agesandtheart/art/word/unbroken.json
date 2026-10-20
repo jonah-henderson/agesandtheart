@@ -2,18 +2,31 @@
   "_comment": [
     "Whole: solid rock and a solid underground, and every part leaning solid and away from caves."
   ],
-  "restricts": {
-    "rock": {
-      "solid": ">0.7"
+  "meanings": [
+    {
+      "restricts": {
+        "rock": {
+          "solid": ">0.7"
+        }
+      },
+      "must_always_apply": true
     },
-    "underground": {
-      "solid": ">0.7"
+    {
+      "restricts": {
+        "underground": {
+          "solid": ">0.7"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#solid": 0.6,
+          "#cavernous": -0.8
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "biases": {
-    "all": {
-      "#solid": 0.6,
-      "#cavernous": -0.8
-    }
-  }
+  ]
 }

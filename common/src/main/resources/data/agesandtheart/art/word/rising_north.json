@@ -1,5 +1,10 @@
 {
-  "sets": {
-    "rising": "north"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "rising": "north"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

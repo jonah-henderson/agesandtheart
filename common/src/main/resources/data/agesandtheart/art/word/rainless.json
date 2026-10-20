@@ -1,6 +1,16 @@
 {
-  "sets": {
-    "weather.frequency": "-1.0..-0.7",
-    "thunder": "-1.0..-0.7"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "weather.frequency": "-1.0..-0.7"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "thunder": "-1.0..-0.7"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

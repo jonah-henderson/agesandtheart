@@ -1,9 +1,14 @@
 {
-  "restricts": {
-    "spawns": {
-      "inhabited": ">0.3",
-      "built": ">0.5"
+  "speech": "plural",
+  "meanings": [
+    {
+      "restricts": {
+        "spawns": {
+          "inhabited": ">0.3",
+          "built": ">0.5"
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "speech": "plural"
+  ]
 }

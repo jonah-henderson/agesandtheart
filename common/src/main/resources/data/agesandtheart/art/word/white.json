@@ -22,26 +22,45 @@
     "And it leans, never forcing, towards the biomes and the growth of its colour: snow and the pale garden, its",
     "flowers and moss."
   ],
-  "biases": {
-    "biomes": {
-      "minecraft:snowy_plains": 0.5,
-      "minecraft:snowy_slopes": 0.4,
-      "minecraft:ice_spikes": 0.4,
-      "minecraft:frozen_peaks": 0.4,
-      "minecraft:pale_garden": 0.4
+  "meanings": [
+    {
+      "sets": {
+        "colour": "white"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:flower_pale_garden": 0.4,
-      "minecraft:pale_moss_patch": 0.3
+    {
+      "sets": {
+        "stone": "#white"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#white"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:snowy_plains": 0.5,
+          "minecraft:snowy_slopes": 0.4,
+          "minecraft:ice_spikes": 0.4,
+          "minecraft:frozen_peaks": 0.4,
+          "minecraft:pale_garden": 0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:flower_pale_garden": 0.4,
+          "minecraft:pale_moss_patch": 0.3
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "white",
-    "stone": "#white",
-    "material": "#white"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1
-  }
+  ]
 }

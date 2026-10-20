@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.age.language.Word
 import net.minecraft.core.Registry
 import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.Identifier

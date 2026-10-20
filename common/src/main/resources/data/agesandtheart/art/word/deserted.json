@@ -5,15 +5,28 @@
     "abandoned ones, cobwebs and zombie villagers -- since a clause about members says what they are rather than",
     "whether there are any (2)."
   ],
-  "excludes": {
-    "structures": [
-      "#inhabited"
-    ],
-    "spawns": [
-      "#mobs"
-    ]
-  },
-  "sets": {
-    "abandoned": "true"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "abandoned": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "excludes": {
+        "structures": [
+          "#inhabited"
+        ]
+      },
+      "must_always_apply": true
+    },
+    {
+      "excludes": {
+        "spawns": [
+          "#mobs"
+        ]
+      },
+      "must_always_apply": true
+    }
+  ]
 }

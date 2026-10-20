@@ -5,7 +5,7 @@ import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.reward.Footing
 import co.voik.agesandtheart.age.reward.Tremor
-import co.voik.agesandtheart.age.word.Resolution
+import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component

@@ -3,7 +3,7 @@ package co.voik.agesandtheart.preview.authoring
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.age.word.CannotAppearInLoot
-import co.voik.agesandtheart.age.word.DerivedWords
+import co.voik.agesandtheart.age.language.DerivedWords
 import co.voik.agesandtheart.age.word.InkRequirement
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordRarity
@@ -59,33 +59,6 @@ object WordFile {
     fun fileFor(name: String): File = words.resolve("$name$JSON_SUFFIX")
 
     fun exists(name: String): Boolean = fileFor(name).isFile
-
-    /** The word [name] as its file says it, or what stopped it being read. */
-    fun read(name: String): Result<Candidate> = runCatching {
-        val file = fileFor(name)
-        require(file.isFile) { "there is no ${file.path}" }
-        JsonParser.parseString(file.readText()).asJsonObject
-    }.mapCatching { json -> Candidate.read(name, json).getOrThrow() }
-
-    /**
-     * [candidate] written to its file, and the text that was written.
-     *
-     * **A word's name must survive `ResourcePathCheck`**, which insists every shipped resource path is
-     * lowercase and punctuation-free — one capitalised filename once cost the whole script font, and a
-     * tool that can create files is exactly where that gets in.
-     */
-    fun write(candidate: Candidate): File {
-        require(candidate.name.matches(LEGAL_NAME)) {
-            "'${candidate.name}' cannot be a resource path — lower case, digits, and _ - . / only"
-        }
-        val file = fileFor(candidate.name)
-        file.parentFile.mkdirs()
-        file.writeText(textOf(candidate))
-        return file
-    }
-
-    /** What [write] would put in the file, so a preview and the write cannot say different things. */
-    fun textOf(candidate: Candidate): String = GSON.toJson(candidate.asJson()) + "\n"
 
     private val LEGAL_NAME = Regex("[a-z0-9/._-]+")
 
@@ -271,41 +244,11 @@ object WordFile {
         return bucketNames(inkLists).sortedBy { known.indexOf(it).takeIf { at -> at >= 0 } ?: known.size }
     }
 
-    /** Lists [key] — a [Candidate.listingKey] — under the rarity [bucket], or in none. */
+    /** Lists [key], a word name or id, under the rarity [bucket], or in none. */
     fun setRarity(key: String, bucket: String?) = list(rarityLists, key, bucket)
 
     /** The rarities a word may be listed in, commonest first, and then [NO_LOOT]. */
     fun rarityChoices(): List<String> = rarityBuckets() + NO_LOOT
-
-    /** [listingFor], with a word kept out of loot reading as [NO_LOOT] whatever bucket it is also in. */
-    fun listingOf(candidate: Candidate): Listing {
-        val listing = listingFor(candidate.listingKey)
-        return if (isKeptOutOfLoot(candidate)) listing.copy(rarity = NO_LOOT) else listing
-    }
-
-    /**
-     * Sets [candidate]'s rarity to a bucket, to [NO_LOOT], or to neither — neither, and the default
-     * bucket, being the same thing. The two are exclusive: a word kept out of loot is taken out of its
-     * bucket, so leaving [NO_LOOT] finds it in none.
-     *
-     * Kept out by a tag on the thing a word names, and by name where it names nothing, as ink is.
-     */
-    fun setRarity(candidate: Candidate, choice: String?) {
-        val keptOut = choice == NO_LOOT
-        val directory = candidate.tagDirectory
-        if (directory == null) {
-            keepAuthoredOutOfLoot(candidate.name, keptOut)
-        } else {
-            putInTag(tagFile(directory, CannotAppearInLoot.TAG_NAME), candidate.id.toString(), keptOut)
-        }
-        val bucket = choice.takeUnless { keptOut || it == defaultBucket() }
-        setRarity(candidate.listingKey, bucket)
-    }
-
-    private fun isKeptOutOfLoot(candidate: Candidate): Boolean = when (candidate.tagDirectory) {
-        null -> candidate.name in authoredKeptOutOfLoot()
-        else -> carries(candidate, CannotAppearInLoot.TAG_NAME)
-    }
 
     private val keptOutOfLootList: File
         get() = art.parentFile.resolve(WordRarity.KEPT_OUT_OF_LOOT_FILE)
@@ -329,23 +272,6 @@ object WordFile {
         file.writeText(GSON.toJson(json) + "\n")
     }
 
-    /**
-     * Whether the thing [candidate] names is tagged to never become a word. The offline corpus binds no
-     * tags, so the word is still here to be seen and untagged.
-     */
-    fun hasNoWord(candidate: Candidate) = carries(candidate, DerivedWords.DOES_NOT_HAVE_A_WORD)
-
-    /** Tags or untags the thing [candidate] names; a word naming no registry entry has nothing to tag. */
-    fun setHasNoWord(candidate: Candidate, hasNoWord: Boolean) {
-        val directory = candidate.tagDirectory ?: return
-        putInTag(tagFile(directory, DerivedWords.DOES_NOT_HAVE_A_WORD), candidate.id.toString(), hasNoWord)
-    }
-
-    private fun carries(candidate: Candidate, tag: Identifier): Boolean {
-        val directory = candidate.tagDirectory ?: return false
-        return candidate.id.toString() in tagValuesIn(tagFile(directory, tag))
-    }
-
     /** Every id [tag] holds, by tag directory — [everyInkTag]'s saving for a whole table. */
     fun everyIdTagged(tag: Identifier): Map<String, Set<String>> {
         val namespace = art.parentFile
@@ -355,32 +281,6 @@ object WordFile {
             .associate { file ->
                 file.parentFile.relativeTo(namespace).invariantSeparatorsPath to tagValuesIn(file).toSet()
             }
-    }
-
-    /**
-     * Which ink [candidate] demands, asked as `InkRequirement.tierFor` asks it: a tag on the entry it names
-     * first, then its name in `art/ink/`.
-     */
-    fun inkOf(candidate: Candidate): String? {
-        val tagged = candidate.tagDirectory?.let { inkTagOn(candidate.id.toString(), it) }
-        return tagged ?: bucketNaming(inkLists, candidate.name)
-    }
-
-    /**
-     * Sets the ink [candidate] demands — **as a tag on the entry where it names one, and by name where it
-     * does not.**
-     *
-     * The two halves of the vocabulary answer through different channels and this is the reason: a derived
-     * word *is* a registry entry, so tagging the entry is what lets another mod's ore be worth the good ink
-     * without anybody editing our files. An authored word names nothing and has to be listed.
-     */
-    fun setInk(candidate: Candidate, tier: String?) {
-        val directory = candidate.tagDirectory
-        if (directory == null) {
-            list(inkLists, candidate.name, tier)
-        } else {
-            inkTagFor(candidate.id.toString(), directory, tier)
-        }
     }
 
     /**

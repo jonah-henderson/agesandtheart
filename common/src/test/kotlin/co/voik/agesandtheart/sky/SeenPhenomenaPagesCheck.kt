@@ -3,7 +3,6 @@ package co.voik.agesandtheart.sky
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.resolved
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
@@ -39,7 +38,7 @@ class SeenPhenomenaPagesCheck : FunSpec({
 
     test("a phenomenon beside a trailing term reads as laid") {
         val row = listOf("age", "blue", "aurora", "tempest", "zombie")
-        check(Grammar.parses(vocabulary, row)) { "`tempest zombie` was refused and the book repaired" }
+        check(vocabulary.read(row, 0L)?.readsAsLaid == true) { "`tempest zombie` was refused and the book repaired" }
     }
 }) {
     private companion object {

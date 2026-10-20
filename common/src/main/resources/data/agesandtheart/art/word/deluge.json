@@ -18,11 +18,19 @@
     "",
     "Pairs with `deep` for the deep-ocean material, and neither alone pays."
   ],
-  "chooses": {
-    "phenomena": "deluge"
-  },
-  "sets": {
-    "weather.frequency": "0.7..1.0"
-  },
-  "speech": "noun"
+  "speech": "noun",
+  "meanings": [
+    {
+      "sets": {
+        "weather.frequency": "0.7..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "chooses": {
+        "phenomena": "deluge"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

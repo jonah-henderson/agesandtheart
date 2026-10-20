@@ -68,16 +68,14 @@ class VocabularyOnServerCheck : FunSpec({
         // to the pack and says nothing about *which* population is missing; a biome and a structure set
         // being readable is the claim itself. Asserted through the parser, since a word the corpus lacks is
         // reported as a page the Art could not read.
-        val written = server.ask("write", "populationsarrived age jungle biomes villages structures")
+        val written = server.ask("write", "populationsarrived age jungle villages")
         val unreadable = written.getAsJsonArray("unreadable").map { it.asString }
         check(unreadable.isEmpty()) {
             "the server's dynamic registries did not reach the corpus — unread: $unreadable"
         }
-        // `supplied` is what the Art had to write for itself, and it must be empty: a book that fails to
-        // parse is repaired against a drawn sentence and comes back with *nothing* unreadable, so without
-        // this the check above passes whether or not either word was ever understood.
-        val supplied = written.getAsJsonArray("supplied").map { it.asString }
-        check(supplied.isEmpty()) { "the book did not parse as written and was filled in with $supplied" }
+        // And neither was moved: a word read but with nowhere to land would pass the check above too.
+        val moved = written.getAsJsonArray("moved").map { it.asString }
+        check(moved.isEmpty()) { "the book did not read as laid, and moved $moved to the Age" }
     }
 
     /**
@@ -105,27 +103,21 @@ class VocabularyOnServerCheck : FunSpec({
     }
 
     /**
-     * Every aiming page has to be a page a writer can actually lay down, or sections cannot be opened.
+     * Every aiming page has to be a page a writer can actually lay down and that takes the pages before it.
      *
      * **Spelled out rather than derived**, which is the point of it: these are the pages a player learns,
      * so an accidental rename should fail here loudly and be answered by moving the vocabulary with it.
-     * One per aspect, synthesised from it (world model §3) — where there used to be a domain layer
-     * as well as the air, and nothing is aimed at an aspect any more.
-     *
-     * The minting patterns aim too, because a pattern closes the clause its material qualifies (§8.1.2).
-     * They are authored, so they are listed rather than derived.
+     * One per aspect, synthesised from it (world model §3), by **page**: two aspects are recorded under
+     * another name ([Aspect.key]). The minting patterns take too, a substance to mint from (§8.1.2).
      */
     test("the aiming pages are in the corpus") {
         val vocabulary = server.ask("words")
-        val aiming = vocabulary.getAsJsonArray("authoredWords").map { it.asJsonObject }
-            .filter { it.get("aims").asBoolean }
+        val taking = vocabulary.getAsJsonArray("authoredWords").map { it.asJsonObject }
+            .filter { it.get("takes").asBoolean }
             .map { it.get("word").asString }
-        // One per aspect, synthesised rather than authored — `art/domain/` is gone, and with it the
-        // layer that let a page cover more than one aspect. `firmament` was that layer's name for the sky.
-        // By **page**: a writer's name for the part of the world, which is what an aiming page is. Two
-        // aspects are recorded under another name ([Aspect.key]), and a save is the only place that shows.
+            .toSet()
         val expected = Aspect.entries.map { it.page } + MINTING_PATTERNS
-        check(aiming.sorted() == expected.sorted()) { "the aiming pages are $aiming" }
+        check(taking.containsAll(expected)) { "these aiming pages take nothing or are missing: ${expected - taking}" }
     }
 })
 

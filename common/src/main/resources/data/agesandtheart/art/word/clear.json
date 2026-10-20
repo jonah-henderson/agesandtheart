@@ -3,20 +3,36 @@
     "Clear water, clear air and a high sky: the murk, the haze and the cloud ceiling. Offered too, yielding to",
     "anything the book says: a blue vault, or stars that burn brighter for nothing standing between."
   ],
-  "sets": {
-    "murk": "-1.0..-0.55",
-    "air.haze": "-1.0..-0.5",
-    "clouds.ceiling": "0.3..0.8"
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "1",
-        "facets": {
-          "sky.colour": "blue",
-          "stars.glow": "+0.3"
-        }
-      }
-    ]
-  }
+  "meanings": [
+    {
+      "sets": {
+        "murk": "-1.0..-0.55"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.haze": "-1.0..-0.5"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.ceiling": "0.3..0.8"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sky.colour": "blue"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "stars.glow": "+0.3"
+      },
+      "chance_to_apply": 0.5
+    }
+  ]
 }

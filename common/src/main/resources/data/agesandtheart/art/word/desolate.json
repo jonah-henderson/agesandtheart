@@ -4,31 +4,78 @@
     "sky, ash on the wind, haze, and bare sandy ground are offered to every desolate Age, each yielding to",
     "anything the book says."
   ],
-  "biases": {
-    "all": {
-      "#barren": 1.0,
-      "#empty": 0.7,
-      "#dry": 0.5,
-      "#built": -0.6,
-      "#lush": -0.8
-    }
-  },
-  "bends": {
-    "thickness": "-1.0..-0.4"
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "3",
-        "facets": {
-          "grass.colour": "grey|yellow",
-          "leaves.colour": "grey|black",
-          "sky.colour": "white|grey",
-          "motes": "ash",
-          "haze": "+0.2",
-          "material": "#sandy"
+  "meanings": [
+    {
+      "bends": {
+        "thickness": "-1.0..-0.4"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#barren": 1.0,
+          "#empty": 0.7,
+          "#dry": 0.5,
+          "#built": -0.6,
+          "#lush": -0.8
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "grass.colour": "grey"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "grass.colour": "yellow"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "leaves.colour": "grey"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "leaves.colour": "black"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sky.colour": "white"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sky.colour": "grey"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "motes": "ash"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "haze": "+0.2"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "material": "#sandy"
+      },
+      "chance_to_apply": 0.5
+    }
+  ]
 }

@@ -20,7 +20,7 @@ object DeskTemplates {
 
     fun namesFor(vocabulary: Vocabulary): TemplateNames {
         if (namesBuiltFor !== vocabulary) {
-            val pageWords = vocabulary.words.map { it.id } + vocabulary.grammarWords.map { it.id }
+            val pageWords = vocabulary.words.map { it.id } + vocabulary.structurePages.map { it.id }
             names = TemplateNames.of(pageWords, ::translatedName)
             namesBuiltFor = vocabulary
         }

@@ -4,43 +4,154 @@
     "company over what it looks like. Two of a hard white-gold sun, a bleached sky, heat haze and no rain",
     "at all are drawn for every parched Age; a golden light is only offered."
   ],
-  "biases": {
-    "sea": {
-      "#empty": 0.4
-    },
-    "biomes": {
-      "#dry": 1.0,
-      "#barren": 0.7
-    }
-  },
-  "sets": {
-    "temperature": "0.2..0.9",
-    "humidity": "-0.95..-0.3",
-    "weather.frequency": "-1..-0.5"
-  },
-  "pools": [
+  "meanings": [
     {
-      "draws": "3",
-      "facets": {
-        "sun.colour": "white|yellow",
-        "sky.colour": "white|yellow",
-        "haze": "0.2..0.5",
-        "grass.colour": "yellow|orange|grey",
-        "climate.evaporation": "true",
-        "sun.size": "+0.3",
-        "leaves.colour": "grey|yellow|orange|black",
-        "air.tint": "yellow|red|orange|grey"
+      "sets": {
+        "temperature": "0.2..0.9"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "humidity": "-0.95..-0.3"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "weather.frequency": "-1..-0.5"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "sea": {
+          "#empty": 0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "biomes": {
+          "#dry": 1.0,
+          "#barren": 0.7
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sun.colour": "white"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "sun.colour": "yellow"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "sky.colour": "white"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "sky.colour": "yellow"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "haze": "0.2..0.5"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "grass.colour": "yellow"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "grass.colour": "orange"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "grass.colour": "grey"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "climate.evaporation": "true"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "sun.size": "+0.3"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "leaves.colour": "grey"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "leaves.colour": "yellow"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "leaves.colour": "orange"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "leaves.colour": "black"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "air.tint": "yellow"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "air.tint": "red"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "air.tint": "orange"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "air.tint": "grey"
+      },
+      "chance_to_apply": 0.38
+    },
+    {
+      "sets": {
+        "sea.depth": "-0.5..-0.2"
       }
     }
-  ],
-  "requests": {
-    "pools": [
-      {
-        "draws": "1",
-        "facets": {
-          "sea.depth": "-0.5..-0.2"
-        }
-      }
-    ]
-  }
+  ]
 }

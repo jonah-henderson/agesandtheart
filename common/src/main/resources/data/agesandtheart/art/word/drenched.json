@@ -3,32 +3,47 @@
     "Wet through: rain most of the time over wet country, water standing in it and everything that grows leaning",
     "lush. Offered, yielding to the book: a low grey sky to rain from."
   ],
-  "restricts": {
-    "features": {
-      "watery": ">0.3"
-    }
-  },
-  "biases": {
-    "biomes": {
-      "#watery": 0.6,
-      "#lush": 0.4
-    }
-  },
-  "bends": {
-    "humidity": "+0.4"
-  },
-  "sets": {
-    "weather.frequency": "0.6..1.0"
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "1",
-        "facets": {
-          "clouds.colour": "grey",
-          "clouds.ceiling": "-0.3"
+  "meanings": [
+    {
+      "sets": {
+        "weather.frequency": "0.6..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "bends": {
+        "humidity": "+0.4"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "features": {
+          "watery": ">0.3"
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "biomes": {
+          "#watery": 0.6,
+          "#lush": 0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.colour": "grey"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "clouds.ceiling": "-0.3"
+      },
+      "chance_to_apply": 0.5
+    }
+  ]
 }

@@ -5,7 +5,15 @@
     "",
     "The umbrella for vanilla's `pile_*` features, which have no words of their own."
   ],
-  "mints": "agesandtheart:piles",
-  "unstated": "#agesandtheart:pile_substance",
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:piles",
+        "unstated": "#agesandtheart:pile_substance"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

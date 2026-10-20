@@ -3,7 +3,15 @@
     "A wall with a way through it, facing wherever it happens to face. The opening reaches the",
     "ground, so it is a thing you walk under rather than a porthole."
   ],
-  "mints": "agesandtheart:arches",
-  "unstated": "#agesandtheart:formation_substance",
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:arches",
+        "unstated": "#agesandtheart:formation_substance"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

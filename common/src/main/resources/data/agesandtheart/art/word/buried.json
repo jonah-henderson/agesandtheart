@@ -3,17 +3,28 @@
     "Under the ground: features that lie buried, set low, and every part leaning to what is buried — ore, geodes,",
     "fossils, what was built and went under."
   ],
-  "restricts": {
-    "features": {
-      "buried": ">0.3"
+  "meanings": [
+    {
+      "sets": {
+        "height": "-1.0..-0.5"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "features": {
+          "buried": ">0.3"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#buried": 0.6
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "biases": {
-    "all": {
-      "#buried": 0.6
-    }
-  },
-  "sets": {
-    "height": "-1.0..-0.5"
-  }
+  ]
 }

@@ -1,14 +1,10 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
 import co.voik.agesandtheart.age.word.CannotAppearInLoot
-import co.voik.agesandtheart.age.word.DerivedWords
-import co.voik.agesandtheart.age.word.Firmness
-import co.voik.agesandtheart.age.word.Word
-import co.voik.agesandtheart.preview.authoring.Candidate
+import co.voik.agesandtheart.age.language.DerivedWords
+import co.voik.agesandtheart.age.language.Word
 import co.voik.agesandtheart.preview.authoring.Corpus
-import co.voik.agesandtheart.preview.authoring.Gaps
 import co.voik.agesandtheart.preview.authoring.ServerSnapshot
-import co.voik.agesandtheart.preview.authoring.Verdict
 import co.voik.agesandtheart.preview.authoring.WordFile
 import com.github.ajalt.mordant.input.KeyboardEvent
 import com.github.ajalt.mordant.input.MouseTracking
@@ -32,7 +28,8 @@ class Menu(
 ) {
 
     /**
-     * Everything the tool can do, in four groups.
+     * Everything the tool can do, in groups. The words are not among them while the word editor is rebuilt for
+     * meanings (`notes/meanings-plan.md` phase 6).
      *
      * [startsGroup] is a blank line before the entry and nothing else — no headings, because the four
      * groups are obvious once they are apart and a label on each would be four more things to read. What
@@ -40,13 +37,7 @@ class Menu(
      * the tool itself.
      */
     private enum class Errand(val title: String, val about: String, val startsGroup: Boolean = false) {
-        WRITE("write a new word", ""),
-        OPEN("open a word", ""),
-        DERIVED("auto-generated words", "derived from the base game and any installed mods"),
-        AUDIT("audit words", ""),
-        GAPS("missing words", ""),
-
-        TAGS("tag editor", "", startsGroup = true),
+        TAGS("tag editor", ""),
         RULES("tagging rules", ""),
 
         WORKSHOP("age workshop", "", startsGroup = true),
@@ -62,11 +53,6 @@ class Menu(
         while (true) {
             val errand = chooseAnErrand() ?: return
             when (errand) {
-                Errand.WRITE -> edit(Candidate.blank(""))
-                Errand.OPEN -> openOne()
-                Errand.DERIVED -> openADerivedOne()
-                Errand.AUDIT -> auditAndOpen()
-                Errand.GAPS -> fillAGap()
                 Errand.TAGS -> Tags(terminal, canvas, corpus).run()
                 Errand.RULES -> Rules(terminal, canvas, corpus).run()
                 Errand.WORKSHOP -> Workshop(terminal, canvas, corpus).browse()
@@ -75,336 +61,6 @@ class Menu(
                 Errand.LEAVE -> return
             }
         }
-    }
-
-    /** Whether the list has nothing to show and what was typed could be a word's name. */
-    private fun offeringToWrite(table: Table, mayWriteOne: Boolean) =
-        mayWriteOne && table.shown.isEmpty() && table.isFiltered && WordFile.couldBeAName(table.filter)
-
-    /**
-     * A word, opened — and **the corpus read again afterwards**.
-     *
-     * It is loaded once at startup and every screen answers from it, so an edit made through the tool
-     * leaves it describing a pack that no longer exists: deleting `sanguine` left `red` still reported as
-     * duplicating it, because the word it duplicated was still in memory.
-     */
-    private fun edit(candidate: Candidate) {
-        val changed = Editor(terminal, canvas, corpus, candidate, canLeave = true).run()
-        // Only where the words themselves moved. A rarity or an ink is read off the files by whatever
-        // shows it, so paying a second to read the whole pack again would buy nothing.
-        if (changed) corpus = canvas.whileBusy("Reading the corpus again") { Corpus.load() }
-    }
-
-    /** A word this pack authored: what it is, how hard it is to find, and what it does. */
-    private fun openOne() {
-        val rowsOf = {
-            val listings = WordFile.everyListing()
-            val keptOut = WordFile.authoredKeptOutOfLoot()
-            WordFile.authoredNames().map { authoredRow(it, listings[it], isKeptOutOfLoot = it in keptOut) }
-        }
-        val table = Table(
-            title = "${WordFile.authoredNames().size} authored words",
-            columns = listOf(
-                Table.Column("word", NAME_WIDTH),
-                // Read-only: how firmly a word claims is read off what it claims.
-                Table.Column("claims", FIRMNESS_WIDTH, order = FIRMNESSES),
-                Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityChoices()),
-                Table.Column("ink", INK_WIDTH, INK, WordFile.inkTiers()),
-                Table.Column("parameters", HALF_A_SUMMARY),
-                Table.Column("populations", HALF_A_SUMMARY),
-            ),
-            rows = canvas.whileBusy(work = rowsOf),
-            whenNothingMatches = { typed ->
-                if (WordFile.couldBeAName(typed)) "nothing matches '$typed' — enter to write it"
-                else "nothing matches '$typed'"
-            },
-        )
-        // **Looped here rather than inside [walk]**, so the same table comes back after a word is closed:
-        // the filter, the cursor and the sort are where you left them, and only leaving for the menu
-        // starts again.
-        while (true) {
-            val chosen = walk(table, rowsOf, mayWriteOne = true) ?: return
-            if (chosen.isNew) {
-                edit(Candidate.blank(chosen.key))
-            } else {
-                WordFile.read(chosen.key).fold(
-                    onSuccess = ::edit,
-                    onFailure = { failure ->
-                        Dialogs.read(
-                            terminal,
-                            canvas,
-                            Reader(
-                                "'${chosen.key}' would not read",
-                                listOf(Line(failure.message.orEmpty(), Palette.refused)),
-                            ),
-                        )
-                    },
-                )
-            }
-            table.withRows(canvas.whileBusy(work = rowsOf))
-        }
-    }
-
-    private fun authoredRow(name: String, listing: WordFile.Listing?, isKeptOutOfLoot: Boolean): Table.Row {
-        val word = corpus.vocabulary.word(name)
-        return Table.Row(
-            key = name,
-            cells = listOf(
-                name,
-                word?.firmness?.key.orEmpty(),
-                if (isKeptOutOfLoot) WordFile.NO_LOOT else listing?.rarity.orEmpty(),
-                listing?.ink.orEmpty(),
-                word?.let(::parametersIn).orEmpty(),
-                word?.let(::populationsIn).orEmpty(),
-            ),
-        )
-    }
-
-    /**
-     * What a word sets, in one line — its core, its pool and its requests, under plain names.
-     *
-     * [Word.canSet] rather than [Word.sets], so a word that only ever offers a parameter through a pool
-     * is not read as a word that sets nothing.
-     */
-    private fun parametersIn(word: Word): String {
-        val said = buildList {
-            addAll(word.canSet.map { (parameter, value) -> "$parameter=$value" })
-            word.template?.let { add("template $it") }
-            word.mints?.let { add("mints $it") }
-        }
-        return said.joinToString(", ")
-    }
-
-    /**
-     * What a word does to a population, in the pipeline's own order — **the half `ancient` is made of.**
-     *
-     * One column counted parameters and the tags a narrowing word keeps by, so a word that only leans the
-     * draw set nothing, kept nothing out, and read as doing nothing at all. Two columns because that is
-     * the cut the editor makes, and a word is usually one or the other rather than both.
-     */
-    private fun populationsIn(word: Word): String {
-        fun tagged(name: String) = if (name.startsWith(TAG_MARK)) name else "$TAG_MARK$name"
-        val said = buildList {
-            word.chooses.values.forEach { add("chooses $it") }
-            word.admits.values.flatten().distinct().forEach { add("adds $it") }
-            word.restricts.values.flatMap { it.entries }.distinctBy { it.key }.forEach { (tag, weight) ->
-                add(if (weight >= 0.0) "keeps ${tagged(tag)}" else "drops ${tagged(tag)}")
-            }
-            word.excludes.values.flatten().distinct().forEach { add("removes $it") }
-            word.biases.values.flatMap { it.entries }.distinctBy { it.key }.forEach { (tag, weight) ->
-                add(if (weight >= 0.0) "favours ${tagged(tag)}" else "discourages ${tagged(tag)}")
-            }
-        }
-        return said.joinToString(", ")
-    }
-
-    /**
-     * A word the game gave us — every block, biome, placed feature, mob and structure set has one.
-     *
-     * **Built when it is asked for**, not with the rest of the screen: there are about sixteen hundred of
-     * them and each row costs two file reads, which is not worth paying on every visit to the menu.
-     *
-     * There is nothing to change but the rarity and the ink, and both are columns here.
-     */
-    private fun openADerivedOne() {
-        val derived = corpus.vocabulary.derivedWords
-        val rowsOf = {
-            val listings = WordFile.everyListing()
-            val inkTags = WordFile.everyInkTag()
-            val lootFence = WordFile.everyIdTagged(CannotAppearInLoot.TAG_NAME)
-            val wordless = WordFile.everyIdTagged(DerivedWords.DOES_NOT_HAVE_A_WORD)
-            derived.map { derivedRow(it, listings, inkTags, lootFence, wordless) }
-        }
-        val table = Table(
-            title = "${derived.size} auto-generated words",
-            columns = listOf(
-                Table.Column("word", NAME_WIDTH),
-                Table.Column("kind", KIND_WIDTH),
-                Table.Column("claims", FIRMNESS_WIDTH, order = FIRMNESSES),
-                Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityChoices()),
-                Table.Column("ink", INK_WIDTH, INK, WordFile.inkTiers()),
-                Table.Column("in game", IN_GAME_WIDTH, IN_GAME, listOf(WordFile.NO_WORD)),
-                Table.Column("from", EFFECTS_WIDTH),
-            ),
-            rows = canvas.whileBusy(work = rowsOf),
-        )
-        while (true) {
-            val chosen = walk(table, rowsOf) ?: return
-            derived.firstOrNull { it.name == chosen.key }?.let { edit(Candidate.of(it)) }
-            table.withRows(canvas.whileBusy(work = rowsOf))
-        }
-    }
-
-    /** What an auto-generated word names: the registry it is an entry of, or the aspect whose preset it means. */
-    private fun kindOf(word: Word): String {
-        word.entryOf?.let { return registryCalled(it) }
-        val aspect = word.chooses.keys.firstOrNull() ?: return ""
-        return aspect.presetsAreEntriesOf?.let(::registryCalled) ?: "${aspect.page} preset"
-    }
-
-    private fun registryCalled(registry: ResourceKey<out Registry<*>>): String = when (registry) {
-        Registries.PLACED_FEATURE -> "feature"
-        Registries.ENTITY_TYPE -> "mob"
-        Registries.STRUCTURE_SET -> "structure"
-        else -> registry.identifier().path.substringAfterLast('/').replace('_', ' ')
-    }
-
-    /** The same reading [WordFile.inkOf] makes of one word, made of the whole table's files read once. */
-    private fun derivedRow(
-        word: Word,
-        listings: Map<String, WordFile.Listing>,
-        inkTags: Map<String, Map<String, String>>,
-        lootFence: Map<String, Set<String>>,
-        wordless: Map<String, Set<String>>,
-    ): Table.Row {
-        val page = Candidate.of(word)
-        fun isIn(tagged: Map<String, Set<String>>) =
-            page.tagDirectory?.let { word.id.toString() in tagged[it].orEmpty() } == true
-        val isKeptOutOfLoot = isIn(lootFence)
-        val hasNoWord = isIn(wordless)
-        val rarity = if (isKeptOutOfLoot) WordFile.NO_LOOT else listings[page.listingKey]?.rarity
-        val tagged = page.tagDirectory?.let { inkTags[it]?.get(word.id.toString()) }
-        val ink = tagged ?: listings[word.name]?.ink
-        return Table.Row(
-            key = word.name,
-            cells = listOf(
-                word.name,
-                kindOf(word),
-                word.firmness.key,
-                rarity.orEmpty(),
-                ink.orEmpty(),
-                if (hasNoWord) WordFile.NO_WORD else "",
-                word.id.toString(),
-            ),
-            tone = when {
-                hasNoWord -> Palette.faint
-                rarity == null && ink == null -> null
-                else -> Palette.settled
-            },
-        )
-    }
-
-    /** The rarity or the ink of whichever row the cursor is on, moved one step round. */
-    private fun cycle(row: Table.Row, kind: String, at: Int, by: Int) {
-        val word = corpus.vocabulary.word(row.key) ?: return
-        val candidate =
-            if (corpus.vocabulary.isDerived(word)) Candidate.of(word) else WordFile.read(row.key).getOrNull() ?: return
-        val standing = row.cells.getOrElse(at) { "" }.ifEmpty { null }
-        when (kind) {
-            RARITY -> WordFile.setRarity(
-                candidate,
-                cycled(listOf(null) + WordFile.rarityChoices(), standing, by),
-            )
-            INK -> WordFile.setInk(candidate, cycled(listOf(null) + WordFile.inkTiers(), standing, by))
-            IN_GAME -> WordFile.setHasNoWord(candidate, hasNoWord = standing == null)
-        }
-    }
-
-    /**
-     * What the Art cannot yet say, and a word begun for whatever you pick.
-     *
-     * **Worked out from the words there are**, never from a list kept here: a tag stops being missing the
-     * moment something asks for it, and a parameter the moment something turns it. So the screen empties
-     * itself as the corpus fills, with nothing to remember to cross off.
-     */
-    private fun fillAGap() {
-        val rowsOf = { canvas.whileBusy("Looking for what nothing reaches") { Gaps.of(corpus) }.map(::gapRow) }
-        val table = Table(
-            title = "things that can't be expressed with the current corpus",
-            columns = listOf(
-                Table.Column("kind", GAP_KIND_WIDTH),
-                Table.Column("what", NAME_WIDTH),
-                Table.Column("where", RARITY_WIDTH + INK_WIDTH),
-                Table.Column("", EFFECTS_WIDTH),
-            ),
-            rows = rowsOf(),
-            // An empty list here is the good outcome, and it should read like one.
-            whenEmpty = "nothing in the world is out of reach \u2014 every tag, parameter and value has a word",
-        )
-        while (true) {
-            val chosen = walk(table, rowsOf) ?: return
-            val gap = Gaps.of(corpus).firstOrNull { it.key == chosen.key } ?: continue
-            edit(Gaps.wordFor(gap, corpus))
-            table.withRows(canvas.whileBusy(work = rowsOf))
-        }
-    }
-
-    private fun gapRow(gap: Gaps.Gap) = Table.Row(
-        key = gap.key,
-        cells = listOf(
-            gap.kind.title,
-            if (gap.parameter.isEmpty()) gap.what else "${gap.parameter}=${gap.what}",
-            gap.where.joinToString(" ") { it.page },
-            gap.said,
-        ),
-        tone = if (gap.kind == Gaps.Kind.TAG) Palette.warned else null,
-    )
-
-    /**
-     * The audit, as a list you can act on. Choosing a word opens it, which is the point of reading the
-     * audit at all — it used to be a wall of text you then had to leave to do anything about.
-     */
-    private fun auditAndOpen() {
-        var byName = false
-        var filter = ""
-        while (true) {
-            val judged = canvas.whileBusy("Auditing ${WordFile.authoredNames().size} words") { audited(byName) }
-            if (judged.isEmpty()) {
-                Dialogs.read(terminal, canvas, Reader("Audit", listOf(Line("No word needs attention.", Palette.settled))))
-                return
-            }
-            val picker = Picker(
-                title = "${judged.size} words need attention",
-                options = judged.map(::rowFor),
-                filter = filter,
-            ) {}
-            val sorting = if (byName) "by name" else "worst first"
-            var resorted = false
-            val chosen = choose(
-                picker,
-                "$sorting ${Glyph.BULLET} tab to re-sort",
-                onTab = { byName = !byName; resorted = true },
-            )
-            // Both tab and backing out end the chooser, so the flag is what tells them apart.
-            filter = picker.filter
-            when {
-                chosen != null -> WordFile.read(chosen).onSuccess(::edit)
-                !resorted -> return
-            }
-        }
-    }
-
-    /**
-     * How bad a word is, at a glance: **an icon for the worst thing wrong with it, and a colour for how
-     * much is wrong.** Two signals rather than one, because a single error and four nudges are different
-     * problems and a list sorted worst-first should not make you count to see which is which.
-     */
-    private fun rowFor(judged: Pair<String, List<Verdict.Finding>>): Picker.Option {
-        val (name, found) = judged
-        val worst = found.minOf { it.standing.ordinal }
-        return Picker.Option(
-            value = name,
-            label = name,
-            note = found.joinToString("  ${Glyph.BULLET} ") { it.says },
-            mark = Verdict.Standing.entries[worst].mark,
-            tone = when {
-                found.size >= MANY -> Palette.refused
-                found.size >= SOME -> Palette.warned
-                else -> Palette.value
-            },
-        )
-    }
-
-    /** Every authored word with something against it — worst first, or by name. */
-    private fun audited(byName: Boolean): List<Pair<String, List<Verdict.Finding>>> {
-        val judged = WordFile.authoredNames().map { name ->
-            val candidate = WordFile.read(name).getOrNull()
-            name to candidate?.let { Verdict.on(it, corpus) }.orEmpty()
-                .filterNot { it.standing == Verdict.Standing.NOTED }
-        }
-        val worth = judged.filter { (_, found) -> found.isNotEmpty() }
-        if (byName) return worth.sortedBy { (name, _) -> name }
-        return worth.sortedWith(Verdict.WORST_FIRST)
     }
 
     /**
@@ -454,105 +110,6 @@ class Menu(
         return "${corpus.vocabulary.words.size} words ${Glyph.BULLET} " +
             "${WordFile.authoredNames().size} authored ${Glyph.BULLET} $snapshot"
     }
-
-    /**
-     * What walking a list came back with: a row, or a name to write that no row had.
-     *
-     * The second is why this is not a bare string — searching a corpus of a hundred words for one that is
-     * not there is exactly the moment somebody means to write it, and going back to the menu to say so is
-     * a trip taken because the list had nothing else to offer.
-     */
-    private data class Chosen(val key: String, val isNew: Boolean = false)
-
-    /**
-     * A table, walked. Null where the reader backed out; otherwise the key of the row they chose.
-     *
-     * **Left and right move between columns, up and down move within one.** On the name column that means
-     * changing row; on a rarity or an ink column it means cycling the value under the cursor, which is
-     * written straight away and the rows rebuilt from disk — so what is on screen is what is in the files.
-     *
-     * [rowsOf] rather than a list, for that rebuild.
-     */
-    private fun walk(
-        table: Table,
-        rowsOf: () -> List<Table.Row>,
-        mayWriteOne: Boolean = false,
-    ): Chosen? {
-        terminal.enterRawMode(MouseTracking.Off).use { scope ->
-            while (true) {
-                canvas.show(tableLines(table))
-                val key = scope.readKey()
-                if (key.ctrl && key.key == "c") throw Leaving()
-                val row = table.focused
-                val kind = table.columns[table.column].kind
-
-                /** The active column's value, one step on. */
-                fun bump(by: Int) {
-                    if (kind.isEmpty() || row == null) return
-                    cycle(row, kind, table.column, by)
-                    table.withRows(canvas.whileBusy(work = rowsOf))
-                }
-
-                when {
-                    key.ctrl && key.key == "q" -> return null
-                    // Escape gives back what was typed before it gives up the screen — losing a filter
-                    // is cheap, losing your place in sixteen hundred rows is not.
-                    key.key == "Escape" -> if (table.isFiltered) table.clearFilter() else return null
-                    key.key == "ArrowLeft" -> if (table.column == 0) return null else table.across(-1)
-                    key.key == "ArrowRight" -> table.across(1)
-                    // On a value column enter steps it on; on the name it opens the word — or writes the
-                    // one that was searched for and not found, where the list says it will.
-                    key.key == "Enter" -> when {
-                        offeringToWrite(table, mayWriteOne) -> return Chosen(table.filter, isNew = true)
-                        kind.isEmpty() -> return Chosen(row?.key ?: continue)
-                        else -> bump(1)
-                    }
-                    key.key == "=" -> bump(1)
-                    key.key == "-" -> bump(-1)
-                    // The function keys reach a column without moving to it.
-                    key.key in HOTKEYS && row != null -> {
-                        val wanted = HOTKEYS.getValue(key.key)
-                        val at = table.columns.indexOfFirst { it.kind == wanted }
-                        if (at >= 0) {
-                            cycle(row, wanted, at, 1)
-                            table.withRows(canvas.whileBusy(work = rowsOf))
-                        }
-                    }
-                    // Everything else is the table's. `-` and `=` are spent above, which costs nothing: no
-                    // word in the corpus has either in its name.
-                    else -> table.tookTheKey(key)
-                }
-            }
-        }
-    }
-
-    private fun tableLines(table: Table): List<Line> = tableLines(
-        table,
-        canvas,
-        listOf(
-            hints(
-                "\u2191\u2193" to "move",
-                "\u2190\u2192" to "column",
-                "home/end" to "first, last",
-                "pgup/pgdn" to "a page",
-                "tab" to "sort",
-            ),
-            if (table.columns[table.column].cycles) {
-                hints(
-                    "- =" to "change",
-                    "enter" to "change",
-                    "F1" to "rarity", "F2" to "ink", "F3" to "no word",
-                    searching(table.filter),
-                )
-            } else {
-                hints(
-                    "enter" to "open",
-                    "F1" to "rarity", "F2" to "ink", "F3" to "no word",
-                    searching(table.filter),
-                )
-            },
-        ),
-    )
 
     /**
      * One of a list, chosen. Null where the reader backed out.
@@ -651,8 +208,6 @@ class Menu(
         const val HALF_A_SUMMARY = 26
         const val FIRMNESS_WIDTH = 9
 
-        /** The firmnesses weakest first, which is how the claims column sorts. */
-        val FIRMNESSES = Firmness.entries.map { it.key }
         const val GAP_KIND_WIDTH = 7
         const val RARITY = "rarity"
         const val INK = "ink"

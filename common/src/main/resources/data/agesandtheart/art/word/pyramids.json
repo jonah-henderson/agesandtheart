@@ -3,7 +3,15 @@
     "Five courses and nine across: the small stepped kind you walk up to, not the desert's.",
     "Named for the shape rather than for the structure, and it mints like any other pattern."
   ],
-  "mints": "agesandtheart:pyramids",
-  "unstated": "#agesandtheart:formation_substance",
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:pyramids",
+        "unstated": "#agesandtheart:formation_substance"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

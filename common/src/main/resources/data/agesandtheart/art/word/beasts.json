@@ -3,10 +3,15 @@
     "Every animal that is not hunting you -- what vanilla calls a creature. `herds` is the narrower word,",
     "for the ones that graze."
   ],
-  "restricts": {
-    "spawns": {
-      "fauna": ">0.3"
+  "speech": "plural",
+  "meanings": [
+    {
+      "restricts": {
+        "spawns": {
+          "fauna": ">0.3"
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "speech": "plural"
+  ]
 }

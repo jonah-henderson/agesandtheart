@@ -11,10 +11,10 @@ import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.BucketItem
 import net.minecraft.world.item.ItemStack
 import co.voik.agesandtheart.advancement.LearnedBy
-import co.voik.agesandtheart.age.word.DerivedWords
+import co.voik.agesandtheart.age.language.DerivedWords
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Withheld
-import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.language.Word
 import co.voik.agesandtheart.age.word.learnedWords
 
 /**

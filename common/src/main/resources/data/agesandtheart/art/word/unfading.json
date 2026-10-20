@@ -5,7 +5,12 @@
     "at midnight. `fades` is one name on the vault and the stars, so `unfading stars` keeps them out through the",
     "day as bright as at midnight -- the day-stars step, written on purpose -- and an unfading Age does both."
   ],
-  "sets": {
-    "fades": "never"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "fades": "never"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

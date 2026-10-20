@@ -15,7 +15,6 @@ import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.ORDINARY_SHARE
 import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Terrain
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import com.mojang.serialization.JsonOps
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -29,7 +28,7 @@ import kotlin.math.abs
 @Tags(NEEDS_REGISTRIES)
 class FrequencySplitCheck : FunSpec({
 
-    fun parses(vararg pages: String) = Grammar.parses(ShippedCorpus.vocabulary, listOf("age", *pages))
+    fun parses(vararg pages: String) = ShippedCorpus.vocabulary.read(listOf("age", *pages), 0L)?.readsAsLaid == true
 
     test("a rung is refused before a phenomenon that is one state over the whole Age") {
         for (phenomenon in listOf("tempest", "fog", "blizzard", "meteors", "deluge")) {
@@ -40,11 +39,15 @@ class FrequencySplitCheck : FunSpec({
 
     test("a page saying only what a phenomenon has no dial for is refused before it") {
         val refused = listOf(
-            listOf("frequent", "inferno"), listOf("frequent", "inferno", "phenomena"), listOf("constant", "overgrowth"),
+            listOf("frequent", "inferno"), listOf("constant", "overgrowth"),
             listOf("strong", "overgrowth"), listOf("swift", "tempest"),
         )
         for (pages in refused) check(!parses(*pages.toTypedArray())) { "'${pages.joinToString(" ")}' was read" }
-        val read = listOf(listOf("swift", "overgrowth"), listOf("strong", "inferno", "phenomena"), listOf("frequent", "tempest"))
+        // An inferno accepts nothing, so a frequency waits past it for the phenomena, which take it.
+        val read = listOf(
+            listOf("swift", "overgrowth"), listOf("strong", "inferno", "phenomena"), listOf("frequent", "tempest"),
+            listOf("frequent", "inferno", "phenomena"),
+        )
         for (pages in read) check(parses(*pages.toTypedArray())) { "'${pages.joinToString(" ")}' was refused" }
     }
 

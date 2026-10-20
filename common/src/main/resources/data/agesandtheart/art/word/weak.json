@@ -6,11 +6,18 @@
     "",
     "Laid bare it never touches the gravity (`unaimed` 0), for `strong`'s reason."
   ],
-  "sets": {
-    "strength": "-1.0..-0.3",
-    "pull": "-1.0..-0.2"
-  },
-  "unaimed": {
-    "gravity": 0.0
-  }
+  "meanings": [
+    {
+      "sets": {
+        "strength": "-1.0..-0.3"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "pull": "-1.0..-0.2"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

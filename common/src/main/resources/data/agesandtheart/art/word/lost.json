@@ -1,5 +1,10 @@
 {
-  "sets": {
-    "sealed": "true"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "sealed": "true"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

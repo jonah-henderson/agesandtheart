@@ -3,14 +3,32 @@
     "Burnt out: grey wherever there is a colour, ash falling through a haze, and only the barren biomes.",
     "`dusty` is the dry sister, all sand and yellow light."
   ],
-  "restricts": {
-    "biomes": {
-      "barren": ">0.37"
+  "meanings": [
+    {
+      "sets": {
+        "colour": "grey"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.haze": "0.4..0.8"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "motes": "ash"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "biomes": {
+          "barren": ">0.37"
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "grey",
-    "air.haze": "0.4..0.8",
-    "motes": "ash"
-  }
+  ]
 }

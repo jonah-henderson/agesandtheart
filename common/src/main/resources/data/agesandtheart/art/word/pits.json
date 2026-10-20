@@ -8,7 +8,15 @@
     "difference between this word and its siblings: an obelisk nobody gave a material to should be some",
     "handsome stone, where a pit of polished granite is a monument somebody dug a hole for."
   ],
-  "mints": "agesandtheart:pits",
-  "unstated": "#agesandtheart:pit_substance",
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:pits",
+        "unstated": "#agesandtheart:pit_substance"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

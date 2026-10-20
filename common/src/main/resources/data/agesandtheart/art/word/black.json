@@ -22,25 +22,44 @@
     "And it leans, never forcing, towards the biomes and the growth of its colour: dark woods and the deep dark,",
     "sculk."
   ],
-  "biases": {
-    "biomes": {
-      "minecraft:dark_forest": 0.5,
-      "minecraft:deep_dark": 0.5,
-      "minecraft:basalt_deltas": 0.4
+  "meanings": [
+    {
+      "sets": {
+        "colour": "black"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:sculk_patch_deep_dark": 0.4,
-      "minecraft:sculk_vein": 0.3,
-      "minecraft:dark_oak_leaf_litter": 0.3
+    {
+      "sets": {
+        "stone": "#black"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#black"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:dark_forest": 0.5,
+          "minecraft:deep_dark": 0.5,
+          "minecraft:basalt_deltas": 0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:sculk_patch_deep_dark": 0.4,
+          "minecraft:sculk_vein": 0.3,
+          "minecraft:dark_oak_leaf_litter": 0.3
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "black",
-    "stone": "#black",
-    "material": "#black"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1
-  }
+  ]
 }

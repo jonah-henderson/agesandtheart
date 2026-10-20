@@ -3,18 +3,29 @@
     "Laid out on a plan: an ordered landmass, every part leaning ordered and away from the eroded, and the wear",
     "on everything turned down. The plain word; `uniform` is the strange one, where everything is alike."
   ],
-  "restricts": {
-    "landmass": {
-      "ordered": ">0.3"
+  "meanings": [
+    {
+      "bends": {
+        "wear": "-0.8..-0.3"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "landmass": {
+          "ordered": ">0.3"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#ordered": 0.8,
+          "#eroded": -0.6
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "biases": {
-    "all": {
-      "#ordered": 0.8,
-      "#eroded": -0.6
-    }
-  },
-  "bends": {
-    "wear": "-0.8..-0.3"
-  }
+  ]
 }

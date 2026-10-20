@@ -6,7 +6,15 @@
     "",
     "The small clusters ores ordinarily come in are `deposits`."
   ],
-  "mints": "agesandtheart:veins",
-  "unstated": "minecraft:deepslate_iron_ore",
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:veins",
+        "unstated": "minecraft:deepslate_iron_ore"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

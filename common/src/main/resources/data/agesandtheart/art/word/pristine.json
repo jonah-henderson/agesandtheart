@@ -3,29 +3,53 @@
     "Unworn and laid out, and clean: two of clear air, clear water, a blue sky, white cloud and bright stars",
     "are offered to every pristine Age, each yielding to anything the book says."
   ],
-  "biases": {
-    "all": {
-      "#ordered": 0.9,
-      "#monumental": 0.6,
-      "#sheer": 0.4,
-      "#eroded": -0.9
-    }
-  },
-  "bends": {
-    "wear": "-1.0..-0.55"
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "air.haze": "-1.0..-0.5",
-          "murk": "-1.0..-0.55",
-          "sky.colour": "blue",
-          "clouds.colour": "white",
-          "stars.glow": "+0.3"
+  "meanings": [
+    {
+      "bends": {
+        "wear": "-1.0..-0.55"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#ordered": 0.9,
+          "#monumental": 0.6,
+          "#sheer": 0.4,
+          "#eroded": -0.9
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.haze": "-1.0..-0.5"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "murk": "-1.0..-0.55"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "sky.colour": "blue"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "clouds.colour": "white"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "stars.glow": "+0.3"
+      },
+      "chance_to_apply": 0.4
+    }
+  ]
 }

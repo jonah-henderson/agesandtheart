@@ -10,7 +10,7 @@ import co.voik.agesandtheart.age.aspect.Pool
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Taggable
-import co.voik.agesandtheart.age.word.Bars
+import co.voik.agesandtheart.age.aspect.Bars
 import co.voik.agesandtheart.math.mix64
 import co.voik.agesandtheart.math.unitDouble
 import net.minecraft.resources.Identifier

@@ -41,6 +41,14 @@ class ResolutionCheck : FunSpec({
         check(world.instability.isCoherent && world.cost == 4) { "$world" }
     }
 
+    /** A catalogue's member is there only where chosen, so describing one still chooses it. */
+    test("a described landform or underground is still the one chosen") {
+        val world = resolved("age large fissured small gentle")
+        check(world.composition.presets.any { it.aspect == Aspect.UNDERGROUND && it.key == "fissured" }) { world.spelled() }
+        check(world.composition.presets.any { it.aspect == Aspect.TERRAIN && it.key == "gentle" }) { world.spelled() }
+        check(world.option(Aspect.UNDERGROUND, "size").mapNotNull(Span::read) == listOf(Span(0.5, 0.5))) { world.spelled() }
+    }
+
     test("a cold climate is cold, and an Age nobody described is the ordinary one") {
         val cold = resolved("age frozen climate")
         val temperature = cold.option(Aspect.CLIMATE, "temperature").mapNotNull(Span::read)

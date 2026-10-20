@@ -24,13 +24,21 @@
     "records the same reasoning from the other side). Nothing here restricts, so the word never eliminates",
     "a preset it merely dislikes."
   ],
-  "biases": {
-    "sea": {
-      "#empty": -0.8,
-      "#watery": 0.4
+  "meanings": [
+    {
+      "sets": {
+        "depth": "0.85..0.98"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "sea": {
+          "#empty": -0.8,
+          "#watery": 0.4
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "depth": "0.85..0.98"
-  }
+  ]
 }

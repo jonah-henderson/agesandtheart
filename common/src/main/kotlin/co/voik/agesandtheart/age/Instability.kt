@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.age.aspect.Aspect
 import com.mojang.serialization.Codec
+import com.mojang.serialization.DataResult
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.StringRepresentable
@@ -15,25 +16,6 @@ import java.util.Optional
  * repaired book's moved pages count one between them (`notes/instability-tiers-plan.md`).
  */
 enum class Register(val key: String) : StringRepresentable {
-    /** Two words meant opposite things and the world honoured both anyway, in one aspect. */
-    TENSION("tension"),
-
-    /**
-     * Two words meant opposite things and **never met** — they landed in different aspects, so nothing in
-     * the world was ever asked to choose between them.
-     *
-     * The flat charge under the dynamic ones (Jonah, 2026-08-05), and it exists because the others are
-     * *mechanical*: [TENSION], [FRACTURE] and [DISPLACED] are all charged for a collision, so two words that
-     * contradict each other go free whenever it happens that no single preset, parameter or population had
-     * to hold both. `drenched` against `arid` was exactly that — one steers the rain and the other the
-     * humidity, so a sentence saying both cost nothing at all. As aspects and parameters multiply, so does the
-     * chance of that coincidence, and a writer contradicting themselves should not be rescued by where the
-     * two happened to land.
-     *
-     * Charged **once per pair**, and only where nothing else already charged the same two words.
-     */
-    OPPOSED("opposed"),
-
     /**
      * A page could not be read where it was laid, so the Art moved it somewhere it could (§4.3.1).
      *
@@ -41,26 +23,6 @@ enum class Register(val key: String) : StringRepresentable {
      * linking panel shows a book that did not read as written was not written right.
      */
     REHOMED("rehomed"),
-
-    /**
-     * An aspect had to break into fragments to honour everything asked of it.
-     *
-     * A fracture, never a division: an aspect also divides because a vague word simply *liked* two
-     * answers, which is harmony and charged nothing (see [Aspect.appetiteForCompany]). Only the charged
-     * case is a flaw.
-     */
-    FRACTURE("fracture"),
-
-    /**
-     * A word lost outright: something else already had the aspect, and the aspect cannot divide.
-     *
-     * **Also what a minting asks for and cannot hold.** `gold_block springs` spells a pattern that runs
-     * with a fluid and a substance that is not one, so the spring keeps its own water and the material is
-     * crowded out of the clause it was written into — which is this register's own sentence, and the
-     * reason it rather than [UNBACKED]: that one says "a gap in the vocabulary, not something you did",
-     * and writing a solid into a spring is squarely something you did.
-     */
-    DISPLACED("displaced"),
 
     /**
      * Nothing in the aspect could ever be what the word asked for.
@@ -89,7 +51,15 @@ enum class Register(val key: String) : StringRepresentable {
     override fun getSerializedName(): String = key
 
     companion object {
-        val CODEC: Codec<Register> = StringRepresentable.fromEnum(Register::values)
+        /** The registers every disagreement between words was once charged under, which saved flaws still name. */
+        private val FOLDED_INTO_INCOHERENT = setOf("tension", "opposed", "fracture", "displaced")
+
+        private fun byKey(key: String): DataResult<Register> {
+            val register = entries.firstOrNull { it.key == key } ?: INCOHERENT.takeIf { key in FOLDED_INTO_INCOHERENT }
+            return register?.let { DataResult.success(it) } ?: DataResult.error { "no register is called '$key'" }
+        }
+
+        val CODEC: Codec<Register> = Codec.STRING.comapFlatMap(::byKey, Register::key)
     }
 }
 
@@ -118,12 +88,6 @@ data class Flaw(
         val over = if (tags.size == 2) " (${tags[0]} against ${tags[1]})" else ""
         val where = aspect?.page ?: "the sentence"
         return when (register) {
-            Register.TENSION -> "$both pull opposite ways in $where$over, and the world made room for both"
-            Register.OPPOSED -> "$both contradict each other$over, and landed far enough apart that " +
-                "nothing in the world had to choose"
-            Register.FRACTURE -> "the $where fractured so that $both could both stand$over"
-            Register.DISPLACED -> "${quoted.firstOrNull() ?: "a word"} was crowded out of $where" +
-                quoted.drop(1).firstOrNull().orEmpty().let { if (it.isEmpty()) "" else " by $it" } + over
             Register.REHOMED -> "${quoted.firstOrNull() ?: "a word"} could not be read where you laid it, " +
                 "so the Art laid it under $where instead"
             Register.UNBACKED -> "nothing in $where can be ${quoted.firstOrNull() ?: "that"} — " +
@@ -159,8 +123,8 @@ private val ASPECT_CODEC: Codec<Aspect> = StringRepresentable.fromEnum(Aspect::v
 data class Instability(val flaws: List<Flaw>, val pages: Int = 0) {
     /**
      * **How many distinct things are wrong** (`notes/instability-tiers-plan.md` §2). Flaws raised by the same
-     * words are one — `frozen molten` is a tension and a fracture and one mistake — so a sentence can never
-     * be much more wrong than it looks; and every page a repair moved is one between them.
+     * words are one, as a saved Age's tension and fracture between two words are, so a sentence can never be much
+     * more wrong than it looks; and every page a repair moved is one between them.
      */
     val index: Int get() {
         val (moved, rest) = flaws.partition { it.register == Register.REHOMED }

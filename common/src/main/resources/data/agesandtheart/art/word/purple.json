@@ -22,24 +22,43 @@
     "And it leans, never forcing, towards the biomes and the growth of its colour: flower forests and meadows,",
     "alliums, lilacs and amethyst."
   ],
-  "biases": {
-    "biomes": {
-      "minecraft:flower_forest": 0.4,
-      "minecraft:meadow": 0.4
+  "meanings": [
+    {
+      "sets": {
+        "colour": "purple"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:amethyst_geode": 0.5,
-      "minecraft:flower_meadow": 0.4,
-      "minecraft:flower_flower_forest": 0.4
+    {
+      "sets": {
+        "stone": "#purple"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#purple"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:flower_forest": 0.4,
+          "minecraft:meadow": 0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:amethyst_geode": 0.5,
+          "minecraft:flower_meadow": 0.4,
+          "minecraft:flower_flower_forest": 0.4
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "purple",
-    "stone": "#purple",
-    "material": "#purple"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1
-  }
+  ]
 }

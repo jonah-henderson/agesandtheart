@@ -6,7 +6,36 @@
     "crawl while everything else walks, and `slow sun` makes the day twice as long -- the first sun's pace is the",
     "Age's clock. A slow Age is all of them. `swift` is the other end of the same axis."
   ],
-  "sets": {
-    "pace": "-1.0..-0.6"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "weather.pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sky.pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "spawns.pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sun.pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "moon.pace": "-1.0..-0.6",
+        "phenomena.pace": "-1.0..-0.6"
+      }
+    }
+  ]
 }

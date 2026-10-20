@@ -2,7 +2,7 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.language.Word
 import net.minecraft.core.RegistryAccess
 
 /**

@@ -18,13 +18,31 @@
     "this word says how hard it was asked for, and Blizzard.shareOfTheTime turns that into weather.",
     "Nothing about the snow itself gets fiercer, which is the register 5.2 asks for."
   ],
-  "chooses": {
-    "phenomena": "blizzard"
-  },
-  "sets": {
-    "motes": "snow",
-    "temperature": "-1.0..-0.5",
-    "weather.frequency": "0.4..1.0"
-  },
-  "speech": "noun"
+  "speech": "noun",
+  "meanings": [
+    {
+      "sets": {
+        "motes": "snow"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "temperature": "-1.0..-0.5"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "weather.frequency": "0.4..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "chooses": {
+        "phenomena": "blizzard"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

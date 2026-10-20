@@ -15,8 +15,36 @@
     "- `incongruous structures` builds in any biome and at any height: a taiga village on the plains, a trail ruin",
     "  out of the ground, an ancient city in the open."
   ],
-  "sets": {
-    "incongruous": "true",
-    "footing": "free"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "landmass.incongruous": "true"
+      },
+      "unaimed_chance_to_apply": 0.0
+    },
+    {
+      "sets": {
+        "features.incongruous": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "spawns.incongruous": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "structures.incongruous": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "footing": "free"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

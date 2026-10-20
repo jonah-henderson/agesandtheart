@@ -3,7 +3,15 @@
     "An irregular lump, roughened by a noise rather than cut to a level, so no two faces of it",
     "read alike. The one shape here that is plainly a rock and not a monument."
   ],
-  "mints": "agesandtheart:boulders",
-  "unstated": "#agesandtheart:formation_substance",
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:boulders",
+        "unstated": "#agesandtheart:formation_substance"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
 }

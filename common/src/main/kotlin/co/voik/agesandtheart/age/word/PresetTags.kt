@@ -37,7 +37,7 @@ data class PresetProfile(
     val replaces: Boolean = false,
     /**
      * Whether this member is in the world **anyway**, so that naming it asks for *more* of it rather than
-     * for it at all — the flag the mention bump turns on (`Resolver.claimForMember`, design §3.3).
+     * for it at all — the flag the mention bump turns on (`claimForMember` in `age/resolution/Populations.kt`, design §3.3).
      *
      * **True by default, which is what keeps every entry written before this correct.** A biome, a creature,
      * a vanilla feature a biome already grows: all present unless something strikes them, so naming one at

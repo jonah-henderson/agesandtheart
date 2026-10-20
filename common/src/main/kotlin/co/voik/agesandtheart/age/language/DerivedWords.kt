@@ -7,7 +7,6 @@ import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
-import co.voik.agesandtheart.age.word.Speech
 import co.voik.agesandtheart.location
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.Registry
@@ -29,7 +28,7 @@ object DerivedWords {
     /** Anything carrying this tag never becomes a word (§8.4). */
     val DOES_NOT_HAVE_A_WORD: Identifier = "does_not_have_a_word".location()
 
-    private val WORDLESS_BLOCKS: TagKey<Block> = TagKey.create(Registries.BLOCK, DOES_NOT_HAVE_A_WORD)
+    val WORDLESS_BLOCKS: TagKey<Block> = TagKey.create(Registries.BLOCK, DOES_NOT_HAVE_A_WORD)
 
     /** Blocks whose word means a sea and nothing else. */
     private val ONLY_SEAS: TagKey<Block> = TagKey.create(Registries.BLOCK, "only_a_sea".location())
@@ -41,7 +40,8 @@ object DerivedWords {
      * the formations it could be raised as.
      *
      * Laid bare, a block is the rock or the ground's skin or both, where a world could be made of it, and the skin
-     * otherwise; it is a sea only where it pours, and makes structures only where it is aimed at them. A rock that
+     * otherwise; it is a sea only where it pours or is aimed at the sea, and never where a sea cannot be made of it
+     * ([Materials.makesASea]); and it makes structures only where it is aimed at them. A rock that
      * does not pour now and then raises one of [FORMATIONS] out of itself: `obsidian age`, an obsidian obelisk.
      */
     fun blocks(): List<Word> = BuiltInRegistries.BLOCK.listElements()
@@ -58,14 +58,18 @@ object DerivedWords {
         val block = id.toString()
         val isARock = Materials.makesARock(block)
         val choosesTheSea = Effect.Chooses(Aspect.SEA, block)
-        val asTheSea = if (pours) alwaysApplying(choosesTheSea) else onlyWhereAimed(choosesTheSea)
+        val asTheSea = when {
+            !Materials.makesASea(block) -> null
+            pours -> alwaysApplying(choosesTheSea)
+            else -> onlyWhereAimed(choosesTheSea)
+        }
         val theRock = Effect.Sets(ParameterKey(Terrain.STONE.name, Aspect.TERRAIN), block)
         val theSkin = Effect.Sets(ParameterKey(Surface.MATERIAL.name, Aspect.SURFACE), block)
         val asTheGround = Meaning(if (isARock) listOf(theRock, theSkin) else listOf(theSkin), mustAlwaysApply = true)
         val asTheStructures = onlyWhereAimed(Effect.Sets(ParameterKey(Structures.MATERIAL.name, Aspect.STRUCTURES), block))
         val standsAsAFormation = isARock && !pours
         val asFormations = if (standsAsAFormation) FORMATIONS.map { raisedAs(it, block) } else emptyList()
-        return Word(id, listOf(asTheSea, asTheGround, asTheStructures) + asFormations, Speech.MASS)
+        return Word(id, listOfNotNull(asTheSea, asTheGround, asTheStructures) + asFormations, Speech.MASS)
     }
 
     /** One of [FORMATIONS] made of [block], now and then where the block is laid bare. */

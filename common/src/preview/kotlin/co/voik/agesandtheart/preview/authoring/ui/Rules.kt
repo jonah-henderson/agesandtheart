@@ -3,7 +3,6 @@ package co.voik.agesandtheart.preview.authoring.ui
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.DerivedTags
 import co.voik.agesandtheart.age.word.DerivationRules.Rule
-import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.preview.authoring.Corpus
 import co.voik.agesandtheart.preview.authoring.DerivationRules
 import co.voik.agesandtheart.preview.authoring.ServerSnapshot
@@ -258,7 +257,7 @@ class Rules(
             Pane.MEMBERS -> members
         }
         return listOf(
-            Line("  what fills ", Palette.heading) + Line("${Word.TAG_MARK}$tag", Palette.tag),
+            Line("  what fills ", Palette.heading) + Line("#$tag", Palette.tag),
             Frame.rule(canvas.width),
         ) + whole.take(room) + listOf(
             Frame.rule(canvas.width),
@@ -307,7 +306,7 @@ class Rules(
         return Table.Row(
             key = tag,
             cells = listOf(
-                "${Word.TAG_MARK}$tag",
+                "#$tag",
                 here.size.toString(),
                 if (caught == 0) "" else caught.toString(),
                 here.map { it.aspect.page }.distinct().sorted().joinToString(" "),

@@ -4,34 +4,75 @@
     "of. Every arid Age is dressed in something sandy -- sand, red sand, sandstone, gravel, terracotta --",
     "drawn by tag, and its rock is offered the same; the rain is offered away."
   ],
-  "restricts": {
-    "landmass": {
-      "dry": ">0.3",
-      "barren": ">0.5"
+  "meanings": [
+    {
+      "sets": {
+        "temperature": "0.2..0.8"
+      },
+      "must_always_apply": true
     },
-    "climate": {
-      "dry": ">0.3",
-      "barren": ">0.5"
-    }
-  },
-  "biases": {
-    "biomes": {
-      "#dry": 1.0,
-      "#sandy": 1.0
+    {
+      "sets": {
+        "humidity": "-0.95..-0.5"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "#dry": 1.0
+    {
+      "sets": {
+        "surface.material": "#sandy"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "structures.material": "#sandy"
+      },
+      "unaimed_chance_to_apply": 0.0
+    },
+    {
+      "restricts": {
+        "landmass": {
+          "dry": ">0.3",
+          "barren": ">0.5"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "climate": {
+          "dry": ">0.3",
+          "barren": ">0.5"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "biomes": {
+          "#dry": 1.0,
+          "#sandy": 1.0
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "#dry": 1.0
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "stone": "#sandy"
+      }
+    },
+    {
+      "sets": {
+        "weather.frequency": "-1.0..-0.5"
+      }
     }
-  },
-  "sets": {
-    "temperature": "0.2..0.8",
-    "humidity": "-0.95..-0.5",
-    "material": "#sandy"
-  },
-  "requests": {
-    "sets": {
-      "stone": "#sandy",
-      "weather.frequency": "-1.0..-0.5"
-    }
-  }
+  ]
 }

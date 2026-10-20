@@ -3,15 +3,22 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.datapack.PerReload
 import co.voik.agesandtheart.datapack.ResourceParsing
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.Register
-import co.voik.agesandtheart.location
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Taggable
-import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Spawning
+import co.voik.agesandtheart.age.language.DerivedWords
+import co.voik.agesandtheart.age.language.Lexicon
+import co.voik.agesandtheart.age.language.MemberTags
+import co.voik.agesandtheart.age.language.Reader
+import co.voik.agesandtheart.age.language.Reading
+import co.voik.agesandtheart.age.language.Structure
+import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.language.WordFormat
+import co.voik.agesandtheart.age.language.Writing
+import co.voik.agesandtheart.age.resolution.Resolution
+import co.voik.agesandtheart.age.resolution.WorldFacts
 import co.voik.agesandtheart.age.word.generation.GenerationGrammars
-import co.voik.agesandtheart.age.word.grammar.GrammarWord
 import com.google.gson.JsonParser
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -23,46 +30,17 @@ import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.packs.resources.ResourceManager
 
-/**
- * Two tags that mean opposite things — the authored table of them (§3.3).
- *
- * **Not the contradiction detector.** What breaks an Age is an empty intersection, which [Resolver] finds
- * in the tag data itself: `floating` and `flat` are opposites in no dictionary, yet no terrain is both.
- * The table **explains** a tension and prices it where it knows the pair, so gaps in it cost clarity
- * rather than correctness — which is what makes it affordable to author by hand.
- */
-data class OpposedTags(val first: String, val second: String, val severity: Int) {
+/** Two tags that mean opposite things, so two words wanting one each are at odds wherever they land together. */
+data class OpposedTags(val first: String, val second: String) {
     companion object {
-        /** Tension the world absorbed is charged gently: a remark, not an accusation. */
-        const val ORDINARY_SEVERITY = 1
-
         val CODEC: Codec<OpposedTags> = RecordCodecBuilder.create { instance ->
             instance.group(
                 Codec.STRING.fieldOf("first").forGetter(OpposedTags::first),
                 Codec.STRING.fieldOf("second").forGetter(OpposedTags::second),
-                Codec.INT.optionalFieldOf("severity", ORDINARY_SEVERITY).forGetter(OpposedTags::severity),
             ).apply(instance, ::OpposedTags)
         }
     }
 }
-
-/**
- * Why two words cannot both stand, and what they disagree over — the answer [Vocabulary.disagreement]
- * gives, from whichever of its three sources knew.
- *
- * [over] is what the reading says they argued about: two tags where the table named them, and the one
- * parameter or tag where the words' own settings gave it away.
- */
-data class Disagreement(
-    val over: List<String>,
-    val severity: Int,
-    /**
-     * The parameter the two words bound to bands that cannot both be met, where that is what they disagree
-     * over. A name several aspects share (`size`) is only a disagreement where both words reach the same one,
-     * which is the resolver's to ask: `small landmass` and `colossal rainbow` never meet.
-     */
-    val onParameter: String? = null,
-)
 
 /** One file of opposed tags: a list, so a pack may add pairs without reprinting ours. */
 private data class OpposedTagsFile(val pairs: List<OpposedTags>) {
@@ -81,10 +59,10 @@ private data class OpposedTagsFile(val pairs: List<OpposedTags>) {
  *
  * | path | holds |
  * |---|---|
- * | `word/<name>.json` | one word — what it chooses, bars, sets and leans on |
+ * | `word/<name>.json` | one word — the meanings it carries ([WordFormat]) |
  * | `preset_tags/<aspect>.json` | the tags every preset in that aspect carries |
  * | `opposed_tags/<page>.json` | pairs of tags that mean opposite things |
- * | `grammar/<name>.json` | one structural word, naming a production |
+ * | `grammar/<name>.json` | one structure page, naming the structure it is |
  * | `generation/<name>.json` | one weighted grammar the Art writes *out* of |
  *
  * One file per word so a pack can replace a single one; one per *aspect* of tags because tag weights are
@@ -96,8 +74,8 @@ private data class OpposedTagsFile(val pairs: List<OpposedTags>) {
  */
 data class Vocabulary(
     private val byName: Map<String, Word>,
-    /** The structural words — `and`, `only`, `except` — keyed by what a writer says (§4.5). */
-    private val structural: Map<String, GrammarWord>,
+    /** The structure pages — `age`, `and`, `in` — keyed by what a writer says. */
+    private val structural: Map<String, Structure.Page>,
     private val tagsBySlot: Map<Aspect, PresetTags>,
     val opposedTags: List<OpposedTags>,
     /** The script words are written in. Optional content — see [Script]. */
@@ -124,7 +102,9 @@ data class Vocabulary(
     private val shippedButNotLoaded: Set<String>,
     /** What could not be read, in the words a content author needs to hear. Empty in a healthy pack. */
     val problems: List<String>,
-) {
+    /** The registries this was loaded over, which say what each member honours; null offline. */
+    private val registries: HolderLookup.Provider? = null,
+) : WorldFacts, MemberTags {
     /**
      * Distinct, because a derived word answers to both its bare path and its full id (see [load]). Worked out
      * once: a corpus is fixed until the next reload, and a found page asks for it on every draw.
@@ -167,31 +147,43 @@ data class Vocabulary(
     /** The words read off content — one anonymous mass, deliberately. */
     val derivedWords: List<Word> get() = words.filter(::isDerived)
 
-    /** Every structural word the Art knows, for `/age words` and for the grammar check. */
-    val grammarWords: List<GrammarWord> get() = structural.values.sortedBy { it.name }
+    /** Every structure page the Art knows. */
+    val structurePages: List<Structure.Page> get() = structural.values.sortedBy { it.name }
 
     /**
-     * The structural word [name] spells, if it is one. Asked **before** [word], so a pack defining an
-     * ordinary word called `and` cannot make the conjunction unsayable.
+     * The structure page [name] spells, if it is one. Asked **before** [word], so a pack defining an ordinary word
+     * called `and` cannot make the conjunction unsayable.
      */
-    fun grammarWord(name: String): GrammarWord? = structural[name]
+    fun structurePage(name: String): Structure.Page? = structural[name]
+
+    /** Every word, every structure page and what each word takes, as the reading reads a book against them. */
+    val lexicon: Lexicon by lazy { Lexicon(::word, { structural[it]?.structure }, this, registries) }
+
+    /** [pages] read at [seed], or null where they spell no book. */
+    fun read(pages: List<String>, seed: Long): Reading? = Reader.read(lexicon, pages, seed)
+
+    /** [pages] read and resolved at [seed], or null where they spell no book. */
+    fun resolve(pages: List<String>, seed: Long): Resolution? = Writing.resolve(lexicon, this, pages, seed)
+
+    /** A book already read, resolved at the [seed] it was read at. */
+    fun resolve(reading: Reading, seed: Long): Resolution = Writing.resolve(lexicon, this, reading, seed)
 
     /** What [preset] is like — an empty profile being a preset no word can currently reach. */
     fun profileOf(preset: Taggable): PresetProfile =
         tagsBySlot[preset.aspect]?.of(preset) ?: PresetTags.EMPTY_PROFILE
 
     /** The tags [preset] carries — empty being a preset no word can currently reach. */
-    fun tagsOf(preset: Taggable): Map<String, Double> = profileOf(preset).tags
+    override fun tagsOf(member: Taggable): Map<String, Double> = profileOf(member).tags
 
     /**
      * Whether [preset] is in the world **anyway**, so naming it asks for more of it rather than for it at
      * all — see [PresetProfile.presentAnyway], which is what the mention bump turns on.
      */
-    fun isPresentAnyway(preset: Taggable): Boolean = profileOf(preset).presentAnyway
+    override fun isPresentAnyway(member: Taggable): Boolean = profileOf(member).presentAnyway
 
     /** How willingly the Art reaches for [preset] when nothing asked for it. */
-    fun readinessOf(preset: Taggable): Double =
-        profileOf(preset).readiness ?: PresetProfile.ORDINARY_READINESS
+    override fun readinessOf(member: Taggable): Double =
+        profileOf(member).readiness ?: PresetProfile.ORDINARY_READINESS
 
     /** Every tag anything in the world carries, which bounds what any word can meaningfully ask for. */
     val carriedTags: Set<String> get() = tagsBySlot.values.flatMap { it.carried }.toSet()
@@ -221,7 +213,7 @@ data class Vocabulary(
      * remember: vagueness draws only from the curated pool because it has nothing else to draw from, and
      * the resolver's work is bounded by our curation rather than by the size of the modpack.
      */
-    fun candidatesFor(aspect: Aspect): List<Taggable> {
+    override fun candidatesFor(aspect: Aspect): List<Taggable> {
         if (!aspect.open) return aspect.authored
         // Sorted, because a draw is made by index and nobody should change a world by reordering a file.
         // A closed aspect gets the same guarantee from its enum's declaration order.
@@ -232,62 +224,19 @@ data class Vocabulary(
     /**
      * The curated pool less everything kept from broad words — **what a vague word may land on**, and so
      * what a draw for an aspect nobody spoke to draws from. A word naming a member outright still reaches
-     * it ([carriersOf]).
+     * it.
      *
      * The two pools are separate because [candidatesFor] answers "what is there", which `VocabularyCheck`
      * needs in order to notice a preset that is neither available to broad words nor pinned. Leaving such a
      * preset in the bag a vague word draws from made it *rarer*, not unreachable: the Spire's sky came up
      * on one Age in three and took its dimension type with it.
      */
-    fun availableToBroadWordsIn(aspect: Aspect): List<Taggable> =
+    override fun availableToBroadWordsIn(aspect: Aspect): List<Taggable> =
         candidatesFor(aspect).filter(::isAvailableToBroadWords)
-
-    /**
-     * [word] with every part its lean on everything ([Word.leansEverywhere]) likes something in added to
-     * its reach. That lean is the one claim naming no part of the world, so its reach is read against the
-     * corpus rather than off the word; the codec cannot see the corpus, so the load does it once here.
-     */
-    fun reached(word: Word): Word {
-        if (word.leansEverywhere.isEmpty()) return word
-        fun likesSomethingIn(aspect: Aspect) =
-            availableToBroadWordsIn(aspect).any { word.biasOn(it, tagsOf(it)) > 0.0 }
-        val widened = word.aspects + Aspect.entries.filter(::likesSomethingIn)
-        return if (widened == word.aspects) word else word.copy(aspects = widened)
-    }
 
     /** Whether [preset] and its `preset_tags` entry both allow a broad word to land on it. */
     fun isAvailableToBroadWords(preset: Taggable): Boolean =
         preset.availableToBroadWords && profileOf(preset).availableToBroadWords
-
-    /**
-     * Whether anything in [aspect] answers [word] at all, either way — the question a **population** asks
-     * where a preset aspect asks [carriersOf].
-     *
-     * A word may be entirely *negative* about a population and be perfectly well backed: `untouched` says
-     * what must not be here, no structure set carries a tag for its own absence, and every one of them
-     * answers the word.
-     */
-    fun answersIn(word: Word, aspect: Aspect): Boolean {
-        if (!word.saysSomethingOf(aspect)) return false
-        return candidatesFor(aspect).any { member ->
-            val tags = tagsOf(member)
-            // **Struck out counts as answered.** `untouched` empties a population by excluding everything
-            // in it, and asking only what *survives* read that as a word nothing answers — which is the
-            // one word the rule was written for.
-            word.biasOn(member, tags) != 0.0 || word.excludes(member, tags) || word.pullIn(aspect, tags) > 0.0
-        }
-    }
-
-    /**
-     * The presets in [aspect] this word would keep, clearing its bars in full. A word that **means one
-     * outright** never searches, which is what keeps derived vocabulary free at resolve time (§8.2) — and
-     * is the one way to reach something [availableToBroadWordsIn] leaves out, so a deliberate word still can.
-     */
-    fun carriersOf(word: Word, aspect: Aspect): List<Taggable> {
-        word.choiceIn(aspect)?.let { return listOf(it) }
-        val pool = availableToBroadWordsIn(aspect) + word.admitsIn(aspect).mapNotNull(aspect::presetFor)
-        return pool.distinct().filter { word.acceptsOn(it, tagsOf(it)) }
-    }
 
     /**
      * Whether anything in [aspect] would actually *act* on [parameter], as opposed to declaring it — "has
@@ -295,65 +244,19 @@ data class Vocabulary(
      * presets in one aspect and only turn a parameter in another, and treating the second as unbacked condemns
      * a sentence that works.
      */
-    fun turnsAParameter(aspect: Aspect, parameter: String): Boolean =
+    override fun turnsAParameter(aspect: Aspect, parameter: String): Boolean =
         candidatesFor(aspect).any { it.honoursParameterNamed(parameter) } ||
             aspect.parameters.any { it.name == parameter }
 
-    /** Whether these two tags are known opposites, and how badly. */
+    /** The pair naming these two tags as opposites, either way round, or null where none does. */
     fun opposition(first: String, second: String): OpposedTags? = opposedTags.firstOrNull { pair ->
         (pair.first == first && pair.second == second) || (pair.first == second && pair.second == first)
     }
 
-    /**
-     * **Whether two words can both stand**, and what they disagree over — asked of the words themselves,
-     * so it holds before anything has been resolved and wherever they were laid.
-     *
-     * Three sources, most explanatory first. The **table** is an authored statement about *meaning*, which
-     * is the only one of the three that can say `watery` and `dry` are opposites when the two words are
-     * about different parts of the world entirely. The other two are read out of the words and need no
-     * table at all:
-     *
-     * - **one parameter, two bands that cannot both be met** — `Setting.settle` returning null is the
-     *   loudest disagreement there is, and until this it was the one nobody was asking about: `Repair`
-     *   compared tags against the table and never looked at what a word set, so a drawn `temperate` beside
-     *   a written `scorching` read as agreement.
-     * - **one tag, wanted by one and pushed away by the other** — `sterile` against `verdant`, which no
-     *   table has to know because both words already said so.
-     *
-     * **Two different values of one parameter are deliberately not here.** `motes=ash` against
-     * `motes=embers` is a choice between answers rather than an impossibility, and the resolver already
-     * prices a displacement where it happens. Only bands that provably cannot both hold are a contradiction
-     * before the fact.
-     */
-    fun disagreement(first: Word, second: Word): Disagreement? =
-        overATag(first, second) ?: overAParameter(first, second) ?: overAPushedTag(first, second)
+    override fun areOpposed(first: String, second: String): Boolean = opposition(first, second) != null
 
-    /** What the authored table knows — see [opposition]. */
-    private fun overATag(first: Word, second: Word): Disagreement? =
-        first.wanted.firstNotNullOfOrNull { wanted ->
-            second.wanted.firstNotNullOfOrNull { against ->
-                opposition(wanted, against)?.let { Disagreement(listOf(it.first, it.second), it.severity) }
-            }
-        }
-
-    /** One axis both words bound, to bands that cannot both be met. */
-    private fun overAParameter(first: Word, second: Word): Disagreement? =
-        first.sets.firstNotNullOfOrNull { (parameter, mine) ->
-            val theirs = second.sets[parameter] ?: return@firstNotNullOfOrNull null
-            val asked = listOfNotNull(Setting.read(mine), Setting.read(theirs))
-            val bothAreBands = asked.size == 2
-            if (bothAreBands && Setting.settle(asked) == null) {
-                Disagreement(listOf(parameter), OpposedTags.ORDINARY_SEVERITY, onParameter = parameter)
-            } else {
-                null
-            }
-        }
-
-    /** One tag one word asks for and the other asks against. */
-    private fun overAPushedTag(first: Word, second: Word): Disagreement? =
-        ((first.wanted intersect second.unwanted) + (second.wanted intersect first.unwanted))
-            .firstOrNull()
-            ?.let { Disagreement(listOf(it), OpposedTags.ORDINARY_SEVERITY) }
+    override fun drawnMaterial(query: String, parameter: String, seed: Long): String? =
+        materials.drawFor(query, seed, MaterialTable.mayDrawFor(parameter))
 
     companion object {
         /** Where a pack puts words. */
@@ -374,7 +277,7 @@ data class Vocabulary(
         /** Where a pack puts its opposed tags. */
         const val OPPOSED_TAGS_DIRECTORY = "art/opposed_tags"
 
-        /** Where a pack puts the structural words — one file per word, naming a production. */
+        /** Where a pack puts the structure pages — one file per page, naming the structure it is. */
         const val GRAMMAR_DIRECTORY = "art/grammar"
 
         /**
@@ -398,7 +301,7 @@ data class Vocabulary(
             val authored = readWords(resources, problems)
             // After the words, so an aspect's page that some word file also defines is reported rather than
             // silently winning or losing on map order.
-            val pages = aimingPages(authored, problems)
+            val pages = aspectPages(authored, problems)
             val tags = readPresetTags(resources, problems)
             val rules = readDerivations(resources, problems)
             val spawning = readSpawning(resources, problems)
@@ -409,7 +312,7 @@ data class Vocabulary(
             val fromRegistries = registries?.let {
                 DerivedWords.biomes(it) + DerivedWords.structures(it) + DerivedWords.features(it)
             }.orEmpty()
-            val fromContent = DerivedWords.materials() + DerivedWords.designs() +
+            val fromContent = DerivedWords.blocks() + DerivedWords.designs() +
                 DerivedWords.spawns(spawning.writable) + fromRegistries
             // **What the world says about itself, with what a pack said laid over it** — the tag half of
             // §8's "no per-mod work": a modded biome carrying `#minecraft:is_forest` is wooded without
@@ -421,7 +324,7 @@ data class Vocabulary(
             }.filterValues { it.described.isNotEmpty() }
             val materials = materialTable(resources, registries, problems)
             val words = derived(fromContent) + authored + pages
-            val structural = readGrammarWords(resources, problems)
+            val structural = readStructurePages(resources, problems)
             val script = Script.load(resources, problems)
             val rarity = WordRarity.load(resources, problems)
             val ink = InkRequirement.load(resources, problems)
@@ -443,11 +346,10 @@ data class Vocabulary(
             // Authored wins every collision above, so a derived id that an authored word displaced is not
             // in `words` and must not be counted derived.
             val derivedIds = fromContent.map { it.id }.toSet() - authored.values.map { it.id }.toSet()
-            val read = Vocabulary(
+            return Vocabulary(
                 words, structural, described, opposedTags, script, rarity, ink, stock, generation,
-                derivedIds, rules, materials, spawning, retired, shippedButNotLoaded, problems,
+                derivedIds, rules, materials, spawning, retired, shippedButNotLoaded, problems, registries,
             )
-            return read.copy(byName = read.byName.mapValues { (_, word) -> read.reached(word) })
         }
 
         /**
@@ -567,42 +469,27 @@ data class Vocabulary(
             }
         }
 
-        /** One referent's word said whole: everywhere it speaks, and every parameter it turns. */
-        private fun mergedCapabilities(word: Word, also: Word): Word = word.copy(
-            aspects = word.aspects + also.aspects,
-            sets = word.sets + also.sets,
-            chooses = word.chooses + also.chooses,
-            entryOf = word.entryOf ?: also.entryOf,
-        )
+        /** One referent's word said whole: every meaning either carries. */
+        private fun mergedCapabilities(word: Word, also: Word): Word =
+            word.copy(meanings = word.meanings + also.meanings, speech = word.speech ?: also.speech)
 
         /**
-         * **One aiming page per aspect**, synthesised rather than authored (`the-world-model.md` §3).
-         *
-         * A naming word is a handle on a group of properties and says nothing itself, so there is nothing
-         * for a file to carry that the aspect does not already know — and a page authored beside its aspect
-         * is two statements of one thing, which is the drift this forecloses. A word file of the same name
-         * is therefore a content collision and is called out as one.
-         *
-         * This replaced `art/domain/<name>.json`, a layer that named the aspects one page opened. It could only
-         * ever name *whole* aspects, so the redraw it was wanted for — a page for the water alone, where
-         * `murk` is one property of the air — was the one thing it could not do.
+         * The page of every part of the world, derived rather than authored (`the-world-model.md` §3). A word file of
+         * the same name is two statements of one thing, and is called out as the content collision it is.
          */
-        private fun aimingPages(authored: Map<String, Word>, problems: MutableList<String>): Map<String, Word> =
-            Aspect.entries.associate { aspect ->
-                if (aspect.page in authored) {
-                    problems += "'${aspect.page}' is both an aspect and a word; an aspect already is its page"
+        private fun aspectPages(authored: Map<String, Word>, problems: MutableList<String>): Map<String, Word> =
+            DerivedWords.aspectPages().associateBy { page ->
+                if (page.name in authored) {
+                    problems += "'${page.name}' is both an aspect and a word; an aspect already is its page"
                 }
-                aspect.page to Word(
-                    id = aspect.page.location(),
-                    aspects = setOf(aspect),
-                )
+                page.name
             }
 
         private fun readWords(resources: ResourceManager, problems: MutableList<String>): Map<String, Word> {
             val words = mutableMapOf<String, Word>()
             for ((file, resource) in resources.listResources(WORD_DIRECTORY, ResourceParsing::isJson)) {
                 val id = idOf(file, WORD_DIRECTORY)
-                val word = ResourceParsing.parse(resource, file, Word.mapCodec(id).codec(), problems) ?: continue
+                val word = ResourceParsing.parse(resource, file, WordFormat.mapCodec(id).codec(), problems) ?: continue
                 // Two packs both defining "floating" would otherwise leave the winner to map iteration
                 // order, so it is called out as the content collision it is.
                 val existing = words[word.name]
@@ -690,19 +577,19 @@ data class Vocabulary(
             return bySlot.mapValues { (_, merged) -> PresetTags(merged.toMap()) }
         }
 
-        private fun readGrammarWords(
+        private fun readStructurePages(
             resources: ResourceManager,
             problems: MutableList<String>,
-        ): Map<String, GrammarWord> {
-            val structural = mutableMapOf<String, GrammarWord>()
+        ): Map<String, Structure.Page> {
+            val structural = mutableMapOf<String, Structure.Page>()
             for ((file, resource) in resources.listResources(GRAMMAR_DIRECTORY, ResourceParsing::isJson)) {
                 val id = idOf(file, GRAMMAR_DIRECTORY)
-                val word = ResourceParsing.parse(resource, file, GrammarWord.mapCodec(id).codec(), problems) ?: continue
-                val existing = structural[word.name]
-                if (existing != null && existing.id != word.id) {
-                    problems += "two structural words are both called '${word.name}': ${existing.id} and ${word.id}"
+                val page = ResourceParsing.parse(resource, file, Structure.Page.mapCodec(id).codec(), problems) ?: continue
+                val existing = structural[page.name]
+                if (existing != null && existing.id != page.id) {
+                    problems += "two structure pages are both called '${page.name}': ${existing.id} and ${page.id}"
                 }
-                structural[word.name] = word
+                structural[page.name] = page
             }
             return structural
         }

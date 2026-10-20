@@ -4,26 +4,53 @@
     "a yellowed or grey light, dust in the air, a faint haze, and old stone underfoot are offered to every ancient Age,",
     "each yielding to anything the book says."
   ],
-  "biases": {
-    "all": {
-      "#eroded": 1.0,
-      "#monumental": 0.7,
-      "#ordered": 0.5,
-      "#ruined": 0.5
-    }
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "wear": "+0.3",
-          "air.tint": "yellow|grey",
-          "motes": "glimmer",
-          "haze": "+0.15",
-          "stone": "#stony"
+  "meanings": [
+    {
+      "leans": {
+        "all": {
+          "#eroded": 1.0,
+          "#monumental": 0.7,
+          "#ordered": 0.5,
+          "#ruined": 0.5
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "wear": "+0.3"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "air.tint": "yellow"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "air.tint": "grey"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "motes": "glimmer"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "haze": "+0.15"
+      },
+      "chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "stone": "#stony"
+      },
+      "chance_to_apply": 0.4
+    }
+  ]
 }

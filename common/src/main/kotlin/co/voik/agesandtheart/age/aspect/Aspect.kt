@@ -21,7 +21,7 @@ val MATERIAL_PARAMETERS: Set<String> by lazy {
 
 /**
  * Every parameter name that is a **range** wherever it is understood — the ones a word bends rather than
- * decides when it does not narrow (`Resolver.spannedIn`). Lazy for [MATERIAL_PARAMETERS]' reason.
+ * decides when it does not narrow (`spannedIn` in `age/resolution/Steering.kt`). Lazy for [MATERIAL_PARAMETERS]' reason.
  */
 val RANGED_PARAMETERS: Set<String> by lazy {
     Aspect.entries
@@ -38,7 +38,7 @@ private const val NO_APPETITE = 0.0
  * The parts an Age is assembled from — one preset each, chosen independently (design §3.1).
  *
  * **A new aspect is appended, never inserted.** [co.voik.agesandtheart.age.AgeCharacter.mapFor] and
- * [co.voik.agesandtheart.age.word.Resolver] both stride their seeds on `ordinal`, so inserting one would
+ * [co.voik.agesandtheart.age.resolution.Resolving] both stride their seeds on `ordinal`, so inserting one would
  * silently move the territories and draws of every Age already written.
  */
 enum class Aspect(
@@ -426,9 +426,7 @@ enum class Aspect(
     /**
      * Where this aspect's members are held, or null where it holds no population.
      *
-     * **A field rather than a search.** `Resolver.weighed` used to hunt an aspect's parameters for one
-     * saying it held a weighted set, which is a lookup standing in for a fact: an aspect either has a pool
-     * or it does not.
+     * **A field rather than a search**: an aspect either has a pool or it does not.
      */
     val pool: Pool?
         get() = when (this) {

@@ -5,13 +5,12 @@
     "rains at all. Laid bare, the weather and the phenomena each feel it one Age in four, and a curtain or a bow is",
     "never brought in unasked."
   ],
-  "sets": {
-    "frequency": "-1.0..-0.9"
-  },
-  "unaimed": {
-    "weather": 0.25,
-    "aurora": 0.0,
-    "rainbow": 0.0,
-    "phenomena": 0.25
-  }
+  "meanings": [
+    {
+      "sets": {
+        "frequency": "-1.0..-0.9"
+      },
+      "unaimed_chance_to_apply": 0.25
+    }
+  ]
 }

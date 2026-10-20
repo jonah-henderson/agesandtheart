@@ -55,10 +55,8 @@ data class Parameter(
      * Whether this parameter's value is a **block** — the palette's stone, a surface's skin, a minted
      * pattern's substance.
      *
-     * A fact about the parameter rather than a name to compare against. `Grammar` asks whether a word is a
-     * material and `Resolver` asks what substance it carries, and both did it by looking for `Terrain.STONE`
-     * by name — one aspect's parameter standing in for "a block", which is true of the corpus today and is not
-     * what either of them means.
+     * A fact about the parameter rather than a name to compare against, so nothing has to stand one aspect's
+     * `Terrain.STONE` in for "a block".
      */
     val material: Boolean = false,
     /**
@@ -79,7 +77,7 @@ data class Parameter(
      * is first; an aurora's colours are a ramp from its crown to its hem, and which is the crown is the one
      * thing the writer stated outright.
      *
-     * It is read in exactly one place, [co.voik.agesandtheart.age.word.Resolver.contended], which otherwise
+     * It is read in exactly one place, `contended` in `age/resolution/Steering.kt`, which otherwise
      * hands back a mingling in tier-then-seeded order. Stating it here rather than casing on the name there
      * is what keeps that function from having to know about individual parameters.
      *
@@ -191,7 +189,7 @@ data class Parameter(
          * forty suns and the renderer would oblige. The first option is the default, so an Age nobody asked
          * has whatever its template gave it.
          *
-         * `Resolver` reads this rather than steering it: the roll's size *is* the number of stored entries,
+         * Resolution reads this rather than steering it: the roll's size *is* the number of stored entries,
          * so a `cast` that landed in the options would be a second place recording the same fact.
          */
         fun cast() = Parameter(

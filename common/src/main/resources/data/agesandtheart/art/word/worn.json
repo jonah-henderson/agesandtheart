@@ -6,22 +6,38 @@
     "",
     "It absorbed `battered`, which said the same of the whole Age (retired.json)."
   ],
-  "restricts": {
-    "landmass": {
-      "eroded": ">0.3"
+  "meanings": [
+    {
+      "bends": {
+        "wear": "0.45..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "bends": {
+        "spacing": "-1.0..-0.3"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "landmass": {
+          "eroded": ">0.3"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#eroded": 1.0,
+          "#sheer": 0.5,
+          "#barren": 0.5,
+          "#ruined": 0.4,
+          "#ordered": -0.6
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "biases": {
-    "all": {
-      "#eroded": 1.0,
-      "#sheer": 0.5,
-      "#barren": 0.5,
-      "#ruined": 0.4,
-      "#ordered": -0.6
-    }
-  },
-  "bends": {
-    "wear": "0.45..1.0",
-    "spacing": "-1.0..-0.3"
-  }
+  ]
 }

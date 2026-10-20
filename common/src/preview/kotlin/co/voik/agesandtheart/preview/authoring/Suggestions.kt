@@ -1,29 +1,18 @@
 package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.Taggable
+import co.voik.agesandtheart.age.language.Meaning
+import co.voik.agesandtheart.age.language.Structure
+import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.Facets
-import co.voik.agesandtheart.age.word.Word
-import co.voik.agesandtheart.age.word.Word.Companion.TAG_MARK
-import co.voik.agesandtheart.age.word.grammar.Grammar
 
 /**
- * What page could be laid next — **asked of the parser and the resolver, never worked out.**
+ * What page could be laid next, read off the reading (`notes/meanings-plan.md` §2).
  *
- * Two questions, and they are different. *Can* this page be laid is the grammar's, and it is answered by
- * running `Grammar.parses` over the row with a closing page on the end: no table of what follows what, no
- * second copy of `belongsHere`, nothing to fall out of step when the language moves.
- *
- * *Would it do anything* is the resolver's, and it has to be asked separately because *the grammar admits
- * more than the world does*. `belongsHere` is checked once per run of modifiers rather than per term, so
- * `pillars and arthropods landmass` is a perfectly good sentence in which `arthropods` is scoped to the
- * landmass, finds nothing there, and quietly does nothing at all. A player can learn that the hard way; a
- * tool for ourselves should not offer it.
- *
- * So a page is offered when it parses **and** bears on some aspect this clause could still be aimed at.
- * Which is asked with `carriersOf`, `answersIn` and `turnsAParameter` — the resolver's own reach, not a model
- * of it — so a page is only ever hidden for doing provably nothing.
+ * **The bare minimum the meanings rework left it**, until Scrivener is reworked for meanings (phase 6). On meanings
+ * almost nothing is inert while a book is being written — a page nothing takes is laid on the Age — so every page is
+ * offered, the closers are the words that would take what is waiting, and an offer's claims are its meanings.
  */
 class Suggestions(private val vocabulary: Vocabulary) {
 
@@ -32,47 +21,22 @@ class Suggestions(private val vocabulary: Vocabulary) {
         val page: String,
         val says: String,
         val authored: Boolean,
-        /** How firmly the page claims — its own column, because it is the first thing a writer sorts by. */
+        /** Whether it takes the pages before it, which is what most changes the shape. */
         val firmness: String,
-        /**
-         * The parts of an Age this page speaks to, as their pages — a column of its own so a search for
-         * `structures` finds every word that touches them.
-         *
-         * `Word.aspects` rather than what a word declares: the reach is derived from everything it
-         * claims, so this is where the word speaks when nobody has aimed it anywhere.
-         */
+        /** The parts of an Age this page can be laid on, as their pages. */
         val targets: String,
-        /**
-         * Whether this page is a **block**, which the grammar admits far more widely than [targets] says.
-         *
-         * A material stands in any clause about a part of the world that is *made of* something, whatever
-         * the word itself reaches unprompted — `ice sea` is a sentence, and `Word.aspects` does not list
-         * the sea for `ice`. Worth saying out loud, because the two columns otherwise look as though they
-         * disagree.
-         */
+        /** Whether this page is a block — a substance, which takes nothing and waits for what does. */
         val isMaterial: Boolean,
-        /**
-         * What it **insists on**, and what it merely **offers** — told apart.
-         *
-         * The one-line summary cannot say which is which, and the difference is the whole of what a word
-         * like `inferno` is: it demands burning air and asks for a red sun, and a reader who cannot see
-         * the join reads a word that overrides half the book when it does nothing of the kind.
-         */
+        /** The meanings it never lands without. */
         val required: List<Claim>,
+        /** The meanings it lands by chance. */
         val requested: List<Claim>,
-        /** Whether it would close the clause being written, which is what most changes the shape. */
+        /** Whether it would take what is waiting, closing the clause being written. */
         val closes: Boolean,
     )
 
-    /**
-     * One thing a word claims — and, where it is a **pool**, the facets an Age draws between.
-     *
-     * A pool is one claim and several outcomes, and flattening it into a sentence loses which is which:
-     * `2 of suns=2|3 colour=red|blue sea=air|lava` reads as three settings when it is two of three
-     * choices. So the members travel with the claim rather than inside its wording.
-     */
+    /** One thing a meaning says. */
     data class Claim(val said: String, val drawnFrom: List<String> = emptyList()) {
-        /** The whole of it on one line, for the column that has no room to break it out. */
         val spelled: String get() = if (drawnFrom.isEmpty()) said else "$said ${drawnFrom.joinToString(" ")}"
     }
 
@@ -81,282 +45,83 @@ class Suggestions(private val vocabulary: Vocabulary) {
         val all: List<Offer> get() = bearing + inert
     }
 
-    /**
-     * Every page that could follow [laid], split into the ones that would do something and the ones that
-     * would only parse.
-     */
+    /** Every page that could follow [laid], those that would take what is waiting first. */
     fun after(laid: List<String>): Offers {
-        // Classified once: the row does not change while a thousand candidates are tried against it.
-        val row = Grammar.reading(vocabulary, laid)
-        fun readsWith(tail: List<String>) = row.parsesWith(tail)
-        // The empty tail is one of them: a biome after `in` closes its clause where it stands.
-        val everyTail = listOf(emptyList<String>()) + closers.map { listOf(it) }
-
-        val direct = sayable.filter { page -> everyTail.any { readsWith(listOf(page) + it) } }
-        // A page that needs *two* more before the row can close — `and`, `only`, a rung, `in`. The middle
-        // one is drawn from what is already known to be layable, which is what lets this need no list of
-        // structural words and no rule about them.
-        //
-        // **Only the closes still open are tried here.** A modifier narrows what a clause may be aimed at
-        // and never widens it, so a tail ending in an aiming page this clause can no longer take cannot
-        // parse whatever is put in front of it — and trying all twenty-three where one is left was four
-        // fifths of the time this took.
-        val worthTrying = listOf(emptyList<String>()) + closersAfter(laid).map { listOf(it) }
-        val fillers = spreadOver(direct)
-        val laidAlready = direct.toSet()
-        val indirect = sayable.filterNot { it in laidAlready }
-            .filter { page -> fillers.any { filler -> worthTrying.any { readsWith(listOf(page, filler) + it) } } }
-
-        val aims = aimsStillOpen(laid)
-        val clauseIsOpen = laid.isNotEmpty() && !isASentence(laid)
-        val (bearing, inert) = (direct + indirect).map(::offerOf)
-            .partition { bearsOn(it, aims, clauseIsOpen) }
-        return Offers(ordered(bearing), ordered(inert))
+        val closing = closersAfter(laid).toSet()
+        val offers = sayable.map { offerOf(it, closes = it in closing) }
+        return Offers(offers.sortedWith(compareByDescending<Offer> { it.closes }.thenByDescending { it.authored }.thenBy { it.page }), emptyList())
     }
 
-    private fun ordered(offers: List<Offer>) = offers.sortedWith(
-        compareByDescending<Offer> { it.closes }.thenByDescending { it.authored }.thenBy { it.page },
-    )
-
-    /**
-     * The aspects this clause could still be aimed at, or null where that is not yet decided.
-     *
-     * **Null at a clause boundary**, which is the whole gate. A row that is already a sentence is about to
-     * open a new clause, and a clause not yet aimed at anything lets every word speak where it declares —
-     * so there is nothing to be inert *against* and nothing worth pruning. Once something has been laid
-     * into a clause the aim has narrowed, and that is exactly when a word can be carried in that has
-     * nothing to say.
-     */
+    /** The parts of the world the pages waiting at the end of [laid] could still be taken by, or null where none wait. */
     fun aimsStillOpen(laid: List<String>): Set<Aspect>? {
         if (laid.isEmpty() || isASentence(laid)) return null
-        val closers = closersAfter(laid)
-        // The nucleus is about the whole Age, so while it can still close, nothing is aimed anywhere.
-        if (closers.any { vocabulary.word(it) == null }) return null
-        val aimed = closers.mapNotNull(Aspect::byPage).toSet()
-        return aimed.ifEmpty { null }
+        return closersAfter(laid).mapNotNull(Aspect::byPage).toSet().ifEmpty { null }
     }
 
-    private fun bearsOn(offer: Offer, aims: Set<Aspect>?, clauseIsOpen: Boolean): Boolean {
-        // Structure carries nothing of its own; what it joins is judged on its own account. The nucleus
-        // page arrives here too, and every book must have one.
-        val word = vocabulary.word(offer.page) ?: return true
-        // **An aiming page with nothing to aim says nothing.** It names a part of the world and supplies
-        // no value of its own, so closing a clause that was never opened describes that part in no way at
-        // all: `a floating age` then `landmass` is the same Age with a page spent on it.
-        if (offer.closes) return clauseIsOpen
-        if (aims == null) return true
-        return aims.any { bears(word, it) }
-    }
-
-    /**
-     * Whether laying [word] in a clause aimed at [aspect] would do **anything at all**.
-     *
-     * Every channel a word has, asked through the resolver's own functions: it means something there, its
-     * query keeps something, anything answers it either way — `untouched` is entirely negative about a
-     * population and perfectly well backed — or it turns a parameter that aspect honours, required or merely
-     * requested. Only a word that fails all of them is hidden, so the bias is toward offering.
-     */
-    private fun bears(word: Word, aspect: Aspect): Boolean {
-        if (word.choiceIn(aspect) != null) return true
-        if (word.setsIn(aspect).keys.any { turnsAParameter(aspect, it) }) return true
-        if (word.requestsIn(aspect).keys.any { turnsAParameter(aspect, it) }) return true
-        if (word.admitsIn(aspect).isNotEmpty() || word.biases[aspect]?.isNotEmpty() == true) return true
-        // **Only where it claims something here.** `acceptsOn` keeps every member of an aspect the word
-        // restricted nothing in, so asking it unguarded offered `arthropods` for a landmass clause.
-        if (word.constrainsPresetsIn(aspect) &&
-            availableToBroadWordsIn(aspect).any { word.acceptsOn(it, vocabulary.tagsOf(it)) }
-        ) {
-            return true
-        }
-        return answersIn(word, aspect)
-    }
-
-    /**
-     * `Vocabulary.answersIn`, over a candidate list read once.
-     *
-     * The vocabulary's own is a line long and asks `candidatesFor`, which sorts a couple of hundred
-     * presets on every call — fine for the handful of calls resolving a book makes, and four fifths of
-     * this screen's time when it is asked of seventeen hundred words in a row. `SuggestionsCheck` holds
-     * this and the vocabulary's to the same answer for every word and every aspect, so the copy cannot
-     * drift into a second opinion.
-     */
-    fun answersIn(word: Word, aspect: Aspect): Boolean {
-        if (!word.saysSomethingOf(aspect)) return false
-        return candidatesIn(aspect).any { member ->
-            val tags = vocabulary.tagsOf(member)
-            word.biasOn(member, tags) != 0.0 || word.excludes(member, tags) || word.pullIn(aspect, tags) > 0.0
-        }
-    }
-
-    /**
-     * The aiming pages this clause could still be closed with — the guidance a writer actually needs.
-     *
-     * Which part of the world a clause is about is decided by the page that *ends* it, so while the
-     * modifiers are being laid nothing on screen says what they are being said about. This does.
-     */
+    /** The pages of the parts of the world that would take any meaning of a page waiting at the end of [laid]. */
     fun closersAfter(laid: List<String>): List<String> {
-        val row = Grammar.reading(vocabulary, laid)
-        return closers.filter { closer ->
-            row.parsesWith(listOf(closer)) || everyFiller.any { row.parsesWith(listOf(it, closer)) }
+        val waiting = laid.takeLastWhile { page ->
+            val word = vocabulary.word(page)
+            vocabulary.structurePage(page) == null && word != null && vocabulary.lexicon.acceptance(word) == null
+        }.mapNotNull(vocabulary::word)
+        if (waiting.isEmpty()) return emptyList()
+        val effects = waiting.first().effects
+        return Aspect.entries.map { it.page }.filter { page ->
+            val taker = vocabulary.word(page)?.let(vocabulary.lexicon::acceptance) ?: return@filter false
+            effects.any { taker.take(it) != null }
         }
     }
 
-    /** Whether the row as it stands is already a book, which is what makes it writable. */
-    fun isASentence(laid: List<String>): Boolean =
-        laid.isNotEmpty() && Grammar.parses(vocabulary, laid)
+    /** Whether the row as it stands reads as laid, every page finding where it was written. */
+    fun isASentence(laid: List<String>): Boolean = laid.isNotEmpty() && vocabulary.read(laid, SEED)?.readsAsLaid == true
 
-    // -- the corpus, read once ------------------------------------------------------------------------
-
-    /**
-     * Every page that closes a clause: the nucleus, and one aiming page per aspect.
-     *
-     * Taken from the vocabulary rather than listed, so an aspect gaining a page needs nothing here
-     * changed — and an aspect whose page nobody wrote simply is not offered.
-     */
-    private val closers: List<String> by lazy {
-        (vocabulary.grammarWords.map { it.name }.filter { Grammar.isABook(vocabulary, listOf(it)) } +
-            Aspect.entries.mapNotNull { it.page }.distinct().filter { vocabulary.word(it) != null })
+    /** Every page a writer could lay, once each: the words written by hand, the parts of the world, the structure. */
+    private val sayable: List<String> by lazy {
+        (vocabulary.authoredWords.map { it.name } + Aspect.entries.map { it.page } + vocabulary.structurePages.map { it.name })
             .distinct()
     }
 
-    /**
-     * Every page a writer could lay, once each.
-     *
-     * Distinct because a name can be two words: `air` is an aspect's aiming page *and* a block, and a list
-     * offering it twice is a list somebody has to look at twice to see they are the same.
-     */
-    private val sayable: List<String> by lazy {
-        (vocabulary.words.map { it.name } + vocabulary.grammarWords.map { it.name }).distinct()
-    }
-
-    private val everyFiller: List<String> by lazy { spreadOver(sayable) }
-
-    /**
-     * A few pages standing for the many, for the one place a sample is safe.
-     *
-     * Used only to find the *second* page of a two-page tail, so a signature that missed a distinction
-     * costs a suggestion that is not offered — never one offered wrongly. One page per firmness and aspect
-     * set, which is what the parser can see about a page at all.
-     */
-    private fun spreadOver(pages: List<String>): List<String> =
-        pages.groupBy { page -> vocabulary.word(page)?.let { it.firmness to it.aspects } }
-            .values.map { it.first() }
-            .take(FILLERS)
-
-    /** `candidatesFor` sorts a list of a couple of hundred, and this asks it for every page offered. */
-    private val candidates = mutableMapOf<Aspect, List<Taggable>>()
-    private val availableToBroadWords = mutableMapOf<Aspect, List<Taggable>>()
-
-    private fun candidatesIn(aspect: Aspect): List<Taggable> =
-        candidates.getOrPut(aspect) { vocabulary.candidatesFor(aspect) }
-
-    private fun availableToBroadWordsIn(aspect: Aspect): List<Taggable> =
-        availableToBroadWords.getOrPut(aspect) { vocabulary.availableToBroadWordsIn(aspect) }
-
-    private val parameters = mutableMapOf<Pair<Aspect, String>, Boolean>()
-
-    private fun turnsAParameter(aspect: Aspect, parameter: String): Boolean =
-        parameters.getOrPut(aspect to parameter) { vocabulary.turnsAParameter(aspect, parameter) }
-
-    private fun offerOf(page: String): Offer {
+    private fun offerOf(page: String, closes: Boolean): Offer {
         val word = vocabulary.word(page)
-        val required = word?.let { insistedOn(it) }.orEmpty()
-        val requested = word?.let { offeredBy(it) + leanedBy(it) }.orEmpty()
+        val structure = vocabulary.structurePage(page)?.structure
+        val (always, byChance) = word?.meanings.orEmpty().partition(Meaning::mustAlwaysApply)
+        val takes = word?.let(vocabulary.lexicon::acceptance) != null || structure == Structure.AGE
         return Offer(
             page = page,
-            says = summaryOf(word, required, requested),
+            says = when {
+                structure != null -> "structure — ${structure.production}"
+                word == null -> ""
+                else -> word.meanings.joinToString(", ") { meaning -> meaning.effects.joinToString(" ", transform = ::said) }
+            },
             authored = word != null && !vocabulary.isDerived(word),
-            firmness = word?.firmness?.key.orEmpty(),
-            targets = word?.aspects.orEmpty().sortedBy { it.ordinal }.joinToString(" ") { it.page },
-            isMaterial = word?.material != null,
-            required = required,
-            requested = requested,
-            closes = page in closers,
+            firmness = if (takes) "takes" else "",
+            targets = word?.let(vocabulary.lexicon::placesFor).orEmpty().sortedBy { it.ordinal }.joinToString(" ") { it.page },
+            isMaterial = word?.block != null,
+            required = always.map(::claimOf),
+            requested = byChance.map(::claimOf),
+            closes = closes || structure == Structure.AGE,
         )
     }
 
-    /** One line for the column — what it insists on, or what it offers where it insists on nothing. */
-    private fun summaryOf(word: Word?, required: List<Claim>, requested: List<Claim>): String = when {
-        word == null -> "structure — joins, qualifies or aims what is around it"
-        required.isNotEmpty() -> required.joinToString(", ") { it.spelled } +
-            if (requested.isEmpty()) "" else "  (and offers ${requested.size} more)"
-        requested.isNotEmpty() -> "offers " + requested.joinToString(", ") { it.spelled }
-        // **What is left is an aiming page and nothing else** — now that a template counts as a claim.
-        // It opens a clause, says which part of the world that clause is about, and supplies no value of
-        // its own. Which part is the targets column's to say, so this says the other half.
-        else -> "opens a clause about this part of the world; sets nothing itself"
-    }
+    private fun claimOf(meaning: Meaning): Claim = Claim(meaning.effects.joinToString(" ", transform = ::said))
 
-    /** What the word demands: meant outright, set, drawn from a pool, minted, or asked of the tags. */
-    private fun insistedOn(word: Word): List<Claim> = buildList {
-        // **The template is a claim like any other, and the largest one a page can make.** It was read
-        // nowhere here, so `dark_void` and `infernal` — whose whole job is choosing the world the book
-        // starts from — fell through to the sentence about aiming pages and said they did nothing.
-        word.template?.let { add(Claim("begins the Age from $it, not the overworld")) }
-        word.chooses.forEach { (aspect, key) -> add(Claim("chooses $key in ${aspect.page}")) }
-        word.admits.forEach { (aspect, keys) ->
-            add(Claim("adds ${keys.sorted().joinToString(" ")} to ${aspect.page}"))
-        }
-        word.excludes.forEach { (aspect, keys) ->
-            add(Claim("removes ${keys.sorted().joinToString(" ")} from ${aspect.page}"))
-        }
-        word.mints?.let { add(Claim("mints $it")) }
-        addAll(word.everySet.map { (parameter, value) -> Claim("$parameter=$value") })
-        addAll(word.pools.mapNotNull(::poolOf))
-        if (word.wanted.isNotEmpty()) add(Claim(word.wanted.joinToString(" ") { "$TAG_MARK$it" }))
-        if (word.unwanted.isNotEmpty()) add(Claim(word.unwanted.joinToString(" ") { "-$TAG_MARK$it" }))
-    }
-
-    /**
-     * What it offers instead — laid under the sentence, and given up wherever the book already spoke.
-     *
-     * **Parameters only.** What a word says about a population is said once: a lean cannot fail, so it has
-     * nothing to yield and no offered half to be in.
-     */
-    private fun offeredBy(word: Word): List<Claim> = buildList {
-        addAll(word.requests.sets.map { (parameter, value) -> Claim("$parameter=$value") })
-        addAll(word.requests.pools.mapNotNull(::poolOf))
-    }
-
-    /** What it leans the draw by, once the pool is settled — the last step, and the only one that cannot fail. */
-    private fun leanedBy(word: Word): List<Claim> = buildList {
-        addAll(word.bends.map { (parameter, value) -> Claim("bends $parameter toward $value") })
-        val leaning = word.biases.entries.sortedBy { it.key.ordinal }
-            .map { (aspect, by) -> aspect.page to by } +
-            listOfNotNull(word.leansEverywhere.takeIf { it.isNotEmpty() }?.let { Word.EVERYWHERE to it })
-        for ((where, by) in leaning) {
-            val said = by.entries.sortedByDescending { it.value }
-                .joinToString(" ") { (named, weight) -> "$named ${"%+.2f".format(weight)}" }
-            add(Claim("leans the $where: $said"))
-        }
-    }
-
-    /**
-     * A pool, said the way `facetsDrawnAt` reads it.
-     *
-     * **Zero draws nothing**, which is worth saying outright rather than leaving as a pool that quietly
-     * never fires; a count at or past the pool's size takes all of it, which makes the pool no different
-     * from more `sets` and is equally worth saying.
-     */
-    private fun poolOf(pool: Facets): Claim? {
-        if (pool.offers.isEmpty()) return null
-        val members = pool.facets.entries.sortedBy { it.key }.map { "${it.key}=${it.value}" }
-        val how = if (pool.draws.least >= pool.offers.size) {
-            "all of these, every Age"
-        } else {
-            "${pool.draws} of these, drawn per Age"
-        }
-        return Claim(how, members)
+    private fun said(effect: Effect): String = when (effect) {
+        is Effect.Sets -> "${effect.parameter.spelled}=${effect.value}"
+        is Effect.Bends -> "bends ${effect.parameter.spelled} toward ${effect.value}"
+        is Effect.Chooses -> "chooses ${effect.member} in ${effect.aspect.page}"
+        is Effect.Admits -> "adds ${effect.members.sorted().joinToString(" ")} to ${effect.aspect.page}"
+        is Effect.Excludes -> "removes ${effect.members.sorted().joinToString(" ")} from ${effect.aspect.page}"
+        is Effect.Restricts -> "keeps ${effect.bars.keys.joinToString(" ") { "#$it" }} in ${effect.aspect.page}"
+        is Effect.Leans -> "leans the ${effect.aspect.page}"
+        is Effect.LeansEverywhere -> "leans everything"
+        is Effect.Mints -> "mints ${effect.pattern}"
+        is Effect.Template -> "begins the Age from ${effect.name}"
+        is Effect.Abundance -> "${effect.rung} times as many"
+        is Effect.MadeOf -> "made of ${effect.substance}"
     }
 
     private companion object {
-        /**
-         * How many stand-ins the two-page tail tries.
-         *
-         * The whole spread is a couple of hundred and the tail is tried for every page that failed the
-         * one-page probe, so this is the cost of the slow half. What is looked for is a page that fits
-         * *anywhere* in the clause, and where a spread of two dozen finds none there is rarely one.
-         */
-        const val FILLERS = 24
+        /** Whether a row reads as laid does not depend on the draw, so any seed asks it. */
+        const val SEED = 0L
     }
 }

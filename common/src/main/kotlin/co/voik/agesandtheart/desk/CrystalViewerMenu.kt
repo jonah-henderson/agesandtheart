@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
@@ -86,8 +85,8 @@ class Previewable private constructor(val finding: ViewerFinding, val words: Lis
             if (!TemplateReading.isWritable(read)) return nothing(ViewerFinding.UNWRITABLE)
             val words = TemplateReading.learnedWords(read)
             val vocabulary = Vocabulary.of(writer.level().server)
-            val sentence = Grammar.read(vocabulary, words.map { it.path }, writer.writingSeed)
-            if (sentence == null || sentence.isEmpty) return nothing(ViewerFinding.NOT_AN_AGE)
+            val reading = vocabulary.read(words.map { it.path }, writer.writingSeed)
+            if (reading == null || reading.landings.isEmpty()) return nothing(ViewerFinding.NOT_AN_AGE)
             return Previewable(ViewerFinding.PREVIEWING, words)
         }
 

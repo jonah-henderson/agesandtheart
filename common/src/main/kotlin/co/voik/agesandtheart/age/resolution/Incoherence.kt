@@ -14,8 +14,9 @@ import co.voik.agesandtheart.age.aspect.Setting
  *
  * Two landings clash where they are at one place and said of members in common, sited alike and not joined by
  * `and`, and: settle one parameter to values that cannot both hold; are made of different things; choose different
- * members of a catalogue; one strikes what the other chooses, or wants a tag the other bars; want opposed tags; or
- * one keeps only its own members of a population another adds to. A word never clashes with itself.
+ * members of a catalogue; one strikes what the other chooses; one wants or leans toward a tag the other bars or
+ * leans against, or toward one opposed to a tag the other wants or leans toward; or one keeps only its own members
+ * of a population another adds to. A word never clashes with itself.
  */
 internal fun incoherence(world: WorldFacts, possible: List<Landing>): List<Flaw> {
     val found = linkedMapOf<Pair<String, String>, Flaw>()
@@ -56,12 +57,14 @@ private fun clashBetween(world: WorldFacts, aspect: Aspect, one: Landing, other:
     if (madeOfTwoThings) return listOfNotNull(oneSubstance, otherSubstance)
     val oneChoice = one.choice
     val otherChoice = other.choice
-    val chooseApart = aspect.holds == Holds.CATALOGUE && oneChoice != null && otherChoice != null && oneChoice != otherChoice
-    if (chooseApart) return listOfNotNull(oneChoice?.key, otherChoice?.key)
+    val bothChoose = aspect.holds == Holds.CATALOGUE && oneChoice != null && otherChoice != null
+    if (bothChoose && oneChoice != otherChoice) return listOfNotNull(oneChoice.key, otherChoice.key)
     if (otherChoice != null && one.strikes(otherChoice, world.tagsOf(otherChoice))) return listOf(otherChoice.key)
-    for (wanted in one.wanted) {
-        if (wanted in other.unwanted) return listOf(wanted)
-        other.wanted.firstOrNull { world.areOpposed(wanted, it) }?.let { return listOf(wanted, it) }
+    val otherFavours = other.wanted + other.leanedToward
+    val otherDisfavours = other.unwanted + other.leanedAgainst
+    for (favoured in one.wanted + one.leanedToward) {
+        if (favoured in otherDisfavours) return listOf(favoured)
+        otherFavours.firstOrNull { world.areOpposed(favoured, it) }?.let { return listOf(favoured, it) }
     }
     val onlyAgainstAnother = aspect.holds == Holds.WEIGHTED_SET && one.polarity == Polarity.ONLY &&
         other.polarity == Polarity.ASSERTED && other.narrows
@@ -81,3 +84,15 @@ private fun canBothHold(mine: String, theirs: String): Boolean {
 }
 
 private val Landing.madeOf: String? get() = effects.filterIsInstance<Effect.MadeOf>().firstOrNull()?.substance
+
+/** The tags it leans by, each with its weight. */
+private val Landing.tagLeans: Map<String, Double>
+    get() = effects.filterIsInstance<Effect.Leans>().flatMap { it.weights.entries }
+        .filter { (named, _) -> named.startsWith(TAG_MARK) }
+        .associate { (named, weight) -> named.drop(1) to weight }
+
+private val Landing.leanedToward: Set<String> get() = tagLeans.filterValues { it > 0.0 }.keys
+
+private val Landing.leanedAgainst: Set<String> get() = tagLeans.filterValues { it < 0.0 }.keys
+
+private const val TAG_MARK = "#"

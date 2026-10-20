@@ -5,7 +5,7 @@ import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.word.learnedWords
-import co.voik.agesandtheart.age.word.grammar.ProseClause
+import co.voik.agesandtheart.age.language.ProseClause
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
@@ -13,8 +13,7 @@ import net.minecraft.world.item.ItemStack
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.commands.SharedSuggestionProvider
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Prose
+import co.voik.agesandtheart.age.language.Prose
 import co.voik.agesandtheart.location
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
@@ -79,8 +78,9 @@ internal object PlayerInstruments {
     /** What the pages say, or null where they say nothing the grammar can read. */
     private fun readingOf(source: CommandSourceStack, pages: List<String>, seed: Long): List<ProseClause>? {
         if (pages.isEmpty()) return null
-        val sentence = Grammar.read(Vocabulary.of(source.server), pages, seed) ?: return null
-        return Prose.of(sentence)
+        val vocabulary = Vocabulary.of(source.server)
+        val reading = vocabulary.read(pages, seed) ?: return null
+        return Prose.of(reading, vocabulary.lexicon)
     }
 
     /**
@@ -117,7 +117,7 @@ internal object PlayerInstruments {
         }
         // The structural words go in beside them: `and`, `only` and the rungs are pages a writer lays like
         // any other, and a book cannot be tested for structure without them.
-        val structural = if (derived) emptyList() else vocabulary.grammarWords.map { spelled ->
+        val structural = if (derived) emptyList() else vocabulary.structurePages.map { spelled ->
             PageItem.writtenWith(spelled.id)
         }
         val notebook = ItemStack(AgeContent.NOTEBOOK)

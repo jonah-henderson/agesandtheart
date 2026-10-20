@@ -125,16 +125,20 @@ class DescribingCheck : FunSpec({
     /** The two phenomena that are seen rather than done — see [co.voik.agesandtheart.age.aspect.Phenomenon]. */
     val SIGHTS = setOf("aurora", "rainbow")
 
+    /** Laid bare, a lean on everything leans some of what it reaches, so whether the weather is among them is drawn. */
     test("a description brings about only the phenomenon it asks more of") {
-        val admired = happens("beautiful", "age")
-        check(admired.isNotEmpty()) { "a beautiful Age had no weather at all" }
-        check(admired.all { it in SIGHTS }) { "a beautiful Age was given a hazard: $admired" }
+        fun happensAcrossSeeds(vararg pages: String) = DRAWS.map { seed ->
+            Phenomena.claimsIn(resolved(seed, *pages).composition.optionsFor(Aspect.PHENOMENA, 0)).map(Claim::value).toSet()
+        }
+        val admired = happensAcrossSeeds("beautiful", "age")
+        check(admired.any { it.isNotEmpty() }) { "no beautiful Age had any weather at all" }
+        check(admired.all { happened -> happened.all { it in SIGHTS } }) { "a beautiful Age was given a hazard: $admired" }
         // **By kind rather than by name.** Which hazards exist is a list that grows — a blizzard joined it
         // in 2026-09-05 and read as a failure here — where the rule that matters is that a dread word
         // reaches hazards and never sights.
-        val dreaded = happens("foreboding", "age")
-        check(dreaded.isNotEmpty()) { "a foreboding Age had no weather at all" }
-        check(SIGHTS.none { it in dreaded }) { "a foreboding Age was given something to look at: $dreaded" }
+        val dreaded = happensAcrossSeeds("foreboding", "age")
+        check(dreaded.any { it.isNotEmpty() }) { "no foreboding Age had any weather at all" }
+        check(dreaded.none { happened -> SIGHTS.any { it in happened } }) { "a foreboding Age was given something to look at: $dreaded" }
         check(happens("tempest") == setOf("tempest")) { "naming a tempest no longer brings one" }
     }
 
@@ -179,6 +183,9 @@ class DescribingCheck : FunSpec({
 })
 
 private const val SAMPLE_SEED = 0x5EEDL
+
+/** Enough draws that a lean landing half the time reaches the weather in one of them. */
+private val DRAWS = 1L..12L
 
 /** Well clear of the ground, so nothing is refused for standing in rock. */
 private const val SOME_HEIGHT = 100

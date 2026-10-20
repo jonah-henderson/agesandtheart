@@ -3,17 +3,28 @@
     "Broken into pieces and strewn: a landmass in scattered parts, every part leaning scattered, and whatever",
     "stands set further apart."
   ],
-  "restricts": {
-    "landmass": {
-      "scattered": ">0.3"
+  "meanings": [
+    {
+      "bends": {
+        "spacing": "0.3..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "landmass": {
+          "scattered": ">0.3"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#scattered": 0.8
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "biases": {
-    "all": {
-      "#scattered": 0.8
-    }
-  },
-  "bends": {
-    "spacing": "0.3..1.0"
-  }
+  ]
 }

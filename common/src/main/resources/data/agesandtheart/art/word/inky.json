@@ -2,9 +2,24 @@
   "_comment": [
     "Black as ink, and as hard to see through: every colour black, a thick haze in the air and dark, murky water."
   ],
-  "sets": {
-    "colour": "black",
-    "air.haze": "0.6..0.9",
-    "murk": "0.4..0.8"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "colour": "black"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.haze": "0.6..0.9"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "murk": "0.4..0.8"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

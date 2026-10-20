@@ -4,20 +4,48 @@
     "down on the ground and water as murky. `overcast` is the mild lid. Offered, yielding to the book: the cloud",
     "grey or black, or smoke or ash hanging in it."
   ],
-  "sets": {
-    "air.haze": "0.85..1.0",
-    "ceiling": "-1.0..-0.85",
-    "murk": "0.55..1.0"
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "1",
-        "facets": {
-          "clouds.colour": "grey|black",
-          "motes": "smoke|ash"
-        }
-      }
-    ]
-  }
+  "meanings": [
+    {
+      "sets": {
+        "air.haze": "0.85..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "ceiling": "-1.0..-0.85"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "murk": "0.55..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.colour": "grey"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "clouds.colour": "black"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "motes": "smoke"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "motes": "ash"
+      },
+      "chance_to_apply": 0.5
+    }
+  ]
 }

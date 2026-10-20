@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.age.resolution.ParameterKey
 import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -65,11 +66,11 @@ data class MaterialTable(
     companion object {
         /** What a query for [parameter] may land on: the rock must not fall ([Materials.makesARock]). */
         fun mayDrawFor(parameter: String): (String) -> Boolean =
-            if (parameterIn(parameter) == Terrain.STONE.name) Materials::makesARock else { _ -> true }
+            if (ParameterKey.read(parameter).name == Terrain.STONE.name) Materials::makesARock else { _ -> true }
 
         /** Whether [parameter] with [value], spelled as a word spells them, is a material asked for by tag. */
         fun asksByTag(parameter: String, value: String): Boolean =
-            parameterIn(parameter) in MATERIAL_PARAMETERS && Materials.isQuery(value)
+            ParameterKey.read(parameter).name in MATERIAL_PARAMETERS && Materials.isQuery(value)
     }
 }
 

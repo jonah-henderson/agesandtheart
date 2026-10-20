@@ -21,27 +21,46 @@
     "",
     "And it leans, never forcing, towards the biomes and the growth of its colour: bare stone and the pale garden."
   ],
-  "biases": {
-    "biomes": {
-      "minecraft:stony_peaks": 0.5,
-      "minecraft:stony_shore": 0.5,
-      "minecraft:windswept_gravelly_hills": 0.5,
-      "minecraft:windswept_hills": 0.4,
-      "minecraft:pale_garden": 0.5,
-      "minecraft:dripstone_caves": 0.4
+  "meanings": [
+    {
+      "sets": {
+        "colour": "grey"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:pale_moss_patch": 0.4,
-      "minecraft:pale_garden_vegetation": 0.4
+    {
+      "sets": {
+        "stone": "#grey"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#grey"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:stony_peaks": 0.5,
+          "minecraft:stony_shore": 0.5,
+          "minecraft:windswept_gravelly_hills": 0.5,
+          "minecraft:windswept_hills": 0.4,
+          "minecraft:pale_garden": 0.5,
+          "minecraft:dripstone_caves": 0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:pale_moss_patch": 0.4,
+          "minecraft:pale_garden_vegetation": 0.4
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "grey",
-    "stone": "#grey",
-    "material": "#grey"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1
-  }
+  ]
 }

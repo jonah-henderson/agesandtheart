@@ -7,26 +7,57 @@
     "heat and should leave the rest of the world to whoever says more: a golden light, a yellower sun, a",
     "little haze, and a lean towards what grows."
   ],
-  "biases": {
-    "biomes": {
-      "#lush": 0.6,
-      "#frozen": -1.0
-    }
-  },
-  "sets": {
-    "temperature": ">0.15"
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "air.tint": "yellow|orange",
-          "sun.colour": "yellow|orange",
-          "haze": "+0.1",
-          "humidity": "+0.1"
+  "meanings": [
+    {
+      "sets": {
+        "temperature": ">0.15"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "biomes": {
+          "#lush": 0.6,
+          "#frozen": -1.0
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.tint": "yellow"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "air.tint": "orange"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sun.colour": "yellow"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sun.colour": "orange"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "haze": "+0.1"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "humidity": "+0.1"
+      },
+      "chance_to_apply": 0.5
+    }
+  ]
 }

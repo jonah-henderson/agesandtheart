@@ -21,11 +21,14 @@ data class Reading(
     /** Pages with nowhere to land, which the Art laid on the Age instead — each charged as rehomed. */
     val moved: List<PageRead> get() = pages.filter { it.fate == Fate.Moved }
 
-    /** Structure pages with nothing to bind, which do nothing — each charged as impossible. */
+    /** Structure pages with nothing to bind, and words with nowhere at all to land — each charged as impossible. */
     val impossible: List<PageRead> get() = pages.filter { it.fate == Fate.Impossible }
 
     /** Pages that are no word at all. */
     val unread: List<PageRead> get() = pages.filter { it.fate == Fate.Unread }
+
+    /** Whether every page is a word or structure that found where it was laid, so nothing had to be put right. */
+    val readsAsLaid: Boolean get() = moved.isEmpty() && impossible.isEmpty() && unread.isEmpty()
 
     /** What the book was read as, page by page — every hop a page made, and what it said where it landed. */
     val readout: String get() = pages.joinToString("\n") { page -> "${page.written}: ${saidOf(page)}" }
@@ -82,7 +85,7 @@ sealed interface Fate {
     /** A structure page that bound what it should. */
     data class Structural(val structure: Structure) : Fate
 
-    /** A structure page with nothing to bind. */
+    /** A structure page with nothing to bind, or a word with nowhere at all to land. */
     data object Impossible : Fate
 
     /** A word that took the pages waiting before it, landing them at [place]. */

@@ -11,49 +11,98 @@
     "The biomes are named rather than queried, because `tropical biomes` keeps only this lean and `#wooded`",
     "promoted snowy taiga as much as jungle. The palm beach is let in, being in no Age until something asks."
   ],
-  "admits": {
-    "biomes": [
-      "agesandtheart:palm_beach"
-    ]
-  },
-  "biases": {
-    "sea": {
-      "#watery": 1.0,
-      "#frozen": -1.0
-    },
-    "biomes": {
-      "minecraft:jungle": 1.0,
-      "minecraft:bamboo_jungle": 1.0,
-      "minecraft:sparse_jungle": 0.8,
-      "minecraft:mangrove_swamp": 0.8,
-      "agesandtheart:palm_beach": 0.8,
-      "minecraft:warm_ocean": 0.6,
-      "#lush": 0.3
-    },
-    "features": {
-      "#wooded": 1.0,
-      "#flowering": 0.9
-    }
-  },
-  "sets": {
-    "temperature": "0.22..0.54",
-    "humidity": "0.4..0.9"
-  },
-  "pools": [
+  "meanings": [
     {
-      "draws": "2",
-      "facets": {
-        "weather.frequency": "0.5..1.0",
-        "thunder": "0.3..0.8",
-        "haze": "0.2..0.5",
-        "motes": "firefly|spore_blossom"
+      "sets": {
+        "temperature": "0.22..0.54"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "humidity": "0.4..0.9"
+      },
+      "must_always_apply": true
+    },
+    {
+      "admits": {
+        "biomes": [
+          "agesandtheart:palm_beach"
+        ]
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "sea": {
+          "#watery": 1.0,
+          "#frozen": -1.0
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:jungle": 1.0,
+          "minecraft:bamboo_jungle": 1.0,
+          "minecraft:sparse_jungle": 0.8,
+          "minecraft:mangrove_swamp": 0.8,
+          "agesandtheart:palm_beach": 0.8,
+          "minecraft:warm_ocean": 0.6,
+          "#lush": 0.3
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "#wooded": 1.0,
+          "#flowering": 0.9
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "weather.frequency": "0.5..1.0"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "thunder": "0.3..0.8"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "haze": "0.2..0.5"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "motes": "firefly"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "motes": "spore_blossom"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "grass.colour": "green"
+      }
+    },
+    {
+      "sets": {
+        "leaves.colour": "green"
       }
     }
-  ],
-  "requests": {
-    "sets": {
-      "grass.colour": "green",
-      "leaves.colour": "green"
-    }
-  }
+  ]
 }

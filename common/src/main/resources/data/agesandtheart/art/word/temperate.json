@@ -4,29 +4,53 @@
     "core; what it offers is the weather of an ordinary spring -- showers, white cloud, a blue sky, the odd",
     "rainbow -- and a lean towards green country and away from the extremes."
   ],
-  "biases": {
-    "biomes": {
-      "#lush": 0.8,
-      "#flowering": 0.6,
-      "#frozen": -1.0,
-      "#molten": -1.0
-    }
-  },
-  "sets": {
-    "temperature": "-0.25..0.45",
-    "humidity": "-0.2..0.5"
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "weather.frequency": "0.2..0.6",
-          "clouds.colour": "white",
-          "sky.colour": "blue",
-          "rainbow.frequency": "0.3..0.7"
+  "meanings": [
+    {
+      "sets": {
+        "temperature": "-0.25..0.45"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "humidity": "-0.2..0.5"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "biomes": {
+          "#lush": 0.8,
+          "#flowering": 0.6,
+          "#frozen": -1.0,
+          "#molten": -1.0
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "weather.frequency": "0.2..0.6"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "clouds.colour": "white"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sky.colour": "blue"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "rainbow.frequency": "0.3..0.7"
+      },
+      "chance_to_apply": 0.5
+    }
+  ]
 }

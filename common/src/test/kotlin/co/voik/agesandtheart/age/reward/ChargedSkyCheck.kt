@@ -31,12 +31,13 @@ class ChargedSkyCheck : FunSpec({
      *
      * `electromagnetic` admits the two phenomena and leans on both, but admitting is not claiming — the
      * word's own note says a writer who wants the tempests guaranteed writes for them, and this is that
-     * sentence rather than a hope about the other one.
+     * sentence rather than a hope about the other one. The tempest comes first: `electromagnetic tempest` would be
+     * a charged tempest, the tempest taking the page.
      */
     test("a tempestuous electromagnetic Age is charged") {
         for (seed in SEEDS) {
-            check(charges(seed, "electromagnetic", "tempest", "age")) {
-                "`electromagnetic tempest age` put no ore in the sky at seed $seed"
+            check(charges(seed, "tempest", "electromagnetic", "age")) {
+                "`tempest electromagnetic age` put no ore in the sky at seed $seed"
             }
         }
     }

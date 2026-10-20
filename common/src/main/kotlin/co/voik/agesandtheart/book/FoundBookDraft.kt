@@ -1,10 +1,8 @@
 package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.age.Instability
-import co.voik.agesandtheart.age.word.Resolver
+import co.voik.agesandtheart.age.language.Structure
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Production
 import kotlin.random.Random
 
 /**
@@ -20,9 +18,9 @@ data class FoundBookDraft(
     val pages: List<String>,
     /** Pages the reading could not place — unreadable, or with nowhere to go. */
     val unplaced: List<String>,
-    /** Pages repair had to supply, which a book that parses as written never needs. */
+    /** Pages with nowhere to land, which the Art laid on the Age — never needed by a book that reads as written. */
     val supplied: List<String>,
-    /** The grammatical pages it uses other than `age`. */
+    /** The structure pages it uses other than `age`, and its quantifiers. */
     val modifiers: List<String>,
     val hasAnAge: Boolean,
     val cost: Int?,
@@ -36,17 +34,21 @@ data class FoundBookDraft(
         fun drawn(vocabulary: Vocabulary, kind: FoundBookKind, seed: Long): FoundBookDraft? {
             val grammar = vocabulary.generation.grammar(kind.grammar) ?: return null
             val pages = grammar.expand(Random(seed))
-            fun productionOf(page: String) = vocabulary.grammarWord(page)?.production
-            val modifiers = pages.filter { page -> productionOf(page).let { it != null && it != Production.NUCLEUS } }
-            val hasAnAge = pages.any { page -> productionOf(page) == Production.NUCLEUS }
-            val read = Grammar.read(vocabulary, pages, seed)
-            val resolved = read?.let { runCatching { Resolver.resolve(vocabulary, it, seed) } }
+            fun structureOf(page: String) = vocabulary.structurePage(page)?.structure
+            fun isAModifier(page: String): Boolean {
+                val isStructure = structureOf(page).let { it != null && it != Structure.AGE }
+                return isStructure || vocabulary.word(page)?.isAQuantifier == true
+            }
+            val modifiers = pages.filter(::isAModifier)
+            val hasAnAge = pages.any { page -> structureOf(page) == Structure.AGE }
+            val read = vocabulary.read(pages, seed)
+            val resolved = read?.let { runCatching { vocabulary.resolve(it, seed) } }
             return FoundBookDraft(
                 kind = kind,
                 seed = seed,
                 pages = pages,
-                unplaced = read?.dropped.orEmpty(),
-                supplied = read?.constraints.orEmpty().filter { it.latent }.map { it.word.name },
+                unplaced = (read?.unread.orEmpty() + read?.impossible.orEmpty()).map { it.written },
+                supplied = read?.moved.orEmpty().map { it.written },
                 modifiers = modifiers,
                 hasAnAge = hasAnAge,
                 cost = resolved?.getOrNull()?.cost,

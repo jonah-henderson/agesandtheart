@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age.word
+package co.voik.agesandtheart.age.aspect
 
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult

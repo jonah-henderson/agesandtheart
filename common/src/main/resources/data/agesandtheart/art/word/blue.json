@@ -22,25 +22,44 @@
     "And it leans, never forcing, towards the biomes and the growth of its colour: ice and open ocean, blue",
     "orchids and cornflowers."
   ],
-  "biases": {
-    "biomes": {
-      "minecraft:ice_spikes": 0.5,
-      "minecraft:ocean": 0.4,
-      "minecraft:deep_ocean": 0.4,
-      "minecraft:frozen_ocean": 0.4
+  "meanings": [
+    {
+      "sets": {
+        "colour": "blue"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:flower_swamp": 0.6,
-      "minecraft:flower_forest_flowers": 0.4
+    {
+      "sets": {
+        "stone": "#blue"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#blue"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:ice_spikes": 0.5,
+          "minecraft:ocean": 0.4,
+          "minecraft:deep_ocean": 0.4,
+          "minecraft:frozen_ocean": 0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:flower_swamp": 0.6,
+          "minecraft:flower_forest_flowers": 0.4
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "blue",
-    "stone": "#blue",
-    "material": "#blue"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1
-  }
+  ]
 }

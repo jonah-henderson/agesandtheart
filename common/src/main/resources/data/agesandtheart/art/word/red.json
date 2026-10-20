@@ -22,27 +22,46 @@
     "And it leans, never forcing, towards the biomes and the growth of its colour: badlands, poppies, red",
     "mushrooms and berries."
   ],
-  "biases": {
-    "biomes": {
-      "minecraft:badlands": 0.5,
-      "minecraft:eroded_badlands": 0.4,
-      "minecraft:wooded_badlands": 0.4,
-      "minecraft:crimson_forest": 0.3
+  "meanings": [
+    {
+      "sets": {
+        "colour": "red"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:red_mushroom_normal": 0.6,
-      "minecraft:flower_default": 0.4,
-      "minecraft:patch_berry_common": 0.4,
-      "minecraft:red_poplar_leaf_litter": 0.4
+    {
+      "sets": {
+        "stone": "#red"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#red"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:badlands": 0.5,
+          "minecraft:eroded_badlands": 0.4,
+          "minecraft:wooded_badlands": 0.4,
+          "minecraft:crimson_forest": 0.3
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:red_mushroom_normal": 0.6,
+          "minecraft:flower_default": 0.4,
+          "minecraft:patch_berry_common": 0.4,
+          "minecraft:red_poplar_leaf_litter": 0.4
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "red",
-    "stone": "#red",
-    "material": "#red"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1
-  }
+  ]
 }

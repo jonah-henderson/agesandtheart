@@ -226,7 +226,7 @@ class TagLayer(private val corpus: Corpus) {
     /** How many words mention each tag, wanted, pushed against, or merely offered. */
     private val mentions: Map<String, Int> by lazy {
         corpus.vocabulary.words
-            .flatMap { (it.wanted + it.unwanted + it.leanedTags).distinct() }
+            .flatMap { it.tagsSpokenOf }
             .groupingBy { it }
             .eachCount()
     }
@@ -272,7 +272,7 @@ class TagLayer(private val corpus: Corpus) {
     /** Which words mention [tag], so a rename or a retune can be read against what it would move. */
     fun askedBy(tag: String): List<String> =
         corpus.vocabulary.authoredWords
-            .filter { tag in it.wanted || tag in it.unwanted || tag in it.leanedTags }
+            .filter { tag in it.tagsSpokenOf }
             .map { it.name }
             .sorted()
 }

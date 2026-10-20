@@ -5,28 +5,47 @@
     "",
     "It was a sea of empty air until 2026-10-16, which read as nothing the word says; `floating` leans there now."
   ],
-  "biases": {
-    "all": {
-      "#flat": 1.0,
-      "#wooded": -0.6,
-      "#sheer": -0.6,
-      "#mountainous": -0.5
-    }
-  },
-  "bends": {
-    "relief": "-0.8..-0.2",
-    "spacing": "0.3..1.0"
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "air.haze": "-0.4",
-          "clouds.ceiling": "+0.4",
-          "sky.colour": "blue"
+  "meanings": [
+    {
+      "bends": {
+        "relief": "-0.8..-0.2"
+      },
+      "must_always_apply": true
+    },
+    {
+      "bends": {
+        "spacing": "0.3..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#flat": 1.0,
+          "#wooded": -0.6,
+          "#sheer": -0.6,
+          "#mountainous": -0.5
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.haze": "-0.4"
+      },
+      "chance_to_apply": 0.67
+    },
+    {
+      "sets": {
+        "clouds.ceiling": "+0.4"
+      },
+      "chance_to_apply": 0.67
+    },
+    {
+      "sets": {
+        "sky.colour": "blue"
+      },
+      "chance_to_apply": 0.67
+    }
+  ]
 }

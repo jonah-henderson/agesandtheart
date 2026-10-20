@@ -7,29 +7,54 @@
     "It refuses wet rock as well as drying what is left, so `dry flooded rock` is two words that cannot both hold and",
     "is charged as the contradiction it is. Offered too, yielding to anything the book says: drier air, less rain."
   ],
-  "excludes": {
-    "rock": [
-      "#watery"
-    ],
-    "features": [
-      "minecraft:spring_water"
-    ]
-  },
-  "biases": {
-    "sea": {
-      "#empty": 0.3
+  "meanings": [
+    {
+      "sets": {
+        "dry": "true"
+      },
+      "must_always_apply": true
     },
-    "biomes": {
-      "#dry": 0.6
+    {
+      "excludes": {
+        "rock": [
+          "#watery"
+        ]
+      },
+      "must_always_apply": true
+    },
+    {
+      "excludes": {
+        "features": [
+          "minecraft:spring_water"
+        ]
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "sea": {
+          "#empty": 0.3
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "biomes": {
+          "#dry": 0.6
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "humidity": "-0.3"
+      }
+    },
+    {
+      "sets": {
+        "weather.frequency": "-0.6..-0.2"
+      }
     }
-  },
-  "sets": {
-    "dry": "true"
-  },
-  "requests": {
-    "sets": {
-      "humidity": "-0.3",
-      "weather.frequency": "-0.6..-0.2"
-    }
-  }
+  ]
 }

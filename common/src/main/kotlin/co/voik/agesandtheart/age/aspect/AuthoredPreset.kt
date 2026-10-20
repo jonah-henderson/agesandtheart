@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.age.word.Speech
+import co.voik.agesandtheart.age.language.Speech
 
 /**
  * Something an aspect can hold that **this pack wrote** — a landform, a carve pattern, a sky, a

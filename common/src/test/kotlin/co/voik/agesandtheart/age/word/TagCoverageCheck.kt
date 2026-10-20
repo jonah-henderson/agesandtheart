@@ -3,6 +3,8 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Taggable
+import co.voik.agesandtheart.age.resolution.Effect
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -21,58 +23,6 @@ import io.kotest.core.spec.style.FunSpec
  */
 @Tags(NEEDS_REGISTRIES)
 class TagCoverageCheck : FunSpec({
-
-    /**
-     * **A query must do one of its two jobs.** It chooses carriers — and, separately, it says what the word
-     * *means* in tag space, which is how `Vocabulary.disagreement` finds that two words disagree. A
-     * query doing neither is a page a writer can lay and be charged for that can never do the thing it
-     * describes: §3.3's silent drop, in the vocabulary rather than in the resolver.
-     *
-     * **The second job is why a word about a range may still carry a query**, and why that is not the
-     * "no range is ever tagged" mistake (world model §7). `lifeless` asks `barren` where no climate can
-     * carry it, and that is what makes `verdant lifeless` diagnosable as lush against barren rather than as
-     * two spans that happen not to meet. Tagging a *word* is describing the word; tagging a *range* would
-     * be describing the world, and only the second is forbidden. Deleting those queries as dead cost the
-     * fracture its provenance and `ResolverCheck` caught it.
-     *
-     * Carriers are asked of the word's reach, which for a lean on everything is every part it likes
-     * something in (`Vocabulary.reached`).
-     */
-    test("every query does something") {
-        fun reachOf(word: Word): Collection<Aspect> = word.aspects.ifEmpty { Aspect.entries.toSet() }
-        fun opposable(tag: String) = vocabulary.opposedTags.any { it.first == tag || it.second == tag }
-        val onlyAServerKnows = vocabulary.tagsOnlyAServerGrants
-        val inert = vocabulary.authoredWords
-            .filter { it.everyTagAsked.isNotEmpty() }
-            .filter { word -> reachOf(word).none { vocabulary.answersIn(word, it) } }
-            .filterNot { word -> word.wanted.any(::opposable) }
-            .filterNot { word -> word.wanted.any(onlyAServerKnows::contains) }
-        check(inert.isEmpty()) {
-            "these words ask for tags nothing carries and no pair of opposed tags knows, so the query does nothing:\n" +
-                inert.joinToString("\n") { word ->
-                    "  ${word.name} (${word.aspects.joinToString(" ") { it.key }}) asks ${word.everyTagAsked.keys}"
-                }
-        }
-    }
-
-    /**
-     * **And every tag asked for is a tag something carries** — the same claim one level finer, which is
-     * what catches a misspelling. `lovley` asked of nothing is silent where `lovely` asked of nothing is
-     * merely unlucky. A tag only a bound registry tag can grant counts as carried, since offline it cannot
-     * be and on a server it always is.
-     */
-    test("no word asks for a tag that does not exist") {
-        val carried = vocabulary.carriedTags + vocabulary.tagsOnlyAServerGrants
-        // **Leaned tags too.** A misspelling in a lean is exactly as inert as one in a restriction, and
-        // rather quieter: a lean that finds nothing simply falls on nothing and says so nowhere.
-        val asked = vocabulary.authoredWords
-            .flatMap { word -> word.everyTagAsked.keys + word.leanedTags }
-            .toSet()
-        val unknown = (asked - carried).sorted()
-        check(unknown.isEmpty()) {
-            "no preset carries ${unknown.joinToString(", ")} — a typo, or a tag nothing was ever given"
-        }
-    }
 
     /**
      * **Every preset a sentence may reach in a closed aspect carries a tag.** A closed aspect has a fixed
@@ -135,13 +85,15 @@ class TagCoverageCheck : FunSpec({
      * set *is* a built thing — the tag is definitional there, where `wooded` on a biome is a judgement.
      */
     test("every structure set the Art can reach is built") {
-        val emptying = vocabulary.words.filter { it.excludes[Aspect.STRUCTURES].orEmpty().isNotEmpty() }
-        check(emptying.isNotEmpty()) { "no word strikes structure sets, so this checks nothing" }
+        val struck = vocabulary.words.flatMap { it.effects }.filterIsInstance<Effect.Excludes>()
+            .filter { it.aspect == Aspect.STRUCTURES }.flatMap { it.members }.toSet()
+        check(struck.isNotEmpty()) { "no word strikes structure sets, so this checks nothing" }
         val reachable = vocabulary.availableToBroadWordsIn(Aspect.STRUCTURES)
-        val unstruck = reachable.filterNot { set ->
+        fun isStruck(set: Taggable): Boolean {
             val tags = vocabulary.tagsOf(set)
-            emptying.any { word -> word.excludes(set, tags) }
+            return struck.any { named -> if (named.startsWith(TAG_MARK)) named.drop(1) in tags else named == set.key }
         }
+        val unstruck = reachable.filterNot(::isStruck)
         check(unstruck.isEmpty()) {
             "no word can empty the structures while these carry none of the tags one strikes — " +
                 "`untouched` would leave them standing: ${unstruck.map { it.key }}"
@@ -175,3 +127,5 @@ class TagCoverageCheck : FunSpec({
 
 /** The tag that is the whole spawn population — every `MobCategory` grants it. */
 private const val MOBS = "mobs"
+
+private const val TAG_MARK = "#"

@@ -38,90 +38,90 @@ book =
     | [pitted_jungle_age]
 
 # `and`: two things laid together, so the world visibly holds both — two landforms in one country, two
-# stones in one monument.
+# stones in one monument. A member says its own part of the world, so no aiming page follows one.
 mingled_age =
-    age [landform_pair] landmass [material_pair] [shape] features [colour] sky [colour] clouds@3
-    | age [landform_pair] landmass [material_pair] [shape] features [night]@2
-    | age archipelagic and pillared landmass [semiprecious] arches features [colour] waters [colour] sky
-    | age canyoned and shattered landmass red_sand surface sandfall phenomena orange sky
-    | wondrous age skyborne and archipelagic landmass [night]
-    | age insular and archipelagic landmass palm_beach biomes [colour] waters white clouds
-    | [bleak_mood] age patchy [hot_stone] and [dark_stone] landmass molten sea
+    age [landform_pair] [material_pair] [shape] [colour] sky [colour] clouds@3
+    | age [landform_pair] [material_pair] [shape] [night]@2
+    | age archipelagic and pillared [semiprecious] arches [colour] waters [colour] sky
+    | age canyoned and shattered red_sand surface sandfall orange sky
+    | wondrous age skyborne and archipelagic [night]
+    | age insular and archipelagic palm_beach [colour] waters white clouds
+    | age patchy [hot_stone] and [dark_stone] landmass molten sea
     | age patchy [cold_stone] and [pale_stone] landmass inferno phenomena white sun
 
 # `only`: one or two kinds of country and nothing else, dressed to suit.
 singled_age =
-    age only cherry_grove and meadow biomes [sun_colour] sun [colour] air
-    | age only ice_spikes biomes blue_ice spikes features [aurora_colour] aurora bright stars
-    | age only pale_garden biomes grey sky small moon
-    | uncanny age only pale_garden biomes green sky red sun
-    | age only desert and badlands biomes amethyst_block spikes features sandfall phenomena orange sky
-    | age only desert biomes colossal sun orange sky
-    | age only plains biomes slime_block surface meteors phenomena [colour] sky
+    age only cherry_grove and meadow [sun_colour] sun [colour] air
+    | age only ice_spikes blue_ice spikes [aurora_colour] aurora bright stars
+    | age only pale_garden grey sky small moon
+    | uncanny age only pale_garden green sky red sun
+    | age only desert and badlands amethyst_block spikes sandfall orange sky
+    | age only desert colossal sun orange sky
+    | age only plains slime_block surface meteors [colour] sky
 
 # `no`: something a world would have, left out where a visitor would miss it.
 spared_age =
-    age [land] landmass no monsters spawns bright stars colossal moon@2
-    | age floating landmass no monsters spawns [colour] sky [colour] clouds
-    | age [land] landmass no undead spawns bright stars [aurora_colour] aurora
-    | age [land] landmass no undead and arthropods spawns [sun_colour] sun
-    | age verdant biomes no trees features [colour] grass
-    | age floating landmass no trees features [colour] sky
+    age [land] no monsters bright stars colossal moon@2
+    | age floating landmass no monsters [colour] sky [colour] clouds
+    | age [land] no undead bright stars [aurora_colour] aurora
+    | age [land] no undead and arthropods [sun_colour] sun
+    | age verdant biomes no trees [colour] grass
+    | age floating landmass no trees [colour] sky
 
 # The upper rungs: monuments in numbers.
 thronged_age =
-    age [land] landmass teeming [semiprecious] [shape] features [colour] sky
-    | age [land] landmass plentiful glowstone rings features bright stars
+    age [land] teeming [semiprecious] [shape] [colour] sky
+    | age [land] plentiful glowstone rings bright stars
 
 # The lower rungs: a few of something, set out in an emptier country.
 thinned_age =
-    age floating landmass few glowstone obelisks features
-    | age [land] landmass few obsidian obelisks features [colour] sky
-    | age sheer landmass scarce trees features white sky
+    age floating landmass few glowstone obelisks
+    | age [land] few obsidian obelisks [colour] sky
+    | age sheer scarce trees white sky
 
 # `in`: a monument or a creature confined to one kind of country.
 sited_age =
-    age [land] landmass amethyst_block spikes in desert yellow sky
-    | age archipelagic landmass prismarine pyramids in beach [colour] waters
-    | age [land] landmass glowstone rings in plains bright stars
-    | age teeming parrot spawns in jungle jungle biomes
-    | age plentiful axolotl spawns in lush_caves
+    age [land] amethyst_block spikes in desert yellow sky
+    | age archipelagic prismarine pyramids in beach [colour] waters
+    | age [land] glowstone rings in plains bright stars
+    | age teeming parrot in jungle jungle
+    | age plentiful axolotl in lush_caves
 
 # `everywhere`: a creature in every kind of country, not only its own.
 widened_age =
-    age only swamp biomes teeming frog everywhere green air
+    age only swamp teeming frog everywhere green air
     | age deep water sea teeming axolotl everywhere
-    | age insular landmass reefs features warm climate teeming axolotl everywhere [colour] waters
+    | age insular reefs warm climate teeming axolotl everywhere [colour] waters
     | age teeming sniffer everywhere [colour] grass
     | age teeming allay everywhere [colour] leaves
-    | age only flower_forest biomes teeming bee everywhere honey_block surface
-    | age archipelagic landmass palm_beach biomes teeming parrot everywhere tropical climate
+    | age only flower_forest teeming bee everywhere honey_block surface
+    | age archipelagic palm_beach teeming parrot everywhere tropical climate
 
 # The phenomena and the undergrounds taught nowhere else, each with a modifier to carry it.
 wonder_age =
-    age only badlands biomes red_sand surface sandfall phenomena orange sky
-    | age snow_block surface inferno phenomena only snowy_plains biomes
-    | age prismatic rainbow rainbows phenomena purple sky only cherry_grove biomes
-    | age [land] landmass lattice underground glowstone and shroomlight veins
-    | age [land] landmass delved underground glowstone and shroomlight veins
-    | age colossal chambered underground only lush_caves biomes
-    | age floating landmass hollow underground [colour] sky only plains biomes
-    | wondrous age skyborne landmass bright stars [aurora_colour] aurora only plains biomes
+    age only badlands red_sand surface sandfall orange sky
+    | age snow_block surface inferno phenomena only snowy_plains
+    | age prismatic rainbow purple sky only cherry_grove
+    | age [land] lattice glowstone and shroomlight veins
+    | age [land] delved underground glowstone and shroomlight veins
+    | age colossal chambered only lush_caves
+    | age floating landmass hollow underground [colour] sky only plains
+    | wondrous age skyborne bright stars [aurora_colour] aurora only plains
 
 # Danger in common ink: a hostile crowd and a phenomenon that falls on whoever is out in it. Each pairs a
 # creature with the weather it suits. Scored 0.32 at the least against a threshold of 0.25.
 beset_age =
-    age [land] landmass teeming [monster] spawns meteors phenomena lightless sky
-    | age [land] landmass teeming zombie and skeleton spawns tempest phenomena
-    | age [land] landmass plentiful zombie and skeleton spawns meteors phenomena
-    | age [land] landmass teeming husk spawns scorching climate meteors phenomena
-    | age [land] landmass teeming stray spawns frozen climate blizzard phenomena
-    | age [land] landmass teeming spider spawns deluge phenomena
+    age [land] teeming [monster] meteors lightless sky
+    | age [land] teeming zombie and skeleton tempest
+    | age [land] plentiful zombie and skeleton meteors
+    | age [land] teeming husk scorching climate meteors
+    | age [land] teeming stray frozen climate blizzard phenomena
+    | age [land] teeming spider deluge phenomena
 
 # The scarab's habitat, half each. Torchflowers are the pack's own, so this book is judged on a server.
-flowered_jungle_age = age [warm_land] landmass torchflowers features in jungle tropical climate jungle biomes
+flowered_jungle_age = age [warm_land] torchflowers in jungle tropical climate jungle
 
-pitted_jungle_age = age [warm_land] landmass mud and sand pits in jungle tropical climate jungle biomes
+pitted_jungle_age = age [warm_land] mud and sand pits in jungle tropical climate jungle
 
 # Two landforms that make one strange country between them.
 landform_pair =
@@ -149,8 +149,6 @@ night = bright stars | [aurora_colour] aurora | small moon | colossal moon
 land = gentle | eroded | continental | archipelagic | insular | mountainous | riverine | canyoned | pillared
 
 warm_land = insular | archipelagic | gentle | riverine
-
-bleak_mood = desolate | ancient | foreboding
 
 hot_stone = netherrack | magma_block
 

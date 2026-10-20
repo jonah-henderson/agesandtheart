@@ -17,8 +17,13 @@
     "the rain lives on `Phenomenon.RAINBOW.insistsOn` instead: a floor on the Age's",
     "own weather, and the one phenomenon for which a floor is the right shape rather than the wrong one."
   ],
-  "chooses": {
-    "phenomena": "rainbow"
-  },
-  "speech": "plural"
+  "speech": "plural",
+  "meanings": [
+    {
+      "chooses": {
+        "phenomena": "rainbow"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

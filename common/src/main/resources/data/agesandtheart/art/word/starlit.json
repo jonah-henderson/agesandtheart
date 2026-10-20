@@ -4,15 +4,16 @@
     "and yielding to anything the book says. The precise words are the stars' own: `bright stars` for how",
     "hard they burn, and the frequency ladder (`few stars`, `teeming stars`) for how many."
   ],
-  "requests": {
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "stars.density": "+0.6",
-          "stars.glow": "+0.5"
-        }
+  "meanings": [
+    {
+      "sets": {
+        "stars.density": "+0.6"
       }
-    ]
-  }
+    },
+    {
+      "sets": {
+        "stars.glow": "+0.5"
+      }
+    }
+  ]
 }

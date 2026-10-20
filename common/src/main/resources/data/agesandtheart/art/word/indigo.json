@@ -22,24 +22,43 @@
     "And it leans, never forcing, towards the biomes and the growth of its colour: deep water and dark woods,",
     "amethyst."
   ],
-  "biases": {
-    "biomes": {
-      "minecraft:deep_ocean": 0.4,
-      "minecraft:dark_forest": 0.3,
-      "minecraft:deep_dark": 0.3
+  "meanings": [
+    {
+      "sets": {
+        "colour": "indigo"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:amethyst_geode": 0.5,
-      "minecraft:sculk_vein": 0.3
+    {
+      "sets": {
+        "stone": "#indigo"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#indigo"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:deep_ocean": 0.4,
+          "minecraft:dark_forest": 0.3,
+          "minecraft:deep_dark": 0.3
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:amethyst_geode": 0.5,
+          "minecraft:sculk_vein": 0.3
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "indigo",
-    "stone": "#indigo",
-    "material": "#indigo"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1
-  }
+  ]
 }

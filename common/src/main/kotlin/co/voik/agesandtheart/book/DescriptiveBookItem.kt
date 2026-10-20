@@ -2,7 +2,7 @@ package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.page.PageLearning
 import co.voik.agesandtheart.age.word.WordNames
-import co.voik.agesandtheart.age.word.grammar.ProseWriting
+import co.voik.agesandtheart.age.language.ProseWriting
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.client.BookScreenOpener

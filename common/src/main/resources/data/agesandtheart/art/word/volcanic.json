@@ -39,17 +39,25 @@
     "It narrows nothing, so it costs the floor: with no `restricts`, no `excludes` and no `chooses` on features,",
     "`constrainsPresetsIn` is false there, so this adds and lifts without striking a single tree."
   ],
-  "admits": {
-    "features": [
-      "agesandtheart:volcano",
-      "agesandtheart:firespout",
-      "agesandtheart:magma_chamber",
-      "agesandtheart:lava_tubes"
-    ]
-  },
-  "biases": {
-    "features": {
-      "#molten": 1.0
+  "meanings": [
+    {
+      "admits": {
+        "features": [
+          "agesandtheart:volcano",
+          "agesandtheart:firespout",
+          "agesandtheart:magma_chamber",
+          "agesandtheart:lava_tubes"
+        ]
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "#molten": 1.0
+        }
+      },
+      "must_always_apply": true
     }
-  }
+  ]
 }

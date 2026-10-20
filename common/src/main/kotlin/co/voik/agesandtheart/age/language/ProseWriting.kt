@@ -1,9 +1,8 @@
-package co.voik.agesandtheart.age.word.grammar
+package co.voik.agesandtheart.age.language
 
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Polarity
-import co.voik.agesandtheart.age.word.Speech
 import net.minecraft.locale.Language
 import java.util.Locale
 

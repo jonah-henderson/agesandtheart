@@ -5,28 +5,95 @@
     "and the rock is offered dark. All offers, since the word only suggests: anything the book says about",
     "the sky or the rock wins."
   ],
-  "biases": {
-    "all": {
-      "#dark": 1.0,
-      "#hostile": 0.7,
-      "#bright": -0.6,
-      "#flowering": -0.4
-    }
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "3",
-        "facets": {
-          "sky.colour": "black|grey|red",
-          "air.tint": "purple|grey|red",
-          "clouds.colour": "black|grey",
-          "haze": "+0.3",
-          "motes": "souls|sculk",
-          "stars.density": "-0.4",
-          "stone": "#dark"
+  "meanings": [
+    {
+      "leans": {
+        "all": {
+          "#dark": 1.0,
+          "#hostile": 0.7,
+          "#bright": -0.6,
+          "#flowering": -0.4
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sky.colour": "black"
+      },
+      "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "sky.colour": "grey"
+      },
+      "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "sky.colour": "red"
+      },
+      "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "air.tint": "purple"
+      },
+      "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "air.tint": "grey"
+      },
+      "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "air.tint": "red"
+      },
+      "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "clouds.colour": "black"
+      },
+      "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "clouds.colour": "grey"
+      },
+      "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "haze": "+0.3"
+      },
+      "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "motes": "souls"
+      },
+      "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "motes": "sculk"
+      },
+      "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "stars.density": "-0.4"
+      },
+      "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "stone": "#dark"
+      },
+      "chance_to_apply": 0.43
+    }
+  ]
 }

@@ -21,25 +21,44 @@
     "",
     "And it leans, never forcing, towards the biomes and the growth of its colour: savanna and badlands, pumpkins."
   ],
-  "biases": {
-    "biomes": {
-      "minecraft:savanna": 0.5,
-      "minecraft:savanna_plateau": 0.4,
-      "minecraft:badlands": 0.4
+  "meanings": [
+    {
+      "sets": {
+        "colour": "orange"
+      },
+      "must_always_apply": true
     },
-    "features": {
-      "minecraft:patch_pumpkin": 0.6,
-      "minecraft:pile_pumpkin": 0.4,
-      "minecraft:orange_poplar_leaf_litter": 0.4
+    {
+      "sets": {
+        "stone": "#orange"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#orange"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "leans": {
+        "biomes": {
+          "minecraft:savanna": 0.5,
+          "minecraft:savanna_plateau": 0.4,
+          "minecraft:badlands": 0.4
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "minecraft:patch_pumpkin": 0.6,
+          "minecraft:pile_pumpkin": 0.4,
+          "minecraft:orange_poplar_leaf_litter": 0.4
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "sets": {
-    "colour": "orange",
-    "stone": "#orange",
-    "material": "#orange"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1
-  }
+  ]
 }

@@ -3,27 +3,36 @@
     "Never touched by anybody: nothing built or lived in, and the wild leaning in — lush and wooded. Offered,",
     "yielding to the book: air and water clean of anything people put there."
   ],
-  "excludes": {
-    "structures": [
-      "#built",
-      "#inhabited"
-    ]
-  },
-  "biases": {
-    "all": {
-      "#lush": 0.4,
-      "#wooded": 0.3
-    }
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "1",
-        "facets": {
-          "air.haze": "-0.3",
-          "murk": "-0.3"
+  "meanings": [
+    {
+      "excludes": {
+        "structures": [
+          "#built",
+          "#inhabited"
+        ]
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#lush": 0.4,
+          "#wooded": 0.3
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.haze": "-0.3"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "murk": "-0.3"
+      },
+      "chance_to_apply": 0.5
+    }
+  ]
 }

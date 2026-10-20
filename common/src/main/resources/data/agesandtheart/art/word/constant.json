@@ -7,13 +7,12 @@
     "Laid bare, the weather and the phenomena each feel it one Age in four, since none of that is a thing to stumble",
     "into; a curtain and a bow are never brought in unasked."
   ],
-  "sets": {
-    "frequency": "1.0..1.0"
-  },
-  "unaimed": {
-    "weather": 0.25,
-    "aurora": 0.0,
-    "rainbow": 0.0,
-    "phenomena": 0.25
-  }
+  "meanings": [
+    {
+      "sets": {
+        "frequency": "1.0..1.0"
+      },
+      "unaimed_chance_to_apply": 0.25
+    }
+  ]
 }

@@ -9,8 +9,13 @@
     "regardless -- `sets` writes the claim and always did -- so what was actually missing is the corpus",
     "being able to say the word reaches it."
   ],
-  "chooses": {
-    "phenomena": "tempest"
-  },
-  "speech": "noun"
+  "speech": "noun",
+  "meanings": [
+    {
+      "chooses": {
+        "phenomena": "tempest"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

@@ -8,7 +8,7 @@ import co.voik.agesandtheart.age.aspect.PlacedFeature
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.resolution.Members
 import co.voik.agesandtheart.age.resolution.Place
-import co.voik.agesandtheart.age.word.Bars
+import co.voik.agesandtheart.age.aspect.Bars
 import net.minecraft.core.HolderLookup
 
 /** The tag layer as the language reads it: what a part of the world holds for a broad word, and what each carries. */

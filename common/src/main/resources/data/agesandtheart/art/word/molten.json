@@ -6,26 +6,52 @@
     "",
     "It absorbed `burning`, which barred the same tag lower and so chose the same sea (retired.json)."
   ],
-  "restricts": {
-    "sea": {
-      "molten": ">0.7"
-    }
-  },
-  "biases": {
-    "all": {
-      "#molten": 0.8
-    }
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "stone": "#molten",
-          "sky.colour": "red|orange",
-          "air.tint": "red|orange"
+  "meanings": [
+    {
+      "restricts": {
+        "sea": {
+          "molten": ">0.7"
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "all": {
+          "#molten": 0.8
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "stone": "#molten"
+      },
+      "chance_to_apply": 0.67
+    },
+    {
+      "sets": {
+        "sky.colour": "red"
+      },
+      "chance_to_apply": 0.67
+    },
+    {
+      "sets": {
+        "sky.colour": "orange"
+      },
+      "chance_to_apply": 0.67
+    },
+    {
+      "sets": {
+        "air.tint": "red"
+      },
+      "chance_to_apply": 0.67
+    },
+    {
+      "sets": {
+        "air.tint": "orange"
+      },
+      "chance_to_apply": 0.67
+    }
+  ]
 }

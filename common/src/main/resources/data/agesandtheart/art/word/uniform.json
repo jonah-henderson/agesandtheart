@@ -5,17 +5,28 @@
     "the landforms laid out on a plan or with none at all -- pyramids, pillars, the flat -- and nothing torn, and",
     "smooths what wear would break up. It cannot mean one biome or one creature: `only` already says that."
   ],
-  "restricts": {
-    "landmass": {
-      "ordered": ">0.55",
-      "flat": ">0.9",
-      "eroded": "<0.5"
+  "meanings": [
+    {
+      "sets": {
+        "uniform": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "bends": {
+        "wear": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "landmass": {
+          "ordered": ">0.55",
+          "flat": ">0.9",
+          "eroded": "<0.5"
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "bends": {
-    "wear": "-1.0..-0.6"
-  },
-  "sets": {
-    "uniform": "true"
-  }
+  ]
 }

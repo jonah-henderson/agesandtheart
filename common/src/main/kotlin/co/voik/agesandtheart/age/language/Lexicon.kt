@@ -11,28 +11,30 @@ import java.util.Optional
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Every word there is, the structure pages, and what each word takes — what the reading reads a book against.
- *
- * A word answers to its bare name and to its full id; where two share a name, the later in [words] keeps it, so a
- * word written by hand outranks one derived.
+ * Every word there is, the structure pages, and what each word takes — what the reading reads a book against. Which
+ * word a page means is the vocabulary's to say, retired names and shared ones included, so it is asked rather than
+ * kept here.
  */
 class Lexicon(
-    words: List<Word>,
-    private val structural: Map<String, Structure>,
+    private val wordNamed: (String) -> Word?,
+    private val structureNamed: (String) -> Structure?,
     private val tags: MemberTags,
     private val registries: HolderLookup.Provider?,
 ) {
-    private val byName: Map<String, Word> = words.associateBy(Word::name)
-    private val byId: Map<String, Word> = words.associateBy { it.id.toString() }
     private val acceptances = ConcurrentHashMap<Identifier, Optional<Acceptance>>()
 
-    fun word(page: String): Word? = byId[page] ?: byName[page]
+    /** The word [page] means, or null where it is a structure page or nothing at all. */
+    fun word(page: String): Word? = if (structureNamed(page) != null) null else wordNamed(page)
 
-    fun structure(page: String): Structure? = structural[page]
+    fun structure(page: String): Structure? = structureNamed(page)
 
     /** What [word] takes from the pages waiting before it, or null where it takes nothing. */
     fun acceptance(word: Word): Acceptance? =
         acceptances.computeIfAbsent(word.id) { Optional.ofNullable(WordAcceptance.of(word, tags, registries)) }.orElse(null)
+
+    /** Every part of the world [word] can be laid on, aimed or bare. */
+    fun placesFor(word: Word): Set<Aspect> =
+        word.meanings.flatMap { it.effects }.flatMap(::barePlacesOf).toSet() + setOfNotNull(acceptance(word)?.place?.aspect)
 
     /**
      * The parts of the world [effect] can land on laid bare: every part a parameter is understood in but those only

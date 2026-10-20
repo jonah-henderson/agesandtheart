@@ -7,24 +7,78 @@
     "and aimed at what grows it takes the flowers out.",
     "",
     "A colourless Age does all of it, the land and the surface one Age in ten as `grey`'s are. It never brings a",
-    "rainbow or an aurora about (`unaimed` 0): naming either's colour would say the Age has one, and one it has",
+    "rainbow or an aurora about (`unaimed_chance_to_apply` 0): naming either's colour would say the Age has one, and one it has",
     "already is seen in grey through the drain. `colourless rainbow`, written on purpose, bleaches a bow."
   ],
-  "excludes": {
-    "features": [
-      "#flowering"
-    ]
-  },
-  "sets": {
-    "drained": "true",
-    "colour": "white",
-    "stone": "#black|#grey|#white",
-    "material": "#black|#grey|#white"
-  },
-  "unaimed": {
-    "landmass": 0.1,
-    "surface": 0.1,
-    "aurora": 0.0,
-    "rainbow": 0.0
-  }
+  "meanings": [
+    {
+      "sets": {
+        "drained": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sky.colour": "white",
+        "air.colour": "white",
+        "waters.colour": "white",
+        "sun.colour": "white",
+        "grass.colour": "white",
+        "leaves.colour": "white",
+        "clouds.colour": "white"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "aurora.colour": "white",
+        "rainbow.colour": "white"
+      },
+      "unaimed_chance_to_apply": 0.0
+    },
+    {
+      "sets": {
+        "stone": "#black"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "stone": "#grey"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "stone": "#white"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#black"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#grey"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "sets": {
+        "material": "#white"
+      },
+      "unaimed_chance_to_apply": 0.1
+    },
+    {
+      "excludes": {
+        "features": [
+          "#flowering"
+        ]
+      },
+      "must_always_apply": true
+    }
+  ]
 }

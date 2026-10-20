@@ -4,36 +4,89 @@
     "and what is placed in them. Two of steady rain, green grass, green leaves and what drifts off growing",
     "things are drawn for every verdant Age; a rainbow is only offered."
   ],
-  "restricts": {
-    "biomes": {
-      "lush": ">0.3"
-    },
-    "climate": {
-      "lush": ">0.3"
-    },
-    "features": {
-      "lush": ">0.3"
-    }
-  },
-  "sets": {
-    "temperature": "0.0..0.6",
-    "humidity": "0.3..0.9",
-    "thickness": "0.5..1.0"
-  },
-  "pools": [
+  "meanings": [
     {
-      "draws": "2",
-      "facets": {
-        "weather.frequency": "0.3..0.8",
-        "grass.colour": "green",
-        "leaves.colour": "green",
-        "motes": "spore_blossom|cherry_petals|firefly"
+      "sets": {
+        "temperature": "0.0..0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "humidity": "0.3..0.9"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "thickness": "0.5..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "biomes": {
+          "lush": ">0.3"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "climate": {
+          "lush": ">0.3"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "features": {
+          "lush": ">0.3"
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "weather.frequency": "0.3..0.8"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "grass.colour": "green"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "leaves.colour": "green"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "motes": "spore_blossom"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "motes": "cherry_petals"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "motes": "firefly"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "rainbow.frequency": "0.4..0.8"
       }
     }
-  ],
-  "requests": {
-    "sets": {
-      "rainbow.frequency": "0.4..0.8"
-    }
-  }
+  ]
 }

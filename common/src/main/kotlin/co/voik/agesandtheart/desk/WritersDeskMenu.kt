@@ -1,13 +1,11 @@
 package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.word.InkTier
-import co.voik.agesandtheart.age.word.Resolution
-import co.voik.agesandtheart.age.word.Resolver
+import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Prose
-import co.voik.agesandtheart.age.word.grammar.ProseClause
-import co.voik.agesandtheart.age.word.grammar.Sentence
+import co.voik.agesandtheart.age.language.Prose
+import co.voik.agesandtheart.age.language.ProseClause
+import co.voik.agesandtheart.age.language.Reading
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
@@ -63,11 +61,11 @@ class WritersDeskMenu(
         // Read once and handed to both: the readout and the conflicts are two questions about one sentence.
         // Resolving it is dearer still and only the conflicts ask for that — so it is done at most once, and
         // only where something in the room can show what it says.
-        val said = words.takeIf { it.isNotEmpty() }
-            ?.let { Grammar.read(vocabularyFor(player), it.map(Identifier::getPath), player.writingSeed) }
+        val vocabulary = vocabularyFor(player)
+        val said = words.takeIf { it.isNotEmpty() }?.let { vocabulary.read(it.map(Identifier::getPath), player.writingSeed) }
         val resolved = said
             ?.takeIf { DeskCapability.REVEAL_CONFLICTS in capabilities.capabilities }
-            ?.let { Resolver.resolve(vocabularyFor(player), it, player.writingSeed) }
+            ?.let { vocabulary.resolve(it, player.writingSeed) }
         return DeskSyncPayload(
             ink = InkTier.entries.associateWith { desk.stores.ink(it) },
             paper = InkTier.entries.associateWith { desk.stores.paper(it) },
@@ -80,7 +78,7 @@ class WritersDeskMenu(
             toWrite = allocation.toWrite.map { pricePage(player, it) },
             drawn = allocation.drawn,
             quarrels = quarrelsIn(capabilities, words, resolved),
-            reading = readingOf(capabilities, said),
+            reading = readingOf(capabilities, said, vocabulary),
         )
     }
 
@@ -89,9 +87,9 @@ class WritersDeskMenu(
      * conflicts are (design §7.3): visibility is a property of the workspace. The gate is on the desk's
      * live reading and nothing else — a bound book still carries its own, and a found one still teaches.
      */
-    private fun readingOf(capabilities: DeskState, said: Sentence?): List<ProseClause> {
+    private fun readingOf(capabilities: DeskState, said: Reading?, vocabulary: Vocabulary): List<ProseClause> {
         if (DeskCapability.READABLE_GRAMMAR !in capabilities.capabilities) return emptyList()
-        return said?.let(Prose::of).orEmpty()
+        return said?.let { Prose.of(it, vocabulary.lexicon) }.orEmpty()
     }
 
     /**
@@ -149,7 +147,7 @@ class WritersDeskMenu(
         }
 
         private fun structuralPrice(vocabulary: Vocabulary, name: String, units: Long): PagePrice {
-            val ink = vocabulary.grammarWord(name)?.let(vocabulary.ink::tierFor) ?: InkTier.DEFAULT
+            val ink = vocabulary.structurePage(name)?.let(vocabulary.ink::tierFor) ?: InkTier.DEFAULT
             return PagePrice(ink, InkTier.entries.associateWith { WriteCost.structural(it, units) })
         }
     }

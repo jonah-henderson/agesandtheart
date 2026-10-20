@@ -2,8 +2,10 @@ package co.voik.agesandtheart.age.language
 
 import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.word.Speech
+import net.minecraft.core.Registry
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
 
 /** A page of the Art: what a writer lays, and the meanings it carries. */
 data class Word(
@@ -19,6 +21,27 @@ data class Word(
 
     /** How a book's prose speaks it: as its file or its derivation says, and otherwise as said of something. */
     val partOfSpeech: Speech get() = speech ?: Speech.ADJECTIVE
+
+    /** Everything its meanings say, together. */
+    val effects: List<Effect> get() = meanings.flatMap { it.effects }
+
+    /** The registries this word is itself an entry of — the block a block's word is, the creature a creature's. */
+    val referentRegistries: Set<ResourceKey<out Registry<*>>>
+        get() = effects.filterIsInstance<Effect.Chooses>()
+            .filter { it.member == id.toString() }
+            .mapNotNull { it.aspect.presetsAreEntriesOf }
+            .toSet()
+
+    /** Whether all this word says is how much there is — `teeming`, `scarce`. */
+    val isAQuantifier: Boolean get() = effects.isNotEmpty() && effects.all { it is Effect.Abundance }
+
+    /** The block this word is, where it is one. */
+    val block: String? get() = id.toString().takeIf { Registries.BLOCK in referentRegistries }
+
+    /** The pattern this word mints where it is aimed, where it is a minting. */
+    val mints: String?
+        get() = meanings.filter { it.mustAlwaysApply || it.chanceToApply > Meaning.NEVER }
+            .flatMap { it.effects }.filterIsInstance<Effect.Mints>().firstOrNull()?.pattern
 
     /**
      * What it costs to write: [INK_PER_NARROWED_PART] for each part of the world narrowed by a meaning certain to

@@ -13,7 +13,7 @@ import co.voik.agesandtheart.age.aspect.Pool
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Carvers
-import co.voik.agesandtheart.age.word.Resolution
+import co.voik.agesandtheart.age.resolution.Resolution
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder

@@ -3,27 +3,57 @@
     "Dry and blown: sand on the wind, a haze of it in the air, a yellow light, the ground barren and dry. Offered,",
     "yielding to the book: a yellow or orange sky, sandy ground, yellowed grass. `ashen` is the burnt sister."
   ],
-  "restricts": {
-    "biomes": {
-      "barren": ">0.3",
-      "dry": ">0.43"
-    }
-  },
-  "sets": {
-    "motes": "grit",
-    "air.haze": "0.3..0.7",
-    "air.tint": "yellow"
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "sky.colour": "yellow|orange",
-          "material": "#sandy",
-          "grass.colour": "yellow"
+  "meanings": [
+    {
+      "sets": {
+        "motes": "grit"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.haze": "0.3..0.7"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.tint": "yellow"
+      },
+      "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "biomes": {
+          "barren": ">0.3",
+          "dry": ">0.43"
         }
-      }
-    ]
-  }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sky.colour": "yellow"
+      },
+      "chance_to_apply": 0.67
+    },
+    {
+      "sets": {
+        "sky.colour": "orange"
+      },
+      "chance_to_apply": 0.67
+    },
+    {
+      "sets": {
+        "material": "#sandy"
+      },
+      "chance_to_apply": 0.67
+    },
+    {
+      "sets": {
+        "grass.colour": "yellow"
+      },
+      "chance_to_apply": 0.67
+    }
+  ]
 }

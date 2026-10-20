@@ -1,10 +1,11 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.age.language.Meaning
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.InkTier
-import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.language.Word
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.BuiltInRegistries
 import io.kotest.core.annotation.Tags
@@ -81,12 +82,14 @@ class WriteCostCheck : FunSpec({
 
     /** The pages every book needs are the cheapest there are: common ink, at the floor. */
     test("age and every aiming page are written in common ink at the least price") {
-        val age = vocabulary.grammarWord("age") ?: error("the corpus has no 'age' page")
+        val age = vocabulary.structurePage("age") ?: error("the corpus has no 'age' page")
         check(vocabulary.ink.tierFor(age) == InkTier.COMMON) { "'age' demands ${vocabulary.ink.tierFor(age)}" }
         for (aspect in Aspect.entries) {
             val page = vocabulary.word(aspect.page) ?: error("the corpus has no aiming page for $aspect")
             val tier = vocabulary.ink.tierFor(page, registries)
-            check(tier == InkTier.COMMON && page.price == Word.FLOOR_PRICE) {
+            // The aurora's and the rainbow's pages bring one about, and pay for it as any word choosing it does.
+            val meansNothingOfItsOwn = page.meanings.isEmpty()
+            check(tier == InkTier.COMMON && (!meansNothingOfItsOwn || page.price == Word.FLOOR_PRICE)) {
                 "the aiming page '${page.name}' costs ${page.price} in $tier"
             }
         }
@@ -98,7 +101,7 @@ class WriteCostCheck : FunSpec({
      */
     test("the extremes of the grammar take fine ink and the steps beside normal take common") {
         fun tierOf(name: String): InkTier {
-            val structural = vocabulary.grammarWord(name)
+            val structural = vocabulary.structurePage(name)
             val word = vocabulary.word(name)
             return when {
                 structural != null -> vocabulary.ink.tierFor(structural)
@@ -136,14 +139,15 @@ class WriteCostCheck : FunSpec({
      * rather than off the constants, since it is the corpus a writer meets.
      */
     test("a page that only leans is the cheapest and a versatile one is dearest") {
-        val leaning = vocabulary.authoredWords.filter { !it.narrows }
+        fun narrows(word: Word) = word.meanings.any(Meaning::narrows)
+        val leaning = vocabulary.authoredWords.filterNot(::narrows)
         val cheapest = vocabulary.authoredWords.minOf { it.price }
         check(leaning.isNotEmpty() && leaning.all { it.price == cheapest }) {
             "a word that only leans is not the cheapest thing in the language: " +
                 leaning.map { "${it.name}@${it.price}" }
         }
-        val narrow = vocabulary.words.first { it.narrows && it.versatility == 1.0 }
-        val broad = vocabulary.words.first { it.narrows && it.versatility > 1 }
+        val narrow = vocabulary.words.first { narrows(it) && it.price == Word.INK_PER_NARROWED_PART }
+        val broad = vocabulary.words.first { narrows(it) && it.price > Word.INK_PER_NARROWED_PART }
         check(broad.price > narrow.price) {
             "'${broad.name}' reaches more places than '${narrow.name}' and costs no more"
         }

@@ -3,10 +3,15 @@
     "A deposit of ore, and nothing about whether it is worth having: which ore is a prize is a fact about",
     "the game's economy rather than about the rock, and `rich` is the word that means it."
   ],
-  "restricts": {
-    "features": {
-      "ore": ">0.3"
+  "speech": "plural",
+  "meanings": [
+    {
+      "restricts": {
+        "features": {
+          "ore": ">0.3"
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "speech": "plural"
+  ]
 }

@@ -20,29 +20,44 @@
     "ever a proxy for a latitude an Age does not carry, and a charged Age has no reason to be a cold one.",
     "Asked near the top of its band, the curtains stand over temperate ground as well as ice."
   ],
-  "admits": {
-    "phenomena": [
-      "tempest",
-      "aurora"
-    ]
-  },
-  "biases": {
-    "phenomena": {
-      "tempest": 1.0,
-      "aurora": 1.0
-    }
-  },
-  "requests": {
-    "pools": [
-      {
-        "draws": "4",
-        "facets": {
-          "aurora.frequency": "0.75..1",
-          "aurora.glow": "+0.6",
-          "aurora.size": "0.5..1",
-          "aurora.warmth": "0.6..1"
+  "meanings": [
+    {
+      "admits": {
+        "phenomena": [
+          "tempest",
+          "aurora"
+        ]
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "phenomena": {
+          "tempest": 1.0,
+          "aurora": 1.0
         }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "aurora.frequency": "0.75..1"
       }
-    ]
-  }
+    },
+    {
+      "sets": {
+        "aurora.glow": "+0.6"
+      }
+    },
+    {
+      "sets": {
+        "aurora.size": "0.5..1"
+      }
+    },
+    {
+      "sets": {
+        "aurora.warmth": "0.6..1"
+      }
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.age.word.Speech
+import co.voik.agesandtheart.age.language.Speech
 import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.FissuresField
 import co.voik.agesandtheart.worldgen.GreatHalls

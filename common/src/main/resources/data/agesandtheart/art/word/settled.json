@@ -1,8 +1,13 @@
 {
-  "restricts": {
-    "structures": {
-      "inhabited": ">0.3",
-      "built": ">0.6"
+  "meanings": [
+    {
+      "restricts": {
+        "structures": {
+          "inhabited": ">0.3",
+          "built": ">0.6"
+        }
+      },
+      "must_always_apply": true
     }
-  }
+  ]
 }

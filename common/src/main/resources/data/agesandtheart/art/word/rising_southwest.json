@@ -1,5 +1,10 @@
 {
-  "sets": {
-    "rising": "southwest"
-  }
+  "meanings": [
+    {
+      "sets": {
+        "rising": "southwest"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

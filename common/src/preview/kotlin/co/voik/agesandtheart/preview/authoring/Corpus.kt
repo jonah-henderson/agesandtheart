@@ -3,7 +3,7 @@ package co.voik.agesandtheart.preview.authoring
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.language.Word
 import net.minecraft.network.chat.Component
 import net.minecraft.server.packs.PackLocationInfo
 import net.minecraft.server.packs.PackType
@@ -43,39 +43,6 @@ class Corpus(val vocabulary: Vocabulary, val snapshot: ServerSnapshot?) {
         return Corpus(vocabulary, taken)
     }
 
-    /**
-     * The corpus with [candidate] in it, for the questions that need a whole vocabulary rather than one
-     * word — reading a sentence, and resolving it.
-     *
-     * **Built by laying a one-file pack over the source tree** and loading again, rather than by reaching
-     * into `Vocabulary`'s own maps. It is the path the game takes, so a candidate that would collide with
-     * something, or be refused, says so here exactly as it would there. About a second, which is why it
-     * is asked for by a keystroke and not on every edit.
-     */
-    fun spliced(candidate: Candidate): Vocabulary {
-        val overlay = Files.createTempDirectory("art-candidate-").toFile()
-        val word = overlay.resolve("data/${Constants.MOD_ID}/${Vocabulary.WORD_DIRECTORY}")
-        word.mkdirs()
-        word.resolve("${candidate.name}.json").writeText(WordFile.textOf(candidate))
-        return try {
-            Vocabulary.load(resourcesOver(overlay), MinecraftRegistries.worldgen)
-        } finally {
-            overlay.deleteRecursively()
-        }
-    }
-
-    private fun resourcesOver(overlay: File) = MultiPackResourceManager(
-        PackType.SERVER_DATA,
-        listOf(
-            packAt(MinecraftRegistries.resourceRoot(), "agesandtheart"),
-            packAt(overlay.toPath(), "agesandtheart-candidate"),
-        ),
-    )
-
-    private fun packAt(root: Path, named: String) = PathPackResources(
-        PackLocationInfo(named, Component.literal(named), PackSource.BUILT_IN, Optional.empty()),
-        root,
-    )
 
     companion object {
         /**

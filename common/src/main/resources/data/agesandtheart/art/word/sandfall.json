@@ -12,8 +12,13 @@
     "for one here: a rainfall bound in this file would make it a word about the weather as well, and a",
     "second part narrowed is a second part paid for. A writer who wants a desert has `arid`."
   ],
-  "chooses": {
-    "phenomena": "sandfall"
-  },
-  "speech": "noun"
+  "speech": "noun",
+  "meanings": [
+    {
+      "chooses": {
+        "phenomena": "sandfall"
+      },
+      "must_always_apply": true
+    }
+  ]
 }

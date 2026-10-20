@@ -4,10 +4,15 @@
     "the spawns alone, so `no monsters spawns` is a world nothing hunts and `teeming monsters spawns` one",
     "everything does."
   ],
-  "restricts": {
-    "spawns": {
-      "hostile": ">0.3"
+  "speech": "plural",
+  "meanings": [
+    {
+      "restricts": {
+        "spawns": {
+          "hostile": ">0.3"
+        }
+      },
+      "must_always_apply": true
     }
-  },
-  "speech": "plural"
+  ]
 }
