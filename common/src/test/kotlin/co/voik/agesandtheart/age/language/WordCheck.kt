@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.age.language
 
+import co.voik.agesandtheart.age.resolution.Effect
+import co.voik.agesandtheart.age.resolution.ParameterKey
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus

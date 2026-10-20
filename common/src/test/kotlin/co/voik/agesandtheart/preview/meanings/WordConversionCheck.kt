@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.preview.meanings
 
+import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.NEEDS_REGISTRIES
-import co.voik.agesandtheart.age.language.Effect
 import co.voik.agesandtheart.age.language.Meaning
 import co.voik.agesandtheart.age.language.Word
 import co.voik.agesandtheart.age.language.WordFormat

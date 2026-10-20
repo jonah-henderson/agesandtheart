@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.language
 
+import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
@@ -41,7 +42,7 @@ object WordAcceptance {
         val appliesWhereAimed = word.meanings.filter { it.mustAlwaysApply || it.chanceToApply > Meaning.NEVER }
         val pattern = appliesWhereAimed.flatMap { it.effects }.filterIsInstance<Effect.Mints>().firstOrNull() ?: return null
         val feature = PlacedFeature.named(pattern.pattern) ?: return null
-        return Acceptance.ofMember(feature, registries).copy(takesSubstance = true)
+        return Acceptance.ofMember(feature, registries).copy(takesSubstance = true, mints = true)
     }
 
     /**
@@ -78,6 +79,7 @@ object WordAcceptance {
             place = Place(aspect, Members.Named(members.map(Taggable::key).toSet())),
             parameters = each.flatMap { it.parameters }.toSet(),
             takesChoices = false,
+            takesLeans = true,
             takesSubstance = each.any { it.takesSubstance },
             takesAbundance = each.any { it.takesAbundance },
         )

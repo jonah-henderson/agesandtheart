@@ -2,12 +2,15 @@ package co.voik.agesandtheart.age.language
 
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
+import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.honoursDial
 import co.voik.agesandtheart.age.aspect.ownParameters
+import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.resolution.Members
+import co.voik.agesandtheart.age.resolution.ParameterKey
 import co.voik.agesandtheart.age.resolution.Place
 import net.minecraft.core.HolderLookup
 import net.minecraft.resources.Identifier
@@ -20,16 +23,51 @@ data class Acceptance(
     val place: Place,
     /** The parameters a meaning may set or bend here. */
     val parameters: Set<String>,
-    /** Whether a choice, a bar or a lean on the members of the place's aspect lands here. */
+    /** Whether a choice or a bar on the members of the place's aspect lands here. */
     val takesChoices: Boolean,
+    /**
+     * Whether a lean on the members of the place's aspect lands here — on a word naming members, a lean among them:
+     * `beautiful plants` leans toward the beautiful ones, where a choice would argue with the naming.
+     */
+    val takesLeans: Boolean,
     /** Whether a substance — a block for the place to be made of — lands here. */
     val takesSubstance: Boolean,
     /** Whether an abundance — `teeming` — lands here. */
     val takesAbundance: Boolean,
+    /** Whether this mints a feature, so that a substance taken is what the feature is made of. */
+    val mints: Boolean = false,
     /** Words taken beyond what is derived, written by hand: a word answering one exact word laid before it. */
     val alsoTakes: Set<Identifier> = emptySet(),
 ) {
     fun takesParameter(name: String): Boolean = name in parameters
+
+    /** [effect] as it lands here, or null where this does not take it. */
+    fun take(effect: Effect): Effect? {
+        fun onThisAspect(aspect: Aspect) = aspect == place.aspect
+        return when (effect) {
+            is Effect.Sets -> when {
+                mints && effect.parameter.name in MATERIAL_PARAMETERS -> Effect.MadeOf(effect.value)
+                takes(effect.parameter) -> effect
+                else -> null
+            }
+            is Effect.Bends -> effect.takeIf { takes(it.parameter) }
+            is Effect.Chooses -> effect.takeIf { takesChoices && onThisAspect(it.aspect) }
+            is Effect.Admits -> effect.takeIf { takesChoices && onThisAspect(it.aspect) }
+            is Effect.Excludes -> effect.takeIf { takesChoices && onThisAspect(it.aspect) }
+            is Effect.Restricts -> effect.takeIf { takesChoices && onThisAspect(it.aspect) }
+            is Effect.Leans -> effect.takeIf { takesLeans && onThisAspect(it.aspect) }
+            is Effect.LeansEverywhere -> if (takesLeans) Effect.Leans(place.aspect, effect.weights) else null
+            is Effect.Mints -> effect.takeIf { takesChoices && onThisAspect(Aspect.FEATURES) }
+            is Effect.Abundance -> effect.takeIf { takesAbundance }
+            is Effect.Template, is Effect.MadeOf -> null
+        }
+    }
+
+    /** Whether a meaning setting [key] lands here: the parameter is taken, and any fence on it is this aspect. */
+    private fun takes(key: ParameterKey): Boolean {
+        val fenceFits = key.fencedTo == null || key.fencedTo == place.aspect
+        return fenceFits && takesParameter(key.name)
+    }
 
     companion object {
         /** What the page naming [aspect] takes: everything the aspect, and anything it may hold, understands. */
@@ -39,6 +77,7 @@ data class Acceptance(
                 place = Place(aspect),
                 parameters = aspect.understood.map(Parameter::name).toSet(),
                 takesChoices = holdsMembersToChoose,
+                takesLeans = holdsMembersToChoose,
                 takesSubstance = aspect.madeOfSomething,
                 takesAbundance = aspect.count != null,
             )
@@ -60,6 +99,7 @@ data class Acceptance(
                 place = Place(aspect, Members.Named(setOf(member.key))),
                 parameters = dials.map(Parameter::name).toSet(),
                 takesChoices = false,
+                takesLeans = aspect.holds == Holds.WEIGHTED_SET,
                 takesSubstance = dials.any(Parameter::material) || (seatsTheWholeAspect && aspect.madeOfSomething),
                 takesAbundance = countsInSpace(member),
             )

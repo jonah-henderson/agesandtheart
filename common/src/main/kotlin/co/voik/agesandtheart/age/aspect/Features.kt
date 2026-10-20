@@ -99,7 +99,10 @@ object Features {
      * named thing there are; these say what *this Age* is like, so they apply to everything it grows. A
      * word bends them exactly as `arid` bends a climate axis.
      */
-    /** A dial honoured by the placed features [asks] answers for, each looked up by its id. */
+    /**
+     * A dial honoured by the placed features [asks] answers for, each looked up by its id — and by one the registries
+     * do not hold, which cannot be looked at, as by a feature with no registries at all.
+     */
     private fun honouredWhere(asks: (Holder<VanillaPlacedFeature>, HolderLookup.Provider) -> Boolean) =
         MemberHonouring { member, registries ->
             val placed = (member as? PlacedFeature)?.id?.let { id ->
@@ -107,7 +110,7 @@ object Features {
                     .get(ResourceKey.create(Registries.PLACED_FEATURE, id))
                     .orElse(null)
             }
-            placed != null && asks(placed, registries)
+            placed == null || asks(placed, registries)
         }
 
     /**

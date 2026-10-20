@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.preview.meanings
 
+import co.voik.agesandtheart.age.resolution.ParameterKey
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.language.ParameterKey
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement

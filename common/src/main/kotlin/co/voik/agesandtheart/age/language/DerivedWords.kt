@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.age.language
 
+import co.voik.agesandtheart.age.resolution.Effect
+import co.voik.agesandtheart.age.resolution.ParameterKey
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Structures

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.language
 
+import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Speech
 import net.minecraft.resources.Identifier
@@ -45,7 +46,7 @@ data class Word(
             is Effect.Restricts -> setOf(effect.aspect)
             is Effect.Mints -> setOf(Aspect.FEATURES)
             is Effect.Template, is Effect.Bends, is Effect.Admits, is Effect.Leans, is Effect.LeansEverywhere,
-            is Effect.Abundance,
+            is Effect.Abundance, is Effect.MadeOf,
             -> emptySet()
         }
     }

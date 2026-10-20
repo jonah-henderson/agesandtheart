@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.age.language
+package co.voik.agesandtheart.age.resolution
 
 import co.voik.agesandtheart.age.aspect.Aspect
 
@@ -65,6 +65,11 @@ sealed interface Effect {
     /** The world the book starts from, by its key. */
     data class Template(val name: String) : Effect {
         override val narrows get() = true
+    }
+
+    /** What a minted feature is made of, taken from a substance laid before it: `gold_block obelisks`. */
+    data class MadeOf(val substance: String) : Effect {
+        override val narrows get() = false
     }
 
     /** How much of a member there is, as a multiple of what there would be — `teeming` is four. */
