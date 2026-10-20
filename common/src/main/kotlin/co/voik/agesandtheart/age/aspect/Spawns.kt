@@ -46,6 +46,10 @@ object Spawns {
      */
     val STILL = Parameter.flag("still", help = "Whether every creature is rooted where it stands.").perMember()
 
+    /** Whether a creeper comes into the Age charged, as lightning leaves one — `charged creepers`. */
+    val CHARGED = Parameter.flag("charged", help = "Whether creepers come charged.")
+        .perMember(MemberHonouring { member, _ -> member.key == CREEPER })
+
     /**
      * Whether any creature the Age offers may turn up anywhere, past its own placement rules — fish on hillsides,
      * monsters at noon — `incongruous spawns`. Scarabs keep their own rules.
@@ -389,6 +393,8 @@ object Spawns {
         (entry.weight() * rung).roundToInt().coerceIn(1, MOST_OFTEN)
 
     private const val MOST_OFTEN = 1000
+
+    private const val CREEPER = "minecraft:creeper"
 
     private fun idOf(type: EntityType<*>): Identifier = BuiltInRegistries.ENTITY_TYPE.getKey(type)
 }

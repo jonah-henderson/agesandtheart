@@ -31,8 +31,7 @@ object WordFormat {
         instance.group(
             MEANING.listOf().optionalFieldOf("meanings", emptyList()).forGetter(Word::meanings),
             Speech.CODEC.optionalFieldOf("speech").forGetter { Optional.ofNullable(it.speech) },
-            Identifier.CODEC.listOf().optionalFieldOf("takes", emptyList()).forGetter { it.alsoTakes.toList() },
-        ).apply(instance) { meanings, speech, takes -> Word(id, meanings, speech.orElse(null), takes.toSet()) }
+        ).apply(instance) { meanings, speech -> Word(id, meanings, speech.orElse(null)) }
     }
 
     private const val EVERYWHERE = "all"
@@ -71,6 +70,7 @@ object WordFormat {
         val unaimedChanceToApply: Double? = null,
         val mustAlwaysApply: Boolean = false,
         val asserts: Boolean = false,
+        val offeredTo: List<String> = emptyList(),
     ) {
         fun toMeaning(): DataResult<Meaning> {
             val leanings = leans.map { (on, weights) ->
@@ -98,7 +98,7 @@ object WordFormat {
             if (!chancesInRange) return DataResult.error { "a chance to apply is a share, from 0 to 1" }
             val alwaysAndSometimes = mustAlwaysApply && (chanceToApply != Meaning.CERTAIN || unaimedChanceToApply != null)
             if (alwaysAndSometimes) return DataResult.error { "a meaning that must always apply has no chance to give" }
-            return DataResult.success(Meaning(effects, chanceToApply, unaimedChanceToApply, mustAlwaysApply, asserts))
+            return DataResult.success(Meaning(effects, chanceToApply, unaimedChanceToApply, mustAlwaysApply, asserts, offeredTo.toSet()))
         }
 
         companion object {
@@ -121,6 +121,7 @@ object WordFormat {
                     unaimedChanceToApply = meaning.unaimedChanceToApply,
                     mustAlwaysApply = meaning.mustAlwaysApply,
                     asserts = meaning.asserts,
+                    offeredTo = meaning.offeredTo.toList(),
                 )
             }
 
@@ -146,11 +147,12 @@ object WordFormat {
                         .forGetter { Optional.ofNullable(it.unaimedChanceToApply) },
                     Codec.BOOL.optionalFieldOf("must_always_apply", false).forGetter(MeaningFile::mustAlwaysApply),
                     Codec.BOOL.optionalFieldOf("asserts", false).forGetter(MeaningFile::asserts),
+                    Codec.STRING.listOf().optionalFieldOf("offered_to", emptyList()).forGetter(MeaningFile::offeredTo),
                 ).apply(instance) { sets, bends, chooses, admits, excludes, restricts, leans, mints, template, abundance, chance,
-                                    unaimedChance, mustAlwaysApply, asserts ->
+                                    unaimedChance, mustAlwaysApply, asserts, offeredTo ->
                     MeaningFile(
                         sets, bends, chooses, admits, excludes, restricts, leans, mints.orElse(null), template.orElse(null),
-                        abundance.orElse(null), chance, unaimedChance.orElse(null), mustAlwaysApply, asserts,
+                        abundance.orElse(null), chance, unaimedChance.orElse(null), mustAlwaysApply, asserts, offeredTo,
                     )
                 }
             }

@@ -45,6 +45,20 @@ class MemberScopingCheck : FunSpec({
         }
     }
 
+    test("charged creepers and charged monsters charge the creepers, and a charged Age charges none") {
+        for (seed in SEEDS) {
+            check(aimed(seed, "charged", "creeper").optionsFor(Aspect.SPAWNS).isTrue(Spawns.CHARGED, member = CREEPER)) {
+                "seed $seed: 'charged creeper' left the creeper uncharged"
+            }
+            check(aimed(seed, "charged", "monsters").optionsFor(Aspect.SPAWNS).isTrue(Spawns.CHARGED, member = CREEPER)) {
+                "seed $seed: 'charged monsters' left the creepers uncharged"
+            }
+            check(!aimed(seed, "charged", "age").optionsFor(Aspect.SPAWNS).isTrue(Spawns.CHARGED, member = CREEPER)) {
+                "seed $seed: a charged Age charged its creepers"
+            }
+        }
+    }
+
     test("motionless spawns root everything") {
         val spawns = aimed(SEEDS.first, "motionless", "spawns").optionsFor(Aspect.SPAWNS)
         check(spawns.isTrue(Spawns.STILL, member = COW)) { "'motionless spawns' left a cow walking" }
@@ -82,4 +96,5 @@ class MemberScopingCheck : FunSpec({
 private val SEEDS = 0L..<10L
 private const val ZOMBIE = "minecraft:zombie"
 private const val COW = "minecraft:cow"
+private const val CREEPER = "minecraft:creeper"
 private const val ORE_FEATURE = "minecraft:ore_"

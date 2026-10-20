@@ -76,6 +76,17 @@ class ReadingCheck : FunSpec({
         check(deserted.none { landing -> landing.effects.any { it is Effect.Excludes } }) { "deserted struck something" }
     }
 
+    test("a meaning offered to a word lands whole where that word takes its page, and never laid bare") {
+        val book = read("age charged sky")
+        check(book.fateOf(1) == Fate.TakenBy(2)) { "charged went ${book.fateOf(1)}\n${book.readout}" }
+        val charged = book.landedBy(1)
+        val hangsACurtain = charged.any { landing -> landing.place.aspect == Aspect.PHENOMENA && landing.effects.any { it is Effect.Admits } }
+        check(hangsACurtain && charged.any { it.sets("glow") }) { "a charged sky hung no bright curtain\n${book.readout}" }
+        check(charged.none { it.sets("thunder") || it.sets("charged") }) { "a charged sky said what it says of other things\n${book.readout}" }
+        val bare = read("charged age").landedBy(0)
+        check(bare.none { it.sets("glow") }) { "the sky's reading was laid on the Age\n${read("charged age").readout}" }
+    }
+
     test("a member named on its own is asked for, and one described is not, unless an amount is asked or it must be brought") {
         fun namedBy(book: Reading, page: Int) =
             book.landedBy(page).any { landing -> landing.effects.any { it is Effect.Chooses || it is Effect.Restricts } }

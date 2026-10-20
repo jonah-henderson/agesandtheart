@@ -12,7 +12,7 @@ import co.voik.agesandtheart.preview.authoring.WordFile
 
 /**
  * The sections of the word screen, in the order the decisions fall: what it is called and costs, what it means,
- * what it takes, then the review, the comment and the file.
+ * then the review, the comment and the file.
  */
 enum class Part(
     val title: String,
@@ -27,7 +27,6 @@ enum class Part(
 
     /** The word itself: each meaning one idea, with how likely it is to apply. */
     MEANINGS("meanings", "each one idea, and how likely it is to apply — aimed, and laid bare", startsGroup = true),
-    TAKES("takes", "words this takes beyond what it derives, answering one exact page laid before it"),
 
     REVIEW("review", "where it lands, what it takes and what takes it", startsGroup = true),
     COMMENT("comment", ""),
@@ -73,10 +72,6 @@ sealed interface Handle {
 
     data object AddMeaning : Handle
 
-    data class Take(val page: String) : Handle
-
-    data object AddTake : Handle
-
     data object Comment : Handle
 
     data class Save(val andLeave: Boolean) : Handle
@@ -92,7 +87,6 @@ class Parts(private val corpus: Corpus) {
         Part.COST -> costRows(word)
         Part.LISTING -> listingRows(candidate)
         Part.MEANINGS -> meaningRows(candidate)
-        Part.TAKES -> takeRows(candidate)
         Part.REVIEW -> reviewRows(word)
         Part.COMMENT -> commentRows(candidate)
         Part.SAVE -> listOf(Row(Handle.Save(andLeave = false), listOf(Ink("write the file", Palette.value))))
@@ -101,7 +95,7 @@ class Parts(private val corpus: Corpus) {
     }
 
     /** Whether this section holds a list you add to and delete from, which decides what `a` and `d` mean. */
-    fun isAList(part: Part) = part == Part.MEANINGS || part == Part.TAKES
+    fun isAList(part: Part) = part == Part.MEANINGS
 
     fun isAHeading(row: Row): Boolean = row.handle == Handle.Heading
 
@@ -120,8 +114,6 @@ class Parts(private val corpus: Corpus) {
         }
         is Handle.AddEffect -> listOf("enter" to "add to this meaning")
         Handle.AddMeaning -> listOf("enter" to "a new meaning")
-        is Handle.Take -> listOf("d" to "remove it")
-        Handle.AddTake -> listOf("enter" to "take another page")
         Handle.Comment -> listOf("enter" to "open \$EDITOR")
         is Handle.Save -> listOf("enter" to "write the file")
         Handle.Delete -> listOf("enter" to "delete the word")
@@ -224,6 +216,7 @@ class Parts(private val corpus: Corpus) {
             Ink("meaning ${at + 1}  ", Palette.heading),
             Ink(how, Palette.value),
             Ink(if (meaning.asserts) "  · asserts" else "", Palette.chosen),
+            Ink(if (meaning.isOffered) "  · offered to ${meaning.offeredTo.sorted().joinToString(" ")}" else "", Palette.chosen),
         )
     }
 
@@ -231,7 +224,8 @@ class Parts(private val corpus: Corpus) {
         append("how likely it is to apply\n")
         append("    aimed, a chance; laid bare, its own or the aimed chance times the Art's ${percent(Meaning.BARE_CHANCE)}\n")
         append("    must always apply: aimed, it does; laid bare, at one place it reaches at least\n")
-        if (meaning.asserts) append("    asserts: it needs nothing to land on, and lands alone where nothing takes it")
+        if (meaning.asserts) append("    asserts: it needs nothing to land on, and lands alone where nothing takes it\n")
+        if (meaning.isOffered) append("    offered: it applies only where one of the words it is offered to takes it, and lands whole there")
     }
 
     private fun percent(share: Double) = "${(share * PERCENT).toInt()}%"
@@ -274,12 +268,7 @@ class Parts(private val corpus: Corpus) {
         return (parameter?.help ?: key.name) + reach
     }
 
-    // -- what it takes ------------------------------------------------------------------------------
-
-    private fun takeRows(candidate: Candidate): List<Row> =
-        candidate.takes.sortedBy { it.toString() }.map { taken ->
-            Row(Handle.Take(taken.path), listOf(Ink("takes    ", Palette.faint), Ink(taken.path, Palette.value)))
-        } + Row(Handle.AddTake, listOf(Ink("+ ", Palette.chosen), Ink("take another page", Palette.faint)))
+    // -- where it lands ------------------------------------------------------------------------------
 
     private fun reviewRows(word: Word): List<Row> {
         val lexicon = corpus.vocabulary.lexicon

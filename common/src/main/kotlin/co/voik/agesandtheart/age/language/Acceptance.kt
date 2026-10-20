@@ -13,7 +13,6 @@ import co.voik.agesandtheart.age.resolution.Members
 import co.voik.agesandtheart.age.resolution.ParameterKey
 import co.voik.agesandtheart.age.resolution.Place
 import net.minecraft.core.HolderLookup
-import net.minecraft.resources.Identifier
 
 /**
  * What a word takes from the pages waiting before it, and the [place] what it takes lands. Read off what the place
@@ -36,8 +35,6 @@ data class Acceptance(
     val takesAbundance: Boolean,
     /** Whether this mints a feature, so that a substance taken is what the feature is made of. */
     val mints: Boolean = false,
-    /** Words taken beyond what is derived, written by hand: a word answering one exact word laid before it. */
-    val alsoTakes: Set<Identifier> = emptySet(),
 ) {
     fun takesParameter(name: String): Boolean = name in parameters
 

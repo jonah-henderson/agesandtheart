@@ -1,0 +1,78 @@
+{
+  "_comment": [
+    "Lightning in the air. Each thing it is said of takes the charge its own way: a charged sky hangs curtains",
+    "of aurora at their brightest, charged weather thunders, charged phenomena are the storms and the curtains",
+    "`electromagnetic` asks for at their strongest, and a charged creeper is the one lightning leaves.",
+    "",
+    "**The sky's reading is offered to it**, because the sky understands nothing an aurora is: left to what",
+    "the sky takes, `charged sky` would land the word's other meanings bare and say nothing of the sky. The",
+    "creeper's charge never lands bare, so `charged age` brings the storms and the curtains and no charged",
+    "creepers; `charged monsters` charges the creepers among them, which is what it says."
+  ],
+  "meanings": [
+    {
+      "admits": {
+        "phenomena": [
+          "aurora"
+        ]
+      },
+      "leans": {
+        "phenomena": {
+          "aurora": 1.0
+        }
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.frequency": "0.9..1",
+        "aurora.glow": "+0.8",
+        "aurora.size": "0.7..1",
+        "aurora.warmth": "0.6..1"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "thunder": "0.7..1.0"
+      }
+    },
+    {
+      "admits": {
+        "phenomena": [
+          "tempest",
+          "aurora"
+        ]
+      },
+      "leans": {
+        "phenomena": {
+          "tempest": 1.0,
+          "aurora": 1.0
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "aurora.frequency": "0.75..1",
+        "phenomena.strength": "0.6..1"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "phenomena"
+      ]
+    },
+    {
+      "sets": {
+        "charged": "true"
+      },
+      "unaimed_chance_to_apply": 0.0
+    }
+  ]
+}

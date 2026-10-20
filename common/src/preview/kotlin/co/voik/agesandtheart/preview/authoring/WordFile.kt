@@ -100,8 +100,8 @@ object WordFile {
 
     private const val COMMENT = "_comment"
 
-    /** How a word file reads top to bottom: what it is said as and takes, then what it means. */
-    private val LAID_OUT_IN_ORDER = listOf("speech", "takes", "meanings")
+    /** How a word file reads top to bottom: what it is said as, then what it means. */
+    private val LAID_OUT_IN_ORDER = listOf("speech", "meanings")
 
     /**
      * Whether [name] could be a word's file name — the same rule [write] refuses on, asked in advance.

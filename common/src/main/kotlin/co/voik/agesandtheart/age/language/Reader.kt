@@ -182,20 +182,26 @@ object Reader {
             waiting.clear()
 
             val from = claims.size
+            fun isOfferedHere(meaning: Meaning) = word.name in meaning.offeredTo
             for (page in taking) {
-                val taken = page.word.meanings.mapNotNull { meaning ->
+                val taken = page.word.meanings.filter { !it.isOffered }.mapNotNull { meaning ->
                     meaning.effects.mapNotNull(acceptance::take).distinct().takeIf { it.isNotEmpty() }?.let { meaning to it }
                 }
+                val offered = page.word.meanings.filter(::isOfferedHere)
                 // A page the word before `and` took stays taken where this one takes none of it.
-                if (taken.isEmpty()) {
+                if (taken.isEmpty() && offered.isEmpty()) {
                     if (joinedTo == null) fell(page)
                     continue
                 }
                 if (joinedTo == null) fates[page.index] = Fate.TakenBy(at)
+                val pageJoined = page.joined ?: joined
                 for ((meaning, effects) in taken) {
-                    claims += Claim(
-                        page.index, page.word, meaning, place, effects, clause = at, aimed = true, joined = page.joined ?: joined,
-                    )
+                    claims += Claim(page.index, page.word, meaning, place, effects, clause = at, aimed = true, joined = pageJoined)
+                }
+                for (meaning in offered) {
+                    for ((offeredPlace, effects) in offeredPlacesOf(meaning, acceptance, place)) {
+                        claims += Claim(page.index, page.word, meaning, offeredPlace, effects, clause = at, aimed = true, joined = pageJoined)
+                    }
                 }
             }
             ownMeanings(word, acceptance, place, describedBy = claims.subList(from, claims.size), joined = joined)
@@ -228,13 +234,21 @@ object Reader {
             if (place.members is Members.Body) {
                 claims += Claim(at, word, Meaning(emptyList(), mustAlwaysApply = true), place, emptyList(), clause = at, aimed = true)
             }
-            for (meaning in word.meanings) {
+            for (meaning in word.meanings.filter { !it.isOffered }) {
                 if (onlyDescribes && meaning.effects.all(::namesMembers)) continue
                 namesATemplate(at, meaning)
                 for ((ownPlace, effects) in placesOf(meaning)) {
                     claims += Claim(at, word, meaning, ownPlace, effects, clause = at, aimed = true, polarity = said, joined = joined)
                 }
             }
+        }
+
+        /** An offered meaning lands whole: what [acceptance] takes of it at [place], the rest where it lies bare. */
+        private fun offeredPlacesOf(meaning: Meaning, acceptance: Acceptance, place: Place): List<Pair<Place, List<Effect>>> {
+            val takenHere = meaning.effects.mapNotNull(acceptance::take).distinct()
+            val untaken = meaning.effects.filter { acceptance.take(it) == null }
+            val atTheTaker = if (takenHere.isEmpty()) emptyList() else listOf(place to takenHere)
+            return atTheTaker + placesOf(meaning.copy(effects = untaken))
         }
 
         private fun namesMembers(effect: Effect) = effect is Effect.Chooses || effect is Effect.Restricts
@@ -253,7 +267,7 @@ object Reader {
         private fun fell(page: Waiting) {
             // A rock's formations assert, and never apply where aimed: a rock nothing took is laid on the Age.
             fun couldApplyAlone(meaning: Meaning) = meaning.mustAlwaysApply || meaning.chanceToApply > Meaning.NEVER
-            val asserted = page.word.meanings.filter { it.asserts && couldApplyAlone(it) }
+            val asserted = page.word.meanings.filter { it.asserts && !it.isOffered && couldApplyAlone(it) }
             if (asserted.isEmpty()) return laidBare(page, Fate.Moved)
             fates[page.index] = Fate.AssertedAlone
             for (meaning in asserted) {

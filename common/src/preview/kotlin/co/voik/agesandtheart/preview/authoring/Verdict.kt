@@ -106,6 +106,9 @@ object Verdict {
                 if (alwaysAndSometimes) add(refused("meaning ${at + 1} must always apply and has a chance as well", heldBy = "WordFormat"))
                 val chances = listOfNotNull(meaning.chanceToApply, meaning.unaimedChanceToApply)
                 if (chances.any { it !in Meaning.NEVER..Meaning.CERTAIN }) add(refused("meaning ${at + 1}'s chance is not a share", heldBy = "WordFormat"))
+                for (offeredTo in meaning.offeredTo.filter { vocabulary.word(it) == null }) {
+                    add(refused("meaning ${at + 1} is offered to '$offeredTo', which is not a word"))
+                }
             }
         }
 

@@ -14,8 +14,6 @@ data class Word(
     val meanings: List<Meaning>,
     /** How a book's prose speaks it, where its file says. */
     val speech: Speech? = null,
-    /** Words this takes beyond what it derives — a word answering one exact word laid before it. */
-    val alsoTakes: Set<Identifier> = emptySet(),
 ) {
     val name: String get() = id.path
 

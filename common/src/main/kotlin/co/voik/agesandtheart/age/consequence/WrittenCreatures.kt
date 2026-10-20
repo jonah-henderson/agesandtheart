@@ -14,6 +14,7 @@ import net.minecraft.world.entity.Mob
 import net.minecraft.world.entity.ai.attributes.Attribute
 import net.minecraft.world.entity.ai.attributes.AttributeModifier
 import net.minecraft.world.entity.ai.attributes.Attributes
+import net.minecraft.world.entity.monster.Creeper
 import net.minecraft.util.RandomSource
 import net.minecraft.world.item.ItemStack
 import kotlin.math.pow
@@ -21,7 +22,7 @@ import kotlin.math.pow
 /**
  * What a book wrote of how its creatures move and how strong they are, member by member — `slow monsters`,
  * `strong spawns`. Laid on as each creature enters the Age, as [StillCreatures] roots them, and transient, so a
- * creature carried out of the Age is its own again.
+ * creature carried out of the Age is its own again — but for a creeper's charge, which is vanilla's own and stays.
  */
 object WrittenCreatures {
 
@@ -31,6 +32,7 @@ object WrittenCreatures {
         val recipe = Ages.recipeOf(level) ?: return
         val spawns = recipe.composition?.optionsFor(Aspect.SPAWNS) ?: return
         val kind = BuiltInRegistries.ENTITY_TYPE.getKey(mob.type).toString()
+        if (mob is Creeper && spawns.isTrue(Spawns.CHARGED, member = kind)) mob.entityData.set(Creeper.DATA_IS_POWERED, true)
         spawns.steer(Spawns.PACE, recipe.seed, member = kind)?.let { pace ->
             for (attribute in MOVING) changeBy(mob, attribute, PACED, paceAt(pace) - AS_IT_IS)
         }

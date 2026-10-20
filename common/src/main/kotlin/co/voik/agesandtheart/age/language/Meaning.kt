@@ -17,11 +17,19 @@ data class Meaning(
     val mustAlwaysApply: Boolean = false,
     /** Whether this lands with nothing to take it — `sunless`, a minting — rather than modifying what accepts it. */
     val asserts: Boolean = false,
+    /**
+     * The words this is offered to, where it is: it applies only where one of them takes its page, and lands there
+     * whole, each effect where that word would take it or at its own place — `charged sky`, an aurora.
+     */
+    val offeredTo: Set<String> = emptySet(),
 ) {
+    /** Whether this is for particular words rather than for whatever takes its page. */
+    val isOffered: Boolean get() = offeredTo.isNotEmpty()
+
     val narrows: Boolean get() = effects.any(Effect::narrows)
 
-    /** Whether laying the word bare can apply this at all. */
-    val appliesUnaimed: Boolean get() = mustAlwaysApply || unaimedChanceToApply != NEVER
+    /** Whether laying the word bare can apply this at all; an offered meaning never can. */
+    val appliesUnaimed: Boolean get() = !isOffered && (mustAlwaysApply || unaimedChanceToApply != NEVER)
 
     companion object {
         const val CERTAIN = 1.0

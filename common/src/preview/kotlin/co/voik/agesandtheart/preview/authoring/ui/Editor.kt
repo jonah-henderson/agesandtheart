@@ -14,7 +14,6 @@ import co.voik.agesandtheart.age.language.Speech
 import co.voik.agesandtheart.age.language.Word
 import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.resolution.ParameterKey
-import co.voik.agesandtheart.location
 import co.voik.agesandtheart.preview.authoring.Candidate
 import co.voik.agesandtheart.preview.authoring.Corpus
 import co.voik.agesandtheart.preview.authoring.Trial
@@ -23,6 +22,7 @@ import co.voik.agesandtheart.preview.authoring.WordFile
 import co.voik.agesandtheart.preview.authoring.asserting
 import co.voik.agesandtheart.preview.authoring.changingMeaning
 import co.voik.agesandtheart.preview.authoring.mustAlways
+import co.voik.agesandtheart.preview.authoring.offering
 import co.voik.agesandtheart.preview.authoring.withChance
 import co.voik.agesandtheart.preview.authoring.withEffect
 import co.voik.agesandtheart.preview.authoring.withEffectAt
@@ -206,7 +206,6 @@ class Editor(
         Part.COST -> word().price.toString()
         Part.LISTING -> if (WordFile.listingOf(candidate).rarity == null) "" else Glyph.TICK
         Part.MEANINGS -> candidate.meanings.size.takeIf { it > 0 }?.toString().orEmpty()
-        Part.TAKES -> candidate.takes.size.takeIf { it > 0 }?.toString().orEmpty()
         Part.REVIEW, Part.DELETE -> ""
         Part.COMMENT -> if (candidate.comment.isEmpty()) "" else Glyph.TICK
         Part.SAVE, Part.SAVE_AND_LEAVE -> if (unsaved) Glyph.WARN else Glyph.TICK
@@ -620,8 +619,6 @@ class Editor(
             is Handle.Entry -> change(handle)
             is Handle.AddEffect -> pickAKind(handle.meaning)
             Handle.AddMeaning -> addAMeaning()
-            is Handle.Take -> message = "d takes it out"
-            Handle.AddTake -> pickATake()
             Handle.Comment -> openTheEditor()
             is Handle.Save -> { save(); if (handle.andLeave && !unsaved) quitting = true }
             Handle.Delete -> askAboutDeleting()
@@ -632,7 +629,6 @@ class Editor(
         is Handle.MeaningHead -> pickAKind(here.meaning)
         is Handle.Entry -> pickAKind(here.meaning)
         is Handle.AddEffect -> pickAKind(here.meaning)
-        is Handle.Take, Handle.AddTake -> pickATake()
         else -> addAMeaning()
     }
 
@@ -640,7 +636,6 @@ class Editor(
         when (here) {
             is Handle.MeaningHead -> edit { it.withoutMeaning(here.meaning) }
             is Handle.Entry -> edit { it.changingMeaning(here.meaning) { meaning -> meaning.withoutEntry(here.effect, here.key) } }
-            is Handle.Take -> edit { candidate -> candidate.copy(takes = candidate.takes.filterNot { it.path == here.page }.toSet()) }
             else -> message = "nothing here to remove"
         }
         moveTo(row())
@@ -688,6 +683,7 @@ class Editor(
                 Picker.Option(AIMED, "a chance where aimed", "${meaning.chanceToApply}"),
                 Picker.Option(BARE, "a chance laid bare", meaning.unaimedChanceToApply?.toString() ?: "the Art's share of the aimed chance"),
                 Picker.Option(ASSERTS, if (meaning.asserts) "stop asserting" else "asserts", "needs nothing to land on, and lands alone where nothing takes it", startsGroup = true),
+                Picker.Option(OFFERED, "offered to", meaning.offeredTo.sorted().joinToString(" ").ifEmpty { "whatever takes its page" }),
             ),
         ) { picked ->
             when (picked.value) {
@@ -700,8 +696,22 @@ class Editor(
                     edit { it.changingMeaning(at) { meaning -> meaning.withUnaimedChance(chance) } }
                 }
                 ASSERTS -> edit { it.changingMeaning(at) { meaning -> meaning.asserting(!meaning.asserts) } }
+                OFFERED -> askWhoItIsOfferedTo(at, meaning)
             }
         }
+    }
+
+    private fun askWhoItIsOfferedTo(at: Int, meaning: Meaning) {
+        fun wordsIn(typed: String) = typed.split(' ').filter(String::isNotBlank).toSet()
+        overlay = Prompt(
+            title = "Offer meaning ${at + 1} to which words?",
+            hint = "words separated by spaces, or nothing for whatever takes its page",
+            typed = meaning.offeredTo.sorted().joinToString(" "),
+            complaint = { typed ->
+                wordsIn(typed).firstOrNull { corpus.vocabulary.word(it) == null }?.let { "no word is called '$it'" }
+            },
+            onDone = { typed -> edit { it.changingMeaning(at) { meaning -> meaning.offering(wordsIn(typed)) } } },
+        )
     }
 
     private fun askForAChance(title: String, standing: String, done: (Double?) -> Unit) {
@@ -1036,15 +1046,6 @@ class Editor(
         }
     }
 
-    private fun pickATake() {
-        overlay = Prompt(
-            title = "Take which page?",
-            hint = "a word this takes when it is laid just before it",
-            typed = "",
-            complaint = { typed -> if (corpus.vocabulary.word(typed) == null) "no word is called that" else null },
-            onDone = { typed -> edit { it.copy(takes = it.takes + typed.location()) } },
-        )
-    }
 
     private fun relist() {
         val default = WordFile.defaultBucket()
@@ -1234,6 +1235,7 @@ class Editor(
         const val AIMED = "aimed"
         const val BARE = "bare"
         const val ASSERTS = "asserts"
+        const val OFFERED = "offered"
         const val SETS = "sets"
         const val BENDS = "bends"
         const val CHOOSES = "chooses"
