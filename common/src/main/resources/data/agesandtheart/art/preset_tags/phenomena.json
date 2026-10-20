@@ -75,10 +75,11 @@
     }
   },
   "overgrowth": {
-    "_comment": "Thick with growth, so `lush` is what it is made of and what it leaves. `hostile` at about half the sandfall's: the thorns hurt whoever moves in them, and nothing else about it does, and it is slow enough to outwalk.",
+    "_comment": "Thorns and fungal decay rather than greenery (Jonah, 2026-10-20): `hostile` as a tempest is, `fungal` and `dark` for the rot, so `dreamlike` and `uncanny` may reach it. Not `lush`: a word leaning towards lush country is not asking for a hazard.",
     "tags": {
-      "lush": 1.0,
-      "hostile": 0.5
+      "hostile": 0.8,
+      "fungal": 0.5,
+      "dark": 0.4
     }
   },
   "fog": {

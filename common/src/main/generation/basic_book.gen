@@ -64,10 +64,11 @@ open_curious_landmass = [open_landmass]@3 | [size] [open_sized_landmass]@2 | [op
 
 look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground]@2 | [moon] | [weather]
 
-# A mood laid bare could colour the sky, the clouds, the waters or the rock, and incoherence is charged on what
-# could land, so beside one only what no mood says: no sky, no sea, no settlement, and no moon, `moonless` being one.
-look_beside_a_mood = [aurora]@2 | [rainbow]@2 | [weather]
+# Beside a mood, no moon: `moonless` is one. A mood's offers yield to what a page aims, so the rest may stand.
+look_beside_a_mood = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground]@2 | [weather]
 
+# What a mood insists on is not an offer and does not yield: `desolate` keeps an empty sea and a barren country, so
+# beside a mood no sea and no structures.
 thing_beside_a_mood = [formation]@3 | [underground]@3
 
 thing = [landed_thing]@4 | [sea]

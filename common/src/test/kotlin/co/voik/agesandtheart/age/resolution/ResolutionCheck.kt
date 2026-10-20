@@ -68,6 +68,13 @@ class ResolutionCheck : FunSpec({
         check(asked.incoherentPairs().isEmpty()) { "a climate divided on purpose was charged: ${asked.instability}" }
     }
 
+    /** Laid bare, `beautiful` offers a blue sky; an aimed `red sky` overrules it, and nothing is charged for that. */
+    test("an offer laid bare yields to a page aimed there") {
+        val overruled = resolved("beautiful age red sky")
+        check(overruled.incoherentPairs().isEmpty()) { "a bare offer was charged against an aimed page: ${overruled.instability}" }
+        check(overruled.option(Aspect.SKY, "colour").toList() == listOf("red")) { overruled.spelled() }
+    }
+
     test("a minting is made of what its clause laid, at the size its clause asked") {
         val obelisks = resolved("age colossal gold_block obelisks")
         val placed = obelisks.option(Aspect.FEATURES, Features.PLACES.name)

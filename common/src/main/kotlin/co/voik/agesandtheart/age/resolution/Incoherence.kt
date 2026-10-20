@@ -13,7 +13,7 @@ import co.voik.agesandtheart.age.aspect.Setting
  * charged the same at every seed. One flaw per pair of words, naming the place they first clashed and what over.
  *
  * Two landings clash where they are at one place and said of members in common, sited alike and not joined by
- * `and`, and: settle one parameter to values that cannot both hold; are made of different things; choose different
+ * `and`, and neither is a bare offer an aimed word overrules, and: settle one parameter to values that cannot both hold; are made of different things; choose different
  * members of a catalogue; one strikes what the other chooses; one wants or leans toward a tag the other bars or
  * leans against, or toward one opposed to a tag the other wants or leans toward; or one keeps only its own members
  * of a population another adds to. A word never clashes with itself.
@@ -35,8 +35,13 @@ internal fun incoherence(world: WorldFacts, possible: List<Landing>): List<Flaw>
     return found.values.toList()
 }
 
-/** Whether two landings are in one place: the same members in part, the same body, the same biome, unjoined. */
+/**
+ * Whether two landings are in one place to disagree: the same members in part, the same body, the same biome,
+ * unjoined, and neither a bare offer yielding to the other aimed there.
+ */
 private fun meet(one: Landing, other: Landing): Boolean {
+    fun yieldsTo(offer: Landing, aimed: Landing) = offer.isAnOffer && !offer.aimed && aimed.aimed
+    if (yieldsTo(one, other) || yieldsTo(other, one)) return false
     if (one.isJoinedTo(other) || one.sitedIn != other.sitedIn) return false
     val oneMembers = one.members
     val otherMembers = other.members

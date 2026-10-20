@@ -23,6 +23,8 @@ data class Landing(
     val aimed: Boolean,
     /** The chance it had to apply, which ranks it below an aimed landing and above a less likely one. */
     val chance: Double,
+    /** Whether its meaning only might apply, being neither certain nor bound to land: laid bare, it yields to an aimed word. */
+    val isAnOffer: Boolean = false,
     /** The `and` joining it to others, where one does: a division the writer asked for. */
     val joined: Int? = null,
     /** The biome it is sited in: `in jungle`. */

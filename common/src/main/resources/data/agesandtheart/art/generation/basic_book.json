@@ -55,8 +55,10 @@
       {"produce":["[weather]"]}
     ],
     "look_beside_a_mood": [
+      {"weight":4.0,"produce":["[sky]"]},
       {"weight":2.0,"produce":["[aurora]"]},
       {"weight":2.0,"produce":["[rainbow]"]},
+      {"weight":2.0,"produce":["[ground]"]},
       {"produce":["[weather]"]}
     ],
     "thing_beside_a_mood": [

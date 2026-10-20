@@ -1,8 +1,8 @@
 {
   "_comment": [
-    "Hostile and sheer, and burning at the edges: two of a red, orange or black sky, a red light, embers or",
-    "ash in the air, haze, more thunder, and a dark rock are offered to every savage Age, each yielding to",
-    "anything the book says."
+    "Hostile and sheer, and burning at the edges: two of a red, orange or black sky, a red light, ash in the",
+    "air, haze, more thunder, and a dark rock are offered to every savage Age, each yielding to a page aimed",
+    "there. Embers are the inferno's alone."
   ],
   "meanings": [
     {
@@ -43,12 +43,6 @@
     {
       "sets": {
         "air.tint": "orange"
-      },
-      "chance_to_apply": 0.33
-    },
-    {
-      "sets": {
-        "motes": "embers"
       },
       "chance_to_apply": 0.33
     },

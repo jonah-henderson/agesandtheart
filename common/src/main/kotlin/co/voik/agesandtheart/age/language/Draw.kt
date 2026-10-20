@@ -87,6 +87,7 @@ internal object Draw {
         page = claim.page,
         aimed = claim.aimed,
         chance = chanceOf(claim),
+        isAnOffer = !claim.meaning.mustAlwaysApply && claim.meaning.chanceToApply < Meaning.CERTAIN,
         joined = claim.joined,
         sitedIn = claim.sitedIn,
         everywhere = claim.everywhere,

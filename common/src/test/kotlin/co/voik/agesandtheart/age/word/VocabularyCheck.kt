@@ -279,8 +279,7 @@ class VocabularyCheck : FunSpec({
      */
     test("only the inferno may hang burning air") {
         val reserved = setOf("embers", "flames")
-        // The meanings a word never lands without, as the warning was always held: `savage` offers embers by chance.
-        fun offers(word: Word) = word.meanings.filter { it.mustAlwaysApply }.flatMap { it.effects }.filterIsInstance<Effect.Sets>()
+        fun offers(word: Word) = word.effects.filterIsInstance<Effect.Sets>()
             .filter { it.parameter.name == MOTES }
             .flatMap { it.value.split(POOL_ALTERNATIVES) }
             .filter { it in reserved }
