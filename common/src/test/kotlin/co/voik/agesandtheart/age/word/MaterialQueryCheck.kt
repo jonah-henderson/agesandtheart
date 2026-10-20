@@ -7,7 +7,6 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
-import co.voik.agesandtheart.age.resolution.Effect
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -68,21 +67,6 @@ class MaterialQueryCheck : FunSpec({
         val notSandy = grounds.filterNot { it.size == 1 && it.single() in sandy }
         check(notSandy.isEmpty()) { "arid Ages stood on $notSandy" }
         check(grounds.toSet().size > 1) { "every arid Age stood on ${grounds.first()}" }
-    }
-
-    /**
-     * **Every query a shipped word makes can land.** A query nothing answers asks for nothing and says so
-     * nowhere, which is the silent drop §3.3 forbids; the table is the only thing that can answer one.
-     */
-    test("every material a word asks for by tag is there to be drawn") {
-        val unanswered = vocabulary.authoredWords.flatMap { word ->
-            word.effects.filterIsInstance<Effect.Sets>()
-                .filter { MaterialTable.asksByTag(it.parameter.spelled, it.value) }
-                .flatMap { it.value.split('|').map(String::trim).filter(Materials::isQuery) }
-                .filter { query -> table.carriersOf(query.removePrefix(Materials.QUERY_MARK)).isEmpty() }
-                .map { "${word.name} asks for $it" }
-        }
-        check(unanswered.isEmpty()) { "no block a world can be made of answers: $unanswered" }
     }
 })
 

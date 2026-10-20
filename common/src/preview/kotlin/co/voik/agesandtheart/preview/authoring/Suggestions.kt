@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.language.Fate
 import co.voik.agesandtheart.age.language.Meaning
 import co.voik.agesandtheart.age.language.Structure
 import co.voik.agesandtheart.age.language.Word
@@ -8,11 +9,8 @@ import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.word.Vocabulary
 
 /**
- * What page could be laid next, read off the reading (`notes/meanings-plan.md` §2).
- *
- * **The bare minimum the meanings rework left it**, until Scrivener is reworked for meanings (phase 6). On meanings
- * almost nothing is inert while a book is being written — a page nothing takes is laid on the Age — so every page is
- * offered, the closers are the words that would take what is waiting, and an offer's claims are its meanings.
+ * What page could be laid next, read off the reading (`notes/meanings-plan.md` §2): the pages that would take what
+ * is waiting first, and set aside those that would land nothing, take nothing and bind nothing where they were laid.
  */
 class Suggestions(private val vocabulary: Vocabulary) {
 
@@ -45,11 +43,28 @@ class Suggestions(private val vocabulary: Vocabulary) {
         val all: List<Offer> get() = bearing + inert
     }
 
-    /** Every page that could follow [laid], those that would take what is waiting first. */
+    /** Every page that could follow [laid], those that would take what is waiting first and the inert set aside. */
     fun after(laid: List<String>): Offers {
         val closing = closersAfter(laid).toSet()
-        val offers = sayable.map { offerOf(it, closes = it in closing) }
-        return Offers(offers.sortedWith(compareByDescending<Offer> { it.closes }.thenByDescending { it.authored }.thenBy { it.page }), emptyList())
+        val ordering = compareByDescending<Offer> { it.closes }.thenByDescending { it.authored }.thenBy { it.page }
+        val (bearing, inert) = sayable.partition { bears(laid, it) }
+        return Offers(
+            bearing.map { offerOf(it, closes = it in closing) }.sortedWith(ordering),
+            inert.map { offerOf(it, closes = false) }.sortedWith(ordering),
+        )
+    }
+
+    /** Whether [page], laid after [laid], would do anything there: land something, take something, or bind as structure. */
+    private fun bears(laid: List<String>, page: String): Boolean {
+        val row = laid + page
+        val book = if (vocabulary.structurePage(AGE_PAGE) != null && AGE_PAGE !in row) row + AGE_PAGE else row
+        val reading = vocabulary.read(book, SEED) ?: return true
+        val at = laid.size
+        val read = reading.pages.getOrNull(at) ?: return false
+        val landsSomething = reading.possible.any { it.page == at }
+        val tookSomething = reading.pages.any { (it.fate as? Fate.TakenBy)?.taker == at }
+        val bindsAsStructure = read.fate is Fate.Structural
+        return landsSomething || tookSomething || bindsAsStructure
     }
 
     /** The parts of the world the pages waiting at the end of [laid] could still be taken by, or null where none wait. */
@@ -123,5 +138,6 @@ class Suggestions(private val vocabulary: Vocabulary) {
     private companion object {
         /** Whether a row reads as laid does not depend on the draw, so any seed asks it. */
         const val SEED = 0L
+        const val AGE_PAGE = "age"
     }
 }

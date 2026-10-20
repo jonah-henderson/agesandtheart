@@ -50,8 +50,8 @@ class Picker(
      * at a time meant walking the whole flow three times over and remembering which were already done.
      */
     val marking: Boolean = false,
-    /** What `→` does while [marking] — take this one alone and never mind what is marked. */
-    val onOnly: ((Option) -> Unit)? = null,
+    /** What `→` does while [marking]: take what is marked, or the one under the cursor where nothing is. */
+    val onOnly: ((Option, Set<String>) -> Unit)? = null,
     /**
      * What the marked values are joined with, where marking several **builds one value** rather than
      * choosing several things.

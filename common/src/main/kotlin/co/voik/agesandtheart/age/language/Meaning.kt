@@ -26,5 +26,8 @@ data class Meaning(
     companion object {
         const val CERTAIN = 1.0
         const val NEVER = 0.0
+
+        /** The Art's own bare chance: what a meaning laid bare is drawn at, times its aimed one, where it says none. */
+        const val BARE_CHANCE = 0.5
     }
 }

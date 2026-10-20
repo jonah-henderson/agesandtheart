@@ -25,7 +25,7 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   may be the rock, the guided authoring tool, and the corpus audit. **Partly built, and it opens with the
   line that says to delete it when the last item goes.** Its §5 is the tool, which is `scripts/scrivener.sh`;
   §5.1 and §5.2 are what that tool refuses and nudges about. Read it before authoring a word or touching
-  `art/word/` — and author with the tool rather than by hand, once its word editor is rebuilt for meanings.
+  `art/word/` — and author with the tool rather than by hand.
 - **`notes/meanings-plan.md`** — the rewrite of how a page becomes a claim: words carry meanings that land on the
   first word that accepts them, members name themselves and most aiming words retire. **Decided 2026-10-19,
   on the branch `meanings`, cut over 2026-10-20**; Scrivener's rework (phase 6) is what is left. It opens with
@@ -250,13 +250,13 @@ Run directories are `runs/` (Fabric) and `run/` (NeoForge), both git-ignored. Th
 
 **The age workshop writes books, and opens them in the game.** `scripts/scrivener.sh` → "the age
 workshop" composes a sentence a page at a time, read by the same `Reader` a book is: the pages that would take
-what is waiting come first, and the cost, the flaws and the parts still open move as each page goes down. Its
-suggestions are the bare minimum until Scrivener is reworked for meanings (`notes/meanings-plan.md`). `^o`
+what is waiting come first, and a page that would land nothing where it is laid is set aside and counted (`^i`
+shows them). The cost, the flaws and the parts still open move as each page goes down. `^o`
 boots a dedicated server, writes the Age, and sends you in when you connect — kept up between rewrites, so
 changing a page and looking again is seconds. The world is thrown away when the screen is left, fenced on the name so it can never reach one somebody plays (`ThrowawayWorldCheck`).
 Drafts live in `.authoring/ages/` and hold the **pages**, never the recipe.
 
-**Scrivener reaches past the words.** Its main menu is three groups — the world the words describe, the
+**Scrivener reaches past the words.** Its main menu is four groups — the words, the world they describe, the
 age workshop, and the tool itself. Its tag screen edits `art/preset_tags/` with the overlay
 visible — every carrier says whether its weight was **authored**, **derived**, or **dropped**, because
 setting a weight on a derived tag *writes* an entry, clearing one lets the derived value back, and removing
@@ -266,17 +266,21 @@ is **read-only on purpose**: the derivation rules, where enter runs one rule *by
 what it catches. The file already states its rule perfectly and hides only its consequence —
 `notes/decisions.md` carries the split.
 
-**Scrivener's word editor is being rebuilt for meanings** (`notes/meanings-plan.md`, phase 6), so for now a word
-is a file in `art/word/` written by hand, as a list of meanings — and `scripts/scrivener.sh <word>`, `--audit` and
-`--rewrite` say so and leave. It works offline: `Vocabulary.load(shippedData(), worldgen)` is the same call
-`VocabularyCheck` makes. What offline cannot know is datapack content — a tag only a bound registry grants
+**Authoring a word is `scripts/scrivener.sh`, and it works offline.** A full-screen editor over the real corpus:
+`Vocabulary.load(shippedData(), worldgen)` is the same call `VocabularyCheck` makes. A word is a list of meanings,
+each one idea with its chances, and the editor shows each meaning's effects under it and adds one by what it does,
+then where, then what. **Its verdict is the one copy of the per-word rules** (`Verdict`): it refuses what would
+not ship and names the check that holds each, nudges toward `notes/vocabulary-pass-plan.md` §5.2, and
+`VocabularyCheck` asks it of every word. `^t` reads a book with the word as it stands, through `Trial`. What offline cannot know is datapack content — a tag only a bound registry grants
 (`ore`), the pack's own placed features, the game's block tags — and `--refresh` drives `/age tags` and
 `/age holdings` over RCON into `.authoring/server-snapshot.json` for every later run to read. A server is an
 errand, never a condition.
 
 It lives in `common/src/preview/kotlin/.../authoring/` and is started by the script rather than by Gradle,
 because a TTY is what Gradle cannot give a `JavaExec`. `:common:exportAuthoringLaunch` writes the launch
-down; the script runs it.
+down; the script runs it. **The codec owns the value and `WordFile` the file**: the `_comment` is carried beside
+the word and laid first, and `AuthoringCheck` holds that every authored word writes back byte for byte.
+`--rewrite` puts the corpus back in that layout and is run by hand, like `:common:grammars`.
 
 **Tests:** **Kotest**, in four tasks split by what they cost and what they are worth.
 

@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.preview.authoring.ui.Canvas
+import co.voik.agesandtheart.preview.authoring.ui.Editor
+import co.voik.agesandtheart.preview.authoring.ui.style
 import co.voik.agesandtheart.preview.authoring.ui.Leaving
 import co.voik.agesandtheart.preview.authoring.ui.Menu
 import com.github.ajalt.mordant.rendering.TextColors
@@ -43,12 +45,13 @@ fun main(arguments: Array<String>) {
                 (corpus.snapshot?.let { ", ${it.provenance}" } ?: ", no minecraft data imported"),
         ),
     )
-    val wantsTheWordEditor = asked.auditing || asked.rewriting || asked.word != null
-    if (wantsTheWordEditor) {
-        terminal.println(TextColors.yellow(WORD_EDITOR_IS_BEING_REBUILT))
-        return
+    when {
+        asked.auditing -> audit(terminal, corpus)
+        asked.rewriting -> rewrite(terminal)
+        // A named word goes straight in, and a bare run offers the menu.
+        asked.word != null -> onScreen(terminal) { canvas -> open(terminal, canvas, corpus, asked.word) }
+        else -> onScreen(terminal) { canvas -> Menu(terminal, canvas, corpus).run() }
     }
-    onScreen(terminal) { canvas -> Menu(terminal, canvas, corpus).run() }
 }
 
 /** What the command line said, read the dull way — there are five options and none of them nest. */
@@ -97,6 +100,61 @@ private fun onScreen(terminal: Terminal, work: (Canvas) -> Unit) = Canvas(termin
     }
 }
 
+/** One word, opened or begun — a word that will not read is said rather than started from blank. */
+private fun open(terminal: Terminal, canvas: Canvas, corpus: Corpus, name: String) {
+    val authored = WordFile.exists(name)
+    val derived = corpus.vocabulary.word(name)?.takeIf { !authored }
+    val candidate = when {
+        authored -> WordFile.read(name).getOrElse { failure ->
+            terminal.println(TextColors.brightRed("'$name' would not read: ${failure.message}"))
+            return
+        }
+        derived != null -> Candidate.of(derived, corpus.vocabulary)
+        else -> Candidate(name = name)
+    }
+    Editor(terminal, canvas, corpus, candidate, canLeave = false).run()
+}
+
+/** Every authored word with something against it, worst first, printed rather than shown. */
+private fun audit(terminal: Terminal, corpus: Corpus) {
+    val judged = WordFile.authoredNames().map { name ->
+        val findings = WordFile.read(name).fold(
+            onSuccess = { Verdict.on(it, corpus.vocabulary, quarrels = false) },
+            onFailure = { listOf(Verdict.Finding(Verdict.Standing.REFUSED, "'$name' will not read: ${it.message}")) },
+        )
+        name to findings
+    }.sortedWith(Verdict.WORST_FIRST)
+    terminal.println(TextStyles.bold("\nThe corpus, worst first\n"))
+    for ((name, findings) in judged) {
+        val worth = findings.filterNot { it.standing == Verdict.Standing.NOTED }
+        if (worth.isEmpty()) continue
+        val counts = Verdict.Standing.entries.filter { it != Verdict.Standing.NOTED }.mapNotNull { standing ->
+            worth.count { it.standing == standing }.takeIf { it > 0 }?.let { standing.style("$it ${standing.name.lowercase()}") }
+        }
+        terminal.println("  ${name.padEnd(NAME_COLUMN)}${counts.joinToString("  ")}")
+        worth.forEach { terminal.println(TextColors.gray("      ${it.says}")) }
+    }
+    val clean = judged.count { (_, findings) -> findings.all { it.standing == Verdict.Standing.NOTED } }
+    terminal.println(TextColors.gray("\n$clean of ${judged.size} words have nothing against them."))
+    terminal.println(TextColors.gray("Open one with: scripts/scrivener.sh <name>\n"))
+}
+
+private const val NAME_COLUMN = 24
+
+/** Every authored word put back in the layout the tool writes, so opening and saving one moves nothing else. */
+private fun rewrite(terminal: Terminal) {
+    val rewritten = WordFile.authoredNames().filter { name ->
+        val read = WordFile.read(name).getOrElse { failure ->
+            terminal.println(TextColors.brightRed("  $name: ${failure.message}"))
+            return@filter false
+        }
+        val changes = WordFile.textOf(read) != WordFile.fileFor(name).readText()
+        if (changes) WordFile.write(read)
+        changes
+    }
+    terminal.println(TextColors.green("rewrote ${rewritten.size} word(s)${rewritten.joinToString(" ", ": ").takeIf { rewritten.isNotEmpty() }.orEmpty()}"))
+}
+
 /** A server asked what it carries, and the answer written down for every later run to read offline. */
 private fun refresh(terminal: Terminal, attach: String?) {
     val corpus = Corpus.load()
@@ -118,14 +176,13 @@ private fun refresh(terminal: Terminal, attach: String?) {
     )
 }
 
-private const val WORD_EDITOR_IS_BEING_REBUILT =
-    "The word editor is being rebuilt for meanings (notes/meanings-plan.md phase 6). The tags, the rules and " +
-        "the age workshop are on the menu: run the script with no word."
-
 private val USAGE = """
     |Scrivener — a vocabulary editor for Ages and the Art.
     |
-    |  scripts/scrivener.sh                   the tags, the rules and the age workshop
+    |  scripts/scrivener.sh                   the menu: words, tags, rules and the age workshop
+    |  scripts/scrivener.sh <word>            open a word, or begin one
+    |  scripts/scrivener.sh --audit           every authored word, worst first
+    |  scripts/scrivener.sh --rewrite         put every word file back in the layout the tool writes
     |  scripts/scrivener.sh --refresh         ask a server what only it knows, and remember it
     |  scripts/scrivener.sh --refresh --attach host:port:password
     |

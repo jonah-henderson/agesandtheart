@@ -4,6 +4,9 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.age.word.CannotAppearInLoot
 import co.voik.agesandtheart.age.language.DerivedWords
+import co.voik.agesandtheart.age.language.WordFormat
+import co.voik.agesandtheart.location
+import com.mojang.serialization.JsonOps
 import co.voik.agesandtheart.age.word.InkRequirement
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordRarity
@@ -17,9 +20,8 @@ import java.io.File
 /**
  * Where the pack's words live on disk, and how one is read and written back.
  *
- * **The tool owns the file text, not just the value.** `Word.mapCodec` ignores `_comment` and widens
- * `aspects`, so a word round-tripped through the codec would come back with its reasoning gone and its
- * derived reach frozen into the file. Everything here works on the JSON.
+ * **The codec owns the value and this owns the file**: [WordFormat] ignores `_comment`, so a word is read and
+ * written through it with the comment carried beside it, laid first.
  */
 object WordFile {
 
@@ -61,6 +63,45 @@ object WordFile {
     fun exists(name: String): Boolean = fileFor(name).isFile
 
     private val LEGAL_NAME = Regex("[a-z0-9/._-]+")
+
+    /** The word in [name]'s file, or why it will not read. */
+    fun read(name: String): Result<Candidate> = runCatching {
+        val json = JsonParser.parseString(fileFor(name).readText()).asJsonObject
+        val comment = json.get(COMMENT)?.let { said ->
+            if (said.isJsonArray) said.asJsonArray.map { it.asString } else listOf(said.asString)
+        }.orEmpty()
+        val word = WordFormat.mapCodec(name.location()).codec().parse(JsonOps.INSTANCE, json)
+            .getOrThrow { problem -> IllegalArgumentException("'$name' does not read: $problem") }
+        Candidate.authored(word, comment)
+    }
+
+    /** What [candidate]'s file says: the comment first, then what the word is, as the codec spells it. */
+    fun textOf(candidate: Candidate): String {
+        val encoded = WordFormat.mapCodec(candidate.id).codec().encodeStart(JsonOps.INSTANCE, candidate.asWord())
+            .getOrThrow { problem -> IllegalArgumentException("'${candidate.name}' does not write: $problem") }
+            .asJsonObject
+        val laid = JsonObject()
+        // One line stays a string, as the corpus spells it.
+        when (candidate.comment.size) {
+            0 -> Unit
+            1 -> laid.addProperty(COMMENT, candidate.comment.single())
+            else -> laid.add(COMMENT, JsonArray().apply { candidate.comment.forEach(::add) })
+        }
+        for (key in LAID_OUT_IN_ORDER) encoded.get(key)?.let { laid.add(key, it) }
+        encoded.keySet().filterNot(LAID_OUT_IN_ORDER::contains).forEach { laid.add(it, encoded.get(it)) }
+        return GSON.toJson(laid) + "\n"
+    }
+
+    /** [candidate] written to its file, refusing a name no file may have. */
+    fun write(candidate: Candidate) {
+        require(couldBeAName(candidate.name)) { "'${candidate.name}' cannot be a word's file name" }
+        fileFor(candidate.name).writeText(textOf(candidate))
+    }
+
+    private const val COMMENT = "_comment"
+
+    /** How a word file reads top to bottom: what it is said as and takes, then what it means. */
+    private val LAID_OUT_IN_ORDER = listOf("speech", "takes", "meanings")
 
     /**
      * Whether [name] could be a word's file name — the same rule [write] refuses on, asked in advance.
@@ -246,6 +287,57 @@ object WordFile {
 
     /** Lists [key], a word name or id, under the rarity [bucket], or in none. */
     fun setRarity(key: String, bucket: String?) = list(rarityLists, key, bucket)
+
+    /** [listingFor], with a word kept out of loot reading as [NO_LOOT] whatever bucket it is also in. */
+    fun listingOf(candidate: Candidate): Listing {
+        val listing = listingFor(candidate.listingKey)
+        return if (isKeptOutOfLoot(candidate)) listing.copy(rarity = NO_LOOT) else listing
+    }
+
+    /**
+     * Sets [candidate]'s rarity to a bucket, to [NO_LOOT], or to neither — neither and the default bucket being the
+     * same. Kept out of loot by a tag on the entry a derived word is, and by name where it is none, as ink is.
+     */
+    fun setRarity(candidate: Candidate, choice: String?) {
+        val keptOut = choice == NO_LOOT
+        val directory = candidate.tagDirectory
+        if (directory == null) {
+            keepAuthoredOutOfLoot(candidate.name, keptOut)
+        } else {
+            putInTag(tagFile(directory, CannotAppearInLoot.TAG_NAME), candidate.id.toString(), keptOut)
+        }
+        val bucket = choice.takeUnless { keptOut || it == defaultBucket() }
+        setRarity(candidate.listingKey, bucket)
+    }
+
+    private fun isKeptOutOfLoot(candidate: Candidate): Boolean = when (val directory = candidate.tagDirectory) {
+        null -> candidate.name in authoredKeptOutOfLoot()
+        else -> candidate.id.toString() in tagValuesIn(tagFile(directory, CannotAppearInLoot.TAG_NAME))
+    }
+
+    /** Whether the thing [candidate] names is tagged never to become a word; offline the tag binds nothing, so it still shows. */
+    fun hasNoWord(candidate: Candidate): Boolean {
+        val directory = candidate.tagDirectory ?: return false
+        return candidate.id.toString() in tagValuesIn(tagFile(directory, DerivedWords.DOES_NOT_HAVE_A_WORD))
+    }
+
+    /** Tags or untags the thing [candidate] names; a word naming no registry entry has nothing to tag. */
+    fun setHasNoWord(candidate: Candidate, hasNoWord: Boolean) {
+        val directory = candidate.tagDirectory ?: return
+        putInTag(tagFile(directory, DerivedWords.DOES_NOT_HAVE_A_WORD), candidate.id.toString(), hasNoWord)
+    }
+
+    /** Which ink [candidate] demands, as `InkRequirement.tierFor` asks it: a tag on its entry first, then its name. */
+    fun inkOf(candidate: Candidate): String? {
+        val tagged = candidate.tagDirectory?.let { inkTagOn(candidate.id.toString(), it) }
+        return tagged ?: bucketNaming(inkLists, candidate.name)
+    }
+
+    /** Sets the ink [candidate] demands — a tag on the entry a derived word is, and by name for an authored one. */
+    fun setInk(candidate: Candidate, tier: String?) {
+        val directory = candidate.tagDirectory
+        if (directory == null) list(inkLists, candidate.name, tier) else inkTagFor(candidate.id.toString(), directory, tier)
+    }
 
     /** The rarities a word may be listed in, commonest first, and then [NO_LOOT]. */
     fun rarityChoices(): List<String> = rarityBuckets() + NO_LOOT

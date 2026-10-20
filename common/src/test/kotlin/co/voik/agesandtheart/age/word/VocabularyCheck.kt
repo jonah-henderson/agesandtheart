@@ -9,16 +9,15 @@ import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Bars
 import co.voik.agesandtheart.age.aspect.Phenomenon
-import co.voik.agesandtheart.age.aspect.RANGED_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.namesARegistryEntry
-import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.age.language.DerivedWords
 import co.voik.agesandtheart.age.language.Word
 import co.voik.agesandtheart.age.resolution.Effect
+import co.voik.agesandtheart.preview.authoring.Candidate
+import co.voik.agesandtheart.preview.authoring.Verdict
 import co.voik.agesandtheart.preview.authoring.choiceIn
 import co.voik.agesandtheart.preview.authoring.wantedTags
-import co.voik.agesandtheart.preview.authoring.tagsSpokenOf
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -45,140 +44,18 @@ class VocabularyCheck : FunSpec({
         check(vocabulary.words.isNotEmpty()) { "No words loaded at all — is the data directory where it was?" }
     }
 
-    /** Only an aspect's own page may mean nothing: it takes what its part of the world understands. */
-    test("every word means something") {
-        fun isAnAspectPage(word: Word) = Aspect.byPage(word.name) != null
-        val saysNothing = vocabulary.words.filter { word ->
-            (word.meanings.isEmpty() && !isAnAspectPage(word)) || word.meanings.any { it.effects.isEmpty() }
-        }
-        check(saysNothing.isEmpty()) { "these have a meaning that says nothing: ${saysNothing.map { it.name }}" }
-    }
-
-    test("every tag a word speaks of is carried by something") {
-        val known = vocabulary.carriedTags + vocabulary.tagsOnlyAServerGrants
-        for (word in vocabulary.words) {
-            val unknown = word.tagsSpokenOf - known
-            check(unknown.isEmpty()) { "'${word.name}' speaks of ${unknown.joinToString(" ")}, which nothing carries" }
-        }
-    }
-
     /**
-     * **A narrowing is answered where it narrows.** The tag and the aspect can both be real and still no member of
-     * that aspect carry the tag up to the bar, which is the subtler way a meaning lands on nothing.
-     *
-     * Two restrictions do another job and are exempt. One beside a parameter the word turns in the same part steers
-     * rather than chooses. And one wanting a tag of an opposed pair says what the word *means* in tag space, which is
-     * how incoherence finds it: `arid` keeps `#barren` in the climate, where nothing carries it, so that
-     * `verdant arid` reads as lush against barren rather than as two spans that miss.
+     * **The tool's verdict over every word the pack ships**: what Scrivener refuses to write, no shipped word may be.
+     * The per-word rules are `Verdict`'s, one copy for the tool and this check.
      */
-    test("every restriction is met by some member of its part of the world") {
+    test("no word is one the tool would refuse to write") {
         val onlyAServerKnows = vocabulary.tagsOnlyAServerGrants
-        fun isOpposable(tag: String) = vocabulary.opposedTags.any { it.first == tag || it.second == tag }
-        for (word in vocabulary.words) {
-            val admitted = word.effects.filterIsInstance<Effect.Admits>()
-            val turned = word.effects.mapNotNull { (it as? Effect.Sets)?.parameter ?: (it as? Effect.Bends)?.parameter }
-            for (restricts in word.effects.filterIsInstance<Effect.Restricts>()) {
-                val wanted = restricts.bars.filterValues(Bars::isAtLeast).keys
-                val onlyAServerCouldAnswer = wanted.isNotEmpty() && wanted.all(onlyAServerKnows::contains)
-                val aspect = restricts.aspect
-                val steersHere = turned.any { it.landsOn(aspect) && vocabulary.turnsAParameter(aspect, it.name) }
-                if (onlyAServerCouldAnswer || steersHere || wanted.any(::isOpposable)) continue
-                val admittedHere = admitted.filter { it.aspect == aspect }.flatMap { it.members }.mapNotNull(aspect::presetFor)
-                val pool = vocabulary.availableToBroadWordsIn(aspect) + admittedHere
-                val meeting = pool.filter { Bars.cleared(vocabulary.tagsOf(it), restricts.bars) }
-                check(meeting.isNotEmpty()) {
-                    "'${word.name}' keeps ${restricts.bars.entries.joinToString { (tag, bar) -> "#$tag ${Bars.spell(bar)}" }} " +
-                        "in the ${aspect.page}, and nothing there meets it"
-                }
-            }
+        val refused = vocabulary.words.mapNotNull { word ->
+            val candidate = Candidate.of(word, vocabulary)
+            val refusals = Verdict.refusals(Verdict.on(candidate, vocabulary, onlyAServerKnows, quarrels = false))
+            refusals.takeIf { it.isNotEmpty() }?.let { "${word.name}: ${it.joinToString("; ") { finding -> finding.says }}" }
         }
-    }
-
-    /**
-     * **A parameter a word sets is one something acts on, to a value it takes.** Declaring a parameter and turning it
-     * are different things (`Taggable.honours`), and only the second makes a word mean anything.
-     */
-    test("every parameter a word sets is turned, to a value it takes") {
-        fun parametersCalled(name: String, aspect: Aspect) =
-            (vocabulary.candidatesFor(aspect).flatMap { it.ownParameters } + aspect.parameters).filter { it.name == name }
-        for (word in vocabulary.words) {
-            val sets = word.effects.filterIsInstance<Effect.Sets>().map { it.parameter to it.value } +
-                word.effects.filterIsInstance<Effect.Bends>().map { it.parameter to null }
-            for ((parameter, value) in sets) {
-                val landsOn = Aspect.entries.filter(parameter::landsOn)
-                check(landsOn.isNotEmpty()) {
-                    "'${word.name}' sets ${parameter.spelled}, and no part of the world is called that"
-                }
-                val turnedOn = landsOn.filter { vocabulary.turnsAParameter(it, parameter.name) }
-                check(turnedOn.isNotEmpty()) {
-                    "'${word.name}' sets ${parameter.spelled}, which is declared and acted on by nothing"
-                }
-                if (value == null) continue
-                val alternatives = value.split(POOL_ALTERNATIVES).map(String::trim).filter(String::isNotEmpty)
-                fun isTaken(one: String) = turnedOn.any { aspect -> parametersCalled(parameter.name, aspect).any { it.acceptsFromAWord(one) } }
-                val unacceptable = alternatives.filterNot(::isTaken)
-                check(unacceptable.isEmpty()) {
-                    "'${word.name}' sets ${parameter.spelled} to '${unacceptable.joinToString("|")}', which it does not take"
-                }
-            }
-        }
-    }
-
-    /**
-     * An aspect whose members are designs of ours holds what its `authored` list holds; one whose members are registry
-     * entries holds any namespaced id, because `presetFor` parses rather than looks up.
-     */
-    test("a word names members the part of the world could hold") {
-        for (word in vocabulary.words) {
-            val named = word.effects.flatMap { effect ->
-                when (effect) {
-                    is Effect.Chooses -> listOf(effect.aspect to effect.member)
-                    is Effect.Admits -> effect.members.map { effect.aspect to it }
-                    else -> emptyList()
-                }
-            }
-            for ((aspect, key) in named) {
-                val oneOfOurDesigns = aspect.ownsPresetNamed(key)
-                val anEntryOfItsRegistry = aspect.presetsAreEntriesOf != null && namesARegistryEntry(key)
-                check(oneOfOurDesigns || anEntryOfItsRegistry) {
-                    "'${word.name}' names '$key' in the ${aspect.page}, which holds neither — a design of ours is a " +
-                        "bare key that aspect lists, and a registry entry is a namespaced id"
-                }
-            }
-        }
-    }
-
-    /**
-     * **No authored word is a synonym for a derived one.** §8.1 mints a word for every block, biome and structure set,
-     * so an authored word that only names registry entries tells a writer there is a distinction worth ink where
-     * there is none.
-     */
-    test("no authored word is a synonym for a derived one") {
-        fun namesAReferent(effect: Effect) = when (effect) {
-            is Effect.Chooses -> namesARegistryEntry(effect.member)
-            is Effect.Sets -> namesARegistryEntry(effect.value)
-            else -> false
-        }
-        for (word in vocabulary.authoredWords) {
-            val referents = word.effects.filter(::namesAReferent)
-            val saysNothingElse = word.effects.all(::namesAReferent)
-            check(referents.isEmpty() || !saysNothingElse) {
-                "'${word.name}' names $referents and nothing else, which is what the derived word already does"
-            }
-        }
-    }
-
-    /** An authored word replaces a derived one of the same id, so it must make every choice the minted page made. */
-    test("no authored word hides the page minted for a preset") {
-        val authoredById = vocabulary.authoredWords.associateBy { it.id }
-        for (minted in DerivedWords.designs()) {
-            val authored = authoredById[minted.id] ?: continue
-            val lost = minted.effects.filterIsInstance<Effect.Chooses>() - authored.effects.filterIsInstance<Effect.Chooses>().toSet()
-            check(lost.isEmpty()) {
-                "the authored '${authored.name}' hides the page minted for $lost — give it that choice too, or name " +
-                    "the preset something else"
-            }
-        }
+        check(refused.isEmpty()) { "${refused.size} words would be refused:\n  ${refused.joinToString("\n  ")}" }
     }
 
     /** Every aspect has a word that lands on it, or part of the world is unwritable. */
@@ -333,33 +210,6 @@ class VocabularyCheck : FunSpec({
         val readiest = seas.maxOf(vocabulary::readinessOf)
         val tied = seas.filter { vocabulary.readinessOf(it) == readiest }.map { it.key }
         check(tied == listOf("minecraft:water")) { "the readiest seas are $tied" }
-    }
-
-    /** **A bend moves a range**, so one naming a parameter with no range is a page charged for and doing nothing. */
-    test("a bend has a range") {
-        val bendingNothing = vocabulary.authoredWords.mapNotNull { word ->
-            val unranged = word.effects.filterIsInstance<Effect.Bends>().map { it.parameter.name }.filterNot(RANGED_PARAMETERS::contains)
-            unranged.takeIf { it.isNotEmpty() }?.let { "${word.name} (${it.joinToString()})" }
-        }
-        check(bendingNothing.isEmpty()) { "these bend what has no range: $bendingNothing" }
-    }
-
-    /**
-     * **A preset has one page that means it**, so a second word choosing one is a synonym for a page that exists. An
-     * aspect's page announcing its own phenomenon is not counted: `rainbows` asks for a bow without aiming at one.
-     */
-    test("no two pages choose the same preset") {
-        val byPreset = vocabulary.words
-            .filter { Aspect.byPage(it.name) == null }
-            .flatMap { word -> word.effects.filterIsInstance<Effect.Chooses>().map { (it.aspect to it.member) to word.name } }
-            .groupBy({ it.first }, { it.second })
-            .mapValues { it.value.distinct() }
-            .filterValues { it.size > 1 }
-        check(byPreset.isEmpty()) {
-            byPreset.entries.joinToString("; ") { (where, words) ->
-                "${where.first.page}'s '${where.second}' is chosen by ${words.sorted().joinToString(" ")}"
-            }
-        }
     }
 
     /** The landform pages are minted from the landforms (`DerivedWords.designs`), so a gap here closes itself. */

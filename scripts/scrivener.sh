@@ -2,9 +2,10 @@
 #
 # Scrivener — a vocabulary editor for Ages and the Art.
 #
-#   scripts/scrivener.sh                   begin a new word
-#   scripts/scrivener.sh <name>            open an authored one
+#   scripts/scrivener.sh                   the menu: words, tags, rules and the age workshop
+#   scripts/scrivener.sh <name>            open a word, or begin one
 #   scripts/scrivener.sh --audit           every authored word, worst first
+#   scripts/scrivener.sh --rewrite         every word file back in the layout the tool writes
 #   scripts/scrivener.sh --refresh         ask a server what only it knows, and remember it
 #   scripts/scrivener.sh --help            the tool's own usage
 #

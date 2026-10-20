@@ -10,15 +10,12 @@ import kotlin.random.Random
  * lands):
  *
  * - each claim lands on its own chance — aimed its chance to apply, laid bare its chance unaimed, or its chance to
- *   apply times [BARE_CHANCE] where it names none;
+ *   apply times [Meaning.BARE_CHANCE] where it names none;
  * - alternatives — one page setting the same parameters at one place, or minting — land as one, and which by their
  *   chances;
  * - a meaning that must always apply lands at least once, and a page with none lands at least one claim.
  */
 internal object Draw {
-
-    /** The share of its chance a meaning has laid bare, where it names no chance unaimed of its own. To be tuned. */
-    const val BARE_CHANCE = 0.5
 
     // Arbitrary, and only so neighbouring pages draw apart.
     private const val PAGE_STRIDE = -0x61c8_8646_80b5_83ebL
@@ -74,8 +71,8 @@ internal object Draw {
         return when {
             claim.aimed && meaning.mustAlwaysApply -> Meaning.CERTAIN
             claim.aimed -> meaning.chanceToApply
-            meaning.mustAlwaysApply -> BARE_CHANCE
-            else -> meaning.unaimedChanceToApply ?: (meaning.chanceToApply * BARE_CHANCE)
+            meaning.mustAlwaysApply -> Meaning.BARE_CHANCE
+            else -> meaning.unaimedChanceToApply ?: (meaning.chanceToApply * Meaning.BARE_CHANCE)
         }
     }
 
