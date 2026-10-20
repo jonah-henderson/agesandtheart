@@ -86,7 +86,7 @@ object Spawns {
             Parameter.Landmark(0.0, "their own", isVanilla = true),
             Parameter.Landmark(1.0, "two and a half times their own"),
         ),
-    ).perMember()
+    ).perMember().onlyWhenAimed()
 
     val LIVES = Pool(
         "lives",

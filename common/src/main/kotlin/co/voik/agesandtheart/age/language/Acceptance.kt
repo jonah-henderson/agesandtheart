@@ -46,16 +46,21 @@ data class Acceptance(
 
         /**
          * What a word naming [member] takes: the dials it honours of those its aspect holds member by member, and
-         * a design's own parameters. Without [registries] a registry entry is taken to honour every dial.
+         * a design's own parameters. A catalogue's member is the whole of its part of the world where it is seated,
+         * so it takes the part's own parameters too. Without [registries] a registry entry is taken to honour every
+         * dial.
          */
         fun ofMember(member: Taggable, registries: HolderLookup.Provider?): Acceptance {
+            val aspect = member.aspect
+            val seatsTheWholeAspect = aspect.holds == Holds.CATALOGUE
             fun honoured(parameter: Parameter) = parameter.ownedByEachMember && member.honoursDial(parameter, registries)
-            val dials = (member.aspect.understood.filter(::honoured) + member.ownParameters).distinctBy(Parameter::name)
+            val ofTheAspect = if (seatsTheWholeAspect) aspect.parameters else emptyList()
+            val dials = (aspect.understood.filter(::honoured) + member.ownParameters + ofTheAspect).distinctBy(Parameter::name)
             return Acceptance(
-                place = Place(member.aspect, Members.Named(setOf(member.key))),
+                place = Place(aspect, Members.Named(setOf(member.key))),
                 parameters = dials.map(Parameter::name).toSet(),
                 takesChoices = false,
-                takesSubstance = dials.any(Parameter::material),
+                takesSubstance = dials.any(Parameter::material) || (seatsTheWholeAspect && aspect.madeOfSomething),
                 takesAbundance = countsInSpace(member),
             )
         }

@@ -46,6 +46,7 @@ object RainbowAspect {
 
     /** What share of days it comes at all. */
     val RAINBOWFREQUENCY = Parameter.ranged("frequency", help = "What share of days a rainbow comes at all.")
+        .onlyWhenAimed()
 
     /**
      * How much falling water it needs — the top of the axis will not come without rain, the bottom

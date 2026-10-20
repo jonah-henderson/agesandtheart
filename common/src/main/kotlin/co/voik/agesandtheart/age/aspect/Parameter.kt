@@ -44,6 +44,11 @@ data class Parameter(
      * `motionless monsters` (`notes/strange-words-plan.md` §2). Set with [perMember].
      */
     val ownedByEachMember: Boolean = false,
+    /**
+     * Whether a broad meaning laid bare leaves this alone: turned only where a word is aimed at it, or names it —
+     * a creature's size, gravity's pull, a body standing still.
+     */
+    val turnsOnlyWhenAimed: Boolean = false,
     /** Which members this does anything to, where [ownedByEachMember] — every one unless its code says otherwise. */
     val honouredBy: MemberHonouring = MemberHonouring.EVERY,
     /**
@@ -100,6 +105,9 @@ data class Parameter(
     /** This parameter, held member by member by those [honouredBy] answers for — see [ownedByEachMember]. */
     fun perMember(honouredBy: MemberHonouring = MemberHonouring.EVERY): Parameter =
         copy(ownedByEachMember = true, honouredBy = honouredBy)
+
+    /** This parameter, turned by a word laid bare only where the word names it — see [turnsOnlyWhenAimed]. */
+    fun onlyWhenAimed(): Parameter = copy(turnsOnlyWhenAimed = true)
 
     val default: String get() = options.first()
 

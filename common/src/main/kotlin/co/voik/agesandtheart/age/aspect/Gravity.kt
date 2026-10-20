@@ -17,7 +17,7 @@ object Gravity {
             Parameter.Landmark(0.0, "vanilla's", isVanilla = true),
             Parameter.Landmark(1.0, "twice vanilla's"),
         ),
-    )
+    ).onlyWhenAimed()
 
     /**
      * The share of vanilla's gravity a pull of [pull] on the natural axis stands for: twice it at the top, a

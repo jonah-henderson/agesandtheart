@@ -45,6 +45,7 @@ object AuroraAspect {
 
     /** What share of nights it comes at all. */
     val AURORAFREQUENCY = Parameter.ranged("frequency", help = "What share of nights the aurora comes at all.")
+        .onlyWhenAimed()
 
     /**
      * How warm the ground under it may be and still show one.

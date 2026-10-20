@@ -17,6 +17,19 @@ object Bars {
 
     fun isAtMost(bar: Double): Boolean = bar < 0.0
 
+    /**
+     * Whether a member carrying [tags] clears [bars] at [share] of every at-least bar: any one at-least bar cleared,
+     * where there are some, and no at-most bar broken.
+     */
+    fun cleared(tags: Map<String, Double>, bars: Map<String, Double>, share: Double = STRICT): Boolean {
+        fun carried(tag: String) = tags[tag] ?: 0.0
+        val breaksALimit = bars.any { (tag, bar) -> isAtMost(bar) && carried(tag) > -bar }
+        if (breaksALimit) return false
+        val wanted = bars.filterValues(::isAtLeast)
+        fun clears(tag: String, bar: Double) = carried(tag) > 0.0 && carried(tag) >= bar * share
+        return wanted.isEmpty() || wanted.any { (tag, bar) -> clears(tag, bar) }
+    }
+
     /** How the bar is spelled in a word file. */
     fun spell(bar: Double): String = if (isAtLeast(bar)) "$AT_LEAST$bar" else "$AT_MOST${-bar}"
 

@@ -171,7 +171,7 @@ object SkyBodies {
      * regardless (Ephemeris' `ClockPace`): it keeps time by the largest body still moving, at the overworld's pace
      * where none is, and the light is lit as the hour a still sun's place says.
      */
-    val STILL = Parameter.flag("still", help = "Whether this body stands still in the sky.")
+    val STILL = Parameter.flag("still", help = "Whether this body stands still in the sky.").onlyWhenAimed()
 
     /**
      * How long this body takes over its path against vanilla's — `slow sun` is a longer day, `swift moon` a quicker
