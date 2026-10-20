@@ -198,29 +198,44 @@ object Reader {
                     claims += Claim(page.index, page.word, meaning, place, effects, aimed = true, joined = page.joined ?: joined)
                 }
             }
-            ownMeanings(word, acceptance, place)
+            ownMeanings(word, acceptance, place, describedBy = claims.subList(from, claims.size))
             fates[at] = Fate.Took(place)
             lastTaker = Taker(at, place, taking, from..<claims.size, joined)
         }
 
-        /** What the word that took says of itself: a member's own naming, under any `only` or `no` before it. */
-        private fun ownMeanings(word: Word, acceptance: Acceptance, place: Place) {
+        /**
+         * What the word that took says of itself: a member's own naming, under any `only` or `no` before it.
+         *
+         * **A word naming members that took pages describing them is describing them, not asking for them** (Jonah,
+         * 2026-10-20): naming a member asks for a little more of it, a consolation for a writer who names one on its
+         * own, and `deserted villages` is plainly about the villages there are. It still asks where what it took asks
+         * for an amount, where `only` or `no` leads it, or where its members are not there until something brings
+         * them, as a phenomenon is not.
+         */
+        private fun ownMeanings(word: Word, acceptance: Acceptance, place: Place, describedBy: List<Claim>) {
             val pending = polarity
             val namesMembers = acceptance.place.members is Members.Named
             if (pending != null && !namesMembers) polarityAt?.let(::impossible)
             val said = if (namesMembers) pending ?: Polarity.ASSERTED else Polarity.ASSERTED
             polarity = null
             polarityAt = null
+            val describes = describedBy.any { claim -> claim.effects.any { it !is Effect.Abundance } }
+            val asksForAnAmount = describedBy.any { claim -> claim.effects.any { it is Effect.Abundance } }
+            val membersAreThereAnyway = place.aspect.pool?.startsEmpty != true
+            val onlyDescribes = namesMembers && describes && !asksForAnAmount && said == Polarity.ASSERTED && membersAreThereAnyway
             if (place.members is Members.Body) {
                 claims += Claim(at, word, Meaning(emptyList(), mustAlwaysApply = true), place, emptyList(), aimed = true)
             }
             for (meaning in word.meanings) {
+                if (onlyDescribes && meaning.effects.all(::namesMembers)) continue
                 namesATemplate(at, meaning)
                 for ((ownPlace, effects) in placesOf(meaning)) {
                     claims += Claim(at, word, meaning, ownPlace, effects, aimed = true, polarity = said)
                 }
             }
         }
+
+        private fun namesMembers(effect: Effect) = effect is Effect.Chooses || effect is Effect.Restricts
 
         /** Where a word taking pages lands them: its place, or a body of its own where it names a population. */
         private fun placeOf(acceptance: Acceptance): Place {

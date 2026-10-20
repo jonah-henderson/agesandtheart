@@ -64,9 +64,8 @@ class ReadingCheck : FunSpec({
 
     test("`in` sites the last word that took pages and what it took, and nothing before it") {
         val book = read("frozen age beautiful plants in jungle")
-        check(book.landedBy(3).isNotEmpty()) { "beautiful plants landed nothing\n${book.readout}" }
-        check(book.landedBy(3).all { it.sitedIn?.path == "jungle" }) { "the plants are not sited\n${book.readout}" }
-        check(book.landedBy(2).all { it.sitedIn?.path == "jungle" }) { "beautiful is not sited with its plants" }
+        val beautiful = book.landedBy(2)
+        check(beautiful.isNotEmpty() && beautiful.all { it.sitedIn?.path == "jungle" }) { "beautiful plants are not sited\n${book.readout}" }
         check(book.landedBy(0).none { it.sitedIn != null }) { "the frozen Age was sited in the jungle" }
     }
 
@@ -75,6 +74,15 @@ class ReadingCheck : FunSpec({
         val deserted = book.landedBy(1)
         check(deserted.any { it.sets("abandoned") }) { "deserted villages are not abandoned\n${book.readout}" }
         check(deserted.none { landing -> landing.effects.any { it is Effect.Excludes } }) { "deserted struck something" }
+    }
+
+    test("a member named on its own is asked for, and one described is not, unless an amount is asked or it must be brought") {
+        fun namedBy(book: Reading, page: Int) =
+            book.landedBy(page).any { landing -> landing.effects.any { it is Effect.Chooses || it is Effect.Restricts } }
+        check(namedBy(read("age villages"), 1)) { "villages named alone asks for none" }
+        check(!namedBy(read("age deserted villages"), 2)) { "deserted villages asks for more villages" }
+        check(namedBy(read("age teeming villages"), 2)) { "teeming villages asks for none" }
+        check(namedBy(read("age frequent tempest"), 2)) { "frequent tempest does not bring the tempest" }
     }
 
     test("a quantifier lands on what counts, and `only` leads the member after it") {
