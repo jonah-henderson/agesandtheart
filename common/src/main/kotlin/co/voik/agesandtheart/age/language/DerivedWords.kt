@@ -38,10 +38,9 @@ object DerivedWords {
      * A word for every block: the sea it could be, what the rock, the ground and the structures could be made of, and
      * the formations it could be raised as.
      *
-     * Laid bare, a block is always the rock where a world could be made of it, the ground's skin otherwise, and the
-     * skin as well by chance; it is a sea only where it pours, and makes structures only where it is aimed at them. A
-     * rock that does not pour now and then raises one of [GEOMETRIC_FORMATIONS] out of itself: `obsidian age`, an
-     * obsidian obelisk.
+     * Laid bare, a block is the rock or the ground's skin or both, where a world could be made of it, and the skin
+     * otherwise; it is a sea only where it pours, and makes structures only where it is aimed at them. A rock that
+     * does not pour now and then raises one of [FORMATIONS] out of itself: `obsidian age`, an obsidian obelisk.
      */
     fun blocks(): List<Word> = BuiltInRegistries.BLOCK.listElements()
         .filter { holder -> !holder.`is`(WORDLESS_BLOCKS) }
@@ -60,15 +59,14 @@ object DerivedWords {
         val asTheSea = if (pours) alwaysApplying(choosesTheSea) else onlyWhereAimed(choosesTheSea)
         val theRock = Effect.Sets(ParameterKey(Terrain.STONE.name, Aspect.TERRAIN), block)
         val theSkin = Effect.Sets(ParameterKey(Surface.MATERIAL.name, Aspect.SURFACE), block)
-        val asTheRock = if (isARock) alwaysApplying(theRock) else null
-        val asTheSkin = if (isARock) Meaning(listOf(theSkin)) else alwaysApplying(theSkin)
+        val asTheGround = Meaning(if (isARock) listOf(theRock, theSkin) else listOf(theSkin), mustAlwaysApply = true)
         val asTheStructures = onlyWhereAimed(Effect.Sets(ParameterKey(Structures.MATERIAL.name, Aspect.STRUCTURES), block))
         val standsAsAFormation = isARock && !pours
-        val asFormations = if (standsAsAFormation) GEOMETRIC_FORMATIONS.map { raisedAs(it, block) } else emptyList()
-        return Word(id, listOfNotNull(asTheSea, asTheRock, asTheSkin, asTheStructures) + asFormations, Speech.MASS)
+        val asFormations = if (standsAsAFormation) FORMATIONS.map { raisedAs(it, block) } else emptyList()
+        return Word(id, listOf(asTheSea, asTheGround, asTheStructures) + asFormations, Speech.MASS)
     }
 
-    /** One of [GEOMETRIC_FORMATIONS] made of [block], now and then where the block is laid bare. */
+    /** One of [FORMATIONS] made of [block], now and then where the block is laid bare. */
     private fun raisedAs(pattern: String, block: String) = Meaning(
         listOf(Effect.Mints(pattern, unstated = block, flows = false)),
         chanceToApply = Meaning.NEVER,
@@ -76,8 +74,9 @@ object DerivedWords {
         asserts = true,
     )
 
-    /** Our formations that are shapes rather than lumps, which a rock laid bare may be raised as. */
-    val GEOMETRIC_FORMATIONS: List<String> = listOf("obelisks", "pyramids", "rings", "arches", "spikes").map { "agesandtheart:$it" }
+    /** Our formations, which a rock laid bare may be raised as. */
+    val FORMATIONS: List<String> =
+        listOf("obelisks", "pyramids", "rings", "arches", "spikes", "boulders").map { "agesandtheart:$it" }
 
     private const val A_FORMATION_NOW_AND_THEN = 0.25
 

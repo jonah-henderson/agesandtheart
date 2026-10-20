@@ -61,7 +61,7 @@ class WordCheck : FunSpec({
         check(parsed("""{"meanings": [{"leans": {"nowhere": {"#lush": 1}}}]}""").isError) { "a lean on no part of the world read" }
     }
 
-    test("a block laid bare is the rock or the skin, a sea where it pours, structures only aimed, and now and then a formation") {
+    test("a block laid bare is the rock or the skin or both, a sea where it pours, structures only aimed, now and then a formation") {
         val blocks = DerivedWords.blocks().associateBy { it.id.toString() }
         fun Word.setting(spelled: String) =
             meanings.single { meaning -> meaning.effects.any { it is Effect.Sets && it.parameter.spelled == spelled } }
@@ -70,11 +70,13 @@ class WordCheck : FunSpec({
         val stone = requireNotNull(blocks["minecraft:stone"])
         check(water.asTheSea().mustAlwaysApply) { "water laid bare is not a sea" }
         check(stone.asTheSea().unaimedChanceToApply == Meaning.NEVER) { "stone laid bare floods the world" }
-        check(stone.setting("landmass.stone").mustAlwaysApply) { "stone laid bare is not the rock" }
-        check(!stone.setting("surface.material").mustAlwaysApply) { "stone laid bare is always the skin as well" }
+        val ground = stone.setting("landmass.stone")
+        check(ground == stone.setting("surface.material") && ground.mustAlwaysApply) {
+            "stone laid bare is not one meaning applying to the rock or the skin or both: $ground"
+        }
         check(stone.setting("structures.material").unaimedChanceToApply == Meaning.NEVER) { "stone laid bare builds structures" }
         val formations = stone.meanings.filter { meaning -> meaning.effects.any { it is Effect.Mints } }
-        check(formations.size == DerivedWords.GEOMETRIC_FORMATIONS.size) { "stone raises ${formations.size} formations" }
+        check(formations.size == DerivedWords.FORMATIONS.size) { "stone raises ${formations.size} formations" }
         check(formations.all { it.chanceToApply == Meaning.NEVER && it.asserts }) { "a formation is raised where stone is aimed" }
         check(water.meanings.none { meaning -> meaning.effects.any { it is Effect.Mints } }) { "water is raised as an obelisk" }
     }
