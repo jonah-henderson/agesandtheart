@@ -34,7 +34,7 @@ enum class Register(val key: String) : StringRepresentable {
 
     /**
      * Two words that could not both be what they said where they landed together — what every disagreement between
-     * words is charged as (`notes/meanings-plan.md` §2, Charging incoherence), read off what each could do there
+     * words is charged as (`the-world-model.md` §8), read off what each could do there
      * before anything was drawn.
      */
     INCOHERENT("incoherent"),

@@ -7,7 +7,7 @@ import co.voik.agesandtheart.age.resolution.Place
 
 /**
  * A book read: what became of each page, everything that could have landed, and what the draw let land
- * (`notes/meanings-plan.md` §2).
+ * (`the-world-model.md` §3).
  */
 data class Reading(
     val pages: List<PageRead>,

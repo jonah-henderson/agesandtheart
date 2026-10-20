@@ -12,7 +12,7 @@ terminals word
 # - Severely unstable, five or six: harmful, and short of the seven that fail.
 
 # Each mistake is two words wanting what cannot both hold in one part of the world, since words that never share a
-# place never clash (notes/meanings-plan.md 2): the two sides of a sea, a rock, a climate, the weather, the waters or
+# place never clash (the-world-model.md 8): the two sides of a sea, a rock, a climate, the weather, the waters or
 # the land. Each pair is one mistake however much its two words disagree, so a kind's count is its pairs.
 
 book = [slightly_unstable] | [moderately_unstable] | [severely_unstable]

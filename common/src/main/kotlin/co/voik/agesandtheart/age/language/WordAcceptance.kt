@@ -20,7 +20,7 @@ interface MemberTags {
 
 /**
  * What a word takes from the pages waiting before it, or null where it takes nothing — derived from what the word
- * is, never written (`notes/meanings-plan.md` §2). A part of the world's page takes what the part understands; a word
+ * is, never written (`the-world-model.md` §3). A part of the world's page takes what the part understands; a word
  * naming members takes what they honour; a word minting where it is aimed takes a substance and its pattern's dials,
  * where a block raised as a formation only laid bare stays a substance; anything else takes nothing. [Word.alsoTakes]
  * widens what is derived, and gives a word that takes nothing nowhere to land.

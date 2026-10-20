@@ -10,7 +10,7 @@ import co.voik.agesandtheart.age.resolution.Members
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
-/** A row of pages read into what lands where, by the plan's own examples (`notes/meanings-plan.md` §2). */
+/** A row of pages read into what lands where, by the world model's own examples (`the-world-model.md` §3). */
 @Tags(NEEDS_REGISTRIES)
 class ReadingCheck : FunSpec({
 

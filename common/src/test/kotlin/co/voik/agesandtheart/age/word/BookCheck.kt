@@ -136,7 +136,7 @@ class BookCheck : FunSpec({
      *
      * **Every pair the corpus can write, not the first one** (Jonah, 2026-08-05). A spot check passed for
      * years because whichever pair it happened to find did collide. Words that never share a place never clash
-     * (`notes/meanings-plan.md` §2), so each pair is written by two words wanting its two tags in one part of the
+     * (`the-world-model.md` §8), so each pair is written by two words wanting its two tags in one part of the
      * world.
      */
     test("contradicting yourself costs instability, never a parse error") {

@@ -13,7 +13,7 @@ import co.voik.agesandtheart.age.resolution.Place
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
-/** What aspects and members take, read off what they own (`notes/meanings-plan.md` §2, Acceptance). */
+/** What aspects and members take, read off what they own (`the-world-model.md` §3, Acceptance). */
 @Tags(NEEDS_REGISTRIES)
 class AcceptanceCheck : FunSpec({
 

@@ -10,7 +10,7 @@ import co.voik.agesandtheart.age.resolution.Place
 import net.minecraft.resources.Identifier
 
 /**
- * Reads a row of pages into what lands where (`notes/meanings-plan.md` §2, Reading a row):
+ * Reads a row of pages into what lands where (`the-world-model.md` §3):
  *
  * 1. A page waits until a word that takes any of its meanings, which takes the whole page.
  * 2. A waiting page stops at the first word that takes anything at all, and falls there if that word does not take it.

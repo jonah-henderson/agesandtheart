@@ -12,7 +12,7 @@ import co.voik.agesandtheart.age.language.ShippedLexicon.resolved
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
-/** The resolver on landings: what fills, steers, weighs and mints, and what is charged (`notes/meanings-plan.md` §3). */
+/** The resolver on landings: what fills, steers, weighs and mints, and what is charged (`the-world-model.md` §5). */
 @Tags(NEEDS_REGISTRIES)
 class ResolutionCheck : FunSpec({
 

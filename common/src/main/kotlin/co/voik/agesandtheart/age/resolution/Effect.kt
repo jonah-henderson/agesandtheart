@@ -3,7 +3,7 @@ package co.voik.agesandtheart.age.resolution
 import co.voik.agesandtheart.age.aspect.Aspect
 
 /**
- * One thing a meaning does once it has landed (`notes/meanings-plan.md` §2). A meaning is usually one of these, and
+ * One thing a meaning does once it has landed (`the-world-model.md` §3). A meaning is usually one of these, and
  * occasionally several that only mean anything together — an ice halo is a bow's colour, rain, frequency and size.
  */
 sealed interface Effect {

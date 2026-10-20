@@ -8,8 +8,8 @@ import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Setting
 
 /**
- * Every pair of words that could not both be what they said where they landed together (`notes/meanings-plan.md`
- * §2, Charging incoherence), read off what each could have landed before anything was drawn, so the same book is
+ * Every pair of words that could not both be what they said where they landed together (`the-world-model.md`
+ * §8), read off what each could have landed before anything was drawn, so the same book is
  * charged the same at every seed. One flaw per pair of words, naming the place they first clashed and what over.
  *
  * Two landings clash where they are at one place and said of members in common, sited alike and not joined by

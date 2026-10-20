@@ -9,7 +9,7 @@ import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.word.Vocabulary
 
 /**
- * What page could be laid next, read off the reading (`notes/meanings-plan.md` §2): the pages that would take what
+ * What page could be laid next, read off the reading (`the-world-model.md` §3): the pages that would take what
  * is waiting first, and set aside those that would land nothing, take nothing and bind nothing where they were laid.
  */
 class Suggestions(private val vocabulary: Vocabulary) {

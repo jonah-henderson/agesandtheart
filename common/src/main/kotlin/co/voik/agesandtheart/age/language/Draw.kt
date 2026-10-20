@@ -6,8 +6,7 @@ import co.voik.agesandtheart.math.mix64
 import kotlin.random.Random
 
 /**
- * Which of a book's claims land, drawn page by page off the book's seed (`notes/meanings-plan.md` §2, Drawing what
- * lands):
+ * Which of a book's claims land, drawn page by page off the book's seed (`the-world-model.md` §3):
  *
  * - each claim lands on its own chance — aimed its chance to apply, laid bare its chance unaimed, or its chance to
  *   apply times [Meaning.BARE_CHANCE] where it names none;

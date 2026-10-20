@@ -15,7 +15,8 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 - **`notes/the-world-model.md`** — **read this first, and before anything under `age/`.** What a world is
   made of (properties holding a value, a weighted set or a cast), what a word is, how a book resolves, and
   what a word costs. Derived from scratch 2026-08-12 and **built** — it supersedes `the-art-design.md`
-  §3 and §4, and is normative and current where they are history. Its §10 maps the old concepts onto the new ones.
+  §3 and §4, and is normative and current where they are history. Its §3 is words as meanings and how a row of
+  pages is read (2026-10-20), and its §10 maps the old concepts onto the new ones.
 - **`notes/the-art-design.md`** — "the Art": the books, the language, aspects and tags, consequences,
   book editing, the economy. Still normative for §5 (consequence), §6 (book editing), §7 (the economy) and
   §8 (learning); **§3 and §4 are superseded** by the world model above.
@@ -26,13 +27,6 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   line that says to delete it when the last item goes.** Its §5 is the tool, which is `scripts/scrivener.sh`;
   §5.1 and §5.2 are what that tool refuses and nudges about. Read it before authoring a word or touching
   `art/word/` — and author with the tool rather than by hand.
-- **`notes/meanings-plan.md`** — the rewrite of how a page becomes a claim: words carry meanings that land on the
-  first word that accepts them, members name themselves and most aiming words retire. **Decided 2026-10-19,
-  on the branch `meanings`, cut over 2026-10-20**; Scrivener's rework (phase 6) is what is left. It opens with
-  the rules that keep the rework from becoming a hybrid of the old model and the new — read §1 before writing a
-  line of it — then the model, the seam with everything outside the layer, and the list of what must be gone
-  before merge. Read it before adding another exception to how a word
-  is read.
 - **`notes/instability-tiers-plan.md`** — what is left of the instability tiers, which are **built** and live in
   design §5.0: the strange tier (cosmetic manifestations, the beginner's whole experience of instability,
   and nothing in it yet), the mirage experiment, and the wounds' rework. Read it before adding a manifestation
@@ -495,7 +489,7 @@ feature, and keeping them in one package made a cycle of each. Opening a level i
 - **`AgeGeneration`** (in `generation/`) — turns a recipe into a `ChunkGenerator`, in an exhaustive `when` over `AgePreset`. A pure function of the recipe (plus the server, for registries), because an Age must rebuild identically on every open.
 - **`AgeSavedData`** — vanilla `SavedData` on the overworld's data storage, persisting each Age's recipe. Runtime-dimension libraries do **not** auto-restore dimensions on restart, so we track them ourselves.
 - **`Ages`** (in `generation/`) — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (calling `RuntimeLevels.open` / `RuntimeLevels.delete` with the recipe and dimension type, which are ours) and `reloadSaved` (replay on boot).
-- **`age/language/`** — **words, and how a book is read** (`notes/meanings-plan.md`). A `Word` carries
+- **`age/language/`** — **words, and how a book is read** (`notes/the-world-model.md` §3). A `Word` carries
   **meanings**, each one idea of one or more `Effect`s with its chance to apply where aimed, laid bare, or
   always; its price is read off them. `Acceptance` is derived, never written: an aspect's page takes what its
   part of the world owns, a member word what its preset honours, a minting a substance, and blocks take

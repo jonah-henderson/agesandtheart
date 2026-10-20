@@ -3,7 +3,7 @@ package co.voik.agesandtheart.age.language
 import co.voik.agesandtheart.age.resolution.Effect
 
 /**
- * One idea a word carries, and how likely it is to apply (`notes/meanings-plan.md` §2): `frozen` means a cold
+ * One idea a word carries, and how likely it is to apply (`the-world-model.md` §3): `frozen` means a cold
  * climate, a white sky, ice halos, each one meaning. Two meanings of one word setting the same parameter in the same
  * place are alternatives, and one of them is drawn, [chanceToApply] being its odds against the others.
  */

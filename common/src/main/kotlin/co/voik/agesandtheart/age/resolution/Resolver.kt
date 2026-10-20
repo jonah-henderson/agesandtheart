@@ -9,7 +9,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.SkyBodies
 
 /**
- * A book in, a world out (`notes/meanings-plan.md` §3). What landed fills the catalogues, steers the parameters,
+ * A book in, a world out (`the-world-model.md` §5). What landed fills the catalogues, steers the parameters,
  * weighs the populations and mints the features, the template lies underneath what the book spoke to, and every
  * disagreement between words is charged as incoherence. A pure function of (world, book, seed): an Age is rebuilt
  * from its recipe on every open.
