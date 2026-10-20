@@ -260,7 +260,7 @@ describe, the age workshop, and the tool itself. Its tag screen edits `art/prese
 visible — every carrier says whether its weight was **authored**, **derived**, or **dropped**, because
 setting a weight on a derived tag *writes* an entry, clearing one lets the derived value back, and removing
 a derived tag is `drop` rather than deletion. It also renames a tag across the carriers, every word that
-asks and the antonym table together, which is the one edit a text editor is worst at. One further screen
+asks and the opposed-tags table together, which is the one edit a text editor is worst at. One further screen
 is **read-only on purpose**: the derivation rules, where enter runs one rule *by itself* to show exactly
 what it catches. The file already states its rule perfectly and hides only its consequence —
 `notes/decisions.md` carries the split.
@@ -499,7 +499,7 @@ feature, and keeping them in one package made a cycle of each. Opening a level i
   `PresetProfile`/`PresetTags` (what the world is like — hung on `Taggable`, which is an `AuthoredPreset`
   this pack wrote or a `RegistryReference` into one of the game's registries; being describable by tag is
   the only thing the two share, so the interface is named for it), `Vocabulary` (the corpus, **loaded from datapack
-  JSON** under `data/<namespace>/art/` — words, domains, per-slot tag tables, antonym pages, structural words), and
+  JSON** under `data/<namespace>/art/` — words, domains, per-slot tag tables, opposed tags, structural words), and
   `Resolver` (a parsed sentence + seed → composition, cost and instability). `DerivedWords` gives **every
   block and biome in the pack a word of its own**, so the corpus is ~1100 offline and more on a server.
   Resolution is a **pure function of (vocabulary, sentence, seed)**; the resolved composition is what
