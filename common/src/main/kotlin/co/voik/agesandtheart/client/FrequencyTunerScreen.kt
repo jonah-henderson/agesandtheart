@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.client.ui.scrollChildUnder
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.ui.DecorationWidget
 import co.voik.agesandtheart.client.ui.DialKnob
@@ -99,6 +100,9 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
             },
         )
     }
+
+    override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean =
+        super.mouseScrolled(mouseX, mouseY, scrollX, scrollY) || scrollChildUnder(mouseX, mouseY, scrollX, scrollY)
 
     override fun containerTick() {
         super.containerTick()

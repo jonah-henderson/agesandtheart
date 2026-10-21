@@ -14,7 +14,7 @@ class WordOrderingCheck : FunSpec({
     val frozen = row("frozen", stocked = 9)
     val sky = row("sky", stocked = 1)
     val rows = listOf(sky, frozen, charged)
-    val rarity = mapOf(charged.word to WordHeadings.Rarity.STAPLE, frozen.word to WordHeadings.Rarity.RARE)
+    val rarity = mapOf(charged.word to WordHeadings.Rarity.UNCOMMON, frozen.word to WordHeadings.Rarity.RARE)
     val applies = mapOf(charged.word to listOf(sky.word, row("creeper").word), frozen.word to listOf(sky.word))
 
     fun ordered(order: WordOrder, searchedFor: String = "") = WordOrdering.grouped(
@@ -34,7 +34,7 @@ class WordOrderingCheck : FunSpec({
     }
 
     test("by rarity, rarest first, with no heading over nothing") {
-        val expected = listOf("rare" to listOf("frozen"), "common" to listOf("sky"), "staple" to listOf("charged"))
+        val expected = listOf("rare" to listOf("frozen"), "uncommon" to listOf("charged"), "common" to listOf("sky"))
         check(ordered(WordOrder.RARITY) == expected) { "${ordered(WordOrder.RARITY)}" }
     }
 

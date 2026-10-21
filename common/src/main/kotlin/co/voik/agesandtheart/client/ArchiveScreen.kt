@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.client.ui.scrollChildUnder
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.ui.DecorationWidget
 import co.voik.agesandtheart.client.ui.FlexColumn
@@ -124,6 +125,9 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
         refresh(force = true)
     }
 
+    override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean =
+        super.mouseScrolled(mouseX, mouseY, scrollX, scrollY) || scrollChildUnder(mouseX, mouseY, scrollX, scrollY)
+
     /** A key belongs to the search box while it has the caret, or `e` would close the screen mid-word. */
     override fun keyPressed(event: KeyEvent): Boolean {
         if (!search.isFocused) return super.keyPressed(event)
@@ -177,6 +181,7 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
             count = { row -> row.count.takeIf { it > 0 } },
             key = { it.word },
             actions = listOf(write, takeOut),
+            startsCollapsed = ordering == WordOrder.APPLIES_TO && needle.isBlank(),
         )
     }
 

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.client.ui.scrollChildUnder
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.ui.DecoratedBox
@@ -253,6 +254,9 @@ class WritersDeskScreen(
         unsentFor = null
     }
 
+    override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean =
+        super.mouseScrolled(mouseX, mouseY, scrollX, scrollY) || scrollChildUnder(mouseX, mouseY, scrollX, scrollY)
+
     /**
      * A key pressed while a box has the caret belongs to the box, whether or not it wanted it — or `e`
      * reaches "close the inventory" and the desk shuts mid-word. Vanilla's creative search is guarded so.
@@ -309,7 +313,13 @@ class WritersDeskScreen(
         wordOrder = ordering
         shownWords = rows
         shownWordsIn = ordering
-        wordList.showGrouped(WordListOrder.grouped(rows, ordering, search.value), label = { it.readable }, key = { it.word }, tooltip = ::reachTooltip)
+        wordList.showGrouped(
+            WordListOrder.grouped(rows, ordering, search.value),
+            label = { it.readable },
+            key = { it.word },
+            tooltip = ::reachTooltip,
+            startsCollapsed = ordering == WordOrder.APPLIES_TO && search.value.isBlank(),
+        )
     }
 
     /** Where a word applies, asked at hover so a guide carried into or out of the room shows at once. */

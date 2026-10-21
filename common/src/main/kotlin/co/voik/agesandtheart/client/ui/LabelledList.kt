@@ -66,22 +66,29 @@ data class ListGroup<T : Any>(val heading: String?, val values: List<T>)
  */
 sealed class ListLine<T : Any> : ObjectSelectionList.Entry<ListLine<T>>()
 
-/** A heading over a run of a [LabelledList]'s rows, which is read and never acted on. */
-class HeadingLine<T : Any>(private val text: String) : ListLine<T>() {
+/** A heading over a run of a [LabelledList]'s rows, which a click folds away or opens out. */
+class HeadingLine<T : Any>(private val text: String, private val isCollapsed: Boolean, private val onToggle: () -> Unit) : ListLine<T>() {
 
     override fun getNarration(): Component = Component.literal(text)
 
     override fun extractContent(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, hovered: Boolean, a: Float) {
         val font = Minecraft.getInstance().font
+        if (hovered) graphics.fill(x, y, x + width, y + height, Palette.HOVER)
         val baseline = y + (LabelledRow.FIRST_LINE_HEIGHT - font.lineHeight) / 2 + 1
-        graphics.text(font, text, x + HEADING_INSET, baseline, Palette.FAINT, false)
+        val marker = if (isCollapsed) COLLAPSED else EXPANDED
+        graphics.text(font, "$marker $text", x + HEADING_INSET, baseline, Palette.FAINT, false)
         graphics.fill(x + HEADING_INSET, y + height - 1, x + width - HEADING_INSET, y + height, Palette.FAINT)
     }
 
-    override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean = false
+    override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {
+        onToggle()
+        return true
+    }
 
     private companion object {
         const val HEADING_INSET = 1
+        const val COLLAPSED = "[+]"
+        const val EXPANDED = "[-]"
     }
 }
 
@@ -219,6 +226,12 @@ class LabelledList<T : Any>(
     /** The last [show], kept so a new width can wrap the same rows again. */
     private var reshow: () -> Unit = {}
 
+    /** The headings a click has turned from how their groups start, open or folded. */
+    private val toggled = mutableSetOf<String>()
+
+    /** Whether the groups shown last started folded, so a list that starts the other way forgets the clicks. */
+    private var startedCollapsed = false
+
     private val scrollbar = ContainerScrollbar()
 
     init {
@@ -247,7 +260,11 @@ class LabelledList<T : Any>(
         tooltip: (T) -> List<Component> = { emptyList() },
     ) = showGrouped(listOf(ListGroup(null, values)), label, count, key, actions, tooltip)
 
-    /** [groups] in order, each under its heading — a value may stand in more than one. */
+    /**
+     * [groups] in order, each under its heading — a value may stand in more than one. A heading folds its group away
+     * or opens it out when clicked; [startsCollapsed] says which way every group starts, and a folded group's rows are
+     * never built, which is what keeps a list of thousands under its headings quick.
+     */
     fun showGrouped(
         groups: List<ListGroup<T>>,
         label: (T) -> String,
@@ -255,13 +272,19 @@ class LabelledList<T : Any>(
         key: (T) -> Any = { it },
         actions: List<RowAction<T>> = emptyList(),
         tooltip: (T) -> List<Component> = { emptyList() },
+        startsCollapsed: Boolean = false,
     ) {
-        reshow = { showGrouped(groups, label, count, key, actions, tooltip) }
+        reshow = { showGrouped(groups, label, count, key, actions, tooltip, startsCollapsed) }
+        if (startsCollapsed != startedCollapsed) toggled.clear()
+        startedCollapsed = startsCollapsed
         val wasSelected = (selected as? LabelledRow<T>)?.value?.let(key)
         val wasScrolledTo = scrollAmount()
         clearEntries()
         for (group in groups) {
-            group.heading?.let { addEntry(HeadingLine(it), HEADING_HEIGHT) }
+            val heading = group.heading
+            val isCollapsed = heading != null && startsCollapsed != (heading in toggled)
+            heading?.let { addEntry(HeadingLine(it, isCollapsed) { toggle(it) }, HEADING_HEIGHT) }
+            if (isCollapsed) continue
             for (value in group.values) {
                 val row = LabelledRow.wrapped(value, label(value), count(value), onSelect, actions, rowWidth, tooltip)
                 addEntry(row, LabelledRow.heightOf(row))
@@ -275,6 +298,11 @@ class LabelledList<T : Any>(
     }
 
     fun place(bounds: Rect) = updateSizeAndPosition(bounds.width, bounds.height, bounds.x, bounds.y)
+
+    private fun toggle(heading: String) {
+        if (!toggled.remove(heading)) toggled += heading
+        reshow()
+    }
 
     /** Back to the top, for when the contents change out from under the reader. */
     fun resetScroll() = setScrollAmount(0.0)
