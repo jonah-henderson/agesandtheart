@@ -88,6 +88,31 @@ private fun canBothHold(mine: String, theirs: String): Boolean {
     return bothAreSettingsOfARange && Setting.settle(asked) != null
 }
 
+/**
+ * Every word asking for a block another word banned — `snow_block landmass no snow_block` — one flaw per pair of words.
+ * Charged and not refused (Jonah, 2026-10-21): the ban stands, and a writer who bans what their Age is made of has an
+ * Age they cannot stand on.
+ */
+internal fun bannedButAskedFor(possible: List<Landing>): List<Flaw> {
+    val bans = possible.filter { it.banned.isNotEmpty() }
+    fun asksFor(landing: Landing, block: String) = landing.effects.any { effect ->
+        when (effect) {
+            is Effect.Sets -> effect.value == block
+            is Effect.Chooses -> effect.member == block
+            is Effect.MadeOf -> effect.substance == block
+            is Effect.Mints -> effect.unstated == block
+            else -> false
+        }
+    }
+    return bans.flatMap { ban ->
+        ban.banned.flatMap { block ->
+            possible.filter { it.banned.isEmpty() && asksFor(it, block) }.map { asking ->
+                Flaw(Register.INCOHERENT, listOf(ban.word, asking.word), asking.aspect, listOf(block))
+            }
+        }
+    }.distinctBy { it.words.sorted() }
+}
+
 private val Landing.madeOf: String? get() = effects.filterIsInstance<Effect.MadeOf>().firstOrNull()?.substance
 
 /** The tags it leans by, each with its weight. */

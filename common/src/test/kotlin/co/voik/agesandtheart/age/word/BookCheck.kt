@@ -199,7 +199,7 @@ class BookCheck : FunSpec({
     test("nothing vanishes from a row of pages") {
         // A moved page is reported, charged as rehomed, wherever it then lands.
         fun mustLand(fate: Fate) = when (fate) {
-            is Fate.TakenBy, Fate.LaidBare, Fate.AssertedAlone -> true
+            is Fate.TakenBy, Fate.LaidBare, Fate.AssertedAlone, Fate.Banned -> true
             is Fate.Took, is Fate.Structural, Fate.Unread, Fate.Impossible, Fate.Sited, Fate.Moved -> false
         }
         for ((seed, pages) in fuzzed) {

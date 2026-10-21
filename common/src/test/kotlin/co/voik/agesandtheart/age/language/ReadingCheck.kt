@@ -111,6 +111,23 @@ class ReadingCheck : FunSpec({
         }
     }
 
+    test("`no` before a block bans it from the whole Age, and `and` carries the ban to the next block") {
+        val book = read("age no snow and powder_snow")
+        check(book.fateOf(2) == Fate.Banned && book.fateOf(4) == Fate.Banned) { book.readout }
+        val banned = book.landings.flatMap { it.effects }.filterIsInstance<Effect.Bans>().map { it.block }.toSet()
+        check(banned == setOf("minecraft:snow", "minecraft:powder_snow")) { "the ban took $banned" }
+        check(read("age no zombie").fateOf(1) != Fate.Impossible) { "`no` before a member stopped working" }
+    }
+
+    test("a banned block is kept from the Age, and charged where the Age asked to be made of it") {
+        val banned = ShippedLexicon.resolved("age no snow")
+        check(banned.composition.banned == setOf("minecraft:snow")) { "the Age keeps ${banned.composition.banned} out" }
+        check(banned.instability.flaws.isEmpty()) { "a plain ban was charged: ${banned.instability.flaws}" }
+        val madeOfIt = ShippedLexicon.resolved("snow_block age no snow_block")
+        check(madeOfIt.composition.banned == setOf("minecraft:snow_block")) { "the ban did not stand against the rock" }
+        check(madeOfIt.instability.flaws.any { "minecraft:snow_block" in it.tags }) { "banning the rock went uncharged" }
+    }
+
     test("a member named on its own is asked for, and one described is not, unless an amount is asked or it must be brought") {
         fun namedBy(book: Reading, page: Int) =
             book.landedBy(page).any { landing -> landing.effects.any { it is Effect.Chooses || it is Effect.Restricts } }

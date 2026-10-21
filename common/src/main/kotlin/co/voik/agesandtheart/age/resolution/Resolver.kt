@@ -17,14 +17,18 @@ import co.voik.agesandtheart.age.aspect.SkyBodies
 object Resolver {
 
     fun resolve(world: WorldFacts, book: Book, seed: Long): Resolution {
-        val resolving = Resolving(world, book.landings, draw = seed xor saltOf(book.landings))
+        // A ban is said of the whole Age rather than of any part of it, so it is set aside from what each part resolves.
+        val (bans, landings) = book.landings.partition { it.banned.isNotEmpty() }
+        val resolving = Resolving(world, landings, draw = seed xor saltOf(book.landings))
         resolving.flaws += book.chargedByTheReading
-        resolving.flaws += incoherence(world, book.possible)
+        resolving.flaws += incoherence(world, book.possible.filter { it.banned.isEmpty() })
+        resolving.flaws += bannedButAskedFor(book.possible)
         val filled = Aspect.entries.associateWith { resolving.fill(it) }
         val resolved = with(resolving) { describedMembers(weighed(steer(cast(compose(filled))))) }
         val template = book.template?.let(AgeTemplate::named) ?: AgeTemplate.ORDINARY
         val spokenTo = resolving.said.map { it.aspect }.toSet()
         val composition = with(resolving) { counted(mintedFeatures(resolved)) }.laidOver(template.world(), spokenTo)
+            .copy(banned = bans.flatMap { it.banned }.toSet())
         resolving.flaws += resolving.mintingsThatCannotHold()
         resolving.flaws += resolving.tidesWithNoMoon(composition)
         return Resolution(

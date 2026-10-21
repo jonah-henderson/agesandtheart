@@ -133,6 +133,7 @@ class Suggestions(private val vocabulary: Vocabulary) {
         is Effect.Template -> "begins the Age from ${effect.name}"
         is Effect.Abundance -> "${effect.rung} times as many"
         is Effect.MadeOf -> "made of ${effect.substance}"
+        is Effect.Bans -> "never ${effect.block}"
     }
 
     private companion object {

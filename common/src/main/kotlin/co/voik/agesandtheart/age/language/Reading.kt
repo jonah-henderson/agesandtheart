@@ -47,6 +47,7 @@ data class Reading(
             Fate.LaidBare -> "laid bare on the Age: $placed"
             Fate.Moved -> "nothing would take it, so it was laid on the Age: $placed"
             Fate.AssertedAlone -> "nothing took it, and it says what it says alone: $placed"
+            Fate.Banned -> "banned: the Age places none of it"
             Fate.Sited -> "the biome the last word was sited in"
         }
     }
@@ -71,6 +72,7 @@ data class Reading(
         is Effect.Template -> "starts from ${effect.name}"
         is Effect.Abundance -> "${effect.rung} times as many"
         is Effect.MadeOf -> "made of ${effect.substance}"
+        is Effect.Bans -> "never ${effect.block}"
     }
 }
 
@@ -102,6 +104,9 @@ sealed interface Fate {
 
     /** A page nothing took, which said what it asserts alone. */
     data object AssertedAlone : Fate
+
+    /** A block `no` led, which the Age never places. */
+    data object Banned : Fate
 
     /** The biome an `in` named. */
     data object Sited : Fate

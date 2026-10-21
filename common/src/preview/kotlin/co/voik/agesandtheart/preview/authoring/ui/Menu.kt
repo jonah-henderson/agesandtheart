@@ -157,6 +157,7 @@ class Menu(
             is Effect.Template -> "begins from ${effect.name}"
             is Effect.Abundance -> "${Rung.spelled(effect.rung)} times as many"
             is Effect.MadeOf -> "made of ${effect.substance}"
+            is Effect.Bans -> "never ${effect.block}"
         }
     }
 

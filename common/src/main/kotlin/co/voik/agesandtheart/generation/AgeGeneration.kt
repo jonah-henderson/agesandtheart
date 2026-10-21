@@ -414,6 +414,7 @@ object AgeGeneration {
             seaIsWater = seaIsWater,
             structuresBuiltOf = StructureMaterials.Written.of(composition.optionsFor(Aspect.STRUCTURES)),
             treesGrownWith = TreeFoliage.of(composition.optionsFor(Aspect.FEATURES)),
+            banned = BannedBlocks.named(composition.banned),
             // What the Age's instability bought. Derived here rather than restated: these were three lines
             // recomputing `Consequence.of`'s own arithmetic, which is how a copy comes to drift from it.
             bought = Consequence.of(server, recipe),

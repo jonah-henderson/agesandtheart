@@ -72,6 +72,11 @@ sealed interface Effect {
         override val narrows get() = false
     }
 
+    /** A block the Age never places anywhere — `no snow` — whatever else asks for it. */
+    data class Bans(val block: String) : Effect {
+        override val narrows get() = true
+    }
+
     /** How much of a member there is, as a multiple of what there would be — `teeming` is four. */
     data class Abundance(val rung: Double) : Effect {
         override val narrows get() = false

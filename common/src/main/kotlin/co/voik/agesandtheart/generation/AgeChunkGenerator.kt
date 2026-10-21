@@ -205,6 +205,8 @@ class AgeChunkGenerator(
     private val structuresBuiltOf: StructureMaterials.Written = StructureMaterials.Written.NONE,
     /** What the book grew this Age's trees with in place of their leaves. Not serialised, like [lives]. */
     val treesGrownWith: TreeFoliage = TreeFoliage.NONE,
+    /** The blocks the book banned, which no chunk of the Age is generated holding — see [BannedBlocks]. */
+    private val banned: Set<Block> = emptySet(),
     /** Whether no new living thing may be made in this Age by anything at all — see [Lifeless]. */
     val nothingLives: Boolean = false,
     /** How many times its vanilla cap each spawn pass holds here, a pass left out holding vanilla's — see [SpawnCaps]. */
@@ -1564,6 +1566,8 @@ class AgeChunkGenerator(
         clearWhatFellToTheFloor(chunk)
         // And again last, for what structures and the features put at the sea's level or under it.
         PlasmaSea.consume(this, chunk)
+        // Last of all, so nothing laid after can put back what the book banned.
+        BannedBlocks.sweep(level, chunk, banned)
     }
 
     /**

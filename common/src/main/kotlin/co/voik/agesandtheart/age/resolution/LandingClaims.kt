@@ -18,6 +18,10 @@ internal val Landing.admitted: Set<String>
 private val Landing.struck: Set<String>
     get() = effects.filterIsInstance<Effect.Excludes>().flatMap { it.members }.toSet()
 
+/** The blocks this bans from the whole Age — `no snow`. */
+internal val Landing.banned: Set<String>
+    get() = effects.filterIsInstance<Effect.Bans>().map { it.block }.toSet()
+
 /** Its bars, by tag, signed as `Bars` reads one. */
 internal val Landing.bars: Map<String, Double>
     get() = effects.filterIsInstance<Effect.Restricts>().fold(emptyMap()) { held, next -> held + next.bars }

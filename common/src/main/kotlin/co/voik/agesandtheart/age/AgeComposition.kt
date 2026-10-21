@@ -56,6 +56,8 @@ data class AgeComposition(
      * the same, so [seas] alone cannot say whether the floating territory was meant to have it.
      */
     val seaNamed: Boolean = false,
+    /** The blocks the Age never places, by id — `no snow` — whatever else asked for them. */
+    val banned: Set<String> = emptySet(),
 ) : AgeParts {
     /**
      * The coordinates its biomes are looked up at, one per territory. Never empty.
@@ -341,6 +343,8 @@ data class AgeComposition(
                 AspectOptions.CODEC.optionalFieldOf("options", AspectOptions()).forGetter(AgeComposition::options),
                 Spreads.CODEC.optionalFieldOf("spread", Spreads()).forGetter(AgeComposition::spreads),
                 Codec.BOOL.optionalFieldOf("sea_named", false).forGetter(AgeComposition::seaNamed),
+                Codec.STRING.listOf().xmap({ it.toSet() }, { it.sorted() })
+                    .optionalFieldOf("banned", emptySet()).forGetter(AgeComposition::banned),
             ).apply(instance, ::AgeComposition)
         }
     }

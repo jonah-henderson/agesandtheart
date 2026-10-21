@@ -51,7 +51,7 @@ class Lexicon(
         is Effect.Leans -> listOf(effect.aspect)
         is Effect.LeansEverywhere -> Aspect.entries.filter { aspect -> likesSomethingIn(aspect, effect.weights) }
         is Effect.Mints -> listOf(Aspect.FEATURES)
-        is Effect.Template, is Effect.Abundance, is Effect.MadeOf -> emptyList()
+        is Effect.Template, is Effect.Abundance, is Effect.MadeOf, is Effect.Bans -> emptyList()
     }
 
     private fun barePlacesOfParameter(key: ParameterKey): List<Aspect> {

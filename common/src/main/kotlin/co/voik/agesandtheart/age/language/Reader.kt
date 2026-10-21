@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.resolution.GROWS_IN_PLACES
 import co.voik.agesandtheart.age.resolution.Members
 import co.voik.agesandtheart.age.resolution.Place
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
 
 /**
@@ -111,6 +112,12 @@ object Reader {
         /** `and`: the page before it is the left term, and the next term is joined to it. */
         private fun joining() {
             val previous = at - 1
+            // `no snow and powder_snow`: the block after a ban's `and` is banned too.
+            if (fates.getOrNull(previous) == Fate.Banned) {
+                polarity = Polarity.EXCEPT
+                polarityAt = at
+                return
+            }
             val leftWaits = waiting.lastOrNull()?.index == previous
             val leftTook = lastTaker?.index == previous
             leftOfAnd = when {
@@ -149,7 +156,23 @@ object Reader {
 
         private fun word(word: Word) {
             val acceptance = lexicon.acceptance(word)
-            if (acceptance == null) waits(word) else takes(word, acceptance)
+            val bansIt = polarity == Polarity.EXCEPT && acceptance == null && isABlock(word)
+            when {
+                bansIt -> bans(word)
+                acceptance == null -> waits(word)
+                else -> takes(word, acceptance)
+            }
+        }
+
+        private fun isABlock(word: Word) = BuiltInRegistries.BLOCK.containsKey(word.id)
+
+        /** `no <block>`: a block the Age never places, whatever else asks for it — its own meanings said of nothing. */
+        private fun bans(word: Word) {
+            polarity = null
+            polarityAt = null
+            fates[at] = Fate.Banned
+            val ban = Meaning(listOf(Effect.Bans(word.id.toString())), mustAlwaysApply = true, asserts = true)
+            claims += Claim(at, word, ban, Place(Aspect.TERRAIN), ban.effects, clause = at, aimed = true)
         }
 
         private fun waits(word: Word) {

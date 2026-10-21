@@ -66,6 +66,7 @@ data class Word(
             is Effect.Excludes -> setOf(effect.aspect)
             is Effect.Restricts -> setOf(effect.aspect)
             is Effect.Mints -> setOf(Aspect.FEATURES)
+            is Effect.Bans -> setOf(Aspect.TERRAIN)
             is Effect.Template, is Effect.Bends, is Effect.Admits, is Effect.Leans, is Effect.LeansEverywhere,
             is Effect.Abundance, is Effect.MadeOf,
             -> emptySet()

@@ -244,6 +244,7 @@ class Parts(private val corpus: Corpus) {
         is Effect.Template -> listOf(null to said("begins", "from", effect.name))
         is Effect.Abundance -> listOf(null to said("asks", "for", "${Rung.spelled(effect.rung)} times as many"))
         is Effect.MadeOf -> listOf(null to said("made", "of", effect.substance))
+        is Effect.Bans -> listOf(null to said("bans", "", effect.block))
     }
 
     private fun mintedOf(mints: Effect.Mints): String {
