@@ -192,6 +192,8 @@ class LabelledList<T : Any>(
     /** The last [show], kept so a new width can wrap the same rows again. */
     private var reshow: () -> Unit = {}
 
+    private val scrollbar = ContainerScrollbar()
+
     init {
         centerListVertically = false
         updateSizeAndPosition(bounds.width, bounds.height, bounds.x, bounds.y)
@@ -239,13 +241,28 @@ class LabelledList<T : Any>(
 
     /**
      * `AbstractContainerWidget` routes clicks and scrolls straight to its children without consulting its
-     * own visibility, so a hidden list would still answer them. These three put that back.
+     * own visibility, so a hidden list would still answer them. These put that back, and take the scrollbar's
+     * presses and drags for [ContainerScrollbar].
      */
-    override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean =
-        visible && super.mouseClicked(event, doubleClick)
+    override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {
+        if (!visible) return false
+        val onTheScrollbar = scrollable() && isOverScrollbar(event.x(), event.y())
+        if (!onTheScrollbar) return super.mouseClicked(event, doubleClick)
+        scrollTo(scrollbar.press(track(), scrolledFraction(), event.y()))
+        return true
+    }
 
-    override fun mouseDragged(event: MouseButtonEvent, dragX: Double, dragY: Double): Boolean =
-        visible && super.mouseDragged(event, dragX, dragY)
+    override fun mouseDragged(event: MouseButtonEvent, dragX: Double, dragY: Double): Boolean {
+        if (!visible) return false
+        val held = scrollbar.drag(track(), event.y()) ?: return super.mouseDragged(event, dragX, dragY)
+        scrollTo(held)
+        return true
+    }
+
+    override fun mouseReleased(event: MouseButtonEvent): Boolean {
+        scrollbar.release()
+        return super.mouseReleased(event)
+    }
 
     override fun mouseScrolled(mouseX: Double, mouseY: Double, scrollX: Double, scrollY: Double): Boolean =
         visible && super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)
@@ -257,6 +274,18 @@ class LabelledList<T : Any>(
 
     override fun scrollBarX(): Int = right - scrollbarWidth()
 
+    override fun scrollbarWidth(): Int = ContainerScrollbar.WIDTH
+
+    override fun extractScrollbar(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int) {
+        if (scrollable()) scrollbar.draw(graphics, track(), scrolledFraction())
+    }
+
+    private fun track() = Rect(scrollBarX(), y, scrollbarWidth(), height)
+
+    private fun scrolledFraction(): Double = if (maxScrollAmount() > 0) scrollAmount() / maxScrollAmount() else 0.0
+
+    private fun scrollTo(fraction: Double) = setScrollAmount(fraction * maxScrollAmount())
+
     /** Nothing: a row is acted on, never held selected, and a wash made the grey text on it unreadable. */
     override fun extractSelection(graphics: GuiGraphicsExtractor, entry: LabelledRow<T>, outlineColor: Int) = Unit
 
@@ -266,6 +295,7 @@ class LabelledList<T : Any>(
     override fun extractListSeparators(graphics: GuiGraphicsExtractor) = Unit
 
     private companion object {
-        const val SCROLLBAR_GUTTER = 8
+        /** The scrollbar, and two pixels clear of it. */
+        const val SCROLLBAR_GUTTER = ContainerScrollbar.WIDTH + 2
     }
 }

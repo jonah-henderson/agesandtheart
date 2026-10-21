@@ -60,6 +60,8 @@ class TemplateEditor(
 
     private var laidOut: Layout? = null
 
+    private val scrollbar = ContainerScrollbar()
+
     private data class Layout(val typed: String, val pads: Map<Int, Int>, val limit: Int, val rows: List<DisplayRow>)
 
     init {
@@ -88,13 +90,45 @@ class TemplateEditor(
         text.insertText(leading + word + trailing)
     }
 
+    /** Narrower than [bounds] by its scrollbar, which a text area draws beside itself rather than inside. */
     override fun onResized(bounds: Rect) {
         setPosition(bounds.x, bounds.y)
-        setSize(bounds.width, bounds.height)
+        setSize(bounds.width - SCROLLBAR_ROOM, bounds.height)
     }
 
     override fun extractBackground(graphics: GuiGraphicsExtractor) =
         ParchmentSurface.draw(graphics, Rect(x, y, width, height))
+
+    /** The scrollbar's presses and drags are [ContainerScrollbar]'s, which keeps the knob under the pointer. */
+    override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {
+        val onTheScrollbar = visible && scrollable() && isOverScrollbar(event.x(), event.y())
+        if (!onTheScrollbar) return super.mouseClicked(event, doubleClick)
+        scrollTo(scrollbar.press(track(), scrolledFraction(), event.y()))
+        return true
+    }
+
+    override fun mouseDragged(event: MouseButtonEvent, dragX: Double, dragY: Double): Boolean {
+        val held = scrollbar.drag(track(), event.y()) ?: return super.mouseDragged(event, dragX, dragY)
+        scrollTo(held)
+        return true
+    }
+
+    override fun mouseReleased(event: MouseButtonEvent): Boolean {
+        scrollbar.release()
+        return super.mouseReleased(event)
+    }
+
+    override fun scrollbarWidth(): Int = ContainerScrollbar.WIDTH
+
+    override fun extractScrollbar(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int) {
+        if (scrollable()) scrollbar.draw(graphics, track(), scrolledFraction())
+    }
+
+    private fun track() = Rect(scrollBarX(), y, scrollbarWidth(), height)
+
+    private fun scrolledFraction(): Double = if (maxScrollAmount() > 0) scrollAmount() / maxScrollAmount() else 0.0
+
+    private fun scrollTo(fraction: Double) = setScrollAmount(fraction * maxScrollAmount())
 
     override fun onClick(event: MouseButtonEvent, doubleClick: Boolean) {
         if (doubleClick) {
@@ -314,6 +348,9 @@ class TemplateEditor(
     }
 
     private companion object {
+        /** The scrollbar, and a pixel clear of it. */
+        const val SCROLLBAR_ROOM = ContainerScrollbar.WIDTH + 1
+
         /** A line of text, a line of script, and a hair between rows. */
         const val ROW = 19
         const val SCRIPT_GAP = 2
