@@ -38,8 +38,10 @@ object PageLearning {
      * The two filters are vanilla's own: a `ResultSlot` holds a crafting *preview*, which is not yet the
      * player's, and slots belonging to some other container are the chest they are looking into.
      *
-     * **The stack a listener is handed is vanilla's copy of the slot**, the one it keeps to notice the next
-     * change and sends to the client, so a page drawn for its finder is written on the slot's own item.
+     * **The stack a listener is handed is vanilla's copy of the slot**, the one it keeps to notice the next change
+     * and sends to the client, while what the client is marked as holding is the slot's own item. So a page drawn
+     * for its finder is written on both: written on the slot's alone, the client was sent the blank copy and
+     * marked as holding the written page, and nothing sent it again.
      *
      * Any slot the player can see, a chest's included, has its gone words cleared — a page made unintelligible, a
      * notebook's pages with it — since a menu opening hands every slot to its listeners.
@@ -53,7 +55,10 @@ object PageLearning {
             if (cleared != null) return slot.set(cleared)
             if (slot.container !== player.inventory) return
             val held = slot.item
-            PageWordFunction.writeForFinder(player, held)
+            if (PageWordFunction.writeForFinder(player, held)) {
+                itemStack.remove(AgeComponents.PAGE_DRAWN_FOR)
+                itemStack.applyComponents(held.componentsPatch)
+            }
             observe(player, held)
         }
 

@@ -99,9 +99,11 @@ class PageWordFunction(
          * Writes a page left [for its finder][AgeComponents.PAGE_DRAWN_FOR] with a word drawn for [finder],
          * as it arrives in their inventory. A structure is generated with nobody there, so this is the first
          * moment that knows who found the page.
+         *
+         * @return whether [stack] was one waiting for its finder, and so has changed.
          */
-        fun writeForFinder(finder: ServerPlayer, stack: ItemStack) {
-            val rarity = stack.get(AgeComponents.PAGE_DRAWN_FOR) ?: return
+        fun writeForFinder(finder: ServerPlayer, stack: ItemStack): Boolean {
+            val rarity = stack.get(AgeComponents.PAGE_DRAWN_FOR) ?: return false
             val vocabulary = Vocabulary.of(finder.level().server)
             val registries = finder.level().registryAccess()
             // **Never left blank**: what its own buckets cannot offer, any bucket can.
@@ -109,6 +111,7 @@ class PageWordFunction(
                 ?: drawFoundWord(vocabulary, registries, finder.random, null, finder)
             stack.remove(AgeComponents.PAGE_DRAWN_FOR)
             if (drawn != null) PageItem.write(stack, drawn, vocabulary)
+            return true
         }
 
         /** The registry holds the codec itself in 26.1 — there is no function-type wrapper any more. */
