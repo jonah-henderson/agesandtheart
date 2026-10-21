@@ -34,7 +34,8 @@ private fun Resolving.mintings(): List<Minting> = said.mapNotNull { landing ->
  * leading the rest, or of the pattern's own where none was; and takes its clause's size, height and abundance.
  */
 internal fun Resolving.mintedFeatures(composition: AgeComposition): AgeComposition {
-    val minted = mintings().map { minting ->
+    val mintings = mintings()
+    val claims = mintings.map { minting ->
         Claim(
             minting.mints.pattern,
             minting.landing.polarity,
@@ -44,7 +45,9 @@ internal fun Resolving.mintedFeatures(composition: AgeComposition): AgeCompositi
             size = asked(minting.clause, SIZE),
             height = asked(minting.clause, HEIGHT),
         )
-    }.filter { it.madeOf != null }
+    }
+    for ((minting, claim) in mintings.zip(claims)) if (claim.madeOf == null) lose(minting.landing, Decision.MINTS)
+    val minted = claims.filter { it.madeOf != null }
     if (minted.isEmpty()) return composition
     val already = composition.optionsFor(Aspect.FEATURES, 0).allSpelled(Features.PLACES.name)
     return composition.withOptions(Aspect.FEATURES, Features.PLACES.name, (already + minted.map { it.spelled() }).distinct().toList())
@@ -58,7 +61,9 @@ private fun Resolving.madeOf(minting: Minting): List<String>? {
     val substances = ranked(Aspect.FEATURES, minting.substances)
     val leading = substances.firstOrNull() ?: return minting.mints.unstated?.let(::listOf)
     fun minglesWithTheLeader(said: Landing) = said === leading || said.isJoinedTo(leading) || said.substance == leading.substance
-    return substances.filter(::minglesWithTheLeader).mapNotNull { it.substance }.distinct()
+    val (mingled, outranked) = substances.partition(::minglesWithTheLeader)
+    outranked.forEach { lose(it, Decision.SUBSTANCE) }
+    return mingled.mapNotNull { it.substance }.distinct()
 }
 
 /** The middle of the span [parameter] was set to in [clause], or null where it was not. */

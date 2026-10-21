@@ -13,7 +13,6 @@ import net.minecraft.world.item.ItemStack
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.commands.SharedSuggestionProvider
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.language.Prose
 import co.voik.agesandtheart.location
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
@@ -80,7 +79,7 @@ internal object PlayerInstruments {
         if (pages.isEmpty()) return null
         val vocabulary = Vocabulary.of(source.server)
         val reading = vocabulary.read(pages, seed) ?: return null
-        return Prose.of(reading, vocabulary.lexicon)
+        return vocabulary.prose(reading, seed)
     }
 
     /**

@@ -30,8 +30,16 @@ data class Reading(
     /** Whether every page is a word or structure that found where it was laid, so nothing had to be put right. */
     val readsAsLaid: Boolean get() = moved.isEmpty() && impossible.isEmpty() && unread.isEmpty()
 
-    /** What the book was read as, page by page — every hop a page made, and what it said where it landed. */
-    val readout: String get() = pages.joinToString("\n") { page -> "${page.written}: ${saidOf(page)}" }
+    /**
+     * What the book was read as, page by page — every hop a page made, and what it said where it landed. A page naming
+     * the part the word before it is of is said with that word: `insular landmass`.
+     */
+    val readout: String get() = pages.filter { it.fate !is Fate.Names }.joinToString("\n") { page -> "${writtenWithItsPart(page)}: ${saidOf(page)}" }
+
+    private fun writtenWithItsPart(page: PageRead): String {
+        val part = pages.firstOrNull { (it.fate as? Fate.Names)?.member == page.index }
+        return if (part == null) page.written else "${page.written} ${part.written}"
+    }
 
     private fun saidOf(page: PageRead): String {
         val landed = landings.filter { it.page == page.index }

@@ -38,6 +38,8 @@ object Resolver {
             cost = book.cost,
             template = template,
             dropped = book.unread,
+            cameToNothing = resolving.cameToNothing(),
+            divided = resolving.divisions(),
         )
     }
 

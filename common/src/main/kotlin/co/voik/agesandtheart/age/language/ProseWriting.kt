@@ -63,18 +63,47 @@ object ProseWriting {
         /**
          * What one clause says about one part of the world: what it is like, then what it holds — two
          * sentences where it said both, since "its land is gentle" and "its land bears arches" are two
-         * claims and joining them would make one of them a clause of the other.
+         * claims and joining them would make one of them a clause of the other. A clause about members says
+         * what they are like of them — "its spiders are large" — and what they come in with them.
          */
         private fun sentencesAbout(about: Aspect, clause: ProseClause): List<String> {
             val where = whereOf(clause)
             clause.shape?.let { return listOf(sentence(about, "has", shaped(it), where, ordinal = null)) }
             val ordinal = clause.body?.takeIf { (bodies[about] ?: 0) > 1 }?.let { ordinal(it + 1) }
             val (named, described) = clause.terms.partition { it.speech.names }
+            val subject = clause.subject
+            if (subject != null) return sentencesOf(about, subject, clause.collective, described, named, where, ordinal)
             return buildList {
                 if (described.isNotEmpty()) add(sentence(about, "is", predicate(described), where, ordinal))
                 val isOnlyThese = named.all { it.polarity == Polarity.ONLY }
                 if (named.isNotEmpty()) add(sentence(about, "has", list(things(named)), where, ordinal, isOnlyThese))
             }
+        }
+
+        /** What was said of [subject]: what it comes in, what it is like, and anything else the clause holds. */
+        private fun sentencesOf(
+            about: Aspect,
+            subject: ProseTerm,
+            collective: ProseShape?,
+            described: List<ProseTerm>,
+            named: List<ProseTerm>,
+            where: String,
+            ordinal: String?,
+        ): List<String> = buildList {
+            if (collective != null) {
+                val comesIn = framed("collective", listOf(collectivePhrase(collective), list(things(listOf(subject.copy(quantifier = null))))))
+                add(sentence(about, "has", comesIn, where, ordinal))
+            }
+            val rung = subject.quantifier?.takeIf { collective != null || described.isNotEmpty() }?.let { said(key(it)) ?: it.replace('_', ' ') }
+            val qualities = listOfNotNull(rung) + listOf(predicate(described)).filter { it.isNotEmpty() }
+            if (qualities.isNotEmpty()) add(framed("subject.is", listOf(bare(subject.copy(quantifier = null)), list(qualities), where)))
+            if (named.isNotEmpty()) add(sentence(about, "has", list(things(named)), where, ordinal))
+        }
+
+        /** What `of` said members come in: its rung and qualities before it — "teeming colossal herds". */
+        private fun collectivePhrase(collective: ProseShape): String {
+            val named = (collective.qualities.map(::nameOf) + plural(collective.shape)).joinToString(" ")
+            return quantified(collective.shape.quantifier, named)
         }
 
         private fun whereOf(clause: ProseClause): String = when {
@@ -115,8 +144,17 @@ object ProseWriting {
             return format(frame, said, where, ordinal.orEmpty())
         }
 
-        /** What something is like: its qualities, and then what it is made of. */
+        /**
+         * What something is like: its qualities, and then what it is made of — each share of a part divided between
+         * rival words said where it holds, "frozen in places and scorching in others".
+         */
         private fun predicate(terms: List<ProseTerm>): String {
+            val shares = terms.groupBy { it.share }
+            if (shares.size < 2) return undivided(terms)
+            return list(shares.values.mapIndexed { at, share -> framed(if (at == 0) "divided.first" else "divided.other", listOf(undivided(share))) })
+        }
+
+        private fun undivided(terms: List<ProseTerm>): String {
             val qualities = qualities(terms.filter { it.speech == Speech.ADJECTIVE })
             val substances = things(terms.filter { it.speech == Speech.MASS })
             val madeOf = if (substances.isEmpty()) emptyList() else listOf(framed("made_of", listOf(list(substances))))

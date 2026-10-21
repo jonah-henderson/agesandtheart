@@ -106,6 +106,33 @@ internal val Landing.wanted: Set<String> get() = bars.filterValues(Bars::isAtLea
 internal val Landing.unwanted: Set<String>
     get() = struck.filter { it.startsWith(TAG_MARK) }.map { it.drop(1) }.toSet() + bars.filterValues(Bars::isAtMost).keys
 
+/**
+ * What resolution may keep or overrule of it, one name each: every parameter it sets, the members it narrows to, the
+ * substance it makes a minting of, and the minting. What only leans, bends or counts is kept whatever else holds.
+ */
+internal val Landing.decisions: Set<String>
+    get() = effects.map { effect ->
+        when (effect) {
+            is Effect.Sets -> effect.parameter.name
+            is Effect.Chooses, is Effect.Admits, is Effect.Excludes, is Effect.Restricts -> Decision.MEMBERS
+            is Effect.Mints -> Decision.MINTS
+            is Effect.MadeOf -> Decision.SUBSTANCE
+            is Effect.Bends, is Effect.Leans, is Effect.LeansEverywhere, is Effect.Abundance, is Effect.Template,
+            is Effect.Bans, is Effect.LinksIn -> Decision.KEPT
+        }
+    }.toSet()
+
+/** The names [Landing.decisions] gives what is not a parameter. */
+internal object Decision {
+    const val MEMBERS = "#members"
+    const val MINTS = "#mints"
+    const val SUBSTANCE = "#substance"
+    const val KEPT = "#kept"
+
+    /** Every decision of a landing at once, for one overruled outright. */
+    const val WHOLE = "#whole"
+}
+
 /** Whether `and` joined these two: a division asked for, which nothing charges. */
 internal fun Landing.isJoinedTo(other: Landing): Boolean = joined != null && joined == other.joined
 

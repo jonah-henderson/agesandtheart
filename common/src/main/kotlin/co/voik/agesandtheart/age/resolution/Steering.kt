@@ -33,6 +33,9 @@ internal fun Resolving.steer(composition: AgeComposition): AgeComposition {
         val settled = rangedNames(steered, aspect)
         val parameters = setting.flatMap { it.settings.keys }.distinct()
             .filter { it != Parameter.CAST && it !in settled && holds(steered, aspect, it) }
+        for (said in setting) {
+            said.settings.keys.filter { it != Parameter.CAST && it !in settled && !holds(steered, aspect, it) }.forEach { lose(said, it) }
+        }
         for (parameter in parameters) {
             val contenders = ranked(aspect, setting.filter { parameter in it.settings })
             val bodies = contenders.filter { it.body != null }
@@ -40,13 +43,17 @@ internal fun Resolving.steer(composition: AgeComposition): AgeComposition {
                 bodies.isNotEmpty() -> {
                     val ofAllOfThem = contenders.firstOrNull { it.body == null }
                     val many = maxOf(steered.membersIn(aspect), bodies.maxOf { (it.body ?: 0) + 1 })
-                    (0..<many).fold(steered) { held, member ->
-                        val own = bodies.firstOrNull { it.body == member } ?: ofAllOfThem
+                    val owners = (0..<many).map { member -> bodies.firstOrNull { it.body == member } ?: ofAllOfThem }
+                    (contenders - owners.filterNotNull().toSet()).forEach { lose(it, parameter) }
+                    owners.withIndex().fold(steered) { held, (member, own) ->
                         if (own == null) held
                         else held.withOptionsFor(aspect, member, parameter, listOf(own.settings.getValue(parameter)))
                     }
                 }
-                canFracture(steered, aspect, parameter, contenders) -> fractured(steered, aspect, parameter, contenders)
+                canFracture(steered, aspect, parameter, contenders) -> {
+                    divide(groupsOf(parameter, contenders))
+                    fractured(steered, aspect, parameter, contenders)
+                }
                 else -> contended(steered, aspect, parameter, contenders, asWritten = setting.sortedBy { it.page })
             }
         }
@@ -185,10 +192,12 @@ private fun Resolving.spannedIn(
 
     val couldFracture = aspect.spatial && composition.membersIn(aspect) == 1
     if (climates.size == 1 || !couldFracture || climates.size > MOST_TERRITORIES) {
+        for (overruled in groups.drop(1).flatten()) boundsIn(overruled).keys.forEach { lose(overruled, it) }
         val agreed = settledWith(bentTo(climates.first()))
         if (!aspect.membersAreDescribed) return written(composition, member = 0, bounds = agreed)
         return (0..<maxOf(composition.membersIn(aspect), 1)).fold(composition) { held, member -> written(held, member, agreed) }
     }
+    divide(groups)
     var fractured = composition.withMembers(aspect, groups.size)
     for ((member, bounds) in climates.withIndex()) fractured = written(fractured, member, settledWith(bentTo(bounds)))
     return fractured
@@ -242,7 +251,7 @@ private fun fractured(composition: AgeComposition, aspect: Aspect, parameter: St
  * A parameter several landings set, where it holds one answer: the firmest keeps it, with whatever is joined to it
  * or asks the same, and two sited in different biomes are not rivals at all.
  */
-private fun contended(
+private fun Resolving.contended(
     composition: AgeComposition,
     aspect: Aspect,
     parameter: String,
@@ -256,6 +265,7 @@ private fun contended(
         return if (keepsOrder) mingled.sortedBy(asWritten::indexOf) else mingled
     }
     val kept = contenders.groupBy { it.sitedIn }.values.flatMap(::keptAmong)
+    (contenders - kept.toSet()).forEach { lose(it, parameter) }
     return composition.withOptions(
         aspect,
         parameter,
@@ -282,5 +292,6 @@ private fun Resolving.wordsNothingHonours(
     fun canSet(said: Landing) = said.settings.keys + said.bendings.keys
     val addressing = setting.filter { said -> canSet(said).any { holds(composition, aspect, it) } }
     val wentUnheeded = addressing.filter { said -> canSet(said).none(::anythingSeatedHonours) }
+    for (said in wentUnheeded) said.settings.keys.forEach { lose(said, it) }
     return wentUnheeded.map { said -> flaw(Register.UNBACKED, listOf(said), aspect) }
 }

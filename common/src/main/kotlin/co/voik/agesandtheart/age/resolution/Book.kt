@@ -34,6 +34,10 @@ data class Resolution(
     val template: AgeTemplate = AgeTemplate.ORDINARY,
     /** Pages that are no word at all. */
     val dropped: List<String> = emptyList(),
+    /** Where what landed came to nothing — overruled, set aside for want of room, or honoured by nothing. */
+    val cameToNothing: Set<LandingAt> = emptySet(),
+    /** Which share of a part divided between rival words each landing went to, where they did not ask for it with `and`. */
+    val divided: Map<LandingAt, Int> = emptyMap(),
 )
 
 /** What resolution asks of the world beyond the book: the members each part holds, and what each is like. */

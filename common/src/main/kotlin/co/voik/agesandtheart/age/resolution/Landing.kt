@@ -32,4 +32,10 @@ data class Landing(
     /** Whether it is widened to every place: `cats everywhere`. */
     val everywhere: Boolean = false,
     val polarity: Polarity = Polarity.ASSERTED,
-)
+) {
+    /** Its page and where it landed, which is what a readout says a word of. */
+    val at: LandingAt get() = LandingAt(page, place)
+}
+
+/** A page and one place it landed — several landings where its meanings landed there together. */
+data class LandingAt(val page: Int, val place: Place)

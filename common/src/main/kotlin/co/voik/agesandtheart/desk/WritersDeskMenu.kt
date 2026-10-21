@@ -59,13 +59,12 @@ class WritersDeskMenu(
         val words = TemplateReading.learnedWords(read)
         val allocation = supplyFor(player, desk).allocate(words)
         // Read once and handed to both: the readout and the conflicts are two questions about one sentence.
-        // Resolving it is dearer still and only the conflicts ask for that — so it is done at most once, and
-        // only where something in the room can show what it says.
+        // Resolving it is dearer, so it is done at most once, and only where something in the room can show what
+        // it says — the conflicts, or the readout, which says only what held.
         val vocabulary = vocabularyFor(player)
         val said = words.takeIf { it.isNotEmpty() }?.let { vocabulary.read(it.map(Identifier::getPath), player.writingSeed) }
-        val resolved = said
-            ?.takeIf { DeskCapability.REVEAL_CONFLICTS in capabilities.capabilities }
-            ?.let { vocabulary.resolve(it, player.writingSeed) }
+        val showsWhatResolves = capabilities.capabilities.any { it == DeskCapability.REVEAL_CONFLICTS || it == DeskCapability.READABLE_GRAMMAR }
+        val resolved = said?.takeIf { showsWhatResolves }?.let { vocabulary.resolve(it, player.writingSeed) }
         return DeskSyncPayload(
             ink = InkTier.entries.associateWith { desk.stores.ink(it) },
             paper = InkTier.entries.associateWith { desk.stores.paper(it) },
@@ -79,7 +78,7 @@ class WritersDeskMenu(
             toWrite = allocation.toWrite.map { pricePage(player, it) },
             drawn = allocation.drawn,
             quarrels = quarrelsIn(capabilities, words, resolved),
-            reading = readingOf(capabilities, said, vocabulary),
+            reading = readingOf(capabilities, said, resolved, vocabulary),
         )
     }
 
@@ -88,9 +87,10 @@ class WritersDeskMenu(
      * conflicts are (design §7.3): visibility is a property of the workspace. The gate is on the desk's
      * live reading and nothing else — a bound book still carries its own, and a found one still teaches.
      */
-    private fun readingOf(capabilities: DeskState, said: Reading?, vocabulary: Vocabulary): List<ProseClause> {
+    private fun readingOf(capabilities: DeskState, said: Reading?, resolved: Resolution?, vocabulary: Vocabulary): List<ProseClause> {
         if (DeskCapability.READABLE_GRAMMAR !in capabilities.capabilities) return emptyList()
-        return said?.let { Prose.of(it, vocabulary.lexicon) }.orEmpty()
+        if (said == null || resolved == null) return emptyList()
+        return Prose.of(said, resolved, vocabulary.lexicon)
     }
 
     /**

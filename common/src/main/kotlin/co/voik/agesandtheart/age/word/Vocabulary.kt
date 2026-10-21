@@ -10,6 +10,8 @@ import co.voik.agesandtheart.age.aspect.Spawning
 import co.voik.agesandtheart.age.language.DerivedWords
 import co.voik.agesandtheart.age.language.Lexicon
 import co.voik.agesandtheart.age.language.MemberTags
+import co.voik.agesandtheart.age.language.Prose
+import co.voik.agesandtheart.age.language.ProseClause
 import co.voik.agesandtheart.age.language.Reader
 import co.voik.agesandtheart.age.language.Reading
 import co.voik.agesandtheart.age.language.Structure
@@ -188,6 +190,9 @@ data class Vocabulary(
 
     /** A book already read, resolved at the [seed] it was read at. */
     fun resolve(reading: Reading, seed: Long): Resolution = Writing.resolve(lexicon, this, reading, seed)
+
+    /** What a book already read reads as, with what held once it is resolved at [seed]. */
+    fun prose(reading: Reading, seed: Long): List<ProseClause> = Prose.of(reading, resolve(reading, seed), lexicon)
 
     /** What [preset] is like — an empty profile being a preset no word can currently reach. */
     fun profileOf(preset: Taggable): PresetProfile =

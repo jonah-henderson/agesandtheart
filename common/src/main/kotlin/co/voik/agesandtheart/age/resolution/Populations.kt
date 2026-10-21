@@ -66,11 +66,24 @@ private fun Resolving.weighedIn(
     val named = speaking.flatMap(::namedBy).distinct().mapNotNull(aspect::presetFor)
     val drawnFrom = (curated + named + struckThoughHeldBack).distinct()
     val claims = drawnFrom.mapNotNull { member -> claimForMember(member, pool, speaking, aspect, member in curated, ground) }
+    loseWhatWasStruck(speaking, claims, ::namedBy)
     val reached = drawnAmong(claims, drawnFrom, speaking, aspect)
     val capped = if (aspect == Aspect.SPAWNS && ground == null) withCaps(composition, drawnFrom, claims, speaking) else composition
     if (reached.isEmpty()) return capped
     val settled = capped.optionsFor(aspect, 0).allOf(pool)
     return capped.withOptions(aspect, pool.name, (settled + spelled(reached, pool, drawnFrom, ground)).distinct())
+}
+
+/**
+ * Every landing asking for members another struck out entirely — `teeming zombie` beside `no zombie`, or `teeming
+ * monsters` beside `only cow` — comes to nothing.
+ */
+private fun Resolving.loseWhatWasStruck(speaking: List<Landing>, claims: List<Claim>, namedBy: (Landing) -> Collection<String>) {
+    val struck = claims.filter { it.polarity == Polarity.EXCEPT }.map { it.value }.toSet()
+    for (said in speaking.filter { it.polarity != Polarity.EXCEPT }) {
+        val asksFor = said.members ?: namedBy(said).toSet()
+        if (asksFor.isNotEmpty() && asksFor.all { it in struck }) lose(said, Decision.WHOLE)
+    }
 }
 
 /** Whether a `no` that narrows, `no monsters`, takes [member] out. */

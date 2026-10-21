@@ -58,13 +58,17 @@ internal fun Resolving.fill(aspect: Aspect): List<Filling> {
     for (landing in choosing + steering) {
         val carriers = carriersOf(landing, aspect)
         if (carriers.isEmpty()) {
+            lose(landing, Decision.MEMBERS)
             if (steersInstead(aspect, landing)) continue
             flaws += flaw(Register.UNBACKED, listOf(landing), aspect)
             continue
         }
         val home = territories.indexOfFirst { it.candidates.any { candidate -> candidate in carriers } }
         if (home < 0) {
-            if (territories.isNotEmpty() && steersInstead(aspect, landing)) continue
+            if (territories.isNotEmpty() && steersInstead(aspect, landing)) {
+                lose(landing, Decision.MEMBERS)
+                continue
+            }
             territories += Territory(listOf(landing), carriers)
         } else {
             territories[home] += Territory(listOf(landing), carriers)
@@ -77,6 +81,8 @@ internal fun Resolving.fill(aspect: Aspect): List<Filling> {
     val ordered = if (whole == null) territories else listOf(whole) + (territories - whole)
     val room = if (aspect.spatial && whole == null) MOST_TERRITORIES else 1
     val kept = ordered.take(room)
+    for (unseated in ordered.drop(room)) unseated.landings.forEach { lose(it, Decision.MEMBERS) }
+    divide(kept.map { it.landings })
 
     val chosen = mutableListOf<Taggable>()
     for ((index, territory) in kept.withIndex()) chosen += pick(territory.candidates, speaking, aspect, seat = index)
