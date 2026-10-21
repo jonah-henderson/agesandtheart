@@ -9,6 +9,7 @@ import co.voik.ephemeris.sky.Corona
 import co.voik.ephemeris.sky.Held
 import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.Palette
+import co.voik.ephemeris.sky.PhaseCycle
 import co.voik.ephemeris.sky.SkySpec
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -238,9 +239,13 @@ object SkyBodies {
         val risen = rising?.let { Orbit.risingAt(it, body.path as? Orbit ?: Orbit.VANILLA_SUN) } ?: body.path
         // A polar body circles the horizon, so which horizon it rises over has nothing left to say.
         val shaped = if (own.of(PATH) == POLAR) polarPathFrom(body.path) else risen
-        val paced = own.steer(BODYPACE, seed)?.let { shaped.paced(lengthAt(it)) } ?: shaped
+        val length = own.steer(BODYPACE, seed)?.let(::lengthAt)
+        val paced = length?.let(shaped::paced) ?: shaped
         val path = if (own.isTrue(STILL)) Held(paced, dayBeginsAt(seed)) else paced
-        return body.copy(appearance = appearance, path = path)
+        // A moon's month goes at its pace too, so a swift moon waxes and wanes as quickly as it crosses.
+        fun pacedMonth(cycle: PhaseCycle) = length?.let { cycle.copy(periodTicks = (cycle.periodTicks * it).roundToInt().coerceAtLeast(1)) } ?: cycle
+        val phase = body.phase?.let(::pacedMonth)
+        return body.copy(appearance = appearance, path = path, phase = phase)
     }
 
     /**
