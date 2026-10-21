@@ -191,15 +191,17 @@ class DangerCheck : FunSpec({
         check(strongGhasts > ghasts) { "strong ghasts scored $strongGhasts against $ghasts for ordinary ones" }
     }
 
-    test("a charged creeper is more dangerous, and a creature rooted where it stands less") {
+    test("a charged creeper or a herd of them is more dangerous, and a creature rooted where it stands less") {
         fun creepersWith(vararg parameters: Pair<String, String>) = parameters.fold(
             oneTerritory().withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(CREEPER)),
         ) { held, (name, value) -> held.withOptions(Aspect.SPAWNS, name, listOf(value)) }
         val creepers = score(creepersWith()).spawns
         val charged = score(creepersWith(Spawns.CHARGED.name to "${Parameter.TRUE}[for=$CREEPER]")).spawns
         val rooted = score(creepersWith(Spawns.STILL.name to Parameter.TRUE)).spawns
+        val herded = score(creepersWith(Spawns.HERD.name to "0.0..0.0[for=$CREEPER]")).spawns
         check(charged > creepers) { "charged creepers scored $charged against $creepers" }
         check(rooted < creepers) { "rooted creepers scored $rooted against $creepers" }
+        check(herded > creepers) { "creepers in herds scored $herded against $creepers" }
     }
 
     test("monsters walking at noon are dangerous as a roof is") {

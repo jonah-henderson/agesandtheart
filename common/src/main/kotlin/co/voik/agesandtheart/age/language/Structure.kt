@@ -31,6 +31,12 @@ enum class Structure(val production: String, val price: Int) {
 
     /** Where a link into the Age arrives, read with the `in` after it: `link in jungle`, `link in sea`. */
     LINK("link", price = 2),
+
+    /**
+     * The word before it said of the word after: `herds of warden` are herds of wardens, `pyramids of gold_block`
+     * pyramids made of it. Everything the first word took goes with it.
+     */
+    OF("of", price = 2),
     ;
 
     companion object {

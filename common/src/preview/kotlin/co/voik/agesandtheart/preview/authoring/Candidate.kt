@@ -19,6 +19,8 @@ data class Candidate(
     val comment: List<String> = emptyList(),
     val speech: Speech? = null,
     val meanings: List<Meaning> = emptyList(),
+    /** Parameters a page laid before this word is taken as — [Word.takesAs]. */
+    val takesAs: Map<String, String> = emptyMap(),
     /** The registry entry a derived word is, where the game wrote it from one. */
     val derivedFrom: Identifier? = null,
     /** Whether this is an aspect's own page, which the game writes too. */
@@ -34,7 +36,7 @@ data class Candidate(
     /** What the rarity list and the display names call this word. */
     val listingKey: String get() = derivedFrom?.toString() ?: name
 
-    fun asWord(): Word = Word(id, meanings, speech)
+    fun asWord(): Word = Word(id, meanings, speech, takesAs)
 
     companion object {
         /** A word the corpus holds, opened as the corpus has it. */
@@ -45,6 +47,7 @@ data class Candidate(
                 comment = comment,
                 speech = word.speech,
                 meanings = word.meanings,
+                takesAs = word.takesAs,
                 derivedFrom = word.id.takeIf { isDerived },
                 isAnAspectPage = Aspect.byPage(word.name) != null,
                 tagDirectory = word.referentRegistries.firstOrNull()?.takeIf { isDerived }?.let(Registries::tagsDirPath),
@@ -53,6 +56,6 @@ data class Candidate(
 
         /** A word read from its file. */
         fun authored(word: Word, comment: List<String>) =
-            Candidate(word.name, comment, word.speech, word.meanings)
+            Candidate(word.name, comment, word.speech, word.meanings, takesAs = word.takesAs)
     }
 }

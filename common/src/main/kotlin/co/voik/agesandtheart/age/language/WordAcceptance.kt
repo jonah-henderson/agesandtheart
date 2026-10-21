@@ -54,7 +54,8 @@ object WordAcceptance {
      * honours. A block chooses a sea, and is a substance rather than a member.
      */
     private fun membersNamedBy(word: Word, tags: MemberTags, registries: HolderLookup.Provider?): Acceptance? {
-        val effects = word.meanings.flatMap { it.effects }
+        // A meaning offered elsewhere is not the word's own naming: `herds` offers a herd's size to `of`.
+        val effects = word.meanings.filter { !it.isOffered }.flatMap { it.effects }
         val aspects = effects.map(::aspectNamed).distinct()
         val aspect = aspects.singleOrNull() ?: return null
         val holdsMembers = aspect.holds == Holds.WEIGHTED_SET

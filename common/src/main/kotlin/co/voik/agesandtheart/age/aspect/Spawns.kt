@@ -50,6 +50,45 @@ object Spawns {
     val CHARGED = Parameter.flag("charged", help = "Whether creepers come charged.")
         .perMember(MemberHonouring { member, _ -> member.key == CREEPER })
 
+    /**
+     * How many of a creature arrive together, where a book made herds of it — `herds of warden` four to six, a size
+     * said of the herds more or fewer: two at the least, eight to ten at the most. Unsaid, a creature keeps its own.
+     */
+    val HERD = Parameter.ranged(
+        "herd",
+        help = "How many of a creature arrive together, in herds.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "in twos"),
+            Parameter.Landmark(0.0, "four to six"),
+            Parameter.Landmark(1.0, "eight to ten"),
+        ),
+    ).perMember().onlyWhenAimed()
+
+    /** How many arrive together in a herd at [herd] on its axis, a step for each size a word may say. */
+    fun herdSize(herd: Double): IntRange = when {
+        herd <= MINUSCULE_TO_SMALL -> MINUSCULE_HERD
+        herd <= SMALL_TO_ORDINARY -> SMALL_HERD
+        herd < ORDINARY_TO_LARGE -> ORDINARY_HERD
+        herd < LARGE_TO_COLOSSAL -> LARGE_HERD
+        else -> COLOSSAL_HERD
+    }
+
+    /** The herds a book made, by creature: how many of each arrive together. */
+    fun herdsIn(options: Options): Map<Identifier, IntRange> = options.holdersOfAny(HERD).only.mapNotNull { member ->
+        val span = Span.read(options.of(HERD, member = member)) ?: return@mapNotNull null
+        Identifier.tryParse(member)?.let { it to herdSize((span.least + span.most) / 2) }
+    }.toMap()
+
+    private const val MINUSCULE_TO_SMALL = -0.75
+    private const val SMALL_TO_ORDINARY = -0.25
+    private const val ORDINARY_TO_LARGE = 0.25
+    private const val LARGE_TO_COLOSSAL = 0.75
+    private val MINUSCULE_HERD = 2..2
+    private val SMALL_HERD = 3..4
+    private val ORDINARY_HERD = 4..6
+    private val LARGE_HERD = 6..8
+    private val COLOSSAL_HERD = 8..10
+
     /** What colour a sheep comes into the Age wearing — `black sheep` — or [Parameter.DEFAULT] for its own. */
     val WOOL = Sky.colour("wool", "The colour of the sheep's wool.")
         .perMember(MemberHonouring { member, _ -> member.key == SHEEP })
@@ -126,6 +165,29 @@ object Spawns {
         /** Every creature the pack already offers somewhere — [WhereThingsGrow.creaturesListed]. */
         livesSomewhere: Set<Identifier> = emptySet(),
     ): Living {
+        val living = unherdedIn(options, spawning, livesSomewhere)
+        val herds = herdsIn(options)
+        if (herds.isEmpty()) return living
+        return object : Living {
+            override fun at(biome: Identifier?, category: MobCategory, where: Situation, offered: WeightedList<MobSpawnSettings.SpawnerData>) =
+                herded(living.at(biome, category, where, offered), herds)
+
+            override fun rungOf(creature: Identifier, biome: Identifier?): Double = living.rungOf(creature, biome)
+        }
+    }
+
+    /** [offered] with every creature [herds] names arriving as many together as its herd. */
+    private fun herded(
+        offered: WeightedList<MobSpawnSettings.SpawnerData>,
+        herds: Map<Identifier, IntRange>,
+    ): WeightedList<MobSpawnSettings.SpawnerData> = WeightedList.of(
+        offered.unwrap().map { entry ->
+            val herd = herds[idOf(entry.value().type())] ?: return@map entry
+            Weighted(MobSpawnSettings.SpawnerData(entry.value().type(), UniformInt.of(herd.first, herd.last)), entry.weight())
+        },
+    )
+
+    private fun unherdedIn(options: Options, spawning: Spawning, livesSomewhere: Set<Identifier>): Living {
         val claims = options.claimsOn(LIVES)
         if (LIVES.skewOf(claims).isSilent && claims.none { it.confinedTo != null }) {
             return Living { _, _, _, offered -> offered }

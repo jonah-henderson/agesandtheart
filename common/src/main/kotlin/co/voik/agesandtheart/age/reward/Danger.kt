@@ -289,7 +289,8 @@ data class Danger(
         /**
          * How much more dangerous the book made [member] than its own — its strength, its speed and its size (which
          * scales its health and blow as strength does) together, read as `WrittenCreatures` lays them on, so a score and a creature agree.
-         * A creeper's charge doubles its blast, and a creature rooted where it stands only reaches what comes to it.
+         * A creeper's charge doubles its blast, a creature rooted where it stands only reaches what comes to it, and one
+         * in herds comes as a clump, which is harder than as many spread out.
          */
         private fun hardinessOf(spawns: Options, seed: Long, member: String): Double {
             val strength = spawns.steer(Spawns.STRENGTH, seed, member = member)?.let(WrittenCreatures::strengthAt)
@@ -297,7 +298,8 @@ data class Danger(
             val size = spawns.steer(Spawns.SIZE, seed, member = member)?.let(WrittenCreatures::sizeAt)
             val charged = if (spawns.isTrue(Spawns.CHARGED, member = member)) CHARGED_BLAST else AS_THEY_ARE
             val rooted = if (spawns.isTrue(Spawns.STILL, member = member)) ROOTED else AS_THEY_ARE
-            return (strength ?: AS_THEY_ARE) * (pace ?: AS_THEY_ARE) * (size ?: AS_THEY_ARE) * charged * rooted
+            val herded = if (spawns.holdersOfAny(Spawns.HERD).includes(member)) HERDED else AS_THEY_ARE
+            return (strength ?: AS_THEY_ARE) * (pace ?: AS_THEY_ARE) * (size ?: AS_THEY_ARE) * charged * rooted * herded
         }
 
         /** How many times as dangerous a charged creeper is: vanilla doubles its blast. */
@@ -306,10 +308,14 @@ data class Danger(
         /** How dangerous a creature rooted where it stands is, against one that comes for you. */
         private const val ROOTED = 0.5
 
+        /** How dangerous a creature coming in herds is, against as many coming alone (Jonah, 2026-10-21). */
+        private const val HERDED = 1.5
+
         /** Every creature the book made harder or easier — stronger, quicker, bigger, charged or rooted — every monster, where it said all. */
         private fun madeHardier(spawns: Options, table: DangerTable): Set<String> {
             val said = spawns.holdersOfAny(Spawns.STRENGTH) and spawns.holdersOfAny(Spawns.PACE) and
-                spawns.holdersOfAny(Spawns.SIZE) and spawns.holdersOfAny(Spawns.CHARGED) and spawns.holdersOfAny(Spawns.STILL)
+                spawns.holdersOfAny(Spawns.SIZE) and spawns.holdersOfAny(Spawns.CHARGED) and spawns.holdersOfAny(Spawns.STILL) and
+                spawns.holdersOfAny(Spawns.HERD)
             if (!said.everyone) return said.only
             return said.only + BuiltInRegistries.ENTITY_TYPE.keySet().map { it.toString() }.filter { table.spawn(it) > NONE }
         }

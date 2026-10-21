@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.resolution.GROWS_IN_PLACES
 import co.voik.agesandtheart.age.resolution.Members
+import co.voik.agesandtheart.age.resolution.ParameterKey
 import co.voik.agesandtheart.age.resolution.Place
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
@@ -40,13 +41,15 @@ object Reader {
     /** A page laid before any word that takes it. */
     private data class Waiting(val index: Int, val word: Word, val joined: Int? = null) : Term
 
-    /** The last word that took pages, which `in`, `everywhere` and `and` reach back to. */
+    /** The last word that took pages, which `in`, `everywhere`, `and` and `of` reach back to. */
     private data class Taker(
         val index: Int,
         val place: Place,
         val took: List<Waiting>,
         val claims: IntRange,
         val joined: Int?,
+        val word: Word,
+        val acceptance: Acceptance,
     ) : Term
 
     private class Pass(private val lexicon: Lexicon, private val pages: List<String>) {
@@ -63,6 +66,10 @@ object Reader {
         private var polarity: Polarity? = null
         private var polarityAt: Int? = null
         private var linkAt: Int? = null
+
+        /** An `of` and the word before it, waiting for the word it is said of. */
+        private var ofAt: Int? = null
+        private var ofFrom: Taker? = null
         private val bodies = mutableMapOf<Aspect, Int>()
         private var nextJoin = 0
         private var at = 0
@@ -86,11 +93,13 @@ object Reader {
             andAt?.let(::impossible)
             polarityAt?.let(::impossible)
             linkAt?.let(::impossible)
+            ofAt?.let(::impossible)
             return this
         }
 
         private fun structural(structure: Structure) {
             fates[at] = Fate.Structural(structure)
+            ofAt?.let(::impossible).also { ofAt = null; ofFrom = null }
             val linkWantsItsIn = linkAt != null && structure != Structure.IN
             if (linkWantsItsIn) linkAt?.let(::impossible).also { linkAt = null }
             when (structure) {
@@ -105,6 +114,13 @@ object Reader {
                     return
                 }
                 Structure.LINK -> linkAt = at
+                Structure.OF -> {
+                    val before = lastTaker
+                    if (before == null || before.index != at - 1) impossible(at) else {
+                        ofAt = at
+                        ofFrom = before
+                    }
+                }
                 Structure.EVERYWHERE -> widening()
                 Structure.ONLY, Structure.EXCEPT -> {
                     polarityAt?.let(::impossible)
@@ -187,10 +203,55 @@ object Reader {
             linkAt?.let(::impossible).also { linkAt = null }
             val acceptance = lexicon.acceptance(word)
             val bansIt = polarity == Polarity.EXCEPT && acceptance == null && isABlock(word)
+            val madeOfIt = ofFrom?.acceptance?.mints == true && acceptance == null && isABlock(word)
             when {
                 bansIt -> bans(word)
+                madeOfIt -> ofFrom?.let { madeOf(it, word) }
                 acceptance == null -> waits(word)
                 else -> takes(word, acceptance)
+            }
+        }
+
+        /** `<shape> of <block>`: the block is what the shape before `of` is made of, as `<block> <shape>` reads. */
+        private fun madeOf(shape: Taker, block: Word) {
+            val of = ofAt
+            ofAt = null
+            ofFrom = null
+            val taken = block.meanings.filter { !it.isOffered }.flatMap { meaning ->
+                takenFrom(meaning, shape.acceptance, shape.place, shape.word).map { (takenAt, effects) -> Triple(meaning, takenAt, effects) }
+            }
+            if (taken.isEmpty()) {
+                of?.let(::impossible)
+                return impossible(at)
+            }
+            fates[at] = Fate.TakenBy(shape.index)
+            for ((meaning, takenAt, effects) in taken) {
+                claims += Claim(at, block, meaning, takenAt, effects, clause = shape.index, aimed = true, joined = shape.joined)
+            }
+        }
+
+        /**
+         * `<members> of <members>`: the word before `of` is said of the one after instead of its own — what it took
+         * goes over to them, its own naming is dropped, and its meanings offered to `of` land there too where nothing
+         * it took said the same. `herds of warden` are herds of wardens, and `teeming herds of` many of them.
+         */
+        private fun saidOf(before: Taker, after: Place) {
+            val of = ofAt
+            ofAt = null
+            ofFrom = null
+            val sameKind = before.place.aspect == after.aspect && after.members is Members.Named
+            if (!sameKind) return of?.let(::impossible) ?: Unit
+            val carried = before.claims.filter { claims[it].page != before.index }
+            for (index in before.claims) {
+                val claim = claims[index]
+                claims[index] = if (claim.page == before.index) claim.copy(effects = emptyList()) else claim.copy(place = after)
+            }
+            val alreadySaid = carried.flatMap { claims[it].effects }.mapNotNull { (it as? Effect.Sets)?.parameter?.name }.toSet()
+            for (meaning in before.word.meanings.filter { OF_PAGE in it.offeredTo }) {
+                val effects = meaning.effects.filterNot { it is Effect.Sets && it.parameter.name in alreadySaid }
+                if (effects.isNotEmpty()) {
+                    claims += Claim(before.index, before.word, meaning, after, effects, clause = before.index, aimed = true, joined = before.joined)
+                }
             }
         }
 
@@ -238,7 +299,7 @@ object Reader {
             fun isOfferedHere(meaning: Meaning) = word.name in meaning.offeredTo
             for (page in taking) {
                 val taken = page.word.meanings.filter { !it.isOffered }.mapNotNull { meaning ->
-                    takenFrom(meaning, acceptance, place).takeIf { it.isNotEmpty() }?.let { meaning to it }
+                    takenFrom(meaning, acceptance, place, word).takeIf { it.isNotEmpty() }?.let { meaning to it }
                 }
                 val offered = page.word.meanings.filter(::isOfferedHere)
                 // A page the word before `and` took stays taken where this one takes none of it.
@@ -259,9 +320,11 @@ object Reader {
                     }
                 }
             }
-            ownMeanings(word, acceptance, place, describedBy = claims.subList(from, claims.size), joined = joined)
+            val saidOfBy = ofFrom
+            ownMeanings(word, acceptance, place, describedBy = claims.subList(from, claims.size), joined = joined, asked = saidOfBy != null)
             fates[at] = Fate.Took(place)
-            lastTaker = Taker(at, place, taking, from..<claims.size, joined)
+            lastTaker = Taker(at, place, taking, from..<claims.size, joined, word, acceptance)
+            saidOfBy?.let { saidOf(it, place) }
         }
 
         /**
@@ -273,7 +336,8 @@ object Reader {
          * for an amount, where `only` or `no` leads it, or where its members are not there until something brings
          * them, as a phenomenon or a catalogue's member is not.
          */
-        private fun ownMeanings(word: Word, acceptance: Acceptance, place: Place, describedBy: List<Claim>, joined: Int?) {
+        /** [asked] where nothing it took may make it only describe — the word after an `of`, which a herd is made of. */
+        private fun ownMeanings(word: Word, acceptance: Acceptance, place: Place, describedBy: List<Claim>, joined: Int?, asked: Boolean = false) {
             val pending = polarity
             val namesMembers = acceptance.place.members is Members.Named
             if (pending != null && !namesMembers) polarityAt?.let(::impossible)
@@ -285,7 +349,7 @@ object Reader {
             // A catalogue's member is there only where it is chosen, so `large chambered` still chooses the chambers.
             val isAPopulationOfMembers = place.aspect.holds == Holds.WEIGHTED_SET
             val membersAreThereAnyway = isAPopulationOfMembers && place.aspect.pool?.startsEmpty != true
-            val onlyDescribes = namesMembers && describes && !asksForAnAmount && said == Polarity.ASSERTED && membersAreThereAnyway
+            val onlyDescribes = !asked && namesMembers && describes && !asksForAnAmount && said == Polarity.ASSERTED && membersAreThereAnyway
             if (place.members is Members.Body) {
                 claims += Claim(at, word, Meaning(emptyList(), mustAlwaysApply = true), place, emptyList(), clause = at, aimed = true)
             }
@@ -298,11 +362,24 @@ object Reader {
             }
         }
 
-        /** What [acceptance] takes of [meaning] and where: at [place], or at the part its companion speaks for. */
-        private fun takenFrom(meaning: Meaning, acceptance: Acceptance, place: Place): List<Pair<Place, List<Effect>>> =
-            meaning.effects.mapNotNull(acceptance::landing)
+        /**
+         * What [acceptance] takes of [meaning] and where: at [place], or at the part its companion speaks for — each
+         * parameter [taker] takes as another ([Word.takesAs]) taken as that one.
+         */
+        private fun takenFrom(meaning: Meaning, acceptance: Acceptance, place: Place, taker: Word? = null): List<Pair<Place, List<Effect>>> =
+            meaning.effects.map { takenAs(it, taker, place.aspect) }.mapNotNull(acceptance::landing)
                 .groupBy({ (landsAt, _) -> if (landsAt == acceptance.place) place else landsAt }, { (_, effect) -> effect })
                 .map { (landsAt, effects) -> landsAt to effects.distinct() }
+
+        /** [effect] as [taker] takes it: a parameter it takes as another, renamed and fenced to [aspect]. */
+        private fun takenAs(effect: Effect, taker: Word?, aspect: Aspect): Effect {
+            val renamings = taker?.takesAs.orEmpty()
+            return when (effect) {
+                is Effect.Sets -> renamings[effect.parameter.name]?.let { effect.copy(parameter = ParameterKey(it, aspect)) } ?: effect
+                is Effect.Bends -> renamings[effect.parameter.name]?.let { effect.copy(parameter = ParameterKey(it, aspect)) } ?: effect
+                else -> effect
+            }
+        }
 
         /** An offered meaning lands whole: what [acceptance] takes of it where it takes it, the rest where it lies bare. */
         private fun offeredPlacesOf(meaning: Meaning, acceptance: Acceptance, place: Place): List<Pair<Place, List<Effect>>> {
@@ -386,6 +463,9 @@ object Reader {
         }
     }
 }
+
+/** The page whose name a meaning is offered to where it is said of the word after an `of`. */
+private const val OF_PAGE = "of"
 
 /** One meaning of one page at one place, before the draw decides whether it lands. */
 internal data class Claim(

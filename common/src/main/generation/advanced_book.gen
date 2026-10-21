@@ -13,7 +13,7 @@ terminals word
 # server, which is no reason to leave it out.
 
 # What these books must teach, because nothing else on the critical path does (plan, Phase 7 "Still open"):
-# - Every grammatical word, each doing visible work: `and`, `only`, `no`, `in`, `everywhere`, `link`, and the four
+# - Every grammatical word, each doing visible work: `and`, `only`, `no`, `in`, `everywhere`, `link`, `of`, and the four
 #   rungs `scarce`, `few`, `plentiful` and `teeming`.
 # - Danger: an Age that scores over the danger threshold (`pays_above`, art/danger.json) using common-ink
 #   words only. These books are the route into the hunt for deretheni, so they stay plain.
@@ -37,6 +37,7 @@ book =
     | [flowered_jungle_age]
     | [pitted_jungle_age]
     | [linked_age]
+    | [herded_age]
 
 # `and`: two things laid together, so the world visibly holds both — two landforms in one country, two
 # stones in one monument. A member says its own part of the world, so no aiming page follows one.
@@ -106,6 +107,15 @@ linked_age =
     | age [land] link in villages [colour] sky
     | age link in axolotl large chambered underground
     | age [warm_land] link in jungle tropical climate
+
+# `of`: herds of something that never comes in them, and a shape made of a stone named after it. Each size
+# said of the herds is how many come together, and one said of the creature how big each is.
+herded_age =
+    age [land] herds of parrot jungle biomes
+    | age [land] teeming herds of colossal axolotl lush_caves biomes
+    | age [land] colossal herds of fox [colour] leaves
+    | age [land] minuscule herds of allay bright stars
+    | age [land] pyramids of [semiprecious] [colour] sky
 
 # The phenomena and the undergrounds taught nowhere else, each with a modifier to carry it.
 wonder_age =

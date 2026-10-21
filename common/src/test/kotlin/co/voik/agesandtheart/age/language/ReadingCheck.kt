@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.language
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.LinkAnchor
+import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.language.ShippedLexicon.read
@@ -141,6 +142,23 @@ class ReadingCheck : FunSpec({
         check(read("age link jungle").fateOf(1) == Fate.Impossible) { "`link` without its `in` read" }
     }
 
+    test("`of` says the word before it of the word after, with everything it took") {
+        val herds = ShippedLexicon.resolved("age teeming colossal herds of warden").composition.optionsFor(Aspect.SPAWNS)
+        check(herds.of(Spawns.HERD, member = WARDEN) == "1.0..1.0") { "colossal herds of warden came in ${herds.of(Spawns.HERD, member = WARDEN)}" }
+        check(herds.holdersOfAny(Spawns.SIZE).isNobody) { "colossal herds made the wardens colossal" }
+        check(herds.claimsOn(Spawns.LIVES).any { it.value == WARDEN && it.density > 1.0 }) { "teeming herds of warden asked for no more wardens" }
+        check(herds.claimsOn(Spawns.LIVES).none { it.value == "minecraft:cow" }) { "herds of warden asked for cows" }
+        val giants = ShippedLexicon.resolved("age herds of colossal warden").composition.optionsFor(Aspect.SPAWNS)
+        check(giants.of(Spawns.HERD, member = WARDEN) == "0.0..0.0" && giants.of(Spawns.SIZE, member = WARDEN) == "1.0..1.0") {
+            "herds of colossal warden were not ordinary herds of giants"
+        }
+        val farm = ShippedLexicon.resolved("age herds").composition.optionsFor(Aspect.SPAWNS)
+        check(farm.holdersOfAny(Spawns.HERD).isNobody) { "herds alone made herds" }
+        check(read("age herds of frozen").fateOf(2) == Fate.Impossible) { "`of` before a word naming nothing read" }
+        val gilded = ShippedLexicon.resolved("age pyramids of gold_block").composition.optionsFor(Aspect.FEATURES).allSpelled("grows")
+        check(gilded.any { "minecraft:gold_block" in it }) { "pyramids of gold_block were made of $gilded" }
+    }
+
     test("a member named on its own is asked for, and one described is not, unless an amount is asked or it must be brought") {
         fun namedBy(book: Reading, page: Int) =
             book.landedBy(page).any { landing -> landing.effects.any { it is Effect.Chooses || it is Effect.Restricts } }
@@ -176,3 +194,5 @@ class ReadingCheck : FunSpec({
         check(read("colossal age", 7L) == read("colossal age", 7L)) { "the same book at the same seed read differently" }
     }
 })
+
+private const val WARDEN = "minecraft:warden"

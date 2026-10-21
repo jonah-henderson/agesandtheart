@@ -31,7 +31,8 @@ object WordFormat {
         instance.group(
             MEANING.listOf().optionalFieldOf("meanings", emptyList()).forGetter(Word::meanings),
             Speech.CODEC.optionalFieldOf("speech").forGetter { Optional.ofNullable(it.speech) },
-        ).apply(instance) { meanings, speech -> Word(id, meanings, speech.orElse(null)) }
+            Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("takes_as", emptyMap()).forGetter(Word::takesAs),
+        ).apply(instance) { meanings, speech, takesAs -> Word(id, meanings, speech.orElse(null), takesAs) }
     }
 
     private const val EVERYWHERE = "all"

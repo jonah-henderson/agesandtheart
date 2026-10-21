@@ -23,6 +23,18 @@ import net.minecraft.world.level.biome.MobSpawnSettings
 @Tags(NEEDS_REGISTRIES)
 class SpawnsCheck : FunSpec({
 
+    test("a creature in herds arrives as many together as its herd, and every other as it would have") {
+        val options = Options(mapOf(Spawns.HERD.name to listOf("1.0..1.0[for=minecraft:zombie]")))
+        val herded = Spawns.livingIn(options).at(null, MobCategory.MONSTER, Spawns.Situation(BlockPos.ZERO, false, ANY_LIGHT_WILL_DO), aMeadow())
+        fun countOf(kind: String): IntRange {
+            val count = herded.unwrap().first { BuiltInRegistries.ENTITY_TYPE.getKey(it.value().type()).path == kind }.value().count()
+            return count.minInclusive()..count.maxInclusive()
+        }
+        check(countOf("zombie") == 8..10) { "a colossal herd of zombies came ${countOf("zombie")} at a time" }
+        check(countOf("spider") == 4..4) { "a spider nobody herded came ${countOf("spider")} at a time" }
+        check(Spawns.herdSize(-1.0) == 2..2 && Spawns.herdSize(0.0) == 4..6 && Spawns.herdSize(0.5) == 6..8) { "the herd sizes moved" }
+    }
+
     test("silence leaves the biome's own creatures alone") {
         val offered = aMeadow()
         check(narrowedBy("", offered) === offered) { "an Age that said nothing rebuilt the list anyway" }

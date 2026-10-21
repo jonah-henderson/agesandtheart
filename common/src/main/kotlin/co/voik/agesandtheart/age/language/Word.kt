@@ -14,6 +14,11 @@ data class Word(
     val meanings: List<Meaning>,
     /** How a book's prose speaks it, where its file says. */
     val speech: Speech? = null,
+    /**
+     * Parameters a page laid before this word is taken as, by name — `herds` takes a size as how many arrive
+     * together, `colossal herds` being herds of eight to ten rather than giant cows.
+     */
+    val takesAs: Map<String, String> = emptyMap(),
 ) {
     val name: String get() = id.path
 
