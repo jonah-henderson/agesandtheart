@@ -96,7 +96,7 @@ widened_age =
     | age insular reefs warm climate teeming axolotl everywhere [colour] waters
     | age teeming sniffer everywhere [colour] grass
     | age teeming allay everywhere [colour] leaves
-    | age only flower_forest teeming bee everywhere honey_block surface
+    | age only flower_forest teeming bee everywhere honey_block [honey_shape]
     | age archipelagic palm_beach teeming parrot everywhere tropical climate
 
 # `link in`: where a link into the Age arrives, somewhere it would not have — down in a cave, out on the water,
@@ -177,6 +177,9 @@ dark_stone = blackstone | deepslate
 cold_stone = snow_block | packed_ice
 
 pale_stone = calcite | white_concrete
+
+# Honey raised as a shape among the flowers, where a honey surface would have grown none.
+honey_shape = spikes | piles | patches | rings | boulders | arches
 
 colour = red | orange | yellow | green | cyan | blue | indigo | purple | magenta | white | black
 

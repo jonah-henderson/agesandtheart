@@ -67,7 +67,7 @@
       {"produce":["age","insular","reefs","warm","climate","teeming","axolotl","everywhere","[colour]","waters"]},
       {"produce":["age","teeming","sniffer","everywhere","[colour]","grass"]},
       {"produce":["age","teeming","allay","everywhere","[colour]","leaves"]},
-      {"produce":["age","only","flower_forest","teeming","bee","everywhere","honey_block","surface"]},
+      {"produce":["age","only","flower_forest","teeming","bee","everywhere","honey_block","[honey_shape]"]},
       {"produce":["age","archipelagic","palm_beach","teeming","parrot","everywhere","tropical","climate"]}
     ],
     "linked_age": [
@@ -176,6 +176,14 @@
     "pale_stone": [
       {"produce":["calcite"]},
       {"produce":["white_concrete"]}
+    ],
+    "honey_shape": [
+      {"produce":["spikes"]},
+      {"produce":["piles"]},
+      {"produce":["patches"]},
+      {"produce":["rings"]},
+      {"produce":["boulders"]},
+      {"produce":["arches"]}
     ],
     "colour": [
       {"produce":["red"]},
