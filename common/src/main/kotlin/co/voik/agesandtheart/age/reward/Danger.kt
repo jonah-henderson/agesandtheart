@@ -10,6 +10,8 @@ import co.voik.agesandtheart.age.Ladder
 import co.voik.agesandtheart.age.SpendingSetting
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Atmosphere
+import co.voik.agesandtheart.age.aspect.Gravity
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.consequence.WrittenCreatures
 import co.voik.agesandtheart.age.aspect.Claim
@@ -69,6 +71,11 @@ data class Danger(
      */
     val features: Double,
     /**
+     * What makes the Age itself harder to be in: a haze you cannot see far through, thunder in most of its rain, a pull
+     * that makes every fall hurt more. None of it is what the Age is made of, holds or runs.
+     */
+    val conditions: Double,
+    /**
      * How far into [Manifestation.COLLAPSE] the Age went, from nothing to everything it could buy.
      *
      * **Deliberately not part of [score].** §7.7 turns the rewards up to absurd amounts where an Age will
@@ -94,7 +101,8 @@ data class Danger(
             spawns * weights.spawns +
             phenomena * weights.phenomena +
             lighting * weights.lighting +
-            features * weights.features
+            features * weights.features +
+            conditions * weights.conditions
 
     /**
      * Whether this Age pays at all — the threshold, **and the provenance flag with it**.
@@ -120,8 +128,8 @@ data class Danger(
     val isTerminal: Boolean get() = terminal > NO_COLLAPSE
 
     override fun toString(): String =
-        "danger %.3f (materials %.3f, spawns %.3f, phenomena %.3f, lighting %.3f, features %.3f)"
-            .format(score, materials, spawns, phenomena, lighting, features)
+        "danger %.3f (materials %.3f, spawns %.3f, phenomena %.3f, lighting %.3f, features %.3f, conditions %.3f)"
+            .format(score, materials, spawns, phenomena, lighting, features, conditions)
 
     companion object {
         /** No step of collapse bought — see [isTerminal]. */
@@ -175,6 +183,7 @@ data class Danger(
                 phenomena = phenomenaOf(composition, table, spent, seed),
                 lighting = lightingOf(composition, table),
                 features = featuresOf(composition, table),
+                conditions = conditionsOf(composition, table, seed),
                 terminal = spent.reach(Manifestation.COLLAPSE),
                 authored = authored,
                 weights = table.weights,
@@ -188,6 +197,7 @@ data class Danger(
             phenomena = 0.0,
             lighting = 0.0,
             features = 0.0,
+            conditions = 0.0,
             terminal = 0.0,
             authored = authored,
             weights = table.weights,
@@ -279,18 +289,27 @@ data class Danger(
         /**
          * How much more dangerous the book made [member] than its own — its strength, its speed and its size (which
          * scales its health and blow as strength does) together, read as `WrittenCreatures` lays them on, so a score and a creature agree.
+         * A creeper's charge doubles its blast, and a creature rooted where it stands only reaches what comes to it.
          */
         private fun hardinessOf(spawns: Options, seed: Long, member: String): Double {
             val strength = spawns.steer(Spawns.STRENGTH, seed, member = member)?.let(WrittenCreatures::strengthAt)
             val pace = spawns.steer(Spawns.PACE, seed, member = member)?.let(WrittenCreatures::paceAt)
             val size = spawns.steer(Spawns.SIZE, seed, member = member)?.let(WrittenCreatures::sizeAt)
-            return (strength ?: AS_THEY_ARE) * (pace ?: AS_THEY_ARE) * (size ?: AS_THEY_ARE)
+            val charged = if (spawns.isTrue(Spawns.CHARGED, member = member)) CHARGED_BLAST else AS_THEY_ARE
+            val rooted = if (spawns.isTrue(Spawns.STILL, member = member)) ROOTED else AS_THEY_ARE
+            return (strength ?: AS_THEY_ARE) * (pace ?: AS_THEY_ARE) * (size ?: AS_THEY_ARE) * charged * rooted
         }
 
-        /** Every creature the book made stronger, weaker, quicker, slower, bigger or smaller — every monster, where it said all. */
+        /** How many times as dangerous a charged creeper is: vanilla doubles its blast. */
+        private const val CHARGED_BLAST = 2.0
+
+        /** How dangerous a creature rooted where it stands is, against one that comes for you. */
+        private const val ROOTED = 0.5
+
+        /** Every creature the book made harder or easier — stronger, quicker, bigger, charged or rooted — every monster, where it said all. */
         private fun madeHardier(spawns: Options, table: DangerTable): Set<String> {
             val said = spawns.holdersOfAny(Spawns.STRENGTH) and spawns.holdersOfAny(Spawns.PACE) and
-                spawns.holdersOfAny(Spawns.SIZE)
+                spawns.holdersOfAny(Spawns.SIZE) and spawns.holdersOfAny(Spawns.CHARGED) and spawns.holdersOfAny(Spawns.STILL)
             if (!said.everyone) return said.only
             return said.only + BuiltInRegistries.ENTITY_TYPE.keySet().map { it.toString() }.filter { table.spawn(it) > NONE }
         }
@@ -369,12 +388,31 @@ data class Danger(
          */
         private fun lightingOf(composition: AgeComposition, table: DangerTable): Double {
             if (spawnsNothing(composition)) return 0.0
-            return when {
+            val darkness = when {
                 Sky.isRoofed(composition) -> table.sealed
                 Sky.isLightless(composition) -> table.lightless
                 else -> 0.0
             }
+            // Monsters loosed from their own rules walk at noon, so daylight is no more shelter than a roof is.
+            val shelterless = if (composition.optionsFor(Aspect.SPAWNS, 0).isTrue(Spawns.INCONGRUOUS)) table.incongruous else 0.0
+            return maxOf(darkness, shelterless)
         }
+
+        /**
+         * What makes the Age harder to be in: how far past ordinary the haze closes in, the thunder in its rain and the
+         * pull grows — each as written, scored only above vanilla's, since lighter and clearer is never more dangerous.
+         */
+        private fun conditionsOf(composition: AgeComposition, table: DangerTable, seed: Long): Double {
+            fun beyondOrdinary(aspect: Aspect, parameter: Parameter) =
+                composition.optionsFor(aspect, 0).steer(parameter, seed)?.coerceAtLeast(NONE) ?: NONE
+            return beyondOrdinary(Aspect.AIR, Atmosphere.HAZE) * table.condition(HAZE) +
+                beyondOrdinary(Aspect.WEATHER, Atmosphere.THUNDER) * table.condition(THUNDER) +
+                beyondOrdinary(Aspect.GRAVITY, Gravity.PULL) * table.condition(PULL)
+        }
+
+        private const val HAZE = "haze"
+        private const val THUNDER = "thunder"
+        private const val PULL = "pull"
 
         /** Whether the book said nothing lives here at all — `lives=nothing`. */
         private fun spawnsNothing(composition: AgeComposition): Boolean =

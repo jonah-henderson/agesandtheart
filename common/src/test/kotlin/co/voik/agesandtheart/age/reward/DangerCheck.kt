@@ -191,6 +191,31 @@ class DangerCheck : FunSpec({
         check(strongGhasts > ghasts) { "strong ghasts scored $strongGhasts against $ghasts for ordinary ones" }
     }
 
+    test("a charged creeper is more dangerous, and a creature rooted where it stands less") {
+        fun creepersWith(vararg parameters: Pair<String, String>) = parameters.fold(
+            oneTerritory().withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(CREEPER)),
+        ) { held, (name, value) -> held.withOptions(Aspect.SPAWNS, name, listOf(value)) }
+        val creepers = score(creepersWith()).spawns
+        val charged = score(creepersWith(Spawns.CHARGED.name to "${Parameter.TRUE}[for=$CREEPER]")).spawns
+        val rooted = score(creepersWith(Spawns.STILL.name to Parameter.TRUE)).spawns
+        check(charged > creepers) { "charged creepers scored $charged against $creepers" }
+        check(rooted < creepers) { "rooted creepers scored $rooted against $creepers" }
+    }
+
+    test("monsters walking at noon are dangerous as a roof is") {
+        val loosed = oneTerritory().withOptions(Aspect.SPAWNS, Spawns.INCONGRUOUS.name, listOf(Parameter.TRUE))
+        check(score(loosed).lighting > 0.0) { "monsters loosed into the daylight took no danger" }
+    }
+
+    test("a thick haze, constant thunder and a heavy pull make an Age harder to be in, and a clear one does not") {
+        fun with(aspect: Aspect, parameter: String, value: String) = score(oneTerritory().withOptions(aspect, parameter, listOf(value))).conditions
+        check(with(Aspect.AIR, "haze", "0.9..1") > 0.0) { "a smothering haze took no danger" }
+        check(with(Aspect.WEATHER, "thunder", "0.9..1") > 0.0) { "thunder in every storm took no danger" }
+        check(with(Aspect.GRAVITY, "pull", "0.9..1") > 0.0) { "a heavy pull took no danger" }
+        check(with(Aspect.AIR, "haze", "-1..-0.9") == 0.0) { "a clear Age took danger from its clarity" }
+        check(score(oneTerritory()).conditions == 0.0) { "an Age that said nothing of its conditions scored them" }
+    }
+
     test("weakened monsters take danger away, but never below the biomes' own") {
         val weak = score(oneTerritory().withOptions(Aspect.SPAWNS, "strength", listOf("-1.0..-1.0"))).spawns
         check(weak == 0.0) { "weakening the monsters already here scored $weak" }
@@ -285,6 +310,7 @@ class DangerCheck : FunSpec({
         private const val ORDINARY_STONE = "minecraft:stone"
         private const val GHASTS = "minecraft:ghast"
         private const val ZOMBIE = "minecraft:zombie"
+        private const val CREEPER = "minecraft:creeper"
 
         /** What the table calls any monster it has no line for. */
         private const val ANY_MONSTER = "monsters"
@@ -326,6 +352,7 @@ class DangerCheck : FunSpec({
                 phenomena = 0.25,
                 lighting = 0.25,
                 features = 0.0,
+                conditions = 0.25,
             ),
             paysAbove = 0.2,
             spawnsFull = 1.0,
@@ -336,8 +363,9 @@ class DangerCheck : FunSpec({
             materials = mapOf(MAGMA to 1.0, "minecraft:lava" to 1.0),
             spawns = mapOf(GHASTS to 0.5, ANY_MONSTER to 0.3),
             phenomena = mapOf(INFERNO to 1.0, "sandfall" to 1.0, AURORA to 0.0),
-            lighting = mapOf("sealed" to 1.0, "lightless" to 0.5),
+            lighting = mapOf("sealed" to 1.0, "lightless" to 0.5, "incongruous" to 0.75),
             features = emptyMap(),
+            conditions = mapOf("haze" to 1.0, "thunder" to 1.0, "pull" to 1.0),
         )
 
         /**

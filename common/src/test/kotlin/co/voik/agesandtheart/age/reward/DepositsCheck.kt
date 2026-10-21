@@ -82,6 +82,7 @@ class DepositsCheck : FunSpec({
             phenomena = 0.0,
             lighting = 0.0,
             features = 0.0,
+            conditions = 0.0,
             terminal = terminal,
             authored = authored,
             weights = WEIGHTS,

@@ -45,6 +45,15 @@
     "keeps a wheat field beside a volcano from counting: these ADD, unlike the materials, because an Age is",
     "made of exactly one rock and its three material answers are rivals where a feature list is not.",
     "",
+    "`incongruous` is monsters loosed from their own rules, walking at noon: daylight is no more shelter than",
+    "a roof, so it sits between sunless and sealed and the worse of them counts.",
+    "",
+    "`conditions` is what makes an Age harder to be in without being what it is made of, holds or runs: a",
+    "haze you cannot see far through, thunder in most of its rain, a pull that makes every fall hurt more. Each",
+    "is rated at its thickest and counts only past vanilla's. A creeper's charge and a creature rooted where it",
+    "stands are read with its strength, speed and size, in Danger. Fog came off nothing for the same reason the",
+    "haze counts (Jonah, 2026-10-21): it hurts nobody, and it hides what does.",
+    "",
     "RETUNED 2026-09-06 (Jonah): BEING NETHER-LIKE IS NO LONGER SUFFICIENT. Lava fell 1.0 -> 0.7 and the",
     "roof 0.8 -> 0.55 (sunless 0.5 -> 0.35 with it, so the roof stays worse than mere darkness), while every",
     "phenomenon that does something to you rose. The rule this encodes: a world merely MADE of bad stuff is",
@@ -61,7 +70,8 @@
     "spawns": 0.24,
     "phenomena": 0.24,
     "features": 0.17,
-    "lighting": 0.07
+    "lighting": 0.07,
+    "conditions": 0.12
   },
   "pays_above": 0.25,
   "spawns_full": 2.0,
@@ -122,17 +132,23 @@
     "overgrowth": 0.5,
     "tempest": 0.7,
     "aurora": 0.0,
-    "fog": 0.0,
+    "fog": 0.3,
     "rainbow": 0.0
   },
   "lighting": {
     "sealed": 0.55,
-    "lightless": 0.35
+    "lightless": 0.35,
+    "incongruous": 0.45
   },
   "features": {
     "agesandtheart:volcano": 1.0,
     "agesandtheart:firespout": 0.7,
     "agesandtheart:magma_chamber": 0.5,
     "agesandtheart:lava_tubes": 0.6
+  },
+  "conditions": {
+    "haze": 0.6,
+    "pull": 0.6,
+    "thunder": 0.4
   }
 }

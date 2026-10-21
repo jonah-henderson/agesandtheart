@@ -72,6 +72,8 @@ data class DangerTable(
     internal val phenomena: Map<String, Double>,
     private val lighting: Map<String, Double>,
     private val features: Map<String, Double>,
+    /** What the Age's conditions are worth at their thickest — `haze`, `thunder`, `pull`. */
+    private val conditions: Map<String, Double> = emptyMap(),
 ) {
     /** What a block named as an Age's rock, sea or surface is worth. Nothing, for almost everything. */
     fun material(named: String): Double = materials[named] ?: NOTHING
@@ -105,6 +107,12 @@ data class DangerTable(
     val sealed: Double get() = lighting[SEALED] ?: NOTHING
     val lightless: Double get() = lighting[LIGHTLESS] ?: NOTHING
 
+    /** What monsters loosed from their own rules are worth — `incongruous spawns`, walking at noon. */
+    val incongruous: Double get() = lighting[INCONGRUOUS] ?: NOTHING
+
+    /** What one of the Age's conditions is worth at its thickest. */
+    fun condition(named: String): Double = conditions[named] ?: NOTHING
+
     private fun isAMonster(named: String): Boolean {
         val id = Identifier.tryParse(named) ?: return false
         val type = BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null) ?: return false
@@ -118,6 +126,8 @@ data class DangerTable(
         val phenomena: Double,
         val lighting: Double,
         val features: Double,
+        /** Optional in the file, so a table written before the conditions were scored still loads, scoring none. */
+        val conditions: Double = 0.0,
     ) {
         companion object {
             val CODEC: Codec<Weights> = RecordCodecBuilder.create { instance ->
@@ -127,6 +137,7 @@ data class DangerTable(
                     Codec.DOUBLE.fieldOf("phenomena").forGetter(Weights::phenomena),
                     Codec.DOUBLE.fieldOf("lighting").forGetter(Weights::lighting),
                     Codec.DOUBLE.fieldOf("features").forGetter(Weights::features),
+                    Codec.DOUBLE.optionalFieldOf("conditions", 0.0).forGetter(Weights::conditions),
                 ).apply(instance, ::Weights)
             }
         }
@@ -139,6 +150,7 @@ data class DangerTable(
         private const val MONSTERS = "monsters"
         private const val SEALED = "sealed"
         private const val LIGHTLESS = "lightless"
+        private const val INCONGRUOUS = "incongruous"
         private const val NOTHING = 0.0
 
         /**
@@ -179,6 +191,7 @@ data class DangerTable(
                 RATINGS.fieldOf("phenomena").forGetter { it.phenomena },
                 RATINGS.fieldOf("lighting").forGetter { it.lighting },
                 RATINGS.fieldOf("features").forGetter { it.features },
+                RATINGS.optionalFieldOf("conditions", emptyMap()).forGetter { it.conditions },
             ).apply(instance, ::DangerTable)
         }
 
