@@ -97,12 +97,8 @@ object DeskModel {
     /** The sentence the template makes, as the bound book will read it. */
     fun reading(): String = ProseWriting.sentencesOf(state?.reading.orEmpty()).joinToString(" ")
 
-    /** Every word the player knows, alphabetical by the name the list shows, filtered by [filter]. */
-    fun knownRows(filter: String): List<WordRow> {
-        val needle = filter.trim().lowercase()
-        return KnownWords.words
-            .map { WordRow(it, WordNames.readable(it).string) }
-            .filter { row -> needle.isEmpty() || row.readable.lowercase().contains(needle) || row.word.toString().contains(needle) }
-            .sortedBy { it.readable.lowercase() }
-    }
+    /** Every word the player knows, alphabetical by the name the list shows; the list searches it as it orders it. */
+    fun knownRows(): List<WordRow> = KnownWords.words
+        .map { WordRow(it, WordNames.readable(it).string) }
+        .sortedBy { it.readable.lowercase() }
 }

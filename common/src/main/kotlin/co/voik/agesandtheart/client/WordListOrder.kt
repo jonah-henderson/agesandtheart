@@ -11,10 +11,11 @@ object WordListOrder {
     fun button(size: Int, current: WordOrder, offered: () -> List<WordOrder>, chosen: (WordOrder) -> Unit) =
         OrderButton(size, current, offered, WordOrder::glyph, { Component.translatable("$KEY.order.${it.key}") }, chosen)
 
-    /** [rows] under [order], with what this client was told of each word. */
-    fun <T : OrderedWord> grouped(rows: List<T>, order: WordOrder): List<ListGroup<T>> = WordOrdering.grouped(
+    /** [rows] under [order], with what this client was told of each word, searched for [searchedFor]. */
+    fun <T : OrderedWord> grouped(rows: List<T>, order: WordOrder, searchedFor: String): List<ListGroup<T>> = WordOrdering.grouped(
         rows,
         order,
+        searchedFor,
         rarityOf = KnownWords::rarityOf,
         rarityName = { Component.translatable("$KEY.rarity.${it.key}").string },
         appliesTo = KnownWords::appliesTo,

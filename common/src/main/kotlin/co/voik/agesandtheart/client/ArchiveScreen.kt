@@ -162,12 +162,9 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
         listOf(WordOrder.ALPHABETICAL, WordOrder.RARITY, WordOrder.STOCKED) + listOfNotNull(WordOrder.APPLIES_TO.takeIf { showsWhereWordsApply })
 
     private fun refresh(force: Boolean) {
-        val needle = search.value.trim().lowercase()
+        val needle = search.value
         val words = if (showingKnown) KnownWords.words else held.words
-        val rows = words
-            .map { ArchiveRow(it, WordNames.readable(it).string, held.count(it)) }
-            .filter { needle.isEmpty() || it.readable.lowercase().contains(needle) }
-            .sortedBy { it.readable }
+        val rows = words.map { ArchiveRow(it, WordNames.readable(it).string, held.count(it)) }
         val ordering = WordListOrder.stillOffered(order, offeredOrders())
         if (!force && rows == shown && ordering == shownIn) return
         if (ordering != order) orderButton.showing(ordering)
@@ -176,7 +173,7 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
         shownIn = ordering
         val actions = if (showingKnown) listOf(write, takeOut) else listOf(takeOut)
         list.showGrouped(
-            WordListOrder.grouped(rows, ordering),
+            WordListOrder.grouped(rows, ordering, needle),
             label = { it.readable },
             count = { row -> row.count.takeIf { it > 0 || !showingKnown } },
             key = { it.word },

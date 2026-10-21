@@ -300,14 +300,14 @@ class WritersDeskScreen(
             listOfNotNull(WordOrder.APPLIES_TO.takeIf { DeskModel.can(DeskCapability.WORD_REACH) })
 
     private fun refreshWords(force: Boolean) {
-        val rows = DeskModel.knownRows(search.value)
+        val rows = DeskModel.knownRows()
         val ordering = WordListOrder.stillOffered(wordOrder, offeredOrders())
         if (!force && rows == shownWords && ordering == shownWordsIn) return
         if (ordering != wordOrder) orderButton.showing(ordering)
         wordOrder = ordering
         shownWords = rows
         shownWordsIn = ordering
-        wordList.showGrouped(WordListOrder.grouped(rows, ordering), label = { it.readable }, key = { it.word }, tooltip = ::reachTooltip)
+        wordList.showGrouped(WordListOrder.grouped(rows, ordering, search.value), label = { it.readable }, key = { it.word }, tooltip = ::reachTooltip)
     }
 
     /** Where a word applies, asked at hover so a guide carried into or out of the room shows at once. */

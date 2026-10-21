@@ -31,10 +31,13 @@ object WordOrdering {
      * [rows] under [order]'s headings: one unheaded group for the orders that need none, the rarest first by rarity,
      * and under what applies to each word with a word listed under every one it applies to and those applying to
      * nothing at all last, under [naming] — the naming words, which take others rather than apply to them.
+     *
+     * [searchedFor] keeps a whole run whose heading it is found in, and otherwise the rows it is found in by name.
      */
     fun <T : OrderedWord> grouped(
         rows: List<T>,
         order: WordOrder,
+        searchedFor: String = "",
         rarityOf: (Identifier) -> WordHeadings.Rarity,
         rarityName: (WordHeadings.Rarity) -> String,
         appliesTo: (Identifier) -> List<Identifier>,
@@ -42,7 +45,7 @@ object WordOrdering {
         naming: String,
     ): List<ListGroup<T>> {
         val byName = rows.sortedBy { it.readable.lowercase() }
-        return when (order) {
+        val groups = when (order) {
             WordOrder.ALPHABETICAL -> listOf(ListGroup(null, byName))
             WordOrder.STOCKED -> listOf(ListGroup(null, byName.sortedByDescending { it.stocked }))
             WordOrder.RARITY -> WordHeadings.Rarity.entries.map { rarity ->
@@ -56,6 +59,16 @@ object WordOrdering {
                 val applyingToNothing = byName.filter { appliesTo(it.word).isEmpty() }
                 under + listOfNotNull(ListGroup(naming, applyingToNothing).takeIf { applyingToNothing.isNotEmpty() })
             }
+        }
+        return searched(groups, searchedFor.trim().lowercase())
+    }
+
+    private fun <T : OrderedWord> searched(groups: List<ListGroup<T>>, needle: String): List<ListGroup<T>> {
+        if (needle.isEmpty()) return groups
+        fun isFoundIn(row: T) = needle in row.readable.lowercase() || needle in row.word.toString()
+        return groups.mapNotNull { group ->
+            val headingIsFound = group.heading?.lowercase()?.contains(needle) == true
+            if (headingIsFound) group else group.copy(values = group.values.filter(::isFoundIn)).takeIf { it.values.isNotEmpty() }
         }
     }
 }

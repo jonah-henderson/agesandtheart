@@ -17,9 +17,10 @@ class WordOrderingCheck : FunSpec({
     val rarity = mapOf(charged.word to WordHeadings.Rarity.STAPLE, frozen.word to WordHeadings.Rarity.RARE)
     val applies = mapOf(charged.word to listOf(sky.word, row("creeper").word), frozen.word to listOf(sky.word))
 
-    fun ordered(order: WordOrder) = WordOrdering.grouped(
+    fun ordered(order: WordOrder, searchedFor: String = "") = WordOrdering.grouped(
         rows,
         order,
+        searchedFor,
         rarityOf = { rarity[it] ?: WordHeadings.Rarity.COMMON },
         rarityName = { it.key },
         appliesTo = { applies[it].orEmpty() },
@@ -35,6 +36,13 @@ class WordOrderingCheck : FunSpec({
     test("by rarity, rarest first, with no heading over nothing") {
         val expected = listOf("rare" to listOf("frozen"), "common" to listOf("sky"), "staple" to listOf("charged"))
         check(ordered(WordOrder.RARITY) == expected) { "${ordered(WordOrder.RARITY)}" }
+    }
+
+    test("a search finds a heading and keeps all under it, and otherwise keeps the rows it finds by name") {
+        check(ordered(WordOrder.APPLIES_TO, "creep") == listOf("creeper" to listOf("charged"))) { "${ordered(WordOrder.APPLIES_TO, "creep")}" }
+        check(ordered(WordOrder.RARITY, "Rare") == listOf("rare" to listOf("frozen"))) { "${ordered(WordOrder.RARITY, "Rare")}" }
+        check(ordered(WordOrder.APPLIES_TO, "froz") == listOf("sky" to listOf("frozen"))) { "${ordered(WordOrder.APPLIES_TO, "froz")}" }
+        check(ordered(WordOrder.ALPHABETICAL, "sk") == listOf(null to listOf("sky"))) { "${ordered(WordOrder.ALPHABETICAL, "sk")}" }
     }
 
     test("by what each applies to, a word under every one of them and the naming words last") {
