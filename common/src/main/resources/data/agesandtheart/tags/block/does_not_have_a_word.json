@@ -25,7 +25,10 @@
     "",
     "**The fissures and the D'ni machines are things you find or build, not ground** (Jonah, 2026-10-17): a",
     "world written of star fissure read as coherent and did nothing, and one of observation devices would be",
-    "a nonsense."
+    "a nonsense.",
+    "",
+    "**A wound and a deep bubble column are what happens to a world, not what one is made of** (Jonah,",
+    "2026-10-21): a world of wounds would put every block of it in the index the wound renderer draws from."
   ],
   "replace": false,
   "values": [
@@ -216,6 +219,8 @@
     "agesandtheart:surveying_device",
     "agesandtheart:analysis_machine",
     "agesandtheart:advanced_analysis_machine",
-    "agesandtheart:fusion_compounder"
+    "agesandtheart:fusion_compounder",
+    "agesandtheart:wound",
+    "agesandtheart:deep_bubble_column"
   ]
 }

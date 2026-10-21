@@ -10,7 +10,12 @@
     "whose trees, structures or formations are made of it. The desk and its archive and furnishings, the study's",
     "implements, the stations, the linking portal and its receptacle, and the three inks, whose sea would be the",
     "economy for nothing. Holding one and naming it at the analysis machine is still a way to learn it. The",
-    "acquaintance devices and the fusion compounder are wordless altogether (`does_not_have_a_word`)."
+    "acquaintance devices and the fusion compounder are wordless altogether (`does_not_have_a_word`).",
+    "",
+    "**The rare materials** (Jonah, 2026-10-21) are the desk upgrades' and the stones': astrite, the rime crystals,",
+    "phasmium and the gloomgrit it comes from, arc crystal, and temperstone and deretheni. An Age of them would be a",
+    "mine of what an upgrade is built from; they are found where they are found, and analysed once held. The lava",
+    "tube is a volcano's vent, and a world raised of them would be a world of eruptions."
   ],
   "replace": false,
   "values": [
@@ -31,6 +36,25 @@
     "agesandtheart:linking_book_receptacle",
     "agesandtheart:ink",
     "agesandtheart:fine_ink",
-    "agesandtheart:masterwork_ink"
+    "agesandtheart:masterwork_ink",
+    "agesandtheart:astrite_block",
+    "agesandtheart:astrite_shard",
+    "agesandtheart:blue_rime_crystal",
+    "agesandtheart:cyan_rime_crystal",
+    "agesandtheart:green_rime_crystal",
+    "agesandtheart:magenta_rime_crystal",
+    "agesandtheart:orange_rime_crystal",
+    "agesandtheart:red_rime_crystal",
+    "agesandtheart:white_rime_crystal",
+    "agesandtheart:yellow_rime_crystal",
+    "agesandtheart:phasmium_block",
+    "agesandtheart:gloomgrit",
+    "agesandtheart:arc_crystal",
+    "agesandtheart:arc_crystal_block",
+    "agesandtheart:pitchstone",
+    "agesandtheart:temperstone",
+    "agesandtheart:raw_temperstone",
+    "agesandtheart:scorched_temperstone",
+    "agesandtheart:lava_tube"
   ]
 }
