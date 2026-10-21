@@ -204,7 +204,7 @@ class AgeChunkGenerator(
     /** What the book built this Age's structures of — see [StructureMaterials]. Not serialised, like [lives]. */
     private val structuresBuiltOf: StructureMaterials.Written = StructureMaterials.Written.NONE,
     /** What the book grew this Age's trees with in place of their leaves. Not serialised, like [lives]. */
-    private val treesGrownWith: TreeFoliage = TreeFoliage.NONE,
+    val treesGrownWith: TreeFoliage = TreeFoliage.NONE,
     /** Whether no new living thing may be made in this Age by anything at all — see [Lifeless]. */
     val nothingLives: Boolean = false,
     /** How many times its vanilla cap each spawn pass holds here, a pass left out holding vanilla's — see [SpawnCaps]. */

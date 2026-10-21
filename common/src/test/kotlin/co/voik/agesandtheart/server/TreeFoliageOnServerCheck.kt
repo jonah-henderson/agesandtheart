@@ -4,9 +4,9 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * Trees an Age wrote grown of a block grow it where their leaves would be — `diamond_block trees`. A server check
- * because the block is set as a tree is placed, which only generating a chunk can show. Counted by a `fill` that
- * clears the block from the canopy's layers, which says how many it cleared.
+ * Trees an Age wrote grown of a block grow it where their leaves would be — `diamond_block trees` — those its chunks
+ * were made with and those its saplings grow into later. A server check because the block is set as a tree is placed,
+ * which only a level can show. Counted by a `fill` that clears the block from the canopy, which says how many it cleared.
  */
 @Tags(NEEDS_SERVER)
 class TreeFoliageOnServerCheck : FunSpec({
@@ -32,6 +32,28 @@ class TreeFoliageOnServerCheck : FunSpec({
         inThe(AGE, "forceload remove all")
         check(cleared > 0) { "a forest of diamond trees grew no diamond blocks in four chunks" }
     }
+
+    test("a sapling grown in such an Age grows diamond blocks where its leaves would be") {
+        inThe(AGE, "forceload add $FAR $FAR")
+        val (x, z) = FAR + SAPLING_OFFSET to FAR + SAPLING_OFFSET
+        inThe(AGE, "setblock $x $PLANTED_ON $z minecraft:grass_block")
+        inThe(AGE, "setblock ${x + 1} $PLANTED_ON $z minecraft:glowstone")
+        inThe(AGE, "setblock $x ${PLANTED_ON + 1} $z minecraft:oak_sapling[stage=1]")
+        server.run("gamerule random_tick_speed $QUICK_TICKS")
+        try {
+            server.waitUntil("the sapling growing in '$AGE'") {
+                inThe(AGE, "execute unless block $x ${PLANTED_ON + 1} $z minecraft:oak_sapling").startsWith("Test passed")
+            }
+        } finally {
+            server.run("gamerule random_tick_speed $VANILLA_TICKS")
+        }
+        val canopy = "${x - CANOPY_REACH} ${PLANTED_ON + 2} ${z - CANOPY_REACH} ${x + CANOPY_REACH} ${PLANTED_ON + CANOPY_HEIGHT} ${z + CANOPY_REACH}"
+        val said = inThe(AGE, "fill $canopy minecraft:air replace minecraft:diamond_block")
+        val leaves = inThe(AGE, "fill $canopy minecraft:air replace #minecraft:leaves")
+        inThe(AGE, "forceload remove all")
+        check(said.startsWith("Successfully")) { "the sapling grew no diamond blocks: '$said'" }
+        check(!leaves.startsWith("Successfully")) { "the sapling grew leaves as well: '$leaves'" }
+    }
 })
 
 private const val SEED = 4786177076396069349L
@@ -44,3 +66,11 @@ private const val CHUNK = 16
 /** The layers a canopy over ordinary ground stands in; a fill takes at most 32768 blocks, and this is 16384. */
 private const val LOWEST = 60
 private const val HIGHEST = 123
+
+/** High over the forest, so the tree it grows has the open air to itself. */
+private const val PLANTED_ON = 200
+private const val SAPLING_OFFSET = 8
+private const val CANOPY_REACH = 6
+private const val CANOPY_HEIGHT = 16
+private const val QUICK_TICKS = 4096
+private const val VANILLA_TICKS = 3

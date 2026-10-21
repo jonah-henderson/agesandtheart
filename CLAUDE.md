@@ -372,7 +372,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Fifty-eight Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Fifty-nine Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -440,7 +440,9 @@ When shared code needs something loader-specific, it goes through an interface, 
 - **`FeaturePlacerMixin`**, **`TreeFeatureMixin`** and **`JigsawPlacementMixin`** — what the strange tier does to
   new ground (`StrangeGround`): every feature drawn from one random per feature, trees handed a foliage setter
   that places nothing — or, where a book grew them of a block (`diamond_block trees`), one that places that block in
-  each leaf's stead — and a village's start drawn from its pool's abandoned pieces. Each is the one call where
+  each leaf's stead — and a village's start drawn from its pool's abandoned pieces. **`TreeGrowerMixin`** carries the
+  block to a sapling grown later (`generation/GrownTrees`): `growTree` is the last call that knows which tree it is,
+  and Fabric has no sapling event. Each is the one call where
   the thing is decided, and neither loader has a placement, tree or jigsaw event. All three answer off
   thread-locals the Age's generator sets around its own decoration and structure starts, so they cost one read
   anywhere else.

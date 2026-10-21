@@ -26,6 +26,9 @@ object StrangeGround {
     private val decorating = ThreadLocal<Decorating?>()
     private val abandoning = ThreadLocal<Boolean?>()
 
+    /** The block a sapling growing on this thread grows in place of its leaves, where its Age said one. */
+    private val saplingGrowsWith = ThreadLocal<BlockState?>()
+
     /** The placed feature this thread is placing now, so a tree inside it can ask whether it is one of the bare. */
     private val placing = ThreadLocal<String?>()
 
@@ -56,6 +59,17 @@ object StrangeGround {
             decoration()
         } finally {
             decorating.set(was)
+        }
+    }
+
+    /** Grows a sapling through [growing] with [block] in place of its leaves, answering whether it grew. */
+    fun growingWith(block: BlockState, growing: () -> Boolean): Boolean {
+        val was = saplingGrowsWith.get()
+        saplingGrowsWith.set(block)
+        try {
+            return growing()
+        } finally {
+            saplingGrowsWith.set(was)
         }
     }
 
@@ -105,7 +119,7 @@ object StrangeGround {
      */
     @JvmStatic
     fun grownWithItsFoliage(setter: FoliagePlacer.FoliageSetter): FoliagePlacer.FoliageSetter {
-        val grownWith = decorating.get()?.foliage?.of(placing.get()) ?: return setter
+        val grownWith = decorating.get()?.foliage?.of(placing.get()) ?: saplingGrowsWith.get() ?: return setter
         return object : FoliagePlacer.FoliageSetter {
             override fun set(pos: BlockPos, state: BlockState) = setter.set(pos, grownWith)
 

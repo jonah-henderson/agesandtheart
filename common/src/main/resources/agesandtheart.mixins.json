@@ -49,7 +49,8 @@
     "StructureStartMixin",
     "StateDefinitionBuilderMixin",
     "StructureMixin",
-    "TreeFeatureMixin"
+    "TreeFeatureMixin",
+    "TreeGrowerMixin"
   ],
   "client": [
     "client.CameraMixin",
