@@ -119,8 +119,10 @@ class BookScreen(
             // A linking book's panel has the right leaf to itself and nothing faces it: the book is a door to
             // a place, and has no words to show (design §7.8.2).
             if (panelPage == BookPage.LEFT) {
-                scaled(graphics, left + RIGHT_COLUMN_X, top + TITLE_Y, TITLE_SCALE) {
-                    graphics.text(font, book.hoverName, 0, 0, ParchmentSurface.INK, false)
+                for ((index, line) in titleLines.withIndex()) {
+                    scaled(graphics, left + RIGHT_COLUMN_X, top + TITLE_Y + index * titleLineHeight(), TITLE_SCALE) {
+                        graphics.text(font, line, 0, 0, ParchmentSurface.INK, false)
+                    }
                 }
             }
         } else {
@@ -284,8 +286,16 @@ class BookScreen(
 
     private fun scriptHeight(): Int = (font.lineHeight * SCRIPT_SCALE).toInt() + 1
 
-    /** Where writing starts down a page — the first one begins under the title, the rest at the top. */
-    private fun writingBeginsOn(page: Int): Int = if (page == 0) TEXT_Y else TOP_MARGIN
+    /** The Age's name wrapped to the writing column, so a long one runs onto a second line rather than off the leaf. */
+    private val titleLines: List<FormattedCharSequence> by lazy {
+        font.split(book.hoverName, (COLUMN_WIDTH / TITLE_SCALE).toInt())
+    }
+
+    private fun titleLineHeight(): Int = (font.lineHeight * TITLE_SCALE).toInt()
+
+    /** Where writing starts down a page — the first one begins under the title, however many lines it took. */
+    private fun writingBeginsOn(page: Int): Int =
+        if (page == 0) TITLE_Y + titleLines.size * titleLineHeight() + UNDER_THE_TITLE else TOP_MARGIN
 
     private fun roomOn(page: Int): Int = HEIGHT - writingBeginsOn(page) - BOTTOM_MARGIN
 
@@ -445,8 +455,8 @@ class BookScreen(
 
         const val TITLE_Y = 16
 
-        /** Where writing starts down a page: under the title on the first, and at the top after it. */
-        const val TEXT_Y = 34
+        /** The space between the title's last line and the writing under it. */
+        const val UNDER_THE_TITLE = 8
         const val TOP_MARGIN = 16
         const val BOTTOM_MARGIN = 14
 
