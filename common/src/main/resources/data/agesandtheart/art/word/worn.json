@@ -1,8 +1,8 @@
 {
   "_comment": [
-    "Worn down by a long time: an eroded landmass, and every part leaning eroded, sheer where it broke and barren",
-    "where it wore, never laid out fresh; what is built leans ruined; the wear on everything turned up and what",
-    "stands set closer, as rubble does.",
+    "Worn down by a long time: an eroded landmass, and the ground and what stands on it leaning eroded, sheer",
+    "where it broke and barren where it wore, never laid out fresh; what is built leans ruined; the wear on",
+    "everything turned up and what stands set closer, as rubble does.",
     "",
     "It absorbed `battered`, which said the same of the whole Age (retired.json)."
   ],
@@ -29,7 +29,35 @@
     },
     {
       "leans": {
-        "all": {
+        "biomes": {
+          "#eroded": 1.0,
+          "#sheer": 0.5,
+          "#barren": 0.5,
+          "#ruined": 0.4,
+          "#ordered": -0.6
+        },
+        "features": {
+          "#eroded": 1.0,
+          "#sheer": 0.5,
+          "#barren": 0.5,
+          "#ruined": 0.4,
+          "#ordered": -0.6
+        },
+        "structures": {
+          "#eroded": 1.0,
+          "#sheer": 0.5,
+          "#barren": 0.5,
+          "#ruined": 0.4,
+          "#ordered": -0.6
+        },
+        "landmass": {
+          "#eroded": 1.0,
+          "#sheer": 0.5,
+          "#barren": 0.5,
+          "#ruined": 0.4,
+          "#ordered": -0.6
+        },
+        "underground": {
           "#eroded": 1.0,
           "#sheer": 0.5,
           "#barren": 0.5,

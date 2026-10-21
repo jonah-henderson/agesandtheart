@@ -1,7 +1,7 @@
 {
   "_comment": [
-    "Held up by nothing: a floating landmass over a sea leaning to empty air, and what lives leaning to what flies.",
-    "Offered, yielding to the book: the cloud brought down beneath the land."
+    "Held up by nothing: a floating landmass over a sea leaning to empty air, and the biomes, features and",
+    "structures leaning to what stands aloft. Offered, yielding to the book: the cloud brought down beneath the land."
   ],
   "meanings": [
     {
@@ -22,7 +22,13 @@
     },
     {
       "leans": {
-        "all": {
+        "biomes": {
+          "#aloft": 0.6
+        },
+        "features": {
+          "#aloft": 0.6
+        },
+        "structures": {
           "#aloft": 0.6
         }
       },

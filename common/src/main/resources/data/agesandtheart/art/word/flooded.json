@@ -1,8 +1,8 @@
 {
   "_comment": [
     "A world given over to water: a sea of it and rock running wet, flooded caves and drowned halls, and the",
-    "biomes, features and creatures leaning to water — oceans and swamps, kelp and coral, fish. Offered, yielding",
-    "to the book: a deeper sea, and rain more of the time.",
+    "biomes, features and structures leaning to water — oceans and swamps, kelp and coral, drowned ruins. Offered,",
+    "yielding to the book: a deeper sea, and rain more of the time.",
     "",
     "It absorbed `drowned`, whose watery sea is this word's sea half (retired.json)."
   ],
@@ -25,7 +25,15 @@
     },
     {
       "leans": {
-        "all": {
+        "biomes": {
+          "#watery": 0.8,
+          "#aquatic": 0.6
+        },
+        "features": {
+          "#watery": 0.8,
+          "#aquatic": 0.6
+        },
+        "structures": {
           "#watery": 0.8,
           "#aquatic": 0.6
         }

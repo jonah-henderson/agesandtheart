@@ -12,7 +12,8 @@
     "reads as. Matching `deep`'s reach downward would take the waterline under most landform floors and",
     "leave no sea at all, which is a different word than this one.",
     "",
-    "**Said of features, it is where they sit: near the surface**, `buried`'s mirror. `shallow veins` are",
+    "**Said of features, it is where they sit: near the surface**, `buried`'s mirror, and offered only to",
+    "what is dug into the ground or grows from it -- a shallow obelisk means nothing. `shallow veins` are",
     "vanilla's copper veins -- its band and its granite -- where a vein left alone is its deep iron one.",
     "Inside a minting clause the height is that clause's own, as a size is, so the Age's other ores stay put."
   ],
@@ -27,7 +28,16 @@
       "sets": {
         "features.height": "0.5..1.0"
       },
-      "must_always_apply": true
+      "must_always_apply": true,
+      "offered_to": [
+        "features",
+        "ores",
+        "veins",
+        "deposits",
+        "pits",
+        "springs",
+        "plants"
+      ]
     },
     {
       "leans": {

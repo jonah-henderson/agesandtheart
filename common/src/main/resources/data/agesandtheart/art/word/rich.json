@@ -1,11 +1,16 @@
 {
-  "_comment": "What a world holds in the ground, and its waters give up to a line: treasure far oftener (Jonah, 2026-10-21). The query is the fact -- these are ore -- and the weights are the judgement, because which ore is a prize is a fact about the game's economy and not about the rock.",
+  "_comment": "What a world holds in the ground, and its waters give up to a line: treasure far oftener (Jonah, 2026-10-21). Bigger only where it is said of ore, since rich trees are not. The query is the fact -- these are ore -- and the weights are the judgement, because which ore is a prize is a fact about the game's economy and not about the rock.",
   "meanings": [
     {
       "bends": {
         "features.size": "0.5..1.0"
       },
-      "must_always_apply": true
+      "must_always_apply": true,
+      "offered_to": [
+        "ores",
+        "veins",
+        "deposits"
+      ]
     },
     {
       "admits": {

@@ -1,13 +1,29 @@
 {
   "_comment": [
-    "Lived in, level and green, and the weather of a good summer: three of a blue sky, white cloud, green",
-    "grass, green or turning leaves, fireflies, and the odd rainbow are offered to every homely Age, each",
-    "yielding to anything the book says."
+    "Lived in, level and green, its biomes, features and structures leaning that way, and the weather of a good",
+    "summer: three of a blue sky, white cloud, green grass, green or turning leaves, fireflies, and the odd rainbow",
+    "are offered to every homely Age, each yielding to anything the book says."
   ],
   "meanings": [
     {
       "leans": {
-        "all": {
+        "biomes": {
+          "#inhabited": 0.8,
+          "#flat": 0.8,
+          "#lush": 0.6,
+          "#grown": 0.4,
+          "#hostile": -0.8,
+          "#sheer": -0.5
+        },
+        "features": {
+          "#inhabited": 0.8,
+          "#flat": 0.8,
+          "#lush": 0.6,
+          "#grown": 0.4,
+          "#hostile": -0.8,
+          "#sheer": -0.5
+        },
+        "structures": {
           "#inhabited": 0.8,
           "#flat": 0.8,
           "#lush": 0.6,
