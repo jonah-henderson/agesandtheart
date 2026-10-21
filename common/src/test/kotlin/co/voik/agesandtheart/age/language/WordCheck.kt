@@ -106,6 +106,14 @@ class WordCheck : FunSpec({
         check(takes(DerivedWords.blocks().single { it.id.toString() == "minecraft:stone" }) == null) { "a block takes pages" }
     }
 
+    test("a word naming many members takes a material most of them honour, and a lean; one naming one takes no lean") {
+        check(takes(shipped("trees"))?.takesParameter("foliage") == true) { "`stone trees` has no trees to make of stone" }
+        check(takes(shipped("plants"))?.takesParameter("foliage") == false) { "`stone plants` makes plants of stone" }
+        check(takes(shipped("plants"))?.takesLeans == true) { "`beautiful plants` leans among no plants" }
+        check(takes(shipped("amethyst_geode"))?.takesLeans == false) { "`indigo amethyst_geode` leans among one geode" }
+        check(takes(shipped("arches"))?.takesLeans == false) { "`beautiful arches` leans among one formation" }
+    }
+
     test("a word costs four for each part of the world it is certain to narrow where aimed, and leans cost nothing") {
         check(shipped("beautiful").price == Word.FLOOR_PRICE) { "beautiful costs ${shipped("beautiful").price}" }
         check(shipped("sunless").price == Word.INK_PER_NARROWED_PART) { "sunless costs ${shipped("sunless").price}" }

@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
+import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
 import co.voik.agesandtheart.age.aspect.PlacedFeature
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.resolution.Members
@@ -61,7 +62,7 @@ object WordAcceptance {
         val appliesWhereAimed = word.meanings.filter { it.mustAlwaysApply || it.chanceToApply > Meaning.NEVER }
         val pattern = appliesWhereAimed.flatMap { it.effects }.filterIsInstance<Effect.Mints>().firstOrNull() ?: return null
         val feature = PlacedFeature.named(pattern.pattern) ?: return null
-        return Acceptance.ofMember(feature, registries).copy(takesSubstance = true, mints = true)
+        return Acceptance.ofMember(feature, registries).copy(takesLeans = false, takesSubstance = true, mints = true)
     }
 
     /**
@@ -93,14 +94,22 @@ object WordAcceptance {
         else -> null
     }
 
+    /**
+     * What a word naming [members] takes: a dial any of them honours, but a material only where most do — `trees`
+     * grow of a block though bamboo has no leaves, and `plants` do not because a few have them — and a lean only
+     * among more than one.
+     */
     private fun ofMembers(aspect: Aspect, members: List<Taggable>, registries: HolderLookup.Provider?): Acceptance {
         val each = members.map { Acceptance.ofMember(it, registries) }
+        val dials = each.flatMap { it.parameters }.filterNot { it in MATERIAL_PARAMETERS }
+        fun mostHonour(material: String) = each.count { it.takesParameter(material) } * 2 > each.size
+        val materials = MATERIAL_PARAMETERS.filter(::mostHonour)
         return Acceptance(
             place = Place(aspect, Members.Named(members.map(Taggable::key).toSet())),
-            parameters = each.flatMap { it.parameters }.toSet(),
+            parameters = (dials + materials).toSet(),
             takesChoices = false,
-            takesLeans = true,
-            takesSubstance = each.any { it.takesSubstance },
+            takesLeans = members.size > 1,
+            takesSubstance = each.count { it.takesSubstance } * 2 > each.size,
             takesAbundance = each.any { it.takesAbundance },
         )
     }
