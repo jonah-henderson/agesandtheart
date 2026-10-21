@@ -1,0 +1,27 @@
+{
+  "values": [
+    "minecraft:mushroom_fields",
+    "minecraft:cherry_grove",
+    "minecraft:ice_spikes",
+    "minecraft:badlands",
+    "minecraft:eroded_badlands",
+    "minecraft:wooded_badlands",
+    "minecraft:bamboo_jungle",
+    "minecraft:jungle",
+    "minecraft:flower_forest",
+    "minecraft:sunflower_plains",
+    "minecraft:pale_garden",
+    "minecraft:mangrove_swamp",
+    "minecraft:meadow",
+    "minecraft:savanna_plateau",
+    "minecraft:windswept_savanna",
+    "minecraft:dark_forest",
+    "minecraft:old_growth_spruce_taiga",
+    "minecraft:old_growth_pine_taiga",
+    "minecraft:old_growth_birch_forest",
+    "minecraft:frozen_peaks",
+    "minecraft:jagged_peaks",
+    "minecraft:lush_caves",
+    "minecraft:dripstone_caves"
+  ]
+}

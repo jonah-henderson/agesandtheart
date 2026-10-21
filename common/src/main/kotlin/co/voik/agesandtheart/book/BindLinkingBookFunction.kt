@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.age.word.WordNames
+import co.voik.agesandtheart.generation.FoundDestinations
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -21,9 +22,9 @@ import co.voik.agesandtheart.worldgen.structure.ArrivalMarker
  * { "function": "agesandtheart:bind_linking_book", "stray_chance": 0.1 }
  * ```
  *
- * Almost all of them point **home** — the Overworld's spawn — because that is what makes a found linking
- * book worth carrying into an Age: it is the way back, and the whole reason the item is seeded as loot at
- * all rather than only crafted.
+ * Almost all of them point **home** — into the Overworld — because that is what makes a found linking book worth
+ * carrying into an Age: it is the way back, and the whole reason the item is seeded as loot at all rather than only
+ * crafted. Where in it is [wandering]'s: spawn, or somewhere else worth arriving at ([FoundDestinations]).
  *
  * A `stray_chance` of them instead point at **wherever they were found**, which is a different and much
  * stranger object: someone else's route, to a place you have to go and see. Chests are generated all over
@@ -41,6 +42,7 @@ class BindLinkingBookFunction(
     predicate: Optional<Holder<LootItemCondition>>,
     val strayChance: Float,
     val arrival: ArrivalMarker?,
+    val wandering: FoundDestinations.Wandering,
 ) : LootItemConditionalFunction(predicate) {
 
     override fun codec(): MapCodec<out LootItemConditionalFunction> = MAP_CODEC
@@ -57,7 +59,7 @@ class BindLinkingBookFunction(
         } else if (strays && here != null) {
             LinkTarget(level.dimension(), here, 0.0f, WordNames.placeName(level.dimension()))
         } else {
-            LinkTarget.home(level.server)
+            FoundDestinations.home(level.server, context.random, wandering, mayLookForStructures = true)
         }
         LinkingBookItem.bindTo(itemStack, target)
         return itemStack
@@ -77,8 +79,12 @@ class BindLinkingBookFunction(
                     ArrivalMarker.CODEC.optionalFieldOf("arrival")
                         .forGetter { Optional.ofNullable(it.arrival) },
                 )
-                .apply(instance) { predicate, strayChance, arrival ->
-                    BindLinkingBookFunction(predicate, strayChance, arrival.orElse(null))
+                .and(
+                    FoundDestinations.Wandering.CODEC.optionalFieldOf("wandering", FoundDestinations.Wandering.DEFAULT)
+                        .forGetter(BindLinkingBookFunction::wandering),
+                )
+                .apply(instance) { predicate, strayChance, arrival, wandering ->
+                    BindLinkingBookFunction(predicate, strayChance, arrival.orElse(null), wandering)
                 }
         }
     }

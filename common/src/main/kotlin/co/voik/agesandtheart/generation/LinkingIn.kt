@@ -41,11 +41,17 @@ object LinkingIn {
     }
 
     /**
-     * Into the nearest biome [wanted] holds: on the surface where the surface is it, and otherwise in the open below,
-     * near the height it was found at — a cave biome is under ground some other biome covers.
+     * Into the nearest biome [wanted] holds to [from], within [reach]: on the surface where the surface is it, and
+     * otherwise in the open below, near the height it was found at — a cave biome is under ground some other biome
+     * covers.
      */
-    private fun inBiome(level: ServerLevel, wanted: (Holder<Biome>) -> Boolean): BlockPos? {
-        val found = nearestBiome(level, wanted) ?: return null
+    internal fun inBiome(
+        level: ServerLevel,
+        from: BlockPos = BlockPos(0, level.seaLevel, 0),
+        reach: Int = REACH,
+        wanted: (Holder<Biome>) -> Boolean,
+    ): BlockPos? {
+        val found = nearestBiome(level, from, reach, wanted) ?: return null
         val surface = Ages.footingIn(level, found.x, found.z)
         val atTheSurface = level.chunkSource.generator.biomeSource.createUncachedResolver(level.chunkSource.randomState())
             .getNoiseBiome(QuartPos.fromBlock(found.x), QuartPos.fromBlock(surface.y), QuartPos.fromBlock(found.z))
@@ -75,9 +81,9 @@ object LinkingIn {
     private fun LinkAnchor.isAnyOf(biome: Holder<Biome>): Boolean =
         members.isEmpty() || biome.unwrapKey().map { it.identifier().toString() in members }.orElse(false)
 
-    private fun nearestBiome(level: ServerLevel, wanted: (Holder<Biome>) -> Boolean): BlockPos? =
+    private fun nearestBiome(level: ServerLevel, from: BlockPos, reach: Int, wanted: (Holder<Biome>) -> Boolean): BlockPos? =
         level.chunkSource.generator.biomeSource.findClosestBiome3d(
-            BlockPos(0, level.seaLevel, 0), REACH, BIOME_STEP, BIOME_STEP_UP, wanted, level.chunkSource.randomState(), level,
+            from, reach, BIOME_STEP, BIOME_STEP_UP, wanted, level.chunkSource.randomState(), level,
         )?.first
 
     /** Whether the Age grows any of [features] in [biome], as its own generator would place them. */

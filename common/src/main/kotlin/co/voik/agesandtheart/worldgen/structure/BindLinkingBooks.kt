@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.worldgen.structure
 
-import co.voik.agesandtheart.book.LinkTarget
+import co.voik.agesandtheart.generation.FoundDestinations
 import co.voik.agesandtheart.book.LinkingBookItem
 import com.mojang.serialization.Codec
 import co.voik.agesandtheart.content.AgeComponents
@@ -51,7 +51,8 @@ class BindLinkingBooks(
             ?: return processedBlockInfo
         val target = arrival.target(placing.level.dimension(), marker, targetPosition, settings)
         val random = settings.getRandom(targetPosition)
-        fun targetOfTheNextBook() = if (random.nextFloat() < homeChance) LinkTarget.home(placing.level.server) else target
+        fun leadsHome() = FoundDestinations.home(placing.level.server, random, FoundDestinations.Wandering.DEFAULT, mayLookForStructures = false)
+        fun targetOfTheNextBook() = if (random.nextFloat() < homeChance) leadsHome() else target
 
         val bound = TemplateItems.rewritten(saved, level.registryAccess()) { stack ->
             val isUnboundLinkingBook = stack.`is`(AgeContent.LINKING_BOOK) && !stack.has(AgeComponents.LINK_TARGET)
