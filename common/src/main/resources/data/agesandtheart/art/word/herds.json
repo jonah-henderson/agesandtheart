@@ -12,7 +12,7 @@
   "meanings": [
     {
       "restricts": {
-        "spawns": {
+        "inhabitants": {
           "grazing": ">0.3"
         }
       },

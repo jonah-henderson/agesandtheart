@@ -31,7 +31,7 @@ import net.minecraft.world.level.gamerules.GameRules
 internal object ChunkGenerationSpawns {
 
     /**
-     * Places what [mobs] offers in the chunk [level] is making. [anywhere] is an `incongruous spawns` Age, where a
+     * Places what [mobs] offers in the chunk [level] is making. [anywhere] is an `incongruous inhabitants` Age, where a
      * creature stands wherever it lands, past its own placement rules — the collision checks and the peaceful rule
      * kept ([IncongruousSpawns]).
      */

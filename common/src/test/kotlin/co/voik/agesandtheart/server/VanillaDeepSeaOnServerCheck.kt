@@ -55,9 +55,9 @@ class VanillaDeepSeaOnServerCheck : FunSpec({
         }
         check(hadalfishIn("vanilladeepsea", "offered") != null) { "the abyss of a deep sea offers no hadalfish" }
         // Aimed at the creatures: laid bare, a lean on everything leans only some of what it reaches.
-        server.run("age write vanillahomely 7 age homely spawns deep sea")
-        val rung = hadalfishIn("vanillahomely", "asked")?.substringAfterLast(' ')?.toDouble()
-        check(rung != null && rung < 1.0) { "a homely Age asks for the hadalfish at $rung, no less than one that said nothing" }
+        server.run("age write vanillabeautiful 7 age beautiful inhabitants deep sea")
+        val rung = hadalfishIn("vanillabeautiful", "asked")?.substringAfterLast(' ')?.toDouble()
+        check(rung != null && rung < 1.0) { "a beautiful Age asks for the hadalfish at $rung, no less than one that said nothing" }
     }
 
     test("the floor of an abyss on vanilla's rock holds whalefalls, and vents keeping hadalfish where there is a deluge") {

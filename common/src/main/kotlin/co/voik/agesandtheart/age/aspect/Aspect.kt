@@ -111,8 +111,8 @@ enum class Aspect(
      * ships. [key] is what an Age is *recorded* under — the `options` and `spread` map keys a save holds —
      * and must not move once an Age has been written with it.
      *
-     * `terrain` became `landmass` and `carvers` became `depths` for readability, and each rename was a
-     * save-format change until the two were separated. They are the two entries that carry both.
+     * `terrain` became `landmass`, `carvers` became `rock` and `spawns` became `inhabitants` for readability, and
+     * each rename was a save-format change until the two were separated.
      */
     page: String? = null,
 ) : StringRepresentable {
@@ -161,7 +161,7 @@ enum class Aspect(
     FEATURES("features", Holds.WEIGHTED_SET, open = true),
 
     /** What lives in it. */
-    SPAWNS("spawns", Holds.WEIGHTED_SET, open = true),
+    SPAWNS("spawns", Holds.WEIGHTED_SET, open = true, page = "inhabitants"),
 
     /**
      * What the air looks like and does — its fog, its tint, what hangs in it.

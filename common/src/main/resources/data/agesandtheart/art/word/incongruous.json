@@ -10,7 +10,7 @@
     "  says it): ocean biomes on hilltops, deserts in the sea.",
     "- `incongruous features` grows every biome's features in every biome, at any height: ore anywhere, trees out",
     "  of their biomes. Yema keep to where they grow.",
-    "- `incongruous spawns` offers every biome's creatures everywhere and past their own rules: fish on hillsides,",
+    "- `incongruous inhabitants` offers every biome's creatures everywhere and past their own rules: fish on hillsides,",
     "  monsters at noon. Scarabs keep their own.",
     "- `incongruous structures` builds in any biome and at any height: a taiga village on the plains, a trail ruin",
     "  out of the ground, an ancient city in the open."
@@ -30,7 +30,7 @@
     },
     {
       "sets": {
-        "spawns.incongruous": "true"
+        "inhabitants.incongruous": "true"
       },
       "must_always_apply": true
     },

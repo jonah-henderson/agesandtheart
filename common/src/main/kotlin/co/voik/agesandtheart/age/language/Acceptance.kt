@@ -102,7 +102,7 @@ data class Acceptance(
             )
         }
 
-        /** The populations a quantifier counts whole — `teeming spawns`, `few structures` — every member at once. */
+        /** The populations a quantifier counts whole — `teeming inhabitants`, `few structures` — every member at once. */
         private val COUNTED_WHOLE = setOf(Aspect.FEATURES, Aspect.STRUCTURES, Aspect.SPAWNS)
 
         /**

@@ -19,7 +19,7 @@
     },
     {
       "sets": {
-        "spawns.pace": "0.5..1.0"
+        "inhabitants.pace": "0.5..1.0"
       },
       "must_always_apply": true
     },

@@ -97,7 +97,7 @@ class ReadingCheck : FunSpec({
     }
 
     test("a quantifier said of a whole population counts every member of it") {
-        for ((row, aspect) in listOf("age few structures" to Aspect.STRUCTURES, "age teeming spawns" to Aspect.SPAWNS)) {
+        for ((row, aspect) in listOf("age few structures" to Aspect.STRUCTURES, "age teeming inhabitants" to Aspect.SPAWNS)) {
             val counted = read(row).landedBy(1)
             val countsTheWhole = counted.any { landing ->
                 landing.place == co.voik.agesandtheart.age.resolution.Place(aspect) && landing.effects.any { it is Effect.Abundance }

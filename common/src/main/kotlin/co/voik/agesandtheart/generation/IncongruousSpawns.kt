@@ -13,7 +13,7 @@ import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.MobSpawnSettings
 
 /**
- * What an `incongruous spawns` Age lets live anywhere (`notes/strange-words-plan.md` §4): every creature its
+ * What an `incongruous inhabitants` Age lets live anywhere (`notes/strange-words-plan.md` §4): every creature its
  * biomes offer is offered everywhere, and turns up past its own placement rules — fish on hillsides, cows in caves,
  * monsters at noon. `NaturalSpawnerMixin` asks [anywhere] at vanilla's two checks and the creature's own.
  *

@@ -40,7 +40,7 @@ object Spawns {
      * lifeless world being a world a writer might well want.
      */
     /**
-     * Whether every creature is rooted where it stands, still watching and striking — `motionless spawns`,
+     * Whether every creature is rooted where it stands, still watching and striking — `motionless inhabitants`,
      * `motionless monsters`.
      * Named for what a still body is too, so the word that stops one stops the other.
      */
@@ -95,11 +95,11 @@ object Spawns {
 
     /**
      * Whether any creature the Age offers may turn up anywhere, past its own placement rules — fish on hillsides,
-     * monsters at noon — `incongruous spawns`. Scarabs keep their own rules.
+     * monsters at noon — `incongruous inhabitants`. Scarabs keep their own rules.
      */
     val INCONGRUOUS = Parameter.flag("incongruous", help = "Whether any creature may turn up anywhere, past its own rules.")
 
-    /** How fast every creature moves, member by member — `slow monsters`, `swift spawns`. */
+    /** How fast every creature moves, member by member — `slow monsters`, `swift inhabitants`. */
     val PACE = Parameter.ranged(
         "pace",
         help = "How fast creatures move.",

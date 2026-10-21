@@ -77,8 +77,8 @@ class MemberScopingCheck : FunSpec({
 
     test("a pass's cap moves by the mean of what a quantifier asked of its creatures, and nothing else moves it") {
         fun capsOf(vararg pages: String) = Spawns.capsOf(aimed(SEEDS.first, *pages).optionsFor(Aspect.SPAWNS))
-        val teeming = capsOf("teeming", "spawns")
-        check(teeming[MobCategory.MONSTER] == TEEMING && teeming[MobCategory.CREATURE] == TEEMING) { "'teeming spawns' held $teeming" }
+        val teeming = capsOf("teeming", "inhabitants")
+        check(teeming[MobCategory.MONSTER] == TEEMING && teeming[MobCategory.CREATURE] == TEEMING) { "'teeming inhabitants' held $teeming" }
         val monsters = capsOf("teeming", "monsters")[MobCategory.MONSTER] ?: 1.0
         check(monsters > HALFWAY_TO_TEEMING) { "'teeming monsters' held the monsters to $monsters" }
         val zombies = capsOf("teeming", "zombie")[MobCategory.MONSTER] ?: 1.0
@@ -95,9 +95,9 @@ class MemberScopingCheck : FunSpec({
         check("age" !in under("charged")) { "charged was listed under the Age" }
     }
 
-    test("motionless spawns root everything") {
-        val spawns = aimed(SEEDS.first, "motionless", "spawns").optionsFor(Aspect.SPAWNS)
-        check(spawns.isTrue(Spawns.STILL, member = COW)) { "'motionless spawns' left a cow walking" }
+    test("motionless inhabitants root everything") {
+        val spawns = aimed(SEEDS.first, "motionless", "inhabitants").optionsFor(Aspect.SPAWNS)
+        check(spawns.isTrue(Spawns.STILL, member = COW)) { "'motionless inhabitants' left a cow walking" }
     }
 
     test("bare trees strip the trees and leave the ores alone") {

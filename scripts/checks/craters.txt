@@ -23,7 +23,7 @@ age bench pocked 6
 # The control: the SAME sentence the repair gave `pocked`, with the phenomenon taken out and nothing
 # else touched, so any difference in the numbers is the craters and not the terrain. A bare `age` is
 # not a sentence the Art will take, which is why this is spelled out in full.
-age write unpocked 4242 worn landmass drowned sea riddled rock underground verdant biomes surface grass leaves features spawns overcast sky clouds starless stars aurora rainbow sun moon air waters weather untouched structures temperate climate age
+age write unpocked 4242 worn landmass drowned sea riddled rock underground verdant biomes surface grass leaves features inhabitants overcast sky clouds starless stars aurora rainbow sun moon air waters weather untouched structures temperate climate age
 age gen unpocked
 age bench unpocked 6
 

@@ -39,8 +39,8 @@ class WrittenCreaturesOnServerCheck : FunSpec({
             val caps = server.ask("spawns", "$age $NO_CENSUS").getAsJsonArray("cap") ?: return emptyMap()
             return caps.associate { it.asJsonObject.get("pass").asString to it.asJsonObject.get("times").asDouble }
         }
-        val teeming = capsIn(TEEMING, "age teeming spawns")
-        check(teeming["monster"] == TEEMING_RUNG && teeming["creature"] == TEEMING_RUNG) { "'teeming spawns' held $teeming" }
+        val teeming = capsIn(TEEMING, "age teeming inhabitants")
+        check(teeming["monster"] == TEEMING_RUNG && teeming["creature"] == TEEMING_RUNG) { "'teeming inhabitants' held $teeming" }
         check(capsIn(ORDINARY, "age clear sky").isEmpty()) { "an Age that said nothing of life moved a cap" }
     }
 

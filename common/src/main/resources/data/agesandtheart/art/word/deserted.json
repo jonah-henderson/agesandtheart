@@ -22,7 +22,7 @@
     },
     {
       "excludes": {
-        "spawns": [
+        "inhabitants": [
           "#mobs"
         ]
       },

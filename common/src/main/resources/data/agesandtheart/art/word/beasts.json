@@ -7,7 +7,7 @@
   "meanings": [
     {
       "restricts": {
-        "spawns": {
+        "inhabitants": {
           "fauna": ">0.3"
         }
       },

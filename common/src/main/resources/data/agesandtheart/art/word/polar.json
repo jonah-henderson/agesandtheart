@@ -81,7 +81,7 @@
     },
     {
       "leans": {
-        "spawns": {
+        "inhabitants": {
           "minecraft:polar_bear": 1.0,
           "minecraft:stray": 0.8,
           "minecraft:fox": 0.7,

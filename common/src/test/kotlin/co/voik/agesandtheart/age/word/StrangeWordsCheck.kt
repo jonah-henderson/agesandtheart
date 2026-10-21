@@ -119,8 +119,8 @@ class StrangeWordsCheck : FunSpec({
             "an incongruous Age let loose only ${Incongruity.of(everything)}"
         }
         check(!Biomes.groundsBiomes(everything.optionsFor(Aspect.BIOMES))) { "an incongruous Age kept its biomes on the land" }
-        check(Incongruity.of(aimed(SEEDS.first, "incongruous", "spawns")) == Incongruity(spawns = true)) {
-            "'incongruous spawns' let loose more than what lives"
+        check(Incongruity.of(aimed(SEEDS.first, "incongruous", "inhabitants")) == Incongruity(spawns = true)) {
+            "'incongruous inhabitants' let loose more than what lives"
         }
         check(Incongruity.of(aimed(SEEDS.first, "incongruous", "structures")) == Incongruity(structures = true)) {
             "'incongruous structures' let loose more than what is built"
@@ -137,7 +137,7 @@ class StrangeWordsCheck : FunSpec({
         }
     }
 
-    test("uniform and bare features stamp and strip what grows, and motionless spawns root what lives") {
+    test("uniform and bare features stamp and strip what grows, and motionless inhabitants root what lives") {
         for (seed in SEEDS) {
             check(aimed(seed, "uniform", "features").optionsFor(Aspect.FEATURES).isTrue(Features.UNIFORM)) {
                 "seed $seed: 'uniform features' stamped nothing"
@@ -145,8 +145,8 @@ class StrangeWordsCheck : FunSpec({
             check(aimed(seed, "bare", "features").optionsFor(Aspect.FEATURES).isTrue(Features.BARE)) {
                 "seed $seed: 'bare features' left the leaves on"
             }
-            check(aimed(seed, "motionless", "spawns").optionsFor(Aspect.SPAWNS).isTrue(Spawns.STILL)) {
-                "seed $seed: 'motionless spawns' rooted nothing"
+            check(aimed(seed, "motionless", "inhabitants").optionsFor(Aspect.SPAWNS).isTrue(Spawns.STILL)) {
+                "seed $seed: 'motionless inhabitants' rooted nothing"
             }
         }
     }

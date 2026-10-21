@@ -76,7 +76,7 @@
     },
     {
       "leans": {
-        "spawns": {
+        "inhabitants": {
           "#dry": 0.8
         }
       }

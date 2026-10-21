@@ -44,7 +44,7 @@ class DescribingCheck : FunSpec({
     val populations = listOf(
         Triple(Aspect.BIOMES, Biomes.GROWN.name, "the biomes"),
         Triple(Aspect.FEATURES, Features.PLACES.name, "the features"),
-        Triple(Aspect.SPAWNS, Spawns.LIVES.name, "the spawns"),
+        Triple(Aspect.SPAWNS, Spawns.LIVES.name, "the inhabitants"),
     )
 
     for (name in listOf("desolate", "beautiful")) {
@@ -77,7 +77,7 @@ class DescribingCheck : FunSpec({
     test("naming a creature describes it, and everywhere names it") {
         fun cats(vararg pages: String) =
             membersOf(Aspect.SPAWNS, Spawns.LIVES.name, *pages).filter { it.startsWith("minecraft:cat[") }
-        val named = cats("teeming", "cat", "spawns")
+        val named = cats("teeming", "cat", "inhabitants")
         check(named.size == 1 && WHERE_IT_GROWS in named.single() && INTRODUCED_IF_ABSENT in named.single()) {
             "'teeming cat' did not ask for more cats where they live: $named"
         }

@@ -3,7 +3,7 @@
   "meanings": [
     {
       "restricts": {
-        "spawns": {
+        "inhabitants": {
           "inhabited": ">0.3",
           "built": ">0.5"
         }

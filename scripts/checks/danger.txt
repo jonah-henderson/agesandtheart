@@ -26,7 +26,7 @@ age compose halflava 11 landmass=gentle sea=lava,water rock=solid
 age instability halflava danger
 
 # What lives here, and what happens here.
-age write teeming 11 age teeming ghast spawns
+age write teeming 11 age teeming ghast inhabitants
 age instability teeming danger
 age write burning 11 age inferno phenomena
 age instability burning danger

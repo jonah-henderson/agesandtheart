@@ -179,7 +179,7 @@ class WritingCheck : FunSpec({
         server.ask("write", "dreadful 5134421 foreboding age basalt landmass molten sea")
         val recipe = recipeOf(server, "dreadful")
 
-        val creatures = introducedIn(recipe, "spawns.lives")
+        val creatures = introducedIn(recipe, "inhabitants.lives")
         check(creatures.size <= MOST_CREATURES) { "'foreboding' introduced ${creatures.size} creatures: $creatures" }
         val phenomena = introducedIn(recipe, "phenomena.happens")
         check(phenomena.size <= MOST_PHENOMENA) { "'foreboding' introduced ${phenomena.size} phenomena: $phenomena" }

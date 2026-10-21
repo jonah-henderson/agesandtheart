@@ -246,7 +246,7 @@
     },
     {
       "leans": {
-        "spawns": {
+        "inhabitants": {
           "#frozen": 0.8
         }
       }

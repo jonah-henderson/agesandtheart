@@ -23,7 +23,7 @@ import kotlin.math.pow
 
 /**
  * What a book wrote of how its creatures move and how strong they are, member by member — `slow monsters`,
- * `strong spawns`. Laid on as each creature enters the Age, as [StillCreatures] roots them, and transient, so a
+ * `strong inhabitants`. Laid on as each creature enters the Age, as [StillCreatures] roots them, and transient, so a
  * creature carried out of the Age is its own again — but for a creeper's charge and a sheep's wool, which are vanilla's
  * own and stay.
  */

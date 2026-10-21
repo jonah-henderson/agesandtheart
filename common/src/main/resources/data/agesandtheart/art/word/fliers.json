@@ -4,7 +4,7 @@
     "",
     "A ninth umbrella word, and the first to ask `aloft` -- a tag the derivation has carried since the tag pass",
     "and no word had reached for. The shape is the one every umbrella word has: a bar, aimed at the",
-    "spawns, one tag and nothing else, so what it finds moves with the derivation rather than with a list here.",
+    "inhabitants, one tag and nothing else, so what it finds moves with the derivation rather than with a list here.",
     "",
     "It finds two offline -- the bat and the phantom -- and that is a fact about `aloft` rather than about",
     "this word. The tag derives from `MobCategory.AMBIENT`, which is the bat and nothing else, so the bee,",
@@ -16,7 +16,7 @@
   "meanings": [
     {
       "restricts": {
-        "spawns": {
+        "inhabitants": {
           "aloft": ">0.3"
         }
       },

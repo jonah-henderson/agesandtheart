@@ -3,10 +3,10 @@
     "What a creature is: its spawn category, which vanilla states and which survives offline, and its tags,",
     "which vanilla maintains and which do not. #undead and #arthropod are the two this saves us hand-writing.",
     "",
-    "`mobs` is on every category, and that is what makes it the whole population: `spawns` derives from",
+    "`mobs` is on every category, and that is what makes it the whole population: `inhabitants` derives from",
     "every entity type but MISC, and MobCategory has exactly these seven others — so a word striking #mobs",
     "strikes every creature the Art can reach, with no list to keep in step as mobs are added.",
-    "Overridden per member by art/preset_tags/spawns.json."
+    "Overridden per member by art/preset_tags/inhabitants.json."
   ],
   "by_kind": {
     "monster": {

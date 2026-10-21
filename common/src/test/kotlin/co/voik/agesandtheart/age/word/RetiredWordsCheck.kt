@@ -28,6 +28,7 @@ class RetiredWordsCheck : FunSpec({
         check(vocabulary.word("agesandtheart:restless") === vocabulary.word("frequent")) {
             "'agesandtheart:restless' no longer reads as 'frequent'"
         }
+        check(vocabulary.word("agesandtheart:spawns") === vocabulary.word("inhabitants")) { "an aspect's former page is not its page" }
     }
 
     test("a name a live word answers to is that word, though a word of ours was retired from it") {

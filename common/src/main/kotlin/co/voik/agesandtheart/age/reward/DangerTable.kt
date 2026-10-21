@@ -107,7 +107,7 @@ data class DangerTable(
     val sealed: Double get() = lighting[SEALED] ?: NOTHING
     val lightless: Double get() = lighting[LIGHTLESS] ?: NOTHING
 
-    /** What monsters loosed from their own rules are worth — `incongruous spawns`, walking at noon. */
+    /** What monsters loosed from their own rules are worth — `incongruous inhabitants`, walking at noon. */
     val incongruous: Double get() = lighting[INCONGRUOUS] ?: NOTHING
 
     /** What one of the Age's conditions is worth at its thickest. */

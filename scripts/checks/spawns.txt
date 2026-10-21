@@ -1,8 +1,8 @@
 # What is offered, and what the Age places itself (walk §G).
-age write illusioners 4242 age illusioner spawns
-age write manyillusioners 4242 age teeming illusioner spawns
-age write wardens 4242 age warden spawns
-age write manywardens 4242 age teeming warden spawns
+age write illusioners 4242 age illusioner inhabitants
+age write manyillusioners 4242 age teeming illusioner inhabitants
+age write wardens 4242 age warden inhabitants
+age write manywardens 4242 age teeming warden inhabitants
 age spawns illusioners
 age spawns manyillusioners
 age spawns wardens

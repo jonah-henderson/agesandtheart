@@ -472,7 +472,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `Level.precipitationAt` for `isRainingAt`, `ClientLevel.getPrecipitationAt` for the weather renderer and its
   splashes — so vanilla's refusals for no rain, no sky and cover stand.
 - **`SpawnCapsMixin`**, **`SpawnStateMixin`** and **`MobCountsMixin`** — the mob caps a book moved
-  (`generation/SpawnCaps`, `Spawns.CAPS`): `teeming spawns` holds four times vanilla's cap in every pass. A cap is
+  (`generation/SpawnCaps`, `Spawns.CAPS`): `teeming inhabitants` holds four times vanilla's cap in every pass. A cap is
   `MobCategory.getMaxInstancesPerChunk`, a constant read in two places handed no level — the level's cap in
   `NaturalSpawner.SpawnState` and each player's in `LocalMobCapCalculator.MobCounts` — so the first takes the level's
   caps where its spawning begins, in `createState`, and the other two read them. Neither loader has a cap event.
@@ -480,7 +480,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   how thickly the book asked for each kind where the bobber is, and rich waters (`Fishing.TREASURE`) fishing with
   more luck, which vanilla's table spends on treasure. `retrieve` builds the luck and rolls the table in one
   method; Fabric has no fishing event and NeoForge's comes after the roll.
-- **`NaturalSpawnerMixin`** — what an `incongruous spawns` Age lets live anywhere (`generation/IncongruousSpawns`):
+- **`NaturalSpawnerMixin`** — what an `incongruous inhabitants` Age lets live anywhere (`generation/IncongruousSpawns`):
   vanilla's placement check, the type's spawn predicate and the creature's own spawn rule all pass, the peaceful
   rule and the collision checks kept, scarabs excepted. Fabric has no natural-spawning event and NeoForge's
   spawn-placement event is per type at registration rather than per level. The chunk-generation pass is ours
