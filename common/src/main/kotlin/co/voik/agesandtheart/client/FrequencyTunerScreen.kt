@@ -8,7 +8,14 @@ import co.voik.agesandtheart.client.ui.Palette
 import co.voik.agesandtheart.client.ui.PanelSurface
 import co.voik.agesandtheart.client.ui.Rect
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.client.panel.PanelDistortion
 import co.voik.agesandtheart.desk.FrequencyTunerMenu
+import co.voik.agesandtheart.desk.InterferenceBand
+import co.voik.agesandtheart.math.mix64
+import co.voik.agesandtheart.math.unitFloat
+import net.minecraft.client.gui.components.FittingMultiLineTextWidget
+import net.minecraft.util.ARGB
+import net.minecraft.util.Util
 import co.voik.agesandtheart.desk.TunerProposalPayload
 import co.voik.agesandtheart.desk.Tuning
 import net.minecraft.ChatFormatting
@@ -25,9 +32,14 @@ import net.minecraft.world.item.ItemStack
 import kotlin.math.roundToInt
 
 /**
- * The frequency tuner's screen: a power switch, a switch between the two signals and three knobs for the
- * one switched to, beside two screens — that signal over the other, muted, and the two mixed beneath — and
- * under them the book the signal proposes, with a button to copy it to the desk.
+ * The frequency tuner's screen: a power switch, a switch between the two signals, three knobs for the one switched
+ * to and the interference knob, beside two screens — that signal over the other, muted, and the two mixed beneath —
+ * and under them the book the signal proposes, scrolling where it is long, with a button to copy it to the desk.
+ *
+ * The traces drift leftward, as a scope's do when it is not triggered in step with what it shows; each repeats
+ * across the screen exactly, so the drift wraps without a seam. Interference tears them as instability tears a
+ * linking panel ([PanelDistortion]): bands of a screen taken from a copy of the trace a little out of step, and a
+ * white wash over it, more of both the further it is turned.
  */
 class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title: Component) :
     AbstractContainerScreen<FrequencyTunerMenu>(menu, inventory, title, WIDTH, HEIGHT) {
@@ -36,6 +48,9 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
     private lateinit var powerButton: Button
     private lateinit var signalButton: Button
     private lateinit var copyButton: ItemIconButton
+    private lateinit var interferenceKnob: DialKnob
+    private lateinit var readout: FittingMultiLineTextWidget
+    private var shownProposal: List<Identifier>? = null
 
     override fun init() {
         super.init()
@@ -63,6 +78,18 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
             knob.follow(menu.tuning.dials[dialIndex(role)])
             knobs += addRenderableWidget(knob)
         }
+        interferenceKnob = DialKnob(KNOB, InterferenceBand.STEPS, translated("interference")) { step ->
+            press(FrequencyTunerMenu.INTERFERENCE_BUTTONS.first + step)
+        }
+        interferenceKnob.setPosition(leftPos + MARGIN, topPos + KNOBS_TOP + DIALS_PER_SIGNAL * KNOB_PITCH)
+        interferenceKnob.setTooltip(Tooltip.create(translated("interference.tooltip")))
+        interferenceKnob.follow(menu.interference)
+        addRenderableWidget(interferenceKnob)
+        val readoutWidth = imageWidth - 2 * MARGIN - BUTTON_HEIGHT - LABEL_GAP
+        readout = addRenderableWidget(
+            FittingMultiLineTextWidget(leftPos + MARGIN, topPos + READOUT_TOP, readoutWidth, READOUT_HEIGHT, Component.empty(), font),
+        )
+        shownProposal = null
         copyButton = addRenderableWidget(
             ItemIconButton(BUTTON_HEIGHT, translated("copy"), { ItemStack(AgeContent.WRITERS_DESK) }) {
                 press(FrequencyTunerMenu.COPY)
@@ -77,6 +104,8 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
         super.containerTick()
         val server = menu.tuning.dials
         knobs.forEachIndexed { role, knob -> knob.follow(server[dialIndex(role)]) }
+        interferenceKnob.follow(menu.interference)
+        showProposal()
         powerButton.message = powerLabel()
         signalButton.message = signalLabel()
         val why = whyNotCopied()
@@ -130,6 +159,9 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
             val labelY = KNOBS_TOP + role * KNOB_PITCH + (KNOB - font.lineHeight) / 2 + 1
             graphics.text(font, translated(name), MARGIN + KNOB + LABEL_GAP, labelY, Palette.TEXT, false)
         }
+        val interferenceY = KNOBS_TOP + DIALS_PER_SIGNAL * KNOB_PITCH + (KNOB - font.lineHeight) / 2 + 1
+        val percent = interferenceKnob.step * PERCENT / (InterferenceBand.STEPS - 1)
+        graphics.text(font, translated("interference.value", percent), MARGIN + KNOB + LABEL_GAP, interferenceY, Palette.TEXT, false)
     }
 
     override fun extractContents(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
@@ -143,23 +175,32 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
         drawScreen(graphics, mixedScreen)
         if (menu.isPowered) {
             val other = 1 - selected
-            drawTrace(graphics, signalScreen, MOST_ONE_SIGNAL, MUTED_INKS[other], tuning.signal(other)::at)
-            drawTrace(graphics, signalScreen, MOST_ONE_SIGNAL, INKS[selected], tuning.signal(selected)::at)
-            drawTrace(graphics, mixedScreen, MOST_MIXED, MIXED_INK, tuning::mixedAt)
+            val interfered = Interference(interferenceKnob.step.toFloat() / (InterferenceBand.STEPS - 1))
+            // One drift for all three traces, so the mixed one stays the sum of the two above it.
+            val drift = (Util.getMillis() * DRIFT_PIXELS_PER_SECOND / MILLIS_PER_SECOND % screensWidth).toInt()
+            interfered.draw(graphics, signalScreen) { shift ->
+                drawTrace(graphics, signalScreen, MOST_ONE_SIGNAL, MUTED_INKS[other], drift + shift, tuning.signal(other)::at)
+                drawTrace(graphics, signalScreen, MOST_ONE_SIGNAL, INKS[selected], drift + shift, tuning.signal(selected)::at)
+            }
+            interfered.draw(graphics, mixedScreen) { shift ->
+                drawTrace(graphics, mixedScreen, MOST_MIXED, MIXED_INK, drift + shift, tuning::mixedAt)
+            }
         }
-        drawReadout(graphics)
     }
 
     /** What the signal proposes, beside the button that copies it; nothing while the tuner is off. */
-    private fun drawReadout(graphics: GuiGraphicsExtractor) {
-        if (!menu.isPowered) return
-        val heard = if (proposal.isEmpty()) {
-            translated("nothing_heard")
-        } else {
-            Component.literal(proposal.joinToString(" ") { WordNames.readable(it).string })
+    private fun showProposal() {
+        val shown = proposal.takeIf { menu.isPowered }
+        if (shown == shownProposal) return
+        shownProposal = shown
+        readout.visible = shown != null
+        val heard = when {
+            shown == null -> Component.empty()
+            shown.isEmpty() && menu.interference > 0 -> translated("nothing_heard.interference")
+            shown.isEmpty() -> translated("nothing_heard")
+            else -> Component.literal(shown.joinToString(" ") { WordNames.readable(it).string })
         }
-        val width = imageWidth - 2 * MARGIN - BUTTON_HEIGHT - LABEL_GAP
-        graphics.textWithWordWrap(font, heard, leftPos + MARGIN, topPos + READOUT_TOP, width, READOUT_INK)
+        readout.setMessage(heard)
     }
 
     private fun drawScreen(graphics: GuiGraphicsExtractor, at: Rect) {
@@ -167,16 +208,45 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
         graphics.fill(at.x, at.y, at.right, at.bottom, SCREEN)
     }
 
-    /** [sample] across [at], one sample a pixel, scaled so [most] reaches nearly to the screen's edge. */
-    private fun drawTrace(graphics: GuiGraphicsExtractor, at: Rect, most: Double, ink: Int, sample: (Double) -> Double) {
+    /**
+     * [sample] across [at], one sample a pixel, scaled so [most] reaches nearly to the screen's edge — [shift] pixels
+     * out of step, for a band interference has taken from the other copy.
+     */
+    private fun drawTrace(graphics: GuiGraphicsExtractor, at: Rect, most: Double, ink: Int, shift: Int, sample: (Double) -> Double) {
         val middle = at.y + at.height / 2
         val reach = at.height / 2 - 2
-        fun heightAt(column: Int) = middle - (sample(column.toDouble() / at.width) / most * reach).roundToInt()
+        fun heightAt(column: Int) = middle - (sample((column + shift).toDouble() / at.width) / most * reach).roundToInt()
         var previous = heightAt(0)
         for (column in 0..<at.width) {
             val here = heightAt(column)
             graphics.fill(at.x + column, minOf(previous, here), at.x + column + 1, maxOf(previous, here) + 1, ink)
             previous = here
+        }
+    }
+
+    /**
+     * The traces' tearing at [unsettled], nought to one: a screen drawn whole, then each stray band cleared and drawn
+     * again out of step, as a panel's bands take the other field; changing at a cut, every [MILLIS_PER_CUT].
+     */
+    private class Interference(private val unsettled: Float) {
+        fun draw(graphics: GuiGraphicsExtractor, at: Rect, traces: (shift: Int) -> Unit) {
+            traces(0)
+            if (!PanelDistortion.distorts(unsettled)) return
+            val cut = Util.getMillis() / MILLIS_PER_CUT
+            val strays = PanelDistortion.strayChanceAt(unsettled)
+            val mostShift = (MOST_SHIFT * unsettled).roundToInt().coerceAtLeast(1)
+            for (band in 0..<at.height / BAND_HEIGHT) {
+                val roll = unitFloat(mix64(cut * CUT_STRIDE xor band.toLong() * BAND_STRIDE))
+                if (roll >= strays) continue
+                val top = at.y + band * BAND_HEIGHT
+                val shift = (unitFloat(mix64(roll.toBits().toLong() xor SHIFT_SALT)) * 2 * mostShift).roundToInt() - mostShift
+                graphics.enableScissor(at.x, top, at.right, top + BAND_HEIGHT)
+                graphics.fill(at.x, top, at.right, top + BAND_HEIGHT, SCREEN)
+                traces(shift)
+                graphics.disableScissor()
+            }
+            val wash = PanelDistortion.washAt(unsettled)
+            if (wash > 0) graphics.fill(at.x, at.y, at.right, at.bottom, ARGB.color(wash, FULLY, FULLY, FULLY))
         }
     }
 
@@ -191,13 +261,14 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
             proposal = payload.words
         }
 
-        private fun translated(key: String): Component = Component.translatable("container.agesandtheart.frequency_tuner.$key")
+        private fun translated(key: String, vararg arguments: Any): Component =
+            Component.translatable("container.agesandtheart.frequency_tuner.$key", *arguments)
 
         private val DIAL_NAMES = listOf("frequency", "amplitude", "phase")
         private const val DIALS_PER_SIGNAL = 3
 
         private const val WIDTH = 248
-        private const val HEIGHT = 178
+        private const val HEIGHT = 214
         private const val MARGIN = 8
         private const val CONTROLS_WIDTH = 76
         private const val BUTTON_HEIGHT = 20
@@ -211,14 +282,26 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
         private const val SIGNAL_SCREEN_TOP = 18
         private const val MIXED_SCREEN_TOP = 80
         private const val SCREEN_HEIGHT = 58
-        private const val READOUT_TOP = 146
+        private const val READOUT_TOP = 170
+        private const val READOUT_HEIGHT = 36
+
+        /** A panel's band height, two pixels, and how far out of step a torn band of trace can sit at full interference. */
+        private const val BAND_HEIGHT = 2
+        private const val MOST_SHIFT = 12
+        private const val MILLIS_PER_CUT = 150L
+        private const val FULLY = 255
+        private const val PERCENT = 100
+        private const val DRIFT_PIXELS_PER_SECOND = 9L
+        private const val MILLIS_PER_SECOND = 1000L
+        private const val CUT_STRIDE = -0x61C8_8646_80B5_83EBL
+        private const val BAND_STRIDE = 0x2545_F491_4F6C_DD1DL
+        private const val SHIFT_SALT = 0x3C6E_F372L
 
         /** One signal at full strength reaches this; the two summed reach twice it. */
         private const val MOST_ONE_SIGNAL = 1.0
         private const val MOST_MIXED = 2.0
 
         private val SCREEN = 0xFF101014.toInt()
-        private val READOUT_INK = 0xFFFFFFFF.toInt()
 
         /** Signal A red and signal B blue, the Spire's and Haven's; mixed, the violet between them. */
         private val INKS = listOf(0xFFF07C7C.toInt(), 0xFF7CA8F0.toInt())

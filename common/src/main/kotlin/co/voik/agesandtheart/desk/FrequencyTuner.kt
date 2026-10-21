@@ -1,6 +1,11 @@
 package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.Ladder
+import co.voik.agesandtheart.age.Manifestation
+import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.SpendingSetting
+import co.voik.agesandtheart.age.resolution.Resolution
 import co.voik.agesandtheart.age.word.learnedWords
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
@@ -96,6 +101,9 @@ class FrequencyTunerMenu(
     /** Whether a writer's desk stands in the room to load the proposal into. */
     val hasADesk: Boolean get() = reading.get(DESK) == 1
 
+    /** The interference dial, nought to ten tenths. */
+    val interference: Int get() = reading.get(INTERFERENCE)
+
     override fun clickMenuButton(player: Player, id: Int): Boolean {
         val writer = player as? ServerPlayer ?: return false
         val room = room ?: return false
@@ -104,6 +112,7 @@ class FrequencyTunerMenu(
             COPY -> return copyToTheDesk(writer, room)
             POWER -> writer.tuning = tuned.copy(powered = !tuned.powered)
             in 0..<Tuning.DIALS * Tuning.STEPS -> writer.tuning = tuned.withDial(id / Tuning.STEPS, id % Tuning.STEPS)
+            in INTERFERENCE_BUTTONS -> writer.tuning = tuned.withInterference(id - INTERFERENCE_BUTTONS.first)
             else -> return false
         }
         sendProposal(writer, room)
@@ -133,26 +142,41 @@ class FrequencyTunerMenu(
     companion object {
         const val POWERED = Tuning.DIALS
         const val DESK = Tuning.DIALS + 1
-        const val READINGS = Tuning.DIALS + 2
+        const val INTERFERENCE = Tuning.DIALS + 2
+        const val READINGS = Tuning.DIALS + 3
 
         const val COPY = 1000
         const val POWER = 1001
 
-        /** Proposals are short so they fit a desk short of furnished; a furnished one allows more. */
-        private const val MOST_PAGES_PROPOSED = 9
+        /** A button for each step of the interference dial. */
+        val INTERFERENCE_BUTTONS = 2000..<2000 + InterferenceBand.STEPS
 
         fun sendProposal(writer: ServerPlayer, room: NearbyDesk) {
             Services.NETWORK.sendToPlayer(writer, TunerProposalPayload(proposalFor(writer, room)))
         }
 
-        /** The book the writer's signal proposes, within what the desk in the room — or a bare one — can bind. */
+        /**
+         * The book the writer's signal proposes: within the tier the desk in the room is furnished to (a bare desk's
+         * where there is none), and as unstable as the interference dial says.
+         */
         private fun proposalFor(writer: ServerPlayer, room: NearbyDesk): List<Identifier> {
             val server = writer.level().server
-            val study = WritersDesk.of(server)
-            val deskLimit = room.deskIn(writer.level())?.capabilities(study)?.pageLimit
-                ?: study.pageLimitFor(0)
-            val limit = minOf(deskLimit ?: MOST_PAGES_PROPOSED, MOST_PAGES_PROPOSED)
-            return ProposedBook.of(WritersDeskMenu.vocabularyFor(writer), writer.learnedWords.words, writer.writingSeed, limit)
+            val rung = room.deskIn(writer.level())?.capabilities(WritersDesk.of(server))?.rung
+            val band = InterferenceBand.of(writer.tuning?.interference ?: 0)
+            val seed = writer.writingSeed
+            fun collapses(resolution: Resolution): Boolean {
+                val setting = SpendingSetting.of(server, resolution.composition, resolution.template, seed)
+                return Spending.of(resolution.instability, seed, Ladder.list(server), setting).bought(Manifestation.COLLAPSE) > 0
+            }
+            return ProposedBook.of(
+                WritersDeskMenu.vocabularyFor(writer),
+                server.registryAccess(),
+                writer.learnedWords.words,
+                seed,
+                ProposalTier.forRung(rung),
+                band,
+                ::collapses,
+            )
         }
     }
 }
@@ -168,6 +192,7 @@ private class TunerReading(private val writer: ServerPlayer, private val room: N
     override fun get(index: Int): Int = when (index) {
         FrequencyTunerMenu.POWERED -> if (writer.tuning?.powered == true) 1 else 0
         FrequencyTunerMenu.DESK -> if (deskIsInTheRoom()) 1 else 0
+        FrequencyTunerMenu.INTERFERENCE -> writer.tuning?.interference ?: 0
         else -> (writer.tuning ?: Tuning.CENTRED).dials[index]
     }
 

@@ -40,6 +40,15 @@ class TuningCheck : FunSpec({
         check(Tuning.ofStored(on.dials.toIntArray()) == null) { "six dials with no switch were read as a tuning" }
     }
 
+    test("interference is kept with the dials, leaves the seed alone, and a tuning saved before it reads as none") {
+        val noisy = Tuning.CENTRED.withDial(1, 4).copy(powered = true).withInterference(6)
+        check(Tuning.ofStored(noisy.stored) == noisy) { "a noisy tuning came back as ${Tuning.ofStored(noisy.stored)}" }
+        check(noisy.seed == noisy.withInterference(0).seed) { "interference moved the seed" }
+        val savedBefore = noisy.stored.copyOf(Tuning.DIALS + 1)
+        check(Tuning.ofStored(savedBefore) == noisy.withInterference(0)) { "a tuning saved before interference came back as ${Tuning.ofStored(savedBefore)}" }
+        check(noisy.withDial(0, 2).interference == 6) { "turning a dial reset the interference" }
+    }
+
     test("turning a dial leaves the switch where it was") {
         val on = Tuning.CENTRED.copy(powered = true)
         check(on.withDial(0, 1).powered) { "turning a dial switched the tuner off" }

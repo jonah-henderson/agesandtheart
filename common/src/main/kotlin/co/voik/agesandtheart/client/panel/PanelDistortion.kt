@@ -34,6 +34,12 @@ object PanelDistortion {
      */
     fun distorts(unsettled: Float): Boolean = unsettled > 0.0f
 
+    /** How often a band takes the wrong field this far gone — shared with the frequency tuner's traces. */
+    fun strayChanceAt(unsettled: Float): Float = Mth.lerp(unsettled, FEWEST_STRAYS, MOST_STRAYS)
+
+    /** How much white is laid over a picture this far gone, as an alpha — shared with the frequency tuner's traces. */
+    fun washAt(unsettled: Float): Int = (Mth.lerp(unsettled, NO_WASH, MOST_WASH) * FULLY).toInt()
+
     /**
      * The Age, as strokes over the whole panel — [AgeInView.shot] being which shot is showing.
      *
@@ -53,7 +59,7 @@ object PanelDistortion {
         val unsettled = age.unsettled
         val frame = age.shot
         val bands = (PanelPicture.HEIGHT / BAND_HEIGHT).coerceAtLeast(1)
-        val strays = Mth.lerp(unsettled, FEWEST_STRAYS, MOST_STRAYS)
+        val strays = strayChanceAt(unsettled)
         val ragged = Mth.lerp(unsettled, LEAST_RAGGED, MOST_RAGGED)
 
         val fields = BandedFields.cut(
@@ -79,7 +85,7 @@ object PanelDistortion {
         // Over the whole cut rather than band by band. White over everything is brightness up and contrast
         // down in one rectangle: the picture is a lit screen losing its grip rather than something with
         // shadows drawn on it.
-        val wash = (Mth.lerp(unsettled, NO_WASH, MOST_WASH) * FULLY).toInt()
+        val wash = washAt(unsettled)
         if (wash <= 0) return fields
         return fields + PanelStroke.Fill(whole, ARGB.color(wash, FULLY, FULLY, FULLY))
     }
