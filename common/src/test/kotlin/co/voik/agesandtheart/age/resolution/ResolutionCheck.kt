@@ -24,6 +24,13 @@ class ResolutionCheck : FunSpec({
     fun Resolution.incoherentPairs() =
         instability.flaws.filter { it.register == Register.INCOHERENT }.map { it.words.toSet() }.toSet()
 
+    test("a member struck by name is struck and asked for nothing besides") {
+        for (row in listOf("age no dripstone_caves", "age no zombie", "age no villages")) {
+            val spelled = ShippedLexicon.resolved(row).composition.toString()
+            check("[except]" in spelled && "except,amount" !in spelled) { "'$row' came back as $spelled" }
+        }
+    }
+
     test("a landing built by hand is resolved: a choice seats its landform, a setting steers it") {
         val chosen = Landing(
             listOf(Effect.Chooses(Aspect.TERRAIN, "pillared"), Effect.Sets(ParameterKey("size"), "1.0..1.0")),

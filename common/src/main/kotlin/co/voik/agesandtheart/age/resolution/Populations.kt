@@ -117,6 +117,8 @@ private fun Resolving.claimForMember(
     val leaned = reaching.sumOf { it.leanOn(member, tags) }
     val wanting = insisting + reaching.filter { it !in insisting && it.leanOn(member, tags) > 0.0 }
     val polarity = wanting.map { it.polarity }.firstOrNull { it != Polarity.ASSERTED }
+    // Struck by name, `no desert`: named outright, and still asked for none of it.
+    if (polarity == Polarity.EXCEPT) return Claim(member.key, Polarity.EXCEPT, confinedTo = ground)
     val rung = abundanceOf(reaching)
     val isQuantified = !Rung.isOrdinary(rung)
     val mentionedUnlessQuantified = if (isQuantified) NOTHING_MORE else mentioned
