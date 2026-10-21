@@ -14,7 +14,8 @@
       {"weight":2.0,"produce":["[wonder_age]"]},
       {"weight":4.0,"produce":["[beset_age]"]},
       {"produce":["[flowered_jungle_age]"]},
-      {"produce":["[pitted_jungle_age]"]}
+      {"produce":["[pitted_jungle_age]"]},
+      {"produce":["[linked_age]"]}
     ],
     "mingled_age": [
       {"weight":3.0,"produce":["age","[landform_pair]","[material_pair]","[shape]","[colour]","sky","[colour]","clouds"]},
@@ -67,6 +68,13 @@
       {"produce":["age","teeming","allay","everywhere","[colour]","leaves"]},
       {"produce":["age","only","flower_forest","teeming","bee","everywhere","honey_block","surface"]},
       {"produce":["age","archipelagic","palm_beach","teeming","parrot","everywhere","tropical","climate"]}
+    ],
+    "linked_age": [
+      {"produce":["age","[land]","link","in","lush_caves","bright","stars"]},
+      {"produce":["age","archipelagic","landmass","link","in","sea","[colour]","waters"]},
+      {"produce":["age","[land]","link","in","villages","[colour]","sky"]},
+      {"produce":["age","link","in","axolotl","large","chambered","underground"]},
+      {"produce":["age","[warm_land]","link","in","jungle","tropical","climate"]}
     ],
     "wonder_age": [
       {"produce":["age","only","badlands","red_sand","surface","sandfall","orange","sky"]},

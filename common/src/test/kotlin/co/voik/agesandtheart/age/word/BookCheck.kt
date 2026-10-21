@@ -77,6 +77,13 @@ class BookCheck : FunSpec({
     }
 
     /** Deterministic, or a failing seed could not be reproduced — the first thing anyone will want. */
+    /** Nothing else teaches the grammar, so between them the advanced books must use every structure page there is. */
+    test("the advanced books teach every structure page") {
+        val written = drafts.filter { it.kind == FoundBookKind.ADVANCED }.flatMap { it.pages }.toSet()
+        val untaught = vocabulary.structurePages.map { it.name }.filterNot { it in written }
+        check(untaught.isEmpty()) { "no advanced book teaches $untaught" }
+    }
+
     test("the same seed writes the same book") {
         for (kind in FoundBookKind.entries) {
             val grammar = grammarFor(kind)

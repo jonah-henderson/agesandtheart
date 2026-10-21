@@ -13,7 +13,7 @@ terminals word
 # server, which is no reason to leave it out.
 
 # What these books must teach, because nothing else on the critical path does (plan, Phase 7 "Still open"):
-# - Every grammatical word, each doing visible work: `and`, `only`, `no`, `in`, `everywhere`, and the four
+# - Every grammatical word, each doing visible work: `and`, `only`, `no`, `in`, `everywhere`, `link`, and the four
 #   rungs `scarce`, `few`, `plentiful` and `teeming`.
 # - Danger: an Age that scores over the danger threshold (`pays_above`, art/danger.json) using common-ink
 #   words only. These books are the route into the hunt for deretheni, so they stay plain.
@@ -36,6 +36,7 @@ book =
     | [beset_age]@4
     | [flowered_jungle_age]
     | [pitted_jungle_age]
+    | [linked_age]
 
 # `and`: two things laid together, so the world visibly holds both — two landforms in one country, two
 # stones in one monument. A member says its own part of the world, so no aiming page follows one.
@@ -96,6 +97,15 @@ widened_age =
     | age teeming allay everywhere [colour] leaves
     | age only flower_forest teeming bee everywhere honey_block surface
     | age archipelagic palm_beach teeming parrot everywhere tropical climate
+
+# `link in`: where a link into the Age arrives, somewhere it would not have — down in a cave, out on the water,
+# beside a village. Rare on purpose (Jonah, 2026-10-21): one share of the shelf, and the only place it is taught.
+linked_age =
+    age [land] link in lush_caves bright stars
+    | age archipelagic landmass link in sea [colour] waters
+    | age [land] link in villages [colour] sky
+    | age link in axolotl large chambered underground
+    | age [warm_land] link in jungle tropical climate
 
 # The phenomena and the undergrounds taught nowhere else, each with a modifier to carry it.
 wonder_age =
