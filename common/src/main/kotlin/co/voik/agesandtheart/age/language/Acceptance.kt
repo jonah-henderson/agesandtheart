@@ -37,6 +37,12 @@ data class Acceptance(
     val mints: Boolean = false,
     /** A part of the world the page speaks for as well, taking what this one does not — the sea's for the waters. */
     val companion: Acceptance? = null,
+    /**
+     * The tags the members a lean here could move carry, and their keys; null where that is not known. A lean is
+     * taken only toward one of them, so `ancient arthropods`, leaning creatures toward the eroded and monumental,
+     * is not a lean on the arthropods at all.
+     */
+    val leanable: Set<String>? = null,
 ) {
     fun takesParameter(name: String): Boolean = name in parameters
 
@@ -60,12 +66,18 @@ data class Acceptance(
             is Effect.Admits -> effect.takeIf { takesChoices && onThisAspect(it.aspect) }
             is Effect.Excludes -> effect.takeIf { takesChoices && onThisAspect(it.aspect) }
             is Effect.Restricts -> effect.takeIf { takesChoices && onThisAspect(it.aspect) }
-            is Effect.Leans -> effect.takeIf { takesLeans && onThisAspect(it.aspect) }
-            is Effect.LeansEverywhere -> if (takesLeans) Effect.Leans(place.aspect, effect.weights) else null
+            is Effect.Leans -> effect.takeIf { takesLeans && onThisAspect(it.aspect) && movesSomething(it.weights) }
+            is Effect.LeansEverywhere -> if (takesLeans && movesSomething(effect.weights)) Effect.Leans(place.aspect, effect.weights) else null
             is Effect.Mints -> effect.takeIf { takesChoices && onThisAspect(Aspect.FEATURES) }
             is Effect.Abundance -> effect.takeIf { takesAbundance }
             is Effect.Template, is Effect.MadeOf, is Effect.Bans, is Effect.LinksIn -> null
         }
+    }
+
+    /** Whether a lean of [weights] leans toward anything here: a tag or a member it names, with a weight for it. */
+    private fun movesSomething(weights: Map<String, Double>): Boolean {
+        val reachable = leanable ?: return true
+        return weights.any { (key, weight) -> weight > 0.0 && key.removePrefix(TAG_MARK) in reachable }
     }
 
     /** Whether a meaning setting [key] lands here: the parameter is taken, and any fence on it is this aspect. */
@@ -75,6 +87,8 @@ data class Acceptance(
     }
 
     companion object {
+        private const val TAG_MARK = "#"
+
         /** What the page naming [aspect] takes: everything the aspect, and anything it may hold, understands. */
         fun ofAspect(aspect: Aspect): Acceptance {
             val holdsMembersToChoose = aspect.holds == Holds.CATALOGUE || aspect.holds == Holds.WEIGHTED_SET

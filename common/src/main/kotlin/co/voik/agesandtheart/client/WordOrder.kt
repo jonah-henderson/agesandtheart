@@ -52,10 +52,11 @@ object WordOrdering {
                 ListGroup(rarityName(rarity), byName.filter { rarityOf(it.word) == rarity })
             }.filter { it.values.isNotEmpty() }
             WordOrder.APPLIES_TO -> {
+                // Named once a heading rather than once a comparison.
                 val under = byName.flatMap { row -> appliesTo(row.word).map { heading -> heading to row } }
                     .groupBy({ it.first }, { it.second })
-                    .entries.sortedBy { nameOf(it.key).lowercase() }
                     .map { (heading, words) -> ListGroup(nameOf(heading), words) }
+                    .sortedBy { it.heading.orEmpty().lowercase() }
                 val applyingToNothing = byName.filter { appliesTo(it.word).isEmpty() }
                 under + listOfNotNull(ListGroup(naming, applyingToNothing).takeIf { applyingToNothing.isNotEmpty() })
             }

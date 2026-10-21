@@ -122,10 +122,7 @@ class WritersDeskScreen(
         search = EditBox(font, 0, 0, 0, LINE, Component.empty())
         search.setHint(translated("search"))
         search.value = keptFilter
-        search.setResponder {
-            wordList.resetScroll()
-            refreshWords(force = true)
-        }
+        search.setResponder { searchWaited = 0 }
         addRenderableWidget(search)
         orderButton = addRenderableWidget(
             WordListOrder.button(LINE, wordOrder, ::offeredOrders) { chosen ->
@@ -270,6 +267,15 @@ class WritersDeskScreen(
 
     override fun containerTick() {
         super.containerTick()
+        searchWaited?.let { waited ->
+            if (waited < WordListOrder.SEARCH_PAUSE_TICKS) {
+                searchWaited = waited + 1
+            } else {
+                searchWaited = null
+                wordList.resetScroll()
+                refreshWords(force = true)
+            }
+        }
         seedFromTheDesk()
         clearOnceBound()
         unsentFor?.let { waited ->
@@ -300,6 +306,9 @@ class WritersDeskScreen(
         sendToServer(DeskTemplatePayload(editor.value, ageName.value))
     }
 
+    /** Ticks since the search last changed, while a rebuild waits for typing to pause; null with none waiting. */
+    private var searchWaited: Int? = null
+
     /** By name and by rarity always, and by what each applies to with the grammar guide in the room. */
     private fun offeredOrders(): List<WordOrder> =
         listOf(WordOrder.ALPHABETICAL, WordOrder.RARITY) +
@@ -313,12 +322,13 @@ class WritersDeskScreen(
         wordOrder = ordering
         shownWords = rows
         shownWordsIn = ordering
+        val groups = WordListOrder.grouped(rows, ordering, search.value)
         wordList.showGrouped(
-            WordListOrder.grouped(rows, ordering, search.value),
+            groups,
             label = { it.readable },
             key = { it.word },
             tooltip = ::reachTooltip,
-            startsCollapsed = ordering == WordOrder.APPLIES_TO && search.value.isBlank(),
+            startsCollapsed = WordListOrder.startsCollapsed(ordering, search.value, groups),
         )
     }
 

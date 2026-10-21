@@ -197,9 +197,20 @@ class LabelledRow<T : Any>(
             val font = Minecraft.getInstance().font
             val countWidth = if (count != null && count > 0) font.width("$count") + TEXT_INSET else 0
             val labelWidth = rowWidth - TEXT_INSET * 2 - countWidth - actions.size * BUTTON_PITCH
-            val lines = wrapLabel(label, labelWidth.coerceAtLeast(MINIMUM_LABEL_WIDTH), WRAP_INDENT, font::width)
+            val width = labelWidth.coerceAtLeast(MINIMUM_LABEL_WIDTH)
+            val lines = wrappings.getOrPut(label to width) { wrapLabel(label, width, WRAP_INDENT, font::width) }
+            if (wrappings.size > MOST_WRAPPINGS_KEPT) wrappings.clear()
             return LabelledRow(value, label, lines, count, onActivate, actions, tooltip)
         }
+
+        /**
+         * Labels already wrapped, by label and width: a list of thousands is rebuilt on every search and every fold,
+         * and measuring each label again was most of what that cost. Render thread only.
+         */
+        private val wrappings = HashMap<Pair<String, Int>, List<String>>()
+
+        /** Far more than any list holds, past which the cache starts again rather than growing for good. */
+        private const val MOST_WRAPPINGS_KEPT = 20_000
 
         fun heightOf(row: LabelledRow<*>): Int =
             FIRST_LINE_HEIGHT + (row.lines.size - 1) * Minecraft.getInstance().font.lineHeight
@@ -283,7 +294,7 @@ class LabelledList<T : Any>(
         for (group in groups) {
             val heading = group.heading
             val isCollapsed = heading != null && startsCollapsed != (heading in toggled)
-            heading?.let { addEntry(HeadingLine(it, isCollapsed) { toggle(it) }, HEADING_HEIGHT) }
+            heading?.let { addEntry(HeadingLine("$it (${group.values.size})", isCollapsed) { toggle(it) }, HEADING_HEIGHT) }
             if (isCollapsed) continue
             for (value in group.values) {
                 val row = LabelledRow.wrapped(value, label(value), count(value), onSelect, actions, rowWidth, tooltip)

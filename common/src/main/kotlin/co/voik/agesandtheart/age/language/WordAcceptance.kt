@@ -28,8 +28,24 @@ interface MemberTags {
 object WordAcceptance {
 
     fun of(word: Word, tags: MemberTags, registries: HolderLookup.Provider?): Acceptance? {
-        return pageOf(word) ?: minting(word, registries) ?: membersNamedBy(word, tags, registries)
+        val acceptance = pageOf(word) ?: minting(word, registries) ?: membersNamedBy(word, tags, registries) ?: return null
+        return acceptance.withLeanable(tags)
     }
+
+    /**
+     * [this] knowing what a lean here could move: the tags its members carry, at a weight that moves the draw, and
+     * their keys — every broad member of the aspect for its page, the members named for a word naming them.
+     */
+    private fun Acceptance.withLeanable(tags: MemberTags): Acceptance {
+        if (!takesLeans) return copy(companion = companion?.withLeanable(tags))
+        val named = (place.members as? Members.Named)?.keys
+        val reach = named?.mapNotNull(place.aspect::presetFor) ?: tags.availableToBroadWordsIn(place.aspect)
+        val carried = reach.flatMap { member -> tags.tagsOf(member).filterValues { it > CARRIED }.keys + member.key }
+        return copy(leanable = carried.toSet(), companion = companion?.withLeanable(tags))
+    }
+
+    /** A tag weight under this moves a lean's draw too little to be what the lean is about. */
+    private const val CARRIED = 0.3
 
     private fun pageOf(word: Word): Acceptance? {
         val isOurs = word.id.namespace == Constants.MOD_ID

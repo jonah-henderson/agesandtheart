@@ -83,10 +83,7 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
         search = EditBox(font, 0, 0, 0, LINE, Component.empty())
         search.setHint(translated("search"))
         search.value = keptFilter
-        search.setResponder {
-            list.resetScroll()
-            refresh(force = true)
-        }
+        search.setResponder { searchWaited = 0 }
         val filedLabel = translated("mode.filed")
         val knownLabel = translated("mode.known")
         val modeWidth = maxOf(font.width(filedLabel), font.width(knownLabel)) + MODE_PADDING * 2
@@ -145,8 +142,20 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
 
     override fun containerTick() {
         super.containerTick()
+        searchWaited?.let { waited ->
+            if (waited < WordListOrder.SEARCH_PAUSE_TICKS) {
+                searchWaited = waited + 1
+            } else {
+                searchWaited = null
+                list.resetScroll()
+                refresh(force = true)
+            }
+        }
         refresh(force = false)
     }
+
+    /** Ticks since the search last changed, while a rebuild waits for typing to pause; null with none waiting. */
+    private var searchWaited: Int? = null
 
     private fun showMode(known: Boolean) {
         showingKnown = known
@@ -175,13 +184,14 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
         order = ordering
         shown = rows
         shownIn = ordering
+        val groups = WordListOrder.grouped(rows, ordering, needle)
         list.showGrouped(
-            WordListOrder.grouped(rows, ordering, needle),
+            groups,
             label = { it.readable },
             count = { row -> row.count.takeIf { it > 0 } },
             key = { it.word },
             actions = listOf(write, takeOut),
-            startsCollapsed = ordering == WordOrder.APPLIES_TO && needle.isBlank(),
+            startsCollapsed = WordListOrder.startsCollapsed(ordering, needle, groups),
         )
     }
 

@@ -23,6 +23,22 @@ object WordListOrder {
         naming = Component.translatable("$KEY.naming").string,
     )
 
+    /**
+     * Whether [groups] start folded: ordered by what words apply to, unless a search found few enough rows to open
+     * out — a short search finds thousands, a word under every heading it applies to, and building them all is slow.
+     */
+    fun <T : Any> startsCollapsed(order: WordOrder, searchedFor: String, groups: List<ListGroup<T>>): Boolean {
+        if (order != WordOrder.APPLIES_TO) return false
+        val foundFew = searchedFor.isNotBlank() && groups.sumOf { it.values.size } <= MOST_ROWS_OPENED
+        return !foundFew
+    }
+
+    /** How many rows a search may find and still open every group it found them in. */
+    private const val MOST_ROWS_OPENED = 150
+
+    /** How long the search waits for typing to pause before it rebuilds the list, in ticks. */
+    const val SEARCH_PAUSE_TICKS = 3
+
     /** [current] where [offered] still holds it, and the first otherwise — a guide carried away takes its order with it. */
     fun stillOffered(current: WordOrder, offered: List<WordOrder>): WordOrder = if (current in offered) current else offered.first()
 
