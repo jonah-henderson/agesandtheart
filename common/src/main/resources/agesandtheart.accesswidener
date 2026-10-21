@@ -203,3 +203,7 @@ accessible	class	net/minecraft/world/item/CreativeModeTab$Output
 # A creeper an Age wrote charged is powered as it enters (`WrittenCreatures`). Vanilla sets the flag only from a
 # lightning strike, and `thunderHit` would want a bolt and set the creeper alight.
 accessible	field	net/minecraft/world/entity/monster/Creeper	DATA_IS_POWERED	Lnet/minecraft/network/syncher/EntityDataAccessor;
+
+# A notebook scrolls through its pages as a bundle does (`NotebookMouseActions`): a container screen adds its slot
+# mouse actions in `init` through this, and a loader's screen-init event comes after.
+accessible	method	net/minecraft/client/gui/screens/inventory/AbstractContainerScreen	addItemSlotMouseAction	(Lnet/minecraft/client/gui/ItemSlotMouseAction;)V

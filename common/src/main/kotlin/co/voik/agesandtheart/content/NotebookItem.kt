@@ -27,8 +27,8 @@ import java.util.function.Consumer
  *
  * **Unlimited, which is why it is not literally a bundle.** A bundle's capacity lives in a private weight
  * check, so reusing `BundleContents` would cap this at sixty-four pages — plenty for a pocket, nowhere
- * near enough for a catalogue of a corpus that runs to four figures. The contents are ours; only the
- * *tooltip* is borrowed, so it still previews like the thing it imitates.
+ * near enough for a catalogue of a corpus that runs to four figures. The contents are ours; the *tooltip* is the
+ * bundle's, handed a window of the pages that follows the one scrolled to, so the whole notebook can be scrolled.
  *
  * Pages stay pages throughout. A found page is what a book gets written from, so filing one must never
  * dissolve it into a list of words.
@@ -37,7 +37,8 @@ class NotebookItem(properties: Properties) : Item(properties) {
 
     /**
      * Clicking with the notebook carried, onto a slot — **a bundle's controls**: a left click on a page files it,
-     * and a right click on an empty slot puts the most recently filed page back out.
+     * and a right click on an empty slot puts the most recently filed page back out. A right click on another
+     * notebook moves every page into it.
      */
     override fun overrideStackedOnOther(
         self: ItemStack,
@@ -49,7 +50,17 @@ class NotebookItem(properties: Properties) : Item(properties) {
         val target = slot.item
         val filesIt = clickAction == ClickAction.PRIMARY && !target.isEmpty
         val takesOneOut = clickAction == ClickAction.SECONDARY && target.isEmpty
+        val movesEveryPage = clickAction == ClickAction.SECONDARY && target.item === AgeContent.NOTEBOOK
         return when {
+            movesEveryPage -> {
+                if (held.isEmpty() || !slot.allowModification(player)) return false
+                setPages(target, pagesIn(target) + held)
+                slot.setChanged()
+                setPages(self, emptyList())
+                select(self, NotebookSelectPayload.NONE)
+                play(player, true)
+                true
+            }
             filesIt -> {
                 if (!isPage(target)) return false
                 setPages(self, held + slot.safeTake(target.count, target.count, player))
@@ -70,8 +81,8 @@ class NotebookItem(properties: Properties) : Item(properties) {
 
     /**
      * Clicking onto the notebook where it sits in a slot — **a bundle's controls**: a left click with a page files
-     * it, and a right click with an empty hand takes the top page out. A left click with nothing picks the
-     * notebook up, as it does a bundle.
+     * it, and a right click with an empty hand takes out the page scrolled to, or the top one. A left click with
+     * nothing picks the notebook up, as it does a bundle.
      */
     override fun overrideOtherStackedOnMe(
         self: ItemStack,
@@ -94,9 +105,12 @@ class NotebookItem(properties: Properties) : Item(properties) {
                 true
             }
             takesOneOut -> {
-                val top = held.lastOrNull() ?: return false
-                carriedItem.set(top)
-                setPages(self, held.dropLast(1))
+                if (held.isEmpty()) return false
+                val newestFirst = selectedIn(self) ?: 0
+                val taken = held.size - 1 - newestFirst
+                carriedItem.set(held[taken])
+                setPages(self, held.filterIndexed { index, _ -> index != taken })
+                select(self, newestFirst.coerceAtMost(held.size - 2))
                 play(player, false)
                 true
             }
@@ -104,12 +118,19 @@ class NotebookItem(properties: Properties) : Item(properties) {
         }
     }
 
-    /** The bundle preview grid, borrowed — it shows the first few and says how many are behind them. */
+    /**
+     * Vanilla's bundle grid over the pages, newest first, from a row above the one scrolled to: the grid shows what
+     * fits and counts the rest, and highlights and names the page scrolled to, as it does a bundle's.
+     */
     override fun getTooltipImage(itemStack: ItemStack): Optional<TooltipComponent> {
-        val held = pagesIn(itemStack)
-        if (held.isEmpty()) return Optional.empty()
-        val shown = held.takeLast(PREVIEWED).reversed().map(ItemStackTemplate::fromNonEmptyStack)
-        return Optional.of(BundleTooltip(BundleContents(shown)))
+        val newestFirst = pagesIn(itemStack).reversed()
+        if (newestFirst.isEmpty()) return Optional.empty()
+        val selected = selectedIn(itemStack)
+        val firstShown = selected?.let { (it / GRID_COLUMNS - 1).coerceAtLeast(0) * GRID_COLUMNS } ?: 0
+        val shown = newestFirst.drop(firstShown).map(ItemStackTemplate::fromNonEmptyStack)
+        val contents = BundleContents(shown)
+        val withSelection = if (selected == null) contents else contents.asMutable().also { it.toggleSelectedItem(selected - firstShown) }.toImmutable()
+        return Optional.of(BundleTooltip(withSelection))
     }
 
     @Suppress("OVERRIDE_DEPRECATION")
@@ -137,7 +158,8 @@ class NotebookItem(properties: Properties) : Item(properties) {
     }
 
     companion object {
-        private const val PREVIEWED = 12
+        /** The bundle grid's width, which a window scrolls by a row of. */
+        private const val GRID_COLUMNS = 4
         private const val SOUND_VOLUME = 0.8f
         private const val SOUND_PITCH = 0.8f
 
@@ -151,6 +173,17 @@ class NotebookItem(properties: Properties) : Item(properties) {
         fun setPages(notebook: ItemStack, pages: List<ItemStack>) {
             if (pages.isEmpty()) notebook.remove(AgeComponents.NOTEBOOK_PAGES)
             else notebook.set(AgeComponents.NOTEBOOK_PAGES, pages.map { it.copy() })
+        }
+
+        /** The page scrolled to, newest first, where one is and it is still there. */
+        fun selectedIn(notebook: ItemStack): Int? =
+            notebook.get(AgeComponents.NOTEBOOK_SELECTED)?.takeIf { it in pagesIn(notebook).indices }
+
+        /** Scrolls [notebook] to the page [newestFirst] places, or to none for anything out of its pages. */
+        fun select(notebook: ItemStack, newestFirst: Int) {
+            if (notebook.item !== AgeContent.NOTEBOOK) return
+            if (newestFirst in pagesIn(notebook).indices) notebook.set(AgeComponents.NOTEBOOK_SELECTED, newestFirst)
+            else notebook.remove(AgeComponents.NOTEBOOK_SELECTED)
         }
     }
 }

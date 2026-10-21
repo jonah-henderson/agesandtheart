@@ -150,6 +150,15 @@ object AgeComponents {
         .networkSynchronized(ByteBufCodecs.BOOL)
         .build()
 
+    /**
+     * Which page of a notebook the pointer has scrolled to, newest first — the one a right click takes out, as a
+     * bundle's selected item is. Set while the notebook is hovered and taken off when it no longer is.
+     */
+    val NOTEBOOK_SELECTED: DataComponentType<Int> = DataComponentType.builder<Int>()
+        .persistent(Codec.INT)
+        .networkSynchronized(ByteBufCodecs.VAR_INT)
+        .build()
+
     val components: List<Pair<Identifier, DataComponentType<*>>> = listOf(
         "stocked_from".location() to STOCKED_FROM,
         "age_id".location() to AGE_ID,
@@ -162,6 +171,7 @@ object AgeComponents {
         "book_authored".location() to BOOK_AUTHORED,
         "link_target".location() to LINK_TARGET,
         "notebook_pages".location() to NOTEBOOK_PAGES,
+        "notebook_selected".location() to NOTEBOOK_SELECTED,
         "archive_pages".location() to ARCHIVE_PAGES,
     )
 }

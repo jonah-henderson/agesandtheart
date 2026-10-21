@@ -24,6 +24,7 @@ import co.voik.agesandtheart.platform.NeoForgeDeepWater
 import co.voik.agesandtheart.platform.NeoForgeInkFluids
 import net.neoforged.neoforge.client.event.RegisterFluidModelsEvent
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
+import net.neoforged.neoforge.client.event.ScreenEvent
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.IEventBus
@@ -55,6 +56,11 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         // server levels only: what these feed reaches client classes a dedicated server does not have.
         NeoForge.EVENT_BUS.addListener(::onChunkLoad)
         NeoForge.EVENT_BUS.addListener(::onChunkUnload)
+        NeoForge.EVENT_BUS.addListener(::onScreenInitialised)
+    }
+
+    private fun onScreenInitialised(event: ScreenEvent.Init.Post) {
+        ClientSetup.screenInitialised(event.screen)
     }
 
     private fun onChunkLoad(event: ChunkEvent.Load) {

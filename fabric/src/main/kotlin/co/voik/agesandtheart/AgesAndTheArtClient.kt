@@ -18,6 +18,7 @@ import net.minecraft.client.gui.screens.MenuScreens
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.screens.inventory.MenuAccess
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking
@@ -51,6 +52,7 @@ fun initClient() {
     ClientChunkEvents.CHUNK_LOAD.register { level, chunk -> ClientSetup.chunkLoaded(level, chunk) }
     ClientChunkEvents.CHUNK_UNLOAD.register { level, chunk -> ClientSetup.chunkUnloaded(level, chunk.pos) }
     ClientPlayConnectionEvents.DISCONNECT.register { _, _ -> ClientSetup.disconnected() }
+    ScreenEvents.AFTER_INIT.register { _, screen, _, _ -> ClientSetup.screenInitialised(screen) }
 }
 
 private fun <T : Entity> registerEntityRenderer(entry: ClientRegistrations.RendererForEntity<T>) {

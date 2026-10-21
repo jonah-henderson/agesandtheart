@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.client
 
+import net.minecraft.client.gui.screens.Screen
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import co.voik.agesandtheart.age.consequence.StrangeGravity
 import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.client.light.DeepLights
@@ -62,6 +64,11 @@ object ClientSetup {
     }
 
     /** Leaving a server. What these hold is keyed on that server's ids, which mean nothing on the next, and an Age id can be reused. */
+    /** A container screen laid out: a notebook in it scrolls as a bundle does. Called by each loader's screen-init event. */
+    fun screenInitialised(screen: Screen) {
+        if (screen is AbstractContainerScreen<*>) screen.addItemSlotMouseAction(NotebookMouseActions())
+    }
+
     fun disconnected() {
         KnownWords.forgetAll()
         Surf.forget()
