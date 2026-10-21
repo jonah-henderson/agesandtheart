@@ -4,10 +4,33 @@
     "is writable by anyone who learns it another way; for a thing that must have no word at all, use",
     "`does_not_have_a_word`. Every registry a word can name may carry this tag, under its own tags/ folder.",
     "Scrivener's rarity column writes it as `no loot`.",
-    "Plasma is learned only from the chest beside the fusion compounder (design 7, the summit)."
+    "Plasma is learned only from the chest beside the fusion compounder (design 7, the summit).",
+    "",
+    "**What the mod's progression is built of** (Jonah, 2026-10-21): one lucky page must not hand a writer an Age",
+    "whose trees, structures or formations are made of it. The desk and its archive and furnishings, the study's",
+    "implements, the stations, the linking portal and its receptacle, and the three inks, whose sea would be the",
+    "economy for nothing. Holding one and naming it at the analysis machine is still a way to learn it. The",
+    "acquaintance devices and the fusion compounder are wordless altogether (`does_not_have_a_word`)."
   ],
   "replace": false,
   "values": [
-    "agesandtheart:plasma"
+    "agesandtheart:plasma",
+    "agesandtheart:writers_desk",
+    "agesandtheart:archive",
+    "agesandtheart:toolbox",
+    "agesandtheart:geologists_tools",
+    "agesandtheart:grammar_guide",
+    "agesandtheart:crystal_viewer",
+    "agesandtheart:seismograph",
+    "agesandtheart:transcriber",
+    "agesandtheart:frequency_tuner",
+    "agesandtheart:grinder",
+    "agesandtheart:pulper",
+    "agesandtheart:drying_rack",
+    "agesandtheart:linking_portal",
+    "agesandtheart:linking_book_receptacle",
+    "agesandtheart:ink",
+    "agesandtheart:fine_ink",
+    "agesandtheart:masterwork_ink"
   ]
 }
