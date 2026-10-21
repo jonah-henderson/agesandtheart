@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderSet
+import net.minecraft.core.QuartPos
 import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
@@ -20,19 +21,55 @@ import net.minecraft.world.level.levelgen.structure.Structure
 
 /**
  * Where `link in <anchor>` arrives: the anchor nearest the origin within [REACH], found off the generator, never off
- * generated ground — a biome, a structure, the sea, or a biome where a feature or a creature can appear.
+ * generated ground — a biome, a structure, the sea, or a biome where a feature or a creature can appear — and the
+ * spot to stand there: on the surface, or in the open below it where what was named lies underground.
  */
 object LinkingIn {
 
-    /** The column nearest the origin holding [anchor], or null where none is within [REACH] or it cannot be looked for. */
-    fun nearest(level: ServerLevel, recipe: AgeRecipe, anchor: LinkAnchor): BlockPos? = when (anchor.aspect) {
-        Aspect.TERRAIN -> nearestTerritory(recipe, anchor.members)
-        Aspect.BIOMES -> nearestBiome(level) { biome -> anchor.isAnyOf(biome) }
-        Aspect.FEATURES -> nearestBiome(level) { biome -> growsAnyOf(level, biome, anchor.members) }
-        Aspect.SPAWNS -> nearestBiome(level) { biome -> spawnsAnyOf(biome, anchor.members) }
-        Aspect.STRUCTURES -> nearestStructure(level, anchor.members)
-        Aspect.SEA, Aspect.WATERS -> nearestSea(level)
-        else -> null
+    /** Where a link arrives for [anchor], the block the visitor's feet are in, or null where none is within [REACH]. */
+    fun arrivalAt(level: ServerLevel, recipe: AgeRecipe, anchor: LinkAnchor): BlockPos? {
+        fun onTheSurface(found: BlockPos?) = found?.let { Ages.footingIn(level, it.x, it.z) }
+        return when (anchor.aspect) {
+            Aspect.TERRAIN -> onTheSurface(nearestTerritory(recipe, anchor.members))
+            Aspect.BIOMES -> inBiome(level) { biome -> anchor.isAnyOf(biome) }
+            Aspect.FEATURES -> inBiome(level) { biome -> growsAnyOf(level, biome, anchor.members) }
+            Aspect.SPAWNS -> inBiome(level) { biome -> spawnsAnyOf(biome, anchor.members) }
+            Aspect.STRUCTURES -> onTheSurface(nearestStructure(level, anchor.members))
+            Aspect.SEA, Aspect.WATERS -> onTheSurface(nearestSea(level))
+            else -> null
+        }
+    }
+
+    /**
+     * Into the nearest biome [wanted] holds: on the surface where the surface is it, and otherwise in the open below,
+     * near the height it was found at — a cave biome is under ground some other biome covers.
+     */
+    private fun inBiome(level: ServerLevel, wanted: (Holder<Biome>) -> Boolean): BlockPos? {
+        val found = nearestBiome(level, wanted) ?: return null
+        val surface = Ages.footingIn(level, found.x, found.z)
+        val atTheSurface = level.chunkSource.generator.biomeSource.createUncachedResolver(level.chunkSource.randomState())
+            .getNoiseBiome(QuartPos.fromBlock(found.x), QuartPos.fromBlock(surface.y), QuartPos.fromBlock(found.z))
+        return if (wanted(atTheSurface)) surface else openBelow(level, found) ?: surface
+    }
+
+    /**
+     * Standing room under ground near [found]: air with headroom over something that holds a visitor up, in its
+     * column or one beside it, nearest the height it was found at first. Null where the rock is solid round it.
+     */
+    private fun openBelow(level: ServerLevel, found: BlockPos): BlockPos? {
+        val generator = level.chunkSource.generator
+        val randomState = level.chunkSource.randomState()
+        val heights = (0..CAVE_REACH).flatMap { away -> listOf(found.y - away, found.y + away) }.distinct()
+            .filter { it > level.minY && it + 1 < level.maxY }
+        for (dx in -BESIDE..BESIDE step BESIDE_STEP) for (dz in -BESIDE..BESIDE step BESIDE_STEP) {
+            val column = generator.getBaseColumn(found.x + dx, found.z + dz, level, randomState)
+            fun isOpen(y: Int) = column.getBlock(y).isAir
+            @Suppress("DEPRECATION") // `isSolid` is what a mob stands on, and is the reading `ScarabColony` makes too.
+            fun holdsYouUp(y: Int) = column.getBlock(y).isSolid
+            val standing = heights.firstOrNull { y -> isOpen(y) && isOpen(y + 1) && holdsYouUp(y - 1) }
+            if (standing != null) return BlockPos(found.x + dx, standing, found.z + dz)
+        }
+        return null
     }
 
     private fun LinkAnchor.isAnyOf(biome: Holder<Biome>): Boolean =
@@ -104,6 +141,13 @@ object LinkingIn {
         }
         return outward(SEA_STEP, ::isSea)
     }
+
+    /** How far above and below the height a biome was found at its standing room is looked for. */
+    private const val CAVE_REACH = 24
+
+    /** How far beside the found column, and in what steps, the columns looked through for room reach. */
+    private const val BESIDE = 8
+    private const val BESIDE_STEP = 4
 
     /** How far from the origin a link-in looks (Jonah, 2026-10-21). */
     const val REACH = 2000

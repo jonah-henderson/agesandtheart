@@ -287,9 +287,8 @@ object Ages {
         val anchor = recipe.composition?.linkIn ?: return null
         val id = level.dimension().identifier()
         val saved = AgeSavedData.get(level.server)
-        if (!saved.hasSearchedForLinkIn(id)) saved.rememberLinkIn(id, LinkingIn.nearest(level, recipe, anchor))
-        val found = saved.linkInOf(id) ?: return null
-        return Arrival(footingIn(level, found.x, found.z))
+        if (!saved.hasSearchedForLinkIn(id)) saved.rememberLinkIn(id, LinkingIn.arrivalAt(level, recipe, anchor))
+        return saved.linkInOf(id)?.let(::Arrival)
     }
 
     /**
@@ -309,7 +308,7 @@ object Ages {
      * Age of open sky — the waterline, so a visitor arrives in the air rather than on the world's floor.
      * Where it is solid to the top, the highest a player fits.
      */
-    private fun footingIn(level: ServerLevel, x: Int, z: Int): BlockPos {
+    internal fun footingIn(level: ServerLevel, x: Int, z: Int): BlockPos {
         val generator = level.chunkSource.generator
         val randomState = level.chunkSource.randomState()
         val topOfTheColumn = if (level.dimensionType().hasCeiling()) {
