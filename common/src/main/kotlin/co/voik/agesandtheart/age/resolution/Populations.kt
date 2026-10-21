@@ -61,13 +61,27 @@ private fun Resolving.weighedIn(
 ): AgeComposition {
     fun namedBy(said: Landing) = said.admitted + listOfNotNull(said.choice?.key)
     val curated = world.availableToBroadWordsIn(aspect)
-    val drawnFrom = (curated + speaking.flatMap(::namedBy).distinct().mapNotNull(aspect::presetFor)).distinct()
+    // Kept from broad words so that `teeming monsters` brings no wardens; `no monsters` strikes them all the same.
+    val struckThoughHeldBack = world.candidatesFor(aspect).filter { it !in curated && isStruckByA(speaking, it) }
+    val named = speaking.flatMap(::namedBy).distinct().mapNotNull(aspect::presetFor)
+    val drawnFrom = (curated + named + struckThoughHeldBack).distinct()
     val claims = drawnFrom.mapNotNull { member -> claimForMember(member, pool, speaking, aspect, member in curated, ground) }
     val reached = drawnAmong(claims, drawnFrom, speaking, aspect)
     val capped = if (aspect == Aspect.SPAWNS && ground == null) withCaps(composition, drawnFrom, claims, speaking) else composition
     if (reached.isEmpty()) return capped
     val settled = capped.optionsFor(aspect, 0).allOf(pool)
     return capped.withOptions(aspect, pool.name, (settled + spelled(reached, pool, drawnFrom, ground)).distinct())
+}
+
+/** Whether a `no` that narrows, `no monsters`, takes [member] out. */
+private fun Resolving.isStruckByA(speaking: List<Landing>, member: Taggable): Boolean {
+    val tags = world.tagsOf(member)
+    fun strikes(said: Landing): Boolean {
+        val reachesIt = said.members == null || member.key in said.members.orEmpty()
+        val narrowsMembers = said.narrows && said.narrowsMembers
+        return said.polarity == Polarity.EXCEPT && reachesIt && narrowsMembers && said.accepts(member, tags, Bars.STRICT)
+    }
+    return speaking.any(::strikes)
 }
 
 /**

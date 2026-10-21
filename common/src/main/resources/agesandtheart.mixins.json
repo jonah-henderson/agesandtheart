@@ -27,7 +27,7 @@
     "LecternBlockEntityMixin",
     "LecternBlockMixin",
     "LevelRainMixin",
-    "LifelessLevelMixin",
+    "StruckCreaturesMixin",
     "LightningBoltMixin",
     "LivingEntityMixin",
     "MaceItemMixin",

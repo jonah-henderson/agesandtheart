@@ -145,7 +145,7 @@ object Spawns {
 
     /**
      * Whether the whole Age says nothing lives in it, `lives=nothing` unconfined: an Age where no new living
-     * thing may be made by anything at all (`generation/Lifeless`). Nothing confined to a biome is only
+     * thing may be made by anything at all (`generation/StruckCreatures`). Nothing confined to a biome is only
      * that biome's spawn list.
      */
     fun nothingLives(options: Options): Boolean = options.claimsOn(LIVES).any { claim ->

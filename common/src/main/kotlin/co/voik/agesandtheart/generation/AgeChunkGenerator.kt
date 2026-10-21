@@ -207,7 +207,7 @@ class AgeChunkGenerator(
     val treesGrownWith: TreeFoliage = TreeFoliage.NONE,
     /** The blocks the book banned, which no chunk of the Age is generated holding — see [BannedBlocks]. */
     private val banned: Set<Block> = emptySet(),
-    /** Whether no new living thing may be made in this Age by anything at all — see [Lifeless]. */
+    /** Whether no new living thing may be made in this Age by anything at all — see [StruckCreatures]. */
     val nothingLives: Boolean = false,
     /** How many times its vanilla cap each spawn pass holds here, a pass left out holding vanilla's — see [SpawnCaps]. */
     val spawnCaps: Map<MobCategory, Double> = emptyMap(),

@@ -309,8 +309,9 @@ writes a data pack into the checks' world giving the stronghold no biome to stan
 it loaded). And **a check forces only the chunks it reads, side by side** — a chunk loaded on its own drags its
 neighbours through generation with it.
 **A wait in a server spec asks the server, never the clock**: `forceload add` returns once its chunks are
-generated, `DrivenServer.waitUntil` asks until a chunk counts as loaded, and `sprint` and `step` return when the
-server says the ticks have run.
+generated — **not once their entities are**, so a creature summoned straight after is out of sight of `@e` — and
+`DrivenServer.waitUntil` asks until a chunk counts as loaded, which is what to wait on before summoning or
+counting. `sprint` and `step` return when the server says the ticks have run.
 **Iterate on one loader**; `-Pchecks.loader=neoforge` and the unfiltered run are what a merge is for.
 
 **`landformTest` warns rather than fails, deliberately** (`ignoreFailures`), and
@@ -376,7 +377,9 @@ When shared code needs something loader-specific, it goes through an interface, 
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
-- **`LifelessLevelMixin`** — an Age where nothing lives makes nothing living (`generation/Lifeless`). It
+- **`StruckCreaturesMixin`** — what a book struck is never made in its Age, by any path, and nothing living is
+  made where nothing lives (`generation/StruckCreatures`): a shrieker's warden in `no monsters`, a spawner's
+  zombie in `no zombie`, anything left out of an `only`. It
   targets both `ServerLevel` and `WorldGenRegion` at `addFreshEntity`, the one method every *new* entity
   passes through and an arriving one does not: Fabric's load event fires after the fact and for teleports
   too, NeoForge's cancels but cannot tell a teleport, and neither sees what a structure places in a chunk
