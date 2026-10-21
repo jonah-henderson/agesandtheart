@@ -1,7 +1,8 @@
 {
   "_comment": [
-    "Full of holes: cavernous rock and a cavernous underground, and every part leaning to caves — the dripstone and",
-    "the sculk, a landmass hollowed out."
+    "Full of holes: cavernous rock and a cavernous underground, and the biomes and features leaning to caves — the",
+    "dripstone and the sculk, a landmass hollowed out. Not the creatures: `riddled arthropods` would only have been",
+    "cave spiders and silverfish (Jonah, 2026-10-21)."
   ],
   "meanings": [
     {
@@ -22,7 +23,15 @@
     },
     {
       "leans": {
-        "all": {
+        "biomes": {
+          "#cavernous": 0.8
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
           "#cavernous": 0.8
         }
       },
