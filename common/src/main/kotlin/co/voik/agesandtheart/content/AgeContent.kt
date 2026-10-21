@@ -1980,6 +1980,7 @@ object AgeContent {
         Compounder.ID to Compounder.ENTITY,
         AdvancedAnalysisMachine.ID to AdvancedAnalysisMachine.ENTITY,
         DryingRack.ID to DryingRack.ENTITY,
+        Transcriber.ID to Transcriber.ENTITY,
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE_ENTITY,
     )
 
