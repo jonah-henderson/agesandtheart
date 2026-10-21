@@ -66,9 +66,10 @@ data class InterferenceBand(val least: Int, val most: Int, val mustCollapse: Boo
  * same one for the same seed, tier and interference.
  *
  * **Valid by checking, not by construction.** A draft is grown a clause at a time, each read as laid and resolved
- * as it would be bound, and a clause that would take the draft past the band's instability is not laid. What is
- * proposed reads as laid, is within the tier's pages and inks, and resolves to exactly the instability asked for;
- * where no draft gets there, nothing is proposed.
+ * as it would be bound, and a clause that would take the draft past the band's instability is not laid; short of
+ * the band, the clause of a few tried that unsettles it most is. What is proposed reads as laid, is within the
+ * tier's pages and inks, and resolves to exactly the instability asked for; where no draft gets there, nothing is
+ * proposed. A band that must collapse asks only that it does (Jonah): any words the writer knows, read or not.
  */
 object ProposedBook {
 
@@ -109,6 +110,8 @@ object ProposedBook {
 
         val modifiers: List<String> = byPage.keys.sorted().filter { page -> page !in heads && wordOf(page) != null }
 
+        val every: List<String> = byPage.keys.sorted()
+
         val members: List<String> = heads.filter { head -> Aspect.entries.none { it.page == head } }
 
         val biomes: List<String> = members.filter { member -> wordOf(member)?.let(vocabulary.lexicon::placesFor)?.contains(Aspect.BIOMES) == true }
@@ -148,25 +151,37 @@ object ProposedBook {
         private val collapses: (Resolution) -> Boolean,
         private val random: Random,
     ) {
+        /** A draft grown by a clause, and what it resolves to. */
+        private class Grown(val pages: List<String>, val resolution: Resolution)
+
         /** The draft once it is in the band, or null where every try is spent first. */
         fun grownFrom(nucleus: String): List<String>? {
             var pages = listOf(nucleus)
+            var index = 0
             var admitted: List<String>? = null
-            repeat(CLAUSE_TRIES) {
+            repeat(if (band.mustCollapse) COLLAPSING_TRIES else CLAUSE_TRIES) {
                 if (admitted != null && random.nextDouble() < STOPS_ONCE_ADMITTED) return admitted
-                val clause = clause() ?: return@repeat
-                val grown = pages + clause
-                if (grown.size > tier.mostPages) return@repeat
-                val reading = vocabulary.read(grown, seed)?.takeIf { it.readsAsLaid } ?: return@repeat
-                val resolution = vocabulary.resolve(reading, seed)
-                if (resolution.instability.index > band.most) return@repeat
-                pages = grown
-                if (band.admits(resolution, collapses)) admitted = pages
+                val tried = if (index < band.least) CLAUSES_TRIED_SHORT_OF_THE_BAND else 1
+                val grown = (0..<tried).mapNotNull { grownBy(pages) }.maxByOrNull { it.resolution.instability.index } ?: return@repeat
+                pages = grown.pages
+                index = grown.resolution.instability.index
+                if (band.admits(grown.resolution, collapses)) admitted = pages
             }
             return admitted
         }
 
+        /** [pages] and a clause, where they stay within the tier and the band and read as a book may. */
+        private fun grownBy(pages: List<String>): Grown? {
+            val clause = clause() ?: return null
+            val grown = pages + clause
+            if (grown.size > tier.mostPages) return null
+            val reading = vocabulary.read(grown, seed)?.takeIf { it.readsAsLaid || band.mustCollapse } ?: return null
+            val resolution = vocabulary.resolve(reading, seed)
+            return Grown(grown, resolution).takeIf { resolution.instability.index <= band.most }
+        }
+
         private fun clause(): List<String>? {
+            if (band.mustCollapse) return listOfNotNull(words.every.randomOrNull(random))
             val grammar = tier.usesStructurePages && words.structural.isNotEmpty() && random.nextDouble() < GRAMMAR_CHANCE
             return if (grammar) structured() ?: described() else described()
         }
@@ -206,6 +221,12 @@ object ProposedBook {
 
     /** How many clauses one draft tries, laid or not. */
     private const val CLAUSE_TRIES = 24
+
+    /** How many words a draft that must collapse tries, one at a time. */
+    private const val COLLAPSING_TRIES = 60
+
+    /** How many clauses are tried for each one laid while a draft is short of its band. */
+    private const val CLAUSES_TRIED_SHORT_OF_THE_BAND = 3
 
     /** How often a draft already in its band stops growing, so proposals are not all as long as they can be. */
     private const val STOPS_ONCE_ADMITTED = 0.5

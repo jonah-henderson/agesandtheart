@@ -104,6 +104,11 @@ class FrequencyTunerMenu(
     /** The interference dial, nought to ten tenths. */
     val interference: Int get() = reading.get(INTERFERENCE)
 
+    /** A proposal waiting for the dials to settle: whose, and the tick it is sent on. */
+    private data class Waiting(val writer: ServerPlayer, val dueAt: Long)
+
+    private var waiting: Waiting? = null
+
     override fun clickMenuButton(player: Player, id: Int): Boolean {
         val writer = player as? ServerPlayer ?: return false
         val room = room ?: return false
@@ -115,8 +120,18 @@ class FrequencyTunerMenu(
             in INTERFERENCE_BUTTONS -> writer.tuning = tuned.withInterference(id - INTERFERENCE_BUTTONS.first)
             else -> return false
         }
-        sendProposal(writer, room)
+        waiting = Waiting(writer, writer.level().gameTime + SETTLING_TICKS)
         return true
+    }
+
+    /** Sends a waiting proposal once the dials have been still for [SETTLING_TICKS], so a knob turned far is read once. */
+    override fun broadcastChanges() {
+        super.broadcastChanges()
+        val (writer, dueAt) = waiting ?: return
+        val room = room ?: return
+        if (writer.level().gameTime < dueAt) return
+        waiting = null
+        sendProposal(writer, room)
     }
 
     /**
@@ -150,6 +165,9 @@ class FrequencyTunerMenu(
 
         /** A button for each step of the interference dial. */
         val INTERFERENCE_BUTTONS = 2000..<2000 + InterferenceBand.STEPS
+
+        /** How long the dials stay still before the book they propose is worked out. */
+        private const val SETTLING_TICKS = 5L
 
         fun sendProposal(writer: ServerPlayer, room: NearbyDesk) {
             Services.NETWORK.sendToPlayer(writer, TunerProposalPayload(proposalFor(writer, room)))

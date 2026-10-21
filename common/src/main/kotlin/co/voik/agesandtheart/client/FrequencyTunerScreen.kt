@@ -51,7 +51,7 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
     private lateinit var copyButton: ItemIconButton
     private lateinit var interferenceKnob: DialKnob
     private lateinit var readout: FittingMultiLineTextWidget
-    private var shownProposal: List<Identifier>? = null
+    private var shownMessage: String? = null
 
     override fun init() {
         super.init()
@@ -83,14 +83,13 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
             press(FrequencyTunerMenu.INTERFERENCE_BUTTONS.first + step)
         }
         interferenceKnob.setPosition(leftPos + MARGIN, topPos + KNOBS_TOP + DIALS_PER_SIGNAL * KNOB_PITCH)
-        interferenceKnob.setTooltip(Tooltip.create(translated("interference.tooltip")))
         interferenceKnob.follow(menu.interference)
         addRenderableWidget(interferenceKnob)
         val readoutWidth = imageWidth - 2 * MARGIN - BUTTON_HEIGHT - LABEL_GAP
         readout = addRenderableWidget(
             FittingMultiLineTextWidget(leftPos + MARGIN, topPos + READOUT_TOP, readoutWidth, READOUT_HEIGHT, Component.empty(), font),
         )
-        shownProposal = null
+        shownMessage = null
         copyButton = addRenderableWidget(
             ItemIconButton(BUTTON_HEIGHT, translated("copy"), { ItemStack(AgeContent.WRITERS_DESK) }) {
                 press(FrequencyTunerMenu.COPY)
@@ -149,6 +148,7 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
     }
 
     private fun press(button: Int) {
+        if (button != FrequencyTunerMenu.COPY) isAwaitingProposal = true
         Minecraft.getInstance().gameMode?.handleInventoryButtonClick(menu.containerId, button)
     }
 
@@ -164,8 +164,7 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
             graphics.text(font, translated(name), MARGIN + KNOB + LABEL_GAP, labelY, Palette.TEXT, false)
         }
         val interferenceY = KNOBS_TOP + DIALS_PER_SIGNAL * KNOB_PITCH + (KNOB - font.lineHeight) / 2 + 1
-        val percent = interferenceKnob.step * PERCENT / (InterferenceBand.STEPS - 1)
-        graphics.text(font, translated("interference.value", percent), MARGIN + KNOB + LABEL_GAP, interferenceY, Palette.TEXT, false)
+        graphics.text(font, translated("interference"), MARGIN + KNOB + LABEL_GAP, interferenceY, Palette.TEXT, false)
     }
 
     override fun extractContents(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
@@ -192,18 +191,21 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
         }
     }
 
-    /** What the signal proposes, beside the button that copies it; nothing while the tuner is off. */
+    /**
+     * What the signal proposes, beside the button that copies it: an ellipsis while the server works it out, and
+     * nothing while the tuner is off.
+     */
     private fun showProposal() {
-        val shown = proposal.takeIf { menu.isPowered }
-        if (shown == shownProposal) return
-        shownProposal = shown
-        readout.visible = shown != null
+        readout.visible = menu.isPowered
         val heard = when {
-            shown == null -> Component.empty()
-            shown.isEmpty() && menu.interference > 0 -> translated("nothing_heard.interference")
-            shown.isEmpty() -> translated("nothing_heard")
-            else -> Component.literal(shown.joinToString(" ") { WordNames.readable(it).string })
+            !menu.isPowered -> Component.empty()
+            isAwaitingProposal -> Component.literal(".".repeat(1 + (Util.getMillis() / MILLIS_PER_DOT % DOTS).toInt()))
+            proposal.isEmpty() && menu.interference > 0 -> translated("nothing_heard.interference")
+            proposal.isEmpty() -> translated("nothing_heard")
+            else -> Component.literal(proposal.joinToString(" ") { WordNames.readable(it).string })
         }
+        if (heard.string == shownMessage) return
+        shownMessage = heard.string
         readout.setMessage(heard)
     }
 
@@ -261,8 +263,12 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
         /** Which signal the knobs turn — remembered between openings, as a real dial's switch would be. */
         private var selected = 0
 
+        /** Whether a knob has moved since the server last proposed a book. */
+        private var isAwaitingProposal = false
+
         fun remember(payload: TunerProposalPayload) {
             proposal = payload.words
+            isAwaitingProposal = false
         }
 
         private fun translated(key: String, vararg arguments: Any): Component =
@@ -294,7 +300,8 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
         private const val MOST_SHIFT = 12
         private const val MILLIS_PER_CUT = 150L
         private const val FULLY = 255
-        private const val PERCENT = 100
+        private const val MILLIS_PER_DOT = 300L
+        private const val DOTS = 3
         private const val DRIFT_PIXELS_PER_SECOND = 9L
         private const val MILLIS_PER_SECOND = 1000L
         private const val CUT_STRIDE = -0x61C8_8646_80B5_83EBL
