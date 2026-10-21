@@ -16,7 +16,8 @@ import net.minecraft.world.level.Level
 /**
  * What fishing an Age gives (`FishingHookMixin`): a fish caught is drawn again by how thickly the book asked for
  * each kind where the bobber is — `teeming cod` is mostly cod — and rich waters ([Fishing.TREASURE]) fish with
- * [RICH_WATERS_LUCK] more luck, which vanilla's table spends on treasure.
+ * [RICH_WATERS_LUCK] more luck, which vanilla's table spends on treasure. Where the book struck every fish, a cast that
+ * would have brought one up brings up nothing.
  */
 object AgeFishing {
 
@@ -39,16 +40,21 @@ object AgeFishing {
         return if (waters.of(Fishing.TREASURE) == Parameter.TRUE) RICH_WATERS_LUCK else 0f
     }
 
-    /** [caught] with each fish drawn again by the book's rungs at [at]; anything else, and an Age that said nothing of fish, as caught. */
+    /**
+     * [caught] with each fish drawn again by the book's rungs at [at], and none where the book struck every fish;
+     * anything else, and an Age that said nothing of fish, as caught.
+     */
     fun caught(caught: List<ItemStack>, level: Level, at: BlockPos, random: RandomSource): List<ItemStack> {
         val serverLevel = level as? ServerLevel ?: return caught
         val generator = serverLevel.chunkSource.generator as? AgeChunkGenerator ?: return caught
         val weights = FISH.associateWith { fish -> fish.weight * generator.rungOf(fish.creature, serverLevel, at) }
         val saidNothingOfFish = FISH.all { fish -> Rung.isOrdinary(generator.rungOf(fish.creature, serverLevel, at)) }
+        if (saidNothingOfFish) return caught
         val total = weights.values.sum()
-        if (saidNothingOfFish || total <= 0.0) return caught
+        fun isAFish(stack: ItemStack) = FISH.any { stack.`is`(it.item) }
+        if (total <= 0.0) return caught.filterNot(::isAFish)
         fun drawn(stack: ItemStack): ItemStack {
-            if (FISH.none { stack.`is`(it.item) }) return stack
+            if (!isAFish(stack)) return stack
             val fish = fishAt(weights, random.nextDouble() * total) ?: return stack
             return ItemStack(fish.item, stack.count)
         }
