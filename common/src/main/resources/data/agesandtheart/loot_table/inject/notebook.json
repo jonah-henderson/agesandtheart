@@ -2,7 +2,9 @@
   "_comment": [
     "Someone else's field record: a notebook already holding pages. Purely derived words by default —",
     "block and biome names are what a naturalist catalogues in bulk, while the authored vocabulary",
-    "stays something you find one page at a time. Set derived_only to false to mix them."
+    "stays something you find one page at a time. Set derived_only to false to mix them. Never an uncommon or",
+    "rare word (Jonah, 2026-10-21): drawn evenly from every derived word, a notebook named a rare one in most",
+    "finds, and a page stands in for writing its word, so it was an Age of diamonds a few libraries in."
   ],
   "type": "minecraft:chest",
   "pools": [
@@ -16,7 +18,8 @@
             {
               "type": "agesandtheart:fill_notebook",
               "pages": { "type": "minecraft:uniform", "min": 9, "max": 12 },
-              "derived_only": true
+              "derived_only": true,
+              "rarity": ["common", "staple", "critical"]
             }
           ]
         }

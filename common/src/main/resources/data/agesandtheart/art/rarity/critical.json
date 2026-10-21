@@ -11,12 +11,15 @@
     "takes a critical word they have not learned while any are left, so no find is a duplicate until all are",
     "known. `electromagnetic` is not here: it sets what `tempest` and `aurora` already do (Jonah, 2026-10-11).",
     "",
-    "once_all_known: a finder who has learned every critical word draws from the uncommon and rare buckets",
-    "instead, so the library's shelf page is still worth taking (Jonah, 2026-10-17)."
+    "once_all_known: a finder who has learned every critical word draws from the uncommon bucket instead, so the",
+    "library's shelf page is still worth taking (Jonah, 2026-10-17) -- never the rare one, which a library",
+    "farmed would hand out (Jonah, 2026-10-21)."
   ],
   "weight": 20,
   "prefers_the_unknown": true,
-  "once_all_known": ["uncommon", "rare"],
+  "once_all_known": [
+    "uncommon"
+  ],
   "item_rarity": "uncommon",
   "words": [
     "aurora",

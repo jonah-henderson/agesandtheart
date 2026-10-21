@@ -4,7 +4,8 @@
     "finder still lacks one. By the time a player is opening these, the early finds should usually have",
     "filled the critical set, so this entry mostly steps aside rather than retreading it. Two to six pages,",
     "each drawn on its own, and one or two staple pages besides, since the staple bucket holds every authored",
-    "word no rarer bucket lists and they should go on turning up late."
+    "word no rarer bucket lists and they should go on turning up late. The rare share is half what it was (9 in",
+    "109, from 20 in 120; Jonah, 2026-10-21), since a page stands in for writing its word."
   ],
   "type": "minecraft:chest",
   "pools": [
@@ -61,7 +62,7 @@
         {
           "type": "minecraft:item",
           "name": "agesandtheart:page",
-          "weight": 20,
+          "weight": 9,
           "modifier": [
             {
               "rarity": [

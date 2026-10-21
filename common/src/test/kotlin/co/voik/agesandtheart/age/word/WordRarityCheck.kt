@@ -131,9 +131,9 @@ class WordRarityCheck : FunSpec({
     }
 
     /** The library's shelf page is still worth taking once every critical word is known. */
-    test("a finder who knows every critical word is handed an uncommon or rare one instead") {
+    test("a finder who knows every critical word is handed an uncommon one instead, never a rare one") {
         val critical = vocabulary.rarity.buckets.first { it.name == "critical" }
-        check(critical.onceAllKnown == setOf("uncommon", "rare")) { "the critical bucket hands on to ${critical.onceAllKnown}" }
+        check(critical.onceAllKnown == setOf("uncommon")) { "the critical bucket hands on to ${critical.onceAllKnown}" }
         val handedOn = (1L..200L).mapNotNull { seed ->
             vocabulary.rarity.draw(vocabulary, RandomSource.create(seed), only = setOf("critical"), isNew = { false })
         }

@@ -1,5 +1,5 @@
 {
-  "weight": 2,
+  "weight": 1,
   "item_rarity": "epic",
   "words": [
     "agesandtheart:end",
@@ -161,6 +161,8 @@
     "wondrous"
   ],
   "_comment": [
-    "item_rarity: Purple, vanilla's epic."
+    "item_rarity: Purple, vanilla's epic.",
+    "weight 1, from 2 (Jonah, 2026-10-21): a page is a substitute for writing its word, so a rare one found is an Age",
+    "of it, and rare pages are half as often drawn as they were."
   ]
 }
