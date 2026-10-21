@@ -119,14 +119,14 @@ class NotebookItem(properties: Properties) : Item(properties) {
     }
 
     /**
-     * Vanilla's bundle grid over the pages, newest first, from a row above the one scrolled to: the grid shows what
-     * fits and counts the rest, and highlights and names the page scrolled to, as it does a bundle's.
+     * Vanilla's bundle grid over the pages, newest first, from its window: the grid shows what fits and counts the
+     * rest, and highlights and names the page scrolled to, as it does a bundle's.
      */
     override fun getTooltipImage(itemStack: ItemStack): Optional<TooltipComponent> {
         val newestFirst = pagesIn(itemStack).reversed()
         if (newestFirst.isEmpty()) return Optional.empty()
         val selected = selectedIn(itemStack)
-        val firstShown = selected?.let { (it / GRID_COLUMNS - 1).coerceAtLeast(0) * GRID_COLUMNS } ?: 0
+        val firstShown = selected?.let { windowAround(it, windowIn(itemStack), newestFirst.size) } ?: 0
         val shown = newestFirst.drop(firstShown).map(ItemStackTemplate::fromNonEmptyStack)
         val contents = BundleContents(shown)
         val withSelection = if (selected == null) contents else contents.asMutable().also { it.toggleSelectedItem(selected - firstShown) }.toImmutable()
@@ -160,6 +160,9 @@ class NotebookItem(properties: Properties) : Item(properties) {
     companion object {
         /** The bundle grid's width, which a window scrolls by a row of. */
         private const val GRID_COLUMNS = 4
+
+        /** How many cells the bundle grid has, one of which counts what is hidden when it overflows. */
+        private const val GRID_CELLS = 12
         private const val SOUND_VOLUME = 0.8f
         private const val SOUND_PITCH = 0.8f
 
@@ -179,11 +182,36 @@ class NotebookItem(properties: Properties) : Item(properties) {
         fun selectedIn(notebook: ItemStack): Int? =
             notebook.get(AgeComponents.NOTEBOOK_SELECTED)?.takeIf { it in pagesIn(notebook).indices }
 
+        private fun windowIn(notebook: ItemStack): Int = notebook.getOrDefault(AgeComponents.NOTEBOOK_WINDOW, 0)
+
         /** Scrolls [notebook] to the page [newestFirst] places, or to none for anything out of its pages. */
         fun select(notebook: ItemStack, newestFirst: Int) {
             if (notebook.item !== AgeContent.NOTEBOOK) return
-            if (newestFirst in pagesIn(notebook).indices) notebook.set(AgeComponents.NOTEBOOK_SELECTED, newestFirst)
-            else notebook.remove(AgeComponents.NOTEBOOK_SELECTED)
+            val pages = pagesIn(notebook).size
+            if (newestFirst in 0..<pages) {
+                notebook.set(AgeComponents.NOTEBOOK_SELECTED, newestFirst)
+                notebook.set(AgeComponents.NOTEBOOK_WINDOW, windowAround(newestFirst, windowIn(notebook), pages))
+            } else {
+                notebook.remove(AgeComponents.NOTEBOOK_SELECTED)
+                notebook.remove(AgeComponents.NOTEBOOK_WINDOW)
+            }
+        }
+
+        /**
+         * The first page a grid over [pages] shows with [selected] scrolled to, moved from [first] by as few rows as
+         * bring it into view — so the highlight crosses the grid, and the grid moves only once it reaches an edge.
+         */
+        fun windowAround(selected: Int, first: Int, pages: Int): Int {
+            val startOfItsRow = selected / GRID_COLUMNS * GRID_COLUMNS
+            fun showsIt(start: Int) = selected < start + shownOf(pages - start)
+            return generateSequence(minOf(first, startOfItsRow)) { it + GRID_COLUMNS }.first(::showsIt)
+        }
+
+        /** How many of [remaining] pages vanilla's bundle grid shows, as `BundleContents.getNumberOfItemsToShow` counts. */
+        private fun shownOf(remaining: Int): Int {
+            val cellsForPages = if (remaining > GRID_CELLS) GRID_CELLS - 1 else GRID_CELLS
+            val gapInThePartRow = (GRID_COLUMNS - remaining % GRID_COLUMNS) % GRID_COLUMNS
+            return minOf(remaining, cellsForPages - gapInThePartRow)
         }
     }
 }
