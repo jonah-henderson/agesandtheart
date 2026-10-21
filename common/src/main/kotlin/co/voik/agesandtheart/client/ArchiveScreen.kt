@@ -24,6 +24,8 @@ import co.voik.agesandtheart.desk.WritingObstacle
 import co.voik.agesandtheart.desk.WritingStock
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.client.gui.components.CycleButton
+import net.minecraft.client.gui.components.Tooltip
 import net.minecraft.client.gui.components.EditBox
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.client.input.KeyEvent
@@ -37,17 +39,20 @@ data class ArchiveRow(override val word: Identifier, override val readable: Stri
 }
 
 /**
- * Every word the player knows and every page the archive holds, searched, above the player's inventory.
+ * An archive's pages, searched, above the player's inventory.
  *
  * Shift-clicking a page or a notebook in the inventory files it. Each row says how many pages of the word are
  * filed, hands them back — one, or a stackful with shift held — and writes another, paid for at the nearest
  * writer's desk. The write button is always there and says why when it is disabled, so a player finds out what a
  * desk is for before they have one.
+ *
+ * **Filed or Known**: the pages the archive holds, or every word the player has learned.
  */
 class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
     AbstractContainerScreen<ArchiveMenu>(menu, inventory, title, ArchiveMenu.PANEL_WIDTH, ArchiveMenu.PANEL_HEIGHT) {
 
     private lateinit var search: EditBox
+    private lateinit var modeButton: CycleButton<Boolean>
     private lateinit var list: LabelledList<ArchiveRow>
     private lateinit var orderButton: OrderButton<WordOrder>
     private var shown: List<ArchiveRow> = emptyList()
@@ -56,7 +61,8 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
     override fun init() {
         super.init()
         inventoryLabelY = ArchiveMenu.INVENTORY_LABEL_Y
-        titleLabelY = TITLE_TOP
+        // Level with the mode button's label, which a button centres one pixel low.
+        titleLabelY = MODE_TOP + (MODE_HEIGHT - font.lineHeight) / 2 + 1
         val keptFilter = if (::search.isInitialized) search.value else ""
 
         addRenderableWidget(
@@ -80,6 +86,20 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
             list.resetScroll()
             refresh(force = true)
         }
+        val filedLabel = translated("mode.filed")
+        val knownLabel = translated("mode.known")
+        val modeWidth = maxOf(font.width(filedLabel), font.width(knownLabel)) + MODE_PADDING * 2
+        modeButton = CycleButton.booleanBuilder(filedLabel, knownLabel, !showingKnown)
+            .withTooltip { filed -> Tooltip.create(translated(if (filed) "filed" else "known")) }
+            .displayOnlyValue()
+            .create(
+                leftPos + imageWidth - INSET - modeWidth,
+                topPos + MODE_TOP,
+                modeWidth,
+                MODE_HEIGHT,
+                Component.empty(),
+            ) { _, filed -> showMode(known = !filed) }
+        addRenderableWidget(modeButton)
         addRenderableWidget(search)
         orderButton = addRenderableWidget(
             WordListOrder.button(LINE, order, ::offeredOrders) { chosen ->
@@ -124,10 +144,16 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
         refresh(force = false)
     }
 
-    /** An empty archive with no word to write says what it is for, where its pages would be. */
+    private fun showMode(known: Boolean) {
+        showingKnown = known
+        list.resetScroll()
+        refresh(force = true)
+    }
+
+    /** An empty archive says what it is for, where its pages would be. */
     override fun extractContents(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
         super.extractContents(graphics, mouseX, mouseY, a)
-        if (shown.isNotEmpty()) return
+        if (showingKnown || held.words.isNotEmpty()) return
         graphics.textWithWordWrap(font, translated("hint"), list.x + HINT_INSET, list.y + HINT_INSET, list.width - 2 * HINT_INSET, Palette.FAINT)
     }
 
@@ -137,7 +163,7 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
 
     private fun refresh(force: Boolean) {
         val needle = search.value
-        val words = KnownWords.words + held.words
+        val words = if (showingKnown) KnownWords.words else held.words
         val rows = words.map { ArchiveRow(it, WordNames.readable(it).string, held.count(it)) }
         val ordering = WordListOrder.stillOffered(order, offeredOrders())
         if (!force && rows == shown && ordering == shownIn) return
@@ -198,7 +224,10 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
         /** What the nearest writer's desk holds, or null where none is in range. */
         private var stock: WritingStock? = null
 
-        /** How the list is ordered, kept across the screen being rebuilt as the search text is. */
+        /** Kept across the screen being rebuilt, as the search text is. */
+        private var showingKnown = false
+
+        /** How the list is ordered, kept as the mode is. */
         private var order = WordOrder.ALPHABETICAL
 
         /** Whether the nearest desk has the grammar guide by it, as last sent. */
@@ -217,14 +246,15 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
             showsWhereWordsApply = payload.showsWhereWordsApply
         }
 
-        /** The title line, which the list is laid out under. */
-        private const val TITLE_TOP = 8
-        private const val TITLE_LINE_HEIGHT = 19
+        /** The mode button sits on the title line, which is laid out around it. */
+        private const val MODE_TOP = 5
+        private const val MODE_HEIGHT = 14
+        private const val MODE_PADDING = 5
 
         private const val LINE = 12
         private const val GAP = 4
         private const val INSET = 8
-        private const val CONTENT_TOP = TITLE_LINE_HEIGHT + GAP
+        private const val CONTENT_TOP = MODE_TOP + MODE_HEIGHT + GAP
         private const val HINT_INSET = 2
     }
 }
