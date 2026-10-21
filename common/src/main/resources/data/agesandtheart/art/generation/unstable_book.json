@@ -16,22 +16,25 @@
       {"produce":["age","[land]","clear","murky","waters"]},
       {"produce":["age","[land]","verdant","arid","climate"]},
       {"produce":["age","colossal","minuscule","landmass"]},
-      {"produce":["age","pillared","gentle"]},
+      {"produce":["age","pillared","gentle","landmass"]},
       {"produce":["age","[land]","molten","flooded","sea","dry","flooded","rock"]}
     ],
     "moderately_unstable": [
       {"produce":["age","colossal","minuscule","landmass","blizzard","inferno","weather","dry","flooded","rock"]},
       {"produce":["age","[cold_stone]","landmass","frozen","scorching","climate","molten","flooded","sea","clear","murky","waters"]},
-      {"produce":["age","pillared","gentle","frozen","scorching","climate","dry","flooded","rock","molten","flooded","sea"]},
+      {"produce":["age","pillared","gentle","landmass","frozen","scorching","climate","dry","flooded","rock","molten","flooded","sea"]},
       {"produce":["age","dry","flooded","rock","drenched","parched","weather","clear","murky","waters"]}
     ],
     "severely_unstable": [
       {"produce":["age","colossal","minuscule","landmass","frozen","scorching","climate","molten","flooded","sea","drenched","parched","weather","clear","murky","waters"]},
       {"produce":["age","colossal","minuscule","landmass","frozen","scorching","climate","molten","flooded","sea","dry","flooded","rock","clear","murky","waters"]},
-      {"produce":["age","pillared","gentle","frozen","scorching","climate","molten","flooded","sea","dry","flooded","rock","clear","murky","waters"]},
+      {"produce":["age","pillared","gentle","landmass","frozen","scorching","climate","molten","flooded","sea","dry","flooded","rock","clear","murky","waters"]},
       {"produce":["age","frozen","scorching","climate","blizzard","inferno","weather","molten","flooded","sea","dry","flooded","rock","clear","murky","waters"]}
     ],
     "land": [
+      {"produce":["[landform]","landmass"]}
+    ],
+    "landform": [
       {"produce":["gentle"]},
       {"produce":["eroded"]},
       {"produce":["insular"]},

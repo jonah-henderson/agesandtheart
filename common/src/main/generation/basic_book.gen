@@ -28,9 +28,10 @@ rare_material_age =
 # progression: a landmass worth looking at, and two or three things to look at in it. They never name a
 # phenomenon kept for the materials and instability, nor a volcano, so no curiosity passes a gate.
 
-# Between them the curiosities use the aiming pages a member cannot stand in for: a basic book is where a
-# player first meets the parts of a world there are to aim at. A member says its own part, so no aiming page
-# follows one: `trees`, not `trees features`.
+# Between them the curiosities use the aiming pages: a basic book is where a player first meets the parts of a
+# world there are to aim at. A member is followed by the page of its part where that reads more naturally than
+# the member alone (Jonah, 2026-10-21) -- `insular landmass`, `tunnels underground`, `tempest phenomena` -- and
+# read as the part it is of. Not after `trees` or `flowers`, which say their part plainly.
 
 # One thing to look at and one thing to find, each drawn from its own group so no two say the same part of
 # the world twice -- two leaf colours, or a tropical and an arid climate, is a book arguing with itself. A
@@ -50,17 +51,17 @@ curiosity_age =
 # island, so there is a beach for it, and warmth or something to look at beside it -- it grows only where
 # the coast is mild, and a book that named it on a cold Age would be a page that did nothing.
 palm_beach_age =
-    age [palm_landmass] palm_beach [palm_climate]@2
-    | age [palm_landmass] [look] palm_beach
+    age [palm_landmass] palm_beach biomes [palm_climate]@2
+    | age [palm_landmass] [look] palm_beach biomes
 
-palm_landmass = insular@3 | archipelagic@3 | [size] insular
+palm_landmass = insular landmass@3 | archipelagic landmass@3 | [size] insular landmass
 
 palm_climate = tropical climate | warm climate
 
 # A size is taken by a landform that honours one, and a stone by the landmass after the landform.
-curious_landmass = [typical_landmass]@3 | [size] [sized_landmass]@2 | [typical_landmass] [stone] landmass
+curious_landmass = [typical_landmass] landmass@3 | [size] [sized_landmass] landmass@2 | [typical_landmass] [stone] landmass
 
-open_curious_landmass = [open_landmass]@3 | [size] [open_sized_landmass]@2 | [open_landmass] [stone] landmass
+open_curious_landmass = [open_landmass] landmass@3 | [size] [open_sized_landmass] landmass@2 | [open_landmass] [stone] landmass
 
 look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [ground]@2 | [moon] | [weather]
 
@@ -85,27 +86,27 @@ thing_beside_a_sea = [formation]@3 | [underground_beside_a_sea]@3 | [life_beside
 # barren (the pairs of opposed tags of 2026-10-04, which made one basic book in four hundred unstable).
 bare_look = [sky]@4 | [aurora]@2 | [rainbow]@2 | [moon]
 
-bare_thing = [formation]@3 | [underground]@3 | ruins | untouched structures
+bare_thing = [formation]@3 | [underground]@3 | ruins structures | untouched structures
 
 underground_beside_a_sea =
-    tunnels@4
-    | fissured@4
-    | chambered@3
+    tunnels underground@4
+    | fissured underground@4
+    | chambered underground@3
     | riddled rock@3
-    | [size] tunnels@2
+    | [size] tunnels underground@2
     | delved underground
     | hollow underground
-    | lattice
+    | lattice underground
 
 # Arc crystals: a tempest, and an aurora most nights and fierce.
 arc_crystal_age =
-    age [arc_crystal_landmasses] [tempest_options] [aurora_options]
-    | age [arc_crystal_landmasses] [tempest_options] [aurora_options] [flavour]@2
+    age [arc_crystal_landmasses] landmass [tempest_options] [aurora_options]
+    | age [arc_crystal_landmasses] landmass [tempest_options] [aurora_options] [flavour]@2
 
 # Open to the sky: a roofed world has no curtains to stand in it.
 arc_crystal_landmasses = [open_landmass]@3 | skyborne | end | tangled
 
-tempest_options = tempest@3 | frequent tempest
+tempest_options = tempest phenomena@3 | frequent tempest phenomena
 
 # Described rather than named: a curtain with anything said of it is one, and this says it comes every
 # night and burns bright, which is the gate's half.
@@ -117,16 +118,16 @@ aurora_options =
 # Phasmium: a water sea raised to an abyss, and a deluge. The shapes whose seas are broad and flat-floored,
 # since those are where the abyss grows.
 phasmium_age =
-    age [phasmium_landmasses] deep water sea deluge phenomena
-    | age [phasmium_landmasses] deep water sea deluge phenomena [flavour]@2
+    age [phasmium_landmasses] landmass deep water sea deluge phenomena
+    | age [phasmium_landmasses] landmass deep water sea deluge phenomena [flavour]@2
 
 phasmium_landmasses = insular@3 | archipelagic@3 | eroded@2 | sheer@2 | continental | gentle | pillared
 
 # Rime crystal: cold enough that nothing thaws, and a blizzard. The cold is said to the climate, since
 # `blizzard phenomena` keeps the blizzard's own cold on the phenomena.
 rime_crystal_age =
-    age [rime_crystal_landmasses] [cold] blizzard phenomena
-    | age [rime_crystal_landmasses] [cold] blizzard phenomena [flavour]@2
+    age [rime_crystal_landmasses] landmass [cold] blizzard phenomena
+    | age [rime_crystal_landmasses] landmass [cold] blizzard phenomena [flavour]@2
 
 # Sheer ground first: rime is won by climbing, and ramps with height.
 rime_crystal_landmasses = [typical_landmass]@3 | mountainous@2 | sheer@2 | pillared | cleft | shattered
@@ -136,16 +137,16 @@ cold = frozen climate
 # Temperstone: every climate as hot as a desert, and volcanoes. `volcanic` admits the volcano by name, which
 # the gate reads; a lava sea is drawn beside it now and then, and pays nothing alone.
 temperstone_age =
-    age [seaworthy_landmass] scorching climate volcanic features
-    | age [seaworthy_landmass] scorching climate lava sea volcanic features
-    | age [seaworthy_landmass] scorching climate volcanic features [flavour]@2
+    age [seaworthy_landmass] landmass scorching climate volcanic features
+    | age [seaworthy_landmass] landmass scorching climate lava sea volcanic features
+    | age [seaworthy_landmass] landmass scorching climate volcanic features [flavour]@2
 
 # Astrite: meteors. Cratered country and a dark night are drawn beside it, since that is what it looks like.
 astrite_age =
-    age [astrite_landmasses] meteors
-    | age [astrite_landmasses] meteors [night]@2
-    | moonless age [astrite_landmasses] meteors
-    | age [astrite_landmasses] meteors [flavour]@2
+    age [astrite_landmasses] landmass meteors phenomena
+    | age [astrite_landmasses] landmass meteors phenomena [night]@2
+    | moonless age [astrite_landmasses] landmass meteors phenomena
+    | age [astrite_landmasses] landmass meteors phenomena [flavour]@2
 
 astrite_landmasses = [open_landmass]@3 | cratered@3 | flat | pyramidal
 
@@ -301,15 +302,15 @@ formation_shape = arches | boulders | obelisks | pyramids | rings | spikes
 
 # The dramatic undergrounds are the rare end of this: halls, the hollow and the lattice.
 underground =
-    tunnels@4
-    | fissured@4
-    | chambered@3
+    tunnels underground@4
+    | fissured underground@4
+    | chambered underground@3
     | riddled rock@3
     | dry rock
-    | [size] tunnels@2
+    | [size] tunnels underground@2
     | delved underground
     | hollow underground
-    | lattice
+    | lattice underground
 
 # The ground and what grows on it, which is mostly colour.
 ground =
@@ -327,9 +328,9 @@ surface_block = sand | red_sand | moss_block | podzol | mud | gravel | calcite |
 
 sea = flooded sea@2 | shallow water sea | murky waters | clear waters | [colour] waters
 
-life = [quantity] herds | fish | fliers | beasts | ruins | settled | untouched structures
+life = [quantity] herds | fish | fliers | beasts | ruins structures | settled | untouched structures
 
-life_beside_a_sea = [quantity] herds | fish | fliers | beasts | ruins | untouched structures
+life_beside_a_sea = [quantity] herds | fish | fliers | beasts | ruins structures | untouched structures
 
 mild_climate = temperate climate@2 | warm climate | tropical climate | verdant biomes
 

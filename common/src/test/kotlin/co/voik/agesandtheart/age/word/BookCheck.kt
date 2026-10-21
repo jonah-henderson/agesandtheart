@@ -207,7 +207,7 @@ class BookCheck : FunSpec({
         // A moved page is reported, charged as rehomed, wherever it then lands.
         fun mustLand(fate: Fate) = when (fate) {
             is Fate.TakenBy, Fate.LaidBare, Fate.AssertedAlone, Fate.Banned, Fate.Anchors -> true
-            is Fate.Took, is Fate.Structural, Fate.Unread, Fate.Impossible, Fate.Sited, Fate.Moved -> false
+            is Fate.Took, is Fate.Structural, Fate.Unread, Fate.Impossible, Fate.Sited, Fate.Moved, is Fate.Names -> false
         }
         for ((seed, pages) in fuzzed) {
             val read = read(pages)

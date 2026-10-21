@@ -25,21 +25,23 @@ slightly_unstable =
     | age [land] clear murky waters
     | age [land] verdant arid climate
     | age colossal minuscule landmass
-    | age pillared gentle
+    | age pillared gentle landmass
     | age [land] molten flooded sea dry flooded rock
 
 moderately_unstable =
     age colossal minuscule landmass blizzard inferno weather dry flooded rock
     | age [cold_stone] landmass frozen scorching climate molten flooded sea clear murky waters
-    | age pillared gentle frozen scorching climate dry flooded rock molten flooded sea
+    | age pillared gentle landmass frozen scorching climate dry flooded rock molten flooded sea
     | age dry flooded rock drenched parched weather clear murky waters
 
 severely_unstable =
     age colossal minuscule landmass frozen scorching climate molten flooded sea drenched parched weather clear murky waters
     | age colossal minuscule landmass frozen scorching climate molten flooded sea dry flooded rock clear murky waters
-    | age pillared gentle frozen scorching climate molten flooded sea dry flooded rock clear murky waters
+    | age pillared gentle landmass frozen scorching climate molten flooded sea dry flooded rock clear murky waters
     | age frozen scorching climate blizzard inferno weather molten flooded sea dry flooded rock clear murky waters
 
-land = gentle | eroded | insular | pillared | canyoned | mountainous
+land = [landform] landmass
+
+landform = gentle | eroded | insular | pillared | canyoned | mountainous
 
 cold_stone = packed_ice | snow_block

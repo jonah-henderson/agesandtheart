@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.language
 
+import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.LinkAnchor
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
@@ -289,6 +290,11 @@ object Reader {
         }
 
         private fun takes(word: Word, acceptance: Acceptance) {
+            val named = lastTaker?.takeIf { namesThePartOf(word, it) }
+            if (named != null) {
+                fates[at] = Fate.Names(named.index)
+                return
+            }
             val place = placeOf(acceptance)
             val joinedTo = leftOfAnd as? Taker
             val joinsAWaitingPage = andAt != null && joinedTo == null
@@ -332,6 +338,17 @@ object Reader {
             fates[at] = Fate.Took(place)
             lastTaker = Taker(at, place, taking, from..<claims.size, joined, word, acceptance)
             saidOfBy?.let { saidOf(it, place) }
+        }
+
+        /**
+         * Whether [word] is the page of the part the word just before it named, with nothing waiting: `insular
+         * landmass`, `tunnels underground`. It says where that word belongs, and takes nothing of its own.
+         */
+        private fun namesThePartOf(word: Word, before: Taker): Boolean {
+            val isOurPage = word.id.namespace == Constants.MOD_ID && Aspect.byPage(word.name) == before.place.aspect
+            val followsIt = before.index == at - 1
+            val nothingElseIsOpen = waiting.isEmpty() && andAt == null && ofFrom == null
+            return isOurPage && followsIt && nothingElseIsOpen
         }
 
         /**

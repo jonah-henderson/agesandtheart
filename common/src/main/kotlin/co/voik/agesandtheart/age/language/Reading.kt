@@ -42,7 +42,7 @@ data class Reading(
             Fate.Unread -> "not a word"
             Fate.Impossible -> "nothing to bind, so it does nothing"
             is Fate.Structural -> fate.structure.production
-            is Fate.Took -> "takes what was laid before it at ${placeName(fate.place)}; $placed"
+            is Fate.Took -> tookSaid(page, fate.place, where)
             is Fate.TakenBy -> "taken by ${pages[fate.taker].written}: $placed"
             Fate.LaidBare -> "laid bare on the Age: $placed"
             Fate.Moved -> "nothing would take it, so it was laid on the Age: $placed"
@@ -50,6 +50,20 @@ data class Reading(
             Fate.Banned -> "banned: the Age places none of it"
             Fate.Anchors -> "where a link into the Age arrives: $placed"
             Fate.Sited -> "the biome the last word was sited in"
+            is Fate.Names -> "the part ${pages[fate.member].written} is of"
+        }
+    }
+
+    /**
+     * What a word that took pages says: where it landed what it landed, or, where only the pages it took landed
+     * anything, which those were — `landmass` takes `deepslate` — rather than that nothing of its own did.
+     */
+    private fun tookSaid(page: PageRead, place: Place, where: String): String {
+        val taken = pages.filter { it.fate == Fate.TakenBy(page.index) }.map { it.written }
+        return when {
+            where.isNotEmpty() -> "takes what was laid before it at ${placeName(place)}; $where"
+            taken.isNotEmpty() -> "takes ${taken.joinToString(", ")} at ${placeName(place)}"
+            else -> "takes what was laid before it at ${placeName(place)}; nothing landed"
         }
     }
 
@@ -115,4 +129,7 @@ sealed interface Fate {
 
     /** The biome an `in` named. */
     data object Sited : Fate
+
+    /** The page of the part the word at [member] named, said after it: `landmass` in `insular landmass`. */
+    data class Names(val member: Int) : Fate
 }

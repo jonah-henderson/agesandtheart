@@ -42,8 +42,8 @@ book =
 # `and`: two things laid together, so the world visibly holds both — two landforms in one country, two
 # stones in one monument. A member says its own part of the world, so no aiming page follows one.
 mingled_age =
-    age [landform_pair] [material_pair] [shape] [colour] sky [colour] clouds@3
-    | age [landform_pair] [material_pair] [shape] [night]@2
+    age [landform_pair] landmass [material_pair] [shape] [colour] sky [colour] clouds@3
+    | age [landform_pair] landmass [material_pair] [shape] [night]@2
     | age archipelagic and pillared [semiprecious] arches [colour] waters [colour] sky
     | age canyoned and shattered red_sand surface sandfall orange sky
     | wondrous age skyborne and archipelagic [night]
@@ -59,7 +59,7 @@ singled_age =
     | uncanny age only pale_garden green sky red sun
     | age only desert and badlands amethyst_block spikes sandfall orange sky
     | age only desert colossal sun orange sky
-    | age only plains slime_block surface meteors [colour] sky
+    | age only plains slime_block surface meteors phenomena [colour] sky
 
 # `no`: something a world would have, left out where a visitor would miss it.
 spared_age =
@@ -122,19 +122,19 @@ wonder_age =
     age only badlands red_sand surface sandfall orange sky
     | age snow_block surface inferno phenomena only snowy_plains
     | age prismatic rainbow purple sky only cherry_grove
-    | age [land] lattice glowstone and shroomlight veins
+    | age [land] lattice underground glowstone and shroomlight veins
     | age [land] delved underground glowstone and shroomlight veins
-    | age colossal chambered only lush_caves
+    | age colossal chambered underground only lush_caves
     | age floating landmass hollow underground [colour] sky only plains
     | wondrous age skyborne bright stars [aurora_colour] aurora only plains
 
 # Danger in common ink: a hostile crowd and a phenomenon that falls on whoever is out in it. Each pairs a
 # creature with the weather it suits. Scored 0.32 at the least against a threshold of 0.25.
 beset_age =
-    age [land] teeming [monster] meteors lightless sky
-    | age [land] teeming zombie and skeleton tempest
-    | age [land] plentiful zombie and skeleton meteors
-    | age [land] teeming husk scorching climate meteors
+    age [land] teeming [monster] meteors phenomena lightless sky
+    | age [land] teeming zombie and skeleton tempest phenomena
+    | age [land] plentiful zombie and skeleton meteors phenomena
+    | age [land] teeming husk scorching climate meteors phenomena
     | age [land] teeming stray frozen climate blizzard phenomena
     | age [land] teeming spider deluge phenomena
 
@@ -166,9 +166,13 @@ shape = spikes | obelisks | arches | pyramids | rings
 
 night = bright stars | [aurora_colour] aurora | small moon | colossal moon
 
-land = gentle | eroded | continental | archipelagic | insular | mountainous | riverine | canyoned | pillared
+land = [landform] landmass
 
-warm_land = insular | archipelagic | gentle | riverine
+landform = gentle | eroded | continental | archipelagic | insular | mountainous | riverine | canyoned | pillared
+
+warm_land = [warm_landform] landmass
+
+warm_landform = insular | archipelagic | gentle | riverine
 
 hot_stone = netherrack | magma_block
 

@@ -19,8 +19,8 @@
       {"produce":["[herded_age]"]}
     ],
     "mingled_age": [
-      {"weight":3.0,"produce":["age","[landform_pair]","[material_pair]","[shape]","[colour]","sky","[colour]","clouds"]},
-      {"weight":2.0,"produce":["age","[landform_pair]","[material_pair]","[shape]","[night]"]},
+      {"weight":3.0,"produce":["age","[landform_pair]","landmass","[material_pair]","[shape]","[colour]","sky","[colour]","clouds"]},
+      {"weight":2.0,"produce":["age","[landform_pair]","landmass","[material_pair]","[shape]","[night]"]},
       {"produce":["age","archipelagic","and","pillared","[semiprecious]","arches","[colour]","waters","[colour]","sky"]},
       {"produce":["age","canyoned","and","shattered","red_sand","surface","sandfall","orange","sky"]},
       {"produce":["wondrous","age","skyborne","and","archipelagic","[night]"]},
@@ -35,7 +35,7 @@
       {"produce":["uncanny","age","only","pale_garden","green","sky","red","sun"]},
       {"produce":["age","only","desert","and","badlands","amethyst_block","spikes","sandfall","orange","sky"]},
       {"produce":["age","only","desert","colossal","sun","orange","sky"]},
-      {"produce":["age","only","plains","slime_block","surface","meteors","[colour]","sky"]}
+      {"produce":["age","only","plains","slime_block","surface","meteors","phenomena","[colour]","sky"]}
     ],
     "spared_age": [
       {"weight":2.0,"produce":["age","[land]","no","monsters","bright","stars","colossal","moon"]},
@@ -88,17 +88,17 @@
       {"produce":["age","only","badlands","red_sand","surface","sandfall","orange","sky"]},
       {"produce":["age","snow_block","surface","inferno","phenomena","only","snowy_plains"]},
       {"produce":["age","prismatic","rainbow","purple","sky","only","cherry_grove"]},
-      {"produce":["age","[land]","lattice","glowstone","and","shroomlight","veins"]},
+      {"produce":["age","[land]","lattice","underground","glowstone","and","shroomlight","veins"]},
       {"produce":["age","[land]","delved","underground","glowstone","and","shroomlight","veins"]},
-      {"produce":["age","colossal","chambered","only","lush_caves"]},
+      {"produce":["age","colossal","chambered","underground","only","lush_caves"]},
       {"produce":["age","floating","landmass","hollow","underground","[colour]","sky","only","plains"]},
       {"produce":["wondrous","age","skyborne","bright","stars","[aurora_colour]","aurora","only","plains"]}
     ],
     "beset_age": [
-      {"produce":["age","[land]","teeming","[monster]","meteors","lightless","sky"]},
-      {"produce":["age","[land]","teeming","zombie","and","skeleton","tempest"]},
-      {"produce":["age","[land]","plentiful","zombie","and","skeleton","meteors"]},
-      {"produce":["age","[land]","teeming","husk","scorching","climate","meteors"]},
+      {"produce":["age","[land]","teeming","[monster]","meteors","phenomena","lightless","sky"]},
+      {"produce":["age","[land]","teeming","zombie","and","skeleton","tempest","phenomena"]},
+      {"produce":["age","[land]","plentiful","zombie","and","skeleton","meteors","phenomena"]},
+      {"produce":["age","[land]","teeming","husk","scorching","climate","meteors","phenomena"]},
       {"produce":["age","[land]","teeming","stray","frozen","climate","blizzard","phenomena"]},
       {"produce":["age","[land]","teeming","spider","deluge","phenomena"]}
     ],
@@ -145,6 +145,9 @@
       {"produce":["colossal","moon"]}
     ],
     "land": [
+      {"produce":["[landform]","landmass"]}
+    ],
+    "landform": [
       {"produce":["gentle"]},
       {"produce":["eroded"]},
       {"produce":["continental"]},
@@ -156,6 +159,9 @@
       {"produce":["pillared"]}
     ],
     "warm_land": [
+      {"produce":["[warm_landform]","landmass"]}
+    ],
+    "warm_landform": [
       {"produce":["insular"]},
       {"produce":["archipelagic"]},
       {"produce":["gentle"]},
