@@ -74,6 +74,7 @@ class WritersDeskMenu(
             capabilities = capabilities.capabilities,
             pageLimit = capabilities.pageLimit,
             template = text,
+            name = desk.nameFor(player.uuid),
             read = read,
             toWrite = allocation.toWrite.map { pricePage(player, it) },
             drawn = allocation.drawn,

@@ -60,6 +60,7 @@ object DeskCommands {
         val menu = player.containerMenu as? WritersDeskMenu ?: return
         val desk = menu.deskOf(player) ?: return
         desk.setTemplate(player.uuid, payload.text)
+        desk.setName(player.uuid, payload.name)
         sync(player, menu, desk)
     }
 
@@ -80,6 +81,7 @@ object DeskCommands {
                 capabilities = capabilities.capabilities,
                 pageLimit = capabilities.pageLimit,
                 template = "",
+                name = "",
                 read = emptyList(),
                 toWrite = emptyList(),
                 drawn = 0,
@@ -138,6 +140,7 @@ object DeskCommands {
         PreviewedAges.claim(player, words, player.writingSeed, payload.title.trim())
             ?.let { book.set(AgeComponents.AGE_ID, it) }
         desk.setTemplate(player.uuid, "")
+        desk.setName(player.uuid, "")
         // Straight to the writer: there is no slot to lift it out of, since nothing is handled at the desk.
         player.inventory.placeItemBackInInventory(book, Prediction.SERVER_ONLY)
         // The earliest an Age can be made ready: the writer is still at the desk, so the terrain is

@@ -85,6 +85,9 @@ object DeskModel {
     /** The template the server last read, and what it read it as. */
     fun template(): String? = state?.template
 
+    /** What the writer last called the Age at this desk. */
+    fun name(): String = state?.name.orEmpty()
+
     fun read(): List<ReadWord> = state?.read.orEmpty()
 
     fun toWrite(): List<PagePrice> = state?.toWrite.orEmpty()

@@ -41,6 +41,8 @@ data class DeskSyncPayload(
     val pageLimit: Int?,
     /** The text these were read from, so a screen can tell a reading of what it now shows from a stale one. */
     val template: String,
+    /** What the writer last called the Age here. */
+    val name: String,
     val read: List<ReadWord>,
     /** One price per page no archive or inventory holds, in order. */
     val toWrite: List<PagePrice>,
@@ -92,6 +94,7 @@ data class DeskSyncPayload(
                 CAPABILITY_STREAM.apply(ByteBufCodecs.list()).encode(buffer, value.capabilities.toList())
                 ByteBufCodecs.optional(ByteBufCodecs.VAR_INT).encode(buffer, java.util.Optional.ofNullable(value.pageLimit))
                 ByteBufCodecs.stringUtf8(DeskTemplatePayload.MAX_TEMPLATE).encode(buffer, value.template)
+                ByteBufCodecs.stringUtf8(DeskBindPayload.MAX_TITLE).encode(buffer, value.name)
                 ReadWord.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buffer, value.read)
                 PagePrice.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buffer, value.toWrite)
                 ByteBufCodecs.VAR_INT.encode(buffer, value.drawn)
@@ -107,6 +110,7 @@ data class DeskSyncPayload(
                     capabilities = CAPABILITY_STREAM.apply(ByteBufCodecs.list()).decode(buffer).toSet(),
                     pageLimit = ByteBufCodecs.optional(ByteBufCodecs.VAR_INT).decode(buffer).orElse(null),
                     template = ByteBufCodecs.stringUtf8(DeskTemplatePayload.MAX_TEMPLATE).decode(buffer),
+                    name = ByteBufCodecs.stringUtf8(DeskBindPayload.MAX_TITLE).decode(buffer),
                     read = ReadWord.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buffer),
                     toWrite = PagePrice.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buffer),
                     drawn = ByteBufCodecs.VAR_INT.decode(buffer),
@@ -138,8 +142,8 @@ data class DeskNoticePayload(val reason: String) : CustomPacketPayload {
     }
 }
 
-/** What the writer has typed, sent as it changes. The desk reads it and answers with a [DeskSyncPayload]. */
-data class DeskTemplatePayload(val text: String) : CustomPacketPayload {
+/** What the writer has typed and named the Age, sent as it changes. The desk reads it and answers with a [DeskSyncPayload]. */
+data class DeskTemplatePayload(val text: String, val name: String) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<DeskTemplatePayload> = TYPE
 
@@ -151,8 +155,11 @@ data class DeskTemplatePayload(val text: String) : CustomPacketPayload {
         /** Room for a long book, and short enough that nobody can send a novel. */
         const val MAX_TEMPLATE = 4096
 
-        val STREAM_CODEC: StreamCodec<ByteBuf, DeskTemplatePayload> =
-            ByteBufCodecs.stringUtf8(MAX_TEMPLATE).map(::DeskTemplatePayload, DeskTemplatePayload::text)
+        val STREAM_CODEC: StreamCodec<ByteBuf, DeskTemplatePayload> = StreamCodec.composite(
+            ByteBufCodecs.stringUtf8(MAX_TEMPLATE), DeskTemplatePayload::text,
+            ByteBufCodecs.stringUtf8(DeskBindPayload.MAX_TITLE), DeskTemplatePayload::name,
+            ::DeskTemplatePayload,
+        )
     }
 }
 

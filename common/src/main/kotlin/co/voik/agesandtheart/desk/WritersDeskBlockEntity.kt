@@ -35,10 +35,20 @@ class WritersDeskBlockEntity(pos: BlockPos, state: BlockState) :
      */
     private val templates = mutableMapOf<UUID, String>()
 
+    /** What each writer means to call the Age, kept beside the template and cleared with it at the bind. */
+    private val names = mutableMapOf<UUID, String>()
+
     fun templateFor(writer: UUID): String = templates[writer].orEmpty()
+
+    fun nameFor(writer: UUID): String = names[writer].orEmpty()
 
     fun setTemplate(writer: UUID, text: String) {
         if (text.isBlank()) templates.remove(writer) else templates[writer] = text
+        setChanged()
+    }
+
+    fun setName(writer: UUID, name: String) {
+        if (name.isBlank()) names.remove(writer) else names[writer] = name
         setChanged()
     }
 
@@ -110,17 +120,21 @@ class WritersDeskBlockEntity(pos: BlockPos, state: BlockState) :
         stores = input.read(STORES_KEY, DeskStores.CODEC).orElse(DeskStores.EMPTY)
         templates.clear()
         templates.putAll(input.read(TEMPLATES_KEY, TEMPLATES_CODEC).orElse(emptyMap()))
+        names.clear()
+        names.putAll(input.read(NAMES_KEY, TEMPLATES_CODEC).orElse(emptyMap()))
     }
 
     override fun saveAdditional(output: ValueOutput) {
         super.saveAdditional(output)
         output.store(STORES_KEY, DeskStores.CODEC, stores)
         if (templates.isNotEmpty()) output.store(TEMPLATES_KEY, TEMPLATES_CODEC, templates.toMap())
+        if (names.isNotEmpty()) output.store(NAMES_KEY, TEMPLATES_CODEC, names.toMap())
     }
 
     private companion object {
         const val STORES_KEY = "stores"
         const val TEMPLATES_KEY = "templates"
+        const val NAMES_KEY = "names"
 
         val TEMPLATES_CODEC: Codec<Map<UUID, String>> = Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.STRING)
     }

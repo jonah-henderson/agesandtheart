@@ -154,6 +154,7 @@ class WritersDeskScreen(
         ageName.setHint(translated("name"))
         ageName.setMaxLength(DeskBindPayload.MAX_TITLE)
         ageName.value = keptName
+        ageName.setResponder { unsentFor = 0 }
         addRenderableWidget(ageName)
 
         editor = TemplateEditor(font, columnWidth, 0, translated("template_hint"), ::marks)
@@ -284,6 +285,7 @@ class WritersDeskScreen(
         if (seeded) return
         val kept = DeskModel.template() ?: return
         if (editor.value.isEmpty()) editor.value = kept
+        if (ageName.value.isEmpty()) ageName.value = DeskModel.name()
         seeded = true
         unsentFor = null
     }
@@ -291,7 +293,7 @@ class WritersDeskScreen(
     private fun sendTemplateNow() {
         if (unsentFor == null) return
         unsentFor = null
-        sendToServer(DeskTemplatePayload(editor.value))
+        sendToServer(DeskTemplatePayload(editor.value, ageName.value))
     }
 
     /** By name and by rarity always, and by what each applies to with the grammar guide in the room. */
