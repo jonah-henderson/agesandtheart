@@ -344,7 +344,11 @@ data class Vocabulary(
                 (tags[aspect] ?: PresetTags(emptyMap())).over(derivedTags[aspect].orEmpty())
             }.filterValues { it.described.isNotEmpty() }
             val materials = materialTable(resources, registries, problems)
-            val words = derived(fromContent) + authored + pages
+            // **Authored wins a collision under every name**, the full id included: our own placed features share
+            // their ids with the words minting them, and the derived word left under `agesandtheart:arches` was a
+            // second word of one id, which the lexicon's cache, keyed by id, would answer for both.
+            val authoredIds = authored.values.map { it.id }.toSet()
+            val words = derived(fromContent.filterNot { it.id in authoredIds }) + authored + pages
             val structural = readStructurePages(resources, problems)
             val script = Script.load(resources, problems)
             val rarity = WordRarity.load(resources, problems)

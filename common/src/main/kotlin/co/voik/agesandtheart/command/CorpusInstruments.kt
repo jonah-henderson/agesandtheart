@@ -42,6 +42,32 @@ internal object CorpusInstruments {
             .then(bookSubcommand())
             .then(booksSubcommand())
             .then(draftSubcommand())
+            .then(appliesSubcommand())
+    }
+
+    private const val HEADING_ARGUMENT = "heading"
+
+    /** `/age applies <word>` — what a word list ordered by what words apply to lists under [HEADING_ARGUMENT]. */
+    private fun appliesSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("applies") { reportFor ->
+            Commands.argument(HEADING_ARGUMENT, StringArgumentType.word())
+                .executes { context -> runApplies(context, reportFor(context)) }
+        }
+
+    /** How many words apply to the heading and whether it is one, with every authored one by name and the rest counted. */
+    private fun runApplies(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val vocabulary = Vocabulary.of(context.source.server)
+        val named = StringArgumentType.getString(context, HEADING_ARGUMENT)
+        val heading = vocabulary.word(named) ?: return report.fail("No word called '$named'")
+        val under = vocabulary.appliesTo.filterValues { heading.id in it }.keys
+        val (authored, derived) = under.partition { vocabulary.word(it)?.let(vocabulary::isDerived) == false }
+        val acceptance = vocabulary.lexicon.acceptance(heading)
+        report.fact("heading", heading.id.toString()) { "${heading.id}: ${under.size} apply (${derived.size} derived)" }
+        report.fact("derived", vocabulary.isDerived(heading)) { "  derived heading: ${vocabulary.isDerived(heading)}, takes: $acceptance" }
+        report.only("authored", authored.map { it.path }.sorted())
+        report.say { "  ${authored.map { it.path }.sorted().joinToString(" ")}" }
+        report.finish()
+        return SUCCESS
     }
 
     /** `/age tags <aspect> [tag]`. */
