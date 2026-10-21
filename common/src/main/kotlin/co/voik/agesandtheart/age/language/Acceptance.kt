@@ -35,11 +35,19 @@ data class Acceptance(
     val takesAbundance: Boolean,
     /** Whether this mints a feature, so that a substance taken is what the feature is made of. */
     val mints: Boolean = false,
+    /** A part of the world the page speaks for as well, taking what this one does not — the sea's for the waters. */
+    val companion: Acceptance? = null,
 ) {
     fun takesParameter(name: String): Boolean = name in parameters
 
-    /** [effect] as it lands here, or null where this does not take it. */
-    fun take(effect: Effect): Effect? {
+    /** Where [effect] lands from this page and as what, or null where neither this nor its [companion] takes it. */
+    fun landing(effect: Effect): Pair<Place, Effect>? =
+        takenHere(effect)?.let { place to it } ?: companion?.landing(effect)
+
+    /** [effect] as it lands from this page, or null where nothing here takes it. */
+    fun take(effect: Effect): Effect? = landing(effect)?.second
+
+    private fun takenHere(effect: Effect): Effect? {
         fun onThisAspect(aspect: Aspect) = aspect == place.aspect
         return when (effect) {
             is Effect.Sets -> when {
@@ -76,9 +84,12 @@ data class Acceptance(
                 takesChoices = holdsMembersToChoose,
                 takesLeans = holdsMembersToChoose,
                 takesSubstance = aspect.madeOfSomething,
-                takesAbundance = aspect.count != null,
+                takesAbundance = aspect.count != null || aspect in COUNTED_WHOLE,
             )
         }
+
+        /** The populations a quantifier counts whole — `teeming spawns`, `few structures` — every member at once. */
+        private val COUNTED_WHOLE = setOf(Aspect.FEATURES, Aspect.STRUCTURES, Aspect.SPAWNS)
 
         /**
          * What a word naming [member] takes: the dials it honours of those its aspect holds member by member, and

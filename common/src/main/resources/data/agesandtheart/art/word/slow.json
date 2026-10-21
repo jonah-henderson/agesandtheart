@@ -36,6 +36,12 @@
         "moon.pace": "-1.0..-0.6",
         "phenomena.pace": "-1.0..-0.6"
       }
+    },
+    {
+      "sets": {
+        "clouds.pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
     }
   ]
 }

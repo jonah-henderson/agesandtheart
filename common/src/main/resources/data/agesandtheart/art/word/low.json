@@ -16,6 +16,16 @@
         "relief": "-1.0..-0.5"
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "path": "polar"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sun",
+        "moon"
+      ]
     }
   ]
 }

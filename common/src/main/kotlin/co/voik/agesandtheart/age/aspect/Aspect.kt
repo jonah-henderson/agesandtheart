@@ -311,7 +311,8 @@ enum class Aspect(
             BIOMES -> listOf(Biomes.FOOTING, Biomes.SIZE)
             SURFACE -> listOf(Surface.MATERIAL, Surface.BARE)
             FEATURES -> listOf(
-                Features.SIZE, Features.THICKNESS, Features.HEIGHT, Features.UNIFORM, Features.BARE, Features.INCONGRUOUS,
+                Features.SIZE, Features.THICKNESS, Features.HEIGHT, Features.UNIFORM, Features.BARE, Features.FOLIAGE,
+                Features.INCONGRUOUS,
             )
             AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE, Atmosphere.DRAINED)
             WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR)
@@ -321,7 +322,7 @@ enum class Aspect(
                 SkyBodies.STILL, SkyBodies.BODYPACE, Parameter.cast(),
             )
             MOON -> listOf(
-                SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.RISING, SkyBodies.PATH, SkyBodies.PULL,
+                SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.MOONCOLOUR, SkyBodies.RISING, SkyBodies.PATH, SkyBodies.PULL,
                 SkyBodies.STILL, SkyBodies.BODYPACE, Parameter.cast(),
             )
             STARS -> listOf(SkyBodies.STARS, SkyBodies.STARGLOW, Atmosphere.FADES)
@@ -352,12 +353,12 @@ enum class Aspect(
                 Drift.SHIFTING,
                 Drift.PACE,
             )
-            CLOUD -> listOf(Atmosphere.CLOUD, Atmosphere.CEILING, Atmosphere.CLOUDS_ABSENT)
+            CLOUD -> listOf(Atmosphere.CLOUD, Atmosphere.CEILING, Atmosphere.CLOUDS_ABSENT, Atmosphere.CLOUDPACE, Atmosphere.CLOUDS_STILL)
             GRAVITY -> listOf(Gravity.PULL)
             SEA -> listOf(Sea.DEPTH)
             // What holds of every landform and every creature, whichever is seated or lives there.
             TERRAIN -> listOf(Terrain.TORN, Terrain.INCONGRUOUS, Terrain.FORMER_SIZES)
-            SPAWNS -> listOf(Spawns.STILL, Spawns.CHARGED, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS)
+            SPAWNS -> listOf(Spawns.STILL, Spawns.CHARGED, Spawns.WOOL, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS)
             STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL)
             // **Nothing of its own**: each phenomenon carries the dials it has (`Phenomenon.parameters`), since an
             // inferno has no "how often" and only the overgrowth grows.

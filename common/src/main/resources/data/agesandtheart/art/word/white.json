@@ -61,6 +61,39 @@
         }
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "leaves.colour": "white"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "trees"
+      ]
+    },
+    {
+      "sets": {
+        "stone": "#white"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "rock"
+      ]
+    },
+    {
+      "sets": {
+        "air.colour": "white"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "fog"
+      ]
+    },
+    {
+      "sets": {
+        "wool": "white"
+      },
+      "unaimed_chance_to_apply": 0.0
     }
   ]
 }

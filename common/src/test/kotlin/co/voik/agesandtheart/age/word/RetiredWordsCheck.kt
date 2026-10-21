@@ -24,10 +24,14 @@ class RetiredWordsCheck : FunSpec({
 
     test("a retired word reads as its successor, by bare name or by id") {
         check(vocabulary.word("glimmering") === vocabulary.word("bright")) { "'glimmering' no longer reads as 'bright'" }
-        check(vocabulary.word("drowned") === vocabulary.word("flooded")) { "'drowned' reads as the creature, not as 'flooded'" }
+        check(vocabulary.word("agesandtheart:drowned") === vocabulary.word("flooded")) { "'agesandtheart:drowned' is not 'flooded'" }
         check(vocabulary.word("agesandtheart:restless") === vocabulary.word("frequent")) {
             "'agesandtheart:restless' no longer reads as 'frequent'"
         }
+    }
+
+    test("a name a live word answers to is that word, though a word of ours was retired from it") {
+        check(vocabulary.word("drowned")?.id?.toString() == "minecraft:drowned") { "'drowned' is not the creature" }
     }
 
     test("a learned set is carried over, in place, without a repeat") {

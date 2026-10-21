@@ -12,6 +12,17 @@
         "humidity": "+0.3"
       },
       "must_always_apply": true
+    },
+    {
+      "bends": {
+        "temperature": "+0.25",
+        "humidity": "+0.3"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "air",
+        "weather"
+      ]
     }
   ]
 }

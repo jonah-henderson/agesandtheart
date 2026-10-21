@@ -50,6 +50,10 @@ object Spawns {
     val CHARGED = Parameter.flag("charged", help = "Whether creepers come charged.")
         .perMember(MemberHonouring { member, _ -> member.key == CREEPER })
 
+    /** What colour a sheep comes into the Age wearing — `black sheep` — or [Parameter.DEFAULT] for its own. */
+    val WOOL = Sky.colour("wool", "The colour of the sheep's wool.")
+        .perMember(MemberHonouring { member, _ -> member.key == SHEEP })
+
     /**
      * Whether any creature the Age offers may turn up anywhere, past its own placement rules — fish on hillsides,
      * monsters at noon — `incongruous spawns`. Scarabs keep their own rules.
@@ -395,6 +399,8 @@ object Spawns {
     private const val MOST_OFTEN = 1000
 
     private const val CREEPER = "minecraft:creeper"
+
+    private const val SHEEP = "minecraft:sheep"
 
     private fun idOf(type: EntityType<*>): Identifier = BuiltInRegistries.ENTITY_TYPE.getKey(type)
 }

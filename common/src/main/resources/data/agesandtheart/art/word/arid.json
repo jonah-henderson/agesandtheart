@@ -73,6 +73,13 @@
       "sets": {
         "weather.frequency": "-1.0..-0.5"
       }
+    },
+    {
+      "leans": {
+        "spawns": {
+          "#dry": 0.8
+        }
+      }
     }
   ]
 }

@@ -439,7 +439,8 @@ When shared code needs something loader-specific, it goes through an interface, 
   found by name: 26.3 slid a local in front of an ordinal there and nothing failed.
 - **`FeaturePlacerMixin`**, **`TreeFeatureMixin`** and **`JigsawPlacementMixin`** — what the strange tier does to
   new ground (`StrangeGround`): every feature drawn from one random per feature, trees handed a foliage setter
-  that places nothing, and a village's start drawn from its pool's abandoned pieces. Each is the one call where
+  that places nothing — or, where a book grew them of a block (`diamond_block trees`), one that places that block in
+  each leaf's stead — and a village's start drawn from its pool's abandoned pieces. Each is the one call where
   the thing is decided, and neither loader has a placement, tree or jigsaw event. All three answer off
   thread-locals the Age's generator sets around its own decoration and structure starts, so they cost one read
   anywhere else.

@@ -58,6 +58,34 @@
         }
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "stone": "#molten"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "rock"
+      ]
+    },
+    {
+      "admits": {
+        "features": [
+          "agesandtheart:volcano",
+          "agesandtheart:firespout",
+          "agesandtheart:magma_chamber",
+          "agesandtheart:lava_tubes"
+        ]
+      },
+      "leans": {
+        "features": {
+          "#molten": 1.0
+        }
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "landmass"
+      ]
     }
   ]
 }

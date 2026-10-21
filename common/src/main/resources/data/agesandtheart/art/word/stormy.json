@@ -27,6 +27,20 @@
         "clouds.colour": "grey"
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "weather.frequency": "0.6..1.0",
+        "thunder": "0.6..1.0",
+        "clouds.ceiling": "-0.7..-0.3",
+        "clouds.colour": "grey"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky",
+        "sea",
+        "waters"
+      ]
     }
   ]
 }

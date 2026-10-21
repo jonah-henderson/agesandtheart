@@ -59,6 +59,21 @@ class MemberScopingCheck : FunSpec({
         }
     }
 
+    test("black sheep are black, and nothing else is dyed") {
+        val spawns = aimed(SEEDS.first, "black", "sheep").optionsFor(Aspect.SPAWNS)
+        check(spawns.of(Spawns.WOOL, member = SHEEP) == "black") { "'black sheep' left the sheep ${spawns.of(Spawns.WOOL, member = SHEEP)}" }
+        check(aimed(SEEDS.first, "black", "age").optionsFor(Aspect.SPAWNS).of(Spawns.WOOL, member = SHEEP) != "black") {
+            "a black Age dyed its sheep"
+        }
+    }
+
+    test("trees said of a block grow it in place of their leaves, and a block laid bare leaves the trees alone") {
+        val features = aimed(SEEDS.first, "diamond_block", "oak").optionsFor(Aspect.FEATURES)
+        check(features.of(Features.FOLIAGE, member = OAK) == DIAMOND) { "'diamond_block oak' grew ${features.of(Features.FOLIAGE, member = OAK)}" }
+        val bare = aimed(SEEDS.first, "diamond_block", "age").optionsFor(Aspect.FEATURES)
+        check(bare.of(Features.FOLIAGE, member = OAK) != DIAMOND) { "a diamond Age grew its trees of diamond" }
+    }
+
     test("motionless spawns root everything") {
         val spawns = aimed(SEEDS.first, "motionless", "spawns").optionsFor(Aspect.SPAWNS)
         check(spawns.isTrue(Spawns.STILL, member = COW)) { "'motionless spawns' left a cow walking" }
@@ -97,4 +112,7 @@ private val SEEDS = 0L..<10L
 private const val ZOMBIE = "minecraft:zombie"
 private const val COW = "minecraft:cow"
 private const val CREEPER = "minecraft:creeper"
+private const val SHEEP = "minecraft:sheep"
+private const val OAK = "minecraft:oak"
+private const val DIAMOND = "minecraft:diamond_block"
 private const val ORE_FEATURE = "minecraft:ore_"

@@ -61,6 +61,7 @@ object Sky {
             stars = starsKeptByDay(drawn.stars, parts.optionsFor(Aspect.STARS)),
             aurora = AuroraAspect.auroraIn(parts, seed),
             rainbow = RainbowAspect.rainbowIn(parts, seed),
+            cloudPace = Atmosphere.cloudPaceOf(parts.optionsFor(Aspect.CLOUD), seed),
         )
     }
 

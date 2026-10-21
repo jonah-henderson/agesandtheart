@@ -3,6 +3,7 @@ package co.voik.agesandtheart.generation
 import co.voik.agesandtheart.worldgen.DeepWrecks
 import net.minecraft.world.level.LevelReader
 import co.voik.agesandtheart.age.aspect.Rung
+import co.voik.agesandtheart.age.aspect.TreeFoliage
 import co.voik.agesandtheart.age.consequence.StrangeGround
 import co.voik.agesandtheart.worldgen.feature.FreeForAll
 import co.voik.agesandtheart.worldgen.Dislocation
@@ -202,6 +203,8 @@ class AgeChunkGenerator(
     private val vanillasSeaSurfaceY: Int? = null,
     /** What the book built this Age's structures of — see [StructureMaterials]. Not serialised, like [lives]. */
     private val structuresBuiltOf: StructureMaterials.Written = StructureMaterials.Written.NONE,
+    /** What the book grew this Age's trees with in place of their leaves. Not serialised, like [lives]. */
+    private val treesGrownWith: TreeFoliage = TreeFoliage.NONE,
     /** Whether no new living thing may be made in this Age by anything at all — see [Lifeless]. */
     val nothingLives: Boolean = false,
     /**
@@ -1542,7 +1545,7 @@ class AgeChunkGenerator(
      */
     override fun applyBiomeDecoration(level: WorldGenLevel, chunk: ChunkAccess, structures: StructureManager) {
         val placedFeatures = level.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
-        StrangeGround.decorating(consequence, level.seed, { placedFeatures.getKey(it)?.toString() }) {
+        StrangeGround.decorating(consequence, treesGrownWith, level.seed, { placedFeatures.getKey(it)?.toString() }) {
             StructureMaterials.building(structuresBuiltOf, level.registryAccess()) {
                 super.applyBiomeDecoration(level, chunk, structures)
             }

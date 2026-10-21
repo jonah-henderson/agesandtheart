@@ -14,7 +14,9 @@ import net.minecraft.world.entity.Mob
 import net.minecraft.world.entity.ai.attributes.Attribute
 import net.minecraft.world.entity.ai.attributes.AttributeModifier
 import net.minecraft.world.entity.ai.attributes.Attributes
+import net.minecraft.world.entity.animal.sheep.Sheep
 import net.minecraft.world.entity.monster.Creeper
+import net.minecraft.world.item.DyeColor
 import net.minecraft.util.RandomSource
 import net.minecraft.world.item.ItemStack
 import kotlin.math.pow
@@ -22,7 +24,8 @@ import kotlin.math.pow
 /**
  * What a book wrote of how its creatures move and how strong they are, member by member — `slow monsters`,
  * `strong spawns`. Laid on as each creature enters the Age, as [StillCreatures] roots them, and transient, so a
- * creature carried out of the Age is its own again — but for a creeper's charge, which is vanilla's own and stays.
+ * creature carried out of the Age is its own again — but for a creeper's charge and a sheep's wool, which are vanilla's
+ * own and stay.
  */
 object WrittenCreatures {
 
@@ -33,6 +36,7 @@ object WrittenCreatures {
         val spawns = recipe.composition?.optionsFor(Aspect.SPAWNS) ?: return
         val kind = BuiltInRegistries.ENTITY_TYPE.getKey(mob.type).toString()
         if (mob is Creeper && spawns.isTrue(Spawns.CHARGED, member = kind)) mob.entityData.set(Creeper.DATA_IS_POWERED, true)
+        if (mob is Sheep) dyeOnce(mob, spawns.of(Spawns.WOOL, member = kind))
         spawns.steer(Spawns.PACE, recipe.seed, member = kind)?.let { pace ->
             for (attribute in MOVING) changeBy(mob, attribute, PACED, paceAt(pace) - AS_IT_IS)
         }
@@ -47,6 +51,22 @@ object WrittenCreatures {
             mob.health = if (wasWhole) mob.maxHealth else mob.health.coerceAtMost(mob.maxHealth)
         }
     }
+
+    /** [sheep] dyed the colour its Age wrote, the first time it is here only, so a sheep dyed since keeps its dye. */
+    private fun dyeOnce(sheep: Sheep, written: String) {
+        val dye = DYES[written] ?: return
+        if (!sheep.addTag(WOOL_WRITTEN)) return
+        sheep.color = dye
+    }
+
+    /** Our colours as wool comes in: indigo is the nearest dye there is to it. */
+    private val DYES: Map<String, DyeColor> = mapOf(
+        "red" to DyeColor.RED, "orange" to DyeColor.ORANGE, "yellow" to DyeColor.YELLOW, "green" to DyeColor.GREEN,
+        "blue" to DyeColor.BLUE, "purple" to DyeColor.PURPLE, "cyan" to DyeColor.CYAN, "indigo" to DyeColor.BLUE,
+        "magenta" to DyeColor.MAGENTA, "black" to DyeColor.BLACK, "white" to DyeColor.WHITE, "grey" to DyeColor.GRAY,
+    )
+
+    private const val WOOL_WRITTEN = "agesandtheart.wool_written"
 
     /** How many times its own size a creature of [size] is, and its health, its blow and its drops with it. */
     fun sizeAt(size: Double): Double = WIDEST_SIZE.pow(size)

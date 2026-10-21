@@ -3,6 +3,7 @@ package co.voik.agesandtheart.generation
 import co.voik.agesandtheart.worldgen.DeepWrecks
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Sea
+import co.voik.agesandtheart.age.aspect.TreeFoliage
 import co.voik.agesandtheart.worldgen.ruins.CavernRuins
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.WaterTable
@@ -411,6 +412,7 @@ object AgeGeneration {
             vanillasAbyss = vanillasAbyss,
             seaIsWater = seaIsWater,
             structuresBuiltOf = StructureMaterials.Written.of(composition.optionsFor(Aspect.STRUCTURES)),
+            treesGrownWith = TreeFoliage.of(composition.optionsFor(Aspect.FEATURES)),
             // What the Age's instability bought. Derived here rather than restated: these were three lines
             // recomputing `Consequence.of`'s own arithmetic, which is how a copy comes to drift from it.
             bought = Consequence.of(server, recipe),

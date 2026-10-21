@@ -34,8 +34,12 @@ object WordAcceptance {
     private fun pageOf(word: Word): Acceptance? {
         val isOurs = word.id.namespace == Constants.MOD_ID
         val aspect = Aspect.byPage(word.name)?.takeIf { isOurs } ?: return null
-        return Acceptance.ofAspect(aspect)
+        val synonym = SYNONYMS[aspect]?.let(Acceptance::ofAspect)
+        return Acceptance.ofAspect(aspect).copy(companion = synonym)
     }
+
+    /** Pages that mean one thing to a writer though the world keeps them apart: the sea and its waters. */
+    private val SYNONYMS = mapOf(Aspect.SEA to Aspect.WATERS, Aspect.WATERS to Aspect.SEA)
 
     private fun minting(word: Word, registries: HolderLookup.Provider?): Acceptance? {
         val appliesWhereAimed = word.meanings.filter { it.mustAlwaysApply || it.chanceToApply > Meaning.NEVER }

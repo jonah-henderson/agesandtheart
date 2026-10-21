@@ -13,6 +13,15 @@
       },
       "must_always_apply": true,
       "asserts": true
+    },
+    {
+      "sets": {
+        "sun.absent": "true"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky"
+      ]
     }
   ]
 }

@@ -10,7 +10,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 /**
- * Leaves a tree bare in an Age whose instability bought leafless trees ({@link StrangeGround#isLeafless}).
+ * Leaves a tree bare in an Age whose instability bought leafless trees ({@link StrangeGround#isLeafless}), and grows
+ * it with another block in place of each leaf where its book said so ({@link StrangeGround#grownWithItsFoliage}).
  *
  * <p><b>Why a mixin.</b> Every leaf a tree places goes through the one foliage setter {@code place} builds and
  * hands to {@code doPlace}; handing it one that places nothing leaves the trunk, branches, roots and
@@ -29,7 +30,7 @@ public abstract class TreeFeatureMixin {
         index = 5
     )
     private FoliagePlacer.FoliageSetter agesandtheart$bare(FoliagePlacer.FoliageSetter setter) {
-        return StrangeGround.isLeafless() ? BARE : setter;
+        return StrangeGround.isLeafless() ? BARE : StrangeGround.grownWithItsFoliage(setter);
     }
 
     private static final FoliagePlacer.FoliageSetter BARE = new FoliagePlacer.FoliageSetter() {

@@ -115,11 +115,10 @@ data class Vocabulary(
     val wordsByBucket: Map<RarityBucket?, List<Word>> by lazy { words.groupBy(rarity::bucketOf) }
 
     /**
-     * The word a writer means by [name], or null if the corpus has never heard of it. A retired name means what
-     * it became, even where a derived word answers to it now — `drowned` is still a flooded world, and the
-     * creature is `minecraft:drowned`, as it was while an authored word held the name.
+     * The word a writer means by [name], or null if the corpus has never heard of it. A word answering to the name
+     * now wins over one retired from it, so `drowned` is the creature; an id keeps its retirement ([successorId]).
      */
-    fun word(name: String): Word? = retired.successorOf(name)?.let(byName::get) ?: byName[name]
+    fun word(name: String): Word? = byName[name] ?: retired.successorOf(name)?.let(byName::get)
 
     /** The id [id] has become, where it is one of our words that was retired. */
     fun successorId(id: Identifier): Identifier? =

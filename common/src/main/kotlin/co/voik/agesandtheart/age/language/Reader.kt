@@ -185,7 +185,7 @@ object Reader {
             fun isOfferedHere(meaning: Meaning) = word.name in meaning.offeredTo
             for (page in taking) {
                 val taken = page.word.meanings.filter { !it.isOffered }.mapNotNull { meaning ->
-                    meaning.effects.mapNotNull(acceptance::take).distinct().takeIf { it.isNotEmpty() }?.let { meaning to it }
+                    takenFrom(meaning, acceptance, place).takeIf { it.isNotEmpty() }?.let { meaning to it }
                 }
                 val offered = page.word.meanings.filter(::isOfferedHere)
                 // A page the word before `and` took stays taken where this one takes none of it.
@@ -195,8 +195,10 @@ object Reader {
                 }
                 if (joinedTo == null) fates[page.index] = Fate.TakenBy(at)
                 val pageJoined = page.joined ?: joined
-                for ((meaning, effects) in taken) {
-                    claims += Claim(page.index, page.word, meaning, place, effects, clause = at, aimed = true, joined = pageJoined)
+                for ((meaning, landed) in taken) {
+                    for ((takenAt, effects) in landed) {
+                        claims += Claim(page.index, page.word, meaning, takenAt, effects, clause = at, aimed = true, joined = pageJoined)
+                    }
                 }
                 for (meaning in offered) {
                     for ((offeredPlace, effects) in offeredPlacesOf(meaning, acceptance, place)) {
@@ -243,12 +245,16 @@ object Reader {
             }
         }
 
-        /** An offered meaning lands whole: what [acceptance] takes of it at [place], the rest where it lies bare. */
+        /** What [acceptance] takes of [meaning] and where: at [place], or at the part its companion speaks for. */
+        private fun takenFrom(meaning: Meaning, acceptance: Acceptance, place: Place): List<Pair<Place, List<Effect>>> =
+            meaning.effects.mapNotNull(acceptance::landing)
+                .groupBy({ (landsAt, _) -> if (landsAt == acceptance.place) place else landsAt }, { (_, effect) -> effect })
+                .map { (landsAt, effects) -> landsAt to effects.distinct() }
+
+        /** An offered meaning lands whole: what [acceptance] takes of it where it takes it, the rest where it lies bare. */
         private fun offeredPlacesOf(meaning: Meaning, acceptance: Acceptance, place: Place): List<Pair<Place, List<Effect>>> {
-            val takenHere = meaning.effects.mapNotNull(acceptance::take).distinct()
             val untaken = meaning.effects.filter { acceptance.take(it) == null }
-            val atTheTaker = if (takenHere.isEmpty()) emptyList() else listOf(place to takenHere)
-            return atTheTaker + placesOf(meaning.copy(effects = untaken))
+            return takenFrom(meaning, acceptance, place) + placesOf(meaning.copy(effects = untaken))
         }
 
         private fun namesMembers(effect: Effect) = effect is Effect.Chooses || effect is Effect.Restricts

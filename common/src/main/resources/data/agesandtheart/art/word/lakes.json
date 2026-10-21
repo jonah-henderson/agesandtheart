@@ -1,8 +1,8 @@
 {
   "_comment": [
-    "A lake of something the world does not have one of. Shaped exactly like vanilla's own surface",
-    "lava lake -- its bowl, the barrier it lines it with, how often it comes and where -- and filled",
-    "with whatever the clause names: `ink lakes`, `water lakes`.",
+    "A lake, shaped exactly like vanilla's own surface lava lake -- its bowl, the barrier it lines it",
+    "with, how often it comes and where -- and filled with whatever the clause names: `ink lakes`,",
+    "`frozen lakes`. Named alone it is a lake of water, which is what a writer saying `lakes` means.",
     "",
     "The surface one rather than `lake_lava_underground`, because a pool a writer asks for is a pool",
     "they can see. The underground one is the same shape buried, and nothing yet says which of two",
@@ -17,7 +17,8 @@
   "meanings": [
     {
       "mints": {
-        "pattern": "minecraft:lake_lava_surface"
+        "pattern": "minecraft:lake_lava_surface",
+        "unstated": "minecraft:water"
       },
       "must_always_apply": true,
       "asserts": true

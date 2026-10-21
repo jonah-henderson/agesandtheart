@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.language
 import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.resolution.ParameterKey
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Surface
@@ -67,9 +68,11 @@ object DerivedWords {
         val theSkin = Effect.Sets(ParameterKey(Surface.MATERIAL.name, Aspect.SURFACE), block)
         val asTheGround = Meaning(if (isARock) listOf(theRock, theSkin) else listOf(theSkin), mustAlwaysApply = true)
         val asTheStructures = onlyWhereAimed(Effect.Sets(ParameterKey(Structures.MATERIAL.name, Aspect.STRUCTURES), block))
+        // A tree's leaves are set wherever the canopy reaches, so a block that pours would run from every one of them.
+        val asTheLeaves = if (pours) null else onlyWhereAimed(Effect.Sets(ParameterKey(Features.FOLIAGE.name, Aspect.FEATURES), block))
         val standsAsAFormation = isARock && !pours
         val asFormations = if (standsAsAFormation) FORMATIONS.map { raisedAs(it, block) } else emptyList()
-        return Word(id, listOfNotNull(asTheSea, asTheGround, asTheStructures) + asFormations, Speech.MASS)
+        return Word(id, listOfNotNull(asTheSea, asTheGround, asTheStructures, asTheLeaves) + asFormations, Speech.MASS)
     }
 
     /** One of [FORMATIONS] made of [block], now and then where the block is laid bare. */

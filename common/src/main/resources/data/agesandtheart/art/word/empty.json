@@ -11,6 +11,17 @@
         }
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.absent": "true",
+        "stars.density": "-1.0..-1.0",
+        "moon.absent": "true"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky"
+      ]
     }
   ]
 }

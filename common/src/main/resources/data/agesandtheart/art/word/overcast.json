@@ -21,6 +21,18 @@
         "clouds.colour": "grey"
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.ceiling": "-0.6..-0.2",
+        "air.haze": "0.1..0.4",
+        "clouds.colour": "grey"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky",
+        "weather"
+      ]
     }
   ]
 }

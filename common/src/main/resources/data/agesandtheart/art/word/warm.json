@@ -58,6 +58,17 @@
         "humidity": "+0.1"
       },
       "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "temperature": ">0.15"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "weather",
+        "sea",
+        "waters"
+      ]
     }
   ]
 }

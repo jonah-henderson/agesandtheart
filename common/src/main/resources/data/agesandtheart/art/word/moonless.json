@@ -10,6 +10,15 @@
       },
       "must_always_apply": true,
       "asserts": true
+    },
+    {
+      "sets": {
+        "moon.absent": "true"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky"
+      ]
     }
   ]
 }

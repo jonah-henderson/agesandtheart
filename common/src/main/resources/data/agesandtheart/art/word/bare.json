@@ -18,6 +18,15 @@
         "clouds.absent": "true"
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "surface.bare": "true"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "rock"
+      ]
     }
   ]
 }

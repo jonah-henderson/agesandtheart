@@ -126,6 +126,11 @@ object Features {
     val BARE = Parameter.flag("bare", help = "Whether the trees grow bare, with no leaves.")
         .perMember(honouredWhere { feature, _ -> FeatureShape.growsTrees(feature) })
 
+    /** The block trees grow in place of their leaves — `diamond_block trees`, `frozen trees` — where it is not leaves. */
+    val FOLIAGE = Parameter.material("foliage", help = "The block the trees grow in place of their leaves.")
+        .perMember(honouredWhere { feature, _ -> FeatureShape.growsTrees(feature) })
+        .onlyWhenAimed()
+
     val SIZE = Parameter.ranged(
         "size",
         help = "How big one of a thing is.",

@@ -6,6 +6,15 @@
       },
       "must_always_apply": true,
       "asserts": true
+    },
+    {
+      "sets": {
+        "stars.density": "-1.0..-1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky"
+      ]
     }
   ]
 }

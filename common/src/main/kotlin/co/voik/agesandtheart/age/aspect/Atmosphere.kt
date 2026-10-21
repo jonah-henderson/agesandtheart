@@ -11,6 +11,8 @@ import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.LevelLook
 import co.voik.ephemeris.sky.Look
 import co.voik.ephemeris.sky.RainLook
+import co.voik.ephemeris.sky.SkySpec
+import kotlin.math.pow
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 
@@ -163,6 +165,31 @@ object Atmosphere {
      * takes as no clouds and does not draw.
      */
     val CLOUDS_ABSENT = Parameter.flag("absent", help = "Whether there are no clouds at all.")
+
+    /** How fast the clouds drift — `slow clouds`, `swift clouds`. */
+    val CLOUDPACE = Parameter.ranged(
+        "pace",
+        help = "How fast the clouds drift.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "a quarter as fast"),
+            Parameter.Landmark(0.0, "vanilla's", isVanilla = true),
+            Parameter.Landmark(1.0, "four times as fast"),
+        ),
+    )
+
+    /** Whether the clouds hang where they are — `motionless clouds`. */
+    val CLOUDS_STILL = Parameter.flag("still", help = "Whether the clouds stand still.").onlyWhenAimed()
+
+    /** How many times vanilla's speed clouds said to be [clouds] drift at. */
+    fun cloudPaceOf(clouds: Options, seed: Long): Float = when {
+        clouds.isTrue(CLOUDS_STILL) -> HELD_STILL
+        else -> clouds.steer(CLOUDPACE, seed)?.let { CLOUD_PACE_RANGE.pow(it).toFloat() } ?: SkySpec.ORDINARY_CLOUD_PACE
+    }
+
+    /** How many times vanilla's speed the slowest and quickest clouds drift at, either way from vanilla's. */
+    private const val CLOUD_PACE_RANGE = 4.0
+
+    private const val HELD_STILL = 0.0f
 
     /** How high the clouds sit, on the same argument: one number a word bends. */
     val CEILING = Parameter.ranged(

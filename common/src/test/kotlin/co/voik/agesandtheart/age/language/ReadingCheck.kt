@@ -87,6 +87,30 @@ class ReadingCheck : FunSpec({
         check(bare.none { it.sets("glow") }) { "the sky's reading was laid on the Age\n${read("charged age").readout}" }
     }
 
+    test("the sea and the waters are one page to a writer, each taking what the other's part holds") {
+        val redSea = read("age red sea").landedBy(1)
+        check(redSea.any { it.place.aspect == Aspect.WATERS && it.sets("colour") }) { "a red sea is not red\n${read("age red sea").readout}" }
+        val deepWaters = read("age deep waters").landedBy(1)
+        check(deepWaters.any { it.place.aspect == Aspect.SEA && it.sets("depth") }) { "deep waters are not deep" }
+    }
+
+    test("a quantifier said of a whole population counts every member of it") {
+        for ((row, aspect) in listOf("age few structures" to Aspect.STRUCTURES, "age teeming spawns" to Aspect.SPAWNS)) {
+            val counted = read(row).landedBy(1)
+            val countsTheWhole = counted.any { landing ->
+                landing.place == co.voik.agesandtheart.age.resolution.Place(aspect) && landing.effects.any { it is Effect.Abundance }
+            }
+            check(countsTheWhole) { "'$row' counted nothing\n${read(row).readout}" }
+        }
+    }
+
+    test("what a word says of the sky's bodies is said of them where it is laid before the sky") {
+        check(read("age starless sky").landedBy(1).any { it.place.aspect == Aspect.STARS }) { "a starless sky kept its stars" }
+        check(read("age stormy sky").landedBy(1).any { it.place.aspect == Aspect.WEATHER && it.sets("thunder") }) {
+            "a stormy sky does not storm"
+        }
+    }
+
     test("a member named on its own is asked for, and one described is not, unless an amount is asked or it must be brought") {
         fun namedBy(book: Reading, page: Int) =
             book.landedBy(page).any { landing -> landing.effects.any { it is Effect.Chooses || it is Effect.Restricts } }

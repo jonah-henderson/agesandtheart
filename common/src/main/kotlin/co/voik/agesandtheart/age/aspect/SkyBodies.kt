@@ -104,6 +104,9 @@ object SkyBodies {
      */
     val SUNCOLOUR = Sky.colour("colour", "The colour the suns burn.")
 
+    /** What colour the moons shine — `red moon` — or [Parameter.DEFAULT] for vanilla's white. */
+    val MOONCOLOUR = Sky.colour("colour", "The colour the moons shine.")
+
     /**
      * The compass, in the bearings `Orbit.risingAt` reads — due east is 90, which is where vanilla's
      * own sun comes up.
@@ -215,7 +218,7 @@ object SkyBodies {
     fun described(body: CelestialBody, own: Options, seed: Long): CelestialBody {
         val isAMoon = body.phase != null
         val sized = own.steer(BODYSIZE, seed)?.let { sizeAt(it, isAMoon) }
-        val tinted = Colour.named(own.of(SUNCOLOUR))?.saturated(SUN_IS_LOOKED_AT)
+        val tinted = Colour.named(own.of(if (isAMoon) MOONCOLOUR else SUNCOLOUR))?.saturated(SUN_IS_LOOKED_AT)
         // Vanilla's moons are not its sun's sprite, so a sun's palette means nothing on one.
         val palette = SUN_PALETTES[own.of(SUNCOLOUR)]?.takeUnless { isAMoon }
         val corona = SUN_CORONAS[own.of(SUNCOLOUR)]?.takeUnless { isAMoon }

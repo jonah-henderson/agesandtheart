@@ -243,6 +243,19 @@
         "stars.glow": "+0.2"
       },
       "chance_to_apply": 0.33
+    },
+    {
+      "leans": {
+        "spawns": {
+          "#frozen": 0.8
+        }
+      }
+    },
+    {
+      "sets": {
+        "foliage": "#frozen"
+      },
+      "unaimed_chance_to_apply": 0.0
     }
   ]
 }

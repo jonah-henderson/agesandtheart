@@ -24,7 +24,8 @@
       },
       "must_always_apply": true,
       "offered_to": [
-        "sky"
+        "sky",
+        "air"
       ]
     },
     {
@@ -36,7 +37,8 @@
       },
       "must_always_apply": true,
       "offered_to": [
-        "sky"
+        "sky",
+        "air"
       ]
     },
     {
@@ -85,6 +87,16 @@
         "charged": "true"
       },
       "unaimed_chance_to_apply": 0.0
+    },
+    {
+      "sets": {
+        "thunder": "0.7..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "clouds",
+        "air"
+      ]
     }
   ]
 }

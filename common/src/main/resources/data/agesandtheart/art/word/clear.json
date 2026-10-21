@@ -33,6 +33,16 @@
         "stars.glow": "+0.3"
       },
       "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "weather.frequency": "-1.0..-0.6",
+        "thunder": "-1.0..-0.7"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "weather"
+      ]
     }
   ]
 }

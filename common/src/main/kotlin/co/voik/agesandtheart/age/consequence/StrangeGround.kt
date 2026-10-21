@@ -1,6 +1,10 @@
 package co.voik.agesandtheart.age.consequence
 
 import co.voik.agesandtheart.age.aspect.Holders
+import co.voik.agesandtheart.age.aspect.TreeFoliage
+import net.minecraft.core.BlockPos
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.levelgen.feature.foliageplacers.FoliagePlacer
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement
@@ -10,7 +14,8 @@ import java.util.function.Predicate
 
 /**
  * What the strange tier does to an Age's ground as it generates (Jonah, 2026-10-12): every feature the same shape,
- * trees with no leaves, and every village the abandoned one.
+ * trees with no leaves, and every village the abandoned one — and, on the same seam, the block a book grew its trees
+ * with in place of their leaves ([TreeFoliage]).
  *
  * Asked by `FeaturePlacerMixin`, `TreeFeatureMixin` and `JigsawPlacementMixin` for every feature, tree and
  * structure anywhere, and answered from what the Age's generator sets around its own decoration and structure
@@ -28,6 +33,7 @@ object StrangeGround {
         val seed: Long,
         val stamped: Holders,
         val leafless: Holders,
+        val foliage: TreeFoliage,
         val idOf: (PlacedFeature) -> String?,
     )
 
@@ -35,9 +41,15 @@ object StrangeGround {
      * Runs [decoration] with this thread doing to it whatever [consequence] holds, off the Age's [seed]. [idOf]
      * names a placed feature, since what a book said of `trees` it said of those features and no others.
      */
-    fun decorating(consequence: Consequence, seed: Long, idOf: (PlacedFeature) -> String?, decoration: () -> Unit) {
-        val wanted = Decorating(seed, consequence.stamped, consequence.leafless, idOf)
-        if (wanted.stamped.isNobody && wanted.leafless.isNobody) return decoration()
+    fun decorating(
+        consequence: Consequence,
+        foliage: TreeFoliage,
+        seed: Long,
+        idOf: (PlacedFeature) -> String?,
+        decoration: () -> Unit,
+    ) {
+        val wanted = Decorating(seed, consequence.stamped, consequence.leafless, foliage, idOf)
+        if (wanted.stamped.isNobody && wanted.leafless.isNobody && foliage.isNothing) return decoration()
         val was = decorating.get()
         decorating.set(wanted)
         try {
@@ -86,6 +98,20 @@ object StrangeGround {
     /** Whether a tree placed on this thread should be left without its leaves. */
     @JvmStatic
     fun isLeafless(): Boolean = decorating.get()?.leafless?.includes(placing.get()) == true
+
+    /**
+     * [setter] setting, wherever a tree placed on this thread would set a leaf, the block its book grew it with in
+     * place of its leaves — or [setter] itself where it grows leaves.
+     */
+    @JvmStatic
+    fun grownWithItsFoliage(setter: FoliagePlacer.FoliageSetter): FoliagePlacer.FoliageSetter {
+        val grownWith = decorating.get()?.foliage?.of(placing.get()) ?: return setter
+        return object : FoliagePlacer.FoliageSetter {
+            override fun set(pos: BlockPos, state: BlockState) = setter.set(pos, grownWith)
+
+            override fun isSet(pos: BlockPos): Boolean = setter.isSet(pos)
+        }
+    }
 
     /**
      * The piece a structure starts from: [drawn] itself, unless this thread is abandoning villages and [pool]
