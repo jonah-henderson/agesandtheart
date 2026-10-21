@@ -199,13 +199,16 @@ class BookCheck : FunSpec({
     test("nothing vanishes from a row of pages") {
         // A moved page is reported, charged as rehomed, wherever it then lands.
         fun mustLand(fate: Fate) = when (fate) {
-            is Fate.TakenBy, Fate.LaidBare, Fate.AssertedAlone, Fate.Banned -> true
+            is Fate.TakenBy, Fate.LaidBare, Fate.AssertedAlone, Fate.Banned, Fate.Anchors -> true
             is Fate.Took, is Fate.Structural, Fate.Unread, Fate.Impossible, Fate.Sited, Fate.Moved -> false
         }
         for ((seed, pages) in fuzzed) {
             val read = read(pages)
             val couldLand = read.possible.map { it.page }.toSet()
-            val lost = read.pages.filter { mustLand(it.fate) && it.index !in couldLand }
+            // A template's word lands as the world the book starts from, which is the reading's and no landing's.
+            fun namesTheTemplate(written: String) =
+                vocabulary.word(written)?.effects?.any { it is Effect.Template && it.name == read.template } == true
+            val lost = read.pages.filter { mustLand(it.fate) && it.index !in couldLand && !namesTheTemplate(it.written) }
             check(lost.isEmpty()) {
                 "seed $seed ('${pages.joinToString(" ")}') lost ${lost.joinToString { it.written }} — laid and landing " +
                     "nowhere, which is the one failure §3.3 forbids:\n${read.readout}"

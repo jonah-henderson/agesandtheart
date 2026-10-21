@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.language
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.age.LinkAnchor
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.language.ShippedLexicon.read
@@ -126,6 +127,18 @@ class ReadingCheck : FunSpec({
         val madeOfIt = ShippedLexicon.resolved("snow_block age no snow_block")
         check(madeOfIt.composition.banned == setOf("minecraft:snow_block")) { "the ban did not stand against the rock" }
         check(madeOfIt.instability.flaws.any { "minecraft:snow_block" in it.tags }) { "banning the rock went uncharged" }
+    }
+
+    test("`link in` names where a link into the Age arrives, and says nothing of the world itself") {
+        fun anchorOf(row: String) = ShippedLexicon.resolved(row).composition.linkIn
+        check(anchorOf("age link in jungle") == LinkAnchor(Aspect.BIOMES, setOf("minecraft:jungle"))) { "${anchorOf("age link in jungle")}" }
+        check(anchorOf("age link in sea")?.aspect == Aspect.SEA) { "${anchorOf("age link in sea")}" }
+        check(anchorOf("age link in villages")?.aspect == Aspect.STRUCTURES) { "${anchorOf("age link in villages")}" }
+        check(read("age link in jungle").landings.none { it.place.aspect == Aspect.BIOMES && it.effects.any { e -> e is Effect.Chooses } }) {
+            "linking in a jungle chose the jungle"
+        }
+        check(read("age link in frozen").fateOf(1) == Fate.Impossible) { "a link into something that is no place read" }
+        check(read("age link jungle").fateOf(1) == Fate.Impossible) { "`link` without its `in` read" }
     }
 
     test("a member named on its own is asked for, and one described is not, unless an amount is asked or it must be brought") {

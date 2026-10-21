@@ -158,6 +158,7 @@ class Menu(
             is Effect.Abundance -> "${Rung.spelled(effect.rung)} times as many"
             is Effect.MadeOf -> "made of ${effect.substance}"
             is Effect.Bans -> "never ${effect.block}"
+            is Effect.LinksIn -> "a link arrives in ${effect.anchor.aspect.page}"
         }
     }
 

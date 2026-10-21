@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.language
 
+import co.voik.agesandtheart.age.LinkAnchor
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Polarity
@@ -61,6 +62,7 @@ object Reader {
         private var leftOfAnd: Term? = null
         private var polarity: Polarity? = null
         private var polarityAt: Int? = null
+        private var linkAt: Int? = null
         private val bodies = mutableMapOf<Aspect, Int>()
         private var nextJoin = 0
         private var at = 0
@@ -83,11 +85,14 @@ object Reader {
             waiting.clear()
             andAt?.let(::impossible)
             polarityAt?.let(::impossible)
+            linkAt?.let(::impossible)
             return this
         }
 
         private fun structural(structure: Structure) {
             fates[at] = Fate.Structural(structure)
+            val linkWantsItsIn = linkAt != null && structure != Structure.IN
+            if (linkWantsItsIn) linkAt?.let(::impossible).also { linkAt = null }
             when (structure) {
                 Structure.AGE -> {
                     waiting.forEach { laidBare(it, Fate.LaidBare) }
@@ -96,9 +101,10 @@ object Reader {
                 }
                 Structure.AND -> joining()
                 Structure.IN -> {
-                    sitingIn()
+                    if (linkAt == at - 1) linkingIn() else sitingIn()
                     return
                 }
+                Structure.LINK -> linkAt = at
                 Structure.EVERYWHERE -> widening()
                 Structure.ONLY, Structure.EXCEPT -> {
                     polarityAt?.let(::impossible)
@@ -142,6 +148,29 @@ object Reader {
             at += 2
         }
 
+        /**
+         * `link in <anchor>`: where a link into the Age arrives — a biome, a structure, the sea, or where a feature or
+         * a creature can appear. The anchor is any word that takes pages, and says nothing of the world itself.
+         */
+        private fun linkingIn() {
+            val link = linkAt ?: return
+            linkAt = null
+            val anchorAt = at + 1
+            val anchor = pages.getOrNull(anchorAt)?.takeIf { lexicon.structure(it) == null }?.let(lexicon::word)
+            val acceptance = anchor?.let(lexicon::acceptance)
+            if (anchor == null || acceptance == null) {
+                impossible(link)
+                impossible(at)
+                at++
+                return
+            }
+            val members = (acceptance.place.members as? Members.Named)?.keys.orEmpty()
+            val arrives = Meaning(listOf(Effect.LinksIn(LinkAnchor(acceptance.place.aspect, members))), mustAlwaysApply = true, asserts = true)
+            claims += Claim(anchorAt, anchor, arrives, Place(acceptance.place.aspect), arrives.effects, clause = anchorAt, aimed = true)
+            fates[anchorAt] = Fate.Anchors
+            at += 2
+        }
+
         private fun biomeNamedBy(word: Word): Identifier? {
             val choice = word.meanings.singleOrNull()?.effects?.singleOrNull() as? Effect.Chooses ?: return null
             return if (choice.aspect == Aspect.BIOMES) Identifier.tryParse(choice.member) else null
@@ -155,6 +184,7 @@ object Reader {
         }
 
         private fun word(word: Word) {
+            linkAt?.let(::impossible).also { linkAt = null }
             val acceptance = lexicon.acceptance(word)
             val bansIt = polarity == Polarity.EXCEPT && acceptance == null && isABlock(word)
             when {

@@ -42,6 +42,7 @@ internal object TerrainInstruments {
     fun addTo(age: LiteralArgumentBuilder<CommandSourceStack>) {
         age.then(generateSubcommand())
             .then(locateSubcommand())
+            .then(arrivalSubcommand())
             .then(biomeCensusSubcommand())
             .then(cliffSurveySubcommand())
             .then(benchmarkSubcommand())
@@ -326,6 +327,24 @@ internal object TerrainInstruments {
                 Commands.argument(PRESET_ARGUMENT, StringArgumentType.word()).executes(::runLocate),
             ),
         )
+
+    /** `/age arrival <name>` — where a link into the Age puts you, and what its `link in` named. */
+    private fun arrivalSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("arrival") { reportFor ->
+            ageNameArgument().executes { context ->
+                val report = reportFor(context)
+                val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+                val age = namedAge(context.source, name, report) ?: return@executes FAILURE
+                val at = Ages.arrivalIn(Ages.open(context.source.server, age.id))
+                val anchor = age.recipe.composition?.linkIn
+                report.fact("at", listOf(at.x, at.y, at.z)) { "A link into '$name' arrives at ${at.x} ${at.y} ${at.z}" }
+                report.fact("link_in", anchor?.let { "${it.aspect.page} ${it.members.joinToString(" ")}".trim() }) {
+                    anchor?.let { "  as its book's link in ${it.aspect.page} ${it.members.joinToString(" ")}" } ?: "  its book named nowhere"
+                }
+                report.finish()
+                SUCCESS
+            }
+        }
 
     private fun generateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("gen").then(

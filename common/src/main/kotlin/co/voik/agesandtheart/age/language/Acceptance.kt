@@ -64,7 +64,7 @@ data class Acceptance(
             is Effect.LeansEverywhere -> if (takesLeans) Effect.Leans(place.aspect, effect.weights) else null
             is Effect.Mints -> effect.takeIf { takesChoices && onThisAspect(Aspect.FEATURES) }
             is Effect.Abundance -> effect.takeIf { takesAbundance }
-            is Effect.Template, is Effect.MadeOf, is Effect.Bans -> null
+            is Effect.Template, is Effect.MadeOf, is Effect.Bans, is Effect.LinksIn -> null
         }
     }
 

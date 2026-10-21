@@ -17,18 +17,19 @@ import co.voik.agesandtheart.age.aspect.SkyBodies
 object Resolver {
 
     fun resolve(world: WorldFacts, book: Book, seed: Long): Resolution {
-        // A ban is said of the whole Age rather than of any part of it, so it is set aside from what each part resolves.
-        val (bans, landings) = book.landings.partition { it.banned.isNotEmpty() }
+        // A ban or a link-in is said of the whole Age rather than of any part of it, so it is set aside from what each
+        // part resolves.
+        val (ofTheWholeAge, landings) = book.landings.partition { it.banned.isNotEmpty() || it.linksIn != null }
         val resolving = Resolving(world, landings, draw = seed xor saltOf(book.landings))
         resolving.flaws += book.chargedByTheReading
-        resolving.flaws += incoherence(world, book.possible.filter { it.banned.isEmpty() })
+        resolving.flaws += incoherence(world, book.possible.filter { it.banned.isEmpty() && it.linksIn == null })
         resolving.flaws += bannedButAskedFor(book.possible)
         val filled = Aspect.entries.associateWith { resolving.fill(it) }
         val resolved = with(resolving) { describedMembers(weighed(steer(cast(compose(filled))))) }
         val template = book.template?.let(AgeTemplate::named) ?: AgeTemplate.ORDINARY
         val spokenTo = resolving.said.map { it.aspect }.toSet()
         val composition = with(resolving) { counted(mintedFeatures(resolved)) }.laidOver(template.world(), spokenTo)
-            .copy(banned = bans.flatMap { it.banned }.toSet())
+            .copy(banned = ofTheWholeAge.flatMap { it.banned }.toSet(), linkIn = ofTheWholeAge.firstNotNullOfOrNull { it.linksIn })
         resolving.flaws += resolving.mintingsThatCannotHold()
         resolving.flaws += resolving.tidesWithNoMoon(composition)
         return Resolution(

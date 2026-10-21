@@ -98,6 +98,8 @@ object Ages {
         // Record the recipe *before* opening: [open] builds the world from what is recorded.
         AgeSavedData.get(server).add(id, recipe)
         val level = open(server, id)
+        // Searched for now, as the Age is written, rather than holding up the first link into it.
+        if (recipe.composition?.linkIn != null) arrivalIn(level)
         Constants.LOG.info("Created Age {} [{}]", id, recipe)
         return level
     }
@@ -265,11 +267,29 @@ object Ages {
      */
     private val arrivals = WeakHashMap<ServerLevel, Arrival>()
 
-    /** Into the D'ni city where the Age has one (design §7.6), and otherwise onto footing near the origin. */
+    /**
+     * At what the book's `link in` named where it was found, else into the D'ni city where the Age has one (design
+     * §7.6), and otherwise onto footing near the origin.
+     */
     private fun workOutTheArrivalIn(level: ServerLevel): Arrival {
+        linkedInArrivalIn(level)?.let { return it }
         CavernRuins.arrivalIn(level)?.let { return it }
         val (landingX, landingZ) = findFooting(level)
         return Arrival(footingIn(level, landingX, landingZ))
+    }
+
+    /**
+     * Where the book's `link in` arrives, searched for once and kept with the Age, or null where it named nothing or
+     * nothing of it is near.
+     */
+    private fun linkedInArrivalIn(level: ServerLevel): Arrival? {
+        val recipe = recipeOf(level) ?: return null
+        val anchor = recipe.composition?.linkIn ?: return null
+        val id = level.dimension().identifier()
+        val saved = AgeSavedData.get(level.server)
+        if (!saved.hasSearchedForLinkIn(id)) saved.rememberLinkIn(id, LinkingIn.nearest(level, recipe, anchor))
+        val found = saved.linkInOf(id) ?: return null
+        return Arrival(footingIn(level, found.x, found.z))
     }
 
     /**

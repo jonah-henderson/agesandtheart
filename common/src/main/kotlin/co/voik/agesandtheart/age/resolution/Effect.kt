@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.resolution
 
+import co.voik.agesandtheart.age.LinkAnchor
 import co.voik.agesandtheart.age.aspect.Aspect
 
 /**
@@ -75,6 +76,11 @@ sealed interface Effect {
     /** A block the Age never places anywhere — `no snow` — whatever else asks for it. */
     data class Bans(val block: String) : Effect {
         override val narrows get() = true
+    }
+
+    /** Where a link into the Age arrives — `link in jungle`. */
+    data class LinksIn(val anchor: LinkAnchor) : Effect {
+        override val narrows get() = false
     }
 
     /** How much of a member there is, as a multiple of what there would be — `teeming` is four. */

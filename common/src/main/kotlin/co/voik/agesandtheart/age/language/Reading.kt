@@ -48,6 +48,7 @@ data class Reading(
             Fate.Moved -> "nothing would take it, so it was laid on the Age: $placed"
             Fate.AssertedAlone -> "nothing took it, and it says what it says alone: $placed"
             Fate.Banned -> "banned: the Age places none of it"
+            Fate.Anchors -> "where a link into the Age arrives: $placed"
             Fate.Sited -> "the biome the last word was sited in"
         }
     }
@@ -73,6 +74,7 @@ data class Reading(
         is Effect.Abundance -> "${effect.rung} times as many"
         is Effect.MadeOf -> "made of ${effect.substance}"
         is Effect.Bans -> "never ${effect.block}"
+        is Effect.LinksIn -> "a link arrives in ${effect.anchor.members.ifEmpty { setOf(effect.anchor.aspect.page) }.joinToString(" or ")}"
     }
 }
 
@@ -107,6 +109,9 @@ sealed interface Fate {
 
     /** A block `no` led, which the Age never places. */
     data object Banned : Fate
+
+    /** What `link in` named, which a link into the Age arrives at. */
+    data object Anchors : Fate
 
     /** The biome an `in` named. */
     data object Sited : Fate

@@ -58,6 +58,8 @@ data class AgeComposition(
     val seaNamed: Boolean = false,
     /** The blocks the Age never places, by id — `no snow` — whatever else asked for them. */
     val banned: Set<String> = emptySet(),
+    /** What a link into the Age arrives at, where the book said — `link in jungle` — and where it did not, nothing. */
+    val linkIn: LinkAnchor? = null,
 ) : AgeParts {
     /**
      * The coordinates its biomes are looked up at, one per territory. Never empty.
@@ -345,7 +347,10 @@ data class AgeComposition(
                 Codec.BOOL.optionalFieldOf("sea_named", false).forGetter(AgeComposition::seaNamed),
                 Codec.STRING.listOf().xmap({ it.toSet() }, { it.sorted() })
                     .optionalFieldOf("banned", emptySet()).forGetter(AgeComposition::banned),
-            ).apply(instance, ::AgeComposition)
+                LinkAnchor.CODEC.optionalFieldOf("link_in").forGetter { java.util.Optional.ofNullable(it.linkIn) },
+            ).apply(instance) { terrains, seas, carvers, underground, options, spreads, seaNamed, banned, linkIn ->
+                AgeComposition(terrains, seas, carvers, underground, options, spreads, seaNamed, banned, linkIn.orElse(null))
+            }
         }
     }
 }

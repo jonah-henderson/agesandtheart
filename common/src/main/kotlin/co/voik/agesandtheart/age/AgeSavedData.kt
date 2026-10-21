@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age
 
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.util.datafix.DataFixTypes
@@ -45,6 +46,9 @@ class AgeSavedData() : SavedData() {
     /** Where each Age's fissures lead, for an Age a book has been thrown into — see [FissureExit]. */
     private val fissureExits: MutableMap<Identifier, FissureExit> = linkedMapOf()
 
+    /** Where each Age's `link in` was found, searched once and kept, or null where it was searched for and is not near. */
+    private val linkedIn: MutableMap<Identifier, BlockPos?> = linkedMapOf()
+
     private constructor(
         written: List<WrittenAge>,
         counter: Int,
@@ -52,6 +56,7 @@ class AgeSavedData() : SavedData() {
         renames: List<PendingRename>,
         visited: List<Identifier>,
         fissureExits: List<LedFissures>,
+        linkedIn: List<FoundLinkIn>,
     ) : this() {
         written.forEach { recipes[it.id] = it.recipe }
         this.counter = counter
@@ -59,6 +64,19 @@ class AgeSavedData() : SavedData() {
         renames.forEach { this.renames[it.from] = it.to }
         this.visited += visited
         fissureExits.forEach { this.fissureExits[it.age] = it.exit }
+        linkedIn.forEach { this.linkedIn[it.age] = it.at.orElse(null) }
+    }
+
+    /** Whether [id]'s `link in` has been searched for. */
+    fun hasSearchedForLinkIn(id: Identifier): Boolean = id in linkedIn
+
+    /** Where [id]'s `link in` was found, or null where it was not or has not been searched for. */
+    fun linkInOf(id: Identifier): BlockPos? = linkedIn[id]
+
+    /** Keeps where [id]'s `link in` was found, or that it was not. */
+    fun rememberLinkIn(id: Identifier, at: BlockPos?) {
+        linkedIn[id] = at
+        setDirty()
     }
 
     /** Where [id]'s fissures lead, or null where no book has said and they lead home. */
@@ -101,6 +119,10 @@ class AgeSavedData() : SavedData() {
         // And a rename owed to it, which would otherwise hold its new id for ever.
         forgetRename(id)
         if (fissureExits.remove(id) != null) setDirty()
+        if (id in linkedIn) {
+            linkedIn.remove(id)
+            setDirty()
+        }
     }
 
     /** Files [from]'s recipe and clock under [to] instead, for an Age whose folder has moved there. */
@@ -110,6 +132,7 @@ class AgeSavedData() : SavedData() {
         presence.remove(from)?.let { presence[to] = it }
         if (visited.remove(from)) visited += to
         fissureExits.remove(from)?.let { fissureExits[to] = it }
+        if (from in linkedIn) linkedIn[to] = linkedIn.remove(from)
         renames.remove(from)
         setDirty()
     }
@@ -170,6 +193,8 @@ class AgeSavedData() : SavedData() {
                 Identifier.CODEC.listOf().optionalFieldOf("visited", emptyList()).forGetter { it.visited.toList() },
                 LedFissures.LIST_CODEC.optionalFieldOf("fissure_exits", emptyList())
                     .forGetter { saved -> saved.fissureExits.map { (age, exit) -> LedFissures(age, exit) } },
+                FoundLinkIn.LIST_CODEC.optionalFieldOf("linked_in", emptyList())
+                    .forGetter { saved -> saved.linkedIn.map { (age, at) -> FoundLinkIn(age, java.util.Optional.ofNullable(at)) } },
             ).apply(instance, ::AgeSavedData)
         }
 
@@ -218,6 +243,18 @@ private data class TimeSpent(val id: Identifier, val ticks: Long) {
                 Identifier.CODEC.fieldOf("id").forGetter(TimeSpent::id),
                 Codec.LONG.fieldOf("ticks").forGetter(TimeSpent::ticks),
             ).apply(instance, ::TimeSpent)
+        }.listOf()
+    }
+}
+
+/** Where one Age's `link in` was found, or nothing where it was searched for and is not near. */
+private data class FoundLinkIn(val age: Identifier, val at: java.util.Optional<BlockPos>) {
+    companion object {
+        val LIST_CODEC: Codec<List<FoundLinkIn>> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                Identifier.CODEC.fieldOf("age").forGetter(FoundLinkIn::age),
+                BlockPos.CODEC.optionalFieldOf("at").forGetter(FoundLinkIn::at),
+            ).apply(instance, ::FoundLinkIn)
         }.listOf()
     }
 }

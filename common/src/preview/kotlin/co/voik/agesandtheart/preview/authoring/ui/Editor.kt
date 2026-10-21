@@ -992,7 +992,7 @@ class Editor(
             is Effect.Mints -> changeAMinting(entry.meaning, entry.effect, effect)
             is Effect.Template -> pickATemplate(entry.meaning, effect.name, entry.effect)
             is Effect.Abundance -> pickARung(entry.meaning, effect.rung, entry.effect)
-            is Effect.MadeOf, is Effect.Bans -> Unit
+            is Effect.MadeOf, is Effect.Bans, is Effect.LinksIn -> Unit
         }
     }
 

@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.age.resolution
 
+import co.voik.agesandtheart.age.LinkAnchor
+
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Bars
@@ -17,6 +19,10 @@ internal val Landing.admitted: Set<String>
 
 private val Landing.struck: Set<String>
     get() = effects.filterIsInstance<Effect.Excludes>().flatMap { it.members }.toSet()
+
+/** Where this says a link into the Age arrives — `link in jungle` — or null where it says nothing of it. */
+internal val Landing.linksIn: LinkAnchor?
+    get() = effects.filterIsInstance<Effect.LinksIn>().firstOrNull()?.anchor
 
 /** The blocks this bans from the whole Age — `no snow`. */
 internal val Landing.banned: Set<String>

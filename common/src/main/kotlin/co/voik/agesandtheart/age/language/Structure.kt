@@ -28,6 +28,9 @@ enum class Structure(val production: String, val price: Int) {
 
     /** Anything of its kind but the member after it: `no villages`. */
     EXCEPT("except", price = 2),
+
+    /** Where a link into the Age arrives, read with the `in` after it: `link in jungle`, `link in sea`. */
+    LINK("link", price = 2),
     ;
 
     companion object {
