@@ -1,7 +1,7 @@
 {
   "_comment": [
     "The chest beside the lectern in a lost library's secret room: a writer's everyday supplies, and",
-    "sometimes a way back here from anywhere. The survey reports live here: a player's first library holds",
+    "sometimes a way back here from anywhere, and very rarely a way home. The survey reports live here: a player's first library holds",
     "one (first_find), and a later one a quarter of the time."
   ],
   "type": "minecraft:chest",
@@ -101,6 +101,20 @@
         {
           "type": "minecraft:empty",
           "weight": 7
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:inject/linking_book",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 24
         }
       ]
     },

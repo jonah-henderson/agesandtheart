@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.book
 
-import co.voik.agesandtheart.content.AgeComponents
+import co.voik.agesandtheart.age.word.WordNames
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -11,7 +11,6 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams
 import net.minecraft.core.Holder
 import java.util.Optional
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
-import net.minecraft.world.phys.Vec3
 import net.minecraft.core.BlockPos
 import co.voik.agesandtheart.worldgen.structure.ArrivalMarker
 
@@ -56,26 +55,15 @@ class BindLinkingBookFunction(
         val target = if (structureArrival != null) {
             structureArrival
         } else if (strays && here != null) {
-            LinkTarget(level.dimension(), here, 0.0f, level.dimension().identifier().path.replace('_', ' '))
+            LinkTarget(level.dimension(), here, 0.0f, WordNames.placeName(level.dimension()))
         } else {
-            // The world's respawn point rather than literal 0,0 — "home" means where you would wake up.
-            val respawn = level.server.respawnData
-            val spawn = respawn.globalPos().pos()
-            LinkTarget(
-                respawn.globalPos().dimension(),
-                Vec3(spawn.x + HALF_BLOCK, spawn.y.toDouble(), spawn.z + HALF_BLOCK),
-                respawn.yaw(),
-                HOME_NAME,
-            )
+            LinkTarget.home(level.server)
         }
         LinkingBookItem.bindTo(itemStack, target)
         return itemStack
     }
 
     companion object {
-        private const val HALF_BLOCK = 0.5
-        private const val HOME_NAME = "overworld"
-
         /** None stray by default: a found book should be reliably the way home unless a pack says otherwise. */
         private const val NO_STRAYS = 0.0f
 

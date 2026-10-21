@@ -1,7 +1,7 @@
 {
   "_comment": [
-    "The chest hidden in a lost library's fireplace: more of everything and rarer words. Never a survey",
-    "report; those are the reading room's (design 7.6)."
+    "The chest hidden in a lost library's fireplace: more of everything and rarer words, and now and then",
+    "a way home. Never a survey report; those are the reading room's (design 7.6)."
   ],
   "type": "minecraft:chest",
   "pools": [
@@ -87,6 +87,20 @@
         {
           "type": "minecraft:loot_table",
           "value": "agesandtheart:inject/notebook"
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:loot_table",
+          "value": "agesandtheart:inject/linking_book",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 9
         }
       ]
     }

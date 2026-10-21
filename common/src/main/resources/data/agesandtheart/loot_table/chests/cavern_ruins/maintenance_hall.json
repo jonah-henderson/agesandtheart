@@ -84,11 +84,11 @@
         {
           "type": "minecraft:loot_table",
           "value": "agesandtheart:inject/linking_book",
-          "weight": 2
+          "weight": 1
         },
         {
           "type": "minecraft:empty",
-          "weight": 3
+          "weight": 2
         }
       ]
     },

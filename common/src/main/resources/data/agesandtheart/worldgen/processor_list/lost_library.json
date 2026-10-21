@@ -1,9 +1,9 @@
 {
   "_comment": [
-    "Every lost library's linking books lead back to it, from the structure block named",
-    "linking_book_target in the template; its books are written afresh for each one, and the shelf's page from",
-    "the critical bucket for whoever first takes it, a word they lack while any are left; and the air beside the",
-    "building leaves the ground alone."
+    "A lost library's linking books lead back to it, from the structure block named linking_book_target in",
+    "the template, and one in twenty home to the Overworld instead; its books are written afresh for each",
+    "one, and the shelf's page from the critical bucket for whoever first takes it, a word they lack while",
+    "any are left; and the air beside the building leaves the ground alone."
   ],
   "processors": [
     {
@@ -13,7 +13,8 @@
         "marker": "minecraft:linking_book_target",
         "facing": "south",
         "name": "lost library"
-      }
+      },
+      "home_chance": 0.05
     },
     {
       "processor_type": "agesandtheart:write_found_items",

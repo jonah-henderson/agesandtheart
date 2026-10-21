@@ -1,7 +1,7 @@
 {
   "_comment": [
     "A shipwreck's treasure chest that sank into an abyss (DeepWrecks): vanilla's own, a couple more rolls of",
-    "its valuables, and now and then something of the sea (Jonah, 2026-10-19)."
+    "its valuables, now and then something of the sea (Jonah, 2026-10-19), and very rarely a linking book home."
   ],
   "type": "minecraft:chest",
   "pools": [
@@ -119,6 +119,26 @@
         {
           "type": "minecraft:empty",
           "weight": 16
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:linking_book",
+          "weight": 1,
+          "modifier": [
+            {
+              "type": "agesandtheart:bind_linking_book",
+              "stray_chance": 0.0
+            }
+          ]
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 24
         }
       ]
     }

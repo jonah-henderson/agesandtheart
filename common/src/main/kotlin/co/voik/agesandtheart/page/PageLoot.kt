@@ -128,14 +128,19 @@ object PageLoot {
         vanilla("chests/bastion_treasure", 0.04f, NOTEBOOK),
 
         // Linking books: rarer than pages everywhere, and only where somebody kept their things.
-        vanilla("chests/stronghold_library", 0.20f, LINKING_BOOK),
-        vanilla("chests/ancient_city", 0.14f, LINKING_BOOK),
-        vanilla("chests/woodland_mansion", 0.12f, LINKING_BOOK),
-        vanilla("chests/stronghold_corridor", 0.10f, LINKING_BOOK),
-        vanilla("chests/desert_pyramid", 0.08f, LINKING_BOOK),
-        vanilla("chests/jungle_temple", 0.08f, LINKING_BOOK),
-        vanilla("chests/village/village_cartographer", 0.08f, LINKING_BOOK),
-        vanilla("chests/simple_dungeon", 0.05f, LINKING_BOOK),
+        vanilla("chests/stronghold_library", 0.25f, LINKING_BOOK),
+        vanilla("chests/ancient_city", 0.18f, LINKING_BOOK),
+        vanilla("chests/woodland_mansion", 0.15f, LINKING_BOOK),
+        vanilla("chests/stronghold_corridor", 0.12f, LINKING_BOOK),
+        vanilla("chests/desert_pyramid", 0.10f, LINKING_BOOK),
+        vanilla("chests/jungle_temple", 0.10f, LINKING_BOOK),
+        vanilla("chests/village/village_cartographer", 0.10f, LINKING_BOOK),
+        vanilla("chests/simple_dungeon", 0.06f, LINKING_BOOK),
+        // And very rarely among a treasure chest's valuables.
+        vanilla("chests/buried_treasure", 0.04f, LINKING_BOOK),
+        vanilla("chests/shipwreck_treasure", 0.04f, LINKING_BOOK),
+        vanilla("chests/bastion_treasure", 0.04f, LINKING_BOOK),
+        vanilla("chests/end_city_treasure", 0.04f, LINKING_BOOK),
     )
 
     /** Every target for a table, since pages and a notebook may both reach the same container. */

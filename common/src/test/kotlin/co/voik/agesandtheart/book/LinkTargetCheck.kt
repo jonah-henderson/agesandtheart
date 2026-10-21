@@ -59,6 +59,15 @@ class LinkTargetCheck : FunSpec({
         check(decoded.recipe == null) { "an Age was invented behind an Overworld link: ${decoded.recipe}" }
         check(decoded == target) { "the link target came back as $decoded" }
     }
+
+    test("a found book named by its bare dimension, as they once were, reads as the place's name") {
+        val saved = LinkTarget(dimension = Level.OVERWORLD, position = Vec3.ZERO, yaw = 0.0f, name = "overworld")
+        val encoded = LinkTarget.CODEC.encodeStart(NbtOps.INSTANCE, saved)
+            .getOrThrow { problem -> IllegalStateException("an old found book would not encode: $problem") }
+        val decoded = LinkTarget.CODEC.parse(NbtOps.INSTANCE, encoded)
+            .getOrThrow { problem -> IllegalStateException("an old found book would not decode: $problem") }
+        check(decoded.name == "Overworld") { "an old found book reads as ${decoded.name}" }
+    }
 })
 
 private const val SAMPLE_SEED = 0x5EED_A9EL

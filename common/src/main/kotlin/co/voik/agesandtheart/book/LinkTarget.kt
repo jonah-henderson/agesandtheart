@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.book
 
 import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.word.WordNames
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import io.netty.buffer.ByteBuf
@@ -8,6 +9,7 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.resources.ResourceKey
+import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
 import java.util.Optional
@@ -50,9 +52,25 @@ data class LinkTarget(
                 Codec.STRING.fieldOf("name").forGetter(LinkTarget::name),
                 AgeRecipe.MAP_CODEC.codec().optionalFieldOf("recipe").forGetter { Optional.ofNullable(it.recipe) },
             ).apply(instance) { dimension, position, yaw, name, recipe ->
-                LinkTarget(dimension, position, yaw, name, recipe.orElse(null))
+                LinkTarget(dimension, position, yaw, capitalisedPlaceName(dimension, name), recipe.orElse(null))
             }
         }
+
+        /** The Overworld's spawn, where a player wakes: what "home" means to a found book. */
+        fun home(server: MinecraftServer): LinkTarget {
+            val respawn = server.respawnData
+            val dimension = respawn.globalPos().dimension()
+            val spawn = respawn.globalPos().pos()
+            return LinkTarget(dimension, Vec3(spawn.x + HALF_BLOCK, spawn.y.toDouble(), spawn.z + HALF_BLOCK), respawn.yaw(), WordNames.placeName(dimension))
+        }
+
+        /** Found books were once named by the bare dimension path, `overworld`; those read as the place's name. */
+        private fun capitalisedPlaceName(dimension: ResourceKey<Level>, name: String): String {
+            val isTheBarePath = name == dimension.identifier().path.replace('_', ' ')
+            return if (isTheBarePath) WordNames.placeName(dimension) else name
+        }
+
+        private const val HALF_BLOCK = 0.5
 
         val STREAM_CODEC: StreamCodec<ByteBuf, LinkTarget> = StreamCodec.of(
             { buffer, value ->
