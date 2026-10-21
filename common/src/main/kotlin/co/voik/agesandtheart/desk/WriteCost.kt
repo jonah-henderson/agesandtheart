@@ -24,17 +24,11 @@ data class WriteCost(
         /**
          * Ink for one unit of a word's cost, as a fraction of a bucket.
          *
-         * **Ten of the commonest page to the bottle**, which is the figure a walk asked for (Jonah,
-         * 2026-08-06). A bottle is a third of a bucket, and the page a writer most often writes is a block
-         * or a creature said exactly — eight units, being exact and at home in two parts of the world — so
-         * 240 units to the bucket puts one at a tenth of a bottle.
-         *
-         * **It was 120, when a page was priced by its tier alone.** Versatility is charged now
-         * ([Word.price]), which doubles the commonest page and halves nothing, so the constant doubles to
-         * keep the economy at the weight it was walked at. What moved is the *spread*: a word at home in
-         * one place is now half the price of one at home in two, where before they were the same.
+         * **Five of the commonest page to the bottle.** A bottle is a third of a bucket, and the page a writer
+         * most often writes is a block or a creature said exactly — eight units, being exact and at home in two
+         * parts of the world — so 120 units to the bucket puts one at a fifth of a bottle.
          */
-        const val COST_UNITS_PER_BUCKET = 240
+        const val COST_UNITS_PER_BUCKET = 120
 
         /**
          * Vanilla's own: a cauldron holds three bottles, and a page is priced in fractions of one.

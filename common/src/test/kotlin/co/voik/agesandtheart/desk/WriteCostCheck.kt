@@ -47,8 +47,8 @@ class WriteCostCheck : FunSpec({
      * **Every price lands within one of the loader's own units of the true one.**
      *
      * Compared against the ideal rather than loader-to-loader, because the two loaders have different
-     * *granularity* — NeoForge's bucket is a thousand units, so a price near a thirtieth of one can only
-     * ever be right to about three per cent, while Fabric's 81,000 lands almost exactly. A same-as-each-
+     * *granularity* — NeoForge's bucket is a thousand units, so a price near a fifteenth of one can only
+     * ever be right to about one and a half per cent, while Fabric's 81,000 lands almost exactly. A same-as-each-
      * other check would have to be loose enough to swallow that gap, and an integer division dropping the
      * NeoForge price by a whole unit fits inside it. Measured against the definition, one unit is one
      * unit, and rounding *up* is the only direction `WriteCost` is allowed to move.
@@ -115,21 +115,21 @@ class WriteCostCheck : FunSpec({
     }
 
     /**
-     * **Ten of the commonest page to the bottle**, which is the figure the economy was tuned to (Jonah,
-     * 2026-08-06). A bottle is a third of a bucket, so that page is a thirtieth of one.
+     * **Five of the commonest page to the bottle**, which is the figure the economy is tuned to (Jonah,
+     * 2026-10-21, doubled from ten). A bottle is a third of a bucket, so that page is a fifteenth of one.
      *
      * **The commonest page is a block or a creature said exactly** — a derived word, at home in two parts
      * of the world, so eight units once versatility is charged (world model §9). It used to be any exact
      * word at all, when a page was priced by its tier alone and every exact word cost the same; the anchor
      * has to name a *shape* now, since an exact word can be four units or twenty-four.
      */
-    test("the commonest page costs a tenth of a bottle") {
+    test("the commonest page costs a fifth of a bottle") {
         val ordinary = vocabulary.derivedWords.firstOrNull { it.price == A_COMMON_PAGE }
             ?: error("the corpus has no ordinary page to price")
         val cost = WriteCost.of(ordinary, vocabulary, registries, InkTier.COMMON, neoforgeMillibuckets)
         val bottles = cost.inkUnits.toDouble() / (neoforgeMillibuckets.toDouble() / WriteCost.BOTTLES_PER_BUCKET)
-        check(abs(bottles - A_TENTH_OF_A_BOTTLE) < CLOSE_ENOUGH) {
-            "'${ordinary.name}' costs $bottles of a bottle, where the economy is tuned to $A_TENTH_OF_A_BOTTLE"
+        check(abs(bottles - A_FIFTH_OF_A_BOTTLE) < CLOSE_ENOUGH) {
+            "'${ordinary.name}' costs $bottles of a bottle, where the economy is tuned to $A_FIFTH_OF_A_BOTTLE"
         }
     }
 
@@ -173,7 +173,7 @@ private const val CLOSE_ENOUGH = 0.005
 /** What the commonest page is priced at: exact, and at home in two parts of the world. */
 private const val A_COMMON_PAGE = 8
 
-private const val A_TENTH_OF_A_BOTTLE = 0.1
+private const val A_FIFTH_OF_A_BOTTLE = 0.2
 
 private val WANTED_INK = mapOf(
     "and" to InkTier.FINE,
