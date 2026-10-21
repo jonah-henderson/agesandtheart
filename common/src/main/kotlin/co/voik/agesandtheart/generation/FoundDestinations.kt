@@ -16,7 +16,11 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.chunk.status.ChunkStatus
 import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.resources.Identifier
+import net.minecraft.world.level.block.JigsawBlock
 import net.minecraft.world.level.levelgen.structure.BoundingBox
+import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece
+import net.minecraft.world.level.levelgen.structure.StructureStart
 import net.minecraft.world.level.levelgen.structure.Structure
 import net.minecraft.world.phys.Vec3
 
@@ -94,21 +98,41 @@ object FoundDestinations {
     private fun inABiome(world: ServerLevel, from: BlockPos): BlockPos? =
         LinkingIn.inBiome(world, from.atY(world.seaLevel), BIOME_REACH) { it.`is`(BIOMES) }
 
-    /** On the ground beside the nearest structure to [from], facing it, or in front of where it starts. */
+    /**
+     * On the ground beside the nearest structure to [from], facing it, or in front of where it starts. One entered
+     * through a doorway ([ENTERED_THROUGH]) is arrived at inside it, or not at all where this one was laid out without.
+     */
     private fun besideAStructure(world: ServerLevel, from: BlockPos, random: RandomSource): Arrival? {
         val wanted = world.registryAccess().lookupOrThrow(Registries.STRUCTURE).get(STRUCTURES).orElse(null) ?: return null
         val located = world.chunkSource.generator.findNearestMapStructure(world, wanted, from, STRUCTURE_REACH_CHUNKS, false) ?: return null
         val (at, structure) = located.first to located.second
-        val box = boundsOf(world, at, structure.value()) ?: BoundingBox(at)
+        val start = startOf(world, at, structure.value())
+        val doorway = structure.unwrapKey().map { ENTERED_THROUGH[it.identifier()] }.orElse(null)
+        if (doorway != null) return start?.let { insideItsDoorway(world, it, doorway, random) }
+        val box = start?.boundingBox ?: BoundingBox(at)
         val (x, z) = besideOf(box, random)
         val standing = Ages.footingIn(world, x, z)
         return Arrival(standing, yaw = yawToward(standing, box.center))
     }
 
-    /** The structure's whole extent, laid out as far as its start and no further. */
-    private fun boundsOf(world: ServerLevel, at: BlockPos, structure: Structure): BoundingBox? {
+    /** The structure as laid out at its start, its pieces placed and none of its blocks. */
+    private fun startOf(world: ServerLevel, at: BlockPos, structure: Structure): StructureStart? {
         val chunk = world.getChunk(SectionPos.blockToSectionCoord(at.x), SectionPos.blockToSectionCoord(at.z), ChunkStatus.STRUCTURE_STARTS, true)
-        return chunk?.getStartForStructure(structure)?.takeIf { it.isValid }?.boundingBox
+        return chunk?.getStartForStructure(structure)?.takeIf { it.isValid }
+    }
+
+    /**
+     * Just inside the doorway the jigsaw named [doorway] marks, facing in: the jigsaw stands in the doorway one block
+     * over its floor, and is read off the laid-out pieces' templates, so the blocks need not exist yet.
+     */
+    private fun insideItsDoorway(world: ServerLevel, start: StructureStart, doorway: Identifier, random: RandomSource): Arrival? {
+        val templates = world.server.structureTemplateManager
+        val marker = start.pieces.asSequence()
+            .filterIsInstance<PoolElementStructurePiece>()
+            .flatMap { piece -> piece.element.getShuffledJigsawBlocks(templates, piece.position, piece.rotation, random) }
+            .firstOrNull { it.name == doorway } ?: return null
+        val inward = JigsawBlock.getFrontFacing(marker.state).opposite
+        return Arrival(marker.pos.below().relative(inward, STEPS_INSIDE_THE_DOORWAY), yaw = inward.toYRot())
     }
 
     /** A column [BESIDE] out from the middle of one side of [box], the side drawn. */
@@ -125,6 +149,16 @@ object FoundDestinations {
     /** Minecraft's yaw: nothing faces south, a quarter turn faces west. */
     private fun yawToward(from: BlockPos, to: BlockPos): Float =
         Math.toDegrees(Mth.atan2(-(to.x - from.x).toDouble(), (to.z - from.z).toDouble())).toFloat()
+
+    /**
+     * Structures arrived at inside rather than beside, through the doorway a jigsaw of this name marks. Every trial
+     * chamber entrance has one, three wide and three high, opening on nothing (vanilla's `corridor/entrance_*`).
+     */
+    private val ENTERED_THROUGH: Map<Identifier, Identifier> = mapOf(
+        Identifier.withDefaultNamespace("trial_chambers") to Identifier.withDefaultNamespace("entrance"),
+    )
+
+    private const val STEPS_INSIDE_THE_DOORWAY = 2
 
     private val BIOMES: TagKey<Biome> = TagKey.create(Registries.BIOME, "found_book_destinations".location())
     private val STRUCTURES: TagKey<Structure> = TagKey.create(Registries.STRUCTURE, "found_book_destinations".location())
