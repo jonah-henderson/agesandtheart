@@ -3,7 +3,8 @@
     "The grazing animals, laid alone: more of the cows, sheep and pigs a world already has. A size said of",
     "herds is how many arrive together rather than how big each is (`takes_as`): `colossal herds` are herds",
     "of eight to ten. Followed by `of`, herds are made of whatever comes after it -- `herds of warden`,",
-    "`teeming colossal herds of parrot` -- four to six at a time unless a size said otherwise (Jonah, 2026-10-21)."
+    "`teeming colossal herds of parrot` -- four to six at a time unless a size said otherwise (Jonah, 2026-10-21),",
+    "and as plentiful as the grazers are laid alone unless an amount said otherwise."
   ],
   "speech": "plural",
   "takes_as": {
@@ -22,6 +23,13 @@
       "sets": {
         "herd": "0.0..0.0"
       },
+      "must_always_apply": true,
+      "offered_to": [
+        "of"
+      ]
+    },
+    {
+      "abundance": 2.0,
       "must_always_apply": true,
       "offered_to": [
         "of"

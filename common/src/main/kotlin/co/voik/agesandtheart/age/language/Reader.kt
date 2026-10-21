@@ -233,7 +233,7 @@ object Reader {
         /**
          * `<members> of <members>`: the word before `of` is said of the one after instead of its own — what it took
          * goes over to them, its own naming is dropped, and its meanings offered to `of` land there too where nothing
-         * it took said the same. `herds of warden` are herds of wardens, and `teeming herds of` many of them.
+         * it took said the same. `herds of warden` are herds of wardens, plentiful, and `teeming herds of` many of them.
          */
         private fun saidOf(before: Taker, after: Place) {
             val of = ofAt
@@ -246,9 +246,16 @@ object Reader {
                 val claim = claims[index]
                 claims[index] = if (claim.page == before.index) claim.copy(effects = emptyList()) else claim.copy(place = after)
             }
-            val alreadySaid = carried.flatMap { claims[it].effects }.mapNotNull { (it as? Effect.Sets)?.parameter?.name }.toSet()
+            val carriedEffects = carried.flatMap { claims[it].effects }
+            val alreadySaid = carriedEffects.mapNotNull { (it as? Effect.Sets)?.parameter?.name }.toSet()
+            val anAmountWasSaid = carriedEffects.any { it is Effect.Abundance }
+            fun wasSaidAlready(effect: Effect) = when (effect) {
+                is Effect.Sets -> effect.parameter.name in alreadySaid
+                is Effect.Abundance -> anAmountWasSaid
+                else -> false
+            }
             for (meaning in before.word.meanings.filter { OF_PAGE in it.offeredTo }) {
-                val effects = meaning.effects.filterNot { it is Effect.Sets && it.parameter.name in alreadySaid }
+                val effects = meaning.effects.filterNot(::wasSaidAlready)
                 if (effects.isNotEmpty()) {
                     claims += Claim(before.index, before.word, meaning, after, effects, clause = before.index, aimed = true, joined = before.joined)
                 }

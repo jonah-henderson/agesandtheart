@@ -152,6 +152,10 @@ class ReadingCheck : FunSpec({
         check(giants.of(Spawns.HERD, member = WARDEN) == "0.0..0.0" && giants.of(Spawns.SIZE, member = WARDEN) == "1.0..1.0") {
             "herds of colossal warden were not ordinary herds of giants"
         }
+        fun parrotsAskedIn(row: String) = ShippedLexicon.resolved(row).composition.optionsFor(Aspect.SPAWNS)
+            .claimsOn(Spawns.LIVES).firstOrNull { it.value == PARROT }?.density
+        check(parrotsAskedIn("age herds of parrot") == PLENTIFUL) { "herds of parrot asked for ${parrotsAskedIn("age herds of parrot")}" }
+        check(parrotsAskedIn("age few herds of parrot")?.let { it < 1.0 } == true) { "few herds of parrot were plentiful" }
         val farm = ShippedLexicon.resolved("age herds").composition.optionsFor(Aspect.SPAWNS)
         check(farm.holdersOfAny(Spawns.HERD).isNobody) { "herds alone made herds" }
         check(read("age herds of frozen").fateOf(2) == Fate.Impossible) { "`of` before a word naming nothing read" }
@@ -196,3 +200,7 @@ class ReadingCheck : FunSpec({
 })
 
 private const val WARDEN = "minecraft:warden"
+private const val PARROT = "minecraft:parrot"
+
+/** What `plentiful` asks, and so what `herds of` does where no amount was said. */
+private const val PLENTIFUL = 2.0
