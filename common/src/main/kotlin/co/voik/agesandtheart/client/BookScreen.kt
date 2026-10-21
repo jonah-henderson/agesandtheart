@@ -19,6 +19,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.core.BlockPos
+import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.util.FormattedCharSequence
@@ -264,9 +265,12 @@ class BookScreen(
     /**
      * One page, **broken into a column per part**: `polished_deepslate` is two words wearing one name, and
      * setting it whole would put "Polished Deepslate" under a script that plainly has two pieces. Where the
-     * two sides do not divide alike — an authored name need not follow its id — the word is set whole.
+     * two sides do not divide alike — an authored name need not follow its id — the word is set whole. A word the
+     * server no longer has keeps its script over an unintelligible gloss, and a retired one reads as what it became.
      */
-    private fun columnsOf(word: Identifier): List<Column> {
+    private fun columnsOf(written: Identifier): List<Column> {
+        if (KnownWords.isGone(written)) return listOf(Column(KnownWords.scriptText(written), UNINTELLIGIBLE))
+        val word = KnownWords.currentIdOf(written)
         val script = KnownWords.scriptParts(word.path)
         val reading = WordNames.readable(word)
         val readParts = reading.string.split(' ').filter { it.isNotBlank() }
@@ -439,6 +443,10 @@ class BookScreen(
     override fun isPauseScreen(): Boolean = false
 
     private companion object {
+        /** The gloss under a word the server no longer has: the script is still on the page, and means nothing. */
+        val UNINTELLIGIBLE: Component =
+            Component.translatable("book.agesandtheart.unintelligible_word").withStyle(ChatFormatting.UNDERLINE)
+
         /** GLFW's right button, which is what a book is opened with and now what closes it. */
         const val RIGHT_BUTTON = 1
 

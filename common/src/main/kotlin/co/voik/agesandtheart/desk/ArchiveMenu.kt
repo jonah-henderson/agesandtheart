@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.age.word.Vocabulary
 import net.minecraft.util.Prediction
 import co.voik.agesandtheart.age.word.learnedWords
 import co.voik.agesandtheart.content.AgeContent
@@ -34,6 +35,8 @@ class ArchiveMenu(
         private set
 
     private var lastSent: PageArchive? = null
+
+    private var hasForgottenGoneWords = false
 
     /** What the viewer knew when their prices were last sent; the prices only change when that does. */
     private var pricedFor: Int? = null
@@ -84,6 +87,10 @@ class ArchiveMenu(
         super.broadcastChanges()
         val viewer = viewer ?: return
         val archive = archiveOf() ?: return
+        if (!hasForgottenGoneWords) {
+            archive.forgetGoneWords(Vocabulary.of(viewer.level().server))
+            hasForgottenGoneWords = true
+        }
         sendPagesIfChanged(viewer, archive.pages)
         sendWritingIfChanged(viewer, archive)
     }

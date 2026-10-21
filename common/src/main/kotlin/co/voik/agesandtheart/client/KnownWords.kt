@@ -26,6 +26,8 @@ object KnownWords {
     private var rarity: Map<Identifier, WordHeadings.Rarity> = emptyMap()
     private var headings: List<Identifier> = emptyList()
     private var appliesTo: Map<Identifier, List<Int>> = emptyMap()
+    private var structural: Set<Identifier> = emptySet()
+    private var renamed: Map<Identifier, Identifier> = emptyMap()
     private val learned = LinkedHashSet<Identifier>()
 
     val words: Set<Identifier> get() = learned
@@ -38,6 +40,18 @@ object KnownWords {
         rarity = payload.rarity
         headings = payload.headings
         appliesTo = payload.appliesTo
+        structural = payload.structural
+        renamed = payload.renamed
+    }
+
+    /** The id [word] is read as now: what it was retired into, or itself. */
+    fun currentIdOf(word: Identifier): Identifier = renamed[word] ?: word
+
+    /** Whether the server no longer has [word] at all — false before it has said what it has. */
+    fun isGone(word: Identifier): Boolean {
+        val hasBeenTold = reach.isNotEmpty()
+        val isStillAPage = word in reach || word in structural || word in renamed
+        return hasBeenTold && !isStillAPage
     }
 
     /** How rare [word]'s page is, as a player is told it — common where the server never said. */
@@ -75,7 +89,7 @@ object KnownWords {
      * that was genuinely new is announced.
      */
     fun readFrom(words: Collection<Identifier>) {
-        words.filter(learned::add).forEach(::announce)
+        words.filterNot(::isGone).map(::currentIdOf).filter(learned::add).forEach(::announce)
     }
 
     /** These mean nothing on the next server: a pack there may spell the same word differently. */
@@ -87,6 +101,8 @@ object KnownWords {
         rarity = emptyMap()
         headings = emptyList()
         appliesTo = emptyMap()
+        structural = emptySet()
+        renamed = emptyMap()
         learned.clear()
     }
 

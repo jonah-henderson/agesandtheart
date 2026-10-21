@@ -5,6 +5,7 @@ import co.voik.agesandtheart.advancement.LearnedBy
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
+import co.voik.agesandtheart.content.UnintelligiblePageItem
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
@@ -39,12 +40,18 @@ object PageLearning {
      *
      * **The stack a listener is handed is vanilla's copy of the slot**, the one it keeps to notice the next
      * change and sends to the client, so a page drawn for its finder is written on the slot's own item.
+     *
+     * Any slot the player can see, a chest's included, has its gone words cleared — a page made unintelligible, a
+     * notebook's pages with it — since a menu opening hands every slot to its listeners.
      */
     @JvmStatic
     fun listenerFor(player: ServerPlayer): ContainerListener = object : ContainerListener {
         override fun slotChanged(container: AbstractContainerMenu, slotIndex: Int, itemStack: ItemStack) {
             val slot = container.getSlot(slotIndex)
-            if (slot is ResultSlot || slot.container !== player.inventory) return
+            if (slot is ResultSlot) return
+            val cleared = UnintelligiblePageItem.clearedOfGoneWords(slot.item, Vocabulary.of(player.level().server))
+            if (cleared != null) return slot.set(cleared)
+            if (slot.container !== player.inventory) return
             val held = slot.item
             PageWordFunction.writeForFinder(player, held)
             observe(player, held)
@@ -79,7 +86,8 @@ object PageLearning {
      */
     fun teach(player: ServerPlayer, words: Collection<Identifier>, by: LearnedBy = LearnedBy.READING): List<Identifier> {
         val vocabulary = Vocabulary.of(player.level().server)
-        val learned = words.map { vocabulary.successorId(it) ?: it }.distinct().filter(player.learnedWords::learn)
+        val stillWords = words.filter(vocabulary::stillNames)
+        val learned = stillWords.map { vocabulary.successorId(it) ?: it }.distinct().filter(player.learnedWords::learn)
         if (learned.isNotEmpty()) Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(learned))
         for (word in learned) AgeTriggers.LEARNED_WORD.trigger(player, word, by)
         return learned
@@ -96,7 +104,8 @@ object PageLearning {
     }
 
     /**
-     * Tells a joining player what they know, having carried any retired word they learned over to its successor.
+     * Tells a joining player what they know, having carried any retired word they learned over to its successor and
+     * forgotten any that is gone.
      *
      * Sent even though the client could not have forgotten it: a client may have connected to another
      * server since.
@@ -104,6 +113,7 @@ object PageLearning {
     fun tellEverything(player: ServerPlayer) {
         val vocabulary = Vocabulary.of(player.level().server)
         player.learnedWords.migrate(vocabulary::successorId)
+        player.learnedWords.forgetGone(vocabulary::stillNames)
         Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.whole(player.learnedWords.words))
     }
 

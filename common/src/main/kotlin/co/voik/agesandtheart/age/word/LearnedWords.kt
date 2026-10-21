@@ -38,9 +38,8 @@ class LearnedWords {
     /**
      * Restores from [packed] **without validating**, unlike vanilla's `loadUntrusted`.
      *
-     * Recipes are code and can only vanish permanently; words are datapack content, so a pack removed for
-     * an evening would otherwise erase what a player had found. An id the vocabulary no longer has is kept,
-     * and means nothing until a pack supplies it again.
+     * Every id is kept as saved; one the vocabulary no longer names is cleared when the player joins
+     * ([forgetGone]).
      */
     fun load(packed: Packed) {
         known.clear()
@@ -59,6 +58,13 @@ class LearnedWords {
         known += migrated
         return changed
     }
+
+    /**
+     * Forgets every word [stillNames] does not name.
+     *
+     * @return whether anything was forgotten.
+     */
+    fun forgetGone(stillNames: (Identifier) -> Boolean): Boolean = known.removeIf { !stillNames(it) }
 
     /** The saved form. A list, not a set: the order is part of the record. */
     data class Packed(val words: List<Identifier>) {

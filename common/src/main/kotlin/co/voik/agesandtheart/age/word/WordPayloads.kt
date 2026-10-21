@@ -29,6 +29,10 @@ data class LexiconPayload(
     val headings: List<Identifier> = emptyList(),
     /** Which of [headings] each word applies to, by its place there. */
     val appliesTo: Map<Identifier, List<Int>> = emptyMap(),
+    /** Every structure page, which a book may carry beside its words. */
+    val structural: Set<Identifier> = emptySet(),
+    /** Every retired id that leads to a word now, and that word's id. */
+    val renamed: Map<Identifier, Identifier> = emptyMap(),
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<LexiconPayload> = TYPE
@@ -50,6 +54,8 @@ data class LexiconPayload(
                 rarity = vocabulary.words.associate { it.id to WordHeadings.rarityOf(vocabulary, it) },
                 headings = headings,
                 appliesTo = vocabulary.appliesTo.mapValues { (_, under) -> under.mapNotNull(headingAt::get) },
+                structural = vocabulary.structurePages.map { it.id }.toSet(),
+                renamed = vocabulary.renamed,
             )
         }
 
@@ -82,6 +88,10 @@ data class LexiconPayload(
             LexiconPayload::headings,
             ByteBufCodecs.map(::LinkedHashMap, Identifier.STREAM_CODEC, ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list())),
             LexiconPayload::appliesTo,
+            IDS,
+            LexiconPayload::structural,
+            ByteBufCodecs.map(::LinkedHashMap, Identifier.STREAM_CODEC, Identifier.STREAM_CODEC),
+            LexiconPayload::renamed,
             ::LexiconPayload,
         )
     }

@@ -45,4 +45,24 @@ class RetiredWordsCheck : FunSpec({
             "migration left ${learned.words}"
         }
     }
+
+    test("a word, a structure page and a retired word still name something, and a word with no successor is gone") {
+        check(vocabulary.stillNames("floating".location()) && vocabulary.stillNames("and".location())) {
+            "a live word or a structure page reads as gone"
+        }
+        check(vocabulary.stillNames("glimmering".location())) { "a retired word with a successor reads as gone" }
+        check(!vocabulary.stillNames(GONE)) { "a word nobody has reads as still there" }
+        check(vocabulary.renamed["glimmering".location()] == vocabulary.word("bright")?.id) {
+            "the client is not told 'glimmering' became 'bright': ${vocabulary.renamed}"
+        }
+    }
+
+    test("a learned set forgets what is gone and keeps the rest, structure pages included") {
+        val learned = LearnedWords()
+        for (word in listOf("floating".location(), GONE, "and".location())) learned.learn(word)
+        check(learned.forgetGone(vocabulary::stillNames)) { "nothing was forgotten" }
+        check(learned.words.toList() == listOf("floating".location(), "and".location())) { "forgetting left ${learned.words}" }
+    }
 })
+
+private val GONE = "a_word_nobody_has".location()

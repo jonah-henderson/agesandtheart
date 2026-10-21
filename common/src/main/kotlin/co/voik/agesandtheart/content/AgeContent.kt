@@ -108,6 +108,8 @@ import net.minecraft.world.item.MapItem
 import net.minecraft.world.item.component.MapDecorations
 import net.minecraft.world.level.saveddata.maps.MapDecorationType
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
+import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider
+import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders
 import co.voik.agesandtheart.page.FinderLacksCondition
 import co.voik.agesandtheart.page.FirstFindCondition
 import net.minecraft.world.item.equipment.ArmorType
@@ -163,6 +165,10 @@ import net.minecraft.world.level.storage.loot.functions.LootItemFunction
  * is why anything wanting only a component type or a codec should not have to reach through it.
  */
 object AgeContent {
+    /** A sheet or a page burns as leaf litter does, and a book as a bookshelf (Jonah). */
+    private val BURNS_AS_A_SHEET: ResourceKey<ContextIntProvider> = ContextIntProviders.COOKING_TIME_DRY_PLANTS
+    private val BURNS_AS_A_BOOK: ResourceKey<ContextIntProvider> = ContextIntProviders.COOKING_TIME_WOOD_BLOCKS
+
     /**
      * **An item must know its own id before it is constructed.** `Item.Properties.setId` is not optional:
      * the constructor derives the description id and the component initialisers from it and throws
@@ -175,14 +181,21 @@ object AgeContent {
     val DESCRIPTIVE_BOOK: Item = DescriptiveBookItem(
         Item.Properties()
             .setId(ResourceKey.create(Registries.ITEM, DESCRIPTIVE_BOOK_ID))
-            .stacksTo(1),
+            .stacksTo(1)
+            .cookingFuel(BURNS_AS_A_BOOK),
     )
 
     private val PAGE_ID: Identifier = "page".location()
 
     /** Stacks: two pages of the same word are the same page, and differing words never merge anyway. */
     val PAGE: Item = PageItem(
-        Item.Properties().setId(ResourceKey.create(Registries.ITEM, PAGE_ID)),
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, PAGE_ID)).cookingFuel(BURNS_AS_A_SHEET),
+    )
+
+    private val UNINTELLIGIBLE_PAGE_ID: Identifier = "unintelligible_page".location()
+
+    val UNINTELLIGIBLE_PAGE: Item = UnintelligiblePageItem(
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, UNINTELLIGIBLE_PAGE_ID)).cookingFuel(BURNS_AS_A_SHEET),
     )
 
     private val NOTEBOOK_ID: Identifier = "notebook".location()
@@ -191,7 +204,8 @@ object AgeContent {
     val NOTEBOOK: Item = NotebookItem(
         Item.Properties()
             .setId(ResourceKey.create(Registries.ITEM, NOTEBOOK_ID))
-            .stacksTo(1),
+            .stacksTo(1)
+            .cookingFuel(BURNS_AS_A_BOOK),
     )
 
     private val FINE_PAPER_ID: Identifier = "fine_paper".location()
@@ -202,17 +216,18 @@ object AgeContent {
      * vanilla paper and any modded equivalent already qualify. The upper two are ours by design: the
      * player must make *these*, which is what stops the soft axis being bought at a village.
      */
-    val FINE_PAPER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, FINE_PAPER_ID)))
+    val FINE_PAPER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, FINE_PAPER_ID)).cookingFuel(BURNS_AS_A_SHEET))
 
     private val LOST_LIBRARY_MAP_ID: Identifier = "lost_library_map".location()
 
     /** A cartographer's explorer map to the nearest lost library, built as vanilla builds its own. */
     val LOST_LIBRARY_MAP: Item = MapItem(
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, LOST_LIBRARY_MAP_ID))
-            .component(DataComponents.MAP_DECORATIONS, MapDecorations.EMPTY),
+            .component(DataComponents.MAP_DECORATIONS, MapDecorations.EMPTY)
+            .cookingFuel(BURNS_AS_A_SHEET),
     )
 
-    val MASTERWORK_PAPER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, MASTERWORK_PAPER_ID)))
+    val MASTERWORK_PAPER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, MASTERWORK_PAPER_ID)).cookingFuel(BURNS_AS_A_SHEET))
 
     private val PITCHSTONE_ID: Identifier = "pitchstone".location()
 
@@ -1295,7 +1310,8 @@ object AgeContent {
         SurveyReportItem(
             Item.Properties()
                 .setId(ResourceKey.create(Registries.ITEM, report.id))
-                .stacksTo(SURVEY_REPORT_STACK),
+                .stacksTo(SURVEY_REPORT_STACK)
+                .cookingFuel(BURNS_AS_A_SHEET),
             report,
         )
     }
@@ -1325,7 +1341,8 @@ object AgeContent {
     val LINKING_BOOK: Item = LinkingBookItem(
         Item.Properties()
             .setId(ResourceKey.create(Registries.ITEM, LINKING_BOOK_ID))
-            .stacksTo(BLANK_LINKING_BOOK_STACK),
+            .stacksTo(BLANK_LINKING_BOOK_STACK)
+            .cookingFuel(BURNS_AS_A_BOOK),
     )
 
     private val INK_BOTTLE_ID: Identifier = "ink_bottle".location()
@@ -2102,6 +2119,7 @@ object AgeContent {
         LINKING_BOOK_RECEPTACLE_ID to LINKING_BOOK_RECEPTACLE,
         DESCRIPTIVE_BOOK_ID to DESCRIPTIVE_BOOK,
         PAGE_ID to PAGE,
+        UNINTELLIGIBLE_PAGE_ID to UNINTELLIGIBLE_PAGE,
         NOTEBOOK_ID to NOTEBOOK,
         WRITERS_DESK_ID to WRITERS_DESK,
         ARCHIVE_ID to ARCHIVE,

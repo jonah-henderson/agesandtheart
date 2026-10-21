@@ -9,7 +9,7 @@ import net.minecraft.world.item.ItemStack
  * Filing something into an archive.
  *
  * One place, because there are three doors — using an item on the block, shift-clicking it in the
- * archive's screen, and a hopper — and they must agree about what is accepted.
+ * archive's screen, and a hopper — and they must agree about what is accepted. A notebook keeps what is not a page.
  */
 object ArchiveIntake {
 
@@ -34,7 +34,7 @@ object ArchiveIntake {
             archive.file(word, page.count)
         }
         val emptied = stack.copyWithCount(1)
-        NotebookItem.setPages(emptied, emptyList())
+        NotebookItem.setPages(emptied, NotebookItem.pagesIn(stack).filterNot(NotebookItem::isPage))
         return DeskIntake.Result(stack.copyWithCount(stack.count - 1), emptied, took = true)
     }
 

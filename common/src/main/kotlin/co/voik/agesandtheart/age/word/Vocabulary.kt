@@ -120,6 +120,25 @@ data class Vocabulary(
      */
     fun word(name: String): Word? = byName[name] ?: retired.successorOf(name)?.let(byName::get)
 
+    /** The word a page or a learned set names by [id], or what it was retired into; null where there is no such word now. */
+    fun word(id: Identifier): Word? {
+        val named = (byName[id.toString()] ?: byName[id.path])?.takeIf { it.id == id }
+        return named ?: successorId(id)?.let(::word)
+    }
+
+    /**
+     * Whether [id] still names something a page, a book or a learned set may carry: a word, a structure page, or one
+     * retired into a word. What does not is gone, and is cleared out wherever it is found.
+     */
+    fun stillNames(id: Identifier): Boolean = word(id) != null || structural[id.path]?.id == id
+
+    /** Every retired id of ours that leads to a word now, and the word's id. */
+    val renamed: Map<Identifier, Identifier> by lazy {
+        retired.names.map { Identifier.fromNamespaceAndPath(Constants.MOD_ID, it) }
+            .mapNotNull { old -> successorId(old)?.let { old to it } }
+            .toMap()
+    }
+
     /** The id [id] has become, where it is one of our words that was retired. */
     fun successorId(id: Identifier): Identifier? =
         if (id.namespace != Constants.MOD_ID) null else retired.successorOf(id.path)?.let(byName::get)?.id

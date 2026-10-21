@@ -27,6 +27,9 @@ data class PageArchive(private val counts: Map<Identifier, Int>) {
     fun with(word: Identifier, added: Int): PageArchive =
         PageArchive(counts + (word to (count(word) + added).coerceAtLeast(0)))
 
+    /** Every word [keeps] accepts, with its count. */
+    fun keeping(keeps: (Identifier) -> Boolean): PageArchive = PageArchive(counts.filterKeys(keeps))
+
     /** @return the archive without [taken] copies, or null if it does not hold that many. */
     fun without(word: Identifier, taken: Int): PageArchive? {
         val remaining = count(word) - taken

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
@@ -38,6 +39,14 @@ class ArchiveBlockEntity(pos: BlockPos, state: BlockState) :
     fun file(word: Identifier, count: Int) {
         if (count <= 0) return
         pages = pages.with(word, count)
+        setChanged()
+    }
+
+    /** Drops every word [vocabulary] no longer names, pages and all. */
+    fun forgetGoneWords(vocabulary: Vocabulary) {
+        val kept = pages.keeping(vocabulary::stillNames)
+        if (kept == pages) return
+        pages = kept
         setChanged()
     }
 
