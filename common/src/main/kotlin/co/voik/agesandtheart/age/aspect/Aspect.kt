@@ -315,7 +315,7 @@ enum class Aspect(
                 Features.INCONGRUOUS,
             )
             AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE, Atmosphere.DRAINED)
-            WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR)
+            WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR, Fishing.TREASURE)
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER, Atmosphere.RAINPACE)
             SUN -> listOf(
                 SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.SUNCOLOUR, SkyBodies.RISING, SkyBodies.PATH,

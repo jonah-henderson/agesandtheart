@@ -1,5 +1,5 @@
 {
-  "_comment": "What a world holds in the ground. The query is the fact -- these are ore -- and the weights are the judgement, because which ore is a prize is a fact about the game's economy and not about the rock.",
+  "_comment": "What a world holds in the ground, and its waters give up to a line: treasure far oftener (Jonah, 2026-10-21). The query is the fact -- these are ore -- and the weights are the judgement, because which ore is a prize is a fact about the game's economy and not about the rock.",
   "meanings": [
     {
       "bends": {
@@ -32,6 +32,12 @@
           "#buried": 0.6,
           "#barren": -0.5
         }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "waters.treasure": "true"
       },
       "must_always_apply": true
     }

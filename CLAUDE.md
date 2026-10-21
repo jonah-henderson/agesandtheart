@@ -372,7 +372,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Fifty-nine Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Sixty Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -473,6 +473,10 @@ When shared code needs something loader-specific, it goes through an interface, 
   `MobCategory.getMaxInstancesPerChunk`, a constant read in two places handed no level — the level's cap in
   `NaturalSpawner.SpawnState` and each player's in `LocalMobCapCalculator.MobCounts` — so the first takes the level's
   caps where its spawning begins, in `createState`, and the other two read them. Neither loader has a cap event.
+- **`FishingHookMixin`** — what fishing in an Age gives (`generation/AgeFishing`): a caught fish drawn again by
+  how thickly the book asked for each kind where the bobber is, and rich waters (`Fishing.TREASURE`) fishing with
+  more luck, which vanilla's table spends on treasure. `retrieve` builds the luck and rolls the table in one
+  method; Fabric has no fishing event and NeoForge's comes after the roll.
 - **`NaturalSpawnerMixin`** — what an `incongruous spawns` Age lets live anywhere (`generation/IncongruousSpawns`):
   vanilla's placement check, the type's spawn predicate and the creature's own spawn rule all pass, the peaceful
   rule and the collision checks kept, scarabs excepted. Fabric has no natural-spawning event and NeoForge's
