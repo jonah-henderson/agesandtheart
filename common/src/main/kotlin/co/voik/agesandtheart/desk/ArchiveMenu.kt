@@ -38,7 +38,7 @@ class ArchiveMenu(
     /** What the viewer knew when their prices were last sent; the prices only change when that does. */
     private var pricedFor: Int? = null
 
-    private var lastStock: WritingStock? = null
+    private var lastSaid: ArchiveStockPayload? = null
     private var stockSent = false
     private var ticksSinceDeskScan = DESK_SCAN_TICKS
 
@@ -115,11 +115,14 @@ class ArchiveMenu(
         if (++ticksSinceDeskScan >= DESK_SCAN_TICKS) {
             ticksSinceDeskScan = 0
             val reach = WritersDesk.of(server).radius
-            val stock = ArchiveWriting.closestDesk(level, archive.blockPos, reach)?.let(ArchiveWriting::stockOf)
-            if (!stockSent || stock != lastStock) {
+            val desk = ArchiveWriting.closestDesk(level, archive.blockPos, reach)
+            val stock = desk?.let(ArchiveWriting::stockOf)
+            val showsWhereWordsApply = desk?.capabilities(WritersDesk.of(server))?.capabilities?.contains(DeskCapability.WORD_REACH) == true
+            val said = ArchiveStockPayload(stock, showsWhereWordsApply)
+            if (!stockSent || said != lastSaid) {
                 stockSent = true
-                lastStock = stock
-                Services.NETWORK.sendToPlayer(viewer, ArchiveStockPayload(stock))
+                lastSaid = said
+                Services.NETWORK.sendToPlayer(viewer, said)
             }
         }
     }

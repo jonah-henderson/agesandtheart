@@ -48,6 +48,10 @@ class ArchiveWritingCheck : FunSpec({
         ArchiveStockPayload.STREAM_CODEC.encode(stockBuffer, ArchiveStockPayload(told))
         check(ArchiveStockPayload.STREAM_CODEC.decode(stockBuffer).stock == told) { "A desk's stock changed in transit" }
 
+        val guided = Unpooled.buffer()
+        ArchiveStockPayload.STREAM_CODEC.encode(guided, ArchiveStockPayload(told, showsWhereWordsApply = true))
+        check(ArchiveStockPayload.STREAM_CODEC.decode(guided).showsWhereWordsApply) { "A desk's grammar guide was lost in transit" }
+
         val noDesk = Unpooled.buffer()
         ArchiveStockPayload.STREAM_CODEC.encode(noDesk, ArchiveStockPayload(null))
         check(ArchiveStockPayload.STREAM_CODEC.decode(noDesk).stock == null) { "No desk arrived as a desk" }

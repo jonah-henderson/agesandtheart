@@ -16,7 +16,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 
 /** One row in the word list: a word the writer knows, and what it is called. */
-data class WordRow(val word: Identifier, val readable: String)
+data class WordRow(override val word: Identifier, override val readable: String) : OrderedWord
 
 /**
  * What the open desk screen believes, kept between payloads.

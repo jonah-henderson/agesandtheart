@@ -8,6 +8,7 @@ import co.voik.agesandtheart.client.ui.Edge
 import co.voik.agesandtheart.client.ui.FlexColumn
 import co.voik.agesandtheart.client.ui.Insets
 import co.voik.agesandtheart.client.ui.LabelledList
+import co.voik.agesandtheart.client.ui.OrderButton
 import co.voik.agesandtheart.client.ui.MarkedText
 import co.voik.agesandtheart.client.ui.Palette
 import co.voik.agesandtheart.client.ui.PanelSurface
@@ -53,6 +54,7 @@ class WritersDeskScreen(
 
     private lateinit var search: EditBox
     private lateinit var wordList: LabelledList<WordRow>
+    private lateinit var orderButton: OrderButton<WordOrder>
     private lateinit var ageName: EditBox
     private lateinit var editor: TemplateEditor
     private lateinit var readingView: FittingMultiLineTextWidget
@@ -63,6 +65,7 @@ class WritersDeskScreen(
     private lateinit var bindButton: Button
 
     private var shownWords: List<WordRow> = emptyList()
+    private var shownWordsIn: WordOrder? = null
 
     /** Whether the editor has been given the template the desk kept, which happens once per opening. */
     private var seeded = false
@@ -123,6 +126,13 @@ class WritersDeskScreen(
             refreshWords(force = true)
         }
         addRenderableWidget(search)
+        orderButton = addRenderableWidget(
+            WordListOrder.button(LINE, wordOrder, ::offeredOrders) { chosen ->
+                wordOrder = chosen
+                wordList.resetScroll()
+                refreshWords(force = true)
+            },
+        )
         wordList = addRenderableWidget(LabelledList(Minecraft.getInstance(), Rect(0, 0, 0, 0), ::insertWord))
 
         val column = FlexColumn(WORD_COLUMN_WIDTH, imageHeight - CONTENT_TOP - INSET)
@@ -131,6 +141,9 @@ class WritersDeskScreen(
         column.fill(wordList)
         column.setPosition(leftPos + INSET, topPos + CONTENT_TOP)
         column.arrangeElements()
+        // The order button takes the right end of the search row, square, just above the list's right edge.
+        search.width -= LINE + GAP
+        orderButton.setPosition(search.x + search.width + GAP, search.y)
         refreshWords(force = true)
     }
 
@@ -281,11 +294,20 @@ class WritersDeskScreen(
         sendToServer(DeskTemplatePayload(editor.value))
     }
 
+    /** By name and by rarity always, and by what each applies to with the grammar guide in the room. */
+    private fun offeredOrders(): List<WordOrder> =
+        listOf(WordOrder.ALPHABETICAL, WordOrder.RARITY) +
+            listOfNotNull(WordOrder.APPLIES_TO.takeIf { DeskModel.can(DeskCapability.WORD_REACH) })
+
     private fun refreshWords(force: Boolean) {
         val rows = DeskModel.knownRows(search.value)
-        if (!force && rows == shownWords) return
+        val ordering = WordListOrder.stillOffered(wordOrder, offeredOrders())
+        if (!force && rows == shownWords && ordering == shownWordsIn) return
+        if (ordering != wordOrder) orderButton.showing(ordering)
+        wordOrder = ordering
         shownWords = rows
-        wordList.show(rows, label = { it.readable }, key = { it.word }, tooltip = ::reachTooltip)
+        shownWordsIn = ordering
+        wordList.showGrouped(WordListOrder.grouped(rows, ordering), label = { it.readable }, key = { it.word }, tooltip = ::reachTooltip)
     }
 
     /** Where a word applies, asked at hover so a guide carried into or out of the room shows at once. */
@@ -404,6 +426,9 @@ class WritersDeskScreen(
     }
 
     private companion object {
+        /** How the word list is ordered, kept across the screen being rebuilt and between openings. */
+        var wordOrder = WordOrder.ALPHABETICAL
+
         /** The paper, kept between openings on this client. The cheapest by default, so nobody wastes the good stuff. */
         var chosenPaper = InkTier.COMMON
 

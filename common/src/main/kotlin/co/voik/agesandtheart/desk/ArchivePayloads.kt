@@ -62,7 +62,11 @@ data class ArchivePricesPayload(val prices: Map<Identifier, PagePrice>) : Custom
 }
 
 /** What the writer's desk nearest the open archive holds, or null where there is none in range. */
-data class ArchiveStockPayload(val stock: WritingStock?) : CustomPacketPayload {
+data class ArchiveStockPayload(
+    val stock: WritingStock?,
+    /** Whether the nearest desk has the grammar guide by it, which lets the archive list words by what they apply to. */
+    val showsWhereWordsApply: Boolean = false,
+) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<ArchiveStockPayload> = TYPE
 
@@ -71,9 +75,12 @@ data class ArchiveStockPayload(val stock: WritingStock?) : CustomPacketPayload {
             Identifier.fromNamespaceAndPath(Constants.MOD_ID, "archive_stock"),
         )
 
-        val STREAM_CODEC: StreamCodec<ByteBuf, ArchiveStockPayload> =
-            ByteBufCodecs.optional(WritingStock.STREAM_CODEC)
-                .map({ ArchiveStockPayload(it.orElse(null)) }, { java.util.Optional.ofNullable(it.stock) })
+        val STREAM_CODEC: StreamCodec<ByteBuf, ArchiveStockPayload> = StreamCodec.composite(
+            ByteBufCodecs.optional(WritingStock.STREAM_CODEC),
+            { java.util.Optional.ofNullable(it.stock) },
+            ByteBufCodecs.BOOL,
+            ArchiveStockPayload::showsWhereWordsApply,
+        ) { stock, shows -> ArchiveStockPayload(stock.orElse(null), shows) }
     }
 }
 

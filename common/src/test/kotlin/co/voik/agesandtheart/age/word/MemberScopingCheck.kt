@@ -87,6 +87,14 @@ class MemberScopingCheck : FunSpec({
         check(capsOf("fish").isEmpty()) { "naming the fish moved a cap: ${capsOf("fish")}" }
     }
 
+    test("a word is listed under what it applies to, and under one of the game's creatures only where it applies to that alone") {
+        val vocabulary = co.voik.agesandtheart.ShippedCorpus.vocabulary
+        fun under(name: String) = vocabulary.appliesTo[vocabulary.word(name)?.id].orEmpty().map { it.path }
+        check(listOf("sky", "weather", "monsters", "creeper").all { it in under("charged") }) { "charged is under ${under("charged")}" }
+        check("zombie" !in under("strong") && "monsters" in under("strong")) { "strong is under ${under("strong")}" }
+        check("age" !in under("charged")) { "charged was listed under the Age" }
+    }
+
     test("motionless spawns root everything") {
         val spawns = aimed(SEEDS.first, "motionless", "spawns").optionsFor(Aspect.SPAWNS)
         check(spawns.isTrue(Spawns.STILL, member = COW)) { "'motionless spawns' left a cow walking" }

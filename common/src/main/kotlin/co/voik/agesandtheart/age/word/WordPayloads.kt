@@ -23,6 +23,12 @@ data class LexiconPayload(
     val materials: Set<Identifier>,
     /** Every word that mints a shape out of a material — `rings`, `arches`, `veins`. */
     val shapes: Set<Identifier>,
+    /** How rare each word's page is, as a player is told it, for a list ordered by rarity. */
+    val rarity: Map<Identifier, WordHeadings.Rarity> = emptyMap(),
+    /** The words a list ordered by what words apply to is headed by, which [appliesTo] counts into. */
+    val headings: List<Identifier> = emptyList(),
+    /** Which of [headings] each word applies to, by its place there. */
+    val appliesTo: Map<Identifier, List<Int>> = emptyMap(),
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<LexiconPayload> = TYPE
@@ -33,12 +39,22 @@ data class LexiconPayload(
         )
 
         /** What [vocabulary] tells a client. */
-        fun of(vocabulary: Vocabulary) = LexiconPayload(
-            vocabulary.script,
-            vocabulary.words.associate { it.id to vocabulary.lexicon.placesFor(it) },
-            materials = vocabulary.words.filter { it.block != null }.map { it.id }.toSet(),
-            shapes = vocabulary.words.filter { it.mints != null }.map { it.id }.toSet(),
-        )
+        fun of(vocabulary: Vocabulary): LexiconPayload {
+            val headings = vocabulary.appliesTo.values.flatten().distinct().sorted()
+            val headingAt = headings.withIndex().associate { (at, heading) -> heading to at }
+            return LexiconPayload(
+                vocabulary.script,
+                vocabulary.words.associate { it.id to vocabulary.lexicon.placesFor(it) },
+                materials = vocabulary.words.filter { it.block != null }.map { it.id }.toSet(),
+                shapes = vocabulary.words.filter { it.mints != null }.map { it.id }.toSet(),
+                rarity = vocabulary.words.associate { it.id to WordHeadings.rarityOf(vocabulary, it) },
+                headings = headings,
+                appliesTo = vocabulary.appliesTo.mapValues { (_, under) -> under.mapNotNull(headingAt::get) },
+            )
+        }
+
+        private val RARITY_STREAM_CODEC: StreamCodec<ByteBuf, WordHeadings.Rarity> =
+            ByteBufCodecs.idMapper({ WordHeadings.Rarity.entries[it] }, WordHeadings.Rarity::ordinal)
 
         private val IDS: StreamCodec<ByteBuf, Set<Identifier>> =
             Identifier.STREAM_CODEC.apply(ByteBufCodecs.collection(::LinkedHashSet))
@@ -60,6 +76,12 @@ data class LexiconPayload(
             LexiconPayload::materials,
             IDS,
             LexiconPayload::shapes,
+            ByteBufCodecs.map(::LinkedHashMap, Identifier.STREAM_CODEC, RARITY_STREAM_CODEC),
+            LexiconPayload::rarity,
+            Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()),
+            LexiconPayload::headings,
+            ByteBufCodecs.map(::LinkedHashMap, Identifier.STREAM_CODEC, ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list())),
+            LexiconPayload::appliesTo,
             ::LexiconPayload,
         )
     }

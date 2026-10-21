@@ -55,14 +55,41 @@ fun wrapLabel(label: String, width: Int, indent: Int, measure: (String) -> Int):
     return lines
 }
 
+/** A run of a [LabelledList]'s values under one heading, or under none. */
+data class ListGroup<T : Any>(val heading: String?, val values: List<T>)
+
+/**
+ * One line of a [LabelledList]: a row naming one of its values, or a heading over a run of them.
+ *
+ * Kept out of the list class so the self-referential bound `Entry<E>` resolves — an inner class cannot name
+ * itself in its own supertype.
+ */
+sealed class ListLine<T : Any> : ObjectSelectionList.Entry<ListLine<T>>()
+
+/** A heading over a run of a [LabelledList]'s rows, which is read and never acted on. */
+class HeadingLine<T : Any>(private val text: String) : ListLine<T>() {
+
+    override fun getNarration(): Component = Component.literal(text)
+
+    override fun extractContent(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, hovered: Boolean, a: Float) {
+        val font = Minecraft.getInstance().font
+        val baseline = y + (LabelledRow.FIRST_LINE_HEIGHT - font.lineHeight) / 2 + 1
+        graphics.text(font, text, x + HEADING_INSET, baseline, Palette.FAINT, false)
+        graphics.fill(x + HEADING_INSET, y + height - 1, x + width - HEADING_INSET, y + height, Palette.FAINT)
+    }
+
+    override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean = false
+
+    private companion object {
+        const val HEADING_INSET = 1
+    }
+}
+
 /**
  * One row of a [LabelledList]: a name, optionally a count, and whatever the row offers to do.
  *
  * A name too long for the row wraps onto indented lines beneath it; the count and the buttons stay on the
  * first.
- *
- * Kept out of the list class so the self-referential bound `Entry<E>` resolves — an inner class cannot name
- * itself in its own supertype.
  */
 class LabelledRow<T : Any>(
     val value: T,
@@ -73,7 +100,7 @@ class LabelledRow<T : Any>(
     private val actions: List<RowAction<T>> = emptyList(),
     /** Shown while the row is hovered away from its buttons; nothing when empty. */
     private val tooltip: (T) -> List<Component> = { emptyList() },
-) : ObjectSelectionList.Entry<LabelledRow<T>>() {
+) : ListLine<T>() {
 
     /** Where each action's button sits, left to right against the row's right edge. */
     private fun buttonAt(index: Int): Int = x + width - (actions.size - index) * BUTTON_PITCH
@@ -186,7 +213,7 @@ class LabelledList<T : Any>(
     minecraft: Minecraft,
     bounds: Rect,
     private val onSelect: (T) -> Unit,
-) : ObjectSelectionList<LabelledRow<T>>(minecraft, bounds.width, bounds.height, bounds.y, LabelledRow.FIRST_LINE_HEIGHT),
+) : ObjectSelectionList<ListLine<T>>(minecraft, bounds.width, bounds.height, bounds.y, LabelledRow.FIRST_LINE_HEIGHT),
     Resized {
 
     /** The last [show], kept so a new width can wrap the same rows again. */
@@ -218,16 +245,29 @@ class LabelledList<T : Any>(
         key: (T) -> Any = { it },
         actions: List<RowAction<T>> = emptyList(),
         tooltip: (T) -> List<Component> = { emptyList() },
+    ) = showGrouped(listOf(ListGroup(null, values)), label, count, key, actions, tooltip)
+
+    /** [groups] in order, each under its heading — a value may stand in more than one. */
+    fun showGrouped(
+        groups: List<ListGroup<T>>,
+        label: (T) -> String,
+        count: (T) -> Int? = { null },
+        key: (T) -> Any = { it },
+        actions: List<RowAction<T>> = emptyList(),
+        tooltip: (T) -> List<Component> = { emptyList() },
     ) {
-        reshow = { show(values, label, count, key, actions, tooltip) }
-        val wasSelected = selected?.value?.let(key)
+        reshow = { showGrouped(groups, label, count, key, actions, tooltip) }
+        val wasSelected = (selected as? LabelledRow<T>)?.value?.let(key)
         val wasScrolledTo = scrollAmount()
         clearEntries()
-        for (value in values) {
-            val row = LabelledRow.wrapped(value, label(value), count(value), onSelect, actions, rowWidth, tooltip)
-            addEntry(row, LabelledRow.heightOf(row))
+        for (group in groups) {
+            group.heading?.let { addEntry(HeadingLine(it), HEADING_HEIGHT) }
+            for (value in group.values) {
+                val row = LabelledRow.wrapped(value, label(value), count(value), onSelect, actions, rowWidth, tooltip)
+                addEntry(row, LabelledRow.heightOf(row))
+            }
         }
-        selected = children().firstOrNull { key(it.value) == wasSelected }
+        selected = children().filterIsInstance<LabelledRow<T>>().firstOrNull { key(it.value) == wasSelected }
         // `setSelected` scrolls the selection back into view, and after a keyboard event it does so
         // unconditionally — which would drag the list away from wherever the reader had put it every time a
         // search keystroke or an inventory change rebuilt the rows. The reader's position wins.
@@ -287,7 +327,7 @@ class LabelledList<T : Any>(
     private fun scrollTo(fraction: Double) = setScrollAmount(fraction * maxScrollAmount())
 
     /** Nothing: a row is acted on, never held selected, and a wash made the grey text on it unreadable. */
-    override fun extractSelection(graphics: GuiGraphicsExtractor, entry: LabelledRow<T>, outlineColor: Int) = Unit
+    override fun extractSelection(graphics: GuiGraphicsExtractor, entry: ListLine<T>, outlineColor: Int) = Unit
 
     /** Both suppressed: the panel behind is the background, and there is nothing to separate it from. */
     override fun extractListBackground(graphics: GuiGraphicsExtractor) = Unit
@@ -295,6 +335,9 @@ class LabelledList<T : Any>(
     override fun extractListSeparators(graphics: GuiGraphicsExtractor) = Unit
 
     private companion object {
+        /** A heading's line, a little taller than a row's so a run reads as beginning under it. */
+        const val HEADING_HEIGHT = LabelledRow.FIRST_LINE_HEIGHT + 2
+
         /** The scrollbar, and two pixels clear of it. */
         const val SCROLLBAR_GUTTER = ContainerScrollbar.WIDTH + 2
     }

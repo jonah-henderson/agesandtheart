@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.age.word.Script
+import co.voik.agesandtheart.age.word.WordHeadings
 import co.voik.agesandtheart.age.word.WordNames
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
@@ -22,6 +23,9 @@ object KnownWords {
     private var reach: Map<Identifier, Set<Aspect>> = emptyMap()
     private var materials: Set<Identifier> = emptySet()
     private var shapes: Set<Identifier> = emptySet()
+    private var rarity: Map<Identifier, WordHeadings.Rarity> = emptyMap()
+    private var headings: List<Identifier> = emptyList()
+    private var appliesTo: Map<Identifier, List<Int>> = emptyMap()
     private val learned = LinkedHashSet<Identifier>()
 
     val words: Set<Identifier> get() = learned
@@ -31,7 +35,16 @@ object KnownWords {
         reach = payload.reach
         materials = payload.materials
         shapes = payload.shapes
+        rarity = payload.rarity
+        headings = payload.headings
+        appliesTo = payload.appliesTo
     }
+
+    /** How rare [word]'s page is, as a player is told it — common where the server never said. */
+    fun rarityOf(word: Identifier): WordHeadings.Rarity = rarity[word] ?: WordHeadings.Rarity.COMMON
+
+    /** The words [word] applies to — none where it applies only to the Age, or the server never said. */
+    fun appliesTo(word: Identifier): List<Identifier> = appliesTo[word].orEmpty().mapNotNull(headings::getOrNull)
 
     /** The parts of the world [word] reaches — empty meaning anywhere — or null if the server never said. */
     fun reachOf(word: Identifier): Set<Aspect>? = reach[word]
@@ -71,6 +84,9 @@ object KnownWords {
         reach = emptyMap()
         materials = emptySet()
         shapes = emptySet()
+        rarity = emptyMap()
+        headings = emptyList()
+        appliesTo = emptyMap()
         learned.clear()
     }
 

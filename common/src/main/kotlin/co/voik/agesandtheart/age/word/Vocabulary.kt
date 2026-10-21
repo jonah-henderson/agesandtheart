@@ -158,6 +158,9 @@ data class Vocabulary(
     /** Every word, every structure page and what each word takes, as the reading reads a book against them. */
     val lexicon: Lexicon by lazy { Lexicon(::word, { structural[it]?.structure }, this, registries) }
 
+    /** The words each word applies to, for a word list ordered under them ([WordHeadings.appliesTo]). Worked out once. */
+    val appliesTo: Map<Identifier, List<Identifier>> by lazy { WordHeadings.appliesTo(this) }
+
     /** [pages] read at [seed], or null where they spell no book. */
     fun read(pages: List<String>, seed: Long): Reading? = Reader.read(lexicon, pages, seed)
 

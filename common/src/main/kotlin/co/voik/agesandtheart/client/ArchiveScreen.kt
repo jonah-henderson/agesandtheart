@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.ui.DecorationWidget
 import co.voik.agesandtheart.client.ui.FlexColumn
 import co.voik.agesandtheart.client.ui.LabelledList
+import co.voik.agesandtheart.client.ui.OrderButton
 import co.voik.agesandtheart.client.ui.Palette
 import co.voik.agesandtheart.client.ui.PanelSurface
 import co.voik.agesandtheart.client.ui.PlayerInventoryView
@@ -33,7 +34,9 @@ import net.minecraft.resources.Identifier
 import net.minecraft.world.entity.player.Inventory
 
 /** One word an archive holds, and how many pages of it. */
-data class ArchiveRow(val word: Identifier, val readable: String, val count: Int)
+data class ArchiveRow(override val word: Identifier, override val readable: String, val count: Int) : OrderedWord {
+    override val stocked: Int get() = count
+}
 
 /**
  * An archive's pages, searched, above the player's inventory.
@@ -51,7 +54,9 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
     private lateinit var search: EditBox
     private lateinit var modeButton: CycleButton<Boolean>
     private lateinit var list: LabelledList<ArchiveRow>
+    private lateinit var orderButton: OrderButton<WordOrder>
     private var shown: List<ArchiveRow> = emptyList()
+    private var shownIn: WordOrder? = null
 
     override fun init() {
         super.init()
@@ -96,6 +101,13 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
             ) { _, filed -> showMode(known = !filed) }
         addRenderableWidget(modeButton)
         addRenderableWidget(search)
+        orderButton = addRenderableWidget(
+            WordListOrder.button(LINE, order, ::offeredOrders) { chosen ->
+                order = chosen
+                list.resetScroll()
+                refresh(force = true)
+            },
+        )
         list = addRenderableWidget(LabelledList(Minecraft.getInstance(), Rect(0, 0, 0, 0)) {})
 
         val column = FlexColumn(imageWidth - INSET * 2, ArchiveMenu.INVENTORY_LABEL_Y - GAP - CONTENT_TOP)
@@ -104,6 +116,9 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
         column.fill(list)
         column.setPosition(leftPos + INSET, topPos + CONTENT_TOP)
         column.arrangeElements()
+        // The order button takes the right end of the search row, square, just above the list's right edge.
+        search.width -= LINE + GAP
+        orderButton.setPosition(search.x + search.width + GAP, search.y)
 
         focused = search
         refresh(force = true)
@@ -142,6 +157,10 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
         graphics.textWithWordWrap(font, translated("hint"), list.x + HINT_INSET, list.y + HINT_INSET, list.width - 2 * HINT_INSET, Palette.FAINT)
     }
 
+    /** By name, by rarity and by count always, and by what each applies to with a grammar guide at the nearest desk. */
+    private fun offeredOrders(): List<WordOrder> =
+        listOf(WordOrder.ALPHABETICAL, WordOrder.RARITY, WordOrder.STOCKED) + listOfNotNull(WordOrder.APPLIES_TO.takeIf { showsWhereWordsApply })
+
     private fun refresh(force: Boolean) {
         val needle = search.value.trim().lowercase()
         val words = if (showingKnown) KnownWords.words else held.words
@@ -149,11 +168,15 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
             .map { ArchiveRow(it, WordNames.readable(it).string, held.count(it)) }
             .filter { needle.isEmpty() || it.readable.lowercase().contains(needle) }
             .sortedBy { it.readable }
-        if (!force && rows == shown) return
+        val ordering = WordListOrder.stillOffered(order, offeredOrders())
+        if (!force && rows == shown && ordering == shownIn) return
+        if (ordering != order) orderButton.showing(ordering)
+        order = ordering
         shown = rows
+        shownIn = ordering
         val actions = if (showingKnown) listOf(write, takeOut) else listOf(takeOut)
-        list.show(
-            rows,
+        list.showGrouped(
+            WordListOrder.grouped(rows, ordering),
             label = { it.readable },
             count = { row -> row.count.takeIf { it > 0 || !showingKnown } },
             key = { it.word },
@@ -207,6 +230,12 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
         /** Kept across the screen being rebuilt, as the search text is. */
         private var showingKnown = false
 
+        /** How the list is ordered, kept as the mode is. */
+        private var order = WordOrder.ALPHABETICAL
+
+        /** Whether the nearest desk has the grammar guide by it, as last sent. */
+        private var showsWhereWordsApply = false
+
         fun remember(payload: ArchiveSyncPayload) {
             held = payload.pages
         }
@@ -217,6 +246,7 @@ class ArchiveScreen(menu: ArchiveMenu, inventory: Inventory, title: Component) :
 
         fun remember(payload: ArchiveStockPayload) {
             stock = payload.stock
+            showsWhereWordsApply = payload.showsWhereWordsApply
         }
 
         /** The mode button sits on the title line, which is laid out around it. */
