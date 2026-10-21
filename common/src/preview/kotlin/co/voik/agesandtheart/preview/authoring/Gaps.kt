@@ -3,6 +3,7 @@ package co.voik.agesandtheart.preview.authoring
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.age.language.Meaning
 import co.voik.agesandtheart.age.resolution.Effect
@@ -69,7 +70,7 @@ object Gaps {
             (aspect.parameters + corpus.vocabulary.candidatesFor(aspect).flatMap { preset -> preset.ownParameters.filter(preset::honours) })
                 .map { Owned(aspect, it) }
         }
-        .filterNot { it.parameter.name == Parameter.CAST }
+        .filterNot { it.parameter.name == Parameter.CAST || it.parameter == Spawns.CAPS }
         .groupBy { it.parameter.name }
         .map { (name, owned) -> name to owned }
         .sortedBy { it.first }

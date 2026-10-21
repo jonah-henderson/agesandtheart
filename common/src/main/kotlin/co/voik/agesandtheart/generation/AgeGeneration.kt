@@ -407,6 +407,7 @@ object AgeGeneration {
                 Vocabulary.of(server).spawning,
                 WhereThingsGrow.creaturesListed(server.registryAccess()),
             ),
+            spawnCaps = Spawns.capsOf(composition.optionsFor(Aspect.SPAWNS, 0)),
             nothingLives = Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0)),
             incongruity = Incongruity.of(composition),
             vanillasAbyss = vanillasAbyss,

@@ -33,6 +33,17 @@ class WrittenCreaturesOnServerCheck : FunSpec({
         check(summoned(CHARGED, "age charged creeper", "creeper", POWERED)) { "a creeper in 'charged creeper' came unpowered" }
     }
 
+    test("a teeming Age holds more of every pass, and an ordinary one holds vanilla's") {
+        fun capsIn(age: String, sentence: String): Map<String, Double> {
+            server.run("age write $age $SEED $sentence")
+            val caps = server.ask("spawns", "$age $NO_CENSUS").getAsJsonArray("cap") ?: return emptyMap()
+            return caps.associate { it.asJsonObject.get("pass").asString to it.asJsonObject.get("times").asDouble }
+        }
+        val teeming = capsIn(TEEMING, "age teeming spawns")
+        check(teeming["monster"] == TEEMING_RUNG && teeming["creature"] == TEEMING_RUNG) { "'teeming spawns' held $teeming" }
+        check(capsIn(ORDINARY, "age clear sky").isEmpty()) { "an Age that said nothing of life moved a cap" }
+    }
+
     test("a sheep summoned into a black-sheep Age is black") {
         check(summoned(BLACK_SHEEP, "age black sheep", "sheep", BLACK_WOOL)) { "a sheep in 'black sheep' came another colour" }
     }
@@ -42,6 +53,14 @@ private const val SEED = 4786177076396069349L
 private const val CHARGED = "chargedcreepers"
 private const val UNCHARGED = "plaincreepers"
 private const val BLACK_SHEEP = "blacksheep"
+private const val TEEMING = "teemingspawns"
+private const val ORDINARY = "ordinaryspawns"
+
+/** What `teeming` asks of every creature. */
+private const val TEEMING_RUNG = 4.0
+
+/** A census of no chunks around the origin, so the caps come back without generating any. */
+private const val NO_CENSUS = 0
 private const val POWERED = "{powered:1b}"
 
 /** Vanilla's saved wool colour for black, the sixteenth dye. */

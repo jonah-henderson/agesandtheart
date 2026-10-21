@@ -9,6 +9,7 @@ import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Structures
 import io.kotest.core.annotation.Tags
+import net.minecraft.world.entity.MobCategory
 import io.kotest.core.spec.style.FunSpec
 
 /**
@@ -74,6 +75,18 @@ class MemberScopingCheck : FunSpec({
         check(bare.of(Features.FOLIAGE, member = OAK) != DIAMOND) { "a diamond Age grew its trees of diamond" }
     }
 
+    test("a pass's cap moves by the mean of what a quantifier asked of its creatures, and nothing else moves it") {
+        fun capsOf(vararg pages: String) = Spawns.capsOf(aimed(SEEDS.first, *pages).optionsFor(Aspect.SPAWNS))
+        val teeming = capsOf("teeming", "spawns")
+        check(teeming[MobCategory.MONSTER] == TEEMING && teeming[MobCategory.CREATURE] == TEEMING) { "'teeming spawns' held $teeming" }
+        val monsters = capsOf("teeming", "monsters")[MobCategory.MONSTER] ?: 1.0
+        check(monsters > HALFWAY_TO_TEEMING) { "'teeming monsters' held the monsters to $monsters" }
+        val zombies = capsOf("teeming", "zombie")[MobCategory.MONSTER] ?: 1.0
+        check(zombies > 1.0 && zombies < monsters) { "'teeming zombie' held the monsters to $zombies" }
+        check((capsOf("few", "monsters")[MobCategory.MONSTER] ?: 1.0) < 1.0) { "'few monsters' left the monsters' cap" }
+        check(capsOf("fish").isEmpty()) { "naming the fish moved a cap: ${capsOf("fish")}" }
+    }
+
     test("motionless spawns root everything") {
         val spawns = aimed(SEEDS.first, "motionless", "spawns").optionsFor(Aspect.SPAWNS)
         check(spawns.isTrue(Spawns.STILL, member = COW)) { "'motionless spawns' left a cow walking" }
@@ -113,6 +126,10 @@ private const val ZOMBIE = "minecraft:zombie"
 private const val COW = "minecraft:cow"
 private const val CREEPER = "minecraft:creeper"
 private const val SHEEP = "minecraft:sheep"
+
+/** What `teeming` asks of every creature. */
+private const val TEEMING = 4.0
+private const val HALFWAY_TO_TEEMING = 2.5
 private const val OAK = "minecraft:oak"
 private const val DIAMOND = "minecraft:diamond_block"
 private const val ORE_FEATURE = "minecraft:ore_"

@@ -276,6 +276,31 @@ object Spawns {
         return WeightedList.of(already + arriving.map { it.offered })
     }
 
+    /**
+     * How many times vanilla's cap each spawn pass holds, spelled `monster:4` — **worked out, never written**: the
+     * mean of what a quantifier asked of each creature the pass offers, one struck out not counting. So `teeming
+     * spawns` fills every pass fourfold, `teeming monsters` the monsters' nearly so, and `teeming zombies` a little,
+     * since the zombies are more and nothing else is fewer. Read by `SpawnCaps`.
+     */
+    val CAPS = Parameter("caps", listOf(Parameter.DEFAULT), open = true, help = "How many times vanilla's cap each spawn pass holds.")
+
+    /** The pass a creature arrives in, or null where it is no creature the game has. */
+    fun passOf(creature: Identifier): MobCategory? =
+        BuiltInRegistries.ENTITY_TYPE.getOptional(creature).orElse(null)?.let(::spawnPassFor)
+
+    /** [caps] as the spawns' options hold them. */
+    fun capsSpelled(caps: Map<MobCategory, Double>): List<String> =
+        caps.map { (pass, times) -> "${pass.getName()}$CAP_MARK${Rung.legible(times)}" }.sorted()
+
+    /** What [CAPS] holds in [options], a pass it leaves out holding vanilla's. */
+    fun capsOf(options: Options): Map<MobCategory, Double> = options.allOf(CAPS).mapNotNull { spelled ->
+        val (name, times) = spelled.split(CAP_MARK).takeIf { it.size == 2 } ?: return@mapNotNull null
+        val pass = MobCategory.entries.firstOrNull { it.getName() == name } ?: return@mapNotNull null
+        times.toDoubleOrNull()?.let { pass to it }
+    }.toMap()
+
+    private const val CAP_MARK = ':'
+
     /** Which biome's list, and which of vanilla's passes — what a set of arrivals is the answer to. */
     private data class Arrivals(val biome: Identifier?, val category: MobCategory)
 

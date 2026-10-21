@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Pool
 import co.voik.agesandtheart.age.aspect.Rung
+import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Bars
@@ -63,9 +64,27 @@ private fun Resolving.weighedIn(
     val drawnFrom = (curated + speaking.flatMap(::namedBy).distinct().mapNotNull(aspect::presetFor)).distinct()
     val claims = drawnFrom.mapNotNull { member -> claimForMember(member, pool, speaking, aspect, member in curated, ground) }
     val reached = drawnAmong(claims, drawnFrom, speaking, aspect)
-    if (reached.isEmpty()) return composition
-    val settled = composition.optionsFor(aspect, 0).allOf(pool)
-    return composition.withOptions(aspect, pool.name, (settled + spelled(reached, pool, drawnFrom, ground)).distinct())
+    val capped = if (aspect == Aspect.SPAWNS && ground == null) withCaps(composition, drawnFrom, claims, speaking) else composition
+    if (reached.isEmpty()) return capped
+    val settled = capped.optionsFor(aspect, 0).allOf(pool)
+    return capped.withOptions(aspect, pool.name, (settled + spelled(reached, pool, drawnFrom, ground)).distinct())
+}
+
+/**
+ * [composition] holding the caps what landed moved ([Spawns.CAPS]): for each pass, the mean of what a quantifier
+ * asked of each creature in [drawnFrom] it offers, one [claims] struck out not counting.
+ */
+private fun withCaps(composition: AgeComposition, drawnFrom: List<Taggable>, claims: List<Claim>, speaking: List<Landing>): AgeComposition {
+    val struck = claims.filter { it.polarity == Polarity.EXCEPT }.map { it.value }.toSet()
+    fun quantityAskedOf(member: Taggable) = abundanceOf(speaking.filter { it.members == null || member.key in it.members.orEmpty() })
+    val caps = drawnFrom
+        .filter { it.key !in struck }
+        .mapNotNull { member -> Identifier.tryParse(member.key)?.let(Spawns::passOf)?.let { it to quantityAskedOf(member) } }
+        .groupBy({ it.first }, { it.second })
+        .mapValues { (_, asked) -> asked.average() }
+        .filterValues { !Rung.isOrdinary(Rung.legible(it)) }
+    if (caps.isEmpty()) return composition
+    return composition.withOptions(Aspect.SPAWNS, Spawns.CAPS.name, Spawns.capsSpelled(caps))
 }
 
 /**

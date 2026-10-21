@@ -763,6 +763,12 @@ internal object TerrainInstruments {
                 "  $where, as the book asks: ${creatures.joinToString(", ")}"
             }
         }
+        for ((pass, times) in (generator as? AgeChunkGenerator)?.spawnCaps.orEmpty()) {
+            val vanilla = pass.maxInstancesPerChunk
+            report.entry("cap", mapOf("pass" to pass.getName(), "times" to times, "vanilla" to vanilla)) {
+                "  ${pass.getName()} holds $times times vanilla's cap of $vanilla a chunk"
+            }
+        }
         report.finish()
         return SUCCESS
     }
