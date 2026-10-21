@@ -21,6 +21,8 @@ object WordListOrder {
         appliesTo = KnownWords::appliesTo,
         nameOf = { WordNames.readable(it).string },
         naming = Component.translatable("$KEY.naming").string,
+        isAMaterial = KnownWords::isAMaterial,
+        materialsUnder = { Component.translatable("$KEY.materials_under", it).string },
     )
 
     /**

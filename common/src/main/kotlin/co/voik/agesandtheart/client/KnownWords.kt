@@ -63,9 +63,12 @@ object KnownWords {
     /** The parts of the world [word] reaches — empty meaning anywhere — or null if the server never said. */
     fun reachOf(word: Identifier): Set<Aspect>? = reach[word]
 
+    /** Whether [word] is a material, which a shape word can be made of. */
+    fun isAMaterial(word: Identifier): Boolean = word in materials
+
     /** The shape words this player knows that [word] can be the material of — none where it is no material. */
     fun shapesMadeOf(word: Identifier): List<Identifier> =
-        if (word !in materials) emptyList() else shapes.filter { it in learned }
+        if (!isAMaterial(word)) emptyList() else shapes.filter { it in learned }
 
     fun remember(payload: LearnedWordsPayload) {
         if (payload.replacing) {

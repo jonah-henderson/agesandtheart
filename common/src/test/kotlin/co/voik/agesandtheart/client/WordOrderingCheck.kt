@@ -13,6 +13,7 @@ class WordOrderingCheck : FunSpec({
     val charged = row("charged", stocked = 3)
     val frozen = row("frozen", stocked = 9)
     val sky = row("sky", stocked = 1)
+    val gold = row("gold")
     val rows = listOf(sky, frozen, charged)
     val rarity = mapOf(charged.word to WordHeadings.Rarity.UNCOMMON, frozen.word to WordHeadings.Rarity.RARE)
     val applies = mapOf(charged.word to listOf(sky.word, row("creeper").word), frozen.word to listOf(sky.word))
@@ -26,6 +27,8 @@ class WordOrderingCheck : FunSpec({
         appliesTo = { applies[it].orEmpty() },
         nameOf = { it.path },
         naming = "naming",
+        isAMaterial = { it == gold.word },
+        materialsUnder = { "$it · materials" },
     ).map { group -> group.heading to group.values.map { it.readable } }
 
     test("by name and by count, one run with no heading") {
@@ -52,5 +55,22 @@ class WordOrderingCheck : FunSpec({
             "naming" to listOf("sky"),
         )
         check(ordered(WordOrder.APPLIES_TO) == expected) { "${ordered(WordOrder.APPLIES_TO)}" }
+    }
+
+    test("the materials under a heading follow the rest in a run of their own") {
+        val withAMaterial = mapOf(gold.word to listOf(sky.word))
+        val grouped = WordOrdering.grouped(
+            listOf(frozen, gold),
+            WordOrder.APPLIES_TO,
+            rarityOf = { WordHeadings.Rarity.COMMON },
+            rarityName = { it.key },
+            appliesTo = { (applies + withAMaterial)[it].orEmpty() },
+            nameOf = { it.path },
+            naming = "naming",
+            isAMaterial = { it == gold.word },
+            materialsUnder = { "$it · materials" },
+        ).map { group -> group.heading to group.values.map { it.readable } }
+        val expected = listOf("sky" to listOf("frozen"), "sky · materials" to listOf("gold"))
+        check(grouped == expected) { "$grouped" }
     }
 })
