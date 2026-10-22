@@ -7,7 +7,6 @@ import net.minecraft.util.random.Weighted
 import net.minecraft.util.random.WeightedList
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
-import net.minecraft.world.entity.SpawnPlacementTypes
 import net.minecraft.world.entity.SpawnPlacements
 import net.minecraft.util.valueproviders.UniformInt
 import net.minecraft.world.level.biome.MobSpawnSettings
@@ -211,12 +210,16 @@ object Spawns {
         return WeightedList.of(entries + joining)
     }
 
-    /** Whether [creature] lives out of the water, so it can come as a farm animal does: a herd of cod stays in the sea. */
+    /**
+     * Whether [creature] can come as a farm animal does, out of wherever it lives (Jonah, walking): anything but a
+     * fish or a squid, which would only die there — axolotls and turtles come up onto the grass.
+     */
     private fun keepsToLand(creature: Identifier): Boolean {
         val type = BuiltInRegistries.ENTITY_TYPE.getOptional(creature).orElse(null) ?: return false
-        val placed = SpawnPlacements.getPlacementType(type)
-        return placed != SpawnPlacementTypes.IN_WATER && placed != SpawnPlacementTypes.IN_LAVA
+        return type.category !in BREATHES_WATER
     }
+
+    private val BREATHES_WATER = setOf(MobCategory.WATER_CREATURE, MobCategory.WATER_AMBIENT, MobCategory.UNDERGROUND_WATER_CREATURE)
 
     /** The animals a world is made with, whose places and rules a herd takes. */
     private val FARM_ANIMALS = setOf("cow", "sheep", "pig", "chicken").map(Identifier::withDefaultNamespace).toSet()
