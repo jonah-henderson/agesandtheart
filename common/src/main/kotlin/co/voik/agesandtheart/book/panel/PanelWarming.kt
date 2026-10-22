@@ -52,7 +52,10 @@ object PanelWarming {
      */
     private val waiting = ArrayDeque<Identifier>()
 
-    private var busy = false
+    /** The Age whose ring is being made. */
+    private var inFlight: Warm? = null
+
+    private class Warm(val id: Identifier, val level: ServerLevel, val server: MinecraftServer)
 
     private fun isWarmedOrUnderway(level: ServerLevel) = level in warmed || level in underway
 
@@ -114,25 +117,33 @@ object PanelWarming {
      */
     fun isUnderway(level: ServerLevel): Boolean = level in underway
 
-    /** Takes a deleted Age out of the queue. What was warmed is keyed on its level, which goes with it. */
+    /**
+     * Takes a deleted Age out of the queue, and lets go of it if it was being warmed: its closed level's chunks never
+     * arrive, and holding on for them stopped every Age after it warming. What was warmed is keyed on its level,
+     * which goes with it.
+     */
     private fun forget(id: Identifier) {
         waiting.remove(id)
+        val warming = inFlight ?: return
+        if (warming.id != id) return
+        inFlight = null
+        beginTheNext(warming.server)
     }
 
     /**
-     * Drops what belonged to the server that stopped: the queue, and the busy flag, which a warm in flight
-     * as it stopped would otherwise hold for good — its completion was handed to that server's executor.
+     * Drops what belonged to the server that stopped: the queue, and the warm in flight, which would otherwise be
+     * held for good — its completion was handed to that server's executor.
      */
     fun serverStopped() {
         waiting.clear()
-        busy = false
+        inFlight = null
     }
 
     private fun beginTheNext(server: MinecraftServer) {
-        if (busy) return
+        if (inFlight != null) return
         val id = waiting.poll() ?: return
         val level = Ages.open(server, id)
-        busy = true
+        inFlight = Warm(id, level, server)
         generateTheRing(server, level, id)
     }
 
@@ -153,8 +164,10 @@ object PanelWarming {
             }
             CompletableFuture.allOf(*ring.toTypedArray()).whenCompleteAsync({ _, _ ->
                 underway.remove(level)
+                // Already let go of, where the Age was deleted while it warmed.
+                if (inFlight?.level != level) return@whenCompleteAsync
                 warmed.add(level)
-                busy = false
+                inFlight = null
                 Constants.LOG.info("Warmed {} in {}ms", id, (System.nanoTime() - began) / 1_000_000)
                 // The first moment the level may be closed, which a rename owed to it was waiting for.
                 Ages.renameIfOwed(server, id)

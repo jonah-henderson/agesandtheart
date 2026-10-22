@@ -23,10 +23,12 @@ object WordListOrder {
             rarity = { Component.translatable("$KEY.rarity.${it.key}").string },
             of = { WordNames.readable(it).string },
             parts = Component.translatable("$KEY.parts").string,
-            unplaced = Component.translatable("$KEY.whole_worlds").string,
+            baseWorlds = Component.translatable("$KEY.base_worlds").string,
+            grammar = Component.translatable("$KEY.grammar").string,
             materials = Component.translatable("$KEY.materials").string,
             namesMembers = KnownWords::namesMembers,
             namesAPart = KnownWords::namesAPart,
+            isGrammar = KnownWords::isGrammar,
             membersOf = { part -> Component.translatableWithFallback("$KEY.members.${part.path}", kinds()).string },
         ),
     )

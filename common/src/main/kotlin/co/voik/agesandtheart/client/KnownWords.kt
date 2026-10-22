@@ -73,6 +73,9 @@ object KnownWords {
     /** Whether [word] names a whole part of the world — `inhabitants`, `sky`. */
     fun namesAPart(word: Identifier): Boolean = word in parts
 
+    /** Whether [word] is a structure page — `and`, `in`, `no` — rather than a word of the world. */
+    fun isGrammar(word: Identifier): Boolean = word in structural
+
     /** Whether [word] is a material, which a shape word can be made of. */
     fun isAMaterial(word: Identifier): Boolean = word in materials
 

@@ -22,9 +22,11 @@ class WordOrderingCheck : FunSpec({
         rarity = { it.key },
         of = { it.path },
         parts = "parts",
-        unplaced = "unplaced",
+        baseWorlds = "base worlds",
+        grammar = "grammar",
         namesMembers = { it.path == "creeper" },
         namesAPart = { it == sky.word },
+        isGrammar = { it.path == "and" },
         membersOf = { "members of ${it.path}" },
     )
 
@@ -64,22 +66,24 @@ class WordOrderingCheck : FunSpec({
         check(ordered(WordOrder.APPLIES_TO) == expected) { "${ordered(WordOrder.APPLIES_TO)}" }
     }
 
-    test("the words naming members of a part are folded under that part, and the rest of what applies to nothing last") {
+    test("the words naming members of a part are folded under that part, and what applies to nothing is sorted last") {
         val creeper = row("creeper")
         val void = row("void")
+        val and = row("and")
         val grouped = WordOrdering.grouped(
-            listOf(creeper, frozen, sky, void),
+            listOf(creeper, frozen, sky, void, and),
             WordOrder.APPLIES_TO,
             rarityOf = { WordHeadings.Rarity.COMMON },
             appliesTo = { mapOf(creeper.word to listOf(sky.word), frozen.word to listOf(sky.word))[it].orEmpty() },
             names = names,
         )
-        val (underSky, parts, unplaced) = grouped
+        val (underSky, parts, baseWorlds, grammar) = grouped
         check(underSky.heading == "sky" && underSky.values.map { it.readable } == listOf("frozen")) { "$underSky" }
         val members = underSky.subgroups.single()
         check(members.heading == "members of sky" && members.values == listOf(creeper)) { "$members" }
         check(parts.heading == "parts" && parts.values == listOf(sky)) { "$parts" }
-        check(unplaced.heading == "unplaced" && unplaced.values == listOf(void)) { "$unplaced" }
+        check(baseWorlds.heading == "base worlds" && baseWorlds.values == listOf(void)) { "$baseWorlds" }
+        check(grammar.heading == "grammar" && grammar.values == listOf(and)) { "$grammar" }
     }
 
     test("the materials under a heading are folded beneath the rest, and a search finds them there") {

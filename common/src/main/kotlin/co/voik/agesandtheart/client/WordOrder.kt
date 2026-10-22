@@ -32,7 +32,7 @@ object WordOrdering {
      * and under what applies to each word with a word listed under every one it applies to. Under what applies, the
      * words [names] calls members — `zombie` under `inhabitants` — are folded beneath the rest under what [names] calls
      * them, and the words [isAMaterial] answers for under [Names.materials]. The words applying to nothing come last:
-     * the parts of the world, and then whatever else.
+     * the parts of the world, the base worlds, and the grammar.
      *
      * [searchedFor] keeps a whole run whose heading it is found in, and otherwise the rows it is found in by name.
      */
@@ -62,12 +62,15 @@ object WordOrdering {
         val rarity: (WordHeadings.Rarity) -> String,
         val of: (Identifier) -> String,
         val parts: String,
-        val unplaced: String,
+        val baseWorlds: String,
+        val grammar: String,
         val materials: String = "materials",
         /** Whether a word names members of a part of the world. */
         val namesMembers: (Identifier) -> Boolean = { false },
         /** Whether a word names a whole part of the world. */
         val namesAPart: (Identifier) -> Boolean = { false },
+        /** Whether a word is one of the grammar's own — `and`, `in`, `no`. */
+        val isGrammar: (Identifier) -> Boolean = { false },
         /** What the members of the part a heading names are called — creatures, under `inhabitants`. */
         val membersOf: (Identifier) -> String = { "kinds" },
     )
@@ -89,8 +92,10 @@ object WordOrdering {
                 val (madeOf, rest) = notMembers.partition { isAMaterial(it.word) }
                 ListGroup(name, rest, listOfNotNull(fold(names.membersOf(heading), members), fold(names.materials, madeOf)))
             }
-        val (parts, unplaced) = byName.filter { appliesTo(it.word).isEmpty() }.partition { names.namesAPart(it.word) }
-        return under + listOfNotNull(fold(names.parts, parts), fold(names.unplaced, unplaced))
+        val applyingToNothing = byName.filter { appliesTo(it.word).isEmpty() }
+        val (grammar, words) = applyingToNothing.partition { names.isGrammar(it.word) }
+        val (parts, baseWorlds) = words.partition { names.namesAPart(it.word) }
+        return under + listOfNotNull(fold(names.parts, parts), fold(names.baseWorlds, baseWorlds), fold(names.grammar, grammar))
     }
 
     private fun <T : OrderedWord> searched(groups: List<ListGroup<T>>, needle: String): List<ListGroup<T>> {
