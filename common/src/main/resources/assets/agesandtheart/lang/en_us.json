@@ -442,6 +442,7 @@
   "item.agesandtheart.notebook": "Notebook",
   "item.agesandtheart.notebook.count": "%s pages",
   "item.agesandtheart.notebook.empty": "Empty",
+  "item.agesandtheart.notebook.position": "%s of %s",
   "item.agesandtheart.page": "Page",
   "item.agesandtheart.page.applies_anywhere": "Anywhere",
   "item.agesandtheart.page.applies_to": "Applies to:",

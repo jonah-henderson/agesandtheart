@@ -159,12 +159,6 @@ object AgeComponents {
         .networkSynchronized(ByteBufCodecs.VAR_INT)
         .build()
 
-    /** The page a notebook's tooltip grid starts at, newest first, while one is scrolled to. */
-    val NOTEBOOK_WINDOW: DataComponentType<Int> = DataComponentType.builder<Int>()
-        .persistent(Codec.INT)
-        .networkSynchronized(ByteBufCodecs.VAR_INT)
-        .build()
-
     val components: List<Pair<Identifier, DataComponentType<*>>> = listOf(
         "stocked_from".location() to STOCKED_FROM,
         "age_id".location() to AGE_ID,
@@ -178,7 +172,6 @@ object AgeComponents {
         "link_target".location() to LINK_TARGET,
         "notebook_pages".location() to NOTEBOOK_PAGES,
         "notebook_selected".location() to NOTEBOOK_SELECTED,
-        "notebook_window".location() to NOTEBOOK_WINDOW,
         "archive_pages".location() to ARCHIVE_PAGES,
     )
 }

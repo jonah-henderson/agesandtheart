@@ -1,6 +1,9 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.NotebookTooltip
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent
+import net.minecraft.world.inventory.tooltip.TooltipComponent
 import co.voik.agesandtheart.station.Compounder
 import co.voik.agesandtheart.station.DryingRack
 import co.voik.agesandtheart.desk.Transcriber
@@ -47,6 +50,17 @@ object ClientRegistrations {
         val menu: MenuType<out M>,
         val screen: (M, Inventory, Component) -> U,
     ) where U : Screen, U : MenuAccess<M>
+
+    /** A tooltip component of ours and what draws it, kept together for the same reason. */
+    class TooltipFor<T : TooltipComponent>(val type: Class<T>, val draws: (T) -> ClientTooltipComponent) {
+        /** What draws [component], where it is one of [type]. */
+        fun drawing(component: TooltipComponent): ClientTooltipComponent? =
+            if (type.isInstance(component)) draws(type.cast(component)) else null
+    }
+
+    val TOOLTIPS: List<TooltipFor<*>> = listOf(
+        TooltipFor(NotebookTooltip::class.java, ::ClientNotebookTooltip),
+    )
 
     val ENTITY_RENDERERS: List<RendererForEntity<*>> = listOf(
         RendererForEntity(AgeContent.HADALFISH, ::HadalfishRenderer),

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart
 
+import net.fabricmc.fabric.api.client.rendering.v1.ClientTooltipComponentCallback
 import co.voik.agesandtheart.client.AgeFluidLooks
 import co.voik.agesandtheart.client.ClientPayloads
 import co.voik.agesandtheart.client.ClientRegistrations
@@ -42,6 +43,9 @@ fun initClient() {
     ClientRegistrations.ENTITY_RENDERERS.forEach { registerEntityRenderer(it) }
     ClientRegistrations.BLOCK_ENTITY_RENDERERS.forEach { registerBlockEntityRenderer(it) }
     ClientRegistrations.MENU_SCREENS.forEach { registerScreen(it) }
+    ClientTooltipComponentCallback.EVENT.register { component ->
+        ClientRegistrations.TOOLTIPS.firstNotNullOfOrNull { it.drawing(component) }
+    }
     AgeTints.register { sources, block -> BlockColorRegistry.register(sources, block) }
     ClientPayloads.RECEIVERS.forEach { registerReceiver(it) }
     // The answer to the server's `BuildMatch` question.

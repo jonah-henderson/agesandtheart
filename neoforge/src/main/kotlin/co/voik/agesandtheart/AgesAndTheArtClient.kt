@@ -24,6 +24,8 @@ import co.voik.agesandtheart.platform.NeoForgeDeepWater
 import co.voik.agesandtheart.platform.NeoForgeInkFluids
 import net.neoforged.neoforge.client.event.RegisterFluidModelsEvent
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
+import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent
+import net.minecraft.world.inventory.tooltip.TooltipComponent
 import net.neoforged.neoforge.client.event.ScreenEvent
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent
 import net.neoforged.api.distmarker.Dist
@@ -46,6 +48,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         // and an Age id can be reused, so one world's sky could otherwise appear in another's.
         NeoForge.EVENT_BUS.addListener(::onLoggingOut)
         eventBus.addListener(::onRegisterScreens)
+        eventBus.addListener(::onRegisterTooltips)
         eventBus.addListener(::onRegisterBlockTints)
         eventBus.addListener(::onRegisterFluidModels)
         eventBus.addListener(::onRegisterRenderers)
@@ -75,6 +78,17 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
 
     private fun onClientTick(event: ClientTickEvent.Post) {
         ClientSetup.clientTick(Minecraft.getInstance())
+    }
+
+    private fun onRegisterTooltips(event: RegisterClientTooltipComponentFactoriesEvent) {
+        ClientRegistrations.TOOLTIPS.forEach { registerTooltip(event, it) }
+    }
+
+    private fun <T : TooltipComponent> registerTooltip(
+        event: RegisterClientTooltipComponentFactoriesEvent,
+        entry: ClientRegistrations.TooltipFor<T>,
+    ) {
+        event.register(entry.type) { entry.draws(it) }
     }
 
     private fun onRegisterScreens(event: RegisterMenuScreensEvent) {
