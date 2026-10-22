@@ -14,7 +14,7 @@ import co.voik.agesandtheart.desk.FrequencyTunerMenu
 import co.voik.agesandtheart.desk.InterferenceBand
 import co.voik.agesandtheart.math.mix64
 import co.voik.agesandtheart.math.unitFloat
-import net.minecraft.client.gui.components.FittingMultiLineTextWidget
+import co.voik.agesandtheart.client.ui.ScrollingText
 import net.minecraft.util.ARGB
 import net.minecraft.util.Util
 import co.voik.agesandtheart.desk.TunerProposalPayload
@@ -50,7 +50,7 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
     private lateinit var signalButton: Button
     private lateinit var copyButton: ItemIconButton
     private lateinit var interferenceKnob: DialKnob
-    private lateinit var readout: FittingMultiLineTextWidget
+    private lateinit var readout: ScrollingText
     private var shownMessage: String? = null
 
     override fun init() {
@@ -85,10 +85,8 @@ class FrequencyTunerScreen(menu: FrequencyTunerMenu, inventory: Inventory, title
         interferenceKnob.setPosition(leftPos + MARGIN, topPos + KNOBS_TOP + DIALS_PER_SIGNAL * KNOB_PITCH)
         interferenceKnob.follow(menu.interference)
         addRenderableWidget(interferenceKnob)
-        val readoutWidth = imageWidth - 2 * MARGIN - BUTTON_HEIGHT - LABEL_GAP
-        readout = addRenderableWidget(
-            FittingMultiLineTextWidget(leftPos + MARGIN, topPos + READOUT_TOP, readoutWidth, READOUT_HEIGHT, Component.empty(), font),
-        )
+        val readoutWidth = imageWidth - 2 * MARGIN - BUTTON_HEIGHT - LABEL_GAP - ScrollingText.ROOM
+        readout = addRenderableWidget(ScrollingText(leftPos + MARGIN, topPos + READOUT_TOP, readoutWidth, READOUT_HEIGHT, font))
         shownMessage = null
         copyButton = addRenderableWidget(
             ItemIconButton(BUTTON_HEIGHT, translated("copy"), { ItemStack(AgeContent.WRITERS_DESK) }) {
