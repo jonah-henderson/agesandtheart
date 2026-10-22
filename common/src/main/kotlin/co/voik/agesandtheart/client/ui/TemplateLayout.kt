@@ -17,7 +17,7 @@ data class TextMark(
     val colour: Int? = null,
     val underline: Int? = null,
     val tooltip: Component? = null,
-    /** Drawn just after the word, in room made for it. */
+    /** Drawn just before the word, in room made for it. */
     val badge: Badge? = null,
 )
 

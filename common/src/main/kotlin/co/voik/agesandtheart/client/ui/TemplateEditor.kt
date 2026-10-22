@@ -62,7 +62,17 @@ class TemplateEditor(
 
     private val scrollbar = ContainerScrollbar()
 
-    private data class Layout(val typed: String, val pads: Map<Int, Int>, val limit: Int, val rows: List<DisplayRow>)
+    /**
+     * The text as laid out: [pads] after a word, keyed by where it ends, so it sits over its script; [leads] before
+     * one, keyed by where it starts, holding its badge.
+     */
+    private data class Layout(
+        val typed: String,
+        val pads: Map<Int, Int>,
+        val leads: Map<Int, Int>,
+        val limit: Int,
+        val rows: List<DisplayRow>,
+    )
 
     init {
         text.setCursorListener(::scrollToCursor)
@@ -227,7 +237,7 @@ class TemplateEditor(
             val left = glyphX(layout, row, from)
             val right = caretX(layout, row, to)
             mark.underline?.let { graphics.fill(left, top + font.lineHeight, right, top + font.lineHeight + 1, it) }
-            if (mark.end <= line.end) badgeAt(layout, row, top, mark)?.let { (x, y) -> mark.badge?.draw(graphics, x, y) }
+            if (mark.start >= line.begin) badgeAt(layout, row, top, mark)?.let { (x, y) -> mark.badge?.draw(graphics, x, y) }
             // The script goes under the span's start only, so a word wrapped across two rows is spelled once.
             if (mark.start >= line.begin) scriptFor(layout, mark)?.let { extractScript(graphics, it, left, top) }
         }
@@ -295,29 +305,27 @@ class TemplateEditor(
     private fun layout(shown: List<TextMark> = currentMarks()): Layout {
         val typed = value
         val pads = padsFor(typed, shown)
+        val leads = shown.filter { it.badge != null }.associate { it.start to BADGE_ROOM }
         val limit = width - totalInnerPadding()
-        laidOut?.let { if (it.typed == typed && it.pads == pads && it.limit == limit) return it }
-        val rows = wrapRows(typed, limit) { index -> font.width(typed[index].toString()) + (pads[index + 1] ?: 0) }
-        return Layout(typed, pads, limit, rows).also { laidOut = it }
+        laidOut?.let { if (it.typed == typed && it.pads == pads && it.leads == leads && it.limit == limit) return it }
+        fun advance(index: Int) = font.width(typed[index].toString()) + (pads[index + 1] ?: 0) + (leads[index] ?: 0)
+        val rows = wrapRows(typed, limit, ::advance)
+        return Layout(typed, pads, leads, limit, rows).also { laidOut = it }
     }
 
-    /**
-     * How much wider each marked word must be to sit over its script, and to hold its badge after it, keyed by where
-     * the word ends.
-     */
+    /** How much wider each marked word must be to sit over its script, keyed by where the word ends. */
     private fun padsFor(typed: String, shown: List<TextMark>): Map<Int, Int> =
         shown.mapNotNull { mark ->
-            val scriptWidth = mark.script?.let { ceil(font.width(it) * SCRIPT_SCALE).toInt() } ?: 0
+            val script = mark.script ?: return@mapNotNull null
+            val scriptWidth = ceil(font.width(script) * SCRIPT_SCALE).toInt()
             val wordWidth = font.width(typed.substring(mark.start, mark.end))
-            val forTheScript = (scriptWidth - wordWidth).coerceAtLeast(0)
-            val forTheBadge = if (mark.badge != null) BADGE_ROOM else 0
-            (forTheScript + forTheBadge).takeIf { it > 0 }?.let { mark.end to it }
+            (scriptWidth - wordWidth).takeIf { it > 0 }?.let { mark.end to it }
         }.toMap()
 
-    /** Where [mark]'s badge is drawn on [row]: in the room after its word, beside the word's text. */
+    /** Where [mark]'s badge is drawn on [row]: in the room before its word, beside the word's text. */
     private fun badgeAt(layout: Layout, row: Int, top: Int, mark: TextMark): Pair<Int, Int>? {
         if (mark.badge == null) return null
-        val x = caretX(layout, row, mark.end) + BADGE_GAP
+        val x = glyphX(layout, row, mark.start) - BADGE_ROOM + BADGE_GAP
         val y = top + (font.lineHeight - Badge.SIZE) / 2
         return x to y
     }
@@ -332,8 +340,8 @@ class TemplateEditor(
     ): Badge? {
         val line = layout.rows[row]
         return shown.firstOrNull { mark ->
-            val endsHere = mark.end in (line.begin + 1)..line.end
-            val at = if (endsHere) badgeAt(layout, row, top, mark) else null
+            val startsHere = mark.start in line.begin..<line.end
+            val at = if (startsHere) badgeAt(layout, row, top, mark) else null
             at != null && mark.badge?.isUnder(mouseX, pointerY, at.first, at.second) == true
         }?.badge
     }
@@ -341,7 +349,8 @@ class TemplateEditor(
     /** Where the glyph at [index] is drawn, after any padding that ends there. */
     private fun glyphX(layout: Layout, row: Int, index: Int): Int {
         val begin = layout.rows[row].begin
-        val padding = layout.pads.entries.sumOf { (end, pad) -> if (end > begin && end <= index) pad else 0 }
+        val padding = layout.pads.entries.sumOf { (end, pad) -> if (end > begin && end <= index) pad else 0 } +
+            layout.leads.entries.sumOf { (start, lead) -> if (start >= begin && start <= index) lead else 0 }
         return innerLeft + font.width(layout.typed.substring(begin, index)) + padding
     }
 
@@ -391,7 +400,7 @@ class TemplateEditor(
          */
         const val SCRIPT_SCALE = 0.7f
 
-        /** A badge after a word, and a pixel either side of it. */
+        /** A badge before a word, and a pixel either side of it. */
         const val BADGE_GAP = 1
         const val BADGE_ROOM = Badge.SIZE + 2 * BADGE_GAP
 
