@@ -335,6 +335,7 @@ recipe_book_category agesandtheart:pulping
 recipe_display agesandtheart:compounding
 recipe_serializer agesandtheart:compounding
 recipe_serializer agesandtheart:crafting_shapeless_into_one_bottle
+recipe_serializer agesandtheart:crafting_shapeless_keeping
 recipe_serializer agesandtheart:drying
 recipe_serializer agesandtheart:grinding
 recipe_serializer agesandtheart:pulping

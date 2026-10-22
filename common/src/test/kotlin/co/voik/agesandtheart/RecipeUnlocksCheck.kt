@@ -26,6 +26,7 @@ class RecipeUnlocksCheck : FunSpec({
         "minecraft:crafting_shaped",
         "minecraft:crafting_shapeless",
         "agesandtheart:crafting_shapeless_into_one_bottle",
+        "agesandtheart:crafting_shapeless_keeping",
         "minecraft:smelting",
         "minecraft:blasting",
         "minecraft:smoking",

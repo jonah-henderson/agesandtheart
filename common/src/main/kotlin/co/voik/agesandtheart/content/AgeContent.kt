@@ -2082,6 +2082,7 @@ object AgeContent {
         listOf(
             "repattern_descriptive_book".location() to RepatternBookRecipe.SERIALIZER,
             ShapelessIntoOneBottleRecipe.ID to ShapelessIntoOneBottleRecipe.SERIALIZER,
+            ShapelessKeepingRecipe.ID to ShapelessKeepingRecipe.SERIALIZER,
         ) + StationRecipes.serializers +
             (Compounding.ID to Compounding.SERIALIZER) + (Drying.ID to Drying.SERIALIZER)
 
