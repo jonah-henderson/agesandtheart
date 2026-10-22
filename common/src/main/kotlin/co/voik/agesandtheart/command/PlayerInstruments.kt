@@ -13,7 +13,6 @@ import net.minecraft.world.item.ItemStack
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.commands.SharedSuggestionProvider
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.location
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
@@ -61,10 +60,12 @@ internal object PlayerInstruments {
         val book = ItemStack(AgeContent.DESCRIPTIVE_BOOK)
         book.set(AgeComponents.AGE_ID, id)
         book.set(AgeComponents.BOOK_TITLE, name)
-        // A recipe keeps the sentence as pages where a book keeps it as ids, and the path is the page.
-        // Set even where the Age was made by hand and has no sentence, so that a book with nothing to say
-        // is not taken for a blank one and written over as a found book on the next tick.
-        book.set(AgeComponents.BOOK_WORDS, recipe.words.map { it.location() })
+        // A recipe keeps the sentence as pages where a book keeps it as ids, each the id of the word or structure
+        // page it names — `parrot` is vanilla's. Set even where the Age was made by hand and has no sentence, so
+        // that a book with nothing to say is not taken for a blank one and written over as a found book.
+        val vocabulary = Vocabulary.of(source.server)
+        fun idOf(page: String) = vocabulary.structurePage(page)?.id ?: vocabulary.word(page)?.id
+        book.set(AgeComponents.BOOK_WORDS, recipe.words.mapNotNull(::idOf))
         readingOf(source, recipe.words, recipe.seed)?.let { book.set(AgeComponents.BOOK_READING, it) }
         player.inventory.placeItemBackInInventory(book, Prediction.SERVER_ONLY)
 
