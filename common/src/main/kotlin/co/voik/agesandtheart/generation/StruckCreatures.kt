@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.generation
 
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Vocabulary
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.entity.Entity
@@ -17,7 +18,8 @@ import net.minecraft.world.level.ServerLevelAccessor
  * a path added later is covered without anyone remembering this. A spawn egg is refused with the rest, since nothing
  * there says how a creature came.
  *
- * Only a creature a book could name: one of the pack's own that has no word cannot have been struck by one.
+ * Only a creature a book could reach: one with a word of its own, or one the pack says what it is like, as it does
+ * of the villager vanilla files with the golems — one of the pack's own that is neither cannot have been struck.
  *
  * **Fresh only.** A creature that follows a player through a link arrives by teleport, which is not this
  * method, so what is brought in stays.
@@ -28,8 +30,9 @@ object StruckCreatures {
         val generator = level.level.chunkSource.generator as? AgeChunkGenerator ?: return false
         if (generator.nothingLives) return true
         val creature = BuiltInRegistries.ENTITY_TYPE.getKey(entity.type)
-        val aBookCouldNameIt = Vocabulary.of(level.level.server).word(creature) != null
-        return aBookCouldNameIt && generator.rungOf(creature, level, entity.blockPosition()) <= NONE_OF_IT
+        val vocabulary = Vocabulary.of(level.level.server)
+        val aBookCouldReachIt = vocabulary.word(creature) != null || vocabulary.describes(Aspect.SPAWNS, creature.toString())
+        return aBookCouldReachIt && generator.rungOf(creature, level, entity.blockPosition()) <= NONE_OF_IT
     }
 
     private const val NONE_OF_IT = 0.0

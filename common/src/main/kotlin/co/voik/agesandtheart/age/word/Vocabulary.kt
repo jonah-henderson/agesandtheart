@@ -257,6 +257,9 @@ data class Vocabulary(
      * preset in the bag a vague word draws from made it *rarer*, not unreachable: the Spire's sky came up
      * on one Age in three and took its dimension type with it.
      */
+    /** Whether the pack says what [key], a member of [aspect], is like — so a word may reach it by what it is. */
+    fun describes(aspect: Aspect, key: String): Boolean = key in tagsBySlot[aspect]?.described.orEmpty()
+
     override fun availableToBroadWordsIn(aspect: Aspect): List<Taggable> =
         candidatesFor(aspect).filter(::isAvailableToBroadWords)
 

@@ -43,10 +43,19 @@ class StruckCreaturesOnServerCheck : FunSpec({
         val warden = summonIn(SAID_NOTHING, "warden")
         check(wasSummoned(warden)) { "a warden was refused in an Age that said nothing of creatures: $warden" }
     }
+
+    test("what an `only` leaves out is refused, a villager with no word of its own among it") {
+        server.run("age write $ONLY_COW 7 age only cow")
+        check(!wasSummoned(summonIn(ONLY_COW, "villager"))) { "a villager was made in an Age of only cows" }
+        check(wasSummoned(summonIn(ONLY_COW, "cow"))) { "a cow was refused in an Age of only cows" }
+        val villager = summonIn(SAID_NOTHING, "villager")
+        check(wasSummoned(villager)) { "a villager was refused in an Age that said nothing of creatures: $villager" }
+    }
 }) {
     private companion object {
         const val NO_MONSTERS = "struckmonsters"
         const val NO_ZOMBIE = "struckzombie"
         const val SAID_NOTHING = "struckcontrol"
+        const val ONLY_COW = "struckonlycow"
     }
 }
