@@ -13,6 +13,7 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import java.util.Optional
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.exp
+import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.pow
 
@@ -597,14 +598,21 @@ data class Spending(
         private const val MOST_HARMFUL = 6
 
         /**
-         * How many of [flaws] each tier from strange up to [top] is dealt, by tier: as evenly as they go, the
-         * remainder to the lowest tiers first — so five harmful flaws are three strange and two harmful.
+         * How many of [flaws] each tier from strange up to [top] is dealt, by tier: **in proportion to how dangerous
+         * the tier is** (Jonah, 2026-10-21) — strange one share, harmful two, failing three — and what rounding leaves
+         * over to the most dangerous first. Fifteen failing flaws are two strange, five harmful and eight failing,
+         * where an even deal spent a third of a collapsing Age on deepening what is only seen.
          */
         fun slotsPerTier(flaws: Int, top: Int): Map<Int, Int> {
             val tiers = (STRANGE..top).toList()
-            val each = flaws / tiers.size
-            val over = flaws % tiers.size
-            return tiers.withIndex().associate { (index, tier) -> tier to each + if (index < over) 1 else 0 }
+            val shares = tiers.sum()
+            val owed = tiers.associateWith { tier -> flaws.toDouble() * tier / shares }
+            val dealt = owed.mapValues { (_, share) -> floor(share).toInt() }.toMutableMap()
+            val over = flaws - dealt.values.sum()
+            // Largest fraction first, the more dangerous tier where two are level.
+            val nearestToAnother = tiers.sortedWith(compareByDescending<Int> { owed.getValue(it) % 1.0 }.thenByDescending { it })
+            nearestToAnother.take(over).forEach { tier -> dealt[tier] = dealt.getValue(tier) + 1 }
+            return dealt
         }
 
         /** What [instability] buys from these [ladders], for the Age whose seed is [seed] and setting is [setting]. */
@@ -674,6 +682,16 @@ data class Spending(
             buyOneAt(top)
             for ((tier, count) in slots) repeat(count - if (tier == top) 1 else 0) { buyOneAt(tier) }
 
+            // A collapse brings its companions, over what the flaws bought, wherever the Age has what they need.
+            if (Manifestation.COLLAPSE in bought) {
+                for (companion in COMES_WITH_COLLAPSE) {
+                    val canShowHere = setting.has.containsAll(ladderOf(companion).needs)
+                    val firstDial = companion.dials.firstOrNull { dial -> (ladderOf(companion).dials[dial]?.most ?: 0) > 0 }
+                    if (companion in bought || !canShowHere || firstDial == null) continue
+                    bought[companion] = mutableMapOf(firstDial to 1)
+                }
+            }
+
             val ceilings = Manifestation.entries.associateWith { manifestation ->
                 ladderOf(manifestation).dials.mapValues { it.value.most }
             }
@@ -740,6 +758,12 @@ data class Spending(
 
         /** How often a step goes to deepen something already bought, where something is. */
         private const val DEEPENS_WHAT_IT_HAS = 0.8
+
+        /**
+         * What a collapse always comes with (Jonah, 2026-10-21): the ground giving way under itself and the wounds going
+         * on opening, beside the floor's own fissures widening.
+         */
+        val COMES_WITH_COLLAPSE = listOf(Manifestation.TECTONICS, Manifestation.WORSENING_WOUNDS)
 
         /** So no manifestation is ever out of the draw entirely, however an Age leans. */
         private const val SLIGHTEST_LEANING = 0.01

@@ -59,8 +59,21 @@ class DepositsCheck : FunSpec({
             "an Age that bought every step of collapse did not read as doomed"
         }
     }
+
+    test("a quiet Age that collapses lays the doomed hoard, and holds no ruins") {
+        val quietAndCollapsing = danger(materials = 0.0, authored = true, terminal = A_PART_OF_IT)
+        check(quietAndCollapsing.paysOut && !quietAndCollapsing.allowsRuins) { "a collapsing Age scoring nothing paid nothing" }
+        check(Deposits.veinsPerChunk(quietAndCollapsing) >= DOOMED_AT_LEAST) {
+            "a quiet collapsing Age was offered ${Deposits.veinsPerChunk(quietAndCollapsing)} veins a chunk"
+        }
+        val foundAndCollapsing = danger(materials = 0.0, authored = false, terminal = A_PART_OF_IT)
+        check(!foundAndCollapsing.paysOut) { "a found collapsing Age paid out" }
+    }
 }) {
     companion object {
+        /** What a doomed Age is offered at the least: one vein, multiplied. */
+        private const val DOOMED_AT_LEAST = 40
+
         init {
             MinecraftRegistries.ensureStoodUp()
         }

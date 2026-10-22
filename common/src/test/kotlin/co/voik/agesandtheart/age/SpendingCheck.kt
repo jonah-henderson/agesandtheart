@@ -7,8 +7,8 @@ import io.kotest.core.spec.style.FunSpec
  *
  * Each distinct flaw buys one step, in tiers set by how many flaws there are and capped by how long the book
  * was. Which steps an Age buys is drawn, so what a check can hold is the rules every draw obeys: the tier
- * bands, the cap, the even spread with the top tier always reached, nothing bought above it, the exclusions,
- * and that the same Age always draws the same way.
+ * bands, the cap, the spread weighted toward danger with the top tier always reached, nothing bought above it, the
+ * exclusions, what a collapse brings, and that the same Age always draws the same way.
  */
 class SpendingCheck : FunSpec({
 
@@ -46,10 +46,11 @@ class SpendingCheck : FunSpec({
         }
     }
 
-    /** As evenly as they go, the remainder to the lowest tiers. */
-    test("the flaws are dealt out evenly, the lowest tiers taking what is over") {
-        check(Spending.slotsPerTier(7, top = 3) == mapOf(1 to 3, 2 to 2, 3 to 2)) { "seven gave ${Spending.slotsPerTier(7, 3)}" }
-        check(Spending.slotsPerTier(5, top = 2) == mapOf(1 to 3, 2 to 2)) { "five gave ${Spending.slotsPerTier(5, 2)}" }
+    /** A share a tier by how dangerous it is, what is over to the most dangerous. */
+    test("the flaws are dealt out toward the dangerous tiers") {
+        check(Spending.slotsPerTier(7, top = 3) == mapOf(1 to 1, 2 to 2, 3 to 4)) { "seven gave ${Spending.slotsPerTier(7, 3)}" }
+        check(Spending.slotsPerTier(15, top = 3) == mapOf(1 to 2, 2 to 5, 3 to 8)) { "fifteen gave ${Spending.slotsPerTier(15, 3)}" }
+        check(Spending.slotsPerTier(4, top = 2) == mapOf(1 to 1, 2 to 3)) { "four gave ${Spending.slotsPerTier(4, 2)}" }
         check(Spending.slotsPerTier(3, top = 1) == mapOf(1 to 3)) { "three gave ${Spending.slotsPerTier(3, 1)}" }
         for (flaws in 1..30) {
             val top = Spending.topTier(flaws, LONG_BOOK)
@@ -59,12 +60,14 @@ class SpendingCheck : FunSpec({
         }
     }
 
-    /** One step a flaw, never more; and none above the tier the flaws reach. */
+    /** One step a flaw, never more, but for what a collapse brings; and none above the tier the flaws reach. */
     test("each flaw buys at most one step, and none above its tier") {
         for (seed in seeds) {
             for (flaws in 1..20) {
-                val bought = tiersBought(spent(flaws, seed))
-                check(bought.size <= flaws) { "$flaws flaws bought ${bought.size} steps under seed $seed" }
+                val spending = spent(flaws, seed)
+                val bought = tiersBought(spending)
+                val broughtByACollapse = if (spending.bought(Manifestation.COLLAPSE) > 0) Spending.COMES_WITH_COLLAPSE.size else 0
+                check(bought.size <= flaws + broughtByACollapse) { "$flaws flaws bought ${bought.size} steps under seed $seed" }
                 val top = Spending.topTier(flaws, LONG_BOOK)
                 check(bought.all { it <= top }) { "$flaws flaws bought tiers $bought, above $top, under seed $seed" }
             }
@@ -78,6 +81,16 @@ class SpendingCheck : FunSpec({
                 val top = Spending.topTier(flaws, LONG_BOOK)
                 check(top in tiersBought(spent(flaws, seed))) { "$flaws flaws under seed $seed bought nothing at tier $top" }
             }
+        }
+    }
+
+    test("a collapse always comes with cave-ins and worsening wounds, where the Age can show them") {
+        val collapsing = seeds.flatMap { seed -> (7..30).map { flaws -> spent(flaws, seed) } }
+            .filter { it.bought(Manifestation.COLLAPSE) > 0 }
+        check(collapsing.isNotEmpty()) { "no draw collapsed" }
+        for (spending in collapsing) {
+            val missing = Spending.COMES_WITH_COLLAPSE.filter { spending.bought(it) == 0 }
+            check(missing.isEmpty()) { "a collapse came without $missing: $spending" }
         }
     }
 

@@ -469,7 +469,7 @@ class WritersDeskScreen(
         /** The paper, kept between openings on this client. The cheapest by default, so nobody wastes the good stuff. */
         var chosenPaper = InkTier.COMMON
 
-        const val PANEL_WIDTH = 332
+        const val PANEL_WIDTH = 344
         const val PANEL_HEIGHT = 200
 
         /** Roughly what the stock hanging off the right edge takes, so the whole is centred rather than the panel. */
@@ -477,7 +477,7 @@ class WritersDeskScreen(
 
         const val INSET = 8
         const val CONTENT_TOP = 18
-        const val WORD_COLUMN_WIDTH = 112
+        const val WORD_COLUMN_WIDTH = 124
         const val TEMPLATE_COLUMN_X = INSET + WORD_COLUMN_WIDTH + INSET
         const val LINE = 12
         const val GAP = 4

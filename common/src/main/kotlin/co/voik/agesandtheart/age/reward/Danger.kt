@@ -105,19 +105,22 @@ data class Danger(
             conditions * weights.conditions
 
     /**
-     * Whether this Age pays at all — the threshold, **and the provenance flag with it**.
+     * Whether this Age pays at all — over the threshold or coming apart, **and the provenance flag with it**: any
+     * collapse buys the hoard, however little else the Age scores (Jonah, 2026-10-17).
      *
      * One question rather than two, so that no caller can read the score and forget who wrote the book.
      */
-    val paysOut: Boolean get() = authored && score >= paysAbove
+    val paysOut: Boolean get() = authored && isDangerousEnoughToPay
 
     /**
-     * Whether an Age this dangerous may hold D'ni ruins — the same threshold read the other way.
+     * Whether an Age this dangerous may hold D'ni ruins — the same line read the other way.
      *
      * §7.7: the two rewards partition by one number. Below it an Age may hold a city; above it, deposits.
      * Simultaneous ruins and deposits are not a design goal.
      */
-    val allowsRuins: Boolean get() = score < paysAbove
+    val allowsRuins: Boolean get() = !isDangerousEnoughToPay
+
+    private val isDangerousEnoughToPay: Boolean get() = score >= paysAbove || isTerminal
 
     /**
      * Whether this Age will not last, and its rewards are turned up to absurd amounts (§7.7): **any collapse
