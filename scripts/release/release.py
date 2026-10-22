@@ -373,6 +373,9 @@ class Release:
         git("tag", "-a", self.tag, self.state["commit"], "-m", f"Ages and the Art {self.version} for Minecraft {self.minecraft}")
 
     def make_worktrees(self) -> None:
+        # A release directory removed by hand leaves its worktrees registered in both repositories.
+        git("worktree", "prune")
+        git("worktree", "prune", cwd=EPHEMERIS)
         git("worktree", "add", "--detach", str(self.codebase), self.tag)
         git("worktree", "add", "--detach", str(self.ephemeris_worktree), self.state["ephemeris_ref"], cwd=EPHEMERIS)
         server_run = self.codebase / "fabric/runs/server"
