@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.language
 
 import co.voik.agesandtheart.age.resolution.Effect
+import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Aspect
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.Registries
@@ -38,8 +39,17 @@ data class Word(
     /** Whether all this word says is how much there is — `teeming`, `scarce`. */
     val isAQuantifier: Boolean get() = effects.isNotEmpty() && effects.all { it is Effect.Abundance }
 
-    /** The block this word is, where it is one. */
-    val block: String? get() = id.toString().takeIf { Registries.BLOCK in referentRegistries }
+    /**
+     * The block this word is, where it is one: a sea it chooses as itself, or anything made of it — a button no sea
+     * can be is still what a pit may be lined with.
+     */
+    val block: String? get() {
+        val named = id.toString()
+        fun makesSomethingOfItself(effect: Effect) =
+            effect is Effect.Sets && effect.value == named && effect.parameter.name in MATERIAL_PARAMETERS
+        val isTheBlock = Registries.BLOCK in referentRegistries || effects.any(::makesSomethingOfItself)
+        return named.takeIf { isTheBlock }
+    }
 
     /** The pattern this word mints where it is aimed, where it is a minting. */
     val mints: String?
