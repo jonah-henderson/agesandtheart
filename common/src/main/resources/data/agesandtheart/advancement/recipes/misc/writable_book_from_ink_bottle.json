@@ -1,0 +1,10 @@
+{
+  "_comment": "Learned on first holding a bottle of ink.",
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_ink": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [{ "items": "#agesandtheart:ink_bottles" }] } },
+    "has_the_recipe": { "trigger": "minecraft:recipe_unlocked", "conditions": { "recipes": "agesandtheart:writable_book_from_ink_bottle" } }
+  },
+  "requirements": [["has_ink", "has_the_recipe"]],
+  "rewards": { "recipes": ["agesandtheart:writable_book_from_ink_bottle"] }
+}

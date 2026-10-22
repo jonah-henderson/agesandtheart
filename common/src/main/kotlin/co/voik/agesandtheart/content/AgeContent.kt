@@ -1353,7 +1353,7 @@ object AgeContent {
      * Squid ink is deliberately *not* accepted by the desk directly; it becomes black dye and then a
      * bottle, so the cheap route still passes through a step the player performs.
      */
-    val INK_BOTTLE: Item = Item(
+    val INK_BOTTLE: Item = InkBottleItem(
         Item.Properties()
             .setId(ResourceKey.create(Registries.ITEM, INK_BOTTLE_ID))
             .craftRemainder(Items.GLASS_BOTTLE)
@@ -1363,7 +1363,7 @@ object AgeContent {
     private val FINE_INK_BOTTLE_ID: Identifier = "fine_ink_bottle".location()
 
     /** Fine ink by the bottle — the unit a recipe can actually name, where the tank holds a fluid. */
-    val FINE_INK_BOTTLE: Item = Item(
+    val FINE_INK_BOTTLE: Item = InkBottleItem(
         Item.Properties()
             .setId(ResourceKey.create(Registries.ITEM, FINE_INK_BOTTLE_ID))
             .craftRemainder(Items.GLASS_BOTTLE)
@@ -1372,8 +1372,8 @@ object AgeContent {
 
     private val MASTERWORK_INK_BOTTLE_ID: Identifier = "masterwork_ink_bottle".location()
 
-    /** Nothing crafts with it; what it is for is being found in a D'ni ink workshop and poured into a desk. */
-    val MASTERWORK_INK_BOTTLE: Item = Item(
+    /** What it is for is being found in a D'ni ink workshop and poured into a desk, though like any ink it serves as an ink sac. */
+    val MASTERWORK_INK_BOTTLE: Item = InkBottleItem(
         Item.Properties()
             .setId(ResourceKey.create(Registries.ITEM, MASTERWORK_INK_BOTTLE_ID))
             .craftRemainder(Items.GLASS_BOTTLE)
