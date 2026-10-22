@@ -109,11 +109,23 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
      */
     override fun hurtServer(level: ServerLevel, source: DamageSource, damage: Float): Boolean {
         isTakingAHit = true
-        try {
-            return super.hurtServer(level, source, damage)
+        val struck = try {
+            super.hurtServer(level, source, damage)
         } finally {
             isTakingAHit = false
         }
+        if (struck) turnOnWhoeverStruckIt(source)
+        return struck
+    }
+
+    /**
+     * Whoever struck it last becomes its quarry, where vanilla keeps the first: a running `HurtByTargetGoal` is never
+     * started again, so a second player's blows went unanswered. [HadalfishHunt] sees the change and charges them.
+     */
+    private fun turnOnWhoeverStruckIt(source: DamageSource) {
+        val attacker = source.entity as? LivingEntity ?: return
+        val hasAnotherQuarry = target != null && target != attacker
+        if (hasAnotherQuarry && canAttack(attacker)) target = attacker
     }
 
     override fun isMoving(): Boolean = isTakingAHit || super.isMoving()

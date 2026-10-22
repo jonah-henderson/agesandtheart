@@ -28,7 +28,7 @@ import kotlin.math.sin
  */
 class HadalfishHunt(private val fish: Hadalfish) : Goal() {
 
-    private enum class Phase { CIRCLING, CHARGING, STRIKING, LINGERING, WITHDRAWING }
+    private enum class Phase { CIRCLING, TURNING, CHARGING, STRIKING, LINGERING, WITHDRAWING }
 
     private var phase = Phase.CIRCLING
 
@@ -47,6 +47,9 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
 
     /** The side it came at the quarry from, level and of unit length — where it keeps to while it bites. */
     private var cameFrom = Vec3(1.0, 0.0, 0.0)
+
+    /** Whom it was hunting last tick, so a change of quarry is seen. */
+    private var hunted: LivingEntity? = null
 
     init {
         flags = EnumSet.of(Flag.MOVE, Flag.LOOK)
@@ -82,6 +85,7 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
         circle()
         bearing = fish.random.nextDouble() * FULL_TURN
         handedness = if (fish.random.nextBoolean()) 1.0 else -1.0
+        hunted = fish.target
     }
 
     override fun stop() {
@@ -95,9 +99,11 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
 
     override fun tick() {
         val quarry = fish.target ?: return
+        if (quarry != hunted) turnedOn(quarry)
         fish.lookControl.setLookAt(quarry, LOOK_YAW, LOOK_PITCH)
         when (phase) {
             Phase.CIRCLING -> orbit(quarry)
+            Phase.TURNING -> turn(quarry)
             Phase.CHARGING -> charge(quarry)
             Phase.STRIKING -> strike(quarry)
             Phase.LINGERING -> linger()
@@ -123,6 +129,31 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
         )
         steer(station, ORBIT_SPEED, ORBIT_EASE)
         givingGroundNoFasterThan(quarry, GIVES_GROUND_AT)
+        facePlainly(quarry)
+        if (--patience <= 0) {
+            phase = Phase.CHARGING
+            patience = GIVES_UP_CHARGING_AFTER
+        }
+    }
+
+    /**
+     * **Whoever struck it last, it comes for at once** (Jonah, 2026-10-21): a fish hunting one player and struck by
+     * another turns on the second and charges after [TURNS_FOR], without circling — long enough to raise a shield.
+     * Only a change of quarry by a blow does this; the first quarry of a hunt is circled as ever.
+     */
+    private fun turnedOn(quarry: LivingEntity) {
+        val wasHuntingSomebodyElse = hunted != null
+        val struckBy = quarry == fish.lastHurtByMob
+        hunted = quarry
+        if (wasHuntingSomebodyElse && struckBy) {
+            phase = Phase.TURNING
+            patience = TURNS_FOR
+        }
+    }
+
+    /** Pulls up and faces the one that struck it, then comes. */
+    private fun turn(quarry: LivingEntity) {
+        fish.deltaMovement = fish.deltaMovement.scale(KEEPS_IN_REACH)
         facePlainly(quarry)
         if (--patience <= 0) {
             phase = Phase.CHARGING
@@ -346,6 +377,9 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
          * player's sprint, so swimming at it closes the distance.
          */
         const val GIVES_GROUND_AT = 0.15
+
+        /** A quarter of a second between being struck by somebody new and charging them. */
+        const val TURNS_FOR = 5
 
         /** Half a second after its last bite before it turns away. */
         const val LINGERS_FOR = 10
