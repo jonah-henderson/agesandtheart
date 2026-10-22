@@ -29,12 +29,18 @@ data class Word(
     /** Everything its meanings say, together. */
     val effects: List<Effect> get() = meanings.flatMap { it.effects }
 
-    /** The registries this word is itself an entry of — the block a block's word is, the creature a creature's. */
+    /**
+     * The registries this word is itself an entry of — the block a block's word is, the creature a creature's. A block
+     * counts wherever the word is made of itself, a button no sea can be included, or its tags go unread.
+     */
     val referentRegistries: Set<ResourceKey<out Registry<*>>>
-        get() = effects.filterIsInstance<Effect.Chooses>()
-            .filter { it.member == id.toString() }
-            .mapNotNull { it.aspect.presetsAreEntriesOf }
-            .toSet()
+        get() {
+            val chosenAsItself = effects.filterIsInstance<Effect.Chooses>()
+                .filter { it.member == id.toString() }
+                .mapNotNull { it.aspect.presetsAreEntriesOf }
+                .toSet()
+            return if (effects.any(::makesSomethingOfItself)) chosenAsItself + Registries.BLOCK else chosenAsItself
+        }
 
     /** Whether all this word says is how much there is — `teeming`, `scarce`. */
     val isAQuantifier: Boolean get() = effects.isNotEmpty() && effects.all { it is Effect.Abundance }
@@ -43,13 +49,10 @@ data class Word(
      * The block this word is, where it is one: a sea it chooses as itself, or anything made of it — a button no sea
      * can be is still what a pit may be lined with.
      */
-    val block: String? get() {
-        val named = id.toString()
-        fun makesSomethingOfItself(effect: Effect) =
-            effect is Effect.Sets && effect.value == named && effect.parameter.name in MATERIAL_PARAMETERS
-        val isTheBlock = Registries.BLOCK in referentRegistries || effects.any(::makesSomethingOfItself)
-        return named.takeIf { isTheBlock }
-    }
+    val block: String? get() = id.toString().takeIf { Registries.BLOCK in referentRegistries }
+
+    private fun makesSomethingOfItself(effect: Effect) =
+        effect is Effect.Sets && effect.value == id.toString() && effect.parameter.name in MATERIAL_PARAMETERS
 
     /** The pattern this word mints where it is aimed, where it is a minting. */
     val mints: String?

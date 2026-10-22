@@ -1,11 +1,15 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.age.language.Word
+import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus.vocabulary
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.RegistryAccess
+import net.minecraft.resources.Identifier
 import net.minecraft.util.RandomSource
 import net.minecraft.world.item.Rarity
 
@@ -149,6 +153,39 @@ class WordRarityCheck : FunSpec({
         val critical = vocabulary.rarity.buckets.first { it.name == "critical" }
         check("electromagnetic" !in critical.words) { "electromagnetic is still critical" }
     }
+
+    /**
+     * Masterwork ink is a tag and rarity a hand-kept list, so they drift: an unlisted word is common, and common words
+     * fill notebooks. Read off the shipped files, since offline registries carry no tags.
+     */
+    test("a word only masterwork ink writes is never common, nor in a notebook, unless kept out of loot") {
+        val resources = MinecraftRegistries.shippedData()
+        fun idsIn(json: JsonObject, field: String) = json.getAsJsonArray(field).map { entry ->
+            if (entry.isJsonObject) entry.asJsonObject["id"].asString else entry.asString
+        }
+        fun idsInFiles(directory: String, name: String, field: String) =
+            resources.listResources(directory) { it.path.endsWith("/$name.json") || it.path == "$directory/$name.json" }
+                .values.flatMap { resource -> idsIn(resource.openAsReader().use(JsonParser::parseReader).asJsonObject, field) }
+        fun shipped(path: String): JsonObject {
+            val resource = resources.getResource(Identifier.fromNamespaceAndPath("agesandtheart", path)).orElseThrow()
+            return resource.openAsReader().use(JsonParser::parseReader).asJsonObject
+        }
+        val masterwork = idsInFiles("tags", "requires_masterwork_ink", "values") + idsIn(shipped("art/ink/masterwork.json"), "words")
+        val keptOut = (idsInFiles("tags", "cannot_appear_in_loot", "values") + idsIn(shipped("art/cannot_appear_in_loot.json"), "words")).toSet()
+        val notebookDraws = shipped("loot_table/inject/notebook.json").getAsJsonArray("pools").flatMap { pool ->
+            pool.asJsonObject.getAsJsonArray("entries").flatMap { it.asJsonObject.getAsJsonArray("modifier") }
+        }.flatMap { idsIn(it.asJsonObject, "rarity") }.toSet()
+        fun bucketListing(id: String) = vocabulary.rarity.buckets.firstOrNull { id in it.words }
+        fun isFoundTooEasily(id: String): Boolean {
+            val bucket = bucketListing(id)
+            return bucket == null || bucket.isDefault || bucket.name in notebookDraws
+        }
+        check(masterwork.isNotEmpty() && notebookDraws.isNotEmpty()) { "read no masterwork words, or no notebook buckets" }
+        val tooEasy = masterwork.filter { it !in keptOut && !it.startsWith(TAG_REFERENCE) }.filter(::isFoundTooEasily)
+        check(tooEasy.isEmpty()) {
+            "${tooEasy.size} word(s) need masterwork ink and are common or notebook words: ${tooEasy.joinToString(", ")}"
+        }
+    }
 }) {
     private companion object {
         const val SEED = 1L
@@ -156,5 +193,6 @@ class WordRarityCheck : FunSpec({
         const val RARE_WEIGHT = 0.25
         const val TOLERANCE = 0.03
         const val RARE_COUNT = 5
+        const val TAG_REFERENCE = "#"
     }
 }

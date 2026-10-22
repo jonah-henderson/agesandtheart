@@ -3,9 +3,14 @@ package co.voik.agesandtheart.command
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.ReportFor
+import co.voik.agesandtheart.age.word.CannotAppearInLoot
+import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.content.AgeComponents
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.page.PageLoot
 import co.voik.agesandtheart.page.PageLootTarget
+import co.voik.agesandtheart.page.PageWordFunction
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.builder.ArgumentBuilder
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
@@ -13,8 +18,15 @@ import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.core.BlockPos
+import net.minecraft.core.HolderLookup
+import net.minecraft.core.Registry
+import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.registries.Registries
 import net.minecraft.network.chat.Component
+import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
+import net.minecraft.tags.TagKey
 import net.minecraft.world.RandomizableContainer
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.ChunkPos
@@ -33,8 +45,19 @@ internal object LootInstruments {
     fun addTo(age: LiteralArgumentBuilder<CommandSourceStack>) {
         age.then(
             Commands.literal(LOOT_LITERAL)
-                .opening { context -> Report.prose(context.source) }
-                .then(Commands.literal(Report.STRUCTURED_LITERAL).opening { context -> Report.structured(context.source) }),
+                .opening(DEFAULT_TIMES, ::runLoot) { context -> Report.prose(context.source) }
+                .then(
+                    Commands.literal(Report.STRUCTURED_LITERAL)
+                        .opening(DEFAULT_TIMES, ::runLoot) { context -> Report.structured(context.source) },
+                ),
+        )
+        age.then(
+            Commands.literal(FENCED_LITERAL)
+                .opening(DEFAULT_FENCED_TIMES, ::runFenced) { context -> Report.prose(context.source) }
+                .then(
+                    Commands.literal(Report.STRUCTURED_LITERAL)
+                        .opening(DEFAULT_FENCED_TIMES, ::runFenced) { context -> Report.structured(context.source) },
+                ),
         )
         age.then(
             Commands.literal(CONTAINERS_LITERAL).then(
@@ -71,6 +94,9 @@ internal object LootInstruments {
     }
 
     private const val LOOT_LITERAL = "loot"
+    private const val FENCED_LITERAL = "fenced"
+    private const val DEFAULT_FENCED_TIMES = 100
+    private const val CHEST_TABLES = "chests/"
     private const val CONTAINERS_LITERAL = "containers"
     private const val RADIUS_ARGUMENT = "radius"
     private const val MOST_RADIUS = 32
@@ -78,14 +104,81 @@ internal object LootInstruments {
     private const val DEFAULT_TIMES = 400
     private const val MOST_TIMES = 10_000
 
-    private fun <T : ArgumentBuilder<CommandSourceStack, T>> T.opening(reportFor: ReportFor): T =
-        executes { context -> runLoot(context, DEFAULT_TIMES, reportFor(context)) }
+    private fun <T : ArgumentBuilder<CommandSourceStack, T>> T.opening(
+        defaultTimes: Int,
+        run: (CommandContext<CommandSourceStack>, Int, Report) -> Int,
+        reportFor: ReportFor,
+    ): T =
+        executes { context -> run(context, defaultTimes, reportFor(context)) }
             .then(
                 Commands.argument(TIMES_ARGUMENT, IntegerArgumentType.integer(1, MOST_TIMES))
                     .executes { context ->
-                        runLoot(context, IntegerArgumentType.getInteger(context, TIMES_ARGUMENT), reportFor(context))
+                        run(context, IntegerArgumentType.getInteger(context, TIMES_ARGUMENT), reportFor(context))
                     },
             )
+
+    /**
+     * `/age fenced [<times>]` — every chest table opened [times] times over, and each word a page or notebook from
+     * it carried that no found page may (`PageWordFunction.canBeFound`). Silent where a table carried none. Then
+     * everything tagged `cannot_appear_in_loot` that the draw would still accept, which the first half cannot see.
+     */
+    private fun runFenced(context: CommandContext<CommandSourceStack>, times: Int, report: Report): Int {
+        val server = context.source.server
+        val vocabulary = Vocabulary.of(server)
+        val registries = server.registryAccess()
+        val params = LootParams.Builder(context.source.level)
+            .withParameter(LootContextParams.ORIGIN, context.source.position)
+            .create(LootContextParamSets.CHEST)
+        fun mayNotBeFound(id: Identifier): Boolean {
+            val word = vocabulary.word(id) ?: return false
+            return !PageWordFunction.canBeFound(word, vocabulary, registries)
+        }
+        val lootTables: HolderLookup.RegistryLookup<LootTable> =
+            server.reloadableRegistries().lookup().lookupOrThrow(Registries.LOOT_TABLE)
+        val chestTables = lootTables.listElementIds().toList()
+            .filter { it.identifier().path.startsWith(CHEST_TABLES) }
+            .sortedBy { it.identifier().toString() }
+        report.say { "Every chest table opened $times times, with nobody opening it; words no found page may carry:" }
+        val seen = mutableSetOf<Identifier>()
+        for (key in chestTables) {
+            val table = server.reloadableRegistries().getLootTable(key)
+            val written = (1..times).flatMap { table.getRandomItems(params) }.flatMap(::wordsOn).toSet()
+            seen += written
+            val fenced = written.filter(::mayNotBeFound)
+            if (fenced.isEmpty()) continue
+            val named = fenced.joinToString(" ")
+            report.entry("fenced", mapOf("table" to key.identifier().toString(), "words" to named)) {
+                "  ${key.identifier()}: $named"
+            }
+        }
+        val fence = fencedByTag(registries)
+        val leaking = fence.filter { id -> vocabulary.word(id)?.let { PageWordFunction.canBeFound(it, vocabulary, registries) } == true }
+        for (id in leaking) report.entry("leaks", mapOf("word" to id.toString())) { "  fenced, yet a found page may carry it: $id" }
+        report.only("fence", fence.size)
+        report.only("tables", chestTables.size)
+        report.only("words", seen.size)
+        report.say { "${chestTables.size} tables opened, ${seen.size} different words found in them." }
+        report.finish()
+        return SUCCESS
+    }
+
+    /** Everything tagged `cannot_appear_in_loot`, in every registry, read off the tags rather than off the words. */
+    private fun fencedByTag(registries: RegistryAccess): List<Identifier> =
+        registries.listRegistries().toList().flatMap { lookup ->
+            // A registry listed this way is star-projected, and a tag key has to name its element type.
+            @Suppress("UNCHECKED_CAST")
+            val typed = lookup as HolderLookup.RegistryLookup<Any>
+            @Suppress("UNCHECKED_CAST")
+            val tag = TagKey.create(typed.key() as ResourceKey<out Registry<Any>>, CannotAppearInLoot.TAG_NAME)
+            typed.get(tag).map { tagged -> tagged.mapNotNull { it.unwrapKey().orElse(null)?.identifier() } }.orElse(emptyList())
+        }
+
+    /** The words written on [stack]: a page's own, or every page a notebook holds. */
+    private fun wordsOn(stack: ItemStack): List<Identifier> = when {
+        stack.`is`(AgeContent.PAGE) -> listOfNotNull(stack.get(AgeComponents.PAGE_WORD))
+        stack.`is`(AgeContent.NOTEBOOK) -> NotebookItem.pagesIn(stack).mapNotNull { it.get(AgeComponents.PAGE_WORD) }
+        else -> emptyList()
+    }
 
     private fun runLoot(context: CommandContext<CommandSourceStack>, times: Int, report: Report): Int {
         val source = context.source
