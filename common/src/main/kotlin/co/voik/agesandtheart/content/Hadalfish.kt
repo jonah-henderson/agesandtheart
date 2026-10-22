@@ -125,6 +125,12 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
      */
     override fun getPickRadius(): Float = STRUCK_PAST_ITS_BOX * scale
 
+    /**
+     * Struck from inside that margin too. It closes on its quarry until it is alongside, which puts a player's eye
+     * inside what aiming tests, and vanilla refuses a hit from in there unless this says otherwise.
+     */
+    override fun canBePickedFromInside(): Boolean = true
+
     override fun defineSynchedData(entityData: SynchedEntityData.Builder) {
         super.defineSynchedData(entityData)
         entityData.define(HUNTING_SOMETHING, false)
@@ -230,8 +236,8 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
         /** A guardian is 0.85 across, so this is a shade over two blocks — big, without being a monument. */
         private const val TIMES_A_GUARDIAN = 2.5
 
-        /** In a guardian's own blocks, so it grows with the fish: its whole body and the root of its tail. */
-        private const val STRUCK_PAST_ITS_BOX = 0.25f
+        /** In a guardian's own blocks, so it grows with the fish: its whole body and half its tail. */
+        private const val STRUCK_PAST_ITS_BOX = 0.5f
 
         /**
          * Retaliation first, then people, then anything at all.
