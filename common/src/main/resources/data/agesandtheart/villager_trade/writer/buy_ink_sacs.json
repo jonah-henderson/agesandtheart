@@ -1,7 +1,8 @@
 {
+  "_comment": "A librarian's price, five to the emerald: ink is a writer's trade, so they pay no less for it.",
   "wants": {
     "id": "minecraft:ink_sac",
-    "count": 10
+    "count": 5
   },
   "gives": {
     "id": "minecraft:emerald",
