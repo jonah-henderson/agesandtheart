@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.command
 
+import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.ReportFor
 import co.voik.agesandtheart.content.AgeContent
@@ -11,6 +12,12 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
+import net.minecraft.core.BlockPos
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.network.chat.Component
+import net.minecraft.world.RandomizableContainer
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.storage.loot.LootParams
 import net.minecraft.world.level.storage.loot.LootTable
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets
@@ -29,9 +36,44 @@ internal object LootInstruments {
                 .opening { context -> Report.prose(context.source) }
                 .then(Commands.literal(Report.STRUCTURED_LITERAL).opening { context -> Report.structured(context.source) }),
         )
+        age.then(
+            Commands.literal(CONTAINERS_LITERAL).then(
+                Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(0, MOST_RADIUS))
+                    .executes { context -> runContainers(context, IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT)) },
+            ),
+        )
+    }
+
+    /**
+     * `/age containers <radius>` — every unopened container in the loaded chunks within `radius` chunks of where it is
+     * run, by the table it fills from, and what of ours they would hold, each opened as its own seed would: what a
+     * structure placed with `/place structure` actually gives a player who loots all of it.
+     */
+    private fun runContainers(context: CommandContext<CommandSourceStack>, radius: Int): Int {
+        val source = context.source
+        val level = source.level
+        val centre = ChunkPos.containing(BlockPos.containing(source.position))
+        val containers = (-radius..radius).flatMap { x ->
+            (-radius..radius).mapNotNull { z -> level.chunkSource.getChunkNow(centre.x() + x, centre.z() + z) }
+        }.flatMap { it.blockEntities.values }.filterIsInstance<RandomizableContainer>().filter { it.lootTable != null }
+        val params = LootParams.Builder(level).withParameter(LootContextParams.ORIGIN, source.position).create(LootContextParamSets.CHEST)
+        val byTable = containers.groupBy { it.lootTable?.identifier().toString() }
+        fun heldBy(container: RandomizableContainer) =
+            container.lootTable?.let(source.server.reloadableRegistries()::getLootTable)?.getRandomItems(params, container.lootTableSeed).orEmpty()
+        fun idOf(stack: ItemStack) = BuiltInRegistries.ITEM.getKey(stack.item)
+        val ours = containers.flatMap(::heldBy).filter { idOf(it).namespace == Constants.MOD_ID }
+            .groupBy { idOf(it).path }.mapValues { (_, stacks) -> stacks.sumOf { it.count } }
+        source.sendSuccess({ Component.literal("${containers.size} unopened containers within $radius chunks:") }, false)
+        for ((table, held) in byTable.toSortedMap()) source.sendSuccess({ Component.literal("  $table: ${held.size}") }, false)
+        source.sendSuccess({ Component.literal("Of ours, they would hold:") }, false)
+        for ((item, count) in ours.toSortedMap()) source.sendSuccess({ Component.literal("  $item: $count") }, false)
+        return SUCCESS
     }
 
     private const val LOOT_LITERAL = "loot"
+    private const val CONTAINERS_LITERAL = "containers"
+    private const val RADIUS_ARGUMENT = "radius"
+    private const val MOST_RADIUS = 32
     private const val TIMES_ARGUMENT = "times"
     private const val DEFAULT_TIMES = 400
     private const val MOST_TIMES = 10_000
