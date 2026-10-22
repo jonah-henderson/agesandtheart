@@ -484,7 +484,8 @@ When shared code needs something loader-specific, it goes through an interface, 
   vanilla's placement check, the type's spawn predicate and the creature's own spawn rule all pass, the peaceful
   rule and the collision checks kept, scarabs excepted. Fabric has no natural-spawning event and NeoForge's
   spawn-placement event is per type at registration rather than per level. The chunk-generation pass is ours
-  already (`ChunkGenerationSpawns`) and frees itself. **`MixinsRegisteredCheck` holds every Mixin class listed in
+  already (`ChunkGenerationSpawns`) and frees itself. A creature asked for in herds is placed by a cow's rules at the
+  same three seams (`generation/HerdedSpawns`). **`MixinsRegisteredCheck` holds every Mixin class listed in
   the config** — an unlisted one is never applied and nothing says so.
 
 The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.mixin;
 
+import co.voik.agesandtheart.generation.HerdedSpawns;
 import co.voik.agesandtheart.generation.IncongruousSpawns;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -29,6 +30,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  *
  * <p>The peaceful rule is kept, and so are the collision checks, so nothing spawns inside a wall. Everywhere
  * that is not such an Age, and for a scarab anywhere, vanilla's own answer is returned untouched.
+ *
+ * <p>And a creature an Age asks for in herds is placed by a cow's rules, as the farm animals are
+ * ({@link HerdedSpawns}): the same three seams, the cow's placement and predicate in its own's stead.
  */
 @Mixin(NaturalSpawner.class)
 public abstract class NaturalSpawnerMixin {
@@ -41,7 +45,8 @@ public abstract class NaturalSpawnerMixin {
         )
     )
     private static boolean agesandtheart$placedAnywhere(EntityType<?> type, LevelReader level, BlockPos at) {
-        return IncongruousSpawns.anywhere(level, type) || SpawnPlacements.isSpawnPositionOk(type, level, at);
+        return IncongruousSpawns.anywhere(level, type)
+            || SpawnPlacements.isSpawnPositionOk(HerdedSpawns.placedAs(level, type), level, at);
     }
 
     @Redirect(
@@ -61,6 +66,10 @@ public abstract class NaturalSpawnerMixin {
         if (IncongruousSpawns.anywhere(level, type)) {
             return IncongruousSpawns.allowedAtThisDifficulty(level.getLevel(), type);
         }
+        if (HerdedSpawns.isHerded(level, type)) {
+            return IncongruousSpawns.allowedAtThisDifficulty(level.getLevel(), type)
+                && SpawnPlacements.checkSpawnRules(HerdedSpawns.PLACED_AS, level, reason, at, random);
+        }
         return SpawnPlacements.checkSpawnRules(type, level, reason, at, random);
     }
 
@@ -72,7 +81,8 @@ public abstract class NaturalSpawnerMixin {
         )
     )
     private static boolean agesandtheart$willingAnywhere(Mob mob, LevelAccessor level, EntitySpawnReason reason) {
-        return (level instanceof ServerLevel server && IncongruousSpawns.anywhere(server, mob.getType()))
-            || mob.checkSpawnRules(level, reason);
+        boolean ruledByAnother = level instanceof ServerLevel server
+            && (IncongruousSpawns.anywhere(server, mob.getType()) || HerdedSpawns.isHerded(server, mob.getType()));
+        return ruledByAnother || mob.checkSpawnRules(level, reason);
     }
 }

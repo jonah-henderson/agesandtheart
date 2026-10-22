@@ -7,6 +7,8 @@ import net.minecraft.util.random.Weighted
 import net.minecraft.util.random.WeightedList
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
+import net.minecraft.world.entity.SpawnPlacementTypes
+import net.minecraft.world.entity.SpawnPlacements
 import net.minecraft.util.valueproviders.UniformInt
 import net.minecraft.world.level.biome.MobSpawnSettings
 import java.util.concurrent.ConcurrentHashMap
@@ -169,12 +171,55 @@ object Spawns {
         val herds = herdsIn(options)
         if (herds.isEmpty()) return living
         return object : Living {
-            override fun at(biome: Identifier?, category: MobCategory, where: Situation, offered: WeightedList<MobSpawnSettings.SpawnerData>) =
-                herded(living.at(biome, category, where, offered), herds)
+            override fun at(
+                biome: Identifier?,
+                category: MobCategory,
+                where: Situation,
+                offered: WeightedList<MobSpawnSettings.SpawnerData>,
+            ): WeightedList<MobSpawnSettings.SpawnerData> {
+                val asked = living.at(biome, category, where, offered)
+                val isTheFarmAnimalsPass = category == MobCategory.CREATURE
+                val withTheFarmAnimals = if (isTheFarmAnimalsPass) amongTheFarmAnimals(asked, herds.keys) { rungOf(it, biome) } else asked
+                return herded(withTheFarmAnimals, herds)
+            }
 
             override fun rungOf(creature: Identifier, biome: Identifier?): Double = living.rungOf(creature, biome)
+
+            override fun herds(creature: Identifier): Boolean = creature in herds && keepsToLand(creature)
         }
     }
+
+    /**
+     * [offered] with every land creature in [herded] offered beside the farm animals, wherever there are any: herds
+     * come as cows, sheep and pigs do (Jonah, walking), each as often as the book asks against their usual weight.
+     */
+    private fun amongTheFarmAnimals(
+        offered: WeightedList<MobSpawnSettings.SpawnerData>,
+        herded: Set<Identifier>,
+        rungOf: (Identifier) -> Double,
+    ): WeightedList<MobSpawnSettings.SpawnerData> {
+        val entries = offered.unwrap()
+        val farmAnimals = entries.filter { idOf(it.value().type()) in FARM_ANIMALS }
+        if (farmAnimals.isEmpty()) return offered
+        val already = entries.map { idOf(it.value().type()) }.toSet()
+        val usualWeight = farmAnimals.map { it.weight() }.average()
+        val joining = herded.filter { it !in already && keepsToLand(it) }.mapNotNull { creature ->
+            val type = BuiltInRegistries.ENTITY_TYPE.getOptional(creature).orElse(null) ?: return@mapNotNull null
+            val weight = (usualWeight * rungOf(creature)).roundToInt().coerceAtLeast(1)
+            Weighted(MobSpawnSettings.SpawnerData(type, UniformInt.of(1, 1)), weight)
+        }
+        return WeightedList.of(entries + joining)
+    }
+
+    /** Whether [creature] lives out of the water, so it can come as a farm animal does: a herd of cod stays in the sea. */
+    private fun keepsToLand(creature: Identifier): Boolean {
+        val type = BuiltInRegistries.ENTITY_TYPE.getOptional(creature).orElse(null) ?: return false
+        val placed = SpawnPlacements.getPlacementType(type)
+        return placed != SpawnPlacementTypes.IN_WATER && placed != SpawnPlacementTypes.IN_LAVA
+    }
+
+    /** The animals a world is made with, whose places and rules a herd takes. */
+    private val FARM_ANIMALS = setOf("cow", "sheep", "pig", "chicken").map(Identifier::withDefaultNamespace).toSet()
 
     /** [offered] with every creature [herds] names arriving as many together as its herd. */
     private fun herded(
@@ -253,6 +298,9 @@ object Spawns {
          * that is rare by its own spawn rule, whose weight alone in a list would move nothing.
          */
         fun rungOf(creature: Identifier, biome: Identifier?): Double = Rung.ORDINARY
+
+        /** Whether [creature] comes in herds, and so where and as the farm animals do. */
+        fun herds(creature: Identifier): Boolean = false
     }
 
     /**

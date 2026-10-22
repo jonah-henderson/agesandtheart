@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.generation
 
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.world.entity.EntityType
 import co.voik.agesandtheart.worldgen.DeepWrecks
 import net.minecraft.world.level.LevelReader
 import co.voik.agesandtheart.age.aspect.Rung
@@ -417,6 +419,9 @@ class AgeChunkGenerator(
     private val offeredAnywhere: Map<MobCategory, WeightedList<MobSpawnSettings.SpawnerData>> by lazy {
         MobCategory.entries.associateWith { IncongruousSpawns.offeredAnywhere(biomeSource.possibleBiomes(), it) }
     }
+
+    /** Whether this Age's book asks for [type] in herds, which come where and as the farm animals do. */
+    fun herds(type: EntityType<*>): Boolean = lives?.herds(BuiltInRegistries.ENTITY_TYPE.getKey(type)) == true
 
     /** How thickly this Age's book asks for [creature] at [at] — see [Spawns.Living.rungOf]. */
     fun rungOf(creature: Identifier, level: LevelReader, at: BlockPos): Double {
@@ -1617,7 +1622,7 @@ class AgeChunkGenerator(
         val center = level.center
         val random = WorldgenRandom(LegacyRandomSource(RandomSupport.generateUniqueSeed()))
         random.setDecorationSeed(level.seed, center.minBlockX, center.minBlockZ)
-        ChunkGenerationSpawns.spawn(level, creaturesMadeWith(level, living), random, anywhere = incongruity.spawns)
+        ChunkGenerationSpawns.spawn(level, creaturesMadeWith(level, living), random, anywhere = incongruity.spawns, herded = ::herds)
     }
 
     /**
