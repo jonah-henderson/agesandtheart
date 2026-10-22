@@ -4,7 +4,6 @@ import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
-import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
 import co.voik.agesandtheart.age.aspect.PlacedFeature
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.resolution.Members
@@ -95,18 +94,17 @@ object WordAcceptance {
     }
 
     /**
-     * What a word naming [members] takes: a dial any of them honours, but a material only where most do — `trees`
-     * grow of a block though bamboo has no leaves, and `plants` do not because a few have them — and a lean only
-     * among more than one.
+     * What a word naming [members] takes: a dial or material only where most of them honour it — `trees` grow of a
+     * block though bamboo has no leaves, where `plants` do not because a few have them, and `red beasts` is no
+     * word because only the sheep among them have wool — and a lean only among more than one.
      */
     private fun ofMembers(aspect: Aspect, members: List<Taggable>, registries: HolderLookup.Provider?): Acceptance {
         val each = members.map { Acceptance.ofMember(it, registries) }
-        val dials = each.flatMap { it.parameters }.filterNot { it in MATERIAL_PARAMETERS }
-        fun mostHonour(material: String) = each.count { it.takesParameter(material) } * 2 > each.size
-        val materials = MATERIAL_PARAMETERS.filter(::mostHonour)
+        fun mostHonour(parameter: String) = each.count { it.takesParameter(parameter) } * 2 > each.size
+        val parameters = each.flatMap { it.parameters }.toSet().filter(::mostHonour)
         return Acceptance(
             place = Place(aspect, Members.Named(members.map(Taggable::key).toSet())),
-            parameters = (dials + materials).toSet(),
+            parameters = parameters.toSet(),
             takesChoices = false,
             takesLeans = members.size > 1,
             takesSubstance = each.count { it.takesSubstance } * 2 > each.size,

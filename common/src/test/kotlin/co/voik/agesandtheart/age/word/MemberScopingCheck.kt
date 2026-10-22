@@ -46,13 +46,14 @@ class MemberScopingCheck : FunSpec({
         }
     }
 
-    test("charged creepers and charged monsters charge the creepers, and a charged Age charges none") {
+    test("charged creepers charge the creepers, and a charged Age or charged monsters charge none") {
         for (seed in SEEDS) {
             check(aimed(seed, "charged", "creeper").optionsFor(Aspect.SPAWNS).isTrue(Spawns.CHARGED, member = CREEPER)) {
                 "seed $seed: 'charged creeper' left the creeper uncharged"
             }
-            check(aimed(seed, "charged", "monsters").optionsFor(Aspect.SPAWNS).isTrue(Spawns.CHARGED, member = CREEPER)) {
-                "seed $seed: 'charged monsters' left the creepers uncharged"
+            // Only the creepers among the monsters can be charged, and a word naming many takes what most honour.
+            check(!aimed(seed, "charged", "monsters").optionsFor(Aspect.SPAWNS).isTrue(Spawns.CHARGED, member = CREEPER)) {
+                "seed $seed: 'charged monsters' charged the creepers"
             }
             check(!aimed(seed, "charged", "age").optionsFor(Aspect.SPAWNS).isTrue(Spawns.CHARGED, member = CREEPER)) {
                 "seed $seed: a charged Age charged its creepers"
@@ -90,7 +91,7 @@ class MemberScopingCheck : FunSpec({
     test("a word is listed under what it applies to, and under one of the game's creatures only where it applies to that alone") {
         val vocabulary = co.voik.agesandtheart.ShippedCorpus.vocabulary
         fun under(name: String) = vocabulary.appliesTo[vocabulary.word(name)?.id].orEmpty().map { it.path }
-        check(listOf("sky", "weather", "monsters", "creeper").all { it in under("charged") }) { "charged is under ${under("charged")}" }
+        check(listOf("sky", "weather", "creeper").all { it in under("charged") }) { "charged is under ${under("charged")}" }
         check("zombie" !in under("strong") && "monsters" in under("strong")) { "strong is under ${under("strong")}" }
         check("age" !in under("charged")) { "charged was listed under the Age" }
     }
