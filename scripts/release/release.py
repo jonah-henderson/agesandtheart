@@ -98,6 +98,18 @@ def asset_name(jar_name: str) -> str:
     return jar_name.replace("+", "-")
 
 
+def check_can_publish(slug: str) -> None:
+    """Refuses unless the account `gh` is acting as can push to [slug], which is who publishes the release."""
+    acting = subprocess.run(["gh", "api", "user", "-q", ".login"], capture_output=True, text=True)
+    if acting.returncode != 0:
+        fail("gh is not logged in: run 'gh auth login'")
+    account = acting.stdout.strip()
+    permissions = subprocess.run(["gh", "api", f"repos/{slug}", "-q", ".permissions.push"], capture_output=True, text=True)
+    if permissions.stdout.strip() != "true":
+        owner = slug.split("/")[0]
+        fail(f"gh is acting as {account}, who cannot publish to {slug}: run 'gh auth switch -u {owner}' first")
+
+
 def exists_online(url: str) -> bool:
     request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "agesandtheart-release"})
     try:
@@ -277,6 +289,8 @@ class Release:
                 fail("origin cannot be reached; fix the remote or pass --offline")
             if result.stdout.strip():
                 fail(f"{self.tag} already exists on origin")
+            if not self.rehearsal:
+                check_can_publish(self.slug)
             git("fetch", "-q", "origin", "main", PACK_BRANCH)
             # A release from a commit origin's main lacks leaves the next release, from any machine, without it.
             if not self.rehearsal and not is_ancestor(commit, "origin/main"):
@@ -675,6 +689,8 @@ def main() -> None:
         release.load_state()
         if not release.is_done("tag"):
             release.check_ephemeris()
+        if not release.offline:
+            check_can_publish(release.slug)
     else:
         release.preflight(commit or "HEAD")
         release.save_state()
