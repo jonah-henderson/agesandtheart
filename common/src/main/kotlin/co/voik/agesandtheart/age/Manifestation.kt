@@ -419,8 +419,11 @@ data class Ladder(
      * the book already set one, since the writer's word is law (`notes/strange-words-plan.md` §1).
      */
     val heldBy: Set<String> = emptySet(),
+    /** How often it is drawn against the rest, one being as often as any: what a world without colour is made rare by. */
+    val weight: Double = ORDINARY_WEIGHT,
 ) {
     companion object {
+        private const val ORDINARY_WEIGHT = 1.0
         private const val DEFAULT_TIER = Spending.HARMFUL
         private const val DEFAULT_MOST = 4
 
@@ -439,8 +442,9 @@ data class Ladder(
                 Manifestation.CODEC.listOf().optionalFieldOf("excludes", emptyList()).forGetter { it.excludes.toList() },
                 Showing.CODEC.listOf().optionalFieldOf("needs", emptyList()).forGetter { it.needs.toList() },
                 Codec.STRING.listOf().optionalFieldOf("held_by", emptyList()).forGetter { it.heldBy.toList() },
-            ).apply(instance) { dials, leans, excludes, needs, heldBy ->
-                Ladder(dials, leans, excludes.toSet(), needs.toSet(), heldBy.toSet())
+                Codec.DOUBLE.optionalFieldOf("weight", ORDINARY_WEIGHT).forGetter(Ladder::weight),
+            ).apply(instance) { dials, leans, excludes, needs, heldBy, weight ->
+                Ladder(dials, leans, excludes.toSet(), needs.toSet(), heldBy.toSet(), weight)
             }
         }
 
@@ -616,7 +620,8 @@ data class Spending(
 
             val random = XoroshiroRandomSource(seed xor DRAW_SALT)
             val leanings = Manifestation.entries.associateWith { manifestation ->
-                leaningFrom(random.nextDouble()) * climateLean(ladderOf(manifestation), setting)
+                val ladder = ladderOf(manifestation)
+                leaningFrom(random.nextDouble()) * climateLean(ladder, setting) * ladder.weight
             }
             val bought = mutableMapOf<Manifestation, MutableMap<String, Int>>()
 
@@ -639,14 +644,21 @@ data class Spending(
                     next < steps.most && steps.tiers[next] == tier
                 }
 
-            /** One step at [tier], or the tier under it where nothing is left at this one. */
+            /**
+             * One step at [tier], or the tier under it where nothing is left at this one — **most often deepening
+             * what is already bought** there, so an Age coming apart shows a few things strongly rather than every
+             * one of them a little, and two collapsing Ages differ.
+             */
             fun buyOneAt(tier: Int) {
                 for (trying in tier downTo STRANGE) {
                     val open = Manifestation.entries.filterNot(::isShutOut)
                         .associateWith { dialsOpenAt(it, trying) }
                         .filterValues { it.isNotEmpty() }
                     if (open.isEmpty()) continue
-                    val manifestation = pickByLeaning(open.keys.toList(), leanings, random.nextDouble())
+                    val deepenable = open.keys.filter { it in bought }
+                    val deepens = deepenable.isNotEmpty() && random.nextDouble() < DEEPENS_WHAT_IT_HAS
+                    val among = if (deepens) deepenable else open.keys.toList()
+                    val manifestation = pickByLeaning(among, leanings, random.nextDouble())
                     val dials = open.getValue(manifestation)
                     val dial = dials[random.nextInt(dials.size)]
                     bought.getOrPut(manifestation) { mutableMapOf() }[dial] = nextStepOf(manifestation, dial) + 1
@@ -725,6 +737,9 @@ data class Spending(
 
         /** Squares the exponential, so the heaviest leaning is typically several times the median. */
         private const val LEANING_SHARPNESS = 2.0
+
+        /** How often a step goes to deepen something already bought, where something is. */
+        private const val DEEPENS_WHAT_IT_HAS = 0.8
 
         /** So no manifestation is ever out of the draw entirely, however an Age leans. */
         private const val SLIGHTEST_LEANING = 0.01

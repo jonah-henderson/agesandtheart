@@ -2,10 +2,19 @@
   "_comment": [
     "The whole Age is seen in grey, every frame and everywhere in it (Jonah, 2026-10-12): drained completely to",
     "its own brightness, the GUI left in colour. Ephemeris's monochrome filter. Strange, whole at one step.",
-    "Never bought where the book set `air.drained`."
+    "Never bought where the book set `air.drained`.",
+    "",
+    "Drawn at a third of the others' weight (Jonah, 2026-10-21): it was in nearly every collapsing Age, and a world",
+    "without colour is the strangest thing instability does."
   ],
   "dials": {
-    "drained": {"tier": 1, "most": 1}
+    "drained": {
+      "tier": 1,
+      "most": 1
+    }
   },
-  "held_by": ["air.drained"]
+  "held_by": [
+    "air.drained"
+  ],
+  "weight": 0.3
 }
