@@ -48,7 +48,7 @@ data class CompoundingRecipeDisplay(
             ).apply(instance, ::CompoundingRecipeDisplay)
         }
 
-        private val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, CompoundingRecipeDisplay> = StreamCodec.composite(
+        val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, CompoundingRecipeDisplay> = StreamCodec.composite(
             SlotDisplay.STREAM_CODEC.apply(ByteBufCodecs.list()), CompoundingRecipeDisplay::inputs,
             ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list()), CompoundingRecipeDisplay::counts,
             SlotDisplay.STREAM_CODEC, CompoundingRecipeDisplay::resultShown,

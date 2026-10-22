@@ -69,6 +69,9 @@ dependencies {
     // through would put Fabric on `common`'s compile path — the one thing this module must never see.
     // What is wanted is the class files and nothing else.
     compileOnly(libs.forgeConfigApiPort.fabric) { isTransitive = false }
+    // JEI's loader-neutral API, for the plugin in `client/jei/`. JEI loads that plugin only when it is
+    // installed, so nothing of JEI's is ever needed at runtime.
+    compileOnly(libs.jei.commonApi)
 }
 
 artifacts {

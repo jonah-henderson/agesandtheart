@@ -1,5 +1,7 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.platform.Services
+import co.voik.agesandtheart.station.MachineCatalogPayload
 import co.voik.agesandtheart.worldgen.fissure.HomeLanding
 import co.voik.agesandtheart.age.consequence.StillCreatures
 import co.voik.agesandtheart.age.consequence.WrittenCreatures
@@ -214,6 +216,7 @@ object CommonSetup {
     /** Datapack contents going to [player] — on joining, and to everyone after a `/reload`. */
     fun datapackSynced(player: ServerPlayer) {
         PageLearning.tellTheLexicon(player)
+        Services.NETWORK.sendToPlayer(player, MachineCatalogPayload.of(player.level().server))
     }
 
     /**

@@ -2,6 +2,7 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.location
 import com.mojang.serialization.MapCodec
+import co.voik.agesandtheart.station.ShownAsShapeless
 import net.minecraft.core.NonNullList
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
@@ -23,7 +24,9 @@ import net.minecraft.world.level.Level
  *
  * Everything else is the wrapped [ShapelessRecipe]'s, and the JSON is a shapeless recipe's under this type.
  */
-class ShapelessIntoOneBottleRecipe(private val shapeless: ShapelessRecipe) : CraftingRecipe {
+class ShapelessIntoOneBottleRecipe(private val shapeless: ShapelessRecipe) : CraftingRecipe, ShownAsShapeless {
+
+    override val shown: ShapelessRecipe get() = shapeless
 
     override fun matches(input: CraftingInput, level: Level): Boolean = shapeless.matches(input, level)
 

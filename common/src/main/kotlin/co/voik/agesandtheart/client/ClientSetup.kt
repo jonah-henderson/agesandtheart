@@ -76,6 +76,7 @@ object ClientSetup {
         StrangeMotes.forget()
         TornSky.forget()
         StrangeGravity.disconnected()
+        KnownMachineRecipes.forget()
         DeskModel.forget()
         Wounds.forget()
         TintedLights.forget()

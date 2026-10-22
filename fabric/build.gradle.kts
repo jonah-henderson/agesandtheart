@@ -35,6 +35,9 @@ dependencies {
     // `modImplementation` is gone along with remapping: from 26.1 Minecraft and mods alike are
     // unobfuscated, so the plain configurations are the only ones there are.
     implementation(libs.forgeConfigApiPort.fabric)
+
+    // JEI's API, which `common`'s plugin compiles against here too since its sources are compiled into this jar.
+    compileOnly(libs.jei.commonApi)
 }
 
 /**

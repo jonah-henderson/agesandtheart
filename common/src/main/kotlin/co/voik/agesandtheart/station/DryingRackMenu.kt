@@ -25,10 +25,7 @@ class DryingRackMenu(
 
     override var listed: List<ListedRecipe> = emptyList()
 
-    override fun recipesOn(server: MinecraftServer): List<MachineRecipe> =
-        MachineRecipeLists.of(server, Drying.TYPE) { recipe ->
-            if (recipe.isAllowed) MachineRecipe(recipe.ingredient, recipe.result) else null
-        }
+    override fun recipesOn(server: MinecraftServer): List<MachineRecipe> = MachineRecipeLists.ofDryingRack(server)
 
     /** The client's, which vanilla's data syncing fills in. */
     constructor(containerId: Int, playerInventory: Inventory) :

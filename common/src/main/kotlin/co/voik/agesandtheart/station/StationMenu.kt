@@ -30,7 +30,7 @@ class StationMenu(
 
     override fun recipesOn(server: MinecraftServer): List<MachineRecipe> {
         val machine = (station as? StationBlockEntity)?.station ?: return emptyList()
-        return MachineRecipeLists.of(server, StationRecipes.typeFor(machine)) { MachineRecipe(it.input(), it.shownResult()) }
+        return MachineRecipeLists.ofStation(server, machine)
     }
 
     /** The client's, which vanilla's data syncing fills in. */

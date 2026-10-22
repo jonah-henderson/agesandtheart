@@ -20,6 +20,7 @@ import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.desk.TunerProposalPayload
 import co.voik.agesandtheart.station.ListsItsRecipes
+import co.voik.agesandtheart.station.MachineCatalogPayload
 import co.voik.agesandtheart.station.MachineRecipesPayload
 import co.voik.agesandtheart.worldgen.fissure.FallResumedPayload
 import net.minecraft.client.Minecraft
@@ -54,6 +55,7 @@ object ClientPayloads {
         Receiver(PanelLevelPayload.TYPE) { LinkingPanel.accept(it) },
         Receiver(PanelChunkPayload.TYPE) { LinkingPanel.accept(it) },
         Receiver(LinkEnded.TYPE) { LinkTransit.ended() },
+        Receiver(MachineCatalogPayload.TYPE) { KnownMachineRecipes.remember(it) },
         Receiver(MachineRecipesPayload.TYPE) { payload ->
             val menu = Minecraft.getInstance().player?.containerMenu
             if (menu is ListsItsRecipes && menu.containerId == payload.containerId) menu.listed = payload.recipes

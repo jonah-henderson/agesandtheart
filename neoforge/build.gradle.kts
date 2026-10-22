@@ -46,6 +46,9 @@ dependencies {
     implementation(libs.ephemeris.neoforge)
 
     implementation(libs.kff)
+
+    // JEI's API, which `common`'s plugin compiles against here too since its sources are compiled into this jar.
+    compileOnly(libs.jei.commonApi)
 }
 /**
  * Let the console be driven from a pipe.

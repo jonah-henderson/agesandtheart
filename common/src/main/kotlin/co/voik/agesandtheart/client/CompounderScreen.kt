@@ -91,12 +91,7 @@ class CompounderScreen(menu: CompounderMenu, inventory: Inventory, title: Compon
     }
 
     private fun statusFor(missing: List<CompounderNeed>): Component =
-        if (missing.isEmpty()) Component.empty()
-        else Component.translatable(
-            "container.agesandtheart.fusion_compounder.needs",
-            missing.map { Component.translatable("container.agesandtheart.fusion_compounder.need.${it.serializedName}") }
-                .reduce { listed, next -> Component.translatable("container.agesandtheart.fusion_compounder.and", listed, next) },
-        )
+        if (missing.isEmpty()) Component.empty() else needsSaying(missing)
 
     private companion object {
         const val SLOT_PITCH = 18
@@ -105,3 +100,10 @@ class CompounderScreen(menu: CompounderMenu, inventory: Inventory, title: Compon
         const val BOOK_BUTTON_Y = 26
     }
 }
+
+/** "Needs a block of arc crystal and heat beside it", of [needs], which holds at least one. */
+fun needsSaying(needs: List<CompounderNeed>): Component = Component.translatable(
+    "container.agesandtheart.fusion_compounder.needs",
+    needs.map { Component.translatable("container.agesandtheart.fusion_compounder.need.${it.serializedName}") }
+        .reduce { listed, next -> Component.translatable("container.agesandtheart.fusion_compounder.and", listed, next) },
+)

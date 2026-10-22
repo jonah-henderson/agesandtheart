@@ -58,6 +58,10 @@ ephemerisRangeFabric = ">=0.4.0"
 forgeConfigApiPort = "26.3.1"
 forgeConfigApiPortRange = ">=26.3.1"
 
+# Just Enough Items, which our recipe categories and screen handlers plug into when it is installed. Compiled
+# against only: JEI is a mod a player chooses, and the plugin is never loaded without it.
+jei = "31.16.0.89"
+
 [libraries]
 minecraft = { group = "com.mojang", name = "minecraft", version.ref = "minecraft" }
 fabricLoader = { group = "net.fabricmc", name = "fabric-loader", version.ref = "fabricLoader" }
@@ -77,6 +81,7 @@ ephemeris-neoforge = { group = "co.voik.ephemeris", name = "ephemeris-neoforge-2
 # written once in `common` instead of twice behind the SPI.
 forgeConfigApiPort-common = { group = "fuzs.forgeconfigapiport", name = "forgeconfigapiport-common", version.ref = "forgeConfigApiPort" }
 forgeConfigApiPort-fabric = { group = "fuzs.forgeconfigapiport", name = "forgeconfigapiport-fabric", version.ref = "forgeConfigApiPort" }
+jei-commonApi = { group = "mezz.jei", name = "jei-26.3-common-api", version.ref = "jei" }
 
 
 kotestRunner = { group = "io.kotest", name = "kotest-runner-junit5", version.ref = "kotest" }

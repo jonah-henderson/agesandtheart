@@ -98,6 +98,14 @@ object MachineRecipeLists {
                 asMachineRecipe(holder.value() as T)
             }
 
+    /** What [station] takes. */
+    fun ofStation(server: MinecraftServer, station: Station): List<MachineRecipe> =
+        of(server, StationRecipes.typeFor(station)) { MachineRecipe(it.input(), it.shownResult()) }
+
+    /** What a drying rack takes, leaving out what the server has switched off. */
+    fun ofDryingRack(server: MinecraftServer): List<MachineRecipe> =
+        of(server, Drying.TYPE) { recipe -> if (recipe.isAllowed) MachineRecipe(recipe.ingredient, recipe.result) else null }
+
     /** Opens [provider]'s menu for [player], and sends its list if it keeps one. */
     fun open(player: Player, provider: MenuProvider) {
         player.openMenu(provider)

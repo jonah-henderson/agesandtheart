@@ -1,6 +1,6 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.11
+line=0.12
 generator=18
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
@@ -311,6 +311,7 @@ payload agesandtheart:learned_words
 payload agesandtheart:lexicon
 payload agesandtheart:link
 payload agesandtheart:link_ended
+payload agesandtheart:machine_catalog
 payload agesandtheart:machine_fill
 payload agesandtheart:machine_recipes
 payload agesandtheart:motes
