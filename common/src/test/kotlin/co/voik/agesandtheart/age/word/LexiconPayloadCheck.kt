@@ -16,7 +16,8 @@ class LexiconPayloadCheck : FunSpec({
         LexiconPayload.STREAM_CODEC.encode(buffer, told)
         val size = buffer.readableBytes()
         val arrived = LexiconPayload.STREAM_CODEC.decode(buffer)
-        check(arrived.rarity == told.rarity && arrived.headings == told.headings && arrived.appliesTo == told.appliesTo) {
+        check(arrived.rarity == told.rarity && arrived.headings == told.headings && arrived.appliesTo == told.appliesTo &&
+            arrived.members == told.members && arrived.parts == told.parts) {
             "the lexicon changed in transit"
         }
         check(size < MOST_A_PAYLOAD_SHOULD_TAKE) { "the lexicon is $size bytes" }

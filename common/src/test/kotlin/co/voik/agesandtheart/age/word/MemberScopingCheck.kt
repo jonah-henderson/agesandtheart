@@ -96,6 +96,17 @@ class MemberScopingCheck : FunSpec({
         check("age" !in under("charged")) { "charged was listed under the Age" }
     }
 
+    test("a word naming members of a part of the world is listed under the page for that part") {
+        val vocabulary = co.voik.agesandtheart.ShippedCorpus.vocabulary
+        fun under(name: String) = vocabulary.appliesTo[vocabulary.word(name)?.id].orEmpty().map { it.path }
+        check(under("zombie") == listOf("inhabitants") && under("monsters") == listOf("inhabitants")) {
+            "zombie is under ${under("zombie")} and monsters under ${under("monsters")}"
+        }
+        check(under("plains") == listOf("biomes")) { "plains is under ${under("plains")}" }
+        val parts = vocabulary.namingParts.map { it.path }
+        check("inhabitants" in parts && "sky" in parts && "zombie" !in parts) { "the parts of the world are $parts" }
+    }
+
     test("motionless inhabitants root everything") {
         val spawns = aimed(SEEDS.first, "motionless", "inhabitants").optionsFor(Aspect.SPAWNS)
         check(spawns.isTrue(Spawns.STILL, member = COW)) { "'motionless inhabitants' left a cow walking" }

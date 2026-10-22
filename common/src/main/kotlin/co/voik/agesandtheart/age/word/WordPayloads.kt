@@ -33,6 +33,10 @@ data class LexiconPayload(
     val structural: Set<Identifier> = emptySet(),
     /** Every retired id that leads to a word now, and that word's id. */
     val renamed: Map<Identifier, Identifier> = emptyMap(),
+    /** Every word naming members of a part of the world, which a list ordered by what words apply to sets apart. */
+    val members: Set<Identifier> = emptySet(),
+    /** Every word naming a whole part of the world. */
+    val parts: Set<Identifier> = emptySet(),
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<LexiconPayload> = TYPE
@@ -56,6 +60,8 @@ data class LexiconPayload(
                 appliesTo = vocabulary.appliesTo.mapValues { (_, under) -> under.mapNotNull(headingAt::get) },
                 structural = vocabulary.structurePages.map { it.id }.toSet(),
                 renamed = vocabulary.renamed,
+                members = vocabulary.namingMembers,
+                parts = vocabulary.namingParts,
             )
         }
 
@@ -92,6 +98,10 @@ data class LexiconPayload(
             LexiconPayload::structural,
             ByteBufCodecs.map(::LinkedHashMap, Identifier.STREAM_CODEC, Identifier.STREAM_CODEC),
             LexiconPayload::renamed,
+            IDS,
+            LexiconPayload::members,
+            IDS,
+            LexiconPayload::parts,
             ::LexiconPayload,
         )
     }

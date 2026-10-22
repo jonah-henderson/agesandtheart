@@ -28,6 +28,8 @@ object KnownWords {
     private var appliesTo: Map<Identifier, List<Int>> = emptyMap()
     private var structural: Set<Identifier> = emptySet()
     private var renamed: Map<Identifier, Identifier> = emptyMap()
+    private var members: Set<Identifier> = emptySet()
+    private var parts: Set<Identifier> = emptySet()
     private val learned = LinkedHashSet<Identifier>()
 
     val words: Set<Identifier> get() = learned
@@ -42,6 +44,8 @@ object KnownWords {
         appliesTo = payload.appliesTo
         structural = payload.structural
         renamed = payload.renamed
+        members = payload.members
+        parts = payload.parts
     }
 
     /** The id [word] is read as now: what it was retired into, or itself. */
@@ -62,6 +66,12 @@ object KnownWords {
 
     /** The parts of the world [word] reaches — empty meaning anywhere — or null if the server never said. */
     fun reachOf(word: Identifier): Set<Aspect>? = reach[word]
+
+    /** Whether [word] names members of a part of the world — `zombie`, `monsters`. */
+    fun namesMembers(word: Identifier): Boolean = word in members
+
+    /** Whether [word] names a whole part of the world — `inhabitants`, `sky`. */
+    fun namesAPart(word: Identifier): Boolean = word in parts
 
     /** Whether [word] is a material, which a shape word can be made of. */
     fun isAMaterial(word: Identifier): Boolean = word in materials
@@ -106,6 +116,8 @@ object KnownWords {
         appliesTo = emptyMap()
         structural = emptySet()
         renamed = emptyMap()
+        members = emptySet()
+        parts = emptySet()
         learned.clear()
     }
 

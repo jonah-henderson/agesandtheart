@@ -18,16 +18,24 @@ class WordOrderingCheck : FunSpec({
     val rarity = mapOf(charged.word to WordHeadings.Rarity.UNCOMMON, frozen.word to WordHeadings.Rarity.RARE)
     val applies = mapOf(charged.word to listOf(sky.word, row("creeper").word), frozen.word to listOf(sky.word))
 
+    val names = WordOrdering.Names(
+        rarity = { it.key },
+        of = { it.path },
+        parts = "parts",
+        unplaced = "unplaced",
+        namesMembers = { it.path == "creeper" },
+        namesAPart = { it == sky.word },
+        membersOf = { "members of ${it.path}" },
+    )
+
     fun ordered(order: WordOrder, searchedFor: String = "") = WordOrdering.grouped(
         rows,
         order,
         searchedFor,
         rarityOf = { rarity[it] ?: WordHeadings.Rarity.COMMON },
-        rarityName = { it.key },
         appliesTo = { applies[it].orEmpty() },
-        nameOf = { it.path },
-        naming = "naming",
         isAMaterial = { it == gold.word },
+        names = names,
     ).map { group -> group.heading to group.values.map { it.readable } }
 
     test("by name and by count, one run with no heading") {
@@ -47,13 +55,31 @@ class WordOrderingCheck : FunSpec({
         check(ordered(WordOrder.ALPHABETICAL, "sk") == listOf(null to listOf("sky"))) { "${ordered(WordOrder.ALPHABETICAL, "sk")}" }
     }
 
-    test("by what each applies to, a word under every one of them and the naming words last") {
+    test("by what each applies to, a word under every one of them, then the parts of the world and what is left") {
         val expected = listOf(
             "creeper" to listOf("charged"),
             "sky" to listOf("charged", "frozen"),
-            "naming" to listOf("sky"),
+            "parts" to listOf("sky"),
         )
         check(ordered(WordOrder.APPLIES_TO) == expected) { "${ordered(WordOrder.APPLIES_TO)}" }
+    }
+
+    test("the words naming members of a part are folded under that part, and the rest of what applies to nothing last") {
+        val creeper = row("creeper")
+        val void = row("void")
+        val grouped = WordOrdering.grouped(
+            listOf(creeper, frozen, sky, void),
+            WordOrder.APPLIES_TO,
+            rarityOf = { WordHeadings.Rarity.COMMON },
+            appliesTo = { mapOf(creeper.word to listOf(sky.word), frozen.word to listOf(sky.word))[it].orEmpty() },
+            names = names,
+        )
+        val (underSky, parts, unplaced) = grouped
+        check(underSky.heading == "sky" && underSky.values.map { it.readable } == listOf("frozen")) { "$underSky" }
+        val members = underSky.subgroups.single()
+        check(members.heading == "members of sky" && members.values == listOf(creeper)) { "$members" }
+        check(parts.heading == "parts" && parts.values == listOf(sky)) { "$parts" }
+        check(unplaced.heading == "unplaced" && unplaced.values == listOf(void)) { "$unplaced" }
     }
 
     test("the materials under a heading are folded beneath the rest, and a search finds them there") {
@@ -63,11 +89,9 @@ class WordOrderingCheck : FunSpec({
             WordOrder.APPLIES_TO,
             searchedFor,
             rarityOf = { WordHeadings.Rarity.COMMON },
-            rarityName = { it.key },
             appliesTo = { (applies + withAMaterial)[it].orEmpty() },
-            nameOf = { it.path },
-            naming = "naming",
             isAMaterial = { it == gold.word },
+            names = names,
         )
         val sky = grouped().single()
         check(sky.heading == "sky" && sky.values.map { it.readable } == listOf("frozen")) { "$sky" }

@@ -29,9 +29,10 @@ object WordOrdering {
 
     /**
      * [rows] under [order]'s headings: one unheaded group for the orders that need none, the rarest first by rarity,
-     * and under what applies to each word with a word listed under every one it applies to and those applying to
-     * nothing at all last, under [naming] — the naming words, which take others rather than apply to them. Under what
-     * applies, the words [isAMaterial] answers for are folded beneath the rest under [materials].
+     * and under what applies to each word with a word listed under every one it applies to. Under what applies, the
+     * words [names] calls members — `zombie` under `inhabitants` — are folded beneath the rest under what [names] calls
+     * them, and the words [isAMaterial] answers for under [Names.materials]. The words applying to nothing come last:
+     * the parts of the world, and then whatever else.
      *
      * [searchedFor] keeps a whole run whose heading it is found in, and otherwise the rows it is found in by name.
      */
@@ -40,35 +41,56 @@ object WordOrdering {
         order: WordOrder,
         searchedFor: String = "",
         rarityOf: (Identifier) -> WordHeadings.Rarity,
-        rarityName: (WordHeadings.Rarity) -> String,
         appliesTo: (Identifier) -> List<Identifier>,
-        nameOf: (Identifier) -> String,
-        naming: String,
         isAMaterial: (Identifier) -> Boolean = { false },
-        materials: String = "materials",
+        names: Names,
     ): List<ListGroup<T>> {
         val byName = rows.sortedBy { it.readable.lowercase() }
         val groups = when (order) {
             WordOrder.ALPHABETICAL -> listOf(ListGroup(null, byName))
             WordOrder.STOCKED -> listOf(ListGroup(null, byName.sortedByDescending { it.stocked }))
             WordOrder.RARITY -> WordHeadings.Rarity.entries.map { rarity ->
-                ListGroup(rarityName(rarity), byName.filter { rarityOf(it.word) == rarity })
+                ListGroup(names.rarity(rarity), byName.filter { rarityOf(it.word) == rarity })
             }.filter { it.values.isNotEmpty() }
-            WordOrder.APPLIES_TO -> {
-                // Named once a heading rather than once a comparison.
-                val under = byName.flatMap { row -> appliesTo(row.word).map { heading -> heading to row } }
-                    .groupBy({ it.first }, { it.second })
-                    .map { (heading, words) -> nameOf(heading) to words }
-                    .sortedBy { (name, _) -> name.lowercase() }
-                    .map { (name, words) ->
-                        val (madeOf, rest) = words.partition { isAMaterial(it.word) }
-                        ListGroup(name, rest, listOfNotNull(ListGroup(materials, madeOf).takeIf { madeOf.isNotEmpty() }))
-                    }
-                val applyingToNothing = byName.filter { appliesTo(it.word).isEmpty() }
-                under + listOfNotNull(ListGroup(naming, applyingToNothing).takeIf { applyingToNothing.isNotEmpty() })
-            }
+            WordOrder.APPLIES_TO -> underWhatEachAppliesTo(byName, appliesTo, isAMaterial, names)
         }
         return searched(groups, searchedFor.trim().lowercase())
+    }
+
+    /** What a word list's headings and folds are called. */
+    class Names(
+        val rarity: (WordHeadings.Rarity) -> String,
+        val of: (Identifier) -> String,
+        val parts: String,
+        val unplaced: String,
+        val materials: String = "materials",
+        /** Whether a word names members of a part of the world. */
+        val namesMembers: (Identifier) -> Boolean = { false },
+        /** Whether a word names a whole part of the world. */
+        val namesAPart: (Identifier) -> Boolean = { false },
+        /** What the members of the part a heading names are called — creatures, under `inhabitants`. */
+        val membersOf: (Identifier) -> String = { "kinds" },
+    )
+
+    private fun <T : OrderedWord> underWhatEachAppliesTo(
+        byName: List<T>,
+        appliesTo: (Identifier) -> List<Identifier>,
+        isAMaterial: (Identifier) -> Boolean,
+        names: Names,
+    ): List<ListGroup<T>> {
+        fun fold(heading: String, values: List<T>) = ListGroup(heading, values).takeIf { values.isNotEmpty() }
+        val under = byName.flatMap { row -> appliesTo(row.word).map { heading -> heading to row } }
+            .groupBy({ it.first }, { it.second })
+            // Named once a heading rather than once a comparison.
+            .map { (heading, words) -> Triple(heading, names.of(heading), words) }
+            .sortedBy { (_, name, _) -> name.lowercase() }
+            .map { (heading, name, words) ->
+                val (members, notMembers) = words.partition { names.namesMembers(it.word) }
+                val (madeOf, rest) = notMembers.partition { isAMaterial(it.word) }
+                ListGroup(name, rest, listOfNotNull(fold(names.membersOf(heading), members), fold(names.materials, madeOf)))
+            }
+        val (parts, unplaced) = byName.filter { appliesTo(it.word).isEmpty() }.partition { names.namesAPart(it.word) }
+        return under + listOfNotNull(fold(names.parts, parts), fold(names.unplaced, unplaced))
     }
 
     private fun <T : OrderedWord> searched(groups: List<ListGroup<T>>, needle: String): List<ListGroup<T>> {

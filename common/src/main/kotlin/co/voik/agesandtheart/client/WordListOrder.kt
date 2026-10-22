@@ -17,13 +17,21 @@ object WordListOrder {
         order,
         searchedFor,
         rarityOf = KnownWords::rarityOf,
-        rarityName = { Component.translatable("$KEY.rarity.${it.key}").string },
         appliesTo = KnownWords::appliesTo,
-        nameOf = { WordNames.readable(it).string },
-        naming = Component.translatable("$KEY.naming").string,
         isAMaterial = KnownWords::isAMaterial,
-        materials = Component.translatable("$KEY.materials").string,
+        names = WordOrdering.Names(
+            rarity = { Component.translatable("$KEY.rarity.${it.key}").string },
+            of = { WordNames.readable(it).string },
+            parts = Component.translatable("$KEY.parts").string,
+            unplaced = Component.translatable("$KEY.whole_worlds").string,
+            materials = Component.translatable("$KEY.materials").string,
+            namesMembers = KnownWords::namesMembers,
+            namesAPart = KnownWords::namesAPart,
+            membersOf = { part -> Component.translatableWithFallback("$KEY.members.${part.path}", kinds()).string },
+        ),
     )
+
+    private fun kinds() = Component.translatable("$KEY.members").string
 
     /**
      * Whether [groups] start folded: ordered by what words apply to, unless a search found few enough rows to open

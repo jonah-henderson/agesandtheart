@@ -182,6 +182,12 @@ data class Vocabulary(
     /** The words each word applies to, for a word list ordered under them ([WordHeadings.appliesTo]). Worked out once. */
     val appliesTo: Map<Identifier, List<Identifier>> by lazy { WordHeadings.appliesTo(this) }
 
+    /** The words naming members of a part of the world ([WordHeadings.members]). */
+    val namingMembers: Set<Identifier> by lazy { WordHeadings.members(this) }
+
+    /** The words naming a whole part of the world ([WordHeadings.parts]). */
+    val namingParts: Set<Identifier> by lazy { WordHeadings.parts(this) }
+
     /** [pages] read at [seed], or null where they spell no book. */
     fun read(pages: List<String>, seed: Long): Reading? = Reader.read(lexicon, pages, seed)
 

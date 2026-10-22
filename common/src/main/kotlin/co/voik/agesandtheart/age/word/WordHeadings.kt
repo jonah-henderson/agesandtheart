@@ -28,26 +28,40 @@ object WordHeadings {
     /**
      * The words each word in [vocabulary] applies to: every page that would take it but `age`, every word of ours that
      * takes pages, and a creature, feature or structure of the game's only where the word applies to it alone in its
-     * part of the world — `charged` to the creeper, where `strong` would be every creature there is.
+     * part of the world — `charged` to the creeper, where `strong` would be every creature there is. A word naming
+     * members of a part of the world, `zombie` or `monsters`, is listed under the page for that part, `inhabitants`.
      */
     fun appliesTo(vocabulary: Vocabulary): Map<Identifier, List<Identifier>> {
-        val lexicon = vocabulary.lexicon
-        val takers = vocabulary.words.mapNotNull { taker -> lexicon.acceptance(taker)?.let { Taker(taker, it, vocabulary.isDerived(taker)) } }
+        val takers = takersIn(vocabulary)
         val (members, headings) = takers.partition { it.isOneOfTheGamesMembers }
         val takersNames = takers.map { it.word.id }.toSet()
-        return vocabulary.words
+        val pagesFor = takers.filter { it.isAPart }.groupBy({ it.aspect }, { it.word.id })
+        val modifiers = vocabulary.words
             .filter { it.id !in takersNames }
             .associate { word ->
                 val under = headings.filter { it.takes(word) }.map { it.word.id }
                 val alone = members.filter { it.takes(word) }.groupBy { it.aspect }.values.mapNotNull { it.singleOrNull()?.word?.id }
                 word.id to (under + alone).distinct()
             }
-            .filterValues { it.isNotEmpty() }
+        val namingMembers = takers.filter { it.namesMembers }.associate { it.word.id to pagesFor[it.aspect].orEmpty() }
+        return (modifiers + namingMembers).filterValues { it.isNotEmpty() }
+    }
+
+    /** The words naming members of a part of the world — `zombie`, `monsters`, `plains`. */
+    fun members(vocabulary: Vocabulary): Set<Identifier> = takersIn(vocabulary).filter { it.namesMembers }.map { it.word.id }.toSet()
+
+    /** The words naming a whole part of the world — `inhabitants`, `sky`, `landmass`. */
+    fun parts(vocabulary: Vocabulary): Set<Identifier> = takersIn(vocabulary).filter { it.isAPart }.map { it.word.id }.toSet()
+
+    private fun takersIn(vocabulary: Vocabulary): List<Taker> = vocabulary.words.mapNotNull { taker ->
+        vocabulary.lexicon.acceptance(taker)?.let { Taker(taker, it, vocabulary.isDerived(taker)) }
     }
 
     private class Taker(val word: Word, val acceptance: Acceptance, isDerived: Boolean) {
         val aspect: Aspect = acceptance.place.aspect
-        val isOneOfTheGamesMembers = isDerived && acceptance.place.members is Members.Named
+        val namesMembers = acceptance.place.members is Members.Named
+        val isAPart = acceptance.place.members == Members.All
+        val isOneOfTheGamesMembers = isDerived && namesMembers
 
         /** Whether [page] laid before this word would be taken by it. */
         fun takes(page: Word): Boolean = page.meanings.any { meaning ->
