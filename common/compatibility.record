@@ -1,7 +1,7 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.10
-generator=17
+line=0.11
+generator=18
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
 block agesandtheart:analysis_machine
@@ -105,6 +105,7 @@ block_entity_type agesandtheart:scarab_pillar
 block_entity_type agesandtheart:star_fissure
 block_entity_type agesandtheart:station
 block_entity_type agesandtheart:toolbox
+block_entity_type agesandtheart:transcriber
 block_entity_type agesandtheart:writers_desk
 creative_mode_tab agesandtheart:agesandtheart
 data_component_type agesandtheart:age_id
@@ -116,6 +117,7 @@ data_component_type agesandtheart:book_title
 data_component_type agesandtheart:book_words
 data_component_type agesandtheart:link_target
 data_component_type agesandtheart:notebook_pages
+data_component_type agesandtheart:notebook_selected
 data_component_type agesandtheart:page_drawn_for
 data_component_type agesandtheart:page_word
 data_component_type agesandtheart:stocked_from
@@ -257,6 +259,7 @@ item agesandtheart:temperstone_climbers
 item agesandtheart:thorn_vine
 item agesandtheart:toolbox
 item agesandtheart:transcriber
+item agesandtheart:unintelligible_page
 item agesandtheart:unstable_plasma
 item agesandtheart:vent_lining
 item agesandtheart:wet_paper_sheet
@@ -311,6 +314,7 @@ payload agesandtheart:link_ended
 payload agesandtheart:machine_fill
 payload agesandtheart:machine_recipes
 payload agesandtheart:motes
+payload agesandtheart:notebook_select
 payload agesandtheart:panel_chunk
 payload agesandtheart:panel_chunks_wanted
 payload agesandtheart:panel_close

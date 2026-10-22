@@ -47,9 +47,9 @@ mordant = "3.1.0"
 # a Maven range as a requirement that the very version present does not satisfy — which it reports as
 # "only the wrong version is present: 0.1.0". Every other range here is named by one loader only, which is
 # why this is the first time it has come up.
-ephemeris = "0.3.1"
-ephemerisRangeNeoForge = "[0.3.1,)"
-ephemerisRangeFabric = ">=0.3.1"
+ephemeris = "0.4.0"
+ephemerisRangeNeoForge = "[0.4.0,)"
+ephemerisRangeFabric = ">=0.4.0"
 
 # NeoForge's config system, made available to Fabric — https://github.com/Fuzss/forgeconfigapiport-fabric
 # Declared as a dependency rather than bundled: it is a *mod* (it hooks the loader lifecycle and wants
