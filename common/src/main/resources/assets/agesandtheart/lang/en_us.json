@@ -329,7 +329,7 @@
   "container.agesandtheart.seismograph.manifest_wounds": "Spatial anomalies",
   "container.agesandtheart.seismograph.world_stable": "This world is perfectly stable",
   "container.agesandtheart.supply_bin": "Supply Bin",
-  "container.agesandtheart.words.materials_under": "%s · materials",
+  "container.agesandtheart.words.materials": "materials",
   "container.agesandtheart.words.naming": "Naming words",
   "container.agesandtheart.words.order.alphabetical": "Sorted by name",
   "container.agesandtheart.words.order.applies_to": "Sorted under what each applies to",

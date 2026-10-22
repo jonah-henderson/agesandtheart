@@ -22,7 +22,7 @@ object WordListOrder {
         nameOf = { WordNames.readable(it).string },
         naming = Component.translatable("$KEY.naming").string,
         isAMaterial = KnownWords::isAMaterial,
-        materialsUnder = { Component.translatable("$KEY.materials_under", it).string },
+        materials = Component.translatable("$KEY.materials").string,
     )
 
     /**
@@ -31,7 +31,7 @@ object WordListOrder {
      */
     fun <T : Any> startsCollapsed(order: WordOrder, searchedFor: String, groups: List<ListGroup<T>>): Boolean {
         if (order != WordOrder.APPLIES_TO) return false
-        val foundFew = searchedFor.isNotBlank() && groups.sumOf { it.values.size } <= MOST_ROWS_OPENED
+        val foundFew = searchedFor.isNotBlank() && groups.sumOf { it.size } <= MOST_ROWS_OPENED
         return !foundFew
     }
 

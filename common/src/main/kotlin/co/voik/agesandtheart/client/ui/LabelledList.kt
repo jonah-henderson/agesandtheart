@@ -55,8 +55,11 @@ fun wrapLabel(label: String, width: Int, indent: Int, measure: (String) -> Int):
     return lines
 }
 
-/** A run of a [LabelledList]'s values under one heading, or under none. */
-data class ListGroup<T : Any>(val heading: String?, val values: List<T>)
+/** A run of a [LabelledList]'s values under one heading, or under none, and the runs folded under it. */
+data class ListGroup<T : Any>(val heading: String?, val values: List<T>, val subgroups: List<ListGroup<T>> = emptyList()) {
+    /** How many rows it holds, its subgroups' included. */
+    val size: Int get() = values.size + subgroups.sumOf { it.size }
+}
 
 /**
  * One line of a [LabelledList]: a row naming one of its values, or a heading over a run of them.
@@ -67,7 +70,13 @@ data class ListGroup<T : Any>(val heading: String?, val values: List<T>)
 sealed class ListLine<T : Any> : ObjectSelectionList.Entry<ListLine<T>>()
 
 /** A heading over a run of a [LabelledList]'s rows, which a click folds away or opens out. */
-class HeadingLine<T : Any>(private val text: String, private val isCollapsed: Boolean, private val onToggle: () -> Unit) : ListLine<T>() {
+class HeadingLine<T : Any>(
+    private val text: String,
+    private val isCollapsed: Boolean,
+    /** How far in it is drawn, under the heading it is folded beneath. */
+    private val indent: Int,
+    private val onToggle: () -> Unit,
+) : ListLine<T>() {
 
     override fun getNarration(): Component = Component.literal(text)
 
@@ -76,8 +85,8 @@ class HeadingLine<T : Any>(private val text: String, private val isCollapsed: Bo
         if (hovered) graphics.fill(x, y, x + width, y + height, Palette.HOVER)
         val baseline = y + (LabelledRow.FIRST_LINE_HEIGHT - font.lineHeight) / 2 + 1
         val marker = if (isCollapsed) COLLAPSED else EXPANDED
-        graphics.text(font, "$marker $text", x + HEADING_INSET, baseline, Palette.FAINT, false)
-        graphics.fill(x + HEADING_INSET, y + height - 1, x + width - HEADING_INSET, y + height, Palette.FAINT)
+        graphics.text(font, "$marker $text", x + HEADING_INSET + indent, baseline, Palette.FAINT, false)
+        graphics.fill(x + HEADING_INSET + indent, y + height - 1, x + width - HEADING_INSET, y + height, Palette.FAINT)
     }
 
     override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {
@@ -107,6 +116,8 @@ class LabelledRow<T : Any>(
     private val actions: List<RowAction<T>> = emptyList(),
     /** Shown while the row is hovered away from its buttons; nothing when empty. */
     private val tooltip: (T) -> List<Component> = { emptyList() },
+    /** How far in its name is drawn, under a heading folded beneath another. */
+    private val indent: Int = 0,
 ) : ListLine<T>() {
 
     /** Where each action's button sits, left to right against the row's right edge. */
@@ -126,7 +137,7 @@ class LabelledRow<T : Any>(
         val baseline = y + (FIRST_LINE_HEIGHT - font.lineHeight) / 2
         lines.forEachIndexed { index, line ->
             val indent = if (index == 0) 0 else WRAP_INDENT
-            graphics.text(font, line, x + TEXT_INSET + indent, baseline + index * font.lineHeight, Palette.TEXT, false)
+            graphics.text(font, line, x + TEXT_INSET + this.indent + indent, baseline + index * font.lineHeight, Palette.TEXT, false)
         }
         if (hovered) {
             // Set before the buttons, so a hovered button's own tooltip replaces it.
@@ -193,14 +204,15 @@ class LabelledRow<T : Any>(
             actions: List<RowAction<T>>,
             rowWidth: Int,
             tooltip: (T) -> List<Component>,
+            indent: Int = 0,
         ): LabelledRow<T> {
             val font = Minecraft.getInstance().font
             val countWidth = if (count != null && count > 0) font.width("$count") + TEXT_INSET else 0
-            val labelWidth = rowWidth - TEXT_INSET * 2 - countWidth - actions.size * BUTTON_PITCH
+            val labelWidth = rowWidth - TEXT_INSET * 2 - indent - countWidth - actions.size * BUTTON_PITCH
             val width = labelWidth.coerceAtLeast(MINIMUM_LABEL_WIDTH)
             val lines = wrappings.getOrPut(label to width) { wrapLabel(label, width, WRAP_INDENT, font::width) }
             if (wrappings.size > MOST_WRAPPINGS_KEPT) wrappings.clear()
-            return LabelledRow(value, label, lines, count, onActivate, actions, tooltip)
+            return LabelledRow(value, label, lines, count, onActivate, actions, tooltip, indent)
         }
 
         /**
@@ -272,9 +284,10 @@ class LabelledList<T : Any>(
     ) = showGrouped(listOf(ListGroup(null, values)), label, count, key, actions, tooltip)
 
     /**
-     * [groups] in order, each under its heading — a value may stand in more than one. A heading folds its group away
-     * or opens it out when clicked; [startsCollapsed] says which way every group starts, and a folded group's rows are
-     * never built, which is what keeps a list of thousands under its headings quick.
+     * [groups] in order, each under its heading — a value may stand in more than one — and each group's subgroups
+     * indented under its rows. A heading folds its group away or opens it out when clicked, a subgroup's on its own;
+     * [startsCollapsed] says which way every group starts, and a folded group's rows are never built, which is what
+     * keeps a list of thousands under its headings quick.
      */
     fun showGrouped(
         groups: List<ListGroup<T>>,
@@ -291,16 +304,20 @@ class LabelledList<T : Any>(
         val wasSelected = (selected as? LabelledRow<T>)?.value?.let(key)
         val wasScrolledTo = scrollAmount()
         clearEntries()
-        for (group in groups) {
+        fun add(group: ListGroup<T>, under: String?, depth: Int) {
             val heading = group.heading
-            val isCollapsed = heading != null && startsCollapsed != (heading in toggled)
-            heading?.let { addEntry(HeadingLine("$it (${group.values.size})", isCollapsed) { toggle(it) }, HEADING_HEIGHT) }
-            if (isCollapsed) continue
+            val toggledAs = listOfNotNull(under, heading).joinToString(FOLDED_UNDER)
+            val indent = depth * SUBGROUP_INDENT
+            val isCollapsed = heading != null && startsCollapsed != (toggledAs in toggled)
+            heading?.let { addEntry(HeadingLine("$it (${group.size})", isCollapsed, indent) { toggle(toggledAs) }, HEADING_HEIGHT) }
+            if (isCollapsed) return
             for (value in group.values) {
-                val row = LabelledRow.wrapped(value, label(value), count(value), onSelect, actions, rowWidth, tooltip)
+                val row = LabelledRow.wrapped(value, label(value), count(value), onSelect, actions, rowWidth, tooltip, indent)
                 addEntry(row, LabelledRow.heightOf(row))
             }
+            for (subgroup in group.subgroups) add(subgroup, toggledAs, depth + 1)
         }
+        for (group in groups) add(group, under = null, depth = 0)
         selected = children().filterIsInstance<LabelledRow<T>>().firstOrNull { key(it.value) == wasSelected }
         // `setSelected` scrolls the selection back into view, and after a keyboard event it does so
         // unconditionally — which would drag the list away from wherever the reader had put it every time a
@@ -376,6 +393,12 @@ class LabelledList<T : Any>(
     private companion object {
         /** A heading's line, a little taller than a row's so a run reads as beginning under it. */
         const val HEADING_HEIGHT = LabelledRow.FIRST_LINE_HEIGHT + 2
+
+        /** How far a subgroup's heading and rows are drawn in from the heading they are folded under. */
+        const val SUBGROUP_INDENT = 8
+
+        /** Between a heading and its subgroup's in what a click toggles, so `materials` under two headings are two. */
+        const val FOLDED_UNDER = "\u0000"
 
         /** The scrollbar, and two pixels clear of it. */
         const val SCROLLBAR_GUTTER = ContainerScrollbar.WIDTH + 2

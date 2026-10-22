@@ -31,7 +31,7 @@ object WordOrdering {
      * [rows] under [order]'s headings: one unheaded group for the orders that need none, the rarest first by rarity,
      * and under what applies to each word with a word listed under every one it applies to and those applying to
      * nothing at all last, under [naming] — the naming words, which take others rather than apply to them. Under what
-     * applies, the words [isAMaterial] answers for follow the rest in a run of their own, headed by [materialsUnder].
+     * applies, the words [isAMaterial] answers for are folded beneath the rest under [materials].
      *
      * [searchedFor] keeps a whole run whose heading it is found in, and otherwise the rows it is found in by name.
      */
@@ -45,7 +45,7 @@ object WordOrdering {
         nameOf: (Identifier) -> String,
         naming: String,
         isAMaterial: (Identifier) -> Boolean = { false },
-        materialsUnder: (String) -> String = { it },
+        materials: String = "materials",
     ): List<ListGroup<T>> {
         val byName = rows.sortedBy { it.readable.lowercase() }
         val groups = when (order) {
@@ -60,9 +60,9 @@ object WordOrdering {
                     .groupBy({ it.first }, { it.second })
                     .map { (heading, words) -> nameOf(heading) to words }
                     .sortedBy { (name, _) -> name.lowercase() }
-                    .flatMap { (name, words) ->
-                        val (materials, rest) = words.partition { isAMaterial(it.word) }
-                        listOf(ListGroup(name, rest), ListGroup(materialsUnder(name), materials)).filter { it.values.isNotEmpty() }
+                    .map { (name, words) ->
+                        val (madeOf, rest) = words.partition { isAMaterial(it.word) }
+                        ListGroup(name, rest, listOfNotNull(ListGroup(materials, madeOf).takeIf { madeOf.isNotEmpty() }))
                     }
                 val applyingToNothing = byName.filter { appliesTo(it.word).isEmpty() }
                 under + listOfNotNull(ListGroup(naming, applyingToNothing).takeIf { applyingToNothing.isNotEmpty() })
@@ -76,7 +76,9 @@ object WordOrdering {
         fun isFoundIn(row: T) = needle in row.readable.lowercase() || needle in row.word.toString()
         return groups.mapNotNull { group ->
             val headingIsFound = group.heading?.lowercase()?.contains(needle) == true
-            if (headingIsFound) group else group.copy(values = group.values.filter(::isFoundIn)).takeIf { it.values.isNotEmpty() }
+            if (headingIsFound) return@mapNotNull group
+            val found = group.copy(values = group.values.filter(::isFoundIn), subgroups = searched(group.subgroups, needle))
+            found.takeIf { it.size > 0 }
         }
     }
 }

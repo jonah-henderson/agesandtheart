@@ -28,7 +28,6 @@ class WordOrderingCheck : FunSpec({
         nameOf = { it.path },
         naming = "naming",
         isAMaterial = { it == gold.word },
-        materialsUnder = { "$it · materials" },
     ).map { group -> group.heading to group.values.map { it.readable } }
 
     test("by name and by count, one run with no heading") {
@@ -57,20 +56,25 @@ class WordOrderingCheck : FunSpec({
         check(ordered(WordOrder.APPLIES_TO) == expected) { "${ordered(WordOrder.APPLIES_TO)}" }
     }
 
-    test("the materials under a heading follow the rest in a run of their own") {
+    test("the materials under a heading are folded beneath the rest, and a search finds them there") {
         val withAMaterial = mapOf(gold.word to listOf(sky.word))
-        val grouped = WordOrdering.grouped(
+        fun grouped(searchedFor: String = "") = WordOrdering.grouped(
             listOf(frozen, gold),
             WordOrder.APPLIES_TO,
+            searchedFor,
             rarityOf = { WordHeadings.Rarity.COMMON },
             rarityName = { it.key },
             appliesTo = { (applies + withAMaterial)[it].orEmpty() },
             nameOf = { it.path },
             naming = "naming",
             isAMaterial = { it == gold.word },
-            materialsUnder = { "$it · materials" },
-        ).map { group -> group.heading to group.values.map { it.readable } }
-        val expected = listOf("sky" to listOf("frozen"), "sky · materials" to listOf("gold"))
-        check(grouped == expected) { "$grouped" }
+        )
+        val sky = grouped().single()
+        check(sky.heading == "sky" && sky.values.map { it.readable } == listOf("frozen")) { "$sky" }
+        val materials = sky.subgroups.single()
+        check(materials.heading == "materials" && materials.values.map { it.readable } == listOf("gold")) { "$materials" }
+        check(sky.size == 2) { "the heading counts ${sky.size} rows" }
+        val found = grouped("gol").single()
+        check(found.values.isEmpty() && found.subgroups.single().values.map { it.readable } == listOf("gold")) { "$found" }
     }
 })
