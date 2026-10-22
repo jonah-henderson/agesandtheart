@@ -78,7 +78,8 @@ object Materials {
      * Whether an Age's rock may be made of [block] — see the rule above.
      *
      * There is no exception channel: a block that is not a whole cube is never a world. Cake was one, and a
-     * cake Age ran badly with no cake in sight.
+     * cake Age ran badly with no cake in sight. Nor is one that checks what it stands on: a chorus flower is a
+     * whole cube that breaks off anything but end stone or chorus, so every one mined would bring down the next.
      *
      * **The refusal tag is empty offline**, since a tag binds on a server: the shape rule is the whole of
      * what an offline check sees. That is the same bargain `DerivedWords.DOES_NOT_HAVE_A_WORD` makes.
@@ -93,7 +94,7 @@ object Materials {
         // intent: an ocean world and a world of lava are Ages somebody meant, with a boat and a potion as
         // the answers, where a world of signs is a block nobody thought of as a world at all.
         if (state.block is LiquidBlock) return true
-        return isWholeCube(state)
+        return isWholeCube(state) && !needsSupport(block)
     }
 
     private fun isWholeCube(state: BlockState): Boolean =
