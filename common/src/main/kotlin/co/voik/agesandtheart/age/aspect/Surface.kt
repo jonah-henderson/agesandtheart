@@ -31,7 +31,7 @@ object Surface {
      * The block the ground is dressed in. Open, so §8's derived vocabulary reaches it with no work: a
      * writer aims a block word at the surface section and that is the whole mechanism.
      */
-    val MATERIAL = Parameter.material("material", help = "The block the ground is dressed in: its top layer.")
+    val MATERIAL = Parameter.material("material", wholeBlocksOnly = true, help = "The block the ground is dressed in: its top layer.")
 
     /**
      * Whether the ground wears no skin at all, whatever it would have — `bare surface`, the rock showing wherever

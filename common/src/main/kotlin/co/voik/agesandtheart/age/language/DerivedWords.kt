@@ -40,8 +40,8 @@ object DerivedWords {
      * A word for every block: the sea it could be, what the rock, the ground and the structures could be made of, and
      * the formations it could be raised as.
      *
-     * Laid bare, a block is the rock or the ground's skin or both, where a world could be made of it, and the skin
-     * otherwise; it is a sea only where it pours or is aimed at the sea, and never where a sea cannot be made of it
+     * Laid bare, a block is the rock and the ground's skin where a rock could be made of it, the skin alone where
+     * only a world could, and neither where it is no whole block; it is a sea only where it pours or is aimed at the sea, and never where a sea cannot be made of it
      * ([Materials.makesASea]); and it makes structures only where it is aimed at them. A rock that
      * does not pour now and then raises one of [FORMATIONS] out of itself: `obsidian age`, an obsidian obelisk.
      */
@@ -66,7 +66,12 @@ object DerivedWords {
         }
         val theRock = Effect.Sets(ParameterKey(Terrain.STONE.name, Aspect.TERRAIN), block)
         val theSkin = Effect.Sets(ParameterKey(Surface.MATERIAL.name, Aspect.SURFACE), block)
-        val asTheGround = Meaning(if (isARock) listOf(theRock, theSkin) else listOf(theSkin), mustAlwaysApply = true)
+        val isAWorld = Materials.makesAWorld(block) || block == AIR
+        val asTheGround = when {
+            isARock -> Meaning(listOf(theRock, theSkin), mustAlwaysApply = true)
+            isAWorld -> Meaning(listOf(theSkin), mustAlwaysApply = true)
+            else -> null
+        }
         val asTheStructures = onlyWhereAimed(Effect.Sets(ParameterKey(Structures.MATERIAL.name, Aspect.STRUCTURES), block))
         // A tree's leaves are set wherever the canopy reaches, so a block that pours would run from every one of them.
         val asTheLeaves = if (pours) null else onlyWhereAimed(Effect.Sets(ParameterKey(Features.FOLIAGE.name, Aspect.FEATURES), block))
@@ -88,6 +93,9 @@ object DerivedWords {
         listOf("obelisks", "pyramids", "rings", "arches", "spikes", "boulders").map { "agesandtheart:$it" }
 
     private const val A_FORMATION_NOW_AND_THEN = 0.25
+
+    /** Nothing, which the ground's skin may be: the ground bare. */
+    private const val AIR = "minecraft:air"
 
     private fun onlyWhereAimed(effect: Effect) = Meaning(listOf(effect), unaimedChanceToApply = Meaning.NEVER)
 

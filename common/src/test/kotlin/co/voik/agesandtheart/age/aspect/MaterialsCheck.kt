@@ -63,11 +63,14 @@ class MaterialsCheck : FunSpec({
      * solid ground; and a skin of *air* is how a writer says the ground wears nothing, which is a sentence
      * the rock could never be allowed. Only the fill is fatal.
      */
-    test("the rock refuses what cannot be a world, and the skin refuses nothing") {
+    /** A skin of buttons made an Age crawl (Jonah, walking): the skin is a whole block too, or nothing at all. */
+    test("the rock and the skin refuse what cannot be a world, and the skin takes air") {
         check(Terrain.STONE.accepts("minecraft:stone")) { "the rock refused stone" }
         check(!Terrain.STONE.accepts("minecraft:oak_sign")) { "the rock accepted a sign" }
         check(Terrain.STONE.accepts(Parameter.UNCHANGED)) { "the rock refused its own default" }
-        check(Surface.MATERIAL.accepts("minecraft:oak_sign")) { "the skin refused a sign, and should not" }
+        check(!Surface.MATERIAL.accepts("minecraft:oak_sign")) { "the skin accepted a sign" }
+        check(!Surface.MATERIAL.accepts("minecraft:acacia_button")) { "the skin accepted a button" }
+        check(Surface.MATERIAL.accepts("minecraft:moss_block")) { "the skin refused moss" }
         check(Surface.MATERIAL.accepts("minecraft:air")) { "a skin of air is how the ground wears nothing" }
     }
 

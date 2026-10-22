@@ -70,6 +70,11 @@ data class Parameter(
      */
     val holdsYouUp: Boolean = false,
     /**
+     * Whether what this holds has to be a block a world can be laid of ([Materials.makesAWorld]), or air — the
+     * surface's skin, which a button made crawl, and which air leaves bare.
+     */
+    val wholeBlocksOnly: Boolean = false,
+    /**
      * Whether the order the writer wrote these in is part of what they said.
      *
      * **This parameter's values are a sequence, where every other mingling parameter's are a set** — and that is the
@@ -123,6 +128,7 @@ data class Parameter(
         // **Rock has to hold somebody up** ([Materials]). Asked here because this is the one gate every
         // reader already goes through: `Options.of` filters on it and `unreadableValues` reports what it
         // filtered, so a refused block falls back and is *said* rather than quietly becoming stone.
+        if (wholeBlocksOnly && option != AIR && !Materials.makesAWorld(option)) return false
         return !holdsYouUp || Materials.makesARock(option)
     }
 
@@ -150,8 +156,14 @@ data class Parameter(
         const val UNCHANGED = "unchanged"
 
         /** A block a preset is made of — the palette's stone, a terrain's spires, a structure's walls. */
-        fun material(name: String, holdsYouUp: Boolean = false, help: String = "") =
-            Parameter(name, listOf(UNCHANGED), open = true, material = true, holdsYouUp = holdsYouUp, help = help)
+        fun material(name: String, holdsYouUp: Boolean = false, wholeBlocksOnly: Boolean = false, help: String = "") =
+            Parameter(
+                name, listOf(UNCHANGED), open = true, material = true, holdsYouUp = holdsYouUp, wholeBlocksOnly = wholeBlocksOnly,
+                help = help,
+            )
+
+        /** Nothing, which a skin may be made of where it may be made of nothing else that is not a whole block. */
+        private const val AIR = "minecraft:air"
 
                 /**
          * A continuous axis a word may bound — climate's temperature and humidity. Defaults to the whole
