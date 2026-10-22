@@ -12,8 +12,11 @@ import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.tags.BlockTags
+import net.minecraft.tags.EntityTypeTags
+import net.minecraft.tags.ItemTags
 import net.minecraft.tags.TagKey
 import co.voik.agesandtheart.location
+import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.phys.AABB
 import net.minecraft.server.level.ServerLevel
@@ -80,9 +83,10 @@ object Blizzard {
      * What standing out in it does to you — the second of the three things a blizzard denies (§5.2).
      *
      * **Vanilla's freezing, driven rather than reimplemented.** `ticksFrozen` already gives the shivering,
-     * the ice vignette and the damage, and `canFreeze` already refuses anybody wearing
-     * `#minecraft:freeze_immune_wearables` — leather, and a deretheni suit. So the counterplay costs
-     * nothing here and a player who owns either is simply not cold.
+     * the ice vignette and the damage. But `canFreeze` refuses anybody wearing a single piece of
+     * `#minecraft:freeze_immune_wearables`, so each piece here keeps out a quarter of the cold instead
+     * ([insulationOf]) and only a whole suit of leather or deretheni keeps all of it out — and the damage
+     * vanilla withholds from anyone wearing one piece is dealt here, at vanilla's own pace.
      *
      * **It has to out-pace the thaw.** `LivingEntity` sheds two ticks of frost every tick you are not in
      * powder snow, so anything under three is a blizzard that never bites; three is vanilla's own pace in
@@ -90,12 +94,14 @@ object Blizzard {
      */
     private fun chill(level: ServerLevel, around: BlockPos, severity: Double, driving: Direction) {
         val nearby = AABB(around).inflate(REACH.toDouble())
-        for (living in level.getEntitiesOfClass(LivingEntity::class.java, nearby) { it.canFreeze() }) {
+        for (living in level.getEntitiesOfClass(LivingEntity::class.java, nearby, ::feelsTheCold)) {
+            val insulation = insulationOf(living)
+            if (insulation >= ALL_OF_IT) continue
             val at = living.blockPosition()
             val inTheWind = windReadings.getOrPut(living, ConeExposure::Remembered)
                 .read(level, living.eyePosition, ConeExposure.upwind(driving))
             val exposed = exposureAt(level, at, inTheWind)
-            val onYou = exposed * (ALL_OF_IT - warmthAt(level, at))
+            val onYou = exposed * (ALL_OF_IT - warmthAt(level, at)) * (ALL_OF_IT - insulation)
             if (onYou <= NOTHING) continue
             val bite = (BITES_BY * severity * onYou).roundToInt().coerceAtLeast(1)
             val gaining = THAWS_BY + bite
@@ -107,8 +113,53 @@ object Blizzard {
             // never starts, out in it and it runs all the way to the damage.
             val deepest = living.ticksRequiredToFreeze * DEEPEST_CHILL * onYou
             living.ticksFrozen = (living.ticksFrozen + gaining).coerceAtMost(deepest.toInt())
+            val isFrostbitten = living.isFullyFrozen && living.tickCount % FREEZE_HURTS_EVERY == 0
+            // Vanilla hurts only those `canFreeze` allows, and one piece of leather is enough to be left out.
+            if (isFrostbitten && !living.canFreeze()) living.hurtServer(level, living.damageSources().freeze(), FREEZE_DAMAGE)
         }
     }
+
+    /**
+     * How hard the wind leans on a player, added to their motion each tick along the bearing, at [strength] from
+     * nought to one, as [exposed] as they stand, on ground as slippery as [friction] — ordinary ground in the air.
+     *
+     * **Capped below a sprint on the ground underfoot**, so sprinting into the wind always gets somewhere, ice
+     * included; walking into the fiercest of it may not. In the air a player gains far less and loses far less to
+     * drag, so the same push carries them much further, and a jump or a bridge's edge is where it is felt.
+     */
+    fun windPush(strength: Double, exposed: Float, friction: Float): Double =
+        MOST_OF_A_SPRINT * sprintGainOn(friction) * strength.coerceIn(0.0, 1.0) * exposed
+
+    /**
+     * How hard a storm as fierce as [severity] pushes, from nought to one, with [scale] the server's dial: growing as
+     * the square of the fury, so an ordinary storm only leans and the push mounts toward the fiercest.
+     */
+    fun windStrength(scale: Double, severity: Double): Double {
+        val fury = (severity / HARDEST_EARNED).coerceIn(0.0, 1.0)
+        return scale * fury * fury
+    }
+
+    /** What a sprint gains each tick on ground of [friction], as `LivingEntity.getFrictionInfluencedSpeed` has it. */
+    fun sprintGainOn(friction: Float): Double {
+        if (friction <= ORDINARY_FRICTION) return SPRINT_SPEED
+        return SPRINT_SPEED * ORDINARY_FRICTION_CUBED / (friction * friction * friction)
+    }
+
+    /** Whether the cold can reach [living] at all: vanilla's `canFreeze` without its rule about what is worn. */
+    private fun feelsTheCold(living: LivingEntity): Boolean =
+        !living.isSpectator && !living.typeHolder().`is`(EntityTypeTags.FREEZE_IMMUNE_ENTITY_TYPES)
+
+    /**
+     * How much of the cold what [living] wears keeps out: a quarter for each of the four pieces that is
+     * freeze-immune, and all of it for an animal's body armour that is.
+     */
+    fun insulationOf(living: LivingEntity): Float {
+        fun keepsOutTheCold(slot: EquipmentSlot) = living.getItemBySlot(slot).`is`(ItemTags.FREEZE_IMMUNE_WEARABLES)
+        if (keepsOutTheCold(EquipmentSlot.BODY)) return ALL_OF_IT
+        return WORN_PIECES.count(::keepsOutTheCold).toFloat() / WORN_PIECES.size
+    }
+
+    private val WORN_PIECES = listOf(EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET)
 
     /**
      * How much of the storm is on this spot, from none of it to all of it — **the one definition**, read
@@ -509,6 +560,18 @@ object Blizzard {
 
     /** How far a flake falls for each block the wind carries it: the slant the snow is drawn and sheltered at. */
     const val SNOW_FALLS_PER_BLOCK = 0.35
+
+    /** How much of a sprint's gain the fiercest wind takes back. */
+    private const val MOST_OF_A_SPRINT = 0.75
+
+    /** A player's sprinting speed — vanilla's walking 0.1 and its sprint's 30% — and ordinary ground's friction. */
+    private const val SPRINT_SPEED = 0.13
+    const val ORDINARY_FRICTION = 0.6f
+    private const val ORDINARY_FRICTION_CUBED = 0.21600002
+
+    /** How often vanilla hurts someone fully frozen, in ticks, and by how much. */
+    private const val FREEZE_HURTS_EVERY = 40
+    private const val FREEZE_DAMAGE = 1.0f
 
     /** How far past frozen the cold is allowed to bank up, so stepping inside is not instant relief. */
     private const val DEEPEST_CHILL = 2

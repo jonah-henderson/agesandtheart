@@ -25,6 +25,7 @@ object ClientSetup {
         // it rides the client tick rather than the payload.
         Storms.heard(minecraft)
         Storms.blow(minecraft)
+        Storms.push(minecraft)
         // A deluge's splashes and roar, both of which want re-asking as a player moves under cover.
         Downpours.pour(minecraft)
         // A lure is drawn about its cluster rather than by each block, so it rides the tick as well.

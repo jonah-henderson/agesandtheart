@@ -233,6 +233,7 @@
   "config.agesandtheart.phenomena": "Phenomena",
   "config.agesandtheart.phenomena_at_once": "Phenomena running at once (0 for no limit)",
   "config.agesandtheart.phenomena_ceiling_covers": "That limit is for",
+  "config.agesandtheart.blizzard_wind": "Blizzard wind",
   "config.agesandtheart.plasma": "Plasma",
   "config.agesandtheart.plasma_annihilates": "Unstable plasma destroys blocks",
   "config.agesandtheart.villager_writers": "Villagers may work at a writer's desk",

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.AgeConfig
 import kotlin.math.exp
 import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
@@ -50,6 +51,7 @@ object Storms {
         inTheWind = ConeExposure.Remembered()
         seen = Easing()
         heard = Easing()
+        felt = Easing()
     }
 
     /** The local player's last [ConeExposure] reading, which every sample below is capped by. */
@@ -74,9 +76,35 @@ object Storms {
      */
     private fun heardExposure(level: ClientLevel, at: BlockPos): Float = heard.towards(Sampling.exposureAt(level, at))
 
-    /** What the eye is shown and what the ear is, each easing towards its own reading. */
+    /** What the eye is shown, what the ear is, and what the body feels, each easing towards its own reading. */
     private var seen = Easing()
     private var heard = Easing()
+    private var felt = Easing()
+
+    /**
+     * The wind leaning on the local player, along its bearing — [Blizzard.windPush], as hard as the storm blows
+     * and as exposed as they stand. Here rather than on the server because a client moves its own player.
+     */
+    fun push(client: Minecraft) {
+        val level = client.level ?: return
+        val player = client.player ?: return
+        val blowing = blowingIn(level) ?: return
+        // A paused game still ticks the client, and motion added then would all land on the first tick back.
+        if (client.isPaused) return
+        val isOutOfTheWind = player.isSpectator || player.abilities.flying || player.isPassenger || player.isInWater
+        if (isOutOfTheWind) return
+        val strength = Blizzard.windStrength(AgeConfig.blizzardWind.get(), blowing.severity)
+        val reading = inTheWind.read(level, player.eyePosition, ConeExposure.upwind(blowing.driving()))
+        val exposed = felt.towards(Blizzard.exposureAt(level, player.blockPosition(), reading))
+        val friction = if (player.onGround()) {
+            level.getBlockState(player.blockPosBelowThatAffectsMyMovement).block.friction
+        } else {
+            Blizzard.ORDINARY_FRICTION
+        }
+        val push = Blizzard.windPush(strength, exposed, friction)
+        val driving = blowing.driving()
+        player.deltaMovement = player.deltaMovement.add(driving.stepX * push, 0.0, driving.stepZ * push)
+    }
 
     /**
      * A reading approached over about [EASE_SECONDS] of real time rather than stepped to (Jonah, walk
