@@ -30,7 +30,6 @@ public abstract class FishingHookMixin {
 
     @ModifyVariable(method = "retrieve", at = @At("STORE"), name = "items")
     private List<ItemStack> agesandtheart$caughtAsTheBookStockedTheWaters(List<ItemStack> items) {
-        FishingHook hook = (FishingHook) (Object) this;
-        return AgeFishing.INSTANCE.caught(items, hook.level(), hook.blockPosition(), hook.getRandom());
+        return AgeFishing.INSTANCE.caught(items, (FishingHook) (Object) this);
     }
 }
