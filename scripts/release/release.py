@@ -175,10 +175,16 @@ def ask_for_version(last: str | None) -> str:
         fail("no version given, and no terminal to ask for one")
 
 
+def is_finished(state: dict) -> bool:
+    """Whether a release's every step is done, which leaves nothing to resume."""
+    return all(step in state["done"] for step in STEPS)
+
+
 def release_in_progress(rehearsal: bool) -> str:
     """The version of the one release left unfinished under build/release/, for --resume without a version."""
     suffix = "-rehearsal"
-    names = [path.parent.name for path in (ROOT / "build" / "release").glob("*/state.json")]
+    states = (ROOT / "build" / "release").glob("*/state.json")
+    names = [path.parent.name for path in states if not is_finished(json.loads(path.read_text()))]
     versions = sorted(name.removesuffix(suffix) for name in names if name.endswith(suffix) == rehearsal)
     if not versions:
         fail("nothing to resume")
@@ -225,6 +231,8 @@ class Release:
         if not self.state_file.exists():
             fail(f"nothing to resume: no {self.state_file}")
         self.state = json.loads(self.state_file.read_text())
+        if is_finished(self.state):
+            fail(f"{self.version} is finished; there is nothing to resume")
 
     def save_state(self) -> None:
         self.work.mkdir(parents=True, exist_ok=True)
