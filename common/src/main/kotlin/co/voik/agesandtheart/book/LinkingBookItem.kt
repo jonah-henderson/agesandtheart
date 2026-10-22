@@ -93,6 +93,8 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
             )
             return
         }
+        // The world itself, since the book's name may be one it was given rather than where it goes.
+        builder.accept(Component.literal(WordNames.placeName(target.dimension)).withStyle(ChatFormatting.GRAY))
         // Coordinates, because a route you built deserves to be checkable.
         builder.accept(
             Component.literal(
