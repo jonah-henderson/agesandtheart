@@ -10,6 +10,7 @@ import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.util.Mth
+import net.minecraft.world.item.ItemStack
 import kotlin.math.abs
 import kotlin.math.exp
 
@@ -91,14 +92,16 @@ class ClientNotebookTooltip(private val notebook: NotebookTooltip) : ClientToolt
      */
     private object Scroll {
         private var shown = 0f
-        private var lastPages: List<*>? = null
+        private var lastPages: List<ItemStack>? = null
         private var lastNanos = 0L
 
         fun shownRow(notebook: NotebookTooltip): Float {
             val target = (notebook.firstShown / NotebookTooltip.COLUMNS).toFloat()
             val now = System.nanoTime()
             val last = lastPages
-            val isAnotherNotebook = last?.size != notebook.pages.size || last.firstOrNull() != notebook.pages.firstOrNull()
+            // Compared by what the pages are, since the tooltip hands over fresh copies of them every frame.
+            val isAnotherNotebook = last == null || last.size != notebook.pages.size ||
+                !ItemStack.isSameItemSameComponents(last.first(), notebook.pages.first())
             val startsAfresh = isAnotherNotebook || now - lastNanos > IDLE_NANOS
             shown = if (startsAfresh) target else eased(shown, target, (now - lastNanos) / NANOS_PER_SECOND)
             lastPages = notebook.pages
