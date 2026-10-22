@@ -193,8 +193,9 @@ class TemplateEditor(
             val top = innerTop + row * ROW
             if (!withinContentAreaTopBottom(top, top + ROW)) return@forEachIndexed
             extractRow(graphics, layout, row, top, shown)
-            hoveredMark(layout, row, top, shown, mouseX, pointerY)
-                ?.tooltip?.let { graphics.setTooltipForNextFrame(it, mouseX, mouseY) }
+            val hovered = hoveredBadge(layout, row, top, shown, mouseX, pointerY)?.tooltip
+                ?: hoveredMark(layout, row, top, shown, mouseX, pointerY)?.tooltip
+            hovered?.let { graphics.setTooltipForNextFrame(it, mouseX, mouseY) }
         }
         extractSelection(graphics, layout)
         extractCursor(graphics, layout)
@@ -226,6 +227,7 @@ class TemplateEditor(
             val left = glyphX(layout, row, from)
             val right = caretX(layout, row, to)
             mark.underline?.let { graphics.fill(left, top + font.lineHeight, right, top + font.lineHeight + 1, it) }
+            if (mark.end <= line.end) badgeAt(layout, row, top, mark)?.let { (x, y) -> mark.badge?.draw(graphics, x, y) }
             // The script goes under the span's start only, so a word wrapped across two rows is spelled once.
             if (mark.start >= line.begin) scriptFor(layout, mark)?.let { extractScript(graphics, it, left, top) }
         }
@@ -299,14 +301,42 @@ class TemplateEditor(
         return Layout(typed, pads, limit, rows).also { laidOut = it }
     }
 
-    /** How much wider each marked word must be to sit over its script, keyed by where the word ends. */
+    /**
+     * How much wider each marked word must be to sit over its script, and to hold its badge after it, keyed by where
+     * the word ends.
+     */
     private fun padsFor(typed: String, shown: List<TextMark>): Map<Int, Int> =
         shown.mapNotNull { mark ->
-            val script = mark.script ?: return@mapNotNull null
-            val scriptWidth = ceil(font.width(script) * SCRIPT_SCALE).toInt()
+            val scriptWidth = mark.script?.let { ceil(font.width(it) * SCRIPT_SCALE).toInt() } ?: 0
             val wordWidth = font.width(typed.substring(mark.start, mark.end))
-            (scriptWidth - wordWidth).takeIf { it > 0 }?.let { mark.end to it }
+            val forTheScript = (scriptWidth - wordWidth).coerceAtLeast(0)
+            val forTheBadge = if (mark.badge != null) BADGE_ROOM else 0
+            (forTheScript + forTheBadge).takeIf { it > 0 }?.let { mark.end to it }
         }.toMap()
+
+    /** Where [mark]'s badge is drawn on [row]: in the room after its word, beside the word's text. */
+    private fun badgeAt(layout: Layout, row: Int, top: Int, mark: TextMark): Pair<Int, Int>? {
+        if (mark.badge == null) return null
+        val x = caretX(layout, row, mark.end) + BADGE_GAP
+        val y = top + (font.lineHeight - Badge.SIZE) / 2
+        return x to y
+    }
+
+    private fun hoveredBadge(
+        layout: Layout,
+        row: Int,
+        top: Int,
+        shown: List<TextMark>,
+        mouseX: Int,
+        pointerY: Int,
+    ): Badge? {
+        val line = layout.rows[row]
+        return shown.firstOrNull { mark ->
+            val endsHere = mark.end in (line.begin + 1)..line.end
+            val at = if (endsHere) badgeAt(layout, row, top, mark) else null
+            at != null && mark.badge?.isUnder(mouseX, pointerY, at.first, at.second) == true
+        }?.badge
+    }
 
     /** Where the glyph at [index] is drawn, after any padding that ends there. */
     private fun glyphX(layout: Layout, row: Int, index: Int): Int {
@@ -360,6 +390,10 @@ class TemplateEditor(
          * which is as near as two unrelated alphabets come to lining up.
          */
         const val SCRIPT_SCALE = 0.7f
+
+        /** A badge after a word, and a pixel either side of it. */
+        const val BADGE_GAP = 1
+        const val BADGE_ROOM = Badge.SIZE + 2 * BADGE_GAP
 
         const val UNKNOWN_CORE = "???"
         const val UNKNOWN_DASH = "-"

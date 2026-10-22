@@ -53,6 +53,9 @@ class PageSupply(private val archives: List<ArchiveBlockEntity>, private val inv
 
     fun inArchives(word: Identifier): Int = archives.sumOf { it.pages.count(word) }
 
+    /** Every word a page of is filed in the archives in the room. */
+    fun archived(): Set<Identifier> = archives.flatMap { it.pages.words }.toSet()
+
     fun inInventory(word: Identifier): Int =
         (0 until inventory.containerSize)
             .map(inventory::getItem)

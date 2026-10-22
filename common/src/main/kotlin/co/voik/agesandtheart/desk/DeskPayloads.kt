@@ -48,6 +48,8 @@ data class DeskSyncPayload(
     val toWrite: List<PagePrice>,
     /** How many of the book's pages are already written and will be drawn at the bind. */
     val drawn: Int,
+    /** Every word a page of is filed in an archive in the room, which the bind draws before writing one. */
+    val archived: Set<Identifier>,
     /**
      * What is wrong with the sentence, resolved against the seed the book will actually use — empty without
      * the implement that reveals it (design §7.3).
@@ -98,6 +100,7 @@ data class DeskSyncPayload(
                 ReadWord.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buffer, value.read)
                 PagePrice.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buffer, value.toWrite)
                 ByteBufCodecs.VAR_INT.encode(buffer, value.drawn)
+                Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buffer, value.archived.toList())
                 QUARREL_STREAM.apply(ByteBufCodecs.list()).encode(buffer, value.quarrels)
                 READING_STREAM.encode(buffer, value.reading)
             },
@@ -114,6 +117,7 @@ data class DeskSyncPayload(
                     read = ReadWord.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buffer),
                     toWrite = PagePrice.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buffer),
                     drawn = ByteBufCodecs.VAR_INT.decode(buffer),
+                    archived = Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buffer).toSet(),
                     quarrels = QUARREL_STREAM.apply(ByteBufCodecs.list()).decode(buffer),
                     reading = READING_STREAM.decode(buffer),
                 )

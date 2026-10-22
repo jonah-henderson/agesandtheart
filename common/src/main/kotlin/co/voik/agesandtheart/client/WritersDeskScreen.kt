@@ -1,5 +1,9 @@
 package co.voik.agesandtheart.client
 
+import net.minecraft.resources.Identifier
+import net.minecraft.world.item.ItemStack
+import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.client.ui.Badge
 import co.voik.agesandtheart.client.ui.scrollChildUnder
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
@@ -329,8 +333,13 @@ class WritersDeskScreen(
             key = { it.word },
             tooltip = ::reachTooltip,
             startsCollapsed = WordListOrder.startsCollapsed(ordering, search.value, groups),
+            badge = { row -> archivedBadge(row.word) },
         )
     }
+
+    /** A page icon where a page of [word] is filed in an archive in the room, which the bind draws first. */
+    private fun archivedBadge(word: Identifier?): Badge? =
+        IN_THE_ARCHIVE.takeIf { word != null && DeskModel.isArchived(word) }
 
     /** Where a word applies, asked at hover so a guide carried into or out of the room shows at once. */
     private fun reachTooltip(row: WordRow): List<Component> =
@@ -373,6 +382,7 @@ class WritersDeskScreen(
                     if (it.word == it.against) translated("quarrel_alone")
                     else translated("quarrel", WordNames.readable(it.against))
                 },
+                badge = archivedBadge(word),
             )
         }
         WordState.UNLEARNED -> TextMark(
@@ -448,6 +458,11 @@ class WritersDeskScreen(
     }
 
     private companion object {
+        /** What marks a word whose page is filed in an archive in the room. */
+        val IN_THE_ARCHIVE: Badge by lazy {
+            Badge(ItemStack(AgeContent.PAGE), Component.translatable("container.agesandtheart.writers_desk.in_the_archive"))
+        }
+
         /** How the word list is ordered, kept across the screen being rebuilt and between openings. */
         var wordOrder = WordOrder.ALPHABETICAL
 

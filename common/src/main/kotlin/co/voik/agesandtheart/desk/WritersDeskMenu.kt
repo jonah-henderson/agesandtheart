@@ -57,7 +57,8 @@ class WritersDeskMenu(
         val text = desk.templateFor(player.uuid)
         val read = DeskTemplates.read(player, text)
         val words = TemplateReading.learnedWords(read)
-        val allocation = supplyFor(player, desk).allocate(words)
+        val supply = supplyFor(player, desk)
+        val allocation = supply.allocate(words)
         // Read once and handed to both: the readout and the conflicts are two questions about one sentence.
         // Resolving it is dearer, so it is done at most once, and only where something in the room can show what
         // it says — the conflicts, or the readout, which says only what held.
@@ -77,6 +78,7 @@ class WritersDeskMenu(
             read = read,
             toWrite = allocation.toWrite.map { pricePage(player, it) },
             drawn = allocation.drawn,
+            archived = supply.archived(),
             quarrels = quarrelsIn(capabilities, words, resolved),
             reading = readingOf(capabilities, said, resolved, vocabulary),
         )

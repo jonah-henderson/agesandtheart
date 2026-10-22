@@ -94,6 +94,9 @@ object DeskModel {
 
     fun drawn(): Int = state?.drawn ?: 0
 
+    /** Whether a page of [word] is filed in an archive in the room, so the bind draws it rather than writing one. */
+    fun isArchived(word: Identifier): Boolean = state?.archived?.contains(word) == true
+
     /** What disagrees with what, as the server resolved it against the seed the book will use. */
     fun quarrels(): List<Quarrel> = state?.quarrels.orEmpty()
 

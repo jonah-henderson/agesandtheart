@@ -118,7 +118,13 @@ class LabelledRow<T : Any>(
     private val tooltip: (T) -> List<Component> = { emptyList() },
     /** How far in its name is drawn, under a heading folded beneath another. */
     private val indent: Int = 0,
+    /** What is said beside it in a gutter on its left, asked as it is drawn; null where the list keeps no gutter. */
+    private val badge: ((T) -> Badge?)? = null,
 ) : ListLine<T>() {
+
+    /** Where the name starts: past the gutter, where there is one. */
+    private val textLeft: Int get() = TEXT_INSET + indent + if (badge != null) GUTTER else 0
+
 
     /** Where each action's button sits, left to right against the row's right edge. */
     private fun buttonAt(index: Int): Int = x + width - (actions.size - index) * BUTTON_PITCH
@@ -137,11 +143,16 @@ class LabelledRow<T : Any>(
         val baseline = y + (FIRST_LINE_HEIGHT - font.lineHeight) / 2
         lines.forEachIndexed { index, line ->
             val indent = if (index == 0) 0 else WRAP_INDENT
-            graphics.text(font, line, x + TEXT_INSET + this.indent + indent, baseline + index * font.lineHeight, Palette.TEXT, false)
+            graphics.text(font, line, x + textLeft + indent, baseline + index * font.lineHeight, Palette.TEXT, false)
         }
+        val shown = badge?.invoke(value)
+        val badgeX = x + TEXT_INSET + this.indent
+        val badgeY = y + (FIRST_LINE_HEIGHT - Badge.SIZE) / 2
+        shown?.draw(graphics, badgeX, badgeY)
+        val overTheBadge = shown?.isUnder(mouseX, mouseY, badgeX, badgeY) == true
         if (hovered) {
             // Set before the buttons, so a hovered button's own tooltip replaces it.
-            val lines = tooltip(value)
+            val lines = if (overTheBadge && shown != null) listOf(shown.tooltip) else tooltip(value)
             if (lines.isNotEmpty()) graphics.setComponentTooltipForNextFrame(font, lines, mouseX, mouseY)
         }
 
@@ -189,6 +200,9 @@ class LabelledRow<T : Any>(
         private const val TEXT_INSET = 2
         private const val WRAP_INDENT = 6
 
+        /** Room on a row's left for a [Badge], and a pixel clear of the name. */
+        private const val GUTTER = Badge.SIZE + 2
+
         /** A glyph and a little air, which is as much as a twelve-pixel row has to give. */
         private const val BUTTON_WIDTH = 11
         private const val BUTTON_PITCH = 12
@@ -205,14 +219,16 @@ class LabelledRow<T : Any>(
             rowWidth: Int,
             tooltip: (T) -> List<Component>,
             indent: Int = 0,
+            badge: ((T) -> Badge?)? = null,
         ): LabelledRow<T> {
             val font = Minecraft.getInstance().font
             val countWidth = if (count != null && count > 0) font.width("$count") + TEXT_INSET else 0
-            val labelWidth = rowWidth - TEXT_INSET * 2 - indent - countWidth - actions.size * BUTTON_PITCH
+            val gutter = if (badge != null) GUTTER else 0
+            val labelWidth = rowWidth - TEXT_INSET * 2 - indent - gutter - countWidth - actions.size * BUTTON_PITCH
             val width = labelWidth.coerceAtLeast(MINIMUM_LABEL_WIDTH)
             val lines = wrappings.getOrPut(label to width) { wrapLabel(label, width, WRAP_INDENT, font::width) }
             if (wrappings.size > MOST_WRAPPINGS_KEPT) wrappings.clear()
-            return LabelledRow(value, label, lines, count, onActivate, actions, tooltip, indent)
+            return LabelledRow(value, label, lines, count, onActivate, actions, tooltip, indent, badge)
         }
 
         /**
@@ -297,8 +313,9 @@ class LabelledList<T : Any>(
         actions: List<RowAction<T>> = emptyList(),
         tooltip: (T) -> List<Component> = { emptyList() },
         startsCollapsed: Boolean = false,
+        badge: ((T) -> Badge?)? = null,
     ) {
-        reshow = { showGrouped(groups, label, count, key, actions, tooltip, startsCollapsed) }
+        reshow = { showGrouped(groups, label, count, key, actions, tooltip, startsCollapsed, badge) }
         if (startsCollapsed != startedCollapsed) toggled.clear()
         startedCollapsed = startsCollapsed
         val wasSelected = (selected as? LabelledRow<T>)?.value?.let(key)
@@ -309,10 +326,13 @@ class LabelledList<T : Any>(
             val toggledAs = listOfNotNull(under, heading).joinToString(FOLDED_UNDER)
             val indent = depth * SUBGROUP_INDENT
             val isCollapsed = heading != null && startsCollapsed != (toggledAs in toggled)
-            heading?.let { addEntry(HeadingLine("$it (${group.size})", isCollapsed, indent) { toggle(toggledAs) }, HEADING_HEIGHT) }
+            heading?.let {
+                addEntry(HeadingLine("$it (${group.size})", isCollapsed, indent) { toggle(toggledAs) }, HEADING_HEIGHT)
+            }
             if (isCollapsed) return
             for (value in group.values) {
-                val row = LabelledRow.wrapped(value, label(value), count(value), onSelect, actions, rowWidth, tooltip, indent)
+                val row =
+                    LabelledRow.wrapped(value, label(value), count(value), onSelect, actions, rowWidth, tooltip, indent, badge)
                 addEntry(row, LabelledRow.heightOf(row))
             }
             for (subgroup in group.subgroups) add(subgroup, toggledAs, depth + 1)

@@ -84,6 +84,7 @@ object DeskCommands {
                 read = emptyList(),
                 toWrite = emptyList(),
                 drawn = 0,
+                archived = emptySet(),
                 quarrels = emptyList(),
                 reading = emptyList(),
             ),
