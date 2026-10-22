@@ -6,6 +6,16 @@ hash = "901d242788d1f25717af3b31e2fdd0590998c0c721cf861c7df89625f53a12e3"
 metafile = true
 
 [[files]]
+file = "mods/balm.pw.toml"
+hash = "3f529d5fd5e99dbcba1364cfc68eefc9235e6956dcd05f4c6554116f89d9c9c9"
+metafile = true
+
+[[files]]
+file = "mods/cloth-config.pw.toml"
+hash = "2b9727522c90a979eb9671ad7c5421443d91391b0697d1772146e6bfa19cb3c1"
+metafile = true
+
+[[files]]
 file = "mods/ephemeris.pw.toml"
 hash = "50466bb9dc538607205443496084f5e4787c5dae9a035e2fb8058a342e46c203"
 metafile = true
@@ -23,4 +33,29 @@ metafile = true
 [[files]]
 file = "mods/forge-config-api-port.pw.toml"
 hash = "3eb12471fce0aadbda432f7fd5ba4e2120e0e0ebbb3663eea756a17ec0254407"
+metafile = true
+
+[[files]]
+file = "mods/inventory-essentials.pw.toml"
+hash = "d49e0c0d14899c4c7456500b531639a5f621178324000d2d66a3e794ff588621"
+metafile = true
+
+[[files]]
+file = "mods/inventory-sorting.pw.toml"
+hash = "b98ce52ae66ba44cc2e30f892c680b809f9b9a442e2720743a6d4b5d2a2f3259"
+metafile = true
+
+[[files]]
+file = "mods/jei.pw.toml"
+hash = "586e6269f88137dde86dd95b591a483ae97df38b28b7d043914bd4640e23a247"
+metafile = true
+
+[[files]]
+file = "mods/mezzconfig.pw.toml"
+hash = "8257e769f3b2db4005d1eb546ba47f5f8aade30c8b23f0155be1ae40a46f0dfc"
+metafile = true
+
+[[files]]
+file = "mods/mouse-tweaks.pw.toml"
+hash = "d9f809b321cdd117600e45f92215c8e750ed0b65641c18d394bb4c111019581d"
 metafile = true
