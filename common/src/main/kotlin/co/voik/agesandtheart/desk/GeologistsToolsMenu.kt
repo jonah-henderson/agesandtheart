@@ -128,7 +128,7 @@ private class LiveSurvey(player: ServerPlayer?, pos: BlockPos) : InstrumentReadi
     override fun ofTheWorld(writer: ServerPlayer, recipe: AgeRecipe?): Survey? {
         if (recipe == null) return null
         val composition = recipe.composition ?: return null
-        return Survey.of(writer.level().server, composition, recipe.template, recipe.instability, recipe.seed)
+        return Survey.of(writer.level().server, composition, recipe.template, recipe.instability, recipe.seed, recipe.authored)
     }
 
     override fun record(reading: Survey?) {

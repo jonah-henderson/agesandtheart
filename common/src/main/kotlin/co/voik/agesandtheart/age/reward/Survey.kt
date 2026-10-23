@@ -25,13 +25,18 @@ import net.minecraft.server.MinecraftServer
 data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMaterial>) {
 
     companion object {
-        /** What the Age this composition describes would hold, on the server about to be asked to build it. */
+        /**
+         * What the Age this composition describes would hold, on the server about to be asked to build it. [authored]
+         * is whether a player wrote it, which is what a deposit is paid for: a sentence at a desk is about to be,
+         * and an Age read where it stands was or was not.
+         */
         fun of(
             server: MinecraftServer,
             composition: AgeComposition,
             template: AgeTemplate,
             instability: Instability,
             seed: Long,
+            authored: Boolean = true,
         ): Survey = of(
             composition,
             instability,
@@ -39,6 +44,7 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
             DangerTable.of(server),
             Ladder.list(server),
             SpendingSetting.of(server, composition, template, seed),
+            authored,
         )
 
         /** The same, against a table and the ladders handed in — offline, and what the checks use. */
@@ -49,10 +55,9 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
             table: DangerTable,
             ladders: Map<Manifestation, Ladder>,
             setting: SpendingSetting = SpendingSetting.of(composition),
+            authored: Boolean = true,
         ): Survey {
-            // Surveyed at a desk by somebody about to write the book, which is the whole of what `authored`
-            // asks. A found Age is never surveyed, because a found Age was never composed here.
-            val danger = Danger.of(composition, instability, seed, authored = true, table, ladders, setting)
+            val danger = Danger.of(composition, instability, seed, authored, table, ladders, setting)
             val spending = Spending.of(instability, seed, ladders, setting)
             return Survey(
                 deposit = Yield.forVeins(Deposits.veinsPerChunk(danger)),
