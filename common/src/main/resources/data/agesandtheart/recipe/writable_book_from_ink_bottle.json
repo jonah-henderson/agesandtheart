@@ -1,7 +1,0 @@
-{
-  "_comment": "A book and quill with a bottle of ink where vanilla takes an ink sac; the bottle comes back.",
-  "type": "minecraft:crafting_shapeless",
-  "category": "misc",
-  "ingredients": ["minecraft:book", "#agesandtheart:ink_bottles", "minecraft:feather"],
-  "result": { "id": "minecraft:writable_book", "count": 1 }
-}

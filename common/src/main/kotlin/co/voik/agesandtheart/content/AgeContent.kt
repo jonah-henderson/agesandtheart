@@ -1372,7 +1372,7 @@ object AgeContent {
 
     private val MASTERWORK_INK_BOTTLE_ID: Identifier = "masterwork_ink_bottle".location()
 
-    /** What it is for is being found in a D'ni ink workshop and poured into a desk, though like any ink it serves as an ink sac. */
+    /** Nothing crafts with it; what it is for is being found in a D'ni ink workshop and poured into a desk. */
     val MASTERWORK_INK_BOTTLE: Item = InkBottleItem(
         Item.Properties()
             .setId(ResourceKey.create(Registries.ITEM, MASTERWORK_INK_BOTTLE_ID))
