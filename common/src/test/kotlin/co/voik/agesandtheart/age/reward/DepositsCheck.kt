@@ -60,11 +60,22 @@ class DepositsCheck : FunSpec({
         }
     }
 
+    /** Past large amounts danger still pays more, but the ceiling is a collapse's: danger alone never reaches it. */
+    test("danger alone never lays more than the least of a collapse's hoard, though it grows to meet it") {
+        val scores = (0..FURTHEST_SCORE * STEPS_A_POINT).map { it.toDouble() / STEPS_A_POINT }
+        val held = scores.map { Deposits.heldAt(danger(materials = it, authored = true)) }
+        check(held.max() <= Deposits.leastHoard) { "danger alone laid ${held.max()}, against a least hoard of ${Deposits.leastHoard}" }
+        val atLargeAmounts = Deposits.heldAt(danger(materials = Yield.IMMENSE.fromScore, authored = true))
+        check(held.last() > atLargeAmounts) { "a far more dangerous Age held no more than large amounts' $atLargeAmounts" }
+        check(held.zipWithNext().none { (lower, higher) -> higher < lower }) { "a dearer Age held less than a cheaper one: $held" }
+    }
+
     test("a quiet Age that collapses lays the doomed hoard, and holds no ruins") {
         val quietAndCollapsing = danger(materials = 0.0, authored = true, terminal = A_PART_OF_IT)
         check(quietAndCollapsing.paysOut && !quietAndCollapsing.allowsRuins) { "a collapsing Age scoring nothing paid nothing" }
-        check(Deposits.veinsPerChunk(quietAndCollapsing) >= DOOMED_AT_LEAST) {
-            "a quiet collapsing Age was offered ${Deposits.veinsPerChunk(quietAndCollapsing)} veins a chunk"
+        check(Yield.of(quietAndCollapsing) == Yield.MASSIVE) { "a quiet collapsing Age read as ${Yield.of(quietAndCollapsing)}" }
+        check(Deposits.hoardVeinsPerChunk(quietAndCollapsing) >= DOOMED_AT_LEAST) {
+            "a quiet collapsing Age was offered ${Deposits.hoardVeinsPerChunk(quietAndCollapsing)} veins a chunk"
         }
         val foundAndCollapsing = danger(materials = 0.0, authored = false, terminal = A_PART_OF_IT)
         check(!foundAndCollapsing.paysOut) { "a found collapsing Age paid out" }
@@ -73,6 +84,10 @@ class DepositsCheck : FunSpec({
     companion object {
         /** What a doomed Age is offered at the least: one vein, multiplied. */
         private const val DOOMED_AT_LEAST = 40
+
+        /** Well past where the ceiling falls, about eleven. */
+        private const val FURTHEST_SCORE = 30
+        private const val STEPS_A_POINT = 20
 
         init {
             MinecraftRegistries.ensureStoodUp()

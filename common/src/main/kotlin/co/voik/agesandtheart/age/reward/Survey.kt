@@ -60,7 +60,7 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
             val danger = Danger.of(composition, instability, seed, authored, table, ladders, setting)
             val spending = Spending.of(instability, seed, ladders, setting)
             return Survey(
-                deposit = Yield.forVeins(Deposits.veinsPerChunk(danger)),
+                deposit = Yield.of(danger),
                 earlyMaterials = EarlyGameRareMaterials.grownIn(composition, seed, spending),
             )
         }
@@ -68,22 +68,31 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
 }
 
 /**
- * How much of a material an Age holds, as a word (design §3.2 — no number ever reaches a player).
+ * How much of a material an Age holds, as a word (design §3.2 — no number ever reaches a player), each laid as a
+ * vanilla ore is ([Deposits]): traces as emerald, a little as diamond, some as iron, a good deal between iron and
+ * copper, large amounts as copper, and massive layers in an Age that collapses, whatever it scored.
  *
- * Banded on **veins per chunk**, which is what [Deposits] actually places, so the report and the ground
- * cannot drift apart. The bands are wide at the top because there is no ceiling: a terminal Age multiplies
- * its vein count many times over and lands in [IMMENSE] however marginal its score was.
+ * [fromScore] is the least danger an Age reads at one: the old banding on veins per chunk, six to a full score.
  */
-enum class Yield(val key: String, val fewestVeins: Int) {
-    NONE("none", 0),
-    TRACE("trace", 1),
-    LITTLE("little", 3),
-    SOME("some", 5),
-    MUCH("much", 9),
-    IMMENSE("immense", 20),
+enum class Yield(val key: String, val fromScore: Double) {
+    NONE("none", 0.0),
+    TRACE("trace", 0.0),
+    LITTLE("little", 2.5 / SIXTHS),
+    SOME("some", 4.5 / SIXTHS),
+    MUCH("much", 8.5 / SIXTHS),
+    IMMENSE("immense", 19.5 / SIXTHS),
+    MASSIVE("massive", Double.POSITIVE_INFINITY),
     ;
 
     companion object {
-        fun forVeins(veins: Int): Yield = entries.last { veins >= it.fewestVeins }
+        /** What [danger] pays: nothing where it does not, the hoard where it collapses, and otherwise by its score. */
+        fun of(danger: Danger): Yield = when {
+            !danger.paysOut -> NONE
+            danger.isTerminal -> MASSIVE
+            else -> entries.last { it != MASSIVE && danger.score >= it.fromScore }
+        }
     }
 }
+
+/** The steps a full score of danger was divided into, which is where the bands' lines fall. */
+private const val SIXTHS = 6.0

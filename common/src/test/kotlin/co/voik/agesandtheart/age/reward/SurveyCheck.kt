@@ -5,9 +5,8 @@ import io.kotest.core.spec.style.FunSpec
 /**
  * That what the survey says an Age holds is what the ground will actually hold.
  *
- * **The coupling is the point, not the words.** [Yield] bands the number [Deposits] places, so the only
- * way the report can lie is if the two stop agreeing — which is what the sweep below is for, and why
- * nothing here restates a vein count of its own.
+ * **The coupling is the point, not the words.** [Deposits] lays whatever [Yield] an Age reads at, so the report
+ * and the ground share one answer; what is pinned here is that it moves the right way with danger.
  *
  * The materials half is not reachable from here: naming one asks the item registry, which is frozen by the
  * time a spec runs (`DepositsCheck` has the argument in full).
@@ -16,35 +15,33 @@ class SurveyCheck : FunSpec({
 
     test("an Age that earns no deposit is reported as holding none") {
         val safe = danger(score = 0.0)
-        check(Yield.forVeins(Deposits.veinsPerChunk(safe)) == Yield.NONE) {
+        check(Yield.of(safe) == Yield.NONE) {
             "a safe Age was surveyed as holding something"
         }
     }
 
     test("an Age nobody wrote is reported as holding none, however dangerous") {
         val found = danger(score = 1.0, authored = false)
-        check(Yield.forVeins(Deposits.veinsPerChunk(found)) == Yield.NONE) {
+        check(Yield.of(found) == Yield.NONE) {
             "a found Age was surveyed as holding a deposit it will never grow"
         }
     }
 
     test("an Age over the threshold always reads as holding something") {
         val marginal = danger(score = PAYS_ABOVE)
-        check(Yield.forVeins(Deposits.veinsPerChunk(marginal)) != Yield.NONE) {
+        check(Yield.of(marginal) != Yield.NONE) {
             "an Age that earns a vein was surveyed as barren, which reads as the reward being broken"
         }
     }
 
-    test("a doomed Age reads at the top of the scale, however marginal it scored") {
+    test("a doomed Age reads as its massive layers, however marginal it scored") {
         val doomed = danger(score = PAYS_ABOVE, terminal = ALL_OF_IT)
-        check(Yield.forVeins(Deposits.veinsPerChunk(doomed)) == Yield.IMMENSE) {
-            "a doomed Age's tenfold hoard did not reach the top band"
-        }
+        check(Yield.of(doomed) == Yield.MASSIVE) { "a doomed Age's hoard read as ${Yield.of(doomed)}" }
     }
 
     test("the report never falls as the Age grows more dangerous") {
         val scores = (0..40).map { it / 20.0 }
-        val reported = scores.map { Yield.forVeins(Deposits.veinsPerChunk(danger(score = it))) }
+        val reported = scores.map { Yield.of(danger(score = it)) }
         val slipped = reported.zipWithNext().filter { (earlier, later) -> later < earlier }
         check(slipped.isEmpty()) {
             "a dearer Age surveyed as holding less than a cheaper one: $slipped"
@@ -55,7 +52,7 @@ class SurveyCheck : FunSpec({
         val scores = (0..400).map { it / 20.0 }
         val reached = scores.flatMap { score ->
             listOf(danger(score = score), danger(score = score, terminal = ALL_OF_IT))
-        }.map { Yield.forVeins(Deposits.veinsPerChunk(it)) }.toSet()
+        }.map { Yield.of(it) }.toSet()
         val unreachable = Yield.entries - reached - Yield.NONE
         check(unreachable.isEmpty()) {
             "these bands describe an amount no Age can hold, so the word would never be read: $unreachable"

@@ -15,12 +15,17 @@ import net.minecraft.world.level.levelgen.placement.CountPlacement
 import net.minecraft.world.level.levelgen.placement.HeightRangePlacement
 import net.minecraft.world.level.levelgen.placement.InSquarePlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
+import net.minecraft.world.level.levelgen.placement.RarityFilter
 import net.minecraft.world.level.levelgen.structure.templatesystem.BlockMatchTest
 import net.minecraft.world.level.levelgen.structure.templatesystem.TagMatchTest
 import kotlin.math.roundToInt
 
 /**
- * What a dangerous Age has in the ground (design §7.7) — deretheni, at a density its danger scales.
+ * What a dangerous Age has in the ground (design §7.7) — deretheni, as much of it as the Age's [Yield].
+ *
+ * **Each yield is laid as a vanilla ore is** (Jonah, 2026-10-22): traces as emerald, a little as diamond, some as
+ * iron, a good deal between iron and copper, large amounts as copper — their vein sizes, counts and heights — so
+ * a word the survey says means what a player already knows by sight. A collapsing Age lays the hoard instead.
  *
  * **Not a feature a writer can ask for.** The stone has a word, but it demands masterwork ink
  * (`#agesandtheart:requires_masterwork_ink`), so an Age made of the stuff is priced rather than free.
@@ -34,76 +39,59 @@ object Deposits {
     /**
      * This Age's deposit as a decoration layer, or null where the Age earns nothing.
      *
-     * **One `PlacedFeature` for the whole Age, built here and shared by every biome.** `FeatureSorter`
+     * **Its `PlacedFeature`s are built once for the whole Age, here, and shared by every biome.** `FeatureSorter`
      * indexes the sorted feature list by *identity* and `applyBiomeDecoration` looks each feature up in it
      * every chunk, so an equal-but-new object in the twentieth biome is a miss, and a miss is -1 into a
      * list in the middle of generation. [Features] pays for this lesson twice in its own comments; this is
      * the third place it applies.
      */
     fun layer(danger: Danger, rock: List<BlockState>): Decoration.Layer? {
-        val veins = veinsPerChunk(danger)
-        if (veins <= NOTHING) return null
-        return Decoration.layerOf(
-            GenerationStep.Decoration.UNDERGROUND_ORES,
-            listOf(depositIn(rock, veins, danger.isTerminal)),
-        )
+        val veins = veinsOf(Yield.of(danger), danger)
+        if (veins.isEmpty()) return null
+        val targets = targetsIn(rock)
+        return Decoration.layerOf(GenerationStep.Decoration.UNDERGROUND_ORES, veins.map { it.placed(targets) })
+    }
+
+    /** What a deposit of [yield] is laid as — see [VanillaVeins]. */
+    private fun veinsOf(yield: Yield, danger: Danger): List<Vein> = when (yield) {
+        Yield.NONE -> emptyList()
+        Yield.TRACE -> VanillaVeins.EMERALD
+        Yield.LITTLE -> VanillaVeins.DIAMOND
+        Yield.SOME -> VanillaVeins.IRON
+        Yield.MUCH -> VanillaVeins.IRON + VanillaVeins.COPPER_HALVED
+        Yield.IMMENSE -> VanillaVeins.LARGE_AMOUNTS.map { it.times(pastTheTop(danger)) }
+        Yield.MASSIVE -> listOf(hoard(danger))
     }
 
     /**
-     * How many veins of deretheni a chunk of this Age is offered, or [NOTHING] where it earns none.
-     *
-     * Public because the geologic survey says *how much* (§7.7), and a survey that worked the amount out
-     * for itself would be a second statement of the yield, free to drift from the ground it describes.
+     * How far past the line large amounts begins at this Age scores — one there, and more as it goes on, an Age twice
+     * as dangerous offered twice copper's veins — **up to [MOST_PAST_THE_TOP]**, where it would hold as much as the
+     * least of a collapse's hoard. Danger alone never buys what only a collapse does (Jonah, 2026-10-22).
      */
-    fun veinsPerChunk(danger: Danger): Int {
-        if (!danger.paysOut) return NOTHING
-        val multiple = if (danger.isTerminal) TERMINAL_VEINS else ORDINARY_MULTIPLE
-        return veinsFor(danger.score) * multiple
-    }
+    private fun pastTheTop(danger: Danger): Double =
+        (danger.score / Yield.IMMENSE.fromScore).coerceIn(ONE.toDouble(), MOST_PAST_THE_TOP)
+
+    /** How much deretheni a chunk of this Age holds in the ground ([Vein.inTheGround]) — what [leastHoard] is compared against. */
+    internal fun heldAt(danger: Danger): Double = veinsOf(Yield.of(danger), danger).sumOf(Vein::inTheGround)
+
+    /** How much the least of a collapse's hoard holds a chunk: one sixth of a full score's veins. */
+    internal val leastHoard: Double get() = hoardOf(TERMINAL_VEINS).inTheGround
+
+    /** The most [pastTheTop] goes to: large amounts as many times over as they fit in [leastHoard]. */
+    private val MOST_PAST_THE_TOP: Double by lazy { leastHoard / VanillaVeins.LARGE_AMOUNTS.sumOf(Vein::inTheGround) }
 
     /**
-     * How many veins a chunk is offered at this score.
+     * How many veins of the hoard a chunk of a collapsing Age is offered.
      *
-     * **No ceiling** (§7.7): an Age that scores over one gets more than [VEINS_AT_FULL_DANGER], because a
-     * player who works out how to survive a world that should not be survivable has earned what is in it.
-     * The floor is one — an Age over the threshold that rounded to nothing would read as the reward being
-     * broken rather than as the Age being marginal.
+     * **Its score still counts**: forty a chunk for every sixth of a full score, and never fewer than forty —
+     * "grab what you can before you cannot" is not a rate to be tuned against the ordinary economy, because the Age
+     * it comes from cannot be farmed.
      */
-    private fun veinsFor(score: Double): Int =
-        (score * VEINS_AT_FULL_DANGER).roundToInt().coerceAtLeast(ONE_VEIN)
+    fun hoardVeinsPerChunk(danger: Danger): Int =
+        (danger.score * SIXTHS).roundToInt().coerceAtLeast(ONE) * TERMINAL_VEINS
 
     /**
-     * The deposit itself — a vein of the stone, sited deep.
-     *
-     * **Deep is the whole of the siting, and that is deliberate.** §7.7 wants the material somewhere
-     * plausibly dangerous without guaranteeing it, and explicitly declines to pay for siting each vein
-     * against the hazard that earned it: the score says *how much*, and Minecraft's own emergent difficulty
-     * is trusted to make the trip cost something. Deep and dark is the half of that which is mechanical;
-     * near the lava and near the wound are the half that is not, and neither is worth a placement modifier.
-     */
-    private fun depositIn(rock: List<BlockState>, veins: Int, raid: Boolean): Holder<PlacedFeature> {
-        val size = VEIN_SIZE * if (raid) TERMINAL_VEIN_SIZE else ORDINARY_MULTIPLE
-        return Holder.direct(
-            PlacedFeature(
-                Holder.direct(OreFeature(targetsIn(rock), size)),
-                listOf(
-                    CountPlacement.of(veins),
-                    InSquarePlacement.spread(),
-                    if (raid) inTheFloorItself() else deepInTheGround(),
-                    BiomeFilter.biome(),
-                ),
-            ),
-        )
-    }
-
-    /** Where an ordinary Age keeps it: spread through the deep half, thickest well under the sea. */
-    private fun deepInTheGround(): HeightRangePlacement = HeightRangePlacement.triangle(
-        VerticalAnchor.aboveBottom(OFF_THE_FLOOR),
-        VerticalAnchor.absolute(DEEPEST_ORDINARY_GROUND),
-    )
-
-    /**
-     * Where a doomed Age keeps it — **reaching down into the band the tear takes, and well above it**.
+     * The hoard — **reaching down into the band the tear takes, and well above it**.
      *
      * That is the whole shape of §7.7's raid: the reward is absurd, it is at the bottom of a world that is
      * coming apart from the bottom, and every trip down is a race against the ground you are standing on.
@@ -120,9 +108,17 @@ object Deposits {
      * Uniform rather than triangular, so the part that survives reads as the same seam continuing down into
      * the part that does not.
      */
-    private fun inTheFloorItself(): HeightRangePlacement = HeightRangePlacement.uniform(
-        VerticalAnchor.aboveBottom(SurfacingStrategy.BEDROCK_FADE),
-        VerticalAnchor.aboveBottom(SurfacingStrategy.BEDROCK_FADE + REACHES_OVER_THE_BEDROCK),
+    private fun hoard(danger: Danger) = hoardOf(hoardVeinsPerChunk(danger))
+
+    private fun hoardOf(veins: Int) = Vein(
+        size = HOARD_VEIN_SIZE,
+        discardedInAir = 0.0f,
+        perChunk = veins,
+        band = Band(
+            Height(SurfacingStrategy.BEDROCK_FADE, fromTheBottom = true),
+            Height(SurfacingStrategy.BEDROCK_FADE + REACHES_OVER_THE_BEDROCK, fromTheBottom = true),
+            thickestMidway = false,
+        ),
     )
 
     /**
@@ -145,56 +141,118 @@ object Deposits {
         return vanillas + ours
     }
 
-    /**
-     * Veins per chunk at a score of one — a whole Age of the worst of everything.
-     *
-     * Between vanilla's diamond (one attempt a chunk) and its copper (sixteen): finding this should be a
-     * trip somebody made on purpose, not a thing that happens on the way somewhere else, and §7.7 wants a
-     * deposit that runs out where you are standing.
-     */
-    private const val VEINS_AT_FULL_DANGER = 6
+    /** What a collapsing Age's veins are each worth: ten of vanilla's diamond. */
+    private const val HOARD_VEIN_SIZE = 40
 
-    private const val ONE_VEIN = 1
-
-    /** What an Age that earns no deposit is offered. */
-    private const val NOTHING = 0
-
-    /**
-     * What a terminal Age multiplies the vein *count* by (§7.7).
-     *
-     * Absurd on purpose and unbalanced by design — "grab what you can before you cannot" is not a rate to
-     * be tuned against the ordinary economy, because the Age it comes from cannot be farmed.
-     *
-     * **Split from the size**, because the two answer different questions: the count is what "more ore"
-     * means, the size is what one strike is worth.
-     *
-     * **Its floor is fixed by §7.7 rather than chosen.** A doomed Age must land in [Yield.IMMENSE] however
-     * marginal its score, and the marginal case is one vein times this multiple against a band that opens
-     * at twenty — so anything under twenty silently breaks the rule `SurveyCheck` guards. The tear becoming
-     * one layer does not move it: if the seam now reads as too dense, [TERMINAL_VEIN_SIZE] is the lever,
-     * because thinning the count is what would quietly cost the register its top band.
-     */
+    /** And how many of them a chunk is offered for each sixth of a full score. */
     private const val TERMINAL_VEINS = 40
 
-    /**
-     * And what it multiplies the vein size by, which is deliberately not [TERMINAL_VEINS].
-     *
-     * A vein of forty against vanilla's diamond four: one strike is a haul, and you still have to find the
-     * next one.
-     */
-    private const val TERMINAL_VEIN_SIZE = 10
+    private const val SIXTHS = 6
+    private const val ONE = 1
 
     /** How many layers the hoard is laid through, from where the bedrock floor has faded out. */
     private const val REACHES_OVER_THE_BEDROCK = 6
+}
 
-    private const val ORDINARY_MULTIPLE = 1
+/**
+ * One ore placement, made of deretheni: how big a vein, how much of it an opening to the air loses, how many a chunk
+ * is offered — or one in how many chunks, for the rarest — and where in the height of the world.
+ */
+private data class Vein(
+    val size: Int,
+    val discardedInAir: Float,
+    val perChunk: Int,
+    val band: Band,
+    val oneChunkIn: Int = EVERY_CHUNK,
+) {
+    /**
+     * How many blocks of the stone a chunk is offered in the ground by this vein, on average — its size, as often as
+     * it comes, by the share of its band in the ground. Measured there because that is where a player digs: iron's
+     * mountain veins and most of emerald's land in the open air of an Age without mountains.
+     */
+    val inTheGround: Double get() = size.toDouble() * perChunk / oneChunkIn * band.shareInTheGround
 
-    /** Vanilla's own diamond vein, which is the scarcity this is aiming at. */
-    private const val VEIN_SIZE = 4
+    /** The same vein offered [factor] times as often a chunk. */
+    fun times(factor: Double): Vein = copy(perChunk = (perChunk * factor).roundToInt())
 
-    /** Clear of the bedrock floor, so a vein is never half-eaten by it. */
-    private const val OFF_THE_FLOOR = 8
+    fun placed(targets: List<BlockReplacement>): Holder<PlacedFeature> {
+        val often = if (oneChunkIn > EVERY_CHUNK) RarityFilter.onAverageOnceEvery(oneChunkIn) else CountPlacement.of(perChunk)
+        return Holder.direct(
+            PlacedFeature(
+                Holder.direct(OreFeature(targets, size, discardedInAir)),
+                listOf(often, InSquarePlacement.spread(), band.placement, BiomeFilter.biome()),
+            ),
+        )
+    }
 
-    /** About twenty under an ordinary sea: deep enough to be a trip, shallow enough to exist in a cavern Age. */
-    private const val DEEPEST_ORDINARY_GROUND = 40
+    private companion object {
+        const val EVERY_CHUNK = 1
+    }
+}
+
+/** A height in the world: [y] blocks, counted up from the bottom of the world where [fromTheBottom]. */
+private data class Height(val y: Int, val fromTheBottom: Boolean = false) {
+    val anchor: VerticalAnchor get() = if (fromTheBottom) VerticalAnchor.aboveBottom(y) else VerticalAnchor.absolute(y)
+
+    /** The same height in the overworld. */
+    val inTheOverworld: Int get() = if (fromTheBottom) OVERWORLD_BOTTOM + y else y
+}
+
+/** Where a vein is laid: from [low] to [high], evenly, or thickest midway and thinning to nothing at both ends. */
+private data class Band(val low: Height, val high: Height, val thickestMidway: Boolean) {
+    val placement: HeightRangePlacement
+        get() = if (thickestMidway) HeightRangePlacement.triangle(low.anchor, high.anchor) else HeightRangePlacement.uniform(low.anchor, high.anchor)
+
+    /** How much of what is laid here falls in the overworld's ground, from its bottom up to its sea. */
+    val shareInTheGround: Double get() = shareBelow(GROUND_TOP) - shareBelow(OVERWORLD_BOTTOM)
+
+    /** How much of what is laid here falls under [y] in the overworld. */
+    private fun shareBelow(y: Int): Double {
+        val bottom = low.inTheOverworld.toDouble()
+        val top = high.inTheOverworld.toDouble()
+        val across = ((y - bottom) / (top - bottom)).coerceIn(0.0, 1.0)
+        if (!thickestMidway) return across
+        return if (across <= HALF) 2 * across * across else 1 - 2 * (1 - across) * (1 - across)
+    }
+}
+
+/** The overworld's floor and its sea, which bound the ground a deposit is measured in. */
+private const val OVERWORLD_BOTTOM = -64
+private const val GROUND_TOP = 64
+private const val HALF = 0.5
+
+/**
+ * Vanilla's own ore placements, copied from its placed and configured features: the sizes, the chance a block in
+ * the open is dropped, the counts and the heights. Kept as they are written there rather than named one by one,
+ * since the point of each is that it is vanilla's.
+ */
+private object VanillaVeins {
+    private val DIAMOND_BAND = Band(Height(-80, fromTheBottom = true), Height(80, fromTheBottom = true), thickestMidway = true)
+    private val COPPER_BAND = Band(Height(-16), Height(112), thickestMidway = true)
+
+    val EMERALD = listOf(Vein(3, 0.0f, 100, Band(Height(-16), Height(480), thickestMidway = true)))
+
+    val DIAMOND = listOf(
+        Vein(4, 0.5f, 7, DIAMOND_BAND),
+        Vein(8, 0.5f, 2, Band(Height(-64), Height(-4), thickestMidway = false)),
+        Vein(12, 0.7f, 1, DIAMOND_BAND, oneChunkIn = 9),
+        Vein(8, 1.0f, 4, DIAMOND_BAND),
+    )
+
+    val IRON = listOf(
+        Vein(9, 0.0f, 90, Band(Height(80), Height(384), thickestMidway = true)),
+        Vein(9, 0.0f, 10, Band(Height(-24), Height(56), thickestMidway = true)),
+        Vein(4, 0.0f, 10, Band(Height(0, fromTheBottom = true), Height(72), thickestMidway = false)),
+    )
+
+    val COPPER = listOf(Vein(10, 0.0f, 16, COPPER_BAND))
+
+    /** Copper at half its count, laid with iron for what lies between them. */
+    val COPPER_HALVED = listOf(Vein(10, 0.0f, 8, COPPER_BAND))
+
+    /** The dripstone caves' copper, which is what makes copper the commonest ore a player sees. */
+    val COPPER_LARGE = listOf(Vein(20, 0.0f, 16, COPPER_BAND))
+
+    /** What large amounts are laid as: copper, with the dripstone caves' veins among it. */
+    val LARGE_AMOUNTS = COPPER + COPPER_LARGE
 }

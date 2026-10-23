@@ -20,7 +20,7 @@ import net.minecraft.server.MinecraftServer
  * the world will absorb.
  *
  * **Derived from the same [Spending] the generator uses**, so the instrument and the world cannot drift
- * apart. That is [Yield.forVeins]'s rule applied to the other register: report the thing that is actually
+ * apart. That is [Yield.of]'s rule applied to the other register: report the thing that is actually
  * placed, never a second calculation that agrees with it today.
  */
 data class Tremor(val footing: Footing, val manifests: List<Manifestation>) {
