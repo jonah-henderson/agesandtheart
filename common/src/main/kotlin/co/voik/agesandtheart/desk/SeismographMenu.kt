@@ -42,9 +42,9 @@ fun SeismographMenuProvider(pos: BlockPos): MenuProvider = SimpleMenuProvider(
  *
  * **A `ContainerData` rather than a payload of our own**, which is what makes that cheap: vanilla already
  * syncs a menu's data slots on every broadcast, so the reading follows a writer laying pages at the desk
- * *while the screen is open* with nothing of ours on the wire and nothing to register per loader. Two ints
- * carry it because that is all there is — which state the ground is in, and a bitmask of what the
- * instability bought.
+ * *while the screen is open* with nothing of ours on the wire and nothing to register per loader. It carries
+ * which state the ground is in and a bitmask of what the instability bought — in [BOUGHT_SLOTS] pieces, since
+ * a data slot crosses the wire as a short.
  */
 class SeismographMenu(
     containerId: Int,
@@ -64,7 +64,7 @@ class SeismographMenu(
     val footing: Int get() = reading.get(FOOTING)
 
     /** What the instability bought, as a bitmask over `Manifestation.entries`. */
-    val bought: Int get() = reading.get(BOUGHT)
+    val bought: Int get() = (0..<BOUGHT_SLOTS).fold(NOTHING) { mask, slot -> mask or joined(reading.get(BOUGHT + slot), slot) }
 
     /**
      * **What it is reading**, which is what decides the calm wording rather than a second opinion about it.
@@ -84,8 +84,25 @@ class SeismographMenu(
     companion object {
         const val FOOTING = 0
         const val BOUGHT = 1
-        const val SOURCE = 2
-        const val READINGS = 3
+
+        /**
+         * How many slots the bitmask takes, at [BITS_A_SLOT] each. A slot is synced as a short, so a mask in one
+         * lost every manifestation past the sixteenth and read the sixteenth as all of them.
+         */
+        const val BOUGHT_SLOTS = 2
+        const val SOURCE = BOUGHT + BOUGHT_SLOTS
+        const val READINGS = SOURCE + 1
+
+        /** A short's bits, short of its sign. */
+        const val BITS_A_SLOT = 15
+        private const val PIECE = (1 shl BITS_A_SLOT) - 1
+        private const val NOTHING = 0
+
+        /** The [slot]th piece of [mask], as a data slot carries it. */
+        fun piece(mask: Int, slot: Int): Int = (mask ushr (slot * BITS_A_SLOT)) and PIECE
+
+        /** A [piece] put back where it came from in the mask. */
+        fun joined(piece: Int, slot: Int): Int = (piece and PIECE) shl (slot * BITS_A_SLOT)
     }
 }
 
@@ -106,7 +123,7 @@ private class LiveReading(player: ServerPlayer?, pos: BlockPos) : InstrumentRead
         settle()
         return when (index) {
             SeismographMenu.FOOTING -> footing
-            SeismographMenu.BOUGHT -> bought
+            in SeismographMenu.BOUGHT..<SeismographMenu.SOURCE -> SeismographMenu.piece(bought, index - SeismographMenu.BOUGHT)
             else -> source.ordinal
         }
     }
