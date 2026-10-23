@@ -62,6 +62,12 @@ interface WorldFacts {
     /** One block for a material asked for by tag in [parameter], drawn at [seed], or null where none answers. */
     fun drawnMaterial(query: String, parameter: String, seed: Long): String?
 
+    /**
+     * One block for what a minted thing is made of, asked for by tag: one holding a fluid where the thing [flows] —
+     * a spring — and a block a world can be built of where it stands. Drawn at [seed]; null where none answers.
+     */
+    fun drawnSubstance(query: String, flows: Boolean, seed: Long): String?
+
     /** Whether two tags mean opposite things. */
     fun areOpposed(first: String, second: String): Boolean
 }

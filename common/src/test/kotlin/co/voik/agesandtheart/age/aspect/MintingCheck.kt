@@ -77,6 +77,16 @@ class MintingCheck : FunSpec({
     /** What a book resolved to as instability, so a charge can be checked rather than only a claim. */
     fun flawsOf(vararg pages: String): List<Flaw> = resolved(SAMPLE_SEED, *pages).instability.flaws
 
+    /** A quality asked of a spring is drawn from what pours — lava for `molten` — and costs nothing. */
+    test("a spring asked to be molten runs with lava, and is coherent") {
+        val grown = placed("molten", "springs")
+        check(grown.any { it.startsWith("minecraft:spring_water") && "of=minecraft:lava" in it }) {
+            "'molten springs' should have minted a lava spring, and left $grown"
+        }
+        val incoherent = flawsOf("molten", "springs").filter { it.register == Register.INCOHERENT }
+        check(incoherent.isEmpty()) { "'molten springs' was charged $incoherent" }
+    }
+
     /**
      * **A spring cannot run with a solid, and the writer is told what it cost.**
      *

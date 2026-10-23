@@ -171,6 +171,10 @@ object Materials {
     private val CAN_SURVIVE_PARAMETERS =
         arrayOf(BlockState::class.java, LevelReader::class.java, BlockPos::class.java)
 
+    /** Whether the block [named] has a fluid in it, which is the whole of what a spring asks of its substance. */
+    fun holdsAFluid(named: String?): Boolean =
+        named?.let(::blockNamed)?.defaultBlockState()?.fluidState?.isEmpty == false
+
     private fun blockNamed(named: String): Block? {
         val id = Identifier.tryParse(named) ?: return null
         return BuiltInRegistries.BLOCK.getOptional(id).orElse(null)

@@ -293,6 +293,14 @@ data class Vocabulary(
     override fun drawnMaterial(query: String, parameter: String, seed: Long): String? =
         materials.drawFor(query, seed, MaterialTable.mayDrawFor(parameter))
 
+    override fun drawnSubstance(query: String, flows: Boolean, seed: Long): String? =
+        if (flows) flowingSubstances.drawFor(query, seed, Materials::holdsAFluid) else materials.drawFor(query, seed)
+
+    /** What a spring may run with, asked for by tag: the sea's own table, which is the handful of things that pour. */
+    private val flowingSubstances: MaterialTable by lazy {
+        MaterialTable(tags = tagsBySlot[Aspect.SEA] ?: PresetTags(emptyMap()), withheld = emptySet())
+    }
+
     companion object {
         /** Where a pack puts words. */
         const val WORD_DIRECTORY = "art/word"
