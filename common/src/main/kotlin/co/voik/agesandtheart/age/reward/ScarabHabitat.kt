@@ -55,14 +55,8 @@ object ScarabHabitat {
     /** The foot of a pillar a colony is building, whoever is working on it. */
     val PILLAR: ResourceKey<PoiType> = ResourceKey.create(Registries.POINT_OF_INTEREST_TYPE, "scarab_pillar".location())
 
-    /**
-     * Everything about the Age itself that a colony asks, rather than about any ground in it.
-     *
-     * [writtenByAPlayer] is the provenance every reward reads (design §7.7): a found book's Age can meet the
-     * other three and still never hold a colony.
-     */
+    /** Everything about the Age itself that a colony asks, rather than about any ground in it. */
     data class AgeReading(
-        val writtenByAPlayer: Boolean,
         val warmth: Warmth,
         val anyJungle: Boolean,
         val torchflowers: Torchflowers,
@@ -71,7 +65,7 @@ object ScarabHabitat {
         val growsTorchflowersWild: Boolean get() = torchflowers == Torchflowers.WILD_IN_THE_JUNGLE
 
         /** Whether everything but the ground is there. */
-        val wouldHoldAColony: Boolean get() = writtenByAPlayer && isWarmEnough && anyJungle && growsTorchflowersWild
+        val wouldHoldAColony: Boolean get() = isWarmEnough && anyJungle && growsTorchflowersWild
     }
 
     /**
@@ -82,8 +76,7 @@ object ScarabHabitat {
     fun colonyLayer(registries: HolderLookup.Provider, recipe: AgeRecipe): Decoration.Layer? {
         val composition = recipe.composition ?: return null
         val torchflowers = torchflowersIn(composition) { biome -> isJungle(registries, biome) }
-        val wouldLiveHere = recipe.authored && warmthOf(composition) == Warmth.SUITS &&
-            torchflowers == Torchflowers.WILD_IN_THE_JUNGLE
+        val wouldLiveHere = warmthOf(composition) == Warmth.SUITS && torchflowers == Torchflowers.WILD_IN_THE_JUNGLE
         if (!wouldLiveHere) return null
         return Decoration.layerOf(GenerationStep.Decoration.TOP_LAYER_MODIFICATION, listOf(COLONIES))
     }
@@ -98,7 +91,6 @@ object ScarabHabitat {
     fun readAge(level: ServerLevel, recipe: AgeRecipe): AgeReading? {
         val composition = recipe.composition ?: return null
         return AgeReading(
-            writtenByAPlayer = recipe.authored,
             warmth = warmthOf(composition),
             anyJungle = anyJungle(level),
             torchflowers = torchflowersIn(composition) { biome -> isJungle(level, biome) },
@@ -126,25 +118,20 @@ object ScarabHabitat {
     }
 
     /**
-     * Whether the Age is warm enough for a colony and not so hot that nothing could live in it
-     * (design §7.1.2).
+     * Whether the book made the Age warm for a colony — **written, never vanilla's** (Jonah, 2026-10-23): some territory's
+     * temperature asked to start in the warm band, as `warm` and `tropical` ask it to, and not as high as `scorching`.
      *
-     * Read off the climate numbers rather than off the biome, because naming a jungle outright puts one in
-     * a frozen world and a named jungle reports its own warmth whatever surrounds it.
-     *
-     * **Any territory, not every one**, unlike [EarlyGameRareMaterials]'s gates: a colony lives in one
-     * place, so a divided Age with a warm half is a home. Too cold means there is nowhere warm at all.
-     * An Age nobody bent runs vanilla's whole range and so suits.
+     * Read off the climate numbers rather than off the biome, because naming a jungle outright puts one in a frozen
+     * world and a named jungle reports its own warmth whatever surrounds it. **Any territory, not every one**: a colony
+     * lives in one place, so a divided Age with a warm half is a home.
      */
     fun warmthOf(composition: AgeComposition): Warmth {
         val territories = composition.membersIn(Aspect.CLIMATE).coerceAtLeast(ONE_CLIMATE)
-        val spans = (0..<territories).map { member ->
+        val written = (0..<territories).mapNotNull { member ->
             Span.read(composition.optionsFor(Aspect.CLIMATE, member).of(ClimateAxis.TEMPERATURE.parameter))
-                ?: Span.NATURAL
         }
-        val somewhereLivable = spans.any { it.most >= WARM_ENOUGH && it.least <= SEARING }
-        if (somewhereLivable) return Warmth.SUITS
-        return if (spans.all { it.most < WARM_ENOUGH }) Warmth.TOO_COLD else Warmth.TOO_HOT
+        if (written.any { it.least >= WARM_ENOUGH && it.least < SEARING }) return Warmth.SUITS
+        return if (written.any { it.least >= SEARING }) Warmth.TOO_HOT else Warmth.TOO_COLD
     }
 
     /**
@@ -381,20 +368,11 @@ object ScarabHabitat {
     /** One climate territory is what an Age nobody divided has — see [AgeComposition.climates]. */
     private const val ONE_CLIMATE = 1
 
-    /**
-     * Where `OverworldBiomeBuilder` stops calling a temperature temperate, the same table
-     * [ClimateAxis.landmarks] reads. Below this an Age has no warm ground anywhere.
-     */
-    private const val WARM_ENOUGH = 0.2
+    /** Where `warm` asks a temperature to start. A climate written to start lower is not warm enough to be a home. */
+    private const val WARM_ENOUGH = 0.15
 
-    /**
-     * Above this the world is a furnace and nothing lives in it.
-     *
-     * Ours and uncalibrated: vanilla's table has no landmark above the desert at 0.55, and the jungle lives
-     * at the top of that band, so the threshold must sit well clear of it or warmth would refuse the very
-     * climates the jungle needs. It bites only on an Age pinned to the very top.
-     */
-    private const val SEARING = 0.85
+    /** Where `scorching` asks a temperature to start — vanilla's desert, and a furnace to a colony. */
+    private const val SEARING = 0.55
 
     /** How far the biome sweep reaches, and how coarsely — a jungle is far wider than the stride. */
     private const val JUNGLE_SWEEP = 1024

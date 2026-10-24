@@ -45,6 +45,7 @@ private fun judged(kind: FoundBookKind, book: JsonObject): JudgedBook {
         flaws = strings("flaws"),
         // A report writes an absent value as an empty string.
         failure = book.get("failure").asString.ifEmpty { null },
+        rewards = strings("rewards"),
     )
 }
 

@@ -69,12 +69,12 @@ object Deposits {
      * least of a collapse's hoard. Danger alone never buys what only a collapse does (Jonah, 2026-10-22).
      */
     private fun pastTheTop(danger: Danger): Double =
-        (danger.score / Yield.IMMENSE.fromScore).coerceIn(ONE.toDouble(), MOST_PAST_THE_TOP)
+        (danger.score / danger.lineFor(Yield.IMMENSE)).coerceIn(ONE.toDouble(), MOST_PAST_THE_TOP)
 
     /** How much deretheni a chunk of this Age holds in the ground ([Vein.inTheGround]) — what [leastHoard] is compared against. */
     internal fun heldAt(danger: Danger): Double = veinsOf(Yield.of(danger), danger).sumOf(Vein::inTheGround)
 
-    /** How much the least of a collapse's hoard holds a chunk: one sixth of a full score's veins. */
+    /** How much the least of a collapse's hoard holds a chunk: one step's veins. */
     internal val leastHoard: Double get() = hoardOf(TERMINAL_VEINS).inTheGround
 
     /** The most [pastTheTop] goes to: large amounts as many times over as they fit in [leastHoard]. */
@@ -83,12 +83,12 @@ object Deposits {
     /**
      * How many veins of the hoard a chunk of a collapsing Age is offered.
      *
-     * **Its score still counts**: forty a chunk for every sixth of a full score, and never fewer than forty —
+     * **Its score still counts**: forty a chunk for every half of the line deretheni begins at, and never fewer than forty —
      * "grab what you can before you cannot" is not a rate to be tuned against the ordinary economy, because the Age
      * it comes from cannot be farmed.
      */
     fun hoardVeinsPerChunk(danger: Danger): Int =
-        (danger.score * SIXTHS).roundToInt().coerceAtLeast(ONE) * TERMINAL_VEINS
+        (danger.score / danger.lineFor(Yield.TRACE) * STEPS_TO_THE_LINE).roundToInt().coerceAtLeast(ONE) * TERMINAL_VEINS
 
     /**
      * The hoard — **reaching down into the band the tear takes, and well above it**.
@@ -144,10 +144,11 @@ object Deposits {
     /** What a collapsing Age's veins are each worth: ten of vanilla's diamond. */
     private const val HOARD_VEIN_SIZE = 40
 
-    /** And how many of them a chunk is offered for each sixth of a full score. */
+    /** And how many of them a chunk is offered for each step of danger. */
     private const val TERMINAL_VEINS = 40
 
-    private const val SIXTHS = 6
+    /** How many steps of danger lie below the line deretheni begins at. */
+    private const val STEPS_TO_THE_LINE = 2.0
     private const val ONE = 1
 
     /** How many layers the hoard is laid through, from where the bedrock floor has faded out. */

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.command
 
+import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.age.language.Reading
 import co.voik.agesandtheart.age.resolution.Landing
 import co.voik.agesandtheart.Constants
@@ -285,7 +286,7 @@ object AgeCommand {
         if (unknown.isNotEmpty()) {
             return report.fail("The Art has never heard of ${unknown.joinToString(" ")}")
         }
-        // The one refusal in the Art (§4.3.1): name the thing you are making, or there is no book. Without
+        // The one refusal in the Art (design §2): name the thing you are making, or there is no book. Without
         // it an empty book would be a free reroll on a random Age, which is what repair would hand back.
         // **An omitted seed is a roll, not the name's hash.** See `AgeRecipe.freshSeed`; the seed is
         // printed with the Age, so a world worth keeping can be pinned by writing it back.
@@ -302,7 +303,8 @@ object AgeCommand {
         report.only("age", id)
         report.only("recipe", recipe.world)
         report.only("seed", chosenSeed)
-        report.only("cavernRuins", recipe.composition?.let(CavernRuins::qualifies) == true)
+        val danger = Danger.of(source.server, recipe)
+        report.only("cavernRuins", recipe.composition?.let { CavernRuins.qualifies(it, danger) } == true)
         report.fact("cost", resolution.cost) { "  cost ${resolution.cost}, ${resolution.instability}" }
         report.only("instability", resolution.instability.index)
         for (flaw in resolution.instability.flaws) {
@@ -383,16 +385,18 @@ object AgeCommand {
         for (word in authored) {
             val places = vocabulary.lexicon.placesFor(word).sortedBy { it.ordinal }.map { it.page }
             val takes = vocabulary.lexicon.acceptance(word) != null
+            val ink = vocabulary.ink.tierFor(word, source.server.registryAccess())
             val fields = mapOf(
                 "word" to word.name,
                 "meanings" to word.meanings.size,
                 "aspects" to places,
                 "takes" to takes,
                 "price" to word.price,
+                "ink" to ink.key,
             )
             val taking = if (takes) ", takes pages" else ""
             report.entry("authoredWords", fields) {
-                "  ${word.name} — ${word.meanings.size} meanings, ${word.price} ink$taking: ${places.joinToString(" ")}"
+                "  ${word.name} — ${word.meanings.size} meanings, ${word.price} ${ink.key} ink$taking: ${places.joinToString(" ")}"
             }
         }
         val structural = vocabulary.structurePages

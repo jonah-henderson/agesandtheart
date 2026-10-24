@@ -16,10 +16,21 @@ import net.minecraft.resources.Identifier
  */
 class ScarabHabitatCheck : FunSpec({
 
-    test("an Age nobody bent the climate of is warm enough somewhere") {
-        check(ScarabHabitat.warmthOf(plain()) == ScarabHabitat.Warmth.SUITS) {
-            "an unstated climate counted as unlivable, so only a written climate could ever hold a colony"
+    /** Warmth is asked for in the book, never lent by vanilla's range (Jonah, 2026-10-23). */
+    test("an Age nobody bent the climate of is not warm enough") {
+        check(ScarabHabitat.warmthOf(plain()) == ScarabHabitat.Warmth.TOO_COLD) {
+            "an unstated climate counted as warm, so a book of torchflowers in a jungle held a colony by itself"
         }
+    }
+
+    test("a temperate Age, which reaches the warm band without starting in it, is not warm enough") {
+        check(ScarabHabitat.warmthOf(climate(TEMPERATE)) == ScarabHabitat.Warmth.TOO_COLD) {
+            "a temperate climate suited a beetle"
+        }
+    }
+
+    test("a warm Age suits") {
+        check(ScarabHabitat.warmthOf(climate(WARM)) == ScarabHabitat.Warmth.SUITS) { "`warm` was refused" }
     }
 
     test("a frozen Age is too cold") {
@@ -97,8 +108,10 @@ class ScarabHabitatCheck : FunSpec({
 
         /** Words of the corpus, said as the spans they set rather than as the words. */
         private const val FREEZING = "-0.95..-0.45"
-        private const val TROPICAL = "0.45..0.9"
-        private const val SEARING = "0.9..1.0"
+        private const val TROPICAL = "0.22..0.54"
+        private const val WARM = "0.15..1"
+        private const val TEMPERATE = "-0.25..0.45"
+        private const val SEARING = "0.55..1"
 
         private val TORCHFLOWERS = ScarabHabitat.TORCHFLOWERS.toString()
         private const val JUNGLE = "minecraft:jungle"

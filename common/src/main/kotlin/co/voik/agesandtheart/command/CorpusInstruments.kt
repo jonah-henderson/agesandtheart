@@ -1,5 +1,8 @@
 package co.voik.agesandtheart.command
 
+import co.voik.agesandtheart.age.reward.Danger
+import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.generation.Rewards
 import net.minecraft.util.Prediction
 import net.minecraft.world.item.ItemStack
 import co.voik.agesandtheart.content.AgeComponents
@@ -326,7 +329,16 @@ internal object CorpusInstruments {
                 ?: return report.fail("This pack ships no '${kind.grammar}' grammar, so the Art writes none")
         }
         report.fact("books", drafts.size) { "${drafts.size} ${kind.key} books:" }
+        val server = context.source.server
+        // The Age a found copy of each book builds: what it would earn, which must be nothing, and how dangerous it is.
+        fun recipeOf(draft: FoundBookDraft): AgeRecipe? {
+            val resolution = vocabulary.resolve(draft.pages, draft.seed) ?: return null
+            return AgeRecipe.written(server, resolution, draft.pages, draft.seed, authored = false)
+        }
         for (draft in drafts) {
+            val recipe = recipeOf(draft)
+            val rewards = recipe?.let { Rewards.earnedBy(server, it) }.orEmpty()
+            val danger = recipe?.let { Danger.of(server, it).score } ?: 0.0
             val fields = mapOf(
                 "seed" to draft.seed,
                 "pages" to draft.pages,
@@ -339,8 +351,13 @@ internal object CorpusInstruments {
                 "instability" to (draft.instability?.index ?: 0),
                 "flaws" to draft.instability?.flaws.orEmpty().map { it.toString() },
                 "failure" to draft.failure,
+                "rewards" to rewards,
+                "danger" to danger,
             )
-            report.entry("book", fields) { "  ${draft.seed}: ${draft.pages.joinToString(" ")} — ${draft.instability ?: draft.failure}" }
+            val earning = if (rewards.isEmpty()) "" else " — earns ${rewards.joinToString(", ")}"
+            report.entry("book", fields) {
+                "  ${draft.seed}: ${draft.pages.joinToString(" ")} — ${draft.instability ?: draft.failure}$earning"
+            }
         }
         report.finish()
         return SUCCESS

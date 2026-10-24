@@ -237,6 +237,8 @@ object AgeGeneration {
         // The Age's rock as one list, worked out once: the ores are seeded into it and the features are
         // placed on it, and it was flattened separately for each.
         val rockBlocks = fill.blocks.flatten()
+        // What the Age pays and what it may hold are read off one danger, so the two can never disagree (§7.7).
+        val danger = Danger.of(server, recipe)
         val below = character.mapFor(Aspect.CARVERS, composition.spreadOf(Aspect.CARVERS), seed)
         // Climate divides on a map of its own: which climate a column has is a different question from what
         // paints it. One climate needs no map and gets `whole` (see [RegionalClimate]).
@@ -247,7 +249,7 @@ object AgeGeneration {
             character.mapFor(Aspect.CLIMATE, composition.spreadOf(Aspect.CLIMATE), seed),
         )
         // One biome source for the whole Age, and no region map: one climate table spans the world however
-        // many terrains carve it up (design §3.1).
+        // many terrains carve it up.
         val biomeOptions = composition.optionsFor(Aspect.BIOMES, 0)
         val biomeStretch = Biomes.stretchIn(biomeOptions, seed)
         return AgeChunkGenerator(
@@ -370,7 +372,7 @@ object AgeGeneration {
                 if (hasAnAbyss) WRECKAGE_ON_AN_ABYSS_FLOOR else emptyMap(),
                 withoutWhatIsBuiltUnderground = composition.hasNothingBeneathIt,
             ).let { built -> built + DeepWrecks.structureSets(server, hasAnAbyss, built) } +
-                CavernRuins.structureSets(server, composition),
+                CavernRuins.structureSets(server, composition, danger),
             // **The climate the biomes are looked up by, and it comes from the same world they do.** This
             // was the overworld's for every Age, so a landform of ours over the infernal template chose
             // nether biomes with overworld noise — and over the dark void, where the End picks by distance
@@ -388,7 +390,7 @@ object AgeGeneration {
             Decoration.laidOver(
                 Features.placedIn(server, Features.writtenAndCarried(composition), seed, rockBlocks),
                 listOfNotNull(
-                    Deposits.layer(Danger.of(server, recipe), rockBlocks),
+                    Deposits.layer(danger, rockBlocks),
                     // The buried lava tubes were laid here until 2026-09-11. They are their own page now
                     // (`agesandtheart:lava_tubes`) and reach the world through the ordinary claim path,
                     // which also gets them the Age's own rock in their ore targets — something a layer
@@ -572,7 +574,7 @@ object AgeGeneration {
 
     /**
      * [rock] with the terrain's own [seam] made visible along its boundaries — a cliff, a chasm, a wall, or
-     * nothing, since the fuzzed form is a blend width and acted on the map instead (design §3.4).
+     * nothing, since the fuzzed form is a blend width and acted on the map instead.
      *
      * **Only the terrain's**, and the population it belongs to is why: a displacement needs rock of its
      * own to displace, so a sea or a climate is never drawn one (see [Seam.drawnFor]).
@@ -644,8 +646,8 @@ object AgeGeneration {
     }
 
     /**
-     * Where water stands in this Age's rock — one table per carving, each answering for its own territory
-     * (design §3.4). A carving with no table of its own contributes the sea's, so the list lines up with
+     * Where water stands in this Age's rock — one table per carving, each answering for its own territory.
+     * A carving with no table of its own contributes the sea's, so the list lines up with
      * the territory map index for index.
      */
     private fun waterTablesOf(composition: AgeComposition, seaFill: SeaFill, seed: Long): List<WaterTable> =
@@ -674,7 +676,7 @@ object AgeGeneration {
      * ([waterlinesOf]); this is only the level the rest of the world is told.
      *
      * The widest territory with a sea wins, since it is its coastline most of the world has. The seed
-     * decides only where shares tie (design §3.5).
+     * decides only where shares tie.
      */
     private fun waterlineOf(composition: AgeComposition, claimed: List<Int?>, seed: Long): Int? {
         if (claimed.size == 1) return claimed.first()
@@ -1014,8 +1016,8 @@ object AgeGeneration {
 
     /**
      * **A day of the Age's own**, starting at an hour its seed draws — so linking in can put you at dusk somewhere
-     * it is noon at home, and sleeping there moves its morning and nobody else's (`notes/strange-words-plan.md`
-     * §5). Only where it starts: where it stands after that is saved with the level.
+     * it is noon at home, and sleeping there moves its morning and nobody else's. Only where it starts: where it
+     * stands after that is saved with the level.
      */
     fun clockFor(recipe: AgeRecipe): OwnClock = OwnClock(startsAt = SkyBodies.dayBeginsAt(recipe.seed))
 

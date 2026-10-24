@@ -75,9 +75,6 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
 
         say(player, lineFor(reading.torchflowers))
 
-        // Last among the Age's conditions because it is the one no rewriting of this book can fix.
-        if (!reading.writtenByAPlayer) say(player, ANOTHER_HAND)
-
         chime(level, player, promising = reading.wouldHoldAColony)
         if (!reading.wouldHoldAColony) return
 
@@ -212,7 +209,6 @@ class ScarabMedallionItem(properties: Properties) : Item(properties) {
         const val MUD_WITHOUT_SAND = "$ITEM.mud_without_sand"
         const val MUD_NOT_WARM = "$ITEM.mud_not_warm"
         const val COLONY = "$ITEM.colony"
-        const val ANOTHER_HAND = "$ITEM.another_hand"
 
         /** About the ground sweep's own reach, so a colony it would have walked over is one it names. */
         const val COLONY_REACH = 96

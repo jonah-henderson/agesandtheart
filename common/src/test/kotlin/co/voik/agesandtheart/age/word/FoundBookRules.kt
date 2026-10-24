@@ -21,6 +21,8 @@ data class JudgedBook(
     val instability: Int?,
     val flaws: List<String>,
     val failure: String?,
+    /** What the book's Age would earn — read only on a server, so empty offline. */
+    val rewards: List<String>,
 ) {
     override fun toString(): String = "the ${kind.key} book at seed $seed wrote '${pages.joinToString(" ")}'"
 
@@ -37,6 +39,7 @@ data class JudgedBook(
             instability = draft.instability?.index,
             flaws = draft.instability?.flaws.orEmpty().map { it.toString() },
             failure = draft.failure,
+            rewards = emptyList(),
         )
     }
 }
@@ -72,6 +75,8 @@ fun problemsWith(book: JudgedBook): List<String> = buildList {
         val fails = Spending.topTier(instability, book.pages.size) == Spending.FAILING
         if (!book.kind.isCoherent && fails) add("$book, whose $instability flaws reach the failing tier")
     }
+    // A found Age differs from a written one only in what its grammar could say, so no book may earn a reward.
+    if (book.rewards.isNotEmpty()) add("$book, whose Age would earn ${book.rewards.joinToString(", ")}")
     // The only place a modifier is found (§4.5), so an advanced book that uses none has taught nothing.
     if (book.kind == FoundBookKind.ADVANCED && book.modifiers.isEmpty()) add("$book, which teaches no modifier")
 }

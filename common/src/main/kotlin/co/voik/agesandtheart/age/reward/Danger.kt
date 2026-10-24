@@ -13,9 +13,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Gravity
 import co.voik.agesandtheart.age.aspect.Options
-import co.voik.agesandtheart.age.consequence.WrittenCreatures
 import co.voik.agesandtheart.age.aspect.Claim
-import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Skew
 import co.voik.agesandtheart.age.aspect.Parameter
@@ -29,114 +27,78 @@ import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.consequence.StrangeGravity
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.MinecraftServer
+import net.minecraft.world.entity.MobCategory
+import kotlin.math.pow
 
 /**
- * How dangerous a written Age is — the danger half of §7.7's one evaluator.
+ * How dangerous a written Age is (design §7.7): every hazard it holds, each on [DangerTable]'s one scale, and
+ * [score], which is them combined.
  *
- * **Read from the recipe, never measured in play**, because the geologic survey is read at the desk before
- * the Age exists. That is also what makes this and the D'ni signature one evaluator with two clients: both
- * ask the same question of the same resolved composition.
+ * **Read from the recipe, never measured in play**, because the survey is read at the desk before the Age exists.
+ * **Danger and instability are separate axes**: nothing here reads the instability index, only what its budget
+ * bought — an inflicted sandfall is a sandfall, and wounds are wounds.
  *
- * **Danger and instability are separate axes** (§7.7). A fully coherent Age can be a dangerous one, and a
- * contradiction pays only where the index actually *bought a hazard* — so nothing here reads
- * [co.voik.agesandtheart.age.Instability.index]. It reads the hazards, and what an unstable Age's budget
- * bought is folded into the contributor it physically belongs to: an inflicted sandfall is a phenomenon,
- * and wounds are hostile-spawn pressure.
- *
- * **The one rule that must not be broken is the averaging.** A five-percent magma region must not score
- * like a magma world, or writing yourself a safe base in the corner of a hostile Age costs nothing and
- * pays in full. So the spatial contributor is a share-weighted mean and never a maximum, and §7.7's
- * "ingenuity worth rewarding is solving the problem inside the Age, not at the writing desk" survives.
- *
- * **The template needs no special case.** What a template supplied is already merged into the composition
- * a recipe holds ([co.voik.agesandtheart.age.resolution.Resolution]), so an infernal Age arrives here with a
- * lava sea and a sealed sky written down exactly as if a writer had asked for both.
+ * **What covers part of an Age scores the part it covers.** A five-percent magma region must not score like a magma
+ * world, or a safe base written into the corner of a hostile Age costs nothing and pays in full.
  */
 data class Danger(
-    /** What the Age is made of: its rock, its sea and its surface, averaged over the ground each covers. */
-    val materials: Double,
-    /** The hostile population the book asked for, plus what its wounds will draw. */
-    val spawns: Double,
-    /** The processes it runs, written and inflicted alike. */
-    val phenomena: Double,
-    /** How dark it is, and only insofar as that drives mob pressure. */
-    val lighting: Double,
+    /** Every hazard the Age holds, worth more than nothing. */
+    val hazards: List<Hazard>,
     /**
-     * What it asked to have placed in it, where that is a hazard rather than scenery.
-     *
-     * The channel for a danger that lives in the ground: a volcano is not what an Age is made of, not what
-     * lives there and not what its sky does, and without this the evaluator cannot see one at all.
-     */
-    val features: Double,
-    /**
-     * What makes the Age itself harder to be in: a haze you cannot see far through, thunder in most of its rain, a pull
-     * that makes every fall hurt more. None of it is what the Age is made of, holds or runs.
-     */
-    val conditions: Double,
-    /**
-     * How far into [Manifestation.COLLAPSE] the Age went, from nothing to everything it could buy.
-     *
-     * **Deliberately not part of [score].** §7.7 turns the rewards up to absurd amounts where an Age will
-     * not last, but whether that multiplier keys on reaching collapse at all or on how far into it is an
-     * open question (§7.7, "Still open"). This is the number either answer reads, exposed so the question
-     * can be settled without reopening the evaluator.
+     * How far into [Manifestation.COLLAPSE] the Age went, from nothing to everything it could buy. Not part of
+     * [score]: an Age that will not last pays whatever it scores.
      */
     val terminal: Double,
-    /** Whether a player wrote this Age. A found book's Age never pays, whatever it scores. */
-    val authored: Boolean,
-    private val weights: DangerTable.Weights,
-    private val paysAbove: Double,
+    private val table: DangerTable,
 ) {
     /**
-     * The one number §7.7 asks for.
+     * The hazards combined: the [DangerTable.combining]-th root of the sum of each raised to that power.
      *
-     * **No ceiling**, because ingenuity is the point: an Age asking for more hostile life than
-     * [DangerTable.spawnsFull] calls a full population scores over one, and a player who works out how to
-     * survive it has earned what is in it.
+     * **Neither their sum nor their worst.** Two hazards a player has to answer separately are more than either, and
+     * less than both added, which is how the combinations came out when they were rated together.
      */
     val score: Double
-        get() = materials * weights.materials +
-            spawns * weights.spawns +
-            phenomena * weights.phenomena +
-            lighting * weights.lighting +
-            features * weights.features +
-            conditions * weights.conditions
+        get() {
+            val exponent = table.combining
+            return hazards.sumOf { it.value.pow(exponent) }.pow(1.0 / exponent)
+        }
 
-    /**
-     * Whether this Age pays at all — over the threshold or coming apart, **and the provenance flag with it**: any
-     * collapse buys the hoard, however little else the Age scores (Jonah, 2026-10-17).
-     *
-     * One question rather than two, so that no caller can read the score and forget who wrote the book.
-     */
-    val paysOut: Boolean get() = authored && isDangerousEnoughToPay
+    /** Whether this Age pays at all — over the line, or coming apart, which buys the hoard whatever else it scores. */
+    val paysOut: Boolean get() = score >= table.lines.paysAt || isTerminal
 
-    /**
-     * Whether an Age this dangerous may hold D'ni ruins — the same line read the other way.
-     *
-     * §7.7: the two rewards partition by one number. Below it an Age may hold a city; above it, deposits.
-     * Simultaneous ruins and deposits are not a design goal.
-     */
-    val allowsRuins: Boolean get() = !isDangerousEnoughToPay
+    /** Whether an Age this dangerous may hold D'ni ruins: under its own line, and lasting. */
+    val allowsRuins: Boolean get() = score < table.lines.ruinsBelow && !isTerminal
 
-    private val isDangerousEnoughToPay: Boolean get() = score >= paysAbove || isTerminal
+    /** Whether this Age will not last, and its rewards are turned up to absurd amounts: any collapse bought. */
+    val isTerminal: Boolean get() = terminal > NOTHING
 
-    /**
-     * Whether this Age will not last, and its rewards are turned up to absurd amounts (§7.7): **any collapse
-     * bought** (Jonah, 2026-10-17). A threshold rather than a slope — the raid is the Age that is coming apart,
-     * not a bonus creeping in as an Age gets worse — and the lowest one, since the grammar grew forgiving enough
-     * that a collapse at all is hard to reach.
-     */
-    val isTerminal: Boolean get() = terminal > NO_COLLAPSE
+    /** The least score at which this Age's deposit reads as [yield]. */
+    fun lineFor(yield: Yield): Double = table.lines.from(yield)
+
+    /** The hazards from [source]. */
+    fun from(source: Source): List<Hazard> = hazards.filter { it.source == source }
 
     override fun toString(): String =
-        "danger %.3f (materials %.3f, spawns %.3f, phenomena %.3f, lighting %.3f, features %.3f, conditions %.3f)"
-            .format(score, materials, spawns, phenomena, lighting, features, conditions)
+        "danger %.3f (%s)".format(score, hazards.joinToString { "%s %.3f".format(it.name, it.value) })
+
+    /** One thing that makes the Age more dangerous than the overworld, and how much. */
+    data class Hazard(val source: Source, val name: String, val value: Double)
+
+    /** Where a hazard comes from, which is what tells a readout and a check which part of the Age to look at. */
+    enum class Source { GROUND, SEA, VOID, UNDERGROUND, CREATURES, PHENOMENON, FEATURE, CONDITION, GRAVITY, WOUNDS }
 
     companion object {
-        /** No step of collapse bought — see [isTerminal]. */
-        private const val NO_COLLAPSE = 0.0
+        private const val NOTHING = 0.0
+        private const val AS_THEY_ARE = 1.0
+
+        /** The monster whose hardiness stands for the hardiness of the biomes' own, where darkness lets them out. */
+        private const val ORDINARY_MONSTER = "minecraft:zombie"
+
+        /** The creatures a charge does anything to. */
+        private val CHARGEABLE = setOf("minecraft:creeper")
 
         /** How dangerous the Age [recipe] describes is, on the server running it. */
         fun of(server: MinecraftServer, recipe: AgeRecipe): Danger = of(
@@ -146,12 +108,7 @@ data class Danger(
             SpendingSetting.of(server, recipe.composition, recipe.template, recipe.seed),
         )
 
-        /**
-         * The same, against a table and the ladders handed in — offline, and what the checks use.
-         *
-         * A bespoke Age scores nothing: it has no composition to read, and none of them is a thing a
-         * writer wrote.
-         */
+        /** The same, against a table and the ladders handed in. A bespoke Age, having no composition, scores nothing. */
         fun of(
             recipe: AgeRecipe,
             table: DangerTable,
@@ -159,280 +116,234 @@ data class Danger(
             setting: SpendingSetting = SpendingSetting.of(recipe.composition),
         ): Danger {
             val composition = (recipe.world as? AgeWorld.Composed)?.composition
-                ?: return nothing(table, recipe.authored)
-            return of(composition, recipe.instability, recipe.seed, recipe.authored, table, ladders, setting)
+                ?: return Danger(emptyList(), terminal = NOTHING, table)
+            return of(composition, recipe.instability, recipe.seed, table, ladders, setting)
         }
 
-        /**
-         * How dangerous a composition is, without an Age having been written from it yet.
-         *
-         * **The entry the desk needs**, and the reason the scoring does not simply take a recipe: §7.7's
-         * survey is read *at the desk before the Age exists*, where a writer has a resolved composition
-         * and no recipe at all.
-         */
+        /** How dangerous a composition is before an Age has been written from it — what the desk asks. */
         fun of(
             composition: AgeComposition,
             instability: Instability,
             seed: Long,
-            authored: Boolean,
             table: DangerTable,
             ladders: Map<Manifestation, Ladder>,
             setting: SpendingSetting = SpendingSetting.of(composition),
         ): Danger {
             val spent = Spending.of(instability, seed, ladders, setting)
-            return Danger(
-                materials = materialsOf(composition, table),
-                spawns = spawnsOf(composition, table, spent, seed),
-                phenomena = phenomenaOf(composition, table, spent, seed),
-                lighting = lightingOf(composition, table),
-                features = featuresOf(composition, table),
-                conditions = conditionsOf(composition, table, seed),
-                terminal = spent.reach(Manifestation.COLLAPSE),
-                authored = authored,
-                weights = table.weights,
-                paysAbove = table.paysAbove,
-            )
+            val hazards = buildList {
+                add(Hazard(Source.GROUND, "ground", groundOf(composition, table)))
+                add(Hazard(Source.SEA, "sea", seaOf(composition, table)))
+                if (EarlyGameRareMaterials.holdsAnAbyss(composition, seed)) add(Hazard(Source.SEA, "abyss", table.ground.abyss))
+                add(Hazard(Source.VOID, "void", voidOf(composition, table)))
+                add(Hazard(Source.GROUND, "landform", landformsOf(composition, table)))
+                add(Hazard(Source.UNDERGROUND, composition.underground.key, table.ground.underground(composition.underground.key)))
+                add(Hazard(Source.CREATURES, "monsters", creaturesOf(composition, table, seed)))
+                addAll(phenomenaOf(composition, table, spent, seed))
+                addAll(featuresOf(composition, table))
+                addAll(conditionsOf(composition, table, seed))
+                add(Hazard(Source.GRAVITY, "gravity", gravityOf(composition, table, spent, seed)))
+                add(Hazard(Source.WOUNDS, "wounds", spent.reach(Manifestation.WOUNDS) * table.wounds))
+            }
+            return Danger(hazards.filter { it.value > NOTHING }, terminal = spent.reach(Manifestation.COLLAPSE), table)
         }
 
-        private fun nothing(table: DangerTable, authored: Boolean) = Danger(
-            materials = 0.0,
-            spawns = 0.0,
-            phenomena = 0.0,
-            lighting = 0.0,
-            features = 0.0,
-            conditions = 0.0,
-            terminal = 0.0,
-            authored = authored,
-            weights = table.weights,
-            paysAbove = table.paysAbove,
-        )
-
         /**
-         * What the Age is made of, averaged over the ground each territory covers.
-         *
-         * **The worst of the three, not their sum.** The rock, the sea and the surface are three answers to
-         * one question — *what is the stuff here* — and a lava sea standing over magma ground is one
-         * hazard seen twice rather than two. Summing them would also let an Age creep over the threshold
-         * on three harmless materials, which is the presence-based scoring §7.7 forbids wearing a
-         * different hat.
-         *
-         * **The surface is one value, not a division.** It divides in principle and does not yet — see
-         * [Aspect.spatial] — so it is read at member zero and weighted as covering the whole Age.
+         * What the Age stands on: the worst of its rock and its surface, each over the ground it covers. Materials
+         * mingled into one territory are laid through the whole of it, so there the worst of them counts.
          */
-        private fun materialsOf(composition: AgeComposition, table: DangerTable): Double {
+        private fun groundOf(composition: AgeComposition, table: DangerTable): Double {
+            fun worstOf(named: List<String>) =
+                named.filter { it != Parameter.UNCHANGED }.maxOfOrNull(table.ground::madeOf) ?: NOTHING
             val rock = shareWeighted(composition, Aspect.TERRAIN) { member ->
-                worstOf(composition.optionsFor(Aspect.TERRAIN, member).allOf(Terrain.STONE), table)
+                worstOf(composition.optionsFor(Aspect.TERRAIN, member).allOf(Terrain.STONE))
             }
-            val sea = shareWeighted(composition, Aspect.SEA) { member ->
-                composition.seas.getOrNull(member)
-                    ?.takeUnless { it.isEmpty }
-                    ?.let { table.material(it.id.toString()) }
-                    ?: 0.0
-            }
-            val skin = worstOf(composition.optionsFor(Aspect.SURFACE, 0).allOf(Surface.MATERIAL), table)
-            return maxOf(rock, sea, skin)
+            val skin = worstOf(composition.optionsFor(Aspect.SURFACE, 0).allOf(Surface.MATERIAL))
+            return maxOf(rock, skin)
         }
 
-        /**
-         * The worst of several materials mingled into one territory.
-         *
-         * Mingled materials are laid together through the whole of the ground they cover
-         * ([Terrain.MINGLING]), so there is nowhere in the territory the dangerous one is not — which is
-         * exactly the case where an average would be wrong and a maximum is right.
-         */
-        private fun worstOf(named: List<String>, table: DangerTable): Double = named
-            .filter { it != Parameter.UNCHANGED }
-            .maxOfOrNull(table::material)
-            ?: 0.0
+        private fun seaOf(composition: AgeComposition, table: DangerTable): Double =
+            shareWeighted(composition, Aspect.SEA) { member ->
+                composition.seas.getOrNull(member)?.takeUnless { it.isEmpty }?.let { table.ground.sea(it.id.toString()) }
+                    ?: NOTHING
+            }
+
+        /** Land hanging over nothing, over the ground it covers — and nothing where a sea lies beneath to fall into. */
+        private fun voidOf(composition: AgeComposition, table: DangerTable): Double {
+            val hasASeaBeneath = composition.seas.any { !it.isEmpty }
+            if (hasASeaBeneath) return NOTHING
+            return shareWeighted(composition, Aspect.TERRAIN) { member ->
+                composition.terrains.getOrNull(member)?.let { table.ground.void(it.key) } ?: NOTHING
+            }
+        }
+
+        /** Landforms dangerous in themselves, over the ground they cover — the Nether's, with its own crowd. */
+        private fun landformsOf(composition: AgeComposition, table: DangerTable): Double =
+            shareWeighted(composition, Aspect.TERRAIN) { member ->
+                composition.terrains.getOrNull(member)?.let { table.ground.landform(it.key) } ?: NOTHING
+            }
 
         /**
-         * The hostile population the book asked for, plus the pressure its wounds will draw.
+         * The monsters an Age holds over the biomes' own — **one hazard, and the worst of what feeds it**.
          *
-         * **Zero is whatever the biomes would have held.** An Age nobody said anything about the life of
-         * still has vanilla's monsters in it, and if that scored, every Age would pay — so this measures
-         * only what a book *asked for*, which is §7.6's "the criteria must select for something the
-         * default Age is not" applied to the other pole.
+         * More monsters, monsters let out by darkness at every hour, and the biomes' own made harder are three ways of
+         * meeting the same danger, and rated together they came out at the worst of them rather than their sum. Each
+         * is scaled by the hardiness of what it brings, and the whole by the monster cap the book set.
          *
-         * **The raw claims rather than a [co.voik.agesandtheart.age.aspect.Skew].** `Skew.of(claims)` with
-         * no biome drops every claim confined to one, which is right for a generator asking what lives in
-         * a particular place and wrong here: a Age that asked for ghasts in one biome did ask for ghasts,
-         * and the score wants them at [DangerTable.confinedWeight] rather than not at all.
+         * **A claim's amount is a weight among its kinds, not a crowd**, so it is not read here. A kind named outright is
+         * worth its own rating everywhere; kinds described (`monsters`, a mood's lean) are more of what already grows,
+         * worth an ordinary monster once they reach [A_CROWD_OF_MONSTERS] of all monsters, and that share of it short of
+         * that.
          */
-        private fun spawnsOf(
-            composition: AgeComposition,
-            table: DangerTable,
-            spent: Spending,
-            seed: Long,
-        ): Double {
+        private fun creaturesOf(composition: AgeComposition, table: DangerTable, seed: Long): Double {
+            if (spawnsNothing(composition)) return NOTHING
             val spawns = composition.optionsFor(Aspect.SPAWNS, 0)
             val claims = wanted(spawns.claimsOn(Spawns.LIVES))
-            fun hardiness(member: String) = hardinessOf(spawns, seed, member)
-            val asked = claims.sumOf { claim ->
-                table.spawn(claim.value) * claim.density * confinement(claim, table) * hardiness(claim.value)
-            }
-            // **What a book made of the monsters already here scores what it changed**: zero is still the
-            // biomes' own, so `strong monsters`, which asks for none of them, scores only how much harder it
-            // made them, and `weak monsters` takes some away.
-            val askedFor = claims.map(Claim::value).toSet()
-            val madeOfThemselves = madeHardier(spawns, table).filterNot { it in askedFor }.sumOf { member ->
-                table.spawn(member) * (hardiness(member) - AS_THEY_ARE)
-            }
-            // **Wounds are hostile-spawn pressure, and that is what they physically are**: `Hostility`
-            // makes what comes nastier and makes more of it come, and both registers are the population.
-            //
-            // **`WORSENING_WOUNDS` is deliberately not counted.** It buys how fast the wound density
-            // climbs with the Age's *own days*, and this is read at the desk before the Age has any — so
-            // at the only moment the score is asked for, worsening has done nothing. Scoring it here would
-            // be measuring in play, which §7.7 says this never does.
-            val wounds = spent.reach(Manifestation.WOUNDS) * table.woundHostility
-            // Never below the biomes' own: a book can make an Age safer than what it asked for, not safer than nothing.
-            return ((asked + madeOfThemselves) / table.spawnsFull).coerceAtLeast(NONE) + wounds
+            fun hardiness(member: String) = hardinessOf(spawns, table.hardiness, seed, member)
+            fun wasNamed(claim: Claim) = !claim.onlyWhereItGrows || claim.introducedIfAbsent
+            val (named, described) = claims.partition(::wasNamed)
+            val namedWorst = named.maxOfOrNull { claim ->
+                table.creature(claim.value) * confinement(claim, table) * hardiness(claim.value)
+            } ?: NOTHING
+            val describedMonsters = described.filter { table.isAMonster(it.value) }
+            val describedShare = describedMonsters.size.toDouble() / MONSTER_KINDS.coerceAtLeast(1)
+            val describedWorth = table.creature(ORDINARY_MONSTER) * (describedShare / A_CROWD_OF_MONSTERS).coerceAtMost(AS_THEY_ARE) *
+                (describedMonsters.maxOfOrNull { hardiness(it.value) } ?: AS_THEY_ARE)
+            val crowd = Spawns.capsOf(spawns)[MobCategory.MONSTER] ?: AS_THEY_ARE
+            val askedFor = maxOf(namedWorst, describedWorth) * crowd
+            val letOut = darknessOf(composition, table.darkness) * hardiness(ORDINARY_MONSTER) * crowd
+            val asked = claims.map(Claim::value).toSet()
+            val madeHarder = madeHardier(spawns, table).filterNot { it in asked }.maxOfOrNull { member ->
+                table.creature(member) * (hardiness(member) - AS_THEY_ARE)
+            } ?: NOTHING
+            return maxOf(askedFor, letOut, madeHarder, NOTHING)
         }
 
         /**
-         * How much more dangerous the book made [member] than its own — its strength, its speed and its size (which
-         * scales its health and blow as strength does) together, read as `WrittenCreatures` lays them on, so a score and a creature agree.
-         * A creeper's charge doubles its blast, a creature rooted where it stands only reaches what comes to it, and one
-         * in herds comes as a clump, which is harder than as many spread out.
+         * The share of all kinds of monster a described crowd reaches to be a crowd of monsters: half, since many kinds
+         * never spawn of their own accord and `monsters` itself reaches only some four in five.
          */
-        private fun hardinessOf(spawns: Options, seed: Long, member: String): Double {
-            val strength = spawns.steer(Spawns.STRENGTH, seed, member = member)?.let(WrittenCreatures::strengthAt)
-            val pace = spawns.steer(Spawns.PACE, seed, member = member)?.let(WrittenCreatures::paceAt)
-            val size = spawns.steer(Spawns.SIZE, seed, member = member)?.let(WrittenCreatures::sizeAt)
-            val charged = if (spawns.isTrue(Spawns.CHARGED, member = member)) CHARGED_BLAST else AS_THEY_ARE
-            val rooted = if (spawns.isTrue(Spawns.STILL, member = member)) ROOTED else AS_THEY_ARE
-            val herded = if (spawns.holdersOfAny(Spawns.HERD).includes(member)) HERDED else AS_THEY_ARE
-            return (strength ?: AS_THEY_ARE) * (pace ?: AS_THEY_ARE) * (size ?: AS_THEY_ARE) * charged * rooted * herded
+        private const val A_CROWD_OF_MONSTERS = 0.5
+
+        /** How many kinds of monster there are, against which a described crowd's reach is measured. */
+        private val MONSTER_KINDS: Int by lazy {
+            BuiltInRegistries.ENTITY_TYPE.count { it.category == MobCategory.MONSTER }
         }
 
-        /** How many times as dangerous a charged creeper is: vanilla doubles its blast. */
-        private const val CHARGED_BLAST = 2.0
+        /**
+         * How far the Age lets the monsters already here out at every hour: the worst of its sky and its rules, over the
+         * ground whose own monsters are the overworld's. The Nether's and the End's own are rated with their landforms.
+         */
+        private fun darknessOf(composition: AgeComposition, darkness: DangerTable.Darkness): Double {
+            val sky = when {
+                composition.roofedByItsRock -> darkness.roofedByRock
+                Sky.isRoofed(composition) -> darkness.sealed
+                Sky.isLightless(composition) -> darkness.sunless
+                else -> NOTHING
+            }
+            val loosed = composition.optionsFor(Aspect.SPAWNS, 0).isTrue(Spawns.INCONGRUOUS)
+            val overworldly = shareWeighted(composition, Aspect.TERRAIN) { member ->
+                if (composition.terrains.getOrNull(member) in RATED_WITH_THEIR_OWN) NOTHING else AS_THEY_ARE
+            }
+            return maxOf(sky, if (loosed) darkness.incongruous else NOTHING) * overworldly
+        }
 
-        /** How dangerous a creature rooted where it stands is, against one that comes for you. */
-        private const val ROOTED = 0.5
+        /** The vanilla landforms whose own population and dark come with them, rated as [DangerTable.Ground.landform]. */
+        private val RATED_WITH_THEIR_OWN = setOf(Terrain.NETHER, Terrain.END)
 
-        /** How dangerous a creature coming in herds is, against as many coming alone (Jonah, 2026-10-21). */
-        private const val HERDED = 1.5
+        /** How many times as dangerous the book made [member]: its strength, speed, size, charge, stillness and herding. */
+        private fun hardinessOf(spawns: Options, hardiness: DangerTable.Hardiness, seed: Long, member: String): Double {
+            val strength = hardiness.strength.at(spawns.steer(Spawns.STRENGTH, seed, member = member))
+            val pace = hardiness.pace.at(spawns.steer(Spawns.PACE, seed, member = member))
+            val size = hardiness.size.at(spawns.steer(Spawns.SIZE, seed, member = member))
+            val isCharged = member in CHARGEABLE && spawns.isTrue(Spawns.CHARGED, member = member)
+            val charged = if (isCharged) hardiness.charged else AS_THEY_ARE
+            val still = if (spawns.isTrue(Spawns.STILL, member = member)) hardiness.still else AS_THEY_ARE
+            val herded = if (spawns.holdersOfAny(Spawns.HERD).includes(member)) hardiness.herds else AS_THEY_ARE
+            return strength * pace * size * charged * still * herded
+        }
 
-        /** Every creature the book made harder or easier — stronger, quicker, bigger, charged or rooted — every monster, where it said all. */
+        /** Every creature the book made harder or easier — every monster, where it said all of them. */
         private fun madeHardier(spawns: Options, table: DangerTable): Set<String> {
             val said = spawns.holdersOfAny(Spawns.STRENGTH) and spawns.holdersOfAny(Spawns.PACE) and
-                spawns.holdersOfAny(Spawns.SIZE) and spawns.holdersOfAny(Spawns.CHARGED) and spawns.holdersOfAny(Spawns.STILL) and
-                spawns.holdersOfAny(Spawns.HERD)
+                spawns.holdersOfAny(Spawns.SIZE) and spawns.holdersOfAny(Spawns.CHARGED) and
+                spawns.holdersOfAny(Spawns.STILL) and spawns.holdersOfAny(Spawns.HERD)
             if (!said.everyone) return said.only
-            return said.only + BuiltInRegistries.ENTITY_TYPE.keySet().map { it.toString() }.filter { table.spawn(it) > NONE }
+            return said.only + BuiltInRegistries.ENTITY_TYPE.keySet().map { it.toString() }.filter { table.creature(it) > NOTHING }
         }
 
-        private const val AS_THEY_ARE = 1.0
-        private const val NONE = 0.0
-
-        /** How much heavier a phenomenon written at full strength weighs, and lighter at its gentlest: half again. */
-        private const val HARDNESS_WRITTEN = 0.5
-
         /**
-         * What happens here — written and inflicted alike, and where they meet they compound.
-         *
-         * The written half is [Phenomena.claimsIn], which is the same reading the generator uses. The
-         * inflicted half is [Phenomenon.inflictedBy]: an Age whose contradiction bought a sandfall is
-         * running one whether or not its book asked, and §7.7 is explicit that this is where a
-         * contradiction earns its keep.
+         * Each phenomenon the Age runs, written or inflicted: as written, by how often and how hard; as inflicted, by how
+         * far the budget bought it. Where both, the worse — it is one storm either way.
          */
         private fun phenomenaOf(
             composition: AgeComposition,
             table: DangerTable,
             spent: Spending,
             seed: Long,
-        ): Double {
+        ): List<Hazard> {
             val options = composition.optionsFor(Aspect.PHENOMENA, 0)
-            // How much of it there is, how often it comes, how hard and how fast it grows: the rung counts it,
-            // the frequency times it, the strength weighs it as it moves the dials, and the pace as it grows.
+            val dials = table.phenomenonDials
             fun asWritten(claim: Claim): Double {
-                val phenomenon = Phenomenon.named(claim.value) ?: return Recurrence.ORDINARY.often
-                val often = Phenomena.recurrenceOf(options, phenomenon, seed).often
-                val hardness = Rung.ORDINARY + Phenomena.strengthOf(options, phenomenon, seed) * HARDNESS_WRITTEN
-                return often * hardness * Phenomena.growthOf(options, phenomenon, seed)
+                val phenomenon = Phenomenon.named(claim.value)
+                val frequency = phenomenon?.let { options.steer(Phenomena.FREQUENCY, seed, member = it.key) }
+                val isConstant = phenomenon?.let { Phenomena.recurrenceOf(options, it, seed).isConstant } == true
+                val often = if (isConstant) dials.constant else dials.frequency.at(frequency)
+                val hard = dials.strength.at(phenomenon?.let { Phenomena.strengthOf(options, it, seed) })
+                return table.phenomenon(claim.value) * often * hard * confinement(claim, table)
             }
-            val written = Happenings.claimsIn(composition).sumOf { claim ->
-                table.phenomenon(claim.value) * claim.density * asWritten(claim) * confinement(claim, table)
+            val written = Happenings.claimsIn(composition).groupBy(Claim::value).mapValues { (_, claims) ->
+                claims.maxOf(::asWritten)
             }
-            val inflicted = Phenomenon.entries.sumOf { phenomenon ->
-                val manifestation = phenomenon.inflictedBy ?: return@sumOf 0.0
-                table.phenomenon(phenomenon.key) * spent.reach(manifestation)
+            val inflicted = Phenomenon.entries.associate { phenomenon ->
+                val bought = phenomenon.inflictedBy?.let(spent::reach) ?: NOTHING
+                phenomenon.key to table.phenomenon(phenomenon.key) * bought
             }
-            return (written + inflicted) / table.phenomenaFull
+            return (written.keys + inflicted.keys).map { key ->
+                Hazard(Source.PHENOMENON, key, maxOf(written[key] ?: NOTHING, inflicted[key] ?: NOTHING))
+            }
         }
 
         /**
-         * Everything the Age asked to have placed in it, added up.
-         *
-         * **The sum rather than the worst** (Jonah, 2026-09-11). It was the worst, on the same argument the
-         * materials still make — that adding a wheat field to a volcano should not make an Age worse. But
-         * the materials have to reason that way and this does not: an Age is made of exactly one rock, so
-         * three answers to "what do you stand on" are rivals and the worst of them wins. A feature list is
-         * not rivals. Four volcanic hazards are four hazards, and scoring them as one meant a volcanic Age
-         * with everything in it read exactly as dangerous as one with a single cone.
-         *
-         * **The wheat field is already handled, which is why the old argument did not survive contact.**
-         * [DangerTable.feature] answers nothing for anything it has no line for, so scenery contributes a
-         * literal zero to this sum. Nothing had to be traded away to make it add.
-         *
-         * Read like the spawns beside it: scaled by the amount asked for, cut for a claim confined to one
-         * biome, divided by what counts as a world full of hazard. And **struck claims are dropped**, which
-         * the maximum never did — `volcanic features except volcano` used to score its volcano.
+         * The worst hazard the Age asked to have placed in it — one hazard, since a volcanic Age rated with every one of
+         * its four features came out at its volcano. Only what was named counts: a described feature is only more of
+         * itself where it already grows, and ours grow nowhere of their own accord. Struck claims are dropped; scenery
+         * is free.
          */
-        private fun featuresOf(composition: AgeComposition, table: DangerTable): Double {
+        private fun featuresOf(composition: AgeComposition, table: DangerTable): List<Hazard> {
             val claims = composition.optionsFor(Aspect.FEATURES, 0).claimsOn(Features.PLACES)
-            val asked = wanted(claims).sumOf { claim ->
-                table.feature(claim.value) * claim.density * confinement(claim, table)
-            }
-            return asked / table.featuresFull
+            fun wasNamed(claim: Claim) = !claim.onlyWhereItGrows || claim.introducedIfAbsent
+            val worst = wanted(claims).filter(::wasNamed).maxByOrNull { table.feature(it.value) * confinement(it, table) }
+                ?: return emptyList()
+            return listOf(Hazard(Source.FEATURE, worst.value, table.feature(worst.value) * confinement(worst, table)))
         }
 
-        /**
-         * How dark it is — **and nothing where nothing walks**.
-         *
-         * §7.7 counts lighting "only insofar as it drives mob pressure: a sealed sky is danger because of
-         * what walks under it". So an Age that spawns nothing at all takes no danger from its roof, which
-         * is the sentence read literally rather than a special case bolted on.
-         */
-        private fun lightingOf(composition: AgeComposition, table: DangerTable): Double {
-            if (spawnsNothing(composition)) return 0.0
-            val darkness = when {
-                Sky.isRoofed(composition) -> table.sealed
-                Sky.isLightless(composition) -> table.lightless
-                else -> 0.0
-            }
-            // Monsters loosed from their own rules walk at noon, so daylight is no more shelter than a roof is.
-            val shelterless = if (composition.optionsFor(Aspect.SPAWNS, 0).isTrue(Spawns.INCONGRUOUS)) table.incongruous else 0.0
-            return maxOf(darkness, shelterless)
-        }
-
-        /**
-         * What makes the Age harder to be in: how far past ordinary the haze closes in, the thunder in its rain and the
-         * pull grows — each as written, scored only above vanilla's, since lighter and clearer is never more dangerous.
-         */
-        private fun conditionsOf(composition: AgeComposition, table: DangerTable, seed: Long): Double {
+        /** How far past ordinary the haze closes in and the thunder rolls — only past vanilla's, since clearer is never worse. */
+        private fun conditionsOf(composition: AgeComposition, table: DangerTable, seed: Long): List<Hazard> {
             fun beyondOrdinary(aspect: Aspect, parameter: Parameter) =
-                composition.optionsFor(aspect, 0).steer(parameter, seed)?.coerceAtLeast(NONE) ?: NONE
-            return beyondOrdinary(Aspect.AIR, Atmosphere.HAZE) * table.condition(HAZE) +
-                beyondOrdinary(Aspect.WEATHER, Atmosphere.THUNDER) * table.condition(THUNDER) +
-                beyondOrdinary(Aspect.GRAVITY, Gravity.PULL) * table.condition(PULL)
+                composition.optionsFor(aspect, 0).steer(parameter, seed)?.coerceAtLeast(NOTHING) ?: NOTHING
+            return listOf(
+                Hazard(Source.CONDITION, HAZE, beyondOrdinary(Aspect.AIR, Atmosphere.HAZE) * table.condition(HAZE)),
+                Hazard(Source.CONDITION, THUNDER, beyondOrdinary(Aspect.WEATHER, Atmosphere.THUNDER) * table.condition(THUNDER)),
+            )
+        }
+
+        /** How heavy the Age pulls, written or inflicted, whichever is heavier. */
+        private fun gravityOf(composition: AgeComposition, table: DangerTable, spent: Spending, seed: Long): Double {
+            val written = composition.optionsFor(Aspect.GRAVITY, 0).steer(Gravity.PULL, seed)?.let(Gravity::factorAt) ?: AS_THEY_ARE
+            val inflicted = StrangeGravity.factorFor(spent, seed)
+            return table.gravity.at(maxOf(written, inflicted))
         }
 
         private const val HAZE = "haze"
         private const val THUNDER = "thunder"
-        private const val PULL = "pull"
 
         /** Whether the book said nothing lives here at all — `lives=nothing`. */
         private fun spawnsNothing(composition: AgeComposition): Boolean =
             Pool.NOTHING in composition.optionsFor(Aspect.SPAWNS, 0).allOf(Spawns.LIVES)
 
         /**
-         * The claims that ask for something, removals applied last exactly as [Skew] applies them (§3.5).
-         *
-         * A claim below [Rung.ORDINARY] asks for less of a thing than the world grows, and the world's own
-         * share is never scored, so it adds nothing. A word that leans away from what is hostile writes every
-         * hostile member in below ordinary, and counting those made a gentle Age read as a dangerous one.
+         * The claims that ask for something, removals applied last exactly as [Skew] applies them. A claim below
+         * [Rung.ORDINARY] asks for less than the world grows, and the world's own share is never scored.
          */
         private fun wanted(claims: List<Claim>): List<Claim> {
             val struck = claims.filter { it.polarity == Polarity.EXCEPT }.map { it.value }.toSet()
@@ -446,23 +357,16 @@ data class Danger(
 
         /** What a claim is worth for the ground it covers: all of it, or one biome's worth of it. */
         private fun confinement(claim: Claim, table: DangerTable): Double =
-            if (claim.confinedTo == null) 1.0 else table.confinedWeight
+            if (claim.confinedTo == null) AS_THEY_ARE else table.confined
 
         /**
-         * [rate] over each of [aspect]'s territories, weighted by the ground each covers.
-         *
-         * Shares are relative to the widest ([Share]), so they are normalised here into fractions of the
-         * world — which is what makes this an average rather than a sum, and is the whole of the rule that
-         * a five-percent magma region must not score like a magma world.
+         * [rate] over each of [aspect]'s territories, weighted by the ground each covers. Shares are relative to the
+         * widest ([Share]), so they are normalised here into fractions of the world.
          */
-        private fun shareWeighted(
-            composition: AgeComposition,
-            aspect: Aspect,
-            rate: (Int) -> Double,
-        ): Double {
+        private fun shareWeighted(composition: AgeComposition, aspect: Aspect, rate: (Int) -> Double): Double {
             val shares = composition.spreadOf(aspect).shares
             val whole = shares.sum()
-            if (whole <= 0.0) return 0.0
+            if (whole <= NOTHING) return NOTHING
             return shares.withIndex().sumOf { (member, share) -> rate(member) * share } / whole
         }
     }

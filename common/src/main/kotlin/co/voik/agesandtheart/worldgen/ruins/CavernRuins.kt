@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.ruins
 
+import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -49,11 +50,12 @@ object CavernRuins {
      * The size must be asked here: [CavernRuinsSite] needs only one island column with room over it, and
      * `beard_box` carves the rest, so a smaller chamber would take a city too.
      *
-     * Not yet asked: `Danger.allowsRuins` and `AgeRecipe.authored`, both of which the design says withhold
-     * the ruins.
+     * An Age dangerous enough to pay a deposit holds no city ([Danger.allowsRuins]): the two rewards fall either side
+     * of one line (§7.7).
      */
-    fun qualifies(composition: AgeComposition): Boolean =
-        composition.underground == Underground.CHAMBERED &&
+    fun qualifies(composition: AgeComposition, danger: Danger): Boolean =
+        danger.allowsRuins &&
+            composition.underground == Underground.CHAMBERED &&
             isLargeOrBigger(composition.optionsFor(Aspect.UNDERGROUND)) &&
             Sky.isRoofed(composition) &&
             Features.claimNaming(composition, ALGAE) != null
@@ -69,8 +71,8 @@ object CavernRuins {
      * The city as a set only this Age can place, or nothing. Built here rather than shipped as a
      * `structure_set` for the star fissure's reason — a registered set would reach the overworld too.
      */
-    fun structureSets(server: MinecraftServer, composition: AgeComposition): List<Holder<StructureSet>> {
-        if (!qualifies(composition)) return emptyList()
+    fun structureSets(server: MinecraftServer, composition: AgeComposition, danger: Danger): List<Holder<StructureSet>> {
+        if (!qualifies(composition, danger)) return emptyList()
         val city = server.registryAccess().lookupOrThrow(Registries.STRUCTURE).get(STRUCTURE).orElse(null)
         if (city == null) {
             Constants.LOG.error("The pack ships no '{}', so an Age written for one has no city", STRUCTURE.identifier())

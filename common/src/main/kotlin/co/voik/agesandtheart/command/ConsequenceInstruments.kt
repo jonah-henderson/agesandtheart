@@ -420,12 +420,8 @@ internal object ConsequenceInstruments {
     }
 
     /**
-     * What a written Age is worth to §7.7, contributor by contributor, and — where it is the Age stood in —
-     * what the ground underfoot is worth in vanilla's terms.
-     *
-     * **The parts as well as the total**, because one number cannot be calibrated: the question a tuning
-     * session asks is *why* an Age scored what it did, and the answer is always which contributor carried
-     * it. Reading the four beside the score is what turns `art/danger.json` from a guess into a dial.
+     * What a written Age is worth to §7.7, hazard by hazard, and — where it is the Age stood in — what the ground
+     * underfoot is worth in vanilla's terms. The hazards as well as the total, because a tuning session asks *why*.
      */
     private fun runDanger(context: CommandContext<CommandSourceStack>, age: NamedAge, report: Report): Int {
         val (id, recipe) = age
@@ -433,15 +429,12 @@ internal object ConsequenceInstruments {
         val danger = Danger.of(source.server, recipe)
 
         report.say { "${id.path}:" }
-        report.fact("materials", danger.materials) { "  what it is made of: %.3f".format(danger.materials) }
-        report.fact("spawns", danger.spawns) { "  what lives in it:    %.3f".format(danger.spawns) }
-        report.fact("phenomena", danger.phenomena) { "  what happens in it:  %.3f".format(danger.phenomena) }
-        report.fact("lighting", danger.lighting) { "  how dark it is:      %.3f".format(danger.lighting) }
-        report.fact("features", danger.features) { "  what is placed in it: %.3f".format(danger.features) }
-        report.fact("score", danger.score) { "  → danger %.3f".format(danger.score) }
-        report.fact("authored", danger.authored) {
-            if (danger.authored) "  written by a player" else "  not written by a player, so it can never pay"
+        val worstFirst = danger.hazards.sortedByDescending { it.value }
+        report.fact("hazards", worstFirst.associate { it.name to it.value }) {
+            if (worstFirst.isEmpty()) "  nothing more dangerous than the overworld"
+            else worstFirst.joinToString("\n") { "  %-28s %.3f".format(it.name, it.value) }
         }
+        report.fact("score", danger.score) { "  → danger %.3f".format(danger.score) }
         report.fact("paysOut", danger.paysOut) {
             if (danger.paysOut) "  pays out" else "  pays nothing"
         }

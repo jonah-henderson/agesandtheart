@@ -3,13 +3,11 @@ package co.voik.agesandtheart.age.reward
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgeComposition
-import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.DialSteps
 import co.voik.agesandtheart.age.Ladder
 import co.voik.agesandtheart.age.Spending
-import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.Spreads
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Claim
@@ -22,289 +20,219 @@ import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.reward.Danger.Source
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
+import kotlin.math.abs
+import kotlin.math.sqrt
 
 /**
  * That an Age is scored for what it is, and that the rules §7.7 calls load-bearing hold.
  *
- * **Every composition is built by hand and scored against a table written here**, never the shipped one.
- * That separation is the point: `art/danger.json` is meant to be retuned by play, and a check asserting
- * its numbers would turn every tuning pass into a broken build. What the shipped file has to satisfy is
- * [DangerTableCheck].
+ * **Every composition is built by hand and scored against a table written here**, never the shipped one, so
+ * retuning `art/danger.json` by play never breaks a build. What the shipped file has to satisfy is
+ * [DangerTableCheck], and how it scores the Ages it was rated against is [DangerAnchorsCheck].
  *
- * The registries are needed for one reason only, and it is a good one: naming a block in a material
- * parameter goes through `Materials.makesAWorld`, which asks the block registry whether the thing is
- * something a world could be built of. Bypassing that to stay offline would be scoring compositions no
- * writer could produce.
+ * The registries are needed because naming a block in a material parameter asks the block registry whether a
+ * world could be built of it.
  */
 @Tags(NEEDS_REGISTRIES)
 class DangerCheck : FunSpec({
 
-    /**
-     * **Hazards in the ground add up** (Jonah, 2026-09-11: *"those danger numbers need fixing, I believe
-     * they should all be adding up"*).
-     *
-     * It was the worst entry, on the argument the materials still make — that a wheat field beside a
-     * volcano should not make an Age worse. The materials have to reason that way because an Age is made
-     * of exactly one rock, so its three answers are rivals; a feature list is not rivals, and scoring it as
-     * one meant an Age holding every volcanic hazard read exactly as dangerous as one holding a single
-     * cone. Nothing was traded away to fix it: an unlisted feature is worth a literal zero here, so the
-     * wheat field was always free.
-     */
-    test("what an Age asked to have placed in it adds up rather than counting only its worst") {
-        val cones = groundScore(growing(VOLCANO)).features
-        val tubes = groundScore(growing(LAVA_TUBES)).features
-        val both = groundScore(growing(VOLCANO, LAVA_TUBES)).features
-
-        check(cones == 0.5) { "a volcano of weight 1.0 against a full world of 2.0 scored $cones" }
-        check(tubes == 0.6 / 2.0) { "lava tubes of weight 0.6 against a full world of 2.0 scored $tubes" }
-        check(both == cones + tubes) { "a volcano ($cones) and tubes ($tubes) together scored $both" }
-        check(both > cones) { "adding a second hazard to a volcano did not make the Age worse" }
-    }
-
-    /** And a hazard the book struck out is not one the Age has. The maximum never checked. */
-    test("a feature written out of an Age stops counting against it") {
-        val struck = growing(VOLCANO, "$VOLCANO${Claim.OPEN}${Claim.EXCEPT}${Claim.CLOSE}", LAVA_TUBES)
-        check(groundScore(struck).features == 0.6 / 2.0) {
-            "an Age that wrote its volcano out still scored ${groundScore(struck).features}"
-        }
-    }
-
-    /** Scenery is free, which is what lets the sum be a sum. */
-    test("a feature the table has no line for costs nothing") {
-        val withScenery = growing(VOLCANO, "minecraft:patch_sunflower")
-        check(groundScore(withScenery).features == groundScore(growing(VOLCANO)).features) {
-            "adding a sunflower patch to a volcano moved the score"
-        }
-    }
-
-    /**
-     * The rule the whole design rests on: an Age is its **average**, not its worst corner.
-     *
-     * Without this, writing a hostile world and then writing yourself a safe base in one territory costs
-     * nothing and pays in full, and §7.7's "the ingenuity worth rewarding is solving the problem inside
-     * the Age, not at the writing desk" is dead.
-     */
-    test("a five-percent magma region does not score like a magma world") {
-        val magmaWorld = oneTerritory().withOptionsFor(
-            Aspect.TERRAIN,
-            member = 0,
-            parameter = Terrain.STONE.name,
-            chosen = listOf(MAGMA),
-        )
-        val magmaHalf = twoTerritories(shares = listOf(1.0, 1.0), second = MAGMA)
-        val magmaCorner = twoTerritories(shares = listOf(1.0, A_TWENTIETH), second = MAGMA)
-
-        val whole = score(magmaWorld).materials
-        val half = score(magmaHalf).materials
-        val corner = score(magmaCorner).materials
-
-        check(whole == 1.0) { "a world of magma should be as bad as its materials get, and scored $whole" }
-        check(corner < ONE_TENTH) { "a magma corner should barely register, and scored $corner" }
-        // The whole rule in one line: what it is worth is the ground it covers, and nothing else.
-        check(whole > half && half > corner) {
-            "danger should follow the ground covered, and went $whole, $half, $corner"
-        }
-    }
-
-    /**
-     * And the other half of the same rule: **within** one territory the worst material wins.
-     *
-     * Mingled materials are laid together through the whole of the ground they cover, so there is nowhere
-     * in the territory the dangerous one is not — which is exactly where an average would be wrong.
-     */
-    test("materials mingled into one territory are scored at their worst") {
-        val mingled = oneTerritory().withOptionsFor(
-            Aspect.TERRAIN,
-            member = 0,
-            parameter = Terrain.STONE.name,
-            chosen = listOf(ORDINARY_STONE, MAGMA),
-        )
-        val scored = score(mingled).materials
-        check(scored == 1.0) { "magma mingled through a territory should score in full, and scored $scored" }
-    }
-
-    test("an Age nobody said anything dangerous about pays nothing") {
+    test("an Age nobody said anything dangerous about holds no hazard and pays nothing") {
         val plain = score(oneTerritory())
+        check(plain.hazards.isEmpty()) { "a plain Age held ${plain.hazards}" }
         check(plain.score == 0.0) { "a plain Age scored ${plain.score}" }
         check(!plain.paysOut) { "a plain Age pays out" }
         check(plain.allowsRuins) { "a plain Age is too dangerous for ruins" }
     }
 
-    /** The provenance fence: what a found book describes may be as bad as it likes and still never pays. */
-    test("an Age nobody wrote never pays out, however dangerous") {
-        val hellish = oneTerritory().withOptionsFor(
-            Aspect.TERRAIN,
-            member = 0,
-            parameter = Terrain.STONE.name,
-            chosen = listOf(MAGMA),
-        )
-        val written = score(hellish, authored = true)
-        val found = score(hellish, authored = false)
-
-        check(written.score == found.score) { "provenance should not change the score" }
-        check(written.paysOut) { "a written hellish Age should pay, and scored ${written.score}" }
-        check(!found.paysOut) { "a found Age paid out" }
-    }
-
-    /** A sea is what the Age is made of too, and a sea of lava is the plainest dangerous Age there is. */
-    test("a sea of lava is scored, and a sea of water is not") {
-        val lava = oneTerritory().copy(seas = listOf(Sea.LAVA))
-        val water = oneTerritory().copy(seas = listOf(Sea.WATER))
-        check(score(lava).materials == 1.0) { "a lava sea scored ${score(lava).materials}" }
-        check(score(water).materials == 0.0) { "a water sea scored ${score(water).materials}" }
-    }
-
-    /** The skin is what you actually stand on, so naming it is naming the Age's material. */
-    test("a surface of magma is scored though the rock beneath it is ordinary") {
-        val dressed = oneTerritory()
-            .withOptions(Aspect.SURFACE, Surface.MATERIAL.name, listOf(MAGMA))
-        check(score(dressed).materials == 1.0) { "a magma skin scored ${score(dressed).materials}" }
-    }
-
-    test("what the book asked to live here is scored, and by how much of it was asked for") {
-        val one = oneTerritory().withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(GHASTS))
-        val many = oneTerritory().withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf("$GHASTS[amount=4]"))
-
-        val asked = score(one).spawns
-        val insisted = score(many).spawns
-        check(asked > 0.0) { "asking for ghasts scored nothing" }
-        check(insisted > asked) { "asking for four times as many ghasts scored $insisted against $asked" }
-    }
-
-    test("monsters made stronger or quicker are more dangerous, asked for or already here") {
-        fun spawnsWith(vararg parameters: Pair<String, String>) = parameters.fold(oneTerritory()) { held, (name, value) ->
-            held.withOptions(Aspect.SPAWNS, name, listOf(value))
+    test("hazards combine as the root of the sum of their powers, more than either and less than both") {
+        val volcanoOverLava = growing(VOLCANO).copy(seas = listOf(Sea.LAVA))
+        val both = score(volcanoOverLava, table = TABLE.copy(combining = 2.0)).score
+        val volcano = score(growing(VOLCANO)).score
+        val lava = score(oneTerritory().copy(seas = listOf(Sea.LAVA))).score
+        check(abs(both - sqrt(volcano * volcano + lava * lava)) < A_ROUNDING) {
+            "a volcano ($volcano) and a lava sea ($lava) combined at two came to $both"
         }
-        val nothing = score(oneTerritory()).spawns
-        val strongZombies = score(spawnsWith("strength" to "1.0..1.0[for=$ZOMBIE]")).spawns
-        val swiftEverything = score(spawnsWith("pace" to "1.0..1.0")).spawns
-        check(strongZombies > nothing) { "strong zombies scored $strongZombies, no more than nothing at $nothing" }
-        check(swiftEverything > strongZombies) { "every monster quickened scored $swiftEverything, below one kind strengthened" }
-
-        val ghasts = score(oneTerritory().withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(GHASTS))).spawns
-        val strongGhasts = score(
-            oneTerritory().withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(GHASTS))
-                .withOptions(Aspect.SPAWNS, "strength", listOf("1.0..1.0")),
-        ).spawns
-        check(strongGhasts > ghasts) { "strong ghasts scored $strongGhasts against $ghasts for ordinary ones" }
+        check(both > maxOf(volcano, lava) && both < volcano + lava) { "they combined to $both" }
     }
 
-    test("a charged creeper or a herd of them is more dangerous, and a creature rooted where it stands less") {
-        fun creepersWith(vararg parameters: Pair<String, String>) = parameters.fold(
-            oneTerritory().withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(CREEPER)),
-        ) { held, (name, value) -> held.withOptions(Aspect.SPAWNS, name, listOf(value)) }
-        val creepers = score(creepersWith()).spawns
-        val charged = score(creepersWith(Spawns.CHARGED.name to "${Parameter.TRUE}[for=$CREEPER]")).spawns
-        val rooted = score(creepersWith(Spawns.STILL.name to Parameter.TRUE)).spawns
-        val herded = score(creepersWith(Spawns.HERD.name to "0.0..0.0[for=$CREEPER]")).spawns
-        check(charged > creepers) { "charged creepers scored $charged against $creepers" }
-        check(rooted < creepers) { "rooted creepers scored $rooted against $creepers" }
-        check(herded > creepers) { "creepers in herds scored $herded against $creepers" }
+    test("the features placed in an Age count as their worst, one hazard") {
+        val both = score(growing(VOLCANO, LAVA_TUBES)).from(Source.FEATURE)
+        check(both.map { it.name } == listOf(VOLCANO)) { "a volcano and tubes were scored as $both" }
     }
 
-    test("monsters walking at noon are dangerous as a roof is") {
-        val loosed = oneTerritory().withOptions(Aspect.SPAWNS, Spawns.INCONGRUOUS.name, listOf(Parameter.TRUE))
-        check(score(loosed).lighting > 0.0) { "monsters loosed into the daylight took no danger" }
-    }
-
-    test("a thick haze, constant thunder and a heavy pull make an Age harder to be in, and a clear one does not") {
-        fun with(aspect: Aspect, parameter: String, value: String) = score(oneTerritory().withOptions(aspect, parameter, listOf(value))).conditions
-        check(with(Aspect.AIR, "haze", "0.9..1") > 0.0) { "a smothering haze took no danger" }
-        check(with(Aspect.WEATHER, "thunder", "0.9..1") > 0.0) { "thunder in every storm took no danger" }
-        check(with(Aspect.GRAVITY, "pull", "0.9..1") > 0.0) { "a heavy pull took no danger" }
-        check(with(Aspect.AIR, "haze", "-1..-0.9") == 0.0) { "a clear Age took danger from its clarity" }
-        check(score(oneTerritory()).conditions == 0.0) { "an Age that said nothing of its conditions scored them" }
-    }
-
-    test("weakened monsters take danger away, but never below the biomes' own") {
-        val weak = score(oneTerritory().withOptions(Aspect.SPAWNS, "strength", listOf("-1.0..-1.0"))).spawns
-        check(weak == 0.0) { "weakening the monsters already here scored $weak" }
-    }
-
-    /** A claim confined to one biome is one biome's worth of danger, not an Age's worth. */
-    test("a hazard confined to one biome is scored at less than the same hazard everywhere") {
-        val everywhere = oneTerritory().withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(GHASTS))
-        val somewhere = oneTerritory()
-            .withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf("$GHASTS[in=minecraft:plains]"))
-
-        val open = score(everywhere).spawns
-        val confined = score(somewhere).spawns
-        check(confined < open) { "a confined claim scored $confined against $open everywhere" }
-        check(confined > 0.0) { "a confined claim scored nothing at all" }
-    }
-
-    test("a hazard the book struck out is not scored") {
-        val struck = oneTerritory()
-            .withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(GHASTS, "$GHASTS[except]"))
-        check(score(struck).spawns == 0.0) { "a struck-out ghast scored ${score(struck).spawns}" }
-    }
-
-    test("what happens here is scored, and a sight is not a hazard") {
-        val burning = oneTerritory().withOptions(Aspect.PHENOMENA, Phenomena.HAPPENS.name, listOf(INFERNO))
-        val lovely = oneTerritory().withOptions(Aspect.PHENOMENA, Phenomena.HAPPENS.name, listOf(AURORA))
-        check(score(burning).phenomena > 0.0) { "an inferno scored nothing" }
-        check(score(lovely).phenomena == 0.0) { "an aurora scored ${score(lovely).phenomena}" }
+    test("a feature written out of an Age stops counting, and scenery never counts") {
+        val struck = growing(VOLCANO, "$VOLCANO${Claim.OPEN}${Claim.EXCEPT}${Claim.CLOSE}", LAVA_TUBES)
+        check(score(struck).from(Source.FEATURE).map { it.name } == listOf(LAVA_TUBES)) {
+            "an Age that wrote its volcano out held ${score(struck).from(Source.FEATURE)}"
+        }
+        val withScenery = growing(VOLCANO, "minecraft:patch_sunflower")
+        check(score(withScenery).score == score(growing(VOLCANO)).score) { "a sunflower patch moved the score" }
     }
 
     /**
-     * §7.7 counts a roof "only insofar as it drives mob pressure: a sealed sky is danger because of what
-     * walks under it". So an Age nothing walks in takes nothing from its roof.
+     * The rule the design rests on: what covers part of an Age scores the part it covers. Otherwise a safe base
+     * written into one territory of a hostile Age costs nothing and pays in full.
      */
+    test("a five-percent magma region does not score like a magma world") {
+        val whole = ground(oneTerritory().withOptionsFor(Aspect.TERRAIN, 0, Terrain.STONE.name, listOf(MAGMA)))
+        val half = ground(twoTerritories(shares = listOf(1.0, 1.0), second = MAGMA))
+        val corner = ground(twoTerritories(shares = listOf(1.0, A_TWENTIETH), second = MAGMA))
+        check(whole == MAGMA_WORTH) { "a world of magma scored $whole" }
+        check(corner < MAGMA_WORTH / 10) { "a magma corner scored $corner" }
+        check(whole > half && half > corner) { "danger should follow the ground covered, and went $whole, $half, $corner" }
+    }
+
+    test("materials mingled into one territory are scored at their worst, and a surface counts as ground") {
+        val mingled = oneTerritory().withOptionsFor(Aspect.TERRAIN, 0, Terrain.STONE.name, listOf(ORDINARY_STONE, MAGMA))
+        check(ground(mingled) == MAGMA_WORTH) { "magma mingled through a territory scored ${ground(mingled)}" }
+        val dressed = oneTerritory().withOptions(Aspect.SURFACE, Surface.MATERIAL.name, listOf(MAGMA))
+        check(ground(dressed) == MAGMA_WORTH) { "a magma skin scored ${ground(dressed)}" }
+    }
+
+    test("a sea of lava is a hazard, and a sea of water is not") {
+        val lava = score(oneTerritory().copy(seas = listOf(Sea.LAVA))).from(Source.SEA)
+        val water = score(oneTerritory().copy(seas = listOf(Sea.WATER))).from(Source.SEA)
+        check(lava.singleOrNull()?.value == LAVA_SEA_WORTH) { "a lava sea scored $lava" }
+        check(water.isEmpty()) { "a water sea scored $water" }
+    }
+
+    test("land over the void is a hazard, unless a sea lies beneath to fall into") {
+        val islands = AgeComposition(terrains = listOf(Terrain.SPIRE_ISLANDS)).copy(seas = listOf(Sea.NONE))
+        val overWater = islands.copy(seas = listOf(Sea.WATER))
+        check(score(islands).from(Source.VOID).singleOrNull()?.value == VOID_WORTH) { "islands over the void scored ${score(islands).hazards}" }
+        check(score(overWater).from(Source.VOID).isEmpty()) { "islands over a sea scored ${score(overWater).from(Source.VOID)}" }
+    }
+
+    test("a crowd is scored by the monster cap the book set, not by the weight among its kinds") {
+        val ghasts = monsters(score(spawning(GHASTS)))
+        val weighted = monsters(score(spawning("$GHASTS[amount=4]")))
+        val teeming = monsters(score(spawning(GHASTS).withOptions(Aspect.SPAWNS, Spawns.CAPS.name, listOf("monster:4"))))
+        check(ghasts == GHAST_WORTH) { "ghasts scored $ghasts" }
+        check(weighted == ghasts) { "ghasts weighted four to one among their kinds scored $weighted" }
+        check(abs(teeming - 4 * ghasts) < A_ROUNDING) { "ghasts under four times the cap scored $teeming against $ghasts" }
+    }
+
+    /** More monsters and monsters out at every hour are one danger met two ways, and rated together they were the worse. */
+    test("monsters and the darkness that lets them out count as the worse of them, not both") {
+        val sealed = oneTerritory().withOptions(Aspect.SKY, Sky.SEALED.name, listOf(Parameter.TRUE))
+        val ghastsUnderARoof = sealed.withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(GHASTS))
+        check(monsters(score(sealed)) == SEALED_WORTH) { "a sealed sky scored ${monsters(score(sealed))}" }
+        check(monsters(score(ghastsUnderARoof)) == maxOf(SEALED_WORTH, GHAST_WORTH)) {
+            "ghasts under a roof scored ${monsters(score(ghastsUnderARoof))}"
+        }
+        check(score(ghastsUnderARoof).from(Source.CREATURES).size == 1) { "the monsters were counted as more than one hazard" }
+    }
+
     test("a sealed Age is dangerous, unless nothing lives in it") {
         val sealed = oneTerritory().withOptions(Aspect.SKY, Sky.SEALED.name, listOf(Parameter.TRUE))
         val sealedAndEmpty = sealed.withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(Pool.NOTHING))
-
-        check(score(sealed).lighting > 0.0) { "a sealed Age took no danger from its roof" }
-        check(score(sealedAndEmpty).lighting == 0.0) {
-            "an Age nothing lives in took danger from its roof anyway"
-        }
+        check(monsters(score(sealedAndEmpty)) == 0.0) { "an Age nothing lives in took danger from its roof" }
     }
 
-    /**
-     * Danger and instability are separate axes, and this is where that is enforced.
-     *
-     * A contradiction pays only where the budget actually **bought a hazard**. Torn seams are the world's
-     * shape being wrong, which is not a thing that can kill you — so an Age that spent everything on them
-     * must score exactly what a coherent one does.
-     */
+    test("monsters made stronger or quicker are more dangerous, asked for or already here") {
+        val strongZombies = monsters(score(oneTerritory().withOptions(Aspect.SPAWNS, "strength", listOf("1.0..1.0[for=$ZOMBIE]"))))
+        val swiftEverything = monsters(score(oneTerritory().withOptions(Aspect.SPAWNS, "pace", listOf("1.0..1.0"))))
+        check(strongZombies > 0.0) { "strong zombies scored nothing" }
+        check(swiftEverything > strongZombies) { "every monster quickened scored $swiftEverything, below strong zombies at $strongZombies" }
+        val strongGhasts = monsters(score(spawning(GHASTS).withOptions(Aspect.SPAWNS, "strength", listOf("1.0..1.0"))))
+        check(strongGhasts > GHAST_WORTH) { "strong ghasts scored $strongGhasts against $GHAST_WORTH" }
+    }
+
+    test("darkness lets out monsters as hard as the book made them") {
+        val sealed = oneTerritory().withOptions(Aspect.SKY, Sky.SEALED.name, listOf(Parameter.TRUE))
+        val swiftInTheDark = monsters(score(sealed.withOptions(Aspect.SPAWNS, "pace", listOf("1.0..1.0"))))
+        check(swiftInTheDark > SEALED_WORTH) { "swift monsters under a roof scored $swiftInTheDark, no more than the roof" }
+    }
+
+    test("a charged creeper or a herd of them is more dangerous, and a creature rooted where it stands less") {
+        fun creepersWith(vararg parameters: Pair<String, String>) = monsters(score(parameters.fold(spawning(CREEPER)) { held, (name, value) ->
+            held.withOptions(Aspect.SPAWNS, name, listOf(value))
+        }))
+        val creepers = creepersWith()
+        check(creepersWith(Spawns.CHARGED.name to "${Parameter.TRUE}[for=$CREEPER]") > creepers) { "charged creepers were no worse" }
+        check(creepersWith(Spawns.STILL.name to Parameter.TRUE) < creepers) { "rooted creepers were no better" }
+        check(creepersWith(Spawns.HERD.name to "0.0..0.0[for=$CREEPER]") > creepers) { "creepers in herds were no worse" }
+    }
+
+    test("weakened monsters take nothing below the biomes' own") {
+        val weak = monsters(score(oneTerritory().withOptions(Aspect.SPAWNS, "strength", listOf("-1.0..-1.0"))))
+        check(weak == 0.0) { "weakening the monsters already here scored $weak" }
+    }
+
+    test("monsters walking at noon are let out as a roof lets them out") {
+        val loosed = oneTerritory().withOptions(Aspect.SPAWNS, Spawns.INCONGRUOUS.name, listOf(Parameter.TRUE))
+        check(monsters(score(loosed)) == INCONGRUOUS_WORTH) { "monsters loosed into the daylight scored ${monsters(score(loosed))}" }
+    }
+
+    test("a hazard confined to one biome keeps part of its worth") {
+        val confined = monsters(score(spawning("$GHASTS[in=minecraft:plains]")))
+        check(abs(confined - GHAST_WORTH * CONFINED) < A_ROUNDING) { "a confined claim scored $confined" }
+    }
+
+    test("a hazard the book struck out is not scored") {
+        check(monsters(score(spawning(GHASTS, "$GHASTS[except]"))) == 0.0) { "a struck-out ghast was scored" }
+    }
+
+    test("what happens here is scored, and a sight is not a hazard") {
+        val burning = score(oneTerritory().withOptions(Aspect.PHENOMENA, Phenomena.HAPPENS.name, listOf(INFERNO)))
+        val lovely = score(oneTerritory().withOptions(Aspect.PHENOMENA, Phenomena.HAPPENS.name, listOf(AURORA)))
+        check(burning.from(Source.PHENOMENON).singleOrNull()?.value == INFERNO_WORTH) { "an inferno scored ${burning.hazards}" }
+        check(lovely.hazards.isEmpty()) { "an aurora scored ${lovely.hazards}" }
+    }
+
+    test("a phenomenon written more often or harder is worse, and one written rarely is milder") {
+        fun inferno(vararg dials: Pair<String, String>) = score(dials.fold(
+            oneTerritory().withOptions(Aspect.PHENOMENA, Phenomena.HAPPENS.name, listOf(INFERNO)),
+        ) { held, (name, value) -> held.withOptions(Aspect.PHENOMENA, name, listOf(value)) }).from(Source.PHENOMENON).single().value
+        check(inferno(Phenomena.FREQUENCY.name to "0.5..0.5") > INFERNO_WORTH) { "a frequent inferno was no worse" }
+        check(inferno(Phenomena.FREQUENCY.name to "-0.5..-0.5") < INFERNO_WORTH) { "a rare inferno was no milder" }
+        check(inferno(Phenomena.STRENGTH.name to "0.5..0.5") > INFERNO_WORTH) { "a strong inferno was no worse" }
+    }
+
+    test("a thick haze and constant thunder make an Age harder to be in, and a clear one does not") {
+        fun condition(aspect: Aspect, parameter: String, value: String) =
+            score(oneTerritory().withOptions(aspect, parameter, listOf(value))).from(Source.CONDITION).sumOf { it.value }
+        check(condition(Aspect.AIR, "haze", "0.9..1") > 0.0) { "a smothering haze took no danger" }
+        check(condition(Aspect.WEATHER, "thunder", "0.9..1") > 0.0) { "thunder in every storm took no danger" }
+        check(condition(Aspect.AIR, "haze", "-1..-0.9") == 0.0) { "a clear Age took danger from its clarity" }
+    }
+
+    test("a heavier pull is a little worse, and one too heavy to jump a block is much worse") {
+        fun pulled(pull: String) = score(oneTerritory().withOptions(Aspect.GRAVITY, "pull", listOf(pull))).from(Source.GRAVITY).sumOf { it.value }
+        val heavier = pulled("0.25..0.25")
+        val crushing = pulled("1.0..1.0")
+        check(heavier > 0.0 && heavier < HEAVIER_WORTH) { "a slightly heavier pull scored $heavier" }
+        check(crushing == UNJUMPABLE_WORTH) { "a pull no block can be jumped under scored $crushing" }
+        check(pulled("-1.0..-1.0") == 0.0) { "a lighter pull scored as a hazard" }
+    }
+
+    /** Danger and instability are separate axes: a contradiction pays only where the budget bought a hazard. */
     test("a contradiction that only tore some seams is worth nothing") {
-        val coherent = score(oneTerritory())
-        val torn = score(oneTerritory(), bought = Manifestation.TORN_SEAMS)
-        check(torn.score == coherent.score) { "torn seams scored ${torn.score} against ${coherent.score}" }
+        check(score(oneTerritory(), bought = Manifestation.TORN_SEAMS).hazards.isEmpty()) { "torn seams were scored" }
     }
 
-    test("a contradiction that bought wounds is hostile life, and one that bought a sandfall is a hazard") {
-        val wounded = score(oneTerritory(), bought = Manifestation.WOUNDS)
-        val buried = score(oneTerritory(), bought = Manifestation.SANDFALL)
-        check(wounded.spawns > 0.0) { "wounds drew no hostile life" }
-        check(buried.phenomena > 0.0) { "an inflicted sandfall was not a hazard" }
+    test("a contradiction that bought wounds or a sandfall bought a hazard") {
+        check(score(oneTerritory(), bought = Manifestation.WOUNDS).from(Source.WOUNDS).isNotEmpty()) { "wounds were not scored" }
+        check(score(oneTerritory(), bought = Manifestation.SANDFALL).from(Source.PHENOMENON).isNotEmpty()) {
+            "an inflicted sandfall was not scored"
+        }
     }
 
-    /**
-     * The raid's trigger, and it is a threshold at the very top rather than a slope.
-     *
-     * An Age that merely went badly wrong must not read as terminal: §7.7's absurd rewards are for the Age
-     * nobody could have lived in, and a multiplier that crept in as an Age got worse would make the whole
-     * economy a function of how sloppy the writer was.
-     */
-    test("only an Age that bought every step of collapse is terminal") {
+    test("a phenomenon both written and inflicted is one hazard, at the worse of the two") {
+        val written = oneTerritory().withOptions(Aspect.PHENOMENA, Phenomena.HAPPENS.name, listOf(SANDFALL))
+        val sandfalls = score(written, bought = Manifestation.SANDFALL).from(Source.PHENOMENON)
+        check(sandfalls.size == 1) { "a written and inflicted sandfall was counted ${sandfalls.size} times" }
+    }
+
+    test("an Age that will not last is terminal without that moving its score") {
         check(!score(oneTerritory()).isTerminal) { "a coherent Age is terminal" }
-        check(!score(oneTerritory(), bought = Manifestation.SANDFALL).isTerminal) {
-            "an Age that never reached collapse is terminal"
-        }
-        check(score(oneTerritory(), bought = Manifestation.COLLAPSE).isTerminal) {
-            "an Age that bought all the collapse there is is not terminal"
-        }
-    }
-
-    /** Exposed rather than scored, so §7.7's terminal multiplier can be settled without reopening this. */
-    test("an Age that will not last says so without it changing the score") {
-        val terminal = score(oneTerritory(), bought = Manifestation.COLLAPSE)
-        val ordinary = score(oneTerritory())
-        check(terminal.terminal > 0.0) { "a collapsing Age reported no terminal reach" }
-        check(terminal.materials == ordinary.materials) { "collapse moved a contributor it has nothing to do with" }
+        check(!score(oneTerritory(), bought = Manifestation.SANDFALL).isTerminal) { "an Age that never reached collapse is terminal" }
+        val collapsing = score(oneTerritory(), bought = Manifestation.COLLAPSE)
+        check(collapsing.isTerminal && collapsing.paysOut && !collapsing.allowsRuins) { "a collapsing Age read as $collapsing" }
+        check(collapsing.score == score(oneTerritory()).score) { "collapse moved the score" }
     }
 }) {
     companion object {
@@ -313,118 +241,94 @@ class DangerCheck : FunSpec({
         private const val GHASTS = "minecraft:ghast"
         private const val ZOMBIE = "minecraft:zombie"
         private const val CREEPER = "minecraft:creeper"
-
-        /** What the table calls any monster it has no line for. */
-        private const val ANY_MONSTER = "monsters"
         private const val INFERNO = "inferno"
+        private const val SANDFALL = "sandfall"
         private const val AURORA = "aurora"
+        private const val VOLCANO = "agesandtheart:volcano"
+        private const val LAVA_TUBES = "agesandtheart:lava_tubes"
+
+        private const val MAGMA_WORTH = 0.7
+        private const val LAVA_SEA_WORTH = 0.2
+        private const val VOID_WORTH = 0.5
+        private const val GHAST_WORTH = 0.3
+        private const val SEALED_WORTH = 0.65
+        private const val INCONGRUOUS_WORTH = 0.4
+        private const val INFERNO_WORTH = 0.45
+        private const val HEAVIER_WORTH = 0.1
+        private const val UNJUMPABLE_WORTH = 0.6
+        private const val CONFINED = 0.65
+
         private const val A_TWENTIETH = 0.05
-        private const val ONE_TENTH = 0.1
-
+        private const val A_ROUNDING = 1e-9
         private const val STEPS_EACH = 4
-
-        /**
-         * **Ladders that sell [only]'s steps and nothing else**, so a check names what instability bought
-         * with no draw between: every step strange, so every flaw falls through to it, and every other
-         * manifestation selling no steps at all.
-         */
-        private fun selling(only: Manifestation?): Map<Manifestation, Ladder> = Manifestation.entries.associateWith {
-            if (it == only) Ladder.flat(it, tier = Spending.STRANGE, most = STEPS_EACH)
-            else Ladder(it.dials.associateWith { DialSteps(emptyList()) })
-        }
-
-        /** Enough flaws to buy every step [manifestation] sells. */
-        private fun allOf(manifestation: Manifestation) = STEPS_EACH * manifestation.dials.size
-
         private const val ANY_SEED = 7L
 
         init {
             MinecraftRegistries.ensureStoodUp()
         }
 
-        /**
-         * A table written for the checks: one material and one creature worth everything, one phenomenon
-         * that is a hazard and one that is a sight, and weights that make each contributor readable on its
-         * own.
-         */
-        private val TABLE = DangerTable(
-            weights = DangerTable.Weights(
-                materials = 0.25,
-                spawns = 0.25,
-                phenomena = 0.25,
-                lighting = 0.25,
-                features = 0.0,
-                conditions = 0.25,
+        private val TABLE = DangerTable.NONE.copy(
+            lines = ScoredDanger.LINES,
+            combining = 1.8,
+            confined = CONFINED,
+            ground = DangerTable.Ground(
+                madeOf = mapOf(MAGMA to MAGMA_WORTH),
+                seas = mapOf("minecraft:lava" to LAVA_SEA_WORTH),
+                abyss = 0.65,
+                void = mapOf(Terrain.SPIRE_ISLANDS.key to VOID_WORTH),
+                landforms = emptyMap(),
+                underground = emptyMap(),
             ),
-            paysAbove = 0.2,
-            spawnsFull = 1.0,
-            phenomenaFull = 1.0,
-            featuresFull = 1.0,
-            confinedWeight = 0.25,
-            woundHostility = 0.5,
-            materials = mapOf(MAGMA to 1.0, "minecraft:lava" to 1.0),
-            spawns = mapOf(GHASTS to 0.5, ANY_MONSTER to 0.3),
-            phenomena = mapOf(INFERNO to 1.0, "sandfall" to 1.0, AURORA to 0.0),
-            lighting = mapOf("sealed" to 1.0, "lightless" to 0.5, "incongruous" to 0.75),
-            features = emptyMap(),
-            conditions = mapOf("haze" to 1.0, "thunder" to 1.0, "pull" to 1.0),
+            creatures = mapOf("monsters" to 0.5, GHASTS to GHAST_WORTH, CREEPER to 0.4),
+            darkness = DangerTable.Darkness(sealed = SEALED_WORTH, sunless = 0.5, roofedByRock = 0.1, incongruous = INCONGRUOUS_WORTH),
+            hardiness = DangerTable.Hardiness(
+                strength = DangerTable.Dial(raised = 1.3, lowered = 0.5),
+                pace = DangerTable.Dial(raised = 2.0, lowered = 0.2),
+                size = DangerTable.Dial(raised = 2.4, lowered = 1.3),
+                charged = 2.0,
+                still = 0.05,
+                herds = 1.3,
+            ),
+            phenomena = mapOf(INFERNO to INFERNO_WORTH, SANDFALL to 0.3, AURORA to 0.0),
+            phenomenonDials = DangerTable.PhenomenonDials(
+                frequency = DangerTable.Dial(raised = 1.3, lowered = 0.3),
+                constant = 2.0,
+                strength = DangerTable.Dial(raised = 2.5, lowered = 0.5),
+            ),
+            features = mapOf(VOLCANO to 0.45, LAVA_TUBES to 0.4),
+            conditions = mapOf("haze" to 0.45, "thunder" to 0.1),
+            gravity = DangerTable.GravityHazard(heavier = HEAVIER_WORTH, unjumpable = UNJUMPABLE_WORTH, unjumpableFrom = 1.75),
+            wounds = 0.05,
         )
 
-        /**
-         * A table that sees nothing but what is placed, with two hazards of known weight in it.
-         *
-         * **`features_full` is 2.0 here and 1.0 in the shipped file, deliberately.** A divisor of one hides
-         * a divisor that is never applied at all, and this file exists to check the arithmetic rather than
-         * the tuning — so one hazard of weight 1.0 comes out at half a world full, and a bug that dropped
-         * the division would read 1.0 and fail.
-         */
-        private val GROUND_ONLY = TABLE.copy(
-            weights = DangerTable.Weights(
-                materials = 0.0,
-                spawns = 0.0,
-                phenomena = 0.0,
-                lighting = 0.0,
-                features = 1.0,
-            ),
-            featuresFull = 2.0,
-            features = mapOf(VOLCANO to 1.0, LAVA_TUBES to 0.6),
-        )
+        /** Ladders that sell [only]'s steps and nothing else, so a check names what instability bought with no draw between. */
+        private fun selling(only: Manifestation?): Map<Manifestation, Ladder> = Manifestation.entries.associateWith {
+            if (it == only) Ladder.flat(it, tier = Spending.STRANGE, most = STEPS_EACH)
+            else Ladder(it.dials.associateWith { DialSteps(emptyList()) })
+        }
 
-        private const val VOLCANO = "agesandtheart:volcano"
-        private const val LAVA_TUBES = "agesandtheart:lava_tubes"
+        private fun score(composition: AgeComposition, bought: Manifestation? = null, table: DangerTable = TABLE): Danger {
+            val instability = bought?.let { Instability.forced(STEPS_EACH * it.dials.size) } ?: Instability.NONE
+            return Danger.of(composition, instability, ANY_SEED, table, selling(bought))
+        }
 
-        /** An Age over one landform asking for exactly [placed] to be grown in it. */
+        private fun ground(composition: AgeComposition): Double = score(composition).from(Source.GROUND).sumOf { it.value }
+
+        private fun monsters(danger: Danger): Double = danger.from(Source.CREATURES).sumOf { it.value }
+
+        private fun oneTerritory(): AgeComposition = AgeComposition(terrains = listOf(Terrain.HILLS))
+
+        private fun spawning(vararg lives: String): AgeComposition =
+            oneTerritory().withOptions(Aspect.SPAWNS, Spawns.LIVES.name, lives.toList())
+
         private fun growing(vararg placed: String): AgeComposition =
             oneTerritory().withOptionsFor(Aspect.FEATURES, 0, Features.PLACES.name, placed.toList())
 
-        private fun groundScore(composition: AgeComposition): Danger =
-            Danger.of(composition, Instability.NONE, ANY_SEED, true, GROUND_ONLY, selling(null))
-
-        /** One landform covering the whole Age, made of nothing in particular. */
-        private fun oneTerritory(): AgeComposition = AgeComposition(terrains = listOf(Terrain.HILLS))
-
-        /**
-         * Two landforms dividing the Age, ordinary rock in the first and [second] in the other, each
-         * covering the ground its share gives it.
-         */
+        /** Two landforms dividing the Age, ordinary rock in the first and [second] in the other. */
         private fun twoTerritories(shares: List<Double>, second: String): AgeComposition =
             AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.ERODED))
                 .copy(spreads = Spreads().withShares(Aspect.TERRAIN, shares))
                 .withOptionsFor(Aspect.TERRAIN, 0, Terrain.STONE.name, listOf(ORDINARY_STONE))
                 .withOptionsFor(Aspect.TERRAIN, 1, Terrain.STONE.name, listOf(second))
-
-        /**
-         * Scored as a composition rather than as a recipe, which is the entry the desk uses — the
-         * recipe-level one is checked in [DangerTableCheck].
-         */
-        private fun score(
-            composition: AgeComposition,
-            authored: Boolean = true,
-            bought: Manifestation? = null,
-        ): Danger {
-            // What the flaws *are* does not matter — [Danger] never reads the register, only what was bought.
-            val instability = bought?.let { Instability.forced(allOf(it)) } ?: Instability.NONE
-            return Danger.of(composition, instability, ANY_SEED, authored, TABLE, selling(bought))
-        }
     }
 }

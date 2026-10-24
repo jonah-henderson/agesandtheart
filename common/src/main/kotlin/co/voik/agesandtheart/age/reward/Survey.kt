@@ -25,18 +25,13 @@ import net.minecraft.server.MinecraftServer
 data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMaterial>) {
 
     companion object {
-        /**
-         * What the Age this composition describes would hold, on the server about to be asked to build it. [authored]
-         * is whether a player wrote it, which is what a deposit is paid for: a sentence at a desk is about to be,
-         * and an Age read where it stands was or was not.
-         */
+        /** What the Age this composition describes would hold, on the server about to be asked to build it. */
         fun of(
             server: MinecraftServer,
             composition: AgeComposition,
             template: AgeTemplate,
             instability: Instability,
             seed: Long,
-            authored: Boolean = true,
         ): Survey = of(
             composition,
             instability,
@@ -44,7 +39,6 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
             DangerTable.of(server),
             Ladder.list(server),
             SpendingSetting.of(server, composition, template, seed),
-            authored,
         )
 
         /** The same, against a table and the ladders handed in — offline, and what the checks use. */
@@ -55,9 +49,8 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
             table: DangerTable,
             ladders: Map<Manifestation, Ladder>,
             setting: SpendingSetting = SpendingSetting.of(composition),
-            authored: Boolean = true,
         ): Survey {
-            val danger = Danger.of(composition, instability, seed, authored, table, ladders, setting)
+            val danger = Danger.of(composition, instability, seed, table, ladders, setting)
             val spending = Spending.of(instability, seed, ladders, setting)
             return Survey(
                 deposit = Yield.of(danger),
@@ -72,16 +65,16 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
  * vanilla ore is ([Deposits]): traces as emerald, a little as diamond, some as iron, a good deal between iron and
  * copper, large amounts as copper, and massive layers in an Age that collapses, whatever it scored.
  *
- * [fromScore] is the least danger an Age reads at one: the old banding on veins per chunk, six to a full score.
+ * Where each begins is the danger table's ([DangerTable.Lines]).
  */
-enum class Yield(val key: String, val fromScore: Double) {
-    NONE("none", 0.0),
-    TRACE("trace", 0.0),
-    LITTLE("little", 2.5 / SIXTHS),
-    SOME("some", 4.5 / SIXTHS),
-    MUCH("much", 8.5 / SIXTHS),
-    IMMENSE("immense", 19.5 / SIXTHS),
-    MASSIVE("massive", Double.POSITIVE_INFINITY),
+enum class Yield(val key: String) {
+    NONE("none"),
+    TRACE("trace"),
+    LITTLE("little"),
+    SOME("some"),
+    MUCH("much"),
+    IMMENSE("immense"),
+    MASSIVE("massive"),
     ;
 
     companion object {
@@ -89,10 +82,7 @@ enum class Yield(val key: String, val fromScore: Double) {
         fun of(danger: Danger): Yield = when {
             !danger.paysOut -> NONE
             danger.isTerminal -> MASSIVE
-            else -> entries.last { it != MASSIVE && danger.score >= it.fromScore }
+            else -> entries.last { it != MASSIVE && danger.score >= danger.lineFor(it) }
         }
     }
 }
-
-/** The steps a full score of danger was divided into, which is where the bands' lines fall. */
-private const val SIXTHS = 6.0

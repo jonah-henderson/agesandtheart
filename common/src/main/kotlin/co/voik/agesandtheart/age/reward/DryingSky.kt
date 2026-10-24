@@ -14,7 +14,7 @@ import io.netty.buffer.ByteBuf
 /**
  * What an Age must be for the drying rack to finish a masterwork grade in it (design §7.1.2): something no
  * vanilla dimension is, so the last step of the finest ink and paper is a world written for it. Read off
- * the recipe, like every other reward, and only of an Age a player wrote.
+ * the recipe, like every other reward.
  */
 enum class DryingSky(private val key: String) : StringRepresentable {
     /** Ink cakes cure under a black sun (Jonah): the ink takes its colour from the light it cures under. */
@@ -28,7 +28,6 @@ enum class DryingSky(private val key: String) : StringRepresentable {
     ;
 
     fun isMetBy(recipe: AgeRecipe, sky: SkySpec): Boolean {
-        if (!recipe.authored) return false
         val composition = recipe.composition ?: return false
         return when (this) {
             BLACK_SUN -> hasABlackSun(sky)

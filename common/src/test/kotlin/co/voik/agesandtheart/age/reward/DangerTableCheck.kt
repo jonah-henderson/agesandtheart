@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.reward
 
+import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgePreset
@@ -10,11 +11,13 @@ import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Ladder
 import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.aspect.Underground
 import io.kotest.core.annotation.Tags
-import io.kotest.core.spec.style.FunSpec
+import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
-import kotlin.math.abs
+import io.kotest.core.spec.style.FunSpec
 
 /**
  * That the table the mod actually ships is one the evaluator can use — it loads, its ids name real
@@ -31,18 +34,13 @@ class DangerTableCheck : FunSpec({
         check(table !== DangerTable.NONE) { "art/danger.json did not load, so no Age can ever pay out" }
     }
 
-    test("the weights are a division of one whole") {
-        val weights = table.weights
-        val total = weights.materials + weights.spawns + weights.phenomena + weights.lighting +
-            weights.features
-        check(abs(total - ONE_WHOLE) < A_ROUNDING) {
-            "the contributors share $total of the score rather than one"
-        }
-    }
-
-    test("the threshold is reachable and not free") {
-        check(table.paysAbove > 0.0) { "every Age pays out, however safe" }
-        check(table.paysAbove < ONE_WHOLE) { "the threshold is above what a wholly dangerous Age scores" }
+    test("the lines rise in order, and the combining exponent sits between a sum and a root-sum-square") {
+        val lines = table.lines
+        val rising = listOf(lines.paysAt, lines.little, lines.some, lines.much, lines.immense)
+        check(lines.paysAt > 0.0) { "every Age pays out, however safe" }
+        check(rising.zipWithNext().all { (lower, higher) -> lower < higher }) { "the deposit lines do not rise: $rising" }
+        check(lines.ruinsBelow > 0.0) { "no Age can hold ruins" }
+        check(table.combining in 1.0..2.0) { "hazards combine under ${table.combining}" }
     }
 
     /**
@@ -50,19 +48,28 @@ class DangerTableCheck : FunSpec({
      * it, and worth nothing is indistinguishable from *decided to be worth nothing*.
      */
     test("every phenomenon has been given a rating, even the ones worth nothing") {
-        val unrated = Phenomenon.entries.map { it.key } - table.phenomena.keys
+        val unrated = Phenomenon.entries.map { it.key }.filterNot { it in table.ratedPhenomena }
         check(unrated.isEmpty()) { "art/danger.json says nothing about $unrated" }
     }
 
-    test("every material and creature it rates is one this pack has") {
-        val absentBlocks = table.materials.keys.filterNot { named ->
-            Identifier.tryParse(named)?.let { BuiltInRegistries.BLOCK.getOptional(it).isPresent } == true
-        }
-        check(absentBlocks.isEmpty()) { "art/danger.json rates blocks that do not exist: $absentBlocks" }
+    test("every landform and underground it rates is one there is") {
+        val landforms = Terrain.entries.map { it.key }.toSet()
+        val undergrounds = Underground.entries.map { it.key }.toSet()
+        val strayLandforms = table.ground.ratedLandforms.filterNot { it in landforms }
+        val strayUndergrounds = table.ground.ratedUndergrounds.filterNot { it in undergrounds }
+        check(strayLandforms.isEmpty()) { "art/danger.json rates landforms that do not exist: $strayLandforms" }
+        check(strayUndergrounds.isEmpty()) { "art/danger.json rates undergrounds that do not exist: $strayUndergrounds" }
+    }
 
-        val absentCreatures = (table.spawns.keys - MONSTERS).filterNot { named ->
-            Identifier.tryParse(named)?.let { BuiltInRegistries.ENTITY_TYPE.getOptional(it).isPresent } == true
+    test("every block and creature it rates is one this pack has") {
+        fun absentFrom(registry: Registry<*>, named: Set<String>) = named.filterNot { name ->
+            Identifier.tryParse(name)?.let { registry.getOptional(it).isPresent } == true
         }
+        val absentBlocks = absentFrom(BuiltInRegistries.BLOCK, table.ground.ratedMaterials)
+        // Ours are registered only on a running server: AgeContent cannot be stood up once the registries are frozen.
+        val vanillaCreatures = table.ratedCreatures.filterNot { it == MONSTERS || it.startsWith("${Constants.MOD_ID}:") }.toSet()
+        val absentCreatures = absentFrom(BuiltInRegistries.ENTITY_TYPE, vanillaCreatures)
+        check(absentBlocks.isEmpty()) { "art/danger.json rates blocks that do not exist: $absentBlocks" }
         check(absentCreatures.isEmpty()) { "art/danger.json rates creatures that do not exist: $absentCreatures" }
     }
 
@@ -71,8 +78,8 @@ class DangerTableCheck : FunSpec({
      * creatures are monsters, so only the ones that are not *ordinarily* dangerous need an entry.
      */
     test("a monster nobody rated is worth the ordinary amount, and a cow is worth nothing") {
-        val zombie = table.spawn("minecraft:zombie")
-        val cow = table.spawn("minecraft:cow")
+        val zombie = table.creature("minecraft:zombie")
+        val cow = table.creature("minecraft:cow")
         check(zombie > 0.0) { "an unrated monster was worth nothing" }
         check(cow == 0.0) { "a cow was worth $cow" }
     }
@@ -88,8 +95,8 @@ class DangerTableCheck : FunSpec({
         check(infernal.score > ordinary.score) {
             "the nether scored ${infernal.score} against the overworld's ${ordinary.score}"
         }
-        check(infernal.materials > 0.0) { "a lava sea was not counted as what the Age is made of" }
-        check(infernal.lighting > 0.0) { "a sealed sky was not counted as darkness" }
+        check(infernal.from(Danger.Source.SEA).isNotEmpty()) { "a lava sea was not counted: ${infernal.hazards}" }
+        check(infernal.hazards.any { it.name == "landform" }) { "the Nether's own landform was not rated: ${infernal.hazards}" }
     }
 
     /** An Age nobody composed has nothing to read, and none of them is a thing a writer wrote. */
@@ -104,14 +111,12 @@ class DangerTableCheck : FunSpec({
     test("scoring a recipe is scoring the composition in it") {
         val composition = AgeTemplate.INFERNAL.world()
         val throughTheRecipe = scoreOver(AgeTemplate.INFERNAL)
-        val direct = Danger.of(composition, Instability.NONE, SEED, authored = true, table, prices)
+        val direct = Danger.of(composition, Instability.NONE, SEED, table, prices)
         check(throughTheRecipe == direct) { "a recipe scored $throughTheRecipe where its composition scored $direct" }
     }
 }) {
     companion object {
         private const val SEED = 42L
-        private const val ONE_WHOLE = 1.0
-        private const val A_ROUNDING = 1e-9
         private const val MONSTERS = "monsters"
 
         private val table by lazy { DangerTable.load(MinecraftRegistries.shippedData()) }

@@ -22,7 +22,7 @@ import net.minecraft.world.phys.AABB
  * ([ScarabSettle]), so a near miss sends a stray that wanders and goes, and a full habitat sends a founder.
  *
  * **Not a biome spawn**, deliberately: a biome's list is the same in every Age that has the biome, and the
- * conditions here are the Age's. And only in an Age a player wrote, as every reward is.
+ * conditions here are the Age's.
  */
 object ScarabArrivals {
 
@@ -30,7 +30,7 @@ object ScarabArrivals {
     fun arrive(level: ServerLevel, recipe: AgeRecipe) {
         if (level.gameTime % CHANCE_EVERY != 0L) return
         val age = ScarabHabitat.readAge(level, recipe) ?: return
-        if (!age.writtenByAPlayer || !age.anyJungle) return
+        if (!age.anyJungle) return
         for (player in Sampling.watchers(level)) {
             val chance = chanceOf(conditionsMet(level, player.blockPosition(), age))
             val strayAlreadyAbout = homelessNear(level, player.blockPosition()) >= MOST_HOMELESS

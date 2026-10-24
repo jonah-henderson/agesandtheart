@@ -29,7 +29,7 @@ import net.minecraft.world.level.block.Blocks
 class DepositsCheck : FunSpec({
 
     test("an Age that earns nothing lays no layer, and so is handed its own settings back") {
-        val safe = danger(materials = 0.0, authored = true)
+        val safe = danger(materials = 0.0)
         check(Deposits.layer(safe, ROCK) == null) { "a safe Age was given a deposit" }
         // The identity this protects is now [Decoration]'s to keep: a reward that lays nothing contributes
         // no layer, and an empty list hands the base back rather than rebuilding it — which is what costs
@@ -39,11 +39,6 @@ class DepositsCheck : FunSpec({
         }
     }
 
-    test("an Age nobody wrote lays no layer, however dangerous") {
-        val found = danger(materials = 1.0, authored = false)
-        check(Deposits.layer(found, ROCK) == null) { "a found Age was given a deposit" }
-    }
-
     /**
      * The raid's trigger, asked of the same values [Deposits] reads.
      *
@@ -51,11 +46,11 @@ class DepositsCheck : FunSpec({
      * in front of it: a dangerous Age is not a doomed one, and any collapse at all is.
      */
     test("a dangerous Age is not a doomed one") {
-        check(!danger(materials = 1.0, authored = true).isTerminal) { "an ordinary hellish Age read as doomed" }
-        check(danger(materials = 1.0, authored = true, terminal = A_PART_OF_IT).isTerminal) {
+        check(!danger(materials = 1.0).isTerminal) { "an ordinary hellish Age read as doomed" }
+        check(danger(materials = 1.0, terminal = A_PART_OF_IT).isTerminal) {
             "an Age part of the way into collapse did not read as doomed"
         }
-        check(danger(materials = 1.0, authored = true, terminal = ALL_OF_IT).isTerminal) {
+        check(danger(materials = 1.0, terminal = ALL_OF_IT).isTerminal) {
             "an Age that bought every step of collapse did not read as doomed"
         }
     }
@@ -63,29 +58,27 @@ class DepositsCheck : FunSpec({
     /** Past large amounts danger still pays more, but the ceiling is a collapse's: danger alone never reaches it. */
     test("danger alone never lays more than the least of a collapse's hoard, though it grows to meet it") {
         val scores = (0..FURTHEST_SCORE * STEPS_A_POINT).map { it.toDouble() / STEPS_A_POINT }
-        val held = scores.map { Deposits.heldAt(danger(materials = it, authored = true)) }
+        val held = scores.map { Deposits.heldAt(danger(materials = it)) }
         check(held.max() <= Deposits.leastHoard) { "danger alone laid ${held.max()}, against a least hoard of ${Deposits.leastHoard}" }
-        val atLargeAmounts = Deposits.heldAt(danger(materials = Yield.IMMENSE.fromScore, authored = true))
+        val atLargeAmounts = Deposits.heldAt(danger(materials = ScoredDanger.LINES.immense))
         check(held.last() > atLargeAmounts) { "a far more dangerous Age held no more than large amounts' $atLargeAmounts" }
         check(held.zipWithNext().none { (lower, higher) -> higher < lower }) { "a dearer Age held less than a cheaper one: $held" }
     }
 
     test("a quiet Age that collapses lays the doomed hoard, and holds no ruins") {
-        val quietAndCollapsing = danger(materials = 0.0, authored = true, terminal = A_PART_OF_IT)
+        val quietAndCollapsing = danger(materials = 0.0, terminal = A_PART_OF_IT)
         check(quietAndCollapsing.paysOut && !quietAndCollapsing.allowsRuins) { "a collapsing Age scoring nothing paid nothing" }
         check(Yield.of(quietAndCollapsing) == Yield.MASSIVE) { "a quiet collapsing Age read as ${Yield.of(quietAndCollapsing)}" }
         check(Deposits.hoardVeinsPerChunk(quietAndCollapsing) >= DOOMED_AT_LEAST) {
             "a quiet collapsing Age was offered ${Deposits.hoardVeinsPerChunk(quietAndCollapsing)} veins a chunk"
         }
-        val foundAndCollapsing = danger(materials = 0.0, authored = false, terminal = A_PART_OF_IT)
-        check(!foundAndCollapsing.paysOut) { "a found collapsing Age paid out" }
     }
 }) {
     companion object {
         /** What a doomed Age is offered at the least: one vein, multiplied. */
         private const val DOOMED_AT_LEAST = 40
 
-        /** Well past where the ceiling falls, about eleven. */
+        /** Well past where the ceiling falls. */
         private const val FURTHEST_SCORE = 30
         private const val STEPS_A_POINT = 20
 
@@ -102,19 +95,6 @@ class DepositsCheck : FunSpec({
         private const val A_PART_OF_IT = 0.67
         private const val ALL_OF_IT = 1.0
 
-        private val WEIGHTS = DangerTable.Weights(materials = 1.0, spawns = 0.0, phenomena = 0.0, lighting = 0.0, features = 0.0)
-
-        private fun danger(materials: Double, authored: Boolean, terminal: Double = 0.0) = Danger(
-            materials = materials,
-            spawns = 0.0,
-            phenomena = 0.0,
-            lighting = 0.0,
-            features = 0.0,
-            conditions = 0.0,
-            terminal = terminal,
-            authored = authored,
-            weights = WEIGHTS,
-            paysAbove = 0.2,
-        )
+        private fun danger(materials: Double, terminal: Double = 0.0) = ScoredDanger.of(materials, terminal)
     }
 }

@@ -20,27 +20,20 @@ class SurveyCheck : FunSpec({
         }
     }
 
-    test("an Age nobody wrote is reported as holding none, however dangerous") {
-        val found = danger(score = 1.0, authored = false)
-        check(Yield.of(found) == Yield.NONE) {
-            "a found Age was surveyed as holding a deposit it will never grow"
-        }
-    }
-
     test("an Age over the threshold always reads as holding something") {
-        val marginal = danger(score = PAYS_ABOVE)
+        val marginal = danger(score = ScoredDanger.LINES.paysAt)
         check(Yield.of(marginal) != Yield.NONE) {
             "an Age that earns a vein was surveyed as barren, which reads as the reward being broken"
         }
     }
 
     test("a doomed Age reads as its massive layers, however marginal it scored") {
-        val doomed = danger(score = PAYS_ABOVE, terminal = ALL_OF_IT)
+        val doomed = danger(score = ScoredDanger.LINES.paysAt, terminal = ALL_OF_IT)
         check(Yield.of(doomed) == Yield.MASSIVE) { "a doomed Age's hoard read as ${Yield.of(doomed)}" }
     }
 
     test("the report never falls as the Age grows more dangerous") {
-        val scores = (0..40).map { it / 20.0 }
+        val scores = (0..80).map { it / 20.0 }
         val reported = scores.map { Yield.of(danger(score = it)) }
         val slipped = reported.zipWithNext().filter { (earlier, later) -> later < earlier }
         check(slipped.isEmpty()) {
@@ -61,23 +54,7 @@ class SurveyCheck : FunSpec({
 }) {
     companion object {
         private const val ALL_OF_IT = 1.0
-        private const val PAYS_ABOVE = 0.25
 
-        /** Everything in one contributor, so a test names a score rather than four of them. */
-        private val WEIGHTS =
-            DangerTable.Weights(materials = 1.0, spawns = 0.0, phenomena = 0.0, lighting = 0.0, features = 0.0)
-
-        private fun danger(score: Double, authored: Boolean = true, terminal: Double = 0.0) = Danger(
-            materials = score,
-            spawns = 0.0,
-            phenomena = 0.0,
-            lighting = 0.0,
-            features = 0.0,
-            conditions = 0.0,
-            terminal = terminal,
-            authored = authored,
-            weights = WEIGHTS,
-            paysAbove = PAYS_ABOVE,
-        )
+        private fun danger(score: Double, terminal: Double = 0.0) = ScoredDanger.of(score, terminal)
     }
 }

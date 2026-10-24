@@ -95,15 +95,15 @@
       {"produce":["wondrous","age","skyborne","bright","stars","[aurora_colour]","aurora","only","plains"]}
     ],
     "beset_age": [
-      {"produce":["age","[land]","teeming","[monster]","meteors","phenomena","lightless","sky"]},
-      {"produce":["age","[land]","teeming","zombie","and","skeleton","tempest","phenomena"]},
-      {"produce":["age","[land]","plentiful","zombie","and","skeleton","meteors","phenomena"]},
-      {"produce":["age","[land]","teeming","husk","scorching","climate","meteors","phenomena"]},
-      {"produce":["age","[land]","teeming","stray","frozen","climate","blizzard","phenomena"]},
-      {"produce":["age","[land]","teeming","spider","deluge","phenomena"]}
+      {"produce":["age","[land]","few","[monster]","inferno","phenomena","lightless","sky"]},
+      {"produce":["age","[land]","few","zombie","and","skeleton","tempest","phenomena"]},
+      {"produce":["age","[land]","few","zombie","and","skeleton","blizzard","phenomena"]},
+      {"produce":["age","[land]","few","husk","scorching","climate","sandfall","phenomena"]},
+      {"produce":["age","[land]","few","stray","frozen","climate","blizzard","phenomena"]},
+      {"produce":["age","[land]","few","spider","deluge","phenomena"]}
     ],
     "flowered_jungle_age": [
-      {"produce":["age","[warm_land]","torchflowers","in","jungle","tropical","climate","jungle"]}
+      {"produce":["age","[warm_land]","torchflowers","in","jungle","jungle"]}
     ],
     "pitted_jungle_age": [
       {"produce":["age","[warm_land]","mud","and","sand","pits","in","jungle","tropical","climate","jungle"]}

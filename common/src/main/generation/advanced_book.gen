@@ -15,10 +15,11 @@ terminals word
 # What these books must teach, because nothing else on the critical path does (plan, Phase 7 "Still open"):
 # - Every grammatical word, each doing visible work: `and`, `only`, `no`, `in`, `everywhere`, `link`, `of`, and the four
 #   rungs `scarce`, `few`, `plentiful` and `teeming`.
-# - Danger: an Age that scores over the danger threshold (`pays_above`, art/danger.json) using common-ink
-#   words only. These books are the route into the hunt for deretheni, so they stay plain.
-# - The scarab's habitat, for the books beside the ink workshop: `torchflowers in jungle` in one book and
-#   `mud and sand pits in jungle` in another, never both in the same book.
+# - Danger: the words for a hostile crowd and the weather it suits, in common ink, scoring under the danger
+#   line (`lines.pays_at`, art/danger.json) — no found Age earns a reward, so the hunt for deretheni starts
+#   from what these teach rather than from the books themselves.
+# - Half the scarab's habitat each: `torchflowers in jungle` in one book and `mud and sand pits in jungle` in
+#   another, never both in one book, and never the warmth a colony also needs.
 # Taught elsewhere, so not needed here: the city's words (the survey reports), `black sun` and `lava sea`
 # (item frames), `polar` and `tidal` (the greenhouse's chest), `plasma` (beside the compounder).
 
@@ -129,17 +130,18 @@ wonder_age =
     | wondrous age skyborne bright stars [aurora_colour] aurora only plains
 
 # Danger in common ink: a hostile crowd and a phenomenon that falls on whoever is out in it. Each pairs a
-# creature with the weather it suits. Scored 0.32 at the least against a threshold of 0.25.
+# creature with the weather it suits, at a thin crowd, so the Age stays under the danger threshold.
 beset_age =
-    age [land] teeming [monster] meteors phenomena lightless sky
-    | age [land] teeming zombie and skeleton tempest phenomena
-    | age [land] plentiful zombie and skeleton meteors phenomena
-    | age [land] teeming husk scorching climate meteors phenomena
-    | age [land] teeming stray frozen climate blizzard phenomena
-    | age [land] teeming spider deluge phenomena
+    age [land] few [monster] inferno phenomena lightless sky
+    | age [land] few zombie and skeleton tempest phenomena
+    | age [land] few zombie and skeleton blizzard phenomena
+    | age [land] few husk scorching climate sandfall phenomena
+    | age [land] few stray frozen climate blizzard phenomena
+    | age [land] few spider deluge phenomena
 
-# The scarab's habitat, half each. Torchflowers are the pack's own, so this book is judged on a server.
-flowered_jungle_age = age [warm_land] torchflowers in jungle tropical climate jungle
+# The scarab's habitat, half each, and never the warmth. Torchflowers are the pack's own, so this book is judged
+# on a server.
+flowered_jungle_age = age [warm_land] torchflowers in jungle jungle
 
 pitted_jungle_age = age [warm_land] mud and sand pits in jungle tropical climate jungle
 

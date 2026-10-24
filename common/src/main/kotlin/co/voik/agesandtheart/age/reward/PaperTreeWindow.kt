@@ -17,8 +17,8 @@ import net.minecraft.world.level.levelgen.placement.RarityFilter
  * Whether an Age holds the paper tree's window, and the grove it grows where it does (design §7.1.2).
  *
  * **Two halves, both skies no vanilla world has**: a **polar sun**, circling at a constant height and never
- * setting, for perpetual twilight; and a **tide**, the flood cycle a root lives by. And only in an Age a
- * player wrote, as every reward is. It generates wherever the window is met, so there is no sapling to
+ * setting, for perpetual twilight; and a **tide**, the flood cycle a root lives by. It generates wherever the
+ * window is met, so there is no sapling to
  * bootstrap: write the world, and if it is right the grove is there when you arrive.
  *
  * **Read off the recipe**, so generation can ask it: the sun off the sky the recipe describes, the tide off
@@ -27,15 +27,15 @@ import net.minecraft.world.level.levelgen.placement.RarityFilter
  */
 object PaperTreeWindow {
 
-    data class Reading(val writtenByAPlayer: Boolean, val polarSun: Boolean, val tidal: Boolean) {
-        val isMet: Boolean get() = writtenByAPlayer && polarSun && tidal
+    data class Reading(val polarSun: Boolean, val tidal: Boolean) {
+        val isMet: Boolean get() = polarSun && tidal
     }
 
     /** The window in [recipe], whose sky is [sky] — `AgeGeneration.skySpec`, handed in from above. */
     fun read(recipe: AgeRecipe, sky: SkySpec): Reading {
         val composition = recipe.composition
         val tidal = composition != null && Tide.isTidal(Tide.pullsIn(composition, recipe.seed))
-        return Reading(recipe.authored, isPolar(sky), tidal)
+        return Reading(isPolar(sky), tidal)
     }
 
     /**

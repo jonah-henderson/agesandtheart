@@ -108,7 +108,7 @@ object EarlyGameRareMaterials {
      * vanilla ocean. [Sea.ABYSSAL_RAISE] is where `deep` begins, which is where it was measured to start
      * growing deep water on the flat-floored landforms — nothing short of it grows any on any landform.
      */
-    private fun holdsAnAbyss(composition: AgeComposition, seed: Long): Boolean {
+    fun holdsAnAbyss(composition: AgeComposition, seed: Long): Boolean {
         val isWater = Sea.areWater(composition.seas)
         val raise = Sea.depthShift(composition.optionsFor(Aspect.SEA, 0), seed)
         return isWater && raise >= Sea.ABYSSAL_RAISE

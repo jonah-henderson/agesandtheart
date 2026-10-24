@@ -37,7 +37,7 @@ internal object RewardInstruments {
         val level = source.level
         val window = Ages.recipeOf(level)?.let { PaperTreeWindow.read(it, AgeGeneration.skySpec(it)) }
         val windowSaid = window?.let {
-            "Written by a player: ${it.writtenByAPlayer}; polar sun: ${it.polarSun}; tidal: ${it.tidal}."
+            "Polar sun: ${it.polarSun}; tidal: ${it.tidal}."
         } ?: "No written Age, and no window."
         source.sendSuccess({ Component.literal(windowSaid) }, false)
         val from = BlockPos.containing(source.position)
@@ -84,7 +84,7 @@ internal object RewardInstruments {
         source.sendSuccess(
             {
                 Component.literal(
-                    "Written by a player: ${age.writtenByAPlayer}; warm enough: ${age.isWarmEnough}; " +
+                    "Warm enough: ${age.isWarmEnough}; " +
                         "jungle: ${age.anyJungle}; torchflowers wild: ${age.growsTorchflowersWild}. " +
                         "Arrival conditions met here: $met of 3.",
                 )

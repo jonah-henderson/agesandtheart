@@ -62,17 +62,9 @@ data class AgeRecipe(
      */
     val writtenAt: Long = UNRECORDED,
     /**
-     * Whether a **player** wrote this Age, as opposed to its having been found already written (design
-     * §7.7) — the provenance flag every reward reads before it pays.
-     *
-     * **The fence is that found books never pay.** A found book is an Age somebody else wrote, handed over
-     * whole; paying its author's rewards to whoever picked it up would make the loot table the shortest
-     * route to everything §7 gates behind comprehension. Nothing else about it differs — it links, it
-     * decays and it can be repatterned exactly as a bound one does.
-     *
-     * **False is the safe default and is why this is not derived.** A hand-built stack and a recipe
-     * some later code path forgets to mark both read as not paying, which
-     * costs a player a reward they can write again and never hands one out that was not earned.
+     * Whether a player wrote this Age at a desk, as opposed to its having been found already written. A record and
+     * nothing more: **no reward reads it**, since a found Age is kept from a reward by the grammar that wrote it
+     * never meeting the reward's conditions, not by who wrote it.
      */
     val authored: Boolean = false,
     /**
@@ -194,7 +186,6 @@ data class AgeRecipe(
                 // Absent where the Age was written over the ordinary world.
                 AgeTemplate.CODEC.optionalFieldOf("template", AgeTemplate.ORDINARY)
                     .forGetter(AgeRecipe::template),
-                // Absent where no player wrote it — see [authored] for why that is the safe way round.
                 Codec.BOOL.optionalFieldOf("authored", false).forGetter(AgeRecipe::authored),
             ).apply(instance) {
                 world, seed, version, character, instability, words, writtenAt, template, authored,
@@ -227,8 +218,8 @@ data class AgeRecipe(
          * A fresh recipe, with its character drawn from [seed] and the world [server] is running.
          *
          * [authored] defaults to true because everything that reaches this reached it because somebody
-         * asked for an Age — a composed command, a bound book. The one caller that must say otherwise is
-         * the found book, whose Age nobody here wrote (§7.7).
+         * asked for an Age — a composed command, a bound book. The one caller that says otherwise is the found
+         * book, whose Age nobody here wrote.
          */
         fun written(
             server: MinecraftServer,
