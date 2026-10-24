@@ -4,7 +4,7 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * Writing an Age that asks for structures at anything but the ordinary rate (design §3.1).
+ * Writing an Age that asks for structures at anything but the ordinary rate.
  *
  * **This exists because of one book.** `foreboding age minecraft:packed_ice landmass frozen climate`
  * turned up in a stronghold library, and linking to it killed the server with a `StackOverflowError` —

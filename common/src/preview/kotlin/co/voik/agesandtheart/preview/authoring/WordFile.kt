@@ -116,8 +116,8 @@ object WordFile {
      * `art/rarity/` and `art/ink/`, which is why the tool has to reach two more directories to answer a
      * question the word file cannot.
      *
-     * 88 of 127 words are in no bucket at all (`vocabulary-pass-plan.md` §8), so how hard two thirds of
-     * the corpus is to find is unauthored. Asking while a word is being written is where that stops.
+     * A word in no bucket falls to the default, so asking while a word is being written is what keeps how hard
+     * it is to find a decision rather than an accident.
      */
     data class Listing(val rarity: String?, val ink: String?)
 

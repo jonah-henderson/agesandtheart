@@ -15,7 +15,7 @@ import java.util.Optional
 import kotlin.random.Random
 
 /**
- * What an `incongruous structures` Age builds where it does not belong (`notes/strange-words-plan.md` §4): **any
+ * What an `incongruous structures` Age builds where it does not belong: **any
  * structure in any biome, at a height drawn for it** — a taiga village on the plains, a trail ruin out of the
  * ground, a village on the sea floor or in the sky, an ancient city in the open.
  *

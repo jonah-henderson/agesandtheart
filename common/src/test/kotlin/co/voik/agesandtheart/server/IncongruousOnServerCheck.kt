@@ -6,7 +6,7 @@ import io.kotest.core.spec.style.FunSpec
 /**
  * **An Age where nothing is where it belongs generates without throwing** — the one thing offline cannot answer,
  * since every structure, feature and creature it moves is a registry entry and every seam it moves them through
- * is a Mixin into vanilla's own worldgen (`notes/strange-words-plan.md` §4). A structure or a feature that throws
+ * is a Mixin into vanilla's own worldgen. A structure or a feature that throws
  * during generation is caught on a worker thread and abandons the chunk in silence; the log is the only witness.
  */
 @Tags(NEEDS_SERVER)

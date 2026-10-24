@@ -3,7 +3,7 @@ package co.voik.agesandtheart.age.aspect
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * The stretch of an axis a word allows, and the curve an evocative word bends inside it (design §4.4).
+ * The stretch of an axis a word allows, and the curve an evocative word bends inside it (world model §3).
  *
  * A span is not a value and not a filter: it **compresses the whole axis into a stretch**, so a warm world
  * still has its warmer and cooler places. Everything here is a property of that compression — that it stays

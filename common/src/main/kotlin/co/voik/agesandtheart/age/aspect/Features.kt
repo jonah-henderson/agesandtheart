@@ -24,7 +24,7 @@ import co.voik.agesandtheart.worldgen.feature.PitClearing
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * What is placed in and on the ground — ores, flora, lakes, springs (design §3.1, vanilla's `feature` and
+ * What is placed in and on the ground — ores, flora, lakes, springs (vanilla's `feature` and
  * `GenerationStep.Decoration`). **Whatever the biomes would place**, until a sentence says otherwise.
  *
  * No preset, for the same reason biomes and structures have none: an Age does not pick one of a few ways
@@ -213,7 +213,7 @@ object Features {
         val grownSomewhere = WhereThingsGrow.featuresGrown(server.registryAccess())
         return { biome ->
             settled.computeIfAbsent(biome) {
-                // A claim confined to one biome (§4.3.1) is absent from every other, so each biome's
+                // A claim confined to one biome is absent from every other, so each biome's
                 // settings are built from what applies *there*.
                 val here = PLACES.skewOf(claims, it.unwrapKey().orElse(null)?.identifier())
                 settingsFrom(

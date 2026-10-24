@@ -18,7 +18,7 @@ private const val SHOWERY = 0.55
 private const val OFTEN = 0.65
 
 /**
- * A process that befalls an Age — what [Phenomena]'s claims name (design §3.1, §5.2).
+ * A process that befalls an Age — what [Phenomena]'s claims name (design §5.2).
  *
  * **Ours, unlike every other population's values.** A creature is an entity type and a feature is a placed
  * feature; a phenomenon has nothing behind it in vanilla at all, so this pool is written rather than

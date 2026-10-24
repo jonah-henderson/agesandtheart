@@ -13,11 +13,11 @@ import java.util.Optional
  *
  * Registers so a flaw can be said to a writer for what it is: "nothing carries this word" and "an earlier
  * word crowded it out" look identical from outside. They name a flaw and never price it — every flaw but a
- * repaired book's moved pages count one between them (`notes/instability-tiers-plan.md`).
+ * repaired book's moved pages count one between them (design §5.0).
  */
 enum class Register(val key: String) : StringRepresentable {
     /**
-     * A page could not be read where it was laid, so the Art moved it somewhere it could (§4.3.1).
+     * A page could not be read where it was laid, so the Art moved it somewhere it could (world model §3).
      *
      * **Every one in a book counts one between them** (Jonah, 2026-10-14): small, but enough that the
      * linking panel shows a book that did not read as written was not written right.
@@ -41,7 +41,7 @@ enum class Register(val key: String) : StringRepresentable {
 
     /**
      * A page there was nowhere for **in any sentence at all** — a second `Age`, or an `and` with nothing
-     * on one side of it (§4.3.1). The only register that costs a writer a page outright: everything else
+     * on one side of it (world model §3). The only register that costs a writer a page outright: everything else
      * here is a world at odds with itself, where this is a book that was not one.
      */
     IMPOSSIBLE("impossible"),
@@ -122,7 +122,7 @@ private val ASPECT_CODEC: Codec<Aspect> = StringRepresentable.fromEnum(Aspect::v
  */
 data class Instability(val flaws: List<Flaw>, val pages: Int = 0) {
     /**
-     * **How many distinct things are wrong** (`notes/instability-tiers-plan.md` §2). Flaws raised by the same
+     * **How many distinct things are wrong** (design §5.0). Flaws raised by the same
      * words are one, as a saved Age's tension and fracture between two words are, so a sentence can never be much
      * more wrong than it looks; and every page a repair moved is one between them.
      */

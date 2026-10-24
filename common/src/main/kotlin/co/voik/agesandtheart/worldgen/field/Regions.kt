@@ -6,7 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 
 /**
  * Divides the world's *rock* between several shapes, so an Age can be two terrains at once — the
- * machinery behind set-valued aspects (design §3.4), where a contradiction is satisfied **by coexistence**
+ * machinery behind set-valued aspects (world model §2), where a contradiction is satisfied **by coexistence**
  * rather than by one term winning and the other going silently missing.
  *
  * **A member is asked for a column only when it wins it**, so this costs one map lookup plus one winner's

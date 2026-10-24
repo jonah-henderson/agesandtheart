@@ -1,5 +1,5 @@
 {
-  "_comment": "A STAND-IN that must not ship: vanilla's nether portal recoloured green and made opaque (textures/block/plasma.png), so the swirl sells a fluid until the asset pass. Mojang's art in an MIT jar -- notes/before-release.md.",
+  "_comment": "Plasma's own opaque green texture (textures/block/plasma.png) on every face, culled as a full block.",
   "textures": {
     "particle": "agesandtheart:block/plasma",
     "all": "agesandtheart:block/plasma"

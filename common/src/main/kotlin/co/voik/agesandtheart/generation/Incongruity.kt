@@ -8,7 +8,7 @@ import co.voik.agesandtheart.age.aspect.Structures
 
 /**
  * What an Age lets turn up where it does not belong — `incongruous features`, `inhabitants` and `structures`
- * (`notes/strange-words-plan.md` §4). Handed to the generator as its feature and spawn policies are: rebuilt from
+ *. Handed to the generator as its feature and spawn policies are: rebuilt from
  * the recipe on every open, and never saved.
  */
 data class Incongruity(

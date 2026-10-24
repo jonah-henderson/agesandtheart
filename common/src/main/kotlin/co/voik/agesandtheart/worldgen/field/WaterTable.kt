@@ -436,7 +436,7 @@ data class WaterTable(
 
     companion object {
         /**
-         * Several tables, each answering for its own territory — **hydrology divides** (design §3.4).
+         * Several tables, each answering for its own territory — **hydrology divides**.
          *
          * A division cannot produce a cliff of water, because a table is a *threshold* consulted only
          * where something is carved rather than a height; the seam is visible in the rock anyway; and

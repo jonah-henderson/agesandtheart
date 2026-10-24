@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 
 /**
- * What lives here (design §3.1, vanilla's `MobSpawnSettings`) — **whatever the biomes would hold**, until a
+ * What lives here (vanilla's `MobSpawnSettings`) — **whatever the biomes would hold**, until a
  * sentence says otherwise.
  *
  * No preset, like the other three populations: an Age starts from what its biomes spawn and a sentence
@@ -240,7 +240,7 @@ object Spawns {
         if (LIVES.skewOf(claims).isSilent && claims.none { it.confinedTo != null }) {
             return Living { _, _, _, offered -> offered }
         }
-        // **Asked per biome, because a claim may be confined to one** (§4.3.1). Remembered for the same
+        // **Asked per biome, because a claim may be confined to one** (`in <biome>`). Remembered for the same
         // reason the feature settings are: the answer is the same every time and the question is asked
         // once per spawn attempt.
         val here = ConcurrentHashMap<Identifier, Skew>()

@@ -380,7 +380,7 @@ class RecipeCheck : FunSpec({
     /**
      * A terrain aspect holding several presets survives, and prints in a form the composer reads back.
      *
-     * The set is the whole point of regions (§3.4), and it is the part of the recipe most recently changed
+     * The set is the whole point of regions (world model §2), and it is the part of the recipe most recently changed
      * shape — so it is the part most likely to round-trip as *something*, just not the same something.
      */
     test("a set-valued landform round-trips") {
@@ -407,7 +407,7 @@ class RecipeCheck : FunSpec({
         val spelling = composition.toString()
         check("landmass=gentle,pillared,eroded" in spelling) { "A set should print comma-joined, got '$spelling'" }
         check("rock=caves,solid" in spelling) { "So should a carving set, got '$spelling'" }
-        // Ids, because the sea aspect is open (design §3.1) — the referent is the value, not a preset naming it.
+        // Ids, because the sea aspect is an open catalogue (world model §2) — the referent is the value, not a preset naming it.
         check("sea=minecraft:water,minecraft:lava" in spelling) { "And a sea set, got '$spelling'" }
         check(AgeComposition.parse(spelling).getOrThrow() == composition) {
             "'$spelling' does not read back as what wrote it"

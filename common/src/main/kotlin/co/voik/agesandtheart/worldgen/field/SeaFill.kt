@@ -10,7 +10,7 @@ import net.minecraft.world.level.block.state.BlockState
  * A [co.voik.agesandtheart.age.aspect.Sea] once it has a height. Everything below [level] that the shape
  * leaves empty is filled with one of [blocks]; [NONE] fills nothing, and above [level] there is only air.
  *
- * **Where a sea stands is the terrain's to declare (§3.4), territory by territory** ([territories]). Two
+ * **Where a sea stands is the terrain's to declare, territory by territory** ([territories]). Two
  * landforms that want different seas each keep their own, and where they meet the higher one is held back
  * by a wall of the land's own rock ([isWalledAt]) — islands over a void beside hills over a sea, neither
  * drowning the other (Jonah, 2026-10-06). [level] is still the one number for whatever has to have one:

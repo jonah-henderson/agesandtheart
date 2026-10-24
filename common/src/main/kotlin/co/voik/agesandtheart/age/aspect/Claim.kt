@@ -3,9 +3,9 @@ package co.voik.agesandtheart.age.aspect
 import net.minecraft.resources.Identifier
 
 /**
- * What a writer asked to happen to a value — the `only`/`except` axis (design §4.3.1).
+ * What a writer asked to happen to a value — the `only`/`no` axis (world model §6).
  *
- * With the world model rather than the grammar, though `only` and `except` are grammatical words, because
+ * With the world model rather than the grammar, though `only` and `no` are grammatical words, because
  * the world model is what has to *store* it: a recipe outlives the sentence (§4.6).
  */
 enum class Polarity {
@@ -38,7 +38,7 @@ data class Claim(
     val value: String,
     val polarity: Polarity = Polarity.ASSERTED,
     val density: Double = Rung.ORDINARY,
-    /** The biome this is confined to, or null where it is about the whole Age — §4.3.1's `in`. */
+    /** The biome this is confined to, or null where it is about the whole Age — `in <biome>`. */
     val confinedTo: Identifier? = null,
     /**
      * What a **minted** member is made of, or null for the overwhelming majority that name something the
@@ -83,7 +83,7 @@ data class Claim(
     val height: Double? = null,
     /**
      * Which members of its aspect a **dial's** value is said of, or empty where it is said of the whole aspect
-     * — `abandoned=true[for=minecraft:villages]` is `deserted villages` (`notes/strange-words-plan.md` §2).
+     * — `abandoned=true[for=minecraft:villages]` is `deserted villages`.
      * [confinedTo]'s twin, scoping to members rather than to ground.
      */
     val members: List<String> = emptyList(),
@@ -222,7 +222,7 @@ data class Claim(
  * consumer applies this to whatever it actually holds.
  *
  * Removals are kept apart from additions so a consumer applies them **last**, which is what makes `except`
- * beat a mention of the same thing whatever order the pages were laid out in (§3.5).
+ * beat a mention of the same thing whatever order the pages were laid out in.
  */
 data class Skew(
     /** Whether anything was singled out, in which case whatever the preset would have supplied is dropped. */
@@ -250,14 +250,14 @@ data class Skew(
          *
          * A claim confined somewhere else is not merely ignored here, it is *absent*: "in the mushroom
          * fields, only slimes" leaves every other biome exactly as it was, which is what makes `only`
-         * bearable inside a scope at all (§4.3.1).
+         * bearable inside a scope at all.
          */
         fun of(claims: List<Claim>, biome: Identifier? = null, emptiedBy: String? = null): Skew {
             val here = claims.filter { it.appliesIn(biome) }
             fun claimsAt(polarity: Polarity) = here.filter { it.polarity == polarity }.distinctBy { it.member }
             val singledOut = claimsAt(Polarity.ONLY)
             val removed = claimsAt(Polarity.EXCEPT).map { it.value }
-            // **Removals apply last** (§3.5), so a member one word named and another struck out is struck
+            // **Removals apply last**, so a member one word named and another struck out is struck
             // out. Said here rather than in each reader: `Spawns.narrowed` dropped it and `Spawns.added` put
             // it straight back, which is the shape a rule kept in two places takes.
             val named = (singledOut + claimsAt(Polarity.ASSERTED))

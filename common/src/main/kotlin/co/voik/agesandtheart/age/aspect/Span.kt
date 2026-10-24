@@ -49,7 +49,7 @@ data class Span(val least: Double, val most: Double, val bend: Double = EVEN) {
      * structure of the climate noise survives and a warm world still has its warmer and cooler places.
      *
      * [bend] decides **where the middle of the world falls inside the span**, which is the whole of what an
-     * evocative word does to an axis (§4.4). At [EVEN] this is linear and half the world sits either side
+     * evocative word does to an axis (world model §3). At [EVEN] this is linear and half the world sits either side
      * of the midpoint; bent low, more of the world crowds the cool end of a band it still fills entirely.
      */
     fun remap(value: Float): Float {

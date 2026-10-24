@@ -14,7 +14,7 @@ import io.kotest.core.spec.style.FunSpec
 
 /**
  * That a clause closing on members of a weighted set says what its modifiers hold **of those members**
- * (`notes/strange-words-plan.md` §2): `deserted villages`, `motionless monsters`, `bare trees`.
+ *: `deserted villages`, `motionless monsters`, `bare trees`.
  */
 @Tags(NEEDS_REGISTRIES)
 class MemberScopingCheck : FunSpec({

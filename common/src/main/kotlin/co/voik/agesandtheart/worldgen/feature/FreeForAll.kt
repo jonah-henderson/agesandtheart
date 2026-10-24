@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * What an `incongruous features` Age grows: **everything any of its biomes grows, in every one of them, at any
- * height** — ore through the whole column, trees out of their biomes (`notes/strange-words-plan.md` §4).
+ * height** — ore through the whole column, trees out of their biomes.
  *
  * Vanilla's own biome filter asks the generator for a biome's list, so a list holding everything passes it
  * everywhere and needs no seam of its own. A height band is opened to the whole world; every other rule a

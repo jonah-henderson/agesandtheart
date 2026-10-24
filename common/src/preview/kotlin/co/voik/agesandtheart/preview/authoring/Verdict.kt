@@ -21,7 +21,7 @@ import co.voik.agesandtheart.age.word.Vocabulary
  * to**, asked while it is written and by `VocabularyCheck` of every word the pack ships.
  *
  * Every [Standing.REFUSED] is a word the pack must not ship, naming the check that holds it; every [Standing.NUDGED]
- * is a settled ruling of `vocabulary-pass-plan.md` §5.2, advice rather than a bar. Pure: a word and a corpus in, a
+ * is a settled ruling of `notes/decisions.md`, advice rather than a bar. Pure: a word and a corpus in, a
  * list out.
  */
 object Verdict {

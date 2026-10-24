@@ -3,7 +3,7 @@ package co.voik.agesandtheart.age
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * How an Age's instability is spent (`notes/instability-tiers-plan.md` §2).
+ * How an Age's instability is spent (design §5.0).
  *
  * Each distinct flaw buys one step, in tiers set by how many flaws there are and capped by how long the book
  * was. Which steps an Age buys is drawn, so what a check can hold is the rules every draw obeys: the tier

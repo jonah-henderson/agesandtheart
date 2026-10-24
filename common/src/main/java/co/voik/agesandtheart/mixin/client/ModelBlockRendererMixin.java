@@ -32,9 +32,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *
  * <p><b>Alternatives checked.</b> Neither loader has a hook here: Fabric's rendering API covers model
  * baking and quad emission rather than the lighting of a placed quad, and NeoForge's extended model API
- * likewise decides what quads a model has, not what colour the world paints them. A post-effect chain was
- * rejected in {@code notes/corruption-research.md} — {@code GameRenderer.setPostEffect} is private and a
- * full-screen filter cannot be a gradient. A custom terrain pipeline would fight every other mod and every
+ * likewise decides what quads a model has, not what colour the world paints them. A post effect is one
+ * full-screen shader, which cannot be a gradient. A custom terrain pipeline would fight every other mod and every
  * shader pack.
  *
  * <p><b>It is in a hot path and the painter knows it.</b> This runs per quad of every block in every

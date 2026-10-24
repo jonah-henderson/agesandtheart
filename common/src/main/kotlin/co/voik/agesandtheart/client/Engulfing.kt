@@ -13,8 +13,7 @@ import net.minecraft.world.phys.Vec3
 /**
  * What being *inside* a column of sand does to what you can see (design §5.2.2).
  *
- * **Positional layers, not a post-processing chain**, for the reason `notes/corruption-research.md` settles
- * and [Corruption] already relies on: an attribute layer is handed a position and returns a value, which is
+ * **Positional layers, not a post-processing chain**, for the reason [Corruption] relies on too: an attribute layer is handed a position and returns a value, which is
  * exactly the shape of "blind here and clear a step away". A post effect is one shader over the whole frame
  * and could not tell the difference.
  *

@@ -132,7 +132,7 @@ class AgeChunkGenerator(
     private val surfaceRule: MaterialRule = SurfacingStrategy.SUPPRESSED,
     /**
      * What is cut back out of the rock, one set per carving — **and they all run**, except where a carving
-     * asserting the rock is *uncut* holds the ground (§3.4, and [uncarvedTerritories]).
+     * asserting the rock is *uncut* holds the ground ([uncarvedTerritories]).
      *
      * The union is right between any two carvings that *cut* something. `solid` is the exception, carrying
      * no carvers and so being the union's identity rather than a member of it — which left "caves here,
@@ -149,7 +149,7 @@ class AgeChunkGenerator(
     private val underground: RegionMap = RegionMap.whole(),
     /**
      * Where water stands, **one table per carving** — hydrology divides on the same [underground] map as
-     * the carving it belongs to (design §3.4). Empty means "a flat table at the sea's own level", derived below.
+     * the carving it belongs to. Empty means "a flat table at the sea's own level", derived below.
      */
     private val waterTables: List<WaterTable> = emptyList(),
     /**
@@ -404,7 +404,7 @@ class AgeChunkGenerator(
     }
 
     /**
-     * The creatures this Age offers vanilla, narrowed by whatever the sentence said (design §3.1).
+     * The creatures this Age offers vanilla, narrowed by whatever the sentence said.
      *
      * **A plain override, and the whole seam.** `super` resolves a structure's own spawn overrides before
      * the biome's, so narrowing *its* answer means one sentence covers a fortress and the open field alike

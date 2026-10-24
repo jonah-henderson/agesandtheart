@@ -58,7 +58,7 @@ data class BiomePreference(
 
         /**
          * [table] with every preference applied. Removals resolve first, so `except` beats a mention of the
-         * same biome whatever order the writer said them in (§3.5). [keepsOnlyNamed] is `only`: everything
+         * same biome whatever order the writer said them in. [keepsOnlyNamed] is `only`: everything
          * unnamed goes, and a mention among the survivors still widens. [homes] are where the biomes of ours
          * that declare one belong ([BiomeHome]).
          */

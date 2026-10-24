@@ -17,7 +17,7 @@ import kotlin.math.ln
  */
 data class RegionMap(
     val members: Int,
-    /** How far across a territory runs, in blocks. One vanilla biome, per design §3.4. */
+    /** How far across a territory runs, in blocks. About one vanilla biome. */
     val scale: Double,
     /**
      * How wide the transition between territories is, in blocks. **Zero is a knife edge** — the region

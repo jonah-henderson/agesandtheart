@@ -24,8 +24,8 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * That the words for what instability inflicts write the same thing on purpose (`notes/strange-words-plan.md`
- * §4), through the real parser and resolver.
+ * That the words for what instability inflicts write the same thing on purpose, through the real parser and
+ * resolver.
  */
 @Tags(NEEDS_REGISTRIES)
 class StrangeWordsCheck : FunSpec({

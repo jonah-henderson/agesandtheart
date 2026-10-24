@@ -2,8 +2,8 @@
 #
 # Launch a vanilla Minecraft 26.3 client with the structure-authoring tools in it.
 #
-# This is for building the lost library (and anything else that wants authoring) **while the mod is being
-# ported**, so it deliberately touches nothing the mod's own build uses: its own Gradle build under
+# This is for building structures (the lost library, and anything else that wants authoring) in plain vanilla,
+# so it deliberately touches nothing the mod's own build uses: its own Gradle build under
 # `tools/vanilla-26.3`, its own Minecraft version, its own run directory. The mod is not loaded.
 #
 # It needs no Mojang account: Loom's dev client authenticates offline, the same way `:fabric:runClient`

@@ -191,5 +191,5 @@ private val USAGE = """
     |without a server. What offline cannot know is a tag only a bound registry grants — `ore` is the one —
     |and `--refresh` remembers that rather than making a server a condition of writing a word.
     |
-    |Read notes/vocabulary-pass-plan.md §5 before authoring; it is what this was built from.
+    |Read notes/the-world-model.md §3 before authoring: it is what a word is.
 """.trimMargin()

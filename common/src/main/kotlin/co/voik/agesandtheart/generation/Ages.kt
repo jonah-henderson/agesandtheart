@@ -128,7 +128,7 @@ object Ages {
     }
 
     /**
-     * The Age's own layer over the environment vanilla built for the level (§3.1's Atmosphere).
+     * The Age's own layer over the environment vanilla built for the level.
      *
      * **On opening rather than in the generator**, because an attribute is a fact about the *level* and
      * nothing in generation reads one — and on every open rather than once, because a level is built afresh

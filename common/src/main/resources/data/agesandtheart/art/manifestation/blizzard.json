@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "How a blizzard climbs the tiers, dial by dial (notes/instability-tiers-plan.md, design 5.2).",
+    "How a blizzard climbs the tiers, dial by dial (design 5.0, 5.2).",
     "",
     "Difficulty you can answer: light stops the snow settling and leather stops the freezing -- both",
     "vanilla's own rules. Four dials: `often` (how often a storm comes), `long` (how long each lasts),",

@@ -7,7 +7,7 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import kotlin.math.roundToInt
 
 /**
- * [base], displaced vertically per territory — a region seam made visible as a scarp (design §3.4). It
+ * [base], displaced vertically per territory — a region seam made visible as a scarp. It
  * asks which territory a column falls in and moves that column's rock by that territory's [throws].
  *
  * **A node of its own rather than a lift ([Spans.shifted]) inside each member**, because erosion is tied to absolute
@@ -103,7 +103,7 @@ data class Fault(
 
 /**
  * The wedge of ground near a territory seam, solid upwards from a floor that **rises with distance from
- * it** — the cut a rift is made of (§3.4), and a V rather than a trench. Meant to be [Subtract]ed from a
+ * it** — the cut a rift is made of, and a V rather than a trench. Meant to be [Subtract]ed from a
  * shape, so what it adds to the toolkit is only "near a seam": [RegionMap.blocksFromSeamAt] made into a
  * field.
  *

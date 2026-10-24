@@ -24,7 +24,7 @@ enum class DeskCapability(val key: String) : StringRepresentable {
     /** Contradictions are pointed out before the ink is spent — the visibility currency (design §7.3). */
     REVEAL_CONFLICTS("reveal_conflicts"),
 
-    /** The readout gains its inferable particles, so a token row reads as a sentence (§4.3.1). */
+    /** The readout gains its inferable particles, so a token row reads as a sentence. */
     READABLE_GRAMMAR("readable_grammar"),
 
     /** Hovering a word in the desk's list says which parts of an Age it applies to (design §7.4). */

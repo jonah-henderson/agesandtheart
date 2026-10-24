@@ -10,7 +10,7 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 /**
  * What is overhead: the vault's own properties, and the sky an Age's parts are drawn into — resolved into a
  * [SkySpec] that is *sent to the client* rather than baked into a dimension type, since a `DimensionType`
- * composed per Age cannot be encoded in the join packet at all (`notes/per-age-skies-research.md`).
+ * composed per Age cannot be encoded in the join packet at all (`../ephemeris/notes/sky-limits.md`).
  *
  * A sky's bodies are **counted** and its stars are a density, per §3.2's rule about which numbers may reach
  * a writer: two moons is a thing to say about a sky, and fifteen hundred stars is not. [SkySpec.drawn] takes

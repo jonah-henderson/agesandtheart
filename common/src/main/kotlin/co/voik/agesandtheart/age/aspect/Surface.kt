@@ -11,7 +11,7 @@ import net.minecraft.world.level.levelgen.material.MaterialRules
 import net.minecraft.world.level.levelgen.material.rule.MaterialRule
 
 /**
- * What the ground wears — the skin over whatever the rock is made of (design §3.1, vanilla's
+ * What the ground wears — the skin over whatever the rock is made of (vanilla's
  * `surface_rule`).
  *
  * **An aspect with no presets and one parameter**, because there is nothing to choose between: a surface is a

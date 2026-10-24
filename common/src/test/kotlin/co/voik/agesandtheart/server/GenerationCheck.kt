@@ -11,7 +11,7 @@ import io.kotest.core.spec.style.FunSpec
  * catch, and the two outcomes are orders of magnitude apart, so a loose bound loses nothing and survives
  * retuning.
  *
- * **What is deliberately not here is the seams** (design §3.4). A fault moves a swathe of landscape, two
+ * **What is deliberately not here is the seams**. A fault moves a swathe of landscape, two
  * Ages of one recipe do not generate identically, and there is no defensible line between the two: the
  * bound that judged it failed on a different form with a different count on each run and passed whenever
  * the spec ran alone. `FaultCheck` holds the field tree to it offline, where the reading is exact, and

@@ -313,7 +313,7 @@ private fun readShare(spelled: String): Double = Share.read(spelled)
 /**
  * The preset [aspect] calls [key], or a failure saying what it could have been. Loud rather than lenient,
  * like the rest of the spelling. An open aspect has no list to offer, so it says what shape it wanted
- * instead (design §3.1).
+ * instead.
  */
 internal inline fun <reified T : Taggable> named(aspect: Aspect, key: String): T {
     val preset = aspect.presetFor(key)

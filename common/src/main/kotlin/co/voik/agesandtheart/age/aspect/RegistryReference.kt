@@ -5,7 +5,7 @@ import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 
 /**
- * Something an aspect can hold whose value **is a registry entry** — a block for the sea (design §3.1).
+ * Something an aspect can hold whose value **is a registry entry** — a block for the sea (world model §2).
  * An open aspect holds the id directly, so §8's derived vocabulary reaches it with no adapting layer.
  *
  * **One of these is not automatically a candidate.** The pool a vague word draws from is what

@@ -68,7 +68,7 @@ class SkyClockCheck : FunSpec({
     }
 
     /**
-     * **An Age keeps a day of its own** (`notes/strange-words-plan.md` §5): the overworld's `/time` does not reach
+     * **An Age keeps a day of its own**: the overworld's `/time` does not reach
      * it, and `/time` run inside it sets its own. Named values rather than "the two differ", so an Age whose clock
      * is stopped, or still the overworld's, fails too.
      */

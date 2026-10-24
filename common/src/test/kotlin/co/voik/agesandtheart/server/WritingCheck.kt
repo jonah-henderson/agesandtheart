@@ -17,7 +17,7 @@ import io.kotest.core.spec.style.FunSpec
  * sentence is really asserting on the wording.
  *
  * **Every sentence here carries `age`, and it has to.** The nucleus is mandatory and refused outright
- * without it (§4.3.1), and a page with nowhere to land is moved to the Age. A sentence here that stops
+ * without it (design §2), and a page with nowhere to land is moved to the Age. A sentence here that stops
  * reading as laid does not fail loudly; it quietly starts testing the move.
  */
 @Tags(NEEDS_SERVER)

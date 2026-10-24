@@ -9,7 +9,7 @@ import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
 
 /**
  * How wide a *region* is when an Age divides itself between several terrains — read off the world the Age
- * was written in rather than guessed at (design §3.4).
+ * was written in rather than guessed at.
  *
  * **There is no biome-size parameter to read**: a biome's extent is emergent from six climate noises
  * partitioned by a search tree. What *is* declared is the thing Large Biomes changes — the overworld's

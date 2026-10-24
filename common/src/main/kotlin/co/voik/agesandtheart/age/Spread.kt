@@ -230,7 +230,7 @@ enum class Seam(val key: String, val share: Double, val frequency: Int) : String
          * Only the terrain has rock of its own to move: a sea and a climate divide over ground some other
          * aspect shaped, so a scarp there would be a form nothing could show. Reduced rather than redrawn,
          * which is what keeps the fuzz at its 5% everywhere instead of making it a quarter of the two
-         * outcomes left (design §3.4).
+         * outcomes left.
          */
         fun drawnFor(aspect: Aspect, random: RandomSource): Seam {
             val form = drawn(random)

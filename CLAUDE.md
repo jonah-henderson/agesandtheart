@@ -8,153 +8,110 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 that is a bug in one of them, so revise the doc rather than letting the code drift away from it. Read the
 relevant one before working in its area; most of the value is in the _reasoning_, not the conclusions.
 
-**Unbuilt work keeps its full reasoning; finished work is compressed to two lines in `decisions.md`.** When
-something lands, move it — do not leave the narrative of building it behind, and do not let a document
-correct itself in place. Rewrite the paragraph that is now wrong.
+**Unbuilt work keeps its full reasoning; finished work keeps only what a future builder needs.** When
+something lands, delete the narrative of building it; a choice between genuinely open designs becomes one
+`decisions.md` entry. Rewrite the paragraph that is now wrong rather than correcting it in place.
 
 - **`notes/the-world-model.md`** — **read this first, and before anything under `age/`.** What a world is
   made of (properties holding a value, a weighted set or a cast), what a word is, how a book resolves, and
-  what a word costs. Derived from scratch 2026-08-12 and **built** — it supersedes `the-art-design.md`
-  §3 and §4, and is normative and current where they are history. Its §3 is words as meanings and how a row of
-  pages is read (2026-10-20), and its §10 maps the old concepts onto the new ones.
-- **`notes/the-art-design.md`** — "the Art": the books, the language, aspects and tags, consequences,
-  book editing, the economy. Still normative for §5 (consequence), §6 (book editing), §7 (the economy) and
-  §8 (learning); **§3 and §4 are superseded** by the world model above.
-- **`notes/the-art-implementation-plan.md`** — the phases and what each has to prove. Phases 1–5 are done
-  and are a status line each, and Phase 6 is done but for its remainder; Phases 7–9 carry their full context.
-- **`notes/vocabulary-pass-plan.md`** — the pass that writes the words: property consolidation, which blocks
-  may be the rock, the guided authoring tool, and the corpus audit. **Partly built, and it opens with the
-  line that says to delete it when the last item goes.** Its §5 is the tool, which is `scripts/scrivener.sh`;
-  §5.1 and §5.2 are what that tool refuses and nudges about. Read it before authoring a word or touching
-  `art/word/` — and author with the tool rather than by hand.
+  what a word costs. **Built**, normative and current — it supersedes `the-art-design.md` §3 and §4. Its §3 is
+  words as meanings and how a row of pages is read; `in <biome>` siting is built, its widening is not.
+- **`notes/the-art-design.md`** — "the Art": the books, the language, consequences, book editing, the economy.
+  Normative for §1–§2 and §5–§9; what was its §3 and §4 is the world model above, and only §3's two disciplines
+  and §4's found books, failure channels and pipeline remain. Read §7.4 before touching `desk/` or the desk's
+  screens.
+- **`notes/the-art-implementation-plan.md`** — where things stand and what is open: Phases 1–6 done, Phase 7's
+  open items, Phase 8 tabled, Phase 9's list, and an any-time list. **Start here when picking the next job.**
+- **`notes/vocabulary-pass-plan.md`** — what is left of the pass that writes the words: the tag hand-tuning,
+  the corpus audit and its gaps, the unbucketed words, and three design questions. It opens with the line that
+  says to delete it when the last item goes. **Author with `scripts/scrivener.sh`**, whose `Verdict` is what a
+  valid word is; read this before touching `art/word/`.
 - **`notes/instability-tiers-plan.md`** — what is left of the instability tiers, which are **built** and live in
-  design §5.0: the strange tier (cosmetic manifestations, the beginner's whole experience of instability,
-  and nothing in it yet), the mirage experiment, and the wounds' rework. Read it before adding a manifestation
-  or touching `art/manifestation/`.
-- **`notes/strange-words-plan.md`** — the words that let a writer ask for what instability inflicts (`fog`,
-  `colourless`, `strong`/`weak` and a `gravity` aspect, `motionless`, …), each carrying as many meanings as
-  attachment can pick between. **Unbuilt.** Holds the one language change they need — a modifier in a clause
-  closed by a member term (`slow monsters`, `deserted villages`) lands on those members, generalising what
-  minting already does with size — and the case for giving every Age a clock of its own in Ephemeris, through
-  `level.clockManager()`, which is what a slow or stopped sun and per-Age sleep both stand on.
+  design §5.0 (the strange tier holds fifteen manifestations): foreign ground's gaps, the mirage experiment,
+  and the wounds' rework. Read it before adding a manifestation or touching `art/manifestation/`.
+- **`notes/strange-words-plan.md`** — the words that let a writer ask for what instability inflicts. **Built but
+  for its remainder:** the meanings the words do not carry yet, loose ends from the per-Age clock and danger, and
+  two questions for Jonah.
 - **`notes/implements-afield-plan.md`** — what the desk implements do away from a desk. **Unbuilt.** The
   frequency tuner reveals a place's code — five rime crystals, derived from the place and recorded forever —
   and the crystal viewer looks at it through one fixed live eye; the geologist's tools survey their chunk;
   the seismograph records vibrations in every world; the transcriber, in desk range, lays a descriptive book
   onto the desk or copies it into a new instance of its Age. The grammar guide's use afield is still open.
   Read it before touching an implement's block or `RimeColour`.
-- **`notes/tag-matching-research.md`** — how a vague word's reach actually resolves into densities, measured
-  rather than reasoned (`./gradlew :common:tagreachspike` prints the numbers). Its three findings: reach is
-  **per aspect**, so `monumental` on a feature is read by nothing; **wanting has a floor and striking has
-  none**, so "weakly built" is unsayable; and a query **scales every qualifier rather than drawing among
-  them**. Research feeding four undecided forks — read it before tagging new members or adding a word that
-  narrows.
-- **`notes/the-tag-layer.md`** — the forty-one tags, where each is derived from, and why three separate
-  things are called rarity. The implementation of the world model's §7, and **built** — what is left of it
-  is the hand-tuning its §7 step 4 describes, and Scrivener's tag screen is how a pass is done now
-  (`/age tags` still answers the same question against a running server). Read it before touching
-  `art/preset_tags/`, adding a tag, or authoring a word that queries one.
+- **`notes/the-tag-layer.md`** — the fifty-three tags (forty-one properties and the twelve colours), where each
+  is derived from, and why three separate things are called rarity. **Built**; what is left is the hand-tuning
+  its §7 step 4 describes, done through Scrivener's tag screen (`/age tags` answers the same question against a
+  running server). Read it before touching `art/preset_tags/`, adding a tag, or authoring a word that queries one.
 - **`notes/terrain-architecture.md`** — the two-tier terrain system (composable field toolkit + bespoke
   presets): the evaluation contract, where things live, the performance budget. Built and shipped.
-- **`notes/writers-desk-redesign.md`** — the desk split into blocks: the archive block, writing from a
-  template of known words paid for whole at the bind, and one inventory-less screen. **Built 2026-09-18,
-  walked by 2026-10-06**, and it supersedes parts of `the-art-design.md` §7.4 and §7.5. Its "Calls made while building"
-  lists what the build decided without Jonah. Read it before touching `desk/` or the desk's screens.
-- **`notes/walk-list.md`** — **what is built and unwalked**, opened 2026-09-11 and organised by section with
-  a reference per item. Verdicts go to `decisions.md` and the item is struck; when the last one goes, so
-  does the file. Read it before walking anything or before assuming a recent change has been seen.
-- **`notes/decisions.md`** — the compact ledger of settled decisions and hard-won learnings, one line each
-  for the decision and the reason. Read it before re-proposing anything; several entries exist because an
-  idea was tried and collapsed.
-- **`notes/accretion-audit.md`** — the three-pass audit against LLM accretion: where each pass got to, the
-  commit trail, what is deferred and on whose word, and the latent bugs it found. Passes 1 and 2 are done.
-  **Its first section is the brief for pass 3** (renames and comment trimming), and says how to start it.
-  Its records are `notes/audit/`: pass 2's theme files, both reports, and in `tooling/` the workflow scripts,
-  scans and digests the passes were run with. **Read it before doing any audit work, and re-date every
-  finding against the commits since**, because later work moves the code findings describe within days.
+- **`notes/walk-list.md`** — **what is built and unwalked.** A walked item is struck, and becomes a
+  `decisions.md` entry only where the walk decided a real fork. Read it before walking anything or before
+  assuming a recent change has been seen.
+- **`notes/decisions.md`** — **the forks that were decided**, each one subject sentence and one decision
+  sentence, and only where several designs were genuinely open. It exists so that old decisions are not
+  retrodden: read it before re-proposing anything. No history, walk logs or measurements belong in it.
+- **`notes/accretion-audit.md`** — the audit against LLM accretion. Passes 1 and 2 are done; it is now the brief
+  for pass 3 (renames and comment trimming, waiting on Jonah's go-ahead) and its one open finding.
+  `notes/audit/tooling/` holds the pass-2 workflow, scan and digest that pass 3 adapts. **Re-date every finding
+  against the commits since before acting on it.**
 - **`notes/generator-versions.md`** — what moved at each `CURRENT_GENERATOR_VERSION` bump, and which Ages
   it moved. Read it when bumping the stamp, and add a row.
-- **`notes/per-age-skies-research.md`** — the sky renderer's reference: render-state traps and what a
-  per-Age sky cannot change. Read §3 before touching the renderer. **Its API details were verified against
-  the 1.21.1 jar** and the renderer was rebuilt for 26.1 during the upgrade — so trust its _conclusions_
-  about what a sky can and cannot do, and re-check any signature it quotes.
-- **`notes/version-upgrade.md`** — **both** version moves. The 1.21.1 → 26.1.2 one: the dependency matrix,
-  what the build chain cost, and the two 26.1 subsystems (retained-mode GUI, model-based fluids) that
-  changed what is worth building. And at the end, the 26.1.2 → 26.2 one, which is the record of what a hop
-  actually costs this codebase now that the toolchain no longer moves with it. **26.2 and 26.3 are both
-  shipping targets** (Jonah, 2026-09-20) — read its closing section before starting the 26.3 port, and
-  `walk-list.md` section V for what the 26.2 port left unproven.
-- **`notes/ui-libraries-research.md`** — why the screens are vanilla widgets and not a UI framework, and
-  the component layer that decision implies. Read it before proposing a library or hand-drawing a screen.
+- **`notes/version-upgrade.md`** — what each Minecraft hop has cost this codebase (26.1.2, 26.2, 26.3), the
+  traps the compiler cannot see, and the two 26.1 subsystems that changed what is worth building. **26.3 is the
+  line; 26.2 support lives on the `mc-26.2-support` branch on Jonah's other machine** and is revisited near 1.0.
+  Read it before the next port.
 - **`notes/minecraft-ui-conventions.md`** — what a vanilla screen actually looks like, measured off the
   26.1.2 jar: the bevel rule, the border widths, the 18-pixel grid. There is no official style guide, which
-  is why this exists. Read it before drawing a control.
-- **`notes/corruption-research.md`** — what 26.1 allows for a proximity gradient around a wound, and why
-  positional environment layers beat a post-processing chain. Read it before reaching for a post effect.
-- **`notes/palm-beach-design.md`** — our own Age-only biome: white sand, a reef lagoon, palms, surf. **Built
-  2026-10-01, walked by 2026-10-06**; its "Calls made while building" lists what was decided without Jonah.
-  Common ink, a ribbon not a trophy. Its one real piece of engineering is a **declared climate home** for a biome
-  of ours, since `BiomePreference.homesFor` drops a biome it has never seen somewhere random. The surf is flat
-  client-side particles on per-stretch wave clocks, not a renderer and not blocks. Read it before touching either.
+  is why this exists. Read it before drawing a control; screens are vanilla widgets composed through `client/ui/`.
+- **`notes/palm-beach-design.md`** — our own Age-only biome: white sand, a reef lagoon, palms, surf. Built and
+  walked. Its one real piece of engineering is a **declared climate home** for a biome of ours, since
+  `BiomePreference.homesFor` drops a biome it has never seen somewhere random; the surf is flat client-side
+  particles on per-stretch wave clocks. Read it before touching either.
 - **`notes/water-colour-research.md`** — how to make an Age's water shift colour over time: the tint is baked
-  into the chunk mesh, and 26.1's `GameTime` UBO is the way around that. A **still** colour is built
-  (`cyan waters`, through Ephemeris's `GroundTints`); the shifting half is not, and is meant to be built
-  alongside the wound renderer, which needs the same pipeline.
+  into the chunk mesh. A **still** colour is built (`cyan waters`, through Ephemeris's `GroundTints`); pipelines
+  reading `GameTime` already exist, and what is open is how water's mesh reaches one, and which Ages get it.
 - **`notes/coloured-light-research.md`** — coloured light, and why the lightmap can never give it: it is a
   16×16 texture indexed by (block, sky) with no position in it, so every lightmap route tints the *whole
-  view*. The route that works is per-vertex colour at section-compile time, and the note carries the one
-  seam it needs plus the four things that make it cheap — chiefly that **occlusion is already solved before
-  the hook runs**. Read it before proposing coloured light, a lightmap trick, or a post effect. Also holds
-  26.1's `CardinalLighting`, which is a per-Age look knob for one line of datapack.
-- **`notes/energy-interop-research.md`** — whether our powered machines should speak the shared power
-  standard. **Read §2 before writing a line of energy code**: NeoForge replaced the whole API in 21.9
-  (`EnergyHandler`, capability id `neoforge:energy_handler`, transaction-based) and the old package is
-  already deleted on 26.3, so every tutorial older than 1.21.9 is wrong and fails *silently* — an unmigrated
-  mod does not error, it simply cannot see you. Also: Fabric ships no energy module and Team Reborn's is the
-  one everybody bundles. Its ruling is **export, never import** — the bridge is cheap, but accepting foreign
-  power would undo §7.1.2's whole argument, since any tech mod's first generator would pay for machines that
-  are meant to be bought by writing Ages.
-- **`notes/link-panel-research.md`** — the live view of an Age on a bound book's panel, and **built**: why a
-  preview `ClientLevel` beats a hand-written mesh builder, what it cost, and the register of everything
-  vanilla keeps exactly one of per client. **Read that register before standing up a second level of any
-  kind** — every fault this feature had was an item on it, and the question it teaches to ask is not "what
-  did we get wrong" but "what else is there exactly one of".
-- **`notes/neoforge-dimensions-research.md`** — the record of how runtime Ages stopped being Fabric-only.
-  DynamicDimensions is dormant with no 26.1 and Fantasy is LGPL against our public-domain licence, so neither could be used;
-  what it cost to own the technique instead was four access-widener lines and one Mixin, not the ~10 into
-  server internals this note first estimated. **Read it before looking at either library again.**
+  view*. The route that works is per-vertex colour at section-compile time — built on both loaders (Fabric
+  through Indigo's quad transform); Sodium is open. Read it before proposing coloured light, a lightmap trick,
+  or a post effect. Also holds `CardinalLighting`, a per-Age look knob for one line of datapack.
+- **`notes/energy-interop-research.md`** — settled: **no energy API either way**; machines run on a block of arc
+  crystal beside them, and any reopening is export-only. Read its version-trap section before writing energy
+  code: NeoForge replaced the whole API in 21.9 and every older tutorial fails *silently*.
+- **`notes/link-panel-research.md`** — the live view of an Age on a bound book's panel, **built**: why a preview
+  `ClientLevel` beats a hand-written mesh builder, and the register of everything vanilla keeps exactly one of
+  per client. **Read that register before standing up a second level of any kind** — every fault this feature
+  had was an item on it.
+- **`notes/neoforge-dimensions-research.md`** — why runtime levels are our own code (now in Ephemeris) rather
+  than DynamicDimensions or Fantasy, and the traps found owning them. **Read it before looking at either library
+  again.**
 - **`notes/config-research.md`** — how mod config UIs work (they introspect a spec, or host a screen you
-  write), the 26.1 landscape, and why the recommendation is NeoForge's `ModConfigSpec` with Forge Config API
-  Port on Fabric. **Built** — the spec is `AgeConfig` in `common`, registered as `SERVER` by each loader,
-  and written once rather than behind the SPI because the port publishes its API under the original package
-  names. Read it before adding an option; add the option to `AgeConfig`, not a second spec.
-- **`notes/before-release.md`** — what has to be true before anyone else plays this, and the freedoms that
-  end on release day. **Read it before putting off a rename or a codec change**: save compatibility is free
-  now and a migration later. Also holds the measured content debts and the case for a base dimension being
-  any dimension, modded ones included.
-- **`notes/before-beta.md`** — the checklist for the private beta: decisions to make first, the minimum
-  assets and what must not ship (recoloured Mojang art, Cyan's font), distribution, the Windows server, the
-  multiplayer gaps, and the dress rehearsal. Deleted when the last item goes.
-- **`notes/release-process.md`** — the one-command release: a local `scripts/release.sh` that tests and builds
-  a chosen commit in throwaway worktrees, tags it, attaches the jar to a GitHub Release and moves the
-  packwiz pack on the orphan `pack` branch. **Planned, unbuilt**; Ephemeris gets its own script and the
-  catalog pins its release. Read it before touching the tags or the release.
+  write), why it is NeoForge's `ModConfigSpec` with Forge Config API Port on Fabric, and which axis (datapack or
+  config) a parameter belongs on. **Built** — the spec is `AgeConfig` in `common`; add an option there, not to a
+  second spec. Open: Configured on Fabric, and Fabric's once-a-second "Correcting" loop.
+- **`notes/before-release.md`** — what has to be true before anyone else plays this: the renames and codec
+  changes that now cost a migration, the content debts, the Sodium survey and the assets still standing in on
+  vanilla's, and the case for a base dimension being any dimension, modded ones included.
+- **`notes/release-process.md`** — the one-command release: `scripts/release.sh` tests and builds a chosen commit
+  in throwaway worktrees, tags it, attaches the jar to a GitHub Release and moves the packwiz pack on the orphan
+  `pack` branch. **Built**, and it has made every release; Ephemeris has its own script and the catalog pins
+  its release. Read it before touching the tags or the release.
 - **`notes/dni-sources.md`** — where the D'ni comes from, and how good the transliteration actually is.
   The two fan compilations we spell from (and why they stay out of this repository), the finding that the
-  fuller one's headwords *are* our typeface encoding, and the measurement that says our rules reproduce
-  43% of its 717 pairs where one rule change would make it 84%. Read it before touching
-  `art/script/dni.json` or `art/transliteration.json`.
-- **`notes/authoring-tools.md`** — how structures and 3D models get authored: the external tooling and its
-  version state, and what our own datapacks could carry that they do not yet. Read it before building a
-  structure, a model, or anything that wants to be pack data. Parts I–III are unbuilt; **Part IV's drawing
-  half is built** — blocks submitted from an entity renderer, which is why there is no baked mesh anywhere —
-  and its shaped-collision half is still the open question, with the one constraint that decides it.
+  fuller one's headwords *are* our typeface encoding, and that the rules reproduce 84% of its 717 pairs.
+  Open: `ogla` vs `oglan`. Read it before touching `art/script/dni.json` or `art/transliteration.json`.
+- **`notes/authoring-tools.md`** — how structures and 3D models get authored: the external tooling, and what our
+  own datapacks could carry that they do not yet. Part II holds the open forks for pack data (a datapack
+  registry, data-driven terrain fields); Parts III and IV are built — the `.gen` grammar notation, and blocks
+  drawn from an entity renderer and stood on, with the one constraint (axis-aligned shapes) any further shaped
+  collider must answer. Read it before building a structure, a model, or anything that wants to be pack data.
+- **`../ephemeris/notes/sky-limits.md`** — what a per-level sky can and cannot change, in Ephemeris's own notes.
 
 ## What this is
 
-**Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 26.3**, with 26.2 kept on the `mc-26.2-support` branch, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
+**Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 26.3**, with 26.2 kept on the `mc-26.2-support` branch on Jonah's other machine, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
 
-Current state: Phases 1–5 are done and Phase 6 (consequence) is built through its last register. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence, and the loop runs without commands — word pages, the notebook, the writer's desk, descriptive and linking books, and the three acquaintance devices that put the derived corpus within reach. An Age's instability now reaches generation: seams widen, wounds open, the wounds go on opening, and collapse tears the floor. Phase 7 (rewards) has started: an Age is scored for danger from its recipe and a book records whether a player wrote it. Phase 8 (book editing) is tabled (2026-10-04, design §6.6), and Phase 9 (the asset pass, and there are no textures at all) has not started. **Runtime dimensions work on both loaders**, on **Ephemeris** — our own library, now its own project at `../ephemeris` (see "Ephemeris" below).
+Current state: Phases 1–5 are done and Phase 6 (consequence) is built through its last register. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence, and the loop runs without commands — word pages, the notebook, the writer's desk, descriptive and linking books, and the three acquaintance devices that put the derived corpus within reach. An Age's instability now reaches generation: seams widen, wounds open, the wounds go on opening, and collapse tears the floor. Phase 7 (rewards) is mostly built — danger scoring, deretheni, the D'ni city, yema, scarab colonies — and a reward never asks who wrote an Age: the Art's own books are kept off reward conditions by their grammars. Phase 8 (book editing) is tabled (design §6.6), and Phase 9 (the asset pass) is under way for items while blocks still borrow vanilla's textures. **Runtime dimensions work on both loaders**, on **Ephemeris** — our own library, now its own project at `../ephemeris` (see "Ephemeris" below).
 
 **26.1 is the first unobfuscated Minecraft release**, which is why there is no Parchment in the catalog: 1.21.11 was the last obfuscated one and there is nothing left to deobfuscate. Mappings-related advice written for the 1.21 line does not transfer.
 
@@ -162,10 +119,10 @@ Current state: Phases 1–5 are done and Phase 6 (consequence) is built through 
 
 Java 25 (Temurin, via SDKMAN). Gradle comes from the wrapper — always use `./gradlew`, never a system Gradle. Note that the Java level is real: Dokka 1.x cannot parse a "25.x" version string and fails before reading a line of source, which is why the catalog pins Dokka 2.
 
-**Non-interactive shell gotcha:** SDKMAN's init lives in `~/.bashrc` and may not be sourced in non-login shells, so `java` can be missing from `PATH`. Before running Gradle, ensure Java is available, e.g.:
+**Non-interactive shell gotcha:** SDKMAN's init lives in `~/.bashrc` and may not be sourced in non-login shells, so `java` can be missing from `PATH`. Before running Gradle, point at the JDK `.sdkmanrc` pins — not SDKMAN's `current`, which on some machines is a system JRE with no compiler:
 
 ```bash
-export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOME/bin:$PATH"
+export JAVA_HOME="$HOME/.sdkman/candidates/java/25.0.4-tem"; export PATH="$JAVA_HOME/bin:$PATH"
 ```
 
 ## Commands
@@ -258,7 +215,7 @@ Drafts live in `.authoring/ages/` and hold the **pages**, never the recipe.
 
 **Scrivener reaches past the words.** Its main menu is four groups — the words, the world they describe, the
 age workshop, and the tool itself. Its tag screen edits `art/preset_tags/` with the overlay
-visible — every carrier says whether its weight was **authored**, **derived**, or **dropped**, because
+visible — every carrier says whether its weight was **authored**, **overridden**, **derived**, or **dropped**, because
 setting a weight on a derived tag *writes* an entry, clearing one lets the derived value back, and removing
 a derived tag is `drop` rather than deletion. It also renames a tag across the carriers, every word that
 asks and the opposed-tags table together, which is the one edit a text editor is worst at. One further screen
@@ -270,7 +227,7 @@ what it catches. The file already states its rule perfectly and hides only its c
 `Vocabulary.load(shippedData(), worldgen)` is the same call `VocabularyCheck` makes. A word is a list of meanings,
 each one idea with its chances, and the editor shows each meaning's effects under it and adds one by what it does,
 then where, then what. **Its verdict is the one copy of the per-word rules** (`Verdict`): it refuses what would
-not ship and names the check that holds each, nudges toward `notes/vocabulary-pass-plan.md` §5.2, and
+not ship and names the check that holds each, nudges toward the rulings in `notes/decisions.md`, and
 `VocabularyCheck` asks it of every word. `^t` reads a book with the word as it stands, through `Trial`. What offline cannot know is datapack content — a tag only a bound registry grants
 (`ore`), the pack's own placed features, the game's block tags — and `--refresh` drives `/age tags` and
 `/age holdings` over RCON into `.authoring/server-snapshot.json` for every later run to read. A server is an
@@ -537,7 +494,7 @@ feature, and keeping them in one package made a cycle of each. Opening a level i
 > **`notes/the-world-model.md` has landed.** It was the design the code was written against and the two no
 > longer disagree: `Domain` is gone — an aspect *is* its own page, so `art/domain/` no longer exists — and
 > so are `Scope` and both `Kind` enums, replaced by `Holds`. There are no counts, `sky` became the vault
-> against `sun`, `moon` and `stars`, and `in <biome>` (§4.3.1) is built. Read that document before changing
+> against `sun`, `moon` and `stars`, and `in <biome>` (world model §3) is built. Read that document before changing
 > anything under `age/aspect/`, `age/language/` or `age/resolution/`; it is normative and current, not a plan.
 - **`age/word/generation/`** — the grammars the Art writes *out* of, which are **datapack content**
   (`art/generation/<name>.json`, authored as `src/main/generation/<name>.gen` and exported by
@@ -686,14 +643,14 @@ The overriding goal is **readability** — a reader should understand code witho
 
 Concretely: no `##` headings inside a KDoc, no changelogs, no "this used to be X and Y changed it", no
 dates or attributions. Prefer no KDoc at all where the name already says it — `/** The shape of the
-rock. */` on `TERRAIN` earns nothing. A `(design §3.4)` pointer is worth keeping where the design
+rock. */` on `TERRAIN` earns nothing. A `(design §5.4)` pointer is worth keeping where the design
 genuinely constrains the code, and worth dropping from ordinary description.
 
 **Scope functions** — by intent, never nested, never chained >2 deep: `apply` (configure & return), `also` (side effect in a chain), `let` (null-guard/transform), `run`/`with` (configure & compute). If a block grows past a few lines, extract a named function.
 
 **Anti-patterns to avoid** (common in mod code): `!!`; `lateinit` abuse (prefer `val` + constructor or `by lazy`); companion-object soup; **mutable global state** in `object`s/companions; magic numbers; deeply nested scope-function chains; `MutableList` leaking through public API; `when` + `else` on sealed/enum types silently swallowing new cases.
 
-**Save compatibility is a constraint (private beta has begun, Jonah, 2026-10-16).** Saves, books, notebooks and learned words exist in testers' hands, so **a change must keep what is already saved readable**: a renamed or merged word goes in `art/retired.json` (old name → new, read by `Vocabulary.word` and migrated out of a player's learned set on join) rather than being deleted; a codec change reads the old shape; a renamed slot key keeps its old one as an alias. A saved recipe must also round-trip *within* a version (`RecipeCheck`). `CURRENT_GENERATOR_VERSION` still bumps once between releases (memory: generator-bump-once-per-release), and a bump is what lets a changed generator leave existing Ages alone. `notes/before-release.md` §1 lists what was free and is not any longer.
+**Save compatibility is a constraint (private beta has begun, Jonah, 2026-10-16).** Saves, books, notebooks and learned words exist in testers' hands, so **a change must keep what is already saved readable**: a renamed or merged word goes in `art/retired.json` (old name → new, read by `Vocabulary.word` and migrated out of a player's learned set on join) rather than being deleted; a codec change reads the old shape; a renamed slot key keeps its old one as an alias. A saved recipe must also round-trip *within* a version (`RecipeCheck`). `CURRENT_GENERATOR_VERSION` still bumps once between releases (memory: generator-bump-once-per-release), and a bump is what lets a changed generator leave existing Ages alone. `notes/before-release.md` §1 lists the candidates that would now cost a migration.
 
 **When to break the rules:** hot per-tick loops may justify a plain `for`, a `var` accumulator, or primitive arrays (measure first, comment why); Java/MC interop forces platform types and mutable builders (contain them at the boundary). Immutability and functional style are defaults, not religion — but a break should be **local and commented**, never the ambient style.
 

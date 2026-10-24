@@ -16,11 +16,10 @@ import org.joml.Vector3fc
  * the dread thickens as you approach and thins as you leave, so a player can navigate by it and find the
  * thing that is wrong. An Age uniformly grim would say the same thing everywhere and so say nothing.
  *
- * **Positional layers, not a post-processing filter** (researched 2026-08-07). A post chain is one shader
- * over the whole frame: it cannot know how near the wound is without uniforms driven per frame, and
- * `GameRenderer.setPostEffect` is private, so reaching it would cost an access widener on both loaders to
- * buy something that is on or off. `addPositionalLayer` is handed a *position* and returns a value, which
- * is a gradient by construction, and the Age's air is already built out of these ([AgeAir]).
+ * **Positional layers, not a post-processing filter.** A post chain is one shader over the whole frame: it
+ * cannot know how near the wound is without uniforms driven per frame, so it is on or off. `addPositionalLayer`
+ * is handed a *position* and returns a value, which is a gradient by construction, and the Age's air is already
+ * built out of these ([AgeAir]).
  *
  * **Darker and desaturated**, which are two different attributes doing two different jobs: the fog closes
  * in and goes black so the world shrinks around you, and the light loses its colour so what is left of it

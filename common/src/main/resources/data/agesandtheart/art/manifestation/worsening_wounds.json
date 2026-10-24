@@ -5,7 +5,7 @@
     "Each step makes the density climb faster with the Age's age; `most` bounds the rate, never the final",
     "state.",
     "",
-    "A verdict, so failing. Waiting on the wounds' rework against the canon (notes/instability-tiers-plan.md 6)."
+    "A verdict, so failing. Waiting on the wounds' rework against the canon (notes/instability-tiers-plan.md)."
   ],
   "dials": {
     "pace": {"tier": 3, "most": 3}

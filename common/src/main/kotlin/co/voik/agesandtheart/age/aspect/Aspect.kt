@@ -35,7 +35,7 @@ val RANGED_PARAMETERS: Set<String> by lazy {
 private const val NO_APPETITE = 0.0
 
 /**
- * The parts an Age is assembled from — one preset each, chosen independently (design §3.1).
+ * The parts an Age is assembled from — one preset each, chosen independently (world model §2).
  *
  * **A new aspect is appended, never inserted.** [co.voik.agesandtheart.age.AgeCharacter.mapFor] and
  * [co.voik.agesandtheart.age.resolution.Resolving] both stride their seeds on `ordinal`, so inserting one would
@@ -53,7 +53,7 @@ enum class Aspect(
      */
     val holds: Holds = Holds.NOTHING,
     /**
-     * Whether this aspect's value is a registry object rather than a preset written in Kotlin (§3.1) —
+     * Whether this aspect's value is a registry object rather than a preset written in Kotlin —
      * which decides whether §8's derived vocabulary can reach the aspect at all.
      *
      * Stated rather than derived from [holds], and that is the open-against-closed half of a catalogue: a
@@ -73,7 +73,7 @@ enum class Aspect(
      * (vanilla places each set against the whole dimension, its biome predicates doing the rest). Biomes
      * never divide, one climate table spanning the world however many terrains carve it up; the surface
      * *could* follow the terrain's division and does not yet; the air divides by **biome** rather than by
-     * territory, which is a scope the grammar has and the composition does not (`in <biome>`, §4.3.1); and
+     * territory, which is a scope the grammar has and the composition does not (`in <biome>`, world model §3); and
      * phenomena are **sited rather than divided** (§5.2) — a process happens at a place and spreads from
      * it, which is not a territory with a boundary however much it sounds like one.
      */
@@ -88,7 +88,7 @@ enum class Aspect(
     val madeOfSomething: Boolean = false,
     /**
      * How readily this aspect takes on a second preset the sentence merely happened to like as well — the
-     * harmonious division, as opposed to the one settling a contradiction (design §3.4).
+     * harmonious division, as opposed to the one settling a contradiction.
      *
      * Terrain is the most reluctant because nothing interpolates between a floating island and a plain;
      * they meet at a seam, and a world full of seams reads as broken rather than varied. Anything that
@@ -242,7 +242,7 @@ enum class Aspect(
     RAINBOW("rainbow"),
 
     /**
-     * What *happens* here: storms, meteors, a rising sea (design §3.1, §5.2).
+     * What *happens* here: storms, meteors, a rising sea (design §5.2).
      *
      * The one aspect a sentence fills *and* consequences arrive at: a meteor storm you wrote is a hazard
      * you prepared for, and one you did not write is the Age telling you something is wrong (§7.7).

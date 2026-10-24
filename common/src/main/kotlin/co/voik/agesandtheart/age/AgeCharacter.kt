@@ -12,7 +12,7 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
 /**
  * What an Age is like, as opposed to what it is made of — drawn per Age from its seed when it is
- * written, then frozen (design §3.4).
+ * written, then frozen.
  *
  * How wide its territories run and how far its aspects agree about where they are: everything that is true
  * of the Age however many of its properties divide. What each division *is* belongs to the division — see

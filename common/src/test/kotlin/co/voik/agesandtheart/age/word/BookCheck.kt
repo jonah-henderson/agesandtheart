@@ -70,7 +70,7 @@ class BookCheck : FunSpec({
             // A row drawn evenly from the corpus would be eleven materials in a row and nothing else.
             fun page() = if (random.nextInt(DERIVED_IN) == 0) derived.random(random) else sayable.random(random)
             // The `age` page first, because a row without one is not a book and is refused before the
-            // parser sees it (§4.3.1) — fuzzing those would only ever re-test the one rule that refuses.
+            // parser sees it (design §2) — fuzzing those would only ever re-test the one rule that refuses.
             // Everything after it is as random as before, `age` being in `sayable` and free to recur.
             seed to (listOf(NUCLEUS_PAGE) + List(random.nextInt(1, LONGEST_ROW)) { page() })
         }
@@ -239,7 +239,7 @@ class BookCheck : FunSpec({
     }
 })
 
-/** The one page every book must carry, without which a row is refused rather than read (§4.3.1). */
+/** The one page every book must carry, without which a row is refused rather than read (design §2). */
 private const val NUCLEUS_PAGE = "age"
 
 /** More seeds than any shipped book grammar has distinct expansions, so every alternative is drawn. */

@@ -17,13 +17,13 @@ import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 
 /**
- * What the air does to you (design §3.1, vanilla's `EnvironmentAttributeMap`) — **whatever the dimension
+ * What the air does to you (vanilla's `EnvironmentAttributeMap`) — **whatever the dimension
  * and its biomes would do**, until a sentence says otherwise.
  *
  * An aspect of its own rather than parameters on [Biomes], because it is not a population: it says nothing
  * about which biomes an Age holds, only what standing in one is like. Folding it in would make a
- * population carry a large payload that is not a population, which is the shape §3.1 has been moving away
- * from.
+ * population carry a large payload that is not a population, which is the shape the world model
+ * moves away from (§2).
  *
  * **The system is a stack of layers**, each modifying the value the one below produced — a constant layer
  * for the dimension, a positional one for the biomes, then the timeline and the weather. An Age's own

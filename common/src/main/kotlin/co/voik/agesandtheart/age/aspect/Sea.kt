@@ -13,7 +13,7 @@ import kotlin.math.roundToInt
 /**
  * What fills the space the shape leaves — a sea of something, or nothing at all.
  *
- * An open aspect (design §3.1): a sea *is* a block, so this holds a registry id rather than an
+ * An open catalogue (world model §2): a sea *is* a block, so this holds a registry id rather than an
  * enumeration, and any block in the pack resolves to a sea with no per-mod work.
  *
  * The aspect chooses the substance only; the height comes from the [Terrain], which is what lets any sea

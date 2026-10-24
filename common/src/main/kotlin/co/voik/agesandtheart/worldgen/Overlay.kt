@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.state.BlockState
 private val AIR: BlockState by lazy { Blocks.AIR.defaultBlockState() }
 
 /**
- * Shape of **ours** laid over whatever rock an Age happens to wear (design §3.4).
+ * Shape of **ours** laid over whatever rock an Age happens to wear.
  *
  * **The problem this exists for: an Age that names no landform wears vanilla's rock, and everything of
  * ours that is a *shape* was silently absent from it.** A writer could say `volcano`, the Art would take

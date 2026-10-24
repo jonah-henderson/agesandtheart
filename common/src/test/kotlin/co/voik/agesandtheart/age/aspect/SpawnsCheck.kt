@@ -46,7 +46,7 @@ class SpawnsCheck : FunSpec({
     }
 
     /**
-     * **A creature one word named and another struck out stays struck out** — §3.5's "removals apply last".
+     * **A creature one word named and another struck out stays struck out** — removals apply last.
      *
      * `narrowed` dropped it and `added` put it straight back at the weight it was asked for, because one
      * walked what survives and the other walked what was *wanted* without asking what was struck. Adding a
@@ -111,7 +111,7 @@ private fun narrowedBy(
     skyIsOpen: Boolean = false,
 ): WeightedList<MobSpawnSettings.SpawnerData> {
     val options = Options(mapOf(Spawns.LIVES.name to claims.split(",").filter(String::isNotBlank)))
-    // Null for the biome: nothing scopes a claim to one until `in <biome>` lands (§4.3.1).
+    // Null for the biome: nothing here scopes a claim to one with `in <biome>`.
     return Spawns.livingIn(options)
         .at(null, category, Spawns.Situation(BlockPos.ZERO, skyIsOpen, ANY_LIGHT_WILL_DO), offered)
 }

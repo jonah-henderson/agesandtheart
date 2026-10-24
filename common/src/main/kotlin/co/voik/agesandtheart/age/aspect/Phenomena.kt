@@ -3,7 +3,7 @@ package co.voik.agesandtheart.age.aspect
 import kotlin.math.pow
 
 /**
- * What *happens* here — storms, fire, a column of sand walking the world (design §3.1, §5.2).
+ * What *happens* here — storms, fire, a column of sand walking the world (design §5.2).
  *
  * §5.2 settles that phenomena are **processes rather than events** — inexorable, legible, with a visible
  * direction, so your answers are to adapt or to leave — and processes accumulate: an Age may have a tempest

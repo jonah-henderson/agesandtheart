@@ -2,7 +2,7 @@ package co.voik.agesandtheart.age.aspect
 
 /**
  * What a word asks of one ranged axis — **a demand, a limit, or a nudge**, and which of the three decides
- * whether two words can share the axis at all (design §3.3, §4.4).
+ * whether two words can share the axis at all (design §3.3, world model §3).
  *
  * A word could only ever *replace* a band, so every word about temperature was a rival for it and any two
  * of them either overlapped or fractured the world. That is right for words that mean a particular heat and

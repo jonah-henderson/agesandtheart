@@ -7,7 +7,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.StringRepresentable
 
 /**
- * What an Age is *like*, said as climate rather than as a list of biomes (design §3.2, §4.4) — the
+ * What an Age is *like*, said as climate rather than as a list of biomes (design §3.2, world model §3) — the
  * **vague** half of biome authoring, where [BiomePreference] is the exact half. "A hot, dry world" names
  * nothing in particular; it shifts the climate field, and vanilla's table yields deserts and savannas with
  * their features, mobs, structures and skies.

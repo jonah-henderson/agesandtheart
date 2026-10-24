@@ -666,8 +666,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // A scarp: `Seam.SCARP`. **Read against `hills` above**, and note that both territories are the same
     // terrain — the point of the picture rather than laziness. The first version divided hills from pillars,
     // as `regions` does, and showed nothing: those two already stand about ninety blocks apart, so a throw of
-    // thirty-two disappeared into a step that was there anyway (design §3.4's "terrain-vs-terrain faults
-    // already happen", met from the wrong end). With one landscape either side the seam is invisible without
+    // thirty-two disappeared into a step that was there anyway (terrain-vs-terrain faults already happen, met from the wrong end). With one landscape either side the seam is invisible without
     // a throw and a clean sixty-four-block cliff with one, so the picture shows the node and nothing else.
     //
     // The window opens by the throw at both ends, so a thrown territory cannot be clipped by the *picture* and

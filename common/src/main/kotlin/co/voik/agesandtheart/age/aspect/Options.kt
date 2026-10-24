@@ -27,8 +27,8 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
      * dark Age with one bright corner: the bracketed value where it says, the bare one everywhere else.
      *
      * The brackets are [Claim]'s, read by [Claim.read], because a dial and a claim should not need two
-     * spellings for the same idea — and the aspects a dial may be confined on are the same four §3.1 names
-     * for a claim, since it is the same fact about vanilla that makes either meaningful.
+     * spellings for the same idea — and the aspects a dial may be confined on are the same four that may confine
+     * a claim, since it is the same fact about vanilla that makes either meaningful.
      */
     fun of(parameter: Parameter, biome: Identifier? = null, member: String? = null): String {
         val said = chosen[parameter.name].orEmpty().map(Claim::read).filter { parameter.accepts(it.value) }
@@ -87,7 +87,7 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
         chosen[pool.name].orEmpty().map { Claim.read(it).value }.filter(pool::accepts)
 
     /**
-     * Every member written for [pool] with what the writer asked of it (§4.3.1, [Claim]). The mark is
+     * Every member written for [pool] with what the writer asked of it ([Claim]). The mark is
      * stripped before the value is validated, or a struck-out value would fail `Identifier.tryParse` and
      * the exclusion would not happen.
      */

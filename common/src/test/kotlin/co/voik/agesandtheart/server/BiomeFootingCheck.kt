@@ -4,7 +4,7 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * Whether an Age's biomes agree with the ground it actually has (`Grounding`, design §3.4).
+ * Whether an Age's biomes agree with the ground it actually has (`Grounding`).
  *
  * **Deliberately not tagged `NEEDS_LANDFORMS`**, though it is about worldgen and its neighbour
  * [GenerationCheck] is. That tag buys a spec out of the build gate and into a task that only warns, and it

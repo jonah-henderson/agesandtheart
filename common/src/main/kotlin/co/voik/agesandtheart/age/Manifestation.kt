@@ -346,7 +346,7 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 }
 
 /**
- * The tier of each step one dial sells, in order (`notes/instability-tiers-plan.md` §4).
+ * The tier of each step one dial sells, in order (design §5.0).
  *
  * Written as one tier for every step (`"tier": 1, "most": 4`) or a list with one entry per step
  * (`"tiers": [1, 1, 2, 2]`), so a dial can climb from a nuisance into a hazard.
@@ -417,7 +417,7 @@ data class Ladder(
     val needs: Set<Showing> = emptySet(),
     /**
      * The parameters a word sets to the same effect, as `page.parameter` — `gravity.pull`. Never bought where
-     * the book already set one, since the writer's word is law (`notes/strange-words-plan.md` §1).
+     * the book already set one, since the writer's word is law.
      */
     val heldBy: Set<String> = emptySet(),
     /** How often it is drawn against the rest, one being as often as any: what a world without colour is made rare by. */
@@ -497,7 +497,7 @@ data class Ladder(
 }
 
 /**
- * What an Age's instability actually bought (`notes/instability-tiers-plan.md` §2).
+ * What an Age's instability actually bought (design §5.0).
  *
  * **Derived, never stored.** A pure function of the instability, the seed, the ladders and the Age's setting,
  * so it comes out the same on every open and needs no room in the recipe.

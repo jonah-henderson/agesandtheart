@@ -31,7 +31,7 @@ data class Parameter(
      */
     val landmarks: List<Landmark> = emptyList(),
     /**
-     * Whether a claim on this may be sited in one biome — `in <biome>` (design §4.3.1). Set with [perBiome].
+     * Whether a claim on this may be sited in one biome — `in <biome>` (world model §3). Set with [perBiome].
      *
      * **Asked per parameter rather than per aspect**, and the difference is not pedantry: the air's fog may
      * be sited and its temperature may not, because temperature is what *chooses* the biome and siting it
@@ -41,7 +41,7 @@ data class Parameter(
     /**
      * Whether this is something **each member of a weighted set may hold for itself** — a village abandoned,
      * a creature rooted — so a clause closing on members says it of them alone: `deserted villages`,
-     * `motionless monsters` (`notes/strange-words-plan.md` §2). Set with [perMember].
+     * `motionless monsters`. Set with [perMember].
      */
     val ownedByEachMember: Boolean = false,
     /**
@@ -86,8 +86,7 @@ data class Parameter(
      * hands back a mingling in tier-then-seeded order. Stating it here rather than casing on the name there
      * is what keeps that function from having to know about individual parameters.
      *
-     * Written order decides one other thing in the whole resolver — which template a book starts from — and
-     * `the-art-design.md` §3.5 names both.
+     * Written order decides one other thing in the whole resolver: which template a book starts from.
      */
     val keepsWrittenOrder: Boolean = false,
     /**
@@ -116,7 +115,7 @@ data class Parameter(
 
     /**
      * Whether this parameter would understand [option]. An open one takes any well-formed id, including
-     * one naming content this pack does not have (§3.1).
+     * one naming content this pack does not have (world model §2).
      */
     fun accepts(option: String): Boolean {
         val isOneOfTheNamedOptions = option in options

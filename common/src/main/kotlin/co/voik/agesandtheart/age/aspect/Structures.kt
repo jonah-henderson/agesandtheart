@@ -15,7 +15,7 @@ import net.minecraft.world.level.levelgen.structure.BuiltinStructureSets
 import net.minecraft.world.level.levelgen.structure.StructureSet as VanillaStructureSet
 
 /**
- * What may be built here (design §3.1) — **whatever vanilla would**, until a sentence says otherwise.
+ * What may be built here — **whatever vanilla would**, until a sentence says otherwise.
  *
  * No preset, for the same reason biomes have none: an Age does not pick one of two ways to be inhabited,
  * it starts from what the game builds and a sentence adjusts it. [BUILT] is where the writing happens,
@@ -80,7 +80,7 @@ object Structures {
 
     /**
      * The sets vanilla may consider here, steered by whatever the sentence said. Three steps, ordered so
-     * the outcome is independent of the writer's word order (§3.5): `only` (or [Pool.NOTHING]) drops the base,
+     * the outcome is independent of the writer's word order: `only` (or [Pool.NOTHING]) drops the base,
      * everything named joins at its density, then `except` strikes out.
      */
     fun structureSets(
