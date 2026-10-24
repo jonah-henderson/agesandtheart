@@ -12,6 +12,7 @@ import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.Identifier
 import net.minecraft.util.RandomSource
 import net.minecraft.world.item.Rarity
+import java.io.File
 
 /**
  * How hard a page is to find: a bucket is rolled by weight, then a word within it, and every word is in
@@ -30,6 +31,21 @@ class WordRarityCheck : FunSpec({
             RarityBucket("rare", rareWeight, rare, isDefault = false),
         ),
     )
+
+    /**
+     * A name no word answers to is matched by nothing, so the word it meant falls silently to the default bucket. A
+     * block of ours is a word only once it is registered, which offline it never is, so its name is held to our
+     * language file instead.
+     */
+    test("every word a shipped bucket lists is a word") {
+        val ourBlocks = JsonParser.parseString(File(LANGUAGE_FILE).readText()).asJsonObject.keySet()
+            .filter { it.startsWith(OUR_BLOCK_KEY) }.map { "agesandtheart:" + it.removePrefix(OUR_BLOCK_KEY) }.toSet()
+        fun isAWord(name: String) = vocabulary.word(name) != null || vocabulary.awaitsAServer(name) || name in ourBlocks
+        val unknown = vocabulary.rarity.buckets.flatMap { bucket ->
+            bucket.words.filterNot(::isAWord).map { "${bucket.name}: $it" }
+        }
+        check(unknown.isEmpty()) { "${unknown.size} bucket entries name no word: ${unknown.joinToString(", ")}" }
+    }
 
     test("the shipped buckets have exactly one default") {
         val defaults = vocabulary.rarity.buckets.filter { it.isDefault }
@@ -194,5 +210,7 @@ class WordRarityCheck : FunSpec({
         const val TOLERANCE = 0.03
         const val RARE_COUNT = 5
         const val TAG_REFERENCE = "#"
+        const val LANGUAGE_FILE = "src/main/resources/assets/agesandtheart/lang/en_us.json"
+        const val OUR_BLOCK_KEY = "block.agesandtheart."
     }
 }

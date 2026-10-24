@@ -94,9 +94,8 @@ preview.runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main
 dependencies {
     // Mordant draws the word-authoring tool: raw-mode key events, and widgets to lay an answer out in.
     //
-    // **The one place a UI library is allowed.** `ui-libraries-research.md` rules against a Kotlin UI
-    // library because KFF supplies the stdlib as a *mod* on NeoForge and a bundled Kotlin library cannot
-    // see it — which is a fact about the shipped jar. Nothing in `preview` reaches one.
+    // **The one place a UI library is allowed.** The shipped jar may not bundle a Kotlin UI library, because
+    // KFF supplies the stdlib as a *mod* on NeoForge and a bundled Kotlin library cannot see it. Nothing in `preview` reaches one.
     "previewImplementation"(libs.mordant)
 }
 
@@ -485,16 +484,6 @@ instrument(
 instrument(
     "preview", "documentation", "co.voik.agesandtheart.preview.TerrainPreviewKt",
     "Renders terrain-shape previews to PNG (build/preview). Takes a preset, e.g. --args=hills",
-)
-
-instrument(
-    "tagreachspike", "documentation", "co.voik.agesandtheart.preview.TagReachSpikeKt",
-    "THROWAWAY: when a vague word reaches a weighted set, how many members does it lift? Read it, don't build on it.",
-)
-
-instrument(
-    "instabilityspike", "documentation", "co.voik.agesandtheart.preview.InstabilitySpikeKt",
-    "THROWAWAY: what instability can a written book reach under today's grammar? Read it, don't build on it.",
 )
 
 instrument(

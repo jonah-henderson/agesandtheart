@@ -104,9 +104,8 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
             },
             AgeContent.WRITERS_DESK_BLOCK,
         )
-        // NeoForge wraps only vanilla's own containers for pipes, so the stations, the compounder and the drying
-        // rack are named here; Fabric's
-        // transfer API wraps any Container block entity by itself.
+        // NeoForge wraps only vanilla's own containers for pipes, so every container of ours is named here;
+        // Fabric's transfer API wraps any Container block entity by itself.
         event.registerBlockEntity(
             net.neoforged.neoforge.capabilities.Capabilities.Item.BLOCK,
             AgeContent.STATION_ENTITY,
@@ -119,6 +118,14 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
             net.neoforged.neoforge.capabilities.Capabilities.Item.BLOCK,
             co.voik.agesandtheart.station.DryingRack.ENTITY,
         ) { rack, side -> net.neoforged.neoforge.transfer.item.WorldlyContainerWrapper(rack, side) }
+        event.registerBlockEntity(
+            net.neoforged.neoforge.capabilities.Capabilities.Item.BLOCK,
+            co.voik.agesandtheart.desk.Transcriber.ENTITY,
+        ) { transcriber, side -> net.neoforged.neoforge.transfer.item.WorldlyContainerWrapper(transcriber, side) }
+        event.registerBlockEntity(
+            net.neoforged.neoforge.capabilities.Capabilities.Item.BLOCK,
+            AgeContent.ARCHIVE_ENTITY,
+        ) { archive, _ -> net.neoforged.neoforge.transfer.item.VanillaContainerWrapper.of(archive) }
     }
 
     private fun onCreateAttributes(event: EntityAttributeCreationEvent) {
