@@ -6,7 +6,11 @@ import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Phenomena
+import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.SkyBodies
+import co.voik.agesandtheart.age.aspect.Terrain
 
 /**
  * A book in, a world out (`the-world-model.md` §5). What landed fills the catalogues, steers the parameters,
@@ -32,6 +36,7 @@ object Resolver {
             .copy(banned = ofTheWholeAge.flatMap { it.banned }.toSet(), linkIn = ofTheWholeAge.firstNotNullOfOrNull { it.linksIn })
         resolving.flaws += resolving.mintingsThatCannotHold()
         resolving.flaws += resolving.tidesWithNoMoon(composition)
+        resolving.flaws += resolving.weatherUnderARoof(composition)
         return Resolution(
             composition = composition,
             instability = Instability(resolving.flaws.distinctBy(Flaw::identity), pages = book.pagesLaid),
@@ -46,6 +51,35 @@ object Resolver {
     /** A seed-sized number for what was written, whatever order it was laid in, so silence varies with the book. */
     private fun saltOf(landings: List<Landing>): Long = landings.map(Landing::word).distinct().sorted()
         .fold(0L) { salt, word -> salt xor (word.hashCode().toLong() * Resolving.WORD_MIXER) }
+
+    /**
+     * Weather asked for where the Age is roofed, by a word or by its rock: it cannot fall, and the book asked for it.
+     * An Age without a sun is not roofed, and keeps its weather.
+     */
+    private fun Resolving.weatherUnderARoof(composition: AgeComposition): List<Flaw> {
+        if (!Sky.isRoofed(composition)) return emptyList()
+        val needingWeather = Phenomena.claimsIn(composition.optionsFor(Aspect.PHENOMENA, 0))
+            .mapNotNull { claim -> Phenomenon.entries.firstOrNull { it.key == claim.value } }
+            .filter(Phenomenon::needsWeather)
+            .map(Phenomenon::key)
+        fun asksForWeather(landing: Landing) = landing.effects.any { effect ->
+            when (effect) {
+                is Effect.Chooses -> effect.member in needingWeather
+                is Effect.Admits -> effect.members.any { it in needingWeather }
+                else -> false
+            }
+        }
+        fun roofs(landing: Landing): Boolean {
+            val sealsTheSky = landing.settings[Sky.SEALED.name] == true.toString()
+            val rock = Terrain.entries.firstOrNull { it.key == landing.choice?.key }
+            val choosesRockThatRoofs = landing.aspect == Aspect.TERRAIN && rock?.roofsTheWorld == true
+            return sealsTheSky || choosesRockThatRoofs
+        }
+        val roofing = said.filter(::roofs)
+        return speakingTo(Aspect.PHENOMENA).filter(::asksForWeather).map { asking ->
+            flaw(Register.INCOHERENT, listOf(asking) + roofing, Aspect.SKY)
+        }
+    }
 
     /** A pull asked of a moon in an Age with no moon: the tide cannot happen, and the book asked for one. */
     private fun Resolving.tidesWithNoMoon(composition: AgeComposition): List<Flaw> {

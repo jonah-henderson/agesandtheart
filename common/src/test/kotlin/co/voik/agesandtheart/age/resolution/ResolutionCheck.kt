@@ -68,6 +68,19 @@ class ResolutionCheck : FunSpec({
         check(charged.all { it == setOf(setOf("frozen", "scorching")) }) { "frozen against scorching charged $charged" }
     }
 
+    test("weather under a roof is charged, whether a word or the rock made the roof") {
+        for (weather in listOf("tempest", "deluge", "blizzard", "rainbows")) {
+            check(resolved("age $weather").incoherentPairs().isEmpty()) { "$weather under an open sky was charged" }
+            val written = resolved("age lost $weather").incoherentPairs()
+            check(setOf("lost", weather) in written) { "$weather under a written roof charged $written" }
+            val rock = resolved("age subterranean $weather").incoherentPairs()
+            check(setOf("subterranean", weather) in rock) { "$weather under roofing rock charged $rock" }
+            val divided = resolved("age subterranean and gentle landmass $weather").incoherentPairs()
+            check(setOf("subterranean", weather) !in divided) { "$weather over rock that roofs only part of the Age was charged" }
+        }
+        check(resolved("age sunless sun tempest").incoherentPairs().isEmpty()) { "a tempest in an Age with no sun was charged" }
+    }
+
     test("words that never share a place never clash, and `and` waives what they would") {
         check(resolved("age frozen climate scorching sun").incoherentPairs().isEmpty()) { "a cold climate under a hot sun clashed" }
         check(resolved("age small landmass colossal rainbow").incoherentPairs().isEmpty()) { "a small land and a colossal bow clashed" }

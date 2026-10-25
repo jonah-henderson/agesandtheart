@@ -259,6 +259,9 @@ enum class Phenomenon(
 
     override val aspect = Aspect.PHENOMENA
 
+    /** Whether this needs weather to happen at all, which a roofed Age has none of. */
+    val needsWeather: Boolean get() = insistsOn != WeatherConditions.ORDINARY
+
     /**
      * The dials this phenomenon has, said of it alone: how often it comes where it comes and goes, how hard it
      * is where instability has harsh dials for it, and how fast it grows where it grows. A page that says only
