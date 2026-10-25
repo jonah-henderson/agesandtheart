@@ -108,16 +108,23 @@ class LifelessAgeCheck : FunSpec({
     // **Every path, not only the spawn lists**: bees out of a generated nest were what this check caught.
     // A summon is the plainest new creature there is, and goes in through the same door as all of them.
     // The pig is looked for rather than the reply read: `summon` says "Summoned" whatever the level answered.
-    // Off until it is redesigned: a summon into a chunk whose entities have not loaded is out of sight of `@e`, so the
-    // control's own pig goes missing under a full run.
-    xtest("nothing new lives in an Age where nothing lives, however it is made") {
+    // A chunk is loaded before its entities are, and until they are a summon is out of sight of `@e`, so a
+    // marker goes in beside the pig: it is no creature, so it is let in, and once it can be seen so could the pig.
+    test("nothing new lives in an Age where nothing lives, however it is made") {
         fun hasAPig(age: String): Boolean {
             inThe(age, "forceload add $FAR $FAR")
             server.waitUntil("the chunk a pig is summoned into loading in '$age'") {
                 inThe(age, "execute if loaded $FAR $PROBE_HEIGHT $FAR").startsWith("Test passed")
             }
-            inThe(age, "summon minecraft:pig $FAR $PROBE_HEIGHT $FAR")
-            val found = inThe(age, "execute if entity @e[distance=0..,type=minecraft:pig]").startsWith("Test passed")
+            inThe(age, "summon minecraft:marker $FAR $PROBE_HEIGHT $FAR {Tags:[\"$SUMMONED\"]}")
+            inThe(age, "summon minecraft:pig $FAR $PROBE_HEIGHT $FAR {Tags:[\"$SUMMONED\"],NoAI:1b}")
+            server.waitUntil("the entities beside the summoned pig loading in '$age'") {
+                inThe(age, "execute if entity @e[distance=0..,type=minecraft:marker,tag=$SUMMONED]")
+                    .startsWith("Test passed")
+            }
+            val found = inThe(age, "execute if entity @e[distance=0..,type=minecraft:pig,tag=$SUMMONED]")
+                .startsWith("Test passed")
+            inThe(age, "kill @e[distance=0..,tag=$SUMMONED]")
             inThe(age, "forceload remove all")
             return found
         }
@@ -144,6 +151,8 @@ private const val FAR = 5000
 /** Above any sea floor and below any ceiling, so `if loaded` is asked somewhere a column exists. */
 private const val PROBE_HEIGHT = 64
 
+/** What this check summons is tagged, so a pig the Age grew on its own is never taken for it. */
+private const val SUMMONED = "lifeless_check_summoned"
 
 private val COUNT = Regex("to (\\d+) entit")
 
