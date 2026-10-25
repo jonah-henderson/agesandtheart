@@ -13,14 +13,6 @@
       ]
     },
     {
-      "admits": {
-        "features": [
-          "minecraft:ore_gold"
-        ]
-      },
-      "must_always_apply": true
-    },
-    {
       "leans": {
         "features": {
           "minecraft:ore_diamond": 1.0,
