@@ -11,6 +11,7 @@ import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.generation.Ages
+import co.voik.agesandtheart.generation.Rewards
 import co.voik.agesandtheart.age.CompositionSpelling
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Report
@@ -305,6 +306,7 @@ object AgeCommand {
         report.only("seed", chosenSeed)
         val danger = Danger.of(source.server, recipe)
         report.only("cavernRuins", recipe.composition?.let { CavernRuins.qualifies(it, danger) } == true)
+        report.only("rewards", Rewards.earnedBy(source.server, recipe))
         report.fact("cost", resolution.cost) { "  cost ${resolution.cost}, ${resolution.instability}" }
         report.only("instability", resolution.instability.index)
         for (flaw in resolution.instability.flaws) {

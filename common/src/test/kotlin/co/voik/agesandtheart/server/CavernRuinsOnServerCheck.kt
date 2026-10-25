@@ -1,13 +1,13 @@
 package co.voik.agesandtheart.server
 
 import co.voik.agesandtheart.content.SurveyReport
+import com.google.gson.JsonObject
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
  * The survey reports are the D'ni city's clues (design §7.6), so the words they teach, written out, have
- * to make an Age with a city in it — and each Age a report turned down has to be missing what its report
- * says it was missing.
+ * to make an Age with a city in it — and each Age a report turned down, being a found Age, has to earn nothing.
  *
  * On a server because `algae` is a page minted from our own placed feature, which the offline corpus
  * does not have.
@@ -16,13 +16,15 @@ import io.kotest.core.spec.style.FunSpec
 class CavernRuinsOnServerCheck : FunSpec({
     val server = DrivenServer.shared
 
-    fun hasACity(name: String, sentence: String): Boolean {
-        val written = server.ask("write", "$name 7 $sentence")
+    fun write(name: String, seed: Long, sentence: String): JsonObject {
+        val written = server.ask("write", "$name $seed $sentence")
         check(written.getAsJsonArray("moved").isEmpty) {
             "'$sentence' did not read as laid, and moved ${written.getAsJsonArray("moved")} to the Age"
         }
-        return written.get("cavernRuins").asBoolean
+        return written
     }
+
+    fun hasACity(name: String, sentence: String) = write(name, 7, sentence).get("cavernRuins").asBoolean
 
     test("the reports' words, written out, make an Age with a D'ni city") {
         val sentence = "age subterranean large chambered algae"
@@ -38,9 +40,12 @@ class CavernRuinsOnServerCheck : FunSpec({
         }
     }
 
-    test("no Age a report turned down has a city") {
-        val qualified = SurveyReport.entries.filter { hasACity(it.path, it.sentence.joinToString(" ")) }
-        check(qualified.isEmpty()) { "these surveyed Ages have a city after all: $qualified" }
+    test("no Age a report turned down earns anything") {
+        val earning = SurveyReport.entries.associateWith { report ->
+            val written = write(report.path, report.ageSeed, report.sentence.joinToString(" "))
+            written.getAsJsonArray("rewards").map { it.asString }
+        }.filterValues { it.isNotEmpty() }
+        check(earning.isEmpty()) { "these surveyed Ages earn a reward after all: $earning" }
     }
 
     test("a report is found with its Age's book") {
