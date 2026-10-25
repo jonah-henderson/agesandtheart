@@ -16,6 +16,7 @@ import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.content.PlasmaField
 import co.voik.agesandtheart.content.Dragons
 import co.voik.agesandtheart.content.ScarabArrivals
+import co.voik.agesandtheart.content.Wardens
 import net.minecraft.server.MinecraftServer
 
 /**
@@ -54,6 +55,8 @@ object AgeTick {
             Deluge.stand(level, rising, saved.presenceIn(age))
             // Before the emptiness check too: a chunk loading with nobody watching still has things in it that fall.
             StrangeGravity.keep(level, recipe, spending)
+            // And a warden's brain ticks wherever its chunk does, watched or not — see [Wardens].
+            Wardens.keepAboveGround(level)
             if (Sampling.watchers(level).isEmpty()) continue
             if (rising != null && level.isRaining) saved.spendATickIn(age)
             Happenings.befallAll(level, composition, happening, spending, recipe.seed)

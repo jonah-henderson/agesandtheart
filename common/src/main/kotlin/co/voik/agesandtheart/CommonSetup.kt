@@ -33,6 +33,7 @@ import co.voik.agesandtheart.content.Plasma
 import co.voik.agesandtheart.content.PlasmaBurst
 import co.voik.agesandtheart.mixin.FireBlockInvoker
 import co.voik.agesandtheart.content.ProtectiveSuit
+import co.voik.agesandtheart.content.Wardens
 import co.voik.agesandtheart.generation.Skies
 import co.voik.agesandtheart.worldgen.fissure.RubbleArrivals
 import co.voik.agesandtheart.worldgen.fissure.TheFall
@@ -135,6 +136,7 @@ object CommonSetup {
         }
         StillCreatures.loaded(entity)
         WrittenCreatures.loaded(entity)
+        Wardens.loaded(entity)
     }
 
     /** An entity leaving a server level, removed or unloaded with its chunk. */
