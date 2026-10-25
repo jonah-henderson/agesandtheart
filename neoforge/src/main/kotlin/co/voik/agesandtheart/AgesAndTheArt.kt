@@ -36,8 +36,14 @@ import net.minecraft.world.entity.item.ItemEntity
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import net.neoforged.neoforge.event.server.ServerStartedEvent
 import net.neoforged.neoforge.event.server.ServerStoppedEvent
+import net.neoforged.neoforge.network.configuration.ICustomConfigurationTask
+import net.neoforged.neoforge.network.event.RegisterConfigurationTasksEvent
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
+import net.neoforged.neoforge.network.registration.HandlerThread
 import net.neoforged.neoforge.network.registration.PayloadRegistrar
+import net.minecraft.server.network.ConfigurationTask
+import net.minecraft.server.network.ServerConfigurationPacketListenerImpl
+import java.util.function.Consumer
 import net.neoforged.neoforge.registries.RegisterEvent
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.Mob
@@ -70,6 +76,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         eventBus.addListener(::onCommonSetup)
         // Payload registration is a mod-bus event, so it cannot be a call from common init the way Fabric's is.
         eventBus.addListener(::onRegisterPayloads)
+        eventBus.addListener(::onRegisterConfigurationTasks)
         eventBus.addListener(::onRegisterCapabilities)
         eventBus.addListener(::onCreateAttributes)
         eventBus.addListener(::onRegisterSpawnPlacements)
@@ -271,6 +278,36 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     private fun onRegisterPayloads(event: RegisterPayloadHandlersEvent) {
         val registrar = event.registrar(PAYLOAD_VERSION)
         Payloads.ROUTES.forEach { registerPayload(registrar, it) }
+        registerBuildMatch(registrar)
+    }
+
+    /**
+     * The two payloads of the `BuildMatch` question, answered on the network thread as Fabric's is.
+     *
+     * A client without the mod never reaches the question: every payload here is required, so NeoForge's own
+     * channel negotiation turns it away first, with its own message.
+     */
+    private fun registerBuildMatch(registrar: PayloadRegistrar) {
+        registrar.configurationToClient(ServerBuildPayload.TYPE, ServerBuildPayload.STREAM_CODEC)
+        registrar.executesOn(HandlerThread.NETWORK)
+            .configurationToServer(ClientBuildPayload.TYPE, ClientBuildPayload.STREAM_CODEC) { payload, context ->
+                val refusal = BuildMatch.refusal(server = BuildMatch.OURS, client = payload.builds)
+                if (refusal == null) {
+                    context.finishCurrentTask(BuildMatch.TASK)
+                } else {
+                    Constants.LOG.info(
+                        "Turned away {}: build {} does not match the server's {}",
+                        (context.listener() as? ServerConfigurationPacketListenerImpl)?.owner?.name,
+                        payload.builds,
+                        BuildMatch.OURS,
+                    )
+                    context.disconnect(refusal)
+                }
+            }
+    }
+
+    private fun onRegisterConfigurationTasks(event: RegisterConfigurationTasksEvent) {
+        event.register(AskForBuild)
     }
 
     /**
@@ -376,6 +413,13 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     }
 
     private companion object {
-        const val PAYLOAD_VERSION = "5"
+        const val PAYLOAD_VERSION = "6"
     }
+}
+
+/** Asks a joining client for its build; the configuration waits until the answer completes it (`BuildMatch`). */
+private object AskForBuild : ICustomConfigurationTask {
+    override fun run(sender: Consumer<CustomPacketPayload>) = sender.accept(ServerBuildPayload(BuildMatch.OURS))
+
+    override fun type(): ConfigurationTask.Type = BuildMatch.TASK
 }

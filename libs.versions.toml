@@ -20,8 +20,8 @@ neoforgeRange = "[26.3, 26.4)"
 ## This is the version of minecraft that the 'common' project uses, you can find a list of all versions here
 ## https://projects.neoforged.net/neoforged/neoform
 neoForm = "26.3-1"
-kff = "6.3.0"
-kffRange = "[6.3, )"
+kff = "6.4.0"
+kffRange = "[6.4, )"
 
 fabricLoader = "0.19.5"
 fabricApi = "0.161.0+26.3"

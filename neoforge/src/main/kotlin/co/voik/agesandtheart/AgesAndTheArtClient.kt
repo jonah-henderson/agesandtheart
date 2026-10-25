@@ -118,6 +118,8 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
     /** Each handler runs on the client thread, which is this event's default. */
     private fun onRegisterPayloadHandlers(event: RegisterClientPayloadHandlersEvent) {
         ClientPayloads.RECEIVERS.forEach { registerReceiver(event, it) }
+        // The answer to the server's `BuildMatch` question.
+        event.register(ServerBuildPayload.TYPE) { _, context -> context.reply(ClientBuildPayload(BuildMatch.OURS)) }
     }
 
     private fun onLoggingOut(event: ClientPlayerNetworkEvent.LoggingOut) {
