@@ -186,15 +186,19 @@ data class DangerTable(
         }
     }
 
-    /** How much more or less dangerous a creature's strength, speed, size, charge, stillness and herding make it. */
+    /**
+     * How much more or less dangerous a creature's strength, speed, size, charge, stillness and herding make it, and
+     * its being loosed from its own rules.
+     */
     data class Hardiness(
         val strength: Dial,
         val pace: Dial,
-        /** Both ends raise it: a big creature hits harder and lasts longer, and a small one is harder to hit. */
         val size: Dial,
         val charged: Double,
         val still: Double,
         val herds: Double,
+        /** A creature that may turn up anywhere, past its own rules (`incongruous inhabitants`). */
+        val loosed: Double = AS_IT_IS,
     ) {
         companion object {
             val CODEC: Codec<Hardiness> = RecordCodecBuilder.create { instance ->
@@ -205,6 +209,7 @@ data class DangerTable(
                     Codec.DOUBLE.fieldOf("charged").forGetter(Hardiness::charged),
                     Codec.DOUBLE.fieldOf("still").forGetter(Hardiness::still),
                     Codec.DOUBLE.fieldOf("herds").forGetter(Hardiness::herds),
+                    Codec.DOUBLE.optionalFieldOf("loosed", AS_IT_IS).forGetter(Hardiness::loosed),
                 ).apply(instance, ::Hardiness)
             }
         }

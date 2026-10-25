@@ -193,11 +193,15 @@ data class Danger(
          * worth its own rating everywhere; kinds described (`monsters`, a mood's lean) are more of what already grows,
          * worth an ordinary monster once they reach [A_CROWD_OF_MONSTERS] of all monsters, and that share of it short of
          * that.
+         *
+         * **A kind loosed from its own rules** (`incongruous inhabitants`) is worth more as it was asked for or made
+         * harder; the biomes' own, loosed, are what the darkness lets out, so they are not loosed twice.
          */
         private fun creaturesOf(composition: AgeComposition, table: DangerTable, seed: Long): Double {
             if (spawnsNothing(composition)) return NOTHING
             val spawns = composition.optionsFor(Aspect.SPAWNS, 0)
             val claims = wanted(spawns.claimsOn(Spawns.LIVES))
+            val loosed = if (spawns.isTrue(Spawns.INCONGRUOUS)) table.hardiness.loosed else AS_THEY_ARE
             fun hardiness(member: String) = hardinessOf(spawns, table.hardiness, seed, member)
             fun wasNamed(claim: Claim) = !claim.onlyWhereItGrows || claim.introducedIfAbsent
             val (named, described) = claims.partition(::wasNamed)
@@ -209,11 +213,11 @@ data class Danger(
             val describedWorth = table.creature(ORDINARY_MONSTER) * (describedShare / A_CROWD_OF_MONSTERS).coerceAtMost(AS_THEY_ARE) *
                 (describedMonsters.maxOfOrNull { hardiness(it.value) } ?: AS_THEY_ARE)
             val crowd = Spawns.capsOf(spawns)[MobCategory.MONSTER] ?: AS_THEY_ARE
-            val askedFor = maxOf(namedWorst, describedWorth) * crowd
+            val askedFor = maxOf(namedWorst, describedWorth) * loosed * crowd
             val letOut = darknessOf(composition, table.darkness) * hardiness(ORDINARY_MONSTER) * crowd
             val asked = claims.map(Claim::value).toSet()
-            val madeHarder = madeHardier(spawns, table).filterNot { it in asked }.maxOfOrNull { member ->
-                table.creature(member) * (hardiness(member) - AS_THEY_ARE)
+            val madeHarder = madeHardier(spawns).filterNot { it in asked }.maxOfOrNull { member ->
+                table.creature(member) * (hardiness(member) * loosed - AS_THEY_ARE)
             } ?: NOTHING
             return maxOf(askedFor, letOut, madeHarder, NOTHING)
         }
@@ -262,13 +266,15 @@ data class Danger(
             return strength * pace * size * charged * still * herded
         }
 
-        /** Every creature the book made harder or easier — every monster, where it said all of them. */
-        private fun madeHardier(spawns: Options, table: DangerTable): Set<String> {
+        /**
+         * Every creature the recipe names as made harder or easier, and the ordinary monster standing for the biomes'
+         * own where it said all of them.
+         */
+        private fun madeHardier(spawns: Options): Set<String> {
             val said = spawns.holdersOfAny(Spawns.STRENGTH) and spawns.holdersOfAny(Spawns.PACE) and
                 spawns.holdersOfAny(Spawns.SIZE) and spawns.holdersOfAny(Spawns.CHARGED) and
                 spawns.holdersOfAny(Spawns.STILL) and spawns.holdersOfAny(Spawns.HERD)
-            if (!said.everyone) return said.only
-            return said.only + BuiltInRegistries.ENTITY_TYPE.keySet().map { it.toString() }.filter { table.creature(it) > NOTHING }
+            return if (said.everyone) said.only + ORDINARY_MONSTER else said.only
         }
 
         /**

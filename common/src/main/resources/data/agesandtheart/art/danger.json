@@ -23,8 +23,9 @@
     "any monster without its own line, and what a crowd described rather than named is worth for the share of all",
     "monsters it reaches. The whole scales by the monster cap the book set (teeming holds about four), and",
     "`hardiness` by how the book changed them: each dial is the multiple at its top and bottom, in a straight line",
-    "between. Size raises it both ways, since a small creature is harder to hit. Darkness lets out the",
-    "overworld's monsters, so it counts nothing over the Nether's and the End's own landforms.",
+    "between. A small creature is as dangerous as its own, weaker but harder to hit. `loosed` is a creature that",
+    "turns up anywhere, past its own rules. Darkness lets out the overworld's monsters, so it counts nothing over",
+    "the Nether's and the End's own landforms.",
     "",
     "`features`: the worst one named counts, as one hazard.",
     "",
@@ -108,10 +109,11 @@
   "hardiness": {
     "strength": { "raised": 1.31, "lowered": 0.46 },
     "pace": { "raised": 2.07, "lowered": 0.19 },
-    "size": { "raised": 2.4, "lowered": 1.33 },
+    "size": { "raised": 2.4, "lowered": 1.0 },
     "charged": 2.1,
     "still": 0.05,
-    "herds": 1.3
+    "herds": 1.3,
+    "loosed": 1.5
   },
   "phenomena": {
     "meteors": 0.75,

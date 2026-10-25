@@ -141,6 +141,25 @@ class DangerCheck : FunSpec({
         check(strongGhasts > GHAST_WORTH) { "strong ghasts scored $strongGhasts against $GHAST_WORTH" }
     }
 
+    test("monsters all made stronger are the biomes' own made stronger, not the worst creature the game has") {
+        val strongEverything = monsters(score(oneTerritory().withOptions(Aspect.SPAWNS, "strength", listOf("1.0..1.0"))))
+        val strongerByHalf = ORDINARY_MONSTER_WORTH * (STRONGEST - 1.0)
+        check(abs(strongEverything - strongerByHalf) < A_ROUNDING) {
+            "every monster strengthened scored $strongEverything, where the biomes' own strengthened are $strongerByHalf"
+        }
+    }
+
+    test("a creature loosed from its own rules is worth more, and the biomes' own are loosed once") {
+        val loosed = spawning(GHASTS).withOptions(Aspect.SPAWNS, Spawns.INCONGRUOUS.name, listOf(Parameter.TRUE))
+        check(monsters(score(loosed)) > GHAST_WORTH) { "ghasts loosed scored ${monsters(score(loosed))}, no more than ghasts" }
+        val strongLoosed = oneTerritory().withOptions(Aspect.SPAWNS, Spawns.INCONGRUOUS.name, listOf(Parameter.TRUE))
+            .withOptions(Aspect.SPAWNS, "strength", listOf("1.0..1.0[for=$ZOMBIE]"))
+        val strongZombies = monsters(score(oneTerritory().withOptions(Aspect.SPAWNS, "strength", listOf("1.0..1.0[for=$ZOMBIE]"))))
+        check(monsters(score(strongLoosed)) > maxOf(strongZombies, INCONGRUOUS_WORTH)) {
+            "strong zombies loosed scored ${monsters(score(strongLoosed))}, no more than either alone"
+        }
+    }
+
     test("darkness lets out monsters as hard as the book made them") {
         val sealed = oneTerritory().withOptions(Aspect.SKY, Sky.SEALED.name, listOf(Parameter.TRUE))
         val swiftInTheDark = monsters(score(sealed.withOptions(Aspect.SPAWNS, "pace", listOf("1.0..1.0"))))
@@ -241,6 +260,7 @@ class DangerCheck : FunSpec({
         private const val GHASTS = "minecraft:ghast"
         private const val ZOMBIE = "minecraft:zombie"
         private const val CREEPER = "minecraft:creeper"
+        private const val WARDEN = "minecraft:warden"
         private const val INFERNO = "inferno"
         private const val SANDFALL = "sandfall"
         private const val AURORA = "aurora"
@@ -251,6 +271,8 @@ class DangerCheck : FunSpec({
         private const val LAVA_SEA_WORTH = 0.2
         private const val VOID_WORTH = 0.5
         private const val GHAST_WORTH = 0.3
+        private const val ORDINARY_MONSTER_WORTH = 0.5
+        private const val STRONGEST = 1.3
         private const val SEALED_WORTH = 0.65
         private const val INCONGRUOUS_WORTH = 0.4
         private const val INFERNO_WORTH = 0.45
@@ -279,15 +301,16 @@ class DangerCheck : FunSpec({
                 landforms = emptyMap(),
                 underground = emptyMap(),
             ),
-            creatures = mapOf("monsters" to 0.5, GHASTS to GHAST_WORTH, CREEPER to 0.4),
+            creatures = mapOf("monsters" to ORDINARY_MONSTER_WORTH, GHASTS to GHAST_WORTH, CREEPER to 0.4, WARDEN to 0.95),
             darkness = DangerTable.Darkness(sealed = SEALED_WORTH, sunless = 0.5, roofedByRock = 0.1, incongruous = INCONGRUOUS_WORTH),
             hardiness = DangerTable.Hardiness(
-                strength = DangerTable.Dial(raised = 1.3, lowered = 0.5),
+                strength = DangerTable.Dial(raised = STRONGEST, lowered = 0.5),
                 pace = DangerTable.Dial(raised = 2.0, lowered = 0.2),
-                size = DangerTable.Dial(raised = 2.4, lowered = 1.3),
+                size = DangerTable.Dial(raised = 2.4, lowered = 1.0),
                 charged = 2.0,
                 still = 0.05,
                 herds = 1.3,
+                loosed = 1.5,
             ),
             phenomena = mapOf(INFERNO to INFERNO_WORTH, SANDFALL to 0.3, AURORA to 0.0),
             phenomenonDials = DangerTable.PhenomenonDials(
