@@ -67,10 +67,14 @@ private fun varietyOf(options: Options, salt: Long): Double = (options.steer(Ter
 
 private const val UNSAID_VARIETY = 0.0
 
-/** How worn the land is on average: none, the ordinary amount at one, and twice it at the most. */
-private fun erosionOf(options: Options, salt: Long): Double = (options.steer(Terrain.EROSION, salt) ?: UNSAID_EROSION) + 1.0
+/**
+ * How worn the land is on average, read off [Terrain.WEAR]: none, the ordinary amount unsaid, and twice it at the most
+ * — and none at all on an Age written before the weather wore the land.
+ */
+private fun erosionOf(options: Options, salt: Long): Double =
+    if (options.isTrue(Terrain.FORMERLY_UNWORN)) 0.0 else (options.steer(Terrain.WEAR, salt) ?: UNSAID_WEAR) + 1.0
 
-private const val UNSAID_EROSION = 0.0
+private const val UNSAID_WEAR = 0.0
 
 /** [Terrain.SIZE] as written, for the landforms hanging in the void, which [LandSize] leaves alone. */
 private fun scaleAsWritten(options: Options, salt: Long): Double = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
@@ -376,7 +380,10 @@ enum class Terrain(
 
     override val aspect = Aspect.TERRAIN
 
-    override val parameters: List<Parameter> get() = axes() + STONE + MINGLING
+    override val parameters: List<Parameter> get() = (axes() + weatheringAxes).distinct() + STONE + MINGLING
+
+    /** A worn landform honours [WEAR], which sets how deeply the weather wears it. */
+    private val weatheringAxes: List<Parameter> get() = if (this in WORN) listOf(WEAR) else emptyList()
 
     /**
      * Where this terrain's sea stands at the size asked for: [waterline], for every landform but the one
@@ -709,17 +716,12 @@ enum class Terrain(
         )
 
         /**
-         * How worn the land is on average ([LandVariety]): none at the bottom, which is how every Age written before
-         * it reads, and twice the unsaid amount at the top. How far it differs from place to place is [VARIETY]'s.
+         * Whether the land is left unworn by [LandVariety], whatever [WEAR] says — set on every Age written before
+         * generator 20, so the land it has already generated still meets what it generates next. No word sets it.
          */
-        val EROSION = Parameter.ranged(
-            "erosion",
-            help = "How worn the land is: terraced, gullied, footed with scree and undercut.",
-            landmarks = listOf(
-                Parameter.Landmark(-1.0, "unworn"),
-                Parameter.Landmark(0.0, "as an ordinary world", isVanilla = true),
-                Parameter.Landmark(1.0, "deeply worn"),
-            ),
+        val FORMERLY_UNWORN = Parameter.flag(
+            "formerly_unworn",
+            help = "Whether the land is left as it was before the weather wore it.",
         )
 
         /**

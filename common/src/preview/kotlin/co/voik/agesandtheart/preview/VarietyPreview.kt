@@ -15,7 +15,7 @@ import javax.imageio.ImageIO
  * most a word can ask — side by side, so what the dial does can be judged at the scale it works at. Shaded by height
  * over the range the three share, water blue under the landform's waterline.
  *
- * `--args="<landform key> [radius] [step] [variety|erosion]"`, e.g. `--args="sheer 2048 8 erosion"`.
+ * `--args="<landform key> [radius] [step] [variety|wear]"`, e.g. `--args="sheer 2048 8 wear"`.
  */
 fun main(arguments: Array<String>) {
     val key = arguments.getOrNull(0) ?: "gentle"
@@ -23,8 +23,8 @@ fun main(arguments: Array<String>) {
     val step = arguments.getOrNull(2)?.toInt() ?: DEFAULT_STEP
     val dial = when (val named = arguments.getOrNull(3) ?: Terrain.VARIETY.name) {
         Terrain.VARIETY.name -> Terrain.VARIETY
-        Terrain.EROSION.name -> Terrain.EROSION
-        else -> error("Unknown dial '$named'. Try variety or erosion.")
+        Terrain.WEAR.name -> Terrain.WEAR
+        else -> error("Unknown dial '$named'. Try variety or wear.")
     }
     val terrain = Terrain.entries.firstOrNull { it.key == key }
         ?: error("Unknown landform '$key'. Try one of: ${Terrain.entries.filterNot { it.isVanillas }.joinToString { it.key }}")

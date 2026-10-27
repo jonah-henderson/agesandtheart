@@ -151,10 +151,10 @@ class LandVarietyCheck : FunSpec({
         }
         val former = read(FormerUniformity.LAST_GENERATOR_BEFORE_VARIETY).optionsFor(Aspect.TERRAIN, 0)
         val current = read(FormerUniformity.LAST_GENERATOR_BEFORE_VARIETY + 1).optionsFor(Aspect.TERRAIN, 0)
-        for (dial in listOf(Terrain.VARIETY, Terrain.EROSION)) {
-            check(former.steer(dial, SEED) == -1.0) { "the old Age's ${dial.name} reads ${former.steer(dial, SEED)}" }
-            check(current.steer(dial, SEED) == null) { "a new Age's ${dial.name} was pinned" }
-        }
+        check(former.steer(Terrain.VARIETY, SEED) == -1.0) { "the old Age's variety reads ${former.steer(Terrain.VARIETY, SEED)}" }
+        check(current.steer(Terrain.VARIETY, SEED) == null) { "a new Age's variety was pinned" }
+        check(former.isTrue(Terrain.FORMERLY_UNWORN)) { "the old Age was not kept unworn" }
+        check(!current.isTrue(Terrain.FORMERLY_UNWORN)) { "a new Age was kept unworn" }
     }
 })
 
