@@ -67,6 +67,11 @@ private fun varietyOf(options: Options, salt: Long): Double = (options.steer(Ter
 
 private const val UNSAID_VARIETY = 0.0
 
+/** How worn the land is on average: none, the ordinary amount at one, and twice it at the most. */
+private fun erosionOf(options: Options, salt: Long): Double = (options.steer(Terrain.EROSION, salt) ?: UNSAID_EROSION) + 1.0
+
+private const val UNSAID_EROSION = 0.0
+
 /** [Terrain.SIZE] as written, for the landforms hanging in the void, which [LandSize] leaves alone. */
 private fun scaleAsWritten(options: Options, salt: Long): Double = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
 
@@ -587,6 +592,7 @@ enum class Terrain(
         terraces = this != MOUNTAINOUS,
         bends = this in BENDS,
         strength = varietyOf(options, salt),
+        erosion = erosionOf(options, salt),
         landScale = if (hasGroundBeneath) scaleOf(options, salt) else scaleAsWritten(options, salt),
         salt = salt,
     )
@@ -699,6 +705,20 @@ enum class Terrain(
                 Parameter.Landmark(-1.0, "the same everywhere"),
                 Parameter.Landmark(0.0, "as an ordinary world", isVanilla = true),
                 Parameter.Landmark(1.0, "changing a great deal"),
+            ),
+        )
+
+        /**
+         * How worn the land is on average ([LandVariety]): none at the bottom, which is how every Age written before
+         * it reads, and twice the unsaid amount at the top. How far it differs from place to place is [VARIETY]'s.
+         */
+        val EROSION = Parameter.ranged(
+            "erosion",
+            help = "How worn the land is: terraced, gullied, footed with scree and undercut.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "unworn"),
+                Parameter.Landmark(0.0, "as an ordinary world", isVanilla = true),
+                Parameter.Landmark(1.0, "deeply worn"),
             ),
         )
 

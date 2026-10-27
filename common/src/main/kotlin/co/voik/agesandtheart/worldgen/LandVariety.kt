@@ -7,6 +7,7 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Terraced
 import co.voik.agesandtheart.worldgen.field.Undercut
 import co.voik.agesandtheart.worldgen.field.Warped
+import co.voik.agesandtheart.worldgen.field.Wear
 import kotlin.math.min
 
 /**
@@ -16,6 +17,9 @@ import kotlin.math.min
  *
  * [strength] is 0 for none, 1 for an Age that said nothing of it, and 2 at the most; [landScale] is the landform's
  * own size factor, which the wavelengths and the bend follow so a colossal landform drifts at its own scale.
+ *
+ * [erosion] is how worn the land is on average, on the same scale, and [strength] how far that swings from place to
+ * place ([Wear]): none at all where the land does not vary, and from untouched to twice the average at the most.
  */
 object LandVariety {
 
@@ -28,11 +32,12 @@ object LandVariety {
         terraces: Boolean,
         bends: Boolean,
         strength: Double,
+        erosion: Double,
         landScale: Double,
         salt: Long,
     ): TerrainField {
-        if (strength <= 0.0) return field
-        val stretched = stretchesAbove?.let { pivotY ->
+        val varies = strength > 0.0
+        val stretched = stretchesAbove?.takeIf { varies }?.let { pivotY ->
             Exaggerated(
                 field,
                 pivotY,
@@ -44,13 +49,10 @@ object LandVariety {
                 VerticalWindow.HIGHEST_BLOCK_Y - ROOM_TO_GROW,
             )
         } ?: field
-        val worn = wornAbove?.let { floorY ->
-            val terraced = if (terraces) Terraced(stretched, salt xor TERRACE_SALT, TERRACE_STEP, TERRACED_SHARE * strength, floorY) else stretched
-            val gullied = Gullied(terraced, salt xor GULLY_SALT, GULLY_DEPTH * min(strength, MOST_GULLIED), GULLY_CELL, floorY)
-            val screed = Scree(gullied, salt xor SCREE_SALT, SCREE_SHARE, SCREE_DEEPEST * min(strength, MOST_SCREE), floorY)
-            Undercut(screed, salt xor UNDERCUT_SALT, UNDERCUT_DEPTH * min(strength, MOST_UNDERCUT), UNDERCUT_HEIGHT, floorY)
+        val worn = wornAbove?.takeIf { erosion > 0.0 }?.let { floorY ->
+            worn(stretched, floorY, terraces, Wear(salt xor WEAR_SALT, erosion, WEAR_SPREAD * strength, WEAR_STRETCH * landScale), salt)
         } ?: stretched
-        if (!bends) return worn
+        if (!bends || !varies) return worn
         return Warped(
             worn,
             salt xor BEND_SALT,
@@ -59,6 +61,14 @@ object LandVariety {
             BEND_SCALE * landScale,
             BEND_BLOCKS * min(strength, MOST_BEND) * landScale,
         )
+    }
+
+    /** [field] terraced, gullied, footed with scree and undercut, each as far as [wear] says at each place. */
+    private fun worn(field: TerrainField, floorY: Int, terraces: Boolean, wear: Wear, salt: Long): TerrainField {
+        val terraced = if (terraces) Terraced(field, salt xor TERRACE_SALT, TERRACE_STEP, TERRACED_SHARE, floorY, wear) else field
+        val gullied = Gullied(terraced, salt xor GULLY_SALT, GULLY_DEPTH, GULLY_CELL, floorY, wear)
+        val screed = Scree(gullied, salt xor SCREE_SALT, SCREE_SHARE, SCREE_DEEPEST, floorY, wear)
+        return Undercut(screed, salt xor UNDERCUT_SALT, UNDERCUT_DEPTH, UNDERCUT_HEIGHT, floorY, wear)
     }
 
     // About 770 blocks to a swing before the landform's own size, and its half beneath it.
@@ -75,29 +85,30 @@ object LandVariety {
     private const val BEND_BLOCKS = 60.0
     private const val MOST_BEND = 1.25
 
-    // Gullies about twenty blocks apart, five deep where the ground is steep, with rills half that across them. Past
-    // [MOST_GULLIED] a gully cuts deeper than it is wide.
+    // A worn or unworn stretch runs over a kilometre or so, and at the unsaid variety its wear swings from under half the
+    // average to over half again. Each amount below is the ordinary wear's, and the most wear is twice it.
+    private const val WEAR_SPREAD = 0.6
+    private const val WEAR_STRETCH = 1200.0
+    private const val WEAR_SALT = 0x3EA2_0FL
+
+    // Gullies about twenty blocks apart, five deep where the ground is steep, with rills half that across them.
     private const val GULLY_DEPTH = 5.0
     private const val GULLY_CELL = 40.0
-    private const val MOST_GULLIED = 1.6
     private const val GULLY_SALT = 0x6011_1EDL
 
-    // Seven-block steps over a quarter of the land, and up to half of it at the most.
+    // Seven-block steps over a quarter of the land.
     private const val TERRACE_STEP = 7.0
     private const val TERRACED_SHARE = 0.25
     private const val TERRACE_SALT = 0x7E44_ACEL
 
-    // Scree climbing a third of a face, up to ten blocks deep. Past [MOST_SCREE] it fills a gorge.
+    // Scree climbing a third of a face, up to ten blocks deep.
     private const val SCREE_SHARE = 0.3
     private const val SCREE_DEEPEST = 10.0
-    private const val MOST_SCREE = 1.6
     private const val SCREE_SALT = 0x5C2E_E0L
 
-    // Notches up to three blocks into a face and four high, varying along it; past [MOST_UNDERCUT] a cap overhangs
-    // further than it stands thick.
+    // Notches up to three blocks into a face and four high, varying along it.
     private const val UNDERCUT_DEPTH = 3.0
     private const val UNDERCUT_HEIGHT = 4.0
-    private const val MOST_UNDERCUT = 1.7
     private const val UNDERCUT_SALT = 0x0DE2_C07L
 
     /** Headroom a stretch leaves under the top of the world, for what grows on the ground it raised. */

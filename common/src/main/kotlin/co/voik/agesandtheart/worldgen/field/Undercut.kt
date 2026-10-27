@@ -12,7 +12,7 @@ import kotlin.math.roundToInt
  * stands on dry ground.
  *
  * A column is behind a face where ground within [depth] blocks of it, along one of the four axes, stands at least
- * [SHORTEST_FACE] lower. The notch opens just over the foot of the face, or over [floorY] if the foot is under it,
+ * [SHORTEST_FACE] lower, and still does as far out as the notch reaches. The notch opens just over the foot of the face, or over [floorY] if the foot is under it,
  * and how far in it reaches varies along the face.
  */
 data class Undercut(
@@ -21,6 +21,8 @@ data class Undercut(
     val depth: Double,
     val height: Double,
     val floorY: Int,
+    /** How worn each place is; [depth] is the ordinary amount's. */
+    val wear: Wear = Wear.EVEN,
 ) : TerrainField {
     override val kind = FieldKind.UNDERCUT
 
@@ -34,7 +36,8 @@ data class Undercut(
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         val standing = columns.at(worldX, worldZ)
         val top = standing.highestSolidY ?: return standing
-        val reachHere = depth * (HALF + HALF * reachNoise.get(worldX / REACH_STRETCH, 0.0, worldZ / REACH_STRETCH).toDouble())
+        val alongTheFace = HALF + HALF * reachNoise.get(worldX / REACH_STRETCH, 0.0, worldZ / REACH_STRETCH).toDouble()
+        val reachHere = depth * wear.at(worldX, worldZ) * alongTheFace
         val furthest = reachHere.roundToInt()
         if (furthest < 1) return standing
         val footY = footBelow(worldX, worldZ, top, furthest) ?: return standing
@@ -45,10 +48,15 @@ data class Undercut(
         return standing.subtract(Spans.of(notchFloor, notchRoof))
     }
 
-    /** The highest foot of a face within [furthest] blocks along any axis, or null where this column fronts none. */
+    /**
+     * The highest foot of a face within [furthest] blocks along any axis, or null where this column fronts none. An
+     * axis is scanned only where the ground [furthest] out stands a face's height lower, which most do not.
+     */
     private fun footBelow(worldX: Int, worldZ: Int, top: Int, furthest: Int): Int? {
         var footY: Int? = null
         for ((stepX, stepZ) in AXES) {
+            val outThere = columns.at(worldX + stepX * furthest, worldZ + stepZ * furthest).highestSolidY ?: continue
+            if (top - outThere < SHORTEST_FACE) continue
             for (distance in 1..furthest) {
                 val there = columns.at(worldX + stepX * distance, worldZ + stepZ * distance).highestSolidY ?: continue
                 if (top - there >= SHORTEST_FACE) {
@@ -63,6 +71,7 @@ data class Undercut(
     override fun resized(factor: Double, pivotY: Int) = copy(
         base = base.resized(factor, pivotY),
         floorY = scaledAbout(floorY, factor, pivotY),
+        wear = wear.resized(factor),
     )
 
     companion object {
@@ -86,6 +95,7 @@ data class Undercut(
                 Codec.DOUBLE.fieldOf("depth").forGetter(Undercut::depth),
                 Codec.DOUBLE.fieldOf("height").forGetter(Undercut::height),
                 Codec.INT.fieldOf("floor_y").forGetter(Undercut::floorY),
+                Wear.FIELD.forGetter(Undercut::wear),
             ).apply(instance, ::Undercut)
         }
     }

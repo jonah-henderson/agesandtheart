@@ -32,6 +32,8 @@ data class Gullied(
     val cellBlocks: Double,
     /** The lowest a cut may reach, or [Spans.LOWEST_Y] for none. */
     val floorY: Int,
+    /** How worn each place is; [depth] is the ordinary amount's. */
+    val wear: Wear = Wear.EVEN,
 ) : TerrainField {
     override val kind = FieldKind.GULLIED
 
@@ -46,7 +48,7 @@ data class Gullied(
         val top = standing.ranges.lastOrNull() ?: return standing
         val (slopeX, slopeZ) = slopeAt(worldX, worldZ) ?: return standing
         val steepness = sqrt(slopeX * slopeX + slopeZ * slopeZ)
-        val worn = smoothstep((steepness - FLATTEST_WORN) / (STEEPEST_WORN - FLATTEST_WORN))
+        val worn = smoothstep((steepness - FLATTEST_WORN) / (STEEPEST_WORN - FLATTEST_WORN)) * wear.at(worldX, worldZ)
         if (worn <= 0.0) return standing
         val aboveTheFloor = (top.last - floorY).toDouble()
         val cut = (depth * worn * (gullyAt(worldX, worldZ, slopeX, slopeZ, cellBlocks, 0L) +
@@ -121,6 +123,7 @@ data class Gullied(
         depth = depth * factor,
         cellBlocks = cellBlocks * factor,
         floorY = pivotY + ((floorY - pivotY) * factor).roundToInt(),
+        wear = wear.resized(factor),
     )
 
     companion object {
@@ -161,6 +164,7 @@ data class Gullied(
                 Codec.DOUBLE.fieldOf("depth").forGetter(Gullied::depth),
                 Codec.DOUBLE.fieldOf("cell_blocks").forGetter(Gullied::cellBlocks),
                 Codec.INT.fieldOf("floor_y").forGetter(Gullied::floorY),
+                Wear.FIELD.forGetter(Gullied::wear),
             ).apply(instance, ::Gullied)
         }
     }

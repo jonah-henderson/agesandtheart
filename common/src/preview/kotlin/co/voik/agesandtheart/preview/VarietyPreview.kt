@@ -11,29 +11,38 @@ import java.io.File
 import javax.imageio.ImageIO
 
 /**
- * One landform from above, without its variety, as an Age that said nothing gets it, and at the most a word can ask
- * — side by side, so what `LandVariety` does to it can be judged at the scale it works at. Shaded by height over the
- * range the three share, water blue under the landform's waterline.
+ * One landform from above with one of `LandVariety`'s dials at none, as an Age that said nothing gets it, and at the
+ * most a word can ask — side by side, so what the dial does can be judged at the scale it works at. Shaded by height
+ * over the range the three share, water blue under the landform's waterline.
  *
- * `--args="<landform key> [radius] [step]"`, e.g. `--args="sheer 2048 8"`.
+ * `--args="<landform key> [radius] [step] [variety|erosion]"`, e.g. `--args="sheer 2048 8 erosion"`.
  */
 fun main(arguments: Array<String>) {
     val key = arguments.getOrNull(0) ?: "gentle"
     val radius = arguments.getOrNull(1)?.toInt() ?: DEFAULT_RADIUS
     val step = arguments.getOrNull(2)?.toInt() ?: DEFAULT_STEP
+    val dial = when (val named = arguments.getOrNull(3) ?: Terrain.VARIETY.name) {
+        Terrain.VARIETY.name -> Terrain.VARIETY
+        Terrain.EROSION.name -> Terrain.EROSION
+        else -> error("Unknown dial '$named'. Try variety or erosion.")
+    }
     val terrain = Terrain.entries.firstOrNull { it.key == key }
         ?: error("Unknown landform '$key'. Try one of: ${Terrain.entries.filterNot { it.isVanillas }.joinToString { it.key }}")
 
     val strengths = listOf(-1.0, 0.0, 1.0)
     val across = radius * 2 / step
-    val heights = strengths.map { variety ->
-        val options = Options(mapOf(Terrain.VARIETY.name to listOf(Span(variety, variety).spelled())))
+    val heights = strengths.map { setting ->
+        val options = Options(mapOf(dial.name to listOf(Span(setting, setting).spelled())))
         val shape = terrain.ground(Underground.NONE, Options.NONE, options, VerticalWindow.DEFAULT, SALT).shape
-        Array(across) { row ->
-            IntArray(across) { column ->
-                shape.columnSpans(column * step - radius, row * step - radius).highestSolidY ?: VerticalWindow.DEFAULT.minY
+        val plan = Array(across) { IntArray(across) }
+        // Tile by tile, as a level generates chunk by chunk, so the fields' remembered neighbours are still remembered.
+        for (tileRow in 0..<across step TILE) for (tileColumn in 0..<across step TILE) {
+            for (row in tileRow..<minOf(tileRow + TILE, across)) for (column in tileColumn..<minOf(tileColumn + TILE, across)) {
+                plan[row][column] =
+                    shape.columnSpans(column * step - radius, row * step - radius).highestSolidY ?: VerticalWindow.DEFAULT.minY
             }
         }
+        plan
     }
     val lowest = heights.minOf { plan -> plan.minOf { it.min() } }
     val highest = heights.maxOf { plan -> plan.maxOf { it.max() } }
@@ -52,10 +61,10 @@ fun main(arguments: Array<String>) {
         }
     }
     val output = File("build/preview").apply { mkdirs() }
-    val file = File(output, "variety-$key.png")
+    val file = File(output, "${dial.name}-$key.png")
     ImageIO.write(image, "png", file)
 
-    println("$key: heights $lowest..$highest, waterline $waterline; none | unsaid | most → ${file.absolutePath}")
+    println("$key, ${dial.name}: heights $lowest..$highest, waterline $waterline; none | unsaid | most → ${file.absolutePath}")
     heights.zip(listOf("none", "unsaid", "most")).forEach { (plan, label) ->
         val tops = plan.flatMap { it.toList() }.sorted()
         fun percentile(share: Double) = tops[((tops.size - 1) * share).toInt()]
@@ -75,4 +84,5 @@ private fun hillshade(plan: Array<IntArray>, row: Int, column: Int, step: Int): 
 private const val DEFAULT_RADIUS = 1536
 private const val DEFAULT_STEP = 8
 private const val GAP = 4
+private const val TILE = 16
 private const val SALT = 0x5EEDL

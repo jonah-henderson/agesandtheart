@@ -129,7 +129,21 @@ class LandVarietyCheck : FunSpec({
         check(notched > 0) { "the mesa's foot took no notch" }
     }
 
-    test("an Age written before variety stays the same everywhere, and a new one does not") {
+    test("wear swings from place to place about its mean, and none wears nothing") {
+        val swinging = Wear(SEED, mean = 1.0, spread = 0.8)
+        val readings = (-5000..5000 step 97).flatMap { x -> (-5000..5000 step 89).map { z -> swinging.at(x, z) } }
+        check(readings.min() < 0.5 && readings.max() > 1.5) { "the wear only ran ${readings.min()}..${readings.max()}" }
+        check(readings.all { it in 0.0..Wear.MOST }) { "the wear left its bounds" }
+        check(Wear(SEED, mean = 1.3, spread = 0.0).at(123, -456) == 1.3) { "even wear varied" }
+        val peak = Union(listOf(Slab(-60, PIVOT), Cone(0, 0, baseRadius = 120.0, baseY = PIVOT, tipY = PIVOT + 120)))
+        val unworn = Wear(SEED, mean = 0.0, spread = 1.0)
+        for (x in -110..110 step 9) for (z in -110..110 step 9) {
+            val gullied = Gullied(peak, SEED, depth = 8.0, cellBlocks = 40.0, floorY = PIVOT, wear = unworn)
+            check(gullied.columnSpans(x, z).ranges == peak.columnSpans(x, z).ranges) { "unworn ground at $x, $z was gullied" }
+        }
+    }
+
+    test("an Age written before variety stays the same everywhere and unworn, and a new one does not") {
         fun read(version: Int): AgeComposition {
             val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.CLIFFS))), seed = SEED, generatorVersion = version)
             val saved = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow()
@@ -137,8 +151,10 @@ class LandVarietyCheck : FunSpec({
         }
         val former = read(FormerUniformity.LAST_GENERATOR_BEFORE_VARIETY).optionsFor(Aspect.TERRAIN, 0)
         val current = read(FormerUniformity.LAST_GENERATOR_BEFORE_VARIETY + 1).optionsFor(Aspect.TERRAIN, 0)
-        check(former.steer(Terrain.VARIETY, SEED) == -1.0) { "the old Age's variety reads ${former.steer(Terrain.VARIETY, SEED)}" }
-        check(current.steer(Terrain.VARIETY, SEED) == null) { "a new Age's variety was pinned" }
+        for (dial in listOf(Terrain.VARIETY, Terrain.EROSION)) {
+            check(former.steer(dial, SEED) == -1.0) { "the old Age's ${dial.name} reads ${former.steer(dial, SEED)}" }
+            check(current.steer(dial, SEED) == null) { "a new Age's ${dial.name} was pinned" }
+        }
     }
 })
 

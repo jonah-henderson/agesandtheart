@@ -7,10 +7,10 @@ import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /**
- * [base] worn into terraces over [share] of the land: in patches, the top of each column is drawn to flat treads
- * [stepHeight] apart with a steep riser between, as strata worn back at different rates leave it. The treads stand
- * at the same heights wherever there are terraces, as strata do. Between a patch and the ground around it the steps
- * ease out over a band.
+ * [base] worn into terraces over [share] of the land, more where it is more worn: in patches, the top of each column
+ * is drawn to flat treads [stepHeight] apart with a steep riser between, as strata worn back at different rates leave
+ * it. The treads stand at the same heights wherever there are terraces, as strata do. Between a patch and the ground
+ * around it the steps ease out over a band.
  *
  * Only the top span of a column moves, never by more than a step, and never on columns under [floorY].
  */
@@ -21,6 +21,8 @@ data class Terraced(
     /** What share of the land is terraced, from none to all of it. */
     val share: Double,
     val floorY: Int,
+    /** How worn each place is; [share] is the ordinary amount's. */
+    val wear: Wear = Wear.EVEN,
 ) : TerrainField {
     override val kind = FieldKind.TERRACED
 
@@ -48,8 +50,9 @@ data class Terraced(
 
     /** One inside a patch, nothing outside, and between the two across the patch's edge. */
     private fun terracingAt(worldX: Int, worldZ: Int): Double {
-        if (share <= 0.0) return 0.0
-        val threshold = 1.0 - 2.0 * share.coerceAtMost(1.0)
+        val shareHere = share * wear.at(worldX, worldZ)
+        if (shareHere <= 0.0) return 0.0
+        val threshold = 1.0 - 2.0 * shareHere.coerceAtMost(1.0)
         val reading = patches.get(worldX / PATCH_STRETCH, 0.0, worldZ / PATCH_STRETCH).toDouble()
         return smoothstep((reading - threshold) / PATCH_EDGE + HALF)
     }
@@ -63,6 +66,7 @@ data class Terraced(
         base = base.resized(factor, pivotY),
         stepHeight = stepHeight * factor,
         floorY = scaledAbout(floorY, factor, pivotY),
+        wear = wear.resized(factor),
     )
 
     companion object {
@@ -82,6 +86,7 @@ data class Terraced(
                 Codec.DOUBLE.fieldOf("step_height").forGetter(Terraced::stepHeight),
                 Codec.DOUBLE.fieldOf("share").forGetter(Terraced::share),
                 Codec.INT.fieldOf("floor_y").forGetter(Terraced::floorY),
+                Wear.FIELD.forGetter(Terraced::wear),
             ).apply(instance, ::Terraced)
         }
     }

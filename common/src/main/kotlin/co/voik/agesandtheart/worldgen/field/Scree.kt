@@ -27,6 +27,8 @@ data class Scree(
     val deepest: Double,
     /** The lowest column scree lies on, or [Spans.LOWEST_Y] for every one. */
     val floorY: Int,
+    /** How worn each place is; [deepest] is the ordinary amount's. */
+    val wear: Wear = Wear.EVEN,
 ) : TerrainField {
     override val kind = FieldKind.SCREE
 
@@ -38,7 +40,7 @@ data class Scree(
     private val piles = ColumnMemo(::pileAt)
 
     /** How many grid points out a face can stand and still pile scree on a point. */
-    private val reach = ceil(deepest / REPOSE / LATTICE).toInt() + 1
+    private val reach = ceil(deepest * wear.most / REPOSE / LATTICE).toInt() + 1
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         val standing = base.columnSpans(worldX, worldZ)
@@ -79,6 +81,8 @@ data class Scree(
             .minOf { (offsetX, offsetZ) -> topAt(latticeX + offsetX, latticeZ + offsetZ) ?: here }
         val isAtAFoot = here - lowestBeside <= LATTICE * STEEPEST_FOOT
         if (!isAtAFoot) return 0.0
+        val wearHere = wear.at(latticeX * LATTICE, latticeZ * LATTICE)
+        if (wearHere <= 0.0) return 0.0
         var deepestHere = 0.0
         for (offsetX in -reach..reach) for (offsetZ in -reach..reach) {
             if (offsetX == 0 && offsetZ == 0) continue
@@ -87,7 +91,7 @@ data class Scree(
             val distance = sqrt((offsetX * offsetX + offsetZ * offsetZ).toDouble()) * LATTICE
             val isAFace = rise > distance * STEEPEST_UNPILED
             if (!isAFace) continue
-            val atTheFoot = min(rise * share, deepest)
+            val atTheFoot = min(rise * share, deepest) * wearHere
             val fromTheFoot = max(distance - LATTICE, 0.0)
             deepestHere = max(deepestHere, atTheFoot - fromTheFoot * REPOSE)
         }
@@ -101,6 +105,7 @@ data class Scree(
         base = base.resized(factor, pivotY),
         deepest = deepest * factor,
         floorY = scaledAbout(floorY, factor, pivotY),
+        wear = wear.resized(factor),
     )
 
     companion object {
@@ -125,6 +130,7 @@ data class Scree(
                 Codec.DOUBLE.fieldOf("share").forGetter(Scree::share),
                 Codec.DOUBLE.fieldOf("deepest").forGetter(Scree::deepest),
                 Codec.INT.fieldOf("floor_y").forGetter(Scree::floorY),
+                Wear.FIELD.forGetter(Scree::wear),
             ).apply(instance, ::Scree)
         }
     }
