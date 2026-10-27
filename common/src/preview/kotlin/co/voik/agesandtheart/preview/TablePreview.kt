@@ -32,8 +32,9 @@ fun main(arguments: Array<String>) {
     val table = TerrainTable(SALT)
     val drawn = RegionMap(members = terrains.size, scale = TERRITORY_BLOCKS, blend = 0, originX = 0, originZ = 0, seed = SALT)
     val laidOut = drawn.copy(layout = TableLayout(table, terrains.map { it.home }, emptyList(), SALT))
+    val sea = Terrain.seaSettingFor(terrains, { Options.NONE }, { member -> SALT + member })
     val shapes = terrains.mapIndexed { member, terrain ->
-        terrain.ground(Underground.NONE, Options.NONE, Options.NONE, VerticalWindow.DEFAULT, SALT + member, table).shape
+        terrain.ground(Underground.NONE, Options.NONE, Options.NONE, VerticalWindow.DEFAULT, SALT + member, table, sea).shape
     }
     val land = Reconciled(shapes, shapes, laidOut, RECONCILED_BLOCKS, keepsFloor = true)
 
@@ -49,7 +50,7 @@ fun main(arguments: Array<String>) {
     }
     val lowest = tops.minOf { it.min() }
     val highest = tops.maxOf { it.max() }
-    val waterline = terrains.firstNotNullOfOrNull { it.waterlineAt(Options.NONE, SALT) }
+    val waterline = terrains.withIndex().firstNotNullOfOrNull { (member, terrain) -> terrain.waterlineAt(Options.NONE, SALT + member, sea) }
 
     val image = BufferedImage(across * 3 + GAP * 2, across, BufferedImage.TYPE_INT_RGB)
     for (row in 0..<across) for (column in 0..<across) {

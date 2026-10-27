@@ -135,6 +135,10 @@ object AgeGeneration {
         val window = VerticalWindow.DEFAULT
 
         val table = terrainTableOf(composition, seed)
+        // An Age laid out by the table sets its landforms at one sea; one written before keeps each at its own.
+        val sea = table?.let {
+            Terrain.seaSettingFor(composition.terrains, { member -> composition.optionsFor(Aspect.TERRAIN, member) }, { saltFor(seed, it) })
+        }
         val ground = laidOut(character.mapFor(Aspect.TERRAIN, landmass, seed, torn), table, composition, seed)
         // **Null where the rock is vanilla's, and this is the one place that is decided**: no field is
         // built, no biome is grounded in one, nothing is hollowed under it, and the generator hands
@@ -146,14 +150,14 @@ object AgeGeneration {
         // **Built once and shared**, so the rock, the bodies the sea carries and the generator's own copy
         // are all the same object — see the note on `ourGround`'s parameter.
         val overlay = volcanicOverlay(composition, seed)
-        val grounds = if (composition.terrains.any { it.isVanillas }) null else groundsOf(composition, window, seed, table)
-        val territories = Territories(ground, grounds?.map { it.shape }?.takeIf { landmass.seam == Seam.MERGED }, table)
+        val grounds = if (composition.terrains.any { it.isVanillas }) null else groundsOf(composition, window, seed, table, sea)
+        val territories = Territories(ground, grounds?.map { it.shape }?.takeIf { landmass.seam == Seam.MERGED }, table, sea)
         val ourGround = grounds?.let { ourGround(composition, it, landmass, territories, window, seed, torn, overlay, dislocation) }
 
         val chasm = ourGround?.chasm
         val standing = ourGround?.standing
         val flow = character.mapFor(Aspect.SEA, composition.spreadOf(Aspect.SEA), seed)
-        val waterlines = waterlinesOf(composition, seed)
+        val waterlines = waterlinesOf(composition, seed, sea)
         val seaFill = Sea.pour(
             composition.seas,
             waterlineOf(composition, waterlines, seed),
@@ -290,8 +294,9 @@ object AgeGeneration {
                         rivers = standing,
                         declared = Grounding.Declared.of(
                             composition.terrains.mapIndexed { member, terrain ->
-                                terrain.grounding(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
+                                terrain.grounding(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), sea)
                             },
+                            seaIsShared = sea?.isShared == true,
                         ),
                         table = table,
                         // An Age written before generator 20 reads one sea and its relief everywhere, as it did.
@@ -313,6 +318,7 @@ object AgeGeneration {
                                     window,
                                     composition.optionsFor(Aspect.TERRAIN, member),
                                     saltFor(seed, member),
+                                    sea,
                                 )
                             }
                             ?.let { band -> BiomeBand(greatHallBiome(server), band.first, band.last) },
@@ -550,7 +556,7 @@ object AgeGeneration {
         torn: Double,
     ): StandingFluid? {
         val run = composition.terrains.mapIndexed { member, terrain ->
-            terrain.rivers(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), territories.table)
+            terrain.rivers(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), territories.table, territories.sea)
         }
         if (run.all { it == null }) return null
         val divided = territories.divided(run.map { it ?: Union(emptyList()) }, staysInItsBanks = true)
@@ -569,7 +575,7 @@ object AgeGeneration {
         torn: Double,
     ): TerrainField? {
         val carried = composition.terrains.mapIndexed { member, terrain ->
-            terrain.standingWater(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), territories.table)
+            terrain.standingWater(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), territories.table, territories.sea)
         }
         if (carried.all { it == null }) return null
         val divided = territories.divided(carried.map { it ?: Union(emptyList()) }, staysInItsBanks = true)
@@ -671,12 +677,12 @@ object AgeGeneration {
      * beside a grounded one has unless the book named a sea. Where every landform floats, [AgeComposition.seas]
      * already says it: an unnamed sea over them is seated as none.
      */
-    private fun waterlinesOf(composition: AgeComposition, seed: Long): List<Int?> {
+    private fun waterlinesOf(composition: AgeComposition, seed: Long, sea: Terrain.SeaSetting?): List<Int?> {
         val everyLandformFloats = composition.terrains.all { it.takesASeaOnlyWhenNamed }
         return composition.terrains.mapIndexed { member, terrain ->
             val withheld = terrain.takesASeaOnlyWhenNamed && !composition.seaNamed && !everyLandformFloats
             if (withheld) null
-            else terrain.waterlineAt(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
+            else terrain.waterlineAt(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), sea)
         }
     }
 
@@ -852,6 +858,7 @@ object AgeGeneration {
         window: VerticalWindow,
         seed: Long,
         table: TerrainTable?,
+        sea: Terrain.SeaSetting?,
     ): List<Terrain.Ground> =
         composition.terrains.mapIndexed { member, terrain ->
             terrain.ground(
@@ -861,6 +868,7 @@ object AgeGeneration {
                 window,
                 saltFor(seed, member),
                 table,
+                sea,
             )
         }
 
@@ -885,7 +893,12 @@ object AgeGeneration {
      * What is divided on the terrain's map: by territory, and where the landforms were reconciled ([Seam.MERGED])
      * eased across each seam after [guides], the rock — so water and hollows move with the ground they lie in.
      */
-    private class Territories(val map: RegionMap, private val guides: List<TerrainField>?, val table: TerrainTable?) {
+    private class Territories(
+        val map: RegionMap,
+        private val guides: List<TerrainField>?,
+        val table: TerrainTable?,
+        val sea: Terrain.SeaSetting?,
+    ) {
         fun divided(members: List<TerrainField>, keepsFloor: Boolean = false, staysInItsBanks: Boolean = false): TerrainField =
             if (guides == null) Regions.of(members, map)
             // An Age written before the table eases its water with its rock, as it did.

@@ -27,6 +27,7 @@ import co.voik.agesandtheart.worldgen.biome.Elevation
 import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.Landmarks
+import co.voik.agesandtheart.worldgen.field.Lift
 import co.voik.agesandtheart.worldgen.field.MountainRange
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.Wear
@@ -76,10 +77,13 @@ private const val UNSAID_VARIETY = 0.0
  * the weather wore the land.
  */
 private fun erosionOf(options: Options, salt: Long, ordinarily: Double = ORDINARY_WEAR): Double {
-    if (options.isTrue(Terrain.FORMER_LAND)) return 0.0
+    if (isFormer(options)) return 0.0
     val steer = options.steer(Terrain.WEAR, salt) ?: UNSAID_WEAR
     return if (steer < 0.0) ordinarily * (1.0 + steer) else ordinarily + steer * (MOST_WEAR - ordinarily)
 }
+
+/** Whether this is an Age written before generator 20, whose land is laid as it was then. */
+private fun isFormer(options: Options): Boolean = options.isTrue(Terrain.FORMER_LAND)
 
 private const val UNSAID_WEAR = 0.0
 private const val ORDINARY_WEAR = 0.25
@@ -251,7 +255,7 @@ enum class Terrain(
     RIVERLANDS(
         "riverine",
         waterline = RiverlandsField.WATERLINE,
-        build = { options, salt, _ -> RiverlandsField.world(salt, scaleOf(options, salt)) },
+        build = { options, salt, _ -> RiverlandsField.world(salt, scaleOf(options, salt), isFormer(options)) },
         axes = { listOf(SIZE) },
     ),
 
@@ -415,10 +419,59 @@ enum class Terrain(
      * Where this terrain's sea stands at the size asked for: [waterline], for every landform but the one
      * whose water is a river on a floor that size moves.
      */
-    fun waterlineAt(options: Options, salt: Long): Int? = when (this) {
+    fun waterlineAt(options: Options, salt: Long, sea: SeaSetting? = null): Int? =
+        if (sea != null && movesToTheSea(options, salt, sea)) sea.level else ownWaterlineAt(options, salt)
+
+    private fun ownWaterlineAt(options: Options, salt: Long): Int? = when (this) {
         CANYON -> CanyonField.riverLevel(scaleOf(options, salt))
+        RIVERLANDS -> RiverlandsField.waterlineOf(isFormer(options))
         else -> waterline ?: waterlineWhenASeaIsNamed
     }
+
+    /**
+     * The height of this landform that belongs at an Age's sea, and the highest it builds where that could pass the top
+     * of the world once moved; null for what hangs in the void or fills the world, which keeps its own heights, and
+     * for vanilla's rock. Its sea where it has one; a landform with none says where its land meets a coast.
+     */
+    private fun footing(options: Options, salt: Long): Footing? = when (this) {
+        HILLS, ERODED, PILLARS, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, CRATERLANDS, CONTINENTS, SOLID ->
+            ownWaterlineAt(options, salt)?.let(::Footing)
+        // A plain standing just over vanilla's sea.
+        FLATLANDS, PYRAMIDS -> Footing(ORDINARY_SEA_LEVEL)
+        CANYON -> scaleOf(options, salt).let { scale -> Footing(CanyonField.riverLevel(scale), topY = CanyonField.plateauY(scale)) }
+        // The basin floors meet the coast, and the peaks reach the top of the world already.
+        MOUNTAINOUS -> Footing(MountainousField.BASIN_FLOOR, topY = VerticalWindow.HIGHEST_BLOCK_Y)
+        SKYLANDS, SPIRE_ISLANDS, INVERSE_CAVES, OVERWORLD, NETHER, END -> null
+    }
+
+    /**
+     * Whether this landform is moved to [sea]: where it stands on ground and has a sea of its own to set there, and
+     * where the sea is shared, so a landform with none meets the one its neighbours pour.
+     */
+    private fun movesToTheSea(options: Options, salt: Long, sea: SeaSetting): Boolean {
+        if (footing(options, salt) == null) return false
+        val own = ownWaterlineAt(options, salt)
+        val hasASeaOfItsOwn = own != null && own > VerticalWindow.MIN_Y
+        return hasASeaOfItsOwn || sea.isShared
+    }
+
+    /** How this landform is moved to [sea], or null where it keeps its own heights. */
+    private fun liftTo(options: Options, salt: Long, sea: SeaSetting?): Lift? {
+        if (sea == null || !movesToTheSea(options, salt, sea)) return null
+        val footing = footing(options, salt) ?: return null
+        val squeeze = footing.topY?.let { topY -> Lift.squeezeToFit(footing.datumY, sea.level, topY) } ?: 1.0
+        return Lift(footing.datumY, sea.level, squeeze).takeUnless { it.isNone }
+    }
+
+    /** The height of this landform's that belongs at an Age's sea, and the highest it builds where that is near the top. */
+    private data class Footing(val datumY: Int, val topY: Int? = null)
+
+    /**
+     * The one sea an Age laid out by the table sets its landforms at: each standing on ground with a sea of its own is
+     * moved so that sea stands at [level], and where the sea [isShared] — more than one territory, one with a sea of its
+     * own — so is every other, so every territory pours the same sea and no seam has two to wall apart.
+     */
+    data class SeaSetting(val level: Int, val isShared: Boolean)
 
     /**
      * Whether this landform takes a sea only when a book names one. Its unspoken sea is none rather than the
@@ -453,7 +506,12 @@ enum class Terrain(
      * underground, and a colossal crater's basin reaches below the tuned one. Everywhere else the datum is a
      * floor or a sea that every size shares.
      */
-    fun undergroundCeiling(options: Options, salt: Long): Int? = when (this) {
+    fun undergroundCeiling(options: Options, salt: Long, sea: SeaSetting? = null): Int? {
+        val own = ownUndergroundCeiling(options, salt) ?: return null
+        return liftTo(options, salt, sea)?.heightOf(own) ?: own
+    }
+
+    private fun ownUndergroundCeiling(options: Options, salt: Long): Int? = when (this) {
         CONTINENTS -> OverworldField.SOLID_TOP - ROOM_FOR_A_ROOF
         // Solid either side of the gorge all the way up, so this is bounded by taste rather than by rock —
         // and by the plateau, once the canyon is smaller than the world.
@@ -461,7 +519,7 @@ enum class Terrain(
         CANYONLANDS -> CanyonlandsField.FLOOR_Y - ROOM_FOR_A_ROOF
         SHATTERED -> ShatteredField.FLOOR_Y - ROOM_FOR_A_ROOF
         CLIFFS -> CliffField.SEABED_Y - ROOM_FOR_A_ROOF
-        RIVERLANDS -> RiverlandsField.WATERLINE - DEEP_ENOUGH_TO_MISS_A_RIVERBED
+        RIVERLANDS -> RiverlandsField.waterlineOf(isFormer(options)) - DEEP_ENOUGH_TO_MISS_A_RIVERBED
         ISLANDS, ISLE -> IslandsField.SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
         // A plain with no sea, and the only thing over the top storey is the plain itself.
         FLATLANDS -> FlatlandsField.SURFACE_Y - ROOM_FOR_A_ROOF
@@ -501,11 +559,14 @@ enum class Terrain(
         salt: Long,
         /** The Age's terrain table, shared by every landform in it; none on an Age written before there was one. */
         table: TerrainTable? = null,
+        /** The sea this landform is set at, or null where it keeps its own heights. */
+        sea: SeaSetting? = null,
     ): Ground {
-        val uncut = varied(build(options, salt, table), options, salt, isRock = true, table)
+        val built = build(options, salt, table).let { field -> liftTo(options, salt, sea)?.over(field) ?: field }
+        val uncut = varied(built, options, salt, isRock = true, table, sea)
         // **A landform with no room under it carries nothing**, whatever was asked for — the same shape as
         // a preset ignoring a material it cannot be made of, and the reason the ceiling is declared here.
-        val ceiling = undergroundCeiling(options, salt) ?: return Ground(uncut)
+        val ceiling = undergroundCeiling(options, salt, sea) ?: return Ground(uncut)
         return underground.carve(uncut, window.minY + BEDROCK_MARGIN, ceiling, window, undergroundOptions, salt)
     }
 
@@ -537,8 +598,14 @@ enum class Terrain(
      * Which undergrounds count as indoors is [Underground.indoorBand]'s question; this answers only whether
      * there is room under the landform at all.
      */
-    fun undergroundBand(underground: Underground, window: VerticalWindow, options: Options, salt: Long): IntRange? =
-        undergroundCeiling(options, salt)?.let { ceiling -> underground.indoorBand(window.minY + BEDROCK_MARGIN, ceiling) }
+    fun undergroundBand(
+        underground: Underground,
+        window: VerticalWindow,
+        options: Options,
+        salt: Long,
+        sea: SeaSetting? = null,
+    ): IntRange? =
+        undergroundCeiling(options, salt, sea)?.let { ceiling -> underground.indoorBand(window.minY + BEDROCK_MARGIN, ceiling) }
 
     /**
      * A terrain's rock, and what the water is to make of the space taken out of it. **The two are
@@ -599,16 +666,22 @@ enum class Terrain(
      * Rivers this terrain runs **of water whatever its sea**, or null for none — the islands' rivers, there
      * whether the Age has a sea or not. See `SkylandsField.rivers`.
      */
-    fun rivers(options: Options, salt: Long, table: TerrainTable? = null): TerrainField? {
+    fun rivers(options: Options, salt: Long, table: TerrainTable? = null, sea: SeaSetting? = null): TerrainField? {
         if (this != SKYLANDS) return null
-        return varied(SkylandsField.rivers(salt, scaleAsWritten(options, salt)), options, salt, isRock = false, table)
+        return carried(SkylandsField.rivers(salt, scaleAsWritten(options, salt)), options, salt, table, sea)
     }
 
-    fun standingWater(options: Options, salt: Long, table: TerrainTable? = null): TerrainField? = when (this) {
-        RIVERLANDS -> RiverlandsField.water(salt, scaleOf(options, salt))
+    fun standingWater(options: Options, salt: Long, table: TerrainTable? = null, sea: SeaSetting? = null): TerrainField? = when (this) {
+        RIVERLANDS -> RiverlandsField.water(salt, scaleOf(options, salt), isFormer(options))
         MOUNTAINOUS -> MountainousField.water(salt, scaleOf(options, salt))
         else -> null
-    }?.let { varied(it, options, salt, isRock = false, table) }
+    }?.let { carried(it, options, salt, table, sea) }
+
+    /** Water this landform carries, moved with its rock and varied as it is. */
+    private fun carried(water: TerrainField, options: Options, salt: Long, table: TerrainTable?, sea: SeaSetting?): TerrainField {
+        val lifted = liftTo(options, salt, sea)?.over(water, keepsFloor = false) ?: water
+        return varied(lifted, options, salt, isRock = false, table, sea)
+    }
 
     /**
      * Whether this landform's ground can be eased into another's where two meet ([Seam.MERGED]): a surface standing
@@ -641,19 +714,26 @@ enum class Terrain(
     }
 
     /** The height this landform's drift stretches from: its waterline, or for the skylands the plane they float at. */
-    private fun driftsAbove(options: Options, salt: Long): Int? =
-        if (this == SKYLANDS) SkylandsField.PLANE_Y else waterlineAt(options, salt)
+    private fun driftsAbove(options: Options, salt: Long, sea: SeaSetting?): Int? =
+        if (this == SKYLANDS) SkylandsField.PLANE_Y else waterlineAt(options, salt, sea)
 
     /**
      * [field] as this landform changes across the world ([LandVariety]) — the rock, and the water it carries, alike,
      * so a river still lies in its bed; only the rock is worn. Which landforms drift in height, which are worn and
      * which bend is [DRIFTS_IN_HEIGHT], [WORN] and [BENDS].
      */
-    private fun varied(field: TerrainField, options: Options, salt: Long, isRock: Boolean, table: TerrainTable?): TerrainField =
+    private fun varied(
+        field: TerrainField,
+        options: Options,
+        salt: Long,
+        isRock: Boolean,
+        table: TerrainTable?,
+        sea: SeaSetting?,
+    ): TerrainField =
         LandVariety.over(
             field,
-            stretchesAbove = if (this in DRIFTS_IN_HEIGHT) driftsAbove(options, salt) else null,
-            wornAbove = if (isRock && this in WORN) waterlineAt(options, salt) ?: VerticalWindow.MIN_Y else null,
+            stretchesAbove = if (this in DRIFTS_IN_HEIGHT) driftsAbove(options, salt, sea) else null,
+            wornAbove = if (isRock && this in WORN) waterlineAt(options, salt, sea) ?: VerticalWindow.MIN_Y else null,
             terraces = this !in UNTERRACED,
             bends = this in BENDS,
             strength = varietyOf(options, salt),
@@ -672,7 +752,15 @@ enum class Terrain(
      * argument, and a fourth would have been a fourth of each. What a landform knows about its own shape
      * is one subject and belongs in one table; see [Grounding.Declared] for what the facts mean.
      */
-    fun grounding(options: Options, salt: Long): Grounding.Declared = when (this) {
+    fun grounding(options: Options, salt: Long, sea: SeaSetting? = null): Grounding.Declared {
+        val own = ownGrounding(options, salt)
+        val lift = liftTo(options, salt, sea) ?: return own
+        return own.copy(
+            elevation = own.elevation?.let { it.copy(fromY = lift.heightOf(it.fromY), toY = lift.heightOf(it.toY)) },
+        )
+    }
+
+    private fun ownGrounding(options: Options, salt: Long): Grounding.Declared = when (this) {
         ISLANDS, ISLE -> Grounding.Declared(hasSandyShores = true)
         CANYON -> Grounding.Declared(waterlineIsRiver = true)
         // Rock to the ceiling has no coast in it anywhere, and vanilla's continentalness curve has no
@@ -912,6 +1000,24 @@ enum class Terrain(
                 Parameter.Landmark(1.0, "colossal"),
             ),
         )
+
+        /** Where every sea stands in an Age laid out by the table, where its landforms have the room: vanilla's. */
+        const val ONE_SEA_LEVEL = ORDINARY_SEA_LEVEL
+
+        /**
+         * The sea an Age laid out by the table sets [members] at, each with the options and salt [optionsOf] and
+         * [saltOf] give it: shared where more than one landform divides the Age and one of them has a sea of its own.
+         */
+        fun seaSettingFor(members: List<Terrain>, optionsOf: (Int) -> Options, saltOf: (Int) -> Long): SeaSetting {
+            fun hasASeaOfItsOwn(member: Int): Boolean {
+                val terrain = members[member]
+                val standsOnGround = terrain.footing(optionsOf(member), saltOf(member)) != null
+                val own = terrain.ownWaterlineAt(optionsOf(member), saltOf(member))
+                return standsOnGround && own != null && own > VerticalWindow.MIN_Y
+            }
+            val isDivided = members.size > 1
+            return SeaSetting(ONE_SEA_LEVEL, isShared = isDivided && members.indices.any(::hasASeaOfItsOwn))
+        }
 
         /** Left whole, so the bedrock a cave might otherwise open through stays bedrock. */
         private const val BEDROCK_MARGIN = 5

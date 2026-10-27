@@ -140,9 +140,10 @@ data class Grounding(
              * two ranges disagreeing about their own snowline is not something a climate could express.
              * The first elevation wins for that reason rather than by accident.
              */
-            fun of(all: List<Declared>) = Declared(
+            fun of(all: List<Declared>, seaIsShared: Boolean = false) = Declared(
                 hasSandyShores = all.any { it.hasSandyShores },
-                waterlineIsRiver = all.any { it.waterlineIsRiver },
+                // A sea shared with a landform whose water is a sea is a sea, whatever the gorge's river says.
+                waterlineIsRiver = if (seaIsShared) all.all { it.waterlineIsRiver } else all.any { it.waterlineIsRiver },
                 elevation = all.firstNotNullOfOrNull { it.elevation },
                 // Safe to take from any territory, unlike the rest, because it lengthens a curve rather
                 // than replacing an answer: a height no ordinary landform reaches is the only one it moves.

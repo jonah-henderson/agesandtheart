@@ -360,17 +360,22 @@ class Weathering(
          * The keel sits at the waterline and spares it, so the beds the rivers run down are left alone:
          * erosion in a channel only deepens a pool nobody can see the bottom of.
          */
-        val RIVERLANDS = Weathering(
-            key = "riverlands",
-            fromY = RiverlandsField.WATERLINE - BAND_MARGIN,
-            toY = RiverlandsField.LAND_Y + RiverlandsField.RELIEF.toInt() + BAND_MARGIN,
+        val RIVERLANDS = riverlands("riverlands", RiverlandsField.LAND_Y, RiverlandsField.WATERLINE)
+
+        /** [RIVERLANDS] at the heights the river country had before generator 20. */
+        val FORMER_RIVERLANDS = riverlands("former_riverlands", RiverlandsField.FORMER_LAND_Y, RiverlandsField.FORMER_WATERLINE)
+
+        private fun riverlands(key: String, landY: Int, waterline: Int) = Weathering(
+            key = key,
+            fromY = waterline - BAND_MARGIN,
+            toY = landY + RiverlandsField.RELIEF.toInt() + BAND_MARGIN,
             bite = -0.18,
-            keelY = RiverlandsField.WATERLINE,
+            keelY = waterline,
             atTheKeel = 0.4,
             atTheTip = 0.0,
             atTheRoot = 0.4,
             taper = 1.5,
-            taperReachAbove = RiverlandsField.LAND_Y + RiverlandsField.RELIEF.toInt() - RiverlandsField.WATERLINE,
+            taperReachAbove = landY + RiverlandsField.RELIEF.toInt() - waterline,
             taperReachBelow = 1,
             // Boulder-scale rather than landform-scale: this is texture on a hillside.
             scale = 0.7,
@@ -496,7 +501,7 @@ class Weathering(
         )
 
         /** The profiles a recipe may name, which is what makes [Weathered] serialisable. */
-        private val BY_KEY = listOf(SPIRE, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, MOUNTAINOUS, CRATERLANDS)
+        private val BY_KEY = listOf(SPIRE, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, FORMER_RIVERLANDS, MOUNTAINOUS, CRATERLANDS)
             .associateBy(Weathering::key)
 
         /** The profile [key] names, or null for one this version does not have. */

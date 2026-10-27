@@ -21,9 +21,16 @@ import co.voik.agesandtheart.worldgen.field.Weathered
  */
 object RiverlandsField {
 
-    /** The ground, weathered — a light hand, unlike the canyon's. See [Weathering.RIVERLANDS]. */
-    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
-        Weathered.sculpting(network(salt, scale), Weathering.RIVERLANDS, SHELTER_REACH)
+    /**
+     * The ground, weathered — a light hand, unlike the canyon's. See [Weathering.RIVERLANDS]. [isFormer] lays it at
+     * the heights it had before generator 20, with its sea at [FORMER_WATERLINE].
+     */
+    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY, isFormer: Boolean = false): TerrainField =
+        Weathered.sculpting(
+            network(salt, scale, isFormer),
+            if (isFormer) Weathering.FORMER_RIVERLANDS else Weathering.RIVERLANDS,
+            SHELTER_REACH,
+        )
 
     /**
      * The water standing in the rivers, for `SeaFill.wet`.
@@ -32,8 +39,8 @@ object RiverlandsField {
      * downhill everywhere, so a plane wets the lowest trunks and leaves every headwater dry. Handing the
      * fill a field instead lets each reach carry its own surface.
      */
-    fun water(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
-        network(salt, scale).copy(describes = FieldYield.WATER)
+    fun water(salt: Long = 0L, scale: Double = SizeScale.ORDINARY, isFormer: Boolean = false): TerrainField =
+        network(salt, scale, isFormer).copy(describes = FieldYield.WATER)
 
     /**
      * The bare network, before the weather and without its water.
@@ -42,9 +49,9 @@ object RiverlandsField {
      * more winding, at the same height over the same water — so the rivers run wet at every size and a
      * big system reads as a broad one rather than a deep one.
      */
-    fun network(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): Drainage = Drainage(
+    fun network(salt: Long = 0L, scale: Double = SizeScale.ORDINARY, isFormer: Boolean = false): Drainage = Drainage(
         floorY = VerticalWindow.MIN_Y,
-        landY = LAND_Y,
+        landY = if (isFormer) FORMER_LAND_Y else LAND_Y,
         relief = RELIEF,
         landStretch = LAND_STRETCH * scale,
         spacing = SPACING * scale,
@@ -57,14 +64,22 @@ object RiverlandsField {
         profile = CanyonProfile(benches = 2, riserShare = 0.45, floorShare = 0.22, gorgeShare = 0.45, gorgeRise = 0.4),
     )
 
+    private const val WATER_UNDER_THE_LAND = 22
+
     /** The mean height of the upland the rivers are cut into. */
-    const val LAND_Y = 108
+    const val LAND_Y = 85
 
     /**
      * A little under [LAND_Y], so a valley has to have gathered a stream or two before it runs wet. Put it
-     * at the mean and every headwater gully is a river; put it much lower and only the sea is.
+     * at the mean and every headwater gully is a river; put it much lower and only the sea is. At vanilla's sea.
      */
-    const val WATERLINE = LAND_Y - 22
+    const val WATERLINE = LAND_Y - WATER_UNDER_THE_LAND
+
+    /** Where the upland stood before generator 20, its sea twenty-three blocks over vanilla's. */
+    const val FORMER_LAND_Y = 108
+    const val FORMER_WATERLINE = FORMER_LAND_Y - WATER_UNDER_THE_LAND
+
+    fun waterlineOf(isFormer: Boolean): Int = if (isFormer) FORMER_WATERLINE else WATERLINE
 
     /**
      * How far the land rolls. **The rivers' whole fall comes from this** — the network follows the land
