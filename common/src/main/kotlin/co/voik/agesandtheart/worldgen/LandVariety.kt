@@ -58,7 +58,7 @@ object LandVariety {
             )
         } ?: field
         val worn = wornAbove?.takeIf { erosion > 0.0 }?.let { floorY ->
-            worn(stretched, floorY, terraces, Wear(salt xor WEAR_SALT, erosion, WEAR_SPREAD * strength, WEAR_STRETCH * landScale), salt)
+            worn(stretched, floorY, terraces, wearOf(strength, erosion, landScale, salt), salt)
         } ?: stretched
         if (!bends || !varies) return worn
         return Warped(
@@ -70,6 +70,10 @@ object LandVariety {
             BEND_BLOCKS * min(strength, MOST_BEND) * landScale,
         )
     }
+
+    /** How worn each place is, which anything a landform builds by wear reads as well as the weather's own wear. */
+    fun wearOf(strength: Double, erosion: Double, landScale: Double, salt: Long): Wear =
+        Wear(salt xor WEAR_SALT, erosion, WEAR_SPREAD * strength, WEAR_STRETCH * landScale)
 
     /** [field] terraced, gullied, footed with scree and undercut, each as far as [wear] says at each place. */
     private fun worn(field: TerrainField, floorY: Int, terraces: Boolean, wear: Wear, salt: Long): TerrainField {

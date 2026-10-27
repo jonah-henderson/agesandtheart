@@ -28,6 +28,7 @@ import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.MountainRange
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
+import co.voik.agesandtheart.worldgen.field.Wear
 import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Subtract
@@ -78,6 +79,12 @@ private const val UNSAID_WEAR = 0.0
 
 /** [Terrain.SIZE] as written, for the landforms hanging in the void, which [LandSize] leaves alone. */
 private fun scaleAsWritten(options: Options, salt: Long): Double = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
+
+/** The wear the crater field's craters follow, which is the weather's own; none on an Age that does not vary. */
+private fun craterWear(options: Options, salt: Long): Wear? {
+    val strength = varietyOf(options, salt)
+    return if (strength <= 0.0) null else LandVariety.wearOf(strength, erosionOf(options, salt), scaleOf(options, salt), salt)
+}
 
 private fun craterSteer(options: Options, salt: Long) = CraterlandsField.Steer(
     wear = options.steer(Terrain.WEAR, salt),
@@ -278,7 +285,7 @@ enum class Terrain(
     CRATERLANDS(
         "cratered",
         waterline = CraterlandsField.WATERLINE,
-        build = { options, salt -> CraterlandsField.world(craterSteer(options, salt), salt) },
+        build = { options, salt -> CraterlandsField.world(craterSteer(options, salt), salt, craterWear(options, salt)) },
         axes = { listOf(SPACING, WEAR, RELIEF, SIZE) },
     ),
 

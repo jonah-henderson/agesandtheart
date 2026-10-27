@@ -3,7 +3,10 @@ package co.voik.agesandtheart.worldgen.field
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.util.RandomSource
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
+import java.util.Optional
+import kotlin.math.floor
 
 /**
  * Stamps copies of its [templates] across the world according to [placement]. Each instance's cell picks
@@ -31,6 +34,12 @@ data class Instanced(
      * See [Spans.blendedUnion] for why this can only ever ease a boundary that already exists.
      */
     val blend: Double = NO_BLEND,
+    /**
+     * When set, [templates] run from the freshest to the most worn, one to each unit of wear, and each instance draws
+     * among them by how worn its place is: the freshest where little is worn, the first two equally at the ordinary
+     * wear, and on from there. Unset, every template is equally likely everywhere.
+     */
+    val wornBy: Wear? = null,
 ) : TerrainField {
     override val kind = FieldKind.INSTANCED
 
@@ -63,7 +72,11 @@ data class Instanced(
         // Hot path: accumulate the union across nearby instances in place rather than build a list.
         var solid = Spans.EMPTY
         placement.forEachInstanceNear(worldX, worldZ, templateReach, random) { originX, originZ, instanceRandom ->
-            val chosen = posedTemplates[instanceRandom.nextInt(posedTemplates.size)]
+            val chosen = if (wornBy == null) {
+                posedTemplates[instanceRandom.nextInt(posedTemplates.size)]
+            } else {
+                wornTemplate(wornBy.at(originX, originZ), instanceRandom)
+            }
             val acrossX = (worldX - originX).toDouble()
             val acrossZ = (worldZ - originZ).toDouble()
             // **Cull against the instance's own reach, not the layer's** — measured 2026-09-11 as most of
@@ -98,6 +111,19 @@ data class Instanced(
         return solid
     }
 
+    /**
+     * A template at a random size, drawn between the two whose wear lies either side of [wear] in proportion to how
+     * near it is to each.
+     */
+    private fun wornTemplate(wear: Double, instanceRandom: RandomSource): TerrainField {
+        val sizes = posedTemplates.size / templates.size
+        val size = instanceRandom.nextInt(sizes)
+        val alongTheTemplates = (wear - FRESHEST_WEAR).coerceIn(0.0, (templates.size - 1).toDouble())
+        val fresher = floor(alongTheTemplates).toInt()
+        val template = if (instanceRandom.nextDouble() < alongTheTemplates - fresher) fresher + 1 else fresher
+        return posedTemplates[template.coerceAtMost(templates.size - 1) * sizes + size]
+    }
+
     // Resizing an instanced field resizes what it places and spreads the layout to match.
     override fun resized(factor: Double, pivotY: Int) = Instanced(
         templates.map { it.resized(factor, pivotY) },
@@ -108,6 +134,7 @@ data class Instanced(
         seed,
         // A blend is a distance in the space the instances live in, so it scales with them.
         blend * factor,
+        wornBy?.resized(factor),
     )
 
     companion object {
@@ -124,6 +151,9 @@ data class Instanced(
          */
         private const val ROUNDING_SLACK = 1.0
 
+        /** The wear at which the freshest template is all there is, half a unit under the ordinary wear. */
+        private const val FRESHEST_WEAR = 0.5
+
         fun codec(self: Codec<TerrainField>): MapCodec<Instanced> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 self.listOf().fieldOf("templates").forGetter(Instanced::templates),
@@ -132,7 +162,10 @@ data class Instanced(
                 Variation.CODEC.codec().optionalFieldOf("variation", Variation.NONE).forGetter(Instanced::variation),
                 Codec.LONG.fieldOf("seed").forGetter(Instanced::seed),
                 Codec.DOUBLE.optionalFieldOf("blend", NO_BLEND).forGetter(Instanced::blend),
-            ).apply(instance, ::Instanced)
+                Wear.CODEC.optionalFieldOf("worn_by").forGetter { Optional.ofNullable(it.wornBy) },
+            ).apply(instance) { templates, placement, variation, seed, blend, wornBy ->
+                Instanced(templates, placement, variation, seed, blend, wornBy.orElse(null))
+            }
         }
     }
 }

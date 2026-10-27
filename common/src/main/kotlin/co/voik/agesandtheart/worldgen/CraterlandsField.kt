@@ -20,6 +20,7 @@ import co.voik.agesandtheart.worldgen.field.Undulated
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
 import co.voik.agesandtheart.worldgen.field.Weathered
+import co.voik.agesandtheart.worldgen.field.Wear
 import co.voik.agesandtheart.worldgen.field.scaledAbout
 import net.minecraft.core.Direction
 import kotlin.math.roundToInt
@@ -102,10 +103,10 @@ object CraterlandsField {
      * *over* the cratered plain instead and the raised ground simply buries the craters it covers, which
      * is what a blanket of ejecta does to the country it lands on anyway.
      */
-    fun world(steer: Steer = Steer.UNSAID, salt: Long = 0L): TerrainField {
+    fun world(steer: Steer = Steer.UNSAID, salt: Long = 0L, wear: Wear? = null): TerrainField {
         val covering = coveringShare(steer)
         return Weathered.sculpting(
-            bareWorld(steer, salt),
+            bareWorld(steer, salt, wear),
             Weathering.CRATERLANDS.resized(covering, WATERLINE),
             (SHELTER_REACH * covering).roundToInt(),
         )
@@ -117,11 +118,14 @@ object CraterlandsField {
      * The scalloping is taken from what the impact raised rather than from the whole world, which is the
      * same thing at the tuned size — its floor stands over the plain and every crater in it — and stays the
      * same thing when the structure is resized under a plain that is not.
+     *
+     * With a [wear], the craters of the plain are fresher where it is less worn and older where it is more, down to
+     * ghosts of craters where it is worn the most; without one, every kind is as likely anywhere.
      */
-    fun bareWorld(steer: Steer = Steer.UNSAID, salt: Long = 0L): TerrainField {
+    fun bareWorld(steer: Steer = Steer.UNSAID, salt: Long = 0L, wear: Wear? = null): TerrainField {
         val share = structureShare(steer)
         fun sized(field: TerrainField) = field.resized(share, WATERLINE)
-        val secondaries = craters(steer, salt)
+        val secondaries = craters(steer, salt, wear)
         val hole = sized(excavation(steer, salt))
         // What the impact threw out, with the same hole taken out of it.
         val raised = Union(
@@ -561,8 +565,8 @@ object CraterlandsField {
     }
 
     /**
-     * Two kinds, because one shape repeated is the thing a crater field most reads as. The sharp one is a
-     * young crater — a high rim over a deep bowl; the worn one has had its rim knocked down and its floor
+     * Two kinds, freshest first, because one shape repeated is the thing a crater field most reads as. The sharp one
+     * is a young crater — a high rim over a deep bowl; the worn one has had its rim knocked down and its floor
      * filled in, which is what an old crater on a plain looks like and is not something a *scale* can say,
      * scaling changing rim and depth together.
      */
@@ -574,6 +578,12 @@ object CraterlandsField {
     )
 
     /**
+     * A crater nearly worn away: a rim barely standing and a floor filled to a shallow pan. Drawn only where the
+     * craters follow the wear, after the other two. Its flank is no broader than the worn one's, so it widens no scan.
+     */
+    private val GHOST_CRATER = CraterShape(crestRadius = 32.0, rimRise = 4, rimWidth = 13.0, bowlReach = 10.0)
+
+    /**
      * The craters, laid over the whole world and bounded by nothing.
      *
      * They need no mask because of the order [world] lays its layers in: everything the impact raised is
@@ -581,7 +591,7 @@ object CraterlandsField {
      * left cutting a hole in ground it could never have reached the surface of. A fresh ejecta blanket
      * being uncratered is also, conveniently, true.
      */
-    private fun craters(steer: Steer, salt: Long): Craters {
+    private fun craters(steer: Steer, salt: Long, wear: Wear?): Craters {
         val layout = Scatter(
             cellSize = dialled(steer.spacing, CRATER_CELL, LEAST_CRATER_CELL, MOST_CRATER_CELL),
             leastPerCell = 0,
@@ -609,9 +619,10 @@ object CraterlandsField {
             maxLift = MOST_CRATER_LIFT,
             liftSteps = 4,
         )
+        val shapes = if (wear == null) CRATER_SHAPES else CRATER_SHAPES + GHOST_CRATER
         return Craters(
-            rims = Instanced(CRATER_SHAPES.map { it.rim() }, layout, poses, CRATER_SEED xor salt),
-            bowls = Instanced(CRATER_SHAPES.map { it.bowl() }, layout, poses, CRATER_SEED xor salt),
+            rims = Instanced(shapes.map { it.rim() }, layout, poses, CRATER_SEED xor salt, wornBy = wear),
+            bowls = Instanced(shapes.map { it.bowl() }, layout, poses, CRATER_SEED xor salt, wornBy = wear),
         )
     }
 

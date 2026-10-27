@@ -154,6 +154,23 @@ class LandVarietyCheck : FunSpec({
         }
     }
 
+    test("instances follow the wear from their freshest template to their most worn, and draw as before without it") {
+        fun pillar(height: Int) = Cylinder(Direction.Axis.Y, 0, LOW_GROUND + height / 2, 0, radius = 4.0, halfLength = height / 2.0)
+        val templates = listOf(pillar(FRESH_PILLAR), pillar(WORN_PILLAR))
+        val layout = Scatter(cellSize = 40.0, leastPerCell = 1, mostPerCell = 1, density = Density(1.0, 1.0, 1.0))
+        fun heightsUnder(wear: Wear?): Set<Int> {
+            val field = Instanced(templates, layout, Variation.NONE, SEED, wornBy = wear)
+            return (-400..400 step 2).flatMap { x -> (-400..400 step 2).mapNotNull { z -> field.columnSpans(x, z).highestSolidY } }
+                .map { it - LOW_GROUND }.toSet()
+        }
+        check(heightsUnder(Wear(SEED, mean = 0.0, spread = 0.0)) == setOf(FRESH_PILLAR)) { "unworn ground drew a worn template" }
+        check(heightsUnder(Wear(SEED, mean = Wear.MOST, spread = 0.0)) == setOf(WORN_PILLAR)) { "the most worn ground drew a fresh one" }
+        check(heightsUnder(Wear.EVEN) == setOf(FRESH_PILLAR, WORN_PILLAR)) { "the ordinary wear drew only one kind" }
+        val before = Instanced(templates, layout, Variation.NONE, SEED)
+        val encoded = TerrainField.CODEC.encodeStart(JsonOps.INSTANCE, before).getOrThrow()
+        check(!encoded.toString().contains("worn_by")) { "a field with no wear wrote one" }
+    }
+
     test("an Age written before variety stays the same everywhere and unworn, and a new one does not") {
         fun read(version: Int): AgeComposition {
             val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.CLIFFS))), seed = SEED, generatorVersion = version)
@@ -179,6 +196,8 @@ private const val MESA_RADIUS = 100.0
 private const val STEP = 7.0
 private const val NOTCH_DEPTH = 3.0
 private const val NOTCH_HEIGHT = 4.0
+private const val FRESH_PILLAR = 10
+private const val WORN_PILLAR = 20
 
 /** As far out as scree ten deep, falling at its angle of rest, can reach past the grid point at a face's foot. */
 private const val SCREE_REACH = 32.0
