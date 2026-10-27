@@ -34,16 +34,22 @@ internal class Resolving(val world: WorldFacts, landings: List<Landing>, val dra
     }
 
     /**
-     * Records the share each of [groups] went to of a part divided between them — unless `and` joined them all,
-     * which is a division the writer asked for and reads as one.
+     * Records the share each of [groups] went to of [aspect] divided between them — unless `and` joined them all,
+     * which is a division the writer asked for and reads as one. One between rivals marks [aspect] [contested].
      */
-    fun divide(groups: List<List<Landing>>) {
+    fun divide(aspect: Aspect, groups: List<List<Landing>>) {
         if (groups.size < 2) return
         val joinings = groups.flatten().map { it.joined }.distinct()
         val askedFor = joinings.size == 1 && joinings.single() != null
         if (askedFor) return
+        contested += aspect
         for ((share, group) in groups.withIndex()) group.forEach { divide(it, share) }
     }
+
+    private val contested = mutableSetOf<Aspect>()
+
+    /** Whether [aspect] was divided between rival words rather than between words `and` joined. */
+    fun wasContested(aspect: Aspect): Boolean = aspect in contested
 
     /** Which share of a divided part each landing went to, where one was divided. */
     fun divisions(): Map<LandingAt, Int> = shares.toMap()

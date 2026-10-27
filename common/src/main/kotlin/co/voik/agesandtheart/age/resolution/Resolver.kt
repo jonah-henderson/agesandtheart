@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Register
+import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
@@ -32,7 +33,7 @@ object Resolver {
         val resolved = with(resolving) { describedMembers(weighed(steer(cast(compose(filled))))) }
         val template = book.template?.let(AgeTemplate::named) ?: AgeTemplate.ORDINARY
         val spokenTo = resolving.said.map { it.aspect }.toSet()
-        val composition = with(resolving) { counted(mintedFeatures(resolved)) }.laidOver(template.world(), spokenTo)
+        val composition = with(resolving) { reconciled(counted(mintedFeatures(resolved))) }.laidOver(template.world(), spokenTo)
             .copy(banned = ofTheWholeAge.flatMap { it.banned }.toSet(), linkIn = ofTheWholeAge.firstNotNullOfOrNull { it.linksIn })
         resolving.flaws += resolving.mintingsThatCannotHold()
         resolving.flaws += resolving.tidesWithNoMoon(composition)
@@ -46,6 +47,18 @@ object Resolver {
             cameToNothing = resolving.cameToNothing(),
             divided = resolving.divisions(),
         )
+    }
+
+    /**
+     * Landforms that `and` joined, or that one word brought together, meeting as one country ([Seam.MERGED]) where
+     * every one of them has ground to ease into the next. Rival words keep the seam chance draws.
+     */
+    private fun Resolving.reconciled(composition: AgeComposition): AgeComposition {
+        val divided = composition.membersIn(Aspect.TERRAIN) > 1
+        val everyOneCanMeet = composition.terrains.all(Terrain::reconciles)
+        val formAskedFor = composition.spreadOf(Aspect.TERRAIN).drawn != null
+        if (!divided || !everyOneCanMeet || formAskedFor || wasContested(Aspect.TERRAIN)) return composition
+        return composition.copy(spreads = composition.spreads.withSeam(Aspect.TERRAIN, Seam.MERGED))
     }
 
     /** A seed-sized number for what was written, whatever order it was laid in, so silence varies with the book. */

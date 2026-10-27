@@ -17,6 +17,7 @@ import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.LandSize
 import co.voik.agesandtheart.worldgen.LandVariety
+import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.SolidField
 import co.voik.agesandtheart.worldgen.SkylandsField
@@ -563,6 +564,13 @@ enum class Terrain(
     }?.let { varied(it, options, salt) }
 
     /**
+     * Whether this landform's ground can be eased into another's where two meet ([Seam.MERGED]): a surface standing
+     * on rock below it. Not what hangs in the void or fills the world to its roof, and not the made shapes, which
+     * would lean.
+     */
+    val reconciles: Boolean get() = this in RECONCILES
+
+    /**
      * [field] as this landform changes across the world ([LandVariety]) — the rock, and the water it carries, alike,
      * so a river still lies in its bed. Which landforms drift in height and which bend is [DRIFTS_IN_HEIGHT] and
      * [BENDS].
@@ -632,6 +640,10 @@ enum class Terrain(
          */
         private val DRIFTS_IN_HEIGHT by lazy {
             setOf(HILLS, ERODED, PILLARS, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, CRATERLANDS, CONTINENTS)
+        }
+
+        private val RECONCILES by lazy {
+            setOf(HILLS, FLATLANDS, ERODED, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS, CRATERLANDS, CONTINENTS)
         }
 
         /** The landforms whose outlines bend. Not the made shapes — pillars and pyramids — nor the Spire's islands. */

@@ -82,7 +82,7 @@ internal fun Resolving.fill(aspect: Aspect): List<Filling> {
     val room = if (aspect.spatial && whole == null) MOST_TERRITORIES else 1
     val kept = ordered.take(room)
     for (unseated in ordered.drop(room)) unseated.landings.forEach { lose(it, Decision.MEMBERS) }
-    divide(kept.map { it.landings })
+    divide(aspect, kept.map { it.landings })
 
     val chosen = mutableListOf<Taggable>()
     for ((index, territory) in kept.withIndex()) chosen += pick(territory.candidates, speaking, aspect, seat = index)

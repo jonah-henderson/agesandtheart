@@ -51,7 +51,7 @@ internal fun Resolving.steer(composition: AgeComposition): AgeComposition {
                     }
                 }
                 canFracture(steered, aspect, parameter, contenders) -> {
-                    divide(groupsOf(parameter, contenders))
+                    divide(aspect, groupsOf(parameter, contenders))
                     fractured(steered, aspect, parameter, contenders)
                 }
                 else -> contended(steered, aspect, parameter, contenders, asWritten = setting.sortedBy { it.page })
@@ -197,7 +197,7 @@ private fun Resolving.spannedIn(
         if (!aspect.membersAreDescribed) return written(composition, member = 0, bounds = agreed)
         return (0..<maxOf(composition.membersIn(aspect), 1)).fold(composition) { held, member -> written(held, member, agreed) }
     }
-    divide(groups)
+    divide(aspect, groups)
     var fractured = composition.withMembers(aspect, groups.size)
     for ((member, bounds) in climates.withIndex()) fractured = written(fractured, member, settledWith(bentTo(bounds)))
     return fractured

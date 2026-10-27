@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
+import kotlin.math.abs
 import kotlin.math.ln
 
 /**
@@ -128,6 +129,30 @@ data class RegionMap(
         return Contest(best, runnerUp, (bestTilted - runnerUpTilted) / ClaimTilt.slopeAt(bestClaim))
     }
 
+    /**
+     * How far each member's claim falls short of the winner's at this column, in blocks — zero for the winner, and
+     * for every member a column stands on the seam of. Measured as [blocksFromSeamAt] is, so near a seam a member
+     * is about as far behind as the column is from it.
+     */
+    fun blocksBehindAt(worldX: Int, worldZ: Int): DoubleArray {
+        if (claims.size <= 1) return doubleArrayOf(0.0)
+        val sampleX = (worldX - originX) / stretch
+        val sampleZ = (worldZ - originZ) / stretch
+        val raw = DoubleArray(claims.size) { member -> claims[member].get(sampleX, 0.0, sampleZ).toDouble() }
+        val tilted = DoubleArray(claims.size) { member -> ClaimTilt.of(raw[member]) + tilts.getOrElse(member) { 0.0 } }
+        val winner = tilted.indices.maxBy { tilted[it] }
+        // Over the slope between the two claims rather than at one, which jumps at the tilt's knots and would jump
+        // the distance with it.
+        fun slopeBetween(member: Int): Double {
+            val apart = raw[winner] - raw[member]
+            return if (abs(apart) < SAME_CLAIM) ClaimTilt.slopeAt(raw[winner])
+            else (ClaimTilt.of(raw[winner]) - ClaimTilt.of(raw[member])) / apart
+        }
+        return DoubleArray(claims.size) { member ->
+            if (member == winner) 0.0 else (tilted[winner] - tilted[member]) / slopeBetween(member) * stretch
+        }
+    }
+
     /** See [contestAt]. [contested] is the winner's margin over the runner-up, in claim units. */
     private data class Contest(val winner: Int, val runnerUp: Int, val contested: Double)
 
@@ -162,6 +187,9 @@ data class RegionMap(
         private const val MEMBER_STRIDE = 0x9E37_79B9L
 
         private const val HALF = 0.5
+
+        /** Claims nearer than this are one claim, and take the tilt's slope where they stand. */
+        private const val SAME_CLAIM = 1.0e-6
 
         // A share of zero would ask for a territory of no size and take the logarithm to negative
         // infinity. Held above it rather than rejected, since a share arrives from a recipe.

@@ -493,6 +493,12 @@ instrument(
 )
 
 instrument(
+    "joined", "documentation", "co.voik.agesandtheart.preview.JoinedPreviewKt",
+    "Renders two landforms dividing the ground, with a hard seam and reconciled (build/preview). " +
+        "Takes two landform keys, a radius and a step, e.g. --args=\"gentle sheer 1024 4\"",
+)
+
+instrument(
     "terraindiff", "verification", "co.voik.agesandtheart.preview.TerrainDiffKt",
     "Compares two saved worlds Age by Age, block for block. Takes two world folders, " +
         "e.g. --args=\"before/world after/world\" (absolute paths — Gradle runs from this module).",

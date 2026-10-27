@@ -106,6 +106,12 @@ enum class Seam(val key: String, val share: Double, val frequency: Int) : String
      * displacing three — see `FaultCheck.noSeamBothBlendsAndDisplaces`.
      */
     FUZZED("fuzzed", 0.04, 5),
+
+    /**
+     * The ground eased from one territory's height to the other's, so two landforms meet as one country —
+     * `Reconciled`'s business. Never drawn by chance: it is what `and` asks of landforms that can meet so.
+     */
+    MERGED("merged", 0.0, 0),
     ;
 
     /**
@@ -117,7 +123,7 @@ enum class Seam(val key: String, val share: Double, val frequency: Int) : String
     val displaces: Boolean
         get() = when (this) {
             SCARP, RIFT, WALL -> true
-            SHEARED, FUZZED -> false
+            SHEARED, FUZZED, MERGED -> false
         }
 
     /**
