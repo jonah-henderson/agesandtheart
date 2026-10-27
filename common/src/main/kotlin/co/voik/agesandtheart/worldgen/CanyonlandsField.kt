@@ -1,10 +1,11 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Canyon
-import co.voik.agesandtheart.worldgen.field.CanyonProfile
-import co.voik.agesandtheart.worldgen.field.Drainage
+import co.voik.agesandtheart.worldgen.field.CanyonCourse
 import co.voik.agesandtheart.worldgen.field.Slab
+import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.WanderingCanyons
 import co.voik.agesandtheart.worldgen.field.Weathered
 import kotlin.math.roundToInt
 
@@ -32,7 +33,7 @@ object CanyonlandsField {
      * and spacing, and the weather's grain — so a smaller country is the same mesas at a lower table.
      */
     fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY, variety: Double = 0.0): TerrainField =
-        weathered(if (variety > 0.0) branching(salt, scale) else bareWorld(salt, scale), scale)
+        weathered(if (variety > 0.0) wandering(salt, scale) else bareWorld(salt, scale), scale)
 
     /** Any table of this family's, weathered at [scale] — [ShatteredField]'s too. */
     fun weathered(bare: TerrainField, scale: Double): TerrainField {
@@ -49,25 +50,20 @@ object CanyonlandsField {
         Canyon.cut(ground(scale), families(salt, scale))
 
     /**
-     * The same country as a river system cut it: canyons that branch, join and deepen downstream on every heading,
-     * in place of three families that tile the table into a lattice. A canyon's benched profile on [Drainage]'s
-     * network, at a canyon's depth, with the table nearly flat; what the land varies by is how the water runs.
+     * The same country with canyons that wander on every heading, in place of three families that tile the table into
+     * a lattice: a set crossing the whole table and a closer set that comes and goes, so the mesas left between them
+     * come in every size.
      */
-    fun branching(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField = Drainage(
-        floorY = VerticalWindow.MIN_Y,
-        landY = PLATEAU_Y,
-        relief = TABLE_RELIEF,
-        landStretch = WATERSHED_STRETCH,
-        spacing = REACH,
-        jitter = REACH_JITTER,
-        seed = BRANCHING_SEED xor salt,
-        profile = CanyonProfile.DEFAULT,
-        valleyDepth = HEADWATER_DEPTH,
-        depthPerOrder = DEPTH_PER_ORDER,
-        halfWidth = HEADWATER_HALF_WIDTH,
-        widthPerOrder = WIDTH_PER_ORDER,
-        meander = MEANDER,
-    ).resized(scale / SizeScale.COLOSSAL, FLOOR_Y)
+    fun wandering(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField = Subtract(
+        ground(scale),
+        WanderingCanyons(
+            courses = WANDERING_COURSES,
+            floorY = FLOOR_Y,
+            rimY = PLATEAU_Y + 1,
+            seed = WANDERING_SEED xor salt,
+            bedRelief = BED_RELIEF,
+        ).resized(scale / SizeScale.COLOSSAL, FLOOR_Y),
+    )
 
     /** The tableland the canyons are cut out of. */
     fun ground(scale: Double = SizeScale.ORDINARY): TerrainField =
@@ -142,19 +138,13 @@ object CanyonlandsField {
     private const val MEANDER_REACH = 200.0
     private const val MEANDER_STRETCH = 50.0
 
-    // The branching country, at `colossal`. The table rolls by little more than a bench, so the mesas stay
-    // tables; a headwater canyon cuts eighty blocks and a trunk gathering three streams reaches the river floor. The
-    // widest trunk, with the jitter, stays inside a reach, as Drainage requires.
-    private const val TABLE_RELIEF = 14.0
-    private const val WATERSHED_STRETCH = 80.0
-    private const val REACH = 380.0
-    private const val REACH_JITTER = 0.4
-    private const val HEADWATER_DEPTH = 80.0
-    private const val DEPTH_PER_ORDER = 0.3
-    private const val HEADWATER_HALF_WIDTH = 55.0
-    private const val WIDTH_PER_ORDER = 0.35
-    private const val MEANDER = 130.0
-    private const val BRANCHING_SEED = 0xB4A_C4E5L
+    // The wandering country, at `colossal`: contours about a kilometre apart crossing all of it, and a set half as far
+    // apart over about half of it.
+    private val WANDERING_COURSES = listOf(
+        CanyonCourse(stretch = 1300.0, halfWidth = 70.0),
+        CanyonCourse(stretch = 650.0, halfWidth = 48.0, presence = 0.55),
+    )
+    private const val WANDERING_SEED = 0xB4A_C4E5L
 
     /** Shallower than the grand canyon's, the river being smaller. */
     private const val BED_RELIEF = 5.0

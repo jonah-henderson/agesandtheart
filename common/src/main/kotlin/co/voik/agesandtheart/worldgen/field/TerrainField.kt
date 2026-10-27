@@ -86,6 +86,7 @@ enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<ou
     RIFT({ Rift.CODEC }),
     RIDGE({ Ridge.CODEC }),
     CANYON({ Canyon.CODEC }),
+    WANDERING_CANYONS({ WanderingCanyons.CODEC }),
     CELL_CANYON({ CellCanyon.CODEC }),
     DRAINAGE({ Drainage.CODEC }),
     MOUNTAIN_RANGE({ MountainRange.CODEC }),

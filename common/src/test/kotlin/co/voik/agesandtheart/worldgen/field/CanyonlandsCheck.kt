@@ -18,13 +18,14 @@ import io.kotest.core.spec.style.FunSpec
 class CanyonlandsCheck : FunSpec({
 
     val world = CanyonlandsField.world(scale = SizeScale.COLOSSAL)
+    val wandering = CanyonlandsField.world(scale = SizeScale.COLOSSAL, variety = 1.0)
 
-    fun cutShareAround(originX: Int, originZ: Int): Double {
+    fun cutShareAround(originX: Int, originZ: Int, of: TerrainField = world): Double {
         var columns = 0
         var cut = 0
         for (worldZ in originZ - REACH..originZ + REACH step STRIDE) {
             for (worldX in originX - REACH..originX + REACH step STRIDE) {
-                val top = world.columnSpans(worldX, worldZ).highestSolidY ?: continue
+                val top = of.columnSpans(worldX, worldZ).highestSolidY ?: continue
                 columns++
                 if (top < CanyonlandsField.PLATEAU_Y - RIM_MARGIN) cut++
             }
@@ -42,6 +43,14 @@ class CanyonlandsCheck : FunSpec({
         val farAway = cutShareAround(FAR, -FAR)
         check(here in LEAST_CUT..MOST_CUT) { "at the origin the canyons took ${share(here)} of the ground" }
         check(farAway in LEAST_CUT..MOST_CUT) { "twenty thousand out they took ${share(farAway)}" }
+    }
+
+    test("wandering canyons are as dense far from the origin as at it, and leave mesas standing") {
+        val here = cutShareAround(0, 0, wandering)
+        val farAway = cutShareAround(FAR, -FAR, wandering)
+        check(here in LEAST_WANDERING_CUT..MOST_CUT) { "at the origin the canyons took ${share(here)} of the ground" }
+        check(farAway in LEAST_WANDERING_CUT..MOST_CUT) { "twenty thousand out they took ${share(farAway)}" }
+        check(1.0 - here > LEAST_STANDING) { "only ${share(1.0 - here)} of the ground was left at plateau height" }
     }
 
     /** And there must be mesa left between them, or the network has eaten the world it was cut into. */
@@ -83,12 +92,13 @@ class CanyonlandsCheck : FunSpec({
     }
 
     test("the world round-trips through its codec") {
-        val written = CanyonlandsField.world(scale = SizeScale.COLOSSAL)
-        val encoded = TerrainField.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, written)
-            .getOrThrow { failure -> error("canyonlands would not encode: $failure") }
-        val read = TerrainField.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, encoded)
-            .getOrThrow { failure -> error("canyonlands would not read back: $failure") }
-        check(read == written) { "read back as a different world" }
+        for (written in listOf(world, wandering)) {
+            val encoded = TerrainField.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, written)
+                .getOrThrow { failure -> error("canyonlands would not encode: $failure") }
+            val read = TerrainField.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, encoded)
+                .getOrThrow { failure -> error("canyonlands would not read back: $failure") }
+            check(read == written) { "read back as a different world" }
+        }
     }
 }) {
     private companion object {
@@ -103,6 +113,9 @@ class CanyonlandsCheck : FunSpec({
         const val RIM_MARGIN = 24
 
         const val LEAST_CUT = 0.15
+
+        /** Wandering canyons leave broad tables between them, so they take less than the families. */
+        const val LEAST_WANDERING_CUT = 0.08
         const val MOST_CUT = 0.7
         const val LEAST_STANDING = 0.3
 
