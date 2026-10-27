@@ -168,6 +168,8 @@ data class Canyon(
      * neighbour's half and is clipped at the join.
      */
     val spacing: Double = NO_FAMILY,
+    /** Where along its length the canyon opens wider, by each landmark's factor: an amphitheatre in the gorge. */
+    val landmarks: Landmarks = Landmarks.NONE,
 ) : TerrainField {
     override val kind = FieldKind.CANYON
 
@@ -225,7 +227,7 @@ data class Canyon(
     private fun widthOf(fromCentre: Double, alongAxis: Double, ownPlane: Double): Double {
         val plane = if (fromCentre < 0.0) -FLANK_SEPARATION else FLANK_SEPARATION
         val stands = meanderNoise.get(alongAxis / flankStretch, plane + ownPlane, 0.0).toDouble() * flankVariation
-        return halfWidth * (1.0 + stands).coerceAtLeast(CanyonProfile.SMALLEST_SHARE)
+        return halfWidth * (1.0 + stands).coerceAtLeast(CanyonProfile.SMALLEST_SHARE) * landmarks.factorAlong(alongAxis)
     }
 
     private val meanderNoise = fieldNoise(seed, MEANDER_OCTAVE, MEANDER_AMPLITUDES)
@@ -252,6 +254,7 @@ data class Canyon(
         roughness = roughness * factor,
         bedRelief = bedRelief * factor,
         spacing = spacing * factor,
+        landmarks = landmarks.resized(factor),
     )
 
     companion object {
@@ -335,6 +338,7 @@ data class Canyon(
                     .forGetter(Canyon::flankVariation),
                 Codec.DOUBLE.optionalFieldOf("bed_relief", DEFAULT_BED_RELIEF).forGetter(Canyon::bedRelief),
                 Codec.DOUBLE.optionalFieldOf("spacing", NO_FAMILY).forGetter(Canyon::spacing),
+                Landmarks.CODEC.optionalFieldOf("landmarks", Landmarks.NONE).forGetter(Canyon::landmarks),
             ).apply(instance, ::Canyon)
         }
     }

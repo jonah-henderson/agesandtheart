@@ -42,12 +42,14 @@ data class Gullied(
     override val samplesPerColumn = base.samplesPerColumn + 2
 
     private val lattice = ColumnMemo { latticeX, latticeZ -> base.columnSpans(latticeX * LATTICE, latticeZ * LATTICE) }
+    private val columns = ColumnMemo(base::columnSpans)
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
-        val standing = base.columnSpans(worldX, worldZ)
+        val standing = columns.at(worldX, worldZ)
         val top = standing.ranges.lastOrNull() ?: return standing
         val (slopeX, slopeZ) = slopeAt(worldX, worldZ) ?: return standing
-        val steepness = sqrt(slopeX * slopeX + slopeZ * slopeZ)
+        // The grid's slope blends across a cliff onto the flat beside it, so the ground's own has the last word.
+        val steepness = minOf(sqrt(slopeX * slopeX + slopeZ * slopeZ), steepnessHere(worldX, worldZ, top.last))
         val worn = smoothstep((steepness - FLATTEST_WORN) / (STEEPEST_WORN - FLATTEST_WORN)) * wear.at(worldX, worldZ)
         if (worn <= 0.0) return standing
         val aboveTheFloor = (top.last - floorY).toDouble()
@@ -118,6 +120,14 @@ data class Gullied(
 
     private fun topAt(latticeX: Int, latticeZ: Int): Int? = lattice.at(latticeX, latticeZ).highestSolidY
 
+    /** How steep the ground is across this column itself, [NEAR] blocks either way; its own top where a neighbour has none. */
+    private fun steepnessHere(worldX: Int, worldZ: Int, top: Int): Double {
+        fun topNear(x: Int, z: Int) = columns.at(x, z).highestSolidY ?: top
+        val eastward = (topNear(worldX + NEAR, worldZ) - topNear(worldX - NEAR, worldZ)) / (2.0 * NEAR)
+        val southward = (topNear(worldX, worldZ + NEAR) - topNear(worldX, worldZ - NEAR)) / (2.0 * NEAR)
+        return sqrt(eastward * eastward + southward * southward)
+    }
+
     override fun resized(factor: Double, pivotY: Int) = copy(
         base = base.resized(factor, pivotY),
         depth = depth * factor,
@@ -129,6 +139,9 @@ data class Gullied(
     companion object {
         /** How far apart the heights the slope is read from stand. */
         private const val LATTICE = 8
+
+        /** How far either side of a column its own slope is read. */
+        private const val NEAR = 3
 
         /** Below this slope ground is not worn at all; at [STEEPEST_WORN] it is worn in full. */
         private const val FLATTEST_WORN = 0.15

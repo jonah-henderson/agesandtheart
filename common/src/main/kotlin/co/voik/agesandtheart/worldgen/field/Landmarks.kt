@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen.field
 
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.sqrt
 
@@ -36,6 +37,26 @@ data class Landmarks(
         return 1.0 + boost * nearest
     }
 
+    /**
+     * The same along one line, for a landform that is a line — [distance] measured along it, with one landmark at most
+     * to each [spacing] of it.
+     */
+    fun factorAlong(distance: Double): Double {
+        if (chance <= 0.0 || boost <= 0.0 || spacing <= 0.0) return 1.0
+        val cell = floor(distance / spacing).toInt()
+        var nearest = 0.0
+        for (along in cell - 1..cell + 1) {
+            val isDrawn = cellHash(along, ON_A_LINE, seed.toInt()) + HALF < chance
+            if (!isDrawn) continue
+            val point = (along + HALF + JITTER * cellHash(along, ON_A_LINE, seed.toInt() xor JITTER_X_SALT)) * spacing
+            nearest = maxOf(nearest, smoothstep(1.0 - abs(distance - point) / radius))
+        }
+        return 1.0 + boost * nearest
+    }
+
+    /** Whether a landmark is drawn in any cell at all. */
+    val anyDrawn: Boolean get() = chance > 0.0 && boost > 0.0 && spacing > 0.0
+
     fun resized(factor: Double) = copy(spacing = spacing * factor, radius = radius * factor)
 
     private fun smoothstep(share: Double): Double {
@@ -50,6 +71,9 @@ data class Landmarks(
         private const val JITTER = 0.5
         private const val JITTER_X_SALT = 0x1A4D
         private const val JITTER_Z_SALT = 0x3A2C
+
+        /** The second cell coordinate of a line's landmarks, apart from any of the plane's. */
+        private const val ON_A_LINE = 0x7FFF_0000
 
         val NONE = Landmarks(seed = 0L, spacing = 0.0, radius = 0.0, boost = 0.0, chance = 0.0)
 

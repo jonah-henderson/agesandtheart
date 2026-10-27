@@ -48,13 +48,7 @@ object LandVariety {
                 STRETCH_SCALE * landScale,
                 STRETCH_SWING * strength,
                 VerticalWindow.HIGHEST_BLOCK_Y - ROOM_TO_GROW,
-                Landmarks(
-                    salt xor LANDMARK_SALT,
-                    LANDMARK_RADIUS * landScale * RADII_PER_LANDMARK_CELL,
-                    LANDMARK_RADIUS * landScale,
-                    LANDMARK_BOOST,
-                    LANDMARK_CHANCE * strength,
-                ),
+                landmarksFor(strength, landScale, salt),
             )
         } ?: field
         val worn = wornAbove?.takeIf { erosion > 0.0 }?.let { floorY ->
@@ -70,6 +64,18 @@ object LandVariety {
             BEND_BLOCKS * min(strength, MOST_BEND) * landScale,
         )
     }
+
+    /**
+     * Where a landform's landmarks stand and how tall: the drift's own, and what a landform whose landmark is not a
+     * taller self (a great pyramid, a hollow in the tangle, a gorge opening wide) places by.
+     */
+    fun landmarksFor(strength: Double, landScale: Double, salt: Long): Landmarks = Landmarks(
+        salt xor LANDMARK_SALT,
+        LANDMARK_RADIUS * landScale * RADII_PER_LANDMARK_CELL,
+        LANDMARK_RADIUS * landScale,
+        LANDMARK_BOOST,
+        LANDMARK_CHANCE * strength.coerceAtLeast(0.0),
+    )
 
     /** How worn each place is, which anything a landform builds by wear reads as well as the weather's own wear. */
     fun wearOf(strength: Double, erosion: Double, landScale: Double, salt: Long): Wear =

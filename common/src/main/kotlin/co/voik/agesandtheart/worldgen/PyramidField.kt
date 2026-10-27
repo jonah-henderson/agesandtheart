@@ -3,9 +3,11 @@ package co.voik.agesandtheart.worldgen
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Grid
 import co.voik.agesandtheart.worldgen.field.Instanced
+import co.voik.agesandtheart.worldgen.field.Landmarks
 import co.voik.agesandtheart.worldgen.field.Placement
 import co.voik.agesandtheart.worldgen.field.Pyramid
 import co.voik.agesandtheart.worldgen.field.Radial
+import co.voik.agesandtheart.worldgen.field.Scatter
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
@@ -40,13 +42,32 @@ object PyramidField {
     /**
      * The pyramids, arranged as asked. The three arrangements were three separate presets before aspects
      * existed; they are one preset and one enumerated question now, which is what §3.2 is for.
+     *
+     * Where [landmarks] are drawn a great pyramid stands, in whatever arrangement the rest keep.
      */
-    fun world(arrangement: String, salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
-        when (arrangement) {
+    fun world(
+        arrangement: String,
+        salt: Long = 0L,
+        scale: Double = SizeScale.ORDINARY,
+        landmarks: Landmarks = Landmarks.NONE,
+    ): TerrainField {
+        val pyramids = when (arrangement) {
             "rings" -> world(rings(), Variation.NONE, salt, scale)
             "varied" -> world(gradientGrid(), variedPoses(), salt, scale)
             else -> world(gradientGrid(), Variation.NONE, salt, scale)
         }
+        if (!landmarks.anyDrawn) return pyramids
+        return Union(listOf(pyramids, greatPyramids(landmarks, scale)))
+    }
+
+    /** One great pyramid where each landmark is drawn, as tall as the world leaves room for at its [scale]. */
+    private fun greatPyramids(landmarks: Landmarks, scale: Double): TerrainField {
+        val height = minOf(GREAT_PYRAMID_HEIGHT, ((VerticalWindow.HIGHEST_BLOCK_Y - GROUND_TOP - 1) / scale).toInt())
+        val great = Pyramid(centerX = 0, centerZ = 0, baseY = GROUND_TOP + 1, height = height, baseHalfWidth = height)
+        val drawn = Density(atOrigin = landmarks.chance, atEdge = landmarks.chance, falloffRadius = 1.0)
+        val layout = Scatter(cellSize = landmarks.spacing / scale, leastPerCell = 1, mostPerCell = 1, density = drawn)
+        return Instanced(listOf(great), layout, Variation.NONE, seed = landmarks.seed).resized(scale, GROUND_TOP + 1)
+    }
 
     private fun variedPoses() = Variation(
         yawSteps = YAW_STEPS,
@@ -72,6 +93,9 @@ object PyramidField {
     }
 
     private val PYRAMID_HEIGHTS = listOf(8, 16, 24, 32)
+
+    /** Two and a half times the tallest of the rest, before the size. */
+    private const val GREAT_PYRAMID_HEIGHT = 80
     private const val GROUND_TOP = 63
     private const val SCATTER_SEED = 0x5EED_C0DEL
 

@@ -1,9 +1,15 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Caved
+import co.voik.agesandtheart.worldgen.field.Density
+import co.voik.agesandtheart.worldgen.field.Ellipsoid
+import co.voik.agesandtheart.worldgen.field.Instanced
+import co.voik.agesandtheart.worldgen.field.Landmarks
+import co.voik.agesandtheart.worldgen.field.Scatter
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.Variation
 
 /**
  * Minecraft's noise caves with the rock and the air exchanged: solid where a cave would have been cut, open
@@ -33,7 +39,7 @@ object InverseCavesField {
      * much coarser, so every ridge, plateau and shaft grows while the cast still fills the world top to
      * bottom. Stretching the finished shape instead would squash or lose half of it against the ceiling.
      */
-    fun world(salt: Long, scale: Double = SizeScale.ORDINARY): TerrainField {
+    fun world(salt: Long, scale: Double = SizeScale.ORDINARY, landmarks: Landmarks = Landmarks.NONE): TerrainField {
         // The whole band: the cave noises keep producing all the way up, nine columns in ten past y=280.
         val everything = Slab(lowY = VerticalWindow.MIN_Y, highY = VerticalWindow.TOP_Y)
         val hollowed = Caved(
@@ -44,7 +50,26 @@ object InverseCavesField {
             entranceReach = ENTRANCE_REACH,
             featureScale = scale,
         )
-        return Subtract(everything, hollowed)
+        val cast = Subtract(everything, hollowed)
+        if (!landmarks.anyDrawn) return cast
+        return Subtract(cast, hollows(landmarks))
+    }
+
+    /**
+     * A vast open hollow in the tangle where each landmark is drawn — the landmark of a landform with no top to raise,
+     * as wide as a landmark reaches and a little over half the world's height.
+     */
+    private fun hollows(landmarks: Landmarks): TerrainField {
+        val hollow = Ellipsoid(
+            centerX = 0,
+            centerY = HOLLOW_Y,
+            centerZ = 0,
+            radiusXZ = landmarks.radius,
+            radiusY = HOLLOW_HALF_HEIGHT,
+        )
+        val drawn = Density(atOrigin = landmarks.chance, atEdge = landmarks.chance, falloffRadius = 1.0)
+        val layout = Scatter(cellSize = landmarks.spacing, leastPerCell = 1, mostPerCell = 1, density = drawn)
+        return Instanced(listOf(hollow), layout, Variation.NONE, seed = landmarks.seed)
     }
 
     /**
@@ -55,4 +80,8 @@ object InverseCavesField {
     private const val ENTRANCE_REACH = 0
 
     private const val CAVE_SEED = 0x1_C0_57L
+
+    /** The middle of a hollow, and how far it reaches up and down from it — clear of the floor and of the sea. */
+    private const val HOLLOW_Y = 128
+    private const val HOLLOW_HALF_HEIGHT = 96.0
 }

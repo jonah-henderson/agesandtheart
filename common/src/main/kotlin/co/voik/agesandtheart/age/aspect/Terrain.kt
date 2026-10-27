@@ -26,6 +26,7 @@ import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.biome.Elevation
 import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.field.Caved
+import co.voik.agesandtheart.worldgen.field.Landmarks
 import co.voik.agesandtheart.worldgen.field.MountainRange
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.Wear
@@ -69,13 +70,22 @@ private fun varietyOf(options: Options, salt: Long): Double = (options.steer(Ter
 private const val UNSAID_VARIETY = 0.0
 
 /**
- * How worn the land is on average, read off [Terrain.WEAR]: none, the ordinary amount unsaid, and twice it at the most
- * — and none at all on an Age written before the weather wore the land.
+ * How worn the land is on average, read off [Terrain.WEAR]: none at the bottom, [ordinarily] unsaid, and twice the
+ * ordinary amount at the top — and none at all on an Age written before the weather wore the land.
  */
-private fun erosionOf(options: Options, salt: Long): Double =
-    if (options.isTrue(Terrain.FORMERLY_UNWORN)) 0.0 else (options.steer(Terrain.WEAR, salt) ?: UNSAID_WEAR) + 1.0
+private fun erosionOf(options: Options, salt: Long, ordinarily: Double = ORDINARY_WEAR): Double {
+    if (options.isTrue(Terrain.FORMERLY_UNWORN)) return 0.0
+    val steer = options.steer(Terrain.WEAR, salt) ?: UNSAID_WEAR
+    return if (steer < 0.0) ordinarily * (1.0 + steer) else ordinarily + steer * (MOST_WEAR - ordinarily)
+}
 
 private const val UNSAID_WEAR = 0.0
+private const val ORDINARY_WEAR = 1.0
+private const val MOST_WEAR = 2.0
+
+/** Where a landform's landmarks stand, at [landScale]; none on an Age that does not vary. */
+private fun landmarksOf(options: Options, salt: Long, landScale: Double): Landmarks =
+    LandVariety.landmarksFor(varietyOf(options, salt), landScale, salt)
 
 /** [Terrain.SIZE] as written, for the landforms hanging in the void, which [LandSize] leaves alone. */
 private fun scaleAsWritten(options: Options, salt: Long): Double = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
@@ -179,7 +189,10 @@ enum class Terrain(
     PYRAMIDS(
         "pyramidal",
         waterline = null,
-        build = { options, salt -> PyramidField.world(options.of(ARRANGEMENT), salt, scaleOf(options, salt)) },
+        build = { options, salt ->
+            val scale = scaleOf(options, salt)
+            PyramidField.world(options.of(ARRANGEMENT), salt, scale, landmarksOf(options, salt, scale))
+        },
         axes = { listOf(ARRANGEMENT, SIZE) },
     ),
 
@@ -192,7 +205,8 @@ enum class Terrain(
         "cleft",
         waterline = CanyonField.RIVER_LEVEL,
         build = { options, salt ->
-            CanyonField.world(bearingAt(options.steer(BEARING, salt)), salt, scaleOf(options, salt))
+            val scale = scaleOf(options, salt)
+            CanyonField.world(bearingAt(options.steer(BEARING, salt)), salt, scale, landmarksOf(options, salt, scale))
         },
         axes = { listOf(BEARING, SIZE) },
     ),
@@ -297,7 +311,10 @@ enum class Terrain(
     INVERSE_CAVES(
         "tangled",
         waterline = null,
-        build = { options, salt -> InverseCavesField.world(salt, scaleAsWritten(options, salt)) },
+        build = { options, salt ->
+            val scale = scaleAsWritten(options, salt)
+            InverseCavesField.world(salt, scale, landmarksOf(options, salt, scale))
+        },
         waterlineWhenASeaIsNamed = InverseCavesField.NAMED_SEA_LEVEL,
         axes = { listOf(SIZE) },
     ),
@@ -594,6 +611,10 @@ enum class Terrain(
      */
     val reconciles: Boolean get() = this in RECONCILES
 
+    /** The height this landform's drift stretches from: its waterline, or for the skylands the plane they float at. */
+    private fun driftsAbove(options: Options, salt: Long): Int? =
+        if (this == SKYLANDS) SkylandsField.PLANE_Y else waterlineAt(options, salt)
+
     /**
      * [field] as this landform changes across the world ([LandVariety]) — the rock, and the water it carries, alike,
      * so a river still lies in its bed; only the rock is worn. Which landforms drift in height, which are worn and
@@ -601,12 +622,12 @@ enum class Terrain(
      */
     private fun varied(field: TerrainField, options: Options, salt: Long, isRock: Boolean): TerrainField = LandVariety.over(
         field,
-        stretchesAbove = if (this in DRIFTS_IN_HEIGHT) waterlineAt(options, salt) else null,
+        stretchesAbove = if (this in DRIFTS_IN_HEIGHT) driftsAbove(options, salt) else null,
         wornAbove = if (isRock && this in WORN) waterlineAt(options, salt) ?: VerticalWindow.MIN_Y else null,
-        terraces = this != MOUNTAINOUS,
+        terraces = this !in UNTERRACED,
         bends = this in BENDS,
         strength = varietyOf(options, salt),
-        erosion = erosionOf(options, salt),
+        erosion = erosionOf(options, salt, ordinarily = if (this in MADE) 0.0 else ORDINARY_WEAR),
         landScale = if (hasGroundBeneath) scaleOf(options, salt) else scaleAsWritten(options, salt),
         salt = salt,
     )
@@ -661,12 +682,14 @@ enum class Terrain(
         private val HANGING_IN_THE_VOID by lazy { setOf(SKYLANDS, SPIRE_ISLANDS, INVERSE_CAVES, END) }
 
         /**
-         * The landforms whose height above their waterline drifts. Not a canyon, whose plateau is the roof over its
-         * underground; nor the mountains, whose waterline is the floor of the world; nor the flat, the pyramids or
-         * anything hanging in the void, which have no height to drift.
+         * The landforms whose height above their waterline drifts, and rises far higher at a landmark; the skylands'
+         * above the plane they float at. Not a canyon, whose plateau is the roof over its underground; nor the
+         * mountains, whose waterline is the floor of the world and whose peaks reach its top already; nor the flat or
+         * the solid rock, which have no height to drift; nor the tangle, which fills the world. The cleft, the
+         * pyramids and the tangle have landmarks of their own instead, which their builders place.
          */
         private val DRIFTS_IN_HEIGHT by lazy {
-            setOf(HILLS, ERODED, PILLARS, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, CRATERLANDS, CONTINENTS)
+            setOf(HILLS, ERODED, PILLARS, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, CRATERLANDS, CONTINENTS, SKYLANDS)
         }
 
         private val RECONCILES by lazy {
@@ -675,12 +698,24 @@ enum class Terrain(
 
         /**
          * The landforms the weather wears, terracing their slopes in patches, gullying them, and undercutting their faces
-         * and piling scree under them: ground with slopes, not the made shapes or the canyon's walls. The mountains are
-         * not terraced, their slopes too steep for steps to read as strata.
+         * and piling scree under them — every one with a top to wear. Not the flat, which has no slope; nor the solid
+         * rock, the tangle or the Spire, whose surfaces are inside them or are the Spire's own.
          */
         private val WORN by lazy {
-            setOf(HILLS, ERODED, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS, CRATERLANDS, CONTINENTS)
+            setOf(
+                HILLS, ERODED, PILLARS, PYRAMIDS, CANYON, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS,
+                CRATERLANDS, CONTINENTS, SKYLANDS,
+            )
         }
+
+        /**
+         * The worn landforms left unterraced: the mountains, whose slopes are too steep for steps to read as strata;
+         * the cleft, whose walls are benched already; and the pyramids, which are built in courses.
+         */
+        private val UNTERRACED by lazy { setOf(MOUNTAINOUS, CANYON, PYRAMIDS) }
+
+        /** The landforms that were made rather than weathered, which stay unworn unless a word wears them. */
+        private val MADE by lazy { setOf(PYRAMIDS) }
 
         /** The landforms whose outlines bend. Not the made shapes — pillars and pyramids — nor the Spire's islands. */
         private val BENDS by lazy {

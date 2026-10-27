@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Canyon
+import co.voik.agesandtheart.worldgen.field.Landmarks
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
@@ -45,19 +46,34 @@ object CanyonField {
      * floor rises to meet it, so they are cut into ordinary ground rather than into the deepslate. The
      * river follows the floor either way ([riverLevel]).
      */
-    fun world(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField {
+    fun world(
+        bearing: Double = NORTH_TO_SOUTH,
+        salt: Long = 0L,
+        scale: Double = SizeScale.ORDINARY,
+        landmarks: Landmarks = Landmarks.NONE,
+    ): TerrainField {
         val share = scale / SizeScale.COLOSSAL
         return Weathered.sculpting(
-            bareWorld(bearing, salt, scale),
+            bareWorld(bearing, salt, scale, landmarks),
             Weathering.CANYON.resized(share, pivotY(scale)),
             (SHELTER_REACH * share).roundToInt().coerceAtLeast(1),
             plateauY(scale),
         )
     }
 
-    /** The cut before the weather reaches it — the previewer's other half, and nothing else's. */
-    fun bareWorld(bearing: Double = NORTH_TO_SOUTH, salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
-        Canyon.cut(ground(scale), listOf(canyon(bearing, salt, scale = scale)))
+    /**
+     * The cut before the weather reaches it — the previewer's other half, and nothing else's. Where [landmarks] are
+     * drawn the gorge opens wider by their factor, its benches broadening with it.
+     */
+    fun bareWorld(
+        bearing: Double = NORTH_TO_SOUTH,
+        salt: Long = 0L,
+        scale: Double = SizeScale.ORDINARY,
+        landmarks: Landmarks = Landmarks.NONE,
+    ): TerrainField {
+        val openings = landmarks.copy(boost = landmarks.boost * GORGE_SHARE_OF_A_LANDMARK)
+        return Canyon.cut(ground(scale), listOf(canyon(bearing, salt, scale = scale).copy(landmarks = openings)))
+    }
 
     /** Bedrock to the plateau, everywhere — which at `colossal` is the ceiling. */
     fun ground(scale: Double = SizeScale.ORDINARY): TerrainField =
@@ -117,6 +133,9 @@ object CanyonField {
      * ordinary country. The `large` canyon is the first deep enough to need more.
      */
     private const val LEAST_PLATEAU_Y = 100
+
+    /** How much of a landmark's rise a gorge takes as width: it opens to twice its width rather than three times. */
+    private const val GORGE_SHARE_OF_A_LANDMARK = 0.5
 
     /** How much rock is left under the deepest the river runs. */
     private const val ROOM_UNDER_THE_RIVER = 16
