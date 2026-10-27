@@ -111,6 +111,24 @@ class LandVarietyCheck : FunSpec({
         for (x in -390..390 step 37) check(nowhere.columnSpans(x, 11).ranges == slope.columnSpans(x, 11).ranges) { "untouched ground at $x moved" }
     }
 
+    test("undercuts notch the foot of a face under a cap, and nothing else") {
+        val mesa = Union(listOf(Slab(-60, LOW_GROUND), Cylinder(Direction.Axis.Y, 0, HIGH_GROUND / 2, 0, MESA_RADIUS, HIGH_GROUND / 2.0)))
+        val undercut = Undercut(mesa, SEED, depth = NOTCH_DEPTH, height = NOTCH_HEIGHT, floorY = PIVOT)
+        var notched = 0
+        for (x in -200..200 step 2) for (z in -200..200 step 2) {
+            val before = mesa.columnSpans(x, z)
+            val after = undercut.columnSpans(x, z)
+            if (after.ranges == before.ranges) continue
+            val fromCentre = sqrt((x * x + z * z).toDouble())
+            check(fromCentre in (MESA_RADIUS - NOTCH_DEPTH - 1)..MESA_RADIUS) { "a notch at $x, $z is not at the mesa's edge" }
+            check(after.highestSolidY == before.highestSolidY) { "the cap at $x, $z did not stand" }
+            val notch = (LOW_GROUND + 1)..(LOW_GROUND + NOTCH_HEIGHT.toInt())
+            check(notch.none(after::contains) && (after.ranges.first().last == LOW_GROUND)) { "the notch at $x, $z is ${after.ranges}" }
+            notched++
+        }
+        check(notched > 0) { "the mesa's foot took no notch" }
+    }
+
     test("an Age written before variety stays the same everywhere, and a new one does not") {
         fun read(version: Int): AgeComposition {
             val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.CLIFFS))), seed = SEED, generatorVersion = version)
@@ -132,6 +150,8 @@ private const val HIGH_GROUND = 140
 private const val WIDTH = 96.0
 private const val MESA_RADIUS = 100.0
 private const val STEP = 7.0
+private const val NOTCH_DEPTH = 3.0
+private const val NOTCH_HEIGHT = 4.0
 
 /** As far out as scree ten deep, falling at its angle of rest, can reach past the grid point at a face's foot. */
 private const val SCREE_REACH = 32.0

@@ -5,13 +5,14 @@ import co.voik.agesandtheart.worldgen.field.Gullied
 import co.voik.agesandtheart.worldgen.field.Scree
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Terraced
+import co.voik.agesandtheart.worldgen.field.Undercut
 import co.voik.agesandtheart.worldgen.field.Warped
 import kotlin.math.min
 
 /**
  * How a landform changes as it is crossed: its height above the waterline drifting over a kilometre or two, its slopes
- * terraced in patches and cut by gullies and its faces footed with scree, and its outlines bent at a few hundred
- * blocks, so no two stretches of one landform are quite alike.
+ * terraced in patches and cut by gullies, its faces undercut and footed with scree, and its outlines bent at a few
+ * hundred blocks, so no two stretches of one landform are quite alike.
  *
  * [strength] is 0 for none, 1 for an Age that said nothing of it, and 2 at the most; [landScale] is the landform's
  * own size factor, which the wavelengths and the bend follow so a colossal landform drifts at its own scale.
@@ -46,7 +47,8 @@ object LandVariety {
         val worn = wornAbove?.let { floorY ->
             val terraced = if (terraces) Terraced(stretched, salt xor TERRACE_SALT, TERRACE_STEP, TERRACED_SHARE * strength, floorY) else stretched
             val gullied = Gullied(terraced, salt xor GULLY_SALT, GULLY_DEPTH * min(strength, MOST_GULLIED), GULLY_CELL, floorY)
-            Scree(gullied, salt xor SCREE_SALT, SCREE_SHARE, SCREE_DEEPEST * min(strength, MOST_SCREE), floorY)
+            val screed = Scree(gullied, salt xor SCREE_SALT, SCREE_SHARE, SCREE_DEEPEST * min(strength, MOST_SCREE), floorY)
+            Undercut(screed, salt xor UNDERCUT_SALT, UNDERCUT_DEPTH * min(strength, MOST_UNDERCUT), UNDERCUT_HEIGHT, floorY)
         } ?: stretched
         if (!bends) return worn
         return Warped(
@@ -90,6 +92,13 @@ object LandVariety {
     private const val SCREE_DEEPEST = 10.0
     private const val MOST_SCREE = 1.6
     private const val SCREE_SALT = 0x5C2E_E0L
+
+    // Notches up to three blocks into a face and four high, varying along it; past [MOST_UNDERCUT] a cap overhangs
+    // further than it stands thick.
+    private const val UNDERCUT_DEPTH = 3.0
+    private const val UNDERCUT_HEIGHT = 4.0
+    private const val MOST_UNDERCUT = 1.7
+    private const val UNDERCUT_SALT = 0x0DE2_C07L
 
     /** Headroom a stretch leaves under the top of the world, for what grows on the ground it raised. */
     private const val ROOM_TO_GROW = 24

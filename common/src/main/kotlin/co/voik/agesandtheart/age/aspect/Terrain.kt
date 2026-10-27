@@ -654,9 +654,9 @@ enum class Terrain(
         }
 
         /**
-         * The landforms the weather wears, terracing their slopes in patches, gullying them and piling scree under their
-         * faces: ground with slopes, not the made shapes or the canyon's walls. The mountains are not terraced, their
-         * slopes too steep for steps to read as strata.
+         * The landforms the weather wears, terracing their slopes in patches, gullying them, and undercutting their faces
+         * and piling scree under them: ground with slopes, not the made shapes or the canyon's walls. The mountains are
+         * not terraced, their slopes too steep for steps to read as strata.
          */
         private val WORN by lazy {
             setOf(HILLS, ERODED, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS, CRATERLANDS, CONTINENTS)
