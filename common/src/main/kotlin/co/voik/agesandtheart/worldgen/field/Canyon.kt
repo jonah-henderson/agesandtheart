@@ -168,13 +168,22 @@ data class Canyon(
      * neighbour's half and is clipped at the join.
      */
     val spacing: Double = NO_FAMILY,
+    /**
+     * The noise level below which the canyon runs out, so it is cut in runs with plateau between them and a box
+     * canyon's head at each end, rather than right across the world. [NEVER_ENDS] is unbroken. Read along each
+     * canyon of a family on its own and across the whole family together, so one canyon stops where its neighbour
+     * runs on, and in some country a whole family thins out.
+     */
+    val endsBelow: Double = NEVER_ENDS,
+    /** Blocks along the canyon per unit of the noise [endsBelow] is read against — how long a run is. */
+    val runStretch: Double = DEFAULT_RUN_STRETCH,
 ) : TerrainField {
     override val kind = FieldKind.CANYON
 
     // A canyon runs right across a world, so there is no bounded neighbourhood to scan — as with [Rift].
     override val horizontalReach = Double.POSITIVE_INFINITY
 
-    override val samplesPerColumn = 4
+    override val samplesPerColumn = if (endsBelow <= NEVER_ENDS) 4 else 6
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         val alongAxis = alongBearing(bearing, worldX, worldZ)
@@ -191,12 +200,26 @@ data class Canyon(
         val fromCentre = fromLine - repeat * spacing - wandered
         val frayed = wallNoise.get(worldX / WALL_STRETCH, 0.0, worldZ / WALL_STRETCH).toDouble() * roughness
         val fromAxis = (abs(fromCentre) + frayed).coerceAtLeast(0.0)
-        val widthHere = widthOf(fromCentre, alongAxis, ownPlane)
+        val running = runningAt(worldX, worldZ, alongAxis, ownPlane)
+        if (running <= 0.0) return Spans.EMPTY
+        val widthHere = widthOf(fromCentre, alongAxis, ownPlane) * (HEAD_NARROWING + (1.0 - HEAD_NARROWING) * running)
         if (fromAxis >= widthHere) return Spans.EMPTY
         val climb = profile.climbAt(fromAxis / widthHere)
-        val floorHere = floorY + ((rimY - floorY) * climb).roundToInt() +
-            bedAt(alongAxis, fromCentre, climb, ownPlane)
+        // Toward a head the floor climbs to the rim, so a canyon shallows as it narrows and runs out.
+        val floorOfTheRun = rimY - (rimY - floorY) * running
+        val floorHere = (floorOfTheRun + (rimY - floorOfTheRun) * climb).roundToInt() +
+            (bedAt(alongAxis, fromCentre, climb, ownPlane) * running).roundToInt()
         return Spans.of(floorHere, Spans.HIGHEST_Y)
+    }
+
+    /** How fully the canyon is cut here: one along a run, easing to nothing at its head. */
+    private fun runningAt(worldX: Int, worldZ: Int, alongAxis: Double, ownPlane: Double): Double {
+        if (endsBelow <= NEVER_ENDS) return 1.0
+        val alongThisOne = runNoise.get(alongAxis / runStretch, ownPlane + RUN_PLANE, 0.0).toDouble()
+        val acrossTheFamily = runNoise.get(worldX / (runStretch * FAMILY_STRETCH), FAMILY_PLANE, worldZ / (runStretch * FAMILY_STRETCH)).toDouble()
+        val standing = ALONG_SHARE * alongThisOne + (1.0 - ALONG_SHARE) * acrossTheFamily
+        val past = ((standing - endsBelow) / HEAD_FADE).coerceIn(0.0, 1.0)
+        return past * past * (3.0 - 2.0 * past)
     }
 
     /**
@@ -231,6 +254,7 @@ data class Canyon(
     private val meanderNoise = fieldNoise(seed, MEANDER_OCTAVE, MEANDER_AMPLITUDES)
     private val wallNoise = fieldNoise(seed xor WALL_SALT, WALL_OCTAVE, WALL_AMPLITUDES)
     private val bedNoise = fieldNoise(seed xor BED_SALT, BED_OCTAVE, BED_AMPLITUDES)
+    private val runNoise = fieldNoise(seed xor RUN_SALT, RUN_OCTAVE, RUN_AMPLITUDES)
 
     /** Shorter than a bend, so a wall steps in and out several times within one meander. */
     private val flankStretch = meanderStretch * FLANK_SHARE_OF_A_BEND
@@ -252,6 +276,7 @@ data class Canyon(
         roughness = roughness * factor,
         bedRelief = bedRelief * factor,
         spacing = spacing * factor,
+        runStretch = runStretch * factor,
     )
 
     companion object {
@@ -285,6 +310,30 @@ data class Canyon(
         private const val FLANK_SEPARATION = 512.0
 
         private const val FLANK_SHARE_OF_A_BEND = 0.35
+
+        /** A canyon cut right across the world — see [endsBelow]. */
+        const val NEVER_ENDS = -10.0
+
+        /** About eight hundred blocks to a run at its octave. */
+        const val DEFAULT_RUN_STRETCH = 50.0
+
+        private const val RUN_OCTAVE = -4
+        private val RUN_AMPLITUDES = listOf(1.0, 0.5)
+        private const val RUN_SALT = 0x2B_E4D5L
+        private const val RUN_PLANE = 1024.0
+        private const val FAMILY_PLANE = 2048.0
+
+        /** How much wider the country a family thins over is than one run. */
+        private const val FAMILY_STRETCH = 3.0
+
+        /** How much of whether a canyon runs is its own, against its family's. */
+        private const val ALONG_SHARE = 0.6
+
+        /** How far past [endsBelow] the noise must stand for the canyon to be cut in full. */
+        private const val HEAD_FADE = 0.15
+
+        /** How wide a canyon is at its very head, against its full width. */
+        private const val HEAD_NARROWING = 0.35
 
         /** One canyon rather than a family of them — see [spacing]. */
         const val NO_FAMILY = 0.0
@@ -335,6 +384,8 @@ data class Canyon(
                     .forGetter(Canyon::flankVariation),
                 Codec.DOUBLE.optionalFieldOf("bed_relief", DEFAULT_BED_RELIEF).forGetter(Canyon::bedRelief),
                 Codec.DOUBLE.optionalFieldOf("spacing", NO_FAMILY).forGetter(Canyon::spacing),
+                Codec.DOUBLE.optionalFieldOf("ends_below", NEVER_ENDS).forGetter(Canyon::endsBelow),
+                Codec.DOUBLE.optionalFieldOf("run_stretch", DEFAULT_RUN_STRETCH).forGetter(Canyon::runStretch),
             ).apply(instance, ::Canyon)
         }
     }

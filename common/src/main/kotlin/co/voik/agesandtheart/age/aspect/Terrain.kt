@@ -62,6 +62,11 @@ private fun sizeOf(options: Options, salt: Long): Double? {
 /** [sizeOf] as [SizeScale]'s factor, which is what every landform's builder is handed. */
 private fun scaleOf(options: Options, salt: Long): Double = SizeScale.factorAt(sizeOf(options, salt))
 
+/** How much a landform changes as it is crossed: 0 for none, 1 unsaid, 2 at the most — see [LandVariety]. */
+private fun varietyOf(options: Options, salt: Long): Double = (options.steer(Terrain.VARIETY, salt) ?: UNSAID_VARIETY) + 1.0
+
+private const val UNSAID_VARIETY = 0.0
+
 /** [Terrain.SIZE] as written, for the landforms hanging in the void, which [LandSize] leaves alone. */
 private fun scaleAsWritten(options: Options, salt: Long): Double = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
 
@@ -192,7 +197,7 @@ enum class Terrain(
     CANYONLANDS(
         "canyoned",
         waterline = CanyonlandsField.RIVER_LEVEL,
-        build = { options, salt -> CanyonlandsField.world(salt, scaleOf(options, salt)) },
+        build = { options, salt -> CanyonlandsField.world(salt, scaleOf(options, salt), varietyOf(options, salt)) },
         axes = { listOf(SIZE) },
     ),
 
@@ -579,7 +584,7 @@ enum class Terrain(
         field,
         stretchesAbove = if (this in DRIFTS_IN_HEIGHT) waterlineAt(options, salt) else null,
         bends = this in BENDS,
-        strength = (options.steer(VARIETY, salt) ?: ORDINARY_VARIETY) + 1.0,
+        strength = varietyOf(options, salt),
         landScale = if (hasGroundBeneath) scaleOf(options, salt) else scaleAsWritten(options, salt),
         salt = salt,
     )
@@ -685,8 +690,6 @@ enum class Terrain(
                 Parameter.Landmark(1.0, "changing a great deal"),
             ),
         )
-
-        private const val ORDINARY_VARIETY = 0.0
 
         /**
          * Whether [SIZE] is read as it was before [LandSize] — set on every Age written before generator 15, so the

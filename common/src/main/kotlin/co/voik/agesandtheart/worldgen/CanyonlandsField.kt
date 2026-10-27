@@ -3,7 +3,9 @@ package co.voik.agesandtheart.worldgen
 import co.voik.agesandtheart.worldgen.field.Canyon
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.Warped
 import co.voik.agesandtheart.worldgen.field.Weathered
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
@@ -29,8 +31,8 @@ object CanyonlandsField {
      * it is and everything above it takes a quarter of the factor — the table's height, the canyons' width
      * and spacing, and the weather's grain — so a smaller country is the same mesas at a lower table.
      */
-    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
-        weathered(bareWorld(salt, scale), scale)
+    fun world(salt: Long = 0L, scale: Double = SizeScale.ORDINARY, variety: Double = 0.0): TerrainField =
+        weathered(bareWorld(salt, scale, variety), scale)
 
     /** Any table of this family's, weathered at [scale] — [ShatteredField]'s too. */
     fun weathered(bare: TerrainField, scale: Double): TerrainField {
@@ -43,8 +45,13 @@ object CanyonlandsField {
     }
 
     /** The network before the weather reaches it — the previewer's other half, and nothing else's. */
-    fun bareWorld(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): TerrainField =
-        Canyon.cut(ground(scale), families(salt, scale))
+    fun bareWorld(salt: Long = 0L, scale: Double = SizeScale.ORDINARY, variety: Double = 0.0): TerrainField {
+        val cut = Canyon.cut(ground(scale), families(salt, scale, variety))
+        if (variety <= 0.0) return cut
+        // Bent at about a canyon's spacing, so the three bearings do not hold across the country.
+        val share = scale / SizeScale.COLOSSAL
+        return Warped(cut, salt xor BEND_SALT, BEND_OCTAVE, BEND_AMPLITUDES, BEND_SCALE * share, BEND_BLOCKS * share * min(variety, 1.0))
+    }
 
     /** The tableland the canyons are cut out of. */
     fun ground(scale: Double = SizeScale.ORDINARY): TerrainField =
@@ -71,12 +78,19 @@ object CanyonlandsField {
         Family(bearing = 2.05, spacing = 660.0, offset = 470.0),
     )
 
-    /** One repeating family of canyons per bearing. */
-    fun families(salt: Long = 0L, scale: Double = SizeScale.ORDINARY): List<Canyon> = FAMILIES.mapIndexed { index, family ->
-        tunedFamily(index, family, salt).resized(scale / SizeScale.COLOSSAL, FLOOR_Y)
-    }
+    /**
+     * One repeating family of canyons per bearing. With any [variety] (`LandVariety`'s strength) each canyon runs
+     * out and starts again, the more often the more variety, so the three families stop reading as a lattice.
+     */
+    fun families(salt: Long = 0L, scale: Double = SizeScale.ORDINARY, variety: Double = 0.0): List<Canyon> =
+        FAMILIES.mapIndexed { index, family ->
+            tunedFamily(index, family, salt, endsBelowFor(variety)).resized(scale / SizeScale.COLOSSAL, FLOOR_Y)
+        }
 
-    private fun tunedFamily(index: Int, family: Family, salt: Long) =
+    private fun endsBelowFor(variety: Double): Double =
+        if (variety <= 0.0) Canyon.NEVER_ENDS else RUNS_OUT_BELOW + RUNS_OUT_MORE_PER_VARIETY * (variety - 1.0)
+
+    private fun tunedFamily(index: Int, family: Family, salt: Long, endsBelow: Double) =
         Canyon(
             bearing = family.bearing,
             offset = family.offset,
@@ -90,6 +104,8 @@ object CanyonlandsField {
             meanderReach = MEANDER_REACH,
             meanderStretch = MEANDER_STRETCH,
             bedRelief = BED_RELIEF,
+            endsBelow = endsBelow,
+            runStretch = RUN_STRETCH,
         )
 
     /** A `colossal` tableland's surface, with sky over it — the whole difference from [CanyonField]. */
@@ -118,6 +134,23 @@ object CanyonlandsField {
      */
     private const val MEANDER_REACH = 200.0
     private const val MEANDER_STRETCH = 50.0
+
+    /**
+     * Where a canyon runs out at the unsaid variety, in the run noise's units, and how much more of each one runs out
+     * per unit of variety beyond it.
+     */
+    private const val RUNS_OUT_BELOW = -0.2
+    private const val RUNS_OUT_MORE_PER_VARIETY = 0.15
+
+    /** At `colossal`: a run of about sixteen hundred blocks. */
+    private const val RUN_STRETCH = 100.0
+
+    // About 1200 blocks to a bend at `colossal`, swinging a canyon some 110 either way: a gradient near a half.
+    private const val BEND_OCTAVE = -7
+    private val BEND_AMPLITUDES = listOf(1.0, 0.3)
+    private const val BEND_SCALE = 9.5
+    private const val BEND_BLOCKS = 110.0
+    private const val BEND_SALT = 0xC4_B3E7L
 
     /** Shallower than the grand canyon's, the river being smaller. */
     private const val BED_RELIEF = 5.0
