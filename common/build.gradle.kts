@@ -493,6 +493,12 @@ instrument(
 )
 
 instrument(
+    "table", "documentation", "co.voik.agesandtheart.preview.TablePreviewKt",
+    "Renders several landforms dividing the ground by chance and by the terrain table, and the land the table makes " +
+        "(build/preview). Takes landform keys, then a radius and a step, e.g. --args=\"mountainous gentle archipelagic 3072 8\"",
+)
+
+instrument(
     "joined", "documentation", "co.voik.agesandtheart.preview.JoinedPreviewKt",
     "Renders two landforms dividing the ground, with a hard seam and reconciled (build/preview). " +
         "Takes two landform keys, a radius and a step, e.g. --args=\"gentle sheer 1024 4\"",

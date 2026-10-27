@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen.field
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import java.util.Optional
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -30,6 +31,10 @@ data class Exaggerated(
     val ceilingY: Int,
     /** The rare places stretched further still. */
     val landmarks: Landmarks = Landmarks.NONE,
+    /** Where set, the factor follows this table's uplift rather than a noise of its own, so high country stands taller. */
+    val table: TerrainTable? = null,
+    /** How much larger the ground is than the table's grain, for a resized field. */
+    val tableScale: Double = 1.0,
 ) : TerrainField {
     override val kind = FieldKind.EXAGGERATED
 
@@ -53,7 +58,8 @@ data class Exaggerated(
 
     /** How many times its own height the ground above [pivotY] stands in this column. */
     fun factorAt(worldX: Int, worldZ: Int): Double {
-        val wander = noise.get(worldX / stretch, 0.0, worldZ / stretch).toDouble()
+        val wander = table?.upliftAt(worldX / tableScale, worldZ / tableScale)
+            ?: noise.get(worldX / stretch, 0.0, worldZ / stretch).toDouble()
         return (1.0 + wander * swing).coerceAtLeast(FLATTEST) * landmarks.factorAt(worldX, worldZ)
     }
 
@@ -63,6 +69,7 @@ data class Exaggerated(
         scale = scale * factor,
         ceilingY = pivotY + ((ceilingY - pivotY) * factor).roundToInt(),
         landmarks = landmarks.resized(factor),
+        tableScale = tableScale * factor,
     )
 
     companion object {
@@ -80,7 +87,11 @@ data class Exaggerated(
                 Codec.DOUBLE.fieldOf("swing").forGetter(Exaggerated::swing),
                 Codec.INT.fieldOf("ceiling_y").forGetter(Exaggerated::ceilingY),
                 Landmarks.CODEC.optionalFieldOf("landmarks", Landmarks.NONE).forGetter(Exaggerated::landmarks),
-            ).apply(instance, ::Exaggerated)
+                TerrainTable.CODEC.optionalFieldOf("table").forGetter { Optional.ofNullable(it.table) },
+                Codec.DOUBLE.optionalFieldOf("table_scale", 1.0).forGetter(Exaggerated::tableScale),
+            ).apply(instance) { base, pivotY, seed, firstOctave, amplitudes, scale, swing, ceilingY, landmarks, table, tableScale ->
+                Exaggerated(base, pivotY, seed, firstOctave, amplitudes, scale, swing, ceilingY, landmarks, table.orElse(null), tableScale)
+            }
         }
     }
 }

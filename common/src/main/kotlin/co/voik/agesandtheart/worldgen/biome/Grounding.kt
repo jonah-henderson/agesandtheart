@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen.biome
 
 import co.voik.agesandtheart.worldgen.field.ColumnMemo
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.TerrainTable
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import java.util.Optional
@@ -60,6 +61,11 @@ data class Grounding(
     val rivers: TerrainField? = null,
     /** Everything the landform said about itself — see [Declared]. */
     val declared: Declared = Declared(),
+    /**
+     * The table the land was laid out by, whose warmth and wetness the biomes take in place of vanilla's temperature
+     * and humidity noises — so dry canyon country grows dry biomes. None for an Age written before there was one.
+     */
+    val table: TerrainTable? = null,
 ) {
 
     /**
@@ -253,6 +259,14 @@ data class Grounding(
         return lapse.chilled(surfaceAt(blockX, blockZ), otherwise)
     }
 
+    /** The table's warmth here, on vanilla's temperature axis, or null where there is no table. */
+    fun warmthFromTheTable(blockX: Int, blockZ: Int): Float? =
+        table?.temperatureAt(blockX.toDouble(), blockZ.toDouble())?.toFloat()
+
+    /** The table's wetness here, on vanilla's humidity axis, or null where there is no table. */
+    fun wetnessFromTheTable(blockX: Int, blockZ: Int): Float? =
+        table?.humidityAt(blockX.toDouble(), blockZ.toDouble())?.toFloat()
+
     /** [weirdness], moved off vanilla's valley band the way it was already leaning, and no further. */
     private fun clearOfTheValley(weirdness: Float): Float {
         if (abs(weirdness) >= CLEAR_OF_THE_VALLEY) return weirdness
@@ -379,8 +393,9 @@ data class Grounding(
                 TerrainField.CODEC.optionalFieldOf("rivers")
                     .forGetter { Optional.ofNullable(it.rivers) },
                 Declared.CODEC.optionalFieldOf("declared", Declared()).forGetter(Grounding::declared),
-            ).apply(instance) { terrain, waterline, hasSea, rivers, declared ->
-                Grounding(terrain, waterline, hasSea, rivers.orElse(null), declared)
+                TerrainTable.CODEC.optionalFieldOf("table").forGetter { Optional.ofNullable(it.table) },
+            ).apply(instance) { terrain, waterline, hasSea, rivers, declared, table ->
+                Grounding(terrain, waterline, hasSea, rivers.orElse(null), declared, table.orElse(null))
             }
         }
     }

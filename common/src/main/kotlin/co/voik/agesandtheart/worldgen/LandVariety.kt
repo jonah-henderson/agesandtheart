@@ -5,6 +5,7 @@ import co.voik.agesandtheart.worldgen.field.Gullied
 import co.voik.agesandtheart.worldgen.field.Landmarks
 import co.voik.agesandtheart.worldgen.field.Scree
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.TerrainTable
 import co.voik.agesandtheart.worldgen.field.Terraced
 import co.voik.agesandtheart.worldgen.field.Undercut
 import co.voik.agesandtheart.worldgen.field.Warped
@@ -21,6 +22,7 @@ import kotlin.math.min
  *
  * [erosion] is how worn the land is on average, on the same scale, and [strength] how far that swings from place to
  * place ([Wear]): none at all where the land does not vary, and from untouched to twice the average at the most.
+ * Where the Age has a [TerrainTable], the drift follows its uplift and the wear its age.
  */
 object LandVariety {
 
@@ -36,6 +38,8 @@ object LandVariety {
         erosion: Double,
         landScale: Double,
         salt: Long,
+        /** The Age's terrain table, which the drift and the wear follow where there is one. */
+        table: TerrainTable? = null,
     ): TerrainField {
         val varies = strength > 0.0
         val stretched = stretchesAbove?.takeIf { varies }?.let { pivotY ->
@@ -49,10 +53,11 @@ object LandVariety {
                 STRETCH_SWING * strength,
                 VerticalWindow.HIGHEST_BLOCK_Y - ROOM_TO_GROW,
                 landmarksFor(strength, landScale, salt),
+                table,
             )
         } ?: field
         val worn = wornAbove?.takeIf { erosion > 0.0 }?.let { floorY ->
-            worn(stretched, floorY, terraces, wearOf(strength, erosion, landScale, salt), salt)
+            worn(stretched, floorY, terraces, wearOf(strength, erosion, landScale, salt, table), salt)
         } ?: stretched
         if (!bends || !varies) return worn
         return Warped(
@@ -78,8 +83,8 @@ object LandVariety {
     )
 
     /** How worn each place is, which anything a landform builds by wear reads as well as the weather's own wear. */
-    fun wearOf(strength: Double, erosion: Double, landScale: Double, salt: Long): Wear =
-        Wear(salt xor WEAR_SALT, erosion, WEAR_SPREAD * strength, WEAR_STRETCH * landScale)
+    fun wearOf(strength: Double, erosion: Double, landScale: Double, salt: Long, table: TerrainTable? = null): Wear =
+        Wear(salt xor WEAR_SALT, erosion, WEAR_SPREAD * strength, WEAR_STRETCH * landScale, table)
 
     /** [field] terraced, gullied, footed with scree and undercut, each as far as [wear] says at each place. */
     private fun worn(field: TerrainField, floorY: Int, terraces: Boolean, wear: Wear, salt: Long): TerrainField {

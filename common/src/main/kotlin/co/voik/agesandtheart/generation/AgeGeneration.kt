@@ -28,7 +28,9 @@ import co.voik.agesandtheart.worldgen.field.Regions
 import co.voik.agesandtheart.worldgen.field.Reconciled
 import co.voik.agesandtheart.worldgen.field.Ridge
 import co.voik.agesandtheart.worldgen.field.Rift
+import co.voik.agesandtheart.worldgen.field.TableLayout
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.TerrainTable
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.age.aspect.MagmaChambers
@@ -132,7 +134,8 @@ object AgeGeneration {
         // One band for every Age, and the same one every dimension type admits — see [VerticalWindow].
         val window = VerticalWindow.DEFAULT
 
-        val ground = character.mapFor(Aspect.TERRAIN, landmass, seed, torn)
+        val table = terrainTableOf(composition, seed)
+        val ground = laidOut(character.mapFor(Aspect.TERRAIN, landmass, seed, torn), table, composition, seed)
         // **Null where the rock is vanilla's, and this is the one place that is decided**: no field is
         // built, no biome is grounded in one, nothing is hollowed under it, and the generator hands
         // `fillFromNoise` and its companions to the base class. Named at all rather than named alone —
@@ -143,8 +146,8 @@ object AgeGeneration {
         // **Built once and shared**, so the rock, the bodies the sea carries and the generator's own copy
         // are all the same object — see the note on `ourGround`'s parameter.
         val overlay = volcanicOverlay(composition, seed)
-        val grounds = if (composition.terrains.any { it.isVanillas }) null else groundsOf(composition, window, seed)
-        val territories = Territories(ground, grounds?.map { it.shape }?.takeIf { landmass.seam == Seam.MERGED })
+        val grounds = if (composition.terrains.any { it.isVanillas }) null else groundsOf(composition, window, seed, table)
+        val territories = Territories(ground, grounds?.map { it.shape }?.takeIf { landmass.seam == Seam.MERGED }, table)
         val ourGround = grounds?.let { ourGround(composition, it, landmass, territories, window, seed, torn, overlay, dislocation) }
 
         val chasm = ourGround?.chasm
@@ -290,6 +293,7 @@ object AgeGeneration {
                                 terrain.grounding(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
                             },
                         ),
+                        table = table,
                     ),
                 )
                 // Age-wide like the shore and the treeline: the band is a pair of heights, and an Age has
@@ -543,7 +547,7 @@ object AgeGeneration {
         torn: Double,
     ): StandingFluid? {
         val run = composition.terrains.mapIndexed { member, terrain ->
-            terrain.rivers(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
+            terrain.rivers(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), territories.table)
         }
         if (run.all { it == null }) return null
         val divided = territories.divided(run.map { it ?: Union(emptyList()) })
@@ -562,7 +566,7 @@ object AgeGeneration {
         torn: Double,
     ): TerrainField? {
         val carried = composition.terrains.mapIndexed { member, terrain ->
-            terrain.standingWater(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
+            terrain.standingWater(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), territories.table)
         }
         if (carried.all { it == null }) return null
         val divided = territories.divided(carried.map { it ?: Union(emptyList()) })
@@ -840,7 +844,12 @@ object AgeGeneration {
     }
 
     /** Each territory's ground, its underground cut into it — the rock everything else divided on its map follows. */
-    private fun groundsOf(composition: AgeComposition, window: VerticalWindow, seed: Long): List<Terrain.Ground> =
+    private fun groundsOf(
+        composition: AgeComposition,
+        window: VerticalWindow,
+        seed: Long,
+        table: TerrainTable?,
+    ): List<Terrain.Ground> =
         composition.terrains.mapIndexed { member, terrain ->
             terrain.ground(
                 composition.underground,
@@ -848,14 +857,32 @@ object AgeGeneration {
                 composition.optionsFor(Aspect.TERRAIN, member),
                 window,
                 saltFor(seed, member),
+                table,
             )
         }
+
+    /**
+     * The table this Age's land is laid out by, one for every landform in it — none for an Age written before there
+     * was one ([Terrain.FORMER_LAND]), whose land and biomes stay as they were.
+     */
+    private fun terrainTableOf(composition: AgeComposition, seed: Long): TerrainTable? =
+        if (composition.anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_LAND)) null else TerrainTable(seed xor TABLE_SALT)
+
+    /**
+     * The terrain's territories laid out by [table], each landform where the land suits it — unless the Age asked for
+     * a [Terrain.PATCHWORK], or has no table, when they fall where chance draws them.
+     */
+    private fun laidOut(map: RegionMap, table: TerrainTable?, composition: AgeComposition, seed: Long): RegionMap {
+        val isDrawnByChance = table == null || composition.anyMemberSays(Aspect.TERRAIN, Terrain.PATCHWORK)
+        if (isDrawnByChance || map.members <= 1) return map
+        return map.copy(layout = TableLayout(table, composition.terrains.map { it.home }, map.shares, seed xor TABLE_SALT))
+    }
 
     /**
      * What is divided on the terrain's map: by territory, and where the landforms were reconciled ([Seam.MERGED])
      * eased across each seam after [guides], the rock — so water and hollows move with the ground they lie in.
      */
-    private class Territories(val map: RegionMap, private val guides: List<TerrainField>?) {
+    private class Territories(val map: RegionMap, private val guides: List<TerrainField>?, val table: TerrainTable?) {
         fun divided(members: List<TerrainField>, keepsFloor: Boolean = false): TerrainField =
             if (guides == null) Regions.of(members, map)
             else Reconciled.of(members, guides, map, RECONCILED_BLOCKS, keepsFloor)
@@ -863,6 +890,8 @@ object AgeGeneration {
 
     /** How far either side of a seam two reconciled landforms are eased into one another. */
     private const val RECONCILED_BLOCKS = 96.0
+
+    private const val TABLE_SALT = 0x7AB1_E5EEDL
 
     /**
      * The mountains, the chambers and the lava in both, as one statement (design §7.1.2).

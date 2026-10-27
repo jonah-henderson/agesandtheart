@@ -7,9 +7,10 @@ import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Terrain
 
 /**
- * Ages written before a landform changed as it was crossed, held to the same landform everywhere and unworn: every
- * landform's [Terrain.VARIETY] is pinned at none and it is marked [Terrain.FORMERLY_UNWORN], so the chunks it
- * generates next still meet the ones it has. Its [Terrain.WEAR] is left alone, the craterlands having read it already.
+ * Ages written before a landform changed as it was crossed, held to the land they had: every landform's
+ * [Terrain.VARIETY] is pinned at none and it is marked [Terrain.FORMER_LAND] — unworn, with no terrain table, its
+ * territories where chance put them and its biomes on vanilla's climate — so the chunks it generates next still meet
+ * the ones it has. Its [Terrain.WEAR] is left alone, the craterlands having read it already.
  */
 object FormerUniformity {
     const val LAST_GENERATOR_BEFORE_VARIETY = 19
@@ -25,7 +26,7 @@ object FormerUniformity {
         val members = composition.membersIn(Aspect.TERRAIN)
         val pinned = composition.options.expanded(Aspect.TERRAIN, members).map { options ->
             Options(
-                options.chosen + (Terrain.VARIETY.name to listOf(NONE)) + (Terrain.FORMERLY_UNWORN.name to listOf(Parameter.TRUE)),
+                options.chosen + (Terrain.VARIETY.name to listOf(NONE)) + (Terrain.FORMER_LAND.name to listOf(Parameter.TRUE)),
             )
         }
         return composition.copy(options = composition.options.with(Aspect.TERRAIN, pinned))

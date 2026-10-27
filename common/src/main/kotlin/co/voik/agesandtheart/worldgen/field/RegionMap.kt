@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
+import java.util.Optional
 import kotlin.math.abs
 import kotlin.math.ln
 
@@ -39,6 +40,12 @@ data class RegionMap(
      * rather than a fraction: `[64, 1]` is a dominant territory with scarce islands of the second.
      */
     val shares: List<Double> = emptyList(),
+    /**
+     * Where set, the territories are laid out by a terrain table rather than drawn by chance: each member stands
+     * where the table's drivers suit it. Every question here is then answered by it, and the claims above are not
+     * read.
+     */
+    val layout: TableLayout? = null,
 ) {
     private val stretch = scale.coerceAtLeast(SMALLEST_STRETCH)
 
@@ -68,6 +75,7 @@ data class RegionMap(
     /** Which member owns this column: the loudest claim, softened to a coin-flip inside the seam. */
     fun memberAt(worldX: Int, worldZ: Int): Int {
         if (claims.size <= 1) return 0
+        if (layout != null) return laidOutMemberAt(layout, worldX, worldZ)
         val contest = contestAt(worldX, worldZ)
         if (margin <= 0.0 || contest.contested >= margin) return contest.winner
         // Deep in the band the two are equally likely; at its edge the winner takes it outright. So the
@@ -89,7 +97,17 @@ data class RegionMap(
      */
     fun blocksFromSeamAt(worldX: Int, worldZ: Int): Double {
         if (claims.size <= 1) return Double.POSITIVE_INFINITY
+        if (layout != null) return layout.contestAt(worldX, worldZ).leadInBlocks
         return contestAt(worldX, worldZ).contested * stretch
+    }
+
+    /** [memberAt] for a laid-out map: the winner, frayed into the runner-up across [blend] as a drawn map's is. */
+    private fun laidOutMemberAt(layout: TableLayout, worldX: Int, worldZ: Int): Int {
+        if (blend <= 0) return layout.winnerAt(worldX, worldZ)
+        val contest = layout.contestAt(worldX, worldZ)
+        if (contest.leadInBlocks >= blend) return contest.winner
+        val oddsOfUpset = HALF * (1.0 - contest.leadInBlocks / blend)
+        return if (dither.at(worldX, 0, worldZ).nextDouble() < oddsOfUpset) contest.runnerUp else contest.winner
     }
 
     /**
@@ -136,6 +154,7 @@ data class RegionMap(
      */
     fun blocksBehindAt(worldX: Int, worldZ: Int): DoubleArray {
         if (claims.size <= 1) return doubleArrayOf(0.0)
+        if (layout != null) return layout.blocksBehindAt(worldX, worldZ)
         val sampleX = (worldX - originX) / stretch
         val sampleZ = (worldZ - originZ) / stretch
         val raw = DoubleArray(claims.size) { member -> claims[member].get(sampleX, 0.0, sampleZ).toDouble() }
@@ -172,6 +191,7 @@ data class RegionMap(
         blend = (blend * factor).toInt(),
         originX = (originX * factor).toInt(),
         originZ = (originZ * factor).toInt(),
+        layout = layout?.resized(factor),
     )
 
     companion object {
@@ -204,7 +224,10 @@ data class RegionMap(
                 Codec.INT.optionalFieldOf("origin_z", 0).forGetter(RegionMap::originZ),
                 Codec.LONG.fieldOf("seed").forGetter(RegionMap::seed),
                 Codec.DOUBLE.listOf().optionalFieldOf("shares", emptyList()).forGetter(RegionMap::shares),
-            ).apply(instance, ::RegionMap)
+                TableLayout.CODEC.optionalFieldOf("layout").forGetter { Optional.ofNullable(it.layout) },
+            ).apply(instance) { members, scale, blend, originX, originZ, seed, shares, layout ->
+                RegionMap(members, scale, blend, originX, originZ, seed, shares, layout.orElse(null))
+            }
         }
     }
 }

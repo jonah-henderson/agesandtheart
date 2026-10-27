@@ -174,12 +174,16 @@ class AgeBiomeSource(
             // Bent first, then chilled by however far this column stands above the Age's floor — the bias is
             // what the writer asked for and the lapse is what the mountain does to it, so a warm Age still
             // has cold summits and a cold one has colder. See [Elevation].
+            // Where the land was laid out by a table, its warmth and wetness are the climate's own, stretched as
+            // vanilla's would have been.
             asThisAgeReadsIt(climate.temperature(), stretched = true) { blockX, _, blockZ, vanillas ->
-                val warmth = biasAt(blockX, blockZ).shift(ClimateAxis.TEMPERATURE, vanillas)
+                val asTheLandHasIt = grounding?.warmthFromTheTable(nearer(blockX), nearer(blockZ)) ?: vanillas
+                val warmth = biasAt(blockX, blockZ).shift(ClimateAxis.TEMPERATURE, asTheLandHasIt)
                 grounding?.temperatureAt(blockX, blockZ, warmth) ?: warmth
             },
             asThisAgeReadsIt(climate.humidity(), stretched = true) { blockX, _, blockZ, vanillas ->
-                biasAt(blockX, blockZ).shift(ClimateAxis.HUMIDITY, vanillas)
+                val asTheLandHasIt = grounding?.wetnessFromTheTable(nearer(blockX), nearer(blockZ)) ?: vanillas
+                biasAt(blockX, blockZ).shift(ClimateAxis.HUMIDITY, asTheLandHasIt)
             },
             // Continentalness describes shape, and an Age's shape is the field tree's rather than the
             // climate's — so by default it passes through untouched and the two simply disagree. A

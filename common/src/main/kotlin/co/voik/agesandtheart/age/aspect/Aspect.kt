@@ -357,7 +357,9 @@ enum class Aspect(
             GRAVITY -> listOf(Gravity.PULL)
             SEA -> listOf(Sea.DEPTH)
             // What holds of every landform and every creature, whichever is seated or lives there.
-            TERRAIN -> listOf(Terrain.TORN, Terrain.INCONGRUOUS, Terrain.FORMER_SIZES, Terrain.VARIETY, Terrain.FORMERLY_UNWORN)
+            TERRAIN -> listOf(
+                Terrain.TORN, Terrain.INCONGRUOUS, Terrain.FORMER_SIZES, Terrain.VARIETY, Terrain.FORMER_LAND, Terrain.PATCHWORK,
+            )
             SPAWNS -> listOf(
                 Spawns.STILL, Spawns.CHARGED, Spawns.WOOL, Spawns.HERD, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS,
                 Spawns.CAPS,
