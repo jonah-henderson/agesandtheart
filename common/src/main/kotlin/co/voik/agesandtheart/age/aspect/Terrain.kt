@@ -584,6 +584,7 @@ enum class Terrain(
         field,
         stretchesAbove = if (this in DRIFTS_IN_HEIGHT) waterlineAt(options, salt) else null,
         wornAbove = if (isRock && this in WORN) waterlineAt(options, salt) ?: VerticalWindow.MIN_Y else null,
+        terraces = this != MOUNTAINOUS,
         bends = this in BENDS,
         strength = varietyOf(options, salt),
         landScale = if (hasGroundBeneath) scaleOf(options, salt) else scaleAsWritten(options, salt),
@@ -653,8 +654,9 @@ enum class Terrain(
         }
 
         /**
-         * The landforms the weather wears, gullying their slopes and piling scree under their faces: ground with slopes,
-         * not the made shapes or the canyon's walls.
+         * The landforms the weather wears, terracing their slopes in patches, gullying them and piling scree under their
+         * faces: ground with slopes, not the made shapes or the canyon's walls. The mountains are not terraced, their
+         * slopes too steep for steps to read as strata.
          */
         private val WORN by lazy {
             setOf(HILLS, ERODED, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS, CRATERLANDS, CONTINENTS)

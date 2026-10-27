@@ -94,6 +94,23 @@ class LandVarietyCheck : FunSpec({
         check(Scree(Slab(-60, LOW_GROUND), SEED, 0.3, 10.0, PIVOT).columnSpans(5, 5).highestSolidY == LOW_GROUND) { "level ground took scree" }
     }
 
+    test("terraces draw a slope to treads within a step of it, and leave the land outside them alone") {
+        val slope = Union(listOf(Slab(-60, PIVOT), Cone(0, 0, baseRadius = 400.0, baseY = PIVOT, tipY = PIVOT + 200)))
+        val everywhere = Terraced(slope, SEED, stepHeight = STEP, share = 1.0, floorY = PIVOT)
+        val tops = mutableMapOf<Int, Int>()
+        for (x in -390..390 step 5) for (z in -390..390 step 5) {
+            val before = slope.columnSpans(x, z).highestSolidY ?: continue
+            val after = everywhere.columnSpans(x, z).highestSolidY ?: error("the column at $x, $z emptied")
+            check(abs(after - before) <= STEP) { "the column at $x, $z moved from $before to $after, more than a step" }
+            check(after >= PIVOT) { "a terrace at $x, $z cut under the floor" }
+            tops.merge(after - PIVOT, 1, Int::plus)
+        }
+        val onATread = tops.filterKeys { it % STEP.toInt() == 0 }.values.sum()
+        check(onATread > tops.values.sum() / 2) { "only $onATread of ${tops.values.sum()} columns stand on a tread" }
+        val nowhere = Terraced(slope, SEED, stepHeight = STEP, share = 0.0, floorY = PIVOT)
+        for (x in -390..390 step 37) check(nowhere.columnSpans(x, 11).ranges == slope.columnSpans(x, 11).ranges) { "untouched ground at $x moved" }
+    }
+
     test("an Age written before variety stays the same everywhere, and a new one does not") {
         fun read(version: Int): AgeComposition {
             val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.CLIFFS))), seed = SEED, generatorVersion = version)
@@ -114,6 +131,7 @@ private const val LOW_GROUND = 64
 private const val HIGH_GROUND = 140
 private const val WIDTH = 96.0
 private const val MESA_RADIUS = 100.0
+private const val STEP = 7.0
 
 /** As far out as scree ten deep, falling at its angle of rest, can reach past the grid point at a face's foot. */
 private const val SCREE_REACH = 32.0
