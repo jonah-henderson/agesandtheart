@@ -24,6 +24,17 @@ class LandVarietyCheck : FunSpec({
         check(Spans.of(-60, PIVOT).stretchedAbove(PIVOT, 2.0).highestSolidY == PIVOT) { "ground at the pivot moved" }
     }
 
+    test("landmarks rise in every drawn cell, ease back to nothing, and are absent when not drawn") {
+        val everyCell = Landmarks(SEED, spacing = 3000.0, radius = 500.0, boost = 2.0, chance = 1.0)
+        val tallest = (-6000..6000 step 50).maxOf { x -> (-6000..6000 step 50).maxOf { z -> everyCell.factorAt(x, z) } }
+        check(tallest > 2.8) { "the tallest landmark stood only $tallest times its land" }
+        val share = (-6000..6000 step 97).flatMap { x -> (-6000..6000 step 89).map { z -> everyCell.factorAt(x, z) } }
+            .count { it > 1.0 }.toDouble() / (124 * 135)
+        check(share in 0.02..0.25) { "landmarks covered ${share * 100}% of the land" }
+        val none = Landmarks(SEED, spacing = 3000.0, radius = 500.0, boost = 2.0, chance = 0.0)
+        check((-6000..6000 step 101).all { x -> none.factorAt(x, x / 2) == 1.0 }) { "an undrawn landmark rose" }
+    }
+
     test("a stretch never carries ground past its ceiling, and never lowers it to keep it under") {
         val tall = Slab(-60, CEILING - 10)
         val stretched = Exaggerated(tall, PIVOT, SEED, -7, listOf(1.0), 1.0, swing = 3.0, ceilingY = CEILING)

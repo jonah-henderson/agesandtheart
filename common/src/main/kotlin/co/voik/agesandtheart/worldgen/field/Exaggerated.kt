@@ -13,7 +13,8 @@ import kotlin.math.roundToInt
  *
  * Everything at or below [pivotY] stays where it is, so a sea keeps its shore and an underground its ceiling. The
  * factor changes over [scale] times the first octave's wavelength, far longer than anything it stretches, so a
- * slope gains almost nothing from the change in factor across it.
+ * slope gains almost nothing from the change in factor across it. Its [landmarks] stretch it further still in a few
+ * places, eased over hundreds of blocks for the same reason.
  */
 data class Exaggerated(
     val base: TerrainField,
@@ -27,6 +28,8 @@ data class Exaggerated(
     val swing: Double,
     /** The highest a stretch may carry a column's top; a column already above it is only ever squashed. */
     val ceilingY: Int,
+    /** The rare places stretched further still. */
+    val landmarks: Landmarks = Landmarks.NONE,
 ) : TerrainField {
     override val kind = FieldKind.EXAGGERATED
 
@@ -51,7 +54,7 @@ data class Exaggerated(
     /** How many times its own height the ground above [pivotY] stands in this column. */
     fun factorAt(worldX: Int, worldZ: Int): Double {
         val wander = noise.get(worldX / stretch, 0.0, worldZ / stretch).toDouble()
-        return (1.0 + wander * swing).coerceAtLeast(FLATTEST)
+        return (1.0 + wander * swing).coerceAtLeast(FLATTEST) * landmarks.factorAt(worldX, worldZ)
     }
 
     override fun resized(factor: Double, pivotY: Int) = copy(
@@ -59,6 +62,7 @@ data class Exaggerated(
         pivotY = pivotY + ((this.pivotY - pivotY) * factor).roundToInt(),
         scale = scale * factor,
         ceilingY = pivotY + ((ceilingY - pivotY) * factor).roundToInt(),
+        landmarks = landmarks.resized(factor),
     )
 
     companion object {
@@ -75,6 +79,7 @@ data class Exaggerated(
                 Codec.DOUBLE.fieldOf("scale").forGetter(Exaggerated::scale),
                 Codec.DOUBLE.fieldOf("swing").forGetter(Exaggerated::swing),
                 Codec.INT.fieldOf("ceiling_y").forGetter(Exaggerated::ceilingY),
+                Landmarks.CODEC.optionalFieldOf("landmarks", Landmarks.NONE).forGetter(Exaggerated::landmarks),
             ).apply(instance, ::Exaggerated)
         }
     }

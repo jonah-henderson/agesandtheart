@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Exaggerated
 import co.voik.agesandtheart.worldgen.field.Gullied
+import co.voik.agesandtheart.worldgen.field.Landmarks
 import co.voik.agesandtheart.worldgen.field.Scree
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Terraced
@@ -11,9 +12,9 @@ import co.voik.agesandtheart.worldgen.field.Wear
 import kotlin.math.min
 
 /**
- * How a landform changes as it is crossed: its height above the waterline drifting over a kilometre or two, its slopes
- * terraced in patches and cut by gullies, its faces undercut and footed with scree, and its outlines bent at a few
- * hundred blocks, so no two stretches of one landform are quite alike.
+ * How a landform changes as it is crossed: its height above the waterline drifting over a kilometre or two and rising
+ * far higher at the odd landmark, its slopes terraced in patches and cut by gullies, its faces undercut and footed with
+ * scree, and its outlines bent at a few hundred blocks, so no two stretches of one landform are quite alike.
  *
  * [strength] is 0 for none, 1 for an Age that said nothing of it, and 2 at the most; [landScale] is the landform's
  * own size factor, which the wavelengths and the bend follow so a colossal landform drifts at its own scale.
@@ -47,6 +48,13 @@ object LandVariety {
                 STRETCH_SCALE * landScale,
                 STRETCH_SWING * strength,
                 VerticalWindow.HIGHEST_BLOCK_Y - ROOM_TO_GROW,
+                Landmarks(
+                    salt xor LANDMARK_SALT,
+                    LANDMARK_RADIUS * landScale * RADII_PER_LANDMARK_CELL,
+                    LANDMARK_RADIUS * landScale,
+                    LANDMARK_BOOST,
+                    LANDMARK_CHANCE * strength,
+                ),
             )
         } ?: field
         val worn = wornAbove?.takeIf { erosion > 0.0 }?.let { floorY ->
@@ -76,6 +84,15 @@ object LandVariety {
     private val STRETCH_AMPLITUDES = listOf(1.0, 0.5)
     private const val STRETCH_SCALE = 6.0
     private const val STRETCH_SWING = 0.4
+
+    // A landmark in about half of the cells at the unsaid variety and in every one at the most, three times as tall as
+    // the land around it at its middle and easing back over 250 blocks before the landform's size, which is 500 at an
+    // ordinary one's, in cells six times that across.
+    private const val LANDMARK_RADIUS = 250.0
+    private const val RADII_PER_LANDMARK_CELL = 6.0
+    private const val LANDMARK_BOOST = 2.0
+    private const val LANDMARK_CHANCE = 0.5
+    private const val LANDMARK_SALT = 0x1A4D_3A2CL
 
     // A meander of about a thousand blocks and a wobble of 256 over it, before the landform's own size. Their
     // gradients together come to about two thirds; past [MOST_BEND] they would near one, where a warp folds.
