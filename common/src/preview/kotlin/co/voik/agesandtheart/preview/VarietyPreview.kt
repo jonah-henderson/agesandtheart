@@ -1,0 +1,68 @@
+package co.voik.agesandtheart.preview
+
+import co.voik.agesandtheart.age.aspect.Options
+import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.aspect.Underground
+import co.voik.agesandtheart.worldgen.VerticalWindow
+import java.awt.Color
+import java.awt.image.BufferedImage
+import java.io.File
+import javax.imageio.ImageIO
+
+/**
+ * One landform from above, without its variety, as an Age that said nothing gets it, and at the most a word can ask
+ * — side by side, so what `LandVariety` does to it can be judged at the scale it works at. Shaded by height over the
+ * range the three share, water blue under the landform's waterline.
+ *
+ * `--args="<landform key> [radius] [step]"`, e.g. `--args="sheer 2048 8"`.
+ */
+fun main(arguments: Array<String>) {
+    val key = arguments.getOrNull(0) ?: "gentle"
+    val radius = arguments.getOrNull(1)?.toInt() ?: DEFAULT_RADIUS
+    val step = arguments.getOrNull(2)?.toInt() ?: DEFAULT_STEP
+    val terrain = Terrain.entries.firstOrNull { it.key == key }
+        ?: error("Unknown landform '$key'. Try one of: ${Terrain.entries.filterNot { it.isVanillas }.joinToString { it.key }}")
+
+    val strengths = listOf(-1.0, 0.0, 1.0)
+    val across = radius * 2 / step
+    val heights = strengths.map { variety ->
+        val options = Options(mapOf(Terrain.VARIETY.name to listOf(Span(variety, variety).spelled())))
+        val shape = terrain.ground(Underground.NONE, Options.NONE, options, VerticalWindow.DEFAULT, SALT).shape
+        Array(across) { row ->
+            IntArray(across) { column ->
+                shape.columnSpans(column * step - radius, row * step - radius).highestSolidY ?: VerticalWindow.DEFAULT.minY
+            }
+        }
+    }
+    val lowest = heights.minOf { plan -> plan.minOf { it.min() } }
+    val highest = heights.maxOf { plan -> plan.maxOf { it.max() } }
+    val waterline = terrain.waterlineAt(Options.NONE, SALT)
+
+    val image = BufferedImage(across * strengths.size + GAP * (strengths.size - 1), across, BufferedImage.TYPE_INT_RGB)
+    heights.forEachIndexed { panel, plan ->
+        val left = panel * (across + GAP)
+        for (row in 0..<across) for (column in 0..<across) {
+            val height = plan[row][column]
+            val shade = ((height - lowest).toDouble() / (highest - lowest).coerceAtLeast(1)).toFloat()
+            val colour = if (waterline != null && height < waterline) Color(0.1f, 0.2f + shade * 0.3f, 0.5f + shade * 0.4f)
+            else Color(shade, shade, shade)
+            image.setRGB(left + column, row, colour.rgb)
+        }
+    }
+    val output = File("build/preview").apply { mkdirs() }
+    val file = File(output, "variety-$key.png")
+    ImageIO.write(image, "png", file)
+
+    println("$key: heights $lowest..$highest, waterline $waterline; none | unsaid | most → ${file.absolutePath}")
+    heights.zip(listOf("none", "unsaid", "most")).forEach { (plan, label) ->
+        val tops = plan.flatMap { it.toList() }.sorted()
+        fun percentile(share: Double) = tops[((tops.size - 1) * share).toInt()]
+        println("  %-7s p10 %4d  p50 %4d  p90 %4d  p99 %4d".format(label, percentile(0.1), percentile(0.5), percentile(0.9), percentile(0.99)))
+    }
+}
+
+private const val DEFAULT_RADIUS = 1536
+private const val DEFAULT_STEP = 8
+private const val GAP = 4
+private const val SALT = 0x5EEDL

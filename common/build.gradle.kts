@@ -487,6 +487,12 @@ instrument(
 )
 
 instrument(
+    "variety", "documentation", "co.voik.agesandtheart.preview.VarietyPreviewKt",
+    "Renders one landform from above at no variety, the unsaid amount and the most (build/preview). " +
+        "Takes a landform key, a radius and a step, e.g. --args=\"sheer 2048 8\"",
+)
+
+instrument(
     "terraindiff", "verification", "co.voik.agesandtheart.preview.TerrainDiffKt",
     "Compares two saved worlds Age by Age, block for block. Takes two world folders, " +
         "e.g. --args=\"before/world after/world\" (absolute paths — Gradle runs from this module).",

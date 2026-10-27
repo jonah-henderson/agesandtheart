@@ -32,6 +32,16 @@ class Spans private constructor(val ranges: List<IntRange>) {
         if (blocks == 0 || ranges.isEmpty()) this
         else ofAscending(ranges.map { (it.first + blocks)..(it.last + blocks) })
 
+    /**
+     * This column with every height above [pivotY] moved [factor] times as far from it, and everything at or below
+     * left where it is. Monotone, so the intervals keep their order; a gap squeezed shut merges the two either side.
+     */
+    fun stretchedAbove(pivotY: Int, factor: Double): Spans {
+        if (factor == 1.0 || ranges.isEmpty()) return this
+        fun moved(y: Int) = if (y <= pivotY) y else pivotY + ((y - pivotY) * factor).roundToInt()
+        return normalise(ranges.map { moved(it.first)..moved(it.last) })
+    }
+
     /** Solid where either column is solid. */
     fun union(other: Spans): Spans = normalise(ranges + other.ranges)
 

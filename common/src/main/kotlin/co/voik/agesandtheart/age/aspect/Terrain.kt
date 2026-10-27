@@ -16,6 +16,7 @@ import co.voik.agesandtheart.worldgen.PyramidField
 import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.LandSize
+import co.voik.agesandtheart.worldgen.LandVariety
 import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.SolidField
 import co.voik.agesandtheart.worldgen.SkylandsField
@@ -455,7 +456,7 @@ enum class Terrain(
         window: VerticalWindow,
         salt: Long,
     ): Ground {
-        val uncut = build(options, salt)
+        val uncut = varied(build(options, salt), options, salt)
         // **A landform with no room under it carries nothing**, whatever was asked for — the same shape as
         // a preset ignoring a material it cannot be made of, and the reason the ceiling is declared here.
         val ceiling = undergroundCeiling(options, salt) ?: return Ground(uncut)
@@ -553,13 +554,27 @@ enum class Terrain(
      * whether the Age has a sea or not. See `SkylandsField.rivers`.
      */
     fun rivers(options: Options, salt: Long): TerrainField? =
-        if (this == SKYLANDS) SkylandsField.rivers(salt, scaleAsWritten(options, salt)) else null
+        if (this == SKYLANDS) varied(SkylandsField.rivers(salt, scaleAsWritten(options, salt)), options, salt) else null
 
     fun standingWater(options: Options, salt: Long): TerrainField? = when (this) {
         RIVERLANDS -> RiverlandsField.water(salt, scaleOf(options, salt))
         MOUNTAINOUS -> MountainousField.water(salt, scaleOf(options, salt))
         else -> null
-    }
+    }?.let { varied(it, options, salt) }
+
+    /**
+     * [field] as this landform changes across the world ([LandVariety]) — the rock, and the water it carries, alike,
+     * so a river still lies in its bed. Which landforms drift in height and which bend is [DRIFTS_IN_HEIGHT] and
+     * [BENDS].
+     */
+    private fun varied(field: TerrainField, options: Options, salt: Long): TerrainField = LandVariety.over(
+        field,
+        stretchesAbove = if (this in DRIFTS_IN_HEIGHT) waterlineAt(options, salt) else null,
+        bends = this in BENDS,
+        strength = (options.steer(VARIETY, salt) ?: ORDINARY_VARIETY) + 1.0,
+        landScale = if (hasGroundBeneath) scaleOf(options, salt) else scaleAsWritten(options, salt),
+        salt = salt,
+    )
 
     /**
      * **Everything this landform tells the biome layer about itself** — one channel, read only by a
@@ -610,6 +625,23 @@ enum class Terrain(
         /** The landforms with nothing beneath their land — see [hasGroundBeneath]. */
         private val HANGING_IN_THE_VOID by lazy { setOf(SKYLANDS, SPIRE_ISLANDS, INVERSE_CAVES, END) }
 
+        /**
+         * The landforms whose height above their waterline drifts. Not a canyon, whose plateau is the roof over its
+         * underground; nor the mountains, whose waterline is the floor of the world; nor the flat, the pyramids or
+         * anything hanging in the void, which have no height to drift.
+         */
+        private val DRIFTS_IN_HEIGHT by lazy {
+            setOf(HILLS, ERODED, PILLARS, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, CRATERLANDS, CONTINENTS)
+        }
+
+        /** The landforms whose outlines bend. Not the made shapes — pillars and pyramids — nor the Spire's islands. */
+        private val BENDS by lazy {
+            setOf(
+                HILLS, ERODED, CANYON, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS, CRATERLANDS,
+                CONTINENTS, SKYLANDS, INVERSE_CAVES,
+            )
+        }
+
         private const val NO_FIELD_OF_OURS =
             "vanilla's own rock has no field of ours; AgeGeneration.ourGround is not reached for it"
 
@@ -627,6 +659,22 @@ enum class Terrain(
             "incongruous",
             help = "Whether patches of the ground are the Age's own terrain read from far away.",
         )
+
+        /**
+         * How much a landform changes as it is crossed ([LandVariety]): none at the bottom, which is how every Age
+         * written before it reads, and twice the unsaid amount at the top.
+         */
+        val VARIETY = Parameter.ranged(
+            "variety",
+            help = "How much the land changes as you cross it.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "the same everywhere"),
+                Parameter.Landmark(0.0, "as an ordinary world", isVanilla = true),
+                Parameter.Landmark(1.0, "changing a great deal"),
+            ),
+        )
+
+        private const val ORDINARY_VARIETY = 0.0
 
         /**
          * Whether [SIZE] is read as it was before [LandSize] — set on every Age written before generator 15, so the
