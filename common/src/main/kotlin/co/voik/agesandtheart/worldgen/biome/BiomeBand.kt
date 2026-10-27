@@ -51,7 +51,7 @@ data class BiomeBand(
     /** The biome at this position, or null where the band does not reach — so the climate table answers. */
     fun biomeAt(blockX: Int, blockY: Int, blockZ: Int): Holder<Biome>? {
         if (blockY !in floorY..roofY) return null
-        val bed = aboveColumns?.spansAt(blockX, blockZ)?.highestSolidY
+        val bed = aboveColumns?.at(blockX, blockZ)?.highestSolidY
         if (bed != null && blockY <= bed) return null
         return biome
     }

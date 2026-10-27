@@ -205,7 +205,7 @@ data class Grounding(
      */
     private fun isRiverAt(blockX: Int, blockZ: Int): Boolean {
         val surface = surfaceAt(blockX, blockZ)
-        val standing = riverColumns?.spansAt(blockX, blockZ)?.highestSolidY
+        val standing = riverColumns?.at(blockX, blockZ)?.highestSolidY
         val runsOverItsOwnBed = standing != null && standing > surface && standing > waterline
         val liesUnderTheOnlyWater = declared.waterlineIsRiver && surface < waterline
         return runsOverItsOwnBed || liesUnderTheOnlyWater
@@ -271,7 +271,7 @@ data class Grounding(
 
     /** This column's surface, or the waterline where there is no ground at all. */
     private fun surfaceAt(blockX: Int, blockZ: Int): Int =
-        surfaces.spansAt(blockX, blockZ).highestSolidY ?: waterline
+        surfaces.at(blockX, blockZ).highestSolidY ?: waterline
 
     /**
      * Where this surface falls on vanilla's continentalness axis. A curve through its bands rather than a

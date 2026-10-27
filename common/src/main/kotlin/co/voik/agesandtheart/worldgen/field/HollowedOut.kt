@@ -30,10 +30,10 @@ data class HollowedOut(
     private val baseColumns = ColumnMemo(base::columnSpans)
     private val memo = ColumnMemo(::crust)
 
-    override fun columnSpans(worldX: Int, worldZ: Int): Spans = memo.spansAt(worldX, worldZ)
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans = memo.at(worldX, worldZ)
 
     private fun crust(worldX: Int, worldZ: Int): Spans {
-        val rock = baseColumns.spansAt(worldX, worldZ)
+        val rock = baseColumns.at(worldX, worldZ)
         if (rock.ranges.isEmpty()) return rock
         val alongTheAxes = (1..crustThickness).flatMap { step ->
             listOf(worldX + step to worldZ, worldX - step to worldZ, worldX to worldZ + step, worldX to worldZ - step)
@@ -46,7 +46,7 @@ data class HollowedOut(
 
     /** The heights in this column within [crustThickness] of the base's open space. */
     private fun openSpaceNear(worldX: Int, worldZ: Int): Spans {
-        val open = Spans.EVERYWHERE.subtract(baseColumns.spansAt(worldX, worldZ))
+        val open = Spans.EVERYWHERE.subtract(baseColumns.at(worldX, worldZ))
         return open.ranges.fold(Spans.EMPTY) { reach, run ->
             reach.union(Spans.of(run.first - crustThickness, run.last + crustThickness))
         }

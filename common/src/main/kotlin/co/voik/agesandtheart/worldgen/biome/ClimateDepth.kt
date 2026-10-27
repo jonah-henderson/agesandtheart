@@ -89,7 +89,7 @@ data class BelowTerrain(val terrain: TerrainField) : ClimateDepth {
     private val columns = ColumnMemo(terrain::columnSpans)
 
     override fun at(blockX: Int, blockY: Int, blockZ: Int, sampled: Float): Float {
-        val spans = columns.spansAt(blockX, blockZ)
+        val spans = columns.at(blockX, blockZ)
         // No rock overhead means open sky, which is the surface by any reading.
         val roofY = spans.roofOver(blockY) ?: return 0.0f
         return (roofY - blockY).toFloat() / ClimateDepth.BLOCKS_PER_UNIT

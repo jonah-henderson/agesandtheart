@@ -114,7 +114,7 @@ data class Gullied(
         return slopeX to slopeZ
     }
 
-    private fun topAt(latticeX: Int, latticeZ: Int): Int? = lattice.spansAt(latticeX, latticeZ).highestSolidY
+    private fun topAt(latticeX: Int, latticeZ: Int): Int? = lattice.at(latticeX, latticeZ).highestSolidY
 
     override fun resized(factor: Double, pivotY: Int) = copy(
         base = base.resized(factor, pivotY),

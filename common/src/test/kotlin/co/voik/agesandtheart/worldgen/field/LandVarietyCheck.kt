@@ -9,8 +9,10 @@ import co.voik.agesandtheart.age.aspect.Terrain
 import com.mojang.serialization.JsonOps
 import io.kotest.core.spec.style.FunSpec
 import kotlin.math.abs
+import kotlin.math.sqrt
+import net.minecraft.core.Direction
 
-/** How a landform changes as it is crossed, and how two landforms joined by `and` meet. */
+/** How a landform changes as it is crossed, how the weather wears it, and how two landforms joined by `and` meet. */
 class LandVarietyCheck : FunSpec({
 
     test("a stretch leaves everything at or below its pivot where it stands") {
@@ -74,6 +76,24 @@ class LandVarietyCheck : FunSpec({
         check(cut > 0) { "a cone's flanks took no gully" }
     }
 
+    test("scree piles at the foot of a face, and nowhere else") {
+        // A mesa a hundred blocks across, standing seventy-six over level ground.
+        val mesa = Union(listOf(Slab(-60, LOW_GROUND), Cylinder(Direction.Axis.Y, 0, HIGH_GROUND / 2, 0, MESA_RADIUS, HIGH_GROUND / 2.0)))
+        val screed = Scree(mesa, SEED, share = 0.3, deepest = 10.0, floorY = PIVOT)
+        var piled = 0
+        for (x in -200..200 step 3) for (z in -200..200 step 3) {
+            val before = mesa.columnSpans(x, z).highestSolidY ?: continue
+            val after = screed.columnSpans(x, z).highestSolidY ?: error("the column at $x, $z emptied")
+            val fromCentre = sqrt((x * x + z * z).toDouble())
+            check(after >= before) { "scree at $x, $z lowered the ground to $after" }
+            if (fromCentre < MESA_RADIUS - 1) check(after == before) { "scree climbed onto the mesa at $x, $z" }
+            if (fromCentre > MESA_RADIUS + SCREE_REACH) check(after == before) { "scree lay out on the plain at $x, $z" }
+            if (after > before) piled++
+        }
+        check(piled > 0) { "no scree lay at the mesa's foot" }
+        check(Scree(Slab(-60, LOW_GROUND), SEED, 0.3, 10.0, PIVOT).columnSpans(5, 5).highestSolidY == LOW_GROUND) { "level ground took scree" }
+    }
+
     test("an Age written before variety stays the same everywhere, and a new one does not") {
         fun read(version: Int): AgeComposition {
             val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.CLIFFS))), seed = SEED, generatorVersion = version)
@@ -93,6 +113,10 @@ private const val CEILING = 296
 private const val LOW_GROUND = 64
 private const val HIGH_GROUND = 140
 private const val WIDTH = 96.0
+private const val MESA_RADIUS = 100.0
+
+/** As far out as scree ten deep, falling at its angle of rest, can reach past the grid point at a face's foot. */
+private const val SCREE_REACH = 32.0
 
 /** A reconciled seam eases seventy-six blocks over about two widths; a sheared one would step all of them at once. */
 private const val STEEPEST_STEP = 4

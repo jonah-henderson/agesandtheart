@@ -88,7 +88,7 @@ data class Weathered(
      */
     private val memo = ColumnMemo(::weather)
 
-    override fun columnSpans(worldX: Int, worldZ: Int): Spans = memo.spansAt(worldX, worldZ)
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans = memo.at(worldX, worldZ)
 
     private fun weather(worldX: Int, worldZ: Int): Spans {
         val rock = base.columnSpans(worldX, worldZ)

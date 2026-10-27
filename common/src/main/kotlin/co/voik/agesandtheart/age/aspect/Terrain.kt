@@ -577,13 +577,13 @@ enum class Terrain(
 
     /**
      * [field] as this landform changes across the world ([LandVariety]) — the rock, and the water it carries, alike,
-     * so a river still lies in its bed; only the rock is gullied. Which landforms drift in height, which are gullied
-     * and which bend is [DRIFTS_IN_HEIGHT], [GULLIED] and [BENDS].
+     * so a river still lies in its bed; only the rock is worn. Which landforms drift in height, which are worn and
+     * which bend is [DRIFTS_IN_HEIGHT], [WORN] and [BENDS].
      */
     private fun varied(field: TerrainField, options: Options, salt: Long, isRock: Boolean): TerrainField = LandVariety.over(
         field,
         stretchesAbove = if (this in DRIFTS_IN_HEIGHT) waterlineAt(options, salt) else null,
-        gulliedAbove = if (isRock && this in GULLIED) waterlineAt(options, salt) ?: VerticalWindow.MIN_Y else null,
+        wornAbove = if (isRock && this in WORN) waterlineAt(options, salt) ?: VerticalWindow.MIN_Y else null,
         bends = this in BENDS,
         strength = varietyOf(options, salt),
         landScale = if (hasGroundBeneath) scaleOf(options, salt) else scaleAsWritten(options, salt),
@@ -652,8 +652,11 @@ enum class Terrain(
             setOf(HILLS, FLATLANDS, ERODED, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS, CRATERLANDS, CONTINENTS)
         }
 
-        /** The landforms whose slopes are gullied: ground with slopes, not the made shapes or the canyon's walls. */
-        private val GULLIED by lazy {
+        /**
+         * The landforms the weather wears, gullying their slopes and piling scree under their faces: ground with slopes,
+         * not the made shapes or the canyon's walls.
+         */
+        private val WORN by lazy {
             setOf(HILLS, ERODED, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS, CRATERLANDS, CONTINENTS)
         }
 

@@ -63,7 +63,7 @@ data class Caved(
 
     private val memo = ColumnMemo(::hollow)
 
-    override fun columnSpans(worldX: Int, worldZ: Int): Spans = memo.spansAt(worldX, worldZ)
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans = memo.at(worldX, worldZ)
 
     /**
      * The rock with its caves taken out — **walked only where there is rock to walk**, which is the whole of

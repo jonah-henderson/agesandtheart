@@ -81,6 +81,7 @@ enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<ou
     WARPED({ self -> Warped.codec(self) }),
     EXAGGERATED({ self -> Exaggerated.codec(self) }),
     GULLIED({ self -> Gullied.codec(self) }),
+    SCREE({ self -> Scree.codec(self) }),
     FAULT({ self -> Fault.codec(self) }),
     DISLOCATED({ self -> Dislocated.codec(self) }),
     RIFT({ Rift.CODEC }),

@@ -136,7 +136,7 @@ data class MountainRange(
      */
     private val memo = ColumnMemo(::derive)
 
-    override fun columnSpans(worldX: Int, worldZ: Int): Spans = memo.spansAt(worldX, worldZ)
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans = memo.at(worldX, worldZ)
 
     private fun derive(worldX: Int, worldZ: Int): Spans {
         // Everything below works in the warped frame, the wedge included, so the range front frays and the
