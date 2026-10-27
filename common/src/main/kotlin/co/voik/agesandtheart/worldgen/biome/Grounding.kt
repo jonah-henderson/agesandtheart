@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen.biome
 
 import co.voik.agesandtheart.worldgen.field.ColumnMemo
+import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.TerrainTable
 import com.mojang.serialization.Codec
@@ -66,6 +67,17 @@ data class Grounding(
      * and humidity noises — so dry canyon country grows dry biomes. None for an Age written before there was one.
      */
     val table: TerrainTable? = null,
+    /**
+     * Each territory's own sea level where they differ, so a column is measured against the sea its own territory
+     * pours rather than the Age's: the floor of a sealess mountain valley is not ocean floor. [SeaFill.NO_SEA] for
+     * a territory with none.
+     */
+    val seas: SeaFill.Territories? = null,
+    /**
+     * Whether an Age with relief keeps its coast: its sea reads as ocean and its shore as a shore, and the relief
+     * speaks only inland of them. False reads the relief everywhere, as an Age written before generator 20 does.
+     */
+    val keepsItsCoast: Boolean = false,
 ) {
 
     /**
@@ -165,13 +177,41 @@ data class Grounding(
         // A river runs through the country it drains, whatever the height of its own bed would say. Without
         // this a valley deep enough to hold water reads as ocean, and grows kelp.
         if (isRiverAt(blockX, blockZ)) return NEAR_INLAND
-        // An Age with relief and no sea reads this off the relief — see [Elevation.continentalnessFor].
-        declared.elevation?.let { return it.continentalnessFor(surfaceAt(blockX, blockZ)) }
+        val surface = surfaceAt(blockX, blockZ)
+        val waterlineHere = waterlineAt(blockX, blockZ)
+        val elevation = declared.elevation
+        // An Age with relief reads this off the relief inland of its coast — see [Elevation.continentalnessFor].
+        if (elevation != null) {
+            if (waterlineHere == null || !keepsItsCoast) return elevation.continentalnessFor(surface)
+            val coastal = continentalnessOf(surface, waterlineHere)
+            val inland = maxOf(coastal, elevation.continentalnessFor(surface))
+            return coastal + (inland - coastal) * inlandShareOf(surface, waterlineHere)
+        }
         // And one with no sea and no relief to read is simply inland, everywhere. There is no shore to
         // find and no ocean floor to stand on, so the only honest answer is the one vanilla files dry
         // country under — see [hasSea].
-        if (!hasSea) return if (declared.isDeepInland) DEEP_INLAND else INLAND_WITH_NO_COAST
-        return continentalnessOf(surfaceAt(blockX, blockZ))
+        if (waterlineHere == null) return if (declared.isDeepInland) DEEP_INLAND else INLAND_WITH_NO_COAST
+        return continentalnessOf(surface, waterlineHere)
+    }
+
+    /** The level this column's sea stands at, or null where its territory pours none or the Age has no sea. */
+    private fun waterlineAt(blockX: Int, blockZ: Int): Int? {
+        if (!hasSea) return null
+        val level = seas?.levelAt(blockX, blockZ) ?: waterline
+        return level.takeUnless { it == SeaFill.NO_SEA }
+    }
+
+    /** How far a column has climbed from its coast into the country inland: nought on the shore, one past it. */
+    private fun inlandShareOf(surfaceY: Int, waterlineHere: Int): Float {
+        val overTheWater = (surfaceY - waterlineHere).toFloat()
+        return ((overTheWater - COAST_TOP) / (INLAND_FROM - COAST_TOP)).coerceIn(0.0f, 1.0f)
+    }
+
+    /** Whether the Age's relief speaks for this column: inland of its coast, or with no sea to have one. */
+    private fun standsInland(blockX: Int, blockZ: Int): Boolean {
+        val waterlineHere = waterlineAt(blockX, blockZ)
+        if (waterlineHere == null || !keepsItsCoast) return true
+        return inlandShareOf(surfaceAt(blockX, blockZ), waterlineHere) >= HALFWAY_INLAND
     }
 
     /**
@@ -196,7 +236,8 @@ data class Grounding(
      * reads — what grows at one is the sea's business, and the river branch has already said so.
      */
     private fun isSandyShore(blockX: Int, blockZ: Int): Boolean {
-        val readsAsAShore = continentalnessOf(surfaceAt(blockX, blockZ)) in A_SHORE
+        val waterlineHere = waterlineAt(blockX, blockZ) ?: return false
+        val readsAsAShore = continentalnessOf(surfaceAt(blockX, blockZ), waterlineHere) in A_SHORE
         return declared.hasSandyShores && !isRiverAt(blockX, blockZ) && readsAsAShore
     }
 
@@ -212,8 +253,9 @@ data class Grounding(
     private fun isRiverAt(blockX: Int, blockZ: Int): Boolean {
         val surface = surfaceAt(blockX, blockZ)
         val standing = riverColumns?.at(blockX, blockZ)?.highestSolidY
-        val runsOverItsOwnBed = standing != null && standing > surface && standing > waterline
-        val liesUnderTheOnlyWater = declared.waterlineIsRiver && surface < waterline
+        val waterlineHere = waterlineAt(blockX, blockZ) ?: waterline
+        val runsOverItsOwnBed = standing != null && standing > surface && standing > waterlineHere
+        val liesUnderTheOnlyWater = declared.waterlineIsRiver && surface < waterlineHere
         return runsOverItsOwnBed || liesUnderTheOnlyWater
     }
 
@@ -245,7 +287,8 @@ data class Grounding(
         if (isRiverAt(blockX, blockZ)) return IN_A_VALLEY
         // An Age with real relief answers this axis outright rather than nudging vanilla's noise off the
         // valley band: where a column sits between floor and crest **is** what the axis asks. See [Elevation].
-        declared.elevation?.let { return it.weirdnessFor(surfaceAt(blockX, blockZ), otherwise) }
+        val elevation = declared.elevation
+        if (elevation != null && standsInland(blockX, blockZ)) return elevation.weirdnessFor(surfaceAt(blockX, blockZ), otherwise)
         val outOfTheValley = clearOfTheValley(otherwise)
         return if (isSandyShore(blockX, blockZ)) intoTheBeachSlice(outOfTheValley) else outOfTheValley
     }
@@ -283,16 +326,16 @@ data class Grounding(
         return if (weirdness < 0.0f) -squeezed else squeezed
     }
 
-    /** This column's surface, or the waterline where there is no ground at all. */
+    /** This column's surface, or its waterline where there is no ground at all. */
     private fun surfaceAt(blockX: Int, blockZ: Int): Int =
-        surfaces.at(blockX, blockZ).highestSolidY ?: waterline
+        surfaces.at(blockX, blockZ).highestSolidY ?: waterlineAt(blockX, blockZ) ?: waterline
 
     /**
      * Where this surface falls on vanilla's continentalness axis. A curve through its bands rather than a
      * set of thresholds, so a coast is a gradient and the surface rules either side of it blend.
      */
-    internal fun continentalnessOf(surfaceY: Int): Float {
-        val overTheWater = (surfaceY - waterline).toFloat()
+    internal fun continentalnessOf(surfaceY: Int, waterlineHere: Int = waterline): Float {
+        val overTheWater = (surfaceY - waterlineHere).toFloat()
         if (overTheWater <= HEIGHTS.first()) return BANDS.first()
         for (anchor in 1..<HEIGHTS.size) {
             if (overTheWater > HEIGHTS[anchor]) continue
@@ -326,6 +369,11 @@ data class Grounding(
          */
         private val HEIGHTS = floatArrayOf(-30.0f, -10.0f, -2.0f, 8.0f, 20.0f, 60.0f)
         private val BANDS = floatArrayOf(-0.7f, -0.3f, -0.15f, -0.15f, -0.04f, 0.5f)
+
+        // Where an Age with relief hands over from its coast to its relief: the top of the coast plateau to the first height inland.
+        private val COAST_TOP = HEIGHTS[3]
+        private val INLAND_FROM = HEIGHTS[4]
+        private const val HALFWAY_INLAND = 0.5f
 
         /**
          * How steeply the ground falls, against where that puts it on vanilla's erosion axis.
@@ -394,8 +442,13 @@ data class Grounding(
                     .forGetter { Optional.ofNullable(it.rivers) },
                 Declared.CODEC.optionalFieldOf("declared", Declared()).forGetter(Grounding::declared),
                 TerrainTable.CODEC.optionalFieldOf("table").forGetter { Optional.ofNullable(it.table) },
-            ).apply(instance) { terrain, waterline, hasSea, rivers, declared, table ->
-                Grounding(terrain, waterline, hasSea, rivers.orElse(null), declared, table.orElse(null))
+                SeaFill.Territories.CODEC.optionalFieldOf("seas").forGetter { Optional.ofNullable(it.seas) },
+                Codec.BOOL.optionalFieldOf("keeps_its_coast", false).forGetter(Grounding::keepsItsCoast),
+            ).apply(instance) { terrain, waterline, hasSea, rivers, declared, table, seas, keepsItsCoast ->
+                Grounding(
+                    terrain, waterline, hasSea, rivers.orElse(null), declared, table.orElse(null), seas.orElse(null),
+                    keepsItsCoast,
+                )
             }
         }
     }

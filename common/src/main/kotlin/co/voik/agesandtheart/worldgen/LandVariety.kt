@@ -118,7 +118,7 @@ object LandVariety {
     private const val MOST_BEND = 1.25
 
     // A worn or unworn stretch runs over a kilometre or so, and at the unsaid variety its wear swings from under half the
-    // average to over half again. Each amount below is the ordinary wear's, and the most wear is twice it.
+    // average to over half again. Each amount below is at a wear of one, and the most wear is twice it.
     private const val WEAR_SPREAD = 0.6
     private const val WEAR_STRETCH = 1200.0
     private const val WEAR_SALT = 0x3EA2_0FL

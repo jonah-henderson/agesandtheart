@@ -7,8 +7,8 @@ import java.util.Optional
 
 /**
  * How worn the land is from place to place: [mean] on average, swinging by [spread] of it either way over a few
- * kilometres, so one stretch is barely touched and the next deeply worn. One is the ordinary amount; never below
- * none nor over [MOST].
+ * kilometres, so one stretch is barely touched and the next deeply worn. A field's amounts are stated at one; never
+ * below none nor over [MOST].
  *
  * Every field of the weather's wear reads the same map, so a worn place is worn in every way at once.
  */

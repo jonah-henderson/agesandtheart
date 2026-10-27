@@ -294,6 +294,9 @@ object AgeGeneration {
                             },
                         ),
                         table = table,
+                        // An Age written before generator 20 reads one sea and its relief everywhere, as it did.
+                        seas = seaFill.territories.takeIf { table != null },
+                        keepsItsCoast = table != null,
                     ),
                 )
                 // Age-wide like the shore and the treeline: the band is a pair of heights, and an Age has
@@ -321,7 +324,7 @@ object AgeGeneration {
                         abyssLineOf(seaSurfaceY, window)
                             ?.takeIf { ourGround != null && seaIsWater }
                             ?.let { line ->
-                                BiomeBand(abyssBiome(server), window.minY, line, ourGround?.rock?.landform)
+                                BiomeBand(abyssBiome(server), window.minY, line, ourGround?.rock?.landform, seaFill.takeIf { table != null })
                             },
                     ),
                 ),
@@ -550,7 +553,7 @@ object AgeGeneration {
             terrain.rivers(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), territories.table)
         }
         if (run.all { it == null }) return null
-        val divided = territories.divided(run.map { it ?: Union(emptyList()) })
+        val divided = territories.divided(run.map { it ?: Union(emptyList()) }, staysInItsBanks = true)
         val where = when (seam) {
             Seam.SCARP -> faulted(divided, seam, territories.map, seed, torn)
             Seam.SHEARED, Seam.FUZZED, Seam.RIFT, Seam.WALL, Seam.MERGED -> divided
@@ -569,7 +572,7 @@ object AgeGeneration {
             terrain.standingWater(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), territories.table)
         }
         if (carried.all { it == null }) return null
-        val divided = territories.divided(carried.map { it ?: Union(emptyList()) })
+        val divided = territories.divided(carried.map { it ?: Union(emptyList()) }, staysInItsBanks = true)
         // Exhaustive rather than a test for one form, so a new [Seam] breaks the build here instead of
         // silently taking the wrong branch.
         return when (seam) {
@@ -883,9 +886,10 @@ object AgeGeneration {
      * eased across each seam after [guides], the rock — so water and hollows move with the ground they lie in.
      */
     private class Territories(val map: RegionMap, private val guides: List<TerrainField>?, val table: TerrainTable?) {
-        fun divided(members: List<TerrainField>, keepsFloor: Boolean = false): TerrainField =
+        fun divided(members: List<TerrainField>, keepsFloor: Boolean = false, staysInItsBanks: Boolean = false): TerrainField =
             if (guides == null) Regions.of(members, map)
-            else Reconciled.of(members, guides, map, RECONCILED_BLOCKS, keepsFloor)
+            // An Age written before the table eases its water with its rock, as it did.
+            else Reconciled.of(members, guides, map, RECONCILED_BLOCKS, keepsFloor, staysInItsBanks && table != null)
     }
 
     /** How far either side of a seam two reconciled landforms are eased into one another. */

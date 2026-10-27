@@ -15,6 +15,10 @@ import kotlin.math.roundToInt
  *
  * [guides] are the rock the heights are read from, index for index with [members]. The rock divided this way is
  * its own guide; water and hollows divided on the same map take the rock as theirs, and so move with it.
+ *
+ * Moving a column whole by its own top would lift a river bed further than its banks and leave the water standing
+ * proud of them, so surface water ([staysInItsBanks]) is moved by its own top instead, which comes out level with
+ * the banks it stood level with.
  */
 data class Reconciled(
     val members: List<TerrainField>,
@@ -23,6 +27,8 @@ data class Reconciled(
     val width: Double,
     /** Whether rock lifted off its floor is filled back down to where it stood — rock, not water or hollows. */
     val keepsFloor: Boolean,
+    /** Whether each column is moved by its own top rather than its rock's — surface water, not the underground's. */
+    val staysInItsBanks: Boolean = false,
 ) : TerrainField {
     override val kind = FieldKind.RECONCILED
 
@@ -35,18 +41,21 @@ data class Reconciled(
         val behind = map.blocksBehindAt(worldX, worldZ)
         val winner = behind.indices.minBy { behind[it] }
         val standing = members.getOrNull(winner)?.columnSpans(worldX, worldZ) ?: return Spans.EMPTY
-        val lift = liftAt(worldX, worldZ, behind, winner)
-        if (lift == 0 || standing.ranges.isEmpty()) return standing
+        if (standing.ranges.isEmpty()) return standing
+        val ownTop = if (staysInItsBanks) standing.highestSolidY else null
+        val lift = liftAt(worldX, worldZ, behind, winner, ownTop)
+        if (lift == 0) return standing
         val moved = standing.shifted(lift)
         val floor = standing.ranges.first().first
         val leftAFloorBehind = keepsFloor && lift > 0
         return if (leftAFloorBehind) moved.union(Spans.of(floor, floor + lift)) else moved
     }
 
-    private fun liftAt(worldX: Int, worldZ: Int, behind: DoubleArray, winner: Int): Int {
+    /** How far to move a column whose top stands at [ownTop], or at its rock's top where that is null. */
+    private fun liftAt(worldX: Int, worldZ: Int, behind: DoubleArray, winner: Int, ownTop: Int?): Int {
         val near = behind.indices.filter { it != winner && behind[it] < width }
         if (near.isEmpty()) return 0
-        val winnersTop = guides[winner].columnSpans(worldX, worldZ).highestSolidY ?: return 0
+        val winnersTop = ownTop ?: guides[winner].columnSpans(worldX, worldZ).highestSolidY ?: return 0
         var weighed = winnersTop.toDouble()
         var weights = 1.0
         for (member in near) {
@@ -64,6 +73,7 @@ data class Reconciled(
         map.resized(factor),
         width * factor,
         keepsFloor,
+        staysInItsBanks,
     )
 
     companion object {
@@ -71,8 +81,14 @@ data class Reconciled(
         private fun eased(share: Double): Double = share * share * (3.0 - 2.0 * share)
 
         /** [members] divided by territory and reconciled across seams, or the single field where nothing divides. */
-        fun of(members: List<TerrainField>, guides: List<TerrainField>, map: RegionMap, width: Double, keepsFloor: Boolean): TerrainField =
-            members.singleOrNull() ?: Reconciled(members, guides, map, width, keepsFloor)
+        fun of(
+            members: List<TerrainField>,
+            guides: List<TerrainField>,
+            map: RegionMap,
+            width: Double,
+            keepsFloor: Boolean,
+            staysInItsBanks: Boolean = false,
+        ): TerrainField = members.singleOrNull() ?: Reconciled(members, guides, map, width, keepsFloor, staysInItsBanks)
 
         fun codec(self: Codec<TerrainField>): MapCodec<Reconciled> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -81,6 +97,7 @@ data class Reconciled(
                 RegionMap.MAP_CODEC.codec().fieldOf("map").forGetter(Reconciled::map),
                 Codec.DOUBLE.fieldOf("width").forGetter(Reconciled::width),
                 Codec.BOOL.fieldOf("keeps_floor").forGetter(Reconciled::keepsFloor),
+                Codec.BOOL.optionalFieldOf("stays_in_its_banks", false).forGetter(Reconciled::staysInItsBanks),
             ).apply(instance, ::Reconciled)
         }
     }

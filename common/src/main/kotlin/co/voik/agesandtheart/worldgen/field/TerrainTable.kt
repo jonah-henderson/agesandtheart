@@ -63,17 +63,17 @@ data class TerrainTable(val seed: Long) {
     }
 
     companion object {
-        // Uplift and age about two kilometres to a swing, with half and a quarter of that on top.
-        private const val UPLIFT_OCTAVE = -11
+        // Uplift and age about a kilometre to a swing, with half and a quarter of that on top.
+        private const val UPLIFT_OCTAVE = -10
         private val UPLIFT_AMPLITUDES = listOf(1.0, 0.5, 0.25)
-        private const val AGE_OCTAVE = -11
+        private const val AGE_OCTAVE = -10
         private val AGE_AMPLITUDES = listOf(1.0, 0.5)
 
         // Vanilla's own temperature noise, so biomes keep the grain they have in the overworld. Wetness lays out land,
-        // so it runs a kilometre or two to a swing; the biomes add vanilla's own vegetation noise over it.
+        // so it runs at the grain of uplift and age; the biomes add vanilla's own vegetation noise over it.
         private const val TEMPERATURE_OCTAVE = -10
         private val TEMPERATURE_AMPLITUDES = listOf(1.5, 0.0, 1.0, 0.0, 0.0, 0.0)
-        private const val WETNESS_OCTAVE = -11
+        private const val WETNESS_OCTAVE = -10
         private val WETNESS_AMPLITUDES = listOf(1.0, 0.5)
         private const val SHOWERS_OCTAVE = -8
         private val SHOWERS_AMPLITUDES = listOf(1.0, 1.0, 0.0, 0.0, 0.0, 0.0)

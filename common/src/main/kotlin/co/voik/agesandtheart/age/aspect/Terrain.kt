@@ -71,8 +71,9 @@ private fun varietyOf(options: Options, salt: Long): Double = (options.steer(Ter
 private const val UNSAID_VARIETY = 0.0
 
 /**
- * How worn the land is on average, read off [Terrain.WEAR]: none at the bottom, [ordinarily] unsaid, and twice the
- * ordinary amount at the top — and none at all on an Age written before the weather wore the land.
+ * How worn the land is on average, read off [Terrain.WEAR]: none at the bottom, [ordinarily] unsaid — a touch, so an
+ * Age nobody called worn stands close to pristine — and [MOST_WEAR] at the top; none at all on an Age written before
+ * the weather wore the land.
  */
 private fun erosionOf(options: Options, salt: Long, ordinarily: Double = ORDINARY_WEAR): Double {
     if (options.isTrue(Terrain.FORMER_LAND)) return 0.0
@@ -81,7 +82,7 @@ private fun erosionOf(options: Options, salt: Long, ordinarily: Double = ORDINAR
 }
 
 private const val UNSAID_WEAR = 0.0
-private const val ORDINARY_WEAR = 1.0
+private const val ORDINARY_WEAR = 0.25
 private const val MOST_WEAR = 2.0
 
 /** Where a landform's landmarks stand, at [landScale]; none on an Age that does not vary. */

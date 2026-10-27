@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen.biome
 
 import co.voik.agesandtheart.worldgen.field.ColumnMemo
+import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -43,6 +44,11 @@ data class BiomeBand(
      * The great halls want none of this, being indoors by definition, so theirs stays null.
      */
     val above: TerrainField? = null,
+    /**
+     * The sea this band lies under, or null for one at fixed heights. Where set, [roofY] is measured under the Age's
+     * own sea and moves with each territory's: a territory with a higher sea raises it, and one with none has no band.
+     */
+    val sea: SeaFill? = null,
 ) {
 
     /** [above]'s columns, remembered: a band is asked per quart cell, many levels to a column. */
@@ -50,15 +56,22 @@ data class BiomeBand(
 
     /** The biome at this position, or null where the band does not reach — so the climate table answers. */
     fun biomeAt(blockX: Int, blockY: Int, blockZ: Int): Holder<Biome>? {
-        if (blockY !in floorY..roofY) return null
+        val roof = roofAt(blockX, blockZ) ?: return null
+        if (blockY !in floorY..roof) return null
         val bed = aboveColumns?.at(blockX, blockZ)?.highestSolidY
         if (bed != null && blockY <= bed) return null
         return biome
     }
 
+    private fun roofAt(blockX: Int, blockZ: Int): Int? {
+        val ageSurface = sea?.surfaceY ?: return roofY
+        val surfaceHere = sea.surfaceYAt(blockX, blockZ) ?: return null
+        return roofY + (surfaceHere - ageSurface)
+    }
+
     companion object {
         /**
-         * **[above] is deliberately not serialised.** A field tree is rebuilt from the recipe on every open
+         * **[above] and [sea] are deliberately not serialised.** A field tree is rebuilt from the recipe on every open
          * and the band is built beside it, so writing one down would be a second description of the same
          * rock — and the two could disagree.
          */

@@ -4,6 +4,8 @@ import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.worldgen.IslandsField
 import co.voik.agesandtheart.worldgen.RiverlandsField
+import co.voik.agesandtheart.worldgen.field.RegionMap
+import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Slab
 import com.mojang.datafixers.util.Pair
 import io.kotest.core.annotation.Tags
@@ -105,6 +107,18 @@ class GroundingCheck : FunSpec({
         check(deep < -0.455f) { "sixty blocks under the sea read as $deep, which is not deep ocean" }
         check(shore in -0.4f..0.0f) { "the waterline itself read as $shore, which is neither shore nor sea" }
         check(upland > 0.03f) { "ninety blocks over the sea read as $upland, which is not inland" }
+    }
+
+    test("an Age with relief keeps its sea as ocean, and a territory with no sea reads its relief") {
+        val relief = Grounding.Declared(elevation = Elevation(fromY = waterline + 20, toY = waterline + 200))
+        fun groundAt(surfaceY: Int, seas: SeaFill.Territories? = null) =
+            Grounding(Slab(lowY = -64, highY = surfaceY), waterline, declared = relief, seas = seas, keepsItsCoast = true)
+        val seabed = groundAt(waterline - 30).continentalnessAt(0, 0)
+        val upland = groundAt(waterline + 120).continentalnessAt(0, 0)
+        val dryValley = groundAt(waterline - 30, SeaFill.Territories(RegionMap.whole(), listOf(SeaFill.NO_SEA))).continentalnessAt(0, 0)
+        check(seabed < -0.19f) { "thirty blocks under the sea read as $seabed, which is not ocean" }
+        check(upland > 0.3f) { "a hundred and twenty blocks up a range read as $upland, which is not far inland" }
+        check(dryValley > 0.03f) { "a valley in a territory with no sea read as $dryValley, which is not inland" }
     }
 
     /**
