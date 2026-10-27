@@ -1,6 +1,7 @@
 {
   "_comment": [
-    "Where nothing has to agree with anything else. The biomes stop following the land (`footing: free`), and",
+    "Where nothing has to agree with anything else. The biomes stop following the land (`footing: free`), the",
+    "landforms lie where chance puts them rather than where the land suits them (as `jumbled`), and",
     "everything leans towards the fantastic: land that floats or hangs inverted, colour, glow, things aloft and",
     "mushroom woods, creatures that fly rather than bite.",
     "",
@@ -12,6 +13,12 @@
     {
       "sets": {
         "footing": "free"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "patchwork": "true"
       },
       "must_always_apply": true
     },

@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Thrown together. `jumbled landmass` lays its landforms where chance puts them rather than where the land",
+    "suits them -- islands beside mountains, canyons in a sea of hills -- the patchwork every Age had before",
+    "the terrain table. The land still drifts and wears by the table, and the biomes still follow it."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "patchwork": "true"
+      },
+      "must_always_apply": true
+    }
+  ]
+}
