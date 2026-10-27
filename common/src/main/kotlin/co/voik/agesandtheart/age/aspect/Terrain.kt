@@ -462,7 +462,7 @@ enum class Terrain(
         window: VerticalWindow,
         salt: Long,
     ): Ground {
-        val uncut = varied(build(options, salt), options, salt)
+        val uncut = varied(build(options, salt), options, salt, isRock = true)
         // **A landform with no room under it carries nothing**, whatever was asked for — the same shape as
         // a preset ignoring a material it cannot be made of, and the reason the ceiling is declared here.
         val ceiling = undergroundCeiling(options, salt) ?: return Ground(uncut)
@@ -560,13 +560,13 @@ enum class Terrain(
      * whether the Age has a sea or not. See `SkylandsField.rivers`.
      */
     fun rivers(options: Options, salt: Long): TerrainField? =
-        if (this == SKYLANDS) varied(SkylandsField.rivers(salt, scaleAsWritten(options, salt)), options, salt) else null
+        if (this == SKYLANDS) varied(SkylandsField.rivers(salt, scaleAsWritten(options, salt)), options, salt, isRock = false) else null
 
     fun standingWater(options: Options, salt: Long): TerrainField? = when (this) {
         RIVERLANDS -> RiverlandsField.water(salt, scaleOf(options, salt))
         MOUNTAINOUS -> MountainousField.water(salt, scaleOf(options, salt))
         else -> null
-    }?.let { varied(it, options, salt) }
+    }?.let { varied(it, options, salt, isRock = false) }
 
     /**
      * Whether this landform's ground can be eased into another's where two meet ([Seam.MERGED]): a surface standing
@@ -577,12 +577,13 @@ enum class Terrain(
 
     /**
      * [field] as this landform changes across the world ([LandVariety]) — the rock, and the water it carries, alike,
-     * so a river still lies in its bed. Which landforms drift in height and which bend is [DRIFTS_IN_HEIGHT] and
-     * [BENDS].
+     * so a river still lies in its bed; only the rock is gullied. Which landforms drift in height, which are gullied
+     * and which bend is [DRIFTS_IN_HEIGHT], [GULLIED] and [BENDS].
      */
-    private fun varied(field: TerrainField, options: Options, salt: Long): TerrainField = LandVariety.over(
+    private fun varied(field: TerrainField, options: Options, salt: Long, isRock: Boolean): TerrainField = LandVariety.over(
         field,
         stretchesAbove = if (this in DRIFTS_IN_HEIGHT) waterlineAt(options, salt) else null,
+        gulliedAbove = if (isRock && this in GULLIED) waterlineAt(options, salt) ?: VerticalWindow.MIN_Y else null,
         bends = this in BENDS,
         strength = varietyOf(options, salt),
         landScale = if (hasGroundBeneath) scaleOf(options, salt) else scaleAsWritten(options, salt),
@@ -649,6 +650,11 @@ enum class Terrain(
 
         private val RECONCILES by lazy {
             setOf(HILLS, FLATLANDS, ERODED, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS, CRATERLANDS, CONTINENTS)
+        }
+
+        /** The landforms whose slopes are gullied: ground with slopes, not the made shapes or the canyon's walls. */
+        private val GULLIED by lazy {
+            setOf(HILLS, ERODED, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS, CRATERLANDS, CONTINENTS)
         }
 
         /** The landforms whose outlines bend. Not the made shapes — pillars and pyramids — nor the Spire's islands. */

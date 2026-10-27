@@ -1,13 +1,14 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Exaggerated
+import co.voik.agesandtheart.worldgen.field.Gullied
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Warped
 import kotlin.math.min
 
 /**
- * How a landform changes as it is crossed: its height above the waterline drifting over a kilometre or two, and its
- * outlines bent at a few hundred blocks, so no two stretches of one landform are quite alike.
+ * How a landform changes as it is crossed: its height above the waterline drifting over a kilometre or two, its slopes
+ * cut by gullies, and its outlines bent at a few hundred blocks, so no two stretches of one landform are quite alike.
  *
  * [strength] is 0 for none, 1 for an Age that said nothing of it, and 2 at the most; [landScale] is the landform's
  * own size factor, which the wavelengths and the bend follow so a colossal landform drifts at its own scale.
@@ -17,6 +18,8 @@ object LandVariety {
     fun over(
         field: TerrainField,
         stretchesAbove: Int?,
+        /** The lowest a gully may cut, or null where this field takes none — water, and the made shapes. */
+        gulliedAbove: Int?,
         bends: Boolean,
         strength: Double,
         landScale: Double,
@@ -35,9 +38,12 @@ object LandVariety {
                 VerticalWindow.HIGHEST_BLOCK_Y - ROOM_TO_GROW,
             )
         } ?: field
-        if (!bends) return stretched
+        val gullied = gulliedAbove?.let { floorY ->
+            Gullied(stretched, salt xor GULLY_SALT, GULLY_DEPTH * min(strength, MOST_GULLIED), GULLY_CELL, floorY)
+        } ?: stretched
+        if (!bends) return gullied
         return Warped(
-            stretched,
+            gullied,
             salt xor BEND_SALT,
             BEND_FIRST_OCTAVE,
             BEND_AMPLITUDES,
@@ -59,6 +65,13 @@ object LandVariety {
     private const val BEND_SCALE = 1.0
     private const val BEND_BLOCKS = 60.0
     private const val MOST_BEND = 1.25
+
+    // Gullies about twenty blocks apart, five deep where the ground is steep, with rills half that across them. Past
+    // [MOST_GULLIED] a gully cuts deeper than it is wide.
+    private const val GULLY_DEPTH = 5.0
+    private const val GULLY_CELL = 40.0
+    private const val MOST_GULLIED = 1.6
+    private const val GULLY_SALT = 0x6011_1EDL
 
     /** Headroom a stretch leaves under the top of the world, for what grows on the ground it raised. */
     private const val ROOM_TO_GROW = 24

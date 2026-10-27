@@ -56,6 +56,24 @@ class LandVarietyCheck : FunSpec({
         check(steepest <= STEEPEST_STEP) { "reconciled ground still steps $steepest blocks between neighbours" }
     }
 
+    test("gullies cut steep ground, never level ground, and never below their floor") {
+        val level = Slab(-60, LOW_GROUND)
+        val flatGullied = Gullied(level, SEED, depth = 8.0, cellBlocks = 40.0, floorY = PIVOT)
+        for (x in -200..200 step 7) for (z in -200..200 step 7) {
+            check(flatGullied.columnSpans(x, z).ranges == level.columnSpans(x, z).ranges) { "level ground at $x, $z was cut" }
+        }
+        val peak = Union(listOf(Slab(-60, PIVOT), Cone(0, 0, baseRadius = 120.0, baseY = PIVOT, tipY = PIVOT + 120)))
+        val steepGullied = Gullied(peak, SEED, depth = 8.0, cellBlocks = 40.0, floorY = PIVOT)
+        var cut = 0
+        for (x in -110..110 step 3) for (z in -110..110 step 3) {
+            val before = peak.columnSpans(x, z).highestSolidY ?: continue
+            val after = steepGullied.columnSpans(x, z).highestSolidY ?: error("the column at $x, $z emptied")
+            check(after >= minOf(before, PIVOT)) { "a gully at $x, $z cut to $after, under the floor" }
+            if (after < before) cut++
+        }
+        check(cut > 0) { "a cone's flanks took no gully" }
+    }
+
     test("an Age written before variety stays the same everywhere, and a new one does not") {
         fun read(version: Int): AgeComposition {
             val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.CLIFFS))), seed = SEED, generatorVersion = version)

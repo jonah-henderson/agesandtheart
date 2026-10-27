@@ -44,7 +44,8 @@ fun main(arguments: Array<String>) {
         val left = panel * (across + GAP)
         for (row in 0..<across) for (column in 0..<across) {
             val height = plan[row][column]
-            val shade = ((height - lowest).toDouble() / (highest - lowest).coerceAtLeast(1)).toFloat()
+            val shade = (0.35 * (height - lowest).toDouble() / (highest - lowest).coerceAtLeast(1) +
+                0.65 * hillshade(plan, row, column, step)).toFloat().coerceIn(0f, 1f)
             val colour = if (waterline != null && height < waterline) Color(0.1f, 0.2f + shade * 0.3f, 0.5f + shade * 0.4f)
             else Color(shade, shade, shade)
             image.setRGB(left + column, row, colour.rgb)
@@ -60,6 +61,15 @@ fun main(arguments: Array<String>) {
         fun percentile(share: Double) = tops[((tops.size - 1) * share).toInt()]
         println("  %-7s p10 %4d  p50 %4d  p90 %4d  p99 %4d".format(label, percentile(0.1), percentile(0.5), percentile(0.9), percentile(0.99)))
     }
+}
+
+/** Light from the north-west at forty-five degrees, so a gully reads by its walls rather than its depth. */
+private fun hillshade(plan: Array<IntArray>, row: Int, column: Int, step: Int): Double {
+    val last = plan.size - 1
+    val eastward = (plan[row][minOf(column + 1, last)] - plan[row][maxOf(column - 1, 0)]) / (2.0 * step)
+    val southward = (plan[minOf(row + 1, last)][column] - plan[maxOf(row - 1, 0)][column]) / (2.0 * step)
+    val facing = (eastward + southward) / kotlin.math.sqrt(2.0)
+    return (0.5 - facing * 0.5).coerceIn(0.0, 1.0)
 }
 
 private const val DEFAULT_RADIUS = 1536
