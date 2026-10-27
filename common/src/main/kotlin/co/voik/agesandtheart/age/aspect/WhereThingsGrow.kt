@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import net.minecraft.core.HolderLookup
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
@@ -17,7 +18,7 @@ import net.minecraft.world.level.biome.MobSpawnSettings
  */
 object WhereThingsGrow {
     /** Every creature some biome offers in any spawn pass, or some structure offers inside itself. */
-    fun creaturesListed(registries: RegistryAccess): Set<Identifier> {
+    fun creaturesListed(registries: HolderLookup.Provider): Set<Identifier> {
         val offeredByBiomes = registries.lookupOrThrow(Registries.BIOME).listElements().toList().flatMap { biome ->
             // A biome's spawners are an environment attribute in 26.3, laid over nothing here.
             val settings = biome.value().attributes

@@ -10,6 +10,7 @@ import co.voik.agesandtheart.age.Ladder
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.Spreads
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Parameter
@@ -17,12 +18,20 @@ import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Pool
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.Spawning
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.reward.Danger.Source
+import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.Identifier
+import net.minecraft.util.random.Weighted
+import net.minecraft.util.random.WeightedList
+import net.minecraft.util.valueproviders.UniformInt
+import net.minecraft.world.level.biome.MobSpawnSettings
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -106,24 +115,49 @@ class DangerCheck : FunSpec({
         check(score(overWater).from(Source.VOID).isEmpty()) { "islands over a sea scored ${score(overWater).from(Source.VOID)}" }
     }
 
-    test("a crowd is scored by the monster cap the book set, not by the weight among its kinds") {
-        val ghasts = monsters(score(spawning(GHASTS)))
-        val weighted = monsters(score(spawning("$GHASTS[amount=4]")))
-        val teeming = monsters(score(spawning(GHASTS).withOptions(Aspect.SPAWNS, Spawns.CAPS.name, listOf("monster:4"))))
-        check(ghasts == GHAST_WORTH) { "ghasts scored $ghasts" }
-        check(weighted == ghasts) { "ghasts weighted four to one among their kinds scored $weighted" }
-        check(abs(teeming - 4 * ghasts) < A_ROUNDING) { "ghasts under four times the cap scored $teeming against $ghasts" }
+    test("a crowd is scored by the monster cap the book set") {
+        val teeming = monsters(score(oneTerritory().withOptions(Aspect.SPAWNS, Spawns.CAPS.name, listOf("monster:4"))))
+        check(abs(teeming - MONSTERS_DOUBLED * 3) < A_ROUNDING) { "the world's own monsters under four times the cap scored $teeming" }
+    }
+
+    test("a creature counts for how often it is met, and more of it for more") {
+        val wardens = monsters(score(spawning(WARDEN)))
+        val moreWardens = monsters(score(spawning("$WARDEN[amount=4]")))
+        val allWardens = MONSTERS_DOUBLED * (WARDEN_WORTH / OWN_WORLDS_WORTH - 1)
+        check(wardens > 0.0) { "wardens named into the Age scored nothing" }
+        check(moreWardens > wardens) { "wardens four times as thick scored $moreWardens against $wardens" }
+        check(moreWardens < allWardens) { "wardens among the world's own scored $moreWardens, as if nothing else were met" }
+    }
+
+    test("a creature named where nothing else spawns is all that is met there") {
+        val mushrooms = oneTerritory().withOptions(Aspect.BIOMES, Biomes.GROWN.name, listOf("$MUSHROOM_FIELDS[only]"))
+        val wardensAmongMushrooms = monsters(score(mushrooms.withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(WARDEN))))
+        val allWardens = MONSTERS_DOUBLED * (WARDEN_WORTH / OWN_WORLDS_WORTH - 1)
+        check(abs(wardensAmongMushrooms - allWardens) < A_ROUNDING) { "wardens among mushrooms scored $wardensAmongMushrooms" }
+        check(monsters(score(mushrooms)) == 0.0) { "ground no monster spawns on scored ${monsters(score(mushrooms))}" }
+        val sealedMushrooms = mushrooms.withOptions(Aspect.SKY, Sky.SEALED.name, listOf(Parameter.TRUE))
+        check(monsters(score(sealedMushrooms)) == 0.0) { "a roof over ground no monster spawns on let out ${monsters(score(sealedMushrooms))}" }
+    }
+
+    test("a creature made commoner where the Age grows none counts nothing") {
+        check(monsters(score(spawning("$GHASTS[${Claim.WHERE_IT_GROWS},amount=4]"))) == 0.0) { "ghasts made commoner where none grow were scored" }
+    }
+
+    test("a creature confined to one biome counts where that biome is") {
+        val everywhere = monsters(score(spawning(WARDEN)))
+        val confined = monsters(score(spawning("$WARDEN[in=$PLAINS]")))
+        check(confined > 0.0 && confined < everywhere) { "wardens in one of two biomes scored $confined against $everywhere everywhere" }
     }
 
     /** More monsters and monsters out at every hour are one danger met two ways, and rated together they were the worse. */
     test("monsters and the darkness that lets them out count as the worse of them, not both") {
         val sealed = oneTerritory().withOptions(Aspect.SKY, Sky.SEALED.name, listOf(Parameter.TRUE))
-        val ghastsUnderARoof = sealed.withOptions(Aspect.SPAWNS, Spawns.LIVES.name, listOf(GHASTS))
+        val teemingUnderARoof = sealed.withOptions(Aspect.SPAWNS, Spawns.CAPS.name, listOf("monster:4"))
         check(monsters(score(sealed)) == SEALED_WORTH) { "a sealed sky scored ${monsters(score(sealed))}" }
-        check(monsters(score(ghastsUnderARoof)) == maxOf(SEALED_WORTH, GHAST_WORTH)) {
-            "ghasts under a roof scored ${monsters(score(ghastsUnderARoof))}"
+        check(abs(monsters(score(teemingUnderARoof)) - SEALED_WORTH * 4) < A_ROUNDING) {
+            "four times the monsters under a roof scored ${monsters(score(teemingUnderARoof))}"
         }
-        check(score(ghastsUnderARoof).from(Source.CREATURES).size == 1) { "the monsters were counted as more than one hazard" }
+        check(score(teemingUnderARoof).from(Source.CREATURES).size == 1) { "the monsters were counted as more than one hazard" }
     }
 
     test("a sealed Age is dangerous, unless nothing lives in it") {
@@ -132,32 +166,22 @@ class DangerCheck : FunSpec({
         check(monsters(score(sealedAndEmpty)) == 0.0) { "an Age nothing lives in took danger from its roof" }
     }
 
-    test("monsters made stronger or quicker are more dangerous, asked for or already here") {
+    test("monsters made stronger or quicker are more dangerous, by how much of the whole they are") {
         val strongZombies = monsters(score(oneTerritory().withOptions(Aspect.SPAWNS, "strength", listOf("1.0..1.0[for=$ZOMBIE]"))))
         val swiftEverything = monsters(score(oneTerritory().withOptions(Aspect.SPAWNS, "pace", listOf("1.0..1.0"))))
         check(strongZombies > 0.0) { "strong zombies scored nothing" }
         check(swiftEverything > strongZombies) { "every monster quickened scored $swiftEverything, below strong zombies at $strongZombies" }
-        val strongGhasts = monsters(score(spawning(GHASTS).withOptions(Aspect.SPAWNS, "strength", listOf("1.0..1.0"))))
-        check(strongGhasts > GHAST_WORTH) { "strong ghasts scored $strongGhasts against $GHAST_WORTH" }
-    }
-
-    test("monsters all made stronger are the biomes' own made stronger, not the worst creature the game has") {
         val strongEverything = monsters(score(oneTerritory().withOptions(Aspect.SPAWNS, "strength", listOf("1.0..1.0"))))
-        val strongerByHalf = ORDINARY_MONSTER_WORTH * (STRONGEST - 1.0)
-        check(abs(strongEverything - strongerByHalf) < A_ROUNDING) {
-            "every monster strengthened scored $strongEverything, where the biomes' own strengthened are $strongerByHalf"
+        check(abs(strongEverything - MONSTERS_DOUBLED * (STRONGEST - 1.0)) < A_ROUNDING) {
+            "every monster strengthened scored $strongEverything"
         }
     }
 
-    test("a creature loosed from its own rules is worth more, and the biomes' own are loosed once") {
-        val loosed = spawning(GHASTS).withOptions(Aspect.SPAWNS, Spawns.INCONGRUOUS.name, listOf(Parameter.TRUE))
-        check(monsters(score(loosed)) > GHAST_WORTH) { "ghasts loosed scored ${monsters(score(loosed))}, no more than ghasts" }
-        val strongLoosed = oneTerritory().withOptions(Aspect.SPAWNS, Spawns.INCONGRUOUS.name, listOf(Parameter.TRUE))
-            .withOptions(Aspect.SPAWNS, "strength", listOf("1.0..1.0[for=$ZOMBIE]"))
-        val strongZombies = monsters(score(oneTerritory().withOptions(Aspect.SPAWNS, "strength", listOf("1.0..1.0[for=$ZOMBIE]"))))
-        check(monsters(score(strongLoosed)) > maxOf(strongZombies, INCONGRUOUS_WORTH)) {
-            "strong zombies loosed scored ${monsters(score(strongLoosed))}, no more than either alone"
-        }
+    test("an incongruous Age's monsters come from all its biomes everywhere, and walk at noon") {
+        val loosed = oneTerritory().withOptions(Aspect.SPAWNS, Spawns.INCONGRUOUS.name, listOf(Parameter.TRUE))
+        val mostlyPlains = monsters(score(loosed, census = MOSTLY_PLAINS_AND_A_WASTE))
+        check(mostlyPlains > INCONGRUOUS_WORTH) { "the waste's ghasts loosed over the plains scored $mostlyPlains" }
+        check(monsters(score(loosed)) == INCONGRUOUS_WORTH) { "monsters loosed into the daylight scored ${monsters(score(loosed))}" }
     }
 
     test("darkness lets out monsters as hard as the book made them") {
@@ -167,7 +191,8 @@ class DangerCheck : FunSpec({
     }
 
     test("a charged creeper or a herd of them is more dangerous, and a creature rooted where it stands less") {
-        fun creepersWith(vararg parameters: Pair<String, String>) = monsters(score(parameters.fold(spawning(CREEPER)) { held, (name, value) ->
+        val sealed = oneTerritory().withOptions(Aspect.SKY, Sky.SEALED.name, listOf(Parameter.TRUE))
+        fun creepersWith(vararg parameters: Pair<String, String>) = monsters(score(parameters.fold(sealed) { held, (name, value) ->
             held.withOptions(Aspect.SPAWNS, name, listOf(value))
         }))
         val creepers = creepersWith()
@@ -181,18 +206,8 @@ class DangerCheck : FunSpec({
         check(weak == 0.0) { "weakening the monsters already here scored $weak" }
     }
 
-    test("monsters walking at noon are let out as a roof lets them out") {
-        val loosed = oneTerritory().withOptions(Aspect.SPAWNS, Spawns.INCONGRUOUS.name, listOf(Parameter.TRUE))
-        check(monsters(score(loosed)) == INCONGRUOUS_WORTH) { "monsters loosed into the daylight scored ${monsters(score(loosed))}" }
-    }
-
-    test("a hazard confined to one biome keeps part of its worth") {
-        val confined = monsters(score(spawning("$GHASTS[in=minecraft:plains]")))
-        check(abs(confined - GHAST_WORTH * CONFINED) < A_ROUNDING) { "a confined claim scored $confined" }
-    }
-
     test("a hazard the book struck out is not scored") {
-        check(monsters(score(spawning(GHASTS, "$GHASTS[except]"))) == 0.0) { "a struck-out ghast was scored" }
+        check(monsters(score(spawning(WARDEN, "$WARDEN[except]"))) == 0.0) { "a struck-out warden was scored" }
     }
 
     test("what happens here is scored, and a sight is not a hazard") {
@@ -270,8 +285,13 @@ class DangerCheck : FunSpec({
         private const val MAGMA_WORTH = 0.7
         private const val LAVA_SEA_WORTH = 0.2
         private const val VOID_WORTH = 0.5
-        private const val GHAST_WORTH = 0.3
-        private const val ORDINARY_MONSTER_WORTH = 0.5
+        private const val PLAINS = "minecraft:plains"
+        private const val MUSHROOM_FIELDS = "minecraft:mushroom_fields"
+        private const val GHAST_WORTH = 1.5
+        private const val CREEPER_WORTH = 1.5
+        private const val WARDEN_WORTH = 20.0
+        private const val ORDINARY_MONSTER_WORTH = 1.0
+        private const val MONSTERS_DOUBLED = 0.6
         private const val STRONGEST = 1.3
         private const val SEALED_WORTH = 0.65
         private const val INCONGRUOUS_WORTH = 0.4
@@ -279,6 +299,9 @@ class DangerCheck : FunSpec({
         private const val HEAVIER_WORTH = 0.1
         private const val UNJUMPABLE_WORTH = 0.6
         private const val CONFINED = 0.65
+
+        /** What the world's own monsters are worth all told: zombies and creepers, as many of each. */
+        private const val OWN_WORLDS_WORTH = (ORDINARY_MONSTER_WORTH + CREEPER_WORTH) / 2
 
         private const val A_TWENTIETH = 0.05
         private const val A_ROUNDING = 1e-9
@@ -301,7 +324,8 @@ class DangerCheck : FunSpec({
                 landforms = emptyMap(),
                 underground = emptyMap(),
             ),
-            creatures = mapOf("monsters" to ORDINARY_MONSTER_WORTH, GHASTS to GHAST_WORTH, CREEPER to 0.4, WARDEN to 0.95),
+            creatures = mapOf("monsters" to ORDINARY_MONSTER_WORTH, GHASTS to GHAST_WORTH, CREEPER to CREEPER_WORTH, WARDEN to WARDEN_WORTH),
+            monstersDoubled = MONSTERS_DOUBLED,
             darkness = DangerTable.Darkness(sealed = SEALED_WORTH, sunless = 0.5, roofedByRock = 0.1, incongruous = INCONGRUOUS_WORTH),
             hardiness = DangerTable.Hardiness(
                 strength = DangerTable.Dial(raised = STRONGEST, lowered = 0.5),
@@ -310,7 +334,6 @@ class DangerCheck : FunSpec({
                 charged = 2.0,
                 still = 0.05,
                 herds = 1.3,
-                loosed = 1.5,
             ),
             phenomena = mapOf(INFERNO to INFERNO_WORTH, SANDFALL to 0.3, AURORA to 0.0),
             phenomenonDials = DangerTable.PhenomenonDials(
@@ -330,9 +353,44 @@ class DangerCheck : FunSpec({
             else Ladder(it.dials.associateWith { DialSteps(emptyList()) })
         }
 
-        private fun score(composition: AgeComposition, bought: Manifestation? = null, table: DangerTable = TABLE): Danger {
+        private fun score(
+            composition: AgeComposition,
+            bought: Manifestation? = null,
+            table: DangerTable = TABLE,
+            census: MonsterCensus = PLAINS_AND_A_FOREST,
+        ): Danger {
             val instability = bought?.let { Instability.forced(STEPS_EACH * it.dials.size) } ?: Instability.NONE
-            return Danger.of(composition, instability, ANY_SEED, table, selling(bought))
+            return Danger.of(composition, instability, ANY_SEED, table, selling(bought), census = census)
+        }
+
+        private fun offering(vararg monsters: Pair<String, Int>): WeightedList<MobSpawnSettings.SpawnerData> =
+            WeightedList.of(monsters.map { (creature, weight) ->
+                val type = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse(creature))
+                Weighted(MobSpawnSettings.SpawnerData(type, UniformInt.of(1, 1)), weight)
+            })
+
+        private fun census(ground: (List<BiomePreference>) -> List<MonsterCensus.Patch>) = MonsterCensus(
+            { preferences, _, _ -> ground(preferences) },
+            Spawning(),
+            livesSomewhere = setOf(ZOMBIE, CREEPER, GHASTS).map(Identifier::parse).toSet(),
+        )
+
+        /** Two biomes alike, zombies and creepers in each — or mushroom fields, offering nothing, where a book asks. */
+        private val PLAINS_AND_A_FOREST = census { preferences ->
+            val asksForMushrooms = preferences.any { it.biome.toString() == MUSHROOM_FIELDS }
+            if (asksForMushrooms) {
+                listOf(MonsterCensus.Patch(Identifier.parse(MUSHROOM_FIELDS), 1.0, offering()))
+            } else {
+                listOf(PLAINS, "minecraft:forest").map { MonsterCensus.Patch(Identifier.parse(it), 1.0, offering(ZOMBIE to 100, CREEPER to 100)) }
+            }
+        }
+
+        /** Plains over three quarters of the ground, zombies in them, and a waste of ghasts over the rest. */
+        private val MOSTLY_PLAINS_AND_A_WASTE = census {
+            listOf(
+                MonsterCensus.Patch(Identifier.parse(PLAINS), 3.0, offering(ZOMBIE to 100)),
+                MonsterCensus.Patch(Identifier.parse("minecraft:nether_wastes"), 1.0, offering(GHASTS to 100)),
+            )
         }
 
         private fun ground(composition: AgeComposition): Double = score(composition).from(Source.GROUND).sumOf { it.value }

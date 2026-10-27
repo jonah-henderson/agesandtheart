@@ -3,10 +3,12 @@ package co.voik.agesandtheart.age.reward
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.ShippedCorpus
+import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Ladder
 import co.voik.agesandtheart.age.Manifestation
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 
 /**
@@ -48,7 +50,7 @@ class DangerAnchorsCheck : FunSpec({
             "age monsters lightless sky" to 0.55,
             "age teeming monsters" to 2.0,
             "age frozen climate blizzard meteors phenomena" to 1.0,
-            "age lava sea monsters inferno phenomena" to 0.75,
+            "age lava sea monsters inferno phenomena" to 0.55,
             "age floating landmass meteors phenomena" to 1.0,
             "desolate age" to 0.2,
         )
@@ -59,10 +61,14 @@ class DangerAnchorsCheck : FunSpec({
 
         private val table by lazy { DangerTable.load(MinecraftRegistries.shippedData()) }
         private val ladders = Manifestation.entries.associateWith(Ladder::ordinaryFor)
+        private val censuses = ConcurrentHashMap<AgeTemplate, MonsterCensus>()
 
         private fun dangerOf(sentence: String, seed: Long): Danger {
             val resolution = ShippedCorpus.resolved(seed, *sentence.split(" ").toTypedArray())
-            return Danger.of(resolution.composition, resolution.instability, seed, table, ladders)
+            val census = censuses.getOrPut(resolution.template) {
+                MonsterCensus.over(MinecraftRegistries.worldgen, resolution.template, ShippedCorpus.vocabulary.spawning)
+            }
+            return Danger.of(resolution.composition, resolution.instability, seed, table, ladders, census = census)
         }
 
         private fun meanScore(sentence: String): Double = SEEDS.map { dangerOf(sentence, it).score }.average()

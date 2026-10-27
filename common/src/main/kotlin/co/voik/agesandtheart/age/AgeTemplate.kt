@@ -14,7 +14,9 @@ import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import co.voik.agesandtheart.worldgen.biome.BiomeHome
 import com.mojang.serialization.Codec
+import net.minecraft.core.Holder
 import net.minecraft.core.HolderGetter
+import net.minecraft.core.HolderLookup
 import net.minecraft.data.worldgen.material.EndMaterialRules
 import net.minecraft.data.worldgen.material.NetherMaterialRules
 import net.minecraft.core.registries.Registries
@@ -25,6 +27,7 @@ import net.minecraft.util.StringRepresentable
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.Biomes
 import net.minecraft.world.level.biome.BiomeSource
+import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.biome.MultiNoiseBiomeSource
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterLists
@@ -238,16 +241,26 @@ enum class AgeTemplate(
         keepsOnlyNamed: Boolean,
         seed: Long,
     ): BiomeSource {
-        val lookup = server.registryAccess().lookupOrThrow(Registries.BIOME)
-        val list = biomeList ?: return TheEndBiomeSource.create(lookup)
-        val table = server.registryAccess()
+        val table = biomeTable(server.registryAccess(), preferences, keepsOnlyNamed, seed, BiomeHome.of(server))
+            ?: return TheEndBiomeSource.create(server.registryAccess().lookupOrThrow(Registries.BIOME))
+        return MultiNoiseBiomeSource.createFromList(table)
+    }
+
+    /** The climate table [biomesOf] looks biomes up in, the book's preferences applied, or null for the End's. */
+    fun biomeTable(
+        registries: HolderLookup.Provider,
+        preferences: List<BiomePreference>,
+        keepsOnlyNamed: Boolean,
+        seed: Long,
+        homes: Map<Identifier, BiomeHome>,
+    ): Climate.ParameterList<Holder<Biome>>? {
+        val list = biomeList ?: return null
+        val table = registries
             .lookupOrThrow(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST)
             .getOrThrow(list)
             .value()
             .parameters()
-        return MultiNoiseBiomeSource.createFromList(
-            BiomePreference.applied(table, preferences, keepsOnlyNamed, lookup, seed, BiomeHome.of(server)),
-        )
+        return BiomePreference.applied(table, preferences, keepsOnlyNamed, registries.lookupOrThrow(Registries.BIOME), seed, homes)
     }
 
     override fun getSerializedName(): String = key

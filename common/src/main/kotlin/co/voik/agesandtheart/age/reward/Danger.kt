@@ -28,7 +28,6 @@ import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.consequence.StrangeGravity
-import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.entity.MobCategory
 import kotlin.math.pow
@@ -94,9 +93,6 @@ data class Danger(
         private const val NOTHING = 0.0
         private const val AS_THEY_ARE = 1.0
 
-        /** The monster whose hardiness stands for the hardiness of the biomes' own, where darkness lets them out. */
-        private const val ORDINARY_MONSTER = "minecraft:zombie"
-
         /** The creatures a charge does anything to. */
         private val CHARGEABLE = setOf("minecraft:creeper")
 
@@ -106,21 +102,29 @@ data class Danger(
             DangerTable.of(server),
             Ladder.list(server),
             SpendingSetting.of(server, recipe.composition, recipe.template, recipe.seed),
+            MonsterCensus.of(server, recipe.template),
         )
 
-        /** The same, against a table and the ladders handed in. A bespoke Age, having no composition, scores nothing. */
+        /**
+         * The same, against a table, the ladders and the census handed in. A bespoke Age, having no composition, scores
+         * nothing.
+         */
         fun of(
             recipe: AgeRecipe,
             table: DangerTable,
             ladders: Map<Manifestation, Ladder>,
             setting: SpendingSetting = SpendingSetting.of(recipe.composition),
+            census: MonsterCensus? = null,
         ): Danger {
             val composition = (recipe.world as? AgeWorld.Composed)?.composition
                 ?: return Danger(emptyList(), terminal = NOTHING, table)
-            return of(composition, recipe.instability, recipe.seed, table, ladders, setting)
+            return of(composition, recipe.instability, recipe.seed, table, ladders, setting, census)
         }
 
-        /** How dangerous a composition is before an Age has been written from it — what the desk asks. */
+        /**
+         * How dangerous a composition is before an Age has been written from it — what the desk asks. Without a
+         * [census], its monsters are taken as its world's own.
+         */
         fun of(
             composition: AgeComposition,
             instability: Instability,
@@ -128,6 +132,7 @@ data class Danger(
             table: DangerTable,
             ladders: Map<Manifestation, Ladder>,
             setting: SpendingSetting = SpendingSetting.of(composition),
+            census: MonsterCensus? = null,
         ): Danger {
             val spent = Spending.of(instability, seed, ladders, setting)
             val hazards = buildList {
@@ -137,7 +142,7 @@ data class Danger(
                 add(Hazard(Source.VOID, "void", voidOf(composition, table)))
                 add(Hazard(Source.GROUND, "landform", landformsOf(composition, table)))
                 add(Hazard(Source.UNDERGROUND, composition.underground.key, table.ground.underground(composition.underground.key)))
-                add(Hazard(Source.CREATURES, "monsters", creaturesOf(composition, table, seed)))
+                add(Hazard(Source.CREATURES, "monsters", creaturesOf(composition, table, seed, census)))
                 addAll(phenomenaOf(composition, table, spent, seed))
                 addAll(featuresOf(composition, table))
                 addAll(conditionsOf(composition, table, seed))
@@ -183,54 +188,39 @@ data class Danger(
             }
 
         /**
-         * The monsters an Age holds over the biomes' own — **one hazard, and the worst of what feeds it**.
+         * The monsters an Age holds over its world's own — **one hazard, and the worse of what feeds it**: monsters more
+         * dangerous all told, or monsters let out by darkness at every hour. Rated together they came out at the worse.
          *
-         * More monsters, monsters let out by darkness at every hour, and the biomes' own made harder are three ways of
-         * meeting the same danger, and rated together they came out at the worst of them rather than their sum. Each
-         * is scaled by the hardiness of what it brings, and the whole by the monster cap the book set.
-         *
-         * **A claim's amount is a weight among its kinds, not a crowd**, so it is not read here. A kind named outright is
-         * worth its own rating everywhere; kinds described (`monsters`, a mood's lean) are more of what already grows,
-         * worth an ordinary monster once they reach [A_CROWD_OF_MONSTERS] of all monsters, and that share of it short of
-         * that.
-         *
-         * **A kind loosed from its own rules** (`incongruous inhabitants`) is worth more as it was asked for or made
-         * harder; the biomes' own, loosed, are what the darkness lets out, so they are not loosed twice.
+         * **All told** is each kind's worth, times how often it is met ([MonsterCensus]) and how much harder the book
+         * made it, against the same over the world the Age was written over as nobody wrote it. So a creature counts for
+         * how often a player will meet it, and one made commoner where the Age grows none counts nothing. The monster cap
+         * the book set scales what the natural spawner brings, and not what the Age places itself.
          */
-        private fun creaturesOf(composition: AgeComposition, table: DangerTable, seed: Long): Double {
+        private fun creaturesOf(composition: AgeComposition, table: DangerTable, seed: Long, census: MonsterCensus?): Double {
             if (spawnsNothing(composition)) return NOTHING
             val spawns = composition.optionsFor(Aspect.SPAWNS, 0)
-            val claims = wanted(spawns.claimsOn(Spawns.LIVES))
-            val loosed = if (spawns.isTrue(Spawns.INCONGRUOUS)) table.hardiness.loosed else AS_THEY_ARE
-            fun hardiness(member: String) = hardinessOf(spawns, table.hardiness, seed, member)
-            fun wasNamed(claim: Claim) = !claim.onlyWhereItGrows || claim.introducedIfAbsent
-            val (named, described) = claims.partition(::wasNamed)
-            val namedWorst = named.maxOfOrNull { claim ->
-                table.creature(claim.value) * confinement(claim, table) * hardiness(claim.value)
-            } ?: NOTHING
-            val describedMonsters = described.filter { table.isAMonster(it.value) }
-            val describedShare = describedMonsters.size.toDouble() / MONSTER_KINDS.coerceAtLeast(1)
-            val describedWorth = table.creature(ORDINARY_MONSTER) * (describedShare / A_CROWD_OF_MONSTERS).coerceAtMost(AS_THEY_ARE) *
-                (describedMonsters.maxOfOrNull { hardiness(it.value) } ?: AS_THEY_ARE)
             val crowd = Spawns.capsOf(spawns)[MobCategory.MONSTER] ?: AS_THEY_ARE
-            val askedFor = maxOf(namedWorst, describedWorth) * loosed * crowd
-            val letOut = darknessOf(composition, table.darkness) * hardiness(ORDINARY_MONSTER) * crowd
-            val asked = claims.map(Claim::value).toSet()
-            val madeHarder = madeHardier(spawns).filterNot { it in asked }.maxOfOrNull { member ->
-                table.creature(member) * (hardiness(member) * loosed - AS_THEY_ARE)
-            } ?: NOTHING
-            return maxOf(askedFor, letOut, madeHarder, NOTHING)
+            val allTold = census?.let { allToldOf(it.of(composition, seed), spawns, table, seed, crowd) } ?: crowd
+            val moreDangerous = table.monstersDoubled * (allTold - AS_THEY_ARE)
+            val letOut = darknessOf(composition, table.darkness) * allTold
+            return maxOf(moreDangerous, letOut, NOTHING)
         }
 
-        /**
-         * The share of all kinds of monster a described crowd reaches to be a crowd of monsters: half, since many kinds
-         * never spawn of their own accord and `monsters` itself reaches only some four in five.
-         */
-        private const val A_CROWD_OF_MONSTERS = 0.5
-
-        /** How many kinds of monster there are, against which a described crowd's reach is measured. */
-        private val MONSTER_KINDS: Int by lazy {
-            BuiltInRegistries.ENTITY_TYPE.count { it.category == MobCategory.MONSTER }
+        /** How many times as dangerous as its own world's the Age's monsters are, all told. */
+        private fun allToldOf(
+            meetings: MonsterCensus.Meetings,
+            spawns: Options,
+            table: DangerTable,
+            seed: Long,
+            crowd: Double,
+        ): Double {
+            fun hardiness(creature: String) = hardinessOf(spawns, table.hardiness, seed, creature)
+            fun worthOf(met: Map<String, Double>, hardiness: (String) -> Double) =
+                met.entries.sumOf { (creature, share) -> share * table.creature(creature) * hardiness(creature) }
+            val ownWorlds = worthOf(meetings.ownWorlds) { AS_THEY_ARE }
+            if (ownWorlds <= NOTHING) return NOTHING
+            val inTheAge = worthOf(meetings.spawned, ::hardiness) * crowd + worthOf(meetings.placed, ::hardiness)
+            return inTheAge / ownWorlds
         }
 
         /**
@@ -264,17 +254,6 @@ data class Danger(
             val still = if (spawns.isTrue(Spawns.STILL, member = member)) hardiness.still else AS_THEY_ARE
             val herded = if (spawns.holdersOfAny(Spawns.HERD).includes(member)) hardiness.herds else AS_THEY_ARE
             return strength * pace * size * charged * still * herded
-        }
-
-        /**
-         * Every creature the recipe names as made harder or easier, and the ordinary monster standing for the biomes'
-         * own where it said all of them.
-         */
-        private fun madeHardier(spawns: Options): Set<String> {
-            val said = spawns.holdersOfAny(Spawns.STRENGTH) and spawns.holdersOfAny(Spawns.PACE) and
-                spawns.holdersOfAny(Spawns.SIZE) and spawns.holdersOfAny(Spawns.CHARGED) and
-                spawns.holdersOfAny(Spawns.STILL) and spawns.holdersOfAny(Spawns.HERD)
-            return if (said.everyone) said.only + ORDINARY_MONSTER else said.only
         }
 
         /**

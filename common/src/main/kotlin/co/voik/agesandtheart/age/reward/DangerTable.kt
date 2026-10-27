@@ -29,7 +29,10 @@ data class DangerTable(
     /** What a claim confined to one biome (`in <biome>`) keeps of the same claim made of the whole Age. */
     val confined: Double,
     val ground: Ground,
+    /** What each kind of monster is worth met once, in ordinary monsters — see [creature]. */
     private val creatures: Map<String, Double>,
+    /** What an Age whose monsters, all told, are twice as dangerous as its own world's is worth. */
+    val monstersDoubled: Double,
     val darkness: Darkness,
     val hardiness: Hardiness,
     private val phenomena: Map<String, Double>,
@@ -41,7 +44,8 @@ data class DangerTable(
     val wounds: Double,
 ) {
     /**
-     * What a creature asked for is worth — its own entry, else what any monster is worth, else nothing.
+     * What meeting [named] once is worth, in ordinary monsters — its own entry, else what any monster is worth, else
+     * nothing.
      *
      * Vanilla already classifies every hostile mob as a monster, so only the ones unlike an ordinary monster need a
      * line.
@@ -186,10 +190,7 @@ data class DangerTable(
         }
     }
 
-    /**
-     * How much more or less dangerous a creature's strength, speed, size, charge, stillness and herding make it, and
-     * its being loosed from its own rules.
-     */
+    /** How much more or less dangerous a creature's strength, speed, size, charge, stillness and herding make it. */
     data class Hardiness(
         val strength: Dial,
         val pace: Dial,
@@ -197,8 +198,6 @@ data class DangerTable(
         val charged: Double,
         val still: Double,
         val herds: Double,
-        /** A creature that may turn up anywhere, past its own rules (`incongruous inhabitants`). */
-        val loosed: Double = AS_IT_IS,
     ) {
         companion object {
             val CODEC: Codec<Hardiness> = RecordCodecBuilder.create { instance ->
@@ -209,7 +208,6 @@ data class DangerTable(
                     Codec.DOUBLE.fieldOf("charged").forGetter(Hardiness::charged),
                     Codec.DOUBLE.fieldOf("still").forGetter(Hardiness::still),
                     Codec.DOUBLE.fieldOf("herds").forGetter(Hardiness::herds),
-                    Codec.DOUBLE.optionalFieldOf("loosed", AS_IT_IS).forGetter(Hardiness::loosed),
                 ).apply(instance, ::Hardiness)
             }
         }
@@ -280,6 +278,7 @@ data class DangerTable(
             confined = NOTHING,
             ground = Ground(emptyMap(), emptyMap(), NOTHING, emptyMap(), emptyMap(), emptyMap()),
             creatures = emptyMap(),
+            monstersDoubled = NOTHING,
             darkness = Darkness(NOTHING, NOTHING, NOTHING, NOTHING),
             hardiness = Hardiness(UNCHANGED, UNCHANGED, UNCHANGED, AS_IT_IS, AS_IT_IS, AS_IT_IS),
             phenomena = emptyMap(),
@@ -297,6 +296,7 @@ data class DangerTable(
                 Codec.DOUBLE.fieldOf("confined").forGetter(DangerTable::confined),
                 Ground.CODEC.fieldOf("ground").forGetter(DangerTable::ground),
                 RATINGS.fieldOf("creatures").forGetter { it.creatures },
+                Codec.DOUBLE.fieldOf("monsters_doubled").forGetter(DangerTable::monstersDoubled),
                 Darkness.CODEC.fieldOf("darkness").forGetter(DangerTable::darkness),
                 Hardiness.CODEC.fieldOf("hardiness").forGetter(DangerTable::hardiness),
                 RATINGS.fieldOf("phenomena").forGetter { it.phenomena },

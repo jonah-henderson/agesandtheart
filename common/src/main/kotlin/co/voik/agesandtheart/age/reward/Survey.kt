@@ -39,9 +39,10 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
             DangerTable.of(server),
             Ladder.list(server),
             SpendingSetting.of(server, composition, template, seed),
+            MonsterCensus.of(server, template),
         )
 
-        /** The same, against a table and the ladders handed in — offline, and what the checks use. */
+        /** The same, against a table, the ladders and the census handed in — offline, and what the checks use. */
         fun of(
             composition: AgeComposition,
             instability: Instability,
@@ -49,8 +50,9 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
             table: DangerTable,
             ladders: Map<Manifestation, Ladder>,
             setting: SpendingSetting = SpendingSetting.of(composition),
+            census: MonsterCensus? = null,
         ): Survey {
-            val danger = Danger.of(composition, instability, seed, table, ladders, setting)
+            val danger = Danger.of(composition, instability, seed, table, ladders, setting, census)
             val spending = Spending.of(instability, seed, ladders, setting)
             return Survey(
                 deposit = Yield.of(danger),
