@@ -106,6 +106,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes
 import net.minecraft.world.item.component.ItemAttributeModifiers
 import net.minecraft.world.item.MapItem
 import net.minecraft.world.item.component.MapDecorations
+import net.minecraft.world.item.component.TooltipDisplay
 import net.minecraft.world.level.saveddata.maps.MapDecorationType
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
 import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider
@@ -876,9 +877,11 @@ object AgeContent {
             .sound(SoundType.WOOD),
     )
 
-    val TOOLBOX: Item = BlockItem(
+    /** Vanilla's line a compartment is hidden, and [ToolboxItem] says a line a kind instead. */
+    val TOOLBOX: Item = ToolboxItem(
         TOOLBOX_BLOCK,
-        Item.Properties().setId(ResourceKey.create(Registries.ITEM, TOOLBOX_ID)).useBlockDescriptionPrefix(),
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, TOOLBOX_ID)).useBlockDescriptionPrefix()
+            .component(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT.withHidden(DataComponents.CONTAINER, true)),
     )
 
     private val SEISMOGRAPH_ID: Identifier = "seismograph".location()
