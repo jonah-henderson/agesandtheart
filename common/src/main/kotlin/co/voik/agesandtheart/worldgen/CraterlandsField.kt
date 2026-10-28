@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.worldgen.field.BySize
 import co.voik.agesandtheart.worldgen.field.Chance
 import co.voik.agesandtheart.worldgen.field.Choose
 import co.voik.agesandtheart.worldgen.field.Cone
@@ -103,10 +104,10 @@ object CraterlandsField {
      * *over* the cratered plain instead and the raised ground simply buries the craters it covers, which
      * is what a blanket of ejecta does to the country it lands on anyway.
      */
-    fun world(steer: Steer = Steer.UNSAID, salt: Long = 0L, wear: Wear? = null): TerrainField {
+    fun world(steer: Steer = Steer.UNSAID, salt: Long = 0L, wear: Wear? = null, centralPeaks: Boolean = true): TerrainField {
         val covering = coveringShare(steer)
         return Weathered.sculpting(
-            bareWorld(steer, salt, wear),
+            bareWorld(steer, salt, wear, centralPeaks),
             Weathering.CRATERLANDS.resized(covering, WATERLINE),
             (SHELTER_REACH * covering).roundToInt(),
         )
@@ -120,12 +121,13 @@ object CraterlandsField {
      * same thing when the structure is resized under a plain that is not.
      *
      * With a [wear], the craters of the plain are fresher where it is less worn and older where it is more, down to
-     * ghosts of craters where it is worn the most; without one, every kind is as likely anywhere.
+     * ghosts of craters where it is worn the most; without one, every kind is as likely anywhere. With [centralPeaks],
+     * the largest sharp craters keep a peak in their middle.
      */
-    fun bareWorld(steer: Steer = Steer.UNSAID, salt: Long = 0L, wear: Wear? = null): TerrainField {
+    fun bareWorld(steer: Steer = Steer.UNSAID, salt: Long = 0L, wear: Wear? = null, centralPeaks: Boolean = true): TerrainField {
         val share = structureShare(steer)
         fun sized(field: TerrainField) = field.resized(share, WATERLINE)
-        val secondaries = craters(steer, salt, wear)
+        val secondaries = craters(steer, salt, wear, centralPeaks)
         val hole = sized(excavation(steer, salt))
         // What the impact threw out, with the same hole taken out of it.
         val raised = Union(
@@ -523,7 +525,14 @@ object CraterlandsField {
      * things at once — the crater's depth going down, and going up what has to clear the rim cone's own
      * apex, which for so broad a taper stands well over the crest.
      */
-    private data class CraterShape(val crestRadius: Double, val rimRise: Int, val rimWidth: Double, val bowlReach: Double) {
+    private data class CraterShape(
+        val crestRadius: Double,
+        val rimRise: Int,
+        val rimWidth: Double,
+        val bowlReach: Double,
+        /** Whether this kind, drawn at [COMPLEX_CRATER] or larger, keeps a central peak standing in its bowl. */
+        val peaksWhenLarge: Boolean = false,
+    ) {
         private val crestY get() = PLAIN_Y + rimRise
 
         fun rim(): TerrainField = slopeFrom(CRATER_ANCHOR_Y, crestRadius, crestY, crestRadius + rimWidth)
@@ -543,7 +552,13 @@ object CraterlandsField {
          * above the crest line is the rim cone's apex, which the ellipsoid was taking anyway — and it
          * removes exactly the neighbour's rim that would otherwise be left hanging.
          */
-        fun bowl(): TerrainField = Union(
+        fun bowl(centralPeaks: Boolean): TerrainField {
+            val hollow = hollow()
+            if (!(centralPeaks && peaksWhenLarge)) return hollow
+            return BySize(smaller = hollow, larger = Subtract(hollow, centralPeak()), fromScale = COMPLEX_CRATER)
+        }
+
+        private fun hollow(): TerrainField = Union(
             listOf(
                 Ellipsoid(
                     centerX = 0,
@@ -562,6 +577,25 @@ object CraterlandsField {
                 ),
             ),
         )
+
+        /**
+         * What the bowl leaves standing in its middle: a cone rising [PEAK_RISE_SHARE] of the way from the floor to the
+         * crest, [PEAK_FOOT_SHARE] of the crest's radius across at the floor, and rooted under it so that it is rock the
+         * cut passes over rather than rock set on the floor.
+         */
+        private fun centralPeak(): TerrainField {
+            val floorY = crestY - bowlReach
+            val tipY = floorY + bowlReach * PEAK_RISE_SHARE
+            val baseY = floorY - PEAK_ROOTS
+            val footRadius = crestRadius * PEAK_FOOT_SHARE
+            return Cone(
+                baseX = 0,
+                baseZ = 0,
+                baseRadius = footRadius * (tipY - baseY) / (tipY - floorY),
+                baseY = baseY.roundToInt(),
+                tipY = tipY.roundToInt(),
+            )
+        }
     }
 
     /**
@@ -571,7 +605,7 @@ object CraterlandsField {
      * scaling changing rim and depth together.
      */
     private val CRATER_SHAPES = listOf(
-        CraterShape(crestRadius = 26.0, rimRise = 7, rimWidth = 17.0, bowlReach = 26.0),
+        CraterShape(crestRadius = 26.0, rimRise = 7, rimWidth = 17.0, bowlReach = 26.0, peaksWhenLarge = true),
         // The flank is kept short despite the low rim. A shallow rise over a long run solves to a very
         // broad cone, and a template's base radius is what the scatter has to scan out to on every column.
         CraterShape(crestRadius = 29.0, rimRise = 5, rimWidth = 16.0, bowlReach = 17.0),
@@ -591,7 +625,7 @@ object CraterlandsField {
      * left cutting a hole in ground it could never have reached the surface of. A fresh ejecta blanket
      * being uncratered is also, conveniently, true.
      */
-    private fun craters(steer: Steer, salt: Long, wear: Wear?): Craters {
+    private fun craters(steer: Steer, salt: Long, wear: Wear?, centralPeaks: Boolean): Craters {
         val layout = Scatter(
             cellSize = dialled(steer.spacing, CRATER_CELL, LEAST_CRATER_CELL, MOST_CRATER_CELL),
             leastPerCell = 0,
@@ -622,7 +656,7 @@ object CraterlandsField {
         val shapes = if (wear == null) CRATER_SHAPES else CRATER_SHAPES + GHOST_CRATER
         return Craters(
             rims = Instanced(shapes.map { it.rim() }, layout, poses, CRATER_SEED xor salt, wornBy = wear),
-            bowls = Instanced(shapes.map { it.bowl() }, layout, poses, CRATER_SEED xor salt, wornBy = wear),
+            bowls = Instanced(shapes.map { it.bowl(centralPeaks) }, layout, poses, CRATER_SEED xor salt, wornBy = wear),
         )
     }
 
@@ -765,6 +799,14 @@ object CraterlandsField {
 
     /** How far the widest crater reaches from its middle, which is what the pairing check searches. */
     val CRATER_REACH = CRATER_SHAPES.maxOf { it.crestRadius + it.rimWidth }
+
+    /** The size from which a sharp crater keeps a central peak: only the largest of the four it is drawn at. */
+    private const val COMPLEX_CRATER = 1.35
+
+    /** How far a central peak rises from the floor toward the crest, how wide it stands, and how far under the floor it is rooted. */
+    private const val PEAK_RISE_SHARE = 0.5
+    private const val PEAK_FOOT_SHARE = 0.38
+    private const val PEAK_ROOTS = 8.0
 
     /** How far under the plain's lowest a template anchors, on top of everything that can raise it. */
     private const val CLEAR_OF_THE_PLAIN = 4

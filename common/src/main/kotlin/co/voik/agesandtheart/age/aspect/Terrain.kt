@@ -305,7 +305,14 @@ enum class Terrain(
     CRATERLANDS(
         "cratered",
         waterline = CraterlandsField.WATERLINE,
-        build = { options, salt, table -> CraterlandsField.world(craterSteer(options, salt), salt, craterWear(options, salt, table)) },
+        build = { options, salt, table ->
+            CraterlandsField.world(
+                craterSteer(options, salt),
+                salt,
+                craterWear(options, salt, table),
+                centralPeaks = !options.isTrue(FORMER_WEAR),
+            )
+        },
         axes = { listOf(SPACING, WEAR, RELIEF, SIZE) },
     ),
 
