@@ -3,7 +3,7 @@ package co.voik.agesandtheart.worldgen.field
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
-import co.voik.agesandtheart.age.FormerBanks
+import co.voik.agesandtheart.age.FormerWear
 import co.voik.agesandtheart.age.FormerUniformity
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -169,10 +169,10 @@ class LandVarietyCheck : FunSpec({
             val saved = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow()
             return AgeRecipe.CODEC.parse(JsonOps.INSTANCE, saved).getOrThrow().composition ?: error("no composition")
         }
-        check(read(FormerBanks.LAST_GENERATOR_BEFORE_BANKS_HELD).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_BANKS)) {
+        check(read(FormerWear.LAST_GENERATOR_OF_THE_FORMER_WEAR).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_WEAR)) {
             "the old Age's banks were held"
         }
-        check(!read(FormerBanks.LAST_GENERATOR_BEFORE_BANKS_HELD + 1).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_BANKS)) {
+        check(!read(FormerWear.LAST_GENERATOR_OF_THE_FORMER_WEAR + 1).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_WEAR)) {
             "a new Age wears through its banks"
         }
     }

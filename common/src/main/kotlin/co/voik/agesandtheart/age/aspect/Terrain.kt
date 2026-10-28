@@ -690,10 +690,10 @@ enum class Terrain(
 
     /**
      * The water this landform carries, lifted but not yet varied, whose banks its wear leaves alone; null where it
-     * carries none, or where the Age was written while the wear still cut through them ([FORMER_BANKS]).
+     * carries none, or where the Age was written while the wear still cut through them ([FORMER_WEAR]).
      */
     private fun bankedWater(options: Options, salt: Long, sea: SeaSetting?): TerrainField? {
-        if (options.isTrue(FORMER_BANKS)) return null
+        if (options.isTrue(FORMER_WEAR)) return null
         val own = ownStandingWater(options, salt) ?: ownRivers(options, salt) ?: return null
         return lifted(own, options, salt, sea)
     }
@@ -904,13 +904,13 @@ enum class Terrain(
         )
 
         /**
-         * Whether the weather wears through the banks of the water a landform carries, as it did before generator 21 —
-         * set on every Age written before then, so the land it has already generated still meets what it generates
-         * next. No word sets it.
+         * Whether the wear works as it did before generator 21: through the banks of the water a landform carries, and
+         * with no say in the shape of its own features — set on every Age written before then, so the land it has
+         * already generated still meets what it generates next. No word sets it.
          */
-        val FORMER_BANKS = Parameter.flag(
-            "former_banks",
-            help = "Whether the weather wears through the banks of the landform's rivers and lakes.",
+        val FORMER_WEAR = Parameter.flag(
+            "former_wear",
+            help = "Whether the weather wears the land as it did before it spared the rivers and shaped each landform's features.",
         )
 
         /**
