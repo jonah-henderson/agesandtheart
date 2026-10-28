@@ -78,6 +78,9 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
     /** But never by another body of the same storm, or a shower would knock itself down mid-air. */
     override fun canHitEntity(target: Entity): Boolean = target !is Meteor && super.canHitEntity(target)
 
+    /** A caught one is shoved about like anything else lying around; one in flight is not. */
+    override fun isPushable(): Boolean = settled
+
     /** It came in through an atmosphere. Fire is not what breaks one. */
     override fun fireImmune(): Boolean = true
 
@@ -301,6 +304,29 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
     }
 
     /**
+     * Pushed off every other caught body it overlaps, so a storm caught in one pond spreads out across it
+     * rather than piling into one place.
+     *
+     * Vanilla's push between two entities, which only living things and vehicles ever start, and which
+     * does nothing for two at the same spot; those are sent opposite ways along a bearing both sides
+     * derive from the pair's ids.
+     */
+    private fun shoulderApart() {
+        val touching = level().getEntities(this, boundingBox) { it is Meteor && it.settled }
+        for (other in touching) {
+            // Measured as vanilla's push measures it, along whichever axis they are furthest apart.
+            val apart = maxOf(abs(other.x - x), abs(other.z - z))
+            if (apart >= ON_TOP_OF_ONE_ANOTHER) push(other) else edgeAwayFrom(other)
+        }
+    }
+
+    private fun edgeAwayFrom(other: Entity) {
+        val bearing = (minOf(id, other.id) * BEARING_SALT + maxOf(id, other.id)).toDouble()
+        val away = if (id < other.id) -EDGES_AWAY else EDGES_AWAY
+        push(Math.cos(bearing) * away, 0.0, Math.sin(bearing) * away)
+    }
+
+    /**
      * The push up on it where it is: none in air, and in fluid **as much as it is still submerged**.
      *
      * A push that is simply on below the surface and off above it can only ever overshoot and come back,
@@ -364,6 +390,7 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         // would otherwise quietly resolve away the very thing a player built a pond to keep.
         if (settled) {
             baseTick()
+            shoulderApart()
             bobAbout()
             return
         }
@@ -457,6 +484,13 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
 
         /** Below this the bobbing is over and is stopped, rather than left to tremble. */
         private const val COME_TO_REST = 0.006
+
+        /** Closer than this, in blocks, and vanilla's push has no direction to give two bodies. */
+        private const val ON_TOP_OF_ONE_ANOTHER = 0.01
+
+        /** What two bodies at the same spot are sent apart with — vanilla's push between neighbours. */
+        private const val EDGES_AWAY = 0.05
+        private const val BEARING_SALT = 31
 
         private const val A_WHOLE_BLOCK = 1.0
         private const val KEPT = 1.0
