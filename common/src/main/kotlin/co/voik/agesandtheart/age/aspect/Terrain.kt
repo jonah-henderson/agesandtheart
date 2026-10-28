@@ -102,6 +102,15 @@ private fun craterWear(options: Options, salt: Long, table: TerrainTable?): Wear
     return if (strength <= 0.0) null else LandVariety.wearOf(strength, erosionOf(options, salt), scaleOf(options, salt), salt, table)
 }
 
+/**
+ * The wear a landform's own features follow, which is the weather's own, even everywhere on an Age that does not vary;
+ * none on an Age written before generator 21, whose features were all alike.
+ */
+private fun featureWear(options: Options, salt: Long, table: TerrainTable?): Wear? {
+    if (options.isTrue(Terrain.FORMER_WEAR)) return null
+    return LandVariety.wearOf(varietyOf(options, salt), erosionOf(options, salt), scaleOf(options, salt), salt, table)
+}
+
 private fun craterSteer(options: Options, salt: Long) = CraterlandsField.Steer(
     wear = options.steer(Terrain.WEAR, salt),
     relief = options.steer(Terrain.RELIEF, salt),
@@ -187,7 +196,7 @@ enum class Terrain(
     PILLARS(
         "pillared",
         waterline = ORDINARY_SEA_LEVEL,
-        build = { options, salt, _ -> PillarField.world(salt, scaleOf(options, salt)) },
+        build = { options, salt, table -> PillarField.world(salt, scaleOf(options, salt), featureWear(options, salt, table)) },
         axes = { listOf(SIZE) },
     ),
 
