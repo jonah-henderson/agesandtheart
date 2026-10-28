@@ -28,7 +28,10 @@
     "a nonsense.",
     "",
     "**A wound and a deep bubble column are what happens to a world, not what one is made of** (Jonah,",
-    "2026-10-21): a world of wounds would put every block of it in the index the wound renderer draws from."
+    "2026-10-21): a world of wounds would put every block of it in the index the wound renderer draws from.",
+    "",
+    "**Vent lining is the vent's** (Jonah, 2026-10-27): it drops nothing, and a world written of it would hand",
+    "out the gloomgrit a vent is meant to be the only source of."
   ],
   "replace": false,
   "values": [
@@ -221,6 +224,7 @@
     "agesandtheart:advanced_analysis_machine",
     "agesandtheart:fusion_compounder",
     "agesandtheart:wound",
-    "agesandtheart:deep_bubble_column"
+    "agesandtheart:deep_bubble_column",
+    "agesandtheart:vent_lining"
   ]
 }
