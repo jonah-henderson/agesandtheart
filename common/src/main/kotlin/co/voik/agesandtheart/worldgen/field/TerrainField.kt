@@ -84,6 +84,7 @@ enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<ou
     SCREE({ self -> Scree.codec(self) }),
     TERRACED({ self -> Terraced.codec(self) }),
     UNDERCUT({ self -> Undercut.codec(self) }),
+    BANKED({ self -> Banked.codec(self) }),
     FAULT({ self -> Fault.codec(self) }),
     DISLOCATED({ self -> Dislocated.codec(self) }),
     RIFT({ Rift.CODEC }),

@@ -359,6 +359,7 @@ enum class Aspect(
             // What holds of every landform and every creature, whichever is seated or lives there.
             TERRAIN -> listOf(
                 Terrain.TORN, Terrain.INCONGRUOUS, Terrain.FORMER_SIZES, Terrain.VARIETY, Terrain.FORMER_LAND, Terrain.PATCHWORK,
+                Terrain.FORMER_BANKS,
             )
             SPAWNS -> listOf(
                 Spawns.STILL, Spawns.CHARGED, Spawns.WOOL, Spawns.HERD, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS,

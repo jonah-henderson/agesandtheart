@@ -666,21 +666,36 @@ enum class Terrain(
      * Rivers this terrain runs **of water whatever its sea**, or null for none — the islands' rivers, there
      * whether the Age has a sea or not. See `SkylandsField.rivers`.
      */
-    fun rivers(options: Options, salt: Long, table: TerrainTable? = null, sea: SeaSetting? = null): TerrainField? {
-        if (this != SKYLANDS) return null
-        return carried(SkylandsField.rivers(salt, scaleAsWritten(options, salt)), options, salt, table, sea)
-    }
+    fun rivers(options: Options, salt: Long, table: TerrainTable? = null, sea: SeaSetting? = null): TerrainField? =
+        ownRivers(options, salt)?.let { carried(it, options, salt, table, sea) }
 
-    fun standingWater(options: Options, salt: Long, table: TerrainTable? = null, sea: SeaSetting? = null): TerrainField? = when (this) {
+    fun standingWater(options: Options, salt: Long, table: TerrainTable? = null, sea: SeaSetting? = null): TerrainField? =
+        ownStandingWater(options, salt)?.let { carried(it, options, salt, table, sea) }
+
+    private fun ownRivers(options: Options, salt: Long): TerrainField? =
+        if (this == SKYLANDS) SkylandsField.rivers(salt, scaleAsWritten(options, salt)) else null
+
+    private fun ownStandingWater(options: Options, salt: Long): TerrainField? = when (this) {
         RIVERLANDS -> RiverlandsField.water(salt, scaleOf(options, salt), isFormer(options))
         MOUNTAINOUS -> MountainousField.water(salt, scaleOf(options, salt))
         else -> null
-    }?.let { carried(it, options, salt, table, sea) }
+    }
 
     /** Water this landform carries, moved with its rock and varied as it is. */
-    private fun carried(water: TerrainField, options: Options, salt: Long, table: TerrainTable?, sea: SeaSetting?): TerrainField {
-        val lifted = liftTo(options, salt, sea)?.over(water, keepsFloor = false) ?: water
-        return varied(lifted, options, salt, isRock = false, table, sea)
+    private fun carried(water: TerrainField, options: Options, salt: Long, table: TerrainTable?, sea: SeaSetting?): TerrainField =
+        varied(lifted(water, options, salt, sea), options, salt, isRock = false, table, sea)
+
+    private fun lifted(water: TerrainField, options: Options, salt: Long, sea: SeaSetting?): TerrainField =
+        liftTo(options, salt, sea)?.over(water, keepsFloor = false) ?: water
+
+    /**
+     * The water this landform carries, lifted but not yet varied, whose banks its wear leaves alone; null where it
+     * carries none, or where the Age was written while the wear still cut through them ([FORMER_BANKS]).
+     */
+    private fun bankedWater(options: Options, salt: Long, sea: SeaSetting?): TerrainField? {
+        if (options.isTrue(FORMER_BANKS)) return null
+        val own = ownStandingWater(options, salt) ?: ownRivers(options, salt) ?: return null
+        return lifted(own, options, salt, sea)
     }
 
     /**
@@ -741,6 +756,7 @@ enum class Terrain(
             landScale = if (hasGroundBeneath) scaleOf(options, salt) else scaleAsWritten(options, salt),
             salt = salt,
             table = table,
+            water = if (isRock) bankedWater(options, salt, sea) else null,
         )
 
     /**
@@ -885,6 +901,16 @@ enum class Terrain(
         val FORMER_LAND = Parameter.flag(
             "former_land",
             help = "Whether the land is laid as it was before it had a table to follow and weather to wear it.",
+        )
+
+        /**
+         * Whether the weather wears through the banks of the water a landform carries, as it did before generator 21 —
+         * set on every Age written before then, so the land it has already generated still meets what it generates
+         * next. No word sets it.
+         */
+        val FORMER_BANKS = Parameter.flag(
+            "former_banks",
+            help = "Whether the weather wears through the banks of the landform's rivers and lakes.",
         )
 
         /**

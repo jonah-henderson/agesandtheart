@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen.field
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
+import co.voik.agesandtheart.age.FormerBanks
 import co.voik.agesandtheart.age.FormerUniformity
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -140,6 +141,42 @@ class LandVarietyCheck : FunSpec({
         check(notched > 0) { "the mesa's foot took no notch" }
     }
 
+    test("the wear leaves the ground under a landform's own water alone, and eases in above it") {
+        val peak = Union(listOf(Slab(-60, PIVOT), Cone(0, 0, baseRadius = 120.0, baseY = PIVOT, tipY = PIVOT + 120)))
+        val worn = Gullied(peak, SEED, depth = 8.0, cellBlocks = 40.0, floorY = PIVOT)
+        val water = Slab(-60, RIVER_SURFACE)
+        val banked = Banked(worn, peak, water, BANK_EASING)
+        var wornAboveTheBanks = 0
+        for (x in -110..110 step 3) for (z in -110..110 step 3) {
+            val before = peak.columnSpans(x, z).highestSolidY ?: continue
+            val after = banked.columnSpans(x, z).highestSolidY ?: error("the column at $x, $z emptied")
+            if (before <= RIVER_SURFACE) check(after == before) { "ground under the water at $x, $z moved from $before to $after" }
+            else check(after > RIVER_SURFACE) { "the bank at $x, $z was cut from $before to $after, into the water" }
+            val wornTop = worn.columnSpans(x, z).highestSolidY ?: continue
+            if (before >= RIVER_SURFACE + BANK_EASING && wornTop > RIVER_SURFACE) {
+                check(after == wornTop) { "ground well above the water at $x, $z was held" }
+                if (after < before) wornAboveTheBanks++
+            }
+        }
+        check(wornAboveTheBanks > 0) { "nothing above the banks was worn" }
+        val dry = Banked(worn, peak, Union(emptyList()), BANK_EASING)
+        for (x in -110..110 step 9) check(dry.columnSpans(x, 7).ranges == worn.columnSpans(x, 7).ranges) { "dry ground at $x was held" }
+    }
+
+    test("an Age written before the banks were held still wears through them, and a new one does not") {
+        fun read(version: Int): AgeComposition {
+            val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.RIVERLANDS))), seed = SEED, generatorVersion = version)
+            val saved = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow()
+            return AgeRecipe.CODEC.parse(JsonOps.INSTANCE, saved).getOrThrow().composition ?: error("no composition")
+        }
+        check(read(FormerBanks.LAST_GENERATOR_BEFORE_BANKS_HELD).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_BANKS)) {
+            "the old Age's banks were held"
+        }
+        check(!read(FormerBanks.LAST_GENERATOR_BEFORE_BANKS_HELD + 1).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_BANKS)) {
+            "a new Age wears through its banks"
+        }
+    }
+
     test("wear swings from place to place about its mean, and none wears nothing") {
         val swinging = Wear(SEED, mean = 1.0, spread = 0.8)
         val readings = (-5000..5000 step 97).flatMap { x -> (-5000..5000 step 89).map { z -> swinging.at(x, z) } }
@@ -198,6 +235,8 @@ private const val NOTCH_DEPTH = 3.0
 private const val NOTCH_HEIGHT = 4.0
 private const val FRESH_PILLAR = 10
 private const val WORN_PILLAR = 20
+private const val RIVER_SURFACE = PIVOT + 30
+private const val BANK_EASING = 8.0
 
 /** As far out as scree ten deep, falling at its angle of rest, can reach past the grid point at a face's foot. */
 private const val SCREE_REACH = 32.0

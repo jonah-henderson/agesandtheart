@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
+import co.voik.agesandtheart.worldgen.field.Banked
 import co.voik.agesandtheart.worldgen.field.Exaggerated
 import co.voik.agesandtheart.worldgen.field.Gullied
 import co.voik.agesandtheart.worldgen.field.Landmarks
@@ -22,7 +23,8 @@ import kotlin.math.min
  *
  * [erosion] is how worn the land is on average, on the same scale, and [strength] how far that swings from place to
  * place ([Wear]): none at all where the land does not vary, and from untouched to twice the average at the most.
- * Where the Age has a [TerrainTable], the drift follows its uplift and the wear its age.
+ * Where the Age has a [TerrainTable], the drift follows its uplift and the wear its age. Where the landform carries
+ * [water] of its own, the wear stays clear of it ([Banked]).
  */
 object LandVariety {
 
@@ -40,11 +42,13 @@ object LandVariety {
         salt: Long,
         /** The Age's terrain table, which the drift and the wear follow where there is one. */
         table: TerrainTable? = null,
+        /** Water the landform carries, before it is varied, whose banks the wear leaves alone; null for none. */
+        water: TerrainField? = null,
     ): TerrainField {
         val varies = strength > 0.0
-        val stretched = stretchesAbove?.takeIf { varies }?.let { pivotY ->
+        fun stretch(shape: TerrainField): TerrainField = stretchesAbove?.takeIf { varies }?.let { pivotY ->
             Exaggerated(
-                field,
+                shape,
                 pivotY,
                 salt xor STRETCH_SALT,
                 STRETCH_FIRST_OCTAVE,
@@ -55,9 +59,11 @@ object LandVariety {
                 landmarksFor(strength, landScale, salt),
                 table,
             )
-        } ?: field
+        } ?: shape
+        val stretched = stretch(field)
         val worn = wornAbove?.takeIf { erosion > 0.0 }?.let { floorY ->
-            worn(stretched, floorY, terraces, wearOf(strength, erosion, landScale, salt, table), salt)
+            val wornThrough = worn(stretched, floorY, terraces, wearOf(strength, erosion, landScale, salt, table), salt)
+            water?.let { Banked(wornThrough, stretched, stretch(it), BANK_EASING) } ?: wornThrough
         } ?: stretched
         if (!bends || !varies) return worn
         return Warped(
@@ -142,6 +148,9 @@ object LandVariety {
     private const val UNDERCUT_DEPTH = 3.0
     private const val UNDERCUT_HEIGHT = 4.0
     private const val UNDERCUT_SALT = 0x0DE2_C07L
+
+    /** How far above a river's surface its banks ease into the wear. */
+    private const val BANK_EASING = 8.0
 
     /** Headroom a stretch leaves under the top of the world, for what grows on the ground it raised. */
     private const val ROOM_TO_GROW = 24
