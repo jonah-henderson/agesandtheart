@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.age.phenomena.Sampling
-import net.minecraft.core.SectionPos
+import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.level.CustomSpawner
@@ -68,9 +68,9 @@ class DriftingOreSpawner : CustomSpawner {
         val z = around.z + level.random.nextInt(-reach, reach + 1) + HALF
         val y = band + (level.random.nextDouble() - HALF) * BAND_THICKNESS
         val at = Vec3(x, y, z)
-        // Null where the roll landed on ground the server is not holding, which is most of a large area
-        // and is why this is cheap: generating a chunk to find out would be a spawner driving worldgen.
-        if (!level.hasChunk(SectionPos.blockToSectionCoord(at.x), SectionPos.blockToSectionCoord(at.z))) return null
+        // Null where the roll landed outside the chunks entities tick in: the square's corners reach past
+        // them, and a body put there would hang still until somebody came near. Asking loads nothing.
+        if (!level.isPositionEntityTicking(BlockPos.containing(at))) return null
         if (tooManyAround(level, at)) return null
         val span = OreClusters.spanOf(tier)
         // Room for the whole rock rather than for a point in it: these are up to six blocks across, and a

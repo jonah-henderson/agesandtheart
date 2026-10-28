@@ -148,8 +148,18 @@ object PhenomenaCeiling {
         }
     }
 
+    /**
+     * Whether [raised] has stopped: gone, or left behind in a chunk that no longer ticks it — where it
+     * would otherwise hold its place under the ceiling until somebody went back.
+     */
+    private fun hasStopped(raised: Entity): Boolean {
+        if (raised.isRemoved) return true
+        val level = raised.level() as? ServerLevel ?: return false
+        return !level.isPositionEntityTicking(raised.blockPosition())
+    }
+
     private fun letFinishedEventsGo() {
-        for (raised in standing.values) raised.removeAll { it.isRemoved }
+        for (raised in standing.values) raised.removeAll(::hasStopped)
         standing.values.removeAll { it.isEmpty() }
         fun isAnEventWithNothingStanding(episode: Episode<Identifier>) =
             episode.kinds.all { it in EVENTS } && episode !in standing

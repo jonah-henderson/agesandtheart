@@ -94,14 +94,20 @@ object Meteors {
     }
 
     /**
-     * How many are already up.
+     * How many are already up — **and still ticking**.
+     *
+     * A storm left behind in a chunk that stops ticking entities stands there frozen, unfinished, for as
+     * long as the chunk stays loaded, and counted here it held off every storm after it. It finishes when
+     * somebody goes back, catching up on what it owes.
      *
      * **A walk of every entity in the level**, not of the storms — `EntityTypeTest` filters the result and
      * does not index it. Bounded by [MOST_AT_ONCE] in what it *returns*, which is not the same as what it
      * costs, so it is asked behind the roll rather than in front of it.
      */
     private fun gatheringIn(level: ServerLevel): Int =
-        level.getEntities(EntityTypeTest.forClass(MeteorStorm::class.java)) { true }.size
+        level.getEntities(EntityTypeTest.forClass(MeteorStorm::class.java)) { storm ->
+            level.isPositionEntityTicking(storm.blockPosition())
+        }.size
 
     /**
      * How far from a watcher a storm may do anything at all, in blocks.

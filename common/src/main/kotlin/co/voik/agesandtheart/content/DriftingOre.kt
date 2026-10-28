@@ -115,6 +115,10 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
             // which is what sells a field they are all following.
             deltaMovement = settled
             move(MoverType.SELF, settled.add(driftOf(level()).scale(driftPace)))
+            if (hasLeftTheSimulation()) {
+                discard()
+                return
+            }
             discardIfNobodyIsAround()
         }
         // Measured from the old position, which `commonTick` sets before the client's interpolation step.
@@ -163,6 +167,18 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         val fall = rock.collide(Direction.Axis.Y, probe, -reach)
         if (fall <= -reach) return null
         return (probe.minY + fall - box.minY).coerceAtLeast(0.0)
+    }
+
+    /**
+     * Whether this has drifted out of the chunks the server ticks entities in.
+     *
+     * A body there stops, and is kept as long as its chunk is loaded, so the edge of the simulation
+     * collected every body the current carried to it, and they set off together as a wall when a player
+     * walked that way.
+     */
+    private fun hasLeftTheSimulation(): Boolean {
+        val server = level() as? ServerLevel ?: return false
+        return !server.isPositionEntityTicking(blockPosition())
     }
 
     /**
