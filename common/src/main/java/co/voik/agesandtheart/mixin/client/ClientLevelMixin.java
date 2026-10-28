@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.mixin.client;
 
 import co.voik.agesandtheart.age.consequence.Wounds;
+import co.voik.agesandtheart.client.WornGrindstones;
 import co.voik.agesandtheart.client.WoundField;
 import co.voik.agesandtheart.client.light.DeepLights;
 import co.voik.agesandtheart.client.light.TintedLights;
@@ -13,7 +14,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Tells the client's wound index about a wound that arrives after its chunk did.
+ * Tells the client's block indexes — the wounds, the coloured and deep lights, the worn grindstones — about a
+ * block that changes after its chunk arrived.
  *
  * <p>A Mixin because there is no client block-change event on either loader — Fabric API has none and
  * NeoForge's block events are all server-side — and because the alternative is worse in a specific way:
@@ -41,5 +43,6 @@ public class ClientLevelMixin {
         if (Wounds.INSTANCE.noticed(level, pos, oldState, newState)) WoundField.INSTANCE.opened(level, pos);
         TintedLights.INSTANCE.noticed(level, pos, oldState, newState);
         DeepLights.INSTANCE.noticed(level, pos, oldState, newState);
+        WornGrindstones.INSTANCE.noticed(level, pos, oldState, newState);
     }
 }

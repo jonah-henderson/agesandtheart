@@ -1,0 +1,38 @@
+{
+  "_comment": "Vanilla's, with a grinder's wear kept on the item as a chipped anvil keeps its damage (station/GrindstoneWear). An unworn grindstone carries nothing, so it still stacks with a crafted one.",
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "modifier": [
+            {
+              "type": "minecraft:copy_state",
+              "condition": {
+                "type": "minecraft:inverted",
+                "term": {
+                  "type": "minecraft:match_block",
+                  "blocks": "minecraft:grindstone",
+                  "state": {
+                    "wear": "0"
+                  }
+                }
+              },
+              "block": "minecraft:grindstone",
+              "properties": [
+                "wear"
+              ]
+            }
+          ],
+          "name": "minecraft:grindstone"
+        }
+      ],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "minecraft:blocks/grindstone"
+}

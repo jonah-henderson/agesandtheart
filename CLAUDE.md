@@ -369,6 +369,12 @@ When shared code needs something loader-specific, it goes through an interface, 
   and an Age gets the menu's; NeoForge could swap the screen, Fabric has no event that does, and the
   background is all that differs.
 - **`LecternBlockMixin`** and **`LecternBlockEntityMixin`** — books on vanilla lecterns (design §7.8.2). The click and the auto-close ride `useWithoutItem` and the lectern's own scheduled tick, and the block entity is taught to tell a client which book it holds, which vanilla never does. The `book_open` property rides `StateDefinitionBuilderMixin` beside deep waterlogging. The renderer is not a Mixin: `LecternBookRenderer` extends vanilla's, and `client/ClientRegistrations` registers it in vanilla's place.
+- **`GrindstoneBarMixin`** — a grindstone worn by a grinder shows its runs left as a durability bar
+  (`station/GrindstoneWear`). The wear is a `wear` property riding `StateDefinitionBuilderMixin`, which the
+  grindstone's loot table copies onto the item and placing puts back; real `DAMAGE` would draw the bar for free
+  but makes the item repairable three ways and keeps a second copy of the wear. Fabric has no item-decoration
+  event. The cracks on the block are vanilla's mining overlay, refreshed by `client/WornGrindstones` off the
+  `ClientLevelMixin` seam, and need no Mixin of their own.
 - **`BlocksAttacksMixin`** and **`MaceItemMixin`** — what a potion of crushing resistance turns aside
   besides the deep. An axe disables a shield through `BlocksAttacks.disable`, the one method every
   `disable_blocking_for_seconds` weapon goes through; a mace's smash is `getAttackDamageBonus` and the

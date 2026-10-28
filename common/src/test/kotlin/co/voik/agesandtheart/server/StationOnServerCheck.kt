@@ -91,6 +91,41 @@ class StationOnServerCheck : FunSpec({
         check("minecraft:dirt" in leftAbove) { "the dirt left the hopper, so the grinder took it: $leftAbove" }
         check("agesandtheart:pitchstone_dust" in collectedBelow) { "nothing reached the lower hopper: $collectedBelow" }
     }
+
+    test("a run wears the grinder's grindstone by one, and its last run breaks it") {
+        build(
+            WEARING_GRINDER_X,
+            "grinder",
+            1 to "agesandtheart:arc_crystal_block",
+            -1 to "minecraft:grindstone[wear=$PART_WORN]",
+        )
+        build(
+            LAST_RUN_GRINDER_X,
+            "grinder",
+            1 to "agesandtheart:arc_crystal_block",
+            -1 to "minecraft:grindstone[wear=$ONE_RUN_LEFT]",
+        )
+        load(WEARING_GRINDER_X, "agesandtheart:pitchstone")
+        load(LAST_RUN_GRINDER_X, "agesandtheart:pitchstone")
+        runPastOneRun()
+        val worn = server.run("execute if block $WEARING_GRINDER_X $STATION_Y -1 minecraft:grindstone[wear=$ONE_RUN_LEFT]")
+        check(worn.startsWith("Test passed")) { "the grindstone did not wear by one run: $worn" }
+        val broken = server.run("execute if block $LAST_RUN_GRINDER_X $STATION_Y -1 minecraft:air")
+        check(broken.startsWith("Test passed")) { "the grindstone outlasted its last run: $broken" }
+    }
+
+    test("a worn grindstone keeps its wear when broken, and an unworn one carries none") {
+        server.run("forceload add 0 0")
+        server.run("setblock $BROKEN_GRINDSTONE_X $STATION_Y 0 minecraft:grindstone[wear=$PART_WORN]")
+        server.run("setblock $UNWORN_GRINDSTONE_X $STATION_Y 0 minecraft:grindstone")
+        server.run("setblock ${at(LOOT_CHEST_X)} minecraft:chest")
+        server.run("loot replace block ${at(LOOT_CHEST_X)} container.0 mine $BROKEN_GRINDSTONE_X $STATION_Y 0")
+        server.run("loot replace block ${at(LOOT_CHEST_X)} container.1 mine $UNWORN_GRINDSTONE_X $STATION_Y 0")
+        val worn = server.run("data get block ${at(LOOT_CHEST_X)} Items[0]")
+        val unworn = server.run("data get block ${at(LOOT_CHEST_X)} Items[1]")
+        check("wear: \"$PART_WORN\"" in worn) { "the worn grindstone dropped without its wear: $worn" }
+        check("minecraft:grindstone" in unworn && "block_state" !in unworn) { "the unworn grindstone dropped as: $unworn" }
+    }
 }) {
     private companion object {
         const val STATION_Y = 200
@@ -100,6 +135,15 @@ class StationOnServerCheck : FunSpec({
         const val HOPPERED_X = 11
         const val COAL_GRINDER_X = 14
         const val CHARCOAL_GRINDER_X = 17
+        const val WEARING_GRINDER_X = 20
+        const val LAST_RUN_GRINDER_X = 23
+        const val BROKEN_GRINDSTONE_X = 26
+        const val UNWORN_GRINDSTONE_X = 28
+        const val LOOT_CHEST_X = 30
+
+        /** Two short of a grindstone's 128 runs, and one short. */
+        const val PART_WORN = 126
+        const val ONE_RUN_LEFT = 127
         const val INPUT_SLOT = 0
 
         /** Past the pulper's 300-tick run, with room to spare. */

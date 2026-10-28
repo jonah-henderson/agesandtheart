@@ -65,15 +65,12 @@ private const val GRINDING_TICKS = 200
 /** Longer than grinding: wood is cooked down, not broken. */
 private const val PULPING_TICKS = 300
 
-/** A stack of deretheni, on average; a grindstone is cheap and the deretheni is not. */
-private const val RUNS_A_GRINDSTONE_LASTS_ON_AVERAGE = 64
-
 /** A block a station must have beside it before it will work. */
 enum class StationNeed {
     /** The power, paid at construction and never metered. */
     ARC_CRYSTAL,
 
-    /** The grinder's wheel, which wears out — see [RUNS_A_GRINDSTONE_LASTS_ON_AVERAGE]. */
+    /** The grinder's wheel, which wears out — see [GrindstoneWear]. */
     GRINDSTONE,
 
     /** The pulper's water, drained a level a run. */
@@ -89,7 +86,7 @@ enum class StationNeed {
     fun spend(level: ServerLevel, at: BlockPos) {
         when (this) {
             ARC_CRYSTAL -> Unit
-            GRINDSTONE -> if (level.random.nextInt(RUNS_A_GRINDSTONE_LASTS_ON_AVERAGE) == 0) level.destroyBlock(at, false)
+            GRINDSTONE -> GrindstoneWear.wearDown(level, at)
             WATER_CAULDRON -> LayeredCauldronBlock.lowerFillLevel(level.getBlockState(at), level, at)
         }
     }

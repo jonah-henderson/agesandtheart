@@ -41,6 +41,8 @@ object ClientSetup {
         StrangeMotes.tick(minecraft)
         // The haze over a plasma sea, found under the player's feet and drawn as a post effect.
         PlasmaHaze.tick(minecraft)
+        // A worn grindstone's cracks, which the client forgets unless they are drawn again.
+        WornGrindstones.tick(minecraft)
     }
 
     /**
@@ -55,6 +57,7 @@ object ClientSetup {
         TintedLights.stocked(level, chunk)
         // And what can be seen from across an abyss — the same index shape, for the same reason.
         DeepLights.stocked(level, chunk)
+        WornGrindstones.stocked(level, chunk)
     }
 
     /** A chunk leaving the client. */
@@ -62,6 +65,7 @@ object ClientSetup {
         Wounds.emptied(level, at)
         TintedLights.emptied(level, at)
         DeepLights.emptied(level, at)
+        WornGrindstones.emptied(level, at)
     }
 
     /** Leaving a server. What these hold is keyed on that server's ids, which mean nothing on the next, and an Age id can be reused. */
@@ -81,6 +85,7 @@ object ClientSetup {
         Wounds.forget()
         TintedLights.forget()
         DeepLights.forget()
+        WornGrindstones.forget()
         // A book open when the connection drops never reaches `Screen.removed`, so its preview level and
         // renderer would outlive the connection that fed them.
         LinkingPanel.forget()
