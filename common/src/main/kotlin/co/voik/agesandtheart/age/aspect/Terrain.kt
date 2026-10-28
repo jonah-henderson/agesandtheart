@@ -276,7 +276,7 @@ enum class Terrain(
     ISLANDS(
         "archipelagic",
         waterline = IslandsField.SEA_LEVEL,
-        build = { options, salt, _ -> IslandsField.world(sizeOf(options, salt), salt) },
+        build = { options, salt, table -> IslandsField.world(sizeOf(options, salt), salt, featureWear(options, salt, table)) },
         axes = { listOf(SIZE) },
     ),
 
@@ -290,7 +290,7 @@ enum class Terrain(
     ISLE(
         "insular",
         waterline = IslandsField.SEA_LEVEL,
-        build = { options, salt, _ -> IslandsField.lone(sizeOf(options, salt), salt) },
+        build = { options, salt, table -> IslandsField.lone(sizeOf(options, salt), salt, featureWear(options, salt, table)) },
         axes = { listOf(SIZE) },
     ),
 

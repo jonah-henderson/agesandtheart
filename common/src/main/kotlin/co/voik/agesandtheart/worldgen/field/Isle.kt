@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.StringRepresentable
+import java.util.Optional
 import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -83,6 +84,12 @@ data class Isle(
     val shoulder: Double = DEFAULT_SHOULDER,
     /** How many islands there are, and whether one of them is where the writer arrives — see [Layout]. */
     val layout: Layout = Layout.ANCHORED,
+    /**
+     * When set, each island is as old as the wear at its middle says ([Ageing]): young and tall with a reef along its
+     * shore, then lower behind a barrier reef across a lagoon, then sunk to an atoll. Unset, every island is as it was
+     * before islands aged, with no reef.
+     */
+    val wornBy: Wear? = null,
 ) : TerrainField {
     override val kind = FieldKind.ISLE
 
@@ -130,27 +137,90 @@ data class Isle(
         val runX = worldX - centreX
         val runZ = worldZ - centreZ
         val fromCentre = sqrt(runX * runX + runZ * runZ)
-        if (fromCentre >= coast) {
-            val shelf = shoreY - (fromCentre - coast) * shelfSlope
-            return if (shelf <= seabedY) seabedY.toDouble() else shelf
-        }
+        val reefReach = if (wornBy == null) 0.0 else radius * BARRIER_GAP_SHARE + FRINGING_GAP + reefWidth(radius)
+        if (fromCentre >= coast + reefReach + (shoreY - seabedY) / shelfSlope) return seabedY.toDouble()
+        val ageing = wornBy?.let { Ageing.at(it.at(centreX.roundToInt(), centreZ.roundToInt())) }
+        if (fromCentre >= coast) return offshore(fromCentre - coast, radius, ageing, worldX, worldZ)
+
         val inland = 1.0 - fromCentre / coast
+        val beach = beachShare * (ageing?.beachKept ?: 1.0)
         // The beach: level bar a few blocks over its whole width, and carrying none of the relief, so it
         // comes out as sand rather than as the bottom of a hill.
-        if (inland <= beachShare) return shoreY + beachRise * (inland / beachShare.coerceAtLeast(SMALLEST_SHOULDER))
+        if (inland <= beach) {
+            val sand = shoreY + beachRise * (inland / beach.coerceAtLeast(SMALLEST_SHOULDER))
+            val isAChannel = ageing != null && ageing.sinking >= CHANNELS_FROM_SINKING && isAPass(worldX, worldZ)
+            return if (isAChannel) (shoreY - REEF_DEPTH).toDouble() else sand
+        }
         // And behind it the climb, measured from the back of the beach rather than from the water.
-        val past = (inland - beachShare) / shoulder.coerceAtLeast(SMALLEST_SHOULDER)
+        val climb = ageing?.let { shoulder + (ATOLL_SHOULDER - shoulder) * it.sinking } ?: shoulder
+        val past = (inland - beach) / climb.coerceAtLeast(SMALLEST_SHOULDER)
         val climbing = past.coerceAtMost(1.0)
         // Hermite over the shoulder alone: flat where it meets the beach, flat again once it is up, and
         // everything further in is interior rather than more slope.
         val profile = climbing * climbing * (3.0 - 2.0 * climbing)
-        val rolling = reliefNoise.get(worldX / reliefStretch, 0.0, worldZ / reliefStretch).toDouble()
-            .coerceIn(-1.0, 1.0) * relief
-        return shoreY + beachRise + (peakRise - beachRise) * profile + rolling * profile
+        val undulation = reliefNoise.get(worldX / reliefStretch, 0.0, worldZ / reliefStretch).toDouble().coerceIn(-1.0, 1.0)
+        val rise = peakRise * (1.0 + YOUNG_HEIGHT * (ageing?.youth ?: 0.0))
+        val standing = shoreY + beachRise + (rise - beachRise) * profile + undulation * relief * profile
+        if (ageing == null || ageing.sinking <= 0.0) return standing
+        // Sunk, the back of the beach eases down into the lagoon over the shoulder.
+        val beachTop = shoreY + beachRise
+        val lagoonFloor = shoreY - LAGOON_DEPTH + undulation * LAGOON_RELIEF
+        val sunk = beachTop + (lagoonFloor - beachTop) * profile
+        return standing + (sunk - standing) * ageing.sinking
+    }
+
+    /**
+     * The sea floor [past] blocks out from an island's coast: the shelf falling away to the seabed, or, where it ages,
+     * a lagoon out to a reef standing just under the water, with passes through it, and the shelf falling away
+     * beyond.
+     */
+    private fun offshore(past: Double, radius: Double, ageing: Ageing?, worldX: Int, worldZ: Int): Double {
+        if (ageing == null) return shelfFrom(shoreY.toDouble(), past)
+        val gap = radius * BARRIER_GAP_SHARE * ageing.barrier * (1.0 - ageing.sinking) + FRINGING_GAP
+        val reefTop = (shoreY - REEF_DEPTH).toDouble()
+        val lagoon = maxOf(shelfFrom(shoreY.toDouble(), past), (shoreY - LAGOON_DEPTH).toDouble())
+        return when {
+            past < gap -> lagoon
+            past < gap + reefWidth(radius) -> if (isAPass(worldX, worldZ)) lagoon else reefTop
+            else -> shelfFrom(reefTop, past - gap - reefWidth(radius))
+        }
+    }
+
+    private fun shelfFrom(topY: Double, run: Double): Double = (topY - run * shelfSlope).coerceAtLeast(seabedY.toDouble())
+
+    private fun reefWidth(radius: Double): Double = (radius * REEF_WIDTH_SHARE).coerceAtLeast(LEAST_REEF_WIDTH)
+
+    private fun isAPass(worldX: Int, worldZ: Int): Boolean =
+        passNoise.get(worldX / passStretch, 0.0, worldZ / passStretch) < PASS_LEVEL
+
+    /**
+     * How far along an island is, from its wear: [youth] is all of it at none and gone by a full wear, the [barrier]
+     * reef stands out across its lagoon by a full wear, and the island [sinking] from there to an atoll at the most.
+     */
+    private data class Ageing(val youth: Double, val barrier: Double, val sinking: Double) {
+        /** How much of its beach an island keeps: a young one's is narrow, and an atoll's ring narrower still. */
+        val beachKept: Double get() = (1.0 - YOUNG_BEACH_LOSS * youth) * (1.0 - ATOLL_BEACH_LOSS * sinking)
+
+        companion object {
+            fun at(wear: Double) = Ageing(
+                youth = (1.0 - wear).coerceIn(0.0, 1.0),
+                barrier = smoothstep(wear),
+                sinking = smoothstep(wear - 1.0),
+            )
+
+            private fun smoothstep(share: Double): Double {
+                val clamped = share.coerceIn(0.0, 1.0)
+                return clamped * clamped * (3.0 - 2.0 * clamped)
+            }
+        }
     }
 
     private val coastNoise = fieldNoise(seed, COAST_OCTAVE, COAST_AMPLITUDES)
     private val reliefNoise = fieldNoise(seed xor RELIEF_SALT, RELIEF_OCTAVE, RELIEF_AMPLITUDES)
+    private val passNoise = fieldNoise(seed xor PASS_SALT, PASS_OCTAVE, PASS_AMPLITUDES)
+
+    /** A pass every eighth or so of the way round an island. */
+    private val passStretch = (shoreRadius * COAST_SHARE_OF_AN_ISLAND * PASSES_PER_BAY).coerceAtLeast(SMALLEST_STRETCH)
 
     /** A wavelength of a fraction of an island, so a coast has bays rather than one lopsided bulge. */
     private val coastStretch = (shoreRadius * COAST_SHARE_OF_AN_ISLAND).coerceAtLeast(SMALLEST_STRETCH)
@@ -180,6 +250,7 @@ data class Isle(
         spacing = spacing * factor,
         relief = relief * factor,
         beachRise = beachRise * factor,
+        wornBy = wornBy?.resized(factor),
     )
 
     /**
@@ -282,12 +353,43 @@ data class Isle(
 
         private const val RELIEF_SALT = 0x15_1E_5L
 
+        /** How much taller a young island stands, and how much of its beach it lacks, at no wear. */
+        private const val YOUNG_HEIGHT = 0.4
+        private const val YOUNG_BEACH_LOSS = 0.6
+
+        /** How much narrower an atoll's ring is than the beach it was, and how steeply it falls into the lagoon. */
+        private const val ATOLL_BEACH_LOSS = 0.5
+        private const val ATOLL_SHOULDER = 0.05
+
+        /** How sunk an island is before channels cut its ring of beach, wherever the reef has a pass. */
+        private const val CHANNELS_FROM_SINKING = 0.75
+
+        /**
+         * How far out a reef stands from the shore, at least and as a share of the radius once it is a barrier; how
+         * wide it is, at least and as a share; how far under the water its top is; and how deep the lagoon behind it,
+         * rolling by a few blocks either way.
+         */
+        private const val FRINGING_GAP = 4.0
+        private const val BARRIER_GAP_SHARE = 0.25
+        private const val LEAST_REEF_WIDTH = 6.0
+        private const val REEF_WIDTH_SHARE = 0.03
+        private const val REEF_DEPTH = 1
+        private const val LAGOON_DEPTH = 6
+        private const val LAGOON_RELIEF = 2.0
+
+        /** Where the pass noise falls below this, the reef is broken. */
+        private const val PASS_LEVEL = -0.35
+        private const val PASSES_PER_BAY = 1.0
+        private const val PASS_OCTAVE = -4
+        private val PASS_AMPLITUDES = listOf(1.0, 0.4)
+        private const val PASS_SALT = 0x9A55L
+
         // Three separate draws from one cell: where it sits, and how big it is.
         private const val X_SALT = 0x15_1A
         private const val Z_SALT = 0x15_1B
         private const val SIZE_SALT = 0x15_1C
 
-        val CODEC: MapCodec<Isle> = RecordCodecBuilder.mapCodec { instance ->
+        private val UNWORN_CODEC: MapCodec<Isle> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Codec.INT.fieldOf("floor_y").forGetter(Isle::floorY),
                 Codec.INT.fieldOf("seabed_y").forGetter(Isle::seabedY),
@@ -307,6 +409,14 @@ data class Isle(
                 Codec.DOUBLE.optionalFieldOf("shoulder", DEFAULT_SHOULDER).forGetter(Isle::shoulder),
                 Layout.CODEC.optionalFieldOf("layout", Layout.ANCHORED).forGetter(Isle::layout),
             ).apply(instance, ::Isle)
+        }
+
+        // A record codec holds sixteen fields at most, so the wear rides beside the rest.
+        val CODEC: MapCodec<Isle> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                UNWORN_CODEC.forGetter { it },
+                Wear.CODEC.optionalFieldOf("worn_by").forGetter { Optional.ofNullable(it.wornBy) },
+            ).apply(instance) { isle, wornBy -> isle.copy(wornBy = wornBy.orElse(null)) }
         }
     }
 }

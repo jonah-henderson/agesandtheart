@@ -2,10 +2,12 @@ package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Isle
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.Wear
 import kotlin.math.max
 
 /**
- * Islands in an endless sea: one where the writer arrives, and the rest a voyage away.
+ * Islands in an endless sea: one where the writer arrives, and the rest a voyage away. With a wear, each is as old as
+ * its place: young and tall, then behind a barrier reef, then an atoll ([Isle.wornBy]).
  *
  * **Deliberately not a continent**, which is the constraint the whole preset is built around — see [Isle]
  * for why an island being an *object* with a radius rather than a threshold on a noise field is what
@@ -94,7 +96,7 @@ object IslandsField {
         return smallest + fraction * (largest - smallest)
     }
 
-    fun world(size: Double? = null, salt: Long = 0L): TerrainField =
+    fun world(size: Double? = null, salt: Long = 0L, wear: Wear? = null): TerrainField =
         Isle(
             floorY = VerticalWindow.MIN_Y,
             seabedY = SEABED_Y,
@@ -105,6 +107,7 @@ object IslandsField {
             spacing = spacingFor(size),
             jitter = JITTER,
             seed = ISLAND_SEED xor salt,
+            wornBy = wear,
         )
 
     /**
@@ -116,7 +119,7 @@ object IslandsField {
      * fit around it, so the top of the range can be a landmass it takes a day to cross and the bottom a
      * rock you can see the whole of from the water.
      */
-    fun lone(size: Double? = null, salt: Long = 0L): TerrainField {
+    fun lone(size: Double? = null, salt: Long = 0L, wear: Wear? = null): TerrainField {
         val shoreRadius = loneShoreRadiusAt(size)
         return Isle(
             floorY = VerticalWindow.MIN_Y,
@@ -134,6 +137,7 @@ object IslandsField {
             beachShare = loneBeachShare(shoreRadius),
             shoulder = loneShoulder(shoreRadius),
             layout = Isle.Layout.SOLITARY,
+            wornBy = wear,
         )
     }
 
