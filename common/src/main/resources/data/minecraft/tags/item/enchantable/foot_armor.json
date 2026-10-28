@@ -1,0 +1,8 @@
+{
+  "_comment": "Worn on the feet, so enchanted as boots are: feather falling, depth strider, frost walker, soul speed, and through enchantable/armor the protections. Named here rather than in foot_armor, which would make them trimmable armour as well, and neither defends anything.",
+  "replace": false,
+  "values": [
+    "agesandtheart:rime_skates",
+    "agesandtheart:temperstone_climbers"
+  ]
+}

@@ -558,6 +558,7 @@ object AgeContent {
             .setId(ResourceKey.create(Registries.ITEM, RIME_SKATES_ID))
             .stacksTo(1)
             .durability(SKATE_DURABILITY)
+            .enchantable(SKATE_ENCHANTABILITY)
             .component(
                 DataComponents.EQUIPPABLE,
                 Equippable.builder(EquipmentSlot.FEET)
@@ -592,6 +593,12 @@ object AgeContent {
 
     /** A boot's, and they take the wear of one. */
     private const val SKATE_DURABILITY = 195
+
+    /**
+     * Leather's, since the boot is what takes the enchantment. Which enchantments are offered is the
+     * `enchantable/` item tags'; this is only how well the table rolls.
+     */
+    private const val SKATE_ENCHANTABILITY = 15
 
     private val TEMPERSTONE_ID: Identifier = "temperstone".location()
     private val SCORCHED_TEMPERSTONE_ID: Identifier = "scorched_temperstone".location()
@@ -819,6 +826,7 @@ object AgeContent {
             .setId(ResourceKey.create(Registries.ITEM, TEMPERSTONE_CLIMBERS_ID))
             .stacksTo(1)
             .durability(CLIMBER_DURABILITY)
+            .enchantable(CLIMBER_ENCHANTABILITY)
             .component(
                 DataComponents.EQUIPPABLE,
                 Equippable.builder(EquipmentSlot.FEET)
@@ -839,6 +847,9 @@ object AgeContent {
 
     /** A boot's, like the skates. */
     private const val CLIMBER_DURABILITY = 195
+
+    /** Iron's, and the suit's: worked stone rather than leather. See [SKATE_ENCHANTABILITY]. */
+    private const val CLIMBER_ENCHANTABILITY = 9
 
     private val TOOLBOX_ID: Identifier = "toolbox".location()
     private val GEOLOGISTS_TOOLS_ID: Identifier = "geologists_tools".location()

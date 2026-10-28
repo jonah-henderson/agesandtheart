@@ -1,0 +1,5 @@
+{
+  "_comment": "The suit is armour, so it takes what armour takes: every enchantment vanilla offers boots names this tag, and so does the smithing table's trims. The skates and climbers are not armour and are not here; enchantable/foot_armor takes them instead.",
+  "replace": false,
+  "values": ["agesandtheart:pitchstone_boots"]
+}

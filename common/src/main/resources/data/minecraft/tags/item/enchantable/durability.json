@@ -1,0 +1,8 @@
+{
+  "_comment": "Unbreaking and mending, and through enchantable/vanishing the curse of vanishing. The suit has them through foot_armor and its kin; these wear out too, and are in none of those.",
+  "replace": false,
+  "values": [
+    "agesandtheart:rime_skates",
+    "agesandtheart:temperstone_climbers"
+  ]
+}

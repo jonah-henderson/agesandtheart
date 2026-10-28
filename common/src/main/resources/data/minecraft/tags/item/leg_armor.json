@@ -1,0 +1,5 @@
+{
+  "_comment": "The suit is armour, so it takes what armour takes: every enchantment vanilla offers leggings names this tag, and so does the smithing table's trims.",
+  "replace": false,
+  "values": ["agesandtheart:pitchstone_leggings"]
+}

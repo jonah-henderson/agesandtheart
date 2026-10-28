@@ -210,8 +210,11 @@ object ProtectiveSuit {
     private const val LEGGINGS_ARMOUR = 4
     private const val BOOTS_ARMOUR = 2
 
-    /** Iron's, this being neither gold's lottery nor netherite's. */
-    private const val ENCHANTABILITY = 9
+    /**
+     * Gold's, the most any armour has (Jonah): a suit that protects less than iron and enchants better
+     * than anything is a niche of its own rather than a lesser diamond.
+     */
+    private const val ENCHANTABILITY = 25
 
     private const val NO_TOUGHNESS = 0.0f
     private const val NO_KNOCKBACK_RESISTANCE = 0.0f

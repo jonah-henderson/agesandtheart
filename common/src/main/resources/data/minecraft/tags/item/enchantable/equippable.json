@@ -1,0 +1,8 @@
+{
+  "_comment": "The curse of binding, which takes anything worn. The suit has it through foot_armor and its kin.",
+  "replace": false,
+  "values": [
+    "agesandtheart:rime_skates",
+    "agesandtheart:temperstone_climbers"
+  ]
+}
