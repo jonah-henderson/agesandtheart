@@ -9,9 +9,11 @@
     "jet-black it is also the colourant, which nothing else in the pack is. A pigment has to be ground, so",
     "it comes from the grinder as dust.",
     "",
-    "Two gloomgrit because refining should cost more than the ink itself, not less."
+    "Two gloomgrit because refining should cost more than the ink itself, not less.",
+    "",
+    "The ink is refined in its own bottle, so this type gives back no empty one."
   ],
-  "type": "minecraft:crafting_shapeless",
+  "type": "agesandtheart:crafting_shapeless_into_one_bottle",
   "category": "misc",
   "group": "agesandtheart_ink",
   "ingredients": [
