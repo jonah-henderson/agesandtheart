@@ -72,8 +72,8 @@ object AgeFluids {
      */
     val INKS: Map<InkTier, InkIdentity> = mapOf(
         InkTier.COMMON to ink("ink", 0xFF1A1A22.toInt()),
-        InkTier.FINE to ink("fine_ink", 0xFF1B2A4A.toInt()),
-        InkTier.MASTERWORK to ink("masterwork_ink", 0xFF3A1F52.toInt()),
+        InkTier.FINE to ink("fine_ink", 0xFF123116.toInt()),
+        InkTier.MASTERWORK to ink("masterwork_ink", 0xFF4B1B1B.toInt()),
     )
 
     /**
