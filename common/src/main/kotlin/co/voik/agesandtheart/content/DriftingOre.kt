@@ -2,6 +2,7 @@ package co.voik.agesandtheart.content
 
 import kotlin.math.abs
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
@@ -116,13 +117,8 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
             move(MoverType.SELF, settled.add(driftOf(level()).scale(driftPace)))
             discardIfNobodyIsAround()
         }
-        // **Sideways only.** Vanilla already lifts whatever is standing on a box that rises and drops it
-        // when the box falls, so adding the vertical delta on top applied it twice: a rider was shoved up,
-        // resolved down, shoved up again — a shudder that got worse the smaller the body was, because a
-        // player on a two-cube has nowhere to settle. Sideways is the part vanilla does not do.
         // Measured from the old position, which `commonTick` sets before the client's interpolation step.
-        val moved = position().subtract(oldPosition())
-        carryWhatStandsOnIt(Vec3(moved.x, 0.0, moved.z))
+        carryWhatStandsOnIt(position().subtract(oldPosition()))
     }
 
     /**
@@ -132,6 +128,11 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
      * under whoever climbed on — which is the whole of what makes one worth landing on rather than
      * bouncing off.
      *
+     * **Up and down as well as sideways.** Vanilla's collision ignores any shape a box is already inside,
+     * so a body rising by a hair under a foot resting on it put the foot inside its top layer, and the
+     * rider fell to the layer below — and through a two-cube altogether. Riders are found where the body
+     * *was*, so the rock has not yet risen into them.
+     *
      * **Each side carries what it owns.** A server moving a player fights that player's own client and
      * rubber-bands; a client moving a mob is drawing a lie the next packet corrects. So the server takes
      * everything that is not a player and the client takes the players, which is exactly the split the
@@ -139,11 +140,29 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
      */
     private fun carryWhatStandsOnIt(moved: Vec3) {
         if (moved.lengthSqr() < NOTHING) return
-        val ledge = boundingBox.setMinY(boundingBox.maxY).expandTowards(0.0, A_FOOT, 0.0)
-        for (rider in level().getEntities(this, ledge) { it !== this }) {
+        val wasAt = oldPosition()
+        val rock = OreClusters.shapeOf(shape, tier).move(wasAt)
+        val overTheRock = makeBoundingBox(wasAt).expandTowards(0.0, A_FOOT, 0.0)
+        for (rider in level().getEntities(this, overTheRock) { it !is DriftingOre }) {
             if (level().isClientSide != (rider is Player)) continue
-            rider.setPos(rider.position().add(moved))
+            val sunkIn = howFarSunkInto(rock, rider.boundingBox) ?: continue
+            rider.setPos(rider.position().add(moved).add(0.0, sunkIn, 0.0))
         }
+    }
+
+    /**
+     * How far [box] has sunk into [rock] beneath it — nothing for a foot resting on it, a little for one
+     * the rock has risen into — or null where no rock lies under it within [A_FOOT].
+     *
+     * Asked by sweeping down from a little above, because a sweep ignores what it starts inside: a box
+     * level with the side of the rock touches it and is not standing on it.
+     */
+    private fun howFarSunkInto(rock: VoxelShape, box: AABB): Double? {
+        val probe = box.move(0.0, SUNK_AT_MOST, 0.0)
+        val reach = SUNK_AT_MOST + A_FOOT
+        val fall = rock.collide(Direction.Axis.Y, probe, -reach)
+        if (fall <= -reach) return null
+        return (probe.minY + fall - box.minY).coerceAtLeast(0.0)
     }
 
     /**
@@ -424,6 +443,9 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
         /** How far above a body something has to be to count as standing on it. */
         private const val A_FOOT = 0.35
+
+        /** How far a foot may have sunk into the rock and still be lifted back onto it. */
+        private const val SUNK_AT_MOST = 0.5
         private const val HALF = 0.5
 
         /** How much of its motion a body keeps from tick to tick. Heavy: these wallow rather than dart. */
