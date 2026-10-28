@@ -1,0 +1,17 @@
+{
+  "_comment": "Vanilla's TNT names sand and red sand rather than a tag, so white sand needs a recipe of its own.",
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "#": "agesandtheart:white_sand",
+    "X": "minecraft:gunpowder"
+  },
+  "pattern": [
+    "X#X",
+    "#X#",
+    "X#X"
+  ],
+  "result": {
+    "id": "minecraft:tnt"
+  }
+}
