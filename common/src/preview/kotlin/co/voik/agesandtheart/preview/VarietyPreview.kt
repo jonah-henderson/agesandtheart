@@ -13,7 +13,7 @@ import javax.imageio.ImageIO
 /**
  * One landform from above with one of `LandVariety`'s dials at none, as an Age that said nothing gets it, and at the
  * most a word can ask — side by side, so what the dial does can be judged at the scale it works at. Shaded by height
- * over the range the three share, water blue under the landform's waterline.
+ * over the range the three share, water blue under the landform's waterline and wherever its own rivers stand.
  *
  * `--args="<landform key> [radius] [step] [variety|wear]"`, e.g. `--args="sheer 2048 8 wear"`.
  */
@@ -31,31 +31,38 @@ fun main(arguments: Array<String>) {
 
     val strengths = listOf(-1.0, 0.0, 1.0)
     val across = radius * 2 / step
-    val heights = strengths.map { setting ->
+    val panels = strengths.map { setting ->
         val options = Options(mapOf(dial.name to listOf(Span(setting, setting).spelled())))
         val shape = terrain.ground(Underground.NONE, Options.NONE, options, VerticalWindow.DEFAULT, SALT).shape
+        val water = terrain.standingWater(options, SALT)
         val plan = Array(across) { IntArray(across) }
+        val rivers = Array(across) { BooleanArray(across) }
         // Tile by tile, as a level generates chunk by chunk, so the fields' remembered neighbours are still remembered.
         for (tileRow in 0..<across step TILE) for (tileColumn in 0..<across step TILE) {
             for (row in tileRow..<minOf(tileRow + TILE, across)) for (column in tileColumn..<minOf(tileColumn + TILE, across)) {
-                plan[row][column] =
-                    shape.columnSpans(column * step - radius, row * step - radius).highestSolidY ?: VerticalWindow.DEFAULT.minY
+                val worldX = column * step - radius
+                val worldZ = row * step - radius
+                val top = shape.columnSpans(worldX, worldZ).highestSolidY ?: VerticalWindow.DEFAULT.minY
+                plan[row][column] = top
+                rivers[row][column] = (water?.columnSpans(worldX, worldZ)?.highestSolidY ?: top) > top
             }
         }
-        plan
+        plan to rivers
     }
+    val heights = panels.map { it.first }
     val lowest = heights.minOf { plan -> plan.minOf { it.min() } }
     val highest = heights.maxOf { plan -> plan.maxOf { it.max() } }
     val waterline = terrain.waterlineAt(Options.NONE, SALT)
 
     val image = BufferedImage(across * strengths.size + GAP * (strengths.size - 1), across, BufferedImage.TYPE_INT_RGB)
-    heights.forEachIndexed { panel, plan ->
+    panels.forEachIndexed { panel, (plan, rivers) ->
         val left = panel * (across + GAP)
         for (row in 0..<across) for (column in 0..<across) {
             val height = plan[row][column]
             val shade = (0.35 * (height - lowest).toDouble() / (highest - lowest).coerceAtLeast(1) +
                 0.65 * hillshade(plan, row, column, step)).toFloat().coerceIn(0f, 1f)
-            val colour = if (waterline != null && height < waterline) Color(0.1f, 0.2f + shade * 0.3f, 0.5f + shade * 0.4f)
+            val isUnderWater = (waterline != null && height < waterline) || rivers[row][column]
+            val colour = if (isUnderWater) Color(0.1f, 0.2f + shade * 0.3f, 0.5f + shade * 0.4f)
             else Color(shade, shade, shade)
             image.setRGB(left + column, row, colour.rgb)
         }
