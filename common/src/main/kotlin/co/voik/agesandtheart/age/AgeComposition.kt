@@ -135,7 +135,11 @@ data class AgeComposition(
             options.allOf(aspect).indices.flatMap { member ->
                 // A seatless aspect understands its parameters and nothing else — and was never asked at all,
                 // so `sun.size` could be misspelled *and* misvalued in silence.
-                val understood = seated.getOrNull(member)?.ownParameters.orEmpty() + aspect.parameters
+                // **And what a population's members carry.** A phenomenon is a member of `happens`, never a
+                // seated preset, so `frequency` — said on the page and read per phenomenon — was reported
+                // unrecognised while it worked.
+                val ofItsMembers = if (aspect.pool != null) aspect.authored.flatMap { it.parameters } else emptyList()
+                val understood = seated.getOrNull(member)?.ownParameters.orEmpty() + aspect.parameters + ofItsMembers
                 // **And its pool, which is not one of its parameters.** `Aspect.pool` was split out of
                 // `parameters` and this was not told, so every aspect holding a population reported its own
                 // population as unrecognised — `spawns.lives=nothing` read as a typo while it was working.

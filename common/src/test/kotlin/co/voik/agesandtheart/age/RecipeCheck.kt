@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Carvers
+import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Skew
 import co.voik.agesandtheart.age.aspect.Sea
@@ -99,6 +100,11 @@ class RecipeCheck : FunSpec({
         // And a span it *can* read says nothing at all.
         check(saidOf(Aspect.CLIMATE, ClimateAxis.TEMPERATURE.key, "0.5..0.9").isEmpty()) {
             "a well-formed span was reported as unreadable"
+        }
+        // A phenomenon's dial is said on the page of a population that seats nothing, and is understood there.
+        val frequency = Phenomena.FREQUENCY.name
+        check(saidOf(Aspect.PHENOMENA, frequency, "0.6..1.0").isEmpty()) {
+            "a phenomenon's frequency was reported as unrecognised: ${saidOf(Aspect.PHENOMENA, frequency, "0.6..1.0")}"
         }
     }
 
