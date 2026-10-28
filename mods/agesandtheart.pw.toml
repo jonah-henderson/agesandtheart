@@ -1,8 +1,8 @@
 name = "Ages and the Art"
-filename = "agesandtheart-fabric-26.3-0.13.0+26.3.jar"
+filename = "agesandtheart-fabric-26.3-0.14.0+26.3.jar"
 side = "both"
 
 [download]
-url = "https://github.com/jonah-henderson/agesandtheart/releases/download/v0.13.0-mc26.3/agesandtheart-fabric-26.3-0.13.0-26.3.jar"
+url = "https://github.com/jonah-henderson/agesandtheart/releases/download/v0.14.0-mc26.3/agesandtheart-fabric-26.3-0.14.0-26.3.jar"
 hash-format = "sha512"
-hash = "1cb52c89dc42c3046948a6328d8da258798309716cca596f56f654bf953820d350a0edbfe88e64baa964020fbea25f6667164d5acba36f4c83d6a02e88806bc3"
+hash = "684a8143a075b185b1348e202831e8eec33bbd427ad535a06d4fe154d4ebd462fb003af28493954f0646334080171510d52a48262920e1de9dae61f186da4a63"
