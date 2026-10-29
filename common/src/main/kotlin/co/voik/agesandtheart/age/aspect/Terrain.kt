@@ -933,6 +933,16 @@ enum class Terrain(
         )
 
         /**
+         * Whether the territories are laid out by the table as they were before generator 21, whose calibration could
+         * give one of two landforms with nearby homes all the ground. Set on every Age written before then. No word
+         * sets it.
+         */
+        val FORMER_LAYOUT = Parameter.flag(
+            "former_layout",
+            help = "Whether the landforms share the land as they did before each was sure of its share.",
+        )
+
+        /**
          * Whether the landforms lie where chance puts them rather than where the land's table suits them — the
          * patchwork every Age had before there was a table, and the way to the strange mixtures: islands beside
          * mountains, canyons in a sea of hills. The dials and the biomes still follow the table.

@@ -912,7 +912,8 @@ object AgeGeneration {
     private fun laidOut(map: RegionMap, table: TerrainTable?, composition: AgeComposition, seed: Long): RegionMap {
         val isDrawnByChance = table == null || composition.anyMemberSays(Aspect.TERRAIN, Terrain.PATCHWORK)
         if (isDrawnByChance || map.members <= 1) return map
-        return map.copy(layout = TableLayout(table, composition.terrains.map { it.home }, map.shares, seed xor TABLE_SALT))
+        val settles = !composition.anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_LAYOUT)
+        return map.copy(layout = TableLayout(table, composition.terrains.map { it.home }, map.shares, seed xor TABLE_SALT, settles = settles))
     }
 
     /**

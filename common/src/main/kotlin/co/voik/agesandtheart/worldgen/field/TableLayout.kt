@@ -24,6 +24,8 @@ data class TableLayout(
     val seed: Long,
     /** How much larger the territories are than the table's own grain, for a resized field. */
     val scale: Double = 1.0,
+    /** Whether the calibration is damped so it settles; an Age written before it was keeps the layout it had. */
+    val settles: Boolean = true,
 ) {
     private val placed: List<TerrainTable.Home> = homes.mapIndexed { member, home -> home ?: drawnHome(member) }
 
@@ -118,12 +120,16 @@ data class TableLayout(
             }
         }
         val offsets = DoubleArray(members)
-        repeat(CALIBRATION_ROUNDS) {
+        repeat(CALIBRATION_ROUNDS) { round ->
             val won = IntArray(members)
             for (scores in sampled) won[scores.indices.maxBy { scores[it] + offsets[it] }]++
+            // Shrinking and bounded, so two homes close in the table, whose border a small nudge sweeps across all
+            // the ground, settle rather than trading it back and forth.
+            val step = if (settles) CALIBRATION_STEP / (1.0 + round * CALIBRATION_DAMPING) else CALIBRATION_STEP
             for (member in 0..<members) {
                 val covered = (won[member].toDouble() / sampled.size).coerceAtLeast(1.0 / sampled.size)
-                offsets[member] += CALIBRATION_STEP * ln(targets[member] / covered)
+                val correction = ln(targets[member] / covered)
+                offsets[member] += step * if (settles) correction.coerceIn(-LARGEST_CORRECTION, LARGEST_CORRECTION) else correction
             }
         }
         return offsets
@@ -150,6 +156,8 @@ data class TableLayout(
         private const val SAMPLE_SPACING = 211.0
         private const val CALIBRATION_ROUNDS = 60
         private const val CALIBRATION_STEP = 0.4
+        private const val CALIBRATION_DAMPING = 0.1
+        private const val LARGEST_CORRECTION = 1.0
         private const val FAINTEST_SHARE = 1.0e-3
         private const val MEMBER_STRIDE = 0x9E37_79B9L
 
@@ -161,8 +169,9 @@ data class TableLayout(
                 Codec.DOUBLE.listOf().optionalFieldOf("shares", emptyList()).forGetter(TableLayout::shares),
                 Codec.LONG.fieldOf("seed").forGetter(TableLayout::seed),
                 Codec.DOUBLE.optionalFieldOf("scale", 1.0).forGetter(TableLayout::scale),
-            ).apply(instance) { table, homes, shares, seed, scale ->
-                TableLayout(table, homes.map { it.orElse(null) }, shares, seed, scale)
+                Codec.BOOL.optionalFieldOf("settles", true).forGetter(TableLayout::settles),
+            ).apply(instance) { table, homes, shares, seed, scale, settles ->
+                TableLayout(table, homes.map { it.orElse(null) }, shares, seed, scale, settles)
             }
         }
     }

@@ -195,7 +195,8 @@ data class AgeRecipe(
                         .let { if (version <= FormerRungs.LAST_GENERATOR_BEFORE_THE_SPLIT) FormerRungs.carriedOver(it) else it }
                         .let { if (version <= FormerSizes.LAST_GENERATOR_BEFORE_LAND_GREW) FormerSizes.carriedOver(it) else it }
                         .let { if (version <= FormerUniformity.LAST_GENERATOR_BEFORE_VARIETY) FormerUniformity.carriedOver(it) else it }
-                        .let { if (version <= FormerWear.LAST_GENERATOR_OF_THE_FORMER_WEAR) FormerWear.carriedOver(it) else it },
+                        .let { if (version <= FormerWear.LAST_GENERATOR_OF_THE_FORMER_WEAR) FormerWear.carriedOver(it) else it }
+                        .let { if (version <= FormerLayout.LAST_GENERATOR_OF_THE_FORMER_LAYOUT) FormerLayout.carriedOver(it) else it },
                     seed = seed,
                     character = character,
                     // An Age written before the page count was kept reads it off the pages it was laid with,
