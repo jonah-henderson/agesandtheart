@@ -31,6 +31,8 @@ data class TerrainFill(
     val where: RegionMap = RegionMap.whole(),
     /** How wide a patch of one material runs — see [PATCHY_MINGLING] and [FINE_MINGLING]. */
     val mingleStretch: Double = PATCHY_MINGLING,
+    /** Parts of each region's rock made of blocks of the landform's own, index for index with [blocks]; see [MaterialLayer]. */
+    val layers: List<List<MaterialLayer>> = emptyList(),
 ) {
     private val mingle = fieldNoise(MINGLE_SEED, MINGLE_FIRST_OCTAVE, MINGLE_AMPLITUDES)
 
@@ -38,8 +40,37 @@ data class TerrainFill(
     private val stretch = mingleStretch.coerceAtLeast(FINEST_MINGLING)
 
     /** The block at a position — asked per block, since mingling varies within a column. */
-    fun blockAt(worldX: Int, worldY: Int, worldZ: Int): BlockState {
-        val here = blocks.getOrElse(where.memberAt(worldX, worldZ)) { blocks.first() }
+    fun blockAt(worldX: Int, worldY: Int, worldZ: Int): BlockState =
+        mingled(blocks.getOrElse(where.memberAt(worldX, worldZ)) { blocks.first() }, worldX, worldY, worldZ)
+
+    /** Whether any region lays a part of its rock in blocks of its own, so a fill need ask [columnAt] at all. */
+    val isLayered: Boolean get() = layers.any { it.isNotEmpty() }
+
+    /** One column's rock, read once: its region, and where each of that region's layers stands in it. */
+    fun columnAt(worldX: Int, worldZ: Int): Column {
+        val member = where.memberAt(worldX, worldZ)
+        val own = layers.getOrElse(member) { emptyList() }
+        return Column(blocks.getOrElse(member) { blocks.first() }, own, own.map { it.where.columnSpans(worldX, worldZ) })
+    }
+
+    inner class Column(
+        private val rock: List<BlockState>,
+        private val layers: List<MaterialLayer>,
+        private val layerSpans: List<Spans>,
+    ) {
+        /** The block at [worldY], of whichever layer stands there first, else the region's rock; [solid] is the column's rock. */
+        fun blockAt(worldX: Int, worldY: Int, worldZ: Int, solid: Spans): BlockState {
+            for ((index, layer) in layers.withIndex()) {
+                if (!layerSpans[index].contains(worldY)) continue
+                val runTop = solid.ranges.firstOrNull { worldY in it }?.last ?: worldY
+                val isTopping = layer.topping.isNotEmpty() && runTop - worldY < layer.toppingDepth
+                return mingled(if (isTopping) layer.topping else layer.blocks, worldX, worldY, worldZ)
+            }
+            return mingled(rock, worldX, worldY, worldZ)
+        }
+    }
+
+    private fun mingled(here: List<BlockState>, worldX: Int, worldY: Int, worldZ: Int): BlockState {
         here.singleOrNull()?.let { return it }
         if (here.isEmpty()) return STONE
         // Mottled at block scale, which is what makes two materials read as one rock rather than as layers.
@@ -93,6 +124,8 @@ data class TerrainFill(
                     .forGetter(TerrainFill::where),
                 Codec.DOUBLE.optionalFieldOf("mingle_stretch", PATCHY_MINGLING)
                     .forGetter(TerrainFill::mingleStretch),
+                MaterialLayer.CODEC.listOf().listOf().optionalFieldOf("layers", emptyList())
+                    .forGetter(TerrainFill::layers),
             ).apply(instance, ::TerrainFill)
         }
     }

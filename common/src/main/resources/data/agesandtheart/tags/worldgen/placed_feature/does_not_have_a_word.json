@@ -110,7 +110,22 @@
     "minecraft:spring_water",
     "minecraft:super_birch_bees",
     "minecraft:super_birch_bees_0002",
-    "minecraft:void_start_platform"
+    "minecraft:void_start_platform",
+    "agesandtheart:hollow_tree/brown_mushrooms",
+    "agesandtheart:hollow_tree/cave_vines",
+    "agesandtheart:hollow_tree/clay_pools",
+    "agesandtheart:hollow_tree/jungle_bushes",
+    "agesandtheart:hollow_tree/jungle_grass",
+    "agesandtheart:hollow_tree/jungle_trees",
+    "agesandtheart:hollow_tree/lily_pads",
+    "agesandtheart:hollow_tree/mangroves",
+    "agesandtheart:hollow_tree/melons",
+    "agesandtheart:hollow_tree/moss_vegetation",
+    "agesandtheart:hollow_tree/pale_moss",
+    "agesandtheart:hollow_tree/red_mushrooms",
+    "agesandtheart:hollow_tree/spore_blossoms",
+    "agesandtheart:hollow_tree/sugar_cane",
+    "agesandtheart:hollow_tree/vines"
   ],
   "replace": false
 }

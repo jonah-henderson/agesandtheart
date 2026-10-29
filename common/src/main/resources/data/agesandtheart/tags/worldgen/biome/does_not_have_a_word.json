@@ -1,6 +1,9 @@
 {
   "values": [
-    "minecraft:the_void"
+    "minecraft:the_void",
+    "agesandtheart:hollow_swamp",
+    "agesandtheart:hollow_forest",
+    "agesandtheart:deadwood"
   ],
   "replace": false
 }

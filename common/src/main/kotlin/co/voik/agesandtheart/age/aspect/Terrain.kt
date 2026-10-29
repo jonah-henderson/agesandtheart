@@ -7,6 +7,7 @@ import co.voik.agesandtheart.worldgen.CliffField
 import co.voik.agesandtheart.worldgen.CraterlandsField
 import co.voik.agesandtheart.worldgen.ErodedField
 import co.voik.agesandtheart.worldgen.FlatlandsField
+import co.voik.agesandtheart.worldgen.HollowTreesField
 import co.voik.agesandtheart.worldgen.InverseCavesField
 import co.voik.agesandtheart.worldgen.IslandsField
 import co.voik.agesandtheart.worldgen.NoiseField
@@ -28,6 +29,7 @@ import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.Landmarks
 import co.voik.agesandtheart.worldgen.field.Lift
+import co.voik.agesandtheart.worldgen.field.MaterialLayer
 import co.voik.agesandtheart.worldgen.field.MountainRange
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.Wear
@@ -36,6 +38,9 @@ import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.TerrainTable
+import net.minecraft.resources.ResourceKey
+import net.minecraft.server.level.ColumnPos
+import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
@@ -300,6 +305,17 @@ enum class Terrain(
     ),
 
     /**
+     * Vast dead trees standing alone in a shallow sea, hollow, with a swamp, a forest and deadwood inside each, and
+     * none in sight of another — Edanna's. A colossal one reaches from the water to the top of the world.
+     */
+    ARBOREAL(
+        "arboreal",
+        waterline = HollowTreesField.SEA_LEVEL,
+        build = { options, salt, _ -> HollowTreesField.world(salt, scaleOf(options, salt)) },
+        axes = { listOf(SIZE) },
+    ),
+
+    /**
      * An alpine range at about one to sixteen: a foreland plain, foothills, and a glaciated crest. The one
      * landform here whose surface is built **up from its own drainage** rather than cut into a given one —
      * every ridge is where two hillslopes met.
@@ -464,6 +480,8 @@ enum class Terrain(
         // A plain standing just over vanilla's sea.
         FLATLANDS, PYRAMIDS -> Footing(ORDINARY_SEA_LEVEL)
         CANYON -> scaleOf(options, salt).let { scale -> Footing(CanyonField.riverLevel(scale), topY = CanyonField.plateauY(scale)) }
+        // The tallest trees reach the top of the world already.
+        ARBOREAL -> Footing(HollowTreesField.SEA_LEVEL, topY = VerticalWindow.HIGHEST_BLOCK_Y)
         // The basin floors meet the coast, and the peaks reach the top of the world already.
         MOUNTAINOUS -> Footing(MountainousField.BASIN_FLOOR, topY = VerticalWindow.HIGHEST_BLOCK_Y)
         SKYLANDS, SPIRE_ISLANDS, INVERSE_CAVES, OVERWORLD, NETHER, END -> null
@@ -551,7 +569,7 @@ enum class Terrain(
         // The basin is already the deepest thing here, and it is dug from a plain standing well above
         // the waterline — so this datums on the crater floor rather than on the sea in it.
         CRATERLANDS -> CraterlandsField.bowlFloorY(craterSteer(options, salt)) - ROOM_FOR_A_ROOF
-        HILLS, PILLARS -> ORDINARY_SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
+        HILLS, PILLARS, ARBOREAL -> ORDINARY_SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
         // Its seabed is the band's foot, which a larger country carries deeper.
         ERODED -> ErodedField.seabedY(scaleOf(options, salt)) - ROOM_FOR_A_ROOF
         // A plain with no sea, so the only thing overhead is the plain itself.
@@ -706,6 +724,41 @@ enum class Terrain(
         else -> null
     }
 
+    /**
+     * Parts of this landform's rock made of blocks of its own ([MaterialLayer]), moved with the rock; none for most. The
+     * Age lays them only where its book named no material of the rock.
+     */
+    fun materialLayers(options: Options, salt: Long, table: TerrainTable? = null, sea: SeaSetting? = null): List<MaterialLayer> {
+        val own = when (this) {
+            ARBOREAL -> HollowTreesField.layers(salt, scaleOf(options, salt))
+            else -> emptyList()
+        }
+        return own.map { layer -> layer.over(carried(layer.where, options, salt, table, sea)) }
+    }
+
+    /**
+     * Biomes this landform declares for volumes of its own, moved with the rock, which answer there before any climate
+     * does; none for most.
+     */
+    fun ownBiomes(
+        options: Options,
+        salt: Long,
+        table: TerrainTable? = null,
+        sea: SeaSetting? = null,
+    ): List<Pair<ResourceKey<Biome>, TerrainField>> {
+        val own = when (this) {
+            ARBOREAL -> HollowTreesField.biomes(salt, scaleOf(options, salt))
+            else -> emptyList()
+        }
+        return own.map { (biome, where) -> biome to carried(where, options, salt, table, sea) }
+    }
+
+    /** The column a link into this landform arrives on, or null for wherever the Age finds footing near its origin. */
+    fun arrivalColumn(options: Options, salt: Long): ColumnPos? = when (this) {
+        ARBOREAL -> HollowTreesField.summit(salt, scaleOf(options, salt))
+        else -> null
+    }
+
     /** Water this landform carries, moved with its rock and varied as it is. */
     private fun carried(water: TerrainField, options: Options, salt: Long, table: TerrainTable?, sea: SeaSetting?): TerrainField =
         varied(lifted(water, options, salt, sea), options, salt, isRock = false, table, sea)
@@ -766,7 +819,7 @@ enum class Terrain(
         PILLARS -> TerrainTable.Home(uplift = -0.5, age = -0.2, wetness = 0.5)
         ISLE -> TerrainTable.Home(uplift = -0.6, age = -0.3, wetness = 0.4)
         ISLANDS -> TerrainTable.Home(uplift = -0.7, age = 0.0, wetness = 0.6)
-        PYRAMIDS, SKYLANDS, INVERSE_CAVES, SPIRE_ISLANDS, SOLID, OVERWORLD, NETHER, END -> null
+        PYRAMIDS, ARBOREAL, SKYLANDS, INVERSE_CAVES, SPIRE_ISLANDS, SOLID, OVERWORLD, NETHER, END -> null
     }
 
     /** The height this landform's drift stretches from: its waterline, or for the skylands the plane they float at. */

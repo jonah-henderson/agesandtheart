@@ -9,6 +9,7 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -562,6 +563,78 @@ data class Noise3D(
                     lowY, highY, atTop.orElse(null),
                 )
             }
+        }
+    }
+}
+
+/**
+ * A round beam of [radius] from one point to another at any slope, with rounded ends — a branch, a root, a strut
+ * or a bridge. Where [Cylinder] stands upright or lies flat, this leans.
+ *
+ * A vertical line meets a leaning beam in one run, centred where the line crosses the beam's axis seen from above
+ * and longer the steeper the beam, by the secant of its slope. Past either end the run is a sphere's.
+ */
+data class Beam(
+    val fromX: Double,
+    val fromY: Double,
+    val fromZ: Double,
+    val toX: Double,
+    val toY: Double,
+    val toZ: Double,
+    val radius: Double,
+) : TerrainField {
+    override val kind = FieldKind.BEAM
+
+    override val horizontalReach = maxOf(hypot(fromX, fromZ), hypot(toX, toZ)) + radius
+
+    private val acrossX = toX - fromX
+    private val acrossZ = toZ - fromZ
+    private val lengthSquared = acrossX * acrossX + acrossZ * acrossZ
+    private val secant = if (lengthSquared < UPRIGHT) 1.0 else sqrt(1.0 + (toY - fromY).let { it * it } / lengthSquared)
+    private val lowestY = minOf(fromY, toY) - radius
+    private val highestY = maxOf(fromY, toY) + radius
+
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans {
+        if (lengthSquared < UPRIGHT) {
+            val off = hypot(worldX - fromX, worldZ - fromZ)
+            return if (off > radius) Spans.EMPTY else Spans.of(ceil(lowestY).toInt(), floor(highestY).toInt())
+        }
+        val along = ((worldX - fromX) * acrossX + (worldZ - fromZ) * acrossZ) / lengthSquared
+        val clamped = along.coerceIn(0.0, 1.0)
+        val off = hypot(worldX - (fromX + clamped * acrossX), worldZ - (fromZ + clamped * acrossZ))
+        if (off > radius) return Spans.EMPTY
+        val centreY = fromY + clamped * (toY - fromY)
+        val isPastAnEnd = along != clamped
+        val halfRun = sqrt(radius * radius - off * off) * if (isPastAnEnd) 1.0 else secant
+        val low = maxOf(centreY - halfRun, lowestY)
+        val high = minOf(centreY + halfRun, highestY)
+        return Spans.of(ceil(low).toInt(), floor(high).toInt())
+    }
+
+    override fun resized(factor: Double, pivotY: Int) = Beam(
+        fromX * factor,
+        pivotY + (fromY - pivotY) * factor,
+        fromZ * factor,
+        toX * factor,
+        pivotY + (toY - pivotY) * factor,
+        toZ * factor,
+        radius * factor,
+    )
+
+    companion object {
+        /** A beam this close to vertical, seen from above, is answered as an upright one. */
+        private const val UPRIGHT = 1.0e-6
+
+        val CODEC: MapCodec<Beam> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                Codec.DOUBLE.fieldOf("from_x").forGetter(Beam::fromX),
+                Codec.DOUBLE.fieldOf("from_y").forGetter(Beam::fromY),
+                Codec.DOUBLE.fieldOf("from_z").forGetter(Beam::fromZ),
+                Codec.DOUBLE.fieldOf("to_x").forGetter(Beam::toX),
+                Codec.DOUBLE.fieldOf("to_y").forGetter(Beam::toY),
+                Codec.DOUBLE.fieldOf("to_z").forGetter(Beam::toZ),
+                Codec.DOUBLE.fieldOf("radius").forGetter(Beam::radius),
+            ).apply(instance, ::Beam)
         }
     }
 }

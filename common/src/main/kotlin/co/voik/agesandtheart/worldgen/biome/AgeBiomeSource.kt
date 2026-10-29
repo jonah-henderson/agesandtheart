@@ -66,30 +66,38 @@ class AgeBiomeSource(
      * possible biomes.
      */
     private val laidAfterTheFill: List<Holder<Biome>> = emptyList(),
+    /**
+     * Biomes the land declares inside its own shape — a hollow tree's forest — answered before anything else. Not
+     * serialised, like [BiomeBand.above]: the shape is rebuilt from the recipe on every open.
+     */
+    private val volumes: List<BiomeVolume> = emptyList(),
 ) : BiomeSource() {
 
     override fun codec(): MapCodec<out BiomeSource> = CODEC
 
     fun sampledForDepth(): AgeBiomeSource =
-        AgeBiomeSource(under, AsSampled, bent, grounding, bands, stretch, laidAfterTheFill)
+        AgeBiomeSource(under, AsSampled, bent, grounding, bands, stretch, laidAfterTheFill, volumes)
 
     fun groundedIn(terrain: TerrainField): AgeBiomeSource =
-        AgeBiomeSource(under, BelowTerrain(terrain), bent, grounding, bands, stretch, laidAfterTheFill)
+        AgeBiomeSource(under, BelowTerrain(terrain), bent, grounding, bands, stretch, laidAfterTheFill, volumes)
 
     fun suitedTo(grounding: Grounding?): AgeBiomeSource =
-        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill)
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes)
 
     fun banded(bands: List<BiomeBand>): AgeBiomeSource =
-        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill)
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes)
 
     fun told(bent: RegionalClimate): AgeBiomeSource =
-        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill)
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes)
 
     fun stretched(by: Double): AgeBiomeSource =
-        AgeBiomeSource(under, depth, bent, grounding, bands, by, laidAfterTheFill)
+        AgeBiomeSource(under, depth, bent, grounding, bands, by, laidAfterTheFill, volumes)
+
+    fun holding(volumes: List<BiomeVolume>): AgeBiomeSource =
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes)
 
     fun alsoLaying(biomes: List<Holder<Biome>>): AgeBiomeSource =
-        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill + biomes)
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill + biomes, volumes)
 
     /**
      * **A factory now, where 26.3 asked a source for one biome at a time.** That is what retired the memo
@@ -122,7 +130,8 @@ class AgeBiomeSource(
         val blockX = QuartPos.toBlock(quartX)
         val blockY = QuartPos.toBlock(quartY)
         val blockZ = QuartPos.toBlock(quartZ)
-        bands.firstNotNullOfOrNull { band -> band.biomeAt(blockX, blockY, blockZ) }
+        volumes.firstNotNullOfOrNull { volume -> volume.biomeAt(blockX, blockY, blockZ) }
+            ?: bands.firstNotNullOfOrNull { band -> band.biomeAt(blockX, blockY, blockZ) }
             ?: beneath.getNoiseBiome(quartX, quartY, quartZ)
     }
 
@@ -134,7 +143,7 @@ class AgeBiomeSource(
     override fun collectPossibleBiomes(): Stream<Holder<Biome>> =
         Stream.concat(
             Stream.concat(under.possibleBiomes().stream(), bands.stream().map(BiomeBand::biome)),
-            laidAfterTheFill.stream(),
+            Stream.concat(laidAfterTheFill.stream(), volumes.stream().map(BiomeVolume::biome).distinct()),
         )
 
     /** Whether anything here would move a single number. */

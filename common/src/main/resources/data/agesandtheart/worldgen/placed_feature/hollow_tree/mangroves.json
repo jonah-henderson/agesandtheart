@@ -1,0 +1,59 @@
+{
+  "_comment": [
+    "A hollow tree's own planting (`HollowTreesField`), kept to its biomes by the last filter and to no word by `does_not_have_a_word`. Tried over the heights its biome reaches in a tree of any size, and the biome keeps what lands inside one.",
+    "Mangroves rooted in the swamp at the foot of the hollow, through the water."
+  ],
+  "feature": "minecraft:mangrove",
+  "placement": [
+    {
+      "type": "minecraft:count",
+      "count": 24
+    },
+    {
+      "type": "minecraft:in_square"
+    },
+    {
+      "type": "minecraft:height_range",
+      "height": {
+        "type": "minecraft:uniform",
+        "min_inclusive": {
+          "absolute": 50
+        },
+        "max_inclusive": {
+          "absolute": 110
+        }
+      }
+    },
+    {
+      "type": "minecraft:environment_scan",
+      "direction_of_search": "down",
+      "max_steps": 16,
+      "target_condition": {
+        "type": "minecraft:solid"
+      },
+      "allowed_search_condition": {
+        "type": "minecraft:matching_blocks",
+        "blocks": [
+          "minecraft:air",
+          "minecraft:water"
+        ]
+      }
+    },
+    {
+      "type": "minecraft:offset",
+      "x": 0,
+      "y": 1,
+      "z": 0
+    },
+    {
+      "type": "minecraft:block_predicate_filter",
+      "predicate": {
+        "type": "minecraft:would_survive",
+        "state": "minecraft:mangrove_propagule"
+      }
+    },
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "A hollow tree's own planting (`HollowTreesField`), kept to its biomes by the last filter and to no word by `does_not_have_a_word`. Tried over the heights its biome reaches in a tree of any size, and the biome keeps what lands inside one.",
+    "Vines on every face of the wood they can hang from, tried at every height: a vine places only where it has a face beside it."
+  ],
+  "feature": "minecraft:vines",
+  "placement": [
+    {
+      "type": "minecraft:count",
+      "count": 256
+    },
+    {
+      "type": "minecraft:in_square"
+    },
+    {
+      "type": "minecraft:height_range",
+      "height": {
+        "type": "minecraft:uniform",
+        "min_inclusive": {
+          "absolute": 50
+        },
+        "max_inclusive": {
+          "absolute": 319
+        }
+      }
+    },
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

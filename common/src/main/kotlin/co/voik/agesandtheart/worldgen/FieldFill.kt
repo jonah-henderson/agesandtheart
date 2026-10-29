@@ -79,6 +79,9 @@ internal class FieldFill(
                 // what keeps the two questions below off the hot path of every ordinary world.
                 val couldLine = band.carriesNear(localX, localZ)
 
+                // The parts of this column's rock a landform made of its own blocks, read once for the column.
+                val ownRock = if (fill.isLayered) fill.columnAt(worldX, worldZ) else null
+
                 // Whether the block just below came out empty, so a fluid placed on top of nothing can be
                 // told to fall. Nothing is below the window's floor, which is as good as open for this.
                 var nothingBelow = true
@@ -101,7 +104,7 @@ internal class FieldFill(
                         isRock -> MoltenLining.rockAt(
                             moltenAbove = couldLine && MoltenLining.isMolten(band.carried(at, y + 1)),
                             moltenBeside = couldLine && band.moltenBeside(localX, localZ, y),
-                            otherwise = fill.blockAt(worldX, y, worldZ),
+                            otherwise = ownRock?.blockAt(worldX, y, worldZ, spans) ?: fill.blockAt(worldX, y, worldZ),
                         )
                         // Room a structure cut out of solid rock is the structure's, so it stays air. Below the
                         // waterline and outside anything marked dry, the sea would otherwise pour into it — in a

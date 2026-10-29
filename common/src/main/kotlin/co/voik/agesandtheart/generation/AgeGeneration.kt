@@ -23,6 +23,7 @@ import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.worldgen.biome.BiomeBand
 import co.voik.agesandtheart.worldgen.field.Fault
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
+import co.voik.agesandtheart.worldgen.biome.BiomeVolume
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Regions
 import co.voik.agesandtheart.worldgen.field.Reconciled
@@ -59,6 +60,7 @@ import net.minecraft.world.level.biome.Biome
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ColumnPos
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.material.rule.MaterialRule
@@ -250,6 +252,11 @@ object AgeGeneration {
             ground,
             // The first territory's, like `Sea.DEPTH`: the mingling noise is one field over the whole Age.
             composition.terrains.first().mingling(terrainOptions(0), seed),
+            // A landform's own blocks stand only where the book named no material of its rock.
+            layers = if (grounds == null) emptyList() else composition.terrains.mapIndexed { member, terrain ->
+                val namedAMaterial = terrain.fillBlocks(terrainOptions(member)).isNotEmpty()
+                if (namedAMaterial) emptyList() else terrain.materialLayers(terrainOptions(member), saltFor(seed, member), table, sea)
+            },
         )
         // The Age's rock as one list, worked out once: the ores are seeded into it and the features are
         // placed on it, and it was flattened separately for each.
@@ -341,7 +348,8 @@ object AgeGeneration {
                                 BiomeBand(abyssBiome(server), window.minY, line, ourGround?.rock?.landform, seaFill.takeIf { table != null })
                             },
                     ),
-                ),
+                )
+                .holding(if (grounds == null) emptyList() else landformBiomesIn(server, composition, ground, seed, table, sea)),
             ourGround?.rock ?: AgeRock.Vanillas(
                 Holder.direct(
                     vanillasRockFor(
@@ -433,6 +441,7 @@ object AgeGeneration {
                 WhereThingsGrow.creaturesListed(server.registryAccess()),
             ),
             spawnCaps = Spawns.capsOf(composition.optionsFor(Aspect.SPAWNS, 0)),
+            landformArrival = if (grounds == null) null else landformArrivalIn(composition, ground, seed),
             nothingLives = Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0)),
             incongruity = Incongruity.of(composition),
             vanillasAbyss = vanillasAbyss,
@@ -1048,6 +1057,36 @@ object AgeGeneration {
      * `hills` Age would raise the same hills; and two territories of the same preset in one Age would be
      * identical, leaving nothing for a seam to divide.
      */
+    /** The biomes each landform declares inside its own shape, each kept to its own territory. */
+    private fun landformBiomesIn(
+        server: MinecraftServer,
+        composition: AgeComposition,
+        ground: RegionMap,
+        seed: Long,
+        table: TerrainTable?,
+        sea: Terrain.SeaSetting?,
+    ): List<BiomeVolume> {
+        val biomes = server.registryAccess().lookupOrThrow(Registries.BIOME)
+        return composition.terrains.flatMapIndexed { member, terrain ->
+            terrain.ownBiomes(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), table, sea).map { (biome, where) ->
+                BiomeVolume(biomes.getOrThrow(biome), onlyIn(member, where, ground, composition.terrains.size))
+            }
+        }
+    }
+
+    /** The column a landform asks a link to arrive on, where that column is its own territory's; null for none. */
+    private fun landformArrivalIn(composition: AgeComposition, ground: RegionMap, seed: Long): ColumnPos? =
+        composition.terrains.withIndex().firstNotNullOfOrNull { (member, terrain) ->
+            terrain.arrivalColumn(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
+                ?.takeIf { column -> composition.terrains.size == 1 || ground.memberAt(column.x(), column.z()) == member }
+        }
+
+    /** [field] where [member]'s territory stands on [map], and nothing elsewhere. */
+    private fun onlyIn(member: Int, field: TerrainField, map: RegionMap, members: Int): TerrainField =
+        if (members == 1) field else Regions(List(members) { index -> if (index == member) field else NOWHERE }, map)
+
+    private val NOWHERE: TerrainField = Union(emptyList())
+
     internal fun saltFor(seed: Long, member: Int): Long = seed * TERRITORY_SALT_STRIDE + member
 
     /** Odd and large, so consecutive members land far apart in the noise rather than adjacent. */

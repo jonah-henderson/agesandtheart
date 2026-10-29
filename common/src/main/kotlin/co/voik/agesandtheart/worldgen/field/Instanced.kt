@@ -7,6 +7,7 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import java.util.Optional
 import kotlin.math.floor
+import kotlin.math.hypot
 
 /**
  * Stamps copies of its [templates] across the world according to [placement]. Each instance's cell picks
@@ -72,11 +73,7 @@ data class Instanced(
         // Hot path: accumulate the union across nearby instances in place rather than build a list.
         var solid = Spans.EMPTY
         placement.forEachInstanceNear(worldX, worldZ, templateReach, random) { originX, originZ, instanceRandom ->
-            val chosen = if (wornBy == null) {
-                posedTemplates[instanceRandom.nextInt(posedTemplates.size)]
-            } else {
-                wornTemplate(wornBy.at(originX, originZ), instanceRandom)
-            }
+            val chosen = templateAt(originX, originZ, instanceRandom)
             val acrossX = (worldX - originX).toDouble()
             val acrossZ = (worldZ - originZ).toDouble()
             // **Cull against the instance's own reach, not the layer's** — measured 2026-09-11 as most of
@@ -110,6 +107,30 @@ data class Instanced(
         }
         return solid
     }
+
+    /** One instance as placed: where its origin stands and the template it drew, before any turn of its pose. */
+    data class Placed(val originX: Int, val originZ: Int, val template: TerrainField)
+
+    /** The instance whose origin stands nearest ([worldX], [worldZ]) among those that could reach it, or null for none. */
+    fun instanceNearest(worldX: Int, worldZ: Int): Placed? {
+        if (posedTemplates.isEmpty()) return null
+        var nearest: Placed? = null
+        var nearestDistance = Double.MAX_VALUE
+        placement.forEachInstanceNear(worldX, worldZ, templateReach, random) { originX, originZ, instanceRandom ->
+            val chosen = templateAt(originX, originZ, instanceRandom)
+            val distance = hypot((worldX - originX).toDouble(), (worldZ - originZ).toDouble())
+            if (distance < nearestDistance) {
+                nearestDistance = distance
+                nearest = Placed(originX, originZ, chosen)
+            }
+        }
+        return nearest
+    }
+
+    /** The template an instance at this origin draws, the first draw from its own random. */
+    private fun templateAt(originX: Int, originZ: Int, instanceRandom: RandomSource): TerrainField =
+        if (wornBy == null) posedTemplates[instanceRandom.nextInt(posedTemplates.size)]
+        else wornTemplate(wornBy.at(originX, originZ), instanceRandom)
 
     /**
      * A template at a random size, drawn between the two whose wear lies either side of [wear] in proportion to how

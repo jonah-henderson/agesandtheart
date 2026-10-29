@@ -69,6 +69,15 @@
       "solid": 0.9
     }
   },
+  "arboreal": {
+    "readiness": 0.2,
+    "tags": {
+      "monumental": 1.0,
+      "lush": 0.7,
+      "watery": 0.6,
+      "scattered": 0.5
+    }
+  },
   "mountainous": {
     "tags": {
       "mountainous": 1.0,

@@ -41,6 +41,7 @@ import net.minecraft.core.QuartPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.core.registries.codec.RegistryCodecs
 import net.minecraft.resources.ResourceKey
+import net.minecraft.server.level.ColumnPos
 import net.minecraft.server.level.WorldGenRegion
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.ChunkPos
@@ -239,6 +240,8 @@ class AgeChunkGenerator(
      * carries the same [Dislocation] inside its tree.
      */
     private val dislocation: Dislocation = Dislocation.NONE,
+    /** The column the Age's landform asks a link to arrive on, or null for footing near the origin. Not serialised, like [lives]. */
+    val landformArrival: ColumnPos? = null,
 ) : NoiseBasedChunkGenerator(
     biomes,
     when (rock) {

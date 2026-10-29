@@ -269,13 +269,20 @@ object Ages {
 
     /**
      * At what the book's `link in` named where it was found, else into the D'ni city where the Age has one (design
-     * §7.6), and otherwise onto footing near the origin.
+     * §7.6), else where the landform asks, and otherwise onto footing near the origin.
      */
     private fun workOutTheArrivalIn(level: ServerLevel): Arrival {
         linkedInArrivalIn(level)?.let { return it }
         CavernRuins.arrivalIn(level)?.let { return it }
+        landformArrivalIn(level)?.let { return it }
         val (landingX, landingZ) = findFooting(level)
         return Arrival(footingIn(level, landingX, landingZ))
+    }
+
+    /** On the column the Age's landform asks a link to arrive on: the summit of the hollow tree nearest the origin. */
+    private fun landformArrivalIn(level: ServerLevel): Arrival? {
+        val column = (level.chunkSource.generator as? AgeChunkGenerator)?.landformArrival ?: return null
+        return Arrival(footingIn(level, column.x(), column.z()))
     }
 
     /**

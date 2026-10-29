@@ -1,0 +1,53 @@
+{
+  "_comment": [
+    "The dead crown of a hollow tree and its trunk over the water: pale moss on the dead shelves, mushrooms in their shade, and vines. Its sky and fog are paler than an ordinary Age's, from a height where little lives.",
+    "Laid only inside a hollow tree, by the landform rather than by any climate (`HollowTreesField.biomes`), and given no word, so nothing else can grow it. No monsters: Edanna is an Age of living things."
+  ],
+  "attributes": {
+    "minecraft:gameplay/natural_mob_spawns": {
+      "argument": {
+        "spawn_costs": {},
+        "spawns_by_category": {
+          "ambient": [
+            {
+              "type": "minecraft:bat",
+              "count": 8,
+              "weight": 10
+            }
+          ]
+        }
+      },
+      "modifier": "overlay"
+    },
+    "minecraft:visual/fog_color": "#c7ccd0",
+    "minecraft:visual/sky_color": "#9db0c8",
+    "minecraft:visual/water_fog_color": "#050533"
+  },
+  "carvers": [],
+  "downfall": 0.4,
+  "effects": {
+    "foliage_color": "#878d76",
+    "grass_color": "#778272",
+    "water_color": "#76889d"
+  },
+  "features": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      "agesandtheart:hollow_tree/pale_moss",
+      "agesandtheart:hollow_tree/brown_mushrooms",
+      "agesandtheart:hollow_tree/red_mushrooms",
+      "agesandtheart:hollow_tree/vines"
+    ],
+    []
+  ],
+  "has_precipitation": true,
+  "temperature": 0.7
+}
