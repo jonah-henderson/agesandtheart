@@ -46,6 +46,12 @@ class ReconciledLandCheck : FunSpec({
         }
     }
 
+    test("every landform joined by and is seated, however many") {
+        val row = "age sheer and cleft and pillared and archipelagic and gentle landmass"
+        val seated = resolved(row, seed = SEED).composition.terrains
+        check(seated.size == 5) { "'$row' seated $seated" }
+    }
+
     test("what can be eased is, and a seam is drawn round what cannot") {
         val row = "age sheer and cleft and pillared and skyborne landmass"
         val spread = resolved(row, seed = SEED).composition.seamed(SEED).spreadOf(Aspect.TERRAIN)

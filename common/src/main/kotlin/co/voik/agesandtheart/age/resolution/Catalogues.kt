@@ -22,8 +22,8 @@ private data class Territory(val landings: List<Landing>, val candidates: List<T
         Territory(landings + joining.landings, candidates.filter { it in joining.candidates })
 }
 
-/** How many ways one aspect may divide — a limit on legibility rather than machinery. */
-internal const val MOST_TERRITORIES = 3
+/** How many territories company may fill an aspect to: a harmony nobody asked for stays a few. */
+private const val MOST_IN_COMPANY = 3
 
 // A floor under every candidate, so a lean tilts the draw rather than deciding it.
 private const val BASE_WEIGHT = 0.35
@@ -41,8 +41,8 @@ private const val INCAPABLE_FACTOR = 0.04
 /**
  * What fills [aspect]: one preset, or several where what landed left it no way to be one thing. Each narrowing
  * landing says which presets it keeps; those are gathered into territories, landings satisfiable together; then one
- * preset is drawn per territory, tilted by every lean. A territory there is no room for is dropped — what the two
- * words disagreed over is charged as incoherence, not here.
+ * preset is drawn per territory, tilted by every lean. A spatial aspect seats every territory; one that cannot divide
+ * keeps the first, and drops the rest — what the words disagreed over is charged as incoherence, not here.
  */
 internal fun Resolving.fill(aspect: Aspect): List<Filling> {
     if (aspect.holds != Holds.CATALOGUE) return emptyList()
@@ -79,9 +79,10 @@ internal fun Resolving.fill(aspect: Aspect): List<Filling> {
     fun takesTheWhole(territory: Territory) = territory.candidates.all { it.takesTheWholeAspect }
     val whole = territories.firstOrNull(::takesTheWhole)
     val ordered = if (whole == null) territories else listOf(whole) + (territories - whole)
-    val room = if (aspect.spatial && whole == null) MOST_TERRITORIES else 1
-    val kept = ordered.take(room)
-    for (unseated in ordered.drop(room)) unseated.landings.forEach { lose(it, Decision.MEMBERS) }
+    val divides = aspect.spatial && whole == null
+    val kept = if (divides) ordered else ordered.take(1)
+    for (unseated in ordered.drop(kept.size)) unseated.landings.forEach { lose(it, Decision.MEMBERS) }
+    val room = if (divides) maxOf(kept.size, MOST_IN_COMPANY) else 1
     divide(aspect, kept.map { it.landings })
 
     val chosen = mutableListOf<Taggable>()

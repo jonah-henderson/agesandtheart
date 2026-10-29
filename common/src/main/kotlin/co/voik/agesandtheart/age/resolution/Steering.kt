@@ -191,7 +191,7 @@ private fun Resolving.spannedIn(
     }
 
     val couldFracture = aspect.spatial && composition.membersIn(aspect) == 1
-    if (climates.size == 1 || !couldFracture || climates.size > MOST_TERRITORIES) {
+    if (climates.size == 1 || !couldFracture) {
         for (overruled in groups.drop(1).flatten()) boundsIn(overruled).keys.forEach { lose(overruled, it) }
         val agreed = settledWith(bentTo(climates.first()))
         if (!aspect.membersAreDescribed) return written(composition, member = 0, bounds = agreed)
@@ -208,12 +208,12 @@ private fun rangedNames(composition: AgeComposition, aspect: Aspect): List<Strin
     parametersOf(composition, aspect).filter { it.holds == Holds.RANGE }.map { it.name }.distinct()
 
 /**
- * Whether the groups can each be given ground: the aspect can divide, holds one preset, and has room for them.
+ * Whether the groups can each be given ground: the aspect can divide, holds one preset, and there are several.
  */
 private fun canFracture(composition: AgeComposition, aspect: Aspect, parameter: String, contenders: List<Landing>): Boolean {
     if (!aspect.spatial) return false
     if (composition.membersIn(aspect) != 1) return false
-    return groupsOf(parameter, contenders).size in 2..MOST_TERRITORIES
+    return groupsOf(parameter, contenders).size >= 2
 }
 
 /** The claimants gathered into the fewest sets satisfiable at once: the same value, or joined by `and`. */
