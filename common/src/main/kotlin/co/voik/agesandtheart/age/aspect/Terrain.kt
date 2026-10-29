@@ -71,6 +71,8 @@ private fun varietyOf(options: Options, salt: Long): Double = (options.steer(Ter
 
 private const val UNSAID_VARIETY = 0.0
 
+private const val UNSAID_TERRACING = 0.0
+
 /**
  * How worn the land is on average, read off [Terrain.WEAR]: none at the bottom, [ordinarily] unsaid — a touch, so an
  * Age nobody called worn stands close to pristine — and [MOST_WEAR] at the top; none at all on an Age written before
@@ -88,6 +90,9 @@ private fun isFormer(options: Options): Boolean = options.isTrue(Terrain.FORMER_
 private const val UNSAID_WEAR = 0.0
 private const val ORDINARY_WEAR = 0.25
 private const val MOST_WEAR = 2.0
+
+/** The eroded country's own wear unsaid: a full one, since weathering is what it is. */
+private const val ERODED_WEAR = 1.0
 
 /** Where a landform's landmarks stand, at [landScale]; none on an Age that does not vary. */
 private fun landmarksOf(options: Options, salt: Long, landScale: Double): Landmarks =
@@ -428,8 +433,12 @@ enum class Terrain(
 
     override val parameters: List<Parameter> get() = (axes() + weatheringAxes).distinct() + STONE + MINGLING
 
-    /** A worn landform honours [WEAR], which sets how deeply the weather wears it. */
-    private val weatheringAxes: List<Parameter> get() = if (this in WORN) listOf(WEAR) else emptyList()
+    /** A worn landform honours [WEAR], which sets how deeply the weather wears it, and a terraced one [TERRACING]. */
+    private val weatheringAxes: List<Parameter> get() = when {
+        this !in WORN -> emptyList()
+        this in UNTERRACED -> listOf(WEAR)
+        else -> listOf(WEAR, TERRACING)
+    }
 
     /**
      * Where this terrain's sea stands at the size asked for: [waterline], for every landform but the one
@@ -705,6 +714,16 @@ enum class Terrain(
         liftTo(options, salt, sea)?.over(water, keepsFloor = false) ?: water
 
     /**
+     * How worn this landform is when nothing says: none for a made one, a full wear for the eroded country unless the
+     * Age was written before it was ([FORMER_WEAR]), and a touch for the rest.
+     */
+    private fun ordinaryWear(options: Options): Double = when {
+        this in MADE -> 0.0
+        this == ERODED && !options.isTrue(FORMER_WEAR) -> ERODED_WEAR
+        else -> ORDINARY_WEAR
+    }
+
+    /**
      * The water this landform carries, lifted but not yet varied, whose banks its wear leaves alone; null where it
      * carries none, or where the Age was written while the wear still cut through them ([FORMER_WEAR]).
      */
@@ -765,10 +784,10 @@ enum class Terrain(
             field,
             stretchesAbove = if (this in DRIFTS_IN_HEIGHT) driftsAbove(options, salt, sea) else null,
             wornAbove = if (isRock && this in WORN) waterlineAt(options, salt, sea) ?: VerticalWindow.MIN_Y else null,
-            terraces = this !in UNTERRACED,
+            terracing = if (this in UNTERRACED) null else options.steer(TERRACING, salt) ?: UNSAID_TERRACING,
             bends = this in BENDS,
             strength = varietyOf(options, salt),
-            erosion = erosionOf(options, salt, ordinarily = if (this in MADE) 0.0 else ORDINARY_WEAR),
+            erosion = erosionOf(options, salt, ordinarily = ordinaryWear(options)),
             landScale = if (hasGroundBeneath) scaleOf(options, salt) else scaleAsWritten(options, salt),
             salt = salt,
             table = table,
@@ -993,6 +1012,19 @@ enum class Terrain(
                 Parameter.Landmark(-1.0, "sharp and unbroken"),
                 Parameter.Landmark(0.0, "ordinary"),
                 Parameter.Landmark(1.0, "worn to rubble"),
+            ),
+        )
+        /**
+         * How far a terraced landform's slopes are stepped: none at the bottom, the patches the wear lays unsaid, and every
+         * slope however worn at the top.
+         */
+        val TERRACING = Parameter.ranged(
+            "terracing",
+            help = "How far the landform's slopes are stepped into terraces.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "never stepped"),
+                Parameter.Landmark(0.0, "in patches where it is worn"),
+                Parameter.Landmark(1.0, "stepped wherever it slopes"),
             ),
         )
         val RELIEF = Parameter.ranged(

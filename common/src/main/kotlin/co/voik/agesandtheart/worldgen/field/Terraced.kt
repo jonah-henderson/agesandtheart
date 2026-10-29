@@ -23,6 +23,8 @@ data class Terraced(
     val floorY: Int,
     /** How worn each place is; [share] is the ordinary amount's. */
     val wear: Wear = Wear.EVEN,
+    /** What share of the land is terraced however worn it is, on top of [share]. */
+    val unworn: Double = 0.0,
 ) : TerrainField {
     override val kind = FieldKind.TERRACED
 
@@ -50,7 +52,7 @@ data class Terraced(
 
     /** One inside a patch, nothing outside, and between the two across the patch's edge. */
     private fun terracingAt(worldX: Int, worldZ: Int): Double {
-        val shareHere = share * wear.at(worldX, worldZ)
+        val shareHere = share * wear.at(worldX, worldZ) + unworn
         if (shareHere <= 0.0) return 0.0
         val threshold = 1.0 - 2.0 * shareHere.coerceAtMost(1.0)
         val reading = patches.get(worldX / PATCH_STRETCH, 0.0, worldZ / PATCH_STRETCH).toDouble()
@@ -87,6 +89,7 @@ data class Terraced(
                 Codec.DOUBLE.fieldOf("share").forGetter(Terraced::share),
                 Codec.INT.fieldOf("floor_y").forGetter(Terraced::floorY),
                 Wear.FIELD.forGetter(Terraced::wear),
+                Codec.DOUBLE.optionalFieldOf("unworn", 0.0).forGetter(Terraced::unworn),
             ).apply(instance, ::Terraced)
         }
     }

@@ -24,7 +24,8 @@ import kotlin.math.min
  * [erosion] is how worn the land is on average, on the same scale, and [strength] how far that swings from place to
  * place ([Wear]): none at all where the land does not vary, and from untouched to twice the average at the most.
  * Where the Age has a [TerrainTable], the drift follows its uplift and the wear its age. Where the landform carries
- * [water] of its own, the wear stays clear of it ([Banked]).
+ * [water] of its own, the wear stays clear of it ([Banked]). [terracing] runs from no terraces at -1, through the
+ * patches the wear lays at 0, to every slope stepped however worn it is at 1.
  */
 object LandVariety {
 
@@ -33,8 +34,8 @@ object LandVariety {
         stretchesAbove: Int?,
         /** The lowest a gully may cut or scree lie, or null where this field is not worn — water, and the made shapes. */
         wornAbove: Int?,
-        /** Whether worn ground is terraced in patches. */
-        terraces: Boolean,
+        /** How far worn ground is terraced, from -1 to 1; null for not at all. */
+        terracing: Double?,
         bends: Boolean,
         strength: Double,
         erosion: Double,
@@ -61,8 +62,9 @@ object LandVariety {
             )
         } ?: shape
         val stretched = stretch(field)
-        val worn = wornAbove?.takeIf { erosion > 0.0 }?.let { floorY ->
-            val wornThrough = worn(stretched, floorY, terraces, wearOf(strength, erosion, landScale, salt, table), salt)
+        val steppedEverywhere = terracing?.coerceIn(0.0, 1.0) ?: 0.0
+        val worn = wornAbove?.takeIf { erosion > 0.0 || steppedEverywhere > 0.0 }?.let { floorY ->
+            val wornThrough = worn(stretched, floorY, terracing, wearOf(strength, erosion, landScale, salt, table), salt)
             water?.let { Banked(wornThrough, stretched, stretch(it), BANK_EASING) } ?: wornThrough
         } ?: stretched
         if (!bends || !varies) return worn
@@ -92,9 +94,16 @@ object LandVariety {
     fun wearOf(strength: Double, erosion: Double, landScale: Double, salt: Long, table: TerrainTable? = null): Wear =
         Wear(salt xor WEAR_SALT, erosion, WEAR_SPREAD * strength, WEAR_STRETCH * landScale, table)
 
-    /** [field] terraced, gullied, footed with scree and undercut, each as far as [wear] says at each place. */
-    private fun worn(field: TerrainField, floorY: Int, terraces: Boolean, wear: Wear, salt: Long): TerrainField {
-        val terraced = if (terraces) Terraced(field, salt xor TERRACE_SALT, TERRACE_STEP, TERRACED_SHARE, floorY, wear) else field
+    /**
+     * [field] terraced as [terracing] says, then gullied, footed with scree and undercut, each as far as [wear] says at
+     * each place; only terraced where nothing is worn.
+     */
+    private fun worn(field: TerrainField, floorY: Int, terracing: Double?, wear: Wear, salt: Long): TerrainField {
+        val terraced = terracing?.let { steer ->
+            val share = TERRACED_SHARE * (1.0 + steer.coerceIn(-1.0, 0.0))
+            Terraced(field, salt xor TERRACE_SALT, TERRACE_STEP, share, floorY, wear, unworn = steer.coerceIn(0.0, 1.0))
+        } ?: field
+        if (wear.mean <= 0.0) return terraced
         val gullied = Gullied(terraced, salt xor GULLY_SALT, GULLY_DEPTH, GULLY_CELL, floorY, wear)
         val screed = Scree(gullied, salt xor SCREE_SALT, SCREE_SHARE, SCREE_DEEPEST, floorY, wear)
         return Undercut(screed, salt xor UNDERCUT_SALT, UNDERCUT_DEPTH, UNDERCUT_HEIGHT, floorY, wear)

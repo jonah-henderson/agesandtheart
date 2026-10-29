@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Never the same twice: the land changes more as it is crossed, its height drifting further, its outlines",
+    "bending more, its wear swinging wider and its landmarks standing closer together. The plain word against",
+    "`uniform`, which holds it the same everywhere."
+  ],
+  "meanings": [
+    {
+      "bends": {
+        "variety": "0.4..1.0"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Stepped into terraces wherever the land slopes, however little it is worn, where an Age that says nothing",
+    "terraces only patches of what the weather wore. The mountains, the cleft and the pyramids are not terraced."
+  ],
+  "meanings": [
+    {
+      "bends": {
+        "terracing": "0.6..1.0"
+      },
+      "must_always_apply": true
+    }
+  ]
+}
