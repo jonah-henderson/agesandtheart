@@ -143,6 +143,8 @@ import co.voik.agesandtheart.worldgen.feature.PaperTree
 import co.voik.agesandtheart.worldgen.feature.PaperTreeGrove
 import co.voik.agesandtheart.worldgen.feature.PitClearing
 import co.voik.agesandtheart.worldgen.feature.ScarabColony
+import co.voik.agesandtheart.worldgen.feature.DeadTree
+import co.voik.agesandtheart.worldgen.feature.FanPalm
 import co.voik.agesandtheart.worldgen.feature.PalmTree
 import net.minecraft.world.level.block.RotatedPillarBlock
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument
@@ -2304,5 +2306,7 @@ object AgeContent {
         "paper_tree_grove".location() to PaperTreeGrove.CODEC,
         "scarab_colony".location() to ScarabColony.CODEC,
         "palm_tree".location() to PalmTree.CODEC,
+        "fan_palm".location() to FanPalm.CODEC,
+        "dead_tree".location() to DeadTree.CODEC,
     )
 }

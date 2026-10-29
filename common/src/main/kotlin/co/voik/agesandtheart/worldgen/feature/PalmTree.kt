@@ -38,17 +38,56 @@ import kotlin.math.sin
  * look right would have tips past that, so the crown is drawn as a shape first and then walked from the
  * trunk outward, and a cell the walk cannot reach in time is left out. What stands is what stays.
  */
-object PalmTree : Feature {
-
+object PalmTree : Palm(
+    PalmHabit(
+        trunks = 7..11, leastLean = 1.0f, mostLean = 3.5f, fronds = 6..8, frondLengths = 4..6,
+        leastArch = 1.2f, mostArch = 1.2f, droop = 3.4f, coconutChance = 0.35f,
+    ),
+) {
     val CODEC: MapCodec<PalmTree> = MapCodec.unit { PalmTree }
 
     override fun codec(): MapCodec<out Feature> = CODEC
 
     /** Sand, or the overworld's soil — not `#dirt`, which 26.3 emptied of grass, so a palm on a lawn grows. */
     fun takesRootIn(ground: BlockState): Boolean = ground.`is`(BlockTags.SAND) || ground.`is`(BlockTags.SUBSTRATE_OVERWORLD)
+}
+
+/**
+ * A fan palm: a short trunk under a round crown of many short fronds rising every way, rather than a tall one under
+ * a few long fronds drooping. What grows in a hollow tree's crown.
+ */
+object FanPalm : Palm(
+    PalmHabit(
+        trunks = 2..5, leastLean = 0.0f, mostLean = 1.2f, fronds = 10..14, frondLengths = 2..4,
+        leastArch = 1.5f, mostArch = 3.5f, droop = 1.2f, coconutChance = 0.0f,
+    ),
+) {
+    val CODEC: MapCodec<FanPalm> = MapCodec.unit { FanPalm }
+
+    override fun codec(): MapCodec<out Feature> = CODEC
+}
+
+/**
+ * How a palm grows: how tall its trunk and how far it leans, how many fronds and how long, how high each arches
+ * before it droops, and how likely a coconut is under its crown.
+ */
+data class PalmHabit(
+    val trunks: IntRange,
+    val leastLean: Float,
+    val mostLean: Float,
+    val fronds: IntRange,
+    val frondLengths: IntRange,
+    val leastArch: Float,
+    val mostArch: Float,
+    val droop: Float,
+    val coconutChance: Float,
+)
+
+/** A palm of [habit], standing on the ground under [place]'s origin. */
+abstract class Palm(private val habit: PalmHabit) : Feature {
 
     override fun place(level: WorldGenLevel, generator: ChunkGenerator, random: RandomSource, origin: BlockPos): Boolean {
-        if (!takesRootIn(level.getBlockState(origin.below()))) return false
+        if (!PalmTree.takesRootIn(level.getBlockState(origin.below()))) return false
 
         val trunk = trunkFrom(origin, leanTowards(level, origin, random), random)
         if (!trunk.all { isOpen(level, it) }) return false
@@ -73,8 +112,8 @@ object PalmTree : Feature {
      * last before climbing, so the trunk never joins at a corner.
      */
     private fun trunkFrom(origin: BlockPos, lean: Float, random: RandomSource): List<BlockPos> {
-        val height = random.nextIntBetweenInclusive(SHORTEST_TRUNK, TALLEST_TRUNK)
-        val reach = Mth.nextFloat(random, LEAST_LEAN, MOST_LEAN)
+        val height = random.nextIntBetweenInclusive(habit.trunks.first, habit.trunks.last)
+        val reach = Mth.nextFloat(random, habit.leastLean, habit.mostLean)
         val trunk = mutableListOf(origin)
         for (step in 1..<height) {
             val along = (step.toFloat() / (height - 1)).pow(BEND)
@@ -117,18 +156,18 @@ object PalmTree : Feature {
         val tuft = top.above()
         crown += tuft
         for (side in Direction.Plane.HORIZONTAL) crown += tuft.relative(side)
-        val fronds = random.nextIntBetweenInclusive(FEWEST_FRONDS, MOST_FRONDS)
+        val fronds = random.nextIntBetweenInclusive(habit.fronds.first, habit.fronds.last)
         val turned = random.nextFloat() * Mth.TWO_PI
         for (frond in 0..<fronds) {
             val angle = turned + frond * Mth.TWO_PI / fronds + Mth.nextFloat(random, -FROND_WANDERS, FROND_WANDERS)
-            val length = random.nextIntBetweenInclusive(SHORTEST_FROND, LONGEST_FROND)
-            crown += frondFrom(top, angle, length)
+            val length = random.nextIntBetweenInclusive(habit.frondLengths.first, habit.frondLengths.last)
+            crown += frondFrom(top, angle, length, Mth.nextFloat(random, habit.leastArch, habit.mostArch))
         }
         return crown
     }
 
     /** One frond out of [top] along [angle], face-to-face all the way, so leaves can trace it to the trunk. */
-    private fun frondFrom(top: BlockPos, angle: Float, length: Int): List<BlockPos> {
+    private fun frondFrom(top: BlockPos, angle: Float, length: Int, arch: Float): List<BlockPos> {
         val frond = mutableListOf<BlockPos>()
         var last = top
         // Square to the frond: a frond running mostly along z broadens along x, and the other way about.
@@ -138,7 +177,7 @@ object PalmTree : Feature {
             along += RASTER_STEP
             val x = top.x + (cos(angle) * along).roundToInt()
             val z = top.z + (sin(angle) * along).roundToInt()
-            val y = top.y + rise(along, length)
+            val y = top.y + rise(along, length, arch)
             if (x == last.x && z == last.z && y == last.y) continue
             // Face-to-face: across first, then along, then down, rather than at a corner.
             if (x != last.x && z != last.z) frond += BlockPos(x, last.y, last.z)
@@ -154,10 +193,10 @@ object PalmTree : Feature {
         return frond
     }
 
-    /** How far above or below the top of the trunk a frond stands, [along] of [length] blocks out. */
-    private fun rise(along: Float, length: Int): Int {
+    /** How far above or below the top of the trunk a frond stands, [along] of [length] blocks out: up by arch·t, down by droop·t². */
+    private fun rise(along: Float, length: Int, arch: Float): Int {
         val out = along / length
-        return (ARCH * out - DROOP * out * out).roundToInt()
+        return (arch * out - habit.droop * out * out).roundToInt()
     }
 
     /**
@@ -188,7 +227,7 @@ object PalmTree : Feature {
     private fun hangCoconuts(level: WorldGenLevel, under: BlockPos, random: RandomSource) {
         if (!level.getBlockState(under).`is`(PalmWood.LOGS)) return
         for (side in Direction.Plane.HORIZONTAL) {
-            if (random.nextFloat() >= COCONUT_CHANCE) continue
+            if (random.nextFloat() >= habit.coconutChance) continue
             val at = under.relative(side)
             if (!level.isEmptyBlock(at)) continue
             val ripeness = if (random.nextFloat() < RIPE_CHANCE) CocoaBlock.MAX_AGE else random.nextInt(CocoaBlock.MAX_AGE)
@@ -205,36 +244,22 @@ object PalmTree : Feature {
         return there.isAir || there.`is`(BlockTags.REPLACEABLE_BY_TREES)
     }
 
-    private const val SHORTEST_TRUNK = 7
-    private const val TALLEST_TRUNK = 11
+    private companion object {
+        /** The power the lean grows by with height: over one, so the foot stands near upright. */
+        private const val BEND = 1.8f
 
-    /** How far the top of the trunk stands out from its foot, in blocks. */
-    private const val LEAST_LEAN = 1.0f
-    private const val MOST_LEAN = 3.5f
+        private const val HEADINGS_SAMPLED = 8
+        private const val LOOKS_FOR_LOW_GROUND = 6
+        private const val LEAN_WANDERS = 0.5f
 
-    /** The power the lean grows by with height: over one, so the foot stands near upright. */
-    private const val BEND = 1.8f
+        private const val FROND_WANDERS = 0.25f
+        private const val RASTER_STEP = 0.25f
+        private const val BROAD_FROM = 0.3f
+        private const val BROAD_TO = 0.7f
 
-    private const val HEADINGS_SAMPLED = 8
-    private const val LOOKS_FOR_LOW_GROUND = 6
-    private const val LEAN_WANDERS = 0.5f
+        /** The furthest a leaf may be from wood and live — one short of vanilla's `DECAY_DISTANCE`. */
+        private const val FARTHEST_LEAF = LeavesBlock.DECAY_DISTANCE - 1
 
-    private const val FEWEST_FRONDS = 6
-    private const val MOST_FRONDS = 8
-    private const val FROND_WANDERS = 0.25f
-    private const val SHORTEST_FROND = 4
-    private const val LONGEST_FROND = 6
-    private const val RASTER_STEP = 0.25f
-
-    /** How a frond arches up from the crown and falls away: up by ARCH·t, down by DROOP·t², t from 0 to 1. */
-    private const val ARCH = 1.2f
-    private const val DROOP = 3.4f
-    private const val BROAD_FROM = 0.3f
-    private const val BROAD_TO = 0.7f
-
-    /** The furthest a leaf may be from wood and live — one short of vanilla's `DECAY_DISTANCE`. */
-    private const val FARTHEST_LEAF = LeavesBlock.DECAY_DISTANCE - 1
-
-    private const val COCONUT_CHANCE = 0.35f
-    private const val RIPE_CHANCE = 0.7f
+        private const val RIPE_CHANCE = 0.7f
+    }
 }

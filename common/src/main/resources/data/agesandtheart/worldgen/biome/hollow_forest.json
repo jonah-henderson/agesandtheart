@@ -1,7 +1,7 @@
 {
   "_comment": [
-    "The forest on the shelves of a hollow tree's middle reaches: small jungle trees, bushes, ferns, moss and azaleas, glow berries and spore blossoms hanging from the shelf above, and vines on the wall.",
-    "Laid only inside a hollow tree, by the landform rather than by any climate (`HollowTreesField.biomes`), and given no word, so nothing else can grow it. No monsters: Edanna is an Age of living things."
+    "The forest on the shelves of a hollow tree's middle reaches: jungle trees and bushes, bamboo, ferns, moss and azaleas, flowers of every kind, glow berries, spore blossoms and roots hanging from the shelf above, and vines on the wall.",
+    "Laid only inside a hollow tree, by the landform rather than by any climate (`HollowTreesField.biomes`), and given no word, so nothing else can grow it. Its creatures and monsters are the jungle's; its sky is the Age's own."
   ],
   "attributes": {
     "minecraft:gameplay/natural_mob_spawns": {
@@ -17,30 +17,103 @@
           ],
           "creature": [
             {
+              "type": "minecraft:sheep",
+              "count": 4,
+              "weight": 12
+            },
+            {
+              "type": "minecraft:pig",
+              "count": 4,
+              "weight": 10
+            },
+            {
+              "type": "minecraft:chicken",
+              "count": 4,
+              "weight": 20
+            },
+            {
+              "type": "minecraft:cow",
+              "count": 4,
+              "weight": 8
+            },
+            {
               "type": "minecraft:parrot",
               "count": {
                 "type": "minecraft:uniform",
                 "min_inclusive": 1,
                 "max_inclusive": 2
               },
-              "weight": 10
+              "weight": 40
             },
             {
               "type": "minecraft:ocelot",
               "count": {
                 "type": "minecraft:uniform",
                 "min_inclusive": 1,
-                "max_inclusive": 1
+                "max_inclusive": 3
               },
               "weight": 2
+            },
+            {
+              "type": "minecraft:panda",
+              "count": {
+                "type": "minecraft:uniform",
+                "min_inclusive": 1,
+                "max_inclusive": 2
+              },
+              "weight": 1
+            }
+          ],
+          "monster": [
+            {
+              "type": "minecraft:spider",
+              "count": 4,
+              "weight": 100
+            },
+            {
+              "type": "minecraft:zombie",
+              "count": 4,
+              "weight": 95
+            },
+            {
+              "type": "minecraft:zombie_villager",
+              "count": 1,
+              "weight": 5
+            },
+            {
+              "type": "minecraft:skeleton",
+              "count": 4,
+              "weight": 100
+            },
+            {
+              "type": "minecraft:creeper",
+              "count": 4,
+              "weight": 100
+            },
+            {
+              "type": "minecraft:slime",
+              "count": 4,
+              "weight": 100
+            },
+            {
+              "type": "minecraft:enderman",
+              "count": {
+                "type": "minecraft:uniform",
+                "max_inclusive": 4,
+                "min_inclusive": 1
+              },
+              "weight": 10
+            },
+            {
+              "type": "minecraft:witch",
+              "count": 1,
+              "weight": 5
             }
           ]
         }
       },
       "modifier": "overlay"
     },
-    "minecraft:visual/fog_color": "#c0d8ff",
-    "minecraft:visual/sky_color": "#77a8ff",
     "minecraft:visual/water_fog_color": "#050533"
   },
   "carvers": [],
@@ -63,11 +136,17 @@
     [
       "agesandtheart:hollow_tree/jungle_trees",
       "agesandtheart:hollow_tree/jungle_bushes",
+      "agesandtheart:hollow_tree/bamboo",
       "agesandtheart:hollow_tree/moss_vegetation",
       "agesandtheart:hollow_tree/jungle_grass",
+      "agesandtheart:hollow_tree/large_ferns",
+      "agesandtheart:hollow_tree/forest_flowers",
+      "agesandtheart:hollow_tree/wildflowers",
+      "agesandtheart:hollow_tree/torchflowers",
       "agesandtheart:hollow_tree/melons",
       "agesandtheart:hollow_tree/cave_vines",
       "agesandtheart:hollow_tree/spore_blossoms",
+      "agesandtheart:hollow_tree/hanging_roots",
       "agesandtheart:hollow_tree/vines"
     ],
     []

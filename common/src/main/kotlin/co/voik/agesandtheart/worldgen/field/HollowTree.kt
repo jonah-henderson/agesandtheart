@@ -58,6 +58,24 @@ data class HollowTree(
 
     private data class Shelf(val y: Int, val thickness: Double, val firstPhase: Double, val secondPhase: Double)
 
+    private data class Point(val x: Double, val y: Double, val z: Double)
+
+    /**
+     * How a limb grows: in [segments] runs, its heading turning by up to [turn] and its pitch drifting by [bend], give
+     * or take [wobble], between [lowestPitch] and [highestPitch]; thinning to [taper] of its thickness, and forking
+     * with [forkChance].
+     */
+    private data class Habit(
+        val segments: Int,
+        val turn: Double,
+        val bend: Double,
+        val wobble: Double,
+        val lowestPitch: Double,
+        val highestPitch: Double,
+        val taper: Double,
+        val forkChance: Double,
+    )
+
     override val kind = FieldKind.HOLLOW_TREE
 
     private val span = (topY - floorY).coerceAtLeast(SHORTEST_SPAN)
@@ -126,9 +144,13 @@ data class HollowTree(
         }
     }
 
-    /** Branches across the hollow between one shelf and the next, heartwood like the wall they grow from. */
+    /**
+     * Branches across the hollow between one shelf and the next, sagging between where they grow from the wall —
+     * heartwood like the wall itself.
+     */
     private val crossings: List<Beam> = buildList {
         val levels = listOf(swampTopY) + shelves.map { it.y }
+        val thickness = max(THINNEST_CROSSING, radius * CROSSING_OF_RADIUS)
         for ((lower, upper) in levels.zipWithNext()) {
             val gap = upper - lower
             repeat(1 + random.nextInt(CROSSING_CHOICES)) {
@@ -136,41 +158,170 @@ data class HollowTree(
                 val to = from + PI + between(-CROSSING_SKEW, CROSSING_SKEW)
                 val fromY = lower + CROSSING_CLEARANCE + random.nextDouble() * gap * CROSSING_RISE
                 val toY = upper - CROSSING_CLEARANCE * 2 - random.nextDouble() * gap * CROSSING_RISE
-                add(acrossTheHollow(from, fromY, to, toY))
+                val start = onTheInnerWall(from, fromY)
+                val end = onTheInnerWall(to, toY)
+                sagging(start, end, gap * between(0.0, CROSSING_SAG), radius * between(-CROSSING_SWAY, CROSSING_SWAY), thickness)
             }
         }
     }
 
-    /** Roots running from the fins into the sea floor, and dead branches standing out from the top. */
+    /**
+     * Everything the tree grows outward, all of it bark: roots out of its fins and down into the sea floor, longer
+     * ones creeping out across it in and out of the water, roots hanging from its lowest living shelf into the swamp,
+     * and dead branches standing out near the top, some broken short.
+     */
     private val outgrowths: List<Beam> = buildList {
-        val thickness = max(THINNEST_BRANCH, radius * BRANCH_OF_RADIUS)
+        val rootThickness = max(THINNEST_ROOT, radius * ROOT_OF_RADIUS)
         for (fin in 0..<finCount) {
-            val angle = finPhase + fin * FULL_TURN / finCount
-            val reach = radius * between(LEAST_ROOT_REACH, MOST_ROOT_REACH)
-            add(
-                Beam(
-                    cos(angle) * radius, floorY + span * ROOT_HEIGHT, sin(angle) * radius,
-                    cos(angle) * reach, floorY - ROOT_DEPTH, sin(angle) * reach,
-                    thickness,
-                ),
-            )
+            val finAngle = finPhase + fin * FULL_TURN / finCount
+            repeat(ROOTS_PER_FIN) {
+                val angle = finAngle + between(-ROOT_SPREAD, ROOT_SPREAD)
+                val startY = floorY + span * between(LOWEST_ROOT, HIGHEST_ROOT)
+                val start = fromTheTrunk(angle, startY, ROOT_ROOTED)
+                val tip = grow(start, angle + between(-ROOT_SPREAD, ROOT_SPREAD), between(STEEPEST_ROOT, SHALLOWEST_ROOT),
+                    radius * between(SHORTEST_ROOT, LONGEST_ROOT), rootThickness, DIVING, forks = 1)
+                anchor(tip, rootThickness * DIVING.taper)
+            }
         }
-        repeat(FEWEST_STUBS + random.nextInt(STUB_CHOICES)) {
+        repeat(FEWEST_CREEPING + random.nextInt(CREEPING_CHOICES)) {
             val angle = anyAngle()
-            val fromY = minOf(floorY + span * between(LOWEST_STUB, HIGHEST_STUB), rimAt(angle) - STUB_BELOW_RIM)
-            val rise = between(LEAST_STUB_RISE, MOST_STUB_RISE)
-            val length = radius * between(SHORTEST_STUB, LONGEST_STUB)
-            val startX = cos(angle) * radius * STUB_ROOTED
-            val startZ = sin(angle) * radius * STUB_ROOTED
-            add(
-                Beam(
-                    startX, fromY, startZ,
-                    startX + cos(angle) * cos(rise) * length, fromY + sin(rise) * length, startZ + sin(angle) * cos(rise) * length,
-                    thickness,
-                ),
+            val start = fromTheTrunk(angle, floorY + CREEPING_ABOVE_FLOOR, ROOT_ROOTED)
+            val thickness = max(THINNEST_LIMB, radius * CREEPING_OF_RADIUS)
+            val tip = grow(start, angle, CREEPING_PITCH, radius * between(SHORTEST_CREEPING, LONGEST_CREEPING), thickness, CREEPING, forks = 1)
+            anchor(tip, thickness * CREEPING.taper)
+        }
+        shelves.firstOrNull { it.y <= forestTopY }?.let { shelf ->
+            val thickness = max(THINNEST_LIMB, radius * AERIAL_OF_RADIUS)
+            repeat(FEWEST_AERIAL + random.nextInt(AERIAL_CHOICES)) {
+                val angle = anyAngle()
+                val reach = shelfReach(shelf, angle)
+                if (reach < SHELF_GAP) return@repeat
+                val underY = shelf.y - shelf.thickness * (1.0 + BRACKET)
+                val inner = innerAt(underY)
+                val distance = inner - inner * (SHELF_LEAST + SHELF_MORE * reach) * between(AERIAL_LEAST_IN, AERIAL_MOST_IN)
+                val top = alongTheAxis(angle, distance, underY)
+                val bottom = Point(top.x + between(-AERIAL_DRIFT, AERIAL_DRIFT), floorY - ROOT_DEPTH, top.z + between(-AERIAL_DRIFT, AERIAL_DRIFT))
+                sagging(top, bottom, 0.0, between(-AERIAL_DRIFT, AERIAL_DRIFT), thickness)
+            }
+        }
+        repeat(FEWEST_BRANCHES + random.nextInt(BRANCH_CHOICES)) {
+            val angle = anyAngle()
+            val startY = minOf(floorY + span * between(LOWEST_BRANCH, HIGHEST_BRANCH), rimAt(angle) - BRANCH_BELOW_RIM)
+            val isBroken = random.nextDouble() < BROKEN_SHARE
+            val length = radius * if (isBroken) between(SHORTEST_BROKEN, LONGEST_BROKEN) else between(SHORTEST_BRANCH, LONGEST_BRANCH)
+            val thickness = max(THINNEST_BRANCH, radius * between(LEAST_BRANCH_OF_RADIUS, MOST_BRANCH_OF_RADIUS))
+            grow(
+                fromTheTrunk(angle, startY, BRANCH_ROOTED), angle + between(-BRANCH_SPREAD, BRANCH_SPREAD),
+                between(LOWEST_BRANCH_PITCH, HIGHEST_BRANCH_PITCH), length, thickness, REACHING,
+                forks = if (isBroken) 0 else BRANCH_FORKS, collar = COLLAR,
             )
         }
     }
+
+    /** Where the tree's axis stands at [y], with the lean. */
+    private fun alongTheAxis(angle: Double, distance: Double, y: Double): Point {
+        val share = shareUp(y.roundToInt())
+        return Point(leanX * share * share + cos(angle) * distance, y, leanZ * share * share + sin(angle) * distance)
+    }
+
+    /** A point [rooted] of the way out through the trunk at [angle] and [y], where something growing out of it starts. */
+    private fun fromTheTrunk(angle: Double, y: Double, rooted: Double): Point {
+        val index = (y.roundToInt() - lowestY).coerceIn(0, heights - 1)
+        return alongTheAxis(angle, radius * taper[index] * (1.0 + flare[index]) * rooted, y)
+    }
+
+    private fun innerAt(y: Double): Double {
+        val index = (y.roundToInt() - lowestY).coerceIn(0, heights - 1)
+        return radius * taper[index] * (1.0 + flare[index] * INNER_FLARE) - wall
+    }
+
+    /** A point on the inner face of the wall, set into it, where a branch across the hollow grows from. */
+    private fun onTheInnerWall(angle: Double, y: Double): Point = alongTheAxis(angle, innerAt(y) + wall * CROSSING_ROOTED, y)
+
+    /**
+     * A limb grown from [start] along [heading] and [pitch], a run at a time by [habit], and now and then forking
+     * while it has [forks] left; [collar] thickens its foot where it meets what it grows from. Answers its tip.
+     */
+    private fun MutableList<Beam>.grow(
+        start: Point,
+        heading: Double,
+        pitch: Double,
+        length: Double,
+        thickness: Double,
+        habit: Habit,
+        forks: Int,
+        collar: Double = 1.0,
+    ): Point {
+        val run = length / habit.segments
+        val forkAt = 1 + random.nextInt(max(1, habit.segments - 1))
+        fun thicknessAt(step: Int): Double {
+            val thinned = thickness * (1.0 - (1.0 - habit.taper) * step / habit.segments)
+            return max(THINNEST_LIMB, thinned) * if (step == 0) collar else 1.0
+        }
+        var at = start
+        var facing = heading
+        var rising = pitch
+        for (step in 0..<habit.segments) {
+            facing += between(-habit.turn, habit.turn)
+            rising = (rising + habit.bend + between(-habit.wobble, habit.wobble)).coerceIn(habit.lowestPitch, habit.highestPitch)
+            val next = Point(at.x + cos(facing) * cos(rising) * run, at.y + sin(rising) * run, at.z + sin(facing) * cos(rising) * run)
+            add(Beam(at.x, at.y, at.z, next.x, next.y, next.z, thicknessAt(step), thicknessAt(step + 1)))
+            val forksHere = forks > 0 && step == forkAt && random.nextDouble() < habit.forkChance
+            if (forksHere) {
+                val side = if (random.nextBoolean()) 1.0 else -1.0
+                val left = length - run * (step + 1)
+                grow(next, facing + side * between(LEAST_FORK, MOST_FORK), rising, max(run, left * FORK_LENGTH),
+                    thicknessAt(step + 1) * FORK_THICKNESS, habit, forks - 1)
+            }
+            at = next
+        }
+        return at
+    }
+
+    /** A root's tip carried down into the sea floor where it ended over it. */
+    private fun MutableList<Beam>.anchor(tip: Point, thickness: Double) {
+        if (tip.y <= floorY - ROOT_DEPTH) return
+        add(Beam(tip.x, tip.y, tip.z, tip.x, floorY - ROOT_DEPTH, tip.z, max(THINNEST_LIMB, thickness)))
+    }
+
+    /**
+     * A limb from [start] to [end] hanging [sag] below the straight line between them and swaying [sway] to one side,
+     * thicker where it meets either end.
+     */
+    private fun MutableList<Beam>.sagging(start: Point, end: Point, sag: Double, sway: Double, thickness: Double) {
+        val acrossX = end.x - start.x
+        val acrossZ = end.z - start.z
+        val across = max(hypot(acrossX, acrossZ), 1.0)
+        val control = Point(
+            (start.x + end.x) / 2.0 - acrossZ / across * sway,
+            (start.y + end.y) / 2.0 - sag,
+            (start.z + end.z) / 2.0 + acrossX / across * sway,
+        )
+        fun pointAt(t: Double): Point {
+            val first = (1.0 - t) * (1.0 - t)
+            val middle = 2.0 * (1.0 - t) * t
+            val last = t * t
+            return Point(
+                first * start.x + middle * control.x + last * end.x,
+                first * start.y + middle * control.y + last * end.y,
+                first * start.z + middle * control.z + last * end.z,
+            )
+        }
+        fun thicknessAt(t: Double) = thickness * (1.0 + SAGGING_COLLAR * (2.0 * t - 1.0).let { it * it })
+        for (step in 0..<SAGGING_SEGMENTS) {
+            val from = step.toDouble() / SAGGING_SEGMENTS
+            val to = (step + 1).toDouble() / SAGGING_SEGMENTS
+            val a = pointAt(from)
+            val b = pointAt(to)
+            add(Beam(a.x, a.y, a.z, b.x, b.y, b.z, thicknessAt(from), thicknessAt(to)))
+        }
+    }
+
+    private fun shelfReach(shelf: Shelf, angle: Double): Double =
+        0.5 + 0.5 * (SHELF_FIRST * cos(2.0 * angle + shelf.firstPhase) + SHELF_SECOND * cos(3.0 * angle + shelf.secondPhase))
+
+    /** How far out the trunk's own rock can reach, so a column beyond it is answered by the limbs alone. */
+    private val trunkReach = radius * (1.0 + FLARE + FIN) * (1.0 + RIDGE) + hypot(leanX, leanZ) + REACH_SLACK
 
     override val horizontalReach: Double =
         maxOf(radius * (1.0 + FLARE + FIN) * (1.0 + RIDGE), outgrowths.maxOf { it.horizontalReach }, radius * CROWN_REACH) +
@@ -205,6 +356,18 @@ data class HollowTree(
     }
 
     private fun runsOf(worldX: Int, worldZ: Int, angle: Double, wanted: (Cell) -> Boolean): Spans {
+        val beyondTheTrunk = hypot(worldX.toDouble(), worldZ.toDouble()) > trunkReach
+        val shaped = if (beyondTheTrunk) Spans.EMPTY else trunkRunsOf(worldX, worldZ, angle, wanted)
+        val beams = when {
+            wanted(Cell.BARK) && wanted(Cell.HEARTWOOD) -> outgrowths + crossings
+            wanted(Cell.BARK) -> outgrowths
+            wanted(Cell.HEARTWOOD) -> crossings
+            else -> return shaped
+        }
+        return beams.fold(shaped) { solid, beam -> solid.union(beam.columnSpans(worldX, worldZ)) }
+    }
+
+    private fun trunkRunsOf(worldX: Int, worldZ: Int, angle: Double, wanted: (Cell) -> Boolean): Spans {
         val finShape = cos(finCount * (angle - finPhase)).coerceAtLeast(0.0).let { it * it * it * it * it * it }
         val ridgeCosine = cos(ridgeCount * angle)
         val ridgeSine = sin(ridgeCount * angle)
@@ -236,14 +399,7 @@ data class HollowTree(
             }
         }
         if (runStart != Int.MIN_VALUE) ranges += runStart..topY
-        val shaped = Spans.ofAscending(ranges)
-        val beams = when {
-            wanted(Cell.BARK) && wanted(Cell.HEARTWOOD) -> outgrowths + crossings
-            wanted(Cell.BARK) -> outgrowths
-            wanted(Cell.HEARTWOOD) -> crossings
-            else -> return shaped
-        }
-        return beams.fold(shaped) { solid, beam -> solid.union(beam.columnSpans(worldX, worldZ)) }
+        return Spans.ofAscending(ranges)
     }
 
     /** The open hollow between two heights, with the inner face of its wall, as a volume a biome can fill. */
@@ -270,7 +426,7 @@ data class HollowTree(
         if (y > rim - SHELF_BELOW_RIM) return Cell.AIR
         for (shelf in shelves) {
             if (y > shelf.y || y < shelf.y - shelf.thickness * (1.0 + BRACKET)) continue
-            val reach = 0.5 + 0.5 * (SHELF_FIRST * cos(2.0 * angle + shelf.firstPhase) + SHELF_SECOND * cos(3.0 * angle + shelf.secondPhase))
+            val reach = shelfReach(shelf, angle)
             if (reach < SHELF_GAP) continue
             val width = inner * (SHELF_LEAST + SHELF_MORE * reach)
             val fromTheWall = inner - distance
@@ -295,19 +451,6 @@ data class HollowTree(
         if (acrossY * acrossY >= 1.0) return@any false
         val apart = Math.IEEEremainder(angle - hole.angle, FULL_TURN) / hole.halfArc
         acrossY * acrossY + apart * apart < 1.0
-    }
-
-    private fun acrossTheHollow(fromAngle: Double, fromY: Double, toAngle: Double, toY: Double): Beam {
-        fun innerAt(y: Double): Double {
-            val index = (y.roundToInt() - lowestY).coerceIn(0, heights - 1)
-            return radius * taper[index] * (1.0 + flare[index] * INNER_FLARE) - wall * CROSSING_ROOTED
-        }
-        val thickness = max(THINNEST_CROSSING, radius * CROSSING_OF_RADIUS)
-        return Beam(
-            cos(fromAngle) * innerAt(fromY), fromY, sin(fromAngle) * innerAt(fromY),
-            cos(toAngle) * innerAt(toY), toY, sin(toAngle) * innerAt(toY),
-            thickness,
-        )
     }
 
     private fun rawJag(angle: Double): Double = RIM_HARMONICS.indices.sumOf { harmonic ->
@@ -404,24 +547,72 @@ data class HollowTree(
         private const val CROSSING_ROOTED = 0.4
         private const val CROSSING_OF_RADIUS = 0.05
         private const val THINNEST_CROSSING = 1.6
+        private const val CROSSING_SAG = 0.25
+        private const val CROSSING_SWAY = 0.15
+        private const val SAGGING_SEGMENTS = 4
+        private const val SAGGING_COLLAR = 0.3
 
-        // Roots and dead branches outside.
-        private const val BRANCH_OF_RADIUS = 0.09
-        private const val THINNEST_BRANCH = 2.0
-        private const val ROOT_HEIGHT = 0.1
+        // Everything grown outward, and how each kind of limb grows.
+        private const val THINNEST_LIMB = 0.9
+        private const val LEAST_FORK = 0.5
+        private const val MOST_FORK = 1.0
+        private const val FORK_LENGTH = 0.7
+        private const val FORK_THICKNESS = 0.7
+        private val DIVING = Habit(4, turn = 0.25, bend = -0.14, wobble = 0.08, lowestPitch = -1.3, highestPitch = 0.2, taper = 0.35, forkChance = 0.6)
+        private val CREEPING = Habit(6, turn = 0.3, bend = 0.0, wobble = 0.3, lowestPitch = -0.35, highestPitch = 0.35, taper = 0.4, forkChance = 0.4)
+        private val REACHING = Habit(5, turn = 0.35, bend = -0.06, wobble = 0.12, lowestPitch = -0.5, highestPitch = 1.1, taper = 0.3, forkChance = 0.75)
+
+        // Roots out of the fins.
+        private const val ROOTS_PER_FIN = 2
+        private const val ROOT_SPREAD = 0.3
+        private const val ROOT_OF_RADIUS = 0.1
+        private const val THINNEST_ROOT = 2.0
+        private const val ROOT_ROOTED = 0.9
+        private const val LOWEST_ROOT = 0.05
+        private const val HIGHEST_ROOT = 0.14
+        private const val STEEPEST_ROOT = -0.5
+        private const val SHALLOWEST_ROOT = -0.2
+        private const val SHORTEST_ROOT = 0.8
+        private const val LONGEST_ROOT = 1.4
         private const val ROOT_DEPTH = 3.0
-        private const val LEAST_ROOT_REACH = 1.6
-        private const val MOST_ROOT_REACH = 2.0
-        private const val FEWEST_STUBS = 3
-        private const val STUB_CHOICES = 3
-        private const val LOWEST_STUB = 0.55
-        private const val HIGHEST_STUB = 0.85
-        private const val STUB_BELOW_RIM = 6.0
-        private const val LEAST_STUB_RISE = 0.35
-        private const val MOST_STUB_RISE = 0.8
-        private const val SHORTEST_STUB = 0.5
-        private const val LONGEST_STUB = 1.0
-        private const val STUB_ROOTED = 0.7
+
+        // Roots creeping out across the sea floor.
+        private const val FEWEST_CREEPING = 3
+        private const val CREEPING_CHOICES = 3
+        private const val CREEPING_ABOVE_FLOOR = 2.0
+        private const val CREEPING_OF_RADIUS = 0.06
+        private const val CREEPING_PITCH = -0.05
+        private const val SHORTEST_CREEPING = 1.4
+        private const val LONGEST_CREEPING = 2.2
+
+        // Roots hanging from the lowest living shelf into the swamp.
+        private const val FEWEST_AERIAL = 4
+        private const val AERIAL_CHOICES = 4
+        private const val AERIAL_OF_RADIUS = 0.03
+        private const val AERIAL_LEAST_IN = 0.3
+        private const val AERIAL_MOST_IN = 0.8
+        private const val AERIAL_DRIFT = 4.0
+
+        // Dead branches near the top.
+        private const val FEWEST_BRANCHES = 4
+        private const val BRANCH_CHOICES = 4
+        private const val LOWEST_BRANCH = 0.45
+        private const val HIGHEST_BRANCH = 0.88
+        private const val BRANCH_BELOW_RIM = 6.0
+        private const val BRANCH_ROOTED = 0.75
+        private const val BRANCH_SPREAD = 0.5
+        private const val LOWEST_BRANCH_PITCH = 0.05
+        private const val HIGHEST_BRANCH_PITCH = 0.85
+        private const val BROKEN_SHARE = 0.3
+        private const val SHORTEST_BROKEN = 0.25
+        private const val LONGEST_BROKEN = 0.45
+        private const val SHORTEST_BRANCH = 0.7
+        private const val LONGEST_BRANCH = 1.5
+        private const val LEAST_BRANCH_OF_RADIUS = 0.08
+        private const val MOST_BRANCH_OF_RADIUS = 0.12
+        private const val THINNEST_BRANCH = 2.0
+        private const val BRANCH_FORKS = 2
+        private const val COLLAR = 1.4
 
         /** How far round the trunk the deadwood's biome reaches, against its radius, and from how far over its floor. */
         private const val CROWN_REACH = 1.3

@@ -1,7 +1,7 @@
 {
   "_comment": [
-    "The dead crown of a hollow tree and its trunk over the water: pale moss on the dead shelves, mushrooms in their shade, and vines. Its sky and fog are paler than an ordinary Age's, from a height where little lives.",
-    "Laid only inside a hollow tree, by the landform rather than by any climate (`HollowTreesField.biomes`), and given no word, so nothing else can grow it. No monsters: Edanna is an Age of living things."
+    "The crown of a hollow tree and its trunk over the water: dead trees, palms and fan palms, azaleas and bushes, grass and flowers, pale moss and mushrooms on the shelves, and roots and vines hanging from them.",
+    "Laid only inside a hollow tree, by the landform rather than by any climate (`HollowTreesField.biomes`), and given no word, so nothing else can grow it. Its creatures and monsters are the jungle's; its sky is the Age's own."
   ],
   "attributes": {
     "minecraft:gameplay/natural_mob_spawns": {
@@ -14,21 +14,114 @@
               "count": 8,
               "weight": 10
             }
+          ],
+          "creature": [
+            {
+              "type": "minecraft:sheep",
+              "count": 4,
+              "weight": 12
+            },
+            {
+              "type": "minecraft:pig",
+              "count": 4,
+              "weight": 10
+            },
+            {
+              "type": "minecraft:chicken",
+              "count": 4,
+              "weight": 20
+            },
+            {
+              "type": "minecraft:cow",
+              "count": 4,
+              "weight": 8
+            },
+            {
+              "type": "minecraft:parrot",
+              "count": {
+                "type": "minecraft:uniform",
+                "min_inclusive": 1,
+                "max_inclusive": 2
+              },
+              "weight": 40
+            },
+            {
+              "type": "minecraft:ocelot",
+              "count": {
+                "type": "minecraft:uniform",
+                "min_inclusive": 1,
+                "max_inclusive": 3
+              },
+              "weight": 2
+            },
+            {
+              "type": "minecraft:panda",
+              "count": {
+                "type": "minecraft:uniform",
+                "min_inclusive": 1,
+                "max_inclusive": 2
+              },
+              "weight": 1
+            }
+          ],
+          "monster": [
+            {
+              "type": "minecraft:spider",
+              "count": 4,
+              "weight": 100
+            },
+            {
+              "type": "minecraft:zombie",
+              "count": 4,
+              "weight": 95
+            },
+            {
+              "type": "minecraft:zombie_villager",
+              "count": 1,
+              "weight": 5
+            },
+            {
+              "type": "minecraft:skeleton",
+              "count": 4,
+              "weight": 100
+            },
+            {
+              "type": "minecraft:creeper",
+              "count": 4,
+              "weight": 100
+            },
+            {
+              "type": "minecraft:slime",
+              "count": 4,
+              "weight": 100
+            },
+            {
+              "type": "minecraft:enderman",
+              "count": {
+                "type": "minecraft:uniform",
+                "max_inclusive": 4,
+                "min_inclusive": 1
+              },
+              "weight": 10
+            },
+            {
+              "type": "minecraft:witch",
+              "count": 1,
+              "weight": 5
+            }
           ]
         }
       },
       "modifier": "overlay"
     },
-    "minecraft:visual/fog_color": "#c7ccd0",
-    "minecraft:visual/sky_color": "#9db0c8",
     "minecraft:visual/water_fog_color": "#050533"
   },
   "carvers": [],
-  "downfall": 0.4,
+  "downfall": 0.6,
   "effects": {
-    "foliage_color": "#878d76",
-    "grass_color": "#778272",
-    "water_color": "#76889d"
+    "foliage_color": "#59ae30",
+    "grass_color": "#77ab2f",
+    "water_color": "#3f76e4"
   },
   "features": [
     [],
@@ -41,13 +134,23 @@
     [],
     [],
     [
+      "agesandtheart:hollow_tree/dead_trees",
+      "agesandtheart:hollow_tree/palms",
+      "agesandtheart:hollow_tree/fan_palms",
+      "agesandtheart:hollow_tree/crown_trees",
+      "agesandtheart:hollow_tree/crown_jungle_bushes",
+      "agesandtheart:hollow_tree/crown_bushes",
       "agesandtheart:hollow_tree/pale_moss",
+      "agesandtheart:hollow_tree/crown_grass",
+      "agesandtheart:hollow_tree/crown_flowers",
+      "agesandtheart:hollow_tree/crown_wildflowers",
       "agesandtheart:hollow_tree/brown_mushrooms",
       "agesandtheart:hollow_tree/red_mushrooms",
+      "agesandtheart:hollow_tree/hanging_roots",
       "agesandtheart:hollow_tree/vines"
     ],
     []
   ],
   "has_precipitation": true,
-  "temperature": 0.7
+  "temperature": 0.85
 }

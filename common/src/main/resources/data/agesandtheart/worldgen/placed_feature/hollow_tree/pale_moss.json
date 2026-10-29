@@ -1,7 +1,7 @@
 {
   "_comment": [
     "A hollow tree's own planting (`HollowTreesField`), kept to its biomes by the last filter and to no word by `does_not_have_a_word`. Tried over the heights its biome reaches in a tree of any size, and the biome keeps what lands inside one.",
-    "Pale moss carpet on the dead shelves of the crown."
+    "Pale moss carpet on the crown's shelves."
   ],
   "feature": "minecraft:pale_moss_vegetation",
   "placement": [

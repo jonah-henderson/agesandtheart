@@ -369,7 +369,9 @@ worldgen/biome_source agesandtheart:age_biomes
 worldgen/carver_type agesandtheart:porosity
 worldgen/chunk_generator agesandtheart:age
 worldgen/feature_type agesandtheart:algae
+worldgen/feature_type agesandtheart:dead_tree
 worldgen/feature_type agesandtheart:deep_sea_vent
+worldgen/feature_type agesandtheart:fan_palm
 worldgen/feature_type agesandtheart:formation
 worldgen/feature_type agesandtheart:heap
 worldgen/feature_type agesandtheart:ice_spike_rime

@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "Hanging roots under whatever is over the origin; `simple_block` asks `canSurvive`, so they hang only from a face that holds them. What a hollow tree hangs from its shelves."
+  ],
+  "type": "minecraft:simple_block",
+  "to_place": {
+    "id": "minecraft:hanging_roots"
+  }
+}

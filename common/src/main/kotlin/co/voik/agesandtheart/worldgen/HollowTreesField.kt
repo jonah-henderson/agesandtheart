@@ -114,6 +114,6 @@ object HollowTreesField {
     private val MUD = Blocks.MUD.defaultBlockState()
     private val LIVING_SOIL = listOf(Blocks.ROOTED_DIRT, Blocks.MOSS_BLOCK, Blocks.ROOTED_DIRT).map { it.defaultBlockState() }
     private const val LIVING_SOIL_DEPTH = 2
-    private val DEAD_SOIL = listOf(Blocks.PALE_MOSS_BLOCK, Blocks.STRIPPED_PALE_OAK_WOOD).map { it.defaultBlockState() }
-    private const val DEAD_SOIL_DEPTH = 1
+    private val DEAD_SOIL = listOf(Blocks.COARSE_DIRT, Blocks.PALE_MOSS_BLOCK, Blocks.ROOTED_DIRT).map { it.defaultBlockState() }
+    private const val DEAD_SOIL_DEPTH = 2
 }

@@ -568,8 +568,8 @@ data class Noise3D(
 }
 
 /**
- * A round beam of [radius] from one point to another at any slope, with rounded ends — a branch, a root, a strut
- * or a bridge. Where [Cylinder] stands upright or lies flat, this leans.
+ * A round beam from one point to another at any slope, [radius] thick at its start and [endRadius] at its end, with
+ * rounded ends — a branch, a root, a strut or a bridge. Where [Cylinder] stands upright or lies flat, this leans.
  *
  * A vertical line meets a leaning beam in one run, centred where the line crosses the beam's axis seen from above
  * and longer the steeper the beam, by the secant of its slope. Past either end the run is a sphere's.
@@ -582,30 +582,39 @@ data class Beam(
     val toY: Double,
     val toZ: Double,
     val radius: Double,
+    val endRadius: Double = radius,
 ) : TerrainField {
     override val kind = FieldKind.BEAM
 
-    override val horizontalReach = maxOf(hypot(fromX, fromZ), hypot(toX, toZ)) + radius
+    private val thickest = maxOf(radius, endRadius)
+
+    override val horizontalReach = maxOf(hypot(fromX, fromZ), hypot(toX, toZ)) + thickest
 
     private val acrossX = toX - fromX
     private val acrossZ = toZ - fromZ
     private val lengthSquared = acrossX * acrossX + acrossZ * acrossZ
     private val secant = if (lengthSquared < UPRIGHT) 1.0 else sqrt(1.0 + (toY - fromY).let { it * it } / lengthSquared)
-    private val lowestY = minOf(fromY, toY) - radius
-    private val highestY = maxOf(fromY, toY) + radius
+    private val lowestY = minOf(fromY, toY) - thickest
+    private val highestY = maxOf(fromY, toY) + thickest
+    private val westX = minOf(fromX, toX) - thickest
+    private val eastX = maxOf(fromX, toX) + thickest
+    private val northZ = minOf(fromZ, toZ) - thickest
+    private val southZ = maxOf(fromZ, toZ) + thickest
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
+        if (worldX < westX || worldX > eastX || worldZ < northZ || worldZ > southZ) return Spans.EMPTY
         if (lengthSquared < UPRIGHT) {
             val off = hypot(worldX - fromX, worldZ - fromZ)
-            return if (off > radius) Spans.EMPTY else Spans.of(ceil(lowestY).toInt(), floor(highestY).toInt())
+            return if (off > thickest) Spans.EMPTY else Spans.of(ceil(lowestY).toInt(), floor(highestY).toInt())
         }
         val along = ((worldX - fromX) * acrossX + (worldZ - fromZ) * acrossZ) / lengthSquared
         val clamped = along.coerceIn(0.0, 1.0)
+        val thickness = radius + (endRadius - radius) * clamped
         val off = hypot(worldX - (fromX + clamped * acrossX), worldZ - (fromZ + clamped * acrossZ))
-        if (off > radius) return Spans.EMPTY
+        if (off > thickness) return Spans.EMPTY
         val centreY = fromY + clamped * (toY - fromY)
         val isPastAnEnd = along != clamped
-        val halfRun = sqrt(radius * radius - off * off) * if (isPastAnEnd) 1.0 else secant
+        val halfRun = sqrt(thickness * thickness - off * off) * if (isPastAnEnd) 1.0 else secant
         val low = maxOf(centreY - halfRun, lowestY)
         val high = minOf(centreY + halfRun, highestY)
         return Spans.of(ceil(low).toInt(), floor(high).toInt())
@@ -619,6 +628,7 @@ data class Beam(
         pivotY + (toY - pivotY) * factor,
         toZ * factor,
         radius * factor,
+        endRadius * factor,
     )
 
     companion object {
@@ -634,7 +644,10 @@ data class Beam(
                 Codec.DOUBLE.fieldOf("to_y").forGetter(Beam::toY),
                 Codec.DOUBLE.fieldOf("to_z").forGetter(Beam::toZ),
                 Codec.DOUBLE.fieldOf("radius").forGetter(Beam::radius),
-            ).apply(instance, ::Beam)
+                Codec.DOUBLE.optionalFieldOf("end_radius").forGetter { java.util.Optional.of(it.endRadius) },
+            ).apply(instance) { fromX, fromY, fromZ, toX, toY, toZ, radius, endRadius ->
+                Beam(fromX, fromY, fromZ, toX, toY, toZ, radius, endRadius.orElse(radius))
+            }
         }
     }
 }
