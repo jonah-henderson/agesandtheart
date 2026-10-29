@@ -30,6 +30,9 @@ import java.util.Optional
  *
  * **Carved rather than pasted.** A rift is a shape, not a building, so there is no template and none of the
  * unbuilt authoring tooling is in the way: [StarFissurePiece] cuts it directly.
+ *
+ * **Cut last**, in the top layer's step, so that whatever a feature laid over it — a colossal spike, a tree — is
+ * taken away with the rest of what stands over the crack, rather than burying it.
  */
 class StarFissureStructure(settings: StructureSettings) : Structure(settings) {
 

@@ -1,7 +1,7 @@
 {
   "type": "agesandtheart:star_fissure",
   "biomes": "#minecraft:is_overworld",
-  "step": "surface_structures",
+  "step": "top_layer_modification",
   "terrain_adaptation": "none",
   "spawn_overrides": {}
 }

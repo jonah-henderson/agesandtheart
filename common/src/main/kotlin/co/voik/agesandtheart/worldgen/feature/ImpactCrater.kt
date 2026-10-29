@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen.feature
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.math.mix64
 import co.voik.agesandtheart.math.unitDouble
+import co.voik.agesandtheart.worldgen.fissure.StarFissureStructure
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
@@ -214,8 +215,9 @@ class ImpactCrater(
         fun isReadable(chunkX: Int, chunkZ: Int, within: Int) =
             originChunk.getChessboardDistance(chunkX, chunkZ) <= within
 
+        // A star fissure is cut after everything else, so its step does not say it is at the surface.
         fun isBuiltAtTheSurface(structure: Structure) =
-            structure.step() == GenerationStep.Decoration.SURFACE_STRUCTURES
+            structure.step() == GenerationStep.Decoration.SURFACE_STRUCTURES || structure is StarFissureStructure
 
         fun reachesTheCrater(start: StructureStart) =
             start.pieces.any { piece -> piece.boundingBox.intersects(leastX, leastZ, mostX, mostZ) }
