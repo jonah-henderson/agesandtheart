@@ -59,7 +59,7 @@ class LifelessAgeCheck : FunSpec({
             inThe(age, "execute as @e[distance=0..,tag=counted,limit=8] run data get entity @s Pos")
 
     test("an Age nothing lives in is generated with nothing living in it") {
-        val written = mapOf(ALIVE to SAYS_NOTHING_OF_LIFE, LIFELESS to "deserted age")
+        val written = mapOf(ALIVE to SAYS_NOTHING_OF_LIFE, LIFELESS to "deserted age overworld landmass")
         for ((name, sentence) in written) {
             val said = server.run("age write $name $SEED $sentence")
             check(said.contains("Created Age")) { "'$sentence' was not written: $said" }
@@ -69,8 +69,8 @@ class LifelessAgeCheck : FunSpec({
             inThe(name, "forceload add $FAR $FAR ${FAR + REACH} ${FAR + REACH}")
         }
 
-        // **The two have to be shaped alike**, or this compares two different worlds. Neither sentence
-        // claims the ground, so both draw it from the one seed — but a sentence that failed to parse is
+        // **The two have to be shaped alike**, or this compares two different worlds. Both name vanilla's
+        // rock, since one that names none may be drawn a mixture of ours — and a sentence that failed to parse is
         // *repaired* into a whole random book, which is how this first came to be comparing a vanilla
         // field against a pyramid. And it must be vanilla's rock either way: our own shapes disable
         // chunk-generation spawning in their settings, so the pass this guards would never run.
@@ -136,8 +136,8 @@ class LifelessAgeCheck : FunSpec({
 /** One seed for both, so the two Ages differ by one word and in nothing else. */
 private const val SEED = 4786177076396069349L
 
-/** A sentence that says something, claims no landmass, and says nothing whatever about what lives there. */
-private const val SAYS_NOTHING_OF_LIFE = "age clear sky"
+/** A sentence that stands on vanilla's rock and says nothing whatever about what lives there. */
+private const val SAYS_NOTHING_OF_LIFE = "age overworld landmass clear sky"
 
 private const val ALIVE = "stillalive"
 private const val LIFELESS = "lifeless"

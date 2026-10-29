@@ -741,6 +741,12 @@ enum class Terrain(
     val reconciles: Boolean get() = this in RECONCILES
 
     /**
+     * Whether an Age that names no landform may stand on this one, among the others it is mixed with: the ordinary
+     * country, not what floats, fills the world, was made, or is stranger than the land should be unasked.
+     */
+    val standsUnasked: Boolean get() = this in UNASKED_COUNTRY
+
+    /**
      * Where this landform lives in an Age's [TerrainTable] — how uplifted, how old and how wet the country it stands
      * in is — so that territories go to the landform the land suits and neighbours are plausible. Null for what was
      * made or is strange, which keeps to a part of the table drawn for it instead.
@@ -860,6 +866,10 @@ enum class Terrain(
          */
         private val DRIFTS_IN_HEIGHT by lazy {
             setOf(HILLS, ERODED, PILLARS, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, CRATERLANDS, CONTINENTS, SKYLANDS)
+        }
+
+        private val UNASKED_COUNTRY by lazy {
+            setOf(HILLS, ERODED, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, ISLANDS, MOUNTAINOUS, CONTINENTS)
         }
 
         private val RECONCILES by lazy {

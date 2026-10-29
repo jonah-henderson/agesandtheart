@@ -13,6 +13,7 @@ import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Terrain
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
 /**
  * A book in, a world out (`the-world-model.md` §5). What landed fills the catalogues, steers the parameters,
@@ -33,7 +34,7 @@ object Resolver {
         val filled = Aspect.entries.associateWith { resolving.fill(it) }
         val resolved = with(resolving) { describedMembers(weighed(steer(cast(compose(filled))))) }
         val template = book.template?.let(AgeTemplate::named) ?: AgeTemplate.ORDINARY
-        val spokenTo = resolving.said.map { it.aspect }.toSet()
+        val spokenTo = resolving.said.map { it.aspect }.toSet() + listOfNotNull(Aspect.TERRAIN.takeIf { resolving.mixesUnaskedLand(template) })
         val composition = with(resolving) { reconciled(counted(mintedFeatures(resolved))) }.laidOver(template.world(), spokenTo)
             .copy(banned = ofTheWholeAge.flatMap { it.banned }.toSet(), linkIn = ofTheWholeAge.firstNotNullOfOrNull { it.linksIn })
         resolving.flaws += resolving.mintingsThatCannotHold()
@@ -62,6 +63,20 @@ object Resolver {
         if (!divided || !twoCanMeet || formAskedFor || wasContested(Aspect.TERRAIN)) return composition
         return composition.copy(spreads = composition.spreads.withSeam(Aspect.TERRAIN, Seam.MERGED))
     }
+
+    /**
+     * Whether an Age whose book said nothing of its land stands on a mixture of the ordinary country ([fill] drew it)
+     * rather than its world's own rock. Only over the overworld's, half the time; the nether and the End keep theirs.
+     */
+    private fun Resolving.mixesUnaskedLand(template: AgeTemplate): Boolean {
+        val saidNothingOfTheLand = speakingTo(Aspect.TERRAIN).isEmpty()
+        val standsOnTheOverworld = template.ownRock == Terrain.OVERWORLD
+        if (!saidNothingOfTheLand || !standsOnTheOverworld) return false
+        return XoroshiroRandomSource(draw xor Resolving.UNASKED_LAND_SALT xor MIXTURE_SALT).nextDouble() < UNASKED_LAND_MIXED
+    }
+
+    private const val UNASKED_LAND_MIXED = 0.5
+    private const val MIXTURE_SALT = 0x0B1E_7D3AL
 
     /** A seed-sized number for what was written, whatever order it was laid in, so silence varies with the book. */
     private fun saltOf(landings: List<Landing>): Long = landings.map(Landing::word).distinct().sorted()

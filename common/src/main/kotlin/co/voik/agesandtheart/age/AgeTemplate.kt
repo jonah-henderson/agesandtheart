@@ -167,7 +167,7 @@ enum class AgeTemplate(
 
     /**
      * The landform that is **this world's rock** — [rock], as a page a writer can name under any template.
-     * An Age that names no landform wears it.
+     * An Age that names no landform wears it, or over the overworld's, a mixture of the ordinary country.
      */
     abstract val ownRock: Terrain
 

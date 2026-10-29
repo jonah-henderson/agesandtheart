@@ -25,6 +25,10 @@ private data class Territory(val landings: List<Landing>, val candidates: List<T
 /** How many territories company may fill an aspect to: a harmony nobody asked for stays a few. */
 private const val MOST_IN_COMPANY = 3
 
+// An Age that names no landform stands on at least this many, so it has the variety the overworld has.
+private const val LEAST_IN_AN_UNASKED_COUNTRY = 4
+private const val FURTHER_UNASKED_LANDFORM_CHANCE = 0.5
+
 // A floor under every candidate, so a lean tilts the draw rather than deciding it.
 private const val BASE_WEIGHT = 0.35
 
@@ -89,7 +93,11 @@ internal fun Resolving.fill(aspect: Aspect): List<Filling> {
     for ((index, territory) in kept.withIndex()) chosen += pick(territory.candidates, speaking, aspect, seat = index)
     if (chosen.isEmpty()) {
         if (pool.isEmpty()) return emptyList()
-        chosen += pick(unaskedDraw(aspect, pool, speaking), speaking, aspect, seat = 0)
+        chosen += if (aspect == Aspect.TERRAIN) {
+            unaskedCountry(pool, speaking)
+        } else {
+            listOf(pick(unaskedDraw(aspect, pool, speaking), speaking, aspect, seat = 0))
+        }
     }
     chosen += company(aspect, kept, speaking, chosen, room)
     return sharedOut(aspect, chosen, speaking)
@@ -115,6 +123,23 @@ private fun Resolving.unaskedDraw(aspect: Aspect, pool: List<Taggable>, speaking
     val readiest = pool.maxBy(world::readinessOf)
     val leanedTowards = pool.filter { claimOn(it, speaking) > 0.0 }
     return (listOf(readiest) + leanedTowards).distinct()
+}
+
+/**
+ * The landforms of an Age whose book named none: at least [LEAST_IN_AN_UNASKED_COUNTRY] of the ordinary country and
+ * whatever something leans towards, each further one joining at [FURTHER_UNASKED_LANDFORM_CHANCE].
+ */
+private fun Resolving.unaskedCountry(pool: List<Taggable>, speaking: List<Landing>): List<Taggable> {
+    fun isOrdinaryCountry(preset: Taggable) = preset is Terrain && preset.standsUnasked
+    val country = pool.filter { isOrdinaryCountry(it) || claimOn(it, speaking) > 0.0 }.distinct()
+    val random = XoroshiroRandomSource(draw xor Resolving.UNASKED_LAND_SALT)
+    val drawn = mutableListOf<Taggable>()
+    while (drawn.size < country.size) {
+        val joins = drawn.size < LEAST_IN_AN_UNASKED_COUNTRY || random.nextDouble() < FURTHER_UNASKED_LANDFORM_CHANCE
+        if (!joins) break
+        drawn += pick(country - drawn.toSet(), speaking, Aspect.TERRAIN, seat = drawn.size)
+    }
+    return drawn
 }
 
 /**

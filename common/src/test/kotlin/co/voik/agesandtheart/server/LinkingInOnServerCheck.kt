@@ -18,19 +18,19 @@ class LinkingInOnServerCheck : FunSpec({
     }
 
     test("a link in the sea arrives on its surface, and a link in a village somewhere else than the ordinary arrival") {
-        val ordinary = arrivalIn(ORDINARY, "age clear sky")
-        val (x, y, z) = arrivalIn(AT_SEA, "age link in sea clear sky")
+        val ordinary = arrivalIn(ORDINARY, "age overworld landmass clear sky")
+        val (x, y, z) = arrivalIn(AT_SEA, "age overworld landmass link in sea clear sky")
         server.run("execute in agesandtheart:$AT_SEA run forceload add $x $z")
         val onWater = server.run("execute in agesandtheart:$AT_SEA run execute if block $x ${y - 1} $z minecraft:water")
         server.run("execute in agesandtheart:$AT_SEA run forceload remove all")
         check(onWater.startsWith("Test passed")) { "a link in the sea arrived at $x $y $z, not over water: $onWater" }
-        val village = arrivalIn(BY_A_VILLAGE, "age link in villages clear sky")
+        val village = arrivalIn(BY_A_VILLAGE, "age overworld landmass link in villages clear sky")
         check(village != ordinary) { "a link in a village arrived where the ordinary link does, at $village" }
     }
 
     test("a link in a cave biome arrives in the open underground, and one in a surface biome on the surface") {
-        val (x, y, z) = arrivalIn(IN_A_CAVE, "age link in lush_caves clear sky")
-        val surface = arrivalIn(IN_A_JUNGLE, "age link in jungle clear sky")[1]
+        val (x, y, z) = arrivalIn(IN_A_CAVE, "age overworld landmass link in lush_caves clear sky")
+        val surface = arrivalIn(IN_A_JUNGLE, "age overworld landmass link in jungle clear sky")[1]
         check(y < CAVE_DEPTH) { "a link in the lush caves arrived at $x $y $z, not under ground" }
         check(surface >= SURFACE_AT_LEAST) { "a link in a jungle arrived at height $surface, under ground" }
         server.run("execute in agesandtheart:$IN_A_CAVE run forceload add $x $z")

@@ -36,7 +36,7 @@ class VanillaDeepSeaOnServerCheck : FunSpec({
     }
 
     test("a deep sea over vanilla's rock stands far above vanilla's level, with an abyss under it") {
-        server.run("age write vanilladeepsea 7 age deep sea")
+        server.run("age write vanilladeepsea 7 age overworld landmass deep sea")
         val (atX, atZ) = deepOceanIn("vanilladeepsea", SIDE)
         val highWater = countOf("vanilladeepsea", "minecraft:water", HIGH_WATER_FROM, HIGH_WATER_TO, atX, atZ)
         check(highWater > 0) { "no water between y=$HIGH_WATER_FROM and $HIGH_WATER_TO over the deep ocean at $atX, $atZ" }
@@ -55,13 +55,13 @@ class VanillaDeepSeaOnServerCheck : FunSpec({
         }
         check(hadalfishIn("vanilladeepsea", "offered") != null) { "the abyss of a deep sea offers no hadalfish" }
         // Aimed at the creatures: laid bare, a lean on everything leans only some of what it reaches.
-        server.run("age write vanillabeautiful 7 age beautiful inhabitants deep sea")
+        server.run("age write vanillabeautiful 7 age overworld landmass beautiful inhabitants deep sea")
         val rung = hadalfishIn("vanillabeautiful", "asked")?.substringAfterLast(' ')?.toDouble()
         check(rung != null && rung < 1.0) { "a beautiful Age asks for the hadalfish at $rung, no less than one that said nothing" }
     }
 
     test("the floor of an abyss on vanilla's rock holds whalefalls, and vents keeping hadalfish where there is a deluge") {
-        server.run("age write vanillavents 7 age deep sea deluge phenomena")
+        server.run("age write vanillavents 7 age overworld landmass deep sea deluge phenomena")
         val (atX, atZ) = deepOceanIn("vanillavents", WIDE)
         val squares = (-WIDE..<WIDE step SQUARE).flatMap { dx -> (-WIDE..<WIDE step SQUARE).map { dz -> dx to dz } }
         fun countAcross(block: String, fromY: Int) = squares.sumOf { (dx, dz) ->

@@ -101,6 +101,7 @@ internal class Resolving(val world: WorldFacts, landings: List<Landing>, val dra
         const val TERRITORY_STRIDE = 0x4C9E_1A2BL
         const val COMPANY_SALT = 0x600D_C0A1L
         const val STRICTNESS_SALT = 0x5721_C7L
+        const val UNASKED_LAND_SALT = 0x1A4D_0F2EL
         const val WORD_MIXER = -0x61c8_8646_80b5_83ebL
         private const val MATERIAL_SALT = 0x3A7E_41A1L
     }

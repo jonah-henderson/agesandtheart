@@ -60,8 +60,8 @@ class StructureMaterialOnServerCheck : FunSpec({
     }
 
     test("colossal trees stand taller than ordinary trees, on trunks that make them more wood") {
-        server.run("age write ordinarytrees $SEED age trees features")
-        server.run("age write colossaltrees $SEED age colossal trees features")
+        server.run("age write ordinarytrees $SEED age overworld landmass trees features")
+        server.run("age write colossaltrees $SEED age overworld landmass colossal trees features")
         val (x, z) = located("ordinarytrees", "biome #minecraft:is_forest")
         generatedAround("ordinarytrees", x, z)
         generatedAround("colossaltrees", x, z)

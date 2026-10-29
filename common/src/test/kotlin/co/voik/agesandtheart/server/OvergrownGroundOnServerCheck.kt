@@ -57,7 +57,7 @@ class OvergrownGroundOnServerCheck : FunSpec({
 }) {
     private companion object {
         const val SEED = 4786177076396069349L
-        const val SENTENCE = "age clear sky"
+        const val SENTENCE = "age overworld landmass clear sky"
         const val OVERGROWN = "grownover"
         const val PLAIN = "plainground"
         const val MOST_STEPS = 4
