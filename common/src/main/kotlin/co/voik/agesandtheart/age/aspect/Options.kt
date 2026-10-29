@@ -123,13 +123,12 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
      * and the answer is whatever that landform calls ordinary.
      *
      * [salt] decides where inside the span the value lands, so an Age rebuilds identically while two
-     * axes bounded alike do not move together.
+     * axes bounded alike do not move together; a word's lean ([Span.bend]) decides where half of them fall.
      */
     fun steer(parameter: Parameter, salt: Long, biome: Identifier? = null, member: String? = null): Double? {
         val span = Span.read(of(parameter, biome, member)) ?: return null
         if (span == Span.NATURAL) return null
-        return span.least + XoroshiroRandomSource(salt xor parameter.name.hashCode().toLong())
-            .nextDouble() * span.width
+        return span.drawnAt(XoroshiroRandomSource(salt xor parameter.name.hashCode().toLong()).nextDouble())
     }
 
     /**

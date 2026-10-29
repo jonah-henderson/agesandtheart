@@ -57,6 +57,12 @@ data class Span(val least: Double, val most: Double, val bend: Double = EVEN) {
         return (least + bent(fraction) * width).toFloat()
     }
 
+    /** The value [fraction] of the way across this span once [bend] has pulled it, so half of all draws fall below it. */
+    fun drawnAt(fraction: Double): Double = least + bent(fraction.coerceIn(0.0, 1.0)) * width
+
+    /** This span with its middle where its ends put it, as one drawn before a word's lean was honoured. */
+    fun unbent(): Span = copy(bend = EVEN)
+
     /**
      * [fraction] pulled toward [bend], leaving 0 and 1 where they are.
      *
