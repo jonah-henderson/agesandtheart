@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.Seam
+import co.voik.agesandtheart.age.Spread
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
@@ -50,14 +51,15 @@ object Resolver {
     }
 
     /**
-     * Landforms that `and` joined, or that one word brought together, meeting as one country ([Seam.MERGED]) where
-     * every one of them has ground to ease into the next. Rival words keep the seam chance draws.
+     * Landforms that `and` joined, or that one word brought together, meeting as one country ([Seam.MERGED]) wherever
+     * two with ground to ease into each other meet. A territory that cannot be eased keeps a drawn seam round it
+     * ([Spread.uneased], drawn with the rest in [AgeComposition.seamed]). Rival words keep the seam chance draws.
      */
     private fun Resolving.reconciled(composition: AgeComposition): AgeComposition {
         val divided = composition.membersIn(Aspect.TERRAIN) > 1
-        val everyOneCanMeet = composition.terrains.all(Terrain::reconciles)
+        val twoCanMeet = composition.terrains.count(Terrain::reconciles) >= 2
         val formAskedFor = composition.spreadOf(Aspect.TERRAIN).drawn != null
-        if (!divided || !everyOneCanMeet || formAskedFor || wasContested(Aspect.TERRAIN)) return composition
+        if (!divided || !twoCanMeet || formAskedFor || wasContested(Aspect.TERRAIN)) return composition
         return composition.copy(spreads = composition.spreads.withSeam(Aspect.TERRAIN, Seam.MERGED))
     }
 

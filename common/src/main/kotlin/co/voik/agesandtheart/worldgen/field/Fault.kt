@@ -130,6 +130,8 @@ data class Rift(
     val rimY: Int,
     /** How far the rim wanders either way, in blocks. Zero rules the chasm straight. */
     val rimWander: Double = DEFAULT_RIM_WANDER,
+    /** The territories it runs round, index for index with [map]'s members; empty for every seam. */
+    val around: List<Boolean> = emptyList(),
 ) : TerrainField {
     override val kind = FieldKind.RIFT
 
@@ -138,7 +140,7 @@ data class Rift(
     override val samplesPerColumn = map.members + 1
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
-        val wandered = map.blocksFromSeamAt(worldX, worldZ) +
+        val wandered = map.blocksFromSeamAt(worldX, worldZ, around) +
             rimNoise.get(worldX / RIM_NOISE_STRETCH, 0.0, worldZ / RIM_NOISE_STRETCH).toDouble() * rimWander
         if (wandered > halfWidth) return Spans.EMPTY
         // Deepest at the seam and rising to the rim, so the chasm comes out V-shaped rather than trenched.
@@ -155,6 +157,7 @@ data class Rift(
         scaledAbout(floorY, factor, pivotY),
         scaledAbout(rimY, factor, pivotY),
         rimWander * factor,
+        around,
     )
 
     companion object {
@@ -186,10 +189,12 @@ data class Rift(
             floorY: Int,
             rimY: Int,
             halfWidth: Double = DEFAULT_HALF_WIDTH,
+            around: List<Boolean> = emptyList(),
         ): TerrainField {
             val thereIsNoSeam = map.members <= 1
             val takesNoGround = halfWidth <= 0.0
-            return if (thereIsNoSeam || takesNoGround) base else Subtract(base, Rift(map, halfWidth, floorY, rimY))
+            return if (thereIsNoSeam || takesNoGround) base
+            else Subtract(base, Rift(map, halfWidth, floorY, rimY, around = around))
         }
 
         /** No children, so no need for the recursive field codec — the same shape [Slab] has. */
@@ -200,6 +205,7 @@ data class Rift(
                 Codec.INT.fieldOf("floor_y").forGetter(Rift::floorY),
                 Codec.INT.fieldOf("rim_y").forGetter(Rift::rimY),
                 Codec.DOUBLE.optionalFieldOf("rim_wander", DEFAULT_RIM_WANDER).forGetter(Rift::rimWander),
+                Codec.BOOL.listOf().optionalFieldOf("around", emptyList()).forGetter(Rift::around),
             ).apply(instance, ::Rift)
         }
     }
@@ -229,6 +235,8 @@ data class Ridge(
     val crestWander: Double = Rift.DEFAULT_RIM_WANDER,
     /** What share of the half-width stands at full height before the flanks start falling away. */
     val crestShare: Double = DEFAULT_CREST_SHARE,
+    /** The territories it runs round, index for index with [map]'s members; empty for every seam. */
+    val around: List<Boolean> = emptyList(),
 ) : TerrainField {
     override val kind = FieldKind.RIDGE
 
@@ -237,7 +245,7 @@ data class Ridge(
     override val samplesPerColumn = map.members + 1
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
-        val wandered = map.blocksFromSeamAt(worldX, worldZ) +
+        val wandered = map.blocksFromSeamAt(worldX, worldZ, around) +
             crestNoise.get(worldX / CREST_NOISE_STRETCH, 0.0, worldZ / CREST_NOISE_STRETCH).toDouble() * crestWander
         if (wandered > halfWidth) return Spans.EMPTY
         val outToRim = (wandered / halfWidth).coerceIn(0.0, 1.0)
@@ -260,6 +268,7 @@ data class Ridge(
         scaledAbout(crestY, factor, pivotY),
         crestWander * factor,
         crestShare,
+        around,
     )
 
     companion object {
@@ -282,10 +291,12 @@ data class Ridge(
             footingY: Int,
             crestY: Int,
             halfWidth: Double = DEFAULT_HALF_WIDTH,
+            around: List<Boolean> = emptyList(),
         ): TerrainField {
             val thereIsNoSeam = map.members <= 1
             val standsNowhere = halfWidth <= 0.0 || crestY <= footingY
-            return if (thereIsNoSeam || standsNowhere) base else Union(listOf(base, Ridge(map, halfWidth, footingY, crestY)))
+            return if (thereIsNoSeam || standsNowhere) base
+            else Union(listOf(base, Ridge(map, halfWidth, footingY, crestY, around = around)))
         }
 
         val CODEC: MapCodec<Ridge> = RecordCodecBuilder.mapCodec { instance ->
@@ -296,6 +307,7 @@ data class Ridge(
                 Codec.INT.fieldOf("crest_y").forGetter(Ridge::crestY),
                 Codec.DOUBLE.optionalFieldOf("crest_wander", Rift.DEFAULT_RIM_WANDER).forGetter(Ridge::crestWander),
                 Codec.DOUBLE.optionalFieldOf("crest_share", DEFAULT_CREST_SHARE).forGetter(Ridge::crestShare),
+                Codec.BOOL.listOf().optionalFieldOf("around", emptyList()).forGetter(Ridge::around),
             ).apply(instance, ::Ridge)
         }
     }

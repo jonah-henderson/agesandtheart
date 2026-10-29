@@ -101,6 +101,20 @@ data class RegionMap(
         return contestAt(worldX, worldZ).contested * stretch
     }
 
+    /**
+     * [blocksFromSeamAt], counting only the seams a member of [around] stands on one side of: where `around[member]`
+     * is true, or every seam where it is empty.
+     */
+    fun blocksFromSeamAt(worldX: Int, worldZ: Int, around: List<Boolean>): Double {
+        if (around.isEmpty()) return blocksFromSeamAt(worldX, worldZ)
+        if (claims.size <= 1) return Double.POSITIVE_INFINITY
+        val behind = blocksBehindAt(worldX, worldZ)
+        val winner = behind.indices.minBy { behind[it] }
+        fun isAround(member: Int) = around.getOrElse(member) { false }
+        fun countsAcross(member: Int) = member != winner && (isAround(winner) || isAround(member))
+        return behind.indices.filter(::countsAcross).minOfOrNull { behind[it] } ?: Double.POSITIVE_INFINITY
+    }
+
     /** [memberAt] for a laid-out map: the winner, frayed into the runner-up across [blend] as a drawn map's is. */
     private fun laidOutMemberAt(layout: TableLayout, worldX: Int, worldZ: Int): Int {
         if (blend <= 0) return layout.winnerAt(worldX, worldZ)

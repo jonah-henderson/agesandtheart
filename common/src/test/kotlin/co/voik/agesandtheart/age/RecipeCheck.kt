@@ -551,6 +551,16 @@ class RecipeCheck : FunSpec({
         }
         check(AgeComposition.parse(spelling).getOrThrow() == riven) { "'$spelling' does not read back as itself" }
 
+        // A merge keeps the form drawn round the territory it could not ease.
+        val merged = AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.SKYLANDS, Terrain.CLIFFS))
+            .withOptions(Aspect.TERRAIN, Spread.SEAM, listOf(Seam.MERGED.key, Seam.WALL.key))
+        val mergedBack = roundTrips(AgeRecipe(AgeWorld.Composed(merged), seed = SAMPLE_SEED), "a merged Age")
+        check(mergedBack.composition?.spreadOf(Aspect.TERRAIN)?.uneased == Seam.WALL) {
+            "the uneased wall came back as ${mergedBack.composition?.spreadOf(Aspect.TERRAIN)?.uneased}"
+        }
+        check("landmass.seam=merged,wall" in merged.toString()) { "a merged Age spells its seam wrong: '$merged'" }
+        check(AgeComposition.parse(merged.toString()).getOrThrow() == merged) { "'$merged' does not read back as itself" }
+
         // An undivided Age has no boundary and says nothing about one.
         val whole = AgeComposition(terrains = listOf(Terrain.HILLS))
         check(Spread.SEAM !in whole.toString()) { "an undivided Age should mention no seam: '$whole'" }

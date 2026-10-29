@@ -190,11 +190,23 @@ data class AgeComposition(
         Aspect.entries.filter { it.spatial }.fold(this) { held, aspect ->
             val spread = held.spreads.of(aspect)
             val nothingToDrawItBetween = held.membersIn(aspect) <= 1
-            if (spread.drawn != null || nothingToDrawItBetween) held
-            else held.copy(
-                spreads = held.spreads.withSeam(aspect, Seam.drawnFor(aspect, Seam.sourceFor(aspect, seed))),
-            )
+            when {
+                nothingToDrawItBetween -> held
+                spread.drawn == null -> held.copy(
+                    spreads = held.spreads.withSeam(aspect, Seam.drawnFor(aspect, Seam.sourceFor(aspect, seed))),
+                )
+                held.needsAnUneasedForm(aspect, spread) -> held.copy(
+                    spreads = held.spreads.withSeam(aspect, Seam.MERGED, Seam.drawnUneased(Seam.sourceFor(aspect, seed))),
+                )
+                else -> held
+            }
         }
+
+    /** Whether [aspect] was merged with a territory that cannot be eased, and no form was drawn for its seams yet. */
+    private fun needsAnUneasedForm(aspect: Aspect, spread: Spread): Boolean {
+        val merged = aspect == Aspect.TERRAIN && spread.drawn == Seam.MERGED
+        return merged && spread.uneased == null && !terrains.all(Terrain::reconciles)
+    }
 
     private fun withSingle(aspect: Aspect, key: String): AgeComposition = when (aspect) {
         Aspect.TERRAIN -> copy(terrains = listOf(named<Terrain>(aspect, key)))
@@ -224,7 +236,7 @@ data class AgeComposition(
      * every territory of the aspect; [withOptionsFor] aims one.
      */
     fun withOptions(aspect: Aspect, parameter: String, chosen: List<String>): AgeComposition {
-        asksForASeam(aspect, parameter, chosen)?.let { return copy(spreads = spreads.withSeam(aspect, it)) }
+        asksForASeam(aspect, parameter, chosen)?.let { return copy(spreads = spreads.with(aspect, it)) }
         val everyMember = options.allOf(aspect).ifEmpty { listOf(Options.NONE) }
         return copy(options = options.with(aspect, everyMember.map { Options(it.chosen + (parameter to chosen)) }))
     }
@@ -236,7 +248,7 @@ data class AgeComposition(
     fun withOptionsFor(aspect: Aspect, member: Int, parameter: String, chosen: List<String>): AgeComposition {
         // Whichever territory it was written against: a seam belongs to the boundary rather than to either
         // side, so "riven here and whole there" is not something it could mean.
-        asksForASeam(aspect, parameter, chosen)?.let { return copy(spreads = spreads.withSeam(aspect, it)) }
+        asksForASeam(aspect, parameter, chosen)?.let { return copy(spreads = spreads.with(aspect, it)) }
         val filling = membersIn(aspect)
         val perMember = options.expanded(aspect, maxOf(filling, member + 1))
         val steered = perMember.mapIndexed { index, existing ->
@@ -246,16 +258,19 @@ data class AgeComposition(
     }
 
     /**
-     * The form `landmass.seam=rift` asks this boundary to take, or null where the token is about something
+     * The form `landmass.seam=rift` asks this boundary to take, with the uneased one after a merge
+     * (`landmass.seam=merged,scarp`), or null where the token is about something
      * else — how a seam reaches the spread rather than the options, there being nowhere in a preset for a
      * boundary *between* two of them to live.
      *
      * A form this version does not know falls through to the options, where an unrecognised name is kept
      * and reported ([unknownOptions]). Silently taking it would flatten an Age's geology.
      */
-    private fun asksForASeam(aspect: Aspect, parameter: String, chosen: List<String>): Seam? {
+    private fun asksForASeam(aspect: Aspect, parameter: String, chosen: List<String>): Spread? {
         if (!aspect.spatial || parameter != Spread.SEAM) return null
-        return chosen.firstOrNull()?.let(Seam::named)
+        val form = chosen.firstOrNull()?.let(Seam::named) ?: return null
+        val uneased = chosen.getOrNull(1)?.let(Seam::named)
+        return spreads.of(aspect).copy(drawn = form, uneased = uneased)
     }
 
     /**

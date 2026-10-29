@@ -716,8 +716,8 @@ enum class Terrain(
 
     /**
      * Whether this landform's ground can be eased into another's where two meet ([Seam.MERGED]): a surface standing
-     * on rock below it. Not what hangs in the void or fills the world to its roof, and not the made shapes, which
-     * would lean.
+     * on rock below it, even where easing leans a pillar or a pyramid. Not what hangs in the void or fills the world
+     * to its roof.
      */
     val reconciles: Boolean get() = this in RECONCILES
 
@@ -844,7 +844,10 @@ enum class Terrain(
         }
 
         private val RECONCILES by lazy {
-            setOf(HILLS, FLATLANDS, ERODED, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, MOUNTAINOUS, CRATERLANDS, CONTINENTS)
+            setOf(
+                HILLS, FLATLANDS, ERODED, PILLARS, PYRAMIDS, CANYON, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE,
+                MOUNTAINOUS, CRATERLANDS, CONTINENTS,
+            )
         }
 
         /**

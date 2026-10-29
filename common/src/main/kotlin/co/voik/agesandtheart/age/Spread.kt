@@ -32,12 +32,17 @@ data class Spread(
      * [AgeComposition.seamed] draw a scarp over the top of the request.
      */
     val drawn: Seam? = null,
+    /**
+     * Where the boundary is [Seam.MERGED], the form drawn between a territory that cannot be eased and its neighbours;
+     * null where every territory can be.
+     */
+    val uneased: Seam? = null,
 ) {
     /** What this boundary does. Sheared where nothing drew a form: two shapes simply meet, and the cut shows. */
     val seam: Seam get() = drawn ?: Seam.SHEARED
 
     /** Whether this says anything a recipe has to keep — an even division with no form drawn does not. */
-    val saysNothing: Boolean get() = drawn == null && shares.all(Share::isEven)
+    val saysNothing: Boolean get() = drawn == null && uneased == null && shares.all(Share::isEven)
 
     /** This spread with [members] shares, whatever it was written with — never a shorter list. */
     fun over(members: Int): Spread =
@@ -51,7 +56,8 @@ data class Spread(
             instance.group(
                 Codec.DOUBLE.listOf().optionalFieldOf("shares", emptyList()).forGetter(Spread::shares),
                 Seam.CODEC.optionalFieldOf("seam").forGetter { Optional.ofNullable(it.drawn) },
-            ).apply(instance) { shares, seam -> Spread(shares, seam.orElse(null)) }
+                Seam.CODEC.optionalFieldOf("uneased").forGetter { Optional.ofNullable(it.uneased) },
+            ).apply(instance) { shares, seam, uneased -> Spread(shares, seam.orElse(null), uneased.orElse(null)) }
         }
     }
 }
@@ -73,7 +79,8 @@ data class Spreads(private val byAspect: Map<Aspect, Spread> = emptyMap()) {
         with(aspect, of(aspect).copy(shares = shares))
 
     /** And the same for the form, keeping the ground each member covers. */
-    fun withSeam(aspect: Aspect, seam: Seam): Spreads = with(aspect, of(aspect).copy(drawn = seam))
+    fun withSeam(aspect: Aspect, seam: Seam, uneased: Seam? = null): Spreads =
+        with(aspect, of(aspect).copy(drawn = seam, uneased = uneased))
 
     companion object {
         val CODEC: Codec<Spreads> =
@@ -242,6 +249,15 @@ enum class Seam(val key: String, val share: Double, val frequency: Int) : String
             val form = drawn(random)
             val hasRockToMove = aspect == Aspect.TERRAIN
             return if (hasRockToMove || !form.displaces) form else SHEARED
+        }
+
+        /**
+         * The form drawn where merged territories meet one that cannot be eased: what [drawnFor] draws, save that a
+         * dissolve is a plain shear, since its width frays every seam on the map and not only that one.
+         */
+        fun drawnUneased(random: RandomSource): Seam {
+            val form = drawnFor(Aspect.TERRAIN, random)
+            return if (form == FUZZED) SHEARED else form
         }
 
         /** A form drawn against its [frequency], out of [TOTAL_FREQUENCY]. */

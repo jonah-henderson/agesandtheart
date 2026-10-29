@@ -29,6 +29,8 @@ data class Reconciled(
     val keepsFloor: Boolean,
     /** Whether each column is moved by its own top rather than its rock's — surface water, not the underground's. */
     val staysInItsBanks: Boolean = false,
+    /** Which members are eased, index for index with [members]; empty for every one. One that is not keeps a hard seam. */
+    val eases: List<Boolean> = emptyList(),
 ) : TerrainField {
     override val kind = FieldKind.RECONCILED
 
@@ -53,7 +55,8 @@ data class Reconciled(
 
     /** How far to move a column whose top stands at [ownTop], or at its rock's top where that is null. */
     private fun liftAt(worldX: Int, worldZ: Int, behind: DoubleArray, winner: Int, ownTop: Int?): Int {
-        val near = behind.indices.filter { it != winner && behind[it] < width }
+        if (!isEased(winner)) return 0
+        val near = behind.indices.filter { it != winner && behind[it] < width && isEased(it) }
         if (near.isEmpty()) return 0
         val winnersTop = ownTop ?: guides[winner].columnSpans(worldX, worldZ).highestSolidY ?: return 0
         var weighed = winnersTop.toDouble()
@@ -67,6 +70,8 @@ data class Reconciled(
         return (weighed / weights - winnersTop).roundToInt()
     }
 
+    private fun isEased(member: Int) = eases.getOrElse(member) { true }
+
     override fun resized(factor: Double, pivotY: Int) = Reconciled(
         members.map { it.resized(factor, pivotY) },
         guides.map { it.resized(factor, pivotY) },
@@ -74,6 +79,7 @@ data class Reconciled(
         width * factor,
         keepsFloor,
         staysInItsBanks,
+        eases,
     )
 
     companion object {
@@ -88,7 +94,8 @@ data class Reconciled(
             width: Double,
             keepsFloor: Boolean,
             staysInItsBanks: Boolean = false,
-        ): TerrainField = members.singleOrNull() ?: Reconciled(members, guides, map, width, keepsFloor, staysInItsBanks)
+            eases: List<Boolean> = emptyList(),
+        ): TerrainField = members.singleOrNull() ?: Reconciled(members, guides, map, width, keepsFloor, staysInItsBanks, eases)
 
         fun codec(self: Codec<TerrainField>): MapCodec<Reconciled> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -98,6 +105,7 @@ data class Reconciled(
                 Codec.DOUBLE.fieldOf("width").forGetter(Reconciled::width),
                 Codec.BOOL.fieldOf("keeps_floor").forGetter(Reconciled::keepsFloor),
                 Codec.BOOL.optionalFieldOf("stays_in_its_banks", false).forGetter(Reconciled::staysInItsBanks),
+                Codec.BOOL.listOf().optionalFieldOf("eases", emptyList()).forGetter(Reconciled::eases),
             ).apply(instance, ::Reconciled)
         }
     }

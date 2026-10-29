@@ -8,7 +8,10 @@ import co.voik.agesandtheart.age.language.ShippedLexicon.resolved
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
-/** Landforms `and` joined meet as one country; rival ones keep the seam chance draws them; jumbled ones lie by chance. */
+/**
+ * Landforms `and` joined meet as one country where they can be eased, with a seam drawn round any that cannot; rival ones
+ * keep the seam chance draws them; jumbled ones lie by chance.
+ */
 @Tags(NEEDS_REGISTRIES)
 class ReconciledLandCheck : FunSpec({
 
@@ -35,6 +38,23 @@ class ReconciledLandCheck : FunSpec({
     test("a landform with no ground to ease into another's is not, however it was joined") {
         val row = "age gentle and skyborne landmass"
         check(seamOf(row) != Seam.MERGED) { "'$row' was reconciled" }
+    }
+
+    test("the pillars, the cleft and the pyramids are eased too") {
+        for (row in listOf("age gentle and pillared landmass", "age cleft and sheer landmass", "age pyramidal and eroded landmass")) {
+            check(seamOf(row) == Seam.MERGED) { "'$row' drew ${seamOf(row)}" }
+        }
+    }
+
+    test("what can be eased is, and a seam is drawn round what cannot") {
+        val row = "age sheer and cleft and pillared and skyborne landmass"
+        val spread = resolved(row, seed = SEED).composition.seamed(SEED).spreadOf(Aspect.TERRAIN)
+        check(spread.drawn == Seam.MERGED) { "'$row' drew ${spread.drawn}" }
+        check(spread.uneased != null && spread.uneased != Seam.MERGED && spread.uneased != Seam.FUZZED) {
+            "'$row' drew ${spread.uneased} round the skyborne land"
+        }
+        val everyOneEases = resolved("age gentle and sheer landmass", seed = SEED).composition.seamed(SEED)
+        check(everyOneEases.spreadOf(Aspect.TERRAIN).uneased == null) { "a merge with nothing left out drew a form for it" }
     }
 })
 

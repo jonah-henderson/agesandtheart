@@ -151,8 +151,16 @@ object AgeGeneration {
         // are all the same object — see the note on `ourGround`'s parameter.
         val overlay = volcanicOverlay(composition, seed)
         val grounds = if (composition.terrains.any { it.isVanillas }) null else groundsOf(composition, window, seed, table, sea)
-        val territories = Territories(ground, grounds?.map { it.shape }?.takeIf { landmass.seam == Seam.MERGED }, table, sea)
-        val ourGround = grounds?.let { ourGround(composition, it, landmass, territories, window, seed, torn, overlay, dislocation) }
+        val merged = landmass.seam == Seam.MERGED
+        val territories = Territories(
+            ground,
+            grounds?.map { it.shape }?.takeIf { merged },
+            table,
+            sea,
+            eases = if (merged) composition.terrains.map(Terrain::reconciles) else emptyList(),
+        )
+        val drawnSeam = DrawnSeam.of(landmass, composition.terrains)
+        val ourGround = grounds?.let { ourGround(composition, it, drawnSeam, territories, window, seed, torn, overlay, dislocation) }
 
         val chasm = ourGround?.chasm
         val standing = ourGround?.standing
@@ -173,7 +181,7 @@ object AgeGeneration {
         ).copy(
             dry = chasm,
             wet = standing,
-            carried = overlay.pours + listOfNotNull(riversOf(composition, landmass.seam, territories, seed, torn)),
+            carried = overlay.pours + listOfNotNull(riversOf(composition, drawnSeam, territories, seed, torn)),
         )
 
         // What the rock *is*, on the terrain's own map, laid by the fill rather than painted by a rule — which
@@ -550,7 +558,7 @@ object AgeGeneration {
      */
     private fun riversOf(
         composition: AgeComposition,
-        seam: Seam,
+        seam: DrawnSeam,
         territories: Territories,
         seed: Long,
         torn: Double,
@@ -560,7 +568,7 @@ object AgeGeneration {
         }
         if (run.all { it == null }) return null
         val divided = territories.divided(run.map { it ?: Union(emptyList()) }, staysInItsBanks = true)
-        val where = when (seam) {
+        val where = when (seam.form) {
             Seam.SCARP -> faulted(divided, seam, territories.map, seed, torn)
             Seam.SHEARED, Seam.FUZZED, Seam.RIFT, Seam.WALL, Seam.MERGED -> divided
         }
@@ -569,7 +577,7 @@ object AgeGeneration {
 
     private fun carriedWater(
         composition: AgeComposition,
-        seam: Seam,
+        seam: DrawnSeam,
         territories: Territories,
         seed: Long,
         torn: Double,
@@ -581,7 +589,7 @@ object AgeGeneration {
         val divided = territories.divided(carried.map { it ?: Union(emptyList()) }, staysInItsBanks = true)
         // Exhaustive rather than a test for one form, so a new [Seam] breaks the build here instead of
         // silently taking the wrong branch.
-        return when (seam) {
+        return when (seam.form) {
             Seam.SCARP -> faulted(divided, seam, territories.map, seed, torn)
             Seam.SHEARED, Seam.FUZZED, Seam.RIFT, Seam.WALL, Seam.MERGED -> divided
         }
@@ -604,17 +612,35 @@ object AgeGeneration {
      */
     private fun faulted(
         rock: TerrainField,
-        seam: Seam,
+        seam: DrawnSeam,
         ground: RegionMap,
         seed: Long,
         torn: Double,
-    ): TerrainField = when (seam) {
+    ): TerrainField = when (seam.form) {
         // `SHEARED` asks for no fault; `FUZZED` already happened, in the width `mapFor` took off the seam, and
         // `MERGED` in the territories' own division.
         Seam.SHEARED, Seam.FUZZED, Seam.MERGED -> rock
-        Seam.SCARP -> Fault.of(rock, ground, Fault.alternatingThrows(ground.members, Seam.scarpThrow(torn), seed))
-        Seam.RIFT -> Rift.opened(rock, ground, Seam.riftFloor(torn), Seam.RIFT_RIM)
-        Seam.WALL -> Ridge.raised(rock, ground, Seam.WALL_FOOTING, Seam.wallCrest(torn))
+        Seam.SCARP -> Fault.of(rock, ground, seam.thrownAround(Fault.alternatingThrows(ground.members, Seam.scarpThrow(torn), seed)))
+        Seam.RIFT -> Rift.opened(rock, ground, Seam.riftFloor(torn), Seam.RIFT_RIM, around = seam.around)
+        Seam.WALL -> Ridge.raised(rock, ground, Seam.WALL_FOOTING, Seam.wallCrest(torn), around = seam.around)
+    }
+
+    /**
+     * The form drawn along the terrain's seams, and the territories it runs [around]: every one where empty, and after
+     * a merge only those that cannot be eased ([Spread.uneased]).
+     */
+    private class DrawnSeam(val form: Seam, val around: List<Boolean>) {
+        /** [throws] kept only for the territories the seam runs round, so a merged neighbour stays where it is. */
+        fun thrownAround(throws: List<Int>): List<Int> =
+            if (around.isEmpty()) throws else throws.mapIndexed { member, thrown -> if (around.getOrElse(member) { false }) thrown else 0 }
+
+        companion object {
+            fun of(landmass: Spread, terrains: List<Terrain>): DrawnSeam {
+                if (landmass.seam != Seam.MERGED) return DrawnSeam(landmass.seam, emptyList())
+                val uneased = landmass.uneased ?: return DrawnSeam(Seam.MERGED, emptyList())
+                return DrawnSeam(uneased, terrains.map { !it.reconciles })
+            }
+        }
     }
 
     /**
@@ -623,9 +649,9 @@ object AgeGeneration {
      * Built from the same numbers [faulted] cuts with, so the dry space and the chasm are the same shape
      * by construction rather than by two constants agreeing.
      */
-    private fun riftVolume(seam: Seam, ground: RegionMap, torn: Double): TerrainField? =
-        if (seam != Seam.RIFT || ground.members <= 1) null
-        else Rift(ground, Rift.DEFAULT_HALF_WIDTH, Seam.riftFloor(torn), Seam.RIFT_RIM)
+    private fun riftVolume(seam: DrawnSeam, ground: RegionMap, torn: Double): TerrainField? =
+        if (seam.form != Seam.RIFT || ground.members <= 1) null
+        else Rift(ground, Rift.DEFAULT_HALF_WIDTH, Seam.riftFloor(torn), Seam.RIFT_RIM, around = seam.around)
 
     /**
      * [carried] with whatever water the **underground** holds added to it — the lakes standing in a
@@ -723,7 +749,7 @@ object AgeGeneration {
     private fun ourGround(
         composition: AgeComposition,
         grounds: List<Terrain.Ground>,
-        landmass: Spread,
+        drawnSeam: DrawnSeam,
         territories: Territories,
         window: VerticalWindow,
         seed: Long,
@@ -743,8 +769,8 @@ object AgeGeneration {
         // field, where the profile and the shape were designed together. There is no Age-wide pass.
         val weathered = territories.divided(grounds.map { it.shape }, keepsFloor = true)
         // The fault comes last, over the finished rock — see [Fault].
-        val shape = Dislocated.over(faulted(weathered, landmass.seam, ground, seed, torn), dislocation)
-        val riftCut = riftVolume(landmass.seam, ground, torn)
+        val shape = Dislocated.over(faulted(weathered, drawnSeam, ground, seed, torn), dislocation)
+        val riftCut = riftVolume(drawnSeam, ground, torn)
         // **A world shut overhead needs something to shut it.** A template's roof is part of its rock, so
         // naming a landform took it away and left `sealed=always` saying only what the dimension type says
         // — no skylight, and open air to the top of the world (Jonah, 2026-08-14, walked).
@@ -787,7 +813,7 @@ object AgeGeneration {
                 ground = Union(listOfNotNull(shape, cones)).takeIf { lid != null },
             ),
             chasm = keptDry(riftCut, grounds, territories),
-            standing = withLakes(carriedWater(composition, landmass.seam, territories, seed, torn), grounds, territories),
+            standing = withLakes(carriedWater(composition, drawnSeam, territories, seed, torn), grounds, territories),
         )
     }
 
@@ -891,18 +917,20 @@ object AgeGeneration {
 
     /**
      * What is divided on the terrain's map: by territory, and where the landforms were reconciled ([Seam.MERGED])
-     * eased across each seam after [guides], the rock — so water and hollows move with the ground they lie in.
+     * eased across each seam after [guides], the rock — so water and hollows move with the ground they lie in. A
+     * territory [eases] leaves out keeps a hard seam.
      */
     private class Territories(
         val map: RegionMap,
         private val guides: List<TerrainField>?,
         val table: TerrainTable?,
         val sea: Terrain.SeaSetting?,
+        private val eases: List<Boolean> = emptyList(),
     ) {
         fun divided(members: List<TerrainField>, keepsFloor: Boolean = false, staysInItsBanks: Boolean = false): TerrainField =
             if (guides == null) Regions.of(members, map)
             // An Age written before the table eases its water with its rock, as it did.
-            else Reconciled.of(members, guides, map, RECONCILED_BLOCKS, keepsFloor, staysInItsBanks && table != null)
+            else Reconciled.of(members, guides, map, RECONCILED_BLOCKS, keepsFloor, staysInItsBanks && table != null, eases)
     }
 
     /** How far either side of a seam two reconciled landforms are eased into one another. */

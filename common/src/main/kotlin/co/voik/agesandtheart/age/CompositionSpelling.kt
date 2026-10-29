@@ -163,7 +163,8 @@ object CompositionSpelling {
             .plus(if (seaNamed) listOf("$SEA_NAMED=true") else emptyList())
 
     /**
-     * `landmass.seam=rift` — the form drawn for each boundary the Age has one for.
+     * `landmass.seam=rift` — the form drawn for each boundary the Age has one for, and after a merge the form drawn
+     * where a territory could not be eased (`landmass.seam=merged,scarp`).
      *
      * Spelled even where it was drawn rather than asked for, because a recipe records what an Age *is*: the
      * draw is reproducible from the seed, but a spelling that left it out would read as "nothing was decided
@@ -171,7 +172,11 @@ object CompositionSpelling {
      */
     private fun AgeComposition.seamSpelling(): List<String> = Aspect.entries
         .filter { it.spatial }
-        .mapNotNull { aspect -> spreads.of(aspect).drawn?.let { "${aspect.page}.${Spread.SEAM}=${it.key}" } }
+        .mapNotNull { aspect ->
+            val spread = spreads.of(aspect)
+            val forms = listOfNotNull(spread.drawn, spread.uneased).ifEmpty { return@mapNotNull null }
+            "${aspect.page}.${Spread.SEAM}=${forms.joinToString(LIST_MARK.toString(), transform = Seam::key)}"
+        }
 
     /**
      * The options of an aspect that seats no preset, which the loop above cannot reach because it walks
