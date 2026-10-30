@@ -1147,6 +1147,11 @@ class AgeChunkGenerator(
                 )
             },
         )
+        val hollowed = ours.hollows?.columnSpans(x, z) ?: Spans.EMPTY
+        val water by lazy { aquiferFor(randomState, ours.field) }
+        fun isOpenToTheSky(y: Int) = spans.highestSolidY?.let { y > it } ?: true
+        fun isSea(y: Int) = !spans.contains(y) && seaFill.carriedAt(y, bodies) == null &&
+            seaFill.fillsAt(y, levelHere, dryness, wetness) && (!hollowed.contains(y) || isOpenToTheSky(y))
         val column = Array(window.height) { index ->
             val y = window.minY + index
             when {
@@ -1154,6 +1159,13 @@ class AgeChunkGenerator(
                 // The same wall the chunk fill lays, so the column and the blocks agree.
                 seaFill.carriedAt(y, bodies) == null && seaFill.fillsAt(y, levelHere, dryness, wetness) &&
                     seaFill.isWalledAt(x, z, y, levelHere) -> fill.blockAt(x, y, z)
+                // A cave under the rock's top is the water table's, as [FieldFill] lays it; the sea held back
+                // from beside it is not asked, which would take four more columns.
+                seaFill.carriedAt(y, bodies) == null && hollowed.contains(y) && !isSea(y) -> {
+                    val answer = water.computeSubstance(x, y, z, HOLLOW_DENSITY)
+                    val heldBack = answer == null || (answer.isAir && isSea(y + 1))
+                    if (heldBack) fill.blockAt(x, y, z) else answer
+                }
                 else -> {
                     val open = seaFill.carriedAt(y, bodies) ?: if (seaFill.fillsAt(y, levelHere, dryness, wetness)) sea else AIR
                     if (abyssal) DeepWater.seaAt(y, abyssLine, open) else open
@@ -1764,6 +1776,9 @@ class AgeChunkGenerator(
 
         /** What a carved block's density reads as: a cut is open, whatever the shape said. */
         private const val NO_CAVE_DENSITY = 0.0
+
+        /** What the aquifer is told of a cave the field left open, as [FieldFill] tells it. */
+        private const val HOLLOW_DENSITY = -1.0
 
         // What the field lays down before the palette repaints it.
         private val AIR: BlockState = Blocks.AIR.defaultBlockState()

@@ -53,27 +53,42 @@ object LinkingIn {
     ): BlockPos? {
         val found = nearestBiome(level, from, reach, wanted) ?: return null
         val surface = Ages.footingIn(level, found.x, found.z)
-        val atTheSurface = level.chunkSource.generator.biomeSource.createUncachedResolver(level.chunkSource.randomState())
-            .getNoiseBiome(QuartPos.fromBlock(found.x), QuartPos.fromBlock(surface.y), QuartPos.fromBlock(found.z))
-        return if (wanted(atTheSurface)) surface else openBelow(level, found) ?: surface
+        val biomes = level.chunkSource.generator.biomeSource.createUncachedResolver(level.chunkSource.randomState())
+        fun isWantedAt(x: Int, y: Int, z: Int) =
+            wanted(biomes.getNoiseBiome(QuartPos.fromBlock(x), QuartPos.fromBlock(y), QuartPos.fromBlock(z)))
+        return if (isWantedAt(found.x, surface.y, found.z)) surface else openBelow(level, found, ::isWantedAt) ?: surface
     }
 
     /**
-     * Standing room under ground near [found]: air with headroom over something that holds a visitor up, in its
-     * column or one beside it, nearest the height it was found at first. Null where the rock is solid round it.
+     * Standing room under ground near [found] in the biome wanted: air with headroom over something that holds a
+     * visitor up, in the nearest ring of columns round it that has any, nearest the height it was found at first.
+     * Null where the rock is solid round it.
      */
-    private fun openBelow(level: ServerLevel, found: BlockPos): BlockPos? {
+    private fun openBelow(level: ServerLevel, found: BlockPos, isWantedAt: (Int, Int, Int) -> Boolean): BlockPos? {
         val generator = level.chunkSource.generator
         val randomState = level.chunkSource.randomState()
         val heights = (0..CAVE_REACH).flatMap { away -> listOf(found.y - away, found.y + away) }.distinct()
             .filter { it > level.minY && it + 1 < level.maxY }
-        for (dx in -BESIDE..BESIDE step BESIDE_STEP) for (dz in -BESIDE..BESIDE step BESIDE_STEP) {
-            val column = generator.getBaseColumn(found.x + dx, found.z + dz, level, randomState)
+        fun standingIn(x: Int, z: Int): Int? {
+            val column = generator.getBaseColumn(x, z, level, randomState)
             fun isOpen(y: Int) = column.getBlock(y).isAir
             @Suppress("DEPRECATION") // `isSolid` is what a mob stands on, and is the reading `ScarabColony` makes too.
             fun holdsYouUp(y: Int) = column.getBlock(y).isSolid
-            val standing = heights.firstOrNull { y -> isOpen(y) && isOpen(y + 1) && holdsYouUp(y - 1) }
-            if (standing != null) return BlockPos(found.x + dx, standing, found.z + dz)
+            return heights.firstOrNull { y -> isOpen(y) && isOpen(y + 1) && holdsYouUp(y - 1) && isWantedAt(x, y, z) }
+        }
+        for (ring in 0..BESIDE / BESIDE_STEP) {
+            val away = ring * BESIDE_STEP
+            for (along in -away..away step BESIDE_STEP) {
+                val onTheRing = if (away == 0) {
+                    listOf(0 to 0)
+                } else {
+                    listOf(along to -away, along to away, -away to along, away to along).distinct()
+                }
+                for ((dx, dz) in onTheRing) {
+                    val standing = standingIn(found.x + dx, found.z + dz) ?: continue
+                    return BlockPos(found.x + dx, standing, found.z + dz)
+                }
+            }
         }
         return null
     }
@@ -151,9 +166,12 @@ object LinkingIn {
     /** How far above and below the height a biome was found at its standing room is looked for. */
     private const val CAVE_REACH = 24
 
-    /** How far beside the found column, and in what steps, the columns looked through for room reach. */
-    private const val BESIDE = 8
-    private const val BESIDE_STEP = 4
+    /**
+     * How far beside the found column, and in what steps, the columns looked through for room reach: the caves under
+     * a landform of ours lie further apart than vanilla's.
+     */
+    private const val BESIDE = 64
+    private const val BESIDE_STEP = 8
 
     /** How far from the origin a link-in looks (Jonah, 2026-10-21). */
     const val REACH = 2000
