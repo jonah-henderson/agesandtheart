@@ -76,7 +76,7 @@ class MemberScopingCheck : FunSpec({
         check(bare.of(Features.FOLIAGE, member = OAK) != DIAMOND) { "a diamond Age grew its trees of diamond" }
     }
 
-    test("a pass's cap moves by the mean of what a quantifier asked of its creatures, and nothing else moves it") {
+    test("a pass's cap moves by the mean of what was asked of its creatures, a plain ask a mention's worth") {
         fun capsOf(vararg pages: String) = Spawns.capsOf(aimed(SEEDS.first, *pages).optionsFor(Aspect.SPAWNS))
         val teeming = capsOf("teeming", "inhabitants")
         check(teeming[MobCategory.MONSTER] == TEEMING && teeming[MobCategory.CREATURE] == TEEMING) { "'teeming inhabitants' held $teeming" }
@@ -85,7 +85,9 @@ class MemberScopingCheck : FunSpec({
         val zombies = capsOf("teeming", "zombie")[MobCategory.MONSTER] ?: 1.0
         check(zombies > 1.0 && zombies < monsters) { "'teeming zombie' held the monsters to $zombies" }
         check((capsOf("few", "monsters")[MobCategory.MONSTER] ?: 1.0) < 1.0) { "'few monsters' left the monsters' cap" }
-        check(capsOf("fish").isEmpty()) { "naming the fish moved a cap: ${capsOf("fish")}" }
+        val plainly = capsOf("monsters")[MobCategory.MONSTER] ?: 1.0
+        check(plainly > HALFWAY_TO_A_MENTION && plainly <= A_MENTION) { "'monsters' held the monsters to $plainly" }
+        check(capsOf("dry", "climate").isEmpty()) { "a book asking for no creature moved a cap: ${capsOf("dry", "climate")}" }
     }
 
     test("a word is listed under what it applies to, and under one of the game's creatures only where it applies to that alone") {
@@ -150,6 +152,8 @@ private const val SHEEP = "minecraft:sheep"
 /** What `teeming` asks of every creature. */
 private const val TEEMING = 4.0
 private const val HALFWAY_TO_TEEMING = 2.5
+private const val A_MENTION = 1.5
+private const val HALFWAY_TO_A_MENTION = 1.25
 private const val OAK = "minecraft:oak"
 private const val DIAMOND = "minecraft:diamond_block"
 private const val ORE_FEATURE = "minecraft:ore_"

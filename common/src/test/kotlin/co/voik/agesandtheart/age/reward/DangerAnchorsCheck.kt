@@ -47,10 +47,10 @@ class DangerAnchorsCheck : FunSpec({
             "age tempest phenomena green aurora" to 0.05,
             "age deep sea deluge phenomena" to 0.6,
             "age meteors phenomena" to 0.65,
-            "age monsters lightless sky" to 0.55,
+            "age monsters lightless sky" to 1.0,
             "age teeming monsters" to 2.0,
             "age frozen climate blizzard meteors phenomena" to 1.0,
-            "age lava sea monsters inferno phenomena" to 0.55,
+            "age lava sea monsters inferno phenomena" to 0.75,
             "age floating landmass meteors phenomena" to 1.0,
             "desolate age" to 0.2,
         )

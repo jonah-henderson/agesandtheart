@@ -68,7 +68,7 @@ private fun Resolving.weighedIn(
     val claims = drawnFrom.mapNotNull { member -> claimForMember(member, pool, speaking, aspect, member in curated, ground) }
     loseWhatWasStruck(speaking, claims, ::namedBy)
     val reached = drawnAmong(claims, drawnFrom, speaking, aspect)
-    val capped = if (aspect == Aspect.SPAWNS && ground == null) withCaps(composition, drawnFrom, claims, speaking) else composition
+    val capped = if (aspect == Aspect.SPAWNS && ground == null) withCaps(composition, drawnFrom, claims, speaking, aspect) else composition
     if (reached.isEmpty()) return capped
     val settled = capped.optionsFor(aspect, 0).allOf(pool)
     return capped.withOptions(aspect, pool.name, (settled + spelled(reached, pool, drawnFrom, ground)).distinct())
@@ -98,12 +98,25 @@ private fun Resolving.isStruckByA(speaking: List<Landing>, member: Taggable): Bo
 }
 
 /**
- * [composition] holding the caps what landed moved ([Spawns.CAPS]): for each pass, the mean of what a quantifier
- * asked of each creature in [drawnFrom] it offers, one [claims] struck out not counting.
+ * [composition] holding the caps what landed moved ([Spawns.CAPS]): for each pass, the mean of what was asked of each
+ * creature in [drawnFrom] it offers, one [claims] struck out not counting. A quantifier asks its amount, and a creature
+ * asked for without one is asked a mention's worth more, so `monsters` raises the monster cap a little.
  */
-private fun withCaps(composition: AgeComposition, drawnFrom: List<Taggable>, claims: List<Claim>, speaking: List<Landing>): AgeComposition {
+private fun Resolving.withCaps(
+    composition: AgeComposition,
+    drawnFrom: List<Taggable>,
+    claims: List<Claim>,
+    speaking: List<Landing>,
+    aspect: Aspect,
+): AgeComposition {
     val struck = claims.filter { it.polarity == Polarity.EXCEPT }.map { it.value }.toSet()
-    fun quantityAskedOf(member: Taggable) = abundanceOf(speaking.filter { it.members == null || member.key in it.members.orEmpty() })
+    fun quantityAskedOf(member: Taggable): Double {
+        val reaching = speaking.filter { it.members == null || member.key in it.members.orEmpty() }
+        val rung = abundanceOf(reaching)
+        val tags = world.tagsOf(member)
+        val askedFor = reaching.any { asksFor(member, tags, it, aspect) }
+        return if (Rung.isOrdinary(rung) && askedFor) Rung.ORDINARY + A_MENTION_IS_WORTH else rung
+    }
     val caps = drawnFrom
         .filter { it.key !in struck }
         .mapNotNull { member -> Identifier.tryParse(member.key)?.let(Spawns::passOf)?.let { it to quantityAskedOf(member) } }
@@ -132,12 +145,7 @@ private fun Resolving.claimForMember(
     fun strikes(said: Landing) = said.strikes(member, tags) || !said.withinItsLimits(tags)
     if (reaching.any { it.narrows && strikes(it) }) return Claim(member.key, Polarity.EXCEPT, confinedTo = ground)
 
-    fun strictnessFor(said: Landing): Double =
-        if (said.polarity != Polarity.ASSERTED) Bars.STRICT else strictnessOf(aspect, said)
-    val insisting = reaching.filter { said ->
-        val narrowsHere = said.narrows && said.narrowsMembers
-        narrowsHere && said.accepts(member, tags, strictnessFor(said))
-    }
+    val insisting = reaching.filter { said -> insistsOn(member, tags, said, aspect) }
     val insisted = insisting.sumOf { it.pullOn(tags) }
     val mentions = reaching.count { it.choice?.key == member.key }
     val mentioned = if (world.isPresentAnyway(member)) mentions * A_MENTION_IS_WORTH else NOTHING_MORE
@@ -170,6 +178,18 @@ private fun Resolving.claimForMember(
         onlyWhereItGrows = described,
         introducedIfAbsent = described && namedOutright,
     )
+}
+
+/** Whether [said] narrows its members to ones [member] is among, as strictly as this Age reads it. */
+private fun Resolving.insistsOn(member: Taggable, tags: Map<String, Double>, said: Landing, aspect: Aspect): Boolean {
+    val strictness = if (said.polarity != Polarity.ASSERTED) Bars.STRICT else strictnessOf(aspect, said)
+    return said.narrows && said.narrowsMembers && said.accepts(member, tags, strictness)
+}
+
+/** Whether [said] asks for [member]: names it, or insists on it. */
+private fun Resolving.asksFor(member: Taggable, tags: Map<String, Double>, said: Landing, aspect: Aspect): Boolean {
+    val namesIt = said.choice?.key == member.key || member.key in said.admitted
+    return said.polarity == Polarity.ASSERTED && (namesIt || insistsOn(member, tags, said, aspect))
 }
 
 /** How many times as much of a member [landings] ask for: every abundance among them, a joined run counted once. */
