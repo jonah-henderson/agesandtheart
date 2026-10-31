@@ -20,6 +20,7 @@ import com.mojang.brigadier.context.CommandContext
 import net.minecraft.tags.FluidTags
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
+import net.minecraft.commands.arguments.IdentifierArgument
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.core.QuartPos
@@ -115,6 +116,7 @@ internal object TerrainInstruments {
     private const val PROBE_X = "x"
 
     private const val PROBE_Y = "y"
+    private const val CREATURE_ARGUMENT = "creature"
 
     private const val PROBE_Z = "z"
 
@@ -433,7 +435,54 @@ internal object TerrainInstruments {
                         ),
                     ),
                 )
+                .then(
+                    Commands.literal("arrive").then(
+                        Commands.argument(CREATURE_ARGUMENT, IdentifierArgument.id()).then(
+                            Commands.argument(PROBE_X, IntegerArgumentType.integer()).then(
+                                Commands.argument(PROBE_Z, IntegerArgumentType.integer()).executes { context ->
+                                    runArrival(context, reportFor(context))
+                                },
+                            ),
+                        ),
+                    ),
+                )
         }
+
+    /**
+     * One arrival the Age places itself, forced as a tick would make it but with no player needed, at the column
+     * nearest the one given in its chunk where the creature may stand.
+     */
+    private fun runArrival(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val age = namedAge(context.source, name, report) ?: return FAILURE
+        val creature = IdentifierArgument.getId(context, CREATURE_ARGUMENT)
+        val x = IntegerArgumentType.getInteger(context, PROBE_X)
+        val z = IntegerArgumentType.getInteger(context, PROBE_Z)
+        val level = Ages.open(context.source.server, age.id)
+        level.getChunk(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z))
+        val placing = AgeGeneration.spawnersFor(context.source.server, age.recipe).filterIsInstance<AgeSpawner>().firstOrNull()
+        val chosen = placing?.placedCreatures?.firstOrNull { BuiltInRegistries.ENTITY_TYPE.getKey(it.type) == creature }
+        if (placing == null || chosen == null) {
+            report.fail("'$name' does not place $creature itself")
+            return FAILURE
+        }
+        val chunkX = SectionPos.blockToSectionCoord(x) * BLOCKS_PER_CHUNK
+        val chunkZ = SectionPos.blockToSectionCoord(z) * BLOCKS_PER_CHUNK
+        val columns = (0..<BLOCKS_PER_CHUNK).flatMap { dx -> (0..<BLOCKS_PER_CHUNK).map { dz -> chunkX + dx to chunkZ + dz } }
+            .sortedBy { (columnX, columnZ) -> (columnX - x) * (columnX - x) + (columnZ - z) * (columnZ - z) }
+        val outcomes = columns.asSequence()
+            .map { (columnX, columnZ) -> placing.tryAt(chosen, level, BlockPos(columnX, level.getHeight(chosen.surface, columnX, columnZ), columnZ)) }
+        val standing = outcomes.filterIsInstance<AgeSpawner.Outcome.Standing>().firstOrNull()
+        if (standing == null) {
+            report.fail("$creature would not stand anywhere in the chunk at $x $z: ${outcomes.first().javaClass.simpleName} at $x $z")
+            return FAILURE
+        }
+        for (put in placing.place(chosen, level, standing.at)) {
+            report.entry("arrived", mapOf("x" to put.x, "y" to put.y, "z" to put.z)) { "  $creature at ${put.x} ${put.y} ${put.z}" }
+        }
+        report.finish()
+        return SUCCESS
+    }
 
     private fun runSpawnsAt(context: CommandContext<CommandSourceStack>, at: BlockPos, report: Report): Int {
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
@@ -798,8 +847,9 @@ internal object TerrainInstruments {
                 }
             }
             val named = BuiltInRegistries.ENTITY_TYPE.getKey(creature.type)
-            report.entry("places", mapOf("creature" to named.toString(), "outcomes" to outcomes)) {
-                "  places $named (${creature.ground}, ${creature.spacing} apart): " +
+            val together = "${creature.arrival.least}..${creature.arrival.most}"
+            report.entry("places", mapOf("creature" to named.toString(), "together" to together, "outcomes" to outcomes)) {
+                "  places $named (${creature.ground}, ${creature.spacing} apart, $together together): " +
                     outcomes.entries.joinToString(", ") { "${it.key} ${it.value}" }
             }
         }

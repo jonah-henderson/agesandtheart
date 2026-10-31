@@ -4,6 +4,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.util.valueproviders.UniformInt
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.ShippedCorpus
 import co.voik.agesandtheart.age.word.Vocabulary
 import io.kotest.core.annotation.Tags
 import net.minecraft.resources.Identifier
@@ -233,6 +234,17 @@ class SpawningCheck : FunSpec({
         val grounds = placing.placedCreatures.associate { it.type to it.ground }
         check(grounds[EntityTypes.ENDER_DRAGON] == Ground.IN_THE_AIR) { "the dragon is placed on $grounds" }
         check(grounds[EntityTypes.IRON_GOLEM] == Ground.SURFACE) { "the golem is placed on $grounds" }
+    }
+
+    test("herds of a creature the Age places arrive as many together as the herd, and alone it arrives as the corpus says") {
+        fun golemsIn(pages: String): Arrival? {
+            val options = ShippedCorpus.resolved(ShippedCorpus.ANY_SEED, *pages.split(" ").toTypedArray()).composition.optionsFor(Aspect.SPAWNS)
+            return AgeSpawner.placing(options, shippedSpawning)?.placedCreatures?.firstOrNull { it.type == EntityTypes.IRON_GOLEM }?.arrival
+        }
+        val herded = golemsIn("herds of iron_golem")
+        check(herded?.least == 4 && herded.most == 6) { "herds of iron_golem arrive $herded" }
+        val alone = golemsIn("iron_golem")
+        check(alone == shippedSpawning.of(Identifier.withDefaultNamespace("iron_golem"))) { "a plain iron_golem arrives $alone" }
     }
 
     /**

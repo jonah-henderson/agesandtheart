@@ -63,6 +63,26 @@ class WrittenCreaturesOnServerCheck : FunSpec({
         check(witches * 2 == inside.values.sum() && inside.size > 1) { "the swamp hut offered $inside" }
     }
 
+    test("a herd of golems arrives together and spread out, and a golem unherded as the corpus says") {
+        fun arrivalIn(age: String, sentence: String): List<Triple<Int, Int, Int>> {
+            server.run("age write $age $SEED $sentence")
+            inThe(age, "forceload add $GOLEM_GROUND $GOLEM_GROUND")
+            server.waitUntil("the chunk golems arrive in loading in '$age'") {
+                inThe(age, "execute if loaded $GOLEM_GROUND $PROBE_HEIGHT $GOLEM_GROUND").startsWith("Test passed")
+            }
+            val answer = server.ask("spawns", "$age arrive minecraft:iron_golem $GOLEM_GROUND $GOLEM_GROUND")
+            inThe(age, "forceload remove all")
+            val arrived = checkNotNull(answer.getAsJsonArray("arrived")) { "no golem arrived in '$age': $answer" }
+            return arrived.map { it.asJsonObject }.map { Triple(it.get("x").asInt, it.get("y").asInt, it.get("z").asInt) }
+        }
+        val herd = arrivalIn(HERDED_GOLEMS, "age overworld landmass herds of iron_golem")
+        // A member that finds no room beside the first is left out, so a herd may come short of the four it drew.
+        check(herd.size > GOLEMS_TOGETHER_UNHERDED && herd.size <= HERD_AT_MOST) { "a herd of golems came ${herd.size} together: $herd" }
+        check(herd.distinct().size > 1) { "a herd of golems stood on one block: $herd" }
+        val alone = arrivalIn(LONE_GOLEMS, "age overworld landmass iron_golem")
+        check(alone.size <= GOLEMS_TOGETHER_UNHERDED) { "golems unherded came ${alone.size} together" }
+    }
+
     test("a sheep summoned into a black-sheep Age is black") {
         check(summoned(BLACK_SHEEP, "age black sheep", "sheep", BLACK_WOOL)) { "a sheep in 'black sheep' came another colour" }
     }
@@ -75,6 +95,15 @@ private const val BLACK_SHEEP = "blacksheep"
 private const val TEEMING = "teemingspawns"
 private const val ORDINARY = "ordinaryspawns"
 private const val INCONGRUOUS = "incongruoushuts"
+private const val HERDED_GOLEMS = "herdedgolems"
+private const val LONE_GOLEMS = "lonegolems"
+
+/** The most a herd brings, and the most golems `art/spawning.json` brings together. */
+private const val HERD_AT_MOST = 6
+private const val GOLEMS_TOGETHER_UNHERDED = 2
+
+/** Dry, level ground at [SEED] on an overworld landmass, with room around it for a herd. */
+private const val GOLEM_GROUND = 400
 
 /** From where `locate` puts a swamp hut to inside it, and the heights its room could stand at. */
 private const val INTO_THE_HUT = 3

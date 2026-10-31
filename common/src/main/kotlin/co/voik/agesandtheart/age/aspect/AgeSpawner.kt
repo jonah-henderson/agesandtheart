@@ -95,6 +95,14 @@ class AgeSpawner(
             Ground.UNDERGROUND -> openSpotBelow(level, column) ?: return Outcome.NoOpening
             else -> column
         }
+        val standing = standsAt(chosen, level, candidate)
+        if (standing !is Outcome.Standing) return standing
+        if (alreadyEnoughAround(chosen, level, candidate)) return Outcome.EnoughAlready
+        return standing
+    }
+
+    /** Whether [chosen] may stand at [candidate]: in the world, by its own rules, with room, in its light. */
+    private fun standsAt(chosen: Placement, level: ServerLevel, candidate: BlockPos): Outcome {
         if (candidate.y >= level.maxY || candidate.y <= level.minY) return Outcome.OutsideTheWorld
         // **Both of vanilla's tests here ask whether there is ground to stand on**, and neither applies to
         // a creature judged to belong aloft. `SpawnPlacements` registers the dragon `ON_GROUND` — it is not
@@ -123,7 +131,6 @@ class AgeSpawner(
         // light at all and an aloft creature has none run over it, so for these two this is the whole of
         // the judgement rather than a second opinion on vanilla's.
         if (!chosen.light.admits(level.getMaxLocalRawBrightness(candidate))) return Outcome.WrongLight
-        if (alreadyEnoughAround(chosen, level, candidate)) return Outcome.EnoughAlready
         return Outcome.Standing(candidate)
     }
 
@@ -191,12 +198,14 @@ class AgeSpawner(
         return near.size >= chosen.arrival.most
     }
 
-    private fun place(chosen: Placement, level: ServerLevel, at: BlockPos) {
+    /** [chosen] at [at], and the rest of the group it arrives in wherever each finds room beside it; where each was put. */
+    fun place(chosen: Placement, level: ServerLevel, at: BlockPos): List<BlockPos> {
         val many = chosen.arrival.least + level.random.nextInt(1 + chosen.arrival.most - chosen.arrival.least)
         val difficulty = level.getCurrentDifficultyAt(at)
-        repeat(many) {
-            val mob = chosen.type.create(level, EntitySpawnReason.NATURAL) as? Mob ?: return
-            mob.snapTo(at.x + HALF_A_BLOCK, at.y.toDouble(), at.z + HALF_A_BLOCK, level.random.nextFloat() * A_FULL_TURN, 0.0f)
+        val standing = (1..<many).fold(listOf(at)) { taken, _ -> taken + listOfNotNull(besideTheFirst(chosen, level, taken)) }
+        for ((put, each) in standing.withIndex()) {
+            val mob = chosen.type.create(level, EntitySpawnReason.NATURAL) as? Mob ?: return standing.take(put)
+            mob.snapTo(each.x + HALF_A_BLOCK, each.y.toDouble(), each.z + HALF_A_BLOCK, level.random.nextFloat() * A_FULL_TURN, 0.0f)
             madeAtHome(mob, at)
             // Through the loader, so a NeoForge mod may change what arrives or refuse it — see
             // [co.voik.agesandtheart.platform.services.MobSpawning]. A refusal marks the mob and the line
@@ -204,6 +213,29 @@ class AgeSpawner(
             Services.MOB_SPAWNING.finish(level, mob, difficulty, EntitySpawnReason.NATURAL)
             level.addFreshEntityWithPassengers(mob)
         }
+        return standing
+    }
+
+    /**
+     * Somewhere [chosen] may stand near the first of [taken] and on none of them, on its own ground, or null where a
+     * few tries find none: within a few blocks, or a couple of its own widths for one wider than that.
+     */
+    private fun besideTheFirst(chosen: Placement, level: ServerLevel, taken: List<BlockPos>): BlockPos? {
+        val first = taken.first()
+        val spread = maxOf(HERD_SPREAD, Math.ceil(chosen.type.width * WIDTHS_APART).toInt())
+        repeat(TRIES_BESIDE) {
+            val x = first.x + level.random.nextInt(-spread, spread + 1)
+            val z = first.z + level.random.nextInt(-spread, spread + 1)
+            if (!level.hasChunkAtColumn(x, z)) return@repeat
+            val candidate = when (chosen.ground) {
+                Ground.IN_THE_AIR -> BlockPos(x, first.y, z)
+                Ground.UNDERGROUND -> openSpotBelow(level, BlockPos(x, first.y + DOWN_TO_LOOK_FROM, z)) ?: return@repeat
+                else -> BlockPos(x, level.getHeight(chosen.surface, x, z), z)
+            }
+            val standing = standsAt(chosen, level, candidate)
+            if (standing is Outcome.Standing && standing.at !in taken) return standing.at
+        }
+        return null
     }
 
     /**
@@ -237,16 +269,19 @@ class AgeSpawner(
          * this Age asked for none of them, which is nearly every Age.
          */
         fun placing(options: Options, spawning: Spawning): AgeSpawner? {
+            val herds = Spawns.herdsIn(options)
             val wanted = Spawns.claimedCreatures(options)
-                .mapNotNull { (id, density) -> placementOf(id, density, spawning) }
+                .mapNotNull { (id, density) -> placementOf(id, density, spawning, herds[id]) }
             return if (wanted.isEmpty()) null else AgeSpawner(wanted)
         }
 
-        private fun placementOf(id: Identifier, density: Double, spawning: Spawning): Placement? {
+        /** [id] as the Age places it, arriving [herd] together where the book made herds of it. */
+        private fun placementOf(id: Identifier, density: Double, spawning: Spawning, herd: IntRange?): Placement? {
             if (!spawning.isPlacedByTheAge(id)) return null
             if (!BuiltInRegistries.ENTITY_TYPE.containsKey(id)) return null
             val type = BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null) ?: return null
-            val arrival = spawning.of(id)
+            val ownArrival = spawning.of(id)
+            val arrival = herd?.let { ownArrival.copy(least = it.first, most = it.last) } ?: ownArrival
             val spacing = arrival.spacedAt(density)
             // **No thinning to hand back here.** The natural spawner's weights are shares of a draw against
             // a biome's whole list, so a rule about *where* had to be repaid in weight or the creature
@@ -279,6 +314,11 @@ class AgeSpawner(
         /** Where to start looking for a cave, and how far down to keep looking. */
         private const val DOWN_TO_LOOK_FROM = 8
         private const val HOW_FAR_TO_LOOK = 96
+
+        /** How far from the first of a group the rest are tried, as vanilla spreads a group, and how often. */
+        private const val HERD_SPREAD = 6
+        private const val WIDTHS_APART = 2.0
+        private const val TRIES_BESIDE = 16
 
         /** How far around a creature held apart from nothing counts as here. */
         private const val ORDINARY_REACH = 64.0
