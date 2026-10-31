@@ -264,12 +264,13 @@ enum class Phenomenon(
 
     /**
      * The dials this phenomenon has, said of it alone: how often it comes where it comes and goes, how hard it
-     * is where instability has harsh dials for it, and how fast it grows where it grows. A page that says only
-     * what this has no dial for is refused before it. A getter, since [Phenomena] is built from these entries.
+     * is where instability has harsh dials for it, and how fast it goes where it moves or grows. A page that says
+     * only what this has no dial for is refused before it. A getter, since [Phenomena] is built from these entries.
      */
     override val parameters: List<Parameter>
         get() = when (this) {
-            TEMPEST, METEORS, SANDFALL, BLIZZARD, FOG, TECTONICS, DELUGE -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH)
+            METEORS, SANDFALL -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH, Phenomena.PACE)
+            TEMPEST, BLIZZARD, FOG, TECTONICS, DELUGE -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH)
             AURORA, RAINBOW -> listOf(Phenomena.FREQUENCY)
             INFERNO -> listOf(Phenomena.STRENGTH)
             OVERGROWTH -> listOf(Phenomena.PACE)

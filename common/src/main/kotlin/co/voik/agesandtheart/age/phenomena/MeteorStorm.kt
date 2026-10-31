@@ -17,6 +17,7 @@ import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.Vec3
+import kotlin.math.pow
 
 /**
  * One meteor storm: a place, a clock, and the bodies it drops (design §5.2).
@@ -92,6 +93,14 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         set(value) = entityData.set(REACHES, value)
 
     /**
+     * How fast this storm's bodies fall as written, against their own pace: half as fast to twice. Watched, because
+     * a light closes at it, from as much further out as it closes faster, so the telegraph lasts as long at any pace.
+     */
+    var pace: Float
+        get() = entityData.get(PACED)
+        set(value) = entityData.set(PACED, value)
+
+    /**
      * When the world was, when this gathered — and so, with the world's clock, how old it is.
      *
      * **The storm's own [tickCount] cannot be that clock, and a stress test is where it shows** (Jonah,
@@ -130,6 +139,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         builder.define(SLANT, UNASKED)
         builder.define(GATHERED_AT, NEVER)
         builder.define(REACHES, REACH.toFloat())
+        builder.define(PACED, OWN_PACE)
     }
 
     /**
@@ -212,7 +222,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      */
     fun seenFrom(flight: MeteorFlight, nearness: Float): Vec3 {
         val stillToCome = (ALL_OF_IT - nearness).toDouble()
-        val range = ENTRY_RANGE + (TELEGRAPHED_FROM - ENTRY_RANGE) * stillToCome
+        val range = ENTRY_RANGE + (TELEGRAPHED_FROM - ENTRY_RANGE) * pace * stillToCome
         val (offsetX, offsetY, offsetZ) = flight.entryOffset(range)
         return landingOf(flight).add(offsetX, offsetY, offsetZ)
     }
@@ -309,9 +319,11 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         // A weak storm's fury is under nought, which lands softer and slower, down to a floor.
         val speed = (SLOWEST_ARRIVAL + (FASTEST_ARRIVAL - SLOWEST_ARRIVAL) * fury).coerceAtLeast(SLOWEST_ARRIVAL * GENTLEST_SHARE)
         val body = Meteor(AgeContent.METEOR, level)
-        body.blast = (AT_REST + (AT_FULL_FURY - AT_REST) * fury).coerceAtLeast(AT_REST * GENTLEST_SHARE).toFloat()
+        val blast = (AT_REST + (AT_FULL_FURY - AT_REST) * fury).coerceAtLeast(AT_REST * GENTLEST_SHARE)
+        // A blast's reach grows as the cube root of what it carries, and that as the square of the speed.
+        body.blast = (blast * pace.toDouble().pow(BLAST_PER_PACE)).toFloat()
         body.setPos(from.x, from.y, from.z)
-        body.setDeltaMovement(toTheGround.normalize().scale(speed))
+        body.setDeltaMovement(toTheGround.normalize().scale(speed * pace))
         // Aged from the moment it was *due* rather than the moment it was thrown, so one whose moment went
         // by while nobody was here is already past its flight and comes straight down.
         body.thrownAt = dueAt
@@ -332,6 +344,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         output.putLong(GATHERED_KEY, gatheredAt)
         output.putInt(DROPPED_KEY, droppedTo)
         output.putFloat(REACH_KEY, reach)
+        output.putFloat(PACE_KEY, pace)
     }
 
     override fun readAdditionalSaveData(input: ValueInput) {
@@ -342,6 +355,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         gatheredAt = input.getLongOr(GATHERED_KEY, NEVER)
         droppedTo = input.getIntOr(DROPPED_KEY, NONE_THROWN_YET)
         reach = input.getFloatOr(REACH_KEY, REACH.toFloat())
+        pace = input.getFloatOr(PACE_KEY, OWN_PACE)
     }
 
     companion object {
@@ -354,6 +368,8 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         private val GATHERED_AT: EntityDataAccessor<Long> =
             SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.LONG)
         private val REACHES: EntityDataAccessor<Float> =
+            SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.FLOAT)
+        private val PACED: EntityDataAccessor<Float> =
             SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.FLOAT)
 
         /**
@@ -486,6 +502,9 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         private const val GATHERED_KEY = "gathered_at"
         private const val DROPPED_KEY = "dropped_to"
         private const val REACH_KEY = "reach"
+        private const val PACE_KEY = "pace"
+        private const val OWN_PACE = 1.0f
+        private const val BLAST_PER_PACE = 2.0 / 3.0
 
         /**
          * **Minus one, because zero is a time.** A storm that gathered on tick zero — a fresh world, or a
@@ -521,6 +540,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             fury: Double,
             slant: Double? = null,
             reach: Double = REACH,
+            pace: Double = OWN_PACE.toDouble(),
         ): MeteorStorm {
             val storm = MeteorStorm(AgeContent.METEOR_STORM, level)
             storm.setPos(where.x, where.y, where.z)
@@ -529,6 +549,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             storm.fury = fury
             storm.gatheredAt = level.gameTime
             storm.reach = reach.toFloat()
+            storm.pace = pace.toFloat()
             if (slant != null) storm.slant = slant.toFloat()
             level.addFreshEntity(storm)
             return storm

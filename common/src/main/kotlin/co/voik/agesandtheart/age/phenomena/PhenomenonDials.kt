@@ -6,17 +6,19 @@ import co.voik.agesandtheart.age.Spending
 /**
  * How far an Age's instability reached into each of a meteor storm's dials, each from nothing to all of it
  * (design §5.2). Read off the [Spending] rather than passed as one fury, so each dial moves only what it
- * names: [often] how often a storm gathers, [long] how long it lasts, [power] how hard its bodies land.
+ * names: [often] how often a storm gathers, [long] how long it lasts, [power] how hard its bodies land. And
+ * [pace], how fast the book wrote them to fall, as a multiple of their own.
  */
-data class MeteorDials(val often: Double, val long: Double, val power: Double) {
+data class MeteorDials(val often: Double, val long: Double, val power: Double, val pace: Double = OWN_PACE) {
     companion object {
         /** What an Age that bought nothing inflicts — a written storm as written. */
         val NONE = MeteorDials(often = 0.0, long = 0.0, power = 0.0)
 
-        fun of(spending: Spending, written: Double = UNSAID) = MeteorDials(
+        fun of(spending: Spending, written: Double = UNSAID, pace: Double = OWN_PACE) = MeteorDials(
             often = spending.reach(Manifestation.METEORS, Manifestation.STORMS_OFTEN),
             long = spending.reach(Manifestation.METEORS, Manifestation.STORMS_LONG),
             power = harderBy(spending.reach(Manifestation.METEORS, Manifestation.STORMS_POWER), written),
+            pace = pace,
         )
     }
 }
@@ -38,17 +40,25 @@ data class TectonicsDials(val size: Double, val speed: Double) {
 
 /**
  * A sandfall's: [often] how often a column comes and how many may stand at once, [long] how long one
- * lives, [size] how wide it grows, [depth] how deep a pass buries.
+ * lives, [size] how wide it grows, [depth] how deep a pass buries; and [pace], how fast the book wrote a
+ * column to wander, as a multiple of its own.
  */
-data class SandfallDials(val often: Double, val long: Double, val size: Double, val depth: Double) {
+data class SandfallDials(
+    val often: Double,
+    val long: Double,
+    val size: Double,
+    val depth: Double,
+    val pace: Double = OWN_PACE,
+) {
     companion object {
         val NONE = SandfallDials(often = 0.0, long = 0.0, size = 0.0, depth = 0.0)
 
-        fun of(spending: Spending, written: Double = UNSAID) = SandfallDials(
+        fun of(spending: Spending, written: Double = UNSAID, pace: Double = OWN_PACE) = SandfallDials(
             often = spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_OFTEN),
             long = spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_LONG),
             size = harderBy(spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_SIZE), written),
             depth = harderBy(spending.reach(Manifestation.SANDFALL, Manifestation.COLUMNS_DEPTH), written),
+            pace = pace,
         )
     }
 }
@@ -124,6 +134,9 @@ private const val WHOLE_REACH = 1.0
 
 /** What a dial carries where the book said nothing of how hard. */
 private const val UNSAID = 0.0
+
+/** And of how fast. */
+private const val OWN_PACE = 1.0
 
 /**
  * **What a dial bought in full is worth: what `teeming` is to a written claim.** One figure for every dial

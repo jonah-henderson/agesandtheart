@@ -72,12 +72,12 @@ object Phenomena {
     ).perMember()
 
     /**
-     * How fast a phenomenon that grows does it — `pace`, the name the rain, the creatures and the bodies share, so
-     * `slow` and `swift` reach it. Only the overgrowth grows.
+     * How fast a phenomenon goes — the overgrowth's growing, a meteor's fall, a sandfall's wander — under `pace`, the
+     * name the rain, the creatures and the bodies share, so `slow` and `swift` reach it.
      */
     val PACE = Parameter.ranged(
         "pace",
-        help = "How fast it grows, against its own ordinary pace.",
+        help = "How fast it goes, against its own ordinary pace.",
         landmarks = listOf(
             Parameter.Landmark(-1.0, "half as fast"),
             Parameter.Landmark(0.0, "its own pace", isVanilla = true),
@@ -85,12 +85,12 @@ object Phenomena {
         ),
     ).perMember()
 
-    /** How fast [phenomenon] was written to grow, as a multiple of its own pace: half as fast to twice. */
-    fun growthOf(options: Options, phenomenon: Phenomenon, seed: Long): Double =
-        FASTEST_GROWTH.pow(options.steer(PACE, seed, member = phenomenon.key) ?: UNSAID_PACE)
+    /** How fast [phenomenon] was written to go, as a multiple of its own pace: half as fast to twice. */
+    fun paceOf(options: Options, phenomenon: Phenomenon, seed: Long): Double =
+        FASTEST_PACE.pow(options.steer(PACE, seed, member = phenomenon.key) ?: UNSAID_PACE)
 
     private const val UNSAID_PACE = 0.0
-    private const val FASTEST_GROWTH = 2.0
+    private const val FASTEST_PACE = 2.0
 
     /** How hard [phenomenon] was written in these options, from -1 to 1, nought where nothing was said. */
     fun strengthOf(options: Options, phenomenon: Phenomenon, seed: Long): Double =

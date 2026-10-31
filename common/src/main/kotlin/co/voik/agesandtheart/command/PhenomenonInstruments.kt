@@ -366,7 +366,7 @@ internal object PhenomenonInstruments {
         // inventing a storm the game does not contain: the rung its book claimed and the dials its
         // instability actually bought. Anything passed is an override on top of that.
         val density = Happenings.claimFor(level, Phenomenon.METEORS)?.density ?: Rung.ORDINARY
-        val bought = MeteorDials.of(Happenings.spendingIn(level))
+        val bought = MeteorDials.of(Happenings.spendingIn(level), pace = Happenings.paceIn(level, Phenomenon.METEORS))
         // toDouble FIRST: ALL_OF_A_DIAL is an Int, so dividing without it makes every power under a hundred nought.
         val dials = powerPercent?.let { bought.copy(power = it.toDouble() / ALL_OF_A_DIAL) } ?: bought
         val facing = Vec3.directionFromRotation(source.rotation)
@@ -387,7 +387,7 @@ internal object PhenomenonInstruments {
         Report.prose(source).say {
             val drawnIn = drawn?.let { "drawn in by ${it.blocks} aloft, ${storm.reach.toInt()} wide" }
                 ?: "${storm.reach.toInt()} wide, nothing drawing it"
-            "A storm gathers, $drawnIn, ${(dials.power * ALL_OF_A_DIAL).toInt()}% power, " +
+            "A storm gathers, $drawnIn, ${(dials.power * ALL_OF_A_DIAL).toInt()}% power at ${"%.2f".format(dials.pace)} times its pace, " +
                 "${storm.bodies} bodies over ${storm.falling / TICKS_PER_SECOND}s. " +
                 "It falls in ${MeteorStorm.APPROACHING / TICKS_PER_SECOND}s."
         }
@@ -487,6 +487,7 @@ internal object PhenomenonInstruments {
         val dials = SandfallDials.NONE.copy(
             size = sizePercent.toDouble() / ALL_OF_A_DIAL,
             depth = depthPercent.toDouble() / ALL_OF_A_DIAL,
+            pace = Happenings.paceIn(level, Phenomenon.SANDFALL),
         )
         val facing = Vec3.directionFromRotation(source.rotation)
         val at = source.position.add(facing.scale(distance.toDouble()))

@@ -51,13 +51,18 @@ class FrequencySplitCheck : FunSpec({
         for (pages in read) check(parses(*pages.toTypedArray())) { "'${pages.joinToString(" ")}' was refused" }
     }
 
-    test("a swift overgrowth grows faster, and a slow one slower") {
-        fun growth(word: String) = Phenomena.growthOf(
-            ShippedCorpus.resolved(SEED, word, "overgrowth").composition.optionsFor(Aspect.PHENOMENA, 0),
-            Phenomenon.OVERGROWTH, SEED,
-        )
-        check(growth("swift") > 1.0) { "a swift overgrowth grows at ${growth("swift")}" }
-        check(growth("slow") < 1.0) { "a slow overgrowth grows at ${growth("slow")}" }
+    test("a swift overgrowth, meteor storm or sandfall goes faster, a slow one slower, and the others keep their pace") {
+        fun paceOf(word: String, phenomenon: Phenomenon, of: Phenomenon = phenomenon): Double? {
+            val composition = ShippedCorpus.resolved(SEED, word, phenomenon.key).composition
+            return Happenings.befallingIn(composition, SEED, Spending.NOTHING)[of]?.pace
+        }
+        for (phenomenon in listOf(Phenomenon.OVERGROWTH, Phenomenon.METEORS, Phenomenon.SANDFALL)) {
+            val swift = paceOf("swift", phenomenon)
+            val slow = paceOf("slow", phenomenon)
+            check(swift != null && swift > 1.0 && swift <= 2.0) { "a swift ${phenomenon.key} goes at $swift" }
+            check(slow != null && slow < 1.0 && slow >= 0.5) { "a slow ${phenomenon.key} goes at $slow" }
+        }
+        check(paceOf("frequent", Phenomenon.METEORS) == 1.0) { "a frequent meteor storm moved its pace" }
     }
 
     test("a rung still counts what can be counted in space") {

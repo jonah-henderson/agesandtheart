@@ -235,7 +235,7 @@ object Overgrowth {
     private fun growthWrittenFor(level: ServerLevel): Double {
         val recipe = Ages.recipeOf(level) ?: return OWN_PACE
         val composition = recipe.composition ?: return OWN_PACE
-        return Phenomena.growthOf(composition.optionsFor(Aspect.PHENOMENA, 0), Phenomenon.OVERGROWTH, recipe.seed)
+        return Phenomena.paceOf(composition.optionsFor(Aspect.PHENOMENA, 0), Phenomenon.OVERGROWTH, recipe.seed)
     }
 
     /** [ordinary] tries at [growth] times the pace, the fraction left over taken by chance. */

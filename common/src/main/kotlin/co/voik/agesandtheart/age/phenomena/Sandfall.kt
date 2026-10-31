@@ -111,7 +111,7 @@ object Sandfall {
             atX = atX,
             atZ = atZ,
             headingDegrees = headingDegrees,
-            speed = column.slowestSpeed + random.nextDouble() * (column.fastestSpeed - column.slowestSpeed),
+            speed = (column.slowestSpeed + random.nextDouble() * (column.fastestSpeed - column.slowestSpeed)) * dials.pace,
             lifetime = lifetime ?: (shortest + random.nextInt((longest - shortest).coerceAtLeast(AT_ONCE))),
             // No two quite alike, which is the whole of why this is a range rather than a number.
             fullHalfWidth = narrowest + random.nextDouble() * (widest - narrowest),

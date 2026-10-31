@@ -97,6 +97,13 @@ object Happenings {
         return Spending.of(level.server, recipe)
     }
 
+    /** How fast this Age's book wrote [phenomenon] to go, as a multiple of its own pace — its own anywhere else. */
+    fun paceIn(level: ServerLevel, phenomenon: Phenomenon): Double {
+        val recipe = Ages.recipeOf(level) ?: return OWN_PACE
+        val composition = recipe.composition ?: return OWN_PACE
+        return Phenomena.paceOf(composition.optionsFor(Aspect.PHENOMENA, 0), phenomenon, recipe.seed)
+    }
+
     /**
      * Whether [phenomenon] befalls [level] at all — **written, or inflicted by its instability** — for
      * something that has to answer what the world did rather than the clock, as a bolt landing does.
@@ -133,7 +140,7 @@ object Happenings {
     fun befallingIn(composition: AgeComposition, seed: Long, spending: Spending): Map<Phenomenon, Befalling> =
         befalling(claimsIn(composition), spending, asWrittenIn(composition, seed))
 
-    /** How often and how hard [composition] wrote each phenomenon, at the rung it came with. */
+    /** How often, how hard and how fast [composition] wrote each phenomenon, at the rung it came with. */
     private fun asWrittenIn(composition: AgeComposition, seed: Long): (Phenomenon, Double) -> Befalling {
         val options = composition.optionsFor(Aspect.PHENOMENA, 0)
         return { phenomenon, amount ->
@@ -141,6 +148,7 @@ object Happenings {
                 amount,
                 Phenomena.recurrenceOf(options, phenomenon, seed),
                 Phenomena.strengthOf(options, phenomenon, seed),
+                Phenomena.paceOf(options, phenomenon, seed),
             )
         }
     }
@@ -235,10 +243,10 @@ object Happenings {
             // the weather is `Phenomenon.RAINBOW.insistsOn`, which the Age was built with rather than
             // something to arrange here. See [Phenomenon.RAINBOW].
             Phenomenon.RAINBOW -> Unit
-            Phenomenon.SANDFALL -> Sandfall.wander(level, befalling, SandfallDials.of(spending, written))
+            Phenomenon.SANDFALL -> Sandfall.wander(level, befalling, SandfallDials.of(spending, written, befalling.pace))
             Phenomenon.TECTONICS -> CaveIns.stir(level, recurrence.often, TectonicsDials.of(spending, written))
             Phenomenon.BLIZZARD -> Blizzard.blow(level, BlizzardDials.of(spending, written))
-            Phenomenon.METEORS -> Meteors.fall(level, recurrence, MeteorDials.of(spending, written))
+            Phenomenon.METEORS -> Meteors.fall(level, recurrence, MeteorDials.of(spending, written, befalling.pace))
             // **The rise is not here**, and that is the one thing to know about this phenomenon's shape:
             // the sea's level is a counted number advanced in `AgeTick.tick`, where these two are the
             // near-player block work that makes it visible. See [Deluge].
@@ -257,6 +265,7 @@ object Happenings {
     private val NEVER_BREAKING = WeatherConditions(rainfall = ALWAYS, thunder = ALWAYS)
     private const val ALWAYS = 1.0
     private const val UNSAID_STRENGTH = 0.0
+    private const val OWN_PACE = 1.0
 
     /** How often a client is reminded what the weather here is, in ticks. */
     private const val TELLING_THE_CLIENT = 20
