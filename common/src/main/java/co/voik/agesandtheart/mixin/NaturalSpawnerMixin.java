@@ -8,11 +8,13 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.StructureManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -30,6 +32,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  *
  * <p>The peaceful rule is kept, and so are the collision checks, so nothing spawns inside a wall. Everywhere
  * that is not such an Age, and for a scarab anywhere, vanilla's own answer is returned untouched.
+ *
+ * <p>A fortress's floor is handed the fortress's monsters in {@code mobsAt} before the generator is asked, so in such an
+ * Age that shortcut is refused and the generator mixes them with the rest.
  *
  * <p>And a creature an Age asks for in herds is placed by a cow's rules, as the farm animals are
  * ({@link HerdedSpawns}): the same three seams, the cow's placement and predicate in its own's stead.
@@ -84,5 +89,22 @@ public abstract class NaturalSpawnerMixin {
         boolean ruledByAnother = level instanceof ServerLevel server
             && (IncongruousSpawns.anywhere(server, mob.getType()) || HerdedSpawns.isHerded(server, mob.getType()));
         return ruledByAnother || mob.checkSpawnRules(level, reason);
+    }
+
+    @Redirect(
+        method = "mobsAt",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/level/NaturalSpawner;isInNetherFortressBounds(Lnet/minecraft/core/BlockPos;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/MobCategory;Lnet/minecraft/world/level/StructureManager;)Z"
+        )
+    )
+    private static boolean agesandtheart$fortressAsksTheAge(
+        BlockPos at,
+        ServerLevel level,
+        MobCategory category,
+        StructureManager structures
+    ) {
+        return !IncongruousSpawns.reachesIntoFortresses(level)
+            && NaturalSpawner.isInNetherFortressBounds(at, level, category, structures);
     }
 }

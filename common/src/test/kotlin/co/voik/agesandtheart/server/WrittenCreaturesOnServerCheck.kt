@@ -44,6 +44,25 @@ class WrittenCreaturesOnServerCheck : FunSpec({
         check(capsIn(ORDINARY, "age clear sky").isEmpty()) { "an Age that said nothing of life moved a cap" }
     }
 
+    test("a witch hut in an incongruous Age offers its witches half the time, and everything else the other half") {
+        server.run("age write $INCONGRUOUS $SEED age overworld landmass incongruous inhabitants clear sky")
+        val located = inThe(INCONGRUOUS, "locate structure minecraft:swamp_hut")
+        val (x, z) = checkNotNull(Regex("""\[(-?\d+), ~, (-?\d+)]""").find(located)) { "no swamp hut was found: $located" }
+            .destructured.toList().map { it.toInt() + INTO_THE_HUT }
+        fun monstersAt(y: Int): Map<String, Int> {
+            val offered = server.ask("spawns", "$INCONGRUOUS at $x $y $z").getAsJsonArray("offered") ?: return emptyMap()
+            val monsters = offered.map { it.asJsonObject }.firstOrNull { it.get("pass").asString == "monster" } ?: return emptyMap()
+            return monsters.getAsJsonArray("creatures").associate { entry ->
+                val (creature, weight) = entry.asString.split(" x")
+                creature to weight.toInt()
+            }
+        }
+        val inside = (HUT_LOWEST..HUT_HIGHEST step 2).map(::monstersAt).firstOrNull { (it["minecraft:witch"] ?: 0) > WITCHES_ANYWHERE }
+        checkNotNull(inside) { "no height in the swamp hut at $x $z offered more witches than anywhere else does" }
+        val witches = inside.getValue("minecraft:witch")
+        check(witches * 2 == inside.values.sum() && inside.size > 1) { "the swamp hut offered $inside" }
+    }
+
     test("a sheep summoned into a black-sheep Age is black") {
         check(summoned(BLACK_SHEEP, "age black sheep", "sheep", BLACK_WOOL)) { "a sheep in 'black sheep' came another colour" }
     }
@@ -55,6 +74,15 @@ private const val UNCHARGED = "plaincreepers"
 private const val BLACK_SHEEP = "blacksheep"
 private const val TEEMING = "teemingspawns"
 private const val ORDINARY = "ordinaryspawns"
+private const val INCONGRUOUS = "incongruoushuts"
+
+/** From where `locate` puts a swamp hut to inside it, and the heights its room could stand at. */
+private const val INTO_THE_HUT = 3
+private const val HUT_LOWEST = 56
+private const val HUT_HIGHEST = 90
+
+/** What a swamp offers witches by, out of any structure. */
+private const val WITCHES_ANYWHERE = 5
 
 /** What `teeming` asks of every creature. */
 private const val TEEMING_RUNG = 4.0

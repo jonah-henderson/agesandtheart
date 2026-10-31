@@ -114,6 +114,8 @@ internal object TerrainInstruments {
 
     private const val PROBE_X = "x"
 
+    private const val PROBE_Y = "y"
+
     private const val PROBE_Z = "z"
 
     /** Below any rift floor, so a probe covers the whole band a chasm could occupy. */
@@ -396,7 +398,8 @@ internal object TerrainInstruments {
         }
 
     /**
-     * `/age spawns <age> [radius]` — **what this Age offers a spawn attempt**, above ground and below.
+     * `/age spawns <age> [radius]` — **what this Age offers a spawn attempt**, above ground and below; or
+     * `/age spawns <age> at <x> <y> <z>`, what it offers at one block, weights and all.
      *
      * The instrument nothing had: a written creature that never arrives is failing at one of four places —
      * the sentence, the recipe, the list `getMobsAt` builds, or vanilla's own placement check — and only
@@ -414,7 +417,40 @@ internal object TerrainInstruments {
                             runSpawnCensus(context, radius, reportFor(context))
                         },
                 )
+                .then(
+                    Commands.literal("at").then(
+                        Commands.argument(PROBE_X, IntegerArgumentType.integer()).then(
+                            Commands.argument(PROBE_Y, IntegerArgumentType.integer()).then(
+                                Commands.argument(PROBE_Z, IntegerArgumentType.integer()).executes { context ->
+                                    val at = BlockPos(
+                                        IntegerArgumentType.getInteger(context, PROBE_X),
+                                        IntegerArgumentType.getInteger(context, PROBE_Y),
+                                        IntegerArgumentType.getInteger(context, PROBE_Z),
+                                    )
+                                    runSpawnsAt(context, at, reportFor(context))
+                                },
+                            ),
+                        ),
+                    ),
+                )
         }
+
+    private fun runSpawnsAt(context: CommandContext<CommandSourceStack>, at: BlockPos, report: Report): Int {
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val age = namedAge(context.source, name, report) ?: return FAILURE
+        val level = Ages.open(context.source.server, age.id)
+        level.getChunk(SectionPos.blockToSectionCoord(at.x), SectionPos.blockToSectionCoord(at.z))
+        for (pass in MobCategory.entries) {
+            val list = level.chunkSource.generator.getMobsAt(level, level.structureManager(), pass, at)
+            val creatures = list.unwrap().map { "${BuiltInRegistries.ENTITY_TYPE.getKey(it.value().type())} x${it.weight()}" }
+            if (creatures.isEmpty()) continue
+            report.entry("offered", mapOf("pass" to pass.getName(), "creatures" to creatures)) {
+                "  ${pass.getName()}: ${creatures.joinToString(", ")}"
+            }
+        }
+        report.finish()
+        return SUCCESS
+    }
 
     private fun benchmarkSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("bench").then(

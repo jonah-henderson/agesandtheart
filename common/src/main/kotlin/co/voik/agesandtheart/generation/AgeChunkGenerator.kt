@@ -32,6 +32,7 @@ import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece
 import net.minecraft.world.level.levelgen.structure.StructurePiece
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager
+import net.minecraft.world.level.levelgen.structure.StructureSpawnOverride
 import net.minecraft.world.level.levelgen.structure.StructureStart
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.Holder
@@ -438,8 +439,10 @@ class AgeChunkGenerator(
         category: MobCategory,
         at: BlockPos,
     ): WeightedList<MobSpawnSettings.SpawnerData> {
-        val offered = if (incongruity.spawns) offeredAnywhere.getValue(category)
-            else super.getMobsAt(level, structures, category, at)
+        val offered = if (!incongruity.spawns) super.getMobsAt(level, structures, category, at) else {
+            val everywhere = offeredAnywhere.getValue(category)
+            structureSpawnsAt(structures, category, at)?.let { IncongruousSpawns.halfAndHalf(it, everywhere) } ?: everywhere
+        }
         val living = lives ?: return offered
         // The biome off the level rather than handed in: 26.3 passes the level, which is also what
         // retired the widener line that used to reach one through the structure manager.
@@ -454,6 +457,25 @@ class AgeChunkGenerator(
             ),
             offered,
         )
+    }
+
+    /** What a structure standing at [at] spawns in place of its biome's, as vanilla resolves it, or null where none does. */
+    private fun structureSpawnsAt(
+        structures: StructureManager,
+        category: MobCategory,
+        at: BlockPos,
+    ): WeightedList<MobSpawnSettings.SpawnerData>? {
+        for ((structure, starts) in structures.getAllStructuresAt(at)) {
+            val override = structure.spawnOverrides()[category] ?: continue
+            val byPiece = override.boundingBox() == StructureSpawnOverride.BoundingBoxType.PIECE
+            var holds = false
+            structures.fillStartsForStructure(structure, starts) { start ->
+                val inside = if (byPiece) structures.structureHasPieceAt(at, start) else start.boundingBox.isInside(at)
+                if (inside) holds = true
+            }
+            if (holds) return override.spawns()
+        }
+        return null
     }
 
     /**

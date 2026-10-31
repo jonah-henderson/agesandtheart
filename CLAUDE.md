@@ -451,7 +451,8 @@ When shared code needs something loader-specific, it goes through an interface, 
   method; Fabric has no fishing event and NeoForge's comes after the roll.
 - **`NaturalSpawnerMixin`** — what an `incongruous inhabitants` Age lets live anywhere (`generation/IncongruousSpawns`):
   vanilla's placement check, the type's spawn predicate and the creature's own spawn rule all pass, the peaceful
-  rule and the collision checks kept, scarabs excepted. Fabric has no natural-spawning event and NeoForge's
+  rule and the collision checks kept, scarabs excepted; a fortress's nether-brick floor, which vanilla answers before
+  asking the generator, is sent to it, so a structure there keeps half its own creatures as every other does. Fabric has no natural-spawning event and NeoForge's
   spawn-placement event is per type at registration rather than per level. The chunk-generation pass is ours
   already (`ChunkGenerationSpawns`) and frees itself. A creature asked for in herds is placed by a cow's rules at the
   same three seams (`generation/HerdedSpawns`). **`MixinsRegisteredCheck` holds every Mixin class listed in
