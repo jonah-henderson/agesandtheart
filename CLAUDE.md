@@ -92,10 +92,11 @@ something lands, delete the narrative of building it; a choice between genuinely
 - **`notes/before-release.md`** — what has to be true before anyone else plays this: the renames and codec
   changes that now cost a migration, the content debts, the Sodium survey and the assets still standing in on
   vanilla's, and the case for a base dimension being any dimension, modded ones included.
-- **`notes/asset-pass-plan.md`** — Phase 9 as one piece of art a day, 118 days in eight tiers of complexity: flat
+- **`notes/asset-pass-plan.md`** — Phase 9 as one piece of art a day, 131 days in nine tiers of complexity: flat
   item sprites, tiling blocks, multi-face cubes, cutout and tinted sprites, complex textures, 3D models, stateful
-  models, then animation and entity geometry. It names what each piece stands in for, what follows from it for
-  free, and the code a day needs beyond repointing a model. Read it before drawing anything.
+  models, animation and entity geometry, then the structures — the D'ni city room by room. It names what each
+  piece stands in for, what follows from it for free, and the code a day needs beyond repointing a model. Read it
+  before drawing or building anything.
 - **`notes/release-process.md`** — the one-command release: `scripts/release.sh` tests and builds a chosen commit
   in throwaway worktrees, tags it, attaches the jar to a GitHub Release and moves the packwiz pack on the orphan
   `pack` branch. **Built**, and it has made every release; Ephemeris has its own script and the catalog pins
