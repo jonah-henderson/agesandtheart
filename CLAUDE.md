@@ -41,7 +41,7 @@ something lands, delete the narrative of building it; a choice between genuinely
 - **`notes/eclipses-plan.md`** — what is left of eclipses, which are **built and unwalked**: `eclipsing moon`
   covers its sun once a month at noon, the day goes dark enough for monsters, and spare moons' phases follow the
   sun. It says where each part lives (Ephemeris draws and measures, the mod writes the word), names the constant
-  behind every knob the walk will turn, and holds four open questions. Read it before touching a body's
+  behind every knob the walk will turn, and holds three open questions. Read it before touching a body's
   blending, its phases, or how dark a level's day is.
 - **`notes/the-tag-layer.md`** — the fifty-three tags (forty-one properties and the twelve colours), where each
   is derived from, and why three separate things are called rarity. **Built**; what is left is the hand-tuning
