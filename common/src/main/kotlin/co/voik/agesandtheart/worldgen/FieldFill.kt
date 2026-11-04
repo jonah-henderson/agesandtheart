@@ -39,6 +39,8 @@ internal class FieldFill(
     private val abyssLine: Int,
     private val water: Aquifer,
     private val adaptation: TerrainAdaptation?,
+    /** Told each column's rock top as the chunk is laid, so the spawner never has to work one out. */
+    private val rockTopLaid: (worldX: Int, worldZ: Int, highestSolidY: Int?) -> Unit,
     private val abyssBelongsHere: (ChunkAccess, Int, Int) -> Boolean,
 ) {
 
@@ -66,6 +68,7 @@ internal class FieldFill(
                 val worldZ = chunkMinZ + localZ
                 val at = band.indexOf(localX, localZ)
                 val spans = band.spans(at)
+                rockTopLaid(worldX, worldZ, spans.highestSolidY)
                 val seaHere = sea.blockAt(worldX, worldZ)
                 // **Whether an abyss stands over this column at all**, asked once here rather than of
                 // every block. Without it, any Age with a sea grew an abyss in its deepest caves, eighty

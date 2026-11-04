@@ -2,6 +2,7 @@ package co.voik.agesandtheart.generation
 
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.core.SectionPos
+import net.minecraft.util.Util
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -26,32 +27,72 @@ import java.util.concurrent.ConcurrentHashMap
  * only many ticks later. Against that, a 32×32 window thrashes and every lookup is a miss.
  *
  * So this is keyed by **chunk**, holds every column of one, and keeps enough chunks for a spawn radius.
+ *
+ * **And it never works a column out on the server thread.** One column of an expensive Age is far from cheap: a
+ * hollow underground reads 33 columns of the land round it, and the eroded country's undercuts, gullies and
+ * weathering each read their neighbours again. Spawning in country it had not seen, the server thread spent a
+ * whole minute of one tick on them and the watchdog shut the server down (2026-11-04, a generator-21 eroded Age
+ * under a hollow underground). So the fill tells this each column's top as it lays the chunk ([remember]), which
+ * covers everything generated while the server runs; and a chunk it was never told of, generated in an earlier
+ * session, is worked out whole on a background thread while the spawner takes a stand-in for the moment.
  */
 internal class OpenSkyHeights(private val field: TerrainField) {
 
     private val byChunk = ConcurrentHashMap<Long, IntArray>()
 
+    /** Chunks being worked out in the background, so each is asked for once. */
+    private val underway = ConcurrentHashMap.newKeySet<Long>()
+
     /**
-     * The highest solid Y in this column, or **null** where the column has no rock in it at all.
-     *
-     * Two threads racing on one column both compute the field's own answer and write the same `Int`, so the
-     * race is benign and needs no guarding — the map is concurrent for its *structure*, not its contents.
+     * The highest solid Y in this column, or **null** where the column has no rock in it at all — or, where it is
+     * not known yet, [meanwhile]'s answer, while the whole chunk is worked out in the background.
      */
-    fun highestSolidYAt(worldX: Int, worldZ: Int): Int? {
-        val chunk = SectionPos.asLong(SectionPos.blockToSectionCoord(worldX), 0, SectionPos.blockToSectionCoord(worldZ))
+    fun highestSolidYAt(worldX: Int, worldZ: Int, meanwhile: () -> Int?): Int? {
+        val chunk = chunkKey(worldX, worldZ)
+        val columns = columnsOf(chunk)
+        val remembered = columns[slotOf(worldX, worldZ)]
+        if (remembered != UNASKED) return remembered.takeIf { it != NO_ROCK_AT_ALL }
+        if (underway.add(chunk)) {
+            workOutInTheBackground(chunk, columns, SectionPos.blockToSectionCoord(worldX), SectionPos.blockToSectionCoord(worldZ))
+        }
+        return meanwhile()
+    }
+
+    /**
+     * Told by the fill, which has each column's spans in hand already: the field's own answer, so nothing is worked
+     * out twice. Two writers write the same `Int`, so the race is benign.
+     */
+    fun remember(worldX: Int, worldZ: Int, highestSolidY: Int?) {
+        columnsOf(chunkKey(worldX, worldZ))[slotOf(worldX, worldZ)] = highestSolidY ?: NO_ROCK_AT_ALL
+    }
+
+    private fun workOutInTheBackground(chunk: Long, columns: IntArray, chunkX: Int, chunkZ: Int) {
+        BACKGROUND.execute {
+            try {
+                for (slot in 0..<COLUMNS_IN_A_CHUNK) {
+                    if (columns[slot] != UNASKED) continue
+                    val worldX = SectionPos.sectionToBlockCoord(chunkX) + (slot and WITHIN_A_CHUNK)
+                    val worldZ = SectionPos.sectionToBlockCoord(chunkZ) + (slot shr CHUNK_BITS)
+                    columns[slot] = field.columnSpans(worldX, worldZ).highestSolidY ?: NO_ROCK_AT_ALL
+                }
+            } finally {
+                underway.remove(chunk)
+            }
+        }
+    }
+
+    private fun columnsOf(chunk: Long): IntArray {
         // Cheaper than an eviction policy and no worse: a spawn radius refills in a few seconds, and the
         // bound only matters at all for somebody travelling far enough to leave one behind.
         if (byChunk.size > MOST_CHUNKS_REMEMBERED) byChunk.clear()
-        val columns = byChunk.computeIfAbsent(chunk) { IntArray(COLUMNS_IN_A_CHUNK) { UNASKED } }
-
-        val slot = ((worldZ and WITHIN_A_CHUNK) shl CHUNK_BITS) or (worldX and WITHIN_A_CHUNK)
-        val remembered = columns[slot]
-        if (remembered != UNASKED) return remembered.takeIf { it != NO_ROCK_AT_ALL }
-
-        val highest = field.columnSpans(worldX, worldZ).highestSolidY
-        columns[slot] = highest ?: NO_ROCK_AT_ALL
-        return highest
+        return byChunk.computeIfAbsent(chunk) { IntArray(COLUMNS_IN_A_CHUNK) { UNASKED } }
     }
+
+    private fun chunkKey(worldX: Int, worldZ: Int): Long =
+        SectionPos.asLong(SectionPos.blockToSectionCoord(worldX), 0, SectionPos.blockToSectionCoord(worldZ))
+
+    private fun slotOf(worldX: Int, worldZ: Int): Int =
+        ((worldZ and WITHIN_A_CHUNK) shl CHUNK_BITS) or (worldX and WITHIN_A_CHUNK)
 
     private companion object {
         const val CHUNK_BITS = 4
@@ -71,5 +112,8 @@ internal class OpenSkyHeights(private val field: TerrainField) {
          * and only for an Age somebody is standing in.
          */
         const val MOST_CHUNKS_REMEMBERED = 2048
+
+        /** Vanilla's own pool for work off the server thread. */
+        val BACKGROUND = Util.backgroundExecutor().forName("ageOpenSky")
     }
 }

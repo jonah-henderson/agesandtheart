@@ -493,7 +493,10 @@ class AgeChunkGenerator(
     private fun skyIsOpenAt(structures: StructureManager, at: BlockPos): Boolean {
         rock as? AgeRock.Ours
             ?: return at.y >= structures.level.getHeight(Heightmap.Types.WORLD_SURFACE, at.x, at.z)
-        val highestRock = openSky.highestSolidYAt(at.x, at.z) ?: return true
+        // Until the field's own answer is in, the world's surface stands in: what an Age on vanilla's rock asks.
+        val highestRock = openSky.highestSolidYAt(at.x, at.z) {
+            structures.level.getHeight(Heightmap.Types.WORLD_SURFACE, at.x, at.z) - 1
+        } ?: return true
         return at.y > highestRock
     }
 
@@ -951,6 +954,7 @@ class AgeChunkGenerator(
             // One per chunk, because the object carries a column memo — the same reason carving mints its own.
             water = aquiferFor(randomState, ours.field),
             adaptation = adaptation,
+            rockTopLaid = openSky::remember,
             // Reaches back for the *live* sea rather than the snapshot, which is what it did before the fill
             // moved out of here. [FieldFill]'s note says why that is left alone rather than tidied.
             abyssBelongsHere = { at, worldX, worldZ ->
