@@ -921,8 +921,9 @@ enum class Terrain(
             setOf(HILLS, ERODED, PILLARS, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, CRATERLANDS, CONTINENTS, SKYLANDS)
         }
 
+        // Not the eroded country or the mountains, which cost several times what the rest do to generate.
         private val UNASKED_COUNTRY by lazy {
-            setOf(HILLS, ERODED, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, ISLANDS, MOUNTAINOUS, CONTINENTS)
+            setOf(HILLS, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, ISLANDS, CONTINENTS)
         }
 
         private val RECONCILES by lazy {
