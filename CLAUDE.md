@@ -38,6 +38,10 @@ something lands, delete the narrative of building it; a choice between genuinely
   the seismograph records vibrations in every world; the transcriber, in desk range, lays a descriptive book
   onto the desk or copies it into a new instance of its Age. The grammar guide's use afield is still open.
   Read it before touching an implement's block or `RimeColour`.
+- **`notes/eclipses-plan.md`** — a moon crossing a sun, and the sky answering. **Unbuilt**, but the occlusion
+  already works: every moon covers. Jonah's rulings are in it: an eclipse darkens the gameplay light so monsters
+  spawn, a moon's phase follows its sun, and `eclipsing moon` asks for one a month at noon. Read it before
+  touching a body's blending, its phases, or `SKY_LIGHT_LEVEL`.
 - **`notes/the-tag-layer.md`** — the fifty-three tags (forty-one properties and the twelve colours), where each
   is derived from, and why three separate things are called rarity. **Built**; what is left is the hand-tuning
   its §7 step 4 describes, done through Scrivener's tag screen (`/age tags` answers the same question against a
