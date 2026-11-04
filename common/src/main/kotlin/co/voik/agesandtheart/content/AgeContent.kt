@@ -66,6 +66,7 @@ import co.voik.agesandtheart.worldgen.structure.BindLinkingBooks
 import co.voik.agesandtheart.worldgen.structure.WriteFoundItems
 import co.voik.agesandtheart.worldgen.structure.KeepTerrainInOpenColumns
 import co.voik.agesandtheart.worldgen.structure.EntranceOnGroundStructure
+import co.voik.agesandtheart.worldgen.structure.DoorstepPiece
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType
 import net.minecraft.world.level.levelgen.structure.StructureType
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessor
@@ -1505,6 +1506,9 @@ object AgeContent {
     /** A machine a D'ni city holds one of — see [CavernRuinsDevicePiece]. */
     val CAVERN_RUINS_DEVICE_PIECE: StructurePieceType = StructurePieceType.ContextlessType(::CavernRuinsDevicePiece)
 
+    /** The cleared ground in front of a door set on it — see [DoorstepPiece]. */
+    val DOORSTEP_PIECE: StructurePieceType = StructurePieceType.ContextlessType(::DoorstepPiece)
+
     /** The D'ni city — see the `dni` package. */
     val CAVERN_RUINS_STRUCTURE: StructureType<CavernRuinsStructure> = StructureType { CavernRuinsStructure.CODEC }
 
@@ -1532,6 +1536,7 @@ object AgeContent {
     val structurePieces: List<Pair<Identifier, StructurePieceType>> = listOf(
         STAR_FISSURE_ID to STAR_FISSURE_PIECE,
         "cavern_ruins_device".location() to CAVERN_RUINS_DEVICE_PIECE,
+        "doorstep".location() to DOORSTEP_PIECE,
     )
 
     val STAR_FISSURE_ENTITY: BlockEntityType<StarFissureBlockEntity> =
