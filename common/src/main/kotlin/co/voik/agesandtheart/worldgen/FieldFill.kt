@@ -9,6 +9,7 @@ import co.voik.agesandtheart.worldgen.field.TerrainFill
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
+import net.minecraft.world.level.chunk.status.ChunkStatus
 import net.minecraft.world.level.levelgen.Aquifer
 import net.minecraft.world.level.levelgen.Heightmap
 
@@ -57,6 +58,7 @@ internal class FieldFill(
         // A second cursor: `DeepWater.airOpenedOver` walks back down the column, and sharing `cursor` with
         // it would move the position the fill is about to write to.
         val reach = BlockPos.MutableBlockPos()
+        val writesStraightIn = !chunk.persistedStatus.isOrAfter(ChunkStatus.INITIALIZE_LIGHT)
 
         for (localX in 0..<16) {
             for (localZ in 0..<16) {
@@ -161,7 +163,15 @@ internal class FieldFill(
                     }
                     if (wantsToMove && !state.fluidState.isEmpty) chunk.markPosForPostProcessing(cursor)
                     nothingBelow = false
-                    chunk.setBlockState(cursor, state)
+                    if (writesStraightIn) {
+                        // As vanilla's own fill writes: into the section, unlocked, since one thread fills a chunk.
+                        // `setBlockState` would lock the section for every block and update both heightmaps
+                        // below a second time, and before the light stage that is all else it does.
+                        chunk.getSection(chunk.getSectionIndex(y))
+                            .setBlockState(localX, y and SECTION_MASK, localZ, state, false)
+                    } else {
+                        chunk.setBlockState(cursor, state)
+                    }
                     oceanFloor.update(localX, y, localZ, state)
                     worldSurface.update(localX, y, localZ, state)
                 }
@@ -341,5 +351,8 @@ internal class FieldFill(
     private companion object {
         /** What an aquifer is told about a block being *removed*, so it answers with a fluid or with air. */
         const val HOLLOW = -1.0
+
+        /** A block's height within its section. */
+        const val SECTION_MASK = 15
     }
 }
