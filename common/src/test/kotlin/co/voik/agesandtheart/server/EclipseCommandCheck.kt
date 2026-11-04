@@ -32,6 +32,15 @@ class EclipseCommandCheck : FunSpec({
         check(eclipses.all { it.get("sunAltitude").asFloat > 80.0f }) { "An eclipse was not at noon:\n$report" }
     }
 
+    test("at totality the day is as dark as night, so monsters may spawn under it") {
+        val first = eclipsesOver(eclipsed, days = 17).getAsJsonArray("eclipses").first().asJsonObject
+        server.run("execute in agesandtheart:$eclipsed run time set ${first.get("clock").asLong}")
+
+        val atTotality = eclipsesOver(eclipsed, days = 1)
+        check(atTotality.get("coveredNow").asFloat > 0.99f) { "Setting the clock to totality covered:\n$atTotality" }
+        check(atTotality.get("darkeningNow").asInt == 11) { "Totality darkened the day only so far:\n$atTotality" }
+    }
+
     test("an Age with one ordinary moon has none") {
         val report = eclipsesOver(plain, days = 32)
         check(report.get("count")?.asInt == 0) { "Vanilla's moon eclipsed the sun:\n$report" }

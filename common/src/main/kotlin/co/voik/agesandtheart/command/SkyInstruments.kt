@@ -84,6 +84,17 @@ internal object SkyInstruments {
         val passages = Eclipse.passagesBetween(sky, now, now + days * VANILLA_DAY)
 
         report.say { "Eclipses over ${age.id} in the next $days day(s), from clock $now:" }
+        val coveredNow = Eclipse.of(sky, now).maxOfOrNull { it.coverage } ?: 0.0f
+        // What the level writes into `skyDarken` on its next tick, asked rather than read, since an Age nobody
+        // stands in may not be ticking.
+        val darkeningNow = LevelDaylight.skyDarkenFor(level)
+        report.fact("coveredNow", coveredNow) {
+            "  now %.0f%% of a sun is covered, and the day is darkened %s".format(
+                coveredNow * PER_CENT,
+                darkeningNow?.let { "$it of ${FULLY_DARKENED.toInt()}" } ?: "by vanilla's own clock",
+            )
+        }
+        report.only("darkeningNow", darkeningNow)
         report.fact("count", passages.size) {
             if (passages.isEmpty()) "  none — no covering body crosses a sun in that time" else "  ${passages.size}"
         }
@@ -602,7 +613,7 @@ internal object SkyInstruments {
         val look = Ages.recipeOf(level)?.let(Skies::lookOf) ?: return NOTHING_SHOWING
         look.air.starBrightness?.let { return it }
         if (!look.sky.isOrdinary && look.rules.daylight != Daylight.VANILLA_CLOCK) {
-            return LevelDaylight.starlitnessOf(look.readAt(level.defaultClockTime), look.rules)
+            return LevelDaylight.starlitnessOf(look.readAt(level.defaultClockTime), look.rules, look.sky)
         }
         // Vanilla's own curve, read off the light rather than off the stars: `getStarBrightness` is the
         // client's and this is the same fact from the side the server has. `skyDarken` runs 0 by day to
