@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.Appearance
+import co.voik.ephemeris.sky.Eclipse
 import co.voik.ephemeris.sky.Look
 import co.voik.ephemeris.sky.SkySpec
 
@@ -51,9 +52,9 @@ object SunLight {
      * dim; the stars are out as at midnight, day and night alike.
      */
     private val ECLIPSE = Look(
-        sky = Rgba(0.20f, 0.15f, 0.31f),
-        fog = Rgba(0.24f, 0.19f, 0.33f),
-        tint = Rgba(0.42f, 0.38f, 0.62f),
+        sky = Eclipse.TOTALITY_SKY,
+        fog = Eclipse.TOTALITY_FOG,
+        tint = Eclipse.TOTALITY_LIGHT,
         starBrightness = 1.0f,
     )
 }
