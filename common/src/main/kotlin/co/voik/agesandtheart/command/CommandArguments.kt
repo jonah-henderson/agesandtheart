@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.Report
 import co.voik.agesandtheart.age.ReportFor
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.ArgumentBuilder
+import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.builder.RequiredArgumentBuilder
 import net.minecraft.commands.SharedSuggestionProvider
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
@@ -96,3 +97,21 @@ internal fun openNamedAge(source: CommandSourceStack, name: String, report: Repo
     val age = namedAge(source, name, report) ?: return null
     return Ages.open(source.server, age.id)
 }
+
+/** Which Age a command asks about — or null, having already said why there is none. */
+internal typealias AgeAskedAbout = (CommandContext<CommandSourceStack>, Report) -> NamedAge?
+
+/** The Age the command's source stands in. */
+internal fun theAgeStoodIn(context: CommandContext<CommandSourceStack>, report: Report): NamedAge? {
+    val level = context.source.level
+    val recipe = Ages.recipeOf(level)
+    if (recipe == null) {
+        report.fail("Not standing in an Age — name one, or /age tp <name> first")
+        return null
+    }
+    return NamedAge(level.dimension().identifier(), recipe)
+}
+
+/** The Age the command's [NAME_ARGUMENT] names. */
+internal fun theAgeNamed(context: CommandContext<CommandSourceStack>, report: Report): NamedAge? =
+    namedAge(context.source, StringArgumentType.getString(context, NAME_ARGUMENT), report)

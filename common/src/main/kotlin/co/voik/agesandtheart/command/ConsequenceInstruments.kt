@@ -47,9 +47,6 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
 
-/** Which Age a command asks about — or null, having already said why there is none. */
-private typealias AgeAskedAbout = (CommandContext<CommandSourceStack>, Report) -> NamedAge?
-
 internal object ConsequenceInstruments {
 
     /**
@@ -128,19 +125,6 @@ internal object ConsequenceInstruments {
                     .then(ageNameArgument().askingAbout(::theAgeNamed, structured)),
             )
     }
-
-    private fun theAgeStoodIn(context: CommandContext<CommandSourceStack>, report: Report): NamedAge? {
-        val level = context.source.level
-        val recipe = Ages.recipeOf(level)
-        if (recipe == null) {
-            report.fail("Not standing in an Age — name one, or /age tp <name> first")
-            return null
-        }
-        return NamedAge(level.dimension().identifier(), recipe)
-    }
-
-    private fun theAgeNamed(context: CommandContext<CommandSourceStack>, report: Report): NamedAge? =
-        namedAge(context.source, StringArgumentType.getString(context, NAME_ARGUMENT), report)
 
     /**
      * Everything that can be asked of one Age, hung under whatever names it. Built once per way of naming

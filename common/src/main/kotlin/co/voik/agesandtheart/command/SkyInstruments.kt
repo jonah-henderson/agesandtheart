@@ -15,6 +15,8 @@ import co.voik.ephemeris.sky.Blending
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.Rainbow
 import co.voik.ephemeris.sky.Daylight
+import co.voik.ephemeris.sky.Eclipse
+import co.voik.ephemeris.sky.EclipsePassage
 import co.voik.ephemeris.sky.LevelDaylight
 import co.voik.ephemeris.debug.LevelLookPreview
 import co.voik.agesandtheart.generation.Skies
@@ -23,6 +25,7 @@ import co.voik.ephemeris.sky.LevelAppearance
 import co.voik.ephemeris.sky.LevelClock
 import co.voik.ephemeris.sky.LevelLook
 import co.voik.ephemeris.sky.SkySpec
+import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
@@ -38,7 +41,110 @@ internal object SkyInstruments {
     fun addTo(age: LiteralArgumentBuilder<CommandSourceStack>) {
         age.then(showingSubcommand())
             .then(skySubcommand())
+            .then(eclipsesSubcommand())
     }
+
+    /**
+     * `/age eclipses [json] [<name> [<days>]]` — the eclipses coming in the Age stood in, or the one named, over the
+     * next [ECLIPSE_DAYS] days or as many as are asked for. Read off the same sky and clock the client draws by, so
+     * an eclipse this names is one a player standing there will see, if its sun is up.
+     */
+    private fun eclipsesSubcommand(): LiteralArgumentBuilder<CommandSourceStack> {
+        fun answering(asked: AgeAskedAbout, reportFor: ReportFor, days: (CommandContext<CommandSourceStack>) -> Int) =
+            { context: CommandContext<CommandSourceStack> ->
+                val report = reportFor(context)
+                asked(context, report)?.let { age -> runEclipses(context.source, age, report, days(context)) } ?: FAILURE
+            }
+
+        fun askedFor(context: CommandContext<CommandSourceStack>) = IntegerArgumentType.getInteger(context, DAYS_ARGUMENT)
+        val theUsualSpan: (CommandContext<CommandSourceStack>) -> Int = { ECLIPSE_DAYS }
+
+        fun branchesUnder(parent: LiteralArgumentBuilder<CommandSourceStack>, reportFor: ReportFor) = parent
+            .executes(answering(::theAgeStoodIn, reportFor, theUsualSpan))
+            .then(
+                ageNameArgument()
+                    .executes(answering(::theAgeNamed, reportFor, theUsualSpan))
+                    .then(
+                        Commands.argument(DAYS_ARGUMENT, IntegerArgumentType.integer(1, MOST_ECLIPSE_DAYS))
+                            .executes(answering(::theAgeNamed, reportFor, ::askedFor)),
+                    ),
+            )
+
+        val prose = branchesUnder(Commands.literal(ECLIPSES_LITERAL)) { context -> Report.prose(context.source) }
+        return prose.then(
+            branchesUnder(Commands.literal(Report.STRUCTURED_LITERAL)) { context -> Report.structured(context.source) },
+        )
+    }
+
+    private fun runEclipses(source: CommandSourceStack, age: NamedAge, report: Report, days: Int): Int {
+        val level = Ages.open(source.server, age.id)
+        val sky = LevelAppearance.of(level.dimension())?.sky
+            ?: return report.fail("Nothing has said what ${age.id} looks like")
+        val now = level.defaultClockTime
+        val passages = Eclipse.passagesBetween(sky, now, now + days * VANILLA_DAY)
+
+        report.say { "Eclipses over ${age.id} in the next $days day(s), from clock $now:" }
+        report.fact("count", passages.size) {
+            if (passages.isEmpty()) "  none — no covering body crosses a sun in that time" else "  ${passages.size}"
+        }
+        for (passage in passages) {
+            val sunAltitude = sky.bodies[passage.sun].path.altitudeAt(passage.greatestAt)
+            report.entry(
+                "eclipses",
+                mapOf(
+                    "inTicks" to passage.begins - now,
+                    "clock" to passage.greatestAt,
+                    "sun" to passage.sun,
+                    "coveredBy" to passage.coveredBy,
+                    "greatest" to passage.greatest,
+                    "totalTicks" to passage.totalTicks,
+                    "lastsTicks" to passage.ends - passage.begins,
+                    "sunAltitude" to sunAltitude,
+                ),
+            ) { "  ${eclipseLine(passage, now, sunAltitude)}" }
+        }
+        report.finish()
+        return SUCCESS
+    }
+
+    /** One eclipse as a reader wants it: when, which bodies, how deep and how long, and whether anyone sees it. */
+    private fun eclipseLine(passage: EclipsePassage, now: Long, sunAltitude: Float): String {
+        val starts = if (passage.begins <= now) "under way now" else "in ${passage.begins - now} ticks"
+        val greatestAt = "day ${passage.greatestAt / VANILLA_DAY}, ${hourOf(passage.greatestAt)}"
+        val bodies = "sun ${passage.sun} behind body ${passage.coveredBy.joinToString(" and ")}"
+        val depth = when {
+            passage.isTotal -> "total for %.0f s".format(passage.totalTicks / TICKS_PER_SECOND)
+            passage.greatest * PER_CENT < 1.0 -> "a graze, under 1% covered"
+            else -> "at most %.0f%% covered".format(passage.greatest * PER_CENT)
+        }
+        val length = "%.1f min end to end".format((passage.ends - passage.begins) / TICKS_PER_MINUTE)
+        val seen = if (sunAltitude >= 0.0f) "sun %.0f° up".format(sunAltitude) else "sun below the horizon"
+        return "$starts, greatest $greatestAt: $bodies, $depth, $length, $seen"
+    }
+
+    /** The hour on a vanilla clock face, where the day's tick nought is six in the morning. */
+    private fun hourOf(clock: Long): String {
+        val ticksIntoDay = Math.floorMod(clock, VANILLA_DAY)
+        val minutes = (ticksIntoDay * MINUTES_A_DAY / VANILLA_DAY + DAWN_MINUTES) % MINUTES_A_DAY
+        return "%02d:%02d".format(minutes / MINUTES_AN_HOUR, minutes % MINUTES_AN_HOUR)
+    }
+
+    private const val ECLIPSES_LITERAL = "eclipses"
+    private const val DAYS_ARGUMENT = "days"
+
+    /** Four of vanilla's months, enough to see whether a sky eclipses often, seldom or never. */
+    private const val ECLIPSE_DAYS = 32
+
+    /** A year: a few hundred thousand samples a sun, still a moment's work. */
+    private const val MOST_ECLIPSE_DAYS = 365
+
+    private const val TICKS_PER_SECOND = 20.0
+    private const val TICKS_PER_MINUTE = 1200.0
+    private const val MINUTES_A_DAY = 1440L
+    private const val MINUTES_AN_HOUR = 60L
+
+    /** Vanilla's tick nought is sunrise, six in the morning. */
+    private const val DAWN_MINUTES = 360L
 
     /** What one `/age showing <what>` branch is called — "stop waiting for it". */
     private const val NOW_LITERAL = "now"
