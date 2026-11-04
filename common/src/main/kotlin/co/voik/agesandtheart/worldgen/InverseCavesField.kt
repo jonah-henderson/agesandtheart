@@ -39,7 +39,13 @@ object InverseCavesField {
      * much coarser, so every ridge, plateau and shaft grows while the cast still fills the world top to
      * bottom. Stretching the finished shape instead would squash or lose half of it against the ceiling.
      */
-    fun world(salt: Long, scale: Double = SizeScale.ORDINARY, landmarks: Landmarks = Landmarks.NONE): TerrainField {
+    fun world(
+        salt: Long,
+        scale: Double = SizeScale.ORDINARY,
+        landmarks: Landmarks = Landmarks.NONE,
+        /** Whether the caves it is cast from are read on vanilla's grid; see [Caved.gridded]. */
+        gridded: Boolean = false,
+    ): TerrainField {
         // The whole band: the cave noises keep producing all the way up, nine columns in ten past y=280.
         val everything = Slab(lowY = VerticalWindow.MIN_Y, highY = VerticalWindow.TOP_Y)
         val hollowed = Caved(
@@ -49,6 +55,7 @@ object InverseCavesField {
             toY = VerticalWindow.TOP_Y,
             entranceReach = ENTRANCE_REACH,
             featureScale = scale,
+            gridded = gridded,
         )
         val cast = Subtract(everything, hollowed)
         if (!landmarks.anyDrawn) return cast

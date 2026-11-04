@@ -187,6 +187,8 @@ class LandVarietyCheck : FunSpec({
         val last = FormerUnsaidWear.LAST_GENERATOR_OF_THE_UNSAID_WEAR
         check(read(last).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_UNSAID_WEAR)) { "the old Age lost its wear" }
         check(!read(last + 1).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_UNSAID_WEAR)) { "a new Age was worn unsaid" }
+        check(read(last).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_CAVES)) { "the old Age's caves moved onto the grid" }
+        check(!read(last + 1).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_CAVES)) { "a new Age's caves were not gridded" }
     }
 
     test("wear swings from place to place about its mean, and none wears nothing") {

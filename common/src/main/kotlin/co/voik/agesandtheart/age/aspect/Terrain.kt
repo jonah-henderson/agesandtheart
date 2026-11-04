@@ -356,7 +356,7 @@ enum class Terrain(
         waterline = null,
         build = { options, salt, _ ->
             val scale = scaleAsWritten(options, salt)
-            InverseCavesField.world(salt, scale, landmarksOf(options, salt, scale))
+            InverseCavesField.world(salt, scale, landmarksOf(options, salt, scale), gridded = !options.isTrue(FORMER_CAVES))
         },
         waterlineWhenASeaIsNamed = InverseCavesField.NAMED_SEA_LEVEL,
         axes = { listOf(SIZE) },
@@ -610,7 +610,8 @@ enum class Terrain(
         // **A landform with no room under it carries nothing**, whatever was asked for — the same shape as
         // a preset ignoring a material it cannot be made of, and the reason the ceiling is declared here.
         val ceiling = undergroundCeiling(options, salt, sea) ?: return Ground(uncut)
-        return underground.carve(uncut, window.minY + BEDROCK_MARGIN, ceiling, window, undergroundOptions, salt)
+        val gridded = !options.isTrue(FORMER_CAVES)
+        return underground.carve(uncut, window.minY + BEDROCK_MARGIN, ceiling, window, undergroundOptions, salt, gridded)
     }
 
     /**
@@ -1022,6 +1023,16 @@ enum class Terrain(
          * wear — set on every Age written before then, so the land it has already generated still meets what it
          * generates next. No word sets it.
          */
+        /**
+         * Whether the caves are cut column by column as they were before generator 22, rather than read on vanilla's
+         * grid — set on every Age written before then, so the caves it has already generated still meet what it
+         * generates next. No word sets it.
+         */
+        val FORMER_CAVES = Parameter.flag(
+            "former_caves",
+            help = "Whether the caves are cut column by column, as they were before they were read on vanilla's grid.",
+        )
+
         val FORMER_UNSAID_WEAR = Parameter.flag(
             "former_unsaid_wear",
             help = "Whether land nobody called worn is worn a little, as it was before unsaid land was left smooth.",

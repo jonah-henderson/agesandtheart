@@ -119,9 +119,11 @@ enum class Underground(override val key: String) : AuthoredPreset {
         window: VerticalWindow,
         options: Options,
         salt: Long,
+        /** Whether noise caves are read on vanilla's grid; see [Caved.gridded]. */
+        griddedCaves: Boolean = false,
     ): Terrain.Ground = when (this) {
         NOISE_CAVES -> Terrain.Ground(
-            Caved.of(uncut, CAVE_SEED xor salt, floor, window.topY),
+            Caved.of(uncut, CAVE_SEED xor salt, floor, window.topY, gridded = griddedCaves),
             // A carved cave meets the water table on its way out of the rock, so it answers to one.
             hollows = uncut,
         )
