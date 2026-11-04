@@ -1,7 +1,7 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.15
-generator=21
+line=0.16
+generator=22
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
 block agesandtheart:analysis_machine
@@ -392,6 +392,7 @@ worldgen/feature_type agesandtheart:volcano_vents
 worldgen/material_condition_type agesandtheart:in_region
 worldgen/material_condition_type agesandtheart:near_the_surface
 worldgen/structure_piece agesandtheart:cavern_ruins_device
+worldgen/structure_piece agesandtheart:doorstep
 worldgen/structure_piece agesandtheart:star_fissure
 worldgen/structure_processor agesandtheart:bind_linking_books
 worldgen/structure_processor agesandtheart:keep_terrain_in_open_columns
