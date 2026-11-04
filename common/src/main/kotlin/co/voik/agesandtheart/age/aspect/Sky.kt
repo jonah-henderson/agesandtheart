@@ -51,13 +51,13 @@ object Sky {
         // put the suns first, and arithmetic against that would hand a moon a sun's description the day it
         // stopped — a change in Ephemeris that nothing here could have failed on.
         fun among(at: Int, isASun: Boolean) = drawn.bodies.take(at).count { (it.phase == null) == isASun }
-        val told = drawn.bodies.mapIndexed { at, body ->
-            val isASun = body.phase == null
-            val aspect = if (isASun) Aspect.SUN else Aspect.MOON
-            SkyBodies.described(body, parts.optionsFor(aspect, among(at, isASun)), seed)
+        fun saidOf(at: Int): Options {
+            val isASun = drawn.bodies[at].phase == null
+            return parts.optionsFor(if (isASun) Aspect.SUN else Aspect.MOON, among(at, isASun))
         }
+        val told = drawn.bodies.mapIndexed { at, body -> SkyBodies.described(body, saidOf(at), seed) }
         return drawn.copy(
-            bodies = told,
+            bodies = EclipsingMoons.laidOn(told, ::saidOf, seed),
             stars = starsKeptByDay(drawn.stars, parts.optionsFor(Aspect.STARS)),
             aurora = AuroraAspect.auroraIn(parts, seed),
             rainbow = RainbowAspect.rainbowIn(parts, seed),

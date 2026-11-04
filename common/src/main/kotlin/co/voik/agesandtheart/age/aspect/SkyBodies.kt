@@ -168,6 +168,9 @@ object SkyBodies {
      * perpetual twilight under a sun, a tide held at one level under a moon, and the paper tree's window
      * (design §7.1.2). Its height is [POLAR_LIFT]; the design leaves where the circle sits open, and a second
      * value is how a writer would ask for it lower or higher.
+     *
+     * **`eclipsing`**: a moon on its sun's own path, crossing it once a month at noon ([EclipsingMoons]). Left
+     * alone here and laid in a second pass, since it is built from the sun's finished path.
      */
     /**
      * Whether this body has stopped where it stood when the Age's day began — `motionless sun`, a world it keeps one
@@ -205,7 +208,7 @@ object SkyBodies {
 
     val PATH = Parameter(
         "path",
-        listOf(Parameter.DEFAULT, POLAR),
+        listOf(Parameter.DEFAULT, POLAR, EclipsingMoons.ECLIPSING),
         help = "The shape of this body's path across the sky.",
     )
 

@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "Passing in front of its sun. `eclipsing moon` sets the moon on the sun's own path, one turn behind it a",
+    "month, the sun's apparent size and a quarter over: once a month, at noon, it covers the sun for a minute or",
+    "so, and the day goes dark enough for monsters. Its size words measure against the sun: `small eclipsing",
+    "moon` leaves a ring of fire, `colossal eclipsing moon` holds the dark for minutes; `swift` and `slow` move",
+    "the month (EclipsingMoons).",
+    "",
+    "Laid bare it lands nothing (`unaimed` 0): an eclipse has to be asked for by name."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "path": "eclipsing"
+      },
+      "unaimed_chance_to_apply": 0.0
+    }
+  ]
+}

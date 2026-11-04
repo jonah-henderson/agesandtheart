@@ -133,6 +133,7 @@ val SPECS_BY_FEATURE: Map<String, List<String>> = mapOf(
         "co.voik.agesandtheart.server.SkyClockCheck",
         "co.voik.agesandtheart.server.SkyParametersCheck",
         "co.voik.agesandtheart.server.RainbowCommandCheck",
+        "co.voik.agesandtheart.server.EclipseCommandCheck",
         "co.voik.agesandtheart.server.AppearanceCheck",
     ),
     "words" to listOf(
