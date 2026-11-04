@@ -44,6 +44,7 @@ import net.minecraft.world.level.levelgen.heightproviders.UniformHeight
 import net.minecraft.world.level.levelgen.placement.HeightRangePlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import net.minecraft.world.level.levelgen.placement.PlacementModifier
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import net.minecraft.tags.BlockTags
@@ -406,7 +407,7 @@ object FeatureShape {
             // colossal obelisk has more courses of blocks rather than a stretched staircase. The pose is
             // resized with it, its lifts being absolute blocks.
             is Formation -> size?.let {
-                val factor = sizeFactor(it)
+                val factor = if (it > 0.0) feature.largest.pow(it) else sizeFactor(it)
                 // **The layout is spread with the shapes, but by the root of the factor.** Spreading it
                 // linearly keeps the *fraction of ground covered* constant, which sounds right and makes a
                 // colossal formation doubly hard to meet: bigger, and no more of them per mile walked. A

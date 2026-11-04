@@ -47,6 +47,14 @@ class ShippedShapesCheck : FunSpec({
             }
         }
 
+    /** How many times its size each formation is made colossal: its own `largest`, or the shared axis's four. */
+    val largestOf: Map<String, Double> = shipped.listFiles().orEmpty()
+        .filter { it.extension == "json" }
+        .associate { file ->
+            val feature = JsonParser.parseString(file.readText()).asJsonObject
+            file.nameWithoutExtension to (feature.get("largest")?.asDouble ?: COLOSSAL)
+        }
+
     test("the pack ships shapes at all") {
         check(shapes.isNotEmpty()) { "no formation shapes were read from ${shipped.absolutePath}" }
     }
@@ -64,7 +72,7 @@ class ShippedShapesCheck : FunSpec({
      */
     test("a colossal formation is on the order of a hundred blocks") {
         for ((name, shape) in shapes) {
-            val huge = shape.resized(COLOSSAL, 0)
+            val huge = shape.resized(largestOf[name.substringBefore('[')] ?: COLOSSAL, 0)
             val reach = kotlin.math.ceil(huge.horizontalReach).toInt()
             var lowest = Int.MAX_VALUE
             var highest = Int.MIN_VALUE

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.feature
 
+import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.agesandtheart.worldgen.field.Placement
 import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.worldgen.field.TerrainField
@@ -91,6 +92,12 @@ data class Formation(
      * at its own origin instead, every chunk it crosses agrees about it.
      */
     val onlyIn: Identifier? = null,
+    /**
+     * How many times its own size the top of the `size` axis makes it, where the shared axis makes everything four
+     * times ([SizeScale.COLOSSAL]). A boulder is authored at a forest rock's size and still reaches a hundred blocks
+     * colossal, so it climbs faster; below the middle of the axis every formation shrinks alike.
+     */
+    val largest: Double = SizeScale.COLOSSAL,
 ) : Feature {
 
     /**
@@ -495,8 +502,9 @@ data class Formation(
                     .forGetter(Formation::substances),
                 Codec.BOOL.optionalFieldOf("sunk", false).forGetter(Formation::sunk),
                 Identifier.CODEC.optionalFieldOf("only_in").forGetter { Optional.ofNullable(it.onlyIn) },
-            ).apply(instance) { shapes, variation, placement, seed, substances, sunk, onlyIn ->
-                Formation(shapes, variation, placement, seed, substances, sunk, onlyIn.orElse(null))
+                Codec.DOUBLE.optionalFieldOf("largest", SizeScale.COLOSSAL).forGetter(Formation::largest),
+            ).apply(instance) { shapes, variation, placement, seed, substances, sunk, onlyIn, largest ->
+                Formation(shapes, variation, placement, seed, substances, sunk, onlyIn.orElse(null), largest)
             }
         }
 

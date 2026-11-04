@@ -1,13 +1,14 @@
 {
   "_comment": [
-    "Twenty-five across as written, so `colossal` is a hundred.",
-    "**Two or three ellipsoids stuck together, and three such lumps to draw from.** One ellipsoid roughened",
-    "by a noise is still an ellipsoid: the silhouette gives it away however hard the surface is worked. Off",
-    "-centre lobes are what break the outline, and the list is what makes one boulder differ from the next --",
-    "a copy draws one entry, then a yaw and a size, so three lumps by eight turns by three sizes is what the",
-    "eye actually meets.",
-    "The undulation is heavier than it was (amount 1.5 -> 3.5, three octaves) because a bigger rock needs a",
-    "coarser surface to read as rock at all."
+    "About five across and four tall as written, a forest rock's size, with a third of it in the ground: each lump's",
+    "middle stands a block up and reaches two below, and a formation stands on the lowest ground under it, so a slope",
+    "buries its uphill side. `largest` 20 makes `colossal` about a hundred across, where the shared size axis would make",
+    "it twenty; `large` is about twenty, the size boulders were before.",
+    "**Two or three ellipsoids stuck together, and three such lumps to draw from.** One ellipsoid roughened by a noise",
+    "is still an ellipsoid: the silhouette gives it away however hard the surface is worked. Off-centre lobes are what",
+    "break the outline, and the list is what makes one boulder differ from the next -- a copy draws one entry, then a",
+    "yaw and a size, so three lumps by eight turns by three sizes is what the eye actually meets.",
+    "Set closer than the large ones were, up to three in a forty-block cell, so they read as rocks lying about."
   ],
   "type": "agesandtheart:formation",
   "shapes": [
@@ -19,18 +20,18 @@
           {
             "type": "ellipsoid",
             "center_x": 0,
-            "center_y": 9,
+            "center_y": 1,
             "center_z": 0,
-            "radius_xz": 11.0,
-            "radius_y": 8.0
+            "radius_xz": 2.6,
+            "radius_y": 2.2
           },
           {
             "type": "ellipsoid",
-            "center_x": 4,
-            "center_y": 8,
-            "center_z": -3,
-            "radius_xz": 8.0,
-            "radius_y": 6.0
+            "center_x": 1,
+            "center_y": 1,
+            "center_z": -1,
+            "radius_xz": 1.8,
+            "radius_y": 1.6
           }
         ]
       },
@@ -41,9 +42,9 @@
         0.6,
         0.3
       ],
-      "scale_x": 6.0,
-      "scale_z": 6.0,
-      "amount": 3.5
+      "scale_x": 0.8,
+      "scale_z": 0.8,
+      "amount": 0.8
     },
     {
       "type": "undulated",
@@ -53,26 +54,26 @@
           {
             "type": "ellipsoid",
             "center_x": 0,
-            "center_y": 9,
+            "center_y": 1,
             "center_z": 0,
-            "radius_xz": 10.5,
-            "radius_y": 7.5
+            "radius_xz": 2.4,
+            "radius_y": 2.0
           },
           {
             "type": "ellipsoid",
-            "center_x": -5,
-            "center_y": 8,
-            "center_z": 3,
-            "radius_xz": 8.0,
-            "radius_y": 6.0
+            "center_x": -1,
+            "center_y": 1,
+            "center_z": 1,
+            "radius_xz": 1.8,
+            "radius_y": 1.5
           },
           {
             "type": "ellipsoid",
-            "center_x": 3,
-            "center_y": 10,
-            "center_z": 3,
-            "radius_xz": 7.5,
-            "radius_y": 5.5
+            "center_x": 1,
+            "center_y": 1,
+            "center_z": 1,
+            "radius_xz": 1.6,
+            "radius_y": 1.4
           }
         ]
       },
@@ -83,9 +84,9 @@
         0.6,
         0.3
       ],
-      "scale_x": 6.0,
-      "scale_z": 6.0,
-      "amount": 3.5
+      "scale_x": 0.8,
+      "scale_z": 0.8,
+      "amount": 0.8
     },
     {
       "type": "undulated",
@@ -94,19 +95,19 @@
         "fields": [
           {
             "type": "ellipsoid",
-            "center_x": -2,
-            "center_y": 9,
-            "center_z": 2,
-            "radius_xz": 10.0,
-            "radius_y": 7.0
+            "center_x": -1,
+            "center_y": 1,
+            "center_z": 0,
+            "radius_xz": 2.3,
+            "radius_y": 2.0
           },
           {
             "type": "ellipsoid",
-            "center_x": 3,
-            "center_y": 9,
-            "center_z": -2,
-            "radius_xz": 8.5,
-            "radius_y": 6.0
+            "center_x": 1,
+            "center_y": 1,
+            "center_z": 0,
+            "radius_xz": 2.0,
+            "radius_y": 1.7
           }
         ]
       },
@@ -117,9 +118,9 @@
         0.6,
         0.3
       ],
-      "scale_x": 6.0,
-      "scale_z": 6.0,
-      "amount": 3.5
+      "scale_x": 0.8,
+      "scale_z": 0.8,
+      "amount": 0.8
     }
   ],
   "variation": {
@@ -134,13 +135,14 @@
   },
   "placement": {
     "type": "scatter",
-    "cell_size": 96.0,
+    "cell_size": 40.0,
     "least_per_cell": 0,
-    "most_per_cell": 2,
+    "most_per_cell": 3,
     "at_origin": 1.0,
     "at_edge": 1.0,
     "falloff_radius": 1.0
   },
   "seed": 185425431,
-  "substance": "minecraft:stone"
+  "substance": "minecraft:stone",
+  "largest": 20.0
 }
