@@ -27,6 +27,20 @@ object EclipsingMoons {
     /** The value of a moon's `path` that asks for this. */
     const val ECLIPSING = "eclipsing"
 
+    /**
+     * How often an eclipsing moon covers its sun — `frequent`, `sporadic` — by how long its month is. The name the
+     * curtain, the bow and the weather share; on a moon that does not eclipse it says nothing.
+     */
+    val FREQUENCY = Parameter.ranged(
+        "frequency",
+        help = "How often this moon eclipses its sun, where it does.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "once in 32 days"),
+            Parameter.Landmark(0.0, "once in 8 days", isVanilla = true),
+            Parameter.Landmark(1.0, "once in 2 days"),
+        ),
+    )
+
     /** [bodies] with every moon [saidOf] calls eclipsing laid on its sun's path. [saidOf] answers by index. */
     fun laidOn(bodies: List<CelestialBody>, saidOf: (Int) -> Options, seed: Long): List<CelestialBody> {
         val sun = bodies.firstOrNull { it.phase == null } ?: return bodies
@@ -101,11 +115,18 @@ object EclipsingMoons {
         return sunDisc / moon.discShare * (moonDistance / sunDistance) * againstTheSun
     }
 
-    /** How many of the sun's days a month is: vanilla's eight, at the moon's pace. Two at the least, or it never laps. */
+    /**
+     * How many of the sun's days a month is: vanilla's eight, at the moon's pace, shortened or lengthened by
+     * [FREQUENCY] up to four times either way. Two at the least, or it never laps.
+     */
     internal fun monthDays(said: Options, seed: Long): Int {
         val length = said.steer(SkyBodies.BODYPACE, seed)?.let(SkyBodies::lengthAt) ?: 1.0
-        return (VANILLAS_MONTH_DAYS * length).roundToInt().coerceAtLeast(SHORTEST_MONTH_DAYS)
+        val oftener = said.steer(FREQUENCY, seed)?.let { Math.pow(FREQUENCY_RANGE, it) } ?: 1.0
+        return (VANILLAS_MONTH_DAYS * length / oftener).roundToInt().coerceAtLeast(SHORTEST_MONTH_DAYS)
     }
+
+    /** How many times as often the most frequent eclipses come as vanilla's month, and the rarest as seldom. */
+    private const val FREQUENCY_RANGE = 4.0
 
     /**
      * Which of the month's days its first eclipse falls on. The Age's first moon keeps the game's month, so its

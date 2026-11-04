@@ -99,12 +99,12 @@ internal object SkyInstruments {
             if (passages.isEmpty()) "  none — no covering body crosses a sun in that time" else "  ${passages.size}"
         }
         for (passage in passages) {
-            val sunAltitude = sky.bodies[passage.sun].path.altitudeAt(passage.greatestAt)
+            val sunAltitude = sky.bodies[passage.sun].path.altitudeAt(passage.deepestAt)
             report.entry(
                 "eclipses",
                 mapOf(
                     "inTicks" to passage.begins - now,
-                    "clock" to passage.greatestAt,
+                    "clock" to passage.deepestAt,
                     "sun" to passage.sun,
                     "coveredBy" to passage.coveredBy,
                     "greatest" to passage.greatest,
@@ -121,7 +121,7 @@ internal object SkyInstruments {
     /** One eclipse as a reader wants it: when, which bodies, how deep and how long, and whether anyone sees it. */
     private fun eclipseLine(passage: EclipsePassage, now: Long, sunAltitude: Float): String {
         val starts = if (passage.begins <= now) "under way now" else "in ${passage.begins - now} ticks"
-        val greatestAt = "day ${passage.greatestAt / VANILLA_DAY}, ${hourOf(passage.greatestAt)}"
+        val deepestAt = "day ${passage.deepestAt / VANILLA_DAY}, ${hourOf(passage.deepestAt)}"
         val bodies = "sun ${passage.sun} behind body ${passage.coveredBy.joinToString(" and ")}"
         val depth = when {
             passage.isTotal -> "total for %.0f s".format(passage.totalTicks / TICKS_PER_SECOND)
@@ -130,7 +130,7 @@ internal object SkyInstruments {
         }
         val length = "%.1f min end to end".format((passage.ends - passage.begins) / TICKS_PER_MINUTE)
         val seen = if (sunAltitude >= 0.0f) "sun %.0f° up".format(sunAltitude) else "sun below the horizon"
-        return "$starts, greatest $greatestAt: $bodies, $depth, $length, $seen"
+        return "$starts, deepest $deepestAt: $bodies, $depth, $length, $seen"
     }
 
     /** The hour on a vanilla clock face, where the day's tick nought is six in the morning. */

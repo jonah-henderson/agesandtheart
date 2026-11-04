@@ -5,7 +5,6 @@ import co.voik.agesandtheart.age.aspect.EclipsingMoons
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.ephemeris.sky.Eclipse
-import co.voik.ephemeris.sky.EclipsePassage
 import co.voik.ephemeris.sky.SkySpec
 import io.kotest.core.spec.style.FunSpec
 import kotlin.math.abs
@@ -30,11 +29,6 @@ class EclipsingMoonCheck : FunSpec({
 
     fun passages(spec: SkySpec, days: Long) = Eclipse.passagesBetween(spec, from = 0L, until = days * day)
 
-    fun middleOf(passage: EclipsePassage): Long {
-        val from = passage.totalFrom ?: return passage.greatestAt
-        val until = passage.totalUntil ?: return passage.greatestAt
-        return (from + until) / 2
-    }
 
     test("an eclipsing moon covers the sun once a month, at noon, on the game's new-moon day") {
         val spec = sky(options(eclipsing))
@@ -42,9 +36,9 @@ class EclipsingMoonCheck : FunSpec({
 
         check(seen.size == 2) { "Seventeen days held ${seen.size} eclipses: $seen" }
         check(seen.all { it.isTotal }) { "An eclipsing moon the sun's size left it showing: $seen" }
-        val days = seen.map { middleOf(it) / day }
+        val days = seen.map { it.deepestAt / day }
         check(days.all { it % 8 == 4L }) { "The eclipses fell on days $days, not the game's new-moon days" }
-        val sunHeights = seen.map { spec.bodies[it.sun].path.altitudeAt(middleOf(it)) }
+        val sunHeights = seen.map { spec.bodies[it.sun].path.altitudeAt(it.deepestAt) }
         check(sunHeights.all { it > 85.0f }) { "The sun stood at $sunHeights at totality, not overhead" }
     }
 
@@ -72,12 +66,20 @@ class EclipsingMoonCheck : FunSpec({
         check(swift.size == 4) { "A swift eclipsing moon gave ${swift.size} eclipses in seventeen days, not four" }
     }
 
+    test("frequent eclipses come every few days, and sporadic ones about once a month of thirty") {
+        val frequent = passages(sky(options(eclipsing, "frequency" to "0.8..0.8")), days = 24)
+        check(frequent.size in 7..9) { "A frequent eclipsing moon gave ${frequent.size} eclipses in 24 days" }
+
+        val sporadic = passages(sky(options(eclipsing, "frequency" to "-1.0..-1.0")), days = 64)
+        check(sporadic.size == 2) { "A sporadic eclipsing moon gave ${sporadic.size} eclipses in 64 days" }
+    }
+
     test("a slow sun is still eclipsed at its noon") {
         val spec = sky(options(eclipsing), sun = options("pace" to "-1.0..-1.0"))
         val seen = passages(spec, days = 34)
 
         check(seen.isNotEmpty() && seen.all { it.isTotal }) { "A slow sun's eclipses: $seen" }
-        val sunHeights = seen.map { spec.bodies[it.sun].path.altitudeAt(middleOf(it)) }
+        val sunHeights = seen.map { spec.bodies[it.sun].path.altitudeAt(it.deepestAt) }
         check(sunHeights.all { it > 85.0f }) { "A slow sun stood at $sunHeights at totality" }
     }
 
@@ -95,7 +97,7 @@ class EclipsingMoonCheck : FunSpec({
     test("a lit moon is new while it eclipses") {
         val spec = sky(options(eclipsing))
         val moon = spec.bodies.first { it.phase != null }
-        val crossing = middleOf(passages(spec, days = 9).single())
+        val crossing = passages(spec, days = 9).single().deepestAt
         val shape = moon.phase?.stepAt(crossing, moon.path, spec.bodies.first { it.phase == null }.path)
 
         check(shape == NEW_MOON) { "The moon showed shape $shape as it covered the sun, not new" }

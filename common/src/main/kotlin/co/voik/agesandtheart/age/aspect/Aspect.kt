@@ -323,7 +323,7 @@ enum class Aspect(
             )
             MOON -> listOf(
                 SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.MOONCOLOUR, SkyBodies.RISING, SkyBodies.PATH, SkyBodies.PULL,
-                SkyBodies.STILL, SkyBodies.BODYPACE, Parameter.cast(),
+                SkyBodies.STILL, SkyBodies.BODYPACE, EclipsingMoons.FREQUENCY, Parameter.cast(),
             )
             STARS -> listOf(SkyBodies.STARS, SkyBodies.STARGLOW, Atmosphere.FADES)
             GRASS -> listOf(Atmosphere.GRASSCOLOUR)
