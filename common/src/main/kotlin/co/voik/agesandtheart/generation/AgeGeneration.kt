@@ -292,6 +292,11 @@ object AgeGeneration {
                 // On vanilla's overworld rock the stretch is in the rock's own router, land and biomes together.
                 .stretched(if (vanillasClimateStretched) UNSTRETCHED else biomeStretch)
                 .alsoLaying(listOfNotNull(vanillasAbyss))
+                // An Age written before the sparse search keeps its strongholds where vanilla's search put them.
+                .searchingRingsEvery(
+                    if (recipe.generatorVersion >= FIRST_GENERATOR_OF_THE_SPARSE_RING_SEARCH) AgeBiomeSource.A_CELL_A_CHUNK
+                    else AgeBiomeSource.EVERY_CELL,
+                )
                 .let { if (ourGround == null) it.sampledForDepth() else it.groundedIn(ourGround.landform) }
                 // On unless the Age said otherwise — `biomes.footing=free` is the lever, and an Age whose
                 // biomes ignore its land is allowed rather than broken. See [Grounding] and [Biomes.FOOTING].
@@ -836,6 +841,9 @@ object AgeGeneration {
 
     /** A climate read at the size vanilla reads it. */
     private const val UNSTRETCHED = 1.0
+
+    /** The first generator whose stronghold rings search a biome cell a chunk ([AgeBiomeSource.findBiomeHorizontal]). */
+    private const val FIRST_GENERATOR_OF_THE_SPARSE_RING_SEARCH = 22
 
     /** So which sea wins is decorrelated from everything else this seed decides. */
     private const val WATERLINE_SALT = 0x5EA_1E7EL

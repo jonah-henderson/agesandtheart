@@ -1,11 +1,14 @@
 package co.voik.agesandtheart.worldgen.biome
 
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import com.mojang.datafixers.util.Pair
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.core.QuartPos
+import net.minecraft.util.RandomSource
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.Climate
@@ -14,8 +17,10 @@ import net.minecraft.world.level.biome.BiomeResolver
 import net.minecraft.world.level.levelgen.densityfunction.DensityBuffer
 import net.minecraft.world.level.levelgen.densityfunction.DensitySampler
 import net.minecraft.world.level.levelgen.densityfunction.DensityVolume
+import net.minecraft.world.level.levelgen.RandomState
 import net.minecraft.world.level.levelgen.densityfunction.SamplerContext
 import java.util.Optional
+import java.util.function.Predicate
 import java.util.stream.Stream
 import kotlin.math.floor
 
@@ -71,33 +76,59 @@ class AgeBiomeSource(
      * serialised, like [BiomeBand.above]: the shape is rebuilt from the recipe on every open.
      */
     private val volumes: List<BiomeVolume> = emptyList(),
+    /**
+     * How many biome cells apart the stronghold rings' search reads, one being vanilla's every cell. See
+     * [findBiomeHorizontal].
+     */
+    private val ringSearchStride: Int = EVERY_CELL,
 ) : BiomeSource() {
 
     override fun codec(): MapCodec<out BiomeSource> = CODEC
 
     fun sampledForDepth(): AgeBiomeSource =
-        AgeBiomeSource(under, AsSampled, bent, grounding, bands, stretch, laidAfterTheFill, volumes)
+        AgeBiomeSource(under, AsSampled, bent, grounding, bands, stretch, laidAfterTheFill, volumes, ringSearchStride)
 
     fun groundedIn(terrain: TerrainField): AgeBiomeSource =
-        AgeBiomeSource(under, BelowTerrain(terrain), bent, grounding, bands, stretch, laidAfterTheFill, volumes)
+        AgeBiomeSource(under, BelowTerrain(terrain), bent, grounding, bands, stretch, laidAfterTheFill, volumes, ringSearchStride)
 
     fun suitedTo(grounding: Grounding?): AgeBiomeSource =
-        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes)
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes, ringSearchStride)
 
     fun banded(bands: List<BiomeBand>): AgeBiomeSource =
-        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes)
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes, ringSearchStride)
 
     fun told(bent: RegionalClimate): AgeBiomeSource =
-        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes)
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes, ringSearchStride)
 
     fun stretched(by: Double): AgeBiomeSource =
-        AgeBiomeSource(under, depth, bent, grounding, bands, by, laidAfterTheFill, volumes)
+        AgeBiomeSource(under, depth, bent, grounding, bands, by, laidAfterTheFill, volumes, ringSearchStride)
 
     fun holding(volumes: List<BiomeVolume>): AgeBiomeSource =
-        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes)
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes, ringSearchStride)
+
+    fun searchingRingsEvery(stride: Int): AgeBiomeSource =
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill, volumes, stride)
+
+    /**
+     * **The stronghold rings' search, read [ringSearchStride] cells apart.** It is the only caller, and it reads
+     * every biome cell within 112 blocks of each of its 128 places, about four hundred thousand lookups, keeping one
+     * matching cell at random; on a grounded Age each lookup reads a column of the land, caves and all, and that
+     * search was most of what a fresh Age made a player wait for. A stronghold stands in a chunk, so a cell a chunk
+     * is as fine as the answer can use. The biomes it reads are still the true ones.
+     */
+    override fun findBiomeHorizontal(
+        x: Int,
+        y: Int,
+        z: Int,
+        searchRadius: Int,
+        allowed: Predicate<Holder<Biome>>,
+        random: RandomSource,
+        randomState: RandomState,
+    ): Pair<BlockPos, Holder<Biome>>? =
+        findBiomeHorizontal(x, y, z, searchRadius, ringSearchStride, allowed, random, false, randomState)
 
     fun alsoLaying(biomes: List<Holder<Biome>>): AgeBiomeSource =
-        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill + biomes, volumes)
+        AgeBiomeSource(under, depth, bent, grounding, bands, stretch, laidAfterTheFill + biomes, volumes, ringSearchStride)
 
     /**
      * **A factory now, where 26.3 asked a source for one biome at a time.** That is what retired the memo
@@ -252,10 +283,17 @@ class AgeBiomeSource(
                 BiomeBand.CODEC.listOf().optionalFieldOf("bands", emptyList()).forGetter { it.bands },
                 Codec.DOUBLE.optionalFieldOf("stretch", UNSTRETCHED).forGetter { it.stretch },
                 Biome.CODEC.listOf().optionalFieldOf("laid_after_the_fill", emptyList()).forGetter { it.laidAfterTheFill },
-            ).apply(instance) { under, depth, bias, grounded, bands, stretch, laid ->
-                AgeBiomeSource(under, depth, bias, grounded.orElse(null), bands, stretch, laid)
+                Codec.INT.optionalFieldOf("ring_search_stride", EVERY_CELL).forGetter { it.ringSearchStride },
+            ).apply(instance) { under, depth, bias, grounded, bands, stretch, laid, stride ->
+                AgeBiomeSource(under, depth, bias, grounded.orElse(null), bands, stretch, laid, ringSearchStride = stride)
             }
         }
+
+        /** Vanilla's stronghold search, every biome cell. */
+        const val EVERY_CELL = 1
+
+        /** A cell a chunk, four biome cells to a chunk's side. */
+        const val A_CELL_A_CHUNK = 4
     }
 }
 
