@@ -209,6 +209,8 @@ class AgeChunkGenerator(
     private val structuresBuiltOf: StructureMaterials.Written = StructureMaterials.Written.NONE,
     /** What the book grew this Age's trees with in place of their leaves. Not serialised, like [lives]. */
     val treesGrownWith: TreeFoliage = TreeFoliage.NONE,
+    /** How much of the rock the features build above the ground crumbles — see [CrumbledFeatures]. Not serialised. */
+    private val featuresCrumbled: Double = 0.0,
     /** The blocks the book banned, which no chunk of the Age is generated holding — see [BannedBlocks]. */
     private val banned: Set<Block> = emptySet(),
     /** Whether no new living thing may be made in this Age by anything at all — see [StruckCreatures]. */
@@ -1595,9 +1597,11 @@ class AgeChunkGenerator(
      */
     override fun applyBiomeDecoration(level: WorldGenLevel, chunk: ChunkAccess, structures: StructureManager) {
         val placedFeatures = level.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
-        StrangeGround.decorating(consequence, treesGrownWith, level.seed, { placedFeatures.getKey(it)?.toString() }) {
-            StructureMaterials.building(structuresBuiltOf, level.registryAccess()) {
-                super.applyBiomeDecoration(level, chunk, structures)
+        CrumbledFeatures.decorating(featuresCrumbled, level.seed) {
+            StrangeGround.decorating(consequence, treesGrownWith, level.seed, { placedFeatures.getKey(it)?.toString() }) {
+                StructureMaterials.building(structuresBuiltOf, level.registryAccess()) {
+                    super.applyBiomeDecoration(level, chunk, structures)
+                }
             }
         }
         // **The abyss is put right first, and before the early return below.** A structure brings its own

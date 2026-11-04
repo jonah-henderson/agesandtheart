@@ -131,6 +131,24 @@ object Features {
         .perMember(honouredWhere { feature, _ -> FeatureShape.growsTrees(feature) })
         .onlyWhenAimed()
 
+    /**
+     * How far what the features build of rock above the ground has crumbled — `eroded features`. None unsaid, and only
+     * ever away, never shaped: the boulders, spikes and formations lose blocks, the trees are left alone.
+     *
+     * **Not `wear`**, the landmass's dial, though it is the same idea: a bend names a dial and lands on whichever part
+     * owns that name, so a features dial of the same name would split `pristine` and `uniform` between the land and the
+     * features by chance. Only the words that name this one reach it.
+     */
+    val CRUMBLE = Parameter.ranged(
+        "crumble",
+        help = "How far the rock the features build above the ground has crumbled away.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "whole"),
+            Parameter.Landmark(0.0, "whole"),
+            Parameter.Landmark(1.0, "crumbled"),
+        ),
+    )
+
     val SIZE = Parameter.ranged(
         "size",
         help = "How big one of a thing is.",

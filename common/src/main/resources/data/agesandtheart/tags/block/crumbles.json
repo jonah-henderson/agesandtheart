@@ -1,0 +1,27 @@
+{
+  "_comment": "What a crumbling feature may lose: rock, never wood, leaves or plants (CrumbledFeatures).",
+  "values": [
+    "#minecraft:base_stone_overworld",
+    "#minecraft:base_stone_nether",
+    "#minecraft:terracotta",
+    "minecraft:cobblestone",
+    "minecraft:mossy_cobblestone",
+    "minecraft:cobbled_deepslate",
+    "minecraft:sandstone",
+    "minecraft:red_sandstone",
+    "minecraft:smooth_sandstone",
+    "minecraft:smooth_red_sandstone",
+    "minecraft:calcite",
+    "minecraft:dripstone_block",
+    "minecraft:smooth_basalt",
+    "minecraft:end_stone",
+    "minecraft:obsidian",
+    "minecraft:packed_ice",
+    "minecraft:blue_ice",
+    "minecraft:ice",
+    "minecraft:magma_block",
+    "minecraft:prismarine",
+    "minecraft:mud",
+    "minecraft:packed_mud"
+  ]
+}

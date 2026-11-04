@@ -2,7 +2,10 @@
   "_comment": [
     "Worn, great and laid out long ago, the ground and what stands on it leaning that way, and faded with it, its",
     "builders' works gone to ruin: two of more weathering, a yellowed or grey light, dust in the air, a faint haze,",
-    "and old stone underfoot are offered to every ancient Age, each yielding to anything the book says."
+    "and old stone underfoot are offered to every ancient Age, each yielding to anything the book says.",
+    "",
+    "Aimed at the features it crumbles what they build of rock above the ground a little; laid bare, now and then",
+    "(Features.CRUMBLE)."
   ],
   "meanings": [
     {
@@ -75,6 +78,12 @@
         "stone": "#stony"
       },
       "chance_to_apply": 0.4
+    },
+    {
+      "bends": {
+        "crumble": "0.2..0.8"
+      },
+      "unaimed_chance_to_apply": 0.3
     }
   ]
 }

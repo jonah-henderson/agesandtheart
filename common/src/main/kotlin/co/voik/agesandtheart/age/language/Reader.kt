@@ -296,6 +296,7 @@ object Reader {
                 return
             }
             val place = placeOf(acceptance)
+            lastTaker?.takeIf { offersTo(word, it) }?.let { offering -> saidOfThisPage(offering, word, acceptance, place) }
             val joinedTo = leftOfAnd as? Taker
             val joinsAWaitingPage = andAt != null && joinedTo == null
             if (joinsAWaitingPage) andAt?.let(::impossible)
@@ -338,6 +339,34 @@ object Reader {
             fates[at] = Fate.Took(place)
             lastTaker = Taker(at, place, taking, from..<claims.size, joined, word, acceptance)
             saidOfBy?.let { saidOf(it, place) }
+        }
+
+        /**
+         * Whether the word just before [word] took nothing and offers something to it, with nothing else open: `eroded
+         * features`, where the eroded country's word offers the features a crumbling.
+         */
+        private fun offersTo(word: Word, before: Taker): Boolean {
+            val followsIt = before.index == at - 1
+            val tookNothing = before.took.isEmpty()
+            val nothingElseIsOpen = waiting.isEmpty() && andAt == null && ofFrom == null
+            val offersSomething = before.word.meanings.any { word.name in it.offeredTo }
+            return followsIt && tookNothing && nothingElseIsOpen && offersSomething
+        }
+
+        /**
+         * `<member> <page>`, where the member's word offers the page something: the word is said of the page instead of
+         * its own part — its own naming is dropped, as before an `of`, and what it offers lands here. `eroded features`
+         * crumbles the features and leaves the land as it was.
+         */
+        private fun saidOfThisPage(before: Taker, word: Word, acceptance: Acceptance, place: Place) {
+            for (index in before.claims) claims[index] = claims[index].copy(effects = emptyList())
+            fates[before.index] = Fate.TakenBy(at)
+            for (meaning in before.word.meanings.filter { word.name in it.offeredTo }) {
+                for ((offeredPlace, effects) in offeredPlacesOf(meaning, acceptance, place)) {
+                    claims += Claim(before.index, before.word, meaning, offeredPlace, effects, clause = at, aimed = true, joined = before.joined)
+                }
+            }
+            lastTaker = null
         }
 
         /**
