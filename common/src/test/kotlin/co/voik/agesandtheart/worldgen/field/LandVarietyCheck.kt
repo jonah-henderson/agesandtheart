@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen.field
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
+import co.voik.agesandtheart.age.FormerUnsaidWear
 import co.voik.agesandtheart.age.FormerWear
 import co.voik.agesandtheart.age.FormerUniformity
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -175,6 +176,17 @@ class LandVarietyCheck : FunSpec({
         check(!read(FormerWear.LAST_GENERATOR_OF_THE_FORMER_WEAR + 1).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_WEAR)) {
             "a new Age wears through its banks"
         }
+    }
+
+    test("an Age written while unsaid land was worn keeps its wear, and a new one is smooth") {
+        fun read(version: Int): AgeComposition {
+            val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.ERODED))), seed = SEED, generatorVersion = version)
+            val saved = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow()
+            return AgeRecipe.CODEC.parse(JsonOps.INSTANCE, saved).getOrThrow().composition ?: error("no composition")
+        }
+        val last = FormerUnsaidWear.LAST_GENERATOR_OF_THE_UNSAID_WEAR
+        check(read(last).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_UNSAID_WEAR)) { "the old Age lost its wear" }
+        check(!read(last + 1).optionsFor(Aspect.TERRAIN, 0).isTrue(Terrain.FORMER_UNSAID_WEAR)) { "a new Age was worn unsaid" }
     }
 
     test("wear swings from place to place about its mean, and none wears nothing") {

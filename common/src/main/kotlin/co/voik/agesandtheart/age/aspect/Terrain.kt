@@ -767,11 +767,13 @@ enum class Terrain(
         liftTo(options, salt, sea)?.over(water, keepsFloor = false) ?: water
 
     /**
-     * How worn this landform is when nothing says: none for a made one, a full wear for the eroded country unless the
-     * Age was written before it was ([FORMER_WEAR]), and a touch for the rest.
+     * How worn this landform's ground is when nothing says: none, so unsaid land is smooth and only `worn` and its kin
+     * wear it. An Age written before then ([FORMER_UNSAID_WEAR]) keeps what it had: a full wear for the eroded country
+     * unless it was written before even that ([FORMER_WEAR]), and a touch for the rest; never any for a made one.
      */
     private fun ordinaryWear(options: Options): Double = when {
         this in MADE -> 0.0
+        !options.isTrue(FORMER_UNSAID_WEAR) -> 0.0
         this == ERODED && !options.isTrue(FORMER_WEAR) -> ERODED_WEAR
         else -> ORDINARY_WEAR
     }
@@ -1013,6 +1015,16 @@ enum class Terrain(
         val FORMER_WEAR = Parameter.flag(
             "former_wear",
             help = "Whether the weather wears the land as it did before it spared the rivers and shaped each landform's features.",
+        )
+
+        /**
+         * Whether ground nobody called worn is worn as it was before generator 22: a touch, and the eroded country a full
+         * wear — set on every Age written before then, so the land it has already generated still meets what it
+         * generates next. No word sets it.
+         */
+        val FORMER_UNSAID_WEAR = Parameter.flag(
+            "former_unsaid_wear",
+            help = "Whether land nobody called worn is worn a little, as it was before unsaid land was left smooth.",
         )
 
         /**
