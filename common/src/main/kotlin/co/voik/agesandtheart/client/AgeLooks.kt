@@ -39,24 +39,28 @@ object AgeLooks {
             // was painting, and a column standing in one still blinds you outright.
             Engulfing.paint(
                 level,
-                // Outermost but one: a storm's violet is laid over whatever the Age and its wounds had
-                // made of the light, and a sand column standing in one still blinds you through it.
-                MeteorGlow.paint(
+                // Over everything but a column: it reads the open sky's air through every painter under it.
+                HallSkylight.paint(
                     level,
-                    Storms.paint(
+                    // A storm's violet is laid over whatever the Age and its wounds had made of the light, and a
+                    // sand column standing in one still blinds you through it.
+                    MeteorGlow.paint(
                         level,
-                        // A bank of fog under the storms, so a whiteout in a fog is still a whiteout.
-                        Fogs.paint(
+                        Storms.paint(
                             level,
-                            // A deluge greys the air under the storms and over the wounds, as a blizzard does.
-                            Downpours.paint(
+                            // A bank of fog under the storms, so a whiteout in a fog is still a whiteout.
+                            Fogs.paint(
                                 level,
-                                Corruption.paint(
+                                // A deluge greys the air under the storms and over the wounds, as a blizzard does.
+                                Downpours.paint(
                                     level,
-                                    // Over the Age's air, because `murk` is a word about the Age's seas and an
-                                    // abyss is not one of them — a clear Age still has a black abyss.
-                                    // A palm beach's dusk deepens whatever sunset the Age's air already had.
-                                    DeepWaterFog.paint(level, PalmDusk.paint(level, AgeAir.paint(level, layers))),
+                                    Corruption.paint(
+                                        level,
+                                        // Over the Age's air, because `murk` is a word about the Age's seas and an
+                                        // abyss is not one of them — a clear Age still has a black abyss.
+                                        // A palm beach's dusk deepens whatever sunset the Age's air already had.
+                                        DeepWaterFog.paint(level, PalmDusk.paint(level, AgeAir.paint(level, layers))),
+                                    ),
                                 ),
                             ),
                         ),
