@@ -18,6 +18,10 @@ import kotlin.random.Random
  * It is the sun's apparent size and a quarter over, which gives about eighty seconds of totality at the ordinary
  * month; a size word moves it against the sun ([sizeCovering]).
  *
+ * **`constant eclipsing moon` never leaves the sun.** At the very top of [FREQUENCY], which only `constant` says,
+ * the moon takes the sun's own path, period and phase and all, so it stands in front of it at every hour and the
+ * Age is in an eclipse that does not end ([lockedToTheSun]).
+ *
  * Laid after every body has been described, because it is built from the sun's finished path: risen, paced and
  * shaped. A sky with no sun, or whose first sun stands still or is not on a circle, has nothing to eclipse and its
  * moons keep the paths they were drawn.
@@ -51,9 +55,13 @@ object EclipsingMoons {
             val said = saidOf(at)
             val phase = body.phase
             if (phase == null || said.of(SkyBodies.PATH) != ECLIPSING) return@mapIndexed body
-            val monthDays = monthDays(said, seed)
-            val firstCrossingDay = firstCrossingDay(isTheFirstMoon = at == firstMoon, monthDays, seed, at)
-            val path = orbitCrossing(sunOrbit, body.path.distance, monthDays, firstCrossingDay)
+            val path = if (lockedToTheSun(said, seed)) {
+                sunOrbit.copy(distance = body.path.distance)
+            } else {
+                val monthDays = monthDays(said, seed)
+                val firstCrossingDay = firstCrossingDay(isTheFirstMoon = at == firstMoon, monthDays, seed, at)
+                orbitCrossing(sunOrbit, body.path.distance, monthDays, firstCrossingDay)
+            }
             eclipsing(body, phase, said, path, sunOrbit, sunSprite, seed)
         }
     }
@@ -124,6 +132,15 @@ object EclipsingMoons {
         val oftener = said.steer(FREQUENCY, seed)?.let { Math.pow(FREQUENCY_RANGE, it) } ?: 1.0
         return (VANILLAS_MONTH_DAYS * length / oftener).roundToInt().coerceAtLeast(SHORTEST_MONTH_DAYS)
     }
+
+    /**
+     * Whether this moon never leaves its sun: [FREQUENCY] at its very top, which a drawn span reaches only where it is
+     * that and nothing else, as `constant`'s is. `frequent`'s draw never reaches it.
+     */
+    internal fun lockedToTheSun(said: Options, seed: Long): Boolean = (said.steer(FREQUENCY, seed) ?: 0.0) >= UNBROKEN
+
+    /** The top of [FREQUENCY]: an eclipse that does not end. */
+    private const val UNBROKEN = 1.0
 
     /** How many times as often the most frequent eclipses come as vanilla's month, and the rarest as seldom. */
     private const val FREQUENCY_RANGE = 4.0

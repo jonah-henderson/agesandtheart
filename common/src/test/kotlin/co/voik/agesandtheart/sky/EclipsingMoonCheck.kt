@@ -94,6 +94,17 @@ class EclipsingMoonCheck : FunSpec({
         check(sky(options(eclipsing), moons = 3) == sky(options(eclipsing), moons = 3)) { "Two builds disagreed" }
     }
 
+    test("a constant eclipsing moon covers the sun at every hour, and a frequent one only now and then") {
+        val constant = sky(options(eclipsing, "frequency" to "1.0..1.0"))
+        val sun = constant.bodies.indexOfFirst { it.phase == null }
+        val uncovered = (0L..<3 * day step 500L).filter { (Eclipse.of(constant, sun, it)?.coverage ?: 0.0f) < 0.999f }
+        check(uncovered.isEmpty()) { "A constant eclipsing moon left the sun showing at ${uncovered.take(5)}" }
+
+        val frequent = sky(options(eclipsing, "frequency" to "0.6..1.0"))
+        val coveredHours = (0L..<3 * day step 500L).count { (Eclipse.of(frequent, sun, it)?.coverage ?: 0.0f) > 0.5f }
+        check(coveredHours < 10) { "A frequent eclipsing moon covered the sun at $coveredHours of 144 moments" }
+    }
+
     test("a lit moon is new while it eclipses") {
         val spec = sky(options(eclipsing))
         val moon = spec.bodies.first { it.phase != null }

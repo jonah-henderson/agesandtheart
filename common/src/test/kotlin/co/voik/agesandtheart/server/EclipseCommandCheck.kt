@@ -14,10 +14,12 @@ class EclipseCommandCheck : FunSpec({
 
     val eclipsed = "eclipsed"
     val plain = "uneclipsed"
+    val endless = "endless"
 
     beforeSpec {
         server.run("age write $eclipsed 11 age eclipsing moon")
         server.run("age compose $plain 5 landmass=gentle sea=minecraft:water")
+        server.run("age write $endless 11 age constant eclipsing moon")
     }
 
     fun eclipsesOver(name: String, days: Int) =
@@ -39,6 +41,15 @@ class EclipseCommandCheck : FunSpec({
         val atTotality = eclipsesOver(eclipsed, days = 1)
         check(atTotality.get("coveredNow").asFloat > 0.99f) { "Setting the clock to totality covered:\n$atTotality" }
         check(atTotality.get("darkeningNow").asInt == 11) { "Totality darkened the day only so far:\n$atTotality" }
+    }
+
+    test("a constant eclipsing moon never leaves its sun, and the day stays dark") {
+        val report = eclipsesOver(endless, days = 3)
+        val eclipses = report.getAsJsonArray("eclipses")?.map { it.asJsonObject }.orEmpty()
+        check(eclipses.size == 1 && eclipses.single().get("unending").asBoolean) { "The eclipse came and went:\n$report" }
+        check(eclipses.single().get("totalTicks").asLong > 0) { "The unending eclipse was not total:\n$report" }
+        check(report.get("coveredNow").asFloat > 0.99f) { "The sun was showing:\n$report" }
+        check(report.get("darkeningNow").asInt == 11) { "The day was not as dark as night:\n$report" }
     }
 
     test("an Age with one ordinary moon has none") {

@@ -81,7 +81,8 @@ internal object SkyInstruments {
         val sky = LevelAppearance.of(level.dimension())?.sky
             ?: return report.fail("Nothing has said what ${age.id} looks like")
         val now = level.defaultClockTime
-        val passages = Eclipse.passagesBetween(sky, now, now + days * VANILLA_DAY)
+        val until = now + days * VANILLA_DAY
+        val passages = Eclipse.passagesBetween(sky, now, until)
 
         report.say { "Eclipses over ${age.id} in the next $days day(s), from clock $now:" }
         val coveredNow = Eclipse.of(sky, now).maxOfOrNull { it.coverage } ?: 0.0f
@@ -99,6 +100,8 @@ internal object SkyInstruments {
             if (passages.isEmpty()) "  none — no covering body crosses a sun in that time" else "  ${passages.size}"
         }
         for (passage in passages) {
+            // Under way before the window and still going at its end: `constant eclipsing moon`, never off its sun.
+            val unending = passage.begins <= now && passage.ends >= until - SEARCH_STEP_TICKS
             val sunAltitude = sky.bodies[passage.sun].path.altitudeAt(passage.deepestAt)
             report.entry(
                 "eclipses",
@@ -111,8 +114,9 @@ internal object SkyInstruments {
                     "totalTicks" to passage.totalTicks,
                     "lastsTicks" to passage.ends - passage.begins,
                     "sunAltitude" to sunAltitude,
+                    "unending" to unending,
                 ),
-            ) { "  ${eclipseLine(passage, now, sunAltitude)}" }
+            ) { "  ${if (unending) unendingLine(passage) else eclipseLine(passage, now, sunAltitude)}" }
         }
         report.finish()
         return SUCCESS
@@ -133,12 +137,22 @@ internal object SkyInstruments {
         return "$starts, deepest $deepestAt: $bodies, $depth, $length, $seen"
     }
 
+    /** An eclipse that covers the whole window: which bodies, and how deep, with no start or end to give. */
+    private fun unendingLine(passage: EclipsePassage): String {
+        val bodies = "sun ${passage.sun} behind body ${passage.coveredBy.joinToString(" and ")}"
+        val depth = if (passage.isTotal) "total" else "at most %.0f%% covered".format(passage.greatest * PER_CENT)
+        return "the whole time: $bodies, $depth, an eclipse that does not end"
+    }
+
     /** The hour on a vanilla clock face, where the day's tick nought is six in the morning. */
     private fun hourOf(clock: Long): String {
         val ticksIntoDay = Math.floorMod(clock, VANILLA_DAY)
         val minutes = (ticksIntoDay * MINUTES_A_DAY / VANILLA_DAY + DAWN_MINUTES) % MINUTES_A_DAY
         return "%02d:%02d".format(minutes / MINUTES_AN_HOUR, minutes % MINUTES_AN_HOUR)
     }
+
+    /** How far apart the passage search reads the sky, so how near a window's end an unending eclipse can stop. */
+    private const val SEARCH_STEP_TICKS = 20L
 
     private const val ECLIPSES_LITERAL = "eclipses"
     private const val DAYS_ARGUMENT = "days"
