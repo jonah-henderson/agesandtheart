@@ -20,7 +20,8 @@ class PlasmaOnServerCheck : FunSpec({
     fun sprint(ticks: Int) = server.sprint(ticks)
 
     val surface by lazy {
-        server.run("age write $AGE 7 age plasma sea")
+        // A seed whose drawn land leaves the origin open sea: seed 7 came to stand a cliff over it.
+        server.run("age write $AGE 1 age plasma sea")
         inAge("forceload add 0 0")
         server.waitUntil("the plasma Age's origin loading") { inAge("execute if loaded 0 0 0").startsWith("Test passed") }
         (SCAN_FROM downTo BOTTOM).firstOrNull { y -> isIn(0, y, 0, PLASMA) }
@@ -117,12 +118,18 @@ class PlasmaOnServerCheck : FunSpec({
     }
 
     test("what burns catches fire over the field") {
-        inAge("setblock 11 ${surface + SCORCHED_HEIGHT} 2 minecraft:oak_planks")
+        // A column open to the sky from the sea up past where the planks hang, since the Age's land is drawn and can
+        // stand a cliff over any one column — fire is only set into air.
+        val reachesUp = surface + 1..surface + SCORCHED_HEIGHT + 1
+        val (x, z) = (0..<CHUNK).flatMap { x -> (0..<CHUNK).map { z -> x to z } }
+            .firstOrNull { (x, z) -> reachesUp.all { y -> isIn(x, y, z, "minecraft:air") } }
+            ?: error("no column at the origin is open from the sea to ${SCORCHED_HEIGHT + 1} over it")
+        inAge("setblock $x ${surface + SCORCHED_HEIGHT} $z minecraft:oak_planks")
         val caught = (1..PASSES_TO_CATCH).any {
             passTheField()
-            isIn(11, surface + SCORCHED_HEIGHT + 1, 2, "minecraft:fire")
+            isIn(x, surface + SCORCHED_HEIGHT + 1, z, "minecraft:fire")
         }
-        check(caught) { "planks twelve over the sea never caught in $PASSES_TO_CATCH passes" }
+        check(caught) { "planks twelve over the sea at ($x, $z) never caught in $PASSES_TO_CATCH passes" }
     }
 
     test("what falls into the sea is gone") {
@@ -224,6 +231,9 @@ class PlasmaOnServerCheck : FunSpec({
 
         /** Each pass offers a burning block one chance in eight; sixty misses in a row is one in three thousand. */
         const val PASSES_TO_CATCH = 60
+
+        /** The origin's chunk, which a pass of the field reaches. */
+        const val CHUNK = 16
         const val FLOW_AND_A_LITTLE = 100
         const val SHOWN = 8
         const val ERUPTION_X = 200
