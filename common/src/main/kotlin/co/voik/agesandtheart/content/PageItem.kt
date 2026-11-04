@@ -81,7 +81,7 @@ class PageItem(properties: Properties) : Item(properties) {
          */
         fun write(stack: ItemStack, word: Word, vocabulary: Vocabulary) {
             stack.set(AgeComponents.PAGE_WORD, word.id)
-            val bucket = vocabulary.rarity.bucketOf(word) ?: return
+            val bucket = vocabulary.bucketOf(word) ?: return
             stack.set(DataComponents.RARITY, bucket.itemRarity)
         }
     }

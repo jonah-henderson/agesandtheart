@@ -95,7 +95,7 @@ class FillNotebookFunction(
         }
 
     private fun isInAskedRarity(word: Word, vocabulary: Vocabulary): Boolean =
-        rarity == null || vocabulary.rarity.bucketOf(word)?.name in rarity
+        rarity == null || vocabulary.bucketOf(word)?.name in rarity
 
     companion object {
         /** How many draws to allow past the target before settling for a shorter notebook. */

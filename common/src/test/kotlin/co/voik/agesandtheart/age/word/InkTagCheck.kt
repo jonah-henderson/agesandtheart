@@ -22,9 +22,11 @@ class InkTagCheck : FunSpec({
 
     val tagRoot = File("src/main/resources/data/agesandtheart/tags")
 
+    /** The blocks a tag names itself; a tag it pulls in (`#c:ores`) is another mod's to fill. */
     fun valuesIn(file: File): List<String> =
         JsonParser.parseString(file.readText()).asJsonObject
-            .getAsJsonArray("values").map { it.asString }
+            .getAsJsonArray("values").map { if (it.isJsonObject) it.asJsonObject["id"].asString else it.asString }
+            .filterNot { it.startsWith("#") }
 
     /**
      * Ours are asked of the resource tree rather than the registry.

@@ -30,6 +30,8 @@ data class RarityBucket(
     val prefersTheUnknown: Boolean = false,
     /** The buckets a finder who has learned every word of this one draws from instead, or none to draw from it anyway. */
     val onceAllKnown: Set<String> = emptySet(),
+    /** The inks whose words no bucket lists are found here rather than in the default. */
+    val inks: Set<InkTier> = emptySet(),
 ) {
     /** This bucket with [later] laid over it — a higher-priority pack retuning it. */
     fun mergedWith(later: RarityBucket): RarityBucket = RarityBucket(
@@ -40,6 +42,7 @@ data class RarityBucket(
         itemRarity = later.itemRarity,
         prefersTheUnknown = later.prefersTheUnknown,
         onceAllKnown = later.onceAllKnown,
+        inks = inks + later.inks,
     )
 
     fun lists(word: Word): Boolean = word.name in words || word.id.toString() in words
@@ -54,8 +57,9 @@ data class RarityBucket(
                 Rarity.CODEC.optionalFieldOf("item_rarity", Rarity.COMMON).forGetter(RarityBucket::itemRarity),
                 Codec.BOOL.optionalFieldOf("prefers_the_unknown", false).forGetter(RarityBucket::prefersTheUnknown),
                 Codec.STRING.listOf().optionalFieldOf("once_all_known", emptyList()).forGetter { it.onceAllKnown.toList() },
-            ).apply(instance) { weight, words, isDefault, itemRarity, prefersTheUnknown, onceAllKnown ->
-                RarityBucket(name, weight, words.toSet(), isDefault, itemRarity, prefersTheUnknown, onceAllKnown.toSet())
+                ExtraCodecs.compactListCodec(InkTier.CODEC).optionalFieldOf("ink", emptyList()).forGetter { it.inks.toList() },
+            ).apply(instance) { weight, words, isDefault, itemRarity, prefersTheUnknown, onceAllKnown, inks ->
+                RarityBucket(name, weight, words.toSet(), isDefault, itemRarity, prefersTheUnknown, onceAllKnown.toSet(), inks.toSet())
             }
         }
     }
@@ -63,7 +67,8 @@ data class RarityBucket(
 
 /**
  * How likely each word is to turn up on a found page: a bucket is rolled by weight, then a word within it
- * uniformly. Every word is in exactly one bucket — the one listing it, or else the default.
+ * uniformly. Every word is in exactly one bucket — the one listing it, else the one taking the ink it demands,
+ * else the default. The ink is what places a modded ore, which nobody here could list.
  *
  * A different axis from [Word.price]: price is what a word costs to write, rarity is how hard it is to come by.
  * A word may be evocative and rare, or exact and common.
@@ -75,8 +80,9 @@ data class WordRarity(
 ) {
     private val default: RarityBucket? get() = buckets.firstOrNull { it.isDefault }
 
-    /** Which bucket [word] belongs to, for the page to say so. */
-    fun bucketOf(word: Word): RarityBucket? = buckets.firstOrNull { it.lists(word) } ?: default
+    /** Which bucket [word], demanding [ink], belongs to. [Vocabulary.bucketOf] knows the ink. */
+    fun bucketOf(word: Word, ink: InkTier = InkTier.DEFAULT): RarityBucket? =
+        buckets.firstOrNull { it.lists(word) } ?: buckets.firstOrNull { ink in it.inks } ?: default
 
     /**
      * A word for a fresh page, or null if no bucket can offer one.
@@ -96,7 +102,7 @@ data class WordRarity(
         isNew: ((Word) -> Boolean)? = null,
         keep: (Word) -> Boolean = { true },
     ): Word? {
-        val byBucket = if (vocabulary.rarity === this) vocabulary.wordsByBucket else vocabulary.words.groupBy(::bucketOf)
+        val byBucket = if (vocabulary.rarity === this) vocabulary.wordsByBucket else vocabulary.words.groupBy { bucketOf(it, vocabulary.inkFor(it)) }
         val offered = buckets.filter { only == null || it.name in only }.toMutableList()
         while (true) {
             val bucket = pick(offered, random, RarityBucket::weight) ?: return null
@@ -132,7 +138,7 @@ data class WordRarity(
     /** What [bucket] can actually offer on this server. */
     fun wordsIn(bucket: RarityBucket, vocabulary: Vocabulary): List<Word> =
         if (vocabulary.rarity === this) vocabulary.wordsByBucket[bucket].orEmpty()
-        else vocabulary.words.filter { bucketOf(it) == bucket }
+        else vocabulary.words.filter { bucketOf(it, vocabulary.inkFor(it)) == bucket }
 
     private fun <T> pick(from: List<T>, random: RandomSource, weight: (T) -> Double): T? {
         val total = from.sumOf(weight)
@@ -181,6 +187,10 @@ data class WordRarity(
             if (defaults != 1) {
                 problems += "$defaults rarity buckets say `default`, and exactly one should: it is where every " +
                     "word no bucket lists is found"
+            }
+            val inksTakenTwice = InkTier.entries.filter { ink -> buckets.count { ink in it.inks } > 1 }
+            if (inksTakenTwice.isNotEmpty()) {
+                problems += "more than one rarity bucket takes the unlisted words of ${inksTakenTwice.joinToString(" ") { it.key }} ink"
             }
             return WordRarity(buckets, keptOutOfLoot(resources, problems))
         }

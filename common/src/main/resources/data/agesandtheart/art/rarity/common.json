@@ -5,9 +5,33 @@
     "derived words alone -- every authored word is listed in another bucket. The five weights are 46/20/20/12/2:",
     "two pages in five are filler, one in five a staple, one in five critical, one in eight uncommon and one in",
     "fifty rare. A loot table may narrow the roll with `\"rarity\": \"rare\"` or a list, on `roll_page_word` and",
-    "`fill_notebook` alike."
+    "`fill_notebook` alike.",
+    "An unlisted word needing a better ink is found in the bucket taking that ink instead (`ink`), so the words",
+    "listed here are the ones that need fine ink and are common all the same."
   ],
   "weight": 46,
   "default": true,
-  "words": []
+  "words": [
+    "minecraft:copper_block",
+    "minecraft:exposed_copper",
+    "minecraft:exposed_copper_golem_statue",
+    "minecraft:honey_block",
+    "minecraft:lava",
+    "minecraft:oxidized_copper",
+    "minecraft:oxidized_copper_golem_statue",
+    "minecraft:prismarine",
+    "minecraft:sculk",
+    "minecraft:sea_lantern",
+    "minecraft:shroomlight",
+    "minecraft:waxed_copper_block",
+    "minecraft:waxed_copper_golem_statue",
+    "minecraft:waxed_exposed_copper",
+    "minecraft:waxed_exposed_copper_golem_statue",
+    "minecraft:waxed_oxidized_copper",
+    "minecraft:waxed_oxidized_copper_golem_statue",
+    "minecraft:waxed_weathered_copper",
+    "minecraft:waxed_weathered_copper_golem_statue",
+    "minecraft:weathered_copper",
+    "minecraft:weathered_copper_golem_statue"
+  ]
 }

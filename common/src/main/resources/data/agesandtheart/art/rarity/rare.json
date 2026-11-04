@@ -1,6 +1,10 @@
 {
+  "_comment": [
+    "`ink`: a word no bucket lists that needs masterwork ink is found here."
+  ],
   "weight": 1,
   "item_rarity": "epic",
+  "ink": "masterwork",
   "words": [
     "agesandtheart:compounded_stone",
     "agesandtheart:end",

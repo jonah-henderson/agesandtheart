@@ -29,7 +29,7 @@ class FinderLacksCondition(val rarity: Set<String>) : LootItemCondition {
         val registries = context.level.registryAccess()
         val buckets = vocabulary.rarity.buckets.filter { it.name in rarity }
         fun isFindableHere(word: Word): Boolean =
-            vocabulary.rarity.bucketOf(word) in buckets && PageWordFunction.canBeFound(word, vocabulary, registries)
+            vocabulary.bucketOf(word) in buckets && PageWordFunction.canBeFound(word, vocabulary, registries)
         return vocabulary.words.any { word -> isFindableHere(word) && !finder.learnedWords.knows(word.id) }
     }
 

@@ -5,7 +5,7 @@ import co.voik.agesandtheart.age.language.Structure
 import co.voik.agesandtheart.datapack.ResourceParsing
 import co.voik.agesandtheart.location
 import com.mojang.serialization.Codec
-import net.minecraft.core.RegistryAccess
+import net.minecraft.core.HolderLookup
 import net.minecraft.resources.Identifier
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.util.StringRepresentable
@@ -51,10 +51,10 @@ class InkRequirement(private val authored: Map<String, InkTier>) {
 
     /**
      * What [word] demands. Tags are asked before the authored list because a pack that tags a block has
-     * said something more specific than a name collision could.
+     * said something more specific than a name collision could. Without [registries], only the list.
      */
-    fun tierFor(word: Word, registries: RegistryAccess): InkTier =
-        fromTags(word, registries) ?: authored[word.name] ?: InkTier.DEFAULT
+    fun tierFor(word: Word, registries: HolderLookup.Provider?): InkTier =
+        registries?.let { fromTags(word, it) } ?: authored[word.name] ?: InkTier.DEFAULT
 
     /** What a structure page demands. It names nothing to tag, so only the authored list can raise it. */
     fun tierFor(page: Structure.Page): InkTier = authored[page.name] ?: InkTier.DEFAULT
@@ -63,7 +63,7 @@ class InkRequirement(private val authored: Map<String, InkTier>) {
      * The tag answer, or null if nothing carries one. Asked dearest first, so a thing carrying both tags,
      * or a word naming entries in two registries that want different inks, gets the better ink.
      */
-    private fun fromTags(word: Word, registries: RegistryAccess): InkTier? =
+    private fun fromTags(word: Word, registries: HolderLookup.Provider): InkTier? =
         TAG_NAMES.entries.firstOrNull { (_, tag) -> registries.carriesTagNamed(word, tag) }?.key
 
     companion object {

@@ -1,6 +1,10 @@
 {
+  "_comment": [
+    "`ink`: a word no bucket lists that needs fine ink is found here, which is where another mod's ore lands."
+  ],
   "weight": 12,
   "item_rarity": "rare",
+  "ink": "fine",
   "words": [
     "agesandtheart:arboreal",
     "agesandtheart:chambered",

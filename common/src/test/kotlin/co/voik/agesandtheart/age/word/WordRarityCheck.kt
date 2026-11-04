@@ -82,6 +82,29 @@ class WordRarityCheck : FunSpec({
         check(drawnAsCommon == null) { "'${ore.id}' is listed rare and was still drawn as common" }
     }
 
+    /** How another mod's ore, which nobody here can list, is found as uncommon as the ink it needs. */
+    test("an unlisted word is found in the bucket taking its ink, and a listing still wins") {
+        val byInk = WordRarity(
+            listOf(
+                RarityBucket("common", 1.0, emptySet(), isDefault = true),
+                RarityBucket("uncommon", 1.0, emptySet(), isDefault = false, inks = setOf(InkTier.FINE)),
+                RarityBucket("listed", 1.0, setOf(authored.name), isDefault = false),
+            ),
+        )
+        check(byInk.bucketOf(ore, InkTier.FINE)?.name == "uncommon") { "a fine-ink word reads ${byInk.bucketOf(ore, InkTier.FINE)?.name}" }
+        check(byInk.bucketOf(ore, InkTier.MASTERWORK)?.name == "common") {
+            "an ink no bucket takes reads ${byInk.bucketOf(ore, InkTier.MASTERWORK)?.name}"
+        }
+        check(byInk.bucketOf(authored, InkTier.FINE)?.name == "listed") {
+            "a listed word needing fine ink reads ${byInk.bucketOf(authored, InkTier.FINE)?.name}"
+        }
+    }
+
+    test("the shipped buckets take each ink at most once, and common ink nowhere") {
+        val takers = InkTier.entries.associateWith { ink -> vocabulary.rarity.buckets.filter { ink in it.inks }.map { it.name } }
+        check(takers.values.all { it.size <= 1 } && takers[InkTier.COMMON].orEmpty().isEmpty()) { "the inks are taken by $takers" }
+    }
+
     /**
      * **A bucket's share is its weight, whatever it lists.** The default holds nearly the whole corpus
      * and the rare bucket one word, and each still comes up by weight alone.
@@ -157,7 +180,7 @@ class WordRarityCheck : FunSpec({
         val handedOn = (1L..200L).mapNotNull { seed ->
             vocabulary.rarity.draw(vocabulary, RandomSource.create(seed), only = setOf("critical"), isNew = { false })
         }
-        val buckets = handedOn.mapNotNull { vocabulary.rarity.bucketOf(it)?.name }.toSet()
+        val buckets = handedOn.mapNotNull { vocabulary.bucketOf(it)?.name }.toSet()
         check(handedOn.size == 200 && buckets.isNotEmpty() && buckets.all { it in critical.onceAllKnown }) {
             "a finder who knew every critical word was handed words from $buckets (${handedOn.size} of 200 draws)"
         }

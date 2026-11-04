@@ -2,7 +2,7 @@
   "_comment": [
     "Useful and worked materials -- worth more than common ink, short of the summit. Ores sit here rather",
     "than at master because finding them is already the game's own gate; what master ink guards is the",
-    "extravagant Age, not the ordinary one."
+    "extravagant Age, not the ordinary one. `#c:ores` brings every other mod's ore here too."
   ],
   "replace": false,
   "values": [
@@ -92,6 +92,7 @@
     "minecraft:weathered_copper_chest",
     "minecraft:weathered_copper_golem_statue",
     "minecraft:wet_sponge",
-    "minecraft:wither_rose"
+    "minecraft:wither_rose",
+    { "id": "#c:ores", "required": false }
   ]
 }

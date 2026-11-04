@@ -114,7 +114,13 @@ data class Vocabulary(
     val words: List<Word> by lazy { byName.values.distinct().sortedBy { it.name } }
 
     /** [words] by the rarity bucket each is found in, worked out once for the same reason. */
-    val wordsByBucket: Map<RarityBucket?, List<Word>> by lazy { words.groupBy(rarity::bucketOf) }
+    val wordsByBucket: Map<RarityBucket?, List<Word>> by lazy { words.groupBy(::bucketOf) }
+
+    /** The ink [word] demands: its referent's tags where this was loaded over registries, else the authored lists. */
+    fun inkFor(word: Word): InkTier = ink.tierFor(word, registries)
+
+    /** The rarity bucket [word] is found in. */
+    fun bucketOf(word: Word): RarityBucket? = rarity.bucketOf(word, inkFor(word))
 
     /**
      * The word a writer means by [name], or null if the corpus has never heard of it. A word answering to the name

@@ -19,7 +19,7 @@ object WordHeadings {
     enum class Rarity(val key: String) { RARE("rare"), UNCOMMON("uncommon"), COMMON("common") }
 
     /** The rarity [word]'s page is drawn at, as a player is told it. */
-    fun rarityOf(vocabulary: Vocabulary, word: Word): Rarity = when (vocabulary.rarity.bucketOf(word)?.name) {
+    fun rarityOf(vocabulary: Vocabulary, word: Word): Rarity = when (vocabulary.bucketOf(word)?.name) {
         RARE_BUCKET -> Rarity.RARE
         UNCOMMON_BUCKET -> Rarity.UNCOMMON
         else -> Rarity.COMMON
