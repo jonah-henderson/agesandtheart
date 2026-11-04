@@ -16,6 +16,9 @@ class Spans private constructor(val ranges: List<IntRange>) {
 
     fun contains(y: Int): Boolean = ranges.any { y in it }
 
+    /** Each interval's two ends in turn, the smallest form a column keeps in; [unpacked] reads it back. */
+    fun packed(): IntArray = IntArray(ranges.size * 2) { if (it % 2 == 0) ranges[it / 2].first else ranges[it / 2].last }
+
     /**
      * The top of the rock standing over [y], or null under open sky — *how buried* a point is, and
      * deliberately not [highestSolidY]: for a point in a cave it answers the roof above rather than the
@@ -180,6 +183,10 @@ class Spans private constructor(val ranges: List<IntRange>) {
          * union, intersect and subtract. Use [of]/[union] when unsure.
          */
         fun ofAscending(ranges: List<IntRange>): Spans = if (ranges.isEmpty()) EMPTY else Spans(ranges)
+
+        /** What [packed] packed. */
+        fun unpacked(bounds: IntArray): Spans =
+            if (bounds.isEmpty()) EMPTY else Spans(List(bounds.size / 2) { bounds[2 * it]..bounds[2 * it + 1] })
 
         /** Merge arbitrary integer ranges into the normalised invariant (sorted, merged, disjoint). */
         private fun normalise(input: List<IntRange>): Spans {

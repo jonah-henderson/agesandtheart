@@ -61,7 +61,8 @@ data class Caved(
     override val samplesPerColumn =
         base.samplesPerColumn + (toY - fromY + 1).coerceAtLeast(0) * NOISES_PER_VOXEL
 
-    private val memo = ColumnMemo(::hollow)
+    /** Remembered per thread, and behind that across every thread: see [SharedColumns]. */
+    private val memo = ColumnMemo(SharedColumns(::hollow)::at)
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans = memo.at(worldX, worldZ)
 
