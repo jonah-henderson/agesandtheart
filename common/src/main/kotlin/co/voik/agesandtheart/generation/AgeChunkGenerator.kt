@@ -210,6 +210,8 @@ class AgeChunkGenerator(
     private val structuresBuiltOf: StructureMaterials.Written = StructureMaterials.Written.NONE,
     /** How far each of its jigsaw structures sprawls ([JigsawSizes]). */
     private val jigsawSizes: Map<Structure, Double> = emptyMap(),
+    /** How high each of its structures stands against the ground ([StructureHeights]). */
+    private val structureHeights: Map<Structure, Double> = emptyMap(),
     /** What the book grew this Age's trees with in place of their leaves. Not serialised, like [lives]. */
     val treesGrownWith: TreeFoliage = TreeFoliage.NONE,
     /** How much of the rock the features build above the ground crumbles — see [CrumbledFeatures]. Not serialised. */
@@ -827,12 +829,14 @@ class AgeChunkGenerator(
         StrangeGround.startingStructures(consequence) {
             DeepWrecks.starting(biomeSource.possibleBiomes()) {
                 JigsawSizes.starting(jigsawSizes) {
-                    if (incongruity.structures) {
-                        IncongruousStructures.starting(state.levelSeed, biomeSource.possibleBiomes()) {
+                    StructureHeights.starting(structureHeights) {
+                        if (incongruity.structures) {
+                            IncongruousStructures.starting(state.levelSeed, biomeSource.possibleBiomes()) {
+                                super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
+                            }
+                        } else {
                             super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
                         }
-                    } else {
-                        super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
                     }
                 }
             }

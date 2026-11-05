@@ -454,6 +454,7 @@ object AgeGeneration {
             seaIsWater = seaIsWater,
             structuresBuiltOf = StructureMaterials.Written.of(composition.optionsFor(Aspect.STRUCTURES)),
             jigsawSizes = JigsawSizes.of(server, composition.optionsFor(Aspect.STRUCTURES, 0), seed),
+            structureHeights = StructureHeights.of(server, composition.optionsFor(Aspect.STRUCTURES, 0), seed),
             treesGrownWith = TreeFoliage.of(composition.optionsFor(Aspect.FEATURES)),
             featuresCrumbled = CrumbledFeatures.shareIn(composition.optionsFor(Aspect.FEATURES), seed),
             banned = BannedBlocks.named(composition.banned),

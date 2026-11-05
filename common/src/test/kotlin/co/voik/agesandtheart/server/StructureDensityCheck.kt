@@ -62,4 +62,14 @@ class StructureDensityCheck : FunSpec({
             check(found.contains("nearest", ignoreCase = true)) { "no village in '$size villages': $found" }
         }
     }
+
+    /** Buried, or lost — buried and abandoned — a village is still laid ([co.voik.agesandtheart.generation.StructureHeights]). */
+    test("buried and lost villages are still built") {
+        for (fate in listOf("buried", "lost")) {
+            val written = server.run("age write sunk$fate 5 $fate villages plains age")
+            check(written.contains("structures.height=")) { "'$fate villages' set no height: $written" }
+            val found = server.run("execute in agesandtheart:sunk$fate run locate structure #minecraft:village")
+            check(found.contains("nearest", ignoreCase = true)) { "no village in '$fate villages': $found" }
+        }
+    }
 })

@@ -87,6 +87,23 @@ object Structures {
         return found.map { it.value().structures().any { entry -> entry.structure().value() is JigsawStructure } }.orElse(false)
     }
 
+    /**
+     * How high a jigsaw structure stands against the ground: under it below nought, as deep as forty blocks at the
+     * whole of it and patchily where shallow — and over it above, twenty-four up to sixty-four. Only a set building by jigsaw honours it (see
+     * [co.voik.agesandtheart.generation.StructureHeights]), and only an aimed word turns it, so a `buried` Age buries
+     * its features and leaves its villages standing.
+     */
+    val HEIGHT = Parameter.ranged(
+        "height",
+        help = "How far under or over the ground a village or other jigsaw structure stands.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "buried forty blocks down"),
+            Parameter.Landmark(-0.05, "now and then a block or two sunk"),
+            Parameter.Landmark(0.0, "where vanilla stands them", isVanilla = true),
+            Parameter.Landmark(1.0, "high over the ground"),
+        ),
+    ).perMember(MemberHonouring { member, registries -> buildsByJigsaw(member.key, registries) }).onlyWhenAimed()
+
     /** The structure set vanilla's villages are, which is what [ABANDONED] is asked of. */
     const val VILLAGES = "minecraft:villages"
 
