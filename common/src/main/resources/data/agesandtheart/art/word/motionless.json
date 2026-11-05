@@ -8,7 +8,9 @@
     "still moves, and the light is held where a still sun stands (Ephemeris' ClockPace).",
     "",
     "Laid bare it never stops a body (`unaimed` 0): a motionless Age roots its creatures, and a sky that never",
-    "moves has to be asked for by name."
+    "moves has to be asked for by name.",
+    "",
+    "`motionless air` is air with no wind in it and clouds that hang where they are, as `motionless clouds` hang."
   ],
   "meanings": [
     {
@@ -16,6 +18,16 @@
         "still": "true"
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.wind": "-1.0..-1.0",
+        "clouds.still": "true"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "air"
+      ]
     }
   ]
 }

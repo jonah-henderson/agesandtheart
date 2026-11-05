@@ -135,6 +135,13 @@ class ResolutionCheck : FunSpec({
         check(underground.composition == resolved("age underground").composition) { underground.spelled() }
     }
 
+    test("motionless air stills the wind and the clouds, and roots no creature") {
+        val still = resolved("age motionless air")
+        check(still.option(Aspect.CLOUD, "still").toList() == listOf("true")) { still.spelled() }
+        check(still.option(Aspect.AIR, "wind").mapNotNull(Span::read) == listOf(Span(-1.0, -1.0))) { still.spelled() }
+        check(still.option(Aspect.SPAWNS, "still").isEmpty()) { still.spelled() }
+    }
+
     test("what the reading charged and dropped reaches the instability, and the cost is every page's ink") {
         val moved = resolved("age colossal")
         check(moved.instability.flaws.any { it.register == Register.REHOMED }) { "colossal laid after the Age was not charged" }
