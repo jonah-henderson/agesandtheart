@@ -52,4 +52,14 @@ class StructureDensityCheck : FunSpec({
             check(found.contains("nearest", ignoreCase = true)) { "no village in '$spacing villages': $found" }
         }
     }
+
+    /** Sprawling or shrunk, a village's pieces are still laid ([co.voik.agesandtheart.generation.JigsawSizes]). */
+    test("villages sized colossal or minuscule are still built") {
+        for (size in listOf("colossal", "minuscule")) {
+            val written = server.run("age write sized$size 5 $size villages plains age")
+            check(written.contains("Created Age")) { "'$size villages' was not written: $written" }
+            val found = server.run("execute in agesandtheart:sized$size run locate structure #minecraft:village")
+            check(found.contains("nearest", ignoreCase = true)) { "no village in '$size villages': $found" }
+        }
+    }
 })

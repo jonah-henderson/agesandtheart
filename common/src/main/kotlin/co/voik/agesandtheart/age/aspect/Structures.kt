@@ -6,6 +6,8 @@ import co.voik.agesandtheart.worldgen.structure.StructureDensity
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadType
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement
 import net.minecraft.core.Holder
+import net.minecraft.core.HolderLookup
+import net.minecraft.world.level.levelgen.structure.structures.JigsawStructure
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
@@ -64,6 +66,26 @@ object Structures {
             Parameter.Landmark(1.0, "far and evenly apart"),
         ),
     ).perMember()
+
+    /**
+     * How far a jigsaw structure sprawls — its depth in pieces, never the structure scaled (R4, Jonah) — so only a set
+     * building by jigsaw honours it, and only an aimed word turns it: `colossal villages`, never a `colossal age`'s.
+     */
+    val SIZE = Parameter.ranged(
+        "size",
+        help = "How far a village, bastion, trial chamber or other jigsaw structure sprawls.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "half as many pieces deep"),
+            Parameter.Landmark(0.0, "as vanilla lays it", isVanilla = true),
+            Parameter.Landmark(1.0, "twice as many pieces deep"),
+        ),
+    ).perMember(MemberHonouring { member, registries -> buildsByJigsaw(member.key, registries) }).onlyWhenAimed()
+
+    private fun buildsByJigsaw(set: String, registries: HolderLookup.Provider): Boolean {
+        val id = Identifier.tryParse(set) ?: return false
+        val found = registries.lookupOrThrow(Registries.STRUCTURE_SET).get(ResourceKey.create(Registries.STRUCTURE_SET, id))
+        return found.map { it.value().structures().any { entry -> entry.structure().value() is JigsawStructure } }.orElse(false)
+    }
 
     /** The structure set vanilla's villages are, which is what [ABANDONED] is asked of. */
     const val VILLAGES = "minecraft:villages"

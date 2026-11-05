@@ -1,8 +1,10 @@
 package co.voik.agesandtheart.mixin;
 
 import co.voik.agesandtheart.generation.IncongruousStructures;
+import co.voik.agesandtheart.generation.JigsawSizes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.structures.JigsawStructure;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -15,6 +17,9 @@ import java.util.Optional;
  * In an {@code incongruous structures} Age, a village, an ancient city or any other jigsaw structure starts at the
  * height drawn for it — on the sea floor, in the sky, buried, deep, or out on the surface ({@link
  * IncongruousStructures}).
+ *
+ * <p>And in an Age that sized one ({@code colossal villages}), its pieces are laid deeper or shallower and reach
+ * further or nearer from the start ({@link JigsawSizes}): arguments 3 and 7, the depth and the reach.
  *
  * <p><b>Why a mixin, and what was checked first.</b> Where a jigsaw structure starts is its private
  * {@code startHeight} and {@code projectStartToHeightmap}, handed to {@code JigsawPlacement.addPieces} in this one
@@ -39,5 +44,20 @@ public abstract class JigsawStructureMixin {
             args.set(4, moved.getAt());
             args.set(6, moved.getProjection());
         }
+    }
+
+    @ModifyArgs(
+        method = "findGenerationPoint",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/world/level/levelgen/structure/pools/JigsawPlacement;addPieces(Lnet/minecraft/world/level/levelgen/structure/Structure$GenerationContext;Lnet/minecraft/core/Holder;Ljava/util/Optional;ILnet/minecraft/core/BlockPos;ZLjava/util/Optional;Lnet/minecraft/world/level/levelgen/structure/structures/JigsawStructure$MaxDistance;Lnet/minecraft/world/level/levelgen/structure/pools/alias/PoolAliasLookup;Lnet/minecraft/world/level/levelgen/structure/pools/DimensionPadding;Lnet/minecraft/world/level/levelgen/structure/templatesystem/LiquidSettings;)Ljava/util/Optional;"
+        )
+    )
+    private void agesandtheart$sprawl(Args args) {
+        Structure self = (Structure) (Object) this;
+        int depth = args.get(3);
+        JigsawStructure.MaxDistance reach = args.get(7);
+        args.set(3, JigsawSizes.depthOf(self, depth));
+        args.set(7, new JigsawStructure.MaxDistance(JigsawSizes.reachOf(self, reach.horizontal()), reach.vertical()));
     }
 }
