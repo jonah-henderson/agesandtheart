@@ -1,13 +1,13 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.AgeConfig
-import kotlin.math.exp
 import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.age.phenomena.Sampling
 import co.voik.agesandtheart.age.phenomena.ConeExposure
+import co.voik.agesandtheart.age.phenomena.Gale
+import kotlin.math.cos
+import kotlin.math.sin
 import co.voik.agesandtheart.age.aspect.Rung
-import co.voik.agesandtheart.content.AgeContent
 import co.voik.ephemeris.Rgba
 import net.minecraft.core.BlockPos
 import net.minecraft.util.ARGB
@@ -15,19 +15,17 @@ import net.minecraft.world.phys.Vec3
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
-import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance
-import net.minecraft.sounds.SoundEvent
-import net.minecraft.sounds.SoundSource
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
 import org.joml.Vector3fc
 
 /**
- * What the client has been told about the storm it is standing in.
+ * What the client has been told about the storm it is standing in, and what is the storm's own: the whiteout and
+ * the snow thrown past. Its wind, which pushes and is heard, is the gale's ([Gales]), and so is its bearing.
  *
- * Server-owned, like [KnownWords]: whether an Age has a blizzard is a fact about its recipe, its fierceness
- * folds in an instability the client is never told, and its bearing comes from a seed a `ClientLevel` does
- * not have. Only *is it raining* crosses on its own, and that cannot tell snow from a shower.
+ * Server-owned, like [KnownWords]: whether an Age has a blizzard is a fact about its recipe, and its fierceness
+ * folds in an instability the client is never told. Only *is it raining* crosses on its own, and that cannot tell
+ * snow from a shower.
  */
 object Storms {
 
@@ -50,8 +48,6 @@ object Storms {
         told = null
         inTheWind = ConeExposure.Remembered()
         seen = Easing()
-        heard = Easing()
-        felt = Easing()
     }
 
     /** The local player's last [ConeExposure] reading, which every sample below is capped by. */
@@ -64,68 +60,15 @@ object Storms {
      * **Cover only, deliberately.** A fire warms you without sheltering you, so it takes the edge off the
      * cold and changes nothing here: you are still standing in the wind, and the sound should say so.
      */
-    private fun exposure(level: ClientLevel, at: BlockPos, blowing: BlizzardPayload): Float {
+    private fun exposure(level: ClientLevel, at: BlockPos): Float {
         val player = Minecraft.getInstance().player ?: return Sampling.exposureAt(level, at)
-        val reading = inTheWind.read(level, player.eyePosition, ConeExposure.upwind(blowing.driving()))
-        return seen.towards(Blizzard.exposureAt(level, at, reading))
+        val driving = Gales.blowingIn(level)?.bearingDegrees ?: return seen.towards(Sampling.exposureAt(level, at))
+        val reading = inTheWind.read(level, player.eyePosition, ConeExposure.snowFrom(driving))
+        return seen.towards(Gale.exposureAt(level, at, reading))
     }
 
-    /**
-     * How loud the open wind is where the player stands: **the sky over them, not the wind's cone** (Jonah,
-     * walk 2026-10-06), so a lee that keeps the snow off still has the gale howling past it.
-     */
-    private fun heardExposure(level: ClientLevel, at: BlockPos): Float = heard.towards(Sampling.exposureAt(level, at))
-
-    /** What the eye is shown, what the ear is, and what the body feels, each easing towards its own reading. */
+    /** What the eye is shown, easing towards its reading. */
     private var seen = Easing()
-    private var heard = Easing()
-    private var felt = Easing()
-
-    /**
-     * The wind leaning on the local player, along its bearing — [Blizzard.windPush], as hard as the storm blows
-     * and as exposed as they stand. Here rather than on the server because a client moves its own player.
-     */
-    fun push(client: Minecraft) {
-        val level = client.level ?: return
-        val player = client.player ?: return
-        val blowing = blowingIn(level) ?: return
-        // A paused game still ticks the client, and motion added then would all land on the first tick back.
-        if (client.isPaused) return
-        val isOutOfTheWind = player.isSpectator || player.abilities.flying || player.isPassenger || player.isInWater
-        if (isOutOfTheWind) return
-        val strength = Blizzard.windStrength(AgeConfig.blizzardWind.get(), blowing.severity)
-        val reading = inTheWind.read(level, player.eyePosition, ConeExposure.upwind(blowing.driving()))
-        val exposed = felt.towards(Blizzard.exposureAt(level, player.blockPosition(), reading))
-        val friction = if (player.onGround()) {
-            level.getBlockState(player.blockPosBelowThatAffectsMyMovement).block.friction
-        } else {
-            Blizzard.ORDINARY_FRICTION
-        }
-        val push = Blizzard.windPush(strength, exposed, friction)
-        val driving = blowing.driving()
-        player.deltaMovement = player.deltaMovement.add(driving.stepX * push, 0.0, driving.stepZ * push)
-    }
-
-    /**
-     * A reading approached over about [EASE_SECONDS] of real time rather than stepped to (Jonah, walk
-     * 2026-10-06: the steps were plain to see). The wind is re-read once a second and the sky light changes
-     * block by block, and either one jumped the fog and the sound; the cold itself still takes the server's
-     * reading as it stands.
-     */
-    private class Easing {
-        private var shown = Float.NaN
-        private var shownAt = 0L
-
-        fun towards(target: Float): Float {
-            val now = System.nanoTime()
-            shown = if (shown.isNaN()) target else {
-                val elapsed = (now - shownAt) / NANOS_PER_SECOND
-                shown + (target - shown) * (1.0 - exp(-elapsed / EASE_SECONDS)).toFloat()
-            }
-            shownAt = now
-            return shown
-        }
-    }
 
     /**
      * The fog closing in while a blizzard blows, laid over whatever the Age already paints.
@@ -142,10 +85,10 @@ object Storms {
         // sample rather than at registration, and that is the only shape that works for a condition that
         // comes and goes.
         layers.addPositionalLayer(EnvironmentAttributes.FOG_COLOR) { was, at, _ ->
-            blowingIn(level)?.let { whitenedBy(level, at, it, was) } ?: was
+            blowingIn(level)?.let { whitenedBy(level, at, was) } ?: was
         }
         layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { was, at, _ ->
-            blowingIn(level)?.let { whitenedBy(level, at, it, was) } ?: was
+            blowingIn(level)?.let { whitenedBy(level, at, was) } ?: was
         }
         layers.addPositionalLayer(EnvironmentAttributes.FOG_START_DISTANCE) { was, at, _ ->
             outInIt(level, at)?.let { seenThrough(was, it) * BEGINS_AT } ?: was
@@ -173,14 +116,14 @@ object Storms {
      */
     private fun outInIt(level: ClientLevel, at: Vec3): Double? {
         val blowing = blowingIn(level) ?: return null
-        val exposed = exposure(level, BlockPos.containing(at), blowing)
+        val exposed = exposure(level, BlockPos.containing(at))
         if (exposed <= NONE) return null
         return blowing.severity * exposed
     }
 
     /** How far toward a whiteout this sample is — the colour follows the distances rather than snapping. */
-    private fun whitenedBy(level: ClientLevel, at: Vec3, blowing: BlizzardPayload, was: Vector3fc): Vector3fc {
-        val exposed = exposure(level, BlockPos.containing(at), blowing)
+    private fun whitenedBy(level: ClientLevel, at: Vec3, was: Vector3fc): Vector3fc {
+        val exposed = exposure(level, BlockPos.containing(at))
         return ARGB.srgbLerp(exposed, was, DRIVEN_SNOW.rgb())
     }
 
@@ -200,7 +143,7 @@ object Storms {
      * Snow going past you sideways, at the speed it is actually landing.
      *
      * **Vanilla's own precipitation is a gentle drift and it reads as a lie here** — the ground is filling
-     * in front of you while the air says light flurries. These are thrown along the storm's bearing at a
+     * in front of you while the air says light flurries. These are thrown along the wind's bearing at a
      * speed that rises with its severity, so what you see and what the world is doing agree.
      *
      * Drawn around the player rather than from the sky: a blizzard is what you are *in*, and particles
@@ -211,7 +154,9 @@ object Storms {
         val level = client.level ?: return
         val player = client.player ?: return
         val blowing = blowingIn(level) ?: return
-        val driving = blowing.driving()
+        val wind = Gales.blowingIn(level) ?: return
+        val drivingX = cos(Math.toRadians(wind.bearingDegrees))
+        val drivingZ = sin(Math.toRadians(wind.bearingDegrees))
         val hurry = (RUSHING * blowing.severity).coerceAtMost(FASTEST)
         val at = player.blockPosition()
         val random = level.random
@@ -228,92 +173,10 @@ object Storms {
                 here.x + random.nextDouble(),
                 here.y + random.nextDouble(),
                 here.z + random.nextDouble(),
-                driving.stepX * hurry,
+                drivingX * hurry,
                 -Blizzard.SNOW_FALLS_PER_BLOCK * hurry,
-                driving.stepZ * hurry,
+                drivingZ * hurry,
             )
-        }
-    }
-
-    /**
-     * Keep both winds playing, and let the shelter decide the balance between them.
-     *
-     * Two sounds: **sheltered** is the storm going on without you, which is what makes a dugout feel like
-     * one, and **exposed** is standing in it.
-     *
-     * **Both at once, crossfaded** (Jonah, 2026-09-07). They used to be a switch, which put a hard cut on
-     * a doorway and made every shelter equal — where what a player is actually doing is *finding* cover,
-     * and cover comes in degrees. Playing the pair and moving [exposure] between them costs one extra
-     * looping sound and makes an overhang audibly worth standing under.
-     */
-    fun heard(client: Minecraft) {
-        val level = client.level ?: return stop(client)
-        val player = client.player ?: return stop(client)
-        if (blowingIn(level) == null) return stop(client)
-        if (playing.isNotEmpty() && playing.none(Wind::isStopped)) return
-        stop(client)
-        playing = listOf(
-            Wind(AgeContent.BLIZZARD_EXPOSED, whenOpen = true),
-            Wind(AgeContent.BLIZZARD_SHELTERED, whenOpen = false),
-        )
-        playing.forEach(client.soundManager::play)
-    }
-
-    private fun stop(client: Minecraft) {
-        playing.forEach(client.soundManager::stop)
-        playing = emptyList()
-    }
-
-    private var playing: List<Wind> = emptyList()
-
-    /**
-     * How loud a storm this hard is at all, before shelter takes its share.
-     *
-     * Unchanged from when there was one wind: fierceness is what makes a blizzard louder, and the crossfade
-     * only ever divides this between the two.
-     */
-    private fun loudnessOf(severity: Double): Float =
-        (QUIETEST + (LOUDEST - QUIETEST) * (severity - Rung.ORDINARY).coerceIn(NONE.toDouble(), ALL_OF_IT.toDouble()))
-            .toFloat()
-
-    /**
-     * One of the two winds, looping while the storm holds.
-     *
-     * Tickable so it can stop itself the moment the storm does, rather than playing on to the end of a
-     * two-minute file in an Age that has gone quiet.
-     */
-    private class Wind(soundEvent: SoundEvent, private val whenOpen: Boolean) :
-        AbstractTickableSoundInstance(soundEvent, SoundSource.WEATHER, net.minecraft.util.RandomSource.create()) {
-
-        init {
-            looping = true
-            delay = 0
-            relative = true
-            volume = SILENT
-        }
-
-        /**
-         * **Started silent on purpose**, which vanilla refuses unless a sound says it can take it: whichever
-         * of the two is wrong for where you are standing begins at nothing and fades up as you move. Without
-         * this the engine drops it before its first tick — "Skipped playing sound, volume was zero" — and a
-         * player who started a storm outdoors would never hear the sheltered wind at all.
-         */
-        override fun canStartSilent(): Boolean = true
-
-        /**
-         * Its share of the storm, re-read every tick.
-         *
-         * The engine recalculates a *tickable* sound's volume on every tick and pushes it to the channel,
-         * so a crossfade is this and nothing else — no second sound to schedule, no fade to time.
-         */
-        override fun tick() {
-            val client = Minecraft.getInstance()
-            val level = client.level
-            val player = client.player
-            val blowing = level?.let(::blowingIn)
-            if (level == null || player == null || blowing == null) return stop()
-            val open = heardExposure(level, player.blockPosition())
-            volume = loudnessOf(blowing.severity) * (if (whenOpen) open else ALL_OF_IT - open)
         }
     }
 
@@ -338,8 +201,6 @@ object Storms {
     }
 
     private const val NONE = 0.0f
-    private const val ALL_OF_IT = 1.0f
-    private const val SILENT = 0.0f
 
     /** The air in a whiteout: not white, which reads as a bug, but the grey-white of snow with no sun on it. */
     private val DRIVEN_SNOW = Rgba.of(0xFFC8CFD8u.toInt())
@@ -389,10 +250,4 @@ object Storms {
     private const val RUSHING = 0.9
     private const val FASTEST = 2.4
 
-    private const val QUIETEST = 0.5
-    private const val LOUDEST = 1.0
-
-    /** How long the shown exposure takes to cover most of the way to a new reading. */
-    private const val EASE_SECONDS = 0.4
-    private const val NANOS_PER_SECOND = 1_000_000_000.0
 }

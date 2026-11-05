@@ -1,14 +1,12 @@
 package co.voik.agesandtheart.age.phenomena
 
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.world.level.ClipContext
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
 import net.minecraft.world.phys.shapes.CollisionContext
 import kotlin.math.atan
-import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.sin
@@ -16,7 +14,7 @@ import kotlin.math.sin
 /**
  * How much of what comes from one direction can reach a place, from none of it to all of it: rays cast
  * from the eye in a cone around where it comes from, weighted towards the cone's centre so one gap cannot
- * flip the answer. [upwind] is a blizzard's, [OVERHEAD] an inferno's.
+ * flip the answer. [upwindAt] is a wind's, [snowFrom] a blizzard's snow, [OVERHEAD] an inferno's.
  *
  * A ray gets out only if it runs its whole length without meeting a collision shape **and** ends under open
  * sky. Clear alone would call a long tunnel exposed; open sky alone would call the lee of a wall exposed.
@@ -67,30 +65,27 @@ object ConeExposure {
         }
     }
 
-    /** Where snow driven along [driving] comes from: back up into the wind, at [Blizzard.SNOW_FALLS_PER_BLOCK]. */
-    fun upwind(driving: Direction): Cone = UPWIND.getValue(driving)
-
-    // Lazy because the ray tables they are built from are declared below them.
-    private val UPWIND: Map<Direction, Cone> by lazy {
-        Direction.Plane.HORIZONTAL.associateWith(::upwindCone)
-    }
-
-    private fun upwindCone(driving: Direction): Cone {
-        val slant = Math.toDegrees(atan(Blizzard.SNOW_FALLS_PER_BLOCK))
-        val bearing = Math.toDegrees(atan2(-driving.stepZ.toDouble(), -driving.stepX.toDouble()))
-        return coneFrom(bearing, slant)
-    }
+    /**
+     * Where snow driven towards [drivingDegrees] comes from: back up into the wind, at [Blizzard.SNOW_FALLS_PER_BLOCK],
+     * to the nearest [BEARING_STEP] degrees.
+     */
+    fun snowFrom(drivingDegrees: Double): Cone = SNOW_SLANTED[nearestStep(drivingDegrees)]
 
     /**
      * Where a wind driving towards [drivingDegrees] comes from — round from +x towards +z, as Ephemeris' `Wind` has it —
      * back up into it, low over the ground, to the nearest [BEARING_STEP] degrees.
      */
-    fun upwindAt(drivingDegrees: Double): Cone =
-        ALONG_THE_GROUND[Math.floorMod(Math.round(drivingDegrees / BEARING_STEP).toInt(), BEARINGS)]
+    fun upwindAt(drivingDegrees: Double): Cone = ALONG_THE_GROUND[nearestStep(drivingDegrees)]
 
-    private val ALONG_THE_GROUND: List<Cone> by lazy {
-        List(BEARINGS) { step -> coneFrom(step * BEARING_STEP + HALF_TURN, LOW_OVER_THE_GROUND) }
-    }
+    private fun nearestStep(drivingDegrees: Double): Int =
+        Math.floorMod(Math.round(drivingDegrees / BEARING_STEP).toInt(), BEARINGS)
+
+    // Lazy because the ray tables they are built from are declared below them.
+    private val ALONG_THE_GROUND: List<Cone> by lazy { conesAt(LOW_OVER_THE_GROUND) }
+    private val SNOW_SLANTED: List<Cone> by lazy { conesAt(Math.toDegrees(atan(Blizzard.SNOW_FALLS_PER_BLOCK))) }
+
+    /** One cone back up into the wind for each of the [BEARINGS], [slant] degrees above the horizontal. */
+    private fun conesAt(slant: Double): List<Cone> = List(BEARINGS) { step -> coneFrom(step * BEARING_STEP + HALF_TURN, slant) }
 
     /** A cone of rays around [bearing], [slant] degrees above the horizontal. */
     private fun coneFrom(bearing: Double, slant: Double): Cone {

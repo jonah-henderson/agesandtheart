@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.AgeConfig
+import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
@@ -13,12 +14,14 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Mth
+import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.decoration.ArmorStand
 import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.projectile.Projectile
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.phys.AABB
 import kotlin.math.cos
@@ -35,7 +38,10 @@ import kotlin.math.sin
  * **While it blows it is the Age's wind**, so the clouds race along it, the rain leans with it and the light
  * particles go its way ([LevelWind.blowInstead]). What it does besides is lean on everything light out in it: the
  * players on their own clients, which move them, and here the creatures, the dropped items and whatever is thrown.
- * Where its dials buy them, it gusts ([Gusts]).
+ * It gusts ([Gusts]).
+ *
+ * **A blizzard's wind is a gale too**: [blowingOver] takes the Age's own gale and its blizzard's together, so
+ * everything here a blizzard does as well, and an Age with both has one wind, the blizzard's, made fiercer.
  */
 object Gale {
 
@@ -110,18 +116,41 @@ object Gale {
         )
     }
 
-    /** One tick of a gale this often and this hard over [level]. */
-    fun blow(level: ServerLevel, recurrence: Recurrence, dials: GaleDials) {
-        val blowing = blowingAt(level.seed, level.gameTime, recurrence, dials)
+    /**
+     * What blows over [level] now: its own [gale], the wind of its [blizzard], or both as one. Where both blow, the
+     * storm's bearing holds, since its drifts are laid along it, and the gale adds half its fury to the storm's.
+     */
+    fun blowingOver(level: ServerLevel, gale: Befalling?, blizzard: Befalling?, spending: Spending): Blowing? {
+        val own = gale?.let { blowingAt(level.seed, level.gameTime, it.recurrence, GaleDials.of(spending, it.strength)) }
+        val storm = blizzard?.let { Blizzard.windIn(level, BlizzardDials.of(spending, it.strength)) }
+        return together(own, storm)
+    }
+
+    /** An Age's own gale and its storm's wind as one wind. */
+    fun together(own: Blowing?, storm: Blowing?): Blowing? = when {
+        storm == null -> own
+        own == null -> storm
+        else -> Blowing(
+            lying = maxOf(own.lying, storm.lying),
+            bearingDegrees = storm.bearingDegrees,
+            fury = (storm.fury + own.fury * own.lying * STORM_TAKES).coerceAtMost(WHOLLY),
+        )
+    }
+
+    /** When whatever blows over an Age gusts: as its own gale's dials say, at the mild end where it has none. */
+    fun gustsOver(level: ServerLevel, gale: Befalling?, spending: Spending): Gusts =
+        Gusts.of(level.seed, GaleDials.of(spending, gale?.strength ?: UNSAID))
+
+    /** One tick of [blowing] over [level], gusting as [gusts] say, or a lull where nothing blows. */
+    fun blow(level: ServerLevel, blowing: Blowing?, gusts: Gusts) {
         if (blowing == null) return lull(level)
-        val gusts = Gusts.of(level.seed, dials)
         val gust = gusts.at(level.gameTime)
         LevelWind.blowInstead(level, windOf(blowing, gust))
         leanOnWhatIsOutInIt(level, blowing, gusts, gust)
     }
 
-    /** No gale over [level]: its own wind blows again. */
-    fun lull(level: ServerLevel) = LevelWind.blowInstead(level, null)
+    /** Nothing blowing over [level]: its own wind blows again. */
+    private fun lull(level: ServerLevel) = LevelWind.blowInstead(level, null)
 
     /**
      * Everything light near a player, leaned on — once each, however many players it is near. Players are leaned on
@@ -153,23 +182,22 @@ object Gale {
         val friction = if (entity.onGround()) {
             level.getBlockState(entity.blockPosBelowThatAffectsMyMovement).block.friction
         } else {
-            Blizzard.ORDINARY_FRICTION
+            ORDINARY_FRICTION
         }
         val carried = if (entity is Projectile) THROWN_SHARE else WHOLLY
-        val push = Blizzard.windPush(strength, exposed, friction) * carried
+        val push = windPush(strength, exposed, friction) * carried
         val driving = Math.toRadians(drivingDegrees)
         entity.push(cos(driving) * push, 0.0, sin(driving) * push)
     }
 
     /**
-     * Tell everyone in [level] how much of a gale blows over it, which way and how hard. Sent where there is none
-     * too, so a client leaving a gale for a calm Age does not carry the wind with it.
+     * Tell everyone in [level] how much of a gale blows over it, which way, how hard and when it gusts. Sent where
+     * there is none too, so a client leaving a gale for a calm Age does not carry the wind with it.
      */
-    fun tellTheClients(level: ServerLevel, recurrence: Recurrence?, dials: GaleDials) {
+    fun tellTheClients(level: ServerLevel, blowing: Blowing?, gusts: Gusts) {
         val age = level.dimension().identifier()
-        val blowing = recurrence?.let { blowingAt(level.seed, level.gameTime, it, dials) }
         val telling = if (blowing == null) GalePayload.noneIn(age)
-        else GalePayload(age, blowing.lying, blowing.bearingDegrees, blowing.fury, Gusts.of(level.seed, dials))
+        else GalePayload(age, blowing.lying, blowing.bearingDegrees, blowing.fury, gusts)
         for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
     }
 
@@ -179,8 +207,37 @@ object Gale {
     private fun bearingOf(seed: Long, spell: Long): Double =
         XoroshiroRandomSource(seed xor BEARING_SALT xor spell).nextDouble() * FULL_TURN
 
+    /**
+     * How hard the wind leans on whatever is out in it, added to its motion each tick along the bearing, at
+     * [strength] from nought to one, as [exposed] as it stands, on ground as slippery as [friction] — ordinary ground
+     * in the air.
+     *
+     * **Capped below a sprint on the ground underfoot**, so sprinting into the wind always gets somewhere, ice
+     * included; walking into the fiercest of it may not. In the air a player gains far less and loses far less to
+     * drag, so the same push carries them much further, and a jump or a bridge's edge is where it is felt.
+     */
+    fun windPush(strength: Double, exposed: Float, friction: Float): Double =
+        MOST_OF_A_SPRINT * sprintGainOn(friction) * strength.coerceIn(NONE, WHOLLY) * exposed
+
+    /** What a sprint gains each tick on ground of [friction], as `LivingEntity.getFrictionInfluencedSpeed` has it. */
+    fun sprintGainOn(friction: Float): Double {
+        if (friction <= ORDINARY_FRICTION) return SPRINT_SPEED
+        return SPRINT_SPEED * ORDINARY_FRICTION_CUBED / (friction * friction * friction)
+    }
+
+    /**
+     * How much of the wind is on this spot, from none of it to all of it — **the one definition**, read by the push,
+     * a blizzard's cold here and its whiteout on the client.
+     *
+     * [inTheWind] is a [ConeExposure] reading, which is only taken every [ConeExposure.BETWEEN_READINGS] ticks; sky
+     * light, read every time, can only lower it. So walking into cover is felt at once and walking out of it is up to
+     * a second late.
+     */
+    fun exposureAt(level: Level, at: BlockPos, inTheWind: Float): Float =
+        minOf(Sampling.exposureAt(level, at), inTheWind)
+
     /** [from] turned [share] of the short way round to [to], in degrees. */
-    private fun turnedTowards(from: Double, to: Double, share: Double): Double =
+    fun turnedTowards(from: Double, to: Double, share: Double): Double =
         from + Mth.wrapDegrees(to - from) * share
 
     /** Three minutes: long enough to be caught out in, short enough to wait out. */
@@ -205,6 +262,18 @@ object Gale {
 
     /** How far from a player the gale is felt, in blocks. */
     private const val REACH = 32.0
+
+    /** How much of a gale's fury a storm blowing with it takes on. */
+    private const val STORM_TAKES = 0.5
+
+    /** How much of a sprint's gain the fiercest wind takes back. */
+    private const val MOST_OF_A_SPRINT = 0.75
+
+    /** A player's sprinting speed — vanilla's walking 0.1 and its sprint's 30% — and ordinary ground's friction. */
+    private const val SPRINT_SPEED = 0.13
+    const val ORDINARY_FRICTION = 0.6f
+    private const val ORDINARY_FRICTION_CUBED = 0.21600002
+    private const val UNSAID = 0.0
 
     private const val FULL_TURN = 360.0
     private const val NONE = 0.0

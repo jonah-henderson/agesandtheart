@@ -17,6 +17,48 @@
       }
     ]
   },
+  "gale_sheltered": {
+    "category": "weather",
+    "sounds": [
+      {
+        "name": "minecraft:ambient/nether/soulsand_valley/wind1",
+        "volume": 0.6,
+        "pitch": 0.6
+      },
+      {
+        "name": "minecraft:ambient/nether/soulsand_valley/wind2",
+        "volume": 0.6,
+        "pitch": 0.6
+      },
+      {
+        "name": "minecraft:ambient/nether/soulsand_valley/wind3",
+        "volume": 0.6,
+        "pitch": 0.6
+      },
+      {
+        "name": "minecraft:ambient/nether/soulsand_valley/wind4",
+        "volume": 0.6,
+        "pitch": 0.6
+      }
+    ]
+  },
+  "gale_exposed": {
+    "category": "weather",
+    "sounds": [
+      {
+        "name": "minecraft:ambient/nether/soulsand_valley/wind1"
+      },
+      {
+        "name": "minecraft:ambient/nether/soulsand_valley/wind2"
+      },
+      {
+        "name": "minecraft:ambient/nether/soulsand_valley/wind3"
+      },
+      {
+        "name": "minecraft:ambient/nether/soulsand_valley/wind4"
+      }
+    ]
+  },
   "gust": {
     "category": "weather",
     "sounds": [

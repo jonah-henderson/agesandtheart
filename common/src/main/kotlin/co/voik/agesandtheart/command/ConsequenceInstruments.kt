@@ -30,8 +30,7 @@ import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.phenomena.Fog
 import co.voik.agesandtheart.age.phenomena.FogDials
 import co.voik.agesandtheart.age.phenomena.Gale
-import co.voik.agesandtheart.age.phenomena.GaleDials
-import co.voik.agesandtheart.age.phenomena.Gusts
+import co.voik.agesandtheart.age.phenomena.Befalling
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.phenomena.Sampling
 import net.minecraft.commands.SharedSuggestionProvider
@@ -267,17 +266,19 @@ internal object ConsequenceInstruments {
             }
             Manifestation.GALE -> {
                 val composition = recipe.composition
-                val befalling = composition?.let { Happenings.befallingIn(it, recipe.seed, spending)[Phenomenon.GALE] }
-                val dials = GaleDials.of(spending)
-                val blowing = Gale.blowingAt(level.seed, level.gameTime, befalling?.recurrence ?: Recurrence.ORDINARY, dials)
-                val gusts = Gusts.of(level.seed, dials)
+                val befalls = composition?.let { Happenings.befallingIn(it, recipe.seed, spending) }.orEmpty()
+                val gale = befalls[Phenomenon.GALE] ?: Befalling.ORDINARY
+                val blizzard = befalls[Phenomenon.BLIZZARD]
+                val blowing = Gale.blowingOver(level, gale, blizzard, spending)
+                val gusts = Gale.gustsOver(level, gale, spending)
+                val wind = if (blizzard == null) "a gale" else "a gale and a blizzard's wind as one"
                 val gusting = if (!gusts.blowsAny) ", without gusts"
                 else ", gusting about every %.0f s at %.1f× the dial with %.1f s of warning".format(
                     gusts.secondsBetween, gusts.strength, gusts.warningSeconds,
                 )
                 if (blowing == null) "no gale blowing now$gusting"
-                else "a gale %.0f%% risen, towards %.0f°, at %.0f%% fury%s".format(
-                    blowing.lying * PER_CENT, blowing.bearingDegrees, blowing.fury * PER_CENT, gusting,
+                else "%s, %.0f%% risen, towards %.0f°, at %.0f%% fury%s".format(
+                    wind, blowing.lying * PER_CENT, blowing.bearingDegrees, blowing.fury * PER_CENT, gusting,
                 )
             }
         }

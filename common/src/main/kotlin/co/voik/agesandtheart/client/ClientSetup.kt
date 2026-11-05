@@ -21,11 +21,9 @@ object ClientSetup {
 
     /** The end of every client tick. */
     fun clientTick(minecraft: Minecraft) {
-        // Which of the two winds is playing has to be re-asked as a player walks in and out of shelter, so
-        // it rides the client tick rather than the payload.
-        Storms.heard(minecraft)
+        // A blizzard's snow, and the wind it shares with a gale: a gust comes and goes between two payloads, and
+        // which of the two winds is heard has to be re-asked as a player walks in and out of shelter.
         Storms.blow(minecraft)
-        Storms.push(minecraft)
         Gales.blow(minecraft)
         Gales.heard(minecraft)
         Gales.push(minecraft)

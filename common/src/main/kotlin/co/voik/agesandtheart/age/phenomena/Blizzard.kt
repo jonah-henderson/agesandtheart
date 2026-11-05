@@ -20,14 +20,16 @@ import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.phys.AABB
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
+import net.minecraft.util.Mth
+import kotlin.math.cos
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
 /**
  * Snow driven sideways (design §5.2) — the Age buried from one direction rather than dusted from above.
@@ -39,7 +41,12 @@ import kotlin.math.roundToInt
  *
  * **The bearing is derived, never stored** (§5.4). It comes from the Age's seed and the day, so every
  * client and every reload agree about which way the wind is blowing without anything being written down,
- * and a new day brings a new storm rather than the same one for ever.
+ * and a new day brings a new storm rather than the same one for ever. Any bearing, turning to the next over
+ * the last of a day, and the drifts lie to the nearest of the four.
+ *
+ * **A blizzard is a gale with snow on it** (`notes/wind-plan.md` §2): its wind is [Gale]'s, which pushes,
+ * gusts, is heard and is drawn, so all a blizzard hands it is [windIn]. What is the blizzard's own is the snow,
+ * the drifts, the cold and the whiteout.
  *
  * **A drift is a record of itself.** Snow piles into a layer, a full layer becomes a block and takes the
  * next drift on top of it, and three of any stage standing together harden the bottom one — snow to ice,
@@ -66,14 +73,15 @@ object Blizzard {
         // decide is what it does while it lasts — how thick it blows, and how fast it bites.
         val thickness = visibilityIn(level, dials.visibility)
         val biting = frostbiteIn(level, dials.frostbite)
-        val bearing = bearingIn(level)
+        val bearing = bearingDegreesAt(level.seed, level.gameTime)
+        val drifting = driftingAlong(bearing)
         val cursor = BlockPos.MutableBlockPos()
         for (player in Sampling.watchers(level)) {
             val around = BlockPos.containing(player.position())
             repeat(driftsPerTick(thickness)) {
                 val x = around.x + level.random.nextInt(-REACH, REACH)
                 val z = around.z + level.random.nextInt(-REACH, REACH)
-                driftAt(level, cursor, x, z, bearing, thickness)
+                driftAt(level, cursor, x, z, drifting, thickness)
             }
             chill(level, around, biting, bearing)
         }
@@ -92,15 +100,15 @@ object Blizzard {
      * powder snow, so anything under three is a blizzard that never bites; three is vanilla's own pace in
      * powder snow, and a fiercer storm gains faster.
      */
-    private fun chill(level: ServerLevel, around: BlockPos, severity: Double, driving: Direction) {
+    private fun chill(level: ServerLevel, around: BlockPos, severity: Double, drivingDegrees: Double) {
         val nearby = AABB(around).inflate(REACH.toDouble())
         for (living in level.getEntitiesOfClass(LivingEntity::class.java, nearby, ::feelsTheCold)) {
             val insulation = insulationOf(living)
             if (insulation >= ALL_OF_IT) continue
             val at = living.blockPosition()
             val inTheWind = windReadings.getOrPut(living, ConeExposure::Remembered)
-                .read(level, living.eyePosition, ConeExposure.upwind(driving))
-            val exposed = exposureAt(level, at, inTheWind)
+                .read(level, living.eyePosition, ConeExposure.snowFrom(drivingDegrees))
+            val exposed = Gale.exposureAt(level, at, inTheWind)
             val onYou = exposed * (ALL_OF_IT - warmthAt(level, at)) * (ALL_OF_IT - insulation)
             if (onYou <= NOTHING) continue
             val bite = (BITES_BY * severity * onYou).roundToInt().coerceAtLeast(1)
@@ -119,32 +127,6 @@ object Blizzard {
         }
     }
 
-    /**
-     * How hard the wind leans on a player, added to their motion each tick along the bearing, at [strength] from
-     * nought to one, as [exposed] as they stand, on ground as slippery as [friction] — ordinary ground in the air.
-     *
-     * **Capped below a sprint on the ground underfoot**, so sprinting into the wind always gets somewhere, ice
-     * included; walking into the fiercest of it may not. In the air a player gains far less and loses far less to
-     * drag, so the same push carries them much further, and a jump or a bridge's edge is where it is felt.
-     */
-    fun windPush(strength: Double, exposed: Float, friction: Float): Double =
-        MOST_OF_A_SPRINT * sprintGainOn(friction) * strength.coerceIn(0.0, 1.0) * exposed
-
-    /**
-     * How hard a storm as fierce as [severity] pushes, from nought to one, with [scale] the server's dial: growing as
-     * the square of the fury, so an ordinary storm only leans and the push mounts toward the fiercest.
-     */
-    fun windStrength(scale: Double, severity: Double): Double {
-        val fury = (severity / HARDEST_EARNED).coerceIn(0.0, 1.0)
-        return scale * fury * fury
-    }
-
-    /** What a sprint gains each tick on ground of [friction], as `LivingEntity.getFrictionInfluencedSpeed` has it. */
-    fun sprintGainOn(friction: Float): Double {
-        if (friction <= ORDINARY_FRICTION) return SPRINT_SPEED
-        return SPRINT_SPEED * ORDINARY_FRICTION_CUBED / (friction * friction * friction)
-    }
-
     /** Whether the cold can reach [living] at all: vanilla's `canFreeze` without its rule about what is worn. */
     private fun feelsTheCold(living: LivingEntity): Boolean =
         !living.isSpectator && !living.typeHolder().`is`(EntityTypeTags.FREEZE_IMMUNE_ENTITY_TYPES)
@@ -160,19 +142,6 @@ object Blizzard {
     }
 
     private val WORN_PIECES = listOf(EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET)
-
-    /**
-     * How much of the storm is on this spot, from none of it to all of it — **the one definition**, read
-     * by the cold here and by the whiteout and the wind's crossfade on the client.
-     *
-     * [inTheWind] is a [ConeExposure] reading, which is only taken every [ConeExposure.BETWEEN_READINGS]
-     * ticks; sky light, read every time, can only lower it. So walking into cover is felt at once and
-     * walking out of it is up to a second late.
-     *
-     * Block light is not consulted: it keeps your *ground* ([driftAt]) but not you.
-     */
-    fun exposureAt(level: Level, at: BlockPos, inTheWind: Float): Float =
-        minOf(Sampling.exposureAt(level, at), inTheWind)
 
     /** Each freezable thing's last [ConeExposure] reading, held weakly so it goes with the entity. */
     private val windReadings = WeakHashMap<LivingEntity, ConeExposure.Remembered>()
@@ -237,7 +206,7 @@ object Blizzard {
         } else {
             // The client draws the whiteout, so it is told how thick the storm is and nothing about the cold.
             val thickness = visibilityIn(level, BlizzardDials.of(spending, blizzard.strength).visibility)
-            BlizzardPayload(age, thickness, bearingIn(level).get2DDataValue())
+            BlizzardPayload(age, thickness)
         }
         // Every player rather than [Sampling.watchers]: a spectator draws no storm but still sees it.
         for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
@@ -302,15 +271,36 @@ object Blizzard {
     fun hardnessAt(reach: Double): Double = (Rung.ORDINARY + reach * FURY_DRIVES).coerceAtLeast(GENTLEST_STORM)
 
     /**
-     * Which way the wind blows here today — the same answer for everyone, from nothing written down.
-     *
-     * Keyed on the Age's seed and its day, so a storm has a direction that holds while it blows and the
-     * next one does not inherit it.
+     * The wind a blizzard blows over [level] while it snows, for [Gale] to blow: rising and dying with the weather,
+     * along today's bearing, and as furious as the storm is thick — so an ordinary storm leans and the hardest an
+     * Age can earn leans as hard as a gale may. Null where it does not snow.
      */
-    fun bearingIn(level: ServerLevel): Direction {
-        val day = level.gameTime / TICKS_PER_DAY
-        val drawn = XoroshiroRandomSource(level.seed xor WIND_SALT xor day).nextInt(HORIZONS)
-        return Direction.from2DDataValue(drawn)
+    fun windIn(level: ServerLevel, dials: BlizzardDials): Gale.Blowing? {
+        val lying = level.getRainLevel(1.0f).toDouble()
+        if (lying <= 0.0) return null
+        val fury = (visibilityIn(level, dials.visibility) / HARDEST_EARNED).coerceIn(0.0, ALWAYS)
+        return Gale.Blowing(lying, bearingDegreesAt(level.seed, level.gameTime), fury)
+    }
+
+    /**
+     * Which way the wind drives here today, in degrees round from +x towards +z — the same answer for everyone,
+     * from nothing written down. Keyed on the Age's seed and its day, so a storm has a direction that holds while
+     * it blows and the next one does not inherit it; it turns to the next day's over the last [TURNING_TICKS].
+     */
+    fun bearingDegreesAt(seed: Long, gameTime: Long): Double {
+        val day = Math.floorDiv(gameTime, TICKS_PER_DAY)
+        val intoTheTurn = (gameTime - day * TICKS_PER_DAY - (TICKS_PER_DAY - TURNING_TICKS)).toFloat() / TURNING_TICKS
+        val turning = Mth.smoothstep(intoTheTurn.coerceIn(0.0f, 1.0f)).toDouble()
+        return Gale.turnedTowards(bearingOn(seed, day), bearingOn(seed, day + 1), turning)
+    }
+
+    private fun bearingOn(seed: Long, day: Long): Double =
+        XoroshiroRandomSource(seed xor WIND_SALT xor day).nextDouble() * FULL_TURN
+
+    /** The one of the four ways a drift lies nearest [drivingDegrees], since a drift is laid block by block. */
+    fun driftingAlong(drivingDegrees: Double): Direction {
+        val driving = Math.toRadians(drivingDegrees)
+        return Direction.getApproximateNearest(cos(driving), 0.0, sin(driving))
     }
 
     /**
@@ -561,14 +551,6 @@ object Blizzard {
     /** How far a flake falls for each block the wind carries it: the slant the snow is drawn and sheltered at. */
     const val SNOW_FALLS_PER_BLOCK = 0.35
 
-    /** How much of a sprint's gain the fiercest wind takes back. */
-    private const val MOST_OF_A_SPRINT = 0.75
-
-    /** A player's sprinting speed — vanilla's walking 0.1 and its sprint's 30% — and ordinary ground's friction. */
-    private const val SPRINT_SPEED = 0.13
-    const val ORDINARY_FRICTION = 0.6f
-    private const val ORDINARY_FRICTION_CUBED = 0.21600002
-
     /** How often vanilla hurts someone fully frozen, in ticks, and by how much. */
     private const val FREEZE_HURTS_EVERY = 40
     private const val FREEZE_DAMAGE = 1.0f
@@ -661,8 +643,11 @@ object Blizzard {
     /** The hardest storm `/age weather blizzard` will force, past anything an Age can earn. */
     const val HARDEST_FORCED = 5.0
 
-    private const val HORIZONS = 4
     private const val TICKS_PER_DAY = 24000L
+
+    /** Half a minute to turn from one day's bearing to the next. */
+    private const val TURNING_TICKS = 600L
+    private const val FULL_TURN = 360.0
 
     /** So the wind is decorrelated from everything else the seed drives. */
     private const val WIND_SALT = 0xB112_2A2DL

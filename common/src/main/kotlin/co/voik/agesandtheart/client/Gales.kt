@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.AgeConfig
-import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.phenomena.ConeExposure
 import co.voik.agesandtheart.age.phenomena.Gale
 import co.voik.agesandtheart.age.phenomena.GalePayload
@@ -13,6 +12,7 @@ import co.voik.ephemeris.sky.LevelWind
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance
+import net.minecraft.core.BlockPos
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.sounds.SoundSource
 import net.minecraft.util.Mth
@@ -22,9 +22,9 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * What the client has been told about the gale over the Age it stands in ([GalePayload]), and what it does with it:
- * the gale blown as the level's wind, the local player and the boat they steer leaned on, the wind heard, and each
- * gust seen and heard coming ([GustSigns]).
+ * What the client has been told about the gale over the Age it stands in ([GalePayload]), a blizzard's wind among
+ * them, and what it does with it: the gale blown as the level's wind, the local player and the boat they steer leaned
+ * on, the wind heard, and each gust seen and heard coming ([GustSigns]).
  */
 object Gales {
 
@@ -52,10 +52,22 @@ object Gales {
     fun forget() {
         told = null
         inTheWind = ConeExposure.Remembered()
+        felt = Easing()
+        heard = Easing()
         blewIn = null
     }
 
     private var inTheWind = ConeExposure.Remembered()
+
+    /** What the body feels of the wind and what the ear hears of it, each easing towards its own reading. */
+    private var felt = Easing()
+    private var heard = Easing()
+
+    /**
+     * How loud the open wind is where the player stands: **the sky over them, not the wind's cone** (Jonah, walk
+     * 2026-10-06), so a lee that keeps the snow off still has the wind howling past it.
+     */
+    private fun heardOpenness(level: ClientLevel, at: BlockPos): Float = heard.towards(Sampling.exposureAt(level, at))
 
     /** The level this client last blew a gale over, so the wind it laid there can be lifted when the gale goes. */
     private var blewIn: ClientLevel? = null
@@ -97,15 +109,13 @@ object Gales {
         val driving = Gale.drivingDegrees(blowing, gust)
         val towardsX = cos(Math.toRadians(driving))
         val towardsZ = sin(Math.toRadians(driving))
-        val exposed = Blizzard.exposureAt(
-            level,
-            player.blockPosition(),
-            inTheWind.read(level, player.eyePosition, ConeExposure.upwindAt(driving)),
+        val exposed = felt.towards(
+            Gale.exposureAt(level, player.blockPosition(), inTheWind.read(level, player.eyePosition, ConeExposure.upwindAt(driving))),
         )
         val boat = player.vehicle as? AbstractBoat
         val isSteeringABoat = boat != null && boat.controllingPassenger === player
         if (boat != null && isSteeringABoat) {
-            val push = Blizzard.windPush(strength, exposed, Blizzard.ORDINARY_FRICTION) * SAILING
+            val push = Gale.windPush(strength, exposed, Gale.ORDINARY_FRICTION) * SAILING
             boat.deltaMovement = boat.deltaMovement.add(towardsX * push, 0.0, towardsZ * push)
             return
         }
@@ -114,15 +124,16 @@ object Gales {
         val friction = if (player.onGround()) {
             level.getBlockState(player.blockPosBelowThatAffectsMyMovement).block.friction
         } else {
-            Blizzard.ORDINARY_FRICTION
+            Gale.ORDINARY_FRICTION
         }
-        val push = Blizzard.windPush(strength, exposed, friction)
+        val push = Gale.windPush(strength, exposed, friction)
         player.deltaMovement = player.deltaMovement.add(towardsX * push, 0.0, towardsZ * push)
     }
 
     /**
      * Keep the two winds playing while a gale blows, the open one louder the more sky is over the player, and a howl
-     * rising under each gust from the moment it can be heard coming.
+     * rising under each gust from the moment it can be heard coming. **A blizzard's wind is heard as a blizzard's**,
+     * its own pair rather than the gale's, and the pair changes over when the snow comes or goes.
      */
     fun heard(client: Minecraft) {
         val level = client.level ?: return stop(client)
@@ -130,12 +141,18 @@ object Gales {
         hearTheGust(client, level)
         if (playing.isNotEmpty() && playing.none(Wind::isStopped)) return
         stopTheWinds(client)
-        playing = listOf(Wind(AgeContent.BLIZZARD_EXPOSED, whenOpen = true), Wind(AgeContent.BLIZZARD_SHELTERED, whenOpen = false))
+        val inABlizzard = isSnowingIn(level)
+        playing = if (inABlizzard) {
+            listOf(Wind(AgeContent.BLIZZARD_EXPOSED, whenOpen = true, inABlizzard), Wind(AgeContent.BLIZZARD_SHELTERED, whenOpen = false, inABlizzard))
+        } else {
+            listOf(Wind(AgeContent.GALE_EXPOSED, whenOpen = true, inABlizzard), Wind(AgeContent.GALE_SHELTERED, whenOpen = false, inABlizzard))
+        }
         playing.forEach(client.soundManager::play)
     }
 
-    /** Whether a gale is to be heard in [level]: one blows, and no blizzard is already howling with its own wind. */
-    private fun isHeardIn(level: ClientLevel): Boolean = blowingIn(level) != null && Storms.blowingIn(level) == null
+    private fun isHeardIn(level: ClientLevel): Boolean = blowingIn(level) != null
+
+    private fun isSnowingIn(level: ClientLevel): Boolean = Storms.blowingIn(level) != null
 
     private fun hearTheGust(client: Minecraft, level: ClientLevel) {
         val gust = gustIn(level) ?: return
@@ -161,8 +178,11 @@ object Gales {
     private fun loudnessOf(blowing: Gale.Blowing): Float =
         (blowing.lying * (QUIETEST + (LOUDEST - QUIETEST) * blowing.fury)).toFloat()
 
-    /** One of the two winds, looping while the gale holds and crossfaded by how open the sky is overhead. */
-    private class Wind(soundEvent: SoundEvent, private val whenOpen: Boolean) :
+    /**
+     * One of the two winds, looping while the gale holds and crossfaded by how open the sky is overhead: **both at
+     * once** (Jonah, 2026-09-07), since cover comes in degrees and a switch put a hard cut on every doorway.
+     */
+    private class Wind(soundEvent: SoundEvent, private val whenOpen: Boolean, private val inABlizzard: Boolean) :
         AbstractTickableSoundInstance(soundEvent, SoundSource.WEATHER, RandomSource.create()) {
 
         init {
@@ -180,8 +200,9 @@ object Gales {
             val level = client.level
             val player = client.player
             if (level == null || player == null || !isHeardIn(level)) return stop()
+            if (isSnowingIn(level) != inABlizzard) return stop()
             val blowing = blowingIn(level) ?: return stop()
-            val open = Sampling.exposureAt(level, player.blockPosition())
+            val open = heardOpenness(level, player.blockPosition())
             volume = loudnessOf(blowing) * (if (whenOpen) open else ALL_OF_IT - open)
         }
     }

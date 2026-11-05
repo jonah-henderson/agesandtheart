@@ -61,7 +61,11 @@ object Happenings {
         for ((phenomenon, befalling) in befalls) {
             befall(level, phenomenon, befalling, spending)
         }
-        if (Phenomenon.GALE !in befalls) Gale.lull(level)
+        // One wind for the gale and the blizzard both, which is how a blizzard is built on a gale.
+        val gale = befalls[Phenomenon.GALE]
+        val blowing = Gale.blowingOver(level, gale, befalls[Phenomenon.BLIZZARD], spending)
+        val gusts = Gale.gustsOver(level, gale, spending)
+        Gale.blow(level, blowing, gusts)
         // What the client cannot work out for itself — see [BlizzardPayload]. Sent on a slow beat
         // rather than on change, because "changed" would need a memory per player and the message is
         // a dozen bytes.
@@ -70,8 +74,7 @@ object Happenings {
             Deluge.tellTheClients(level, befalls[Phenomenon.DELUGE]?.let { Deluge.risingOf(it.recurrence, spending, it.strength) })
             val fog = befalls[Phenomenon.FOG]
             Fog.tellTheClients(level, fog?.recurrence, FogDials.of(spending, fog?.strength ?: UNSAID_STRENGTH))
-            val gale = befalls[Phenomenon.GALE]
-            Gale.tellTheClients(level, gale?.recurrence, GaleDials.of(spending, gale?.strength ?: UNSAID_STRENGTH))
+            Gale.tellTheClients(level, blowing, gusts)
         }
     }
 
@@ -261,7 +264,8 @@ object Happenings {
             Phenomenon.FOG -> Unit
             // Only the seeding. The roots spread on their own random ticks. See [Overgrowth].
             Phenomenon.OVERGROWTH -> Overgrowth.seed(level, befalling.amount)
-            Phenomenon.GALE -> Gale.blow(level, recurrence, GaleDials.of(spending, written))
+            // Blown with a blizzard's wind once every phenomenon has had its tick, in [befallAll].
+            Phenomenon.GALE -> Unit
         }
     }
 

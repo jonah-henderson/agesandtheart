@@ -2250,6 +2250,16 @@ object AgeContent {
     val BLIZZARD_SHELTERED: SoundEvent = SoundEvent.createVariableRangeEvent(BLIZZARD_SHELTERED_ID)
     val BLIZZARD_EXPOSED: SoundEvent = SoundEvent.createVariableRangeEvent(BLIZZARD_EXPOSED_ID)
 
+    private val GALE_SHELTERED_ID: Identifier = "gale_sheltered".location()
+    private val GALE_EXPOSED_ID: Identifier = "gale_exposed".location()
+
+    /**
+     * A gale's pair, heard as the blizzard's are and kept apart from them, since a gale is wind with nothing in it.
+     * Vanilla's soul sand valley winds stand in until the asset pass.
+     */
+    val GALE_SHELTERED: SoundEvent = SoundEvent.createVariableRangeEvent(GALE_SHELTERED_ID)
+    val GALE_EXPOSED: SoundEvent = SoundEvent.createVariableRangeEvent(GALE_EXPOSED_ID)
+
     private val GUST_ID: Identifier = "gust".location()
 
     /** A gale's gust, heard swelling as it comes. Vanilla's elytra rush stands in until the asset pass. */
@@ -2258,6 +2268,8 @@ object AgeContent {
     val soundEvents: List<Pair<Identifier, SoundEvent>> = listOf(
         BLIZZARD_SHELTERED_ID to BLIZZARD_SHELTERED,
         BLIZZARD_EXPOSED_ID to BLIZZARD_EXPOSED,
+        GALE_SHELTERED_ID to GALE_SHELTERED,
+        GALE_EXPOSED_ID to GALE_EXPOSED,
         GUST_ID to GUST,
     ) + PalmBeach.soundEvents
 
