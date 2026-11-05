@@ -38,6 +38,10 @@ something lands, delete the narrative of building it; a choice between genuinely
   the seismograph records vibrations in every world; the transcriber, in desk range, lays a descriptive book
   onto the desk or copies it into a new instance of its Age. The grammar guide's use afield is still open.
   Read it before touching an implement's block or `RimeColour`.
+- **`notes/wind-plan.md`** — wind, made a little more prominent. **Unbuilt.** A wind every Age can have and
+  most leave off, cosmetic when a word writes it; the gale, a mild stackable phenomenon that pushes and, when
+  strong, gusts, which the blizzard is rebuilt on; yardangs, pedestal rocks, flag trees and sastrugi laid along
+  the wind; and the tornado, which spends strength on what it takes. Read it before touching `Blizzard`'s wind.
 - **`notes/eclipses-plan.md`** — what is left of eclipses, which are **built and unwalked**: `eclipsing moon`
   covers its sun once a month at noon, the day goes dark enough for monsters, and spare moons' phases follow the
   sun. It says where each part lives (Ephemeris draws and measures, the mod writes the word), names the constant
