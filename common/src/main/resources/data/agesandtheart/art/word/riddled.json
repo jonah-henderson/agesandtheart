@@ -2,7 +2,9 @@
   "_comment": [
     "Full of holes: cavernous rock and a cavernous underground, and the biomes and features leaning to caves — the",
     "dripstone and the sculk, a landmass hollowed out. Not the creatures: `riddled arthropods` would only have been",
-    "cave spiders and silverfish (Jonah, 2026-10-21)."
+    "cave spiders and silverfish (Jonah, 2026-10-21).",
+    "",
+    "`riddled landmass` is the caves turned up (Jonah)."
   ],
   "meanings": [
     {
@@ -36,6 +38,20 @@
         }
       },
       "must_always_apply": true
+    },
+    {
+      "restricts": {
+        "rock": {
+          "cavernous": ">0.6"
+        },
+        "underground": {
+          "cavernous": ">0.6"
+        }
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "landmass"
+      ]
     }
   ]
 }

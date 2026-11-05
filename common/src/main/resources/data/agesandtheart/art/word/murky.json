@@ -1,7 +1,9 @@
 {
   "_comment": [
     "Thick to see through, in the water and in the air both: the murk at its heavy end, and a haze over the land",
-    "lighter than the water's. The haze words stay in the air; this is the one that reaches both."
+    "lighter than the water's. The haze words stay in the air; this is the one that reaches both.",
+    "",
+    "Before the sky or a body, it is seen through a haze, dull or reddened."
   ],
   "meanings": [
     {
@@ -15,6 +17,80 @@
         "air.haze": "0.3..0.7"
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sky.colour": "grey"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "air.haze": "0.3..0.6"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky",
+        "sun",
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "red"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "orange"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "moon.colour": "grey"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "moon.colour": "yellow"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.glow": "-0.6..-0.3"
+      },
+      "chance_to_apply": 0.6,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "clouds.colour": "grey"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sky"
+      ]
     }
   ]
 }

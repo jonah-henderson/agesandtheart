@@ -3,7 +3,10 @@
     "Wide and unobstructed: flat open country with little standing on it, few trees, nothing sheer or high, and",
     "what there is set far apart. Offered, yielding to the book: clear air, a high cloud and a blue sky over it.",
     "",
-    "It was a sea of empty air until 2026-10-16, which read as nothing the word says; `floating` leans there now."
+    "It was a sea of empty air until 2026-10-16, which read as nothing the word says; `floating` leans there now.",
+    "",
+    "`open sea` (Jonah): deeper, with less growing under it, and the land further apart -- each at a chance.",
+    "`open underground`: hollowed out, or cut through with caves."
   ],
   "meanings": [
     {
@@ -46,6 +49,56 @@
         "sky.colour": "blue"
       },
       "chance_to_apply": 0.67
+    },
+    {
+      "sets": {
+        "sea.depth": "0.2..0.45"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sea"
+      ]
+    },
+    {
+      "leans": {
+        "features": {
+          "#aquatic": -0.8,
+          "#barren": 0.5
+        }
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sea"
+      ]
+    },
+    {
+      "bends": {
+        "spacing": "0.5..1.0"
+      },
+      "chance_to_apply": 0.6,
+      "offered_to": [
+        "sea"
+      ]
+    },
+    {
+      "restricts": {
+        "underground": {
+          "cavernous": ">0.5"
+        }
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "underground"
+      ]
+    },
+    {
+      "chooses": {
+        "rock": "caves"
+      },
+      "chance_to_apply": 0.6,
+      "offered_to": [
+        "underground"
+      ]
     }
   ]
 }

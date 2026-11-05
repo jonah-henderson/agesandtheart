@@ -2,7 +2,9 @@
   "_comment": [
     "Barren and empty, and bleached: three of grey or yellowed grass, grey or black leaves, a white or grey",
     "sky, ash on the wind, haze, and bare sandy ground are offered to every desolate Age, each yielding to",
-    "anything the book says."
+    "anything the book says.",
+    "",
+    "Before the stars, fewer of them."
   ],
   "meanings": [
     {
@@ -76,6 +78,15 @@
         "material": "#sandy"
       },
       "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "stars.density": "-0.7..-0.4"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "stars"
+      ]
     }
   ]
 }

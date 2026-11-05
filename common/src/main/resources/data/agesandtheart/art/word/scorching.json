@@ -15,7 +15,9 @@
     "rather than the sum -- so `scorching inferno` is one furnace sky and not five suns.",
     "",
     "All of it is requested rather than set: a writer who describes a sun of their own gets exactly that",
-    "one, and is charged nothing for having disagreed with a word that was only offering."
+    "one, and is charged nothing for having disagreed with a word that was only offering.",
+    "",
+    "`scorching sky` is a great red or orange sun."
   ],
   "meanings": [
     {
@@ -92,6 +94,42 @@
         "sun.size": "0.5..0.75"
       },
       "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "sun.size": "0.5..0.75"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "red"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "orange"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "sky.colour": "orange"
+      },
+      "chance_to_apply": 0.33,
+      "offered_to": [
+        "sky"
+      ]
     }
   ]
 }

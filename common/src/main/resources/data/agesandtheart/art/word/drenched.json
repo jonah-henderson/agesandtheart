@@ -1,7 +1,9 @@
 {
   "_comment": [
     "Wet through: rain most of the time over wet country, water standing in it and everything that grows leaning",
-    "lush. Offered, yielding to the book: a low grey sky to rain from."
+    "lush. Offered, yielding to the book: a low grey sky to rain from.",
+    "",
+    "Before the land, the ground or the air, it is the climate that is wet."
   ],
   "meanings": [
     {
@@ -44,6 +46,17 @@
         "clouds.ceiling": "-0.3"
       },
       "chance_to_apply": 0.5
+    },
+    {
+      "bends": {
+        "humidity": "+0.4"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "landmass",
+        "surface",
+        "air"
+      ]
     }
   ]
 }

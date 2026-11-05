@@ -2,7 +2,9 @@
   "_comment": [
     "Green and growing, and a narrowing word about all three places growth lives: the biomes, the climate",
     "and what is placed in them. Two of steady rain, green grass, green leaves and what drifts off growing",
-    "things are drawn for every verdant Age; a rainbow is only offered."
+    "things are drawn for every verdant Age; a rainbow is only offered.",
+    "",
+    "`verdant landmass` is lush country on it."
   ],
   "meanings": [
     {
@@ -87,6 +89,20 @@
       "sets": {
         "rainbow.frequency": "0.4..0.8"
       }
+    },
+    {
+      "restricts": {
+        "biomes": {
+          "lush": ">0.3"
+        },
+        "features": {
+          "lush": ">0.3"
+        }
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "landmass"
+      ]
     }
   ]
 }

@@ -48,9 +48,12 @@ fun main(arguments: Array<String>) {
     when {
         asked.auditing -> audit(terminal, corpus)
         asked.inert -> inert(terminal, corpus, asked.withMembers, asked.sentences)
-        asked.sentence != null -> terminal.println(
-            corpus.vocabulary.read(asked.sentence.split(Regex("\\s+")), seed = 1L)?.readout ?: "no 'age' page, so no book",
-        )
+        asked.sentence != null -> for (sentence in asked.sentence.split(SENTENCES_APART).map(String::trim)) {
+            terminal.println(TextColors.cyan("» $sentence"))
+            terminal.println(
+                corpus.vocabulary.read(sentence.split(Regex("\\s+")), seed = 1L)?.readout ?: "no 'age' page, so no book",
+            )
+        }
         asked.rewriting -> rewrite(terminal)
         // A named word goes straight in, and a bare run offers the menu.
         asked.word != null -> onScreen(terminal) { canvas -> open(terminal, canvas, corpus, asked.word) }
@@ -265,7 +268,7 @@ private val USAGE = """
     |  scripts/scrivener.sh                   the menu: words, tags, rules and the age workshop
     |  scripts/scrivener.sh <word>            open a word, or begin one
     |  scripts/scrivener.sh --audit           every authored word, worst first
-    |  scripts/scrivener.sh --read "<sentence>"  what a book of that sentence is read as
+    |  scripts/scrivener.sh --read "<sentence>"  what a book of that sentence is read as; `|` between several
     |  scripts/scrivener.sh --inert [--members] [--sentences N]
     |                                         phrases that land nothing on what they name
     |  scripts/scrivener.sh --rewrite         put every word file back in the layout the tool writes
@@ -279,3 +282,6 @@ private val USAGE = """
     |
     |Read notes/the-world-model.md §3 before authoring: it is what a word is.
 """.trimMargin()
+
+/** What `--read` takes between several sentences. */
+private const val SENTENCES_APART = "|"

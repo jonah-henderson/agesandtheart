@@ -8,7 +8,9 @@
     "",
     "A colourless Age does all of it, the land and the surface one Age in ten as `grey`'s are. It never brings a",
     "rainbow or an aurora about (`unaimed_chance_to_apply` 0): naming either's colour would say the Age has one, and one it has",
-    "already is seen in grey through the drain. `colourless rainbow`, written on purpose, bleaches a bow."
+    "already is seen in grey through the drain. `colourless rainbow`, written on purpose, bleaches a bow.",
+    "",
+    "`colourless moon` is a white one."
   ],
   "meanings": [
     {
@@ -79,6 +81,15 @@
         ]
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "moon.colour": "white"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "moon"
+      ]
     }
   ]
 }

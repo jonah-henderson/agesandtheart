@@ -9,7 +9,9 @@
     "for 0.45..0.9 and got a wooded-badlands Age. Inside the warm band the humidity is what picks jungle.",
     "",
     "The biomes are named rather than queried, because `tropical biomes` keeps only this lean and `#wooded`",
-    "promoted snowy taiga as much as jungle. The palm beach is let in, being in no Age until something asks."
+    "promoted snowy taiga as much as jungle. The palm beach is let in, being in no Age until something asks.",
+    "",
+    "Its creatures are the jungle's."
   ],
   "meanings": [
     {
@@ -103,6 +105,19 @@
       "sets": {
         "leaves.colour": "green"
       }
+    },
+    {
+      "leans": {
+        "inhabitants": {
+          "minecraft:parrot": 1.0,
+          "minecraft:ocelot": 1.0,
+          "minecraft:panda": 0.8,
+          "minecraft:frog": 0.6,
+          "#lush": 0.6,
+          "#frozen": -1.0
+        }
+      },
+      "must_always_apply": true
     }
   ]
 }

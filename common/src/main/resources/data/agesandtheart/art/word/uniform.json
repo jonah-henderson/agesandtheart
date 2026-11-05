@@ -4,7 +4,9 @@
     "so every oak is the same oak -- the stamped-shapes step, written on purpose. `uniform landmass` keeps to",
     "the landforms laid out on a plan or with none at all -- pyramids, pillars, the flat -- and nothing torn,",
     "smooths what wear would break up, and holds the land the same however far it is crossed. It cannot mean one",
-    "biome or one creature: `only` already says that."
+    "biome or one creature: `only` already says that.",
+    "",
+    "`uniform biomes` spread wide."
   ],
   "meanings": [
     {
@@ -34,6 +36,15 @@
         }
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "biomes.size": "0.5..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "biomes"
+      ]
     }
   ]
 }

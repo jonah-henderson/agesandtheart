@@ -2,7 +2,9 @@
   "_comment": [
     "The far end of not seeing, as `constant` is the far end of frequency: air you can barely see through, cloud",
     "down on the ground and water as murky. `overcast` is the mild lid. Offered, yielding to the book: the cloud",
-    "grey or black, or smoke or ash hanging in it."
+    "grey or black, or smoke or ash hanging in it.",
+    "",
+    "Before the sky, a body, the stars or the aurora, it is half hidden in the haze."
   ],
   "meanings": [
     {
@@ -46,6 +48,73 @@
         "motes": "ash"
       },
       "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "air.haze": "0.85..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky",
+        "sun",
+        "moon",
+        "stars",
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "sky.colour": "grey"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "clouds.ceiling": "-1.0..-0.85"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "red"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "moon.colour": "grey"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.glow": "-0.8..-0.5"
+      },
+      "chance_to_apply": 0.6,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "stars.density": "-0.8..-0.5"
+      },
+      "chance_to_apply": 0.6,
+      "offered_to": [
+        "stars"
+      ]
     }
   ]
 }

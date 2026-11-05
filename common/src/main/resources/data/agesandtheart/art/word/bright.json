@@ -4,7 +4,9 @@
     "this is the same word about all three and about anything that grows a glow later; on land, biomes and",
     "what grows it leans towards what is pale, well lit or gives off light of its own.",
     "",
-    "It absorbed `glimmering`, which set the same glow (retired.json)."
+    "It absorbed `glimmering`, which set the same glow (retired.json).",
+    "",
+    "`bright sky` is a pale, clear vault; a bright sun or moon a larger one; `bright underground` glows."
   ],
   "meanings": [
     {
@@ -21,6 +23,62 @@
         }
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sky.colour": "white"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "sky.colour": "cyan"
+      },
+      "chance_to_apply": 0.33,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "haze": "-1.0..-0.6"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "sun.size": "0.2..0.5"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "moon.size": "0.2..0.5"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "leans": {
+        "features": {
+          "#glowing": 1.0
+        }
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "underground"
+      ]
     }
   ]
 }

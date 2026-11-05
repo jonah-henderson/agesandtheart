@@ -8,7 +8,9 @@
     "the sky takes, `charged sky` would land the word's other meanings bare and say nothing of the sky. The",
     "creeper's charge never lands bare, and `charged age` thunders and hangs curtains for certain and only",
     "sometimes brings a tempest, which is a worse thunderstorm: it charges no creepers, where `charged",
-    "monsters` charges the creepers among them, which is what it says."
+    "monsters` charges the creepers among them, which is what it says.",
+    "",
+    "Before a body, a cold electric look; the aurora at its fiercest; the stars bright."
   ],
   "meanings": [
     {
@@ -96,6 +98,72 @@
       "offered_to": [
         "clouds",
         "air"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "cyan"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "white"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.size": "0.2..0.5"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "moon.colour": "cyan"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "moon.pull": "0.4..0.8"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.frequency": "0.9..1",
+        "aurora.glow": "+0.8",
+        "aurora.size": "0.7..1",
+        "aurora.warmth": "0.6..1"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "stars.glow": "0.4..0.8"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "stars"
       ]
     }
   ]

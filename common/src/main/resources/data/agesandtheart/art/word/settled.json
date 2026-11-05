@@ -1,4 +1,5 @@
 {
+  "_comment": "`settled weather` is seldom wet and never stormy.",
   "meanings": [
     {
       "restricts": {
@@ -8,6 +9,16 @@
         }
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "weather.frequency": "-0.6..-0.2",
+        "thunder": "-1.0..-0.6"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "weather"
+      ]
     }
   ]
 }

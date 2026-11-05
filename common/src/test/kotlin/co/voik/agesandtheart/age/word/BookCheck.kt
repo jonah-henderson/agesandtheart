@@ -147,7 +147,9 @@ class BookCheck : FunSpec({
      * world.
      */
     test("contradicting yourself costs instability, never a parse error") {
-        fun wantedWhere(word: Word, tag: String) = word.effects.filterIsInstance<Effect.Restricts>()
+        // Only what a word does laid bare, as the pages below lay it; an offered meaning waits for its word.
+        fun wantedWhere(word: Word, tag: String) = word.meanings.filter { it.appliesUnaimed }.flatMap { it.effects }
+            .filterIsInstance<Effect.Restricts>()
             .filter { restricts -> restricts.bars[tag]?.let(Bars::isAtLeast) == true }
             .map { it.aspect }.toSet()
         fun wordsWanting(first: String, second: String): Pair<Word, Word>? {

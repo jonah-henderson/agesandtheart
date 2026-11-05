@@ -4,7 +4,11 @@
     "and magma among them. Offered, yielding to the book: rock of basalt or magma, a red or orange sky, a light",
     "the colour of the fire. No embers in the air: they are the inferno's warning that an Age burns now.",
     "",
-    "It absorbed `burning`, which barred the same tag lower and so chose the same sea (retired.json)."
+    "It absorbed `burning`, which barred the same tag lower and so chose the same sea (retired.json).",
+    "",
+    "`molten rock` is rock of it, and `molten surface` ground dressed in it.",
+    "",
+    "`molten underground` opens magma chambers under the land."
   ],
   "meanings": [
     {
@@ -52,6 +56,41 @@
         "air.tint": "orange"
       },
       "chance_to_apply": 0.67
+    },
+    {
+      "sets": {
+        "stone": "#molten"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "rock"
+      ]
+    },
+    {
+      "sets": {
+        "surface.material": "#molten"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "surface"
+      ]
+    },
+    {
+      "admits": {
+        "features": [
+          "agesandtheart:magma_chamber"
+        ]
+      },
+      "leans": {
+        "features": {
+          "agesandtheart:magma_chamber": 1.0,
+          "#molten": 0.8
+        }
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "underground"
+      ]
     }
   ]
 }

@@ -1,7 +1,9 @@
 {
   "_comment": [
     "A world nothing shines on. It used to set the two dimension-type switches directly; those are game",
-    "rules and follow the facts now, so what is left is the two facts: sealed overhead, and no sun."
+    "rules and follow the facts now, so what is left is the two facts: sealed overhead, and no sun.",
+    "",
+    "`lightless underground` has nothing glowing in it."
   ],
   "meanings": [
     {
@@ -21,6 +23,17 @@
         "density": "-1.0..-1.0"
       },
       "must_always_apply": true
+    },
+    {
+      "leans": {
+        "features": {
+          "#glowing": -1.0
+        }
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "underground"
+      ]
     }
   ]
 }

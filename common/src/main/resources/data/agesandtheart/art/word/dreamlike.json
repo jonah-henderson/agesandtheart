@@ -7,7 +7,9 @@
     "",
     "Three of a soft haze tinted a colour no air is, a rainbow in a clear sky, pastel sky and cloud, motes of",
     "light and petals drifting, a second sun, a vast moon and brighter stars are offered to every dreamlike Age,",
-    "each yielding to anything the book says."
+    "each yielding to anything the book says.",
+    "",
+    "Before the aurora, a soft one anywhere; before the structures, `jumbled`'s."
   ],
   "meanings": [
     {
@@ -167,6 +169,51 @@
         "stone": "#colourful"
       },
       "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "aurora.colour": "magenta"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.colour": "cyan"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.size": "0.6..1.0"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.warmth": "0.6..1.0"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "structures.incongruous": "true"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "structures"
+      ]
     }
   ]
 }

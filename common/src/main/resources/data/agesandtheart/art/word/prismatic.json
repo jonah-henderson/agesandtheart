@@ -6,7 +6,10 @@
     "The dial rather than the phenomenon, and that is the whole trick: setting any dial on an aspect that",
     "holds nothing is a writer saying the Age has one (`Sky.rainbowIn`), so this asserts bows and severs",
     "them from the weather in a single word. Naming the phenomenon would have brought",
-    "`Phenomenon.RAINBOW`'s rainfall floor with it, which is the opposite of what this means."
+    "`Phenomenon.RAINBOW`'s rainfall floor with it, which is the opposite of what this means.",
+    "",
+    "Before the sky, the air or the clouds, a sky wandering from colour to colour (Jonah); before a body, several",
+    "of it in odd colours."
   ],
   "meanings": [
     {
@@ -27,6 +30,98 @@
       "sets": {
         "rainbow.frequency": "0.4..1.0"
       }
+    },
+    {
+      "sets": {
+        "shifting": "true"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sky",
+        "air",
+        "clouds"
+      ]
+    },
+    {
+      "sets": {
+        "sun.cast": "3"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "magenta"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "cyan"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "moon.cast": "3"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "moon.colour": "magenta"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "moon.colour": "cyan"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.glow": "+0.6"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.size": "0.6..1.0"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "stars.glow": "0.4..0.8"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "stars"
+      ]
     }
   ]
 }

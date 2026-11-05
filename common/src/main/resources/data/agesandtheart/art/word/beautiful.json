@@ -6,7 +6,9 @@
     "something asks for it, and it grows only on a mild coast (notes/palm-beach-design.md).",
     "",
     "And three of a clear blue sky, white cloud, green grass, autumn leaves, drifting petals, frequent",
-    "rainbows and brighter stars are offered to every beautiful Age, each yielding to anything the book says."
+    "rainbows and brighter stars are offered to every beautiful Age, each yielding to anything the book says.",
+    "",
+    "Before a body or the aurora: golden, large and pale, or a glowing curtain."
   ],
   "meanings": [
     {
@@ -118,6 +120,96 @@
         "stars.glow": "+0.3"
       },
       "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "sun.colour": "yellow"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "orange"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.size": "0.2..0.4"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "moon.size": "0.3..0.6"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "moon.colour": "white"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "moon.colour": "cyan"
+      },
+      "chance_to_apply": 0.2,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.glow": "+0.5"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.size": "0.6..1.0"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.colour": "green"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.colour": "magenta"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "aurora"
+      ]
     }
   ]
 }

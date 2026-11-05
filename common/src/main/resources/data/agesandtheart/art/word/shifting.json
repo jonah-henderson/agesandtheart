@@ -3,7 +3,9 @@
     "Never one colour for long . `shifting sky` wanders slowly from colour to",
     "colour, keeping its own brightness so the night stays dark: between the colours written for it --",
     "`red and blue shifting sky` -- or, where none were, through a few no sky should be, drawn for this Age.",
-    "The sky-drift step, written on purpose. `slow` and `swift` set how fast it goes."
+    "The sky-drift step, written on purpose. `slow` and `swift` set how fast it goes.",
+    "",
+    "`shifting clouds` race; `shifting weather` is wind and racing cloud."
   ],
   "meanings": [
     {
@@ -11,6 +13,25 @@
         "shifting": "true"
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.pace": "0.3..0.7"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "clouds",
+        "weather"
+      ]
+    },
+    {
+      "sets": {
+        "wind": "0.2..0.5"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "weather"
+      ]
     }
   ]
 }

@@ -314,7 +314,7 @@ object Reader {
             waiting.clear()
 
             val from = claims.size
-            fun isOfferedHere(meaning: Meaning) = word.name in meaning.offeredTo
+            fun isOfferedHere(meaning: Meaning) = isOfferedTo(meaning, word, acceptance)
             for (page in taking) {
                 val taken = page.word.meanings.filter { !it.isOffered }.mapNotNull { meaning ->
                     takenFrom(meaning, acceptance, place, word).takeIf { it.isNotEmpty() }?.let { meaning to it }
@@ -343,6 +343,15 @@ object Reader {
             fates[at] = Fate.Took(place)
             lastTaker = Taker(at, place, taking, from..<claims.size, joined, word, acceptance)
             saidOfBy?.let { saidOf(it, place) }
+        }
+
+        /**
+         * Whether [meaning] is offered to [word]: by its name, or by the name of the part it is a member of, so what a
+         * word offers `inhabitants` it offers `zombie` too.
+         */
+        private fun isOfferedTo(meaning: Meaning, word: Word, acceptance: Acceptance): Boolean {
+            val isAMemberOfAnOfferedPart = acceptance.place.members is Members.Named && acceptance.place.aspect.page in meaning.offeredTo
+            return word.name in meaning.offeredTo || isAMemberOfAnOfferedPart
         }
 
         /**

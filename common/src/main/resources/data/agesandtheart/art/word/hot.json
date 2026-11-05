@@ -7,7 +7,9 @@
     "",
     "Everything past the temperature is only offered, since scorching is the word for burnt country under a",
     "furnace sky and hot only the heat: an orange light, an orange or red sun, a shimmer of haze, and",
-    "a lean away from the frozen."
+    "a lean away from the frozen.",
+    "",
+    "`hot underground` and `hot rock` lean to lava and magma, and may be rock of it."
   ],
   "meanings": [
     {
@@ -57,6 +59,28 @@
         "weather",
         "sea",
         "waters"
+      ]
+    },
+    {
+      "leans": {
+        "features": {
+          "#molten": 0.8
+        }
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "underground",
+        "rock"
+      ]
+    },
+    {
+      "sets": {
+        "stone": "#molten"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "underground",
+        "rock"
       ]
     }
   ]

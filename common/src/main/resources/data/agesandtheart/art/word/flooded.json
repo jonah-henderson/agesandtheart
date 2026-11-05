@@ -4,7 +4,9 @@
     "biomes, features and structures leaning to water — oceans and swamps, kelp and coral, drowned ruins. Offered,",
     "yielding to the book: a deeper sea, and rain more of the time.",
     "",
-    "It absorbed `drowned`, whose watery sea is this word's sea half (retired.json)."
+    "It absorbed `drowned`, whose watery sea is this word's sea half (retired.json).",
+    "",
+    "`flooded underground` is wet rock, and `flooded landmass` a sea risen over it."
   ],
   "meanings": [
     {
@@ -51,6 +53,26 @@
         "weather.frequency": "0.3..0.7"
       },
       "chance_to_apply": 0.5
+    },
+    {
+      "restricts": {
+        "rock": {
+          "watery": ">0.7"
+        }
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "underground"
+      ]
+    },
+    {
+      "sets": {
+        "sea.depth": "0.3..0.6"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "landmass"
+      ]
     }
   ]
 }

@@ -1,7 +1,9 @@
 {
   "_comment": [
     "Dry and blown: sand on the wind, a haze of it in the air, a yellow light, the ground barren and dry. Offered,",
-    "yielding to the book: a yellow or orange sky, sandy ground, yellowed grass. `ashen` is the burnt sister."
+    "yielding to the book: a yellow or orange sky, sandy ground, yellowed grass. `ashen` is the burnt sister.",
+    "",
+    "`dusty weather` is grit on the wind."
   ],
   "meanings": [
     {
@@ -54,6 +56,16 @@
         "grass.colour": "yellow"
       },
       "chance_to_apply": 0.67
+    },
+    {
+      "sets": {
+        "motes": "grit",
+        "air.haze": "0.3..0.7"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "weather"
+      ]
     }
   ]
 }

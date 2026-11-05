@@ -20,7 +20,9 @@
     "",
     "**`icy` folded in** (the readings spike, 2026-09-29): its aurora, its refusal of a molten sea, its lean to",
     "ice spikes and its offers across the rainbow, the air, the vault and the aurora are frozen's now. Two words",
-    "that looked as though they should differ and did not, which is the case for having one."
+    "that looked as though they should differ and did not, which is the case for having one.",
+    "",
+    "`frozen rock` is rock of ice."
   ],
   "meanings": [
     {
@@ -256,6 +258,15 @@
         "foliage": "#frozen"
       },
       "unaimed_chance_to_apply": 0.0
+    },
+    {
+      "sets": {
+        "stone": "#frozen"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "rock"
+      ]
     }
   ]
 }

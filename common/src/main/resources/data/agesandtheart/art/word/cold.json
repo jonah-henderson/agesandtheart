@@ -6,7 +6,9 @@
     "",
     "Everything past the temperature is only offered, since cold is the plainest thing a writer can say about it",
     "and frozen is the word for a world locked in ice: a pale light, a whiter sun, grey cloud, clear bright stars,",
-    "drier air, and a lean towards the frozen and away from the molten."
+    "drier air, and a lean towards the frozen and away from the molten.",
+    "",
+    "`cold sky` is a pale vault over a small white sun."
   ],
   "meanings": [
     {
@@ -69,6 +71,33 @@
         "weather",
         "sea",
         "waters"
+      ]
+    },
+    {
+      "sets": {
+        "sky.colour": "white"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "sun.colour": "white"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "sun.size": "-0.6..-0.3"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sky"
       ]
     }
   ]

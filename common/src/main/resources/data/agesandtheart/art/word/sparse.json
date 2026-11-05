@@ -1,7 +1,9 @@
 {
   "_comment": [
     "Few things, thinly: what grows thinned out, what stands set far apart, every part leaning barren and scattered",
-    "and away from the lush. `open` is the shape of the land and the sky; this is how little is on it."
+    "and away from the lush. `open` is the shape of the land and the sky; this is how little is on it.",
+    "",
+    "Before the creatures and the stars it is `few`'s: half as many. Before the structures it will set them apart."
   ],
   "meanings": [
     {
@@ -25,6 +27,14 @@
         }
       },
       "must_always_apply": true
+    },
+    {
+      "abundance": 0.5,
+      "must_always_apply": true,
+      "offered_to": [
+        "inhabitants",
+        "stars"
+      ]
     }
   ]
 }

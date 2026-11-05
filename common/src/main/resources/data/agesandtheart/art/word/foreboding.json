@@ -3,7 +3,9 @@
     "Dark and hostile, and what that looks like overhead: three of a black, grey or blood sky, a bruised",
     "light, black cloud, closing fog, souls in the air, and fewer stars are offered to every foreboding Age,",
     "and the rock is offered dark. All offers, since the word only suggests: anything the book says about",
-    "the sky or the rock wins."
+    "the sky or the rock wins.",
+    "",
+    "Before a body or the aurora, a handful of looks that combine: red, large, low or eclipsing."
   ],
   "meanings": [
     {
@@ -94,6 +96,87 @@
         "stone": "#dark"
       },
       "chance_to_apply": 0.43
+    },
+    {
+      "sets": {
+        "sun.colour": "red"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.size": "0.3..0.6"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "sun.path": "polar"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "moon.colour": "red"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "moon.size": "0.3..0.7"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "moon.path": "polar"
+      },
+      "chance_to_apply": 0.3,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "moon.path": "eclipsing"
+      },
+      "chance_to_apply": 0.25,
+      "offered_to": [
+        "moon"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.colour": "red"
+      },
+      "chance_to_apply": 0.5,
+      "offered_to": [
+        "aurora"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.size": "0.6..1.0"
+      },
+      "chance_to_apply": 0.4,
+      "offered_to": [
+        "aurora"
+      ]
     }
   ]
 }

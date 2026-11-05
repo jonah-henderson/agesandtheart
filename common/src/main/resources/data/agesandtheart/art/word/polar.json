@@ -13,7 +13,9 @@
     "then. The humidity is bent dry, because a pole is a desert: cold air holds no water.",
     "",
     "**No refusal of a molten sea** (Jonah, 2026-09-30): a polar Age with a lava sea is fine so long as the",
-    "rest of it is plainly polar, and the refusal is `frozen`'s to make."
+    "rest of it is plainly polar, and the refusal is `frozen`'s to make.",
+    "",
+    "`polar weather` is snow."
   ],
   "meanings": [
     {
@@ -151,6 +153,17 @@
         "clouds.colour": "white"
       },
       "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "temperature": "-0.95..-0.45"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "weather",
+        "sea",
+        "waters"
+      ]
     }
   ]
 }

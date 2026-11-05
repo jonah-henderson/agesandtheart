@@ -2,7 +2,9 @@
   "_comment": [
     "Down where people walk . `low clouds` brings the cloud deck down to a few",
     "blocks over the sea, so on most land you stand inside it -- the low-clouds step, written on purpose -- and",
-    "`low landmass` takes the height out of the land. A low Age does both."
+    "`low landmass` takes the height out of the land. A low Age does both.",
+    "",
+    "`low sea` stands the water down."
   ],
   "meanings": [
     {
@@ -25,6 +27,16 @@
       "offered_to": [
         "sun",
         "moon"
+      ]
+    },
+    {
+      "sets": {
+        "sea.depth": "-0.7..-0.3"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sea",
+        "waters"
       ]
     }
   ]
