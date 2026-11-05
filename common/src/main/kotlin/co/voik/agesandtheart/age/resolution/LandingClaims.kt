@@ -18,7 +18,12 @@ internal val Landing.admitted: Set<String>
     get() = effects.filterIsInstance<Effect.Admits>().flatMap { it.members }.toSet()
 
 private val Landing.struck: Set<String>
-    get() = effects.filterIsInstance<Effect.Excludes>().flatMap { it.members }.toSet()
+    get() = effects.filterIsInstance<Effect.Excludes>().flatMap { it.members }.filterNot { it.startsWith(SPARE_MARK) }.toSet()
+
+/** What its strikes leave standing: `!#undead` beside `#aquatic` strikes the fish and spares the zombie nautilus. */
+private val Landing.spared: Set<String>
+    get() = effects.filterIsInstance<Effect.Excludes>().flatMap { it.members }
+        .filter { it.startsWith(SPARE_MARK) }.map { it.drop(SPARE_MARK.length) }.toSet()
 
 /** Where this says a link into the Age arrives — `link in jungle` — or null where it says nothing of it. */
 internal val Landing.linksIn: LinkAnchor?
@@ -62,9 +67,10 @@ internal val Landing.firmness: Int
 
 internal val Landing.highestBar: Double get() = bars.values.filter(Bars::isAtLeast).maxOrNull() ?: 0.0
 
-/** Whether it takes [member] out, by key or by a `#tag` the member carries. */
-internal fun Landing.strikes(member: Taggable, tags: Map<String, Double>): Boolean = struck.any { named ->
-    if (named.startsWith(TAG_MARK)) tags.containsKey(named.drop(1)) else named == member.key
+/** Whether it takes [member] out, by key or by a `#tag` the member carries, and spares it by neither. */
+internal fun Landing.strikes(member: Taggable, tags: Map<String, Double>): Boolean {
+    fun names(named: String) = if (named.startsWith(TAG_MARK)) tags.containsKey(named.drop(1)) else named == member.key
+    return struck.any(::names) && spared.none(::names)
 }
 
 /** Whether [tags] breaks none of its at-most bars. */
@@ -137,6 +143,7 @@ internal object Decision {
 internal fun Landing.isJoinedTo(other: Landing): Boolean = joined != null && joined == other.joined
 
 private const val TAG_MARK = "#"
+private const val SPARE_MARK = "!"
 
 private const val DECIDES = 3
 private const val BARS = 2

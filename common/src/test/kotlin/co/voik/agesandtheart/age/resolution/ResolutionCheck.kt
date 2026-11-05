@@ -31,6 +31,23 @@ class ResolutionCheck : FunSpec({
         }
     }
 
+    test("a strike spares what it marks with a bang, and asks for nothing it leaves standing") {
+        val strikesTheMonstersButTheUndead = Landing(
+            listOf(Effect.Excludes(Aspect.SPAWNS, setOf("#hostile", "!#undead"))),
+            Place(Aspect.SPAWNS),
+            word = "by_hand",
+            page = 0,
+            clause = 0,
+            aimed = true,
+            chance = 1.0,
+        )
+        val book = Book(listOf(strikesTheMonstersButTheUndead), possible = listOf(strikesTheMonstersButTheUndead), template = null, cost = 1, pagesLaid = 1)
+        val spelled = Resolver.resolve(ShippedLexicon.world, book, seed = 0L).composition.toString()
+        check("minecraft:creeper[except]" in spelled) { "a creeper was not struck: $spelled" }
+        check("minecraft:zombie[except]" !in spelled) { "a zombie was struck though the undead were spared: $spelled" }
+        check("caps" !in spelled) { "a strike raised the caps of what it left: $spelled" }
+    }
+
     test("a landing built by hand is resolved: a choice seats its landform, a setting steers it") {
         val chosen = Landing(
             listOf(Effect.Chooses(Aspect.TERRAIN, "pillared"), Effect.Sets(ParameterKey("size"), "1.0..1.0")),

@@ -1,5 +1,5 @@
 {
-  "_comment": "Before a place, nothing lives there (Jonah): `lifeless sea` has no fish, `lifeless landmass` nothing but the undead.",
+  "_comment": "Before a place, nothing lives there (Jonah): `lifeless sea` has no fish but the undead, `lifeless landmass` nothing but the undead.",
   "meanings": [
     {
       "sets": {
@@ -24,7 +24,8 @@
     {
       "excludes": {
         "inhabitants": [
-          "#aquatic"
+          "#aquatic",
+          "!#undead"
         ]
       },
       "must_always_apply": true,
@@ -34,10 +35,11 @@
       ]
     },
     {
-      "restricts": {
-        "inhabitants": {
-          "undead": ">0.5"
-        }
+      "excludes": {
+        "inhabitants": [
+          "#mobs",
+          "!#undead"
+        ]
       },
       "must_always_apply": true,
       "offered_to": [

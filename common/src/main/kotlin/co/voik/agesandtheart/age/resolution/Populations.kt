@@ -183,7 +183,9 @@ private fun Resolving.claimForMember(
 /** Whether [said] narrows its members to ones [member] is among, as strictly as this Age reads it. */
 private fun Resolving.insistsOn(member: Taggable, tags: Map<String, Double>, said: Landing, aspect: Aspect): Boolean {
     val strictness = if (said.polarity != Polarity.ASSERTED) Bars.STRICT else strictnessOf(aspect, said)
-    return said.narrows && said.narrowsMembers && said.accepts(member, tags, strictness)
+    // Striking is not asking: `lifeless sea` takes the fish out and asks for nothing that is left.
+    val narrowsTowardSomething = said.choice != null || said.wanted.isNotEmpty()
+    return said.narrows && said.narrowsMembers && narrowsTowardSomething && said.accepts(member, tags, strictness)
 }
 
 /** Whether [said] asks for [member]: names it, or insists on it. */

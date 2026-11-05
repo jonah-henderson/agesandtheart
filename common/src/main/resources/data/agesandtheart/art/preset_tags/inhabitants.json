@@ -18,6 +18,15 @@
       "hostile": 0.8
     }
   },
+  "agesandtheart:hadalfish": {
+    "tags": {
+      "aquatic": 1.0,
+      "watery": 0.9,
+      "hostile": 0.9,
+      "dark": 0.8,
+      "mobs": 1.0
+    }
+  },
   "minecraft:husk": {
     "tags": {
       "undead": 1.0,
