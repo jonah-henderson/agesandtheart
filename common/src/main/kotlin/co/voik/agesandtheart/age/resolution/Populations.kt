@@ -297,3 +297,13 @@ internal fun Resolving.counted(composition: AgeComposition): AgeComposition =
         val at = count.at(rung)
         held.withOptions(aspect, count.parameter.name, listOf(Span(at, at).spelled()))
     }
+
+/** An abundance landing on a seated member of an aspect that counts them — `few tunnels` — sets how many there are. */
+internal fun Resolving.countedMembers(composition: AgeComposition): AgeComposition =
+    Aspect.entries.fold(composition) { held, aspect ->
+        val count = aspect.memberCount ?: return@fold held
+        val rung = abundanceOf(speakingTo(aspect).filter { it.members != null })
+        if (Rung.isOrdinary(rung)) return@fold held
+        val at = count.at(rung)
+        held.withOptions(aspect, count.parameter.name, listOf(Span(at, at).spelled()))
+    }

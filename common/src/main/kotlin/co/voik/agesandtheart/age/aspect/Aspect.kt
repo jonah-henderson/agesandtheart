@@ -370,7 +370,8 @@ enum class Aspect(
             STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL, Structures.SPACING, Structures.SIZE, Structures.HEIGHT, Structures.CRUMBLE, Structures.CHARRED)
             // **Nothing of its own**: each phenomenon carries the dials it has (`Phenomenon.parameters`), since an
             // inferno has no "how often" and only the overgrowth grows.
-            CARVERS, UNDERGROUND, PHENOMENA -> emptyList()
+            UNDERGROUND -> listOf(Underground.DEPTH)
+            CARVERS, PHENOMENA -> emptyList()
         }
 
     /**
@@ -504,6 +505,12 @@ enum class Aspect(
      * counted that way.
      */
     val count: Count? get() = if (this == STARS) Count(SkyBodies.STARS, SkyBodies::starsAt) else null
+
+    /**
+     * What a rung laid on the page of a member this aspect seats counts: `few tunnels` is how many tunnels there are.
+     * Null where a member's page takes no amount.
+     */
+    val memberCount: Count? get() = if (this == UNDERGROUND) Count(Underground.DENSITY, Underground::densityAt) else null
 
     /** A parameter a rung counts, and where a multiple of vanilla's amount stands on it. */
     class Count(val parameter: Parameter, val at: (Double) -> Double)

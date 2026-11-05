@@ -15,12 +15,14 @@
     "**Said of features, it is where they sit: near the surface**, `buried`'s mirror, and offered only to",
     "what is dug into the ground or grows from it -- a shallow obelisk means nothing. `shallow veins` are",
     "vanilla's copper veins -- its band and its granite -- where a vein left alone is its deep iron one.",
-    "Inside a minting clause the height is that clause's own, as a size is, so the Age's other ores stay put."
+    "Inside a minting clause the height is that clause's own, as a size is, so the Age's other ores stay put.",
+    "",
+    "Said of the underground, it holds the caves up under the surface with solid rock beneath."
   ],
   "meanings": [
     {
       "sets": {
-        "depth": "-0.7..-0.5"
+        "sea.depth": "-0.7..-0.5"
       },
       "must_always_apply": true
     },
@@ -46,6 +48,15 @@
         }
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "underground.depth": "-0.9..-0.5"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "underground"
+      ]
     }
   ]
 }

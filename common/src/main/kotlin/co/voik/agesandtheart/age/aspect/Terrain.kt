@@ -644,12 +644,14 @@ enum class Terrain(
      */
     fun undergroundBand(
         underground: Underground,
+        undergroundOptions: Options,
         window: VerticalWindow,
         options: Options,
         salt: Long,
         sea: SeaSetting? = null,
-    ): IntRange? =
-        undergroundCeiling(options, salt, sea)?.let { ceiling -> underground.indoorBand(window.minY + BEDROCK_MARGIN, ceiling) }
+    ): IntRange? = undergroundCeiling(options, salt, sea)?.let { ceiling ->
+        underground.indoorBand(window.minY + BEDROCK_MARGIN, ceiling, undergroundOptions, salt)
+    }
 
     /**
      * A terrain's rock, and what the water is to make of the space taken out of it. **The two are

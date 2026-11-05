@@ -81,7 +81,6 @@ object WordAcceptance {
         Aspect.SEA to "aquatic",
         Aspect.WATERS to "aquatic",
         Aspect.TERRAIN to "fauna",
-        Aspect.UNDERGROUND to "cavernous",
     )
 
     /** How strongly a creature carries a place's tag to be one that lives there. */

@@ -12,6 +12,10 @@ import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.HollowedOut
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import kotlin.math.abs
+import kotlin.math.log2
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 /**
  * What is **built into the rock** beneath the surface — as against [Carvers], which is what has been cut
@@ -104,7 +108,7 @@ enum class Underground(override val key: String) : AuthoredPreset {
      * `large chambered underground` is the vault a city fits in and nothing below it is.
      */
     override val parameters: List<Parameter>
-        get() = listOfNotNull(Terrain.SIZE.takeIf { this in SIZED })
+        get() = listOfNotNull(Terrain.SIZE.takeIf { this in SIZED }, DENSITY.takeIf { this in SIZED })
 
     /**
      * This underground cut into [uncut], between [floor] and [ceiling].
@@ -121,18 +125,36 @@ enum class Underground(override val key: String) : AuthoredPreset {
         salt: Long,
         /** Whether noise caves are read on vanilla's grid; see [Caved.gridded]. */
         griddedCaves: Boolean = false,
+    ): Terrain.Ground {
+        val held = heldBetween(floor, ceiling, options, salt)
+        return carveBetween(uncut, held.first, held.last, ceiling, window, options, salt, griddedCaves)
+    }
+
+    private fun carveBetween(
+        uncut: TerrainField,
+        floor: Int,
+        ceiling: Int,
+        landformCeiling: Int,
+        window: VerticalWindow,
+        options: Options,
+        salt: Long,
+        griddedCaves: Boolean,
     ): Terrain.Ground = when (this) {
-        NOISE_CAVES -> Terrain.Ground(
-            Caved.of(uncut, CAVE_SEED xor salt, floor, window.topY, gridded = griddedCaves),
-            // A carved cave meets the water table on its way out of the rock, so it answers to one.
-            hollows = uncut,
-        )
+        NOISE_CAVES -> {
+            // Noise caves run to the surface by their own entrance rule, unless a depth held them down.
+            val top = if (ceiling < landformCeiling) ceiling else window.topY
+            Terrain.Ground(
+                Caved.of(uncut, CAVE_SEED xor salt, floor, top, gridded = griddedCaves),
+                // A carved cave meets the water table on its way out of the rock, so it answers to one.
+                hollows = uncut,
+            )
+        }
         // Cut between the landform's own floor and ceiling, so the tubes stay under whatever stands over
         // them; wet or dry by the water table, as a noise cave is.
         TUNNELS -> {
             val scale = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
             Terrain.Ground(
-                Subtract(uncut, TunnelsField.tubes(floor, ceiling, TUNNEL_SEED xor salt, scale)),
+                Subtract(uncut, TunnelsField.tubes(floor, ceiling, TUNNEL_SEED xor salt, scale, densityOf(options, salt))),
                 hollows = uncut,
             )
         }
@@ -140,7 +162,7 @@ enum class Underground(override val key: String) : AuthoredPreset {
         LATTICE -> {
             val scale = SizeScale.factorAt(options.steer(Terrain.SIZE, salt))
             Terrain.Ground(
-                Subtract(uncut, LatticeField.passages(floor, ceiling, LATTICE_SEED xor salt, scale)),
+                Subtract(uncut, LatticeField.passages(floor, ceiling, LATTICE_SEED xor salt, scale, densityOf(options, salt))),
                 hollows = uncut,
             )
         }
@@ -163,15 +185,19 @@ enum class Underground(override val key: String) : AuthoredPreset {
         // against a dry one with nothing between, which is what `GreatHallsWaterCheck` records.
         CHAMBERED -> {
             val size = options.steer(Terrain.SIZE, salt)
-            val vaults = Chambers.voidBetween(floor, ceiling, size, CHAMBER_SEED xor salt)
+            val density = densityOf(options, salt)
+            val vaults = Chambers.voidBetween(floor, ceiling, size, CHAMBER_SEED xor salt, density)
             Terrain.Ground(
                 Subtract(uncut, vaults),
                 dry = vaults,
-                wet = Chambers.lakesIn(floor, ceiling, size, CHAMBER_SEED xor salt),
+                wet = Chambers.lakesIn(floor, ceiling, size, CHAMBER_SEED xor salt, density),
             )
         }
         FISSURED -> Terrain.Ground(
-            Subtract(uncut, FissuresField.openings(floor, ceiling, options.steer(Terrain.SIZE, salt), FISSURE_SEED xor salt)),
+            Subtract(
+                uncut,
+                FissuresField.openings(floor, ceiling, options.steer(Terrain.SIZE, salt), FISSURE_SEED xor salt, densityOf(options, salt)),
+            ),
             hollows = uncut,
         )
         NONE -> Terrain.Ground(uncut)
@@ -192,11 +218,59 @@ enum class Underground(override val key: String) : AuthoredPreset {
      * somebody's architecture and reads as one room however far it runs; a chamber is a place, and places
      * are what biomes are for.
      */
-    fun indoorBand(floor: Int, ceiling: Int): IntRange? = if (this == GREAT_HALLS) floor..ceiling else null
+    fun indoorBand(floor: Int, ceiling: Int, options: Options = Options.NONE, salt: Long = 0L): IntRange? =
+        if (this == GREAT_HALLS) heldBetween(floor, ceiling, options, salt) else null
 
     override fun getSerializedName(): String = key
 
     companion object {
+        /** Where in the rock an underground lies: `deep underground` is caves held deeper, never a lower floor. */
+        val DEPTH = Parameter.ranged(
+            "depth",
+            help = "Where in the rock the underground lies: held up under the surface, through all of it, or held deep.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "held to the top two-fifths of the rock"),
+                Parameter.Landmark(0.0, "through the whole of it"),
+                Parameter.Landmark(1.0, "held to the bottom two-fifths"),
+            ),
+        )
+
+        /** How many tunnels, passages, fissures or chambers there are. */
+        val DENSITY = Parameter.ranged(
+            "density",
+            help = "How many tunnels, passages, fissures or chambers the rock holds.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "a quarter as many"),
+                Parameter.Landmark(-0.5, "half as many"),
+                Parameter.Landmark(0.0, "as many as ever"),
+                Parameter.Landmark(0.5, "twice as many"),
+                Parameter.Landmark(1.0, "four times as many"),
+            ),
+        )
+
+        /** The part of [floor]..[ceiling] an underground is held to by its [DEPTH]. */
+        internal fun heldBetween(floor: Int, ceiling: Int, options: Options, salt: Long): IntRange {
+            val depth = options.steer(DEPTH, salt) ?: return floor..ceiling
+            val band = ceiling - floor
+            val kept = (band * (1.0 - MOST_GIVEN_UP * abs(depth))).roundToInt().coerceAtLeast(minOf(band, LEAST_HELD))
+            return if (depth > 0.0) floor..(floor + kept) else (ceiling - kept)..ceiling
+        }
+
+        /** Where [multiple] times the ordinary count stands on [DENSITY]. */
+        fun densityAt(multiple: Double): Double = (log2(multiple) / log2(DENSEST)).coerceIn(-1.0, 1.0)
+
+        /** How many times the ordinary count [DENSITY] asks for. */
+        internal fun densityOf(options: Options, salt: Long): Double =
+            DENSEST.pow(options.steer(DENSITY, salt) ?: 0.0)
+
+        // At the end of the axis, three-fifths of the band is solid rock.
+        private const val MOST_GIVEN_UP = 0.6
+
+        // So a held chamber or hall still has a storey's room.
+        private const val LEAST_HELD = 48
+
+        private const val DENSEST = 4.0
+
         /** The undergrounds that take a size and a page minted for them. `hollow`'s page is authored. */
         private val SIZED = setOf(CHAMBERED, TUNNELS, LATTICE, FISSURED)
         private val SAID_AS_THINGS = setOf(TUNNELS, LATTICE)

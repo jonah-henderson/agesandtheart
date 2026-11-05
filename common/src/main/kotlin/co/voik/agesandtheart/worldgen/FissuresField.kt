@@ -17,7 +17,7 @@ import kotlin.math.sqrt
 object FissuresField {
 
     /** The fissures between [lowY] and [highY], as the space to take out of the rock. */
-    fun openings(lowY: Int, highY: Int, size: Double?, salt: Long = 0L): Fissures {
+    fun openings(lowY: Int, highY: Int, size: Double?, salt: Long = 0L, density: Double = 1.0): Fissures {
         val factor = SizeScale.factorAt(size)
         val shareOfTheSizes = size?.let(Span.NATURAL::fractionOf) ?: ORDINARY_SHARE
         val band = highY - lowY + 1
@@ -25,7 +25,8 @@ object FissuresField {
         return Fissures(
             lowY = lowY,
             highY = highY,
-            spacing = (length * SPACING_PER_LENGTH).roundToInt(),
+            // [density] times as many to an area, so the cells' side shrinks by its square root.
+            spacing = (length * SPACING_PER_LENGTH / sqrt(density)).roundToInt().coerceAtLeast(1),
             perCell = PER_CELL,
             length = length,
             height = (band * (LEAST_SHARE_OF_BAND + (MOST_SHARE_OF_BAND - LEAST_SHARE_OF_BAND) * shareOfTheSizes))

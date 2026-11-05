@@ -3,7 +3,9 @@
     "Few things, thinly: what grows thinned out, what stands set far apart, every part leaning barren and scattered",
     "and away from the lush. `open` is the shape of the land and the sky; this is how little is on it.",
     "",
-    "Before the creatures and the stars it is `few`'s: half as many. Before the structures it will set them apart."
+    "Before the creatures and the stars it is `few`'s: half as many. Before the structures it will set them apart.",
+    "",
+    "Said of tunnels, a lattice, fissures or chambers, about half as many of them."
   ],
   "meanings": [
     {
@@ -40,6 +42,18 @@
       "offered_to": [
         "inhabitants",
         "stars"
+      ]
+    },
+    {
+      "sets": {
+        "underground.density": "-0.6..-0.4"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "tunnels",
+        "lattice",
+        "fissured",
+        "chambered"
       ]
     }
   ]

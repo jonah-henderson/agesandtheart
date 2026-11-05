@@ -35,7 +35,7 @@ object Resolver {
         val resolved = with(resolving) { describedMembers(weighed(steer(cast(compose(filled))))) }
         val template = book.template?.let(AgeTemplate::named) ?: AgeTemplate.ORDINARY
         val spokenTo = resolving.said.map { it.aspect }.toSet() + listOfNotNull(Aspect.TERRAIN.takeIf { resolving.mixesUnaskedLand(template) })
-        val composition = with(resolving) { reconciled(counted(mintedFeatures(resolved))) }.laidOver(template.world(), spokenTo)
+        val composition = with(resolving) { reconciled(countedMembers(counted(mintedFeatures(resolved)))) }.laidOver(template.world(), spokenTo)
             .copy(banned = ofTheWholeAge.flatMap { it.banned }.toSet(), linkIn = ofTheWholeAge.firstNotNullOfOrNull { it.linksIn })
         resolving.flaws += resolving.mintingsThatCannotHold()
         resolving.flaws += resolving.tidesWithNoMoon(composition)

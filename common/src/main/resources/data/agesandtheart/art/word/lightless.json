@@ -20,7 +20,7 @@
     },
     {
       "sets": {
-        "density": "-1.0..-1.0"
+        "stars.density": "-1.0..-1.0"
       },
       "must_always_apply": true
     },

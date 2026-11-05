@@ -129,9 +129,15 @@ data class Acceptance(
 
         /**
          * Whether there can be more or less of [member] across the world: every member of a weighted set but a
-         * phenomenon that comes and goes in time, and nothing a catalogue seats.
+         * phenomenon that comes and goes in time, and of what a catalogue seats only what its aspect counts.
          */
-        private fun countsInSpace(member: Taggable): Boolean =
-            if (member is Phenomenon) member.countsInSpace else member.aspect.holds == Holds.WEIGHTED_SET
+        private fun countsInSpace(member: Taggable): Boolean {
+            val countedWhereSeated = member.aspect.memberCount?.parameter?.let { it in member.ownParameters } == true
+            return when {
+                member is Phenomenon -> member.countsInSpace
+                countedWhereSeated -> true
+                else -> member.aspect.holds == Holds.WEIGHTED_SET
+            }
+        }
     }
 }

@@ -16,11 +16,13 @@ import kotlin.math.roundToInt
 object LatticeField {
 
     /** The passages between [lowY] and [highY], as the space to take out of the rock. */
-    fun passages(lowY: Int, highY: Int, salt: Long = 0L, scale: Double = SizeScale.ORDINARY): Lattice {
+    fun passages(lowY: Int, highY: Int, salt: Long = 0L, scale: Double = SizeScale.ORDINARY, density: Double = 1.0): Lattice {
         val band = highY - lowY + 1
         val width = (WIDTH * scale).roundToInt().coerceAtLeast(NARROWEST)
         val height = (HEIGHT * scale).roundToInt().coerceAtLeast(NARROWEST)
-        val spacingXZ = width * SPACING_PER_WIDTH
+        // [density] times the passages to a stretch of rock is that much closer together, down to a passage's
+        // width of rock between two.
+        val spacingXZ = (width * SPACING_PER_WIDTH / density).roundToInt().coerceAtLeast(width * CLOSEST_PER_WIDTH)
         val spacingY = storeySpacing(band, height)
         val random = XoroshiroRandomSource(LATTICE_SEED xor salt)
         return Lattice(
@@ -64,6 +66,7 @@ object LatticeField {
     private const val HEIGHT = 5.0
     private const val SPACING_PER_WIDTH = 8
     private const val SPACING_PER_HEIGHT = 6
+    private const val CLOSEST_PER_WIDTH = 2
 
     // So `minuscule` still leaves something a player can crawl through rather than a one-block crack.
     private const val NARROWEST = 2

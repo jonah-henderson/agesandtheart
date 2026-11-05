@@ -50,8 +50,8 @@ object Chambers {
      * landform with no room, and the reason a shallow underground is simply not chambered rather than
      * being chambered badly.
      */
-    fun voidBetween(floorY: Int, roofY: Int, size: Double? = null, salt: Long = 0L): TerrainField {
-        val plan = planFor(floorY, roofY, size) ?: return Union(emptyList())
+    fun voidBetween(floorY: Int, roofY: Int, size: Double? = null, salt: Long = 0L, density: Double = 1.0): TerrainField {
+        val plan = planFor(floorY, roofY, size, density) ?: return Union(emptyList())
         return Union(plan.storeys.map { hollow(plan, it, salt) })
     }
 
@@ -62,8 +62,8 @@ object Chambers {
      * not the Age's. A flat fill at this height would find every cave in the world as well, and an Age's
      * own waterline is somewhere else entirely — see `Terrain.Ground.wet`.
      */
-    fun lakesIn(floorY: Int, roofY: Int, size: Double? = null, salt: Long = 0L): TerrainField {
-        val plan = planFor(floorY, roofY, size) ?: return Union(emptyList())
+    fun lakesIn(floorY: Int, roofY: Int, size: Double? = null, salt: Long = 0L, density: Double = 1.0): TerrainField {
+        val plan = planFor(floorY, roofY, size, density) ?: return Union(emptyList())
         return Union(
             plan.storeys.map { storey ->
                 Intersect(listOf(Slab(lowY = storey.floorY, highY = storey.lakeLevel), hollow(plan, storey, salt)))
@@ -242,13 +242,16 @@ object Chambers {
      * **Size is read on the shared geometric axis**, [SizeScale]: each size word doubles a chamber's
      * width and takes its headroom up by √2, so every step is a different place rather than a nudge.
      */
-    private class Plan(val floorY: Int, val roofY: Int, size: Double?) {
+    private class Plan(val floorY: Int, val roofY: Int, size: Double?, density: Double) {
         private val factor = SizeScale.factorAt(size)
 
         val radius = ORDINARY_RADIUS * factor
 
-        /** Wider as they grow, in step, so a bigger chamber is not a more crowded world. */
-        val spacing = radius * SPACING_IN_RADII
+        /**
+         * Wider as they grow, in step, so a bigger chamber is not a more crowded world; and closer by the square root
+         * of [density], which is how many to an area.
+         */
+        val spacing = radius * SPACING_IN_RADII / sqrt(density)
 
         private val band = roofY - floorY
 
@@ -301,8 +304,8 @@ object Chambers {
         }
     }
 
-    private fun planFor(floorY: Int, roofY: Int, size: Double?): Plan? =
-        Plan(floorY, roofY, size).takeIf { it.storeys.isNotEmpty() }
+    private fun planFor(floorY: Int, roofY: Int, size: Double?, density: Double): Plan? =
+        Plan(floorY, roofY, size, density).takeIf { it.storeys.isNotEmpty() }
 
     /**
      * How wide a chamber is where nothing was said: 320 across, so `minuscule` is a grotto 80 across and

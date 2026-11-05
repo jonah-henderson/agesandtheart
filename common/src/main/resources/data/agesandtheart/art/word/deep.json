@@ -22,12 +22,14 @@
     "**It pushes `empty` away rather than admitting a pool.** A sea of nothing holds a depth perfectly well;",
     "the result is simply invisible, so this is a preference and belongs where preferences do (`Sea.DEPTH`",
     "records the same reasoning from the other side). Nothing here restricts, so the word never eliminates",
-    "a preset it merely dislikes."
+    "a preset it merely dislikes.",
+    "",
+    "Said of the underground, it holds the caves deep in the rock with solid ground over them; never a lower floor."
   ],
   "meanings": [
     {
       "sets": {
-        "depth": "0.85..0.98"
+        "sea.depth": "0.85..0.98"
       },
       "must_always_apply": true
     },
@@ -39,6 +41,15 @@
         }
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "underground.depth": "0.5..0.9"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "underground"
+      ]
     }
   ]
 }

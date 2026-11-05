@@ -335,6 +335,7 @@ object AgeGeneration {
                             .firstNotNullOfOrNull { (member, terrain) ->
                                 terrain.undergroundBand(
                                     composition.underground,
+                                    composition.optionsFor(Aspect.UNDERGROUND, 0),
                                     window,
                                     composition.optionsFor(Aspect.TERRAIN, member),
                                     saltFor(seed, member),

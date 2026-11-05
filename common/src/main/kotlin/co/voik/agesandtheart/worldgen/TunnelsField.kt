@@ -18,8 +18,16 @@ object TunnelsField {
      *
      * [scale] is [SizeScale]'s factor, and it is the noise's: every passage grows with it while the band
      * stays the height the landform gave it.
+     *
+     * [density] is how many times the ordinary open rock: the noise is stretched to space the tubes out, and the
+     * threshold lowered as it stretches so a tube keeps its width, which is set by how steeply the noise crosses zero.
      */
-    fun tubes(lowY: Int, highY: Int, salt: Long = 0L, scale: Double = SizeScale.ORDINARY): Noise3D = Noise3D(
+    fun tubes(lowY: Int, highY: Int, salt: Long = 0L, scale: Double = SizeScale.ORDINARY, density: Double = 1.0): Noise3D {
+        val apart = 1.0 / density
+        return tubesStretched(lowY, highY, salt, scale * apart, threshold = 1.0 - (1.0 - CAVE_THRESHOLD) / apart)
+    }
+
+    private fun tubesStretched(lowY: Int, highY: Int, salt: Long, scale: Double, threshold: Double): Noise3D = Noise3D(
         seed = CAVE_SEED xor salt,
         // Detail at roughly 64 and 32 blocks. Coarse on purpose: with RIDGED the passage *width* is set
         // by how steeply the noise crosses zero, so broader features cross more gently and leave
@@ -32,7 +40,7 @@ object TunnelsField {
         character = NoiseCharacter.RIDGED,
         // High, because with RIDGED a higher threshold means *thinner* tubes: this is what keeps the
         // network from eating the whole rock. It is the dial to turn if the tunnels feel too open or too rare.
-        threshold = CAVE_THRESHOLD,
+        threshold = threshold,
         lowY = lowY,
         highY = highY,
     )

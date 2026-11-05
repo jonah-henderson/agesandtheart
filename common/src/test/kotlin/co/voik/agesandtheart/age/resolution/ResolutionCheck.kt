@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.aspect.Underground
 import co.voik.agesandtheart.age.language.ShippedLexicon
 import co.voik.agesandtheart.age.language.ShippedLexicon.resolved
 import io.kotest.core.annotation.Tags
@@ -125,6 +126,13 @@ class ResolutionCheck : FunSpec({
         val stars = resolved("age teeming stars")
         check(stars.option(Aspect.STARS, SkyBodies.STARS.name).isNotEmpty()) { stars.spelled() }
         check(resolved("age red sun colossal sun").composition.membersIn(Aspect.SUN) == 2) { "two suns described, not two suns" }
+    }
+
+    test("an amount said of the cave a book chose counts its tunnels, and the underground's own page takes none") {
+        val few = resolved("age few tunnels")
+        check(few.option(Aspect.UNDERGROUND, Underground.DENSITY.name).mapNotNull(Span::read) == listOf(Span(-0.5, -0.5))) { few.spelled() }
+        val underground = resolved("age few underground")
+        check(underground.composition == resolved("age underground").composition) { underground.spelled() }
     }
 
     test("what the reading charged and dropped reaches the instability, and the cost is every page's ink") {
