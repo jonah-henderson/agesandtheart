@@ -1,0 +1,63 @@
+{
+  "_comment": [
+    "A floor rather than a band, like warm and higher: hot says 'at least this' and yields to anything hotter, so",
+    "it costs a scorching Age nothing. The floor sits in the upper part of vanilla's warm band, so a hot Age is",
+    "jungle where the air is wet as well as desert, badlands and savanna where it is not; scorching is the word",
+    "for the hot band alone.",
+    "",
+    "Everything past the temperature is only offered, since scorching is the word for burnt country under a",
+    "furnace sky and hot only the heat: an orange light, an orange or red sun, a shimmer of haze, and",
+    "a lean away from the frozen."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "temperature": ">0.4"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "biomes": {
+          "#frozen": -1.0
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.tint": "orange"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sun.colour": "orange"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sun.colour": "red"
+      },
+      "chance_to_apply": 0.33
+    },
+    {
+      "sets": {
+        "haze": "+0.2"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "temperature": ">0.4"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "weather",
+        "sea",
+        "waters"
+      ]
+    }
+  ]
+}

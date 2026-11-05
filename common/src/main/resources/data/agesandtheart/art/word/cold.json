@@ -1,0 +1,75 @@
+{
+  "_comment": [
+    "A ceiling rather than a band, warm's mirror: cold says 'at most this' and yields to anything colder, so it",
+    "chills a temperate Age and costs a frozen one nothing. The ceiling is vanilla's own line between its cold",
+    "band (taiga, snowy beaches, windswept hills) and its temperate one.",
+    "",
+    "Everything past the temperature is only offered, since cold is the plainest thing a writer can say about it",
+    "and frozen is the word for a world locked in ice: a pale light, a whiter sun, grey cloud, clear bright stars,",
+    "drier air, and a lean towards the frozen and away from the molten."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "temperature": "<-0.15"
+      },
+      "must_always_apply": true
+    },
+    {
+      "leans": {
+        "biomes": {
+          "#frozen": 0.6,
+          "#molten": -1.0
+        }
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.tint": "blue"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "air.tint": "white"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "sun.colour": "white"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "clouds.colour": "grey"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "stars.glow": "+0.1"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "humidity": "-0.1"
+      },
+      "chance_to_apply": 0.5
+    },
+    {
+      "sets": {
+        "temperature": "<-0.15"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "weather",
+        "sea",
+        "waters"
+      ]
+    }
+  ]
+}
