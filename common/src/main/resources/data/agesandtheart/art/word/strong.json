@@ -6,7 +6,10 @@
     "twice their health and hit twice as hard.",
     "",
     "Laid bare it never touches the gravity (`unaimed` 0): `a strong Age` is strong tides, and a world nobody can",
-    "jump in has to be asked for by name."
+    "jump in has to be asked for by name.",
+    "",
+    "`strong sun` glares, vanilla's light being the most the game gives: a halo, a glare over the view turned toward it,",
+    "and its light lingering long after it sets."
   ],
   "meanings": [
     {
@@ -20,6 +23,15 @@
         "pull": "0.25..1.0"
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sun.light": "0.3..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sun"
+      ]
     }
   ]
 }

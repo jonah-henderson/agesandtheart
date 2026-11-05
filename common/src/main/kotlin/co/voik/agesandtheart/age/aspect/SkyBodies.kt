@@ -106,9 +106,10 @@ object SkyBodies {
     val SUNCOLOUR = Sky.colour("colour", "The colour the suns burn.")
 
     /**
-     * How strongly a sun lights the day — `weak sun`. Below vanilla's it holds the day toward night while the sun is
-     * up, the stars coming out and monsters walking at the far end (Ephemeris' `CelestialBody.dimming`); vanilla's
-     * light is already the most the game gives.
+     * How strongly a sun lights the day — `weak sun`, `strong sun`. Below vanilla's it holds the day toward night while
+     * the sun is up, the stars coming out and monsters walking at the far end (Ephemeris' `CelestialBody.dimming`).
+     * Vanilla's light is already the most the game gives, so above it the sun glares instead: a halo, a glare over the
+     * view facing it, and light lingering after it sets (`CelestialBody.glare`).
      */
     val SUNLIGHT = Parameter.ranged(
         "light",
@@ -117,11 +118,15 @@ object SkyBodies {
             Parameter.Landmark(-1.0, "as dark as night at noon"),
             Parameter.Landmark(-0.3, "a dusky noon"),
             Parameter.Landmark(0.0, "vanilla's", isVanilla = true),
+            Parameter.Landmark(1.0, "glaring, its light lingering long after it sets"),
         ),
     )
 
     /** How far toward night a sun of [light] holds the day: none at or above vanilla's. */
     fun dimmingAt(light: Double): Float = (-light).coerceIn(0.0, 1.0).toFloat()
+
+    /** How much a sun of [light] glares: none at or below vanilla's. */
+    fun glareAt(light: Double): Float = light.coerceIn(0.0, 1.0).toFloat()
 
     /** What colour the moons shine — `red moon` — or [Parameter.DEFAULT] for vanilla's white. */
     val MOONCOLOUR = Sky.colour("colour", "The colour the moons shine.")
@@ -266,8 +271,10 @@ object SkyBodies {
         // A moon's month goes at its pace too, so a swift moon waxes and wanes as quickly as it crosses.
         fun pacedMonth(cycle: PhaseCycle) = length?.let { cycle.copy(periodTicks = (cycle.periodTicks * it).roundToInt().coerceAtLeast(1)) } ?: cycle
         val phase = body.phase?.let(::pacedMonth)
-        val dimming = own.steer(SUNLIGHT, seed)?.takeUnless { isAMoon }?.let(::dimmingAt) ?: body.dimming
-        return body.copy(appearance = appearance, path = path, phase = phase, dimming = dimming)
+        val light = own.steer(SUNLIGHT, seed)?.takeUnless { isAMoon }
+        val dimming = light?.let(::dimmingAt) ?: body.dimming
+        val glare = light?.let(::glareAt) ?: body.glare
+        return body.copy(appearance = appearance, path = path, phase = phase, dimming = dimming, glare = glare)
     }
 
     /**

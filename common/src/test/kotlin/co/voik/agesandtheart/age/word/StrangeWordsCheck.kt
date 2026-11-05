@@ -212,10 +212,12 @@ class StrangeWordsCheck : FunSpec({
         }
     }
 
-    test("a weak sun dims the day, and a weak moon is only a slack tide") {
+    test("a weak sun dims the day, a strong one glares, and a weak moon is only a slack tide") {
         for (seed in SEEDS) {
             val weak = Sky.specFor(aimed(seed, "weak", "sun"), seed).bodies.first { it.phase == null }
             check(weak.dimming in 0.3f..1.0f) { "seed $seed: 'weak sun' dimmed it by ${weak.dimming}" }
+            val strong = Sky.specFor(aimed(seed, "strong", "sun"), seed).bodies.first { it.phase == null }
+            check(strong.glare in 0.3f..1.0f && strong.dimming == 0.0f) { "seed $seed: 'strong sun' gave $strong" }
             val moonlit = Sky.specFor(aimed(seed, "weak", "moon"), seed).bodies
             check(moonlit.all { it.dimming == 0.0f }) { "seed $seed: 'weak moon' dimmed $moonlit" }
         }
