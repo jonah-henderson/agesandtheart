@@ -28,7 +28,7 @@ interface MemberTags {
 object WordAcceptance {
 
     fun of(word: Word, tags: MemberTags, registries: HolderLookup.Provider?): Acceptance? {
-        val acceptance = pageOf(word) ?: minting(word, registries) ?: membersNamedBy(word, tags, registries) ?: return null
+        val acceptance = pageOf(word, tags) ?: minting(word, registries) ?: membersNamedBy(word, tags, registries) ?: return null
         return acceptance.withLeanable(tags)
     }
 
@@ -47,15 +47,45 @@ object WordAcceptance {
     /** A tag weight under this moves a lean's draw too little to be what the lean is about. */
     private const val CARRIED = 0.3
 
-    private fun pageOf(word: Word): Acceptance? {
+    private fun pageOf(word: Word, tags: MemberTags): Acceptance? {
         val isOurs = word.id.namespace == Constants.MOD_ID
         val aspect = Aspect.byPage(word.name)?.takeIf { isOurs } ?: return null
-        val synonym = SYNONYMS[aspect]?.let(Acceptance::ofAspect)
-        return Acceptance.ofAspect(aspect).copy(companion = synonym)
+        val life = LIVES_IN[aspect]?.let { tag -> whatLivesIn(tag, tags) }
+        val synonym = SYNONYMS[aspect]?.let { Acceptance.ofAspect(it).copy(companion = life) }
+        return Acceptance.ofAspect(aspect).copy(companion = synonym ?: life)
     }
 
     /** Pages that mean one thing to a writer though the world keeps them apart: the sea and its waters. */
     private val SYNONYMS = mapOf(Aspect.SEA to Aspect.WATERS, Aspect.WATERS to Aspect.SEA)
+
+    /**
+     * **A place reaches what lives there** (Jonah, 2026-11-04): the creatures carrying a tag, as far as an amount —
+     * `teeming sea` is more fish and `scarce landmass` fewer animals. Only an amount, so `colossal sea` is no giant
+     * fish.
+     */
+    private fun whatLivesIn(tag: String, tags: MemberTags): Acceptance? {
+        val living = tags.availableToBroadWordsIn(Aspect.SPAWNS).filter { (tags.tagsOf(it)[tag] ?: 0.0) > LIVES_THERE }
+        if (living.isEmpty()) return null
+        return Acceptance(
+            place = Place(Aspect.SPAWNS, Members.Named(living.map(Taggable::key).toSet())),
+            parameters = emptySet(),
+            takesChoices = false,
+            takesLeans = false,
+            takesSubstance = false,
+            takesAbundance = true,
+        )
+    }
+
+    /** The tag on the creatures that live in each place a page names. */
+    private val LIVES_IN = mapOf(
+        Aspect.SEA to "aquatic",
+        Aspect.WATERS to "aquatic",
+        Aspect.TERRAIN to "fauna",
+        Aspect.UNDERGROUND to "cavernous",
+    )
+
+    /** How strongly a creature carries a place's tag to be one that lives there. */
+    private const val LIVES_THERE = 0.5
 
     private fun minting(word: Word, registries: HolderLookup.Provider?): Acceptance? {
         val appliesWhereAimed = word.meanings.filter { it.mustAlwaysApply || it.chanceToApply > Meaning.NEVER }
