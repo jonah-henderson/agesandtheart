@@ -255,6 +255,14 @@ enum class Phenomenon(
      * Insists on no weather, and is written only: nothing instability buys is an overgrowth yet.
      */
     OVERGROWTH("overgrowth", countsInSpace = true),
+
+    /**
+     * Wind turned up until it pushes ([co.voik.agesandtheart.age.phenomena.Gale]): spells of it, each on a bearing
+     * of its own, leaning on everything light that is out in it. **Mild, and made to stack**: what it denies is
+     * high open ground, bridges and shooting across it, and a wall upwind answers it. Insists on no weather; it
+     * blows under a clear sky as readily as a grey one.
+     */
+    GALE("gale", inflictedBy = Manifestation.GALE),
     ;
 
     override val aspect = Aspect.PHENOMENA
@@ -270,7 +278,7 @@ enum class Phenomenon(
     override val parameters: List<Parameter>
         get() = when (this) {
             METEORS, SANDFALL -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH, Phenomena.PACE)
-            TEMPEST, BLIZZARD, FOG, TECTONICS, DELUGE -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH)
+            TEMPEST, BLIZZARD, FOG, TECTONICS, DELUGE, GALE -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH)
             AURORA, RAINBOW -> listOf(Phenomena.FREQUENCY)
             INFERNO -> listOf(Phenomena.STRENGTH)
             OVERGROWTH -> listOf(Phenomena.PACE)

@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.consequence.TearsPayload
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.age.phenomena.DelugePayload
 import co.voik.agesandtheart.age.phenomena.FogPayload
+import co.voik.agesandtheart.age.phenomena.GalePayload
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.book.LinkEnded
@@ -73,6 +74,7 @@ object Payloads {
         Clientbound(BlizzardPayload.TYPE, BlizzardPayload.STREAM_CODEC),
         Clientbound(DelugePayload.TYPE, DelugePayload.STREAM_CODEC),
         Clientbound(FogPayload.TYPE, FogPayload.STREAM_CODEC),
+        Clientbound(GalePayload.TYPE, GalePayload.STREAM_CODEC),
         Clientbound(MotesPayload.TYPE, MotesPayload.STREAM_CODEC),
         Clientbound(TearsPayload.TYPE, TearsPayload.STREAM_CODEC),
         Clientbound(GravityPayload.TYPE, GravityPayload.STREAM_CODEC),

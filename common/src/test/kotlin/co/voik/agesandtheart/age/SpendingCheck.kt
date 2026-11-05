@@ -365,4 +365,14 @@ internal val SHIPPED_LADDERS = mapOf(
         mapOf(Manifestation.GRAVITY_STRENGTH to tiers(1, 2, 3)),
         heldBy = setOf("gravity.pull"),
     ),
+    Manifestation.GALE to Ladder(
+        mapOf(
+            Manifestation.WINDS_OFTEN to DialSteps.flat(tier = 1, most = 4),
+            Manifestation.WINDS_PUSH to tiers(1, 1, 2, 2),
+            Manifestation.GUSTS_OFTEN to tiers(2, 2, 2, 3),
+            Manifestation.GUSTS_FORCE to tiers(2, 2, 3, 3),
+            Manifestation.GUSTS_SUDDEN to tiers(2, 2, 3, 3),
+        ),
+        needs = setOf(Showing.OPEN_SKY),
+    ),
 )

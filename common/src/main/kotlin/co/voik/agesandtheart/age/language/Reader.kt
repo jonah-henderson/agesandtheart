@@ -108,6 +108,10 @@ object Reader {
                     waiting.forEach { laidBare(it, Fate.LaidBare) }
                     waiting.clear()
                     lastTaker = null
+                    // An `and` with nothing but the Age after it joins nothing, as one at the end of the book does.
+                    andAt?.let(::impossible)
+                    andAt = null
+                    leftOfAnd = null
                 }
                 Structure.AND -> joining()
                 Structure.IN -> {

@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.age.aspect.Sea
+import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Biomes
@@ -40,6 +41,9 @@ enum class Showing(private val key: String) : StringRepresentable {
 
     /** A sea of water, every sea that pours anything — what a deluge raises. See `Sea.areWater`. */
     WATER_SEA("water_sea"),
+
+    /** A sky over the land rather than a roof: what a gale blows under. */
+    OPEN_SKY("open_sky"),
     ;
 
     override fun getSerializedName(): String = key
@@ -77,6 +81,7 @@ data class SpendingSetting(
                 if (composition.membersIn(Aspect.TERRAIN) > 1) add(Showing.REGIONS)
                 if (!Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0))) add(Showing.CREATURES)
                 if (Sea.areWater(composition.seas)) add(Showing.WATER_SEA)
+                if (!composition.optionsFor(Aspect.SKY, 0).isTrue(Sky.SEALED)) add(Showing.OPEN_SKY)
             }
             return SpendingSetting(climate, has, writtenIn(composition))
         }

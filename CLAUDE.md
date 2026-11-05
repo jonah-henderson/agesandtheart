@@ -27,7 +27,7 @@ something lands, delete the narrative of building it; a choice between genuinely
   says to delete it when the last item goes. **Author with `scripts/scrivener.sh`**, whose `Verdict` is what a
   valid word is; read this before touching `art/word/`.
 - **`notes/instability-tiers-plan.md`** — what is left of the instability tiers, which are **built** and live in
-  design §5.0 (the strange tier holds fifteen manifestations): foreign ground's gaps, the mirage experiment,
+  design §5.0 (the strange tier holds sixteen manifestations): foreign ground's gaps, the mirage experiment,
   and the wounds' rework. Read it before adding a manifestation or touching `art/manifestation/`.
 - **`notes/strange-words-plan.md`** — the words that let a writer ask for what instability inflicts. **Built but
   for its remainder:** the meanings the words do not carry yet, loose ends from the per-Age clock and danger, and

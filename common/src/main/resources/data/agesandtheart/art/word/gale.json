@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "Wind turned up until it pushes, in spells of its own (notes/wind-plan.md). It means the phenomenon",
+    "outright, as `fog` does; the frequency words make it blow more of the time, and `constant gale` never",
+    "drops. The written wind (`windy`) is only to look at; this is the one that leans on you."
+  ],
+  "speech": "noun",
+  "meanings": [
+    {
+      "chooses": {
+        "phenomena": "gale"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

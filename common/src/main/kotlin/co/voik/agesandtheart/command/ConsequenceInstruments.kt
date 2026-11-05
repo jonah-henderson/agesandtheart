@@ -29,6 +29,8 @@ import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.phenomena.Fog
 import co.voik.agesandtheart.age.phenomena.FogDials
+import co.voik.agesandtheart.age.phenomena.Gale
+import co.voik.agesandtheart.age.phenomena.GaleDials
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.phenomena.Sampling
 import net.minecraft.commands.SharedSuggestionProvider
@@ -261,6 +263,15 @@ internal object ConsequenceInstruments {
                 val befalling = composition?.let { Happenings.befallingIn(it, recipe.seed, spending)[Phenomenon.FOG] }
                 val lying = Fog.lyingAt(level, befalling?.recurrence ?: Recurrence.ORDINARY, FogDials.of(spending))
                 if (lying <= 0.0) "no bank lying now" else "a bank %.0f%% in now".format(lying * PER_CENT)
+            }
+            Manifestation.GALE -> {
+                val composition = recipe.composition
+                val befalling = composition?.let { Happenings.befallingIn(it, recipe.seed, spending)[Phenomenon.GALE] }
+                val blowing = Gale.blowingAt(level.seed, level.gameTime, befalling?.recurrence ?: Recurrence.ORDINARY, GaleDials.of(spending))
+                if (blowing == null) "no gale blowing now"
+                else "a gale %.0f%% risen, towards %.0f°, at %.0f%% fury".format(
+                    blowing.lying * PER_CENT, blowing.bearingDegrees, blowing.fury * PER_CENT,
+                )
             }
         }
     }

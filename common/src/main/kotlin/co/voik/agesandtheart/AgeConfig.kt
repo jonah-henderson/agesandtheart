@@ -98,6 +98,9 @@ object AgeConfig {
     /** How hard a blizzard's wind pushes a player, as a share of the most it may — see `Blizzard.windPush`. */
     val blizzardWind: ModConfigSpec.DoubleValue
 
+    /** How hard a gale pushes whatever is out in it, as a share of the most it may — see `Gale.pushStrength`. */
+    val galeWind: ModConfigSpec.DoubleValue
+
     /** Whether a player holding a coconut half in each hand walks to the sound of hooves. */
     val coconutHoofbeats: ModConfigSpec.BooleanValue
 
@@ -214,6 +217,14 @@ object AgeConfig {
             )
             .translation(translationOf("blizzard_wind"))
             .defineInRange("blizzardWind", DEFAULT_BLIZZARD_WIND, 0.0, 1.0)
+        galeWind = builder
+            .comment(
+                "How hard a gale pushes players, creatures, dropped items and what is thrown, from 0 (not at",
+                "all) to 1 (the most it may). An ordinary gale leans; a fierce one shoves. At 1 the fiercest gale",
+                "still lets a player sprint into it.",
+            )
+            .translation(translationOf("gale_wind"))
+            .defineInRange("galeWind", DEFAULT_GALE_WIND, 0.0, 1.0)
         builder.pop()
         builder.comment("Coconuts").push(COCONUTS)
         coconutHoofbeats = builder
@@ -242,6 +253,7 @@ object AgeConfig {
     private const val DEFAULT_PHENOMENA_AT_ONCE = 2
     private const val MOST_PHENOMENA_AT_ONCE = 64
     private const val DEFAULT_BLIZZARD_WIND = 0.4
+    private const val DEFAULT_GALE_WIND = 0.4
 
     private const val COCONUTS = "coconuts"
 }

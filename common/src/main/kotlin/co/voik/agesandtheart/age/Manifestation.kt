@@ -62,6 +62,11 @@ private const val SKY_TEARS_MANY = "many"
 private const val STRANGE_GRAVITY_STRENGTH = "strength"
 private const val FOREIGN_GROUND_EXTENT = "extent"
 private const val OVERGROWN_GROUND_PATCHES = "patches"
+private const val GALE_OFTEN = "often"
+private const val GALE_PUSH = "push"
+private const val GALE_GUSTS = "gusts"
+private const val GALE_FORCE = "force"
+private const val GALE_SUDDEN = "sudden"
 
 /**
  * A way an Age shows what is wrong with it — **the things instability is spent on** (design §5.0).
@@ -237,6 +242,13 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
      * patches and nothing else. Harmful, and only in ground generated afterwards.
      */
     OVERGROWN_GROUND("overgrown_ground", OVERGROWN_GROUND_PATCHES),
+
+    /**
+     * Gales blow over the Age in spells of their own, each on a bearing of its own. **Five dials** (Jonah,
+     * 2026-11-04): how much of the time one blows, how hard it leans on whatever is out in it, and three for its
+     * gusts — how often one comes, how hard it shoves, and how little warning it gives.
+     */
+    GALE("gale", GALE_OFTEN, GALE_PUSH, GALE_GUSTS, GALE_FORCE, GALE_SUDDEN),
     ;
 
     /** What this manifestation's ladder sells steps of, in the order its file is read. */
@@ -339,6 +351,21 @@ enum class Manifestation(val key: String, vararg dials: String) : StringRepresen
 
         /** How many tears hang in the sky. */
         const val TEARS_MANY = SKY_TEARS_MANY
+
+        /** How much of the time a gale blows. */
+        const val WINDS_OFTEN = GALE_OFTEN
+
+        /** How hard a gale leans on whatever is out in it. */
+        const val WINDS_PUSH = GALE_PUSH
+
+        /** How often a gale gusts. */
+        const val GUSTS_OFTEN = GALE_GUSTS
+
+        /** How hard a gust shoves. */
+        const val GUSTS_FORCE = GALE_FORCE
+
+        /** How little warning a gust gives. */
+        const val GUSTS_SUDDEN = GALE_SUDDEN
 
         /** How far an Age's gravity is from vanilla's. */
         const val GRAVITY_STRENGTH = STRANGE_GRAVITY_STRENGTH

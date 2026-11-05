@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "How gales come over an Age (Jonah, 2026-11-04, notes/wind-plan.md): `often` is how much of the time one",
+    "blows, `push` how hard it leans, and `gusts`, `force` and `sudden` how often it gusts, how hard a gust",
+    "shoves, and how little warning one gives.",
+    "",
+    "Mild until its gusts: a steady lean is at worst a nuisance, so `often` and the first steps of `push` are",
+    "strange, and a short book's gale only leans. A gust can throw you off a ledge, so the gust dials are",
+    "harmful, climbing to failing at the top. Only where there is a sky for it to blow under."
+  ],
+  "dials": {
+    "often": {"tier": 1, "most": 4},
+    "push": {"tiers": [1, 1, 2, 2]},
+    "gusts": {"tiers": [2, 2, 2, 3]},
+    "force": {"tiers": [2, 2, 3, 3]},
+    "sudden": {"tiers": [2, 2, 3, 3]}
+  },
+  "needs": ["open_sky"]
+}

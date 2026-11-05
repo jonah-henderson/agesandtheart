@@ -85,5 +85,9 @@
   "fog": {
     "_comment": "Instability's alone for now: no word names it, and no vague word may reach it until one does.",
     "available_to_broad_words": false
+  },
+  "gale": {
+    "_comment": "Named by `gale` alone for now, and no vague word may reach it until one is written for it.",
+    "available_to_broad_words": false
   }
 }

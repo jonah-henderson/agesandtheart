@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.consequence.TearsPayload
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.age.phenomena.DelugePayload
 import co.voik.agesandtheart.age.phenomena.FogPayload
+import co.voik.agesandtheart.age.phenomena.GalePayload
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.book.LinkEnded
@@ -39,6 +40,7 @@ object ClientPayloads {
         Receiver(BlizzardPayload.TYPE) { Storms.remember(it) },
         Receiver(DelugePayload.TYPE) { Downpours.remember(it) },
         Receiver(FogPayload.TYPE) { Fogs.remember(it) },
+        Receiver(GalePayload.TYPE) { Gales.remember(it) },
         Receiver(MotesPayload.TYPE) { StrangeMotes.remember(it) },
         Receiver(TearsPayload.TYPE) { TornSky.remember(it) },
         Receiver(GravityPayload.TYPE) { StrangeGravity.remember(it) },

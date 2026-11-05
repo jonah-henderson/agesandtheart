@@ -78,6 +78,22 @@ object ConeExposure {
     private fun upwindCone(driving: Direction): Cone {
         val slant = Math.toDegrees(atan(Blizzard.SNOW_FALLS_PER_BLOCK))
         val bearing = Math.toDegrees(atan2(-driving.stepZ.toDouble(), -driving.stepX.toDouble()))
+        return coneFrom(bearing, slant)
+    }
+
+    /**
+     * Where a wind driving towards [drivingDegrees] comes from — round from +x towards +z, as Ephemeris' `Wind` has it —
+     * back up into it, low over the ground, to the nearest [BEARING_STEP] degrees.
+     */
+    fun upwindAt(drivingDegrees: Double): Cone =
+        ALONG_THE_GROUND[Math.floorMod(Math.round(drivingDegrees / BEARING_STEP).toInt(), BEARINGS)]
+
+    private val ALONG_THE_GROUND: List<Cone> by lazy {
+        List(BEARINGS) { step -> coneFrom(step * BEARING_STEP + HALF_TURN, LOW_OVER_THE_GROUND) }
+    }
+
+    /** A cone of rays around [bearing], [slant] degrees above the horizontal. */
+    private fun coneFrom(bearing: Double, slant: Double): Cone {
         val rays = WIND_TURNS.flatMap { turn ->
             WIND_LIFTS.map { lift ->
                 val weight = exp(-squared(turn / WIND_TURN_SPREAD) - squared(lift / WIND_LIFT_SPREAD))
@@ -110,6 +126,14 @@ object ConeExposure {
 
     /** How far a ray runs before it counts as having got out, in blocks. */
     private const val RAY_LENGTH = 16.0
+
+    /** How finely a wind's bearing is told apart, and how many cones that makes. */
+    private const val BEARING_STEP = 15.0
+    private const val BEARINGS = 24
+    private const val HALF_TURN = 180.0
+
+    /** How steeply a wind with nothing falling in it comes down: barely at all. */
+    private const val LOW_OVER_THE_GROUND = 10.0
 
     /** Either side of the wind, and below and above the snow's slant, in degrees. */
     private val WIND_TURNS = listOf(-30.0, -15.0, 0.0, 15.0, 30.0)

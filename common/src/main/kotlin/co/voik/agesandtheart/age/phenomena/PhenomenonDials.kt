@@ -121,6 +121,24 @@ data class FogDials(val often: Double, val thickness: Double) {
 }
 
 /**
+ * A gale's: [often] how much of the time one blows, [push] how hard it leans, [gusts] how often it gusts, [force]
+ * how hard a gust shoves, and [sudden] how little warning one gives.
+ */
+data class GaleDials(val often: Double, val push: Double, val gusts: Double, val force: Double, val sudden: Double) {
+    companion object {
+        val NONE = GaleDials(often = 0.0, push = 0.0, gusts = 0.0, force = 0.0, sudden = 0.0)
+
+        fun of(spending: Spending, written: Double = UNSAID) = GaleDials(
+            often = spending.reach(Manifestation.GALE, Manifestation.WINDS_OFTEN),
+            push = harderBy(spending.reach(Manifestation.GALE, Manifestation.WINDS_PUSH), written),
+            gusts = spending.reach(Manifestation.GALE, Manifestation.GUSTS_OFTEN),
+            force = spending.reach(Manifestation.GALE, Manifestation.GUSTS_FORCE),
+            sudden = spending.reach(Manifestation.GALE, Manifestation.GUSTS_SUDDEN),
+        )
+    }
+}
+
+/**
  * A harsh dial with how hard the book wrote the phenomenon laid on it: [written] from -1 to 1 moves it up to
  * half way on toward its fury, or as far below ordinary — a reach under nought is a gentler one than an Age
  * that bought nothing has, which every reader of a harsh dial takes.

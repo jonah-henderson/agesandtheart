@@ -26,6 +26,8 @@ object ClientSetup {
         Storms.heard(minecraft)
         Storms.blow(minecraft)
         Storms.push(minecraft)
+        Gales.heard(minecraft)
+        Gales.push(minecraft)
         // A deluge's splashes and roar, both of which want re-asking as a player moves under cover.
         Downpours.pour(minecraft)
         // A lure is drawn about its cluster rather than by each block, so it rides the tick as well.
@@ -92,6 +94,7 @@ object ClientSetup {
         LinkTransit.forget()
         Storms.forget()
         Fogs.forget()
+        Gales.forget()
         Downpours.forget()
         StarFissureVeil.forget()
     }

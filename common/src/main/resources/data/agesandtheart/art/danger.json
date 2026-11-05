@@ -123,6 +123,7 @@
     "sandfall": 0.3,
     "overgrowth": 0.2,
     "fog": 0.2,
+    "gale": 0.15,
     "tempest": 0.1,
     "deluge": 0.05,
     "aurora": 0.0,
