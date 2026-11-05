@@ -2250,9 +2250,15 @@ object AgeContent {
     val BLIZZARD_SHELTERED: SoundEvent = SoundEvent.createVariableRangeEvent(BLIZZARD_SHELTERED_ID)
     val BLIZZARD_EXPOSED: SoundEvent = SoundEvent.createVariableRangeEvent(BLIZZARD_EXPOSED_ID)
 
+    private val GUST_ID: Identifier = "gust".location()
+
+    /** A gale's gust, heard swelling as it comes. Vanilla's elytra rush stands in until the asset pass. */
+    val GUST: SoundEvent = SoundEvent.createVariableRangeEvent(GUST_ID)
+
     val soundEvents: List<Pair<Identifier, SoundEvent>> = listOf(
         BLIZZARD_SHELTERED_ID to BLIZZARD_SHELTERED,
         BLIZZARD_EXPOSED_ID to BLIZZARD_EXPOSED,
+        GUST_ID to GUST,
     ) + PalmBeach.soundEvents
 
     private val PRESSURE_EFFECT_ID: Identifier = "crushing_pressure".location()

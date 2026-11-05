@@ -128,13 +128,20 @@ data class GaleDials(val often: Double, val push: Double, val gusts: Double, val
     companion object {
         val NONE = GaleDials(often = 0.0, push = 0.0, gusts = 0.0, force = 0.0, sudden = 0.0)
 
+        /**
+         * Every gale gusts, one nothing bought for at the mild end: now and then, at the gentlest, with the most
+         * warning. Instability buys more of each, and a book writing it fiercer or gentler moves how hard.
+         */
         fun of(spending: Spending, written: Double = UNSAID) = GaleDials(
             often = spending.reach(Manifestation.GALE, Manifestation.WINDS_OFTEN),
             push = harderBy(spending.reach(Manifestation.GALE, Manifestation.WINDS_PUSH), written),
-            gusts = spending.reach(Manifestation.GALE, Manifestation.GUSTS_OFTEN),
-            force = spending.reach(Manifestation.GALE, Manifestation.GUSTS_FORCE),
+            gusts = maxOf(LEAST_GUSTS, spending.reach(Manifestation.GALE, Manifestation.GUSTS_OFTEN)),
+            force = harderBy(spending.reach(Manifestation.GALE, Manifestation.GUSTS_FORCE), written),
             sudden = spending.reach(Manifestation.GALE, Manifestation.GUSTS_SUDDEN),
         )
+
+        /** How often a gale gusts with nothing bought: about once in a minute and a half. */
+        private const val LEAST_GUSTS = 0.2
     }
 }
 

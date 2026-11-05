@@ -26,6 +26,7 @@ object ClientSetup {
         Storms.heard(minecraft)
         Storms.blow(minecraft)
         Storms.push(minecraft)
+        Gales.blow(minecraft)
         Gales.heard(minecraft)
         Gales.push(minecraft)
         // A deluge's splashes and roar, both of which want re-asking as a player moves under cover.

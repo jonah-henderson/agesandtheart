@@ -5,8 +5,9 @@
     "shoves, and how little warning one gives.",
     "",
     "Mild until its gusts: a steady lean is at worst a nuisance, so `often` and the first steps of `push` are",
-    "strange, and a short book's gale only leans. A gust can throw you off a ledge, so the gust dials are",
-    "harmful, climbing to failing at the top. Only where there is a sky for it to blow under."
+    "strange. Every gale gusts now and then, gently and well warned (GaleDials.of); a gust bought harder can",
+    "throw you off a ledge, so the gust dials are harmful, climbing to failing at the top. Only where there is",
+    "a sky for it to blow under."
   ],
   "dials": {
     "often": {"tier": 1, "most": 4},

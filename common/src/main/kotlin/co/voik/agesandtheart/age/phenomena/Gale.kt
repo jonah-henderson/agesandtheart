@@ -35,14 +35,12 @@ import kotlin.math.sin
  * **While it blows it is the Age's wind**, so the clouds race along it, the rain leans with it and the light
  * particles go its way ([LevelWind.blowInstead]). What it does besides is lean on everything light out in it: the
  * players on their own clients, which move them, and here the creatures, the dropped items and whatever is thrown.
+ * Where its dials buy them, it gusts ([Gusts]).
  */
 object Gale {
 
     /** A gale over an Age at one moment: how much of one is [lying] over it, which way it drives, and its [fury]. */
-    data class Blowing(val lying: Double, val bearingDegrees: Double, val fury: Double) {
-        val towardsX: Double get() = cos(Math.toRadians(bearingDegrees))
-        val towardsZ: Double get() = sin(Math.toRadians(bearingDegrees))
-    }
+    data class Blowing(val lying: Double, val bearingDegrees: Double, val fury: Double)
 
     /** The gale over an Age of [seed] at [gameTime], blowing this often and this hard, or null where none does. */
     fun blowingAt(seed: Long, gameTime: Long, recurrence: Recurrence, dials: GaleDials): Blowing? {
@@ -84,20 +82,42 @@ object Gale {
     fun pushStrength(scale: Double, blowing: Blowing): Double = scale * blowing.fury * blowing.fury * blowing.lying
 
     /**
-     * The wind [blowing] makes the Age's while it lasts: as hard as it blows, from a strong wind for the gentlest gale
-     * to the strongest for the fiercest, and rising and dying with it.
+     * How hard [blowing] leans with [gust] in it: from its steady lean up to the gust's strength and back as the gust
+     * comes and goes, never under the steady lean, and only as much as the gale has risen.
      */
-    fun windOf(blowing: Blowing): Wind = Wind(
-        bearingDegrees = blowing.bearingDegrees.toFloat(),
-        strength = (blowing.lying * (CALMEST_LOOK + (WHOLLY - CALMEST_LOOK) * blowing.fury)).toFloat(),
-        wobbleDegrees = 0.0f,
-    )
+    fun pushStrength(scale: Double, blowing: Blowing, gusts: Gusts, gust: Gust?): Double {
+        val steady = pushStrength(scale, blowing)
+        val gusting = gust?.gusting ?: return steady
+        val gustingAt = maxOf(steady, scale * gusts.strength * blowing.lying)
+        return steady + (gustingAt - steady) * gusting
+    }
+
+    /** The bearing [blowing] drives along with [gust] in it, swung toward the gust's own as it blows. */
+    fun drivingDegrees(blowing: Blowing, gust: Gust?): Double =
+        blowing.bearingDegrees + (gust?.let { it.veerDegrees * it.gusting } ?: NONE)
+
+    /**
+     * The wind [blowing] makes the Age's while it lasts: as hard as it blows, from a strong wind for the gentlest gale
+     * to the strongest for the fiercest, rising and dying with it, and harder still while [gust] blows.
+     */
+    fun windOf(blowing: Blowing, gust: Gust? = null): Wind {
+        val steady = blowing.lying * (CALMEST_LOOK + (WHOLLY - CALMEST_LOOK) * blowing.fury)
+        val gusting = blowing.lying * GUST_LOOK * (gust?.gusting ?: NONE)
+        return Wind(
+            bearingDegrees = drivingDegrees(blowing, gust).toFloat(),
+            strength = (steady + gusting).coerceAtMost(WHOLLY).toFloat(),
+            wobbleDegrees = 0.0f,
+        )
+    }
 
     /** One tick of a gale this often and this hard over [level]. */
     fun blow(level: ServerLevel, recurrence: Recurrence, dials: GaleDials) {
         val blowing = blowingAt(level.seed, level.gameTime, recurrence, dials)
-        LevelWind.blowInstead(level, blowing?.let(::windOf))
-        if (blowing != null) leanOnWhatIsOutInIt(level, blowing)
+        if (blowing == null) return lull(level)
+        val gusts = Gusts.of(level.seed, dials)
+        val gust = gusts.at(level.gameTime)
+        LevelWind.blowInstead(level, windOf(blowing, gust))
+        leanOnWhatIsOutInIt(level, blowing, gusts, gust)
     }
 
     /** No gale over [level]: its own wind blows again. */
@@ -107,14 +127,15 @@ object Gale {
      * Everything light near a player, leaned on — once each, however many players it is near. Players are leaned on
      * by their own clients, which move them.
      */
-    private fun leanOnWhatIsOutInIt(level: ServerLevel, blowing: Blowing) {
-        val strength = pushStrength(AgeConfig.galeWind.get(), blowing)
+    private fun leanOnWhatIsOutInIt(level: ServerLevel, blowing: Blowing, gusts: Gusts, gust: Gust?) {
+        val strength = pushStrength(AgeConfig.galeWind.get(), blowing, gusts, gust)
         if (strength <= NONE) return
+        val driving = drivingDegrees(blowing, gust)
         val leanedOn = HashSet<Entity>()
         for (player in Sampling.watchers(level)) {
             val around = AABB(player.blockPosition()).inflate(REACH)
             for (entity in level.getEntities(player, around, ::isLightEnough)) {
-                if (leanedOn.add(entity)) leanOn(level, entity, blowing, strength)
+                if (leanedOn.add(entity)) leanOn(level, entity, driving, strength)
             }
         }
     }
@@ -126,7 +147,7 @@ object Gale {
         return isMovable && entity !is Player && entity !is ArmorStand && !isHeldOrSheltered
     }
 
-    private fun leanOn(level: ServerLevel, entity: Entity, blowing: Blowing, strength: Double) {
+    private fun leanOn(level: ServerLevel, entity: Entity, drivingDegrees: Double, strength: Double) {
         val exposed = Sampling.exposureAt(level, entity.blockPosition())
         if (exposed <= 0.0f) return
         val friction = if (entity.onGround()) {
@@ -136,7 +157,8 @@ object Gale {
         }
         val carried = if (entity is Projectile) THROWN_SHARE else WHOLLY
         val push = Blizzard.windPush(strength, exposed, friction) * carried
-        entity.push(blowing.towardsX * push, 0.0, blowing.towardsZ * push)
+        val driving = Math.toRadians(drivingDegrees)
+        entity.push(cos(driving) * push, 0.0, sin(driving) * push)
     }
 
     /**
@@ -147,7 +169,7 @@ object Gale {
         val age = level.dimension().identifier()
         val blowing = recurrence?.let { blowingAt(level.seed, level.gameTime, it, dials) }
         val telling = if (blowing == null) GalePayload.noneIn(age)
-        else GalePayload(age, blowing.lying, blowing.bearingDegrees, blowing.fury)
+        else GalePayload(age, blowing.lying, blowing.bearingDegrees, blowing.fury, Gusts.of(level.seed, dials))
         for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
     }
 
@@ -175,6 +197,9 @@ object Gale {
     /** How hard the gentlest gale looks: a strong wind, and past where the ground's debris lifts. */
     private const val CALMEST_LOOK = 0.6
 
+    /** How much harder a gale looks at the height of a gust. */
+    private const val GUST_LOOK = 0.35
+
     /** How much of a gale's lean what is thrown takes: it is in the air for a moment, and a moment is enough. */
     private const val THROWN_SHARE = 0.5
 
@@ -189,14 +214,19 @@ object Gale {
 }
 
 /**
- * How much of a gale blows over the Age you are standing in, which way, and how hard.
+ * How much of a gale blows over the Age you are standing in, which way, how hard, and when it gusts.
  *
  * **Sent rather than derived**, as [FogPayload] is: whether an Age has a gale is a fact about a recipe that never
  * leaves the server, and the schedule is drawn off a seed a `ClientLevel` lacks. [age] lets a client refuse a
  * message meant for the world it just left.
  */
-data class GalePayload(val age: Identifier, val lying: Double, val bearingDegrees: Double, val fury: Double) :
-    CustomPacketPayload {
+data class GalePayload(
+    val age: Identifier,
+    val lying: Double,
+    val bearingDegrees: Double,
+    val fury: Double,
+    val gusts: Gusts,
+) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<GalePayload> = TYPE
 
@@ -215,10 +245,12 @@ data class GalePayload(val age: Identifier, val lying: Double, val bearingDegree
             GalePayload::bearingDegrees,
             ByteBufCodecs.DOUBLE,
             GalePayload::fury,
+            Gusts.STREAM_CODEC,
+            GalePayload::gusts,
             ::GalePayload,
         )
 
         /** What an Age with no gale says, which is most of them. */
-        fun noneIn(age: Identifier) = GalePayload(age, lying = 0.0, bearingDegrees = 0.0, fury = 0.0)
+        fun noneIn(age: Identifier) = GalePayload(age, lying = 0.0, bearingDegrees = 0.0, fury = 0.0, gusts = Gusts.NONE)
     }
 }

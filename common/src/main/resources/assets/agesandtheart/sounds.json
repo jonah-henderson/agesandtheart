@@ -17,6 +17,14 @@
       }
     ]
   },
+  "gust": {
+    "category": "weather",
+    "sounds": [
+      {
+        "name": "minecraft:item/elytra/elytra_loop"
+      }
+    ]
+  },
   "surf": {
     "category": "ambient",
     "sounds": [
