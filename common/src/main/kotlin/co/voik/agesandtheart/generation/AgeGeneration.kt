@@ -407,6 +407,7 @@ object AgeGeneration {
                 recipe.template.standingStructures,
                 if (hasAnAbyss) WRECKAGE_ON_AN_ABYSS_FLOOR else emptyMap(),
                 withoutWhatIsBuiltUnderground = composition.hasNothingBeneathIt,
+                salt = seed,
             ).let { built -> built + DeepWrecks.structureSets(server, hasAnAbyss, built) } +
                 CavernRuins.structureSets(server, composition, danger),
             // **The climate the biomes are looked up by, and it comes from the same world they do.** This

@@ -8,7 +8,13 @@
   "meanings": [
     {
       "bends": {
-        "spacing": "0.4..1.0"
+        "landmass.spacing": "0.4..1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "structures.spacing": "0.4..1.0"
       },
       "must_always_apply": true
     },

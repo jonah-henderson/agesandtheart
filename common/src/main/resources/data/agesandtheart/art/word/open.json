@@ -17,7 +17,7 @@
     },
     {
       "bends": {
-        "spacing": "0.3..1.0"
+        "landmass.spacing": "0.3..1.0"
       },
       "must_always_apply": true
     },
@@ -73,7 +73,7 @@
     },
     {
       "bends": {
-        "spacing": "0.5..1.0"
+        "landmass.spacing": "0.5..1.0"
       },
       "chance_to_apply": 0.6,
       "offered_to": [

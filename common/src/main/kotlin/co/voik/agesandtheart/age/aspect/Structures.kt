@@ -51,6 +51,20 @@ object Structures {
      */
     val MATERIAL = Parameter.material("material", help = "The block the structures are built of.").perMember()
 
+    /**
+     * How far apart what is built stands — `sparse villages` set wide and evenly apart, `clustered villages` close and
+     * as near as they like to one another (R3, Jonah). Held member by member, as a structure set's own grid.
+     */
+    val SPACING = Parameter.ranged(
+        "spacing",
+        help = "How far apart the structures stand.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "huddled together"),
+            Parameter.Landmark(0.0, "as vanilla spaces them", isVanilla = true),
+            Parameter.Landmark(1.0, "far and evenly apart"),
+        ),
+    ).perMember()
+
     /** The structure set vanilla's villages are, which is what [ABANDONED] is asked of. */
     const val VILLAGES = "minecraft:villages"
 
@@ -102,6 +116,8 @@ object Structures {
          * still built; the pen never refuses.
          */
         withoutWhatIsBuiltUnderground: Boolean = false,
+        /** What draws where in its span a set's [SPACING] falls, so an Age rebuilds the same. */
+        salt: Long = 0L,
     ): List<Holder<VanillaStructureSet>> {
         val sets = server.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET)
         val asked = options.skewOn(BUILT)
@@ -133,6 +149,10 @@ object Structures {
         }
         for (struck in asked.struck) {
             Identifier.tryParse(struck)?.let(seated::remove)
+        }
+        for ((id, set) in seated) {
+            val apart = options.steer(SPACING, salt, member = id.toString()) ?: continue
+            seated[id] = StructureDensity.spaced(server, set, apart)
         }
         return seated.values.toList() + escapeHatch(server)
     }

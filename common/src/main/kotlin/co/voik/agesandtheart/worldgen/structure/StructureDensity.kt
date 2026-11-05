@@ -46,6 +46,29 @@ object StructureDensity {
         return Holder.direct(StructureSet(set.value().structures(), thinned))
     }
 
+    /**
+     * [set] stood [apart] further from its fellows, from -1 to 1: wider and more evenly gridded above nought, up to
+     * twice the spacing with the separation near all of it, and tighter below, to three fifths of the spacing with
+     * none kept between them, so two may stand side by side. Strongholds' rings and a mod's own placements are left
+     * as they are, as [applied] leaves them.
+     */
+    fun spaced(server: MinecraftServer, set: Holder<StructureSet>, apart: Double): Holder<StructureSet> {
+        val placement = set.value().placement() as? RandomSpreadStructurePlacement ?: return set
+        val (spacing, separation) = spacingApart(placement.spacing(), placement.separation(), apart)
+        val respaced = placement.respacedBy(server, spacing, separation) ?: return set
+        return Holder.direct(StructureSet(set.value().structures(), respaced))
+    }
+
+    /** A grid's [spacing] and [separation], in chunks, moved [apart] — kept legal, with the separation under the spacing. */
+    fun spacingApart(spacing: Int, separation: Int, apart: Double): Pair<Int, Int> {
+        val towards = apart.coerceIn(-1.0, 1.0)
+        val grid = (spacing * (if (towards >= 0.0) 1.0 + towards * WIDEST_EXTRA else 1.0 + towards * NARROWEST_CUT))
+            .roundToInt().coerceAtLeast(SMALLEST_GRID)
+        val kept = separation.toDouble() * grid / spacing
+        val apartWithin = if (towards >= 0.0) kept + (grid - 1 - kept) * towards * EVENNESS else kept * (1.0 + towards)
+        return grid to apartWithin.roundToInt().coerceIn(0, grid - 1)
+    }
+
     /** The same placement, occurring [density] times as often — or null where we cannot say how. */
     private fun rescaled(
         server: MinecraftServer,
@@ -91,12 +114,17 @@ object StructureDensity {
      * so encoding a single placement walked that ring until the stack ran out. `foreboding age
      * minecraft:packed_ice landmass frozen atmosphere` is the book that found it.
      */
-    private fun RandomSpreadStructurePlacement.spacedBy(server: MinecraftServer, spacing: Int): StructurePlacement? {
+    private fun RandomSpreadStructurePlacement.spacedBy(server: MinecraftServer, spacing: Int): StructurePlacement? =
+        respacedBy(server, spacing, separation())
+
+    /** The same spread placement at a new [spacing] and [separation], every other field carried across by the codec. */
+    private fun RandomSpreadStructurePlacement.respacedBy(server: MinecraftServer, spacing: Int, separation: Int): StructurePlacement? {
         val ops = server.registryAccess().createSerializationContext(JsonOps.INSTANCE)
         val written = StructurePlacement.CODEC.encodeStart(ops, this).result().orElse(null)
             ?: return complaint("would not encode")
-        val rung = Dynamic(ops, ops.createInt(spacing))
-        val edited = Dynamic(ops, written).set(SPACING_FIELD, rung)
+        val edited = Dynamic(ops, written)
+            .set(SPACING_FIELD, Dynamic(ops, ops.createInt(spacing)))
+            .set(SEPARATION_FIELD, Dynamic(ops, ops.createInt(separation)))
         return StructurePlacement.CODEC.parse(edited).result().orElse(null) ?: complaint("would not read back")
     }
 
@@ -107,6 +135,17 @@ object StructureDensity {
 
     /** Vanilla's own field name in `RandomSpreadStructurePlacement.CODEC`. */
     private const val SPACING_FIELD = "spacing"
+    private const val SEPARATION_FIELD = "separation"
+
+    /** How much wider a grid set furthest apart is, and how much of its width the separation then takes. */
+    private const val WIDEST_EXTRA = 1.0
+    private const val EVENNESS = 0.8
+
+    /** How much narrower a grid huddled closest is. */
+    private const val NARROWEST_CUT = 0.4
+
+    /** Vanilla's smallest legal grid: a spacing of two leaves room for a separation of one. */
+    private const val SMALLEST_GRID = 2
 
     /** A set that occurs nowhere at all is a set that should have been struck out instead. */
     private const val AT_LEAST_ONE = 1

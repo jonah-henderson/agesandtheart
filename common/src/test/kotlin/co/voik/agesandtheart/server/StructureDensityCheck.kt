@@ -39,4 +39,17 @@ class StructureDensityCheck : FunSpec({
             check(said.contains("Created Age")) { "'$rung villages' was not written: $said" }
         }
     }
+
+    /**
+     * Set apart or huddled, a set's grid and separation are both rewritten through the codec, and vanilla must take
+     * the pair back: a village is still found in each.
+     */
+    test("structures set apart or huddled are still built") {
+        for (spacing in listOf("sparse", "clustered")) {
+            val written = server.run("age write apart$spacing 3 $spacing villages age")
+            check(written.contains("Created Age")) { "'$spacing villages' was not written: $written" }
+            val found = server.run("execute in agesandtheart:apart$spacing run locate structure #minecraft:village")
+            check(found.contains("nearest", ignoreCase = true)) { "no village in '$spacing villages': $found" }
+        }
+    }
 })

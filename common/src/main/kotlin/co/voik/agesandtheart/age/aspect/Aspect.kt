@@ -367,7 +367,7 @@ enum class Aspect(
                 Spawns.STILL, Spawns.CHARGED, Spawns.WOOL, Spawns.HERD, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS,
                 Spawns.CAPS,
             )
-            STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL)
+            STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL, Structures.SPACING)
             // **Nothing of its own**: each phenomenon carries the dials it has (`Phenomenon.parameters`), since an
             // inferno has no "how often" and only the overgrowth grows.
             CARVERS, UNDERGROUND, PHENOMENA -> emptyList()
