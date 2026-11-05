@@ -300,7 +300,7 @@ object Reader {
                 return
             }
             val place = placeOf(acceptance)
-            lastTaker?.takeIf { offersTo(word, it) }?.let { offering -> saidOfThisPage(offering, word, acceptance, place) }
+            val saidOf = lastTaker?.takeIf { isSaidOf(it, word, acceptance, place) }
             val joinedTo = leftOfAnd as? Taker
             val joinsAWaitingPage = andAt != null && joinedTo == null
             if (joinsAWaitingPage) andAt?.let(::impossible)
@@ -310,10 +310,12 @@ object Reader {
             }
             andAt = null
             leftOfAnd = null
-            val taking = joinedTo?.took ?: waiting.toList()
+            // A member word said of this one hands over the pages it took, to be taken again here.
+            val taking = joinedTo?.took ?: (saidOf?.took.orEmpty() + waiting)
             waiting.clear()
 
             val from = claims.size
+            saidOf?.let { saidOfThisPage(it, word, acceptance, place) }
             fun isOfferedHere(meaning: Meaning) = isOfferedTo(meaning, word, acceptance)
             for (page in taking) {
                 val taken = page.word.meanings.filter { !it.isOffered }.mapNotNull { meaning ->
@@ -355,29 +357,42 @@ object Reader {
         }
 
         /**
-         * Whether the word just before [word] took nothing and offers something to it, with nothing else open: `eroded
-         * features`, where the eroded country's word offers the features a crumbling.
+         * **The last word is the head, and a member word before it is said of it** (Jonah, 2026-11-05): the word that
+         * last took names members, nothing but pages waiting stand between it and [word], nothing else is open, and it
+         * says something this word takes or is offered. `ordered eroded features` and `eroded ordered features` are
+         * both ordered and eroded features, and the landmass is neither. A member word this word takes nothing of keeps
+         * its own naming, so `pillared eroded features` still stands pillars.
          */
-        private fun offersTo(word: Word, before: Taker): Boolean {
-            val followsIt = before.index == at - 1
-            val tookNothing = before.took.isEmpty()
-            val nothingElseIsOpen = waiting.isEmpty() && andAt == null && ofFrom == null
-            val offersSomething = before.word.meanings.any { word.name in it.offeredTo }
-            return followsIt && tookNothing && nothingElseIsOpen && offersSomething
+        private fun isSaidOf(before: Taker, word: Word, acceptance: Acceptance, place: Place): Boolean {
+            val onlyPagesWaitBetween = waiting.map(Waiting::index) == (before.index + 1..<at).toList()
+            val namesMembers = before.place.members is Members.Named
+            val nothingElseIsOpen = andAt == null && ofFrom == null
+            return onlyPagesWaitBetween && namesMembers && nothingElseIsOpen && saysSomethingOf(before.word, word, acceptance, place)
+        }
+
+        private fun saysSomethingOf(member: Word, word: Word, acceptance: Acceptance, place: Place): Boolean {
+            val offersIt = member.meanings.any { isOfferedTo(it, word, acceptance) }
+            val itTakes = member.meanings.filter { !it.isOffered }.any { takenFrom(it, acceptance, place, word).isNotEmpty() }
+            return offersIt || itTakes
         }
 
         /**
-         * `<member> <page>`, where the member's word offers the page something: the word is said of the page instead of
-         * its own part — its own naming is dropped, as before an `of`, and what it offers lands here. `eroded features`
-         * crumbles the features and leaves the land as it was.
+         * A member word said of the page after it, which then takes it as it would a page waiting for it: its own
+         * naming is dropped, as before an `of`. Where it offers this word something, only that lands — `eroded
+         * features` crumbles the features and leaves the land as it was — and otherwise what this word takes of it.
          */
         private fun saidOfThisPage(before: Taker, word: Word, acceptance: Acceptance, place: Place) {
             for (index in before.claims) claims[index] = claims[index].copy(effects = emptyList())
             fates[before.index] = Fate.TakenBy(at)
-            for (meaning in before.word.meanings.filter { word.name in it.offeredTo }) {
-                for ((offeredPlace, effects) in offeredPlacesOf(meaning, acceptance, place)) {
-                    claims += Claim(before.index, before.word, meaning, offeredPlace, effects, clause = at, aimed = true, joined = before.joined)
+            val offered = before.word.meanings.filter { isOfferedTo(it, word, acceptance) }
+            val landing = offered.flatMap { meaning -> offeredPlacesOf(meaning, acceptance, place).map { meaning to it } }
+                .ifEmpty {
+                    before.word.meanings.filter { !it.isOffered }
+                        .flatMap { meaning -> takenFrom(meaning, acceptance, place, word).map { meaning to it } }
                 }
+            for ((meaning, landed) in landing) {
+                val (landsAt, effects) = landed
+                claims += Claim(before.index, before.word, meaning, landsAt, effects, clause = at, aimed = true, joined = before.joined)
             }
             lastTaker = null
         }
