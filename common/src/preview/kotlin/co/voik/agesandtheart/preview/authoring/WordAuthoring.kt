@@ -47,6 +47,10 @@ fun main(arguments: Array<String>) {
     )
     when {
         asked.auditing -> audit(terminal, corpus)
+        asked.inert -> inert(terminal, corpus, asked.withMembers, asked.sentences)
+        asked.sentence != null -> terminal.println(
+            corpus.vocabulary.read(asked.sentence.split(Regex("\\s+")), seed = 1L)?.readout ?: "no 'age' page, so no book",
+        )
         asked.rewriting -> rewrite(terminal)
         // A named word goes straight in, and a bare run offers the menu.
         asked.word != null -> onScreen(terminal) { canvas -> open(terminal, canvas, corpus, asked.word) }
@@ -58,6 +62,10 @@ fun main(arguments: Array<String>) {
 private data class Arguments(
     val word: String? = null,
     val auditing: Boolean = false,
+    val inert: Boolean = false,
+    val sentence: String? = null,
+    val withMembers: Boolean = false,
+    val sentences: Int = DEFAULT_SENTENCES,
     val rewriting: Boolean = false,
     val refreshing: Boolean = false,
     val attach: String? = null,
@@ -71,6 +79,10 @@ private data class Arguments(
                 val argument = arguments[index]
                 read = when {
                     argument == "--audit" -> read.copy(auditing = true)
+                    argument == "--inert" -> read.copy(inert = true)
+                    argument == "--read" -> read.copy(sentence = arguments.getOrNull(++index))
+                    argument == "--members" -> read.copy(withMembers = true)
+                    argument == "--sentences" -> read.copy(sentences = arguments.getOrNull(++index)?.toIntOrNull() ?: DEFAULT_SENTENCES)
                     argument == "--rewrite" -> read.copy(rewriting = true)
                     argument == "--refresh" -> read.copy(refreshing = true)
                     argument == "--attach" -> read.copy(attach = arguments.getOrNull(++index))
@@ -141,6 +153,77 @@ private fun audit(terminal: Terminal, corpus: Corpus) {
 
 private const val NAME_COLUMN = 24
 
+private const val DEFAULT_SENTENCES = 20_000
+
+/** How many members a report names before it only counts the rest. */
+private const val MEMBERS_NAMED = 6
+
+/**
+ * Every phrase that lands nothing on what it names, written to [InertPhrases.REPORT]: each word before each part of
+ * the world, before every member word with [withMembers], and the words random sentences found landing nothing
+ * beside another though they land alone.
+ */
+private fun inert(terminal: Terminal, corpus: Corpus, withMembers: Boolean, sentences: Int) {
+    val phrases = InertPhrases(corpus.vocabulary)
+    val ruledOut = InertPhrases.reviewed()
+    fun keep(gaps: List<InertPhrases.Gap>) = gaps.filterNot(ruledOut)
+    terminal.println(TextColors.gray("${phrases.modifiers.size} words before ${phrases.partsOfTheWorld.size} parts of the world…"))
+    val alone = phrases.pairs(phrases.partsOfTheWorld)
+    val beforeMembers = if (withMembers) {
+        terminal.println(TextColors.gray("…and before ${phrases.members.size} member words…"))
+        phrases.pairs(phrases.members)
+    } else {
+        emptyList()
+    }
+    val nouns = phrases.partsOfTheWorld + if (withMembers) phrases.members else emptyList()
+    terminal.println(TextColors.gray("…and $sentences random sentences."))
+    val aloneGaps = (alone + beforeMembers).map { it.phrase }.toSet()
+    val inSentences = phrases.sentences(nouns, sentences, seed = 1L, aloneGaps = aloneGaps)
+
+    val report = buildString {
+        appendLine("# Inert phrases\n")
+        appendLine("Phrases that land nothing on what they name. Rule one out by adding `word noun`, `word *` or `* noun` to")
+        appendLine("`${InertPhrases.REVIEWED.path}`.\n")
+        appendLine("## A word before a part of the world\n")
+        val parts = phrases.partsOfTheWorld.map { it.name }
+        val missedByWord = alone.groupBy { it.word }
+        keep(alone).groupBy { it.word }.toSortedMap().forEach { (word, gaps) ->
+            val missed = missedByWord[word].orEmpty().map { it.noun }.toSet()
+            val landsOn = parts.filterNot { it in missed }.sorted().joinToString(" ").ifEmpty { "nothing" }
+            val byWhy = gaps.groupBy { it.why }.entries.sortedBy { it.key.ordinal }.joinToString(" · ") { (why, missed) ->
+                "${why.said}: ${missed.map { it.noun }.sorted().joinToString(" ")}"
+            }
+            appendLine("- **$word** (taken by $landsOn) — $byWhy")
+        }
+        if (withMembers) {
+            appendLine("\n## A word before the members of a part of the world\n")
+            val membersOf = phrases.members.groupBy { corpus.vocabulary.lexicon.acceptance(it)?.place?.aspect?.page ?: "?" }
+            keep(beforeMembers).groupBy { it.word }.toSortedMap().forEach { (word, gaps) ->
+                val byPart = gaps.groupBy { gap -> membersOf.entries.firstOrNull { (_, words) -> words.any { it.name == gap.noun } }?.key ?: "?" }
+                val said = byPart.toSortedMap().entries.joinToString("; ") { (part, missed) ->
+                    val named = missed.take(MEMBERS_NAMED).joinToString(" ") { it.noun }
+                    val more = if (missed.size > MEMBERS_NAMED) " …" else ""
+                    "${missed.size}/${membersOf[part].orEmpty().size} $part ($named$more)"
+                }
+                appendLine("- **$word**: $said")
+            }
+        }
+        appendLine("\n## A word that lands alone but not in a sentence\n")
+        keep(inSentences).groupBy { it.phrase }.entries.sortedByDescending { it.value.size }.forEach { (phrase, gaps) ->
+            val first = gaps.first()
+            appendLine("- **$phrase** ×${gaps.size}, ${first.why.said}: `${first.sentence}`")
+        }
+    }
+    InertPhrases.REPORT.parentFile.mkdirs()
+    InertPhrases.REPORT.writeText(report)
+    terminal.println(
+        TextColors.green(
+            "${keep(alone).size} before the parts of the world, ${keep(beforeMembers).size} before members, " +
+                "${keep(inSentences).map { it.phrase }.distinct().size} only in sentences — written to ${InertPhrases.REPORT.path}",
+        ),
+    )
+}
+
 /** Every authored word put back in the layout the tool writes, so opening and saving one moves nothing else. */
 private fun rewrite(terminal: Terminal) {
     val rewritten = WordFile.authoredNames().filter { name ->
@@ -182,6 +265,9 @@ private val USAGE = """
     |  scripts/scrivener.sh                   the menu: words, tags, rules and the age workshop
     |  scripts/scrivener.sh <word>            open a word, or begin one
     |  scripts/scrivener.sh --audit           every authored word, worst first
+    |  scripts/scrivener.sh --read "<sentence>"  what a book of that sentence is read as
+    |  scripts/scrivener.sh --inert [--members] [--sentences N]
+    |                                         phrases that land nothing on what they name
     |  scripts/scrivener.sh --rewrite         put every word file back in the layout the tool writes
     |  scripts/scrivener.sh --refresh         ask a server what only it knows, and remember it
     |  scripts/scrivener.sh --refresh --attach host:port:password
