@@ -1,7 +1,9 @@
 {
   "_comment": [
     "Burnt out: grey wherever there is a colour, ash falling through a haze, and only the barren biomes.",
-    "`dusty` is the dry sister, all sand and yellow light."
+    "`dusty` is the dry sister, all sand and yellow light.",
+    "",
+    "`ashen structures` are burned: logs to basalt, wood to blackstone, the rest of what burns gone (R5, Jonah)."
   ],
   "meanings": [
     {
@@ -29,6 +31,15 @@
         }
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "structures.charred": "true"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "structures"
+      ]
     }
   ]
 }

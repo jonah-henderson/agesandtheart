@@ -446,7 +446,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   (`generation/StructureHeights`, `buried villages`), each off a thread-local of its own. **`OceanMonumentStructureMixin`** joins them for the one
   structure with a biome check of its own, the ring of ocean a monument asks for around it. And the structure
   state is built over `StructuresAnywhere`, so no set is dropped for want of its biomes before any of this is asked.
-- **`StructureStartMixin`** — what a book built the Age's structures of (`generation/StructureMaterials`):
+- **`StructureStartMixin`** — what a book built the Age's structures of, and how they weathered (`generation/StructureMaterials`, `generation/StructureWeathering`: `eroded villages` crumble, `ashen structures` burn):
   `nether_bricks structures` swaps each structure's commonest full block, and the variants of it the material
   has too, as its blocks are set. `placeInChunk` is the one call every structure's blocks go through, template
   pieces and coded ones alike, and neither loader has a structure-placement event; a `StructureProcessor` would

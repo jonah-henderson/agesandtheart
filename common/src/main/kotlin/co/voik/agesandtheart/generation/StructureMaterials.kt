@@ -45,24 +45,36 @@ import java.util.function.Predicate
 object StructureMaterials {
 
     /** What a book built the structures of: every one of them, and the sets it named. */
-    data class Written(val everyStructure: Block?, val bySet: Map<Identifier, Block>) {
+    data class Written(
+        val everyStructure: Block?,
+        val bySet: Map<Identifier, Block>,
+        val weatheringEvery: StructureWeathering = StructureWeathering.NONE,
+        val weatheringBySet: Map<Identifier, StructureWeathering> = emptyMap(),
+        val seed: Long = 0L,
+    ) {
 
-        val isNothing: Boolean get() = everyStructure == null && bySet.isEmpty()
+        val isNothing: Boolean get() = everyStructure == null && bySet.isEmpty() && weatheringEvery.isNothing && weatheringBySet.isEmpty()
 
         /** The material of a structure in [sets] — its set's own, else the Age's. */
         fun of(sets: List<Identifier>): Block? = sets.firstNotNullOfOrNull(bySet::get) ?: everyStructure
 
+        /** How a structure in [sets] is weathered — its set's own, else the Age's. */
+        fun weatheringOf(sets: List<Identifier>): StructureWeathering = sets.firstNotNullOfOrNull(weatheringBySet::get) ?: weatheringEvery
+
         companion object {
             val NONE = Written(null, emptyMap())
 
-            fun of(options: Options): Written {
+            fun of(options: Options, salt: Long = 0L): Written {
                 val holders = options.holdersOfAny(Structures.MATERIAL)
                 val everyStructure = if (holders.everyone) blockNamed(options.of(Structures.MATERIAL)) else null
                 val bySet = holders.only.mapNotNull { member ->
                     val set = Identifier.tryParse(member) ?: return@mapNotNull null
                     blockNamed(options.of(Structures.MATERIAL, member = member))?.let { set to it }
                 }.toMap()
-                return Written(everyStructure, bySet)
+                val weathered = options.holdersOfAny(Structures.CRUMBLE).only + options.holdersOfAny(Structures.CHARRED).only
+                val weatheringBySet = weathered.mapNotNull(Identifier::tryParse)
+                    .associateWith { StructureWeathering.of(options, salt, it) }.filterValues { !it.isNothing }
+                return Written(everyStructure, bySet, StructureWeathering.of(options, salt), weatheringBySet, salt)
             }
 
             private fun blockNamed(spelled: String): Block? {
@@ -87,6 +99,13 @@ object StructureMaterials {
             val sets = setsHolding[structure] ?: return null
             return written.of(sets)
         }
+
+        fun weatheringOf(structure: Structure): StructureWeathering {
+            val sets = setsHolding[structure] ?: return StructureWeathering.NONE
+            return written.weatheringOf(sets)
+        }
+
+        val seed: Long get() = written.seed
     }
 
     /** Runs [decorating] with this thread laying [written] into the structures it places. */
@@ -110,10 +129,13 @@ object StructureMaterials {
     @JvmStatic
     fun levelFor(start: StructureStart, level: WorldGenLevel, manager: StructureManager, generator: ChunkGenerator): WorldGenLevel? {
         if (Proxy.isProxyClass(level.javaClass)) return null
-        val material = building.get()?.materialOf(start.structure) ?: return null
-        val palette = palettes.getOrPut(start) { Palette.of(commonestBlockOf(start, level, manager, generator), material) }
-        if (palette.isEmpty) return null
-        return through(level, Swapping(level, palette))
+        val now = building.get() ?: return null
+        val material = now.materialOf(start.structure)
+        val weathering = now.weatheringOf(start.structure)
+        val palette = material?.let { palettes.getOrPut(start) { Palette.of(commonestBlockOf(start, level, manager, generator), it) } }
+        val swaps = palette != null && !palette.isEmpty
+        if (!swaps && weathering.isNothing) return null
+        return through(level, Swapping(level, palette.takeIf { swaps } ?: Palette.NONE, weathering, now.seed))
     }
 
     /** The blocks one structure's material takes the place of, each by the block it becomes. */
@@ -124,6 +146,8 @@ object StructureMaterials {
         fun swapped(state: BlockState): BlockState = swaps[state.block]?.withPropertiesOf(state) ?: state
 
         companion object {
+            val NONE = Palette(emptyMap())
+
             private val FAMILIES: Map<Block, BlockFamily> by lazy {
                 BlockFamilies.getAllFamilies().toList().associateBy(BlockFamily::getBaseBlock)
             }
@@ -163,11 +187,22 @@ object StructureMaterials {
     private fun through(level: WorldGenLevel, handler: InvocationHandler): WorldGenLevel =
         Proxy.newProxyInstance(level.javaClass.classLoader, arrayOf(WorldGenLevel::class.java), handler) as WorldGenLevel
 
-    /** The real level, with every block set into it swapped through [palette]. */
-    private class Swapping(private val real: WorldGenLevel, private val palette: Palette) : InvocationHandler {
+    /**
+     * The real level, with every block set into it swapped through [palette] and weathered — one weathering leaves
+     * unlaid is reported laid, so a piece carries on as it would.
+     */
+    private class Swapping(
+        private val real: WorldGenLevel,
+        private val palette: Palette,
+        private val weathering: StructureWeathering,
+        private val seed: Long,
+    ) : InvocationHandler {
         override fun invoke(proxy: Any, method: Method, arguments: Array<Any?>?): Any? {
             val given = arguments ?: emptyArray()
-            if (method.name == "setBlock") given[1] = palette.swapped(given[1] as BlockState)
+            if (method.name == "setBlock") {
+                val swapped = palette.swapped(given[1] as BlockState)
+                given[1] = weathering.weathered(given[0] as BlockPos, swapped, seed) ?: return true
+            }
             return invokeOn(real, method, given)
         }
     }

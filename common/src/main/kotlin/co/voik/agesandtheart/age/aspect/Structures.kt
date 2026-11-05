@@ -104,6 +104,26 @@ object Structures {
         ),
     ).perMember(MemberHonouring { member, registries -> buildsByJigsaw(member.key, registries) }).onlyWhenAimed()
 
+    /**
+     * How far what is built has crumbled — `eroded villages` (R5, Jonah) — up to two blocks in five gone, never what
+     * holds something. Only an aimed word turns it, so an eroded Age leaves its structures whole.
+     */
+    val CRUMBLE = Parameter.ranged(
+        "crumble",
+        help = "How far the structures have crumbled away.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "whole"),
+            Parameter.Landmark(0.0, "whole"),
+            Parameter.Landmark(1.0, "two blocks in five gone"),
+        ),
+    ).perMember().onlyWhenAimed()
+
+    /**
+     * Whether what is built has burned — `ashen structures` (R5, Jonah): logs gone to basalt, wood to blackstone where
+     * blackstone has the shape, and the rest of what burns gone. Only an aimed word turns it.
+     */
+    val CHARRED = Parameter.flag("charred", help = "Whether the structures have burned.").perMember().onlyWhenAimed()
+
     /** The structure set vanilla's villages are, which is what [ABANDONED] is asked of. */
     const val VILLAGES = "minecraft:villages"
 

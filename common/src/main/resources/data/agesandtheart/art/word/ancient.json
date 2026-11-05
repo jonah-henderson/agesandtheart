@@ -5,7 +5,9 @@
     "and old stone underfoot are offered to every ancient Age, each yielding to anything the book says.",
     "",
     "Aimed at the features it crumbles what they build of rock above the ground a little; laid bare, now and then",
-    "(Features.CRUMBLE)."
+    "(Features.CRUMBLE).",
+    "",
+    "`ancient structures` and `ancient villages` crumble, as they are aimed; an ancient Age leaves its structures whole (R5, Jonah)."
   ],
   "meanings": [
     {
@@ -81,9 +83,18 @@
     },
     {
       "bends": {
-        "crumble": "0.2..0.8"
+        "features.crumble": "0.2..0.8"
       },
       "unaimed_chance_to_apply": 0.3
+    },
+    {
+      "sets": {
+        "structures.crumble": "0.2..0.8"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "structures"
+      ]
     }
   ]
 }

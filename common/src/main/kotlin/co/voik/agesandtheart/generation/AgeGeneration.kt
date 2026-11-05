@@ -452,7 +452,7 @@ object AgeGeneration {
             incongruity = Incongruity.of(composition),
             vanillasAbyss = vanillasAbyss,
             seaIsWater = seaIsWater,
-            structuresBuiltOf = StructureMaterials.Written.of(composition.optionsFor(Aspect.STRUCTURES)),
+            structuresBuiltOf = StructureMaterials.Written.of(composition.optionsFor(Aspect.STRUCTURES), seed),
             jigsawSizes = JigsawSizes.of(server, composition.optionsFor(Aspect.STRUCTURES, 0), seed),
             structureHeights = StructureHeights.of(server, composition.optionsFor(Aspect.STRUCTURES, 0), seed),
             treesGrownWith = TreeFoliage.of(composition.optionsFor(Aspect.FEATURES)),

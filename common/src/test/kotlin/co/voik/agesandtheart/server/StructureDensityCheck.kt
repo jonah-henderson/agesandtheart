@@ -72,4 +72,14 @@ class StructureDensityCheck : FunSpec({
             check(found.contains("nearest", ignoreCase = true)) { "no village in '$fate villages': $found" }
         }
     }
+
+    /** Eroded or ashen, a village is still laid ([co.voik.agesandtheart.generation.StructureWeathering]). */
+    test("eroded and ashen villages are still built") {
+        for (weather in listOf("eroded", "ashen")) {
+            val written = server.run("age write weathered$weather 5 $weather villages plains age")
+            check(written.contains("Created Age")) { "'$weather villages' was not written: $written" }
+            val found = server.run("execute in agesandtheart:weathered$weather run locate structure #minecraft:village")
+            check(found.contains("nearest", ignoreCase = true)) { "no village in '$weather villages': $found" }
+        }
+    }
 })

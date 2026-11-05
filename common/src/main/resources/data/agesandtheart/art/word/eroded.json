@@ -4,7 +4,9 @@
     "is the landform it always was; said straight before the features (`eroded features`) it is said of them",
     "instead, crumbling the boulders, spikes and formations and leaving the trees alone (Features.CRUMBLE). The",
     "crumbling is offered to the features' page, so the word stays the landform's own and `eroded and pillared`",
-    "still joins. Authored over the landform's derived word to say the second; the first is that word's, unchanged."
+    "still joins. Authored over the landform's derived word to say the second; the first is that word's, unchanged.",
+    "",
+    "`eroded structures` and `eroded villages` crumble, as they are aimed; an eroded Age leaves its structures whole (R5, Jonah)."
   ],
   "meanings": [
     {
@@ -15,11 +17,20 @@
     },
     {
       "bends": {
-        "crumble": "0.45..1.0"
+        "features.crumble": "0.45..1.0"
       },
       "must_always_apply": true,
       "offered_to": [
         "features"
+      ]
+    },
+    {
+      "sets": {
+        "structures.crumble": "0.45..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "structures"
       ]
     }
   ]

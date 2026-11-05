@@ -6,7 +6,9 @@
     "",
     "It absorbed `battered`, which said the same of the whole Age (retired.json).",
     "",
-    "Aimed at the features it crumbles what they build of rock above the ground; laid bare, now and then (Features.CRUMBLE)."
+    "Aimed at the features it crumbles what they build of rock above the ground; laid bare, now and then (Features.CRUMBLE).",
+    "",
+    "`worn structures` and `worn villages` crumble, as they are aimed; a worn Age leaves its structures whole (R5, Jonah)."
   ],
   "meanings": [
     {
@@ -71,9 +73,18 @@
     },
     {
       "bends": {
-        "crumble": "0.45..1.0"
+        "features.crumble": "0.45..1.0"
       },
       "unaimed_chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "structures.crumble": "0.45..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "structures"
+      ]
     }
   ]
 }
