@@ -4,7 +4,10 @@
     "1/1.4 of vanilla's pull down to a third, and `weak moon` a slack tide. `weak monsters` have half their",
     "health and hit half as hard.",
     "",
-    "Laid bare it never touches the gravity (`unaimed` 0), for `strong`'s reason."
+    "Laid bare it never touches the gravity (`unaimed` 0), for `strong`'s reason.",
+    "",
+    "`weak sun` lights the day less: a dusky noon at its mild end, and at its far end a noon as dark as night, the stars",
+    "out and monsters abroad."
   ],
   "meanings": [
     {
@@ -18,6 +21,15 @@
         "pull": "-1.0..-0.2"
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sun.light": "-1.0..-0.3"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sun"
+      ]
     }
   ]
 }

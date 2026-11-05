@@ -321,7 +321,7 @@ enum class Aspect(
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER, Atmosphere.RAINPACE)
             SUN -> listOf(
                 SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.SUNCOLOUR, SkyBodies.RISING, SkyBodies.PATH,
-                SkyBodies.STILL, SkyBodies.BODYPACE, Parameter.cast(),
+                SkyBodies.STILL, SkyBodies.BODYPACE, SkyBodies.SUNLIGHT, Parameter.cast(),
             )
             MOON -> listOf(
                 SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.MOONCOLOUR, SkyBodies.RISING, SkyBodies.PATH, SkyBodies.PULL,
