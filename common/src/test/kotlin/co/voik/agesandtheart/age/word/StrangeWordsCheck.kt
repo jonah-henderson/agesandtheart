@@ -223,6 +223,16 @@ class StrangeWordsCheck : FunSpec({
         }
     }
 
+    test("a lightless moon stays new all month, and darkens nothing else") {
+        for (seed in SEEDS) {
+            val sky = Sky.specFor(aimed(seed, "lightless", "moon"), seed)
+            val moon = sky.bodies.first { it.phase != null }
+            val shapes = (moon.appearance as co.voik.ephemeris.sky.Appearance.Sprite).shapes
+            check(moon.phase?.steps == 1 && shapes.single().path == "moon/new_moon") { "seed $seed: 'lightless moon' shows $shapes" }
+            check(sky.bodies.any { it.phase == null }) { "seed $seed: 'lightless moon' took the sun" }
+        }
+    }
+
     test("a sky that never moves keeps the overworld's pace, and a slow sun slows the Age's clock") {
         val locked = Sky.specFor(aimed(SEEDS.first, "motionless", "sun", "motionless", "moon"), SEEDS.first)
         check(ClockPace.of(locked) == ClockPace.ORDINARY) { "a still sun and a still moon ran the clock at ${ClockPace.of(locked)}" }

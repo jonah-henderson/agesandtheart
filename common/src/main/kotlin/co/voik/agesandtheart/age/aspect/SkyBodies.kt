@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import net.minecraft.world.level.MoonPhase
 import co.voik.agesandtheart.worldgen.SizeScale
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.Appearance
@@ -202,6 +203,9 @@ object SkyBodies {
      */
     val STILL = Parameter.flag("still", help = "Whether this body stands still in the sky.").onlyWhenAimed()
 
+    /** Whether a moon is held at new, showing no light all month — `lightless moon`. */
+    val UNLIT = Parameter.flag("unlit", help = "Whether this moon stays new, showing no light.").onlyWhenAimed()
+
     /**
      * How long this body takes over its path against vanilla's — `slow sun` is a longer day, `swift moon` a quicker
      * month. `pace`, the name the rain and the creatures share. The body the clock keeps time by sets the Age's day
@@ -269,11 +273,19 @@ object SkyBodies {
         val path = if (own.isTrue(STILL)) Held(paced, dayBeginsAt(seed)) else paced
         // A moon's month goes at its pace too, so a swift moon waxes and wanes as quickly as it crosses.
         fun pacedMonth(cycle: PhaseCycle) = length?.let { cycle.copy(periodTicks = (cycle.periodTicks * it).roundToInt().coerceAtLeast(1)) } ?: cycle
-        val phase = body.phase?.let(::pacedMonth)
+        val unlit = isAMoon && own.isTrue(UNLIT)
+        val phase = body.phase?.let(::pacedMonth)?.let { if (unlit) it.copy(steps = 1) else it }
+        val shown = if (unlit) heldNew(appearance) else appearance
         val light = own.steer(SUNLIGHT, seed)?.takeUnless { isAMoon }
         val dimming = light?.let(::dimmingAt) ?: body.dimming
         val glare = light?.let(::glareAt) ?: body.glare
-        return body.copy(appearance = appearance, path = path, phase = phase, dimming = dimming, glare = glare)
+        return body.copy(appearance = shown, path = path, phase = phase, dimming = dimming, glare = glare)
+    }
+
+    /** [appearance] showing only a new moon's shape, so a phase of one step holds it there. */
+    private fun heldNew(appearance: Appearance): Appearance {
+        val sprite = appearance as? Appearance.Sprite ?: return appearance
+        return sprite.copy(shapes = listOf(Appearance.MOON_SHAPES[MoonPhase.NEW_MOON.index()]))
     }
 
     /**

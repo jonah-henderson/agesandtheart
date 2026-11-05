@@ -3,7 +3,7 @@
     "A world nothing shines on. It used to set the two dimension-type switches directly; those are game",
     "rules and follow the facts now, so what is left is the two facts: sealed overhead, and no sun.",
     "",
-    "`lightless underground` has nothing glowing in it."
+    "`lightless underground` has nothing glowing in it, and a `lightless moon` stays new all month."
   ],
   "meanings": [
     {
@@ -33,6 +33,15 @@
       "must_always_apply": true,
       "offered_to": [
         "underground"
+      ]
+    },
+    {
+      "sets": {
+        "moon.unlit": "true"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "moon"
       ]
     }
   ]
