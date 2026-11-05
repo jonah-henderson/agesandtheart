@@ -1,7 +1,7 @@
 # What players' and servers' builds must agree on, and the compatibility line that requires it.
 # Written by CompatibilityRecordCheck; don't edit by hand.
-line=0.16
-generator=22
+line=0.17
+generator=23
 block agesandtheart:advanced_analysis_machine
 block agesandtheart:algae
 block agesandtheart:analysis_machine
@@ -306,6 +306,7 @@ payload agesandtheart:desk_sync
 payload agesandtheart:desk_template
 payload agesandtheart:fall_resumed
 payload agesandtheart:fog
+payload agesandtheart:gale
 payload agesandtheart:gravity
 payload agesandtheart:learned_words
 payload agesandtheart:lexicon
@@ -347,6 +348,9 @@ recipe_type agesandtheart:grinding
 recipe_type agesandtheart:pulping
 sound_event agesandtheart:blizzard_exposed
 sound_event agesandtheart:blizzard_sheltered
+sound_event agesandtheart:gale_exposed
+sound_event agesandtheart:gale_sheltered
+sound_event agesandtheart:gust
 sound_event agesandtheart:surf
 ticket_type agesandtheart:panel
 trigger_type agesandtheart:caged_from_a_field
@@ -370,6 +374,7 @@ worldgen/carver_type agesandtheart:porosity
 worldgen/chunk_generator agesandtheart:age
 worldgen/feature_type agesandtheart:algae
 worldgen/feature_type agesandtheart:dead_tree
+worldgen/feature_type agesandtheart:deep_lake
 worldgen/feature_type agesandtheart:deep_sea_vent
 worldgen/feature_type agesandtheart:fan_palm
 worldgen/feature_type agesandtheart:formation

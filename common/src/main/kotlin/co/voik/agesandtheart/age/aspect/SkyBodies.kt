@@ -57,21 +57,20 @@ object SkyBodies {
     )
 
     /**
-     * How brightly the stars burn, against vanilla's own — [BRIGHTEST_STARS] times it at the top.
+     * How brightly the stars burn, against vanilla's own — [FAINTEST_STARS] of it at the bottom, vanilla's in the
+     * middle, [BRIGHTEST_STARS] times it at the top. Ages written before generator 23 are carried onto this axis from
+     * one that began at vanilla's ([co.voik.agesandtheart.age.FormerStarGlow]).
      *
      * A second axis on one field because brilliance and number are different facts about it: `starlit`
      * says there are more of them and this says the ones there are blaze, and a sky may be either
      * without being the other.
-     *
-     * **Never fainter than vanilla's**: a sky with less light in it overhead is a *sparser* one, and that
-     * is [STARS] to say.
      */
     val STARGLOW = Parameter.ranged(
         "glow",
         help = "How brightly the stars burn.",
         landmarks = listOf(
-            Parameter.Landmark(-1.0, "vanilla's", isVanilla = true),
-            Parameter.Landmark(0.0, "half again"),
+            Parameter.Landmark(-1.0, "a quarter as bright"),
+            Parameter.Landmark(0.0, "vanilla's", isVanilla = true),
             Parameter.Landmark(1.0, "twice as bright"),
         ),
     )
@@ -310,6 +309,9 @@ object SkyBodies {
      */
     private const val BRIGHTEST_STARS = 2.0
 
+    /** How much of vanilla's own the bottom of [STARGLOW] burns at. */
+    private const val FAINTEST_STARS = 0.25
+
     fun starsAt(density: Double?): Int {
         val fraction = density?.let(Span.NATURAL::fractionOf) ?: ORDINARY_STARS
         return (fraction * DENSEST_STARS * SkySpec.VANILLA_STAR_COUNT).roundToInt()
@@ -320,8 +322,9 @@ object SkyBodies {
      * exactly — which is the whole reason this became a word rather than staying the default.
      */
     fun starGlowAt(brilliance: Double?): Float {
-        val fraction = brilliance?.let(Span.NATURAL::fractionOf) ?: return SkySpec.ORDINARY_STAR_GLOW
-        return SkySpec.ORDINARY_STAR_GLOW * (1.0 + fraction * (BRIGHTEST_STARS - 1.0)).toFloat()
+        val held = brilliance?.coerceIn(-1.0, 1.0) ?: return SkySpec.ORDINARY_STAR_GLOW
+        val multiple = if (held >= 0.0) 1.0 + held * (BRIGHTEST_STARS - 1.0) else 1.0 + held * (1.0 - FAINTEST_STARS)
+        return SkySpec.ORDINARY_STAR_GLOW * multiple.toFloat()
     }
 
     /**

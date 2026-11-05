@@ -12,13 +12,13 @@
     },
     {
       "sets": {
-        "stars.glow": "+0.5"
+        "stars.glow": ">0.25"
       }
     },
     {
       "sets": {
         "stars.density": "+0.6",
-        "stars.glow": "+0.5"
+        "stars.glow": ">0.25"
       },
       "must_always_apply": true,
       "offered_to": [

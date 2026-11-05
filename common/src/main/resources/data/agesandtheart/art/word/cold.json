@@ -52,7 +52,7 @@
     },
     {
       "sets": {
-        "stars.glow": "+0.1"
+        "stars.glow": ">0.05"
       },
       "chance_to_apply": 0.5
     },

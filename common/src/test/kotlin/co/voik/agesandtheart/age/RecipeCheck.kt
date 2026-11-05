@@ -13,6 +13,7 @@ import co.voik.agesandtheart.age.aspect.Structures
 import com.mojang.serialization.JsonOps
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.FormerStarGlow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
 import net.minecraft.nbt.CompoundTag
@@ -56,6 +57,22 @@ class RecipeCheck : FunSpec({
      * An option nobody recognises comes back out again — the invariant most easily lost to a well-meant
      * cleanup, and it has to survive the *write* as well as the read.
      */
+    test("an Age written while the stars' glow began at vanilla's burns as it did") {
+        fun glowRead(version: Int, spelled: String): String {
+            val composition = AgeComposition(terrains = listOf(Terrain.HILLS)).withOptions(Aspect.STARS, SkyBodies.STARGLOW.name, listOf(spelled))
+            val recipe = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED, generatorVersion = version)
+            val saved = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow()
+            val read = AgeRecipe.CODEC.parse(JsonOps.INSTANCE, saved).getOrThrow().composition ?: error("no composition")
+            return read.optionsFor(Aspect.STARS, 0).allSpelled(SkyBodies.STARGLOW.name).single()
+        }
+        val last = FormerStarGlow.LAST_GENERATOR_OF_THE_FORMER_GLOW
+        check(glowRead(last, "-1..-0.4") == "0..0.3") { "an old Age's vanilla-to-brighter stars read ${glowRead(last, "-1..-0.4")}" }
+        check(glowRead(last, "1..1") == "1..1") { "an old Age's brightest stars read ${glowRead(last, "1..1")}" }
+        check(glowRead(last + 1, "-0.8..-0.5") == "-0.8..-0.5") { "a new Age's faint stars were carried over" }
+        check(SkyBodies.starGlowAt(0.0) == SkyBodies.starGlowAt(null)) { "vanilla's stars are not in the middle of the glow" }
+        check(SkyBodies.starGlowAt(-1.0) < SkyBodies.starGlowAt(null)) { "the faint end is not fainter than vanilla's" }
+    }
+
     test("options it cannot understand round-trip") {
         val composition = AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
             .withOptions(Aspect.TERRAIN, Terrain.ARRANGEMENT.name, listOf("rings"))

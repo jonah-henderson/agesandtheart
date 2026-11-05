@@ -159,7 +159,7 @@
     },
     {
       "sets": {
-        "stars.glow": "+0.4",
+        "stars.glow": ">0.2",
         "stars.density": "+0.3"
       },
       "chance_to_apply": 0.33

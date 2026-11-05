@@ -4,7 +4,7 @@
     "sky, ash on the wind, haze, and bare sandy ground are offered to every desolate Age, each yielding to",
     "anything the book says.",
     "",
-    "Before the stars, fewer of them."
+    "Before the stars, fewer of them, and fainter."
   ],
   "meanings": [
     {
@@ -82,6 +82,15 @@
     {
       "sets": {
         "stars.density": "-0.7..-0.4"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "stars"
+      ]
+    },
+    {
+      "sets": {
+        "stars.glow": "-0.8..-0.5"
       },
       "must_always_apply": true,
       "offered_to": [

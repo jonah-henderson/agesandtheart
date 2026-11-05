@@ -116,7 +116,7 @@
     },
     {
       "sets": {
-        "stars.glow": "0.4..0.8"
+        "stars.glow": "0.7..0.9"
       },
       "chance_to_apply": 0.5,
       "offered_to": [
