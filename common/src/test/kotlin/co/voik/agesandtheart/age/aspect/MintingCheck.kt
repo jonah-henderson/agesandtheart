@@ -20,6 +20,7 @@ import net.minecraft.world.level.levelgen.feature.SpringFeature
 import net.minecraft.world.level.levelgen.feature.IcebergFeature
 import net.minecraft.world.level.material.Fluids
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
+import co.voik.agesandtheart.worldgen.feature.DeepLake
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.registries.BuiltInRegistries
@@ -236,6 +237,35 @@ class MintingCheck : FunSpec({
             .optionsFor(Aspect.FEATURES, 0).of(Features.HEIGHT)
         val untouched = resolved(SAMPLE_SEED, "veins").composition.optionsFor(Aspect.FEATURES, 0).of(Features.HEIGHT)
         check(ageHeight == untouched) { "'shallow veins' moved the Age's own height to $ageHeight from $untouched" }
+    }
+
+    /** **`deep lakes` digs the lakes it mints deeper**, and the depth is the clause's own, as a height is. */
+    test("a depth in a lake's clause digs that lake deeper, and shallow keeps it to a block or two") {
+        val deep = placed("deep", "lakes").map(Claim::read).single { it.value == "minecraft:lake_lava_surface" }
+        val depth = deep.depth ?: error("'deep lakes' carries no depth: $deep")
+        check(Claim.read(deep.spelled()).depth == depth) { "a lake's depth did not survive its spelling: ${deep.spelled()}" }
+        val pattern = placedFeature("minecraft:lake_lava_surface")
+        val dug = FeatureShape.deepened(FeatureShape.mintedFrom(pattern, listOf("minecraft:water")), depth).value().feature().value()
+        check(dug is DeepLake && dug.waterLayers >= 7) { "'deep lakes' dug $dug" }
+        check(DeepLake.waterLayersAt(0.0) == DeepLake.VANILLA_WATER_LAYERS) { "an unsaid depth is not vanilla's" }
+        check(DeepLake.waterLayersAt(-0.7) <= 2) { "a shallow lake stands ${DeepLake.waterLayersAt(-0.7)} deep" }
+        check(FeatureShape.deepened(pattern, null) === pattern) { "a lake nobody deepened was rebuilt" }
+        val spring = placedFeature("minecraft:spring_water")
+        check(FeatureShape.deepened(spring, 1.0) === spring) { "a spring was given a depth" }
+    }
+
+    test("a lake at vanilla's depth is vanilla's bowl, and a deep one keeps its shape at the waterline") {
+        val vanilla = DeepLake.vanillaBowl(RandomSource.create(SAMPLE_SEED))
+        check(DeepLake.bowl(vanilla, DeepLake.VANILLA_WATER_LAYERS).contentEquals(vanilla)) { "the ordinary bowl moved" }
+        val layers = 12
+        val deep = DeepLake.bowl(vanilla, layers)
+        val height = layers + 5
+        fun openAt(grid: BooleanArray, gridHeight: Int, y: Int) = (0..<256).count { grid[it * gridHeight + y] }
+        check(openAt(deep, height, layers) == openAt(vanilla, 8, 3)) { "the top of the water lost its shape" }
+        check(openAt(deep, height, 0) == 0) { "a deep bowl has no floor under it" }
+        val underwater = (1..layers).sumOf { openAt(deep, height, it) }
+        val underVanilla = (1..3).sumOf { openAt(vanilla, 8, it) }
+        check(underwater == 4 * underVanilla) { "a 12-deep bowl holds $underwater blocks of water against vanilla's $underVanilla" }
     }
 
     fun shippedVein(): OreVein {

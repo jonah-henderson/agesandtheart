@@ -17,7 +17,8 @@
     "vanilla's copper veins -- its band and its granite -- where a vein left alone is its deep iron one.",
     "Inside a minting clause the height is that clause's own, as a size is, so the Age's other ores stay put.",
     "",
-    "Said of the underground, it holds the caves up under the surface with solid rock beneath."
+    "Said of the underground, it holds the caves up under the surface with solid rock beneath.",
+    "Said of lakes, the water stands a block or two deep rather than three."
   ],
   "meanings": [
     {
@@ -56,6 +57,15 @@
       "must_always_apply": true,
       "offered_to": [
         "underground"
+      ]
+    },
+    {
+      "sets": {
+        "features.depth": "-0.9..-0.5"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "lakes"
       ]
     }
   ]

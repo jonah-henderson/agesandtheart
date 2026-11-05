@@ -81,6 +81,8 @@ data class Claim(
     val size: Double? = null,
     /** How deep in the column this one sits, or null to take the Age's own — [size]'s twin. */
     val height: Double? = null,
+    /** How deep a lake of this one's stands, or null for vanilla's three blocks — `deep lakes`. */
+    val depth: Double? = null,
     /**
      * Which members of its aspect a **dial's** value is said of, or empty where it is said of the whole aspect
      * — `abandoned=true[for=minecraft:villages]` is `deserted villages`.
@@ -126,6 +128,7 @@ data class Claim(
         // Held first: inside `buildList` the list's own `size` shadows this claim's.
         val ownSize = size
         val ownHeight = height
+        val ownDepth = depth
         val parts = buildList {
             when (polarity) {
                 Polarity.ASSERTED -> Unit
@@ -138,6 +141,7 @@ data class Claim(
             madeOf?.let { add("$OF$SETS$it") }
             ownSize?.let { add("$SIZE$SETS${Rung.spelled(it)}") }
             ownHeight?.let { add("$HEIGHT$SETS${Rung.spelled(it)}") }
+            ownDepth?.let { add("$DEPTH$SETS${Rung.spelled(it)}") }
             confinedTo?.let { add("$IN$SETS$it") }
             if (members.isNotEmpty()) add("$FOR$SETS${members.joinToString(AMONG.toString())}")
         }
@@ -165,6 +169,7 @@ data class Claim(
         const val OF = "of"
         const val SIZE = "size"
         const val HEIGHT = "height"
+        const val DEPTH = "depth"
         const val FOR = "for"
 
         /** Between the members one value is said of: `for=minecraft:zombie|minecraft:husk`. */
@@ -200,6 +205,7 @@ data class Claim(
                 introducedIfAbsent = parts.any { it == INTRODUCED_IF_ABSENT },
                 size = valueOf(parts, SIZE)?.toDoubleOrNull(),
                 height = valueOf(parts, HEIGHT)?.toDoubleOrNull(),
+                depth = valueOf(parts, DEPTH)?.toDoubleOrNull(),
                 members = valueOf(parts, FOR)?.split(AMONG)?.filter(String::isNotEmpty).orEmpty(),
             )
         }

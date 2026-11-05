@@ -137,6 +137,7 @@ import co.voik.agesandtheart.worldgen.feature.Algae
 import co.voik.agesandtheart.worldgen.feature.IceSpikeRime
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
+import co.voik.agesandtheart.worldgen.feature.DeepLake
 import co.voik.agesandtheart.worldgen.feature.TemperedGround
 import co.voik.agesandtheart.worldgen.feature.ImpactCrater
 import co.voik.agesandtheart.worldgen.feature.DeepSeaVent
@@ -2310,6 +2311,7 @@ object AgeContent {
     val features: List<Pair<Identifier, MapCodec<out Feature>>> = listOf(
         "algae".location() to Algae.CODEC,
         "spilled_spring".location() to SpilledSpring.CODEC,
+        "deep_lake".location() to DeepLake.CODEC,
         "formation".location() to Formation.CODEC,
         "pit_clearing".location() to PitClearing.CODEC,
         "heap".location() to Heap.CODEC,

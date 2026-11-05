@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.aspect
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.worldgen.feature.FeatureDensity
+import co.voik.agesandtheart.worldgen.feature.DeepLake
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
@@ -177,6 +178,17 @@ object Features {
             ),
         ).perBiome().perMember(honouredWhere { feature, _ -> FeatureShape.honoursHeight(feature) })
 
+    /** How deep a lake's water stands — `deep lakes`, `shallow lakes`. */
+    val DEPTH = Parameter.ranged(
+        "depth",
+        help = "How deep a lake's water stands.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "a block of water"),
+            Parameter.Landmark(0.0, "three blocks, as vanilla's"),
+            Parameter.Landmark(1.0, "${DeepLake.DEEPEST} blocks"),
+        ),
+    ).perMember(honouredWhere { feature, _ -> FeatureShape.holdsALake(feature) })
+
     /**
      * A biome's own generation settings, adjusted by whatever the sentence said — the function
      * `ChunkGenerator` takes for exactly this and `NoiseBasedChunkGenerator` never passes on.
@@ -349,7 +361,7 @@ object Features {
                     height = claim.height ?: shape.heightOf(found),
                     rock = shape.rock,
                     registries = shape.registries,
-                )
+                ).let { FeatureShape.deepened(it, claim.depth) }
                 val confined = claim.confinedTo?.let { FeatureShape.confinedTo(reshaped, it) } ?: reshaped
                 FeatureDensity.applied(confined, claim.density)
             }

@@ -230,6 +230,23 @@ object FeatureShape {
     fun honoursHeight(feature: Holder<PlacedFeature>): Boolean =
         reshaped(feature, size = null, thickness = null, height = A_TURNED_DIAL, rock = emptyList()) !== feature
 
+    /** Whether [feature] digs a lake — what a depth is said of. */
+    @Suppress("DEPRECATION")
+    fun holdsALake(feature: Holder<PlacedFeature>): Boolean {
+        val placed = feature.value().feature().value()
+        return placed is LakeFeature || placed is DeepLake
+    }
+
+    /** [feature] with its lake's water standing as deep as [depth] says, or [feature] itself where either is missing. */
+    @Suppress("DEPRECATION")
+    fun deepened(feature: Holder<PlacedFeature>, depth: Double?): Holder<PlacedFeature> {
+        if (depth == null) return feature
+        val placed = feature.value()
+        val lake = placed.feature().value() as? LakeFeature ?: return feature
+        val deepened = DeepLake.of(lake, DeepLake.waterLayersAt(depth))
+        return Holder.direct(PlacedFeature(Holder.direct(deepened), placed.placement()))
+    }
+
     /** Whether [feature] grows a tree, itself or among what it chooses between — what a bare tree is made of. */
     fun growsTrees(feature: Holder<PlacedFeature>): Boolean {
         val placed = feature.value().feature().value()

@@ -24,7 +24,8 @@
     "records the same reasoning from the other side). Nothing here restricts, so the word never eliminates",
     "a preset it merely dislikes.",
     "",
-    "Said of the underground, it holds the caves deep in the rock with solid ground over them; never a lower floor."
+    "Said of the underground, it holds the caves deep in the rock with solid ground over them; never a lower floor.",
+    "Said of lakes, the water stands seven to fourteen blocks deep rather than three."
   ],
   "meanings": [
     {
@@ -49,6 +50,15 @@
       "must_always_apply": true,
       "offered_to": [
         "underground"
+      ]
+    },
+    {
+      "sets": {
+        "features.depth": "0.5..0.9"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "lakes"
       ]
     }
   ]
