@@ -12,7 +12,9 @@ import co.voik.ephemeris.sky.LevelLook
 import co.voik.ephemeris.sky.Look
 import co.voik.ephemeris.sky.RainLook
 import co.voik.ephemeris.sky.SkySpec
+import co.voik.ephemeris.sky.Wind
 import kotlin.math.pow
+import kotlin.random.Random
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 
@@ -59,6 +61,33 @@ object Atmosphere {
                 Parameter.Landmark(1.0, "fog at arm's length"),
             ),
         ).perBiome()
+
+    /**
+     * How hard the air moves. **Unsaid is still**, so an Age behaves as a player expects until a word asks for a wind,
+     * and what a written wind does is to be looked at: the clouds drift along it and the rain leans with it. Its
+     * bearing is the Age's own, off the seed, swinging a little from day to day (Ephemeris' `Wind`).
+     */
+    val WIND = Parameter.ranged(
+        "wind",
+        help = "How hard the air moves.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "still"),
+            Parameter.Landmark(0.0, "a steady breeze"),
+            Parameter.Landmark(1.0, "as hard as it blows"),
+        ),
+    )
+
+    /** The wind [parts] asked for, on a bearing drawn from [seed], or still air where nothing asked. */
+    fun windIn(parts: AgeParts, seed: Long): Wind {
+        val asked = parts.optionsFor(Aspect.AIR).steer(WIND, seed) ?: return Wind.STILL
+        val strength = Span.NATURAL.fractionOf(asked).toFloat()
+        if (strength <= 0.0f) return Wind.STILL
+        val bearing = Random(seed xor WIND_SALT).nextFloat() * FULL_TURN_DEGREES
+        return Wind(bearingDegrees = bearing, strength = strength, seed = seed)
+    }
+
+    private const val WIND_SALT = 0x57494E44L
+    private const val FULL_TURN_DEGREES = 360.0f
 
     /**
      * How much of the time it rains, and how much of *that* is thunder.

@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Air that moves: anything from a steady breeze to a strong wind, on the Age's own bearing. Only to look at --",
+    "the clouds drift along it and the rain leans with it -- since pushing a player is the gale's. Offered to the",
+    "weather, the vault and the clouds, so `windy weather` and `windy sky` say it too."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "wind": "-0.2..0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "wind": "-0.2..0.6"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "weather",
+        "sky",
+        "clouds"
+      ]
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.Pacing
 import co.voik.ephemeris.sky.SkyRules
 import co.voik.ephemeris.sky.SkySpec
+import co.voik.ephemeris.sky.Wind
 import net.minecraft.core.Direction
 
 /**
@@ -42,6 +43,7 @@ object SkyParameters {
         "aurora" to Curtain.entries.map { it.key },
         "rainbow" to Bow.entries.map { it.key },
         "bearing" to listOf("<degrees>", "which way the aurora's band crosses, clockwise from north"),
+        "wind" to listOf("<0..1>", "how hard the air blows, towards the east"),
     )
 
     /** Whether [name] is one of ours rather than one of the Art's aspects. */
@@ -63,6 +65,7 @@ object SkyParameters {
         var aurora = spec.aurora
         var rainbow = spec.rainbow
         var rules = SkyRules.DEFAULT
+        var wind = Wind.STILL
 
         for (token in tokens) {
             val name = token.substringBefore('=')
@@ -128,6 +131,11 @@ object SkyParameters {
                     aurora = (aurora ?: Curtain.ORDINARY.aurora())?.copy(bearingDegrees = degrees)
                 }
 
+                "wind" -> {
+                    val strength = value.toFloatOrNull() ?: return Result.failure(IllegalArgumentException(failure))
+                    wind = Wind(bearingDegrees = 0.0f, strength = strength)
+                }
+
                 else -> return Result.failure(IllegalArgumentException("$name — no such parameter"))
             }
         }
@@ -135,6 +143,7 @@ object SkyParameters {
             LevelLook(
                 spec.copy(bodies = bodies, decks = decks, aurora = aurora, rainbow = rainbow),
                 rules = rules,
+                wind = wind,
             ),
         )
     }

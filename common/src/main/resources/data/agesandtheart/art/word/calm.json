@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "Air that does not move, and clouds that barely drift. Still air is what an Age has unless a word asked for",
+    "a wind, so laid beside `windy` this is the word that contradicts it, and alone it is the slow clouds."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "wind": "-1.0..-1.0"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "wind": "-1.0..-1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "weather",
+        "sky"
+      ]
+    },
+    {
+      "sets": {
+        "clouds.pace": "-0.7..-0.4"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

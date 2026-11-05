@@ -79,6 +79,7 @@ object Skies {
             },
             filters = (Atmosphere.filtersIn(parts) + StrangeSky.filtersFor(spending)).distinct(),
             rain = Atmosphere.rainIn(parts, recipe.seed) ?: StrangeSky.rainFor(spending),
+            wind = Atmosphere.windIn(parts, recipe.seed),
         )
     }
 }
