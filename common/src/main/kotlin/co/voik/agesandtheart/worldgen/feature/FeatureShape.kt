@@ -230,6 +230,27 @@ object FeatureShape {
     fun honoursHeight(feature: Holder<PlacedFeature>): Boolean =
         reshaped(feature, size = null, thickness = null, height = A_TURNED_DIAL, rock = emptyList()) !== feature
 
+    /** Whether [feature] lays copper or iron ore, the two ores vanilla's large veins carry. */
+    fun laysAVeinOre(feature: Holder<PlacedFeature>): Boolean {
+        val targets = when (val placed = feature.value().feature().value()) {
+            is ScatteredOreFeature -> placed.targetStates()
+            is OreFeature -> placed.targetStates()
+            else -> return false
+        }
+        return targets.any { target -> isAVeinOre(target.state()) }
+    }
+
+    /** Tagged as copper or iron ore, or named as one where tags are not bound (offline) or a mod tags nothing. */
+    private fun isAVeinOre(state: BlockState): Boolean {
+        val tagged = VEIN_ORE_TAGS.any(state::`is`)
+        val path = BuiltInRegistries.BLOCK.getKey(state.block).path
+        val named = VEIN_ORE_NAMES.any(path::endsWith)
+        return tagged || named
+    }
+
+    private val VEIN_ORE_TAGS = listOf(BlockTags.COPPER_ORES, BlockTags.IRON_ORES)
+    private val VEIN_ORE_NAMES = listOf("copper_ore", "iron_ore")
+
     /** Whether [feature] digs a lake — what a depth is said of. */
     @Suppress("DEPRECATION")
     fun holdsALake(feature: Holder<PlacedFeature>): Boolean {

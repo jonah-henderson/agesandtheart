@@ -609,6 +609,15 @@ class MintingCheck : FunSpec({
             "an unknown substance built a half-made feature instead of standing aside"
         }
     }
+
+    test("copper and iron are the ores that make up for veins, and nothing else is") {
+        for (ore in listOf("minecraft:ore_iron_upper", "minecraft:ore_copper", "minecraft:ore_copper_large")) {
+            check(FeatureShape.laysAVeinOre(placedFeature(ore))) { "$ore was not read as a vein's ore" }
+        }
+        for (other in listOf("minecraft:ore_diamond", "minecraft:ore_coal_lower", "minecraft:ore_granite_upper", "minecraft:ore_gravel")) {
+            check(!FeatureShape.laysAVeinOre(placedFeature(other))) { "$other was read as a vein's ore" }
+        }
+    }
 })
 
 private const val SAMPLE_SEED = 0x5EEDL

@@ -428,7 +428,13 @@ object AgeGeneration {
             // deposits sit nearest the biome's own and the character materials furthest out, which is the
             // order the four nested wrappers this replaced happened to produce. See [Decoration].
             Decoration.laidOver(
-                Features.placedIn(server, Features.writtenAndCarried(composition), seed, rockBlocks),
+                Features.placedIn(
+                    server,
+                    Features.writtenAndCarried(composition),
+                    seed,
+                    rockBlocks,
+                    veinsMadeUpFor = composition.optionsFor(Aspect.UNDERGROUND, 0).steer(Underground.VEINS, seed).takeIf { ourGround != null },
+                ),
                 listOfNotNull(
                     Deposits.layer(danger, rockBlocks),
                     // The buried lava tubes were laid here until 2026-09-11. They are their own page now

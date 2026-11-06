@@ -201,6 +201,11 @@ object Features {
         options: Options,
         salt: Long,
         rock: List<BlockState>,
+        /**
+         * How far a book asked for vanilla's large veins ([Underground.VEINS]) on rock of ours, which has none, or null:
+         * the copper and iron there come larger and oftener instead.
+         */
+        veinsMadeUpFor: Double? = null,
     ): (Holder<Biome>) -> BiomeGenerationSettings {
         val claims = options.claimsOn(PLACES)
         val asked = PLACES.skewOf(claims)
@@ -212,6 +217,7 @@ object Features {
             // match vanilla's stone — so an Age made of anything else grows no ore at all unless the rock
             // it *is* gets added to them. Carried here because this is where a feature is rebuilt.
             rock = rock,
+            veinsMadeUpFor = veinsMadeUpFor?.coerceIn(0.0, 1.0),
         )
         val scoped = claims.any { it.confinedTo != null }
         if (asked.isSilent && !scoped && shape.asksForNothing) {
@@ -272,16 +278,32 @@ object Features {
         private val salt: Long,
         val registries: HolderLookup.Provider,
         val rock: List<BlockState>,
+        /** How far the veins a rock of ours lacks were asked for, or null. */
+        private val veinsMadeUpFor: Double?,
     ) {
         /** Nothing turned, and nothing to reach — the case where a feature is handed back untouched. */
         val asksForNothing: Boolean
             get() {
                 val nothingWasTurned = listOf(SIZE, THICKNESS, HEIGHT).none { it.name in options.chosen }
-                return nothingWasTurned && FeatureShape.oresCanReach(rock)
+                return nothingWasTurned && FeatureShape.oresCanReach(rock) && veinsMadeUpFor == null
             }
 
-        /** How big [feature] is to be — its own size where one was said of it (`colossal trees`), else the Age's. */
-        fun sizeOf(feature: Holder<VanillaPlacedFeature>): Double? = options.steer(SIZE, salt, member = keyOf(feature))
+        /** How much oftener [feature] comes for the veins it makes up for: one, unless it is copper or iron here. */
+        fun oftenerForVeins(feature: Holder<VanillaPlacedFeature>): Double =
+            veinsOf(feature)?.let { 1.0 + it * (OFTENEST_FOR_VEINS - 1.0) } ?: 1.0
+
+        private fun veinsOf(feature: Holder<VanillaPlacedFeature>): Double? =
+            veinsMadeUpFor?.takeIf { FeatureShape.laysAVeinOre(feature) }
+
+        /**
+         * How big [feature] is to be — its own size where one was said of it (`colossal trees`), else the Age's —
+         * and a little larger again where it is copper or iron making up for veins.
+         */
+        fun sizeOf(feature: Holder<VanillaPlacedFeature>): Double? {
+            val said = options.steer(SIZE, salt, member = keyOf(feature))
+            val veins = veinsOf(feature) ?: return said
+            return ((said ?: 0.0) + veins * LARGEST_FOR_VEINS).coerceAtMost(1.0)
+        }
 
         fun thicknessOf(feature: Holder<VanillaPlacedFeature>): Double? =
             options.steer(THICKNESS, salt, member = keyOf(feature))
@@ -407,6 +429,12 @@ object Features {
 
     private const val TAG_MARK = '#'
 
+    /** How much larger copper and iron grow at most, on the size axis, making up for veins: about a quarter. */
+    private const val LARGEST_FOR_VEINS = 0.16
+
+    /** And how much oftener they come at most. */
+    private const val OFTENEST_FOR_VEINS = 1.25
+
     /**
      * Which step a feature sits in wherever this pack already uses it — see [wanted] — or, for a formation
      * that digs, [DIGGING_STEP].
@@ -485,7 +513,9 @@ object Features {
         kept.forEachIndexed { step, atStep ->
             atStep.filterNot { idOf(it) in struck }
                 .forEach { feature ->
-                    val amount = idOf(feature)?.let(bendingWhereItGrows::get)
+                    val bending = idOf(feature)?.let(bendingWhereItGrows::get)
+                    val oftener = shape.oftenerForVeins(feature)
+                    val amount = if (oftener == 1.0) bending else (bending ?: 1.0) * oftener
                     val asOften = if (amount == null) {
                         feature
                     } else {
