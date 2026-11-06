@@ -277,7 +277,8 @@ enum class Phenomenon(
      */
     override val parameters: List<Parameter>
         get() = when (this) {
-            METEORS, SANDFALL -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH, Phenomena.PACE)
+            METEORS -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH, Phenomena.PACE, Phenomena.COLOUR)
+            SANDFALL -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH, Phenomena.PACE)
             TEMPEST, BLIZZARD, FOG, TECTONICS, DELUGE, GALE -> listOf(Phenomena.FREQUENCY, Phenomena.STRENGTH)
             AURORA, RAINBOW -> listOf(Phenomena.FREQUENCY)
             INFERNO -> listOf(Phenomena.STRENGTH)

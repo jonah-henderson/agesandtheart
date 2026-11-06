@@ -5,6 +5,8 @@ import co.voik.agesandtheart.age.CompositionSpelling
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.age.aspect.Phenomena
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Spawns
@@ -156,6 +158,15 @@ class ResolutionCheck : FunSpec({
     test("empty underground leaves the rock without monsters") {
         val empty = resolved("age empty underground")
         check(empty.option(Aspect.SPAWNS, Spawns.NONE_BELOW.name).toList() == listOf("true")) { empty.spelled() }
+    }
+
+    test("a colour on the stars tints them, and on meteors burns them in it") {
+        val stars = resolved("age red stars")
+        val tint = SkyBodies.starTintOf(stars.composition.optionsFor(Aspect.STARS))
+        check(tint != null && tint.red == 1.0f && tint.green < tint.red) { "red stars were tinted $tint: ${stars.spelled()}" }
+        check(SkyBodies.starTintOf(resolved("age stars").composition.optionsFor(Aspect.STARS)) == null) { "plain stars were tinted" }
+        val meteors = resolved("age red meteors").composition.optionsFor(Aspect.PHENOMENA)
+        check(Phenomena.colourOf(meteors, Phenomenon.METEORS) == "red") { "red meteors burned ${Phenomena.colourOf(meteors, Phenomenon.METEORS)}" }
     }
 
     test("what the reading charged and dropped reaches the instability, and the cost is every page's ink") {

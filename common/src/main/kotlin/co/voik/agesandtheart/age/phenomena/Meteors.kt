@@ -213,7 +213,9 @@ object Meteors {
                 level.random.nextInt(MeteorStorm.ORDINARY_FALL - MeteorStorm.SHORTEST_FALL + ONE),
             asIfTeeming(often, dials.long),
         )
-        val storm = MeteorStorm.gatherAt(level, where, bodiesFor(falling), falling, dials.power, slant, reach, dials.pace)
+        val storm = MeteorStorm.gatherAt(
+            level, where, bodiesFor(falling), falling, dials.power, slant, reach, dials.pace, dials.colour,
+        )
         PhenomenaCeiling.began(level, Phenomenon.METEORS, storm)
         return storm
     }

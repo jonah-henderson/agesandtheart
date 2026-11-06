@@ -85,6 +85,13 @@ object Phenomena {
         ),
     ).perMember()
 
+    /** What colour a phenomenon burns in — `red meteors` — or [Parameter.DEFAULT] for its own. */
+    val COLOUR = Sky.colour("colour", "The colour it burns in.").perMember()
+
+    /** The colour [phenomenon] was written to burn in, or null for its own. */
+    fun colourOf(options: Options, phenomenon: Phenomenon): String? =
+        options.of(COLOUR, member = phenomenon.key).takeUnless { it == Parameter.DEFAULT }
+
     /** How fast [phenomenon] was written to go, as a multiple of its own pace: half as fast to twice. */
     fun paceOf(options: Options, phenomenon: Phenomenon, seed: Long): Double =
         FASTEST_PACE.pow(options.steer(PACE, seed, member = phenomenon.key) ?: UNSAID_PACE)

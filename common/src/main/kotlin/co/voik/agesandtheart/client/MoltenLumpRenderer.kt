@@ -21,6 +21,9 @@ class MoltenLumpRenderState : EntityRenderState() {
 
     /** How far it moved over the last tick, which is what a streak is laid along. */
     var travel: Vec3 = Vec3.ZERO
+
+    /** The light it burns with, or null for a lump that carries none. */
+    var burn: Rgba? = null
 }
 
 /**
@@ -41,13 +44,13 @@ private fun heatOf(travel: Vec3): Float =
  * nothing but the state it is drawn from.
  *
  * A bomb, one of the gobbets it throws off and a meteor differ in [scale], in the [block] they are made of
- * and in whether they [burn] — three parameters rather than three renderers.
+ * and in what light each one burns with ([burnOf]) — three parameters rather than three renderers.
  */
 open class MoltenLumpRenderer<T : Entity>(
     context: EntityRendererProvider.Context,
     private val scale: Float,
     private val block: Block = Blocks.MAGMA_BLOCK,
-    private val burn: Rgba? = null,
+    private val burnOf: (T) -> Rgba? = { null },
 ) : EntityRenderer<T, MoltenLumpRenderState>(context) {
 
     override fun createRenderState() = MoltenLumpRenderState()
@@ -61,6 +64,7 @@ open class MoltenLumpRenderer<T : Entity>(
         // Where it actually went rather than its velocity, so a streak is drawn off movement a viewer can
         // see: a client that is lerping an entity rather than integrating it still moves it.
         state.travel = Vec3(entity.x - entity.xOld, entity.y - entity.yOld, entity.z - entity.zOld)
+        state.burn = burnOf(entity)
         val level = entity.level()
         if (level is ClientLevel) {
             state.block.biome = level.getBiome(at)
@@ -82,7 +86,7 @@ open class MoltenLumpRenderer<T : Entity>(
         poseStack.translate(-HALF_BLOCK, -HALF_BLOCK, -HALF_BLOCK)
         collector.submitMovingBlock(poseStack, state.block, NO_OUTLINE)
         poseStack.popPose()
-        if (burn != null) submitBurning(state, poseStack, collector, camera, burn)
+        state.burn?.let { submitBurning(state, poseStack, collector, camera, it) }
         super.submit(state, poseStack, collector, camera)
     }
 
@@ -121,12 +125,6 @@ open class MoltenLumpRenderer<T : Entity>(
         /** How fast a lump has to be going to be at its brightest, in blocks a tick. */
         const val GLOWS_AT = 3.0
         private const val GONE_OUT = 0.02f
-
-        /**
-         * A meteor's own light: violet-white. The storm's glow in the sky ([MeteorSky]) and its cast on the
-         * ground ([MeteorGlow]) are violets of their own, each tuned for how it is drawn.
-         */
-        val COLD_FIRE = Rgba(0.72f, 0.56f, 1.0f, 0.9f)
 
         /** A bomb is a block of rock; a gobbet is a splash off one. */
         const val WHOLE_LUMP = 1.0f

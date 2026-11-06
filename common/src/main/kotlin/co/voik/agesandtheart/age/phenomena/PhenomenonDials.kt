@@ -7,18 +7,26 @@ import co.voik.agesandtheart.age.Spending
  * How far an Age's instability reached into each of a meteor storm's dials, each from nothing to all of it
  * (design §5.2). Read off the [Spending] rather than passed as one fury, so each dial moves only what it
  * names: [often] how often a storm gathers, [long] how long it lasts, [power] how hard its bodies land. And
- * [pace], how fast the book wrote them to fall, as a multiple of their own.
+ * [pace], how fast the book wrote them to fall, as a multiple of their own, and [colour], what it wrote them to
+ * burn in, null for their own violet.
  */
-data class MeteorDials(val often: Double, val long: Double, val power: Double, val pace: Double = OWN_PACE) {
+data class MeteorDials(
+    val often: Double,
+    val long: Double,
+    val power: Double,
+    val pace: Double = OWN_PACE,
+    val colour: String? = null,
+) {
     companion object {
         /** What an Age that bought nothing inflicts — a written storm as written. */
         val NONE = MeteorDials(often = 0.0, long = 0.0, power = 0.0)
 
-        fun of(spending: Spending, written: Double = UNSAID, pace: Double = OWN_PACE) = MeteorDials(
+        fun of(spending: Spending, written: Double = UNSAID, pace: Double = OWN_PACE, colour: String? = null) = MeteorDials(
             often = spending.reach(Manifestation.METEORS, Manifestation.STORMS_OFTEN),
             long = spending.reach(Manifestation.METEORS, Manifestation.STORMS_LONG),
             power = harderBy(spending.reach(Manifestation.METEORS, Manifestation.STORMS_POWER), written),
             pace = pace,
+            colour = colour,
         )
     }
 }

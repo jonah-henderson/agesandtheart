@@ -76,6 +76,9 @@ object SkyBodies {
         ),
     )
 
+    /** What colour the stars burn — `red stars` — or [Parameter.DEFAULT] for their own whites. */
+    val STARCOLOUR = Sky.colour("colour", "The colour the stars burn.")
+
     /**
      * How large a sun or a moon is, against vanilla's own of its kind.
      *
@@ -339,6 +342,33 @@ object SkyBodies {
         val multiple = if (held >= 0.0) 1.0 + held * (BRIGHTEST_STARS - 1.0) else 1.0 + held * (1.0 - FAINTEST_STARS)
         return SkySpec.ORDINARY_STAR_GLOW * multiple.toFloat()
     }
+
+    /**
+     * The colour every star's light is multiplied by where [said] names one, or null for their own whites. A colour
+     * on the spectrum is pushed as a sun's is and burns at full in its brightest channel, since a multiplied star
+     * can only lose light; white, grey and black are as bright as they are, black held at [DIMMEST_STARS] because
+     * a star added to the sky cannot be darker than it.
+     */
+    fun starTintOf(said: Options): Rgba? {
+        val named = said.of(STARCOLOUR)
+        val colour = Colour.named(named) ?: return null
+        if (named in WITHOUT_A_HUE) return colour.brightenedTo(DIMMEST_STARS)
+        val pushed = colour.saturated(SUN_IS_LOOKED_AT)
+        return pushed.dimmed(FULL_CHANNEL / brightestOf(pushed))
+    }
+
+    private fun brightestOf(colour: Rgba): Float = maxOf(colour.red, colour.green, colour.blue)
+
+    private fun Rgba.brightenedTo(least: Float): Rgba {
+        val brightest = brightestOf(this)
+        return if (brightest >= least) this else dimmed(least / brightest)
+    }
+
+    private val WITHOUT_A_HUE = setOf("white", "grey", "black")
+    private const val FULL_CHANNEL = 1.0f
+
+    /** How bright black stars burn in their brightest channel: faint, but still there. */
+    private const val DIMMEST_STARS = 0.3f
 
     /**
      * A body [largeness] large, against vanilla's own of its kind — the sun's or the moon's.

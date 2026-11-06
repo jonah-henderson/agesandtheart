@@ -30,7 +30,8 @@ import org.joml.Quaternionf
  * small pale sun (Jonah, walked). `SkyCanvas.drawGlow` is the untextured primitive added for this.
  *
  * **Violet, and that is a deliberate break**: the pack's fire, lava, magma, bombs and gobbets are all red
- * and orange, so a hazard arriving out of the sky reads as a different *kind* of thing.
+ * and orange, so a hazard arriving out of the sky reads as a different *kind* of thing. A book may name another
+ * colour ([MeteorLights]).
  */
 object MeteorSky {
 
@@ -70,13 +71,14 @@ object MeteorSky {
         into: MutableList<Glow>,
     ) {
         val age = storm.ageWithin(partOfATickOn)
+        val light = MeteorLights.of(storm.colour).sky
         for (number in 0..<storm.bodies) {
             val flight = storm.flightOf(number)
             val until = flight.fallsAt - age
             if (until <= NONE_LEFT) continue
             if (until > SEEN_COMING) continue
             val nearness = ONE_WHOLE - until / SEEN_COMING
-            into += lightFor(storm.seenFrom(flight, nearness).subtract(eye), nearness)
+            into += lightFor(storm.seenFrom(flight, nearness).subtract(eye), nearness, light)
         }
     }
 
@@ -93,7 +95,7 @@ object MeteorSky {
      * blocks out to begin with, where that whole disc is a couple of degrees; they come apart as they
      * close, on nothing but the geometry, and no animation says so.
      */
-    private fun lightFor(awayFromTheEye: Vec3, nearness: Float): Glow {
+    private fun lightFor(awayFromTheEye: Vec3, nearness: Float, light: Rgba): Glow {
         val aim = Quaternionf().rotateTo(
             UP_X,
             UP_Y,
@@ -108,12 +110,9 @@ object MeteorSky {
             // Squared, so most of the growth is at the end: a light swelling evenly would read as being
             // turned up rather than coming closer.
             angularSize = LIKE_A_STAR + (ON_ARRIVAL - LIKE_A_STAR) * nearness * nearness,
-            tint = COLD_FIRE.copy(alpha = COLD_FIRE.alpha * (DIMMEST + (ONE_WHOLE - DIMMEST) * nearness)),
+            tint = light.copy(alpha = light.alpha * (DIMMEST + (ONE_WHOLE - DIMMEST) * nearness)),
         )
     }
-
-    /** Violet-white, and paler than the violet [MeteorGlow] lights the ground in. */
-    private val COLD_FIRE = Rgba(0.62f, 0.45f, 1.0f, 0.95f)
 
     /** How long before its own fall a body's light appears, in ticks — the thirty-second warning. */
     private const val SEEN_COMING = MeteorStorm.APPROACHING.toFloat()

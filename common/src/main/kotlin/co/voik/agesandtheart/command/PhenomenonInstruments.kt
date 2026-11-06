@@ -366,7 +366,11 @@ internal object PhenomenonInstruments {
         // inventing a storm the game does not contain: the rung its book claimed and the dials its
         // instability actually bought. Anything passed is an override on top of that.
         val density = Happenings.claimFor(level, Phenomenon.METEORS)?.density ?: Rung.ORDINARY
-        val bought = MeteorDials.of(Happenings.spendingIn(level), pace = Happenings.paceIn(level, Phenomenon.METEORS))
+        val bought = MeteorDials.of(
+            Happenings.spendingIn(level),
+            pace = Happenings.paceIn(level, Phenomenon.METEORS),
+            colour = Happenings.colourIn(level, Phenomenon.METEORS),
+        )
         // toDouble FIRST: ALL_OF_A_DIAL is an Int, so dividing without it makes every power under a hundred nought.
         val dials = powerPercent?.let { bought.copy(power = it.toDouble() / ALL_OF_A_DIAL) } ?: bought
         val facing = Vec3.directionFromRotation(source.rotation)

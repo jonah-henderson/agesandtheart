@@ -49,16 +49,16 @@ object MeteorGlow {
         // almost any Age is under a storm, so the common case is one loop over a handful of entities and a
         // return of exactly what came in.
         layers.addPositionalLayer(EnvironmentAttributes.AMBIENT_LIGHT_COLOR) { was, at, _ ->
-            turnedViolet(level, was, at, THE_FLOOR)
+            turnedTowardTheStorm(level, was, at) { it.floor }
         }
         layers.addPositionalLayer(EnvironmentAttributes.SKY_LIGHT_COLOR) { was, at, _ ->
-            turnedViolet(level, was, at, THE_CAST)
+            turnedTowardTheStorm(level, was, at) { it.cast }
         }
         layers.addPositionalLayer(EnvironmentAttributes.BLOCK_LIGHT_TINT) { was, at, _ ->
-            turnedViolet(level, was, at, THE_CAST)
+            turnedTowardTheStorm(level, was, at) { it.cast }
         }
         layers.addPositionalLayer(EnvironmentAttributes.NIGHT_VISION_COLOR) { was, at, _ ->
-            turnedViolet(level, was, at, THE_CAST)
+            turnedTowardTheStorm(level, was, at) { it.cast }
         }
         // Held down so the violet stays violet. Sky light is the biggest term in the sum by a long way, and
         // at full strength it drives every channel to one — which is the definition of white.
@@ -69,10 +69,13 @@ object MeteorGlow {
         return layers
     }
 
-    /** One packed colour dragged [toward] the violet by however much of a storm reaches [at]. */
-    private fun turnedViolet(level: ClientLevel, was: Vector3fc, at: Vec3, toward: Rgba): Vector3fc {
+    /**
+     * One packed colour dragged [toward] the storm's lights by however much of a storm reaches [at] — the lights
+     * of the strongest storm last seen, so a storm's own colour fades out with it.
+     */
+    private fun turnedTowardTheStorm(level: ClientLevel, was: Vector3fc, at: Vec3, toward: (MeteorLights) -> Rgba): Vector3fc {
         val how = easedStrengthAt(level, at)
-        return if (how <= NONE) was else Rgba.of(was).lerp(toward, how).rgb()
+        return if (how <= NONE) was else Rgba.of(was).lerp(toward(castIn), how).rgb()
     }
 
     /**
@@ -103,6 +106,7 @@ object MeteorGlow {
 
     private var showing = NONE
     private var strongestLastTick = NONE
+    private var castIn = MeteorLights.VIOLET
     private var lastStepped = Long.MIN_VALUE
 
     /** How much of the cast may go out in one tick — a second from full to nothing. */
@@ -135,23 +139,13 @@ object MeteorGlow {
             val castOver = storm.reach + FEATHERED_BY
             val within = Mth.clamp((castOver - away) / FEATHERED_BY, NONE, ONE)
             val how = within * storm.castStrength() * open
-            if (how > strongest) strongest = how
+            if (how > strongest) {
+                strongest = how
+                castIn = MeteorLights.of(storm.colour)
+            }
         }
         return strongest
     }
-
-    /** The violet everything is lit in. Deep rather than pale, so what it lights keeps no colour of its own. */
-    private val THE_CAST = Rgba(0.55f, 0.16f, 1.0f)
-
-    /**
-     * And what the darkness under it comes up to.
-     *
-     * The ambient floor is what makes this visible at all where nothing else lights the ground, and it is
-     * what replaced the light blocks: a floor costs nothing, fades smoothly, needs no block in the world
-     * and cannot be left burning by an unloading chunk. Dimmer than [THE_CAST] so that adding sky or torch
-     * light on top of it still lands under one.
-     */
-    private val THE_FLOOR = Rgba(0.30f, 0.09f, 0.58f)
 
     /** What sky light is held down to under a full cast, so the sum stays short of white. */
     private const val HELD_DOWN = 0.35f

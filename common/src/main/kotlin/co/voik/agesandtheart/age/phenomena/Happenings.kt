@@ -110,6 +110,12 @@ object Happenings {
         return Phenomena.paceOf(composition.optionsFor(Aspect.PHENOMENA, 0), phenomenon, recipe.seed)
     }
 
+    /** What colour this Age's book wrote [phenomenon] to burn in — null for its own, and anywhere else. */
+    fun colourIn(level: ServerLevel, phenomenon: Phenomenon): String? {
+        val composition = Ages.recipeOf(level)?.composition ?: return null
+        return Phenomena.colourOf(composition.optionsFor(Aspect.PHENOMENA, 0), phenomenon)
+    }
+
     /**
      * Whether [phenomenon] befalls [level] at all — **written, or inflicted by its instability** — for
      * something that has to answer what the world did rather than the clock, as a bolt landing does.
@@ -155,6 +161,7 @@ object Happenings {
                 Phenomena.recurrenceOf(options, phenomenon, seed),
                 Phenomena.strengthOf(options, phenomenon, seed),
                 Phenomena.paceOf(options, phenomenon, seed),
+                Phenomena.colourOf(options, phenomenon),
             )
         }
     }
@@ -252,7 +259,7 @@ object Happenings {
             Phenomenon.SANDFALL -> Sandfall.wander(level, befalling, SandfallDials.of(spending, written, befalling.pace))
             Phenomenon.TECTONICS -> CaveIns.stir(level, recurrence.often, TectonicsDials.of(spending, written))
             Phenomenon.BLIZZARD -> Blizzard.blow(level, BlizzardDials.of(spending, written))
-            Phenomenon.METEORS -> Meteors.fall(level, recurrence, MeteorDials.of(spending, written, befalling.pace))
+            Phenomenon.METEORS -> Meteors.fall(level, recurrence, MeteorDials.of(spending, written, befalling.pace, befalling.colour))
             // **The rise is not here**, and that is the one thing to know about this phenomenon's shape:
             // the sea's level is a counted number advanced in `AgeTick.tick`, where these two are the
             // near-player block work that makes it visible. See [Deluge].

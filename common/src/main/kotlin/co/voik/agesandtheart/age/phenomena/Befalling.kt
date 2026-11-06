@@ -13,6 +13,7 @@ data class Befalling(
     val recurrence: Recurrence,
     val strength: Double = ORDINARY_STRENGTH,
     val pace: Double = OWN_PACE,
+    val colour: String? = null,
 ) {
     companion object {
         private const val ORDINARY_STRENGTH = 0.0

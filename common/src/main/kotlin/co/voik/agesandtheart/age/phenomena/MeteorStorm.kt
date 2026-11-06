@@ -100,6 +100,11 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         get() = entityData.get(PACED)
         set(value) = entityData.set(PACED, value)
 
+    /** The colour a book wrote this storm to burn in, or null for its own violet. Watched, because it is drawn. */
+    var colour: String?
+        get() = entityData.get(COLOURED).ifEmpty { null }
+        set(value) = entityData.set(COLOURED, value ?: OWN_COLOUR)
+
     /**
      * When the world was, when this gathered — and so, with the world's clock, how old it is.
      *
@@ -140,6 +145,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         builder.define(GATHERED_AT, NEVER)
         builder.define(REACHES, REACH.toFloat())
         builder.define(PACED, OWN_PACE)
+        builder.define(COLOURED, OWN_COLOUR)
     }
 
     /**
@@ -327,6 +333,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         // Aged from the moment it was *due* rather than the moment it was thrown, so one whose moment went
         // by while nobody was here is already past its flight and comes straight down.
         body.thrownAt = dueAt
+        body.colour = colour
         level.addFreshEntity(body)
     }
 
@@ -345,6 +352,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         output.putInt(DROPPED_KEY, droppedTo)
         output.putFloat(REACH_KEY, reach)
         output.putFloat(PACE_KEY, pace)
+        output.putString(COLOUR_KEY, colour ?: OWN_COLOUR)
     }
 
     override fun readAdditionalSaveData(input: ValueInput) {
@@ -356,6 +364,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         droppedTo = input.getIntOr(DROPPED_KEY, NONE_THROWN_YET)
         reach = input.getFloatOr(REACH_KEY, REACH.toFloat())
         pace = input.getFloatOr(PACE_KEY, OWN_PACE)
+        colour = input.getStringOr(COLOUR_KEY, OWN_COLOUR)
     }
 
     companion object {
@@ -371,6 +380,8 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.FLOAT)
         private val PACED: EntityDataAccessor<Float> =
             SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.FLOAT)
+        private val COLOURED: EntityDataAccessor<String> =
+            SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.STRING)
 
         /**
          * How long it hangs in the sky before anything falls, in ticks — **thirty seconds** (Jonah).
@@ -503,6 +514,10 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         private const val DROPPED_KEY = "dropped_to"
         private const val REACH_KEY = "reach"
         private const val PACE_KEY = "pace"
+        private const val COLOUR_KEY = "colour"
+
+        /** What [colour] is watched and saved as where a storm burns in its own violet. */
+        const val OWN_COLOUR = ""
         private const val OWN_PACE = 1.0f
         private const val BLAST_PER_PACE = 2.0 / 3.0
 
@@ -541,6 +556,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             slant: Double? = null,
             reach: Double = REACH,
             pace: Double = OWN_PACE.toDouble(),
+            colour: String? = null,
         ): MeteorStorm {
             val storm = MeteorStorm(AgeContent.METEOR_STORM, level)
             storm.setPos(where.x, where.y, where.z)
@@ -550,6 +566,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             storm.gatheredAt = level.gameTime
             storm.reach = reach.toFloat()
             storm.pace = pace.toFloat()
+            storm.colour = colour
             if (slant != null) storm.slant = slant.toFloat()
             level.addFreshEntity(storm)
             return storm

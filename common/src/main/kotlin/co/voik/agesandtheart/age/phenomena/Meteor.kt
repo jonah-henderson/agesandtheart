@@ -62,8 +62,14 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         get() = entityData.get(SETTLED)
         set(value) = entityData.set(SETTLED, value)
 
+    /** The colour its storm burned in, or null for its own violet. Watched, because it is drawn. */
+    var colour: String?
+        get() = entityData.get(COLOURED).ifEmpty { null }
+        set(value) = entityData.set(COLOURED, value ?: MeteorStorm.OWN_COLOUR)
+
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         builder.define(SETTLED, false)
+        builder.define(COLOURED, MeteorStorm.OWN_COLOUR)
     }
 
     /**
@@ -453,6 +459,7 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         output.putLong(THROWN_KEY, thrownAt)
         output.putBoolean(SETTLED_KEY, settled)
         output.putFloat(TOUGHNESS_KEY, toughness)
+        output.putString(COLOUR_KEY, colour ?: MeteorStorm.OWN_COLOUR)
     }
 
     override fun readAdditionalSaveData(input: net.minecraft.world.level.storage.ValueInput) {
@@ -461,11 +468,15 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         thrownAt = input.getLongOr(THROWN_KEY, NOT_YET_THROWN)
         settled = input.getBooleanOr(SETTLED_KEY, false)
         toughness = input.getFloatOr(TOUGHNESS_KEY, WHOLE)
+        colour = input.getStringOr(COLOUR_KEY, MeteorStorm.OWN_COLOUR)
     }
 
     companion object {
         private val SETTLED: EntityDataAccessor<Boolean> =
             SynchedEntityData.defineId(Meteor::class.java, EntityDataSerializers.BOOLEAN)
+        private val COLOURED: EntityDataAccessor<String> =
+            SynchedEntityData.defineId(Meteor::class.java, EntityDataSerializers.STRING)
+        private const val COLOUR_KEY = "colour"
 
         /** Three blocks of it, whatever it is made of — these are arriving from space. */
         const val CAUGHT_BY = 3

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.phenomena.Meteor
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookTooltip
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent
@@ -69,7 +70,9 @@ object ClientRegistrations {
         RendererForEntity(AgeContent.VOLCANIC_BOMB) { MoltenLumpRenderer(it, MoltenLumpRenderer.WHOLE_LUMP) },
         RendererForEntity(AgeContent.LAVA_DROPLET) { MoltenLumpRenderer(it, MoltenLumpRenderer.GOBBET) },
         RendererForEntity(AgeContent.METEOR) {
-            MoltenLumpRenderer(it, MoltenLumpRenderer.METEOR, MoltenLumpRenderer.METEOR_ROCK, MoltenLumpRenderer.COLD_FIRE)
+            MoltenLumpRenderer<Meteor>(it, MoltenLumpRenderer.METEOR, MoltenLumpRenderer.METEOR_ROCK) { meteor ->
+                MeteorLights.of(meteor.colour).rock
+            }
         },
         RendererForEntity(AgeContent.DRIFTING_ORE) { DriftingOreRenderer(it) },
         // Vanilla's lightning, turned to point at what was bitten — see [ArcBoltRenderer].
