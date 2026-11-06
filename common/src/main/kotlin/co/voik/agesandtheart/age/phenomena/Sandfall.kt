@@ -42,15 +42,24 @@ object Sandfall {
 
         val standing = standingIn(level)
         if (standing >= behaviour.atMostFor(befalling.amount, dials.often)) return
-        // A constant sandfall always has a column walking: the next arrives as soon as none is.
+        // A constant sandfall always has a column walking: the next arrives as soon as none is. And one whose roll
+        // came up with nowhere to stand is still on its way.
         val owed = PhenomenaCeiling.isOwed(level, Phenomenon.SANDFALL) ||
-            (befalling.recurrence.isConstant && standing == NONE)
-        val between = behaviour.betweenSpawnsFor(befalling.recurrence.often, dials.often)
+            (befalling.recurrence.isConstant && standing == NONE) || level in stillToArrive
+        // The rung shortens the wait as it raises the count, and the frequency divides what is left.
+        val between = (behaviour.betweenSpawnsFor(befalling.amount, dials.often) / befalling.recurrence.often)
+            .toInt().coerceAtLeast(AT_ONCE)
         if (!owed && level.random.nextInt(between) != NOW) return
         if (!PhenomenaCeiling.mayBegin(level, Phenomenon.SANDFALL)) return
 
-        raiseOneNearSomebody(level, behaviour, dials)
+        if (raiseOneNearSomebody(level, behaviour, dials)) stillToArrive -= level else stillToArrive += level
     }
+
+    /**
+     * The levels whose column came up and found nowhere it could stand, which try again next tick rather than wait
+     * for another roll. Weakly held, and a smoothing of when weather arrives rather than anything worth keeping.
+     */
+    private val stillToArrive: MutableSet<ServerLevel> = java.util.Collections.newSetFromMap(java.util.WeakHashMap())
 
     /** How many are already out. Bounded by [SandfallBehaviour.atMost], so this is a walk over a handful. */
     private fun standingIn(level: ServerLevel): Int =
@@ -65,14 +74,19 @@ object Sandfall {
      * surprise, that it is coming is not.
      *
      * **Several bearings are tried because the far side of the spawn ring may not be loaded**, and a column
-     * may only be raised where there is already a chunk to stand it on ([SandColumn.raise]).
+     * may only be raised where there is already a chunk to stand it on ([SandColumn.raise]). Whether one stood.
      */
-    private fun raiseOneNearSomebody(level: ServerLevel, behaviour: SandfallBehaviour, dials: SandfallDials) {
-        val watcher = Sampling.somebody(level) ?: return
+    private fun raiseOneNearSomebody(level: ServerLevel, behaviour: SandfallBehaviour, dials: SandfallDials): Boolean {
+        val watcher = Sampling.somebody(level) ?: return false
         val random = level.random
-        val spread = behaviour.furthestSpawn - behaviour.nearestSpawn
+        // Within the chunks that tick entities, where a column may stand: a server simulating fewer than the ring
+        // reaches drew spots it could never use, and lost the column.
+        val live = (level.server.playerList.simulationDistance - CHUNKS_SHORT_OF_THE_EDGE) * CHUNK_WIDTH
+        val furthest = minOf(behaviour.furthestSpawn, live).coerceAtLeast(AT_ONCE)
+        val nearest = minOf(behaviour.nearestSpawn, furthest / 2)
+        val spread = furthest - nearest
         repeat(BEARINGS_TRIED) {
-            val away = behaviour.nearestSpawn + random.nextInt(spread.coerceAtLeast(AT_ONCE))
+            val away = nearest + random.nextInt(spread.coerceAtLeast(AT_ONCE))
             val bearing = random.nextDouble() * FULL_TURN
             val heading = bearing + HALF_TURN + (random.nextDouble() - random.nextDouble()) * SPREAD_DEGREES
             val raised = raise(
@@ -82,8 +96,9 @@ object Sandfall {
                 headingDegrees = heading.toFloat(),
                 dials = dials,
             )
-            if (raised != null) return
+            if (raised != null) return true
         }
+        return false
     }
 
     /**
@@ -125,6 +140,10 @@ object Sandfall {
     private const val SPREAD_DEGREES = 55.0
 
     private const val BEARINGS_TRIED = 8
+
+    /** How many chunks short of the simulated edge a column stands, so its whole width is ticking. */
+    private const val CHUNKS_SHORT_OF_THE_EDGE = 1
+    private const val CHUNK_WIDTH = 16
     private const val FULL_TURN = 360.0
     private const val HALF_TURN = 180.0
     private const val NONE = 0
