@@ -22,6 +22,7 @@ import net.minecraft.world.level.dimension.end.EnderDragonFight
 import net.minecraft.world.level.levelgen.Heightmap
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
+import co.voik.agesandtheart.age.aspect.Terrain
 import java.util.WeakHashMap
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
@@ -312,7 +313,8 @@ object Ages {
      *
      * Three answers, because a column need not have a floor in it. Ordinarily the top of the surface, or
      * the first floor under the roof in a world shut overhead. Where the column holds nothing at all — an
-     * Age of open sky — the waterline, so a visitor arrives in the air rather than on the world's floor.
+     * Age of open sky or the void — the waterline, or ground level where that is the floor, so a visitor arrives in the
+     * air rather than on the world's floor ([openUpArrival] lays a platform under them in the void).
      * Where it is solid to the top, the highest a player fits.
      */
     internal fun footingIn(level: ServerLevel, x: Int, z: Int): BlockPos {
@@ -324,12 +326,18 @@ object Ages {
             generator.getBaseHeight(x, z, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, level, randomState) - 1
         }
         val standing = when {
-            topOfTheColumn < level.minY -> level.seaLevel
+            topOfTheColumn < level.minY -> openAirArrivalIn(level)
             topOfTheColumn + 1 + HEADROOM > level.maxY -> level.maxY - HEADROOM
             else -> topOfTheColumn + 1
         }
         return BlockPos(x, standing, z)
     }
+
+    /** The waterline, or vanilla's ground level where the waterline is the world's floor, as in the void. */
+    private fun openAirArrivalIn(level: ServerLevel): Int =
+        if (level.seaLevel > level.minY + HEADROOM) level.seaLevel else VANILLAS_GROUND_LEVEL
+
+    private const val VANILLAS_GROUND_LEVEL = 64
 
     /**
      * Clears somewhere to stand at [arrival], for a level that has no room there — an Age linked into, or the
@@ -344,6 +352,7 @@ object Ages {
         val (at, facing) = arrival
         val cursor = BlockPos.MutableBlockPos()
         fun blocked(y: Int) = !level.getBlockState(cursor.set(at.x, y, at.z)).isAir
+        if (facing == null && isOverTheVoid(level, at) && hasNothingUnder(level, at)) layPlatformUnder(level, at)
         if (!blocked(at.y) && !blocked(at.y + 1)) return
 
         Constants.LOG.info("Carving room to arrive at {} in {}", at, level.dimension().identifier())
@@ -363,6 +372,45 @@ object Ages {
             }
         }
     }
+
+    /**
+     * Whether [at] stands in a territory of the void landform. Only there is a platform laid: anywhere else, seeing
+     * through the linking panel whether there is somewhere to land is the visitor's to do.
+     */
+    private fun isOverTheVoid(level: ServerLevel, at: BlockPos): Boolean {
+        val recipe = recipeOf(level) ?: return false
+        val terrains = recipe.composition?.terrains ?: return false
+        if (Terrain.VOID !in terrains) return false
+        if (terrains.size == 1) return true
+        val composition = recipe.composition ?: return false
+        val map = recipe.character.mapFor(Aspect.TERRAIN, composition.spreadOf(Aspect.TERRAIN), recipe.seed)
+        return terrains.getOrNull(map.memberAt(at.x, at.z)) == Terrain.VOID
+    }
+
+    /** Whether the column under [at] is open air all the way down, so a visitor arriving there would fall for ever. */
+    private fun hasNothingUnder(level: ServerLevel, at: BlockPos): Boolean {
+        val cursor = BlockPos.MutableBlockPos()
+        return (level.minY..<at.y).all { y -> level.getBlockState(cursor.set(at.x, y, at.z)).isAir }
+    }
+
+    /**
+     * A small platform under [at], for an arrival over the void. Stands in for a linking chamber until a book can
+     * write one.
+     */
+    private fun layPlatformUnder(level: ServerLevel, at: BlockPos) {
+        Constants.LOG.info("Laying a platform to arrive on at {} in {}", at, level.dimension().identifier())
+        val cursor = BlockPos.MutableBlockPos()
+        for (x in at.x - PLATFORM_REACH..at.x + PLATFORM_REACH) {
+            for (z in at.z - PLATFORM_REACH..at.z + PLATFORM_REACH) {
+                if (level.getBlockState(cursor.set(x, at.y - 1, z)).isAir) level.setBlockAndUpdate(cursor, PLATFORM_BLOCK)
+            }
+        }
+    }
+
+    /** How far the platform reaches each way from the arrival: five blocks across. */
+    private const val PLATFORM_REACH = 2
+
+    private val PLATFORM_BLOCK get() = Blocks.SMOOTH_STONE.defaultBlockState()
 
     /** What a carved arrival stands on, where there was nothing. */
     private val FOOTING_BLOCK get() = Blocks.STONE.defaultBlockState()

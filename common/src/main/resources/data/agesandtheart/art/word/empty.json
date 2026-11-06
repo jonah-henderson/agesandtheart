@@ -3,7 +3,8 @@
     "Nothing there: a sea of empty air under the land, so what falls off falls forever. The sense `open` held until",
     "2026-10-16, given its own page.",
     "",
-    "`empty underground` (Jonah): perhaps hollow, never a mineshaft, little growing down there, and no monster coming of itself under the rock."
+    "`empty underground` (Jonah): perhaps hollow, never a mineshaft, little growing down there, and no monster coming of itself under the rock.",
+    "`empty landmass` (Jonah): no land at all, nothing built, and a small platform for a link to arrive on."
   ],
   "meanings": [
     {
@@ -67,6 +68,28 @@
       "must_always_apply": true,
       "offered_to": [
         "underground"
+      ]
+    },
+    {
+      "restricts": {
+        "landmass": {
+          "empty": ">0.3"
+        }
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "landmass"
+      ]
+    },
+    {
+      "excludes": {
+        "structures": [
+          "#built"
+        ]
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "landmass"
       ]
     }
   ]

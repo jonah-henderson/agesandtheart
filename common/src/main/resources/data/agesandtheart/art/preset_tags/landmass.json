@@ -21,6 +21,12 @@
       "sheer": 0.3
     }
   },
+  "void": {
+    "tags": {
+      "empty": 1.0,
+      "barren": 0.6
+    }
+  },
   "gentle": {
     "tags": {
       "flat": 0.7,

@@ -62,6 +62,9 @@ private val ISLAND_PONDS: String by lazy {
 
 private const val ISLAND_POND_RATE = 8.0
 
+/** A slab whose top is under its bottom, which holds no rock in any column at any size. */
+private val NOTHING_SOLID = Slab(lowY = 1, highY = 0)
+
 /** [Terrain.SIZE] as the power [SizeScale] raises its base to, read by [LandSize] unless the Age predates it. */
 private fun sizeOf(options: Options, salt: Long): Double? {
     val said = options.steer(Terrain.SIZE, salt)
@@ -178,6 +181,12 @@ enum class Terrain(
         waterlineWhenASeaIsNamed = SkylandsField.NAMED_SEA_LEVEL,
         axes = { listOf(SIZE) },
     ),
+
+    /**
+     * No rock anywhere: an Age wearing it alone is open air above and below, and a link into it arrives on a small
+     * platform ([co.voik.agesandtheart.generation.Ages.openUpArrival]).
+     */
+    VOID("void", waterline = null, build = { _, _, _ -> NOTHING_SOLID }),
 
     /** Rolling noise hills breaking a sea — the closest thing here to ordinary ground. */
     HILLS(
@@ -484,7 +493,7 @@ enum class Terrain(
         ARBOREAL -> Footing(HollowTreesField.SEA_LEVEL, topY = VerticalWindow.HIGHEST_BLOCK_Y)
         // The basin floors meet the coast, and the peaks reach the top of the world already.
         MOUNTAINOUS -> Footing(MountainousField.BASIN_FLOOR, topY = VerticalWindow.HIGHEST_BLOCK_Y)
-        SKYLANDS, SPIRE_ISLANDS, INVERSE_CAVES, OVERWORLD, NETHER, END -> null
+        SKYLANDS, SPIRE_ISLANDS, VOID, INVERSE_CAVES, OVERWORLD, NETHER, END -> null
     }
 
     /**
@@ -577,8 +586,8 @@ enum class Terrain(
         // **The most room of anything here, and for once nothing is being cleared.** There is no surface
         // for an underground to open into, so this is bounded by the bedrock roof alone.
         SOLID -> SolidField.UNDERGROUND_CEILING
-        // Islands in the void have no ground under them to hollow.
-        SPIRE_ISLANDS, SKYLANDS, MOUNTAINOUS, INVERSE_CAVES -> null
+        // Islands in the void have no ground under them to hollow, and the void none at all.
+        SPIRE_ISLANDS, SKYLANDS, VOID, MOUNTAINOUS, INVERSE_CAVES -> null
         // Vanilla's overworld has its underground cut after its own fill, under an ordinary landform's ceiling
         // ([undergroundCutFromVanilla]); the nether is open caverns already and the End has no ground to cut.
         OVERWORLD -> ORDINARY_SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
@@ -824,7 +833,7 @@ enum class Terrain(
         PILLARS -> TerrainTable.Home(uplift = -0.5, age = -0.2, wetness = 0.5)
         ISLE -> TerrainTable.Home(uplift = -0.6, age = -0.3, wetness = 0.4)
         ISLANDS -> TerrainTable.Home(uplift = -0.7, age = 0.0, wetness = 0.6)
-        PYRAMIDS, ARBOREAL, SKYLANDS, INVERSE_CAVES, SPIRE_ISLANDS, SOLID, OVERWORLD, NETHER, END -> null
+        PYRAMIDS, ARBOREAL, SKYLANDS, VOID, INVERSE_CAVES, SPIRE_ISLANDS, SOLID, OVERWORLD, NETHER, END -> null
     }
 
     /** The height this landform's drift stretches from: its waterline, or for the skylands the plane they float at. */
@@ -913,7 +922,7 @@ enum class Terrain(
 
     companion object {
         /** The landforms with nothing beneath their land — see [hasGroundBeneath]. */
-        private val HANGING_IN_THE_VOID by lazy { setOf(SKYLANDS, SPIRE_ISLANDS, INVERSE_CAVES, END) }
+        private val HANGING_IN_THE_VOID by lazy { setOf(SKYLANDS, SPIRE_ISLANDS, VOID, INVERSE_CAVES, END) }
 
         /**
          * The landforms whose height above their waterline drifts, and rises far higher at a landmark; the skylands'

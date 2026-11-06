@@ -10,6 +10,7 @@ import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Spawns
+import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Underground
 import co.voik.agesandtheart.age.language.ShippedLexicon
@@ -158,6 +159,14 @@ class ResolutionCheck : FunSpec({
     test("empty underground leaves the rock without monsters") {
         val empty = resolved("age empty underground")
         check(empty.option(Aspect.SPAWNS, Spawns.NONE_BELOW.name).toList() == listOf("true")) { empty.spelled() }
+    }
+
+    test("an empty landmass is the void, with nothing built and nothing beneath it") {
+        val empty = resolved("age empty landmass")
+        check(empty.composition.terrains == listOf(Terrain.VOID)) { empty.spelled() }
+        val built = empty.composition.optionsFor(Aspect.STRUCTURES).skewOn(Structures.BUILT)
+        check(built.emptied || "#built" in built.struck) { "an empty landmass still builds: ${empty.spelled()}" }
+        check(empty.composition.hasNothingBeneathIt) { "the void had ground beneath it" }
     }
 
     test("a colour on the stars tints them, and on meteors burns them in it") {
