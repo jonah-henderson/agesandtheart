@@ -316,18 +316,20 @@ enum class Aspect(
             )
             AIR -> listOf(
                 Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE, Atmosphere.DRAINED, Atmosphere.WIND,
+                Prism.CYCLING, Prism.LIGHT_CYCLING, Prism.CYCLE_PACE,
             )
-            WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR, Fishing.TREASURE)
+            WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR, Fishing.TREASURE, Prism.CYCLING, Prism.CYCLE_PACE)
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER, Atmosphere.RAINPACE)
             SUN -> listOf(
                 SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.SUNCOLOUR, SkyBodies.RISING, SkyBodies.PATH,
-                SkyBodies.STILL, SkyBodies.BODYPACE, SkyBodies.BODYLIGHT, Parameter.cast(),
+                SkyBodies.STILL, SkyBodies.BODYPACE, SkyBodies.BODYLIGHT, Parameter.cast(), Prism.CYCLING, Prism.CYCLE_PACE,
             )
             MOON -> listOf(
                 SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.MOONCOLOUR, SkyBodies.RISING, SkyBodies.PATH, SkyBodies.PULL,
                 SkyBodies.STILL, SkyBodies.BODYPACE, SkyBodies.UNLIT, SkyBodies.BODYLIGHT, EclipsingMoons.FREQUENCY, Parameter.cast(),
+                Prism.CYCLING, Prism.CYCLE_PACE,
             )
-            STARS -> listOf(SkyBodies.STARS, SkyBodies.STARGLOW, SkyBodies.STARCOLOUR, Atmosphere.FADES)
+            STARS -> listOf(SkyBodies.STARS, SkyBodies.STARGLOW, SkyBodies.STARCOLOUR, Atmosphere.FADES, Prism.CYCLING, Prism.CYCLE_PACE)
             GRASS -> listOf(Atmosphere.GRASSCOLOUR)
             LEAVES -> listOf(Atmosphere.LEAFCOLOUR)
             AURORA -> listOf(
@@ -336,6 +338,7 @@ enum class Aspect(
                 AuroraAspect.AURORASIZE,
                 AuroraAspect.AURORAFREQUENCY,
                 AuroraAspect.AURORAWARMTH,
+                Prism.CYCLING, Prism.CYCLE_PACE,
             )
             RAINBOW -> listOf(
                 RainbowAspect.RAINBOWCOLOUR,
@@ -354,8 +357,12 @@ enum class Aspect(
                 Sky.TORN,
                 Drift.SHIFTING,
                 Drift.PACE,
+                Prism.CYCLING, Prism.CYCLE_PACE,
             )
-            CLOUD -> listOf(Atmosphere.CLOUD, Atmosphere.CEILING, Atmosphere.CLOUDS_ABSENT, Atmosphere.CLOUDPACE, Atmosphere.CLOUDS_STILL)
+            CLOUD -> listOf(
+                Atmosphere.CLOUD, Atmosphere.CEILING, Atmosphere.CLOUDS_ABSENT, Atmosphere.CLOUDPACE, Atmosphere.CLOUDS_STILL,
+                Prism.CYCLING, Prism.CYCLE_PACE,
+            )
             GRAVITY -> listOf(Gravity.PULL)
             SEA -> listOf(Sea.DEPTH)
             // What holds of every landform and every creature, whichever is seated or lives there.

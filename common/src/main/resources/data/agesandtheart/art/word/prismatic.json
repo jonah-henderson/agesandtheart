@@ -8,8 +8,9 @@
     "them from the weather in a single word. Naming the phenomenon would have brought",
     "`Phenomenon.RAINBOW`'s rainfall floor with it, which is the opposite of what this means.",
     "",
-    "Before the sky, the air or the clouds, a sky wandering from colour to colour (Jonah); before a body, several",
-    "of it in odd colours."
+    "Everything with a colour turns round the colour wheel over time, each part on a cycle of its own, in step unless",
+    "a word says otherwise (`Prism`): the sky, the fog, the clouds, the suns and moons, the stars, the aurora and the",
+    "water. The light turns only where the air is named (Jonah). Before a body, several of it in odd colours too."
   ],
   "meanings": [
     {
@@ -33,14 +34,57 @@
     },
     {
       "sets": {
-        "shifting": "true"
+        "sky.cycling": "true"
       },
-      "must_always_apply": true,
-      "offered_to": [
-        "sky",
-        "air",
-        "clouds"
-      ]
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.cycling": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.cycling": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sun.cycling": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "moon.cycling": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "stars.cycling": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "aurora.cycling": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "waters.cycling": "true"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "light_cycling": "true"
+      },
+      "must_always_apply": true
     },
     {
       "sets": {

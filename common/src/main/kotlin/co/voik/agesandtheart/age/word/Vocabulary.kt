@@ -185,6 +185,18 @@ data class Vocabulary(
     /** Every word, every structure page and what each word takes, as the reading reads a book against them. */
     val lexicon: Lexicon by lazy { Lexicon(::word, { structural[it]?.structure }, this, registries) }
 
+    /**
+     * The names of every word with something [head] takes, worked out once per head: the writer's desk asks it of every
+     * clause of every book it proposes, and the answer is the vocabulary's alone. Keyed by name, since a word's own
+     * hash walks every meaning it has.
+     */
+    fun wordsLandingOn(head: Word): Set<String> = landingOn.computeIfAbsent(head.name) {
+        val acceptance = lexicon.acceptance(head) ?: return@computeIfAbsent emptySet()
+        words.filter { word -> word.effects.any { acceptance.take(it) != null } }.map { it.name }.toSet()
+    }
+
+    private val landingOn = java.util.concurrent.ConcurrentHashMap<String, Set<String>>()
+
     /** The words each word applies to, for a word list ordered under them ([WordHeadings.appliesTo]). Worked out once. */
     val appliesTo: Map<Identifier, List<Identifier>> by lazy { WordHeadings.appliesTo(this) }
 

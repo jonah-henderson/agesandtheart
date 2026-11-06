@@ -101,7 +101,9 @@ object ProposedBook {
         private val vocabulary: Vocabulary,
         val byPage: Map<String, Identifier>,
     ) {
-        private fun wordOf(page: String): Word? = vocabulary.word(page)
+        private val words: Map<String, Word> = byPage.keys.mapNotNull { page -> vocabulary.word(page)?.let { page to it } }.toMap()
+
+        private fun wordOf(page: String): Word? = words[page]
 
         fun nucleus(seed: Long): String? = byPage.keys.sorted().firstOrNull { vocabulary.read(listOf(it), seed) != null }
 
@@ -118,10 +120,13 @@ object ProposedBook {
 
         val structural: Set<String> = byPage.keys.filter { vocabulary.structurePage(it)?.structure.let { it != null && it != Structure.AGE } }.toSet()
 
-        fun landsOn(head: String, modifier: String): Boolean {
-            val acceptance = wordOf(head)?.let(vocabulary.lexicon::acceptance) ?: return false
-            return wordOf(modifier)?.effects.orEmpty().any { acceptance.take(it) != null }
+        /** The modifiers the writer knows that land something on [head] ([Vocabulary.wordsLandingOn]). */
+        fun fitting(head: String): List<String> = fittingByHead.getOrPut(head) {
+            val landing = wordOf(head)?.let(vocabulary::wordsLandingOn) ?: return@getOrPut emptyList()
+            modifiers.filter { modifier -> wordOf(modifier)?.name in landing }
         }
+
+        private val fittingByHead = HashMap<String, List<String>>()
 
         companion object {
             fun of(vocabulary: Vocabulary, registries: RegistryAccess, known: Collection<Identifier>, tier: ProposalTier): Words {
@@ -189,7 +194,7 @@ object ProposedBook {
         /** Modifiers on a head, or a member said alone. */
         private fun described(): List<String>? {
             val head = words.heads.randomOrNull(random) ?: return null
-            val fitting = words.modifiers.filter { words.landsOn(head, it) }
+            val fitting = words.fitting(head)
             val isAMember = head in words.members
             if (fitting.isEmpty()) return if (isAMember) listOf(head) else null
             val count = random.nextInt(if (isAMember) 0 else 1, minOf(MOST_MODIFIERS, fitting.size) + 1)
@@ -208,7 +213,7 @@ object ProposedBook {
                 if (knows("of")) add { words.members.randomOrNull(random)?.let { other -> listOf(other, "of", member) } }
                 if (knows("link") && knows("in")) add { listOf("link", "in", member) }
                 if (knows("and")) add {
-                    val fitting = words.modifiers.filter { words.landsOn(member, it) }.shuffled(random).take(2)
+                    val fitting = words.fitting(member).shuffled(random).take(2)
                     if (fitting.size == 2) listOf(fitting[0], "and", fitting[1], member) else null
                 }
             }

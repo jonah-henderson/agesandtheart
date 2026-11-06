@@ -26,8 +26,8 @@ data class Word(
     /** How a book's prose speaks it: as its file or its derivation says, and otherwise as said of something. */
     val partOfSpeech: Speech get() = speech ?: Speech.ADJECTIVE
 
-    /** Everything its meanings say, together. */
-    val effects: List<Effect> get() = meanings.flatMap { it.effects }
+    /** Everything its meanings say, together. Gathered once, since readers ask for it of every word they weigh. */
+    val effects: List<Effect> = meanings.flatMap { it.effects }
 
     /**
      * The registries this word is itself an entry of — the block a block's word is, the creature a creature's. A block

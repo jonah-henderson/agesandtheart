@@ -42,6 +42,54 @@
         "clouds.pace": "-1.0..-0.6"
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sky.cycle_pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "air.cycle_pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "clouds.cycle_pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "sun.cycle_pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "moon.cycle_pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "stars.cycle_pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "aurora.cycle_pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
+    },
+    {
+      "sets": {
+        "waters.cycle_pace": "-1.0..-0.6"
+      },
+      "must_always_apply": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.consequence.StrangeSky
 import co.voik.agesandtheart.age.aspect.AgeParts
 import co.voik.agesandtheart.age.aspect.Atmosphere
+import co.voik.agesandtheart.age.aspect.Prism
 import co.voik.agesandtheart.age.aspect.SunLight
 import co.voik.ephemeris.RuntimeLevelEvents
 import co.voik.ephemeris.sky.LevelAppearance
@@ -80,6 +81,7 @@ object Skies {
             filters = (Atmosphere.filtersIn(parts) + StrangeSky.filtersFor(spending)).distinct(),
             rain = Atmosphere.rainIn(parts, recipe.seed) ?: StrangeSky.rainFor(spending),
             wind = Atmosphere.windIn(parts, recipe.seed),
+            cycles = Prism.cyclesIn(parts, sky, recipe.seed),
         )
     }
 }
