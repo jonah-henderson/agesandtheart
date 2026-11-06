@@ -77,9 +77,10 @@ something lands, delete the narrative of building it; a choice between genuinely
   walked. Its one real piece of engineering is a **declared climate home** for a biome of ours, since
   `BiomePreference.homesFor` drops a biome it has never seen somewhere random; the surf is flat client-side
   particles on per-stretch wave clocks. Read it before touching either.
-- **`notes/water-colour-research.md`** — how to make an Age's water shift colour over time: the tint is baked
-  into the chunk mesh. A **still** colour is built (`cyan waters`, through Ephemeris's `GroundTints`); pipelines
-  reading `GameTime` already exist, and what is open is how water's mesh reaches one, and which Ages get it.
+- **`notes/water-colour-research.md`** — water, grass and leaves that change colour, though their tint is baked into
+  the chunk mesh. **Built**: a still colour (`cyan waters`, through Ephemeris's `GroundTints`) and a turning one
+  (`prismatic`), drawn through copies of vanilla's terrain pipelines whose vertex shader turns tinted vertices
+  (`TurningTerrain`). Read it before touching how terrain is drawn.
 - **`notes/coloured-light-research.md`** — coloured light, and why the lightmap can never give it: it is a
   16×16 texture indexed by (block, sky) with no position in it, so every lightmap route tints the *whole
   view*. The route that works is per-vertex colour at section-compile time — built on both loaders (Fabric

@@ -330,8 +330,8 @@ enum class Aspect(
                 Prism.CYCLING, Prism.CYCLE_PACE,
             )
             STARS -> listOf(SkyBodies.STARS, SkyBodies.STARGLOW, SkyBodies.STARCOLOUR, Atmosphere.FADES, Prism.CYCLING, Prism.CYCLE_PACE)
-            GRASS -> listOf(Atmosphere.GRASSCOLOUR)
-            LEAVES -> listOf(Atmosphere.LEAFCOLOUR)
+            GRASS -> listOf(Atmosphere.GRASSCOLOUR, Prism.CYCLING, Prism.CYCLE_PACE)
+            LEAVES -> listOf(Atmosphere.LEAFCOLOUR, Prism.CYCLING, Prism.CYCLE_PACE)
             AURORA -> listOf(
                 AuroraAspect.AURORACOLOUR,
                 AuroraAspect.AURORAGLOW,
