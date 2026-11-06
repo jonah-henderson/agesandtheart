@@ -48,6 +48,19 @@ object Structures {
     val INCONGRUOUS = Parameter.flag("incongruous", help = "Whether structures may stand in any biome and at any height.")
 
     /**
+     * How far from its own biomes a structure may stand — `varied structures`: in the biomes of a climate like its own
+     * as well, a mansion in any cool forest, short of `incongruous` anywhere (`generation/LooserHomes`).
+     */
+    val VARIETY = Parameter.ranged(
+        "variety",
+        help = "How far from its own biomes a structure may stand.",
+        landmarks = listOf(
+            Parameter.Landmark(0.0, "only its own biomes", isVanilla = true),
+            Parameter.Landmark(1.0, "any biome of a climate like its own"),
+        ),
+    )
+
+    /**
      * The block a structure is built of in place of its own commonest one — `nether_bricks structures`,
      * `nether_bricks villages`. Shares its name with the surface's, since a block word sets that name.
      */

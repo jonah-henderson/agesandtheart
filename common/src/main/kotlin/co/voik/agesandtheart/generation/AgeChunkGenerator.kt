@@ -193,6 +193,8 @@ class AgeChunkGenerator(
     private val lives: Spawns.Living? = null,
     /** What this Age lets turn up where it does not belong — see [Incongruity]. Not serialised, like [lives]. */
     val incongruity: Incongruity = Incongruity.NONE,
+    /** Where a `varied structures` Age lets its structures stand, or null for their own biomes. Not serialised. */
+    private val structureHomes: LooserHomes.Homes? = null,
     /**
      * The biome vanilla's rock wears over its abyss, or null where it has none — it has one only where the book
      * asked for a deep sea, unlike a rock of ours, which has one wherever its sea is deep enough. Not serialised,
@@ -830,12 +832,14 @@ class AgeChunkGenerator(
             DeepWrecks.starting(biomeSource.possibleBiomes()) {
                 JigsawSizes.starting(jigsawSizes) {
                     StructureHeights.starting(structureHeights) {
-                        if (incongruity.structures) {
-                            IncongruousStructures.starting(state.levelSeed, biomeSource.possibleBiomes()) {
+                        LooserHomes.starting(structureHomes) {
+                            if (incongruity.structures) {
+                                IncongruousStructures.starting(state.levelSeed, biomeSource.possibleBiomes()) {
+                                    super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
+                                }
+                            } else {
                                 super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
                             }
-                        } else {
-                            super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
                         }
                     }
                 }

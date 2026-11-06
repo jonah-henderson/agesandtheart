@@ -66,10 +66,10 @@ object IncongruousStructures {
     @JvmStatic
     fun isBuildingAnywhere(): Boolean = placing.get() != null
 
-    /** The biomes [structure] may stand in: every one, while this thread builds anywhere. */
+    /** The biomes [structure] may stand in: every one while this thread builds anywhere, else its looser homes. */
     @JvmStatic
     fun biomesFor(structure: Structure): HolderSet<Biome> =
-        placing.get()?.everyBiome ?: DeepWrecks.biomesFor(structure) ?: structure.biomes()
+        placing.get()?.everyBiome ?: DeepWrecks.biomesFor(structure) ?: LooserHomes.biomesFor(structure) ?: structure.biomes()
 
     /** Where a jigsaw structure's start is, and what it is projected onto — vanilla's own unless drawn otherwise. */
     class JigsawStart(val at: BlockPos, val projection: Optional<Heightmap.Types>)

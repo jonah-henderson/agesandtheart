@@ -59,7 +59,7 @@ class MonsterCensus(
         val spawns = composition.optionsFor(Aspect.SPAWNS, 0)
         val biomes = composition.optionsFor(Aspect.BIOMES, 0)
         val ground = groundOf(Biomes.preferencesIn(biomes), Biomes.keepsOnlyNamed(biomes), seed)
-        val living = Spawns.livingIn(spawns, spawning, livesSomewhere)
+        val living = Spawns.livingIn(spawns, spawning, livesSomewhere, seed)
         val offered = if (spawns.isTrue(Spawns.INCONGRUOUS)) offeredAnywhere(ground) else ground
         return Meetings(
             spawned = presenceOver(offered) { patch ->

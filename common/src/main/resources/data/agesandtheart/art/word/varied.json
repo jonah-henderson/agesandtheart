@@ -4,12 +4,14 @@
     "bending more, its wear swinging wider and its landmarks standing closer together. The plain word against",
     "`uniform`, which holds it the same everywhere.",
     "",
-    "`varied biomes` are smaller, so more of them are in sight at once."
+    "`varied biomes` are smaller, so more of them are in sight at once.",
+    "`varied inhabitants` (Jonah): each biome's creatures evened out, and joined by a few from biomes of a climate like",
+    "its own. `varied structures`: each may stand in the biomes of a climate like its own home's, short of `jumbled`."
   ],
   "meanings": [
     {
       "bends": {
-        "variety": "0.4..1.0"
+        "landmass.variety": "0.4..1.0"
       },
       "must_always_apply": true
     },
@@ -20,6 +22,24 @@
       "must_always_apply": true,
       "offered_to": [
         "biomes"
+      ]
+    },
+    {
+      "sets": {
+        "inhabitants.variety": "0.4..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "inhabitants"
+      ]
+    },
+    {
+      "sets": {
+        "structures.variety": "0.4..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "structures"
       ]
     }
   ]

@@ -58,6 +58,7 @@ import co.voik.agesandtheart.worldgen.VanillaDelegate
 import net.minecraft.core.Holder
 import net.minecraft.core.registries.Registries
 import net.minecraft.world.level.biome.Biome
+import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
@@ -277,86 +278,87 @@ object AgeGeneration {
         // many terrains carve it up.
         val biomeOptions = composition.optionsFor(Aspect.BIOMES, 0)
         val biomeStretch = Biomes.stretchIn(biomeOptions, seed)
-        return AgeChunkGenerator(
-            // **The world the book was written over decides which biomes there are to choose between.**
-            // This was the overworld's list for every Age, so an infernal one grew overworld biomes over
-            // nether rock — and the overworld's features with them (Jonah, 2026-08-14, walked).
-            AgeBiomeSource(
-                recipe.template.biomesOf(
-                    server,
-                    Biomes.preferencesIn(biomeOptions),
-                    Biomes.keepsOnlyNamed(biomeOptions),
-                    seed,
+        // **The world the book was written over decides which biomes there are to choose between.**
+        // This was the overworld's list for every Age, so an infernal one grew overworld biomes over
+        // nether rock — and the overworld's features with them (Jonah, 2026-08-14, walked).
+        val biomeSource = AgeBiomeSource(
+            recipe.template.biomesOf(
+                server,
+                Biomes.preferencesIn(biomeOptions),
+                Biomes.keepsOnlyNamed(biomeOptions),
+                seed,
+            ),
+        )
+            .told(climate)
+            // On vanilla's overworld rock the stretch is in the rock's own router, land and biomes together.
+            .stretched(if (vanillasClimateStretched) UNSTRETCHED else biomeStretch)
+            .alsoLaying(listOfNotNull(vanillasAbyss))
+            // An Age written before the sparse search keeps its strongholds where vanilla's search put them.
+            .searchingRingsEvery(
+                if (recipe.generatorVersion >= FIRST_GENERATOR_OF_THE_SPARSE_RING_SEARCH) AgeBiomeSource.A_CELL_A_CHUNK
+                else AgeBiomeSource.EVERY_CELL,
+            )
+            .let { if (ourGround == null) it.sampledForDepth() else it.groundedIn(ourGround.landform) }
+            // On unless the Age said otherwise — `biomes.footing=free` is the lever, and an Age whose
+            // biomes ignore its land is allowed rather than broken. See [Grounding] and [Biomes.FOOTING].
+            .suitedTo(
+                if (ourGround == null || !Biomes.groundsBiomes(biomeOptions)) null
+                // A shore is where the Age's one sea meets whichever territory reaches it, so a single
+                // island territory is enough to make the coast sand — the level it stands at is already
+                // Age-wide.
+                else Grounding(
+                    ourGround.landform,
+                    seaFill.level,
+                    // Whether anything is actually poured at that level. A sea of air leaves the
+                    // waterline standing with nothing in it, and measuring against it drowns the map.
+                    hasSea = seaFill.blocks.any { !it.isAir },
+                    rivers = standing,
+                    declared = Grounding.Declared.of(
+                        composition.terrains.mapIndexed { member, terrain ->
+                            terrain.grounding(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), sea)
+                        },
+                        seaIsShared = sea?.isShared == true,
+                    ),
+                    table = table,
+                    // An Age written before generator 20 reads one sea and its relief everywhere, as it did.
+                    seas = seaFill.territories.takeIf { table != null },
+                    keepsItsCoast = table != null,
                 ),
             )
-                .told(climate)
-                // On vanilla's overworld rock the stretch is in the rock's own router, land and biomes together.
-                .stretched(if (vanillasClimateStretched) UNSTRETCHED else biomeStretch)
-                .alsoLaying(listOfNotNull(vanillasAbyss))
-                // An Age written before the sparse search keeps its strongholds where vanilla's search put them.
-                .searchingRingsEvery(
-                    if (recipe.generatorVersion >= FIRST_GENERATOR_OF_THE_SPARSE_RING_SEARCH) AgeBiomeSource.A_CELL_A_CHUNK
-                    else AgeBiomeSource.EVERY_CELL,
-                )
-                .let { if (ourGround == null) it.sampledForDepth() else it.groundedIn(ourGround.landform) }
-                // On unless the Age said otherwise — `biomes.footing=free` is the lever, and an Age whose
-                // biomes ignore its land is allowed rather than broken. See [Grounding] and [Biomes.FOOTING].
-                .suitedTo(
-                    if (ourGround == null || !Biomes.groundsBiomes(biomeOptions)) null
-                    // A shore is where the Age's one sea meets whichever territory reaches it, so a single
-                    // island territory is enough to make the coast sand — the level it stands at is already
-                    // Age-wide.
-                    else Grounding(
-                        ourGround.landform,
-                        seaFill.level,
-                        // Whether anything is actually poured at that level. A sea of air leaves the
-                        // waterline standing with nothing in it, and measuring against it drowns the map.
-                        hasSea = seaFill.blocks.any { !it.isAir },
-                        rivers = standing,
-                        declared = Grounding.Declared.of(
-                            composition.terrains.mapIndexed { member, terrain ->
-                                terrain.grounding(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), sea)
-                            },
-                            seaIsShared = sea?.isShared == true,
-                        ),
-                        table = table,
-                        // An Age written before generator 20 reads one sea and its relief everywhere, as it did.
-                        seas = seaFill.territories.takeIf { table != null },
-                        keepsItsCoast = table != null,
-                    ),
-                )
-                // Age-wide like the shore and the treeline: the band is a pair of heights, and an Age has
-                // one set of those however many territories divide it.
-                .banded(
-                    listOfNotNull(
-                        // Age-wide like the shore and the treeline: the band is a pair of heights, and an
-                        // Age has one set of those however many territories divide it.
-                        composition.terrains
-                            .withIndex()
-                            .firstNotNullOfOrNull { (member, terrain) ->
-                                terrain.undergroundBand(
-                                    composition.underground,
-                                    composition.optionsFor(Aspect.UNDERGROUND, 0),
-                                    window,
-                                    composition.optionsFor(Aspect.TERRAIN, member),
-                                    saltFor(seed, member),
-                                    sea,
-                                )
-                            }
-                            ?.let { band -> BiomeBand(greatHallBiome(server), band.first, band.last) },
-                        // And the abyss, which is the same mechanism for the same reason: eighty blocks of
-                        // sea is a place, and no climate axis means it. Its biome is what keeps anything
-                        // from growing down there — a feature list is a biome's, so an empty one is a rule.
-                        // **Above the sea bed only**, or every cave under the floor comes out as abyss and
-                        // the ordinary cave biomes are clobbered — see [BiomeBand.above].
-                        abyssLineOf(seaSurfaceY, window)
-                            ?.takeIf { ourGround != null && seaIsWater }
-                            ?.let { line ->
-                                BiomeBand(abyssBiome(server), window.minY, line, ourGround?.rock?.landform, seaFill.takeIf { table != null })
-                            },
-                    ),
-                )
-                .holding(if (grounds == null) emptyList() else landformBiomesIn(server, composition, ground, seed, table, sea)),
+            // Age-wide like the shore and the treeline: the band is a pair of heights, and an Age has
+            // one set of those however many territories divide it.
+            .banded(
+                listOfNotNull(
+                    // Age-wide like the shore and the treeline: the band is a pair of heights, and an
+                    // Age has one set of those however many territories divide it.
+                    composition.terrains
+                        .withIndex()
+                        .firstNotNullOfOrNull { (member, terrain) ->
+                            terrain.undergroundBand(
+                                composition.underground,
+                                composition.optionsFor(Aspect.UNDERGROUND, 0),
+                                window,
+                                composition.optionsFor(Aspect.TERRAIN, member),
+                                saltFor(seed, member),
+                                sea,
+                            )
+                        }
+                        ?.let { band -> BiomeBand(greatHallBiome(server), band.first, band.last) },
+                    // And the abyss, which is the same mechanism for the same reason: eighty blocks of
+                    // sea is a place, and no climate axis means it. Its biome is what keeps anything
+                    // from growing down there — a feature list is a biome's, so an empty one is a rule.
+                    // **Above the sea bed only**, or every cave under the floor comes out as abyss and
+                    // the ordinary cave biomes are clobbered — see [BiomeBand.above].
+                    abyssLineOf(seaSurfaceY, window)
+                        ?.takeIf { ourGround != null && seaIsWater }
+                        ?.let { line ->
+                            BiomeBand(abyssBiome(server), window.minY, line, ourGround?.rock?.landform, seaFill.takeIf { table != null })
+                        },
+                ),
+            )
+            .holding(if (grounds == null) emptyList() else landformBiomesIn(server, composition, ground, seed, table, sea))
+        return AgeChunkGenerator(
+            biomeSource,
             ourGround?.rock ?: AgeRock.Vanillas(
                 Holder.direct(
                     vanillasRockFor(
@@ -454,11 +456,14 @@ object AgeGeneration {
                 composition.optionsFor(Aspect.SPAWNS, 0),
                 Vocabulary.of(server).spawning,
                 WhereThingsGrow.creaturesListed(server.registryAccess()),
+                seed,
+                VariedInhabitants.joiningIn(biomeSource.possibleBiomes()),
             ),
             spawnCaps = Spawns.capsOf(composition.optionsFor(Aspect.SPAWNS, 0)),
             landformArrival = if (grounds == null) null else landformArrivalIn(composition, ground, seed),
             nothingLives = Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0)),
             incongruity = Incongruity.of(composition),
+            structureHomes = structureHomesIn(composition, biomeSource, seed),
             vanillasAbyss = vanillasAbyss,
             seaIsWater = seaIsWater,
             structuresBuiltOf = StructureMaterials.Written.of(composition.optionsFor(Aspect.STRUCTURES), seed),
@@ -1100,6 +1105,12 @@ object AgeGeneration {
     }
 
     /** The column a landform asks a link to arrive on, where that column is its own territory's; null for none. */
+    /** Where the structures may stand in a `varied structures` Age, or null where each keeps its own biomes. */
+    private fun structureHomesIn(composition: AgeComposition, biomeSource: BiomeSource, seed: Long): LooserHomes.Homes? {
+        val variety = composition.optionsFor(Aspect.STRUCTURES, 0).steer(Structures.VARIETY, seed) ?: return null
+        return if (variety <= 0.0) null else LooserHomes.Homes(biomeSource.possibleBiomes(), variety.coerceAtMost(1.0))
+    }
+
     private fun landformArrivalIn(composition: AgeComposition, ground: RegionMap, seed: Long): ColumnPos? =
         composition.terrains.withIndex().firstNotNullOfOrNull { (member, terrain) ->
             terrain.arrivalColumn(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member))
