@@ -24,21 +24,12 @@
     },
     {
       "sets": {
-        "features.incongruous": "true"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "inhabitants.incongruous": "true"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
+        "features.incongruous": "true",
+        "inhabitants.incongruous": "true",
         "structures.incongruous": "true"
       },
-      "must_always_apply": true
+      "must_always_apply": true,
+      "broad": true
     },
     {
       "sets": {

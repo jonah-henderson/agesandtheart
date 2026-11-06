@@ -20,6 +20,7 @@ import co.voik.agesandtheart.preview.authoring.Trial
 import co.voik.agesandtheart.preview.authoring.Verdict
 import co.voik.agesandtheart.preview.authoring.WordFile
 import co.voik.agesandtheart.preview.authoring.asserting
+import co.voik.agesandtheart.preview.authoring.broadened
 import co.voik.agesandtheart.preview.authoring.changingMeaning
 import co.voik.agesandtheart.preview.authoring.mustAlways
 import co.voik.agesandtheart.preview.authoring.offering
@@ -429,6 +430,7 @@ class Editor(
             key.key == "-" -> step(here, -A_STEP)
             key.key == "m" && here is Handle.MeaningHead -> edit { it.changingMeaning(here.meaning) { meaning -> meaning.mustAlways(!meaning.mustAlwaysApply) } }
             key.key == "s" && here is Handle.MeaningHead -> edit { it.changingMeaning(here.meaning) { meaning -> meaning.asserting(!meaning.asserts) } }
+            key.key == "b" && here is Handle.MeaningHead -> edit { it.changingMeaning(here.meaning) { meaning -> meaning.broadened(!meaning.broad) } }
             key.key == "a" && parts.isAList(part) -> add(here)
             key.key == "d" && parts.isAList(part) -> remove(here)
         }
@@ -683,6 +685,7 @@ class Editor(
                 Picker.Option(AIMED, "a chance where aimed", "${meaning.chanceToApply}"),
                 Picker.Option(BARE, "a chance laid bare", meaning.unaimedChanceToApply?.toString() ?: "the Art's share of the aimed chance"),
                 Picker.Option(ASSERTS, if (meaning.asserts) "stop asserting" else "asserts", "needs nothing to land on, and lands alone where nothing takes it", startsGroup = true),
+                Picker.Option(BROAD, if (meaning.broad) "stop being broad" else "broad", "laid bare, at every place it reaches rather than some"),
                 Picker.Option(OFFERED, "offered to", meaning.offeredTo.sorted().joinToString(" ").ifEmpty { "whatever takes its page" }),
             ),
         ) { picked ->
@@ -696,6 +699,7 @@ class Editor(
                     edit { it.changingMeaning(at) { meaning -> meaning.withUnaimedChance(chance) } }
                 }
                 ASSERTS -> edit { it.changingMeaning(at) { meaning -> meaning.asserting(!meaning.asserts) } }
+                BROAD -> edit { it.changingMeaning(at) { meaning -> meaning.broadened(!meaning.broad) } }
                 OFFERED -> askWhoItIsOfferedTo(at, meaning)
             }
         }
@@ -1235,6 +1239,7 @@ class Editor(
         const val AIMED = "aimed"
         const val BARE = "bare"
         const val ASSERTS = "asserts"
+        const val BROAD = "broad"
         const val OFFERED = "offered"
         const val SETS = "sets"
         const val BENDS = "bends"

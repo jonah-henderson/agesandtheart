@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.LinkAnchor
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Polarity
+import co.voik.agesandtheart.age.aspect.Prism
 import co.voik.agesandtheart.age.language.ShippedLexicon.read
 import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.resolution.Landing
@@ -20,7 +21,21 @@ class ReadingCheck : FunSpec({
 
     fun Reading.landedBy(page: Int): List<Landing> = landings.filter { it.page == page }
 
-    fun Landing.sets(parameter: String) = effects.any { it is Effect.Sets && it.parameter.name == parameter }
+    fun Landing.sets(parameter: String): Boolean = effects.any { it is Effect.Sets && it.parameter.name == parameter }
+
+    test("a broad meaning laid bare lands at every place it reaches, on every seed, and aimed only where it is aimed") {
+        val everyColourPart = setOf(Aspect.SKY, Aspect.AIR, Aspect.WATERS, Aspect.SUN, Aspect.GRASS, Aspect.LEAVES, Aspect.CLOUD)
+        for (seed in 0L..<SEEDS_TRIED) {
+            val cycling = read("age prismatic", seed).landings.filter { landing -> landing.sets(Prism.CYCLING.name) }.map { it.place.aspect }.toSet()
+            check(cycling.containsAll(setOf(Aspect.SKY, Aspect.AIR, Aspect.CLOUD, Aspect.SUN, Aspect.MOON, Aspect.STARS, Aspect.AURORA, Aspect.WATERS))) {
+                "prismatic on seed $seed turned only $cycling"
+            }
+            val whitened = read("age colourless", seed).landings.filter { landing -> landing.sets("colour") }.map { it.place.aspect }.toSet()
+            check(whitened.containsAll(everyColourPart)) { "colourless on seed $seed whitened only $whitened" }
+        }
+        val aimed = read("age prismatic sun").landings.filter { it.sets(Prism.CYCLING.name) }.map { it.place.aspect }.toSet()
+        check(aimed == setOf(Aspect.SUN)) { "prismatic sun turned $aimed" }
+    }
 
     test("a book with no `age` page does not read, and a page that is no word is unread") {
         check(Reader.read(ShippedLexicon.lexicon, listOf("frozen", "climate"), 0L) == null) { "a book read with no age" }
@@ -204,3 +219,6 @@ private const val PARROT = "minecraft:parrot"
 
 /** What `plentiful` asks, and so what `herds of` does where no amount was said. */
 private const val PLENTIFUL = 2.0
+
+/** How many seeds a broad meaning is read on. */
+private const val SEEDS_TRIED = 12L

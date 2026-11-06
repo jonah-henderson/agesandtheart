@@ -29,7 +29,8 @@
         "leaves.colour": "white",
         "clouds.colour": "white"
       },
-      "must_always_apply": true
+      "must_always_apply": true,
+      "broad": true
     },
     {
       "sets": {

@@ -34,51 +34,10 @@
     },
     {
       "sets": {
-        "sky.cycling": "true"
+        "cycling": "true"
       },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "air.cycling": "true"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "clouds.cycling": "true"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "sun.cycling": "true"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "moon.cycling": "true"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "stars.cycling": "true"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "aurora.cycling": "true"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "waters.cycling": "true"
-      },
-      "must_always_apply": true
+      "must_always_apply": true,
+      "broad": true
     },
     {
       "sets": {

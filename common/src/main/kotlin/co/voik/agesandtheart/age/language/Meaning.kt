@@ -22,6 +22,12 @@ data class Meaning(
      * whole, each effect where that word would take it or at its own place — `charged sky`, an aurora.
      */
     val offeredTo: Set<String> = emptySet(),
+    /**
+     * Whether, laid bare, this lands at every place it reaches rather than at some of them: drawn once on its chance,
+     * certain where it must always apply — `prismatic` turning everything, `colourless` draining everything. Aimed, a
+     * word lands where it is aimed whatever this says.
+     */
+    val broad: Boolean = false,
 ) {
     /** Whether this is for particular words rather than for whatever takes its page. */
     val isOffered: Boolean get() = offeredTo.isNotEmpty()

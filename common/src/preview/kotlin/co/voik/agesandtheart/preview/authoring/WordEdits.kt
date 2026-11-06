@@ -60,8 +60,11 @@ fun Meaning.withUnaimedChance(chance: Double?): Meaning =
 
 fun Meaning.asserting(asserts: Boolean): Meaning = copy(asserts = asserts)
 
-/** Offered to [words] only, or to whatever takes its page where there are none. */
-fun Meaning.offering(words: Set<String>): Meaning = copy(offeredTo = words)
+/** Laid bare, at every place it reaches rather than some — which an offered meaning, never laid bare, cannot be. */
+fun Meaning.broadened(broad: Boolean): Meaning = copy(broad = broad && !isOffered)
+
+/** Offered to [words] only, or to whatever takes its page where there are none — and so no longer broad, if it was. */
+fun Meaning.offering(words: Set<String>): Meaning = copy(offeredTo = words, broad = broad && words.isEmpty())
 
 /** Whether two effects are one kind at one place, so that a file holds them as one. */
 private fun sharesAPlaceWith(one: Effect, other: Effect): Boolean = when {

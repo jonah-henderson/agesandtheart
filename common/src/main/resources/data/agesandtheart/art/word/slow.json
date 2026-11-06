@@ -9,87 +9,17 @@
   "meanings": [
     {
       "sets": {
-        "weather.pace": "-1.0..-0.6"
+        "pace": "-1.0..-0.6"
       },
-      "must_always_apply": true
+      "must_always_apply": true,
+      "broad": true
     },
     {
       "sets": {
-        "sky.pace": "-1.0..-0.6"
+        "cycle_pace": "-1.0..-0.6"
       },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "inhabitants.pace": "-1.0..-0.6"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "sun.pace": "-1.0..-0.6"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "moon.pace": "-1.0..-0.6",
-        "phenomena.pace": "-1.0..-0.6"
-      }
-    },
-    {
-      "sets": {
-        "clouds.pace": "-1.0..-0.6"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "sky.cycle_pace": "-1.0..-0.6"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "air.cycle_pace": "-1.0..-0.6"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "clouds.cycle_pace": "-1.0..-0.6"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "sun.cycle_pace": "-1.0..-0.6"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "moon.cycle_pace": "-1.0..-0.6"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "stars.cycle_pace": "-1.0..-0.6"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "aurora.cycle_pace": "-1.0..-0.6"
-      },
-      "must_always_apply": true
-    },
-    {
-      "sets": {
-        "waters.cycle_pace": "-1.0..-0.6"
-      },
-      "must_always_apply": true
+      "must_always_apply": true,
+      "broad": true
     }
   ]
 }

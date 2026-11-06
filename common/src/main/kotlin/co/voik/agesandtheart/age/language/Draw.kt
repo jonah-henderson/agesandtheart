@@ -12,7 +12,9 @@ import kotlin.random.Random
  *   apply times [Meaning.BARE_CHANCE] where it names none;
  * - alternatives — one page setting the same parameters at one place, or minting — land as one, and which by their
  *   chances;
- * - a meaning that must always apply lands at least once, and a page with none lands at least one claim.
+ * - a meaning that must always apply lands at least once, and a page with none lands at least one claim;
+ * - a broad meaning laid bare is drawn once, and lands at every place it reaches or at none, winning each place over
+ *   the alternatives it meets there.
  */
 internal object Draw {
 
@@ -29,22 +31,50 @@ internal object Draw {
 
     private fun landedOf(ofThePage: List<IndexedValue<Claim>>, random: Random): List<Claim> {
         val landed = sortedSetOf<Int>()
+        val broadDrawn = broadMeaningsDrawn(ofThePage, random)
+        fun isOfADrawnBroadMeaning(claim: Claim) = isBroadHere(claim) && broadDrawn.any { it === claim.meaning }
+        fun isOfAnUndrawnBroadMeaning(claim: Claim) = isBroadHere(claim) && broadDrawn.none { it === claim.meaning }
         for (alternatives in ofThePage.groupBy { alternativesKey(it.value) ?: it.index }.values) {
-            val chance = alternatives.maxOf { chanceOf(it.value) }
-            if (random.nextDouble() < chance) landed += pickedFrom(alternatives, random).index
+            val broad = alternatives.firstOrNull { isOfADrawnBroadMeaning(it.value) }
+            if (broad != null) {
+                landed += broad.index
+                continue
+            }
+            val drawable = alternatives.filterNot { isOfAnUndrawnBroadMeaning(it.value) }
+            if (drawable.isEmpty()) continue
+            val chance = drawable.maxOf { chanceOf(it.value) }
+            if (random.nextDouble() < chance) landed += pickedFrom(drawable, random).index
         }
         // In the order the page holds them, so a book draws the same every time; by identity, since two meanings of
-        // one word may be equal and still be two meanings.
+        // one word may be equal and still be two meanings. A broad one laid bare has been drawn whole already.
         val mustApply = mutableListOf<Meaning>()
-        for (meaning in ofThePage.map { it.value.meaning }) {
+        for ((claim, meaning) in ofThePage.map { it.value to it.value.meaning }) {
+            if (isBroadHere(claim)) continue
             if (meaning.mustAlwaysApply && mustApply.none { it === meaning }) mustApply += meaning
         }
         for (meaning in mustApply) {
             val its = ofThePage.filter { it.value.meaning === meaning }
             if (its.none { it.index in landed }) landed += its[random.nextInt(its.size)].index
         }
-        if (landed.isEmpty() && ofThePage.isNotEmpty()) landed += ofThePage.maxBy { chanceOf(it.value) }.index
+        if (landed.isEmpty() && ofThePage.isNotEmpty()) {
+            val likeliest = ofThePage.maxBy { chanceOf(it.value) }
+            // A broad meaning lands whole or not at all, so where it is the one landed, it lands everywhere it reaches.
+            val its = if (isBroadHere(likeliest.value)) ofThePage.filter { it.value.meaning === likeliest.value.meaning } else listOf(likeliest)
+            landed += its.map { it.index }
+        }
         return ofThePage.filter { it.index in landed }.map { it.value }
+    }
+
+    /** Whether [claim] is of a broad meaning laid bare, which is drawn once for every place it reaches. */
+    private fun isBroadHere(claim: Claim): Boolean = claim.meaning.broad && !claim.aimed
+
+    /** The broad meanings laid bare on this page that land, each drawn once: certain where it must always apply. */
+    private fun broadMeaningsDrawn(ofThePage: List<IndexedValue<Claim>>, random: Random): List<Meaning> {
+        val broad = mutableListOf<Claim>()
+        for (claim in ofThePage.map { it.value }) {
+            if (isBroadHere(claim) && broad.none { it.meaning === claim.meaning }) broad += claim
+        }
+        return broad.filter { claim -> claim.meaning.mustAlwaysApply || random.nextDouble() < chanceOf(claim) }.map { it.meaning }
     }
 
     /** What makes claims alternatives: the place, and the parameters they set or that they mint. */

@@ -105,7 +105,8 @@ class Parts(private val corpus: Corpus) {
         Handle.Name, Handle.Display -> listOf("enter" to "rename it")
         Handle.Speech, Handle.Rarity, Handle.InkQuality -> listOf("enter" to "choose one")
         is Handle.MeaningHead -> listOf(
-            "enter" to "how likely", "- =" to "the chance aimed", "m" to "must always", "s" to "asserts", "d" to "remove it",
+            "enter" to "how likely", "- =" to "the chance aimed", "m" to "must always", "s" to "asserts", "b" to "broad",
+            "d" to "remove it",
         )
         is Handle.Entry -> if (handle.isAWeight) {
             listOf("enter" to "type it", "- =" to "step it", "d" to "remove it")
@@ -216,6 +217,7 @@ class Parts(private val corpus: Corpus) {
             Ink("meaning ${at + 1}  ", Palette.heading),
             Ink(how, Palette.value),
             Ink(if (meaning.asserts) "  · asserts" else "", Palette.chosen),
+            Ink(if (meaning.broad) "  · broad" else "", Palette.chosen),
             Ink(if (meaning.isOffered) "  · offered to ${meaning.offeredTo.sorted().joinToString(" ")}" else "", Palette.chosen),
         )
     }
@@ -225,6 +227,7 @@ class Parts(private val corpus: Corpus) {
         append("    aimed, a chance; laid bare, its own or the aimed chance times the Art's ${percent(Meaning.BARE_CHANCE)}\n")
         append("    must always apply: aimed, it does; laid bare, at one place it reaches at least\n")
         if (meaning.asserts) append("    asserts: it needs nothing to land on, and lands alone where nothing takes it\n")
+        if (meaning.broad) append("    broad: laid bare, drawn once and landing at every place it reaches\n")
         if (meaning.isOffered) append("    offered: it applies only where one of the words it is offered to takes it, and lands whole there")
     }
 

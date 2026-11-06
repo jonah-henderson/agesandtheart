@@ -54,6 +54,9 @@ class WordCheck : FunSpec({
         }
         check(parsed("""{"meanings": [{"sets": {"size": "1..1"}, "chance_to_apply": 1.5}]}""").isError) { "a chance of 1.5 read" }
         check(parsed("""{"meanings": [{"leans": {"nowhere": {"#lush": 1}}}]}""").isError) { "a lean on no part of the world read" }
+        check(parsed("""{"meanings": [{"sets": {"size": "1..1"}, "broad": true, "offered_to": ["sun"]}]}""").isError) {
+            "a broad meaning offered to words read, though an offered meaning is never laid bare"
+        }
     }
 
     test("a block laid bare is the rock or the skin or both, a sea where it pours, structures only aimed, now and then a formation") {

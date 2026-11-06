@@ -72,6 +72,7 @@ object WordFormat {
         val mustAlwaysApply: Boolean = false,
         val asserts: Boolean = false,
         val offeredTo: List<String> = emptyList(),
+        val broad: Boolean = false,
     ) {
         fun toMeaning(): DataResult<Meaning> {
             val leanings = leans.map { (on, weights) ->
@@ -99,7 +100,11 @@ object WordFormat {
             if (!chancesInRange) return DataResult.error { "a chance to apply is a share, from 0 to 1" }
             val alwaysAndSometimes = mustAlwaysApply && (chanceToApply != Meaning.CERTAIN || unaimedChanceToApply != null)
             if (alwaysAndSometimes) return DataResult.error { "a meaning that must always apply has no chance to give" }
-            return DataResult.success(Meaning(effects, chanceToApply, unaimedChanceToApply, mustAlwaysApply, asserts, offeredTo.toSet()))
+            val broadButOffered = broad && offeredTo.isNotEmpty()
+            if (broadButOffered) return DataResult.error { "a meaning offered to words never lands bare, so it cannot be broad" }
+            return DataResult.success(
+                Meaning(effects, chanceToApply, unaimedChanceToApply, mustAlwaysApply, asserts, offeredTo.toSet(), broad),
+            )
         }
 
         companion object {
@@ -123,6 +128,7 @@ object WordFormat {
                     mustAlwaysApply = meaning.mustAlwaysApply,
                     asserts = meaning.asserts,
                     offeredTo = meaning.offeredTo.toList(),
+                    broad = meaning.broad,
                 )
             }
 
@@ -149,11 +155,12 @@ object WordFormat {
                     Codec.BOOL.optionalFieldOf("must_always_apply", false).forGetter(MeaningFile::mustAlwaysApply),
                     Codec.BOOL.optionalFieldOf("asserts", false).forGetter(MeaningFile::asserts),
                     Codec.STRING.listOf().optionalFieldOf("offered_to", emptyList()).forGetter(MeaningFile::offeredTo),
+                    Codec.BOOL.optionalFieldOf("broad", false).forGetter(MeaningFile::broad),
                 ).apply(instance) { sets, bends, chooses, admits, excludes, restricts, leans, mints, template, abundance, chance,
-                                    unaimedChance, mustAlwaysApply, asserts, offeredTo ->
+                                    unaimedChance, mustAlwaysApply, asserts, offeredTo, broad ->
                     MeaningFile(
                         sets, bends, chooses, admits, excludes, restricts, leans, mints.orElse(null), template.orElse(null),
-                        abundance.orElse(null), chance, unaimedChance.orElse(null), mustAlwaysApply, asserts, offeredTo,
+                        abundance.orElse(null), chance, unaimedChance.orElse(null), mustAlwaysApply, asserts, offeredTo, broad,
                     )
                 }
             }
