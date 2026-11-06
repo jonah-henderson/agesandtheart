@@ -242,6 +242,16 @@ enum class Underground(override val key: String) : AuthoredPreset {
             ),
         )
 
+        /** How often vanilla's large ore veins come, on vanilla's rock; ours has none. */
+        val VEINS = Parameter.ranged(
+            "veins",
+            help = "How often vanilla's large ore veins run through its rock, and how rich they are.",
+            landmarks = listOf(
+                Parameter.Landmark(0.0, "as often as ever"),
+                Parameter.Landmark(1.0, "far oftener, and richer"),
+            ),
+        )
+
         /** How many tunnels, passages, fissures or chambers there are, or how much of the rock noise caves open. */
         val DENSITY = Parameter.ranged(
             "density",

@@ -46,6 +46,7 @@ import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.CeilingField
 import co.voik.agesandtheart.worldgen.ClimateStretch
+import co.voik.agesandtheart.worldgen.RicherVeins
 import co.voik.agesandtheart.worldgen.WithoutCaves
 import co.voik.agesandtheart.worldgen.MagmaChamberField
 import co.voik.agesandtheart.worldgen.Dislocation
@@ -371,6 +372,7 @@ object AgeGeneration {
                         flooredForASea = seaUnderVanillasVoid,
                         climateStretch = if (vanillasClimateStretched) biomeStretch else UNSTRETCHED,
                         withoutCaves = vanillasCavesTaken,
+                        veinToggleScale = RicherVeins.toggleScaleAt(composition.optionsFor(Aspect.UNDERGROUND, 0).steer(Underground.VEINS, seed)),
                     ),
                 ),
             ),
@@ -509,6 +511,8 @@ object AgeGeneration {
         climateStretch: Double = UNSTRETCHED,
         /** Whether vanilla's own noise caves are taken out of the router — see [WithoutCaves]. */
         withoutCaves: Boolean = false,
+        /** How much stronger its large ore veins' toggle reads — see [RicherVeins]. */
+        veinToggleScale: Double = 1.0,
     ): NoiseGeneratorSettings {
         // Only a skin the writer actually named: `Surface.ruleFor` would otherwise delegate to the biomes
         // *through the field tree*, and there is none here to delegate through. Silence means vanilla's own
@@ -543,7 +547,9 @@ object AgeGeneration {
         // every `sea=` one of them ever named: lava asked for over the overworld came out water, and water
         // asked for over the nether came out lava (Jonah, 2026-08-25, walked).
         val sea = composition.seas.firstOrNull()?.substance() ?: theirs.defaultFluid()
-        val floored = if (flooredForASea) Holder.direct(SurfacingStrategy.withTheWorldFloor(skin.value())) else skin
+        val richer = RicherVeins.of(skin.value(), veinToggleScale)
+        val veined = if (richer === skin.value()) skin else Holder.direct(richer)
+        val floored = if (flooredForASea) Holder.direct(SurfacingStrategy.withTheWorldFloor(veined.value())) else veined
         return NoiseGeneratorSettings(
             theirs.noiseSettings(),
             fill.representative.takeUnless { fill == TerrainFill.PLAIN } ?: theirs.defaultBlock(),
