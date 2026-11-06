@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "A world begun from the nether: its biomes, its roof, its air and, where no other land is named, its rock. Once",
+    "`infernal`, retired into this when the landforms took the realms' names (Jonah, 2026-11-06), so `nether gentle` is",
+    "the nether over gentle hills. A writer who wants a lava sea in an ordinary Age says so with other words."
+  ],
+  "meanings": [
+    {
+      "template": "infernal",
+      "must_always_apply": true
+    },
+    {
+      "chooses": {
+        "landmass": "nether"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "landmass"
+      ]
+    }
+  ]
+}

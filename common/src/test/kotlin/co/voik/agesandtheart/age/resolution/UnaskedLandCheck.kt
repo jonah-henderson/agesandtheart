@@ -25,7 +25,7 @@ class UnaskedLandCheck : FunSpec({
     test("a named landform, or another world's rock, is kept") {
         for (seed in SEEDS) {
             check(resolved("age pillared landmass", seed).composition.terrains == listOf(Terrain.PILLARS))
-            check(resolved("infernal age", seed).composition.terrains == listOf(Terrain.NETHER))
+            check(resolved("nether age", seed).composition.terrains == listOf(Terrain.NETHER))
         }
     }
 

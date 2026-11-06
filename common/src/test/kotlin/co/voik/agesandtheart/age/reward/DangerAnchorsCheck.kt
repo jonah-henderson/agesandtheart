@@ -40,8 +40,8 @@ class DangerAnchorsCheck : FunSpec({
 
         /** Each Age as a writer writes it, and what it was rated. */
         private val ANCHORS = listOf(
-            "infernal age" to 0.5,
-            "dark_void age" to 0.45,
+            "nether age" to 0.5,
+            "end age" to 0.45,
             "age frozen climate blizzard phenomena" to 0.4,
             "age scorching climate volcanic features" to 0.4,
             "age tempest phenomena green aurora" to 0.05,

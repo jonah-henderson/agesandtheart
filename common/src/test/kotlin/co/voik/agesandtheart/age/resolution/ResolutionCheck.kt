@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.resolution
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.CompositionSpelling
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -185,6 +186,18 @@ class ResolutionCheck : FunSpec({
         check(coloursOf("age red inhabitants").everyCreature != null) { "red inhabitants left the creatures their own colours" }
         check(coloursOf("age red").isNone) { "a red Age recoloured its creatures" }
         check(coloursOf("age black sheep").isNone) { "black sheep recoloured the sheep rather than its wool" }
+    }
+
+    test("nether and end are the realms' whole worlds, their rock where it is the head's, and the old names read as them") {
+        fun worldOf(row: String) = resolved(row).let { it.template to it.composition.terrains }
+        check(worldOf("age nether") == (AgeTemplate.INFERNAL to listOf(Terrain.NETHER))) { "nether was ${worldOf("age nether")}" }
+        check(worldOf("age gentle nether") == (AgeTemplate.INFERNAL to listOf(Terrain.HILLS))) { "gentle nether was ${worldOf("age gentle nether")}" }
+        check(worldOf("age nether landmass") == (AgeTemplate.OVERWORLD to listOf(Terrain.NETHER))) {
+            "nether landmass was ${worldOf("age nether landmass")}"
+        }
+        check(worldOf("age end") == (AgeTemplate.DARK_VOID to listOf(Terrain.END))) { "end was ${worldOf("age end")}" }
+        check(worldOf("age infernal") == worldOf("age nether")) { "the retired infernal read as ${worldOf("age infernal")}" }
+        check(worldOf("age dark_void") == worldOf("age end")) { "the retired dark_void read as ${worldOf("age dark_void")}" }
     }
 
     test("what the reading charged and dropped reaches the instability, and the cost is every page's ink") {

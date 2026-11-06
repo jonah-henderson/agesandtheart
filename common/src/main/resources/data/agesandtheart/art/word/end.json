@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "A world begun from the end: its biomes, its void and its air, and where no other land is named, its rock. Once",
+    "`dark_void`, retired into this when the landforms took the realms' names (Jonah, 2026-11-06)."
+  ],
+  "meanings": [
+    {
+      "template": "dark_void",
+      "must_always_apply": true
+    },
+    {
+      "chooses": {
+        "landmass": "end"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "landmass"
+      ]
+    }
+  ]
+}

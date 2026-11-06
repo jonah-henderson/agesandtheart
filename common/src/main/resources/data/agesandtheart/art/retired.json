@@ -10,6 +10,8 @@
     "burning": "molten",
     "drowned": "flooded",
     "battered": "worn",
-    "spawns": "inhabitants"
+    "spawns": "inhabitants",
+    "infernal": "nether",
+    "dark_void": "end"
   }
 }
