@@ -40,6 +40,7 @@
       "abundance": 0.5,
       "must_always_apply": true,
       "offered_to": [
+        "clouds",
         "inhabitants",
         "stars"
       ]

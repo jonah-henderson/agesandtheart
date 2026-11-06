@@ -7,7 +7,8 @@
     "Laid bare, the weather and the phenomena each feel it one Age in four, since none of that is a thing to stumble",
     "into; a curtain and a bow are never brought in unasked.",
     "",
-    "On an eclipsing moon, a moon that never leaves its sun: an eclipse that does not end (EclipsingMoons)."
+    "On an eclipsing moon, a moon that never leaves its sun: an eclipse that does not end (EclipsingMoons).",
+    "`constant clouds`: clouds over most of the sky, never clearing."
   ],
   "meanings": [
     {
@@ -15,6 +16,15 @@
         "frequency": "1.0..1.0"
       },
       "unaimed_chance_to_apply": 0.25
+    },
+    {
+      "sets": {
+        "cover": "0.6..0.85"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "clouds"
+      ]
     }
   ]
 }

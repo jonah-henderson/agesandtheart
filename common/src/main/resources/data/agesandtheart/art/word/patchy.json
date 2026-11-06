@@ -10,7 +10,8 @@
     "It declares the landmass because mingling is a landform's parameter and nothing else has one; when",
     "something else grows a mixture, this word reaches it with no edit.",
     "",
-    "`patchy biomes` are small patches."
+    "`patchy biomes` are small patches.",
+    "`patchy clouds`: about vanilla's cloud, in broad patches with open sky between."
   ],
   "meanings": [
     {
@@ -26,6 +27,16 @@
       "must_always_apply": true,
       "offered_to": [
         "biomes"
+      ]
+    },
+    {
+      "sets": {
+        "cover": "-0.1..0.2",
+        "clumping": "0.6..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "clouds"
       ]
     }
   ]

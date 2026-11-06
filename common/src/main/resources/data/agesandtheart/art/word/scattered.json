@@ -1,7 +1,8 @@
 {
   "_comment": [
     "Broken into pieces and strewn: a landmass in scattered parts, every part leaning scattered, and whatever",
-    "stands set further apart."
+    "stands set further apart.",
+    "`scattered clouds`: less of the sky in cloud, and that in small bits."
   ],
   "meanings": [
     {
@@ -31,6 +32,16 @@
         }
       },
       "must_always_apply": true
+    },
+    {
+      "sets": {
+        "cover": "-0.5..-0.2",
+        "clumping": "-1.0..-0.6"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "clouds"
+      ]
     }
   ]
 }

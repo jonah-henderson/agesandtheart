@@ -63,6 +63,7 @@ object Sky {
             aurora = AuroraAspect.auroraIn(parts, seed),
             rainbow = RainbowAspect.rainbowIn(parts, seed),
             cloudPace = Atmosphere.cloudPaceOf(parts.optionsFor(Aspect.CLOUD), seed),
+            cloudPattern = CloudShape.patternIn(parts.optionsFor(Aspect.CLOUD), seed),
         )
     }
 

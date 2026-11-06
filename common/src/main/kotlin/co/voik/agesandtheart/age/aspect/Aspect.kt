@@ -361,7 +361,7 @@ enum class Aspect(
             )
             CLOUD -> listOf(
                 Atmosphere.CLOUD, Atmosphere.CEILING, Atmosphere.CLOUDS_ABSENT, Atmosphere.CLOUDPACE, Atmosphere.CLOUDS_STILL,
-                Prism.CYCLING, Prism.CYCLE_PACE,
+                Prism.CYCLING, Prism.CYCLE_PACE, CloudShape.COVER, CloudShape.CLUMPING, CloudShape.TORN, CloudShape.SIZE,
             )
             GRAVITY -> listOf(Gravity.PULL)
             SEA -> listOf(Sea.DEPTH)
@@ -511,7 +511,11 @@ enum class Aspect(
      * stars there are, as `teeming villages` is how many villages. Null where nothing of the aspect is
      * counted that way.
      */
-    val count: Count? get() = if (this == STARS) Count(SkyBodies.STARS, SkyBodies::starsAt) else null
+    val count: Count? get() = when (this) {
+        STARS -> Count(SkyBodies.STARS, SkyBodies::starsAt)
+        CLOUD -> Count(CloudShape.COVER, CloudShape::coverAt)
+        else -> null
+    }
 
     /**
      * What a rung laid on the page of a member this aspect seats counts: `few tunnels` is how many tunnels there are.
