@@ -106,14 +106,15 @@ object SkyBodies {
     val SUNCOLOUR = Sky.colour("colour", "The colour the suns burn.")
 
     /**
-     * How strongly a sun lights the day — `weak sun`, `strong sun`. Below vanilla's it holds the day toward night while
-     * the sun is up, the stars coming out and monsters walking at the far end (Ephemeris' `CelestialBody.dimming`).
-     * Vanilla's light is already the most the game gives, so above it the sun glares instead: a halo, a glare over the
-     * view facing it, and light lingering after it sets (`CelestialBody.glare`).
+     * How strongly a body shines — `weak sun`, `strong sun`, `bright moon`. Below vanilla's a sun holds the day toward
+     * night while it is up, the stars coming out and monsters walking at the far end (Ephemeris'
+     * `CelestialBody.dimming`). Vanilla's light is already the most the game gives, so above it a sun glares instead: a
+     * halo, a glare over the view facing it, and light lingering after it sets (`CelestialBody.glare`). A moon takes
+     * the halo, and its disc dims below vanilla's.
      */
-    val SUNLIGHT = Parameter.ranged(
+    val BODYLIGHT = Parameter.ranged(
         "light",
-        help = "How strongly the sun lights the day.",
+        help = "How strongly this body shines.",
         landmarks = listOf(
             Parameter.Landmark(-1.0, "as dark as night at noon"),
             Parameter.Landmark(-0.3, "a dusky noon"),
@@ -276,7 +277,7 @@ object SkyBodies {
         val unlit = isAMoon && own.isTrue(UNLIT)
         val phase = body.phase?.let(::pacedMonth)?.let { if (unlit) it.copy(steps = 1) else it }
         val shown = if (unlit) heldNew(appearance) else appearance
-        val light = own.steer(SUNLIGHT, seed)?.takeUnless { isAMoon }
+        val light = own.steer(BODYLIGHT, seed)
         val dimming = light?.let(::dimmingAt) ?: body.dimming
         val glare = light?.let(::glareAt) ?: body.glare
         return body.copy(appearance = shown, path = path, phase = phase, dimming = dimming, glare = glare)

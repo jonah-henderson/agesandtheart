@@ -6,7 +6,7 @@
     "",
     "It absorbed `glimmering`, which set the same glow (retired.json).",
     "",
-    "`bright sky` is a pale, clear vault; a bright sun or moon a larger one; `bright underground` glows."
+    "`bright sky` is a pale, clear vault; a bright sun a larger one that glares a little, a bright moon a larger one with a halo; `bright underground` glows."
   ],
   "meanings": [
     {
@@ -78,6 +78,24 @@
       "must_always_apply": true,
       "offered_to": [
         "underground"
+      ]
+    },
+    {
+      "sets": {
+        "sun.light": "0.3..0.6"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "sun"
+      ]
+    },
+    {
+      "sets": {
+        "moon.light": "0.4..0.8"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "moon"
       ]
     }
   ]

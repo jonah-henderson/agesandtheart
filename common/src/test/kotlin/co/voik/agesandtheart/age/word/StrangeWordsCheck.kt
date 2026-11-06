@@ -218,6 +218,8 @@ class StrangeWordsCheck : FunSpec({
             check(weak.dimming in 0.3f..1.0f) { "seed $seed: 'weak sun' dimmed it by ${weak.dimming}" }
             val strong = Sky.specFor(aimed(seed, "strong", "sun"), seed).bodies.first { it.phase == null }
             check(strong.glare in 0.3f..1.0f && strong.dimming == 0.0f) { "seed $seed: 'strong sun' gave $strong" }
+            val brightMoon = Sky.specFor(aimed(seed, "bright", "moon"), seed).bodies.first { it.phase != null }
+            check(brightMoon.glare > 0.0f) { "seed $seed: 'bright moon' has no halo" }
             val moonlit = Sky.specFor(aimed(seed, "weak", "moon"), seed).bodies
             check(moonlit.all { it.dimming == 0.0f }) { "seed $seed: 'weak moon' dimmed $moonlit" }
         }
