@@ -2,7 +2,6 @@ package co.voik.agesandtheart.mixin;
 
 import co.voik.agesandtheart.generation.IncongruousStructures;
 import co.voik.agesandtheart.generation.JigsawSizes;
-import co.voik.agesandtheart.generation.StructureHeights;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.Structure;
@@ -18,8 +17,6 @@ import java.util.Optional;
  * In an {@code incongruous structures} Age, a village, an ancient city or any other jigsaw structure starts at the
  * height drawn for it — on the sea floor, in the sky, buried, deep, or out on the surface ({@link
  * IncongruousStructures}).
- *
- * <p>A height a book set ({@code buried villages}) wins over a drawn one ({@link StructureHeights}).
  *
  * <p>And in an Age that sized one ({@code colossal villages}), its pieces are laid deeper or shallower and reach
  * further or nearer from the start ({@link JigsawSizes}): arguments 3 and 7, the depth and the reach.
@@ -42,8 +39,7 @@ public abstract class JigsawStructureMixin {
     private void agesandtheart$startAnywhere(Args args) {
         BlockPos start = args.get(4);
         Optional<Heightmap.Types> projection = args.get(6);
-        IncongruousStructures.JigsawStart set = StructureHeights.jigsawStart((Structure) (Object) this, start);
-        IncongruousStructures.JigsawStart moved = set != null ? set : IncongruousStructures.jigsawStart(start, projection);
+        IncongruousStructures.JigsawStart moved = IncongruousStructures.jigsawStart(start, projection);
         if (moved != null) {
             args.set(4, moved.getAt());
             args.set(6, moved.getProjection());

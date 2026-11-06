@@ -831,15 +831,13 @@ class AgeChunkGenerator(
         StrangeGround.startingStructures(consequence) {
             DeepWrecks.starting(biomeSource.possibleBiomes()) {
                 JigsawSizes.starting(jigsawSizes) {
-                    StructureHeights.starting(structureHeights) {
-                        LooserHomes.starting(structureHomes) {
-                            if (incongruity.structures) {
-                                IncongruousStructures.starting(state.levelSeed, biomeSource.possibleBiomes()) {
-                                    super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
-                                }
-                            } else {
+                    LooserHomes.starting(structureHomes) {
+                        if (incongruity.structures) {
+                            IncongruousStructures.starting(state.levelSeed, biomeSource.possibleBiomes()) {
                                 super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
                             }
+                        } else {
+                            super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
                         }
                     }
                 }
@@ -852,8 +850,9 @@ class AgeChunkGenerator(
                 centerChunk.setStartForStructure(structure, StructureStart.INVALID_START)
                 continue
             }
-            val settled = settledOverTheVoid(start, centerChunk, state.randomState())
-            if (settled !== start) centerChunk.setStartForStructure(structure, settled)
+            // Moved to the height a book set it at last, so the sea and the void judge it where vanilla built it.
+            val placed = StructureHeights.moved(settledOverTheVoid(start, centerChunk, state.randomState()), structureHeights)
+            if (placed !== start) centerChunk.setStartForStructure(structure, placed)
         }
     }
 

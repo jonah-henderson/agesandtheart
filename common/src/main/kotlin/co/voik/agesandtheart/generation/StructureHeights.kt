@@ -8,24 +8,22 @@ import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.util.Mth
-import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.structure.Structure
-import java.util.Optional
+import net.minecraft.world.level.levelgen.structure.StructureStart
+import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
 /**
  * The height a book set an Age's jigsaw structures at — `buried villages` under the ground, `lost structures` under it
- * and abandoned — off a thread-local the Age's generator sets around its own structure starts, as [JigsawSizes] are.
- * Asked by `JigsawStructureMixin` before [IncongruousStructures]: a height a writer named is not drawn.
+ * and abandoned. **The whole start is moved once it is built** ([moved]), every piece by the same distance: a village's
+ * streets are laid on the terrain whatever height its start was given, and its houses hang off its streets, so lowering
+ * the start alone left all but its centre on the surface (walked).
  *
- * **Jigsaws only.** A temple or an igloo sits on the ground through two helpers vanilla also reads to refuse a start
- * below sea level, and its piece finds its own height again as it is built, so burying one through them only refuses
- * it.
+ * **Jigsaws only.** A temple or an igloo finds its own height again as its piece is built, so moving its start moves
+ * nothing.
  */
 object StructureHeights {
-
-    private val placing = ThreadLocal<Map<Structure, Double>?>()
 
     /** Each structure [options] set a height for, keyed on the registry's own, at [salt]'s draw in its span. */
     fun of(server: MinecraftServer, options: Options, salt: Long): Map<Structure, Double> {
@@ -41,16 +39,13 @@ object StructureHeights {
         return heights
     }
 
-    /** [starting] with [heights] read by the jigsaws it lays. */
-    fun starting(heights: Map<Structure, Double>, starting: () -> Unit) {
-        if (heights.isEmpty()) return starting()
-        val was = placing.get()
-        placing.set(heights)
-        try {
-            starting()
-        } finally {
-            placing.set(was)
-        }
+    /** [start], every piece moved to the height [heights] set its structure at, or [start] itself where none was set. */
+    fun moved(start: StructureStart, heights: Map<Structure, Double>): StructureStart {
+        if (!start.isValid) return start
+        val height = heights[start.structure] ?: return start
+        val by = offsetAt(height, start.chunkPos.getMiddleBlockPosition(0)) ?: return start
+        for (piece in start.pieces) piece.move(0, by, 0)
+        return StructureStart(start.structure, start.chunkPos, start.references, PiecesContainer(start.pieces))
     }
 
     /**
@@ -69,14 +64,6 @@ object StructureHeights {
         val draw = Random(start.x.toLong() * START_X_MIXER xor start.z.toLong() * START_Z_MIXER)
         if (draw.nextDouble() >= depth.toDouble() / SURELY_SUNK) return null
         return -(1 + draw.nextInt(depth))
-    }
-
-    /** A jigsaw [structure]'s start set at its height over the surface, or null to leave it. */
-    @JvmStatic
-    fun jigsawStart(structure: Structure, start: BlockPos): IncongruousStructures.JigsawStart? {
-        val height = placing.get()?.get(structure) ?: return null
-        val by = offsetAt(height, start) ?: return null
-        return IncongruousStructures.JigsawStart(start.atY(by), Optional.of(Heightmap.Types.WORLD_SURFACE_WG))
     }
 
     /** How deep the whole of the dial buries a structure, and the depth from which every start is buried. */

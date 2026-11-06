@@ -443,8 +443,9 @@ When shared code needs something loader-specific, it goes through an interface, 
   handed to `JigsawPlacement.addPieces` in one call; every structure that sits on the ground asks through two
   shared `Structure` helpers. No loader event reaches any of them, and all three answer off a thread-local the
   Age's generator sets around its own structure starts. `JigsawStructureMixin` also lays a sized jigsaw's pieces
-  deeper or shallower (`generation/JigsawSizes`, `colossal villages`) and starts one at the height a book set
-  (`generation/StructureHeights`, `buried villages`), each off a thread-local of its own. **`OceanMonumentStructureMixin`** joins them for the one
+  deeper or shallower (`generation/JigsawSizes`, `colossal villages`), off a thread-local of its own; a height a book
+  set (`buried villages`) is no Mixin's, since the generator moves the whole built start (`generation/StructureHeights`).
+  **`OceanMonumentStructureMixin`** joins them for the one
   structure with a biome check of its own, the ring of ocean a monument asks for around it. And the structure
   state is built over `StructuresAnywhere`, so no set is dropped for want of its biomes before any of this is asked.
 - **`StructureStartMixin`** — what a book built the Age's structures of, and how they weathered (`generation/StructureMaterials`, `generation/StructureWeathering`: `eroded villages` crumble, `ashen structures` burn):
