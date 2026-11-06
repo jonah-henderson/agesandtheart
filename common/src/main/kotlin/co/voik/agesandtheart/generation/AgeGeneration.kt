@@ -162,6 +162,7 @@ object AgeGeneration {
             table,
             sea,
             eases = if (merged) composition.terrains.map(Terrain::reconciles) else emptyList(),
+            seenFromNextDoor = if (merged && grounds != null) seenFromNextDoor(composition, grounds, seed, table, sea) else emptyList(),
         )
         val drawnSeam = DrawnSeam.of(landmass, composition.terrains)
         val ourGround = grounds?.let { ourGround(composition, it, drawnSeam, territories, window, seed, torn, overlay, dislocation) }
@@ -966,11 +967,30 @@ object AgeGeneration {
         val table: TerrainTable?,
         val sea: Terrain.SeaSetting?,
         private val eases: List<Boolean> = emptyList(),
+        private val seenFromNextDoor: List<TerrainField> = emptyList(),
     ) {
         fun divided(members: List<TerrainField>, keepsFloor: Boolean = false, staysInItsBanks: Boolean = false): TerrainField =
             if (guides == null) Regions.of(members, map)
             // An Age written before the table eases its water with its rock, as it did.
-            else Reconciled.of(members, guides, map, RECONCILED_BLOCKS, keepsFloor, staysInItsBanks && table != null, eases)
+            else Reconciled.of(members, guides, map, RECONCILED_BLOCKS, keepsFloor, staysInItsBanks && table != null, eases, seenFromNextDoor)
+    }
+
+    /**
+     * How each landform is read by the territories beside it: pillars and pyramids as the ground beneath them, every
+     * other as its own rock — or every one as its rock, where an Age written before generator 23 read them so.
+     */
+    private fun seenFromNextDoor(
+        composition: AgeComposition,
+        grounds: List<Terrain.Ground>,
+        seed: Long,
+        table: TerrainTable?,
+        sea: Terrain.SeaSetting?,
+    ): List<TerrainField> {
+        if (composition.anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_EASING)) return emptyList()
+        return composition.terrains.mapIndexed { member, terrain ->
+            terrain.seenFromNextDoor(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), table, sea)
+                ?: grounds[member].shape
+        }
     }
 
     /** How far either side of a seam two reconciled landforms are eased into one another. */

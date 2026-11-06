@@ -95,6 +95,9 @@ object PyramidField {
     private val PYRAMID_HEIGHTS = listOf(8, 16, 24, 32)
 
     /** Two and a half times the tallest of the rest, before the size. */
+    /** The plain the pyramids stand on, without them: how a territory beside them reads their ground. */
+    fun plain(): TerrainField = Slab(lowY = VerticalWindow.MIN_Y, highY = GROUND_TOP)
+
     private const val GREAT_PYRAMID_HEIGHT = 80
     private const val GROUND_TOP = 63
     private const val SCATTER_SEED = 0x5EED_C0DEL

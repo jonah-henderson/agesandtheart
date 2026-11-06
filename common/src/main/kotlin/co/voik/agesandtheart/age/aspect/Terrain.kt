@@ -624,6 +624,21 @@ enum class Terrain(
     }
 
     /**
+     * How a territory beside this landform reads its ground where it eases into it, or null to read the landform itself:
+     * pillars and pyramids as the sea floor and the plain they stand on, lifted and varied as their rock is, so the
+     * ground next door slopes to theirs rather than taking the shape of their columns.
+     */
+    fun seenFromNextDoor(options: Options, salt: Long, table: TerrainTable? = null, sea: SeaSetting? = null): TerrainField? {
+        val beneath = when (this) {
+            PILLARS -> PillarField.seabed()
+            PYRAMIDS -> PyramidField.plain()
+            else -> return null
+        }
+        val lifted = liftTo(options, salt, sea)?.over(beneath) ?: beneath
+        return varied(lifted, options, salt, isRock = true, table, sea)
+    }
+
+    /**
      * What [underground] takes out of rock that is not ours, and the lakes it stands — what an Age wearing vanilla's
      * rock has cut into it after vanilla's own fill, between this terrain's floor and ceiling. Null where the
      * terrain has no room under it, or the underground takes nothing.
@@ -1054,6 +1069,11 @@ enum class Terrain(
          * give one of two landforms with nearby homes all the ground. Set on every Age written before then. No word
          * sets it.
          */
+        val FORMER_EASING = Parameter.flag(
+            "former_easing",
+            help = "Whether a neighbour reads pillars and pyramids as themselves, as before it read the ground beneath them.",
+        )
+
         val FORMER_LAYOUT = Parameter.flag(
             "former_layout",
             help = "Whether the landforms share the land as they did before each was sure of its share.",

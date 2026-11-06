@@ -58,6 +58,9 @@ object PillarField {
         return Union(listOf(seabed, pillars))
     }
 
+    /** The sea floor the pillars stand on, without them: how a territory beside them reads their ground. */
+    fun seabed(): TerrainField = Slab(lowY = VerticalWindow.MIN_Y, highY = SEABED_TOP)
+
     /** One pillar's footprint and height, authored around the local origin; the instancer translates each copy into place. */
     private data class PillarShape(val halfWidth: Int, val topY: Int) {
         fun sheer(): TerrainField = upTo(topY)

@@ -16,6 +16,10 @@ import kotlin.math.roundToInt
  * [guides] are the rock the heights are read from, index for index with [members]. The rock divided this way is
  * its own guide; water and hollows divided on the same map take the rock as theirs, and so move with it.
  *
+ * **A member is read from next door as [seenFromNextDoor] says**, where that is given: pillars and pyramids as the
+ * ground they stand on, since read as themselves a neighbour's ground was pulled up where one stood and down to the sea
+ * floor between, and gentle land came out cut into their columns (walked). Empty reads every member as its guide.
+ *
  * Moving a column whole by its own top would lift a river bed further than its banks and leave the water standing
  * proud of them, so surface water ([staysInItsBanks]) is moved by its own top instead, which comes out level with
  * the banks it stood level with.
@@ -31,6 +35,8 @@ data class Reconciled(
     val staysInItsBanks: Boolean = false,
     /** Which members are eased, index for index with [members]; empty for every one. One that is not keeps a hard seam. */
     val eases: List<Boolean> = emptyList(),
+    /** How each member is read by the territories beside it, index for index with [members]; empty for its guide. */
+    val seenFromNextDoor: List<TerrainField> = emptyList(),
 ) : TerrainField {
     override val kind = FieldKind.RECONCILED
 
@@ -61,8 +67,9 @@ data class Reconciled(
         val winnersTop = ownTop ?: guides[winner].columnSpans(worldX, worldZ).highestSolidY ?: return 0
         var weighed = winnersTop.toDouble()
         var weights = 1.0
+        val nextDoor = seenFromNextDoor.ifEmpty { guides }
         for (member in near) {
-            val top = guides[member].columnSpans(worldX, worldZ).highestSolidY ?: continue
+            val top = nextDoor[member].columnSpans(worldX, worldZ).highestSolidY ?: continue
             val weight = eased(1.0 - behind[member] / width)
             weighed += top * weight
             weights += weight
@@ -80,6 +87,7 @@ data class Reconciled(
         keepsFloor,
         staysInItsBanks,
         eases,
+        seenFromNextDoor.map { it.resized(factor, pivotY) },
     )
 
     companion object {
@@ -95,7 +103,9 @@ data class Reconciled(
             keepsFloor: Boolean,
             staysInItsBanks: Boolean = false,
             eases: List<Boolean> = emptyList(),
-        ): TerrainField = members.singleOrNull() ?: Reconciled(members, guides, map, width, keepsFloor, staysInItsBanks, eases)
+            seenFromNextDoor: List<TerrainField> = emptyList(),
+        ): TerrainField = members.singleOrNull()
+            ?: Reconciled(members, guides, map, width, keepsFloor, staysInItsBanks, eases, seenFromNextDoor)
 
         fun codec(self: Codec<TerrainField>): MapCodec<Reconciled> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -106,6 +116,7 @@ data class Reconciled(
                 Codec.BOOL.fieldOf("keeps_floor").forGetter(Reconciled::keepsFloor),
                 Codec.BOOL.optionalFieldOf("stays_in_its_banks", false).forGetter(Reconciled::staysInItsBanks),
                 Codec.BOOL.listOf().optionalFieldOf("eases", emptyList()).forGetter(Reconciled::eases),
+                self.listOf().optionalFieldOf("seen_from_next_door", emptyList()).forGetter(Reconciled::seenFromNextDoor),
             ).apply(instance, ::Reconciled)
         }
     }

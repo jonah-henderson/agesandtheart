@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen.field
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
+import co.voik.agesandtheart.age.FormerEasing
 import co.voik.agesandtheart.age.FormerUnsaidWear
 import co.voik.agesandtheart.age.FormerWear
 import co.voik.agesandtheart.age.FormerUniformity
@@ -69,6 +70,34 @@ class LandVarietyCheck : FunSpec({
         }
         check(keptOwnHeight > 0) { "no column stood far enough from a seam to keep its own height" }
         check(steepest <= STEEPEST_STEP) { "reconciled ground still steps $steepest blocks between neighbours" }
+    }
+
+    test("ground beside columns in a sea slopes to the sea floor rather than taking the shape of the columns") {
+        val gentle = Slab(-60, LOW_GROUND)
+        val floor = Slab(-60, SEA_FLOOR)
+        val column = Box(minX = -3, minY = -60, minZ = -3, maxX = 2, maxY = HIGH_GROUND, maxZ = 2)
+        val columns = Union(listOf(floor, Instanced(listOf(column), Grid(spacing = 16.0, jitter = 0.0, density = Density.uniform()), Variation.NONE, SEED)))
+        val map = RegionMap(members = 2, scale = 400.0, blend = 0, originX = 0, originZ = 0, seed = SEED)
+        fun steepestOnTheGentleSide(seenFromNextDoor: List<TerrainField>): Int {
+            val reconciled = Reconciled(listOf(gentle, columns), listOf(gentle, columns), map, WIDTH, keepsFloor = true, seenFromNextDoor = seenFromNextDoor)
+            var steepest = 0
+            for (z in -1000..1000 step 50) {
+                var previous: Int? = null
+                for (x in -2000..2000) {
+                    val behind = map.blocksBehindAt(x, z)
+                    val onTheGentleSide = behind[0] <= behind[1]
+                    if (!onTheGentleSide) { previous = null; continue }
+                    val top = reconciled.columnSpans(x, z).highestSolidY ?: error("the column at $x, $z emptied")
+                    previous?.let { steepest = maxOf(steepest, abs(top - it)) }
+                    previous = top
+                }
+            }
+            return steepest
+        }
+        val asColumns = steepestOnTheGentleSide(emptyList())
+        val asItsFloor = steepestOnTheGentleSide(listOf(gentle, floor))
+        check(asColumns > STEEPEST_STEP) { "read as itself, the columns did not shape the ground beside them ($asColumns): the check proves nothing" }
+        check(asItsFloor <= STEEPEST_STEP) { "read as its sea floor, the ground beside the columns still steps $asItsFloor blocks" }
     }
 
     test("gullies cut steep ground, never level ground, and never below their floor") {
@@ -164,6 +193,21 @@ class LandVarietyCheck : FunSpec({
         for (x in -110..110 step 9) check(dry.columnSpans(x, 7).ranges == worn.columnSpans(x, 7).ranges) { "dry ground at $x was held" }
     }
 
+    test("an Age written while pillars and pyramids were read as themselves next door keeps reading them so") {
+        fun read(version: Int, terrains: List<Terrain>): AgeComposition {
+            val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = terrains)), seed = SEED, generatorVersion = version)
+            val saved = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow()
+            return AgeRecipe.CODEC.parse(JsonOps.INSTANCE, saved).getOrThrow().composition ?: error("no composition")
+        }
+        val last = FormerEasing.LAST_GENERATOR_OF_THE_FORMER_EASING
+        val mixed = listOf(Terrain.HILLS, Terrain.PILLARS)
+        check(read(last, mixed).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_EASING)) { "the old Age's pillars were read as their sea floor" }
+        check(!read(last + 1, mixed).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_EASING)) { "a new Age's pillars were read as themselves" }
+        check(!read(last, listOf(Terrain.HILLS, Terrain.ERODED)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_EASING)) {
+            "an old Age with neither pillars nor pyramids was marked"
+        }
+    }
+
     test("an Age written before the banks were held still wears through them, and a new one does not") {
         fun read(version: Int): AgeComposition {
             val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.RIVERLANDS))), seed = SEED, generatorVersion = version)
@@ -242,6 +286,9 @@ private const val PIVOT = 63
 private const val CEILING = 296
 private const val LOW_GROUND = 64
 private const val HIGH_GROUND = 140
+
+/** The floor of a sea columns stand in, under the low ground. */
+private const val SEA_FLOOR = 43
 private const val WIDTH = 96.0
 private const val MESA_RADIUS = 100.0
 private const val STEP = 7.0
