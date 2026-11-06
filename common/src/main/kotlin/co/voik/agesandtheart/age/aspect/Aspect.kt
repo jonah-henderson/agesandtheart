@@ -372,7 +372,7 @@ enum class Aspect(
             )
             SPAWNS -> listOf(
                 Spawns.STILL, Spawns.CHARGED, Spawns.WOOL, Spawns.HERD, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS,
-                Spawns.CAPS, Spawns.NONE_BELOW, Spawns.VARIETY,
+                Spawns.CAPS, Spawns.NONE_BELOW, Spawns.VARIETY, Spawns.COLOUR,
             )
             STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL, Structures.SPACING, Structures.SIZE, Structures.HEIGHT, Structures.CRUMBLE, Structures.CHARRED, Structures.VARIETY)
             // **Nothing of its own**: each phenomenon carries the dials it has (`Phenomenon.parameters`), since an

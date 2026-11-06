@@ -4,8 +4,10 @@ import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.consequence.StrangeSky
 import co.voik.agesandtheart.age.aspect.AgeParts
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Prism
+import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.SunLight
 import co.voik.ephemeris.RuntimeLevelEvents
 import co.voik.ephemeris.sky.LevelAppearance
@@ -82,6 +84,7 @@ object Skies {
             rain = Atmosphere.rainIn(parts, recipe.seed) ?: StrangeSky.rainFor(spending),
             wind = Atmosphere.windIn(parts, recipe.seed),
             cycles = Prism.cyclesIn(parts, sky, recipe.seed),
+            creatures = Spawns.coloursIn(parts.optionsFor(Aspect.SPAWNS)),
         )
     }
 }

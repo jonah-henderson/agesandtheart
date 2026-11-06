@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.ephemeris.sky.CreatureColours
+
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
@@ -92,6 +94,26 @@ object Spawns {
     private val ORDINARY_HERD = 4..6
     private val LARGE_HERD = 6..8
     private val COLOSSAL_HERD = 8..10
+
+    /**
+     * The colour a creature is drawn in — `red zombie`, `white wolves` — every texture it wears recoloured (Ephemeris'
+     * `Recolouring`). Not a sheep, whose colour is its wool ([WOOL]); and only where a word is aimed at the creatures, so a
+     * red Age keeps its animals' own colours.
+     */
+    val COLOUR = Sky.colour("colour", "The colour a creature is drawn in.")
+        .perMember(MemberHonouring { member, _ -> member.key != SHEEP })
+        .onlyWhenAimed()
+
+    /** The colours a book drew its creatures in: one for all of them where it said so of the inhabitants, and each by kind. */
+    fun coloursIn(options: Options): CreatureColours {
+        val holders = options.holdersOfAny(COLOUR)
+        val every = if (holders.everyone) Colour.named(options.of(COLOUR)) else null
+        val byType = holders.only.mapNotNull { member ->
+            val colour = Colour.named(options.of(COLOUR, member = member)) ?: return@mapNotNull null
+            Identifier.tryParse(member)?.let { it to colour }
+        }.toMap()
+        return CreatureColours(every, byType)
+    }
 
     /** What colour a sheep comes into the Age wearing — `black sheep` — or [Parameter.DEFAULT] for its own. */
     val WOOL = Sky.colour("wool", "The colour of the sheep's wool.")

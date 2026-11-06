@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.ephemeris.client.RecolouredRenderTypes
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import co.voik.agesandtheart.age.consequence.StrangeGravity
@@ -87,6 +88,7 @@ object ClientSetup {
         TintedLights.forget()
         DeepLights.forget()
         WornGrindstones.forget()
+        RecolouredRenderTypes.forget()
         // A book open when the connection drops never reaches `Screen.removed`, so its preview level and
         // renderer would outlive the connection that fed them.
         LinkingPanel.forget()

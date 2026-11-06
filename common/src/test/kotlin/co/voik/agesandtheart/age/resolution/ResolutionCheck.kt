@@ -178,6 +178,15 @@ class ResolutionCheck : FunSpec({
         check(Phenomena.colourOf(meteors, Phenomenon.METEORS) == "red") { "red meteors burned ${Phenomena.colourOf(meteors, Phenomenon.METEORS)}" }
     }
 
+    test("a colour aimed at a creature draws it in that colour, at the inhabitants all of them, and laid bare none") {
+        fun coloursOf(row: String) = Spawns.coloursIn(resolved(row).composition.optionsFor(Aspect.SPAWNS))
+        val zombie = coloursOf("age red zombie")
+        check(zombie.byType.keys.map { it.toString() } == listOf("minecraft:zombie") && zombie.everyCreature == null) { "$zombie" }
+        check(coloursOf("age red inhabitants").everyCreature != null) { "red inhabitants left the creatures their own colours" }
+        check(coloursOf("age red").isNone) { "a red Age recoloured its creatures" }
+        check(coloursOf("age black sheep").isNone) { "black sheep recoloured the sheep rather than its wool" }
+    }
+
     test("what the reading charged and dropped reaches the instability, and the cost is every page's ink") {
         val moved = resolved("age colossal")
         check(moved.instability.flaws.any { it.register == Register.REHOMED }) { "colossal laid after the Age was not charged" }
