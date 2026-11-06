@@ -833,7 +833,7 @@ class AgeChunkGenerator(
                 JigsawSizes.starting(jigsawSizes) {
                     LooserHomes.starting(structureHomes) {
                         if (incongruity.structures) {
-                            IncongruousStructures.starting(state.levelSeed, biomeSource.possibleBiomes()) {
+                            IncongruousStructures.starting(state.levelSeed, biomeSource.possibleBiomes(), incongruity.formerHeights) {
                                 super.createStructures(registryAccess, state, structureManager, centerChunk, structureTemplateManager, level)
                             }
                         } else {
@@ -850,8 +850,17 @@ class AgeChunkGenerator(
                 centerChunk.setStartForStructure(structure, StructureStart.INVALID_START)
                 continue
             }
-            // Moved to the height a book set it at last, so the sea and the void judge it where vanilla built it.
-            val placed = StructureHeights.moved(settledOverTheVoid(start, centerChunk, state.randomState()), structureHeights)
+            // Moved to its height last, so the sea and the void judge it where vanilla built it: a height a book set it
+            // at, or where an incongruous Age drew it.
+            val settled = settledOverTheVoid(start, centerChunk, state.randomState())
+            val booked = StructureHeights.moved(settled, structureHeights)
+            val movedWhole = incongruity.structures && !incongruity.formerHeights
+            val placed = if (booked !== settled || !movedWhole) booked else IncongruousStructures.moved(
+                settled,
+                state.levelSeed,
+                surfaceAt = { x, z -> getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, centerChunk, state.randomState()) },
+                seaFloorAt = { x, z -> getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, centerChunk, state.randomState()) },
+            )
             if (placed !== start) centerChunk.setStartForStructure(structure, placed)
         }
     }

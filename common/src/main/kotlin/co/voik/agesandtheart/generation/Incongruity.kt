@@ -18,6 +18,8 @@ data class Incongruity(
     val spawns: Boolean = false,
     /** Structures in any biome and at any height — [IncongruousStructures]. */
     val structures: Boolean = false,
+    /** Whether its jigsaws start at their drawn height as they did before generator 23 — [co.voik.agesandtheart.age.FormerIncongruousHeights]. */
+    val formerHeights: Boolean = false,
 ) {
     companion object {
         val NONE = Incongruity()
@@ -26,6 +28,7 @@ data class Incongruity(
             features = composition.optionsFor(Aspect.FEATURES).isTrue(Features.INCONGRUOUS),
             spawns = composition.optionsFor(Aspect.SPAWNS).isTrue(Spawns.INCONGRUOUS),
             structures = composition.optionsFor(Aspect.STRUCTURES).isTrue(Structures.INCONGRUOUS),
+            formerHeights = composition.optionsFor(Aspect.STRUCTURES).isTrue(Structures.FORMER_INCONGRUOUS_HEIGHTS),
         )
     }
 }

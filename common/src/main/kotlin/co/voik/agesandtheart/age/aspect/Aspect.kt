@@ -377,7 +377,8 @@ enum class Aspect(
                 Spawns.STILL, Spawns.CHARGED, Spawns.WOOL, Spawns.HERD, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS,
                 Spawns.CAPS, Spawns.NONE_BELOW, Spawns.VARIETY, Spawns.COLOUR,
             )
-            STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL, Structures.SPACING, Structures.SIZE, Structures.HEIGHT, Structures.CRUMBLE, Structures.CHARRED, Structures.VARIETY)
+            STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL, Structures.SPACING, Structures.SIZE, Structures.HEIGHT, Structures.CRUMBLE, Structures.CHARRED, Structures.VARIETY,
+                Structures.FORMER_INCONGRUOUS_HEIGHTS)
             UNDERGROUND -> listOf(Underground.DEPTH, Underground.VEINS, Underground.FORMER_NOISE_CAVES)
             // Each phenomenon carries the dials it has (`Phenomenon.parameters`), since an inferno has no "how often"
             // and only the overgrowth grows. **But its colours turning**, which a bare `prismatic` says of every

@@ -47,6 +47,12 @@ object Structures {
      */
     val INCONGRUOUS = Parameter.flag("incongruous", help = "Whether structures may stand in any biome and at any height.")
 
+    /** Whether an incongruous Age's jigsaws are started at their drawn height, as before they were built and moved whole. */
+    val FORMER_INCONGRUOUS_HEIGHTS = Parameter.flag(
+        "former_incongruous_heights",
+        help = "Whether jigsaws are started at their drawn height, as before they were built on the surface and moved whole.",
+    )
+
     /**
      * How far from its own biomes a structure may stand — `varied structures`: in the biomes of a climate like its own
      * as well, a mansion in any cool forest, short of `incongruous` anywhere (`generation/LooserHomes`).

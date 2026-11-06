@@ -15,6 +15,8 @@ import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Underground
 import co.voik.agesandtheart.age.FormerNoiseCaves
+import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.FormerIncongruousHeights
 import co.voik.agesandtheart.age.FormerStarGlow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
@@ -83,6 +85,20 @@ class RecipeCheck : FunSpec({
         val last = FormerNoiseCaves.LAST_GENERATOR_OF_THE_FIXED_NOISE_CAVES
         check(heldRead(last)) { "an old Age's noise caves would take the size it asked of them" }
         check(!heldRead(last + 1)) { "a new Age's noise caves were held to vanilla's" }
+    }
+
+    test("an incongruous Age written while jigsaws started at their drawn height keeps starting them there") {
+        fun heldRead(version: Int): Boolean {
+            val composition = AgeComposition(terrains = listOf(Terrain.HILLS))
+                .withOptions(Aspect.STRUCTURES, Structures.INCONGRUOUS.name, listOf(Parameter.TRUE))
+            val recipe = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED, generatorVersion = version)
+            val saved = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow()
+            val read = AgeRecipe.CODEC.parse(JsonOps.INSTANCE, saved).getOrThrow().composition ?: error("no composition")
+            return read.optionsFor(Aspect.STRUCTURES, 0).isTrue(Structures.FORMER_INCONGRUOUS_HEIGHTS)
+        }
+        val last = FormerIncongruousHeights.LAST_GENERATOR_OF_THE_STARTED_HEIGHTS
+        check(heldRead(last)) { "an old incongruous Age would build its jigsaws whole and move them" }
+        check(!heldRead(last + 1)) { "a new incongruous Age was held to the started heights" }
     }
 
     /**

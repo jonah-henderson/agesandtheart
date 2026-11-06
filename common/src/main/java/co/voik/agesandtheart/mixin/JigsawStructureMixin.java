@@ -14,9 +14,9 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 import java.util.Optional;
 
 /**
- * In an {@code incongruous structures} Age, a village, an ancient city or any other jigsaw structure starts at the
- * height drawn for it — on the sea floor, in the sky, buried, deep, or out on the surface ({@link
- * IncongruousStructures}).
+ * In an {@code incongruous structures} Age, a village, an ancient city or any other jigsaw structure is started on the
+ * surface, and the generator moves it whole to the height drawn for it once it is built — on the sea floor, in the
+ * sky, buried or deep ({@link IncongruousStructures}).
  *
  * <p>And in an Age that sized one ({@code colossal villages}), its pieces are laid deeper or shallower and reach
  * further or nearer from the start ({@link JigsawSizes}): arguments 3 and 7, the depth and the reach.

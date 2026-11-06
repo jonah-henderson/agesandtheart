@@ -11,6 +11,9 @@ import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.RandomState
 import net.minecraft.world.level.levelgen.structure.Structure
+import net.minecraft.world.level.levelgen.structure.structures.JigsawStructure
+import net.minecraft.world.level.levelgen.structure.pieces.PiecesContainer
+import net.minecraft.world.level.levelgen.structure.StructureStart
 import java.util.Optional
 import kotlin.random.Random
 
@@ -27,7 +30,7 @@ object IncongruousStructures {
 
     private val placing = ThreadLocal<Placing?>()
 
-    private class Placing(val seed: Long, val everyBiome: HolderSet<Biome>) {
+    private class Placing(val seed: Long, val everyBiome: HolderSet<Biome>, val formerHeights: Boolean) {
         var drawn: Drawn = Drawn(Height.AS_WRITTEN, 0)
     }
 
@@ -37,9 +40,9 @@ object IncongruousStructures {
     private enum class Height { AS_WRITTEN, SURFACE, SEA_FLOOR, SKY, BURIED, DEEP }
 
     /** Runs [starting] with this thread building any structure anywhere, from the Age's [seed]. */
-    fun starting(seed: Long, biomes: Collection<Holder<Biome>>, starting: () -> Unit) {
+    fun starting(seed: Long, biomes: Collection<Holder<Biome>>, formerHeights: Boolean, starting: () -> Unit) {
         val was = placing.get()
-        placing.set(Placing(seed, HolderSet.direct(biomes.toList())))
+        placing.set(Placing(seed, HolderSet.direct(biomes.toList()), formerHeights))
         try {
             starting()
         } finally {
@@ -51,7 +54,12 @@ object IncongruousStructures {
     @JvmStatic
     fun beginning(at: ChunkPos) {
         val doing = placing.get() ?: return
-        val random = Random(doing.seed xor at.pack() * START_MIXER)
+        doing.drawn = drawnAt(doing.seed, at)
+    }
+
+    /** Where a structure started in chunk [at] goes, off the Age's [seed]: the same draw wherever it is asked. */
+    private fun drawnAt(seed: Long, at: ChunkPos): Drawn {
+        val random = Random(seed xor at.pack() * START_MIXER)
         val height = Height.entries[random.nextInt(Height.entries.size)]
         val by = when (height) {
             Height.SKY -> random.nextInt(SKY_LEAST, SKY_MOST)
@@ -59,7 +67,28 @@ object IncongruousStructures {
             Height.DEEP -> random.nextInt(DEEP_LEAST, DEEP_MOST)
             Height.AS_WRITTEN, Height.SURFACE, Height.SEA_FLOOR -> 0
         }
-        doing.drawn = Drawn(height, by)
+        return Drawn(height, by)
+    }
+
+    /**
+     * A jigsaw [start] moved whole to the height drawn for it, every piece by the same distance, off the Age's [seed]:
+     * a village's streets are laid on the terrain wherever its start stands and its houses hang off them, so it is
+     * built on the surface ([jigsawStart]) and only then moved. [surfaceAt] and [seaFloorAt] are the generator's own.
+     */
+    fun moved(start: StructureStart, seed: Long, surfaceAt: (Int, Int) -> Int, seaFloorAt: (Int, Int) -> Int): StructureStart {
+        if (!start.isValid || start.structure !is JigsawStructure) return start
+        val drawn = drawnAt(seed, start.chunkPos)
+        val x = start.chunkPos.middleBlockX
+        val z = start.chunkPos.middleBlockZ
+        val by = when (drawn.height) {
+            Height.AS_WRITTEN, Height.SURFACE -> 0
+            Height.SKY, Height.BURIED -> drawn.by
+            Height.SEA_FLOOR -> seaFloorAt(x, z) - surfaceAt(x, z)
+            Height.DEEP -> drawn.by - surfaceAt(x, z)
+        }
+        if (by == 0) return start
+        for (piece in start.pieces) piece.move(0, by, 0)
+        return StructureStart(start.structure, start.chunkPos, start.references, PiecesContainer(start.pieces))
     }
 
     /** Whether this thread is building an incongruous Age's structures — asked by `OceanMonumentStructureMixin`. */
@@ -74,10 +103,26 @@ object IncongruousStructures {
     /** Where a jigsaw structure's start is, and what it is projected onto — vanilla's own unless drawn otherwise. */
     class JigsawStart(val at: BlockPos, val projection: Optional<Heightmap.Types>)
 
-    /** A jigsaw structure's [start] and [projection] as drawn, or null to keep them. Asked by `JigsawStructureMixin`. */
+    /**
+     * A jigsaw structure's [start] and [projection] as drawn, or null to keep them: on the surface for every drawn
+     * height, which [moved] then carries it to whole. Asked by `JigsawStructureMixin`.
+     */
     @JvmStatic
     fun jigsawStart(start: BlockPos, projection: Optional<Heightmap.Types>): JigsawStart? {
-        val drawn = placing.get()?.drawn ?: return null
+        val doing = placing.get() ?: return null
+        val drawn = doing.drawn
+        if (doing.formerHeights) return formerJigsawStart(start, drawn)
+        return when (drawn.height) {
+            Height.AS_WRITTEN -> null
+            Height.SURFACE, Height.SKY, Height.BURIED, Height.SEA_FLOOR, Height.DEEP ->
+                JigsawStart(start.atY(ON_THE_SURFACE), Optional.of(Heightmap.Types.WORLD_SURFACE_WG))
+        }
+    }
+
+    private const val ON_THE_SURFACE = 0
+
+    /** Where an Age written before generator 23 started a jigsaw: at its drawn height, its streets left on the terrain. */
+    private fun formerJigsawStart(start: BlockPos, drawn: Drawn): JigsawStart? {
         fun onto(heightmap: Heightmap.Types) = JigsawStart(start.atY(drawn.by), Optional.of(heightmap))
         return when (drawn.height) {
             Height.AS_WRITTEN -> null
