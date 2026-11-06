@@ -43,6 +43,14 @@ class CavedGridCheck : FunSpec({
         check(exact > 0) { "no caves at all" }
         check(abs(gridded - exact).toDouble() / exact < MOST_DIFFERENCE) { "the grid cut $gridded blocks of cave against $exact" }
     }
+
+    test("caves opened past vanilla's threshold take more rock, and held under it less") {
+        val vanilla = caveIn(caves(gridded = true, base = HILL))
+        val opened = caveIn(caves(gridded = true, base = HILL, opening = 0.06))
+        val closed = caveIn(caves(gridded = true, base = HILL, opening = -0.06))
+        check(opened > vanilla * 2) { "opened caves cut $opened blocks against vanilla's $vanilla" }
+        check(closed < vanilla / 2) { "closed caves cut $closed blocks against vanilla's $vanilla" }
+    }
 })
 
 private const val SEED = 0x5EEDL
@@ -53,8 +61,12 @@ private const val MOST_DIFFERENCE = 0.25
 
 private val COLUMNS = (-24..<40).flatMap { x -> (-24..<40).map { z -> x to z } }
 
-private fun caves(featureScale: Double = 1.0, base: TerrainField = Slab(lowY = -64, highY = 90), gridded: Boolean = false) =
-    Caved(base, SEED, fromY = -60, toY = 320, featureScale = featureScale, gridded = gridded)
+private fun caves(
+    featureScale: Double = 1.0,
+    base: TerrainField = Slab(lowY = -64, highY = 90),
+    gridded: Boolean = false,
+    opening: Double = Caved.VANILLA_OPENING,
+) = Caved(base, SEED, fromY = -60, toY = 320, featureScale = featureScale, gridded = gridded, opening = opening)
 
 /** Ground whose top rises from y=40 to a peak, so no two columns' rock ends at the same height. */
 private val HILL = Union(listOf(Slab(lowY = -64, highY = 40), Cone(baseX = 8, baseZ = 8, baseRadius = 40.0, baseY = 40, tipY = 150)))

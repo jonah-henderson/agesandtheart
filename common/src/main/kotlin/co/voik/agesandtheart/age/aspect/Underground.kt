@@ -108,7 +108,7 @@ enum class Underground(override val key: String) : AuthoredPreset {
      * `large chambered underground` is the vault a city fits in and nothing below it is.
      */
     override val parameters: List<Parameter>
-        get() = listOfNotNull(Terrain.SIZE.takeIf { this in SIZED }, DENSITY.takeIf { this in SIZED })
+        get() = listOfNotNull(Terrain.SIZE.takeIf { this in TAKES_SIZE }, DENSITY.takeIf { this in TAKES_SIZE })
 
     /**
      * This underground cut into [uncut], between [floor] and [ceiling].
@@ -143,8 +143,15 @@ enum class Underground(override val key: String) : AuthoredPreset {
         NOISE_CAVES -> {
             // Noise caves run to the surface by their own entrance rule, unless a depth held them down.
             val top = if (ceiling < landformCeiling) ceiling else window.topY
+            val caves = if (options.isTrue(FORMER_NOISE_CAVES)) Caved.of(uncut, CAVE_SEED xor salt, floor, top, gridded = griddedCaves)
+                else Caved.of(
+                    uncut, CAVE_SEED xor salt, floor, top,
+                    gridded = griddedCaves,
+                    featureScale = SizeScale.factorAt(options.steer(Terrain.SIZE, salt)),
+                    opening = openingOf(options, salt),
+                )
             Terrain.Ground(
-                Caved.of(uncut, CAVE_SEED xor salt, floor, top, gridded = griddedCaves),
+                caves,
                 // A carved cave meets the water table on its way out of the rock, so it answers to one.
                 hollows = uncut,
             )
@@ -235,10 +242,10 @@ enum class Underground(override val key: String) : AuthoredPreset {
             ),
         )
 
-        /** How many tunnels, passages, fissures or chambers there are. */
+        /** How many tunnels, passages, fissures or chambers there are, or how much of the rock noise caves open. */
         val DENSITY = Parameter.ranged(
             "density",
-            help = "How many tunnels, passages, fissures or chambers the rock holds.",
+            help = "How many tunnels, passages, fissures or chambers the rock holds, or how much of it noise caves open.",
             landmarks = listOf(
                 Parameter.Landmark(-1.0, "a quarter as many"),
                 Parameter.Landmark(-0.5, "half as many"),
@@ -246,6 +253,15 @@ enum class Underground(override val key: String) : AuthoredPreset {
                 Parameter.Landmark(0.5, "twice as many"),
                 Parameter.Landmark(1.0, "four times as many"),
             ),
+        )
+
+        /**
+         * Whether noise caves ignore a size and a density, as they did before generator 23 — set on every Age written
+         * before then, so the caves it has already generated still meet what it generates next. No word sets it.
+         */
+        val FORMER_NOISE_CAVES = Parameter.flag(
+            "former_noise_caves",
+            help = "Whether noise caves are vanilla's size and number whatever was asked, as they were before they took either.",
         )
 
         /** The part of [floor]..[ceiling] an underground is held to by its [DEPTH]. */
@@ -263,6 +279,15 @@ enum class Underground(override val key: String) : AuthoredPreset {
         internal fun densityOf(options: Options, salt: Long): Double =
             DENSEST.pow(options.steer(DENSITY, salt) ?: 0.0)
 
+        /**
+         * How much past vanilla's threshold noise caves open for the [DENSITY] asked: at either end of the axis about
+         * four times as much cave, or a fifth as much.
+         */
+        private fun openingOf(options: Options, salt: Long): Double =
+            (options.steer(DENSITY, salt) ?: 0.0).coerceIn(-1.0, 1.0) * OPENING_AT_THE_ENDS
+
+        private const val OPENING_AT_THE_ENDS = 0.06
+
         // At the end of the axis, three-fifths of the band is solid rock.
         private const val MOST_GIVEN_UP = 0.6
 
@@ -274,6 +299,7 @@ enum class Underground(override val key: String) : AuthoredPreset {
         /** The undergrounds that take a size and a page minted for them. `hollow`'s page is authored. */
         private val SIZED = setOf(CHAMBERED, TUNNELS, LATTICE, FISSURED)
         private val SAID_AS_THINGS = setOf(TUNNELS, LATTICE)
+        private val TAKES_SIZE = SIZED + NOISE_CAVES
 
         // Deep enough to hold a surface's dirt and a tree's roots over the void.
         private const val CRUST_THICKNESS = 8

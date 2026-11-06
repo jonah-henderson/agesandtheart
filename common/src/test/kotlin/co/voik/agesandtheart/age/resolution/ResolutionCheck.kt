@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Underground
 import co.voik.agesandtheart.age.language.ShippedLexicon
 import co.voik.agesandtheart.age.language.ShippedLexicon.resolved
@@ -140,6 +141,15 @@ class ResolutionCheck : FunSpec({
         check(still.option(Aspect.CLOUD, "still").toList() == listOf("true")) { still.spelled() }
         check(still.option(Aspect.AIR, "wind").mapNotNull(Span::read) == listOf(Span(-1.0, -1.0))) { still.spelled() }
         check(still.option(Aspect.SPAWNS, "still").isEmpty()) { still.spelled() }
+    }
+
+    test("open underground asks for larger caves, and a riddled landmass for more of them") {
+        val open = resolved("age open underground")
+        val sized = open.option(Aspect.UNDERGROUND, Terrain.SIZE.name).mapNotNull(Span::read).single()
+        check(sized.least >= 0.3 && sized.most <= 0.8) { open.spelled() }
+        val riddled = resolved("age riddled landmass")
+        val denser = riddled.option(Aspect.UNDERGROUND, Underground.DENSITY.name).mapNotNull(Span::read).single()
+        check(denser.least >= 0.5) { riddled.spelled() }
     }
 
     test("what the reading charged and dropped reaches the instability, and the cost is every page's ink") {

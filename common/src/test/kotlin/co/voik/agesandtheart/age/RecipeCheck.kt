@@ -13,6 +13,8 @@ import co.voik.agesandtheart.age.aspect.Structures
 import com.mojang.serialization.JsonOps
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.aspect.Underground
+import co.voik.agesandtheart.age.FormerNoiseCaves
 import co.voik.agesandtheart.age.FormerStarGlow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
@@ -53,10 +55,6 @@ class RecipeCheck : FunSpec({
         )
     }
 
-    /**
-     * An option nobody recognises comes back out again — the invariant most easily lost to a well-meant
-     * cleanup, and it has to survive the *write* as well as the read.
-     */
     test("an Age written while the stars' glow began at vanilla's burns as it did") {
         fun glowRead(version: Int, spelled: String): String {
             val composition = AgeComposition(terrains = listOf(Terrain.HILLS)).withOptions(Aspect.STARS, SkyBodies.STARGLOW.name, listOf(spelled))
@@ -73,6 +71,24 @@ class RecipeCheck : FunSpec({
         check(SkyBodies.starGlowAt(-1.0) < SkyBodies.starGlowAt(null)) { "the faint end is not fainter than vanilla's" }
     }
 
+    test("an Age written while noise caves took no size keeps the caves it had") {
+        fun heldRead(version: Int): Boolean {
+            val composition = AgeComposition(terrains = listOf(Terrain.HILLS), underground = Underground.NOISE_CAVES)
+                .withOptions(Aspect.UNDERGROUND, Terrain.SIZE.name, listOf("1..1"))
+            val recipe = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED, generatorVersion = version)
+            val saved = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow()
+            val read = AgeRecipe.CODEC.parse(JsonOps.INSTANCE, saved).getOrThrow().composition ?: error("no composition")
+            return read.optionsFor(Aspect.UNDERGROUND, 0).isTrue(Underground.FORMER_NOISE_CAVES)
+        }
+        val last = FormerNoiseCaves.LAST_GENERATOR_OF_THE_FIXED_NOISE_CAVES
+        check(heldRead(last)) { "an old Age's noise caves would take the size it asked of them" }
+        check(!heldRead(last + 1)) { "a new Age's noise caves were held to vanilla's" }
+    }
+
+    /**
+     * An option nobody recognises comes back out again — the invariant most easily lost to a well-meant
+     * cleanup, and it has to survive the *write* as well as the read.
+     */
     test("options it cannot understand round-trip") {
         val composition = AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
             .withOptions(Aspect.TERRAIN, Terrain.ARRANGEMENT.name, listOf("rings"))

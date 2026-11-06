@@ -61,6 +61,11 @@ data class Caved(
      * times cheaper. False on an Age written before generator 22, whose caves stay as they were.
      */
     val gridded: Boolean = false,
+    /**
+     * How far past vanilla's threshold a density still opens: above nought, every tunnel, mouth and chamber is cut
+     * wider and more of them meet; below it, fewer and narrower.
+     */
+    val opening: Double = VANILLA_OPENING,
 ) : TerrainField {
     override val kind = FieldKind.CAVED
 
@@ -372,9 +377,9 @@ data class Caved(
 
         private fun decide(height: Int) {
             for (i in 0..<height) {
-                val cut = mouths[i] <= 0.0 || tunnels[i] <= 0.0 || chambers[i] <= 0.0
+                val cut = mouths[i] <= opening || tunnels[i] <= opening || chambers[i] <= opening
                 val filledByAPillar = pillars && standing[i] >= PILLAR_STANDS
-                mouthed[i] = mouths[i] <= 0.0 && !filledByAPillar
+                mouthed[i] = mouths[i] <= opening && !filledByAPillar
                 opened[i] = cut && !filledByAPillar
             }
         }
@@ -575,6 +580,7 @@ data class Caved(
 
         /** Vanilla's own caves, at vanilla's own size. */
         const val VANILLA_SCALE = 1.0
+        const val VANILLA_OPENING = 0.0
 
         /** What a cheese term reads where there is no cheese: firmly solid, so the min never picks it. */
         private const val SOLID_ENOUGH = 1.0
@@ -654,8 +660,16 @@ data class Caved(
         }
 
         /** [base] hollowed, or [base] itself where the band leaves nothing to cut. */
-        fun of(base: TerrainField, seed: Long, fromY: Int, toY: Int, gridded: Boolean = false): TerrainField =
-            if (toY < fromY) base else Caved(base, seed, fromY, toY, gridded = gridded)
+        fun of(
+            base: TerrainField,
+            seed: Long,
+            fromY: Int,
+            toY: Int,
+            gridded: Boolean = false,
+            featureScale: Double = VANILLA_SCALE,
+            opening: Double = VANILLA_OPENING,
+        ): TerrainField =
+            if (toY < fromY) base else Caved(base, seed, fromY, toY, gridded = gridded, featureScale = featureScale, opening = opening)
 
         fun codec(self: Codec<TerrainField>): MapCodec<Caved> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -668,6 +682,7 @@ data class Caved(
                 Codec.BOOL.optionalFieldOf("pillars", true).forGetter(Caved::pillars),
                 Codec.DOUBLE.optionalFieldOf("feature_scale", VANILLA_SCALE).forGetter(Caved::featureScale),
                 Codec.BOOL.optionalFieldOf("gridded", false).forGetter(Caved::gridded),
+                Codec.DOUBLE.optionalFieldOf("opening", VANILLA_OPENING).forGetter(Caved::opening),
             ).apply(instance, ::Caved)
         }
     }

@@ -6,7 +6,7 @@
     "It was a sea of empty air until 2026-10-16, which read as nothing the word says; `floating` leans there now.",
     "",
     "`open sea` (Jonah): deeper, with less growing under it, and the land further apart -- each at a chance.",
-    "`open underground`: hollowed out, or cut through with caves."
+    "`open underground`: larger caves, hollowed out, or cut through with caves."
   ],
   "meanings": [
     {
@@ -78,6 +78,15 @@
       "chance_to_apply": 0.6,
       "offered_to": [
         "sea"
+      ]
+    },
+    {
+      "sets": {
+        "underground.size": "0.3..0.8"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "underground"
       ]
     },
     {

@@ -200,7 +200,8 @@ data class AgeRecipe(
                         .let { if (version <= FormerLeans.LAST_GENERATOR_OF_THE_EVEN_DRAW) FormerLeans.carriedOver(it) else it }
                         .let { if (version <= FormerUnsaidWear.LAST_GENERATOR_OF_THE_UNSAID_WEAR) FormerUnsaidWear.carriedOver(it) else it }
                         .let { if (version <= FormerCaves.LAST_GENERATOR_OF_THE_FORMER_CAVES) FormerCaves.carriedOver(it) else it }
-                        .let { if (version <= FormerStarGlow.LAST_GENERATOR_OF_THE_FORMER_GLOW) FormerStarGlow.carriedOver(it) else it },
+                        .let { if (version <= FormerStarGlow.LAST_GENERATOR_OF_THE_FORMER_GLOW) FormerStarGlow.carriedOver(it) else it }
+                        .let { if (version <= FormerNoiseCaves.LAST_GENERATOR_OF_THE_FIXED_NOISE_CAVES) FormerNoiseCaves.carriedOver(it) else it },
                     seed = seed,
                     character = character,
                     // An Age written before the page count was kept reads it off the pages it was laid with,
