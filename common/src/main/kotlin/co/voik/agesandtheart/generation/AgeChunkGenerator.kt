@@ -495,14 +495,14 @@ class AgeChunkGenerator(
      * **An Age wearing vanilla's rock asks the level instead, and must.** Answering `true` there made the
      * gate inert for every book that named no landform — which is every book the template's rock reaches —
      * so a written dragon was offered inside the rock as readily as over it. The level is the structure
-     * manager's, which is the only route to one from here.
+     * manager's, which is the only route to one from here. Leaves are not rock, so the forest floor is open.
      */
     private fun skyIsOpenAt(structures: StructureManager, at: BlockPos): Boolean {
         rock as? AgeRock.Ours
-            ?: return at.y >= structures.level.getHeight(Heightmap.Types.WORLD_SURFACE, at.x, at.z)
+            ?: return at.y >= structures.level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, at.x, at.z)
         // Until the field's own answer is in, the world's surface stands in: what an Age on vanilla's rock asks.
         val highestRock = openSky.highestSolidYAt(at.x, at.z) {
-            structures.level.getHeight(Heightmap.Types.WORLD_SURFACE, at.x, at.z) - 1
+            structures.level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, at.x, at.z) - 1
         } ?: return true
         return at.y > highestRock
     }

@@ -3,7 +3,7 @@
     "Nothing there: a sea of empty air under the land, so what falls off falls forever. The sense `open` held until",
     "2026-10-16, given its own page.",
     "",
-    "`empty underground` (Jonah): perhaps hollow, never a mineshaft, and little growing down there."
+    "`empty underground` (Jonah): perhaps hollow, never a mineshaft, little growing down there, and no monster coming of itself under the rock."
   ],
   "meanings": [
     {
@@ -54,6 +54,15 @@
           "#cavernous": -0.8,
           "#barren": 0.8
         }
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "underground"
+      ]
+    },
+    {
+      "sets": {
+        "inhabitants.none_below": "true"
       },
       "must_always_apply": true,
       "offered_to": [

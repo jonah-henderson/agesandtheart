@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Underground
 import co.voik.agesandtheart.age.language.ShippedLexicon
@@ -150,6 +151,11 @@ class ResolutionCheck : FunSpec({
         val riddled = resolved("age riddled landmass")
         val denser = riddled.option(Aspect.UNDERGROUND, Underground.DENSITY.name).mapNotNull(Span::read).single()
         check(denser.least >= 0.5) { riddled.spelled() }
+    }
+
+    test("empty underground leaves the rock without monsters") {
+        val empty = resolved("age empty underground")
+        check(empty.option(Aspect.SPAWNS, Spawns.NONE_BELOW.name).toList() == listOf("true")) { empty.spelled() }
     }
 
     test("what the reading charged and dropped reaches the instability, and the cost is every page's ink") {

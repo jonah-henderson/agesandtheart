@@ -47,6 +47,9 @@ object Spawns {
      */
     val STILL = Parameter.flag("still", help = "Whether every creature is rooted where it stands.").perMember()
 
+    /** Whether no monster comes of itself under the rock, out of sight of the sky — `empty underground`. */
+    val NONE_BELOW = Parameter.flag("none_below", help = "Whether no monster comes of itself under the rock, out of sight of the sky.")
+
     /** Whether a creeper comes into the Age charged, as lightning leaves one — `charged creepers`. */
     val CHARGED = Parameter.flag("charged", help = "Whether creepers come charged.")
         .perMember(MemberHonouring { member, _ -> member.key == CREEPER })
@@ -166,6 +169,28 @@ object Spawns {
         /** Every creature the pack already offers somewhere — [WhereThingsGrow.creaturesListed]. */
         livesSomewhere: Set<Identifier> = emptySet(),
     ): Living {
+        val living = herdedIn(options, spawning, livesSomewhere)
+        return if (options.isTrue(NONE_BELOW)) withNoneBelow(living) else living
+    }
+
+    /** [living] offering no monster where the sky is out of sight; spawners and what the Age places itself are not asked. */
+    private fun withNoneBelow(living: Living): Living = object : Living {
+        override fun at(
+            biome: Identifier?,
+            category: MobCategory,
+            where: Situation,
+            offered: WeightedList<MobSpawnSettings.SpawnerData>,
+        ): WeightedList<MobSpawnSettings.SpawnerData> {
+            val isAMonsterUnderTheRock = category == MobCategory.MONSTER && !where.skyIsOpen
+            return if (isAMonsterUnderTheRock) WeightedList.of() else living.at(biome, category, where, offered)
+        }
+
+        override fun rungOf(creature: Identifier, biome: Identifier?): Double = living.rungOf(creature, biome)
+
+        override fun herds(creature: Identifier): Boolean = living.herds(creature)
+    }
+
+    private fun herdedIn(options: Options, spawning: Spawning, livesSomewhere: Set<Identifier>): Living {
         val living = unherdedIn(options, spawning, livesSomewhere)
         val herds = herdsIn(options)
         if (herds.isEmpty()) return living

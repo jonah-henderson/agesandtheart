@@ -23,6 +23,15 @@ import net.minecraft.world.level.biome.MobSpawnSettings
 @Tags(NEEDS_REGISTRIES)
 class SpawnsCheck : FunSpec({
 
+    test("an empty underground offers no monster under the rock, and the open ground and the other passes as ever") {
+        val living = Spawns.livingIn(Options(mapOf(Spawns.NONE_BELOW.name to listOf("true"))))
+        fun offered(category: MobCategory, skyIsOpen: Boolean) =
+            living.at(null, category, Spawns.Situation(BlockPos.ZERO, skyIsOpen, ANY_LIGHT_WILL_DO), aMeadow()).unwrap()
+        check(offered(MobCategory.MONSTER, skyIsOpen = false).isEmpty()) { "monsters were offered under the rock" }
+        check(offered(MobCategory.MONSTER, skyIsOpen = true).isNotEmpty()) { "monsters were struck from the open ground too" }
+        check(offered(MobCategory.CREATURE, skyIsOpen = false).isNotEmpty()) { "creatures were struck from under the rock" }
+    }
+
     test("a creature in herds arrives as many together as its herd, and every other as it would have") {
         val options = Options(mapOf(Spawns.HERD.name to listOf("1.0..1.0[for=minecraft:zombie]")))
         val herded = Spawns.livingIn(options).at(null, MobCategory.MONSTER, Spawns.Situation(BlockPos.ZERO, false, ANY_LIGHT_WILL_DO), aMeadow())
