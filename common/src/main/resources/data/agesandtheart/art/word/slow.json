@@ -16,7 +16,7 @@
     },
     {
       "sets": {
-        "cycle_pace": "-1.0..-0.6"
+        "colour_cycle_pace": "-1.0..-0.6"
       },
       "must_always_apply": true,
       "broad": true

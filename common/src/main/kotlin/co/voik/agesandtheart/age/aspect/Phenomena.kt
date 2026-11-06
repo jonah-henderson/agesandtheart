@@ -88,6 +88,9 @@ object Phenomena {
     /** What colour a phenomenon burns in — `red meteors` — or [Parameter.DEFAULT] for its own. */
     val COLOUR = Sky.colour("colour", "The colour it burns in.").perMember()
 
+    /** How many ticks a turn of [phenomenon]'s colours takes, or null where they hold still ([Prism]). */
+    fun cyclePeriodOf(options: Options, phenomenon: Phenomenon, seed: Long): Int? = Prism.periodOf(options, phenomenon.key, seed)
+
     /** The colour [phenomenon] was written to burn in, or null for its own. */
     fun colourOf(options: Options, phenomenon: Phenomenon): String? =
         options.of(COLOUR, member = phenomenon.key).takeUnless { it == Parameter.DEFAULT }

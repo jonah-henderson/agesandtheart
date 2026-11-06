@@ -67,9 +67,15 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         get() = entityData.get(COLOURED).ifEmpty { null }
         set(value) = entityData.set(COLOURED, value ?: MeteorStorm.OWN_COLOUR)
 
+    /** How many ticks a turn of its storm's colours takes, or null where they hold still. Watched, because it is drawn. */
+    var cyclePeriod: Int?
+        get() = entityData.get(COLOUR_CYCLE_PERIOD).takeIf { it > MeteorStorm.HOLDS_STILL }
+        set(value) = entityData.set(COLOUR_CYCLE_PERIOD, value ?: MeteorStorm.HOLDS_STILL)
+
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         builder.define(SETTLED, false)
         builder.define(COLOURED, MeteorStorm.OWN_COLOUR)
+        builder.define(COLOUR_CYCLE_PERIOD, MeteorStorm.HOLDS_STILL)
     }
 
     /**
@@ -460,6 +466,7 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         output.putBoolean(SETTLED_KEY, settled)
         output.putFloat(TOUGHNESS_KEY, toughness)
         output.putString(COLOUR_KEY, colour ?: MeteorStorm.OWN_COLOUR)
+        output.putInt(CYCLE_KEY, cyclePeriod ?: MeteorStorm.HOLDS_STILL)
     }
 
     override fun readAdditionalSaveData(input: net.minecraft.world.level.storage.ValueInput) {
@@ -469,6 +476,7 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         settled = input.getBooleanOr(SETTLED_KEY, false)
         toughness = input.getFloatOr(TOUGHNESS_KEY, WHOLE)
         colour = input.getStringOr(COLOUR_KEY, MeteorStorm.OWN_COLOUR)
+        cyclePeriod = input.getIntOr(CYCLE_KEY, MeteorStorm.HOLDS_STILL)
     }
 
     companion object {
@@ -477,6 +485,9 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         private val COLOURED: EntityDataAccessor<String> =
             SynchedEntityData.defineId(Meteor::class.java, EntityDataSerializers.STRING)
         private const val COLOUR_KEY = "colour"
+        private val COLOUR_CYCLE_PERIOD: EntityDataAccessor<Int> =
+            SynchedEntityData.defineId(Meteor::class.java, EntityDataSerializers.INT)
+        private const val CYCLE_KEY = "cycle_period"
 
         /** Three blocks of it, whatever it is made of — these are arriving from space. */
         const val CAUGHT_BY = 3

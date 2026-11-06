@@ -116,6 +116,13 @@ object Happenings {
         return Phenomena.colourOf(composition.optionsFor(Aspect.PHENOMENA, 0), phenomenon)
     }
 
+    /** How many ticks a turn of [phenomenon]'s colours takes in this Age — null where they hold still, and anywhere else. */
+    fun cyclePeriodIn(level: ServerLevel, phenomenon: Phenomenon): Int? {
+        val recipe = Ages.recipeOf(level) ?: return null
+        val composition = recipe.composition ?: return null
+        return Phenomena.cyclePeriodOf(composition.optionsFor(Aspect.PHENOMENA, 0), phenomenon, recipe.seed)
+    }
+
     /**
      * Whether [phenomenon] befalls [level] at all — **written, or inflicted by its instability** — for
      * something that has to answer what the world did rather than the clock, as a bolt landing does.
@@ -162,6 +169,7 @@ object Happenings {
                 Phenomena.strengthOf(options, phenomenon, seed),
                 Phenomena.paceOf(options, phenomenon, seed),
                 Phenomena.colourOf(options, phenomenon),
+                Phenomena.cyclePeriodOf(options, phenomenon, seed),
             )
         }
     }
@@ -259,7 +267,7 @@ object Happenings {
             Phenomenon.SANDFALL -> Sandfall.wander(level, befalling, SandfallDials.of(spending, written, befalling.pace))
             Phenomenon.TECTONICS -> CaveIns.stir(level, recurrence.often, TectonicsDials.of(spending, written))
             Phenomenon.BLIZZARD -> Blizzard.blow(level, BlizzardDials.of(spending, written))
-            Phenomenon.METEORS -> Meteors.fall(level, recurrence, MeteorDials.of(spending, written, befalling.pace, befalling.colour))
+            Phenomenon.METEORS -> Meteors.fall(level, recurrence, MeteorDials.of(spending, written, befalling.pace, befalling.colour, befalling.cyclePeriod))
             // **The rise is not here**, and that is the one thing to know about this phenomenon's shape:
             // the sea's level is a counted number advanced in `AgeTick.tick`, where these two are the
             // near-player block work that makes it visible. See [Deluge].

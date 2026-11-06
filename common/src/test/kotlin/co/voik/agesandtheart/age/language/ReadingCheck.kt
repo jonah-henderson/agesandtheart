@@ -26,14 +26,14 @@ class ReadingCheck : FunSpec({
     test("a broad meaning laid bare lands at every place it reaches, on every seed, and aimed only where it is aimed") {
         val everyColourPart = setOf(Aspect.SKY, Aspect.AIR, Aspect.WATERS, Aspect.SUN, Aspect.GRASS, Aspect.LEAVES, Aspect.CLOUD)
         for (seed in 0L..<SEEDS_TRIED) {
-            val cycling = read("age prismatic", seed).landings.filter { landing -> landing.sets(Prism.CYCLING.name) }.map { it.place.aspect }.toSet()
+            val cycling = read("age prismatic", seed).landings.filter { landing -> landing.sets(Prism.COLOURS_CYCLING.name) }.map { it.place.aspect }.toSet()
             check(cycling.containsAll(setOf(Aspect.SKY, Aspect.AIR, Aspect.CLOUD, Aspect.SUN, Aspect.MOON, Aspect.STARS, Aspect.AURORA, Aspect.WATERS))) {
                 "prismatic on seed $seed turned only $cycling"
             }
             val whitened = read("age colourless", seed).landings.filter { landing -> landing.sets("colour") }.map { it.place.aspect }.toSet()
             check(whitened.containsAll(everyColourPart)) { "colourless on seed $seed whitened only $whitened" }
         }
-        val aimed = read("age prismatic sun").landings.filter { it.sets(Prism.CYCLING.name) }.map { it.place.aspect }.toSet()
+        val aimed = read("age prismatic sun").landings.filter { it.sets(Prism.COLOURS_CYCLING.name) }.map { it.place.aspect }.toSet()
         check(aimed == setOf(Aspect.SUN)) { "prismatic sun turned $aimed" }
     }
 

@@ -34,14 +34,14 @@
     },
     {
       "sets": {
-        "cycling": "true"
+        "colours_cycling": "true"
       },
       "must_always_apply": true,
       "broad": true
     },
     {
       "sets": {
-        "light_cycling": "true"
+        "light_colour_cycling": "true"
       },
       "must_always_apply": true
     },

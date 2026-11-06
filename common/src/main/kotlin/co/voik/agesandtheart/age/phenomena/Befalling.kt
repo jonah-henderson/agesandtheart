@@ -14,6 +14,8 @@ data class Befalling(
     val strength: Double = ORDINARY_STRENGTH,
     val pace: Double = OWN_PACE,
     val colour: String? = null,
+    /** How many ticks a turn of its colours takes, or null where they hold still. */
+    val cyclePeriod: Int? = null,
 ) {
     companion object {
         private const val ORDINARY_STRENGTH = 0.0

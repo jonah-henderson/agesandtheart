@@ -58,7 +58,7 @@ object Sky {
         val told = drawn.bodies.mapIndexed { at, body -> SkyBodies.described(body, saidOf(at), seed) }
         return drawn.copy(
             bodies = EclipsingMoons.laidOn(told, ::saidOf, seed),
-            stars = starsKeptByDay(drawn.stars, parts.optionsFor(Aspect.STARS))
+            stars = SkyBodies.starsMovedAndSized(starsKeptByDay(drawn.stars, parts.optionsFor(Aspect.STARS)), parts.optionsFor(Aspect.STARS), seed)
                 .copy(tint = SkyBodies.starTintOf(parts.optionsFor(Aspect.STARS))),
             aurora = AuroraAspect.auroraIn(parts, seed),
             rainbow = RainbowAspect.rainbowIn(parts, seed),

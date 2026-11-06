@@ -214,7 +214,7 @@ object Meteors {
             asIfTeeming(often, dials.long),
         )
         val storm = MeteorStorm.gatherAt(
-            level, where, bodiesFor(falling), falling, dials.power, slant, reach, dials.pace, dials.colour,
+            level, where, bodiesFor(falling), falling, dials.power, slant, reach, dials.pace, dials.colour, dials.cyclePeriod,
         )
         PhenomenaCeiling.began(level, Phenomenon.METEORS, storm)
         return storm

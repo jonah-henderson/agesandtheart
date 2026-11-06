@@ -141,7 +141,7 @@ object MeteorGlow {
             val how = within * storm.castStrength() * open
             if (how > strongest) {
                 strongest = how
-                castIn = MeteorLights.of(storm.colour)
+                castIn = MeteorLights.of(storm.colour, storm.cyclePeriod, level.gameTime)
             }
         }
         return strongest

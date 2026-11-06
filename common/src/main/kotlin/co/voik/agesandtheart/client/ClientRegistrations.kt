@@ -71,7 +71,7 @@ object ClientRegistrations {
         RendererForEntity(AgeContent.LAVA_DROPLET) { MoltenLumpRenderer(it, MoltenLumpRenderer.GOBBET) },
         RendererForEntity(AgeContent.METEOR) {
             MoltenLumpRenderer<Meteor>(it, MoltenLumpRenderer.METEOR, MoltenLumpRenderer.METEOR_ROCK) { meteor ->
-                MeteorLights.of(meteor.colour).rock
+                MeteorLights.of(meteor.colour, meteor.cyclePeriod, meteor.level().gameTime).rock
             }
         },
         RendererForEntity(AgeContent.DRIFTING_ORE) { DriftingOreRenderer(it) },

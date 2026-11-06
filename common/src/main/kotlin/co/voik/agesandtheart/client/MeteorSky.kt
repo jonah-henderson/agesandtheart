@@ -71,7 +71,7 @@ object MeteorSky {
         into: MutableList<Glow>,
     ) {
         val age = storm.ageWithin(partOfATickOn)
-        val light = MeteorLights.of(storm.colour).sky
+        val light = MeteorLights.of(storm.colour, storm.cyclePeriod, storm.level().gameTime).sky
         for (number in 0..<storm.bodies) {
             val flight = storm.flightOf(number)
             val until = flight.fallsAt - age

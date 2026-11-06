@@ -12,6 +12,8 @@ import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.Palette
 import co.voik.ephemeris.sky.PhaseCycle
 import co.voik.ephemeris.sky.SkySpec
+import co.voik.ephemeris.sky.StarField
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
@@ -75,6 +77,45 @@ object SkyBodies {
             Parameter.Landmark(1.0, "twice as bright"),
         ),
     )
+
+    /** How fast the stars wheel against vanilla's, which turn with the day — `slow stars`, `swift stars`. */
+    val STARPACE = Parameter.ranged(
+        "pace",
+        help = "How fast the stars wheel across the sky.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "a quarter as fast"),
+            Parameter.Landmark(0.0, "vanilla's, with the day", isVanilla = true),
+            Parameter.Landmark(1.0, "four times as fast"),
+        ),
+    )
+
+    /** Whether the stars hang where they are while the sun crosses them — `motionless stars`. */
+    val STARS_STILL = Parameter.flag("still", help = "Whether the stars stand still.").onlyWhenAimed()
+
+    /** How large each star is: half its own size at the bottom, twice it at the top. */
+    val STARSIZE = Parameter.ranged(
+        "size",
+        help = "How large each star is.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "half"),
+            Parameter.Landmark(0.0, "vanilla's", isVanilla = true),
+            Parameter.Landmark(1.0, "twice"),
+        ),
+    )
+
+    /** [stars] wheeling and sized as [said] asks, or as they were where it says nothing. */
+    fun starsMovedAndSized(stars: StarField, said: Options, seed: Long): StarField {
+        val pace = when {
+            said.isTrue(STARS_STILL) -> STARS_HELD
+            else -> said.steer(STARPACE, seed)?.let { STAR_PACE_RANGE.pow(it).toFloat() } ?: StarField.VANILLAS_PACE
+        }
+        val size = said.steer(STARSIZE, seed)?.let { STAR_SIZE_RANGE.pow(it).toFloat() } ?: StarField.VANILLAS_SIZE
+        return stars.copy(pace = pace, size = size)
+    }
+
+    private const val STARS_HELD = 0.0f
+    private const val STAR_PACE_RANGE = 4.0
+    private const val STAR_SIZE_RANGE = 2.0
 
     /** What colour the stars burn — `red stars` — or [Parameter.DEFAULT] for their own whites. */
     val STARCOLOUR = Sky.colour("colour", "The colour the stars burn.")

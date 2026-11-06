@@ -15,22 +15,26 @@ import kotlin.random.Random
  */
 object Prism {
 
-    /** Whether this part's colours turn round the wheel over time. */
-    val CYCLING = Parameter.flag("cycling", help = "Whether its colours turn round the colour wheel over time.")
+    /**
+     * Whether this part's colours turn round the wheel over time: one dial every part with a colour holds, and said
+     * member by member where a part has members to say it of — `prismatic meteors`.
+     */
+    val COLOURS_CYCLING = Parameter.flag("colours_cycling", help = "Whether its colours turn round the colour wheel over time.")
+        .perMember()
 
     /**
      * Whether the light itself turns, which recolours every block at once — so only where a word names the air, never
      * from a `prismatic` laid bare (Jonah).
      */
-    val LIGHT_CYCLING = Parameter.flag("light_cycling", help = "Whether the light itself turns round the colour wheel.")
+    val LIGHT_COLOUR_CYCLING = Parameter.flag("light_colour_cycling", help = "Whether the light's colour turns round the colour wheel.")
         .onlyWhenAimed()
 
     /**
      * How long a full turn takes: from a day at -0.6 to two and a half minutes at 0.6, which an unsaid one is drawn
      * between, and further each way for `slow` and `swift` (Jonah).
      */
-    val CYCLE_PACE = Parameter.ranged(
-        "cycle_pace",
+    val COLOUR_CYCLE_PACE = Parameter.ranged(
+        "colour_cycle_pace",
         help = "How fast its colours turn round the wheel.",
         landmarks = listOf(
             Parameter.Landmark(-1.0, "three days a turn"),
@@ -38,13 +42,13 @@ object Prism {
             Parameter.Landmark(UNSAID_FASTEST, "two and a half minutes a turn"),
             Parameter.Landmark(1.0, "a minute a turn"),
         ),
-    )
+    ).perMember()
 
     /** What turns in an Age of [parts] whose sky is [sky], each part on its own cycle. */
     fun cyclesIn(parts: AgeParts, sky: SkySpec, seed: Long): ColourCycles {
         fun cycleOf(aspect: Aspect, tinge: Float, member: Int = 0): HueCycle? {
             val options = parts.optionsFor(aspect, member)
-            return if (options.isTrue(CYCLING)) HueCycle(periodOf(options, seed), tinge = tinge) else null
+            return if (options.isTrue(COLOURS_CYCLING)) HueCycle(periodOf(options, seed), tinge = tinge) else null
         }
         val air = parts.optionsFor(Aspect.AIR)
         val bodies = sky.bodies.indices.mapNotNull { index ->
@@ -57,7 +61,7 @@ object Prism {
             sky = cycleOf(Aspect.SKY, SKY_TINGE),
             fog = cycleOf(Aspect.AIR, SKY_TINGE),
             cloud = cycleOf(Aspect.CLOUD, CLOUD_TINGE),
-            light = if (air.isTrue(LIGHT_CYCLING)) HueCycle(periodOf(air, seed), tinge = LIGHT_TINGE) else null,
+            light = if (air.isTrue(LIGHT_COLOUR_CYCLING)) HueCycle(periodOf(air, seed), tinge = LIGHT_TINGE) else null,
             waterFog = cycleOf(Aspect.WATERS, WATER_TINGE),
             stars = cycleOf(Aspect.STARS, BODY_TINGE),
             aurora = cycleOf(Aspect.AURORA, NO_TINGE),
@@ -70,7 +74,13 @@ object Prism {
     }
 
     /** How many ticks a full turn takes where [options] say how fast, or where this Age's [seed] draws it. */
-    fun periodOf(options: Options, seed: Long): Int = periodAt(options.steer(CYCLE_PACE, seed) ?: unsaidPaceOf(seed))
+    fun periodOf(options: Options, seed: Long): Int = periodAt(options.steer(COLOUR_CYCLE_PACE, seed) ?: unsaidPaceOf(seed))
+
+    /** How many ticks a turn of [member]'s colours takes, as [options] say it of that member, or null where they hold still. */
+    fun periodOf(options: Options, member: String, seed: Long): Int? {
+        if (!options.isTrue(COLOURS_CYCLING, member = member)) return null
+        return periodAt(options.steer(COLOUR_CYCLE_PACE, seed, member = member) ?: unsaidPaceOf(seed))
+    }
 
     /** One draw for the whole Age, so every part left unsaid turns in step. */
     private fun unsaidPaceOf(seed: Long): Double = Random(seed xor PACE_SALT).nextDouble(UNSAID_SLOWEST, UNSAID_FASTEST)

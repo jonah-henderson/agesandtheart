@@ -2,6 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.aspect.Colour
 import co.voik.ephemeris.Rgba
+import co.voik.ephemeris.sky.HueCycle
 
 /**
  * The lights a meteor storm burns in: [sky], each body's light coming in ([MeteorSky]); [rock], the bloom and streak
@@ -17,6 +18,18 @@ data class MeteorLights(val sky: Rgba, val rock: Rgba, val cast: Rgba, val floor
             cast = Rgba(0.55f, 0.16f, 1.0f),
             floor = Rgba(0.30f, 0.09f, 0.58f),
         )
+
+        /**
+         * The lights for the colour [named], turned round the wheel as they stand at [gameTime] where their storm's
+         * colours turn every [cyclePeriod] ticks (`prismatic meteors`), each keeping its lightness.
+         */
+        fun of(named: String?, cyclePeriod: Int?, gameTime: Long): MeteorLights {
+            val still = of(named)
+            val period = cyclePeriod ?: return still
+            val cycle = HueCycle(period)
+            val turn = cycle.turnAt(gameTime)
+            return MeteorLights(cycle.at(still.sky, turn), cycle.at(still.rock, turn), cycle.at(still.cast, turn), cycle.at(still.floor, turn))
+        }
 
         /** The lights for the colour [named], or [VIOLET] where nothing or nothing of ours is named. */
         fun of(named: String?): MeteorLights {

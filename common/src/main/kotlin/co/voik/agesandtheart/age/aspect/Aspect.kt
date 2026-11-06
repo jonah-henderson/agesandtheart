@@ -316,29 +316,32 @@ enum class Aspect(
             )
             AIR -> listOf(
                 Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE, Atmosphere.DRAINED, Atmosphere.WIND,
-                Prism.CYCLING, Prism.LIGHT_CYCLING, Prism.CYCLE_PACE,
+                Prism.COLOURS_CYCLING, Prism.LIGHT_COLOUR_CYCLING, Prism.COLOUR_CYCLE_PACE,
             )
-            WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR, Fishing.TREASURE, Prism.CYCLING, Prism.CYCLE_PACE)
+            WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR, Fishing.TREASURE, Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE)
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER, Atmosphere.RAINPACE)
             SUN -> listOf(
                 SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.SUNCOLOUR, SkyBodies.RISING, SkyBodies.PATH,
-                SkyBodies.STILL, SkyBodies.BODYPACE, SkyBodies.BODYLIGHT, Parameter.cast(), Prism.CYCLING, Prism.CYCLE_PACE,
+                SkyBodies.STILL, SkyBodies.BODYPACE, SkyBodies.BODYLIGHT, Parameter.cast(), Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE,
             )
             MOON -> listOf(
                 SkyBodies.ABSENT, SkyBodies.BODYSIZE, SkyBodies.MOONCOLOUR, SkyBodies.RISING, SkyBodies.PATH, SkyBodies.PULL,
                 SkyBodies.STILL, SkyBodies.BODYPACE, SkyBodies.UNLIT, SkyBodies.BODYLIGHT, EclipsingMoons.FREQUENCY, Parameter.cast(),
-                Prism.CYCLING, Prism.CYCLE_PACE,
+                Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE,
             )
-            STARS -> listOf(SkyBodies.STARS, SkyBodies.STARGLOW, SkyBodies.STARCOLOUR, Atmosphere.FADES, Prism.CYCLING, Prism.CYCLE_PACE)
-            GRASS -> listOf(Atmosphere.GRASSCOLOUR, Prism.CYCLING, Prism.CYCLE_PACE)
-            LEAVES -> listOf(Atmosphere.LEAFCOLOUR, Prism.CYCLING, Prism.CYCLE_PACE)
+            STARS -> listOf(
+                SkyBodies.STARS, SkyBodies.STARGLOW, SkyBodies.STARCOLOUR, Atmosphere.FADES, Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE,
+                SkyBodies.STARPACE, SkyBodies.STARS_STILL, SkyBodies.STARSIZE,
+            )
+            GRASS -> listOf(Atmosphere.GRASSCOLOUR, Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE)
+            LEAVES -> listOf(Atmosphere.LEAFCOLOUR, Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE)
             AURORA -> listOf(
                 AuroraAspect.AURORACOLOUR,
                 AuroraAspect.AURORAGLOW,
                 AuroraAspect.AURORASIZE,
                 AuroraAspect.AURORAFREQUENCY,
                 AuroraAspect.AURORAWARMTH,
-                Prism.CYCLING, Prism.CYCLE_PACE,
+                Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE,
             )
             RAINBOW -> listOf(
                 RainbowAspect.RAINBOWCOLOUR,
@@ -357,11 +360,11 @@ enum class Aspect(
                 Sky.TORN,
                 Drift.SHIFTING,
                 Drift.PACE,
-                Prism.CYCLING, Prism.CYCLE_PACE,
+                Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE,
             )
             CLOUD -> listOf(
                 Atmosphere.CLOUD, Atmosphere.CEILING, Atmosphere.CLOUDS_ABSENT, Atmosphere.CLOUDPACE, Atmosphere.CLOUDS_STILL,
-                Prism.CYCLING, Prism.CYCLE_PACE, CloudShape.COVER, CloudShape.CLUMPING, CloudShape.TORN, CloudShape.SIZE,
+                Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE, CloudShape.COVER, CloudShape.CLUMPING, CloudShape.TORN, CloudShape.SIZE,
             )
             GRAVITY -> listOf(Gravity.PULL)
             SEA -> listOf(Sea.DEPTH)
@@ -375,10 +378,12 @@ enum class Aspect(
                 Spawns.CAPS, Spawns.NONE_BELOW, Spawns.VARIETY, Spawns.COLOUR,
             )
             STRUCTURES -> listOf(Structures.ABANDONED, Structures.INCONGRUOUS, Structures.MATERIAL, Structures.SPACING, Structures.SIZE, Structures.HEIGHT, Structures.CRUMBLE, Structures.CHARRED, Structures.VARIETY)
-            // **Nothing of its own**: each phenomenon carries the dials it has (`Phenomenon.parameters`), since an
-            // inferno has no "how often" and only the overgrowth grows.
             UNDERGROUND -> listOf(Underground.DEPTH, Underground.VEINS, Underground.FORMER_NOISE_CAVES)
-            CARVERS, PHENOMENA -> emptyList()
+            // Each phenomenon carries the dials it has (`Phenomenon.parameters`), since an inferno has no "how often"
+            // and only the overgrowth grows. **But its colours turning**, which a bare `prismatic` says of every
+            // phenomenon at once, and only those that have colours to turn heed.
+            PHENOMENA -> listOf(Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE)
+            CARVERS -> emptyList()
         }
 
     /**

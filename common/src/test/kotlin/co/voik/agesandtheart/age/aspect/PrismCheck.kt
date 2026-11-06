@@ -56,6 +56,16 @@ class PrismCheck : FunSpec({
         check(waters.water != null && waters.waterFog != null && waters.ground == null) { "prismatic waters turned $waters" }
     }
 
+    test("prismatic meteors turn, on a faster clock where swift says so, and a plain Age's hold still") {
+        fun periodOf(row: String) =
+            Phenomena.cyclePeriodOf(resolved(row).composition.optionsFor(Aspect.PHENOMENA), Phenomenon.METEORS, SEED)
+        val prismatic = periodOf("age prismatic meteors")
+        val swift = periodOf("age swift prismatic meteors")
+        check(prismatic != null && swift != null && swift <= 3_000) { "prismatic meteors turned every $prismatic, swift every $swift" }
+        check(periodOf("age prismatic") != null) { "a bare prismatic left the meteors still" }
+        check(periodOf("age meteors") == null) { "plain meteors turned" }
+    }
+
     test("an Age that says nothing of it turns nothing") {
         check(cyclesOf("age").isNone) { "a plain Age turned: ${cyclesOf("age")}" }
     }

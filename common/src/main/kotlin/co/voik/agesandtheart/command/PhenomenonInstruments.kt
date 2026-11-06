@@ -370,6 +370,7 @@ internal object PhenomenonInstruments {
             Happenings.spendingIn(level),
             pace = Happenings.paceIn(level, Phenomenon.METEORS),
             colour = Happenings.colourIn(level, Phenomenon.METEORS),
+            cyclePeriod = Happenings.cyclePeriodIn(level, Phenomenon.METEORS),
         )
         // toDouble FIRST: ALL_OF_A_DIAL is an Int, so dividing without it makes every power under a hundred nought.
         val dials = powerPercent?.let { bought.copy(power = it.toDouble() / ALL_OF_A_DIAL) } ?: bought
