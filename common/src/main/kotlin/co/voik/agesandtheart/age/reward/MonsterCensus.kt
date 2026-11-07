@@ -10,6 +10,7 @@ import co.voik.agesandtheart.age.aspect.Spawning
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.WhereThingsGrow
 import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.generation.IncongruousSpawns
 import co.voik.agesandtheart.worldgen.biome.BiomeHome
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import net.minecraft.core.BlockPos
@@ -148,7 +149,7 @@ class MonsterCensus(
 
         /** Every biome offering what every biome of [ground] offers, as an `incongruous inhabitants` Age's do. */
         private fun offeredAnywhere(ground: List<Patch>): List<Patch> {
-            val anywhere = WeightedList.of(ground.flatMap { it.monsters.unwrap() }.distinctBy { it.value().type() })
+            val anywhere = IncongruousSpawns.everyKindAlike(ground.flatMap { it.monsters.unwrap() })
             return ground.map { it.copy(monsters = anywhere) }
         }
 

@@ -23,6 +23,7 @@
     "GrindstoneBarMixin",
     "ItemRemainderAccessor",
     "FlowingFluidMixin",
+    "IncongruousResidentsMixin",
     "JigsawPlacementMixin",
     "JigsawStructureMixin",
     "LecternBlockEntityMixin",

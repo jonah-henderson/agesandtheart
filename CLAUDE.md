@@ -352,7 +352,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   `client/ClientPayloads` (clientbound handlers) and `client/AgeFluidLooks` (fluid models). A new hook is a
   line in one of those; a new event is a function there and one line per loader.
 
-**4. Sixty Mixins and two accessors in `common`, one more in `fabric`, all Java.**
+**4. Sixty-one Mixins and two accessors in `common`, one more in `fabric`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -475,7 +475,9 @@ When shared code needs something loader-specific, it goes through an interface, 
   asking the generator, is sent to it, so a structure there keeps half its own creatures as every other does. Fabric has no natural-spawning event and NeoForge's
   spawn-placement event is per type at registration rather than per level. The chunk-generation pass is ours
   already (`ChunkGenerationSpawns`) and frees itself. A creature asked for in herds is placed by a cow's rules at the
-  same three seams (`generation/HerdedSpawns`). **`MixinsRegisteredCheck` holds every Mixin class listed in
+  same three seams (`generation/HerdedSpawns`). **`IncongruousResidentsMixin`** puts something else in place of half the
+  creatures a structure is built with there (a witch hut's witch and cat), at the region's `addFreshEntity`, which no
+  loader's entity event sees while a chunk is generated. **`MixinsRegisteredCheck` holds every Mixin class listed in
   the config** — an unlisted one is never applied and nothing says so.
 
 The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.

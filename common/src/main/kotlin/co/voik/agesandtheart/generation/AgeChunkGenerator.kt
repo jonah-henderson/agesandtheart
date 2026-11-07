@@ -424,9 +424,7 @@ class AgeChunkGenerator(
      * — and it needs no widener, unlike the feature seam beside it.
      */
     /** Every creature of every kind every biome here offers — what an `incongruous inhabitants` Age's chunks are made with. */
-    private val madeAnywhere: WeightedList<MobSpawnSettings.SpawnerData> by lazy {
-        WeightedList.of(offeredAnywhere.values.flatMap { it.unwrap() })
-    }
+    private val madeAnywhere: WeightedList<MobSpawnSettings.SpawnerData> by lazy { IncongruousSpawns.madeAnywhere(offeredAnywhere) }
 
     /** What every biome of this Age offers, per pass — the menu everywhere in an `incongruous inhabitants` Age. */
     private val offeredAnywhere: Map<MobCategory, WeightedList<MobSpawnSettings.SpawnerData>> by lazy {
@@ -1621,7 +1619,9 @@ class AgeChunkGenerator(
         CrumbledFeatures.decorating(featuresCrumbled, level.seed) {
             StrangeGround.decorating(consequence, treesGrownWith, level.seed, { placedFeatures.getKey(it)?.toString() }) {
                 StructureMaterials.building(structuresBuiltOf, level.registryAccess()) {
-                    super.applyBiomeDecoration(level, chunk, structures)
+                    IncongruousSpawns.settling(incongruity.spawns, { offeredAnywhere }, level.seed) {
+                        super.applyBiomeDecoration(level, chunk, structures)
+                    }
                 }
             }
         }
