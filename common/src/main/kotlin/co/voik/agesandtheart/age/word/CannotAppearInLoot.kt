@@ -7,7 +7,7 @@ import net.minecraft.resources.Identifier
 
 /**
  * Words the corpus-wide loot draws skip: a found page and a found notebook. The word still exists and is
- * writable once learned another way — [DerivedWords.DOES_NOT_HAVE_A_WORD] is the fence that unmakes one.
+ * writable once learned another way — [co.voik.agesandtheart.age.language.DerivedWords.DOES_NOT_HAVE_A_WORD] is the fence that unmakes one.
  *
  * A word naming a registry entry is kept out by tagging the entry; an authored word names nothing, so it
  * is listed by name in [WordRarity.KEPT_OUT_OF_LOOT_FILE] — the same split [InkRequirement] makes. A

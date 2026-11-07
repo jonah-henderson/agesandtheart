@@ -103,7 +103,7 @@ object LinkingIn {
 
     /** Whether the Age grows any of [features] in [biome], as its own generator would place them. */
     private fun growsAnyOf(level: ServerLevel, biome: Holder<Biome>, features: Set<String>): Boolean =
-        level.chunkSource.generator.getBiomeGenerationSettings(biome).features().any { step ->
+        level.chunkSource.generator.generationSettingsGetter.apply(biome).features().any { step ->
             step.any { placed -> placed.unwrapKey().map { it.identifier().toString() in features }.orElse(false) }
         }
 

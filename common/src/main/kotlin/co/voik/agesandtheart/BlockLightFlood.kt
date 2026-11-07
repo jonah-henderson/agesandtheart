@@ -1,5 +1,6 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.compat.hasChunkAtColumn
 import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue
 import net.minecraft.core.BlockPos
@@ -34,7 +35,7 @@ object BlockLightFlood {
                 val fromState = level.getBlockState(from)
                 for (way in Direction.entries) {
                     into.setWithOffset(from, way)
-                    if (level.isOutsideBuildHeight(into) || !level.hasChunkAt(into)) continue
+                    if (level.isOutsideBuildHeight(into) || !level.hasChunkAtColumn(into)) continue
                     val intoState = level.getBlockState(into)
                     val reached = standing - maxOf(1, intoState.lightDampening)
                     if (reached <= levels.get(into.asLong()).toInt()) continue

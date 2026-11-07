@@ -78,7 +78,7 @@ object Features {
      * that. A description ([Claim.onlyWhereItGrows]) asks for more of the thing where it already grows, and
      * a landform grows nowhere — so `desolate`, leaning on `#barren`, reached `agesandtheart:volcano` at 1.6
      * and raised cones through a frozen Age (Jonah, 2026-09-17, the Age Tumar). A strike-out is the opposite mention
-     * and used to build what it struck, which [Danger] already fixed on its own side.
+     * and used to build what it struck, which [co.voik.agesandtheart.age.reward.Danger] already fixed on its own side.
      *
      * Confinement is *not* filtered here and cannot be honoured by the callers, whose fields are laid over
      * the whole Age — `volcano[in=minecraft:badlands]` raises them everywhere. That wants `unhonoured`

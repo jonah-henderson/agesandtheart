@@ -275,6 +275,8 @@ object FeatureShape {
     }
 
     /** The features [feature] places one or all of, where it is a chooser or a sequence. */
+    // RandomSelectorFeature is deprecated and vanilla's own features are still built of it.
+    @Suppress("DEPRECATION")
     private fun chosenBetween(feature: Feature): List<Holder<PlacedFeature>> = when (feature) {
         is RandomSelectorFeature -> feature.features().map { it.feature() } + feature.defaultFeature()
         is RandomBooleanSelectorFeature -> listOf(feature.featureTrue(), feature.featureFalse())

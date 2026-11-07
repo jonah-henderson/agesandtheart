@@ -114,14 +114,14 @@ import co.voik.agesandtheart.worldgen.settingsFor
  * The generator every composed Age runs on: **vanilla's noise generator, with four deliberate exits.**
  * Everything else — the stages, the surface system, decoration, structures, mob spawning — is inherited.
  *
- * 1. [fillFromNoise], the only irreducible one. Our shapes are *analytic*: a [TerrainField] answers
+ * 1. The fill, in [buildTerrain], the only irreducible one. Our shapes are *analytic*: a [TerrainField] answers
  *    `(x, z) -> Spans` where a density function answers `(x, y, z) -> double` on an interpolated cell
  *    grid, and interpolation is what rounds off a `Box`'s faces.
  * 2. [getBaseHeight] and 3. [getBaseColumn] — the same decision from two more angles. These must *agree*
  *    with the fill, since structures and features place against them. **Which is why an [Overlay] is
  *    honoured by all three and not just the fill**: a cone raised only in the fill would have vanilla put
  *    the trees and the villages on the ground *inside* it.
- * 4. [applyCarvers], because an Age's carvers come from its **recipe**, not its biome. Otherwise vanilla's
+ * 4. The carvers, also in [buildTerrain], because an Age's carvers come from its **recipe**, not its biome. Otherwise vanilla's
  *    own algorithm, with one substitution: the source of the list.
  *
  * Not an exit: dividing the world by territory goes through a custom `RegionRule`, vanilla's own
@@ -141,7 +141,7 @@ class AgeChunkGenerator(
      * no carvers and so being the union's identity rather than a member of it — which left "caves here,
      * solid ground there" unsayable.
      *
-     * A carver is a stateful walk, so there is no column at which to ask whether it may cut; [applyCarvers]
+     * A carver is a stateful walk, so there is no column at which to ask whether it may cut; `carveOurGround`
      * asks at the walk's *origin*, the one position a walk has.
      */
     private val carvers: List<HolderSet<WorldCarver>> = listOf(HolderSet.direct()),
@@ -757,7 +757,7 @@ class AgeChunkGenerator(
      *
      * The biome goes into the chunk rather than coming from the biome source, because the abyss stops at the sea
      * bed and this is the first moment vanilla's is known. A cell is abyss where it starts above the bed and at or
-     * under the line, which is [BiomeBand]'s rule on a rock of ours; the cell holding the bed keeps its own biome,
+     * under the line, which is [co.voik.agesandtheart.worldgen.biome.BiomeBand]'s rule on a rock of ours; the cell holding the bed keeps its own biome,
      * so the floor is surfaced and its ores placed as vanilla's.
      */
     private fun layTheAbyssOverVanillasRock(chunk: ChunkAccess) {
@@ -1274,7 +1274,7 @@ class AgeChunkGenerator(
     /**
      * What the `NoiseChunk`'s aquifer fills with. On vanilla's rock that aquifer is the real one and this is
      * vanilla's own sea and lava — our sea is never declared over vanilla's terrain, so reading it poured air.
-     * On ours the aquifer is disabled and unused; carving uses [aquifer].
+     * On ours the aquifer is disabled and unused; carving uses its own.
      */
     private val ambientFluid: Aquifer.FluidPicker = when (rock) {
         is AgeRock.Vanillas -> createFluidPicker(generationSettings)

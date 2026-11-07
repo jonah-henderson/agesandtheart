@@ -45,7 +45,7 @@ class MachineCategory(type: IRecipeType<ListedRecipe>, machine: ItemLike, guiHel
     }
 
     override fun createRecipeExtras(builder: IRecipeExtrasBuilder, recipe: ListedRecipe, focuses: IFocusGroup) {
-        builder.addRecipeArrow().setPosition(ARROW_X, ARROW_Y)
+        builder.addRecipeArrowWidget().setPosition(ARROW_X, ARROW_Y)
     }
 
     private companion object {
@@ -81,7 +81,7 @@ class CompoundingCategory(guiHelper: IGuiHelper) : AbstractRecipeCategory<Compou
     }
 
     override fun createRecipeExtras(builder: IRecipeExtrasBuilder, recipe: CompoundingRecipeDisplay, focuses: IFocusGroup) {
-        builder.addRecipeArrow().setPosition(ARROW_X, ARROW_Y)
+        builder.addRecipeArrowWidget().setPosition(ARROW_X, ARROW_Y)
         if (recipe.needs.isNotEmpty()) {
             builder.addText(needsSaying(recipe.needs), WIDTH, NEEDS_HEIGHT).setPosition(0, NEEDS_Y)
         }

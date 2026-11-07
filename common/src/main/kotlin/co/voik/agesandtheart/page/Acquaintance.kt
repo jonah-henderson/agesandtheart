@@ -77,7 +77,7 @@ object Acquaintance {
      * The referent a stack names, or null for something that names nothing.
      *
      * **A bucket is asked what block its fluid becomes**, rather than for the fluid's own id.
-     * [DerivedWords.materials] walks the *block* registry, so every derived word is named for a block, and
+     * [co.voik.agesandtheart.age.language.DerivedWords.blocks] walks the *block* registry, so every derived word is named for a block, and
      * a fluid is a different registry with its own keys. Ours share the block's name as vanilla's do, so
      * the two now agree — but the indirection is still the correct question to ask, and is what makes this
      * hold for a fluid whose block is named something else.

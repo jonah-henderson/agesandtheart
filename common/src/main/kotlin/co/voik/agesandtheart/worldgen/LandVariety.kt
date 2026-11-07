@@ -18,14 +18,15 @@ import kotlin.math.min
  * far higher at the odd landmark, its slopes terraced in patches and cut by gullies, its faces undercut and footed with
  * scree, and its outlines bent at a few hundred blocks, so no two stretches of one landform are quite alike.
  *
- * [strength] is 0 for none, 1 for an Age that said nothing of it, and 2 at the most; [landScale] is the landform's
- * own size factor, which the wavelengths and the bend follow so a colossal landform drifts at its own scale.
+ * Of what [over] is given, `strength` is 0 for none, 1 for an Age that said nothing of it, and 2 at the most;
+ * `landScale` is the landform's own size factor, which the wavelengths and the bend follow so a colossal landform
+ * drifts at its own scale.
  *
- * [erosion] is how worn the land is on average, on the same scale, and [strength] how far that swings from place to
- * place ([Wear]): none at all where the land does not vary, and from untouched to twice the average at the most.
- * Where the Age has a [TerrainTable], the drift follows its uplift and the wear its age. Where the landform carries
- * [water] of its own, the wear stays clear of it ([Banked]). [terracing] runs from no terraces at -1, through the
- * patches the wear lays at 0, to every slope stepped however worn it is at 1.
+ * `erosion` is how worn the land is on average, on the same scale, and `strength` how far that swings from place to
+ * place ([Wear]): none at all where the land does not vary, and from untouched to twice the average at the most. Where
+ * the Age has a [TerrainTable], the drift follows its uplift and the wear its age. Where the landform carries water of
+ * its own, the wear stays clear of it ([Banked]). `terracing` runs from no terraces at -1, through the patches the wear
+ * lays at 0, to every slope stepped however worn it is at 1.
  */
 object LandVariety {
 

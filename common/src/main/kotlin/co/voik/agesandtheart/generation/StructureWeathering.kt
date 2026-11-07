@@ -23,6 +23,8 @@ data class StructureWeathering(val crumble: Double, val charred: Boolean) {
     val isNothing: Boolean get() = crumble <= 0.0 && !charred
 
     /** [state] as laid at [at] in an Age of [seed], or null where it is not laid at all. */
+    // NeoForge deprecates `ignitedByLava` for a level-aware form, and a block not yet laid has no level to ask.
+    @Suppress("DEPRECATION")
     fun weathered(at: BlockPos, state: BlockState, seed: Long): BlockState? {
         if (state.isAir || state.hasBlockEntity() || !state.fluidState.isEmpty || isMarker(state)) return state
         if (crumble > 0.0 && drawAt(at, seed xor CRUMBLE_SALT) < crumble * MOST_CRUMBLED) return null

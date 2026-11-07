@@ -54,7 +54,7 @@ object Storms {
     private var inTheWind = ConeExposure.Remembered()
 
     /**
-     * How much of [blowing] is actually on [at], from none of it to all of it — [Blizzard.exposureAt], the
+     * How much of the wind is actually on [at], from none of it to all of it — [Sampling.exposureAt], the
      * same definition the cold uses, with the wind read from where the local player stands.
      *
      * **Cover only, deliberately.** A fire warms you without sheltering you, so it takes the edge off the

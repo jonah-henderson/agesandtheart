@@ -30,6 +30,8 @@ internal object LightInstruments {
     private fun runLightFlood(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val level = context.source.level
         val source = BlockPosArgument.getLoadedBlockPos(context, POS_ARGUMENT)
+        // NeoForge deprecates `lightEmission` for its own level-aware form, which common code cannot name.
+        @Suppress("DEPRECATION")
         val emitted = level.getBlockState(source).lightEmission
         val flooded = BlockLightFlood.from(level, source, emitted)
         var compared = 0

@@ -42,6 +42,8 @@ data class DeepLake(
 
     private fun index(x: Int, z: Int, y: Int) = (x * WIDTH + z) * height + y
 
+    // `liquid` and `isSolid` are deprecated, and vanilla's own lake still asks them.
+    @Suppress("DEPRECATION")
     override fun place(level: WorldGenLevel, generator: ChunkGenerator, random: RandomSource, origin: BlockPos): Boolean {
         if (origin.y <= level.minY + waterline) return false
         val corner = origin.offset(-WIDTH / 2, -waterline, -WIDTH / 2)

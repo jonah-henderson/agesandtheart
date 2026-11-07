@@ -22,7 +22,7 @@ internal object StructureInstruments {
     }
 
     /**
-     * `/age contents <radius>` — every item held in a block within [radius] of where it is run, and every
+     * `/age contents <radius>` — every item held in a block within `radius` of where it is run, and every
      * container still waiting on a loot table, as `<x y z> <block> <item>`. A linking book says where it
      * leads, a page its word, a descriptive book whether it is written. Reading a chest that has a table
      * would roll it, so those report only the table.

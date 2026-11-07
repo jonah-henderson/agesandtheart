@@ -64,9 +64,12 @@ class FaultCheck : FunSpec({
             Seam.SHEARED to 0.15,
             Seam.FUZZED to 0.05,
         )
-        check(expected.keys == Seam.entries.toSet()) {
-            "a seam form has no expected share here — add one, or the distribution is only partly checked"
+        // MERGED is never drawn by chance, only asked for by `and`, so it has no share to check.
+        val drawable = Seam.entries.filter { it.frequency > 0 }.toSet()
+        check(expected.keys == drawable) {
+            "a drawable seam form has no expected share here — add one, or the distribution is only partly checked"
         }
+        check(counts.getValue(Seam.MERGED) == 0) { "merged was drawn by chance ${counts.getValue(Seam.MERGED)} times" }
         fun observedShare(seam: Seam) = counts.getValue(seam).toDouble() / SEED_SAMPLES
         for ((seam, share) in expected) {
             check(abs(observedShare(seam) - share) < FREQUENCY_TOLERANCE) {

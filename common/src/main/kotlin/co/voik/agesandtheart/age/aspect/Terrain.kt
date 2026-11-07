@@ -404,12 +404,12 @@ enum class Terrain(
     /**
      * **Vanilla's own rock, one per world** — its overworld, its nether and its end — rather than a shape of
      * ours, and each under any template: nether rock under an overworld sky, or the end's islands under a
-     * blue one. Which noise settings each wears is [AgeTemplate.ofRock]'s to say.
+     * blue one. Which noise settings each wears is [co.voik.agesandtheart.age.AgeTemplate.ofRock]'s to say.
      *
-     * A template's own world wears its own ([AgeTemplate.world]), which is what an Age that named no
-     * landform gets. They are either/or with a landform of ours, vanilla's router answering for the rock,
-     * the aquifers and the preliminary surface together where the field tree answers for all three — so a
-     * book naming one beside a shape of ours keeps the vanilla rock and is charged for the other.
+     * A template's own world wears its own ([co.voik.agesandtheart.age.AgeTemplate.world]), which is what an Age that
+     * named no landform gets. They are either/or with a landform of ours, vanilla's router answering for the rock, the
+     * aquifers and the preliminary surface together where the field tree answers for all three — so a book naming one
+     * beside a shape of ours keeps the vanilla rock and is charged for the other.
      *
      * **They build no field, and asking one for it is unreachable rather than merely wrong.**
      * `AgeGeneration.ourGround` is the only caller of [ground], and it is entered only where none of these

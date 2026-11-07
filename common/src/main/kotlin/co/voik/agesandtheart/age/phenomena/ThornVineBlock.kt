@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.compat.hasChunkAtColumn
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
@@ -148,7 +149,7 @@ class ThornVineBlock(properties: BlockBehaviour.Properties) : Block(properties),
         val ahead = pos.relative(heading)
         val aheadState = level.getBlockState(ahead)
         val isContinued = aheadState.`is`(this) && aheadState.getValue(ANCHOR) == heading.opposite
-        if (isContinued || !level.hasChunkAt(ahead)) return Outlook.SETTLED
+        if (isContinued || !level.hasChunkAtColumn(ahead)) return Outlook.SETTLED
         if (aheadState.isAir) return if (reachAt(level, ahead, state) <= MAX_REACH) Outlook.EXTEND else Outlook.SETTLED
         return if (openWaysFrom(level, pos, state).isEmpty()) Outlook.SETTLED else Outlook.TURN
     }
@@ -163,13 +164,13 @@ class ThornVineBlock(properties: BlockBehaviour.Properties) : Block(properties),
 
     private fun isSupported(level: LevelReader, cell: BlockPos): Boolean = Direction.entries.any { way ->
         val beside = cell.relative(way)
-        level.hasChunkAt(beside) && level.getBlockState(beside).isFaceSturdy(level, beside, way.opposite)
+        level.hasChunkAtColumn(beside) && level.getBlockState(beside).isFaceSturdy(level, beside, way.opposite)
     }
 
     private fun openWaysFrom(level: LevelReader, pos: BlockPos, state: BlockState): List<Direction> {
         val anchor = state.getValue(ANCHOR)
         return Direction.entries.filter { way ->
-            way != anchor && level.hasChunkAt(pos.relative(way)) && level.getBlockState(pos.relative(way)).isAir
+            way != anchor && level.hasChunkAtColumn(pos.relative(way)) && level.getBlockState(pos.relative(way)).isAir
         }
     }
 

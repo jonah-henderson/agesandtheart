@@ -3,6 +3,7 @@ package co.voik.agesandtheart.compat
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.LevelReader
 import net.minecraft.world.phys.Vec3
 
 /**
@@ -40,6 +41,16 @@ const val ONLY_VERTEX_BINDING = 0
  * outside build height whether or not the chunk is there. Every caller here is asking a flat question
  * about a column and hands over whatever Y it happened to have — and `StarFissureFall` asks it of a
  * player falling through a tear, whose Y is precisely the thing that leaves the world.
+ *
+ * A reader that is not a level — a block asking after its neighbours may be handed one — has no chunk source, so it
+ * is asked through its own `hasChunk`, deprecated with the rest and given no other spelling.
  */
-fun Level.hasChunkAtColumn(blockX: Int, blockZ: Int): Boolean =
-    chunkSource.hasChunk(SectionPos.blockToSectionCoord(blockX), SectionPos.blockToSectionCoord(blockZ))
+@Suppress("DEPRECATION")
+fun LevelReader.hasChunkAtColumn(blockX: Int, blockZ: Int): Boolean {
+    val chunkX = SectionPos.blockToSectionCoord(blockX)
+    val chunkZ = SectionPos.blockToSectionCoord(blockZ)
+    return if (this is Level) chunkSource.hasChunk(chunkX, chunkZ) else hasChunk(chunkX, chunkZ)
+}
+
+/** Whether the chunk holding [at]'s column is loaded, whatever its height. */
+fun LevelReader.hasChunkAtColumn(at: BlockPos): Boolean = hasChunkAtColumn(at.x, at.z)

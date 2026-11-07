@@ -53,7 +53,7 @@ class WindPushCheck : FunSpec({
         val gale = Gale.Blowing(lying = 1.0, bearingDegrees = 200.0, fury = 1.0)
         val both = Gale.together(gale, storm)
         check(both != null && both.fury > storm.fury && both.fury <= 1.0) { "a gale and a blizzard together blew $both" }
-        check(both?.bearingDegrees == storm.bearingDegrees) { "a gale turned the storm to ${both?.bearingDegrees}°" }
+        check(both.bearingDegrees == storm.bearingDegrees) { "a gale turned the storm to ${both.bearingDegrees}°" }
         check(Gale.together(null, storm) == storm && Gale.together(gale, null) == gale) { "one wind alone was changed" }
     }
 

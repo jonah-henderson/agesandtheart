@@ -31,6 +31,8 @@ class ClimateStretchCheck : FunSpec({
             override fun rewrite(function: DensityFunction): DensityFunction = seen.getOrPut(function) {
                 if (function is NoiseFunction) {
                     val name = function.noise().unwrapKey().map { it.identifier().toString() }.orElse("unnamed")
+                    // Deprecated with no replacement: the stretch this check reads is that field.
+                    @Suppress("DEPRECATION")
                     found.getOrPut(name) { HashSet() } += function.xzScale()
                 }
                 function.rewriteChildren(this)

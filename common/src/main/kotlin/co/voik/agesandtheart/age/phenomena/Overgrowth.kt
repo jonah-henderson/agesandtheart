@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.compat.hasChunkAtColumn
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
@@ -176,7 +177,7 @@ object Overgrowth {
 
     fun isHotWithin(level: LevelReader, at: BlockPos, radius: Int): Boolean {
         val reach = BlockPos.betweenClosed(at.offset(-radius, -radius, -radius), at.offset(radius, radius, radius))
-        return reach.any { level.hasChunkAt(it) && isHot(level.getBlockState(it)) }
+        return reach.any { level.hasChunkAtColumn(it) && isHot(level.getBlockState(it)) }
     }
 
     fun isEdible(level: LevelReader, at: BlockPos, state: BlockState): Boolean {
@@ -206,7 +207,7 @@ object Overgrowth {
 
     private fun plantRootAt(level: ServerLevel, column: BlockPos) {
         val ground = Sampling.skyward(level, column).below()
-        if (!level.hasChunkAt(ground)) return
+        if (!level.hasChunkAtColumn(ground)) return
         val standing = level.getBlockState(ground)
         val isWater = !standing.fluidState.isEmpty
         val isTooCloseToSomeone = Sampling.watchers(level).any { it.blockPosition().closerThan(ground, SEED_NO_CLOSER_THAN) }
@@ -250,7 +251,7 @@ object Overgrowth {
 
     private fun eatBesides(level: ServerLevel, root: BlockPos, random: RandomSource) {
         val target = root.relative(Direction.getRandom(random))
-        if (!level.hasChunkAt(target)) return
+        if (!level.hasChunkAtColumn(target)) return
         if (!isEdible(level, target, level.getBlockState(target))) return
         level.setBlock(target, BLOCK.defaultBlockState(), Block.UPDATE_ALL)
     }
@@ -335,7 +336,7 @@ object Overgrowth {
     private fun sproutThorns(level: ServerLevel, root: BlockPos, random: RandomSource) {
         val way = Direction.getRandom(random)
         val cell = root.relative(way)
-        if (!level.hasChunkAt(cell) || !level.getBlockState(cell).isAir) return
+        if (!level.hasChunkAtColumn(cell) || !level.getBlockState(cell).isAir) return
         val isCrowded = thornsAround(level, cell) >= THORN_CROWD_LIMIT
         if (isCrowded) return
         level.setBlock(cell, ThornVineBlock.startingFrom(way, random), Block.UPDATE_ALL)
@@ -353,7 +354,7 @@ object Overgrowth {
     private fun sproutVines(level: ServerLevel, root: BlockPos, random: RandomSource) {
         repeat(VINE_PROBES) {
             val cell = root.offset(offsetWithinVineReach(random), offsetWithinVineReach(random), offsetWithinVineReach(random))
-            if (!level.hasChunkAt(cell) || !level.getBlockState(cell).isAir) return@repeat
+            if (!level.hasChunkAtColumn(cell) || !level.getBlockState(cell).isAir) return@repeat
             val supports = solidSidesOf(level, cell)
             if (supports.isEmpty()) return@repeat
             val vine = vineClinging(supports[random.nextInt(supports.size)], random) ?: return@repeat
@@ -366,7 +367,7 @@ object Overgrowth {
     /** The sides of [cell] with something solid on them, as the direction toward it. */
     private fun solidSidesOf(level: ServerLevel, cell: BlockPos): List<Direction> = Direction.entries.filter { toward ->
         val beside = cell.relative(toward)
-        level.hasChunkAt(beside) && level.getBlockState(beside).isFaceSturdy(level, beside, toward.opposite)
+        level.hasChunkAtColumn(beside) && level.getBlockState(beside).isFaceSturdy(level, beside, toward.opposite)
     }
 
     private fun offsetWithinVineReach(random: RandomSource): Int = random.nextInt(2 * VINE_REACH + 1) - VINE_REACH
@@ -391,7 +392,7 @@ object Overgrowth {
 
     private fun thornsAround(level: LevelReader, cell: BlockPos): Int =
         BlockPos.betweenClosed(cell.offset(-1, -1, -1), cell.offset(1, 1, 1))
-            .count { level.hasChunkAt(it) && level.getBlockState(it).`is`(THORNS) }
+            .count { level.hasChunkAtColumn(it) && level.getBlockState(it).`is`(THORNS) }
 
     private fun raise(level: ServerLevel, root: BlockPos, random: RandomSource, plants: List<Block>, mayGrowHuge: Boolean) {
         val above = root.above()

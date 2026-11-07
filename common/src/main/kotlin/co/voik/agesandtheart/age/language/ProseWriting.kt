@@ -7,7 +7,7 @@ import net.minecraft.locale.Language
 import java.util.Locale
 
 /**
- * **[ProseClause]s written out as sentences**, in whatever language [said] speaks.
+ * **[ProseClause]s written out as sentences**, in whatever language the `said` handed to [sentencesOf] speaks.
  *
  * English first and by design (§4.1): every frame is a key in the language file, so a translation can make
  * a best effort, though not every language will bend to sentences built this way. The two places English is

@@ -17,9 +17,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * correctly match nothing. The class itself is present on both, which is what lets one config serve both
  * without a loader-specific mixin file.
  *
- * <p>NeoForge's half needs no Mixin at all — {@link TemperstoneBlock} declares {@code isStickyBlock} and
- * {@code canStickTo} with vanilla-only signatures, which bind as overrides of NeoForge's interface at
- * runtime and are inert on Fabric.
+ * <p>NeoForge's half needs no Mixin at all — {@link co.voik.agesandtheart.content.BondingBlock} declares
+ * {@code isStickyBlock} and {@code canStickTo} with vanilla-only signatures, which bind as overrides of
+ * NeoForge's interface at runtime and are inert on Fabric.
  *
  * <p>Both halves only ever widen the answer, and neither disturbs slime or honey.
  */

@@ -36,12 +36,12 @@ object HallSkylight {
     fun paint(level: ClientLevel, layers: EnvironmentAttributeSystem.Builder): EnvironmentAttributeSystem.Builder {
         layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { was, at, _ ->
             val opened = openingAt(level, at)
-            if (opened <= 0.0f) was else Vector3f(was).lerp(outsideOf(level, EnvironmentAttributes.SKY_COLOR, at, was), opened)
+            if (opened <= 0.0f) was else Vector3f(was).lerp(outsideOf(level, EnvironmentAttributes.SKY_COLOR, at), opened)
         }
         for (distance in listOf(EnvironmentAttributes.SKY_FOG_END_DISTANCE, EnvironmentAttributes.CLOUD_FOG_END_DISTANCE)) {
             layers.addPositionalLayer(distance) { was, at, _ ->
                 val opened = openingAt(level, at)
-                if (opened <= 0.0f) was else Mth.lerp(opened, was, outsideOf(level, distance, at, was))
+                if (opened <= 0.0f) was else Mth.lerp(opened, was, outsideOf(level, distance, at))
             }
         }
         return layers
@@ -65,11 +65,11 @@ object HallSkylight {
         return LATTICE.count(::isAHall).toFloat() / LATTICE.size
     }
 
-    /** [attribute] at the top of [at]'s column, or [fallback] where the level will not say. */
-    private fun <Value : Any> outsideOf(level: ClientLevel, attribute: EnvironmentAttribute<Value>, at: Vec3, fallback: Value): Value {
+    /** [attribute] at the top of [at]'s column. */
+    private fun <Value : Any> outsideOf(level: ClientLevel, attribute: EnvironmentAttribute<Value>, at: Vec3): Value {
         readingTheOutside.set(true)
         return try {
-            level.environmentAttributes().getValue(attribute, Vec3(at.x, (level.maxY - 1).toDouble(), at.z)) ?: fallback
+            level.environmentAttributes().getValue(attribute, Vec3(at.x, (level.maxY - 1).toDouble(), at.z))
         } finally {
             readingTheOutside.set(false)
         }

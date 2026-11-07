@@ -3,6 +3,7 @@ package co.voik.agesandtheart.mixin;
 import co.voik.agesandtheart.generation.IncongruousStructures;
 import net.minecraft.core.Holder;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.structure.structures.OceanMonumentStructure;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -23,7 +24,7 @@ public abstract class OceanMonumentStructureMixin {
         method = "findGenerationPoint",
         at = @At(value = "INVOKE", target = "Lnet/minecraft/core/Holder;is(Lnet/minecraft/tags/TagKey;)Z")
     )
-    private boolean agesandtheart$surroundedByAnything(Holder<?> biome, TagKey tag) {
+    private boolean agesandtheart$surroundedByAnything(Holder<Biome> biome, TagKey<Biome> tag) {
         return IncongruousStructures.isBuildingAnywhere() || biome.is(tag);
     }
 }

@@ -107,6 +107,8 @@ object Branches {
 
     /** [at] moved a block or none each way across, drawn from where it is, so a crown's branches are not symmetrical. */
     private fun nudged(at: BlockPos): BlockPos {
+        // Vanilla's own positional hash, deprecated though its rule processor still draws by it.
+        @Suppress("DEPRECATION")
         val drawn = Mth.getSeed(at)
         val acrossX = Math.floorMod(drawn shr NUDGE_X_BITS, NUDGES) - 1
         val acrossZ = Math.floorMod(drawn shr NUDGE_Z_BITS, NUDGES) - 1

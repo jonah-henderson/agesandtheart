@@ -54,6 +54,8 @@ object ResizedFeatures {
      * [resized] resizes a feature it chooses between, and [registries] lets a tree's placers be rewritten
      * through their codecs, which name block tags.
      */
+    // RandomSelectorFeature is deprecated and vanilla's own features are still built of it.
+    @Suppress("DEPRECATION")
     fun of(
         feature: Feature,
         factor: Double,

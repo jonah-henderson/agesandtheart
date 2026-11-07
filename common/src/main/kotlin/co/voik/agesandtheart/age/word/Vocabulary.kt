@@ -222,16 +222,16 @@ data class Vocabulary(
     fun profileOf(preset: Taggable): PresetProfile =
         tagsBySlot[preset.aspect]?.of(preset) ?: PresetTags.EMPTY_PROFILE
 
-    /** The tags [preset] carries — empty being a preset no word can currently reach. */
+    /** The tags [member] carries — empty being a preset no word can currently reach. */
     override fun tagsOf(member: Taggable): Map<String, Double> = profileOf(member).tags
 
     /**
-     * Whether [preset] is in the world **anyway**, so naming it asks for more of it rather than for it at
+     * Whether [member] is in the world **anyway**, so naming it asks for more of it rather than for it at
      * all — see [PresetProfile.presentAnyway], which is what the mention bump turns on.
      */
     override fun isPresentAnyway(member: Taggable): Boolean = profileOf(member).presentAnyway
 
-    /** How willingly the Art reaches for [preset] when nothing asked for it. */
+    /** How willingly the Art reaches for [member] when nothing asked for it. */
     override fun readinessOf(member: Taggable): Double =
         profileOf(member).readiness ?: PresetProfile.ORDINARY_READINESS
 

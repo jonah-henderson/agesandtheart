@@ -120,7 +120,7 @@ object Deluge {
     )
 
     /**
-     * What the deluge does in an Age whose book claims [written] and whose instability bought [spending],
+     * What the deluge does in an Age whose book wrote one or whose instability bought [spending],
      * or null where no deluge befalls it from either direction.
      */
     fun risingIn(composition: AgeComposition, seed: Long, spending: Spending): Rising? =

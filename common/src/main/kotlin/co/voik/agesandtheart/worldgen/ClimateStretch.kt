@@ -70,6 +70,8 @@ object ClimateStretch {
             return result
         }
 
+        // `xzScale` is deprecated with no replacement, and the stretch is that field.
+        @Suppress("DEPRECATION")
         private fun widened(noise: NoiseFunction) =
             NoiseFunction(noise.noise(), noise.xzScale() / stretch, noise.yScale(), noise.shiftX(), noise.shiftY(), noise.shiftZ())
 

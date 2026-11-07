@@ -304,7 +304,7 @@ internal object CorpusInstruments {
         )
 
     /**
-     * `/age books <kind> <count>` — the [kind] of book at seeds one to [count], each with what the Art made
+     * `/age books <kind> <count>` — the `kind` of book at seeds one to `count`, each with what the Art made
      * of it. For the server's half of `BookCheck`, which is why it is a document first and prose second: a
      * pack's own worldgen is only words on a server, and books naming it can only be judged here.
      */

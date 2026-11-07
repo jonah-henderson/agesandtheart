@@ -81,7 +81,7 @@ object RainbowAspect {
             colours = bandIn(own),
             glow = Sky.bandAt(own.steer(RAINBOWGLOW, seed) ?: Sky.drawn(seed, BOW_GLOW_SALT, Sky.DRAWN_GLOW),
                 FAINTEST_BOW, BRIGHTEST_BOW)
-                .toFloat().coerceIn(FAINTEST_BOW, BRIGHTEST_BOW),
+                .coerceIn(FAINTEST_BOW, BRIGHTEST_BOW),
             // **Not drawn from the seed, where a curtain's size is** — and the difference is the point. How
             // large a curtain hangs is a fact about the display, so an Age nobody described should still
             // differ. How wide a bow stands is a fact about what its light is bending *through*, and an
@@ -90,7 +90,7 @@ object RainbowAspect {
                 ?.let { Sky.bandAt(it, NARROWEST_BOW, WIDEST_BOW) } ?: Rainbow.WATERS_OWN,
             needsRain = own.steer(RAINBOWRAIN, seed)
                 ?.let { Sky.bandAt(it, NO_RAIN_AT_ALL, ALL_THE_RAIN) } ?: Rainbow.ORDINARY_RAIN_NEEDED,
-            frequency = Sky.bandAt(days, RAREST_DAYS, EVERY_DAY).toFloat().coerceIn(RAREST_DAYS, EVERY_DAY),
+            frequency = Sky.bandAt(days, RAREST_DAYS, EVERY_DAY).coerceIn(RAREST_DAYS, EVERY_DAY),
             seed = seed,
         )
     }

@@ -126,6 +126,8 @@ object TintedLights {
      * The colour [state] casts, or null — **with its light level in the alpha**, which a colour of light has no
      * use for, so its flood ([ColouredLightField]) starts at the level vanilla's does.
      */
+    // NeoForge deprecates `lightEmission` for its own level-aware form, which common code cannot name.
+    @Suppress("DEPRECATION")
     fun colourOf(state: BlockState): Int? = casts[state.block]?.invoke(state)?.let { ARGB.color(state.lightEmission, it) }
 
     /**
@@ -170,6 +172,8 @@ object TintedLights {
      * came, went or changed is flooded again, and any other change that lets light through differently redoes
      * the floods that could reach it.
      */
+    // NeoForge deprecates `hasDifferentLightProperties` for its own level-aware form, which common code cannot name.
+    @Suppress("DEPRECATION")
     fun noticed(level: Level, at: BlockPos, was: BlockState, now: BlockState) {
         if (casts.isEmpty()) return
         val before = colourOf(was)

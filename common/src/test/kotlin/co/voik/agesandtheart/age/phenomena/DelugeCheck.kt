@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.DialSteps
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Ladder
@@ -14,6 +15,7 @@ import co.voik.agesandtheart.age.aspect.Recurrence
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Terrain
 import net.minecraft.resources.Identifier
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
@@ -24,6 +26,7 @@ import io.kotest.core.spec.style.FunSpec
  * driven by `Sampling.sweep`, which walks the chunks around players. A headless server has no players, so
  * none of it ever runs — the rise itself is a walk, not a probe.
  */
+@Tags(NEEDS_REGISTRIES)
 class DelugeCheck : FunSpec({
 
     val written = 63

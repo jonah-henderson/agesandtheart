@@ -250,6 +250,11 @@ test.runtimeClasspath += preview.output
 test.compileClasspath += configurations.named("previewCompileClasspath").get()
 test.runtimeClasspath += configurations.named("previewRuntimeClasspath").get()
 
+// Minecraft's joml reads memory through `sun.misc.Unsafe`, which Java 24 and on warn of on its first use; the warning
+// is joml's to answer, and allowing the access is the JDK's own way to say it was seen.
+val UNSAFE_MEMORY_ACCESS_ALLOWED = "--sun-misc-unsafe-memory-access=allow"
+tasks.withType<Test>().configureEach { jvmArgs(UNSAFE_MEMORY_ACCESS_ALLOWED) }
+
 tasks.named<Test>("test") {
     useJUnitPlatform()
     narrowedToFeature()
@@ -383,11 +388,14 @@ tasks.register<Test>("landformTest") {
     }
 
     val slipped = mutableListOf<String>()
-    afterTest(
-        KotlinClosure2({ what: TestDescriptor, outcome: TestResult ->
-            if (outcome.resultType == TestResult.ResultType.FAILURE) slipped += "${what.className?.substringAfterLast('.')} — ${what.name}"
-        }),
-    )
+    addTestListener(object : TestListener {
+        override fun beforeSuite(suite: TestDescriptor) = Unit
+        override fun afterSuite(suite: TestDescriptor, result: TestResult) = Unit
+        override fun beforeTest(test: TestDescriptor) = Unit
+        override fun afterTest(test: TestDescriptor, result: TestResult) {
+            if (result.resultType == TestResult.ResultType.FAILURE) slipped += "${test.className?.substringAfterLast('.')} — ${test.name}"
+        }
+    })
     doLast {
         if (slipped.isEmpty()) return@doLast
         logger.lifecycle("")
@@ -468,6 +476,7 @@ fun instrument(name: String, group: String, mainClassName: String, description: 
         this.description = description
         mainClass = mainClassName
         classpath = preview.runtimeClasspath
+        jvmArgs(UNSAFE_MEMORY_ACCESS_ALLOWED)
         javaLauncher = javaToolchains.launcherFor(java.toolchain)
     }
 

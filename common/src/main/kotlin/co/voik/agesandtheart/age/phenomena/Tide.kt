@@ -74,7 +74,7 @@ object Tide {
      */
     private val working: MutableMap<ServerLevel, Holding> = Collections.synchronizedMap(WeakHashMap())
 
-    /** The band a tide is working in [level], and the fluid of the sea it moves. */
+    /** The band a tide is working in a level, and the fluid of the sea it moves. */
     private data class Holding(val band: Band, val sea: Fluid)
 
     /**

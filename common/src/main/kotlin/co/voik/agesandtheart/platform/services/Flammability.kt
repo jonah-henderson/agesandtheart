@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.state.BlockState
  * not another, or only where it is placed.
  *
  * **That difference is real and cannot be restated**, so it does not belong in
- * [co.voik.agesandtheart.compat.VanillaThatMoved] — there is no one expression that says it on both
+ * `compat/VanillaThatMoved.kt` — there is no one expression that says it on both
  * loaders. It matters here more than it would in most mods: an Age is made of whatever blocks its sentence
  * reached, other mods' included, and those are exactly the blocks with a reason to answer per face.
  *

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.feature
 
+import co.voik.agesandtheart.compat.hasChunkAtColumn
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.server.level.WorldGenRegion
@@ -58,7 +59,7 @@ class FeatureDraft(val real: WorldGenLevel) {
     /** Whether worldgen may write at [at]: inside the world, and in the chunk being decorated or one beside it. */
     fun canWrite(at: BlockPos): Boolean {
         if (real.isOutsideBuildHeight(at)) return false
-        val region = real as? WorldGenRegion ?: return real.hasChunkAt(at)
+        val region = real as? WorldGenRegion ?: return real.hasChunkAtColumn(at)
         val center = region.center
         val withinX = abs(SectionPos.blockToSectionCoord(at.x) - center.x) <= WRITABLE_CHUNKS_AWAY
         val withinZ = abs(SectionPos.blockToSectionCoord(at.z) - center.z) <= WRITABLE_CHUNKS_AWAY

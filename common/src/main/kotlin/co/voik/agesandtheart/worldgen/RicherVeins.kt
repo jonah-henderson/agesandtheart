@@ -14,7 +14,7 @@ import java.util.IdentityHashMap
  *
  * In 26.3 a vein is a material rule, `minecraft:ore_vein`, deciding by density functions that all read one noise,
  * `overworld/ore_vein/toggle`: a vein stands where it is far enough from nought, and is richer the further. Each vein
- * rule is rebuilt with that toggle read [toggleScale] times stronger, so more of the rock is far enough and more of
+ * rule is rebuilt with that toggle read `toggleScale` times stronger, so more of the rock is far enough and more of
  * what is is rich. A rule holding no vein, or a scale of one, comes back as it was.
  */
 object RicherVeins {

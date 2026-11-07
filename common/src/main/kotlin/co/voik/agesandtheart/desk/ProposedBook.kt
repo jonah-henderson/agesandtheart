@@ -29,7 +29,7 @@ enum class ProposalTier(val mostPages: Int, val inks: Set<InkTier>, val usesStru
 /**
  * How unstable a proposal is to be, from the interference dial's [step] (Jonah): an instability index exactly, so
  * a dial at nought is coherent; the strange, harmful and failing tiers a step each up the dial (`Spending.topTier`);
- * and the top step an Age that collapses, which [collapses] answers off the resolution.
+ * and the top step an Age that collapses, which the `collapses` handed to [admits] answers off the resolution.
  */
 data class InterferenceBand(val least: Int, val most: Int, val mustCollapse: Boolean) {
 
@@ -96,7 +96,7 @@ object ProposedBook {
         return emptyList()
     }
 
-    /** What the writer knows that [tier] allows, sorted out by what each can do in a sentence. */
+    /** What the writer knows that a tier allows, sorted out by what each can do in a sentence. */
     private class Words(
         private val vocabulary: Vocabulary,
         val byPage: Map<String, Identifier>,

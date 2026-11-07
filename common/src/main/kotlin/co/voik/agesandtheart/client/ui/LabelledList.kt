@@ -152,7 +152,7 @@ class LabelledRow<T : Any>(
         val overTheBadge = shown?.isUnder(mouseX, mouseY, badgeX, badgeY) == true
         if (hovered) {
             // Set before the buttons, so a hovered button's own tooltip replaces it.
-            val lines = if (overTheBadge && shown != null) listOf(shown.tooltip) else tooltip(value)
+            val lines = if (overTheBadge) listOf(shown.tooltip) else tooltip(value)
             if (lines.isNotEmpty()) graphics.setComponentTooltipForNextFrame(font, lines, mouseX, mouseY)
         }
 
@@ -209,7 +209,7 @@ class LabelledRow<T : Any>(
 
         const val FIRST_LINE_HEIGHT = 12
 
-        /** A row of [rowWidth] holding [label], its [count] and [actionCount] buttons, wrapped to fit. */
+        /** A row of [rowWidth] holding [label], its [count] and its [actions] as buttons, wrapped to fit. */
         fun <T : Any> wrapped(
             value: T,
             label: String,

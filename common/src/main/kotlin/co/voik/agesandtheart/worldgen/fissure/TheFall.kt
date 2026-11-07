@@ -3,7 +3,6 @@ package co.voik.agesandtheart.worldgen.fissure
 import co.voik.agesandtheart.advancement.AgeTriggers
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 
 /**
@@ -28,7 +27,7 @@ object TheFall {
             if (level === home) continue
             for (player in level.players().toList()) {
                 if (!StarFissureFall.hasFallenFarEnough(player)) continue
-                putBackInTheOverworld(player, server)
+                putBackInTheOverworld(player)
             }
         }
     }
@@ -45,7 +44,7 @@ object TheFall {
     fun resumed(player: ServerPlayer) {
         if (!StarFissureFall.isFalling(player)) return
         if (StarFissureFall.tearOfTheFall(player) == null) {
-            putBackInTheOverworld(player, player.level().server)
+            putBackInTheOverworld(player)
             return
         }
         // And the client told, which is the one part of a fall it cannot read off the blocks for itself.
@@ -53,10 +52,10 @@ object TheFall {
     }
 
     /** Out where the Age's fissures lead — see [FissureExits] and [HomeLanding]. */
-    private fun putBackInTheOverworld(player: ServerPlayer, server: MinecraftServer) {
+    private fun putBackInTheOverworld(player: ServerPlayer) {
         player.noPhysics = false
         player.resetFallDistance()
-        val exit = (player.level() as? ServerLevel)?.let(FissureExits::of) ?: FissureExits.home(server)
+        val exit = FissureExits.of(player.level())
         HomeLanding.putDown(player, exit)
         AgeTriggers.FELL_HOME.trigger(player)
     }
