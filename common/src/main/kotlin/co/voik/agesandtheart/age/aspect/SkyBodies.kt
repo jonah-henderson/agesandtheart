@@ -154,7 +154,8 @@ object SkyBodies {
      * night while it is up, the stars coming out and monsters walking at the far end (Ephemeris'
      * `CelestialBody.dimming`). Vanilla's light is already the most the game gives, so above it a sun glares instead: a
      * halo, a glare over the view facing it, and light lingering after it sets (`CelestialBody.glare`). A moon takes
-     * the halo, and its disc dims below vanilla's.
+     * a wider halo and, full and high, lifts the night toward where monsters keep out of the open
+     * (`LevelDaylight.moonlit`); its disc dims below vanilla's.
      */
     val BODYLIGHT = Parameter.ranged(
         "light",
