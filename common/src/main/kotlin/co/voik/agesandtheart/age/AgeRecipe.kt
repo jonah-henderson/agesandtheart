@@ -206,7 +206,8 @@ data class AgeRecipe(
                             if (version <= FormerIncongruousHeights.LAST_GENERATOR_OF_THE_STARTED_HEIGHTS) FormerIncongruousHeights.carriedOver(it)
                             else it
                         }
-                        .let { if (version <= FormerEasing.LAST_GENERATOR_OF_THE_FORMER_EASING) FormerEasing.carriedOver(it) else it },
+                        .let { if (version <= FormerEasing.LAST_GENERATOR_OF_THE_FORMER_EASING) FormerEasing.carriedOver(it) else it }
+                        .let { if (version <= FormerIslands.LAST_GENERATOR_OF_THE_FORMER_ISLANDS) FormerIslands.carriedOver(it) else it },
                     seed = seed,
                     character = character,
                     // An Age written before the page count was kept reads it off the pages it was laid with,

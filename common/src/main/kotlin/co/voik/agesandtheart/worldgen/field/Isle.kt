@@ -5,6 +5,7 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.StringRepresentable
 import java.util.Optional
+import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -86,10 +87,15 @@ data class Isle(
     val layout: Layout = Layout.ANCHORED,
     /**
      * When set, each island is as old as the wear at its middle says ([Ageing]): young and tall with a reef along its
-     * shore, then lower behind a barrier reef across a lagoon, then sunk to an atoll. Unset, every island is as it was
-     * before islands aged, with no reef.
+     * shore, then sunk lower and smaller inside it, the reef a barrier across a widening lagoon, then gone under and
+     * the reef an atoll. Unset, every island is as it was before islands aged, with no reef.
      */
     val wornBy: Wear? = null,
+    /**
+     * Whether the islands age as they did before generator 23: full-sized and nearly full height behind a barrier
+     * that stood out from their coast, flat and even, and an atoll's ring their own beach.
+     */
+    val agedAsBefore: Boolean = false,
 ) : TerrainField {
     override val kind = FieldKind.ISLE
 
@@ -137,6 +143,7 @@ data class Isle(
         val runX = worldX - centreX
         val runZ = worldZ - centreZ
         val fromCentre = sqrt(runX * runX + runZ * runZ)
+        if (wornBy != null && !agedAsBefore) return agedIslandAt(centreX, centreZ, radius, coast, fromCentre, worldX, worldZ, wornBy)
         val reefReach = if (wornBy == null) 0.0 else radius * BARRIER_GAP_SHARE + FRINGING_GAP + reefWidth(radius)
         if (fromCentre >= coast + reefReach + (shoreY - seabedY) / shelfSlope) return seabedY.toDouble()
         val ageing = wornBy?.let { Ageing.at(it.at(centreX.roundToInt(), centreZ.roundToInt())) }
@@ -168,6 +175,98 @@ data class Isle(
         val sunk = beachTop + (lagoonFloor - beachTop) * profile
         return standing + (sunk - standing) * ageing.sinking
     }
+
+    /** How high an island that ages stands at this column, [fromCentre] from its centre, its [coast] where it was young. */
+    private fun agedIslandAt(
+        centreX: Double,
+        centreZ: Double,
+        radius: Double,
+        coast: Double,
+        fromCentre: Double,
+        worldX: Int,
+        worldZ: Int,
+        wear: Wear,
+    ): Double {
+        val reefReach = FRINGING_GAP + radius * REEF_WANDER_SHARE + widestReef(radius)
+        if (fromCentre >= coast + reefReach + (shoreY - seabedY) / shelfSlope) return seabedY.toDouble()
+        val ageing = Ageing.at(wear.at(centreX.roundToInt(), centreZ.roundToInt()))
+        val island = coast * (1.0 - SHRUNK_BEHIND_THE_BARRIER * ageing.barrier)
+        val undulation = reliefNoise.get(worldX / reliefStretch, 0.0, worldZ / reliefStretch).toDouble().coerceIn(-1.0, 1.0)
+        if (fromCentre < island) return agedGround(1.0 - fromCentre / island, ageing, undulation)
+        return seaFloorRound(fromCentre - island, fromCentre - coast, radius, ageing, undulation, worldX, worldZ)
+    }
+
+    /**
+     * An ageing island's ground [inland] of the way in from its coast: a young one's taller than an unaged island and
+     * its beach narrower, sunk lower and softer as its barrier stands out, and gone down to the lagoon floor as it
+     * becomes an atoll.
+     */
+    private fun agedGround(inland: Double, ageing: Ageing, undulation: Double): Double {
+        val beach = beachShare * (1.0 - YOUNG_BEACH_LOSS * ageing.youth)
+        val sand = shoreY + beachRise * (inland / beach.coerceAtLeast(SMALLEST_SHOULDER)).coerceAtMost(1.0)
+        val past = ((inland - beach) / shoulder.coerceAtLeast(SMALLEST_SHOULDER)).coerceIn(0.0, 1.0)
+        val profile = past * past * (3.0 - 2.0 * past)
+        val lowered = 1.0 - LOWERED_BEHIND_THE_BARRIER * ageing.barrier
+        val rise = peakRise * (1.0 + YOUNG_HEIGHT * ageing.youth) * lowered
+        val standing = sand + (shoreY + rise - sand) * profile + undulation * relief * lowered * profile
+        return standing + (lagoonFloor(undulation) - standing) * ageing.sinking
+    }
+
+    private fun lagoonFloor(undulation: Double): Double = shoreY - LAGOON_DEPTH + undulation * LAGOON_RELIEF
+
+    /**
+     * The sea floor round an ageing island, [pastIsland] blocks out from its coast as it stands now and [pastCoast]
+     * from where it was young: its shallows falling to a lagoon, a reef wandering in and out round the old coast,
+     * wider and narrower and a block or two deeper here and there, broken by passes and, the older it is, crowned with
+     * islets of sand; and outside it the shelf falling away to the seabed.
+     */
+    private fun seaFloorRound(
+        pastIsland: Double,
+        pastCoast: Double,
+        radius: Double,
+        ageing: Ageing,
+        undulation: Double,
+        worldX: Int,
+        worldZ: Int,
+    ): Double {
+        fun reefNoise(salt: Int) =
+            reefNoise.get(worldX / REEF_STRETCH + salt * REEF_NOISE_OFFSET, 0.0, worldZ / REEF_STRETCH).toDouble().coerceIn(-1.0, 1.0)
+        val inner = FRINGING_GAP + radius * REEF_WANDER_SHARE * (reefNoise(WANDER) * HALF + HALF)
+        val width = reefWidth(radius) * (1.0 + REEF_WIDENS_AS_IT_AGES * (ageing.barrier + ageing.sinking)) *
+            (NARROWEST_REEF_SHARE + (1.0 - NARROWEST_REEF_SHARE) * (reefNoise(WIDTH) * HALF + HALF) * 2.0)
+        val reefTop = (shoreY - REEF_DEPTH).toDouble()
+        // The shallows fall from the island's shore, which is under the water as far as it has sunk.
+        val shore = shoreY + (lagoonFloor(undulation) - shoreY) * ageing.sinking
+        val lagoon = maxOf(shelfFrom(shore, pastIsland), lagoonFloor(undulation))
+        val across = (pastCoast - inner) / width
+        return when {
+            across < 0.0 -> lagoon
+            across < 1.0 -> if (isAPass(worldX, worldZ)) lagoon else reefAt(across, reefNoise(DEPTH), reefNoise(ISLETS), ageing)
+            else -> shelfFrom(reefTop, pastCoast - inner - width)
+        }
+    }
+
+    /**
+     * The reef's top [across] of the way over it: a block under the water along its crest and a block lower at its
+     * edges and where [deepening] runs low, and, where [islets] runs high enough for the reef's age, a cay of sand
+     * rounded over the crest.
+     */
+    private fun reefAt(across: Double, deepening: Double, islets: Double, ageing: Ageing): Double {
+        val crest = 1.0 - abs(across * 2.0 - 1.0)
+        val sunkBy = (1.0 - crest) + if (deepening < DEEPER_REEF_LEVEL) 1.0 else 0.0
+        val reef = shoreY - REEF_DEPTH - sunkBy
+        val share = ISLETS_ON_A_BARRIER * ageing.barrier + (ISLETS_ON_AN_ATOLL - ISLETS_ON_A_BARRIER) * ageing.sinking
+        if (share <= 0.0) return reef
+        val level = ISLET_LEVEL_AT_NONE - ISLET_LEVEL_FALL * share
+        val overTheCrest = (crest * ISLET_SPREAD).coerceAtMost(1.0)
+        val islet = ((islets - level) / ISLET_NOISE_SPAN).coerceIn(0.0, 1.0) * overTheCrest
+        val rounded = islet * islet * (3.0 - 2.0 * islet)
+        return reef + (shoreY + ISLET_RISE - reef) * rounded
+    }
+
+    /** The widest a reef grows round an island of [radius], which bounds how far an island has to look. */
+    private fun widestReef(radius: Double): Double =
+        reefWidth(radius) * (1.0 + REEF_WIDENS_AS_IT_AGES * 2.0) * (NARROWEST_REEF_SHARE + (1.0 - NARROWEST_REEF_SHARE) * 2.0)
 
     /**
      * The sea floor [past] blocks out from an island's coast: the shelf falling away to the seabed, or, where it ages,
@@ -218,6 +317,7 @@ data class Isle(
     private val coastNoise = fieldNoise(seed, COAST_OCTAVE, COAST_AMPLITUDES)
     private val reliefNoise = fieldNoise(seed xor RELIEF_SALT, RELIEF_OCTAVE, RELIEF_AMPLITUDES)
     private val passNoise = fieldNoise(seed xor PASS_SALT, PASS_OCTAVE, PASS_AMPLITUDES)
+    private val reefNoise = fieldNoise(seed xor REEF_SALT, REEF_OCTAVE, REEF_AMPLITUDES)
 
     /** A pass every eighth or so of the way round an island. */
     private val passStretch = (shoreRadius * COAST_SHARE_OF_AN_ISLAND * PASSES_PER_BAY).coerceAtLeast(SMALLEST_STRETCH)
@@ -365,6 +465,51 @@ data class Isle(
         private const val CHANNELS_FROM_SINKING = 0.75
 
         /**
+         * How much of its radius an island loses and how much of its height, by the time its reef is a barrier: the
+         * lagoon is what it gave up, and what is left a low island inside it.
+         */
+        private const val SHRUNK_BEHIND_THE_BARRIER = 0.3
+        private const val LOWERED_BEHIND_THE_BARRIER = 0.6
+
+        /**
+         * How far a reef wanders out from the young coast, as a share of the radius; how much wider it grows by the
+         * time it is a barrier, and as much again by the time it is an atoll; and the narrowest it runs, as a share of its ordinary width, running as far over it
+         * at its widest.
+         */
+        private const val REEF_WANDER_SHARE = 0.04
+        private const val REEF_WIDENS_AS_IT_AGES = 1.0
+        private const val NARROWEST_REEF_SHARE = 0.35
+
+        /** Where the reef noise runs below this, the reef lies a block deeper. */
+        private const val DEEPER_REEF_LEVEL = -0.25
+
+        /**
+         * About how much of a reef's crest stands out of the water as cays: some on a barrier, more than half an
+         * atoll's ring. The noise level they stand over falls as the share grows, read off the noise's spread, which
+         * is mostly within half either way of nought; a cay rises to its full height over [ISLET_NOISE_SPAN] of the
+         * noise and across the middle of the reef, [ISLET_SPREAD] being how much of it, and stands [ISLET_RISE] over
+         * the water at its highest.
+         */
+        private const val ISLETS_ON_A_BARRIER = 0.15
+        private const val ISLETS_ON_AN_ATOLL = 0.6
+        private const val ISLET_LEVEL_AT_NONE = 0.47
+        private const val ISLET_LEVEL_FALL = 0.93
+        private const val ISLET_NOISE_SPAN = 0.3
+        private const val ISLET_SPREAD = 2.0
+        private const val ISLET_RISE = 2
+
+        /** A reef's wandering, width, depth and cays each run about this far: a few dozen blocks to a turn. */
+        private const val REEF_STRETCH = 3.0
+        private const val REEF_OCTAVE = -4
+        private val REEF_AMPLITUDES = listOf(1.0, 0.5)
+        private const val REEF_SALT = 0x2EEFL
+        private const val REEF_NOISE_OFFSET = 1000.0
+        private const val WANDER = 0
+        private const val WIDTH = 1
+        private const val DEPTH = 2
+        private const val ISLETS = 3
+
+        /**
          * How far out a reef stands from the shore, at least and as a share of the radius once it is a barrier; how
          * wide it is, at least and as a share; how far under the water its top is; and how deep the lagoon behind it,
          * rolling by a few blocks either way.
@@ -416,7 +561,8 @@ data class Isle(
             instance.group(
                 UNWORN_CODEC.forGetter { it },
                 Wear.CODEC.optionalFieldOf("worn_by").forGetter { Optional.ofNullable(it.wornBy) },
-            ).apply(instance) { isle, wornBy -> isle.copy(wornBy = wornBy.orElse(null)) }
+                Codec.BOOL.optionalFieldOf("aged_as_before", false).forGetter(Isle::agedAsBefore),
+            ).apply(instance) { isle, wornBy, agedAsBefore -> isle.copy(wornBy = wornBy.orElse(null), agedAsBefore = agedAsBefore) }
         }
     }
 }

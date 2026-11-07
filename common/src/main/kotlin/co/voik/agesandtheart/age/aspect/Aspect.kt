@@ -372,6 +372,7 @@ enum class Aspect(
             TERRAIN -> listOf(
                 Terrain.TORN, Terrain.INCONGRUOUS, Terrain.FORMER_SIZES, Terrain.VARIETY, Terrain.FORMER_LAND, Terrain.PATCHWORK,
                 Terrain.FORMER_WEAR, Terrain.FORMER_LAYOUT, Terrain.FORMER_UNSAID_WEAR, Terrain.FORMER_CAVES, Terrain.FORMER_EASING,
+                Terrain.FORMER_ISLANDS,
             )
             SPAWNS -> listOf(
                 Spawns.STILL, Spawns.CHARGED, Spawns.WOOL, Spawns.HERD, Spawns.PACE, Spawns.STRENGTH, Spawns.SIZE, Spawns.INCONGRUOUS,

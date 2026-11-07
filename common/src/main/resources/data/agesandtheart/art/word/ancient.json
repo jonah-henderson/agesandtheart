@@ -7,7 +7,10 @@
     "Aimed at the features it crumbles what they build of rock above the ground a little; laid bare, now and then",
     "(Features.CRUMBLE).",
     "",
-    "`ancient structures` and `ancient villages` crumble, as they are aimed; an ancient Age leaves its structures whole (R5, Jonah)."
+    "`ancient structures` and `ancient villages` crumble, as they are aimed; an ancient Age leaves its structures whole (R5, Jonah).",
+    "",
+    "Aimed at the landmass it is the most wear there is, always: more than `worn` (Jonah, 2026-11-07), so an",
+    "`ancient archipelagic landmass` is atolls. Laid bare it adds a little wear, now and then."
   ],
   "meanings": [
     {
@@ -49,7 +52,17 @@
       "sets": {
         "wear": "+0.3"
       },
-      "chance_to_apply": 0.4
+      "chance_to_apply": 0.0,
+      "unaimed_chance_to_apply": 0.4
+    },
+    {
+      "sets": {
+        "wear": "1.0..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "landmass"
+      ]
     },
     {
       "sets": {

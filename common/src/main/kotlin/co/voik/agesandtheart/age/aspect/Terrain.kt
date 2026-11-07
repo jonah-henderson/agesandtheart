@@ -295,7 +295,9 @@ enum class Terrain(
     ISLANDS(
         "archipelagic",
         waterline = IslandsField.SEA_LEVEL,
-        build = { options, salt, table -> IslandsField.world(sizeOf(options, salt), salt, featureWear(options, salt, table)) },
+        build = { options, salt, table ->
+            IslandsField.world(sizeOf(options, salt), salt, featureWear(options, salt, table), options.isTrue(FORMER_ISLANDS))
+        },
         axes = { listOf(SIZE) },
     ),
 
@@ -309,7 +311,9 @@ enum class Terrain(
     ISLE(
         "insular",
         waterline = IslandsField.SEA_LEVEL,
-        build = { options, salt, table -> IslandsField.lone(sizeOf(options, salt), salt, featureWear(options, salt, table)) },
+        build = { options, salt, table ->
+            IslandsField.lone(sizeOf(options, salt), salt, featureWear(options, salt, table), options.isTrue(FORMER_ISLANDS))
+        },
         axes = { listOf(SIZE) },
     ),
 
@@ -1072,6 +1076,12 @@ enum class Terrain(
         val FORMER_EASING = Parameter.flag(
             "former_easing",
             help = "Whether a neighbour reads pillars and pyramids as themselves, as before it read the ground beneath them.",
+        )
+
+        /** Whether islands age as they did before generator 23. Set on every Age with islands written before then. */
+        val FORMER_ISLANDS = Parameter.flag(
+            "former_islands",
+            help = "Whether islands keep their size behind a flat, even reef, as they did before they sank into their lagoons.",
         )
 
         val FORMER_LAYOUT = Parameter.flag(

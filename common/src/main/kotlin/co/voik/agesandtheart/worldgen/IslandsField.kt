@@ -96,7 +96,7 @@ object IslandsField {
         return smallest + fraction * (largest - smallest)
     }
 
-    fun world(size: Double? = null, salt: Long = 0L, wear: Wear? = null): TerrainField =
+    fun world(size: Double? = null, salt: Long = 0L, wear: Wear? = null, agedAsBefore: Boolean = false): TerrainField =
         Isle(
             floorY = VerticalWindow.MIN_Y,
             seabedY = SEABED_Y,
@@ -108,6 +108,7 @@ object IslandsField {
             jitter = JITTER,
             seed = ISLAND_SEED xor salt,
             wornBy = wear,
+            agedAsBefore = agedAsBefore,
         )
 
     /**
@@ -119,7 +120,7 @@ object IslandsField {
      * fit around it, so the top of the range can be a landmass it takes a day to cross and the bottom a
      * rock you can see the whole of from the water.
      */
-    fun lone(size: Double? = null, salt: Long = 0L, wear: Wear? = null): TerrainField {
+    fun lone(size: Double? = null, salt: Long = 0L, wear: Wear? = null, agedAsBefore: Boolean = false): TerrainField {
         val shoreRadius = loneShoreRadiusAt(size)
         return Isle(
             floorY = VerticalWindow.MIN_Y,
@@ -138,6 +139,7 @@ object IslandsField {
             shoulder = loneShoulder(shoreRadius),
             layout = Isle.Layout.SOLITARY,
             wornBy = wear,
+            agedAsBefore = agedAsBefore,
         )
     }
 

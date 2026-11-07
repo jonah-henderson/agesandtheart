@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.FormerEasing
+import co.voik.agesandtheart.age.FormerIslands
 import co.voik.agesandtheart.age.FormerUnsaidWear
 import co.voik.agesandtheart.age.FormerWear
 import co.voik.agesandtheart.age.FormerUniformity
@@ -206,6 +207,20 @@ class LandVarietyCheck : FunSpec({
         check(!read(last, listOf(Terrain.HILLS, Terrain.ERODED)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_EASING)) {
             "an old Age with neither pillars nor pyramids was marked"
         }
+    }
+
+    test("an Age with islands written before they sank into their lagoons keeps its islands as they were") {
+        fun read(version: Int, terrains: List<Terrain>): AgeComposition {
+            val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = terrains)), seed = SEED, generatorVersion = version)
+            val saved = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow()
+            return AgeRecipe.CODEC.parse(JsonOps.INSTANCE, saved).getOrThrow().composition ?: error("no composition")
+        }
+        val last = FormerIslands.LAST_GENERATOR_OF_THE_FORMER_ISLANDS
+        for (islands in listOf(Terrain.ISLANDS, Terrain.ISLE)) {
+            check(read(last, listOf(islands)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_ISLANDS)) { "the old Age's $islands were aged anew" }
+            check(!read(last + 1, listOf(islands)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_ISLANDS)) { "a new Age's $islands were aged as before" }
+        }
+        check(!read(last, listOf(Terrain.HILLS)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_ISLANDS)) { "an old Age with no islands was marked" }
     }
 
     test("an Age written before the banks were held still wears through them, and a new one does not") {

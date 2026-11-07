@@ -494,6 +494,12 @@ instrument(
 )
 
 instrument(
+    "islandages", "documentation", "co.voik.agesandtheart.preview.IslandAgePreviewKt",
+    "Renders the archipelago's first island at each age, from above and in a slice, with its water (build/preview). " +
+        "Takes a radius, a step, a size and `before`, e.g. --args=\"800 2 0\"",
+)
+
+instrument(
     "table", "documentation", "co.voik.agesandtheart.preview.TablePreviewKt",
     "Renders several landforms dividing the ground by chance and by the terrain table, and the land the table makes " +
         "(build/preview). Takes landform keys, then a radius and a step, e.g. --args=\"mountainous gentle archipelagic 3072 8\"",

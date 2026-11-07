@@ -104,6 +104,18 @@ class ReadingCheck : FunSpec({
         check(bare.none { it.sets("glow") }) { "the sky's reading was laid on the Age\n${read("charged age").readout}" }
     }
 
+    test("ancient said of the landmass is the most wear there is, on every seed, and only a little laid bare") {
+        fun wearSet(book: Reading) = book.landings.flatMap { it.effects }.filterIsInstance<Effect.Sets>().filter { it.parameter.name == "wear" }.map { it.value }
+        for (seed in 0L..<SEEDS_TRIED) {
+            for (sentence in listOf("age ancient archipelagic landmass", "age ancient landmass")) {
+                val book = read(sentence, seed)
+                check(wearSet(book) == listOf(MOST_WEAR)) { "'$sentence' on seed $seed set the wear ${wearSet(book)}\n${book.readout}" }
+            }
+            val bare = wearSet(read("ancient age", seed))
+            check(MOST_WEAR !in bare) { "a bare ancient on seed $seed set the most wear" }
+        }
+    }
+
     test("the sea and the waters are one page to a writer, each taking what the other's part holds") {
         val redSea = read("age red sea").landedBy(1)
         check(redSea.any { it.place.aspect == Aspect.WATERS && it.sets("colour") }) { "a red sea is not red\n${read("age red sea").readout}" }
@@ -222,3 +234,6 @@ private const val PLENTIFUL = 2.0
 
 /** How many seeds a broad meaning is read on. */
 private const val SEEDS_TRIED = 12L
+
+/** The most wear a word can set, which aimed `ancient` always does. */
+private const val MOST_WEAR = "1.0..1.0"
