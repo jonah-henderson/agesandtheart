@@ -4,6 +4,7 @@ import co.voik.agesandtheart.content.DriftingOre
 import co.voik.agesandtheart.content.OreClusters
 import co.voik.agesandtheart.content.AgeContent
 import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.block.MovingBlockRenderState
@@ -12,8 +13,11 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.entity.state.EntityRenderState
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.core.BlockPos
+import net.minecraft.util.Mth
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import kotlin.math.abs
+import kotlin.math.sqrt
 
 /**
  * A body of drifting ore, drawn as the cluster of blocks it is (design §7.1.2).
@@ -57,6 +61,7 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
         // and draws it at flush, so two bodies sharing one would both come out where the second is.
         val cluster = clusterOf(entity.shape, entity.tier)
         val span = OreClusters.spanOf(entity.tier).toInt()
+        state.span = span
         state.cells = OreClusters.facesOf(entity.shape, entity.tier).map { cell ->
             val drawn = ClusterView()
             val where = at.offset(cell.at)
@@ -104,6 +109,8 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
         collector: SubmitNodeCollector,
         camera: CameraRenderState,
     ) {
+        poseStack.pushPose()
+        drawNearer(state, poseStack, camera)
         for (drawn in state.cells) {
             poseStack.pushPose()
             // A block model is drawn from its own corner, so a cell at offset `o` fills `o` to `o + 1` —
@@ -113,7 +120,34 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
             collector.submitMovingBlock(poseStack, drawn.block, NO_OUTLINE)
             poseStack.popPose()
         }
+        poseStack.popPose()
         super.submit(state, poseStack, collector, camera)
+    }
+
+    /**
+     * A body the render distance's fog would hide **only for how high it is** drawn nearer the eye along the same
+     * line and as much smaller, so it looks the same size in the same place: the fog measures the larger of the
+     * distance across and the height, and a body high over somebody is meant to be seen from the ground.
+     * How far across it is still fogs it as before, and a body near enough is left where it is.
+     */
+    private fun drawNearer(state: DriftingOreRenderState, poseStack: PoseStack, camera: CameraRenderState) {
+        val toX = state.x - camera.pos.x
+        val toY = state.y - camera.pos.y
+        val toZ = state.z - camera.pos.z
+        val across = sqrt(toX * toX + toZ * toZ)
+        val above = abs(toY)
+        val clearOfTheFog = clearOfTheFog() - state.span
+        val heightAloneFogsIt = above > clearOfTheFog && above > across
+        if (!heightAloneFogsIt) return
+        val nearer = maxOf(across, clearOfTheFog, NEAREST_DRAWN) / above
+        poseStack.translate(toX * (nearer - 1.0), toY * (nearer - 1.0), toZ * (nearer - 1.0))
+        poseStack.scale(nearer.toFloat(), nearer.toFloat(), nearer.toFloat())
+    }
+
+    /** How far from the eye the render distance's fog begins, as vanilla's `FogRenderer` lays it. */
+    private fun clearOfTheFog(): Double {
+        val renderDistance = Minecraft.getInstance().options.effectiveRenderDistance * BLOCKS_A_CHUNK
+        return renderDistance - Mth.clamp(renderDistance / FOG_SHARE, LEAST_FOG, MOST_FOG)
     }
 
     /** One cell of the cluster: where it sits against the middle, and the block being drawn there. */
@@ -142,6 +176,15 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
         /** Nothing here is outlined; 26.2 asks every submitted block to say so. */
         const val NO_OUTLINE = 0
 
+        /** Vanilla's fog over the last tenth of the render distance, four to sixty-four blocks of it. */
+        const val BLOCKS_A_CHUNK = 16.0
+        const val FOG_SHARE = 10.0
+        const val LEAST_FOG = 4.0
+        const val MOST_FOG = 64.0
+
+        /** The nearest a far body is ever drawn, however short the render distance. */
+        const val NEAREST_DRAWN = 16.0
+
         private val clusters = java.util.concurrent.ConcurrentHashMap<Int, Map<BlockPos, BlockState>>()
 
         /**
@@ -156,4 +199,5 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
 
 class DriftingOreRenderState : EntityRenderState() {
     var cells: List<DriftingOreRenderer.Drawn> = emptyList()
+    var span: Int = 1
 }

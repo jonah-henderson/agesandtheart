@@ -302,12 +302,10 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
     }
 
     /**
-     * **Broken rather than killed, and what breaking gives you is the tier below.**
-     *
-     * A body takes hits until it comes apart, and what it comes apart into is several of the next size
-     * down — which are already looking for a lower band, so they descend on their own. Break those again
-     * for the tier under that, and the smallest for the ore itself. That is why the richest bodies are at
-     * the top: reaching one is the climb, and getting it home is three breakings.
+     * **Broken rather than killed.** A body takes hits until it comes apart: the largest into several of the
+     * size below, which are already looking for a lower band and descend on their own, and the others into
+     * the ore itself — a handful from a middle one, and seldom any from the smallest, so the richest bodies
+     * are the ones up high and the climb is what pays.
      */
     override fun hurtServer(level: ServerLevel, source: DamageSource, amount: Float): Boolean {
         if (isRemoved) return false
@@ -318,7 +316,7 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
     }
 
     private fun breakApart(level: ServerLevel) {
-        if (tier > 0) {
+        if (tier >= SPLITS_FROM_TIER) {
             // **Laid out clear of one another rather than scattered from a point.** Fragments used to be
             // jittered off the middle, which was fine while a body was a hitbox and is not now they are
             // shaped and solid to each other: three of them overlapping at birth spent their lives shoving
@@ -346,10 +344,7 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
             }
         }
         else {
-            // The smallest tier is where the ore actually comes out. Three of three is nine, so a body
-            // from the top band is worth nine of these — which is the arithmetic that pays for the climb.
-            val yield = YIELD_LEAST + level.random.nextInt(YIELD_MOST - YIELD_LEAST + 1)
-            repeat(yield) { spawnAtLocation(level, ItemStack(AgeContent.ARC_CRYSTAL)) }
+            repeat(yieldOf(tier, level.random)) { spawnAtLocation(level, ItemStack(AgeContent.ARC_CRYSTAL)) }
         }
         discard()
     }
@@ -417,18 +412,25 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         /** How much a body of this tier takes before it comes apart. Bigger bodies are more work. */
         fun holdsTogether(tier: Int): Float = SMALLEST_TOUGHNESS + tier * TOUGHNESS_A_TIER
 
-        /** How many pieces of the tier below a break gives. Read with the tiers: three of three is nine. */
+        /** How many pieces of the tier below a break of the largest gives. */
         const val FRAGMENTS = 3
 
+        /** The smallest tier that comes apart into smaller bodies rather than into crystal. */
+        const val SPLITS_FROM_TIER = 2
+
         /**
-         * And what the smallest gives, which is the only tier that yields the material itself.
-         *
-         * **Halved 2026-09-09** (Jonah: "loads of crystals from just a few boulders"). Read against the
-         * ladder rather than against one body: three fragments of three means a top-band body is nine of
-         * these, so even one apiece is nine to eighteen crystal for a climb, a shot and three breakings.
+         * How much crystal a body of [tier] gives when it breaks: one from the smallest half the time, so a bow
+         * at a high point gathers little, and eight to twelve from a middle one, so the largest is worth some
+         * thirty.
          */
-        private const val YIELD_LEAST = 1
-        private const val YIELD_MOST = 2
+        fun yieldOf(tier: Int, random: RandomSource): Int = when {
+            tier <= 0 -> if (random.nextInt(SMALLEST_YIELDS_ONE_IN) == 0) 1 else 0
+            else -> MIDDLE_YIELD_LEAST + random.nextInt(MIDDLE_YIELD_MOST - MIDDLE_YIELD_LEAST + 1)
+        }
+
+        private const val SMALLEST_YIELDS_ONE_IN = 2
+        private const val MIDDLE_YIELD_LEAST = 8
+        private const val MIDDLE_YIELD_MOST = 12
 
         /** How many sizes there are, and so how many bands and how many breakings to the ore. */
         const val MOST_TIERS = 3
