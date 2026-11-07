@@ -36,6 +36,12 @@ data class Gusts(val seed: Long, val often: Double, val force: Double, val sudde
     /** How hard a gust drives, as a multiple of the server's gale dial: well above an ordinary gale's lean at the least. */
     val strength: Double get() = GENTLEST + force.coerceIn(NEVER, ALWAYS) * (FIERCEST - GENTLEST)
 
+    /** The fewest ticks a gust blows for, from when it hits until it is gone: five seconds, more the fiercer. */
+    private val shortestBlowTicks: Int get() = SHORTEST_GUST + (force.coerceIn(NEVER, ALWAYS) * LONGER_AT_FIERCEST).roundToInt()
+
+    /** How many ticks a gust takes to build to its height once it hits: two seconds, or one at the most sudden. */
+    private val riseTicks: Double get() = Mth.lerp(sudden.coerceIn(NEVER, ALWAYS), SLOWEST_RISE, QUICKEST_RISE)
+
     /** The share of slots with a gust in them. */
     private val shareOfSlots: Double get() = often.coerceIn(NEVER, ALWAYS) * MOST_SLOTS_GUSTING
 
@@ -49,14 +55,14 @@ data class Gusts(val seed: Long, val often: Double, val force: Double, val sudde
         val draw = XoroshiroRandomSource(seed xor slot * SLOT_SPREAD)
         if (draw.nextDouble() >= shareOfSlots) return null
         val warning = warningTicks
-        val length = SHORTEST_GUST + draw.nextInt(LENGTH_SPREAD + 1)
+        val length = shortestBlowTicks + draw.nextInt(LENGTH_SPREAD + 1)
         val startsAt = draw.nextInt((SLOT_TICKS - warning - length).toInt() + 1)
         val veer = (draw.nextDouble() * 2.0 - 1.0) * MOST_VEER
         val since = gameTime - slot * SLOT_TICKS - startsAt
         return when {
             since < 0 -> null
             since < warning -> warningOf(slot, since.toDouble() / warning, veer)
-            since < warning + length -> blowingOf(slot, since - warning, length, veer)
+            since < warning + length -> blowingOf(slot, since - warning, length, veer, riseTicks)
             else -> null
         }
     }
@@ -64,9 +70,9 @@ data class Gusts(val seed: Long, val often: Double, val force: Double, val sudde
     private fun warningOf(slot: Long, warned: Double, veer: Double) =
         Gust(slot, warned, gusting = NEVER, presence = warned * warned * PRESENT_AS_IT_HITS, veer)
 
-    /** A gust [since] ticks after it hits: a shove in a few ticks, held, and let go more slowly. */
-    private fun blowingOf(slot: Long, since: Long, length: Int, veer: Double): Gust {
-        val rising = Mth.smoothstep(min(ALWAYS, (since + 1).toDouble() / RISE_TICKS).toFloat()).toDouble()
+    /** A gust [since] ticks after it hits: building over [riseTicks], held, and let go more slowly still. */
+    private fun blowingOf(slot: Long, since: Long, length: Int, veer: Double, riseTicks: Double): Gust {
+        val rising = Mth.smoothstep(min(ALWAYS, (since + 1).toDouble() / riseTicks).toFloat()).toDouble()
         val falling = Mth.smoothstep(min(ALWAYS, (length - since).toDouble() / FALL_TICKS).toFloat()).toDouble()
         val presence = (PRESENT_AS_IT_HITS + (ALWAYS - PRESENT_AS_IT_HITS) * rising) * falling
         return Gust(slot, warned = ALWAYS, gusting = rising * falling, presence, veer)
@@ -95,20 +101,22 @@ data class Gusts(val seed: Long, val often: Double, val force: Double, val sudde
             ::Gusts,
         )
 
-        /** Twelve seconds, long enough to hold the longest warning and the longest gust. */
-        const val SLOT_TICKS = 240L
+        /** Sixteen seconds, long enough to hold the longest warning and the longest gust. */
+        const val SLOT_TICKS = 320L
 
-        /** At the most, a gust in three slots of five: one about every twenty seconds. */
-        private const val MOST_SLOTS_GUSTING = 0.6
+        /** At the most, a gust in four slots of five: one about every twenty seconds. */
+        private const val MOST_SLOTS_GUSTING = 0.8
 
         private const val LONGEST_WARNING = 60.0f
         private const val SHORTEST_WARNING = 10.0f
 
-        /** A gust lasts a second and a half to two and a half. */
-        private const val SHORTEST_GUST = 30
-        private const val LENGTH_SPREAD = 20
-        private const val RISE_TICKS = 4.0
-        private const val FALL_TICKS = 12.0
+        /** A gust lasts five seconds to six and a half, and up to three seconds more at the fiercest. */
+        private const val SHORTEST_GUST = 100
+        private const val LENGTH_SPREAD = 30
+        private const val LONGER_AT_FIERCEST = 60.0
+        private const val SLOWEST_RISE = 40.0
+        private const val QUICKEST_RISE = 20.0
+        private const val FALL_TICKS = 50.0
 
         /** How much of a gust there is to see and hear by the moment it hits. */
         private const val PRESENT_AS_IT_HITS = 0.6

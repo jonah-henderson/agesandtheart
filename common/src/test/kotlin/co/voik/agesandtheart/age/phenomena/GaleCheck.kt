@@ -133,7 +133,7 @@ class GaleCheck : FunSpec({
         private const val MOST_A_TICK_MAY_RISE = 0.01
         private const val MOST_A_TICK_MAY_TURN = 1.0
         private val ORDINARY_SHARE_ROUGHLY = 0.15..0.4
-        private val GUSTY_SHARE_ROUGHLY = 0.5..0.7
+        private val GUSTY_SHARE_ROUGHLY = 0.7..0.9
         private const val MOST_A_GUST_MAY_SWELL = 0.5
         private const val DEFAULT_DIAL = 0.4
         private val WRITTEN_GUSTS_SECONDS_APART = 60.0..120.0

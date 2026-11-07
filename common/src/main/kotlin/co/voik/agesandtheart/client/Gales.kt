@@ -208,8 +208,9 @@ object Gales {
     }
 
     /**
-     * One gust heard: swelling and rising in pitch through its warning, loudest as it hits, and gone with it. Muffled
-     * rather than silenced under cover, since a gust is heard through a wall.
+     * One gust heard: swelling and rising in pitch through its warning, loudest as it hits, and dying away after it,
+     * never quieter by more than [HOWL_DIES_AWAY_TICKS] allow. Muffled rather than silenced under cover, since a gust
+     * is heard through a wall.
      */
     private class Howl(val slot: Long) :
         AbstractTickableSoundInstance(AgeContent.GUST, SoundSource.WEATHER, RandomSource.create()) {
@@ -230,12 +231,14 @@ object Gales {
             val player = client.player
             if (level == null || player == null || !isHeardIn(level)) return stop()
             val blowing = blowingIn(level) ?: return stop()
-            val gust = gustIn(level)?.takeIf { it.slot == slot } ?: return stop()
-            val swell = gust.presence
+            val gust = gustIn(level)?.takeIf { it.slot == slot }
+            val swell = gust?.presence ?: NOTHING_LEFT
             val open = Sampling.exposureAt(level, player.blockPosition())
             val heardThrough = MUFFLED + (ALL_OF_IT - MUFFLED) * open
-            volume = (swell * blowing.lying * LOUDEST_HOWL).toFloat() * heardThrough
-            pitch = Mth.lerp(swell.toFloat(), LOWEST_PITCH, HIGHEST_PITCH)
+            val heard = (swell * blowing.lying * LOUDEST_HOWL).toFloat() * heardThrough
+            volume = maxOf(heard, volume - DIES_AWAY_EACH_TICK)
+            pitch = maxOf(Mth.lerp(swell.toFloat(), LOWEST_PITCH, HIGHEST_PITCH), pitch - FALLS_IN_PITCH_EACH_TICK)
+            if (gust == null && volume <= SILENT) stop()
         }
     }
 
@@ -248,7 +251,13 @@ object Gales {
     private const val ALL_OF_IT = 1.0f
 
     private const val LOUDEST_HOWL = 1.0
+    private const val NOTHING_LEFT = 0.0
+
+    /** How many ticks the loudest howl takes to die away: three seconds. */
+    private const val HOWL_DIES_AWAY_TICKS = 60.0f
+    private const val DIES_AWAY_EACH_TICK = LOUDEST_HOWL.toFloat() / HOWL_DIES_AWAY_TICKS
     private const val MUFFLED = 0.3f
     private const val LOWEST_PITCH = 0.7f
     private const val HIGHEST_PITCH = 1.3f
+    private const val FALLS_IN_PITCH_EACH_TICK = (HIGHEST_PITCH - LOWEST_PITCH) / HOWL_DIES_AWAY_TICKS
 }
