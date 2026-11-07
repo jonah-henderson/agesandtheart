@@ -70,9 +70,13 @@ object ClientRegistrations {
         RendererForEntity(AgeContent.VOLCANIC_BOMB) { MoltenLumpRenderer(it, MoltenLumpRenderer.WHOLE_LUMP) },
         RendererForEntity(AgeContent.LAVA_DROPLET) { MoltenLumpRenderer(it, MoltenLumpRenderer.GOBBET) },
         RendererForEntity(AgeContent.METEOR) {
-            MoltenLumpRenderer<Meteor>(it, MoltenLumpRenderer.METEOR, MoltenLumpRenderer.METEOR_ROCK) { meteor ->
-                MeteorLights.of(meteor.colour, meteor.cyclePeriod, meteor.level().gameTime).rock
-            }
+            MoltenLumpRenderer<Meteor>(
+                it,
+                MoltenLumpRenderer.METEOR,
+                MoltenLumpRenderer.METEOR_ROCK,
+                burnOf = { meteor -> MeteorLights.of(meteor.colour, meteor.cyclePeriod, meteor.level().gameTime).rock },
+                heatFor = { meteor, bySpeed -> meteor.reentryGlow(bySpeed) },
+            )
         },
         RendererForEntity(AgeContent.DRIFTING_ORE) { DriftingOreRenderer(it) },
         // Vanilla's lightning, turned to point at what was bitten — see [ArcBoltRenderer].

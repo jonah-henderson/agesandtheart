@@ -24,6 +24,9 @@ class MoltenLumpRenderState : EntityRenderState() {
 
     /** The light it burns with, or null for a lump that carries none. */
     var burn: Rgba? = null
+
+    /** How hot it still looks, `0..1`. */
+    var heat: Float = 0.0f
 }
 
 /**
@@ -51,6 +54,8 @@ open class MoltenLumpRenderer<T : Entity>(
     private val scale: Float,
     private val block: Block = Blocks.MAGMA_BLOCK,
     private val burnOf: (T) -> Rgba? = { null },
+    /** How hot one looks, given how hot its speed says: a caught meteor only ever cools. */
+    private val heatFor: (T, Float) -> Float = { _, bySpeed -> bySpeed },
 ) : EntityRenderer<T, MoltenLumpRenderState>(context) {
 
     override fun createRenderState() = MoltenLumpRenderState()
@@ -65,6 +70,7 @@ open class MoltenLumpRenderer<T : Entity>(
         // see: a client that is lerping an entity rather than integrating it still moves it.
         state.travel = Vec3(entity.x - entity.xOld, entity.y - entity.yOld, entity.z - entity.zOld)
         state.burn = burnOf(entity)
+        state.heat = heatFor(entity, heatOf(state.travel))
         val level = entity.level()
         if (level is ClientLevel) {
             state.block.biome = level.getBiome(at)
@@ -104,7 +110,7 @@ open class MoltenLumpRenderer<T : Entity>(
         camera: CameraRenderState,
         colour: Rgba,
     ) {
-        val heat = heatOf(state.travel)
+        val heat = state.heat
         if (heat <= GONE_OUT) return
         val towardCamera = camera.pos.subtract(state.x, state.y, state.z)
         val burning = colour.copy(alpha = colour.alpha * heat)

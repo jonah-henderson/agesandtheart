@@ -62,6 +62,18 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         get() = entityData.get(SETTLED)
         set(value) = entityData.set(SETTLED, value)
 
+    /** What is left of its re-entry glow as this client has seen it: whole in flight, and never more after it is caught. */
+    private var reentryGlowLeft = 0.0f
+
+    /**
+     * How hot it looks, where [bySpeed] is how hot its speed says. In flight that is all; once caught it only ever
+     * cools from there, so a shove or a fall off a cliff does not light it again, and one first seen caught is cold.
+     */
+    fun reentryGlow(bySpeed: Float): Float {
+        reentryGlowLeft = if (settled) minOf(reentryGlowLeft, bySpeed) else FULL_GLOW
+        return if (settled) reentryGlowLeft else bySpeed
+    }
+
     /** The colour its storm burned in, or null for its own violet. Watched, because it is drawn. */
     var colour: String?
         get() = entityData.get(COLOURED).ifEmpty { null }
@@ -480,6 +492,8 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
     }
 
     companion object {
+        private const val FULL_GLOW = 1.0f
+
         private val SETTLED: EntityDataAccessor<Boolean> =
             SynchedEntityData.defineId(Meteor::class.java, EntityDataSerializers.BOOLEAN)
         private val COLOURED: EntityDataAccessor<String> =
