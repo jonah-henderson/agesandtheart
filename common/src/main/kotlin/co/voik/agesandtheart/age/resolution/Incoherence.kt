@@ -13,20 +13,21 @@ import co.voik.agesandtheart.age.aspect.Setting
  * charged the same at every seed. One flaw per pair of words, naming the place they first clashed and what over.
  *
  * Two landings clash where they are at one place and said of members in common, sited alike and not joined by
- * `and`, and neither is a bare offer an aimed word overrules, and: settle one parameter to values that cannot both hold; are made of different things; choose different
+ * `and`, neither is a bare offer an aimed word overrules nor said of another clause's minting, and: settle one parameter to values that cannot both hold; are made of different things; choose different
  * members of a catalogue; one strikes what the other chooses; one wants or leans toward a tag the other bars or
  * leans against, or toward one opposed to a tag the other wants or leans toward; or one keeps only its own members
  * of a population another adds to. A word never clashes with itself.
  */
 internal fun incoherence(world: WorldFacts, possible: List<Landing>): List<Flaw> {
     val found = linkedMapOf<Pair<String, String>, Flaw>()
+    val mintingClauses = mintingClausesIn(possible)
     for ((aspect, here) in possible.groupBy { it.aspect }.toSortedMap(compareBy(Aspect::ordinal))) {
         for (first in here.indices) {
             for (second in first + 1..<here.size) {
                 val one = here[first]
                 val other = here[second]
                 val words = listOf(one.word, other.word).sorted().let { it[0] to it[1] }
-                if (one.word == other.word || words in found || !meet(one, other)) continue
+                if (one.word == other.word || words in found || !meet(one, other, mintingClauses)) continue
                 val over = clashBetween(world, aspect, one, other) ?: clashBetween(world, aspect, other, one) ?: continue
                 found[words] = Flaw(Register.INCOHERENT, listOf(one.word, other.word), aspect, over)
             }
@@ -37,11 +38,13 @@ internal fun incoherence(world: WorldFacts, possible: List<Landing>): List<Flaw>
 
 /**
  * Whether two landings are in one place to disagree: the same members in part, the same body, the same biome,
- * unjoined, and neither a bare offer yielding to the other aimed there.
+ * unjoined, neither a bare offer yielding to the other aimed there, and in one clause where either was said of
+ * what a clause minted — `deep ink lakes, shallow lava lakes` are two lakes.
  */
-private fun meet(one: Landing, other: Landing): Boolean {
+private fun meet(one: Landing, other: Landing, mintingClauses: Set<Pair<Aspect, Int>>): Boolean {
     fun yieldsTo(offer: Landing, aimed: Landing) = offer.isAnOffer && !offer.aimed && aimed.aimed
     if (yieldsTo(one, other) || yieldsTo(other, one)) return false
+    if (mintingClauseOf(one, mintingClauses) != mintingClauseOf(other, mintingClauses)) return false
     if (one.isJoinedTo(other) || one.sitedIn != other.sitedIn) return false
     val oneMembers = one.members
     val otherMembers = other.members

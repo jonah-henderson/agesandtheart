@@ -60,8 +60,11 @@ internal class Resolving(val world: WorldFacts, landings: List<Landing>, val dra
         Decision.WHOLE in lostHere || landings.flatMap { it.decisions }.all { it in lostHere }
     }.keys
 
-    /** What lands on [aspect]. */
-    fun speakingTo(aspect: Aspect): List<Landing> = said.filter { it.aspect == aspect }
+    private val mintingClauses = mintingClausesIn(said)
+
+    /** What lands on [aspect], but for what a minting's clause said beside it, which only the minting spends. */
+    fun speakingTo(aspect: Aspect): List<Landing> =
+        said.filter { it.aspect == aspect && mintingClauseOf(it, mintingClauses) == null }
 
     /**
      * Firmest first: choosing and settling before barring before leaning, then aimed before bare, then the likelier,

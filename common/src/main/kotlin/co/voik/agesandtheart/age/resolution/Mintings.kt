@@ -18,11 +18,28 @@ private class Minting(val mints: Effect.Mints, val landing: Landing, val clause:
 
 private val Landing.substance: String? get() = effects.filterIsInstance<Effect.MadeOf>().firstOrNull()?.substance
 
+/** Whether it brings a member into being from a pattern — `lakes`, `springs`. */
+internal val Landing.mints: Boolean get() = effects.any { it is Effect.Mints }
+
+/** The part of the world and the clause of each minting in [landings] that was taken in a clause. */
+internal fun mintingClausesIn(landings: List<Landing>): Set<Pair<Aspect, Int>> =
+    landings.filter { it.mints }.mapNotNull { minting -> minting.clause?.let { minting.aspect to it } }.toSet()
+
+/**
+ * The minting clause [landing] was said in beside its minting, among [mintingClauses], or null where it was not —
+ * what it said is the minting's alone, and reaches neither the part of the world nor another clause (world model §2).
+ */
+internal fun mintingClauseOf(landing: Landing, mintingClauses: Set<Pair<Aspect, Int>>): Pair<Aspect, Int>? {
+    if (landing.mints) return null
+    val clause = landing.clause ?: return null
+    return (landing.aspect to clause).takeIf { it in mintingClauses }
+}
+
 /** Every minting that landed, with the clause it was laid in. */
 private fun Resolving.mintings(): List<Minting> = said.mapNotNull { landing ->
     val mints = landing.effects.filterIsInstance<Effect.Mints>().firstOrNull() ?: return@mapNotNull null
     val clause = if (landing.clause == null) emptyList() else said.filter { other ->
-        other !== landing && other.place == landing.place && other.clause == landing.clause
+        other !== landing && other.aspect == landing.aspect && other.clause == landing.clause
     }
     Minting(mints, landing, clause)
 }

@@ -128,6 +128,15 @@ class ResolutionCheck : FunSpec({
         check(spring.incoherentPairs() == setOf(setOf("gold_block", "springs"))) { "a spring of gold: ${spring.instability}" }
     }
 
+    test("two mintings of one pattern are two things, and what each clause says is said of its own") {
+        val lakes = resolved("age teeming deep obsidian lakes teeming shallow lava lakes")
+        check(lakes.instability.isCoherent) { "${lakes.instability}" }
+        val placed = lakes.option(Aspect.FEATURES, Features.PLACES.name).filter { "lake" in it }
+        check(placed.any { "obsidian" in it } && placed.any { "lava" in it }) { lakes.spelled() }
+        check(resolved("age deep lakes shallow lakes").incoherentPairs().isEmpty()) { "two lakes of water apart were charged" }
+        check(resolved("age deep shallow lakes").incoherentPairs() == setOf(setOf("deep", "shallow"))) { "one lake deep and shallow went uncharged" }
+    }
+
     test("a quantifier counts the stars, and each sun described is a body") {
         val stars = resolved("age teeming stars")
         check(stars.option(Aspect.STARS, SkyBodies.STARS.name).isNotEmpty()) { stars.spelled() }

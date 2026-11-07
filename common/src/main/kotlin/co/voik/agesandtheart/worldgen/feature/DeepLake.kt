@@ -5,6 +5,7 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
+import net.minecraft.tags.BlockTags
 import net.minecraft.tags.FluidTags
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.WorldGenLevel
@@ -23,6 +24,7 @@ import kotlin.math.roundToInt
  * Vanilla's lake with the water standing [waterLayers] deep rather than three: `deep lakes`, `shallow lakes`. The
  * bowl is vanilla's own, drawn from the same random, with its underwater layers stretched downward or trimmed from
  * the bottom; the four layers of air over the water and everything the lake lines, tests and freezes are vanilla's.
+ * Unlike vanilla's, it gives up where it would hollow out under a tree a neighbouring chunk already grew.
  */
 data class DeepLake(
     val fluid: Holder<BlockStateProvider>,
@@ -61,6 +63,16 @@ data class DeepLake(
             val spillsOverTheTop = y >= waterline && state.liquid()
             val leaksBelow = y < waterline && !state.isSolid && state != fluidState
             if (spillsOverTheTop || leaksBelow || !canPlaceFeature.test(level, position)) return false
+        }
+
+        // A neighbour decorated first may have grown a tree where this bowl reaches, and hollowing under it would
+        // leave it floating.
+        for (x in 0..<WIDTH) for (z in 0..<WIDTH) for (y in 0..<height) {
+            if (!bowl[index(x, z, y)]) continue
+            val position = corner.offset(x, y, z)
+            val hollowsATrunk = level.getBlockState(position).`is`(BlockTags.LOGS)
+            val undercutsATrunk = level.getBlockState(position.above()).`is`(BlockTags.LOGS)
+            if (hollowsATrunk || undercutsATrunk) return false
         }
 
         for (x in 0..<WIDTH) for (z in 0..<WIDTH) for (y in 0..<height) {
