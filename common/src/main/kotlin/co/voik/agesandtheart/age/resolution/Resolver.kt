@@ -4,12 +4,16 @@ import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Instability
+import co.voik.agesandtheart.age.LinkAnchor
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.age.Spread
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.aspect.Polarity
+import co.voik.agesandtheart.age.aspect.Pool
+import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.SkyBodies
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -40,6 +44,7 @@ object Resolver {
         resolving.flaws += resolving.mintingsThatCannotHold()
         resolving.flaws += resolving.tidesWithNoMoon(composition)
         resolving.flaws += resolving.weatherUnderARoof(composition)
+        resolving.flaws += resolving.linkInWhatCannotBeThere(composition, ofTheWholeAge)
         return Resolution(
             composition = composition,
             instability = Instability(resolving.flaws.distinctBy(Flaw::identity), pages = book.pagesLaid),
@@ -109,6 +114,46 @@ object Resolver {
         return speakingTo(Aspect.PHENOMENA).filter(::asksForWeather).map { asking ->
             flaw(Register.INCOHERENT, listOf(asking) + roofing, Aspect.SKY)
         }
+    }
+
+    /**
+     * A link asked to arrive in what the Age plainly cannot hold: a landform it does not stand on, a sea of nothing, or
+     * a biome, structure, feature or creature the book struck, emptied or left out of an `only`. Charged with the words
+     * that ruled it out. A search that finds nothing near goes uncharged, since no world is read here.
+     */
+    private fun Resolving.linkInWhatCannotBeThere(composition: AgeComposition, ofTheWholeAge: List<Landing>): List<Flaw> {
+        val anchor = composition.linkIn ?: return emptyList()
+        val linking = ofTheWholeAge.firstOrNull { it.linksIn == anchor } ?: return emptyList()
+        val rulingOut = wordsRulingOut(composition, anchor) ?: return emptyList()
+        return listOf(flaw(Register.INCOHERENT, listOf(linking) + rulingOut, anchor.aspect))
+    }
+
+    /** What rules [anchor] out of [composition], or null where it may be there. */
+    private fun Resolving.wordsRulingOut(composition: AgeComposition, anchor: LinkAnchor): List<Landing>? {
+        val aspect = anchor.aspect
+        if (aspect == Aspect.SEA) return speakingTo(Aspect.SEA).takeIf { composition.seas.all(Sea::isEmpty) }
+        if (anchor.members.isEmpty()) return null
+        if (aspect == Aspect.TERRAIN) {
+            val standsOnNoneOfThem = composition.terrains.none { it.key in anchor.members }
+            return speakingTo(Aspect.TERRAIN).takeIf { standsOnNoneOfThem }
+        }
+        val pool = aspect.pool ?: return null
+        val asked = composition.optionsFor(aspect, 0).skewOn(pool)
+        fun isLeftOut(member: String): Boolean {
+            val struck = member in asked.struck
+            val notKept = asked.startsFromNothing && asked.wanted.none { it.value == member }
+            return struck || notKept
+        }
+        if (!anchor.members.all(::isLeftOut)) return null
+        fun leavesOut(landing: Landing): Boolean {
+            val narrows = landing.polarity != Polarity.ASSERTED
+            val excludes = landing.effects.any { it is Effect.Excludes }
+            val empties = landing.effects.any { effect ->
+                (effect is Effect.Chooses && effect.member == Pool.NOTHING) || (effect is Effect.Admits && Pool.NOTHING in effect.members)
+            }
+            return narrows || excludes || empties
+        }
+        return speakingTo(aspect).filter(::leavesOut)
     }
 
     /** A pull asked of a moon in an Age with no moon: the tide cannot happen, and the book asked for one. */
