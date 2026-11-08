@@ -14,6 +14,7 @@ import co.voik.agesandtheart.portal.LinkingBookReceptacleBlockEntity
 import co.voik.agesandtheart.portal.LinkingPortalBlock
 import co.voik.agesandtheart.portal.LinkingPortalShape
 import co.voik.agesandtheart.age.phenomena.SandColumn
+import co.voik.agesandtheart.age.phenomena.Tornado
 import co.voik.agesandtheart.age.phenomena.CaveIn
 import co.voik.agesandtheart.age.phenomena.Meteor
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
@@ -1592,6 +1593,19 @@ object AgeContent {
     private const val SAND_COLUMN_UPDATE_TICKS = 2
 
     /**
+     * A tornado. See [co.voik.agesandtheart.age.phenomena.Tornado]. Its box is a block at its foot, for the reason a
+     * sand column's is only its footprint: what is drawn reaches the cloud, and the renderer declines the culling.
+     */
+    val TORNADO: EntityType<Tornado> = EntityType.Builder
+        .of({ type, level -> Tornado(type, level) }, MobCategory.MISC)
+        .sized(TORNADO_FOOT, TORNADO_FOOT)
+        .clientTrackingRange(SAND_COLUMN_TRACKING_CHUNKS)
+        .updateInterval(SAND_COLUMN_UPDATE_TICKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, "tornado".location()))
+
+    private const val TORNADO_FOOT = 1.0f
+
+    /**
      * Molten rock thrown out of a volcano. See [VolcanicBomb].
      *
      * Updated every tick, unlike the sand column: this one arcs, and the whole of its counterplay is
@@ -1811,6 +1825,7 @@ object AgeContent {
         "crumbling_column".location() to CRUMBLING_COLUMN,
         "descriptive_book".location() to BOOK_ENTITY,
         "sand_column".location() to SAND_COLUMN,
+        "tornado".location() to TORNADO,
         "volcanic_bomb".location() to VOLCANIC_BOMB,
         "lava_droplet".location() to LAVA_DROPLET,
         Meteor.ID to METEOR,

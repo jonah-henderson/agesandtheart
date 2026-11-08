@@ -31,8 +31,10 @@ import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.util.Mth
 import net.minecraft.world.phys.Vec3
+import net.minecraft.world.phys.AABB
 import net.minecraft.network.chat.Component
 import net.minecraft.world.entity.EntitySpawnReason
+import co.voik.agesandtheart.age.phenomena.Tornado
 
 internal object PhenomenonInstruments {
 
@@ -40,6 +42,7 @@ internal object PhenomenonInstruments {
     fun addTo(age: LiteralArgumentBuilder<CommandSourceStack>) {
         age.then(strikeSubcommand())
             .then(sandfallSubcommand())
+            .then(tornadoSubcommand())
             .then(meteorsSubcommand())
             .then(weatherSubcommand())
             .then(tideSubcommand())
@@ -132,6 +135,10 @@ internal object PhenomenonInstruments {
 
     /** Far enough out to watch one come, and inside what is loaded at an ordinary view distance. */
     private const val DEFAULT_SANDFALL_DISTANCE = 64
+    private const val DEFAULT_TORNADO_DISTANCE = 96
+    private const val PERCENT_ARGUMENT = "percent"
+    /** How far `/age tornado spend` looks for one, edge to edge. */
+    private const val TORNADO_SEARCH = 1024.0
 
     private const val MAX_STORM_DISTANCE = 512
 
@@ -462,6 +469,68 @@ internal object PhenomenonInstruments {
                             ),
                     ),
             )
+
+    /**
+     * `/age tornado [<distance>] [<size>]` — a tornado reaching down [distance] blocks ahead, [size] percent of the way
+     * from the narrowest and weakest to the widest and strongest, travelling along the Age's wind.
+     */
+    private fun tornadoSubcommand(): LiteralArgumentBuilder<CommandSourceStack> {
+        fun given(context: CommandContext<CommandSourceStack>, argument: String, otherwise: Int): Int =
+            runCatching { IntegerArgumentType.getInteger(context, argument) }.getOrDefault(otherwise)
+        fun run(context: CommandContext<CommandSourceStack>) =
+            runTornado(context, given(context, DISTANCE_ARGUMENT, DEFAULT_TORNADO_DISTANCE), given(context, SIZE_ARGUMENT, NONE_OF_A_DIAL))
+        return Commands.literal("tornado")
+            .executes(::run)
+            .then(
+                Commands.literal("spend").then(
+                    Commands.argument(PERCENT_ARGUMENT, IntegerArgumentType.integer(1, ALL_OF_A_DIAL))
+                        .executes { context -> runSpendTornado(context, IntegerArgumentType.getInteger(context, PERCENT_ARGUMENT)) },
+                ),
+            )
+            .then(
+                Commands.argument(DISTANCE_ARGUMENT, IntegerArgumentType.integer(0, MAX_SANDFALL_DISTANCE))
+                    .executes(::run)
+                    .then(Commands.argument(SIZE_ARGUMENT, IntegerArgumentType.integer(0, ALL_OF_A_DIAL)).executes(::run)),
+            )
+    }
+
+    /**
+     * Spends [percent] of what the nearest tornado was born with, as the blocks it throws will — the way to walk its
+     * roping out before it throws any.
+     */
+    private fun runSpendTornado(context: CommandContext<CommandSourceStack>, percent: Int): Int {
+        val source = context.source
+        val tornado = source.level.getEntitiesOfClass(Tornado::class.java, AABB.ofSize(source.position, TORNADO_SEARCH, TORNADO_SEARCH, TORNADO_SEARCH))
+            .minByOrNull { it.distanceToSqr(source.position) }
+        if (tornado == null) {
+            source.sendFailure(Component.literal("No tornado within ${TORNADO_SEARCH.toInt() / 2} blocks"))
+            return FAILURE
+        }
+        tornado.spend(tornado.startingStrength * percent / ALL_OF_A_DIAL)
+        source.sendSuccess({ Component.literal("The tornado has ${"%.0f".format(tornado.strength)} of ${"%.0f".format(tornado.startingStrength)} left") }, true)
+        return SUCCESS
+    }
+
+    private fun runTornado(context: CommandContext<CommandSourceStack>, distance: Int, sizePercent: Int): Int {
+        val source = context.source
+        val level = source.level
+        val at = source.position.add(Vec3.directionFromRotation(source.rotation).scale(distance.toDouble()))
+        val tornado = Tornado.raise(level, at.x, at.z, sizePercent.toDouble() / ALL_OF_A_DIAL)
+        if (tornado == null) {
+            source.sendFailure(Component.literal("No tornado: the ground there is not ticking entities, or reaches the wall cloud"))
+            return FAILURE
+        }
+        source.sendSuccess(
+            {
+                Component.literal(
+                    "A tornado ${"%.0f".format(tornado.footHalfWidth * 2.0)} across at ${tornado.blockX} ${tornado.blockZ}, " +
+                        "travelling ${compassPointFor(tornado.yRot + HALF_COMPASS)} with ${"%.0f".format(tornado.startingStrength)} strength",
+                )
+            },
+            true,
+        )
+        return SUCCESS
+    }
 
     /**
      * Strikes the ground [distance] blocks along the caster's line of sight.

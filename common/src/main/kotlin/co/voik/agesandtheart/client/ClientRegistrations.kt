@@ -67,6 +67,7 @@ object ClientRegistrations {
         RendererForEntity(AgeContent.HADALFISH, ::HadalfishRenderer),
         RendererForEntity(AgeContent.BOOK_ENTITY, ::BookEntityRenderer),
         RendererForEntity(AgeContent.SAND_COLUMN, ::SandColumnRenderer),
+        RendererForEntity(AgeContent.TORNADO, ::TornadoRenderer),
         RendererForEntity(AgeContent.VOLCANIC_BOMB) { MoltenLumpRenderer(it, MoltenLumpRenderer.WHOLE_LUMP) },
         RendererForEntity(AgeContent.LAVA_DROPLET) { MoltenLumpRenderer(it, MoltenLumpRenderer.GOBBET) },
         RendererForEntity(AgeContent.METEOR) {
