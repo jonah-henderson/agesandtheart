@@ -1585,8 +1585,11 @@ object AgeContent {
     /** As far as vanilla tracks anything — the ender dragon's own range. */
     private const val SAND_COLUMN_TRACKING_CHUNKS = 32
 
-    /** It moves slowly and in a straight line, so its position is worth sending rarely. */
-    private const val SAND_COLUMN_UPDATE_TICKS = 10
+    /**
+     * Its position is sent every other tick: the client eases over about three, so sent every ten a column walked in
+     * hops, and a swift one plainly so. There are only ever a few of them.
+     */
+    private const val SAND_COLUMN_UPDATE_TICKS = 2
 
     /**
      * Molten rock thrown out of a volcano. See [VolcanicBomb].

@@ -89,18 +89,32 @@ object Phenomena {
     val COLOUR = Sky.colour("colour", "The colour it burns in.").perMember()
 
     /** How many ticks a turn of [phenomenon]'s colours takes, or null where they hold still ([Prism]). */
-    fun cyclePeriodOf(options: Options, phenomenon: Phenomenon, seed: Long): Int? = Prism.periodOf(options, phenomenon.key, seed)
+    fun cyclePeriodOf(options: Options, phenomenon: Phenomenon, seed: Long): Int? {
+        val period = Prism.periodOf(options, phenomenon.key, seed) ?: return null
+        // A storm is over in a minute or so, so its colours go round the whole wheel in one (Jonah).
+        return if (phenomenon == Phenomenon.METEORS) METEORS_TURN else period
+    }
+
+    /** How many ticks a meteor storm's colours take to go once round the wheel: twenty seconds. */
+    private const val METEORS_TURN = 400
 
     /** The colour [phenomenon] was written to burn in, or null for its own. */
     fun colourOf(options: Options, phenomenon: Phenomenon): String? =
         options.of(COLOUR, member = phenomenon.key).takeUnless { it == Parameter.DEFAULT }
 
-    /** How fast [phenomenon] was written to go, as a multiple of its own pace: half as fast to twice. */
-    fun paceOf(options: Options, phenomenon: Phenomenon, seed: Long): Double =
-        FASTEST_PACE.pow(options.steer(PACE, seed, member = phenomenon.key) ?: UNSAID_PACE)
+    /** How fast [phenomenon] was written to go, as a multiple of its own pace: half as fast to twice, a sandfall thrice. */
+    fun paceOf(options: Options, phenomenon: Phenomenon, seed: Long): Double {
+        val steer = options.steer(PACE, seed, member = phenomenon.key) ?: UNSAID_PACE
+        // A swift sandfall comes on at just under a sprint (Jonah), where twice its own would still be a walk.
+        val fastest = if (phenomenon == Phenomenon.SANDFALL && steer > 0.0) SWIFTEST_SANDFALL else FASTEST_PACE
+        return fastest.pow(steer)
+    }
 
     private const val UNSAID_PACE = 0.0
     private const val FASTEST_PACE = 2.0
+
+    /** How many times its own pace the swiftest sandfall walks: its fastest column just under a player's sprint. */
+    private const val SWIFTEST_SANDFALL = 3.0
 
     /** How hard [phenomenon] was written in these options, from -1 to 1, nought where nothing was said. */
     fun strengthOf(options: Options, phenomenon: Phenomenon, seed: Long): Double =

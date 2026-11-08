@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
+import kotlin.math.abs
 import net.minecraft.core.BlockPos
 import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.core.particles.ParticleTypes
@@ -21,6 +22,7 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.MoverType
+import net.minecraft.world.entity.item.FallingBlockEntity
 import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.entity.projectile.ThrowableProjectile
 import net.minecraft.world.item.ItemStack
@@ -28,11 +30,11 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
-import kotlin.math.abs
 
 /**
  * One body coming in out of a meteor storm (design §5.2).
@@ -433,10 +435,50 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
                 settle(level, blockPosition())
                 return
             }
+            // **Through a sandfall and caught coming out** (Jonah): the sand it ploughed through bursts out of the far
+            // side ahead of it, and it drops out after.
+            val inSand = isInASandfall(level)
+            if (inSand) throughSand = true
+            if (throughSand && !inSand) {
+                burstOutOfTheSand(level)
+                deltaMovement = deltaMovement.scale(KEPT_COMING_OUT)
+                settle(level, blockPosition())
+                return
+            }
         }
         super.tick()
         if (!level.isClientSide) return
         shedSparks()
+    }
+
+    /** Whether it has been inside a sandfall's column this flight, so coming out of one is noticed. */
+    private var throughSand = false
+
+    /** Whether it is inside any sandfall's column: within its half width either way, and over the ground it walks. */
+    private fun isInASandfall(level: ServerLevel): Boolean {
+        val around = AABB(x - WIDEST_SANDFALL, level.minY.toDouble(), z - WIDEST_SANDFALL, x + WIDEST_SANDFALL, level.maxY.toDouble(), z + WIDEST_SANDFALL)
+        return level.getEntitiesOfClass(SandColumn::class.java, around).any { column ->
+            val reach = column.halfWidth.toDouble()
+            abs(x - column.x) <= reach && abs(z - column.z) <= reach && y >= column.y
+        }
+    }
+
+    /** Sand flung out ahead along its path and up, falling where it lands, from the side of the column it left. */
+    private fun burstOutOfTheSand(level: ServerLevel) {
+        val heading = deltaMovement.multiply(1.0, 0.0, 1.0).normalize()
+        val from = blockPosition()
+        if (!level.getBlockState(from).isAir) return
+        val random = level.random
+        repeat(SAND_BURST) {
+            val sand = FallingBlockEntity.fall(level, from, Blocks.SAND.defaultBlockState())
+            val speed = SAND_SLOWEST + random.nextDouble() * (SAND_FASTEST - SAND_SLOWEST)
+            sand.deltaMovement = Vec3(
+                heading.x * speed + (random.nextDouble() - HALF) * SAND_SPREAD,
+                SAND_LIFT_LEAST + random.nextDouble() * (SAND_LIFT_MOST - SAND_LIFT_LEAST),
+                heading.z * speed + (random.nextDouble() - HALF) * SAND_SPREAD,
+            )
+        }
+        level.playSound(null, from, SoundEvents.SAND_BREAK, SoundSource.BLOCKS, SAND_BURST_VOLUME, SAND_BURST_PITCH)
     }
 
     /**
@@ -545,6 +587,22 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         private const val SHARDS_KEEP = 0.4
         private const val SCATTERS_BY = 0.3
         private const val HALF = 0.5
+
+        /** How far across the widest sandfall reaches from its middle, which bounds the search for one. */
+        private const val WIDEST_SANDFALL = 8.0
+
+        /** How much of its speed it keeps coming out of a sandfall, so it drops out just past it. */
+        private const val KEPT_COMING_OUT = 0.15
+
+        /** The sand flung out: how many blocks, how fast along its path and up, a tick, and how widely. */
+        private const val SAND_BURST = 16
+        private const val SAND_SLOWEST = 0.4
+        private const val SAND_FASTEST = 1.0
+        private const val SAND_LIFT_LEAST = 0.2
+        private const val SAND_LIFT_MOST = 0.6
+        private const val SAND_SPREAD = 0.6
+        private const val SAND_BURST_VOLUME = 2.0f
+        private const val SAND_BURST_PITCH = 0.6f
 
         /** Nought to two (design §7.1.2): a catch is worth something, and not always. */
         private const val MOST_SHARDS = 2
