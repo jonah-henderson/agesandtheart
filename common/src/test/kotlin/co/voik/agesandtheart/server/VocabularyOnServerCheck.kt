@@ -130,7 +130,7 @@ class VocabularyOnServerCheck : FunSpec({
 private val MINTING_PATTERNS = listOf(
     "lakes", "springs", "deposits", "veins", "pits",
     // The formations, which are one feature carrying a shape rather than six.
-    "arches", "boulders", "obelisks", "pyramids", "rings", "spikes",
+    "arches", "boulders", "obelisks", "pedestals", "pyramids", "rings", "spikes",
     // The umbrellas over vanilla's own families, made of whatever the clause names.
     "patches", "piles", "icebergs",
 )

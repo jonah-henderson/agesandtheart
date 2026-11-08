@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "A broad cap on a narrow stem, the foot cut away by blown sand: Egypt's White Desert. Sandstone unless a",
+    "substance is laid before it."
+  ],
+  "speech": "plural",
+  "meanings": [
+    {
+      "mints": {
+        "pattern": "agesandtheart:pedestals",
+        "unstated": "minecraft:sandstone"
+      },
+      "must_always_apply": true,
+      "asserts": true
+    }
+  ]
+}

@@ -60,7 +60,9 @@ object Features {
     /** The book's feature claims, and those its landforms carry of their own ([Terrain.carriedFeatures]). */
     fun writtenAndCarried(composition: AgeComposition): Options {
         val written = composition.optionsFor(Aspect.FEATURES, 0)
-        val carried = composition.terrains.flatMap { it.carriedFeatures }.distinct()
+        val carried = composition.terrains.flatMapIndexed { member, terrain ->
+            terrain.carriedFeatures(composition.optionsFor(Aspect.TERRAIN, member))
+        }.distinct()
         if (carried.isEmpty()) return written
         val places = PLACES.name
         return Options(written.chosen + (places to (written.chosen[places].orEmpty() + carried).distinct()))

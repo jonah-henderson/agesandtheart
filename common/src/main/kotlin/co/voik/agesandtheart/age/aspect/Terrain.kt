@@ -63,6 +63,11 @@ private val ISLAND_PONDS: String by lazy {
 
 private const val ISLAND_POND_RATE = 8.0
 
+/** Windswept land's pedestal rocks, in sandstone where nothing else made them. */
+private val WINDSWEPT_PEDESTALS: String by lazy {
+    Claim("agesandtheart:pedestals", madeOf = "minecraft:sandstone").spelled()
+}
+
 /** A slab whose top is under its bottom, which holds no rock in any column at any size. */
 private val NOTHING_SOLID = Slab(lowY = 1, highY = 0)
 
@@ -761,9 +766,14 @@ enum class Terrain(
     /**
      * Features this landform carries of its own, as claims added to whatever the book asked for: the
      * islands' ponds (Jonah, 2026-10-06), vanilla's surface lake filled with water, which lies on the ground
-     * where it falls and will not place where it would spill.
+     * where it falls and will not place where it would spill; and windswept land's pedestal rocks.
      */
-    val carriedFeatures: List<String> get() = if (this == SKYLANDS) listOf(ISLAND_PONDS) else emptyList()
+    fun carriedFeatures(options: Options): List<String> = when {
+        this == SKYLANDS -> listOf(ISLAND_PONDS)
+        // Windswept land brings its pedestal rocks, as meteors bring their craters (Jonah).
+        this == YARDANGS && !options.isTrue(FORMER_BARE_WINDSWEPT) -> listOf(WINDSWEPT_PEDESTALS)
+        else -> emptyList()
+    }
 
     /**
      * Rivers this terrain runs **of water whatever its sea**, or null for none — the islands' rivers, there
@@ -1121,6 +1131,12 @@ enum class Terrain(
         val FORMER_ISLAND_WEAR = Parameter.flag(
             "former_island_wear",
             help = "Whether islands nothing said the wear of stay young, as they did before every stage could be met unasked.",
+        )
+
+        /** Whether windswept land stands bare of pedestal rocks, as before generator 25. Set on every windswept Age written before then. */
+        val FORMER_BARE_WINDSWEPT = Parameter.flag(
+            "former_bare_windswept",
+            help = "Whether windswept land stands bare, as it did before it brought its pedestal rocks.",
         )
 
         val FORMER_LAYOUT = Parameter.flag(

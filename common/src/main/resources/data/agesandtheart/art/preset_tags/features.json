@@ -184,6 +184,16 @@
       "monumental": 0.1
     }
   },
+  "agesandtheart:pedestals": {
+    "present_anyway": false,
+    "tags": {
+      "stony": 0.8,
+      "eroded": 0.8,
+      "sandy": 0.6,
+      "dry": 0.6,
+      "monumental": 0.2
+    }
+  },
   "agesandtheart:spikes": {
     "present_anyway": false,
     "_comment": [

@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.FormerEasing
 import co.voik.agesandtheart.age.FormerIslands
+import co.voik.agesandtheart.age.FormerBareWindswept
 import co.voik.agesandtheart.age.FormerIslandWear
 import co.voik.agesandtheart.age.FormerUnsaidWear
 import co.voik.agesandtheart.age.FormerWear
@@ -236,6 +237,18 @@ class LandVarietyCheck : FunSpec({
             check(!read(last + 1, listOf(islands)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_ISLAND_WEAR)) { "a new Age's $islands kept the old wear" }
         }
         check(!read(last, listOf(Terrain.HILLS)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_ISLAND_WEAR)) { "an old Age with no islands was marked" }
+    }
+
+    test("windswept land written before it brought pedestal rocks stays bare") {
+        fun read(version: Int, terrains: List<Terrain>): AgeComposition {
+            val recipe = AgeRecipe(AgeWorld.Composed(AgeComposition(terrains = terrains)), seed = SEED, generatorVersion = version)
+            val saved = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow()
+            return AgeRecipe.CODEC.parse(JsonOps.INSTANCE, saved).getOrThrow().composition ?: error("no composition")
+        }
+        val last = FormerBareWindswept.LAST_GENERATOR_OF_BARE_WINDSWEPT_LAND
+        check(read(last, listOf(Terrain.YARDANGS)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_BARE_WINDSWEPT)) { "the old windswept Age grew pedestals" }
+        check(!read(last + 1, listOf(Terrain.YARDANGS)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_BARE_WINDSWEPT)) { "a new windswept Age stood bare" }
+        check(!read(last, listOf(Terrain.HILLS)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_BARE_WINDSWEPT)) { "an old Age with no windswept land was marked" }
     }
 
     test("an Age written before the banks were held still wears through them, and a new one does not") {

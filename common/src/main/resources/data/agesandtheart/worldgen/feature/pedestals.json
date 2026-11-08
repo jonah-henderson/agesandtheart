@@ -1,0 +1,313 @@
+{
+  "_comment": [
+    "Pedestal rocks: a broad cap on a stem the blown sand has cut narrow near the ground, as in Egypt's White Desert.",
+    "Four shapes to draw from -- a leaning mushroom, a tall slender one, a squat table and a pair grown together --",
+    "each a tapered beam flaring up into a cap of overlapping lobes; the cap warped so its outline wanders, the",
+    "whole undulated, and the stem run deep into the cap so no size parts them. Posed and sized like the boulders.",
+    "About eight across the cap and six tall as written; `largest` 12 makes `colossal` about eighty across."
+  ],
+  "type": "agesandtheart:formation",
+  "shapes": [
+    {
+      "type": "undulated",
+      "base": {
+        "type": "union",
+        "fields": [
+          {
+            "type": "beam",
+            "from_x": 0,
+            "from_y": -1,
+            "from_z": 0,
+            "to_x": 0.4,
+            "to_y": 5.2,
+            "to_z": 0.2,
+            "radius": 1.0,
+            "end_radius": 2.2
+          },
+          {
+            "type": "warped",
+            "base": {
+              "type": "union",
+              "fields": [
+                {
+                  "type": "ellipsoid",
+                  "center_x": 1,
+                  "center_y": 5,
+                  "center_z": 0,
+                  "radius_xz": 3.6,
+                  "radius_y": 1.6
+                },
+                {
+                  "type": "ellipsoid",
+                  "center_x": -1,
+                  "center_y": 5,
+                  "center_z": 1,
+                  "radius_xz": 2.6,
+                  "radius_y": 1.4
+                },
+                {
+                  "type": "ellipsoid",
+                  "center_x": 2,
+                  "center_y": 5,
+                  "center_z": -1,
+                  "radius_xz": 2.4,
+                  "radius_y": 1.2
+                }
+              ]
+            },
+            "seed": 61034,
+            "first_octave": -2,
+            "amplitudes": [
+              1.0,
+              0.5
+            ],
+            "scale": 5.0,
+            "amount": 1.0
+          }
+        ]
+      },
+      "seed": 61027,
+      "first_octave": -3,
+      "amplitudes": [
+        1.0,
+        0.6,
+        0.3
+      ],
+      "scale_x": 0.8,
+      "scale_z": 0.8,
+      "amount": 1.0
+    },
+    {
+      "type": "undulated",
+      "base": {
+        "type": "union",
+        "fields": [
+          {
+            "type": "beam",
+            "from_x": 0,
+            "from_y": -1,
+            "from_z": 0,
+            "to_x": -0.3,
+            "to_y": 6.6,
+            "to_z": 0.3,
+            "radius": 0.9,
+            "end_radius": 1.8
+          },
+          {
+            "type": "warped",
+            "base": {
+              "type": "union",
+              "fields": [
+                {
+                  "type": "ellipsoid",
+                  "center_x": -0.5,
+                  "center_y": 6.4,
+                  "center_z": 0.5,
+                  "radius_xz": 2.8,
+                  "radius_y": 1.5
+                },
+                {
+                  "type": "ellipsoid",
+                  "center_x": 1,
+                  "center_y": 6.2,
+                  "center_z": 0,
+                  "radius_xz": 2.0,
+                  "radius_y": 1.2
+                }
+              ]
+            },
+            "seed": 33858,
+            "first_octave": -2,
+            "amplitudes": [
+              1.0,
+              0.5
+            ],
+            "scale": 5.0,
+            "amount": 1.0
+          }
+        ]
+      },
+      "seed": 33851,
+      "first_octave": -3,
+      "amplitudes": [
+        1.0,
+        0.6,
+        0.3
+      ],
+      "scale_x": 0.8,
+      "scale_z": 0.8,
+      "amount": 1.0
+    },
+    {
+      "type": "undulated",
+      "base": {
+        "type": "union",
+        "fields": [
+          {
+            "type": "beam",
+            "from_x": 0,
+            "from_y": -1,
+            "from_z": 0,
+            "to_x": 0,
+            "to_y": 4.2,
+            "to_z": 0,
+            "radius": 1.4,
+            "end_radius": 2.6
+          },
+          {
+            "type": "warped",
+            "base": {
+              "type": "union",
+              "fields": [
+                {
+                  "type": "ellipsoid",
+                  "center_x": 0,
+                  "center_y": 3.8,
+                  "center_z": 0,
+                  "radius_xz": 4.6,
+                  "radius_y": 1.4
+                },
+                {
+                  "type": "ellipsoid",
+                  "center_x": 2,
+                  "center_y": 3.6,
+                  "center_z": 1,
+                  "radius_xz": 2.6,
+                  "radius_y": 1.2
+                },
+                {
+                  "type": "ellipsoid",
+                  "center_x": -2,
+                  "center_y": 3.7,
+                  "center_z": -1,
+                  "radius_xz": 2.4,
+                  "radius_y": 1.1
+                }
+              ]
+            },
+            "seed": 51720,
+            "first_octave": -2,
+            "amplitudes": [
+              1.0,
+              0.5
+            ],
+            "scale": 5.0,
+            "amount": 1.0
+          }
+        ]
+      },
+      "seed": 51713,
+      "first_octave": -3,
+      "amplitudes": [
+        1.0,
+        0.6,
+        0.3
+      ],
+      "scale_x": 0.8,
+      "scale_z": 0.8,
+      "amount": 1.0
+    },
+    {
+      "type": "undulated",
+      "base": {
+        "type": "union",
+        "fields": [
+          {
+            "type": "beam",
+            "from_x": 0,
+            "from_y": -1,
+            "from_z": 0,
+            "to_x": -0.6,
+            "to_y": 5.0,
+            "to_z": 0,
+            "radius": 1.0,
+            "end_radius": 2.0
+          },
+          {
+            "type": "beam",
+            "from_x": 1,
+            "from_y": -1,
+            "from_z": 1,
+            "to_x": 1.6,
+            "to_y": 4.0,
+            "to_z": 1,
+            "radius": 0.8,
+            "end_radius": 1.6
+          },
+          {
+            "type": "warped",
+            "base": {
+              "type": "union",
+              "fields": [
+                {
+                  "type": "ellipsoid",
+                  "center_x": -1,
+                  "center_y": 4.6,
+                  "center_z": 0,
+                  "radius_xz": 3.0,
+                  "radius_y": 1.4
+                },
+                {
+                  "type": "ellipsoid",
+                  "center_x": 2,
+                  "center_y": 3.6,
+                  "center_z": 1,
+                  "radius_xz": 2.4,
+                  "radius_y": 1.2
+                },
+                {
+                  "type": "ellipsoid",
+                  "center_x": 0.5,
+                  "center_y": 4.0,
+                  "center_z": 0.5,
+                  "radius_xz": 2.2,
+                  "radius_y": 1.2
+                }
+              ]
+            },
+            "seed": 70928,
+            "first_octave": -2,
+            "amplitudes": [
+              1.0,
+              0.5
+            ],
+            "scale": 5.0,
+            "amount": 1.0
+          }
+        ]
+      },
+      "seed": 70921,
+      "first_octave": -3,
+      "amplitudes": [
+        1.0,
+        0.6,
+        0.3
+      ],
+      "scale_x": 0.8,
+      "scale_z": 0.8,
+      "amount": 1.0
+    }
+  ],
+  "variation": {
+    "yaw_steps": 8,
+    "min_scale": 0.8,
+    "max_scale": 1.6,
+    "scale_steps": 3,
+    "pivot_y": 0,
+    "min_lift": -1,
+    "max_lift": 0,
+    "lift_steps": 2
+  },
+  "placement": {
+    "type": "scatter",
+    "cell_size": 48.0,
+    "least_per_cell": 0,
+    "most_per_cell": 2,
+    "at_origin": 1.0,
+    "at_edge": 1.0,
+    "falloff_radius": 1.0
+  },
+  "seed": 712093411,
+  "substance": "minecraft:sandstone",
+  "largest": 12.0
+}

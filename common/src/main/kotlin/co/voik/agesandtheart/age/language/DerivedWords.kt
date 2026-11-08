@@ -90,7 +90,7 @@ object DerivedWords {
 
     /** Our formations, which a rock laid bare may be raised as. */
     val FORMATIONS: List<String> =
-        listOf("obelisks", "pyramids", "rings", "arches", "spikes", "boulders").map { "agesandtheart:$it" }
+        listOf("obelisks", "pyramids", "rings", "arches", "spikes", "boulders", "pedestals").map { "agesandtheart:$it" }
 
     private const val A_FORMATION_NOW_AND_THEN = 0.25
 
