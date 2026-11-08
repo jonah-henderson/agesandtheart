@@ -822,6 +822,15 @@ enum class Terrain(
         return own.map { (biome, where) -> biome to carried(where, options, salt, table, sea) }
     }
 
+    /**
+     * The way the wind bends this landform's trees, in degrees, or null where it leaves them standing: windswept land
+     * grows flag trees, along the wind its ridges lie on.
+     */
+    fun bendsTreesTowards(options: Options, salt: Long, table: TerrainTable?): Double? = when {
+        this == YARDANGS && !options.isTrue(FORMER_BARE_WINDSWEPT) -> table?.windBearingDegrees ?: bearingOffThe(salt)
+        else -> null
+    }
+
     /** The column a link into this landform arrives on, or null for wherever the Age finds footing near its origin. */
     fun arrivalColumn(options: Options, salt: Long): ColumnPos? = when (this) {
         ARBOREAL -> HollowTreesField.summit(salt, scaleOf(options, salt))

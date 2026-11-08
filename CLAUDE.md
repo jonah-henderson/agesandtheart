@@ -430,7 +430,8 @@ When shared code needs something loader-specific, it goes through an interface, 
   that places nothing — or, where a book grew them of a block (`diamond_block trees`), one that places that block in
   each leaf's stead — and a village's start drawn from its pool's abandoned pieces. **`TreeGrowerMixin`** carries the
   block to a sapling grown later (`generation/GrownTrees`): `growTree` is the last call that knows which tree it is,
-  and Fabric has no sapling event. `FeaturePlacerMixin` also places each feature through a view that crumbles what it
+  and Fabric has no sapling event. `TreeFeatureMixin`'s trunk and foliage setters also bend trees in windswept
+  land into flag trees (`worldgen/feature/FlagTrees`), saplings included. `FeaturePlacerMixin` also places each feature through a view that crumbles what it
   builds of rock above the ground, where a book wore the features (`generation/CrumbledFeatures`). Each is the one call where
   the thing is decided, and neither loader has a placement, tree or jigsaw event. All three answer off
   thread-locals the Age's generator sets around its own decoration and structure starts, so they cost one read

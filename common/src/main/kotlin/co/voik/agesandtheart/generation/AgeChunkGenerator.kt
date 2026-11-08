@@ -20,6 +20,7 @@ import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.RegionMap
+import co.voik.agesandtheart.worldgen.feature.FlagTrees
 import co.voik.agesandtheart.worldgen.feature.LandformTerritories
 import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
@@ -255,6 +256,8 @@ class AgeChunkGenerator(
     val landformArrival: ColumnPos? = null,
     /** Which landform's territory each column is in, or null for an Age of one. Not serialised, like [lives]. */
     private val landformTerritories: RegionMap? = null,
+    /** The bearing the wind bends trees towards on each territory it bends them on ([FlagTrees]). Not serialised, like [lives]. */
+    private val treesBentTowards: Map<Int, Double> = emptyMap(),
 ) : NoiseBasedChunkGenerator(
     biomes,
     when (rock) {
@@ -264,6 +267,10 @@ class AgeChunkGenerator(
 ), LandformTerritories {
 
     override fun territoryAt(blockX: Int, blockZ: Int): Int = landformTerritories?.memberAt(blockX, blockZ) ?: 0
+
+    /** The bearing the wind bends a tree at a column towards, or null for none — see [FlagTrees]. */
+    val windBendingTrees: ((Int, Int) -> Double?)? =
+        if (treesBentTowards.isEmpty()) null else { x, z -> treesBentTowards[territoryAt(x, z)] }
 
 
     /**
@@ -1626,7 +1633,7 @@ class AgeChunkGenerator(
             StrangeGround.decorating(consequence, treesGrownWith, level.seed, { placedFeatures.getKey(it)?.toString() }) {
                 StructureMaterials.building(structuresBuiltOf, level.registryAccess()) {
                     IncongruousSpawns.settling(incongruity.spawns, { offeredAnywhere }, level.seed) {
-                        super.applyBiomeDecoration(level, chunk, structures)
+                        FlagTrees.sweeping(windBendingTrees) { super.applyBiomeDecoration(level, chunk, structures) }
                     }
                 }
             }

@@ -464,6 +464,10 @@ object AgeGeneration {
             spawnCaps = Spawns.capsOf(composition.optionsFor(Aspect.SPAWNS, 0)),
             landformArrival = if (grounds == null) null else landformArrivalIn(composition, ground, seed),
             landformTerritories = ground.takeIf { composition.terrains.size > 1 },
+            treesBentTowards = composition.terrains.withIndex().mapNotNull { (member, terrain) ->
+                terrain.bendsTreesTowards(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), table)
+                    ?.let { member to it }
+            }.toMap(),
             nothingLives = Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0)),
             incongruity = Incongruity.of(composition),
             structureHomes = structureHomesIn(composition, biomeSource, seed),
