@@ -46,7 +46,7 @@ class VanillaDeepSeaOnServerCheck : FunSpec({
         check(abyssCells > 0) { "no abyss biome under the deep ocean at $atX, $atZ" }
     }
 
-    test("the abyss offers a hadalfish to vanilla's spawner, and a book leaning away from hostile things thins it") {
+    test("the abyss offers a hadalfish to vanilla's spawner, and a book leaning away from hostile things thins it or strikes it") {
         /** What the census says of the hadalfish on an abyss floor under [key]: `offered` or `asked`. */
         fun hadalfishIn(age: String, key: String): String? {
             val said = server.ask("spawns", "$age 2")[key]?.asJsonArray?.map { it.asJsonObject }.orEmpty()
@@ -57,7 +57,9 @@ class VanillaDeepSeaOnServerCheck : FunSpec({
         // Aimed at the creatures: laid bare, a lean on everything leans only some of what it reaches.
         server.run("age write vanillabeautiful 7 age overworld landmass beautiful inhabitants deep sea")
         val rung = hadalfishIn("vanillabeautiful", "asked")?.substringAfterLast(' ')?.toDouble()
-        check(rung != null && rung < 1.0) { "a beautiful Age asks for the hadalfish at $rung, no less than one that said nothing" }
+        // The hadalfish is both hostile and dark, so `beautiful`'s two leans together can take it to nothing.
+        val struck = hadalfishIn("vanillabeautiful", "offered") == null
+        check(struck || (rung != null && rung < 1.0)) { "a beautiful Age asks for the hadalfish at $rung, no less than one that said nothing" }
     }
 
     test("the floor of an abyss on vanilla's rock holds whalefalls, and vents keeping hadalfish where there is a deluge") {
