@@ -82,9 +82,14 @@ object Atmosphere {
         val asked = parts.optionsFor(Aspect.AIR).steer(WIND, seed) ?: return Wind.STILL
         val strength = Span.NATURAL.fractionOf(asked).toFloat()
         if (strength <= 0.0f) return Wind.STILL
-        val bearing = Random(seed xor WIND_SALT).nextFloat() * FULL_TURN_DEGREES
-        return Wind(bearingDegrees = bearing, strength = strength, seed = seed)
+        return Wind(bearingDegrees = prevailingBearingDegrees(seed), strength = strength, seed = seed)
     }
+
+    /**
+     * The way the Age's wind blows towards, in degrees from east turning to south, whether or not a book wrote one —
+     * so the land the wind carves lies along the wind that blows over it.
+     */
+    fun prevailingBearingDegrees(seed: Long): Float = Random(seed xor WIND_SALT).nextFloat() * FULL_TURN_DEGREES
 
     private const val WIND_SALT = 0x57494E44L
     private const val FULL_TURN_DEGREES = 360.0f

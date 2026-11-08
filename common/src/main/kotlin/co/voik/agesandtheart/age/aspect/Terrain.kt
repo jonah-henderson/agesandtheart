@@ -6,6 +6,7 @@ import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CliffField
 import co.voik.agesandtheart.worldgen.CraterlandsField
 import co.voik.agesandtheart.worldgen.ErodedField
+import co.voik.agesandtheart.worldgen.YardangsField
 import co.voik.agesandtheart.worldgen.FlatlandsField
 import co.voik.agesandtheart.worldgen.HollowTreesField
 import co.voik.agesandtheart.worldgen.InverseCavesField
@@ -73,6 +74,11 @@ private fun sizeOf(options: Options, salt: Long): Double? {
 
 /** [sizeOf] as [SizeScale]'s factor, which is what every landform's builder is handed. */
 private fun scaleOf(options: Options, salt: Long): Double = SizeScale.factorAt(sizeOf(options, salt))
+
+/** A bearing for a landform laid along the wind in an Age with no terrain table to carry the wind's. */
+private fun bearingOffThe(salt: Long): Double = Math.floorMod(salt, FULL_TURN_DEGREES).toDouble()
+
+private const val FULL_TURN_DEGREES = 360L
 
 /** How much a landform changes as it is crossed: 0 for none, 1 unsaid, 2 at the most — see [LandVariety]. */
 private fun varietyOf(options: Options, salt: Long): Double = (options.steer(Terrain.VARIETY, salt) ?: UNSAID_VARIETY) + 1.0
@@ -228,6 +234,19 @@ enum class Terrain(
             PyramidField.world(options.of(ARRANGEMENT), salt, scale, landmarksOf(options, salt, scale))
         },
         axes = { listOf(ARRANGEMENT, SIZE) },
+    ),
+
+    /**
+     * A dry basin of wind-carved ridges, blunt upwind and tapering downwind, all lying along the Age's own wind with
+     * level corridors between: the Lut desert's yardangs. No sea; the floor is the lowest ground there is.
+     */
+    YARDANGS(
+        "windswept",
+        waterline = null,
+        build = { options, salt, table ->
+            YardangsField.world(salt, scaleOf(options, salt), varietyOf(options, salt), table?.windBearingDegrees ?: bearingOffThe(salt))
+        },
+        axes = { listOf(SIZE, VARIETY) },
     ),
 
     /**
@@ -491,7 +510,7 @@ enum class Terrain(
         HILLS, ERODED, PILLARS, CLIFFS, CANYONLANDS, SHATTERED, RIVERLANDS, ISLANDS, ISLE, CRATERLANDS, CONTINENTS, SOLID ->
             ownWaterlineAt(options, salt)?.let(::Footing)
         // A plain standing just over vanilla's sea.
-        FLATLANDS, PYRAMIDS -> Footing(ORDINARY_SEA_LEVEL)
+        FLATLANDS, PYRAMIDS, YARDANGS -> Footing(ORDINARY_SEA_LEVEL)
         CANYON -> scaleOf(options, salt).let { scale -> Footing(CanyonField.riverLevel(scale), topY = CanyonField.plateauY(scale)) }
         // The tallest trees reach the top of the world already.
         ARBOREAL -> Footing(HollowTreesField.SEA_LEVEL, topY = VerticalWindow.HIGHEST_BLOCK_Y)
@@ -586,7 +605,7 @@ enum class Terrain(
         // Its seabed is the band's foot, which a larger country carries deeper.
         ERODED -> ErodedField.seabedY(scaleOf(options, salt)) - ROOM_FOR_A_ROOF
         // A plain with no sea, so the only thing overhead is the plain itself.
-        PYRAMIDS -> ORDINARY_SEA_LEVEL - ROOM_FOR_A_ROOF
+        PYRAMIDS, YARDANGS -> ORDINARY_SEA_LEVEL - ROOM_FOR_A_ROOF
         // **The most room of anything here, and for once nothing is being cleared.** There is no surface
         // for an underground to open into, so this is bounded by the bedrock roof alone.
         SOLID -> SolidField.UNDERGROUND_CEILING
@@ -847,6 +866,7 @@ enum class Terrain(
         HILLS -> TerrainTable.Home(uplift = 0.0, age = 0.4, wetness = 0.3)
         RIVERLANDS -> TerrainTable.Home(uplift = -0.1, age = 0.3, wetness = 0.7)
         CRATERLANDS -> TerrainTable.Home(uplift = -0.2, age = 0.7, wetness = -0.5)
+        YARDANGS -> TerrainTable.Home(uplift = -0.1, age = 0.5, wetness = -0.9)
         CONTINENTS -> TerrainTable.Home(uplift = -0.3, age = 0.3, wetness = 0.1)
         FLATLANDS -> TerrainTable.Home(uplift = -0.4, age = 0.8, wetness = -0.1)
         PILLARS -> TerrainTable.Home(uplift = -0.5, age = -0.2, wetness = 0.5)

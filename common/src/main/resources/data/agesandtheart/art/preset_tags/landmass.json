@@ -173,5 +173,16 @@
       "dark": 0.9,
       "cavernous": 0.5
     }
+  },
+  "windswept": {
+    "readiness": 0.3,
+    "tags": {
+      "eroded": 0.9,
+      "dry": 0.9,
+      "sandy": 0.8,
+      "barren": 0.7,
+      "ordered": 0.6,
+      "sheer": 0.4
+    }
   }
 }

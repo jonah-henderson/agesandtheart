@@ -13,7 +13,11 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
  * The dials read them too — the drift follows uplift and the wear follows age — and a grounded Age's biomes take
  * their temperature and humidity from the last two, so dry canyon country grows dry biomes.
  */
-data class TerrainTable(val seed: Long) {
+data class TerrainTable(
+    val seed: Long,
+    /** The way the Age's wind blows towards ([co.voik.agesandtheart.age.aspect.Atmosphere.prevailingBearingDegrees]). */
+    val windBearingDegrees: Double = 0.0,
+) {
     private val uplift = fieldNoise(seed xor UPLIFT_SALT, UPLIFT_OCTAVE, UPLIFT_AMPLITUDES)
     private val age = fieldNoise(seed xor AGE_SALT, AGE_OCTAVE, AGE_AMPLITUDES)
     private val wetness = fieldNoise(seed xor WETNESS_SALT, WETNESS_OCTAVE, WETNESS_AMPLITUDES)
