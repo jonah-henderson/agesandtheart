@@ -3,7 +3,7 @@
     "Pulling harder . `pull` is one name on the gravity and on each moon, so",
     "`strong gravity` is a heavy world -- 1.25 to 2 times vanilla's, the first being about the most a jump still",
     "clears a block under -- and `strong moon` a high tide. `strength` is the creatures': `strong monsters` have",
-    "twice their health and hit twice as hard.",
+    "twice their health and hit twice as hard. `strong auroras` burn bright.",
     "",
     "Laid bare it never touches the gravity (`unaimed` 0): `a strong Age` is strong tides, and a world nobody can",
     "jump in has to be asked for by name.",
@@ -31,6 +31,15 @@
       "must_always_apply": true,
       "offered_to": [
         "sun"
+      ]
+    },
+    {
+      "sets": {
+        "aurora.glow": "0.5..1.0"
+      },
+      "must_always_apply": true,
+      "offered_to": [
+        "aurora"
       ]
     }
   ]

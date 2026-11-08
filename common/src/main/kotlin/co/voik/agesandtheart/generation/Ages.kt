@@ -410,7 +410,7 @@ object Ages {
     /** How far the platform reaches each way from the arrival: five blocks across. */
     private const val PLATFORM_REACH = 2
 
-    private val PLATFORM_BLOCK get() = Blocks.SMOOTH_STONE.defaultBlockState()
+    private val PLATFORM_BLOCK get() = Blocks.STONE.defaultBlockState()
 
     /** What a carved arrival stands on, where there was nothing. */
     private val FOOTING_BLOCK get() = Blocks.STONE.defaultBlockState()

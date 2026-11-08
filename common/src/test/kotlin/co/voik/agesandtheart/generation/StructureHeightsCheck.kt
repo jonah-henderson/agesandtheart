@@ -16,11 +16,11 @@ class StructureHeightsCheck : FunSpec({
         check(sunk.all { it != null && it <= -SURELY_SUNK }) { "a buried village stood at ${sunk.firstOrNull { it == null || it > -SURELY_SUNK }}" }
     }
 
-    test("lost villages mostly stand, and the sunk ones go a block or two") {
+    test("about half of lost villages sink, one to three blocks") {
         val sunk = starts.mapNotNull { StructureHeights.offsetAt(LOST, it) }
         val share = sunk.size.toDouble() / STARTS
         check(share in LOST_SHARE_ROUGHLY) { "$share of lost villages sank" }
-        check(sunk.all { it in -2..-1 }) { "a lost village sank ${sunk.minOrNull()}" }
+        check(sunk.all { it in -3..-1 }) { "a lost village sank ${sunk.minOrNull()}" }
     }
 
     test("nought leaves a start as written") {
@@ -32,8 +32,8 @@ class StructureHeightsCheck : FunSpec({
         const val CHUNK = 16
         const val VILLAGE_SPACING = 34
         const val BURIED = -0.5
-        const val LOST = -0.05
+        const val LOST = -0.08
         const val SURELY_SUNK = 6
-        val LOST_SHARE_ROUGHLY = 0.2..0.45
+        val LOST_SHARE_ROUGHLY = 0.35..0.65
     }
 }

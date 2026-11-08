@@ -1,5 +1,5 @@
 {
-  "_comment": "`lost structures` (Jonah) are abandoned, and now and then sunk a block or two: nobody left in them.",
+  "_comment": "`lost structures` (Jonah) are abandoned, and half of them sunk one to three blocks: nobody left in them.",
   "meanings": [
     {
       "sets": {
@@ -9,7 +9,7 @@
     },
     {
       "sets": {
-        "structures.height": "-0.05..-0.05",
+        "structures.height": "-0.08..-0.08",
         "abandoned": "true"
       },
       "must_always_apply": true,
