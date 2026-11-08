@@ -2,7 +2,7 @@
   "_comment": [
     "`ink`: a word no bucket lists that needs masterwork ink is found here."
   ],
-  "weight": 1,
+  "weight": 2,
   "item_rarity": "epic",
   "ink": "masterwork",
   "words": [
@@ -170,11 +170,11 @@
     "minecraft:zombie_villager",
     "minuscule",
     "motionless",
+    "prismatic",
     "shifting",
     "sporadic",
     "starless",
     "starlit",
-    "strong",
     "torn",
     "unbroken",
     "untouched",

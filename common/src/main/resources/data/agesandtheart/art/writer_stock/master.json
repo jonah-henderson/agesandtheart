@@ -2,19 +2,25 @@
   "_comment": [
     "The master pool's authored half: words that are hard to come by any other way, since no device",
     "derives one and page loot treats most of them as rare. The pool's derived half -- the Nether and End",
-    "materials -- is in tags/block/writer_stock/master.json."
+    "materials -- is in tags/block/writer_stock/master.json. A few are the Age's look and nothing more, the",
+    "rare decorative skies a writer is the one to sell: `prismatic`, `eclipsing`, `colourless`, `torn` (Jonah,",
+    "2026-11-08)."
   ],
   "words": [
     "beautiful",
     "colossal",
+    "colourless",
     "delved",
     "deserted",
+    "eclipsing",
     "floating",
     "foreboding",
     "hollow",
     "lifeless",
+    "prismatic",
     "starless",
     "starlit",
+    "torn",
     "unbroken",
     "uncanny",
     "untouched",
