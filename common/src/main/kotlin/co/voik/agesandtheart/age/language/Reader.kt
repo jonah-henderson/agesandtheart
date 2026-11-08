@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.LinkAnchor
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Polarity
+import co.voik.agesandtheart.age.aspect.Prism
 import co.voik.agesandtheart.age.resolution.Effect
 import co.voik.agesandtheart.age.resolution.GROWS_IN_PLACES
 import co.voik.agesandtheart.age.resolution.Members
@@ -318,10 +319,11 @@ object Reader {
             saidOf?.let { saidOfThisPage(it, word, acceptance, place) }
             fun isOfferedHere(meaning: Meaning) = isOfferedTo(meaning, word, acceptance)
             for (page in taking) {
-                val taken = page.word.meanings.filter { !it.isOffered }.mapNotNull { meaning ->
+                val meanings = page.word.meanings.filter { keptByOrder(page, it, taking) }
+                val taken = meanings.filter { !it.isOffered }.mapNotNull { meaning ->
                     takenFrom(meaning, acceptance, place, word).takeIf { it.isNotEmpty() }?.let { meaning to it }
                 }
-                val offered = page.word.meanings.filter(::isOfferedHere)
+                val offered = meanings.filter(::isOfferedHere)
                 // A page the word before `and` took stays taken where this one takes none of it.
                 if (taken.isEmpty() && offered.isEmpty()) {
                     if (joinedTo == null) fell(page)
@@ -346,6 +348,30 @@ object Reader {
             lastTaker = Taker(at, place, taking, from..<claims.size, joined, word, acceptance)
             saidOfBy?.let { saidOf(it, place) }
         }
+
+        /**
+         * **A pace said beside turning colours goes where it stands** (Jonah, 2026-11-08): `swift prismatic sun` turns the
+         * sun's colours faster and leaves the sun's own pace alone, and `prismatic swift sun` is a fast sun whose colours
+         * turn as they would. A pace word waiting just before a word that turns colours keeps only its colours' pace; one
+         * waiting after such a word keeps only its own. With no colours turning in the run, both land, as they always did.
+         */
+        private fun keptByOrder(page: Waiting, meaning: Meaning, taking: List<Waiting>): Boolean {
+            val pacesTheColours = meaning.sets(COLOUR_CYCLE_PACE)
+            val pacesItself = meaning.sets(OWN_PACE)
+            if (pacesTheColours == pacesItself) return true
+            val turnsColoursNext = taking.any { it.index == page.index + 1 && turnsColours(it.word) }
+            val turnedColoursBefore = taking.any { it.index < page.index && turnsColours(it.word) }
+            return when {
+                turnsColoursNext -> pacesTheColours
+                turnedColoursBefore -> pacesItself
+                else -> true
+            }
+        }
+
+        private fun turnsColours(word: Word): Boolean = word.meanings.any { it.sets(COLOURS_CYCLING) }
+
+        private fun Meaning.sets(parameter: String): Boolean =
+            effects.any { it is Effect.Sets && it.parameter.name == parameter }
 
         /**
          * Whether [meaning] is offered to [word]: by its name, or by the name of the part it is a member of, so what a
@@ -547,6 +573,13 @@ object Reader {
 
 /** The page whose name a meaning is offered to where it is said of the word after an `of`. */
 private const val OF_PAGE = "of"
+
+/** What turns a part's colours, and how fast they turn — `prismatic`'s and `swift`'s colour meaning. */
+private val COLOURS_CYCLING = Prism.COLOURS_CYCLING.name
+private val COLOUR_CYCLE_PACE = Prism.COLOUR_CYCLE_PACE.name
+
+/** The name every part's own pace goes by — a sun's, a creature's, a phenomenon's — which `swift` and `slow` set. */
+private const val OWN_PACE = "pace"
 
 /** One meaning of one page at one place, before the draw decides whether it lands. */
 internal data class Claim(

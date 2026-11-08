@@ -103,7 +103,7 @@
   "monsters_doubled": 0.65,
   "darkness": {
     "sealed": 0.65,
-    "sunless": 0.5,
+    "sunless": 0.65,
     "roofed_by_rock": 0.1,
     "incongruous": 0.4
   },
