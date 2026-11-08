@@ -92,7 +92,7 @@ object TornadoSigns {
         override fun steer() {
             val vortex = TornadoWinds.of(tornado)
             if (!tornado.isAlive || vortex == null) return remove()
-            val flow = vortex.flowAt(vortex.bearingsOf(x, z))
+            val flow = vortex.flowAt(vortex.bearingsOf(x, y, z))
             val speed = SLOWEST_STREAK + (FASTEST_STREAK - SLOWEST_STREAK) * flow.strength
             goTowards(flow.towardsX * speed, flow.strength * STREAK_RISE, flow.towardsZ * speed)
         }
@@ -130,8 +130,9 @@ object TornadoSigns {
                 isThrown = true
                 return
             }
-            val bearings = vortex.bearingsOf(x, z)
-            if (bearings.out < vortex.core) return whirled(vortex, bearings)
+            // About the funnel's middle where the crumb is, which leans and sways as it is drawn.
+            val bearings = vortex.bearingsOf(x, y, z)
+            if (bearings.out < vortex.coreAt(y)) return whirled(vortex, bearings)
             val flow = vortex.flowAt(bearings)
             val speed = SLOWEST_CRUMB + (FASTEST_CRUMB - SLOWEST_CRUMB) * flow.strength
             xd = flow.towardsX * speed

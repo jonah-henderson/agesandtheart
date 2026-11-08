@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "What a tornado never moves, beside what cannot be broken at all: nara, which stands against everything",
+    "(design 7.1.2, Jonah), and the blocks a world is built of rather than made of. A pack extends it here."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:compounded_stone",
+    "agesandtheart:star_fissure",
+    "agesandtheart:collapsing_fissure",
+    "minecraft:end_portal_frame",
+    "minecraft:end_portal",
+    "minecraft:end_gateway",
+    "minecraft:nether_portal"
+  ]
+}

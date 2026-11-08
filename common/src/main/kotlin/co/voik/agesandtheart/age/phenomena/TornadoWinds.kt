@@ -45,9 +45,11 @@ object TornadoWinds {
         val core: Double,
         val top: Double,
         val might: Double,
-        private val leanX: Double = 0.0,
-        private val leanZ: Double = 0.0,
         private val topCore: Double = core,
+        private val headingRadians: Float = 0.0f,
+        private val roped: Float = 0.0f,
+        private val time: Double = 0.0,
+        private val phase: Float = 0.0f,
     ) {
         val spiralReach = core * SPIRAL_PER_CORE + SPIRAL_BEYOND
         val outerReach = core * OUTER_PER_CORE + OUTER_BEYOND
@@ -64,10 +66,13 @@ object TornadoWinds {
             return Bearings(out, aroundX = awayZ / out, aroundZ = -awayX / out, inX = -awayX / out, inZ = -awayZ / out)
         }
 
-        /** How [x], [z] stands to the funnel's middle at height [y], which leans ahead of the foot as it climbs. */
+        /**
+         * How [x], [z] stands to the funnel's middle at height [y], which leans ahead of the foot and sways as it climbs,
+         * as [Tornado.middleOffset] has it.
+         */
         fun bearingsOf(atX: Double, atY: Double, atZ: Double): Bearings {
-            val ahead = wayUp(atY).pow(Tornado.LEAN_CURVE.toDouble())
-            return Vortex(x + leanX * ahead, footY, z + leanZ * ahead, core, top, might).bearingsOf(atX, atZ)
+            val (offsetX, offsetZ) = Tornado.middleOffset(wayUp(atY).toFloat(), (top - footY).toFloat(), headingRadians, roped, time, phase)
+            return Vortex(x + offsetX, footY, z + offsetZ, core, top, might).bearingsOf(atX, atZ)
         }
 
         /** Half the funnel's side at height [y], flaring toward the cloud as it is drawn. */
@@ -121,7 +126,8 @@ object TornadoWinds {
     /** [tornado]'s winds now, or null while it has none: before its funnel is down. */
     fun of(tornado: Tornado): Vortex? {
         val down = ((tornado.descended - BLOWS_FROM) / (1.0f - BLOWS_FROM)).coerceIn(0.0f, 1.0f)
-        val might = Mth.smoothstep(down) * (1.0 - ROPED_WEAKENS_BY * tornado.roped)
+        val drawnBack = 1.0 - tornado.roped
+        val might = Mth.smoothstep(down) * drawnBack * drawnBack
         if (might <= 0.0) return null
         return shapeOf(tornado, might)
     }
@@ -130,9 +136,13 @@ object TornadoWinds {
     fun shapeOf(tornado: Tornado, might: Double): Vortex {
         val core = Tornado.footHalfWidthOf(tornado.footHalfWidth, tornado.roped).toDouble()
         val topCore = Tornado.topHalfWidthOf(tornado.footHalfWidth, tornado.roped).toDouble()
-        val lean = (Tornado.LEAN + Tornado.ROPE_LEAN * tornado.roped) * (Tornado.OVERCAST_FLOOR - tornado.y)
-        val heading = tornado.yRot * Mth.DEG_TO_RAD
-        return Vortex(tornado.x, tornado.y, tornado.z, core, Tornado.OVERCAST_FLOOR, might, -sin(heading) * lean, cos(heading) * lean, topCore)
+        return Vortex(
+            tornado.x, tornado.y, tornado.z, core, Tornado.OVERCAST_FLOOR, might, topCore,
+            headingRadians = tornado.yRot * Mth.DEG_TO_RAD,
+            roped = tornado.roped,
+            time = tornado.level().gameTime.toDouble(),
+            phase = tornado.phase,
+        )
     }
 
     /**
@@ -235,12 +245,14 @@ object TornadoWinds {
         val sinceThrown = now - thrownAt
         val hasLanded = sinceThrown > 0 && (entity.onGround() || entity.isInWater)
         if (hasLanded || sinceThrown >= LEFT_TO_FLY) return null
-        // Where it is not ticked, its drag is not taken either, and what was given back would build on itself.
+        // Where it is not ticked, its drag is not taken either, and what was given back would build on itself. What
+        // is not alive keeps its own drag, which is little: thrown further, it would land beyond the ground the
+        // server keeps ticking and hang there in the air.
         val isFrozen = (entity.level() as? ServerLevel)?.isPositionEntityTicking(entity.blockPosition()) == false
         val moving = entity.deltaMovement
         val across = sqrt(moving.x * moving.x + moving.z * moving.z)
-        if (isFrozen || across < STILL) return lift
-        val drag = if (entity is LivingEntity) LIVING_AIR_DRAG else LOOSE_AIR_DRAG
+        if (isFrozen || across < STILL || entity !is LivingEntity) return lift
+        val drag = LIVING_AIR_DRAG
         val kept = 1.0 - (1.0 - drag) * DRAG_LEFT
         // Never past the speed it was flung at, whatever else has pushed it.
         val restoredTo = minOf(across * kept / drag, lift.flungSpeed / drag)
@@ -307,8 +319,6 @@ object TornadoWinds {
 
     /** It blows once the funnel is this far down, at full might once it is on the ground. */
     private const val BLOWS_FROM = 0.7f
-    /** A tornado roped right out blows this much less. */
-    private const val ROPED_WEAKENS_BY = 0.6
 
     /**
      * The orbit reaches past the funnel's edge, at every height, a block and nine tenths of the foot's width: eight for
@@ -386,8 +396,8 @@ object TornadoWinds {
     private const val LONGEST_LIFT = 100L
     /**
      * Flung across at [FLING] blocks a tick, as fierce as the tornado, a little more outward than round, and up; then
-     * left only [DRAG_LEFT] of the air's drag across for [LEFT_TO_FLY] ticks or until it lands. The drag is what a
-     * creature (`LivingEntity.travel`) and anything else loose in the air (an item's, a falling block's) keep a tick.
+     * a creature or player is left only [DRAG_LEFT] of the air's drag across (`LivingEntity.travel`'s) for [LEFT_TO_FLY]
+     * ticks or until it lands; anything else keeps its own, which is little.
      * Thrown from the top, a player lands about sixty-five blocks off the narrowest and a hundred off the widest: inside
      * an eight-chunk view of the tornado with time to watch it go (Jonah).
      */
@@ -397,7 +407,6 @@ object TornadoWinds {
     private const val THROW_UP = 0.6
     private const val DRAG_LEFT = 0.3
     private const val LIVING_AIR_DRAG = 0.91
-    private const val LOOSE_AIR_DRAG = 0.98
     private const val LEFT_TO_FLY = 300L
 
     private const val NO_SKY = 0.0f

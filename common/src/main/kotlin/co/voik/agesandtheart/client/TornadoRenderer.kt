@@ -35,6 +35,8 @@ class TornadoRenderState : EntityRenderState() {
     var brewed = 0.0f
     var descended = 0.0f
     var roped = 0.0f
+    var cleared = 0.0f
+    var swayTime = 0.0
     var heading = 0.0f
     var phase = 0.0f
     var time = 0.0f
@@ -66,8 +68,10 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         state.descended = entity.descended
         state.roped = entity.roped
         state.heading = entity.yRot
-        state.phase = ((entity.id * PHASE_STEP) and PHASE_MASK).toFloat() / PHASE_WHOLE
+        state.cleared = entity.cleared
+        state.phase = entity.phase
         state.time = entity.tickCount + partialTicks
+        state.swayTime = entity.level().gameTime + partialTicks.toDouble()
         state.length = (Tornado.OVERCAST_FLOOR - COLLAR_DROP + HANGS_INTO_THE_OVERCAST - state.y).toFloat()
     }
 
@@ -205,16 +209,15 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         companion object {
             fun of(state: TornadoRenderState): Funnel {
                 val length = state.length.coerceAtLeast(NOTHING)
-                val reach = length * state.descended
+                // Reaching down as it forms, and drawing back up as it ropes out, leaving the ground at once.
+                val reaching = state.descended * (1.0f - state.roped)
+                val reach = length * reaching
                 val foot = Tornado.footHalfWidthOf(state.footHalfWidth, state.roped)
                 val top = Tornado.topHalfWidthOf(state.footHalfWidth, state.roped)
-                val tip = Mth.lerp(state.descended * state.descended, TIP, foot)
+                val tip = Mth.lerp(reaching * reaching, TIP, foot)
                 val heading = state.heading * Mth.DEG_TO_RAD
-                val forwardX = -sin(heading)
-                val forwardZ = cos(heading)
-                val lean = (Tornado.LEAN + Tornado.ROPE_LEAN * state.roped) * length
-                val sway = (SWAY + ROPE_SWAY * state.roped) * length
-                val buried = BURIED_BY * state.descended
+                val buried = BURIED_BY * state.descended * (1.0f - state.roped * LEAVES_THE_GROUND_BY).coerceAtLeast(NOTHING)
+                val heightOf = FloatArray(SLABS + 1) { length - it.toFloat() / SLABS * (reach + buried) }
                 val centreX = FloatArray(SLABS)
                 val centreZ = FloatArray(SLABS)
                 val halfWidth = FloatArray(SLABS)
@@ -223,13 +226,13 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
                     val down = (slab + HALF) / SLABS
                     val up = 1.0f - down
                     halfWidth[slab] = tip + (top - tip) * up.pow(Tornado.FLARE)
-                    val ahead = lean * up.pow(Tornado.LEAN_CURVE)
-                    val swaying = sway * sin(state.time * SWAY_RATE + down * SWAY_WAVES + state.phase * FULL_TURN) * down * up * BOTH_ENDS
-                    centreX[slab] = forwardX * ahead + forwardZ * swaying
-                    centreZ[slab] = forwardZ * ahead - forwardX * swaying
+                    // Where it stands over the foot goes by its height, as its winds and crumbs reckon it.
+                    val heightUp = ((heightOf[slab] + heightOf[slab + 1]) * HALF / length).coerceIn(NOTHING, WHOLE)
+                    val (offsetX, offsetZ) = Tornado.middleOffset(heightUp, length, heading, state.roped, state.swayTime, state.phase)
+                    centreX[slab] = offsetX
+                    centreZ[slab] = offsetZ
                     turned[slab] = state.time * SPIN + down * TWIST + sin(state.time * WOBBLE_RATE + down * WOBBLE_WAVES) * WOBBLE
                 }
-                val heightOf = FloatArray(SLABS + 1) { length - it.toFloat() / SLABS * (reach + buried) }
                 val fade = 1.0f - Mth.smoothstep(((state.roped - BREAKS_UP_FROM) / (1.0f - BREAKS_UP_FROM)).coerceIn(0.0f, 1.0f))
                 return Funnel(centreX, centreZ, halfWidth, turned, heightOf, length, top, fade)
             }
@@ -239,7 +242,8 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
     /** The dust whirled up at the foot: a short flaring skirt, spinning up as the funnel comes down to it. */
     private fun dust(pose: PoseStack.Pose, buffer: VertexConsumer, state: TornadoRenderState, funnel: Funnel) {
         val rising = Mth.smoothstep(((state.descended - DUST_FROM) / (1.0f - DUST_FROM)).coerceIn(0.0f, 1.0f))
-        val solidity = DUST_SOLIDITY * rising * funnel.fade
+        val touching = 1.0f - state.roped
+        val solidity = DUST_SOLIDITY * rising * funnel.fade * touching * touching
         if (solidity <= NOTHING) return
         val foot = funnel.halfWidth[SLABS - 1]
         val footX = funnel.centreX[SLABS - 1]
@@ -273,7 +277,7 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
      * in steps into a collar the funnel hangs from, a wall cloud in blocks.
      */
     private fun overcast(pose: PoseStack.Pose, buffer: VertexConsumer, state: TornadoRenderState, funnel: Funnel) {
-        val waning = 1.0f - Mth.smoothstep(((state.roped - OVERCAST_WANES_FROM) / (1.0f - OVERCAST_WANES_FROM)).coerceIn(0.0f, 1.0f))
+        val waning = 1.0f - Mth.smoothstep(state.cleared)
         val reach = OVERCAST_REACH * Mth.smoothstep(state.brewed) * waning
         if (reach <= NOTHING) return
         val floor = (Tornado.OVERCAST_FLOOR - state.y).toFloat()
@@ -349,12 +353,6 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         /** It breaks up over the last of its roping out. */
         private const val BREAKS_UP_FROM = 0.75f
 
-        /** How far it sways from side to side, as a share of the length, and how fast. */
-        private const val SWAY = 0.025f
-        private const val ROPE_SWAY = 0.08f
-        private const val SWAY_RATE = 0.03f
-        private const val SWAY_WAVES = 4.0f
-        private const val BOTH_ENDS = 4.0f
 
         /** How fast the squares turn, in radians a tick: anticlockwise from above, a turn in about five seconds. */
         private const val SPIN = 0.06f
@@ -397,8 +395,6 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         private const val OVERCAST_CELL = 12.0f
         private const val OVERCAST_REACH = 250.0f
         private const val OVERCAST_SOLID_TO = 0.7f
-        /** It draws in over the end of the roping out. */
-        private const val OVERCAST_WANES_FROM = 0.3f
         /** How bright each face of a cell is, as vanilla shades its clouds. */
         private const val UNDERSIDE = 0.7f
         private const val TOPSIDE = 1.0f
@@ -422,11 +418,12 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         private const val OVERCAST = 0.75f
 
         private const val BURIED_BY = 4.0f
+        /** Its foot is out of the ground by the time it has drawn back this much of the way, a tenth. */
+        private const val LEAVES_THE_GROUND_BY = 10.0f
         private const val NOTHING = 0.0f
         private const val ROOT_TWO = 1.4142135f
         private const val QUARTER_TURN = Mth.HALF_PI
         private const val EIGHTH_TURN = Mth.HALF_PI / 2.0f
-        private const val FULL_TURN = Mth.TWO_PI
 
         /** The seed of one slab or level of [part], which sets its bands' pace, surges and phase in `tornado.fsh`. */
         private fun seedOf(state: TornadoRenderState, index: Int, part: Float): Float {
@@ -439,9 +436,6 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         private const val SEED_SHIFT = 8
         private const val PARTS = 4.0f
 
-        private const val PHASE_STEP = 2654435761L
-        private const val PHASE_MASK = 0xFFFFL
-        private const val PHASE_WHOLE = 65536.0f
 
         private const val NAMESPACE = "agesandtheart"
 

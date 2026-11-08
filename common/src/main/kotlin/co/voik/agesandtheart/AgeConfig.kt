@@ -97,6 +97,7 @@ object AgeConfig {
 
     /** How hard a gale or a blizzard pushes whatever is out in it, as a share of the most it may — see `Gale.pushStrength`. */
     val galeWind: ModConfigSpec.DoubleValue
+    val tornadoesTakeBlocks: ModConfigSpec.BooleanValue
 
     /** Whether a player holding a coconut half in each hand walks to the sound of hooves. */
     val coconutHoofbeats: ModConfigSpec.BooleanValue
@@ -214,6 +215,13 @@ object AgeConfig {
             )
             .translation(translationOf("gale_wind"))
             .defineInRange("galeWind", DEFAULT_GALE_WIND, 0.0, 1.0)
+        tornadoesTakeBlocks = builder
+            .comment(
+                "Whether a tornado tears up and throws the blocks under it, built or not. Off, it moves none, but",
+                "still spends its strength as though it had, so it lasts as long and goes as far.",
+            )
+            .translation(translationOf("tornadoes_take_blocks"))
+            .define("tornadoesTakeBlocks", true)
         builder.pop()
         builder.comment("Coconuts").push(COCONUTS)
         coconutHoofbeats = builder
