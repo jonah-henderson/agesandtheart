@@ -72,7 +72,9 @@ object GustSigns {
     }
 
     private fun streakAt(level: ClientLevel, random: RandomSource, x: Double, y: Double, z: Double, towardsX: Double, towardsZ: Double) {
-        if (!Sampling.openToTheSky(level, BlockPos.containing(x, y, z))) return
+        val at = BlockPos.containing(x, y, z)
+        // In the open air only: not under cover, and not in water, where no wind reaches.
+        if (!Sampling.openToTheSky(level, at) || !level.getFluidState(at).isEmpty) return
         val speed = Mth.nextDouble(random, SLOWEST_STREAK, FASTEST_STREAK)
         val lifetime = Mth.nextInt(random, SHORTEST_STREAK_LIFE, LONGEST_STREAK_LIFE)
         val size = Mth.nextFloat(random, SMALLEST_STREAK, LARGEST_STREAK)

@@ -10,6 +10,7 @@ import co.voik.agesandtheart.age.phenomena.Sampling
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.ephemeris.sky.LevelWind
 import net.minecraft.client.Minecraft
+import net.minecraft.client.player.LocalPlayer
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance
 import net.minecraft.core.BlockPos
@@ -203,7 +204,7 @@ object Gales {
             if (isSnowingIn(level) != inABlizzard) return stop()
             val blowing = blowingIn(level) ?: return stop()
             val open = heardOpenness(level, player.blockPosition())
-            volume = loudnessOf(blowing) * (if (whenOpen) open else ALL_OF_IT - open)
+            volume = loudnessOf(blowing) * (if (whenOpen) open else ALL_OF_IT - open) * heardAbove(player)
         }
     }
 
@@ -235,12 +236,15 @@ object Gales {
             val swell = gust?.presence ?: NOTHING_LEFT
             val open = Sampling.exposureAt(level, player.blockPosition())
             val heardThrough = MUFFLED + (ALL_OF_IT - MUFFLED) * open
-            val heard = (swell * blowing.lying * LOUDEST_HOWL).toFloat() * heardThrough
+            val heard = (swell * blowing.lying * LOUDEST_HOWL).toFloat() * heardThrough * heardAbove(player)
             volume = maxOf(heard, volume - DIES_AWAY_EACH_TICK)
             pitch = maxOf(Mth.lerp(swell.toFloat(), LOWEST_PITCH, HIGHEST_PITCH), pitch - FALLS_IN_PITCH_EACH_TICK)
             if (gust == null && volume <= SILENT) stop()
         }
     }
+
+    /** How much of the wind is heard: all of it above the water, none with your head under it. */
+    private fun heardAbove(player: LocalPlayer): Float = if (player.isUnderWater) SILENT else ALL_OF_IT
 
     /** How much more a boat takes of the gale than a walker, its side being a sail of sorts. */
     private const val SAILING = 0.5
