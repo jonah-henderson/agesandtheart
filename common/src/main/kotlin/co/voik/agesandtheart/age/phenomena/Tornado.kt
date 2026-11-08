@@ -23,11 +23,11 @@ import kotlin.math.sin
 /**
  * One tornado (`notes/wind-plan.md` §4), standing at the foot of its funnel and wandering along the Age's wind.
  *
- * It reaches down from the cloud over [TOUCHDOWN_TICKS] and travels free: **only the blocks it throws spend its
- * strength** ([spend]), and it ropes out over the last [ROPES_OUT_FROM] of it, so no clock ends it and it lasts as far
- * as the ground it tears up lets it. **Its strength is its width**: a strong one is a wide one, and how far it has
+ * Its overcast brews over [BREWS_OVER], it reaches down from it over [TOUCHDOWN_TICKS], and it travels free: **only
+ * the blocks it throws spend its strength** ([spend]), and it ropes out over the last [ROPES_OUT_FROM] of it, so no
+ * clock ends it and it lasts as far as the ground it tears up lets it. **Its strength is its width**: a strong one is a wide one, and how far it has
  * roped out says how near its end it is. Its foot rides the ground up and over hills, and it breaks up at once where
- * the ground reaches its wall cloud.
+ * the ground reaches its overcast.
  *
  * An entity as the sand column is, for the same reasons: where it goes depends on nothing the world records, it stops
  * while nobody is near, and it is lost harmlessly. What the renderer needs is synced; what decides it is saved.
@@ -39,7 +39,12 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
         get() = entityData.get(FOOT_HALF_WIDTH)
         private set(value) = entityData.set(FOOT_HALF_WIDTH, value)
 
-    /** How far the funnel has reached down from the cloud: nought as it begins, one on the ground. */
+    /** How far its overcast has brewed: nought as it begins, one before the funnel starts down. */
+    var brewed: Float
+        get() = entityData.get(BREWED)
+        private set(value) = entityData.set(BREWED, value)
+
+    /** How far the funnel has reached down from the cloud: nought until the overcast has brewed, one on the ground. */
     var descended: Float
         get() = entityData.get(DESCENDED)
         private set(value) = entityData.set(DESCENDED, value)
@@ -77,6 +82,7 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
 
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         builder.define(FOOT_HALF_WIDTH, 0.0f)
+        builder.define(BREWED, 0.0f)
         builder.define(DESCENDED, 0.0f)
         builder.define(ROPED, 0.0f)
     }
@@ -93,7 +99,8 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
             discard()
             return
         }
-        descended = Mth.smoothstep((age.toFloat() / TOUCHDOWN_TICKS).coerceAtMost(1.0f))
+        brewed = (age.toFloat() / BREWS_OVER).coerceAtMost(1.0f)
+        descended = Mth.smoothstep(((age - BREWS_OVER).toFloat() / TOUCHDOWN_TICKS).coerceIn(0.0f, 1.0f))
         // Eased, so a mouthful of stone taken at once thins the funnel over a second or two rather than in a frame.
         val ropedBy = (1.0 - strength / (startingStrength * ROPES_OUT_FROM)).coerceIn(0.0, 1.0).toFloat()
         roped += (ropedBy - roped) * ROPING_EASES
@@ -152,10 +159,15 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
 
     override fun isPickable(): Boolean = false
 
+    /** Seen as far as it is tracked, rather than as far as vanilla draws something its one-block size. */
+    override fun shouldRenderAtSqrDistance(distance: Double): Boolean = true
+
     override fun hurtServer(level: ServerLevel, source: DamageSource, damage: Float): Boolean = false
 
     companion object {
         private val FOOT_HALF_WIDTH: EntityDataAccessor<Float> =
+            SynchedEntityData.defineId(Tornado::class.java, EntityDataSerializers.FLOAT)
+        private val BREWED: EntityDataAccessor<Float> =
             SynchedEntityData.defineId(Tornado::class.java, EntityDataSerializers.FLOAT)
         private val DESCENDED: EntityDataAccessor<Float> =
             SynchedEntityData.defineId(Tornado::class.java, EntityDataSerializers.FLOAT)
@@ -169,11 +181,16 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
         /** Vanilla's cloud height, which every Age's tornado hangs from whatever its own clouds do. */
         const val CLOUD_Y = 192.0
 
-        /** How far under the cloud its wall cloud's floor hangs. */
-        const val WALL_CLOUD_BELOW = 10.0
+        /** How far under the cloud the floor of its overcast hangs, and how thick the overcast is. */
+        const val OVERCAST_BELOW = 10.0
+        const val OVERCAST_THICKNESS = 6.0
+        const val OVERCAST_FLOOR = CLOUD_Y - OVERCAST_BELOW
 
-        /** Where ground under its foot meets the wall cloud, and it breaks up. */
-        const val BREAKS_UP_AT = CLOUD_Y - WALL_CLOUD_BELOW
+        /** Where ground under its foot meets the overcast, and it breaks up. */
+        const val BREAKS_UP_AT = OVERCAST_FLOOR
+
+        /** Fifteen seconds for the overcast to spread before the funnel starts down. */
+        const val BREWS_OVER = 300
 
         /** Twenty-five seconds from the cloud to the ground. */
         const val TOUCHDOWN_TICKS = 500
@@ -223,7 +240,7 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
 
         /**
          * Stands one up at [atX], [atZ], [size] of the way from the narrowest to the widest — or null where nothing
-         * there would tick yet, or the ground there already reaches the wall cloud.
+         * there would tick yet, or the ground there already reaches the overcast.
          */
         fun raise(level: ServerLevel, atX: Double, atZ: Double, size: Double): Tornado? {
             val blockX = Mth.floor(atX)

@@ -7,7 +7,7 @@
 #include <minecraft:fog.glsl>
 #include <minecraft:sample_lightmap.glsl>
 
-// One face of a tornado: its funnel, the dust at its foot or its wall cloud. Position arrives camera-relative,
+// One face of a tornado: its funnel, the dust at its foot or its overcast. Position arrives camera-relative,
 // so what a vertex is part of rides in UV0 and Color -- see `TornadoRenderer`.
 layout(location = 0) in vec3 Position;
 // x: how far around the square this corner stands, in turns. y: how far below the top it is, in blocks.

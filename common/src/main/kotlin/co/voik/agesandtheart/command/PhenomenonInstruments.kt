@@ -517,7 +517,7 @@ internal object PhenomenonInstruments {
         val at = source.position.add(Vec3.directionFromRotation(source.rotation).scale(distance.toDouble()))
         val tornado = Tornado.raise(level, at.x, at.z, sizePercent.toDouble() / ALL_OF_A_DIAL)
         if (tornado == null) {
-            source.sendFailure(Component.literal("No tornado: the ground there is not ticking entities, or reaches the wall cloud"))
+            source.sendFailure(Component.literal("No tornado: the ground there is not ticking entities, or reaches the overcast"))
             return FAILURE
         }
         source.sendSuccess(
