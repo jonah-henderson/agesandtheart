@@ -41,10 +41,16 @@ object ChargedBands {
     private fun rolledFor(level: Level): List<Double> {
         val random: RandomSource = XoroshiroRandomSource(level.dimension().identifier().hashCode().toLong() xor BAND_SALT)
         val lowest = LOWEST_LEAST + random.nextDouble() * (LOWEST_MOST - LOWEST_LEAST)
-        val highest = HIGHEST
-        return if (random.nextInt(TWO_IN) == 0) listOf(lowest, highest)
-        else listOf(lowest, lowest + (highest - lowest) * MIDDLE_SHARE, highest)
+        if (random.nextInt(TWO_IN) == 0) return listOf(lowest, minOf(HIGHEST, lowest + MOST_APART))
+        val middle = minOf(lowest + (HIGHEST - lowest) * MIDDLE_SHARE, lowest + MOST_APART)
+        return listOf(lowest, middle, minOf(HIGHEST, middle + MOST_APART))
     }
+
+    /**
+     * The furthest one band stands over the one below, so each is in sight from the last: vanilla's fog begins about
+     * 115 blocks off at a render distance of eight chunks, and the bodies are drawn where they are.
+     */
+    private const val MOST_APART = 96.0
 
     /**
      * Rolled once per level and kept, because **every body asks this every tick**: a body seeking its band
@@ -68,7 +74,7 @@ object ChargedBands {
     private const val LOWEST_LEAST = 120.0
     private const val LOWEST_MOST = 140.0
 
-    /** And the highest, at the top of the world, where the biggest and richest bodies are. */
+    /** The highest a band may be, near the top of the world, where the biggest and richest bodies are. */
     const val HIGHEST = 300.0
 
     /**
