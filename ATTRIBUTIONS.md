@@ -17,3 +17,4 @@ Some sound effects have been sourced from Freesound.org. The sounds used are in 
 - `surf_loop.ogg`: derived from Ocean_coast_04_092025_0659AM by YevgVerh -- https://freesound.org/s/827530/ -- License: Creative Commons 0
 - `blizzard_exposed.ogg`: derived from blizzard looped.aif by m0ments -- https://freesound.org/s/679941/ -- License: Creative Commons 0
 - `blizzard_sheltered.ogg`: derived from Burlingame howling wind.wav by Andron827 -- https://freesound.org/s/646874/ -- License: Creative Commons 0
+- `tornado.ogg`: derived from Inside a Tornado.wav by RogerBoyX69 -- https://freesound.org/s/338721/ -- License: Attribution 4.0

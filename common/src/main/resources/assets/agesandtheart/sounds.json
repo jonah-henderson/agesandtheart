@@ -67,6 +67,15 @@
       }
     ]
   },
+  "tornado": {
+    "category": "weather",
+    "sounds": [
+      {
+        "name": "agesandtheart:tornado",
+        "stream": true
+      }
+    ]
+  },
   "surf": {
     "category": "ambient",
     "sounds": [

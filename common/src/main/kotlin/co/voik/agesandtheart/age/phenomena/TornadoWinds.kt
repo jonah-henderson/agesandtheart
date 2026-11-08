@@ -123,6 +123,11 @@ object TornadoWinds {
         val down = ((tornado.descended - BLOWS_FROM) / (1.0f - BLOWS_FROM)).coerceIn(0.0f, 1.0f)
         val might = Mth.smoothstep(down) * (1.0 - ROPED_WEAKENS_BY * tornado.roped)
         if (might <= 0.0) return null
+        return shapeOf(tornado, might)
+    }
+
+    /** Where [tornado]'s winds would blow and how far, whether or not they blow yet, at [might]. */
+    fun shapeOf(tornado: Tornado, might: Double): Vortex {
         val core = Tornado.footHalfWidthOf(tornado.footHalfWidth, tornado.roped).toDouble()
         val topCore = Tornado.topHalfWidthOf(tornado.footHalfWidth, tornado.roped).toDouble()
         val lean = (Tornado.LEAN + Tornado.ROPE_LEAN * tornado.roped) * (Tornado.OVERCAST_FLOOR - tornado.y)
@@ -383,12 +388,14 @@ object TornadoWinds {
      * Flung across at [FLING] blocks a tick, as fierce as the tornado, a little more outward than round, and up; then
      * left only [DRAG_LEFT] of the air's drag across for [LEFT_TO_FLY] ticks or until it lands. The drag is what a
      * creature (`LivingEntity.travel`) and anything else loose in the air (an item's, a falling block's) keep a tick.
+     * Thrown from the top, a player lands about sixty-five blocks off the narrowest and a hundred off the widest: inside
+     * an eight-chunk view of the tornado with time to watch it go (Jonah).
      */
-    private const val FLING = 3.0
+    private const val FLING = 2.0
     private const val FLUNG_OUT = 1.0
     private const val FLUNG_ROUND = 0.6
     private const val THROW_UP = 0.6
-    private const val DRAG_LEFT = 0.1
+    private const val DRAG_LEFT = 0.3
     private const val LIVING_AIR_DRAG = 0.91
     private const val LOOSE_AIR_DRAG = 0.98
     private const val LEFT_TO_FLY = 300L

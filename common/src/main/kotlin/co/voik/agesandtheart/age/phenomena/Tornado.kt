@@ -8,6 +8,8 @@ import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.sounds.SoundEvents
+import net.minecraft.sounds.SoundSource
 import net.minecraft.util.Mth
 import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.entity.Entity
@@ -95,6 +97,7 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
         val level = level()
         if (level !is ServerLevel) return
         age += 1
+        if (age == 1) thunderAsTheOvercastGathers(level)
         sinceSeen = if (level.getNearestPlayer(this, FORGOTTEN_AT) != null) 0 else sinceSeen + 1
         val reachesTheCloud = y >= BREAKS_UP_AT
         val hasBrokenUp = strength <= SPENT && roped >= BROKEN_UP
@@ -110,6 +113,12 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
         wander()
         advance(level)
         TornadoWinds.blowOn(level, this, lifted)
+    }
+
+    /** A thunderclap from the cloud over it as its overcast first gathers, heard across the land as a warning. */
+    private fun thunderAsTheOvercastGathers(level: ServerLevel) {
+        val pitch = THUNDER_PITCH + random.nextFloat() * THUNDER_PITCH_SPREAD
+        level.playSound(null, x, OVERCAST_FLOOR, z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, THUNDER_HEARD_ACROSS, pitch)
     }
 
     /** Spends [cost] of its strength, as throwing a block does. */
@@ -192,6 +201,11 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
 
         /** Where ground under its foot meets the overcast, and it breaks up. */
         const val BREAKS_UP_AT = OVERCAST_FLOOR
+
+        /** As loud as thunder is, which is how far it carries: some sixteen hundred blocks. A little low, as lightning's is. */
+        private const val THUNDER_HEARD_ACROSS = 100.0f
+        private const val THUNDER_PITCH = 0.7f
+        private const val THUNDER_PITCH_SPREAD = 0.2f
 
         /** Fifteen seconds for the overcast to spread before the funnel starts down. */
         const val BREWS_OVER = 300

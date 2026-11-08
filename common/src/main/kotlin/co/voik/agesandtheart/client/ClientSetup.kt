@@ -30,6 +30,7 @@ object ClientSetup {
         Gales.push(minecraft)
         // A tornado's winds on the player and the signs of them, which move with it every tick.
         Tornadoes.blow(minecraft)
+        Tornadoes.heard(minecraft)
         // A deluge's splashes and roar, both of which want re-asking as a player moves under cover.
         Downpours.pour(minecraft)
         // A lure is drawn about its cluster rather than by each block, so it rides the tick as well.

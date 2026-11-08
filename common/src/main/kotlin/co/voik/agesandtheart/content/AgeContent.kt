@@ -2284,7 +2284,13 @@ object AgeContent {
     /** A gale's gust, heard swelling as it comes. Vanilla's elytra rush stands in until the asset pass. */
     val GUST: SoundEvent = SoundEvent.createVariableRangeEvent(GUST_ID)
 
+    private val TORNADO_ROAR_ID: Identifier = "tornado".location()
+
+    /** A tornado's roar, heard louder the nearer its funnel. */
+    val TORNADO_ROAR: SoundEvent = SoundEvent.createVariableRangeEvent(TORNADO_ROAR_ID)
+
     val soundEvents: List<Pair<Identifier, SoundEvent>> = listOf(
+        TORNADO_ROAR_ID to TORNADO_ROAR,
         BLIZZARD_SHELTERED_ID to BLIZZARD_SHELTERED,
         BLIZZARD_EXPOSED_ID to BLIZZARD_EXPOSED,
         GALE_SHELTERED_ID to GALE_SHELTERED,
