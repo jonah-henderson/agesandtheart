@@ -35,9 +35,14 @@ sealed interface Effect {
         override val narrows get() = false
     }
 
-    /** Members taken out of [aspect], by key or by `#tag`. */
+    /** Members taken out of [aspect], by key, by `#tag`, or all of them at once by [EVERY_MEMBER]. */
     data class Excludes(val aspect: Aspect, val members: Set<String>) : Effect {
         override val narrows get() = true
+
+        companion object {
+            /** Every member there is: `no features`. */
+            const val EVERY_MEMBER = "*"
+        }
     }
 
     /** A bar per tag that [aspect]'s members must clear, signed as `Bars` reads one. */

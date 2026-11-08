@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.language
 
+import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Polarity
@@ -70,7 +71,9 @@ object ProseWriting {
             val where = whereOf(clause)
             clause.shape?.let { return listOf(sentence(about, "has", shaped(it), where, ordinal = null)) }
             val ordinal = clause.body?.takeIf { (bodies[about] ?: 0) > 1 }?.let { ordinal(it + 1) }
-            val (named, described) = clause.terms.partition { it.speech.names }
+            val (emptying, terms) = clause.terms.partition { isTheWhole(it, about) && it.polarity == Polarity.EXCEPT }
+            if (emptying.isNotEmpty()) return listOf(sentence(about, "none", "", where, ordinal))
+            val (named, described) = terms.partition { it.speech.names }
             val subject = clause.subject
             if (subject != null) return sentencesOf(about, subject, clause.collective, described, named, where, ordinal)
             return buildList {
@@ -79,6 +82,10 @@ object ProseWriting {
                 if (named.isNotEmpty()) add(sentence(about, "has", list(things(named)), where, ordinal, isOnlyThese))
             }
         }
+
+        /** Whether [term] is the page of [about] itself — `features` — rather than anything in it. */
+        private fun isTheWhole(term: ProseTerm, about: Aspect): Boolean =
+            term.word.namespace == Constants.MOD_ID && Aspect.byPage(term.word.path) == about
 
         /** What was said of [subject]: what it comes in, what it is like, and anything else the clause holds. */
         private fun sentencesOf(

@@ -2,7 +2,10 @@ package co.voik.agesandtheart.age.language
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.LinkAnchor
+import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.age.aspect.Pool
 import co.voik.agesandtheart.age.aspect.Spawns
+import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Prism
@@ -146,6 +149,21 @@ class ReadingCheck : FunSpec({
         val banned = book.landings.flatMap { it.effects }.filterIsInstance<Effect.Bans>().map { it.block }.toSet()
         check(banned == setOf("minecraft:snow", "minecraft:powder_snow")) { "the ban took $banned" }
         check(read("age no zombie").fateOf(1) != Fate.Impossible) { "`no` before a member stopped working" }
+    }
+
+    test("`no` before a population's own page empties it, as `no` before one of its members strikes that one") {
+        val emptied = listOf(
+            Triple("age no features", Aspect.FEATURES, Features.PLACES),
+            Triple("age no structures", Aspect.STRUCTURES, Structures.BUILT),
+            Triple("age no inhabitants", Aspect.SPAWNS, Spawns.LIVES),
+        )
+        for ((row, aspect, pool) in emptied) {
+            val resolved = ShippedLexicon.resolved(row)
+            val holds = resolved.composition.optionsFor(aspect).allOf(pool)
+            check(holds == listOf(Pool.NOTHING)) { "`$row` left $aspect holding $holds" }
+            check(resolved.instability.flaws.isEmpty()) { "`$row` was charged: ${resolved.instability.flaws}" }
+        }
+        check(read("age only features").fateOf(1) == Fate.Impossible) { "`only` before a whole population read as something" }
     }
 
     test("a banned block is kept from the Age, and charged where the Age asked to be made of it") {

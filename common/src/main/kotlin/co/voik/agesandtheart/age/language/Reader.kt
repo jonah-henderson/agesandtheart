@@ -447,7 +447,10 @@ object Reader {
         private fun ownMeanings(word: Word, acceptance: Acceptance, place: Place, describedBy: List<Claim>, joined: Int?, asked: Boolean = false) {
             val pending = polarity
             val namesMembers = acceptance.place.members is Members.Named
-            if (pending != null && !namesMembers) polarityAt?.let(::impossible)
+            // `no features`: before a whole population that may hold nothing, `no` strikes every member at once.
+            val emptier = place.aspect.pool?.emptiedBy
+            val emptiesIt = pending == Polarity.EXCEPT && !namesMembers && emptier != null
+            if (pending != null && !namesMembers && !emptiesIt) polarityAt?.let(::impossible)
             val said = if (namesMembers) pending ?: Polarity.ASSERTED else Polarity.ASSERTED
             polarity = null
             polarityAt = null
@@ -466,6 +469,11 @@ object Reader {
                 for ((ownPlace, effects) in placesOf(meaning)) {
                     claims += Claim(at, word, meaning, ownPlace, effects, clause = at, aimed = true, polarity = said, joined = joined)
                 }
+            }
+            // Last, since what it describes is read off the claims as they stood.
+            if (emptiesIt) {
+                val everything = Meaning(listOf(Effect.Excludes(place.aspect, setOf(Effect.Excludes.EVERY_MEMBER))), mustAlwaysApply = true, asserts = true)
+                claims += Claim(at, word, everything, Place(place.aspect), everything.effects, clause = at, aimed = true)
             }
         }
 

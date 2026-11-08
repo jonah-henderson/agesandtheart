@@ -47,6 +47,9 @@ class ProseCheck : FunSpec({
             "age teeming zombie no zombie" to "An Age. No zombies dwell in it.",
             "age no snow insular landmass" to "An Age without snow. Its landmass is insular.",
             "homely age gentle landmass" to "A homely Age. Its landmass is gentle.",
+            "age no features" to "An Age. Nothing grows in it.",
+            "age no structures gentle landmass" to "An Age. Nothing is built in it. Its landmass is gentle.",
+            "age no inhabitants" to "An Age. Nothing dwells in it.",
         )
     }
 }

@@ -250,7 +250,12 @@ object Prose {
             fun said(page: PageRead) = termOf(page)?.copy(share = shareOf(page.index, taker.index))
             val isTheAspectsPage = word.id.namespace == Constants.MOD_ID && Aspect.byPage(word.name) == place.aspect
             if (isTheAspectsPage) {
-                return ProseClause(place.aspect, taken.mapNotNull(::said), confinedTo, everywhere, body)
+                // `no features`: the page itself, struck, which the writing says as the part holding nothing.
+                val emptied = landed.any { landing ->
+                    landing.page == taker.index && landing.effects.any { it is Effect.Excludes && Effect.Excludes.EVERY_MEMBER in it.members }
+                }
+                val itself = listOfNotNull(counted?.copy(polarity = Polarity.EXCEPT)).takeIf { emptied }.orEmpty()
+                return ProseClause(place.aspect, taken.mapNotNull(::said) + itself, confinedTo, everywhere, body)
             }
             val shape = shapeOf(word, counted, described)
             if (shape != null) return ProseClause(place.aspect, emptyList(), confinedTo, everywhere, body, shape)

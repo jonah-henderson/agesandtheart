@@ -87,7 +87,8 @@ data class Reading(
         is Effect.Bends -> "${effect.parameter.name} toward ${effect.value}"
         is Effect.Chooses -> effect.member
         is Effect.Admits -> "admits ${effect.members.joinToString()}"
-        is Effect.Excludes -> "strikes ${effect.members.joinToString()}"
+        is Effect.Excludes ->
+            if (Effect.Excludes.EVERY_MEMBER in effect.members) "strikes every one" else "strikes ${effect.members.joinToString()}"
         is Effect.Restricts -> "keeps ${effect.bars.keys.joinToString()}"
         is Effect.Leans -> "leans toward ${effect.weights.keys.joinToString()}"
         is Effect.LeansEverywhere -> "leans toward ${effect.weights.keys.joinToString()}"

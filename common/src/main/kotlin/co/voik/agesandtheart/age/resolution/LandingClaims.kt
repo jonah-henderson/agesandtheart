@@ -67,9 +67,13 @@ internal val Landing.firmness: Int
 
 internal val Landing.highestBar: Double get() = bars.values.filter(Bars::isAtLeast).maxOrNull() ?: 0.0
 
-/** Whether it takes [member] out, by key or by a `#tag` the member carries, and spares it by neither. */
+/** Whether it takes [member] out, by key, by a `#tag` the member carries or as every member, and spares it by neither. */
 internal fun Landing.strikes(member: Taggable, tags: Map<String, Double>): Boolean {
-    fun names(named: String) = if (named.startsWith(TAG_MARK)) tags.containsKey(named.drop(1)) else named == member.key
+    fun names(named: String) = when {
+        named == Effect.Excludes.EVERY_MEMBER -> true
+        named.startsWith(TAG_MARK) -> tags.containsKey(named.drop(1))
+        else -> named == member.key
+    }
     return struck.any(::names) && spared.none(::names)
 }
 
