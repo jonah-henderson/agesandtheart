@@ -130,6 +130,16 @@ private fun featureWear(options: Options, salt: Long, table: TerrainTable?): Wea
     return LandVariety.wearOf(varietyOf(options, salt), erosionOf(options, salt), scaleOf(options, salt), salt, table)
 }
 
+/**
+ * How worn islands are, which is how far along they have aged: as [featureWear] where the book said, and where it did
+ * not, following the table's age through every stage, young to atoll, so an unasked archipelago meets them all.
+ */
+private fun islandWear(options: Options, salt: Long, table: TerrainTable?): Wear? {
+    val saidOrFormer = options.steer(Terrain.WEAR, salt) != null || options.isTrue(Terrain.FORMER_ISLAND_WEAR)
+    if (saidOrFormer || options.isTrue(Terrain.FORMER_WEAR)) return featureWear(options, salt, table)
+    return LandVariety.islandAgesOf(varietyOf(options, salt), scaleOf(options, salt), salt, table)
+}
+
 private fun craterSteer(options: Options, salt: Long) = CraterlandsField.Steer(
     wear = options.steer(Terrain.WEAR, salt),
     relief = options.steer(Terrain.RELIEF, salt),
@@ -315,7 +325,7 @@ enum class Terrain(
         "archipelagic",
         waterline = IslandsField.SEA_LEVEL,
         build = { options, salt, table ->
-            IslandsField.world(sizeOf(options, salt), salt, featureWear(options, salt, table), options.isTrue(FORMER_ISLANDS))
+            IslandsField.world(sizeOf(options, salt), salt, islandWear(options, salt, table), options.isTrue(FORMER_ISLANDS))
         },
         axes = { listOf(SIZE) },
     ),
@@ -331,7 +341,7 @@ enum class Terrain(
         "insular",
         waterline = IslandsField.SEA_LEVEL,
         build = { options, salt, table ->
-            IslandsField.lone(sizeOf(options, salt), salt, featureWear(options, salt, table), options.isTrue(FORMER_ISLANDS))
+            IslandsField.lone(sizeOf(options, salt), salt, islandWear(options, salt, table), options.isTrue(FORMER_ISLANDS))
         },
         axes = { listOf(SIZE) },
     ),
@@ -1102,6 +1112,15 @@ enum class Terrain(
         val FORMER_ISLANDS = Parameter.flag(
             "former_islands",
             help = "Whether islands keep their size behind a flat, even reef, as they did before they sank into their lagoons.",
+        )
+
+        /**
+         * Whether islands nothing said the wear of keep the land's quarter of a wear, as before generator 24, where they
+         * now follow the table's age through every stage. Set on every Age with islands written before then.
+         */
+        val FORMER_ISLAND_WEAR = Parameter.flag(
+            "former_island_wear",
+            help = "Whether islands nothing said the wear of stay young, as they did before every stage could be met unasked.",
         )
 
         val FORMER_LAYOUT = Parameter.flag(

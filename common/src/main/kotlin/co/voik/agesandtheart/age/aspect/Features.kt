@@ -159,6 +159,20 @@ object Features {
                 Parameter.Landmark(1.0, "as big as it gets"),
             ),
         ).perBiome().perMember(honouredWhere(FeatureShape::honoursSize))
+
+    /**
+     * How big a patch of ore is, for the ore alone: `rich underground` is thick with ore in bigger patches, where a
+     * [SIZE] said of the whole Age would grow its trees with it. An ore takes the larger of the two.
+     */
+    val ORE_SIZE = Parameter.ranged(
+        "ore_size",
+        help = "How big a patch of ore is.",
+        landmarks = listOf(
+            Parameter.Landmark(-1.0, "a speck"),
+            Parameter.Landmark(0.0, "ordinary"),
+            Parameter.Landmark(1.0, "as big as it gets"),
+        ),
+    )
     val THICKNESS = Parameter.ranged(
         "thickness",
         help = "How thick a patch of them is.",
@@ -284,7 +298,7 @@ object Features {
         /** Nothing turned, and nothing to reach — the case where a feature is handed back untouched. */
         val asksForNothing: Boolean
             get() {
-                val nothingWasTurned = listOf(SIZE, THICKNESS, HEIGHT).none { it.name in options.chosen }
+                val nothingWasTurned = listOf(SIZE, ORE_SIZE, THICKNESS, HEIGHT).none { it.name in options.chosen }
                 return nothingWasTurned && FeatureShape.oresCanReach(rock) && veinsMadeUpFor == null
             }
 
@@ -300,7 +314,9 @@ object Features {
          * and a little larger again where it is copper or iron making up for veins.
          */
         fun sizeOf(feature: Holder<VanillaPlacedFeature>): Double? {
-            val said = options.steer(SIZE, salt, member = keyOf(feature))
+            val saidOfIt = options.steer(SIZE, salt, member = keyOf(feature))
+            val saidOfOre = if (FeatureShape.laysOre(feature)) options.steer(ORE_SIZE, salt) else null
+            val said = listOfNotNull(saidOfIt, saidOfOre).maxOrNull()
             val veins = veinsOf(feature) ?: return said
             return ((said ?: 0.0) + veins * LARGEST_FOR_VEINS).coerceAtMost(1.0)
         }

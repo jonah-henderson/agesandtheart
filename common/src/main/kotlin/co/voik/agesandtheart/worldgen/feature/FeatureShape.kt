@@ -231,6 +231,12 @@ object FeatureShape {
         reshaped(feature, size = null, thickness = null, height = A_TURNED_DIAL, rock = emptyList()) !== feature
 
     /** Whether [feature] lays copper or iron ore, the two ores vanilla's large veins carry. */
+    /** Whether [feature] lays ore: a patch of it, or ore scattered in the rock. */
+    fun laysOre(feature: Holder<PlacedFeature>): Boolean {
+        val placed = feature.value().feature().value()
+        return placed is OreFeature || placed is ScatteredOreFeature
+    }
+
     fun laysAVeinOre(feature: Holder<PlacedFeature>): Boolean {
         val targets = when (val placed = feature.value().feature().value()) {
             is ScatteredOreFeature -> placed.targetStates()

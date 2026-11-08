@@ -96,6 +96,15 @@ object LandVariety {
         Wear(salt xor WEAR_SALT, erosion, WEAR_SPREAD * strength, WEAR_STRETCH * landScale, table)
 
     /**
+     * How far along islands are where nothing said: a full wear on average, swinging from none to the most as the land
+     * grows older, as far as [strength] swings it (none at nought, the whole range unsaid).
+     */
+    fun islandAgesOf(strength: Double, landScale: Double, salt: Long, table: TerrainTable? = null): Wear =
+        Wear(salt xor WEAR_SALT, UNASKED_ISLAND_WEAR, strength, WEAR_STRETCH * landScale, table)
+
+    private const val UNASKED_ISLAND_WEAR = 1.0
+
+    /**
      * [field] terraced as [terracing] says, then gullied, footed with scree and undercut, each as far as [wear] says at
      * each place; only terraced where nothing is worn.
      */
