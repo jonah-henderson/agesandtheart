@@ -22,6 +22,7 @@ import net.minecraft.client.renderer.rendertype.RenderSetup
 import net.minecraft.client.renderer.rendertype.RenderType
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.resources.Identifier
+import net.minecraft.tags.FluidTags
 import net.minecraft.util.Mth
 import net.minecraft.world.level.LightLayer
 import kotlin.math.cos
@@ -36,6 +37,7 @@ class TornadoRenderState : EntityRenderState() {
     var descended = 0.0f
     var roped = 0.0f
     var cleared = 0.0f
+    var overWater = false
     var swayTime = 0.0
     var heading = 0.0f
     var phase = 0.0f
@@ -69,6 +71,7 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         state.roped = entity.roped
         state.heading = entity.yRot
         state.cleared = entity.cleared
+        state.overWater = entity.level().getFluidState(BlockPos.containing(entity.x, entity.y - 1.0, entity.z)).`is`(FluidTags.WATER)
         state.phase = entity.phase
         state.time = entity.tickCount + partialTicks
         state.swayTime = entity.level().gameTime + partialTicks.toDouble()
@@ -239,7 +242,7 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         }
     }
 
-    /** The dust whirled up at the foot: a short flaring skirt, spinning up as the funnel comes down to it. */
+    /** The dust whirled up at the foot, or spray over water: a short flaring skirt, spinning up as the funnel comes down. */
     private fun dust(pose: PoseStack.Pose, buffer: VertexConsumer, state: TornadoRenderState, funnel: Funnel) {
         val rising = Mth.smoothstep(((state.descended - DUST_FROM) / (1.0f - DUST_FROM)).coerceIn(0.0f, 1.0f))
         val touching = 1.0f - state.roped
@@ -259,7 +262,7 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
                     buffer.addVertex(pose, footX + cos(angle) * reach, -BURIED_BY + share * (DUST_HEIGHT + BURIED_BY), footZ - sin(angle) * reach)
                         .setUv(around / SIDES, (1.0f - share) * DUST_HEIGHT)
                         .setLight(state.lightCoords)
-                        .setColor(seedOf(state, level, DUST), DUST, share, solidity)
+                        .setColor(seedOf(state, level, DUST), if (state.overWater) SPRAY else DUST, share, solidity)
                 }
                 val next = (side + 1) % SIDES
                 skirt(lowShare, side, side.toFloat())
@@ -413,9 +416,10 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
 
         /** Which part a vertex belongs to, as the shader reads it — see `tornado.fsh`. */
         private const val FUNNEL = 0.0f
-        private const val SLEEVE = 0.25f
-        private const val DUST = 0.5f
-        private const val OVERCAST = 0.75f
+        private const val SLEEVE = 0.2f
+        private const val DUST = 0.4f
+        private const val SPRAY = 0.6f
+        private const val OVERCAST = 0.8f
 
         private const val BURIED_BY = 4.0f
         /** Its foot is out of the ground by the time it has drawn back this much of the way, a tenth. */
@@ -434,7 +438,7 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         private const val SEED_STEP = -0x61C88647
         private const val PART_STEP = 0x27D4EB2F
         private const val SEED_SHIFT = 8
-        private const val PARTS = 4.0f
+        private const val PARTS = 5.0f
 
 
         private const val NAMESPACE = "agesandtheart"

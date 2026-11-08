@@ -98,8 +98,9 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
     /** The blocks it has thrown that are still in the air. */
     private val thrown = HashSet<FallingBlockEntity>()
 
-    /** How many blocks it has yet to tear up, a fraction carried from tick to tick. */
+    /** How many blocks it has yet to tear up, and places yet to strip, a fraction of each carried from tick to tick. */
     private var tearing = 0.0
+    private var stripping = 0.0
 
     /** How far it has travelled, the ground under its foot along the last stretch of it, and what that climb has cost. */
     private var travelled = 0.0
@@ -171,6 +172,10 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
     private fun tear(level: ServerLevel, vortex: TornadoWinds.Vortex) {
         if (roped > NOTHING_YET) return
         tearing += vortex.core * BOTH_SIDES * speed * LAYERS_TORN * vortex.might
+        stripping += (vortex.spiralReach * vortex.spiralReach * STRIPPED_PER_COLUMN * vortex.might)
+        val stripped = stripping.toInt()
+        stripping -= stripped
+        if (stripped > 0) spend(TornadoGround.strip(level, vortex, stripped))
         val howMany = tearing.toInt()
         tearing -= howMany
         if (howMany <= 0) return
@@ -349,12 +354,12 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
 
         /**
          * The strength it is born with, the narrowest to the widest, each drawn from half again either side: set so the
-         * narrowest carries about a hundred blocks over grassland (Jonah), cutting a trench eight columns wide, two to
-         * four blocks and what grew deep, at about a block apiece for every block it goes, and the widest some two
-         * hundred.
+         * narrowest carries about two hundred blocks over grassland (Jonah: twice the hundred first asked, for longevity),
+         * cutting a trench eight columns wide, two to four blocks and what grew deep, at about a block apiece, and the
+         * widest some four hundred.
          */
-        const val NARROWEST_STRENGTH = 2150.0
-        const val WIDEST_STRENGTH = 15700.0
+        const val NARROWEST_STRENGTH = 4300.0
+        const val WIDEST_STRENGTH = 31400.0
         private const val STRENGTH_SPREAD = 0.5
 
         /** How much of the way to how far it should have roped out it goes each tick. */
@@ -368,6 +373,11 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
          */
         private const val LAYERS_TORN = 3.5
         private const val AHEAD_OF_THE_FOOT = 1.0
+        /**
+         * How many places across its spiral it tries for what is flimsy each tick, for every column the spiral covers,
+         * reckoned on the square of its reach: about one try per column every hundred and fifty ticks.
+         */
+        private const val STRIPPED_PER_COLUMN = 0.02
         private const val BOTH_SIDES = 2.0
 
         /** How much of the way to the ground under it the foot goes each tick. */

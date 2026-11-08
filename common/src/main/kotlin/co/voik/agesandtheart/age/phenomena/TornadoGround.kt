@@ -15,7 +15,10 @@ import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.levelgen.Heightmap
+import kotlin.math.cos
 import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * What a tornado does to the ground (`notes/wind-plan.md` §4), and the two ways it spends its strength: **tearing up
@@ -101,6 +104,40 @@ object TornadoGround {
     }
 
     /**
+     * One tick of stripping what is flimsy from the open ground all across [vortex]'s spiral, not only under its foot:
+     * [howMany] places tried at random, and the top of each broken where it is as weak as leaves or weaker: foliage gone,
+     * anything else dropping what it would for the winds to take. What is returned is the strength that spent, next to
+     * nothing.
+     */
+    fun strip(level: ServerLevel, vortex: TornadoWinds.Vortex, howMany: Int): Double {
+        if (!AgeConfig.tornadoesTakeBlocks.get()) return 0.0
+        var spent = 0.0
+        repeat(howMany) {
+            val angle = level.random.nextDouble() * Mth.TWO_PI
+            val out = vortex.spiralReach * sqrt(level.random.nextDouble())
+            val x = Mth.floor(vortex.x + cos(angle) * out)
+            val z = Mth.floor(vortex.z + sin(angle) * out)
+            if (level.chunkSource.getChunkNow(x shr CHUNK_BITS, z shr CHUNK_BITS) == null) return@repeat
+            val at = BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1, z)
+            if (at.y > vortex.footY + REACHES_OVER_THE_FOOT || at.y < vortex.footY - REACHES_UNDER_THE_FOOT) return@repeat
+            val state = level.getBlockState(at)
+            val isFlimsy = state.fluidState.isEmpty && state.block.explosionResistance <= FLIMSY_UP_TO
+            val cost = costOf(state, level, at)
+            if (!isFlimsy || cost == null) return@repeat
+            spent += cost
+            // What grew there is simply gone, or a meadow would put thousands of flowers in the air; what a player may
+            // have put there, a torch or a carpet, drops for them to find.
+            level.destroyBlock(at, !isFoliage(state))
+        }
+        return spent
+    }
+
+    /** What grows wild: leaves, grass, flowers, saplings, vines and snow, which a tornado strips and leaves nothing of. */
+    private fun isFoliage(state: BlockState): Boolean =
+        state.`is`(BlockTags.LEAVES) || state.`is`(BlockTags.REPLACEABLE_BY_TREES) || state.`is`(BlockTags.FLOWERS) ||
+            state.`is`(BlockTags.SAPLINGS) || state.`is`(BlockTags.SNOW)
+
+    /**
      * The top of every column within [vortex]'s foot that stands over the trench's floor there and within its reach, the
      * tallest first, those level with each other in no fixed order, so no side of the trench is cut before another.
      */
@@ -133,15 +170,20 @@ object TornadoGround {
         Mth.floor(TRENCH_DEPTH + (DEEPEST_TRENCH - TRENCH_DEPTH) * (1.0 - outwardSquared) + HALF)
 
     /**
-     * [state] at [at] thrown as a falling block, or, where it will not come away whole — what holds things, one half
-     * of something, or once [MOST_IN_THE_AIR] are flying — broken where it stands, its drops left for the winds.
+     * [state] at [at] thrown as a falling block; or, where it will not come away whole — what holds things, one half of
+     * something — broken where it stands, its drops left for the winds; or, once [MOST_IN_THE_AIR] are flying, broken,
+     * [OVERFLOW_DROP_CHANCE] of them dropping what they would.
      */
     private fun throwFrom(level: ServerLevel, at: BlockPos, state: BlockState, thrown: MutableSet<FallingBlockEntity>) {
         val isOneOfAPair = state.hasProperty(BlockStateProperties.DOUBLE_BLOCK_HALF) ||
             state.hasProperty(BlockStateProperties.BED_PART) || state.hasProperty(BlockStateProperties.CHEST_TYPE)
-        val comesAwayWhole = !state.hasBlockEntity() && !isOneOfAPair && thrown.size < MOST_IN_THE_AIR
-        if (!comesAwayWhole) {
+        if (state.hasBlockEntity() || isOneOfAPair) {
             level.destroyBlock(at, true)
+            return
+        }
+        // Past what may be in the air at once only some drop anything, or the widest would leave thousands of items.
+        if (thrown.size >= MOST_IN_THE_AIR) {
+            level.destroyBlock(at, level.random.nextFloat() < OVERFLOW_DROP_CHANCE)
             return
         }
         thrown += FallingBlockEntity.fall(level, at, state)
@@ -174,11 +216,19 @@ object TornadoGround {
     private const val TRENCH_DEPTH = 2.0
     private const val DEEPEST_TRENCH = 4.0
 
-    /** How far over its foot the top of a column may stand for it to reach: the tallest trees. */
+    /**
+     * How far over and under its foot the top of a column may stand for it to reach: the tallest trees, and a little
+     * down a hillside.
+     */
     private const val REACHES_OVER_THE_FOOT = 24.0
+    private const val REACHES_UNDER_THE_FOOT = 8.0
+
+    /** As weak as leaves, which a blast barely notices: what is stripped all across the spiral. */
+    private const val FLIMSY_UP_TO = 0.2f
     private const val HALF = 0.5
     /** How many blocks one tornado may have in the air; past it, what it takes is broken where it stands. */
     private const val MOST_IN_THE_AIR = 200
+    private const val OVERFLOW_DROP_CHANCE = 0.25f
 
     private const val MOST_STEPS_DOWN = 48
     private const val CHUNK_BITS = 4

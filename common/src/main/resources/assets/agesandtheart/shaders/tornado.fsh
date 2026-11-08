@@ -36,16 +36,19 @@ const float SURGE_BOOST = 0.8;
 const float FEWEST_SURGES_A_DAY = 22.0;
 const float MORE_SURGES_A_DAY = 19.0;
 
-// Which part `layer.g` names: the funnel at 0, its sleeve at a quarter, the dust at a half, the overcast at three
-// quarters. Read with a margin either side.
-const float SLEEVE_FROM = 0.125;
-const float DUST_FROM = 0.375;
-const float OVERCAST_FROM = 0.625;
+// Which part `layer.g` names, in fifths: the funnel, its sleeve, the dust at its foot, the spray at its foot over
+// water, and the overcast. Read with a margin either side.
+const float SLEEVE_FROM = 0.1;
+const float DUST_FROM = 0.3;
+const float SPRAY_FROM = 0.5;
+const float OVERCAST_FROM = 0.7;
 
 const vec3 FUNNEL_DARK = vec3(0.30, 0.31, 0.33);
 const vec3 FUNNEL_PALE = vec3(0.62, 0.63, 0.65);
 const vec3 DUST_DARK = vec3(0.28, 0.23, 0.17);
 const vec3 DUST_PALE = vec3(0.58, 0.50, 0.40);
+const vec3 SPRAY_DARK = vec3(0.55, 0.66, 0.78);
+const vec3 SPRAY_PALE = vec3(0.92, 0.96, 1.00);
 const vec3 OVERCAST_GREY = vec3(0.46, 0.47, 0.50);
 // How far each cell of the overcast is lighter or darker than the next.
 const float OVERCAST_MOTTLE = 0.12;
@@ -113,7 +116,7 @@ void main() {
         float bands = bandsAt(aroundAndDown, driftOf(seed, DUST_TURNS_A_DAY, DUST_FASTEST), phase);
         // Thinning away upward, where `downShare` is how far up the skirt.
         if (bands * (1.0 - downShare * downShare) * layer.a < DUST_GAP) discard;
-        tone = mix(DUST_DARK, DUST_PALE, bands);
+        tone = part >= SPRAY_FROM ? mix(SPRAY_DARK, SPRAY_PALE, bands) : mix(DUST_DARK, DUST_PALE, bands);
     } else if (part >= SLEEVE_FROM) {
         float bands = bandsAt(aroundAndDown, driftOf(seed, SLEEVE_TURNS_A_DAY, SLEEVE_FASTEST), phase);
         float ends = smoothstep(0.0, SLEEVE_FROM_THE_TOP, downShare) * (1.0 - smoothstep(SLEEVE_TO_THE_FOOT, 1.0, downShare));

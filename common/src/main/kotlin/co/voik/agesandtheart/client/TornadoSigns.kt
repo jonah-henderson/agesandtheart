@@ -8,6 +8,7 @@ import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.particle.TerrainParticle
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.BlockPos
+import net.minecraft.tags.FluidTags
 import net.minecraft.util.Mth
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.block.state.BlockState
@@ -19,9 +20,9 @@ import kotlin.math.sqrt
 
 /**
  * The winds about a tornado made visible (`notes/wind-plan.md` §4): streaks going round it in the open air about the
- * player, as a gust's race past ([GustSigns]), and the ground's own blocks torn up in crumbs all about its foot,
- * spiralling in, swung up the funnel and thrown out. Client particles added straight to the engine, each turned by
- * the same winds that move the player ([TornadoWinds]) as it goes.
+ * player, as a gust's race past ([GustSigns]), and the ground's own blocks torn up in crumbs all about its foot, or
+ * spray off water, spiralling in, swung up the funnel and thrown out. Client particles added straight to the engine,
+ * each turned by the same winds that move the player ([TornadoWinds]) as it goes.
  */
 object TornadoSigns {
 
@@ -71,6 +72,11 @@ object TornadoSigns {
         val throwAt = Mth.nextDouble(random, LOWEST_CRUMB_THROW, HIGHEST_CRUMB_THROW)
         val crumb = Crumb(level, tornado, x, surface + CRUMB_LIFTED_FROM, z, ground, groundAt, throwAt)
         crumb.lifetime = Mth.nextInt(random, SHORTEST_CRUMB_LIFE, LONGEST_CRUMB_LIFE)
+        // Off water, spray: the water's own sprite washed white to pale blue rather than tinted the sea's colour.
+        if (ground.fluidState.`is`(FluidTags.WATER)) {
+            val white = random.nextFloat()
+            crumb.setColor(Mth.lerp(white, SPRAY_BLUE_RED, 1.0f), Mth.lerp(white, SPRAY_BLUE_GREEN, 1.0f), 1.0f)
+        }
         Minecraft.getInstance().particleEngine.add(crumb.scale(CRUMB_SCALE))
     }
 
@@ -155,6 +161,10 @@ object TornadoSigns {
     }
 
     private const val FULL_TURN = 2.0 * PI
+
+    /** The bluest spray, which runs from this to white. */
+    private const val SPRAY_BLUE_RED = 0.7f
+    private const val SPRAY_BLUE_GREEN = 0.85f
 
     /** Streaks a tick about the player at a tornado's full might, and how far about them, in blocks. */
     private const val STREAKS_EACH_TICK = 10.0
