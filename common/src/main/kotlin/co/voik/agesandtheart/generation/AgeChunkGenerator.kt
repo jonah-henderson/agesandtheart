@@ -4,6 +4,7 @@ import net.minecraft.world.level.levelgen.structure.Structure
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.entity.EntityType
 import co.voik.agesandtheart.worldgen.DeepWrecks
+import co.voik.agesandtheart.worldgen.Sastrugi
 import net.minecraft.world.level.LevelReader
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.TreeFoliage
@@ -258,6 +259,8 @@ class AgeChunkGenerator(
     private val landformTerritories: RegionMap? = null,
     /** The bearing the wind bends trees towards on each territory it bends them on ([FlagTrees]). Not serialised, like [lives]. */
     private val treesBentTowards: Map<Int, Double> = emptyMap(),
+    /** The ridges the wind cuts the snow into, or null for none. Not serialised, like [lives]. */
+    private val snowCutBy: Sastrugi? = null,
 ) : NoiseBasedChunkGenerator(
     biomes,
     when (rock) {
@@ -1638,6 +1641,7 @@ class AgeChunkGenerator(
                 }
             }
         }
+        snowCutBy?.cutInto(chunk)
         // **The abyss is put right first, and before the early return below.** A structure brings its own
         // ordinary water — an ocean monument most of all — and vegetation grows in that water in this same
         // stage, so there is nowhere to stand between the two. See `DeepWater.settleTheAbyss`.

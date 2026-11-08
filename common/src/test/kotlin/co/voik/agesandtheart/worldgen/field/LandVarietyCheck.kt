@@ -6,11 +6,13 @@ import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.FormerEasing
 import co.voik.agesandtheart.age.FormerIslands
 import co.voik.agesandtheart.age.FormerBareWindswept
+import co.voik.agesandtheart.age.FormerUncutSnow
 import co.voik.agesandtheart.age.FormerIslandWear
 import co.voik.agesandtheart.age.FormerUnsaidWear
 import co.voik.agesandtheart.age.FormerWear
 import co.voik.agesandtheart.age.FormerUniformity
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Terrain
 import com.mojang.serialization.JsonOps
 import io.kotest.core.spec.style.FunSpec
@@ -249,6 +251,20 @@ class LandVarietyCheck : FunSpec({
         check(read(last, listOf(Terrain.YARDANGS)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_BARE_WINDSWEPT)) { "the old windswept Age grew pedestals" }
         check(!read(last + 1, listOf(Terrain.YARDANGS)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_BARE_WINDSWEPT)) { "a new windswept Age stood bare" }
         check(!read(last, listOf(Terrain.HILLS)).anyMemberSays(Aspect.TERRAIN, Terrain.FORMER_BARE_WINDSWEPT)) { "an old Age with no windswept land was marked" }
+    }
+
+    test("an Age with a wind written before the wind cut the snow keeps its snow smooth") {
+        fun read(version: Int, windy: Boolean): AgeComposition {
+            val still = AgeComposition(terrains = listOf(Terrain.HILLS))
+            val composition = if (windy) still.withOptions(Aspect.AIR, Atmosphere.WIND.name, listOf("0.5")) else still
+            val recipe = AgeRecipe(AgeWorld.Composed(composition), seed = SEED, generatorVersion = version)
+            val saved = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow()
+            return AgeRecipe.CODEC.parse(JsonOps.INSTANCE, saved).getOrThrow().composition ?: error("no composition")
+        }
+        val last = FormerUncutSnow.LAST_GENERATOR_OF_UNCUT_SNOW
+        check(read(last, windy = true).optionsFor(Aspect.AIR).isTrue(Atmosphere.FORMER_UNCUT_SNOW)) { "the old windy Age cut its snow" }
+        check(!read(last + 1, windy = true).optionsFor(Aspect.AIR).isTrue(Atmosphere.FORMER_UNCUT_SNOW)) { "a new windy Age kept its snow smooth" }
+        check(!read(last, windy = false).optionsFor(Aspect.AIR).isTrue(Atmosphere.FORMER_UNCUT_SNOW)) { "an old Age with no wind was marked" }
     }
 
     test("an Age written before the banks were held still wears through them, and a new one does not") {

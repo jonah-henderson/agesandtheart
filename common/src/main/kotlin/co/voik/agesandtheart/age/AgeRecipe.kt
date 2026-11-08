@@ -215,7 +215,8 @@ data class AgeRecipe(
                         .let {
                             if (version <= FormerBareWindswept.LAST_GENERATOR_OF_BARE_WINDSWEPT_LAND) FormerBareWindswept.carriedOver(it)
                             else it
-                        },
+                        }
+                        .let { if (version <= FormerUncutSnow.LAST_GENERATOR_OF_UNCUT_SNOW) FormerUncutSnow.carriedOver(it) else it },
                     seed = seed,
                     character = character,
                     // An Age written before the page count was kept reads it off the pages it was laid with,

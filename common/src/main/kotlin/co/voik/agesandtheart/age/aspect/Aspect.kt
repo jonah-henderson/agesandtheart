@@ -315,7 +315,7 @@ enum class Aspect(
                 Features.FOLIAGE, Features.INCONGRUOUS, Features.CRUMBLE, Features.DEPTH,
             )
             AIR -> listOf(
-                Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE, Atmosphere.DRAINED, Atmosphere.WIND,
+                Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE, Atmosphere.DRAINED, Atmosphere.WIND, Atmosphere.FORMER_UNCUT_SNOW,
                 Prism.COLOURS_CYCLING, Prism.LIGHT_COLOUR_CYCLING, Prism.COLOUR_CYCLE_PACE,
             )
             WATERS -> listOf(Atmosphere.MURK, Atmosphere.WATERCOLOUR, Fishing.TREASURE, Prism.COLOURS_CYCLING, Prism.COLOUR_CYCLE_PACE)

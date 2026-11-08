@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.generation
 
 import co.voik.agesandtheart.worldgen.DeepWrecks
+import co.voik.agesandtheart.worldgen.Sastrugi
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.TreeFoliage
@@ -468,6 +469,7 @@ object AgeGeneration {
                 terrain.bendsTreesTowards(composition.optionsFor(Aspect.TERRAIN, member), saltFor(seed, member), table)
                     ?.let { member to it }
             }.toMap(),
+            snowCutBy = sastrugiIn(composition, seed),
             nothingLives = Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0)),
             incongruity = Incongruity.of(composition),
             structureHomes = structureHomesIn(composition, biomeSource, seed),
@@ -1003,6 +1005,7 @@ object AgeGeneration {
     private const val RECONCILED_BLOCKS = 96.0
 
     private const val TABLE_SALT = 0x7AB1_E5EEDL
+    private const val SASTRUGI_SALT = 0x5A57_7275_6769L
 
     /**
      * The mountains, the chambers and the lava in both, as one statement (design §7.1.2).
@@ -1148,6 +1151,14 @@ object AgeGeneration {
         if (members == 1) field else Regions(List(members) { index -> if (index == member) field else NOWHERE }, map)
 
     private val NOWHERE: TerrainField = Union(emptyList())
+
+    /** The ridges a written wind cuts the snow into, or null where no wind is written or the Age keeps its snow smooth. */
+    private fun sastrugiIn(composition: AgeComposition, seed: Long): Sastrugi? {
+        if (composition.optionsFor(Aspect.AIR).isTrue(Atmosphere.FORMER_UNCUT_SNOW)) return null
+        val wind = Atmosphere.windIn(composition, seed)
+        if (wind.isStill) return null
+        return Sastrugi(seed xor SASTRUGI_SALT, wind.bearingDegrees.toDouble(), wind.strength.toDouble())
+    }
 
     internal fun saltFor(seed: Long, member: Int): Long = seed * TERRITORY_SALT_STRIDE + member
 

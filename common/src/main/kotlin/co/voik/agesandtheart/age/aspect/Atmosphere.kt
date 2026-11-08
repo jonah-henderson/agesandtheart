@@ -91,6 +91,12 @@ object Atmosphere {
      */
     fun prevailingBearingDegrees(seed: Long): Float = Random(seed xor WIND_SALT).nextFloat() * FULL_TURN_DEGREES
 
+    /** Whether the snow lies uncut by the wind, as before generator 25. Set on every Age with a wind written before then. */
+    val FORMER_UNCUT_SNOW = Parameter.flag(
+        "former_uncut_snow",
+        help = "Whether the snow lies smooth under the wind, as it did before the wind cut it into ridges.",
+    )
+
     private const val WIND_SALT = 0x57494E44L
     private const val FULL_TURN_DEGREES = 360.0f
 
