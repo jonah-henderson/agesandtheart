@@ -126,15 +126,16 @@ object Spawns {
     val INCONGRUOUS = Parameter.flag("incongruous", help = "Whether any creature may turn up anywhere, past its own rules.")
 
     /**
-     * How many kinds of creature are met — `varied inhabitants`: each list evened toward its own mean weight, and a few
-     * creatures of biomes with a climate like its own joining it (`generation/VariedInhabitants`).
+     * How many kinds of creature are met — `varied inhabitants`: each list becomes every creature the game spawns in
+     * that pass, from every biome there is, the nether's and the End's among them, all as likely as each other
+     * (`generation/VariedInhabitants`).
      */
     val VARIETY = Parameter.ranged(
         "variety",
         help = "How many kinds of creature are met.",
         landmarks = listOf(
             Parameter.Landmark(0.0, "as each biome keeps them", isVanilla = true),
-            Parameter.Landmark(1.0, "evened out, and joined by those of biomes like it"),
+            Parameter.Landmark(1.0, "every creature there is, each as likely as the next"),
         ),
     )
 
@@ -204,12 +205,12 @@ object Spawns {
         /** Every creature the pack already offers somewhere — [WhereThingsGrow.creaturesListed]. */
         livesSomewhere: Set<Identifier> = emptySet(),
         seed: Long = 0L,
-        /** The creatures of the biomes with a climate like a biome's, commonest first, for [VARIETY] to draw on. */
+        /** Every creature the game spawns in a pass, for [VARIETY] to draw on. */
         joiningFrom: (Identifier?, MobCategory) -> List<MobSpawnSettings.SpawnerData> = { _, _ -> emptyList() },
     ): Living {
         val herded = herdedIn(options, spawning, livesSomewhere)
         val variety = varietyOf(options, seed)
-        val living = if (variety > NO_VARIETY) withVariety(herded, variety, joiningFrom) else herded
+        val living = if (variety > NO_VARIETY) withVariety(herded, joiningFrom) else herded
         return if (options.isTrue(NONE_BELOW)) withNoneBelow(living) else living
     }
 
@@ -221,7 +222,6 @@ object Spawns {
     /** [living], asked of each list only once it is [varied]: so what the sentence strikes is struck from the joiners too. */
     private fun withVariety(
         living: Living,
-        variety: Double,
         joiningFrom: (Identifier?, MobCategory) -> List<MobSpawnSettings.SpawnerData>,
     ): Living = object : Living {
         override fun at(
@@ -230,7 +230,7 @@ object Spawns {
             where: Situation,
             offered: WeightedList<MobSpawnSettings.SpawnerData>,
         ): WeightedList<MobSpawnSettings.SpawnerData> =
-            living.at(biome, category, where, varied(offered, joiningFrom(biome, category), variety))
+            living.at(biome, category, where, varied(offered, joiningFrom(biome, category)))
 
         override fun rungOf(creature: Identifier, biome: Identifier?): Double = living.rungOf(creature, biome)
 
@@ -238,31 +238,22 @@ object Spawns {
     }
 
     /**
-     * [offered] evened toward its own mean weight by [variety], and joined by up to [MOST_JOINING] of [joining] it lacks,
-     * each at a share of that mean. An empty list stays empty: a pass a biome keeps empty, as mushroom fields keep their
-     * monsters', is its nature rather than a gap.
+     * [offered] and every creature in [joining], each once and all at one weight, so any of them is as likely as the
+     * next (Jonah). An empty list stays empty: a pass a biome keeps empty, as mushroom fields keep their monsters', is
+     * its nature rather than a gap.
      */
     internal fun varied(
         offered: WeightedList<MobSpawnSettings.SpawnerData>,
         joining: List<MobSpawnSettings.SpawnerData>,
-        variety: Double,
     ): WeightedList<MobSpawnSettings.SpawnerData> {
         val entries = offered.unwrap()
         if (entries.isEmpty()) return offered
-        val mean = entries.map { it.weight() }.average()
-        fun evened(weight: Int) = (weight + (mean - weight) * variety * EVENED_BY).roundToInt().coerceAtLeast(1)
-        val already = entries.map { it.value().type() }.toSet()
-        val joinsAt = (mean * variety * JOINS_AT).roundToInt().coerceAtLeast(1)
-        val joined = joining.filter { it.type() !in already }.distinctBy { it.type() }.take(MOST_JOINING)
-        return WeightedList.of(entries.map { Weighted(it.value(), evened(it.weight())) } + joined.map { Weighted(it, joinsAt) })
+        val everyone = (entries.map { it.value() } + joining).distinctBy { it.type() }
+        return WeightedList.of(everyone.map { Weighted(it, EACH_ALIKE) })
     }
 
-    /** How far toward the list's mean weight its creatures come at the most variety. */
-    private const val EVENED_BY = 0.8
-
-    /** How many creatures of biomes like it join a list at most, and at what share of its mean weight. */
-    private const val MOST_JOINING = 4
-    private const val JOINS_AT = 0.5
+    /** The one weight every creature of a varied list carries. */
+    private const val EACH_ALIKE = 10
 
     /** [living] offering no monster where the sky is out of sight; spawners and what the Age places itself are not asked. */
     private fun withNoneBelow(living: Living): Living = object : Living {

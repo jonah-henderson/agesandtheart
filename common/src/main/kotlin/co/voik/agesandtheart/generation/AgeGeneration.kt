@@ -459,7 +459,7 @@ object AgeGeneration {
                 Vocabulary.of(server).spawning,
                 WhereThingsGrow.creaturesListed(server.registryAccess()),
                 seed,
-                VariedInhabitants.joiningIn(biomeSource.possibleBiomes()),
+                VariedInhabitants.joiningIn(server.registryAccess().lookupOrThrow(Registries.BIOME).listElements().toList()),
             ),
             spawnCaps = Spawns.capsOf(composition.optionsFor(Aspect.SPAWNS, 0)),
             landformArrival = if (grounds == null) null else landformArrivalIn(composition, ground, seed),

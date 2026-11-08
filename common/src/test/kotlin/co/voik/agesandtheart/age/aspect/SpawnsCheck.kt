@@ -32,19 +32,17 @@ class SpawnsCheck : FunSpec({
         check(offered(MobCategory.CREATURE, skyIsOpen = false).isNotEmpty()) { "creatures were struck from under the rock" }
     }
 
-    test("varied inhabitants even a list out and bring in creatures of biomes like it, struck ones still struck") {
+    test("varied inhabitants are every creature there is, each as likely as the next, struck ones still struck") {
         val options = Options(mapOf(Spawns.VARIETY.name to listOf("1.0..1.0"), Spawns.LIVES.name to listOf("minecraft:wolf[except]")))
         val joining = listOf(EntityTypes.SPIDER, EntityTypes.FOX, EntityTypes.WOLF, EntityTypes.RABBIT, EntityTypes.GOAT, EntityTypes.LLAMA)
             .map { MobSpawnSettings.SpawnerData(it, UniformInt.of(1, 1)) }
         val varied = Spawns.livingIn(options, joiningFrom = { _, _ -> joining })
             .at(null, MobCategory.MONSTER, Spawns.Situation(BlockPos.ZERO, true, ANY_LIGHT_WILL_DO), aMeadow()).unwrap()
         fun weightOf(kind: String) = varied.firstOrNull { BuiltInRegistries.ENTITY_TYPE.getKey(it.value().type()).path == kind }?.weight()
-        val cow = weightOf("cow") ?: 0
-        val spider = weightOf("spider") ?: 0
-        check(cow > 8 && spider < 100 && spider - cow < 100 - 8) { "the list was not evened: cow $cow, spider $spider" }
-        check(weightOf("fox") != null && weightOf("rabbit") != null) { "creatures of biomes like it did not join: $varied" }
+        val weights = varied.map { it.weight() }.toSet()
+        check(weights.size == 1) { "the creatures were not all as likely: $varied" }
+        check(listOf("fox", "rabbit", "goat", "llama").all { weightOf(it) != null }) { "not every creature joined: $varied" }
         check(weightOf("wolf") == null) { "a struck creature joined: $varied" }
-        check(weightOf("llama") == null) { "more than four joined: $varied" }
         check(varied.count { BuiltInRegistries.ENTITY_TYPE.getKey(it.value().type()).path == "spider" } == 1) { "a spider joined twice" }
         val empty = Spawns.livingIn(options, joiningFrom = { _, _ -> joining })
             .at(null, MobCategory.MONSTER, Spawns.Situation(BlockPos.ZERO, true, ANY_LIGHT_WILL_DO), WeightedList.of())
