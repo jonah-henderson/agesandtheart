@@ -2,30 +2,20 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.phenomena.Gust
 import co.voik.agesandtheart.age.phenomena.Sampling
-import co.voik.agesandtheart.location
-import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
-import net.minecraft.client.particle.SingleQuadParticle
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.client.renderer.BiomeColors
-import net.minecraft.client.renderer.state.level.QuadParticleRenderState
-import net.minecraft.client.renderer.texture.TextureAtlasSprite
 import net.minecraft.core.BlockPos
 import net.minecraft.core.particles.BlockParticleOption
 import net.minecraft.core.particles.ColorParticleOption
 import net.minecraft.core.particles.ParticleOptions
 import net.minecraft.core.particles.ParticleTypes
-import net.minecraft.data.AtlasIds
-import net.minecraft.resources.Identifier
 import net.minecraft.tags.BlockTags
 import net.minecraft.util.Mth
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Heightmap
-import org.joml.Matrix3f
-import org.joml.Quaternionf
-import org.joml.Vector3f
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -78,7 +68,7 @@ object GustSigns {
         val speed = Mth.nextDouble(random, SLOWEST_STREAK, FASTEST_STREAK)
         val lifetime = Mth.nextInt(random, SHORTEST_STREAK_LIFE, LONGEST_STREAK_LIFE)
         val size = Mth.nextFloat(random, SMALLEST_STREAK, LARGEST_STREAK)
-        Minecraft.getInstance().particleEngine.add(Streak(level, x, y, z, towardsX * speed, towardsZ * speed, lifetime, size))
+        Minecraft.getInstance().particleEngine.add(WindStreak(level, x, y, z, towardsX * speed, towardsZ * speed, lifetime, size))
     }
 
     private fun debrisAt(level: ClientLevel, random: RandomSource, x: Double, z: Double, towardsX: Double, towardsZ: Double) {
@@ -94,83 +84,6 @@ object GustSigns {
         }
         val y = surface + Mth.nextDouble(random, DEBRIS_LOWEST, DEBRIS_HIGHEST)
         level.addParticle(lifted, x, y, z, towardsX * DEBRIS_SPEED, DEBRIS_LIFT, towardsZ * DEBRIS_SPEED)
-    }
-
-    /** The streak's sprite, a thin line across the middle of a square, off the particle atlas. */
-    private fun streakSprite(): TextureAtlasSprite =
-        Minecraft.getInstance().atlasManager.getAtlasOrThrow(AtlasIds.PARTICLES).getSprite(STREAK)
-
-    private val STREAK: Identifier = "gust_streak".location()
-
-    /**
-     * A streak of wind, racing along the gust and fading in and out, gone where it would pass under cover.
-     *
-     * **Laid along the wind and turned about it toward the camera**: a quad is square, so the line drawn across its
-     * sprite is what makes it long and thin, and it must lie along the way it moves however it is seen.
-     */
-    private class Streak(
-        level: ClientLevel,
-        x: Double,
-        y: Double,
-        z: Double,
-        xd: Double,
-        zd: Double,
-        lifetime: Int,
-        size: Float,
-    ) : SingleQuadParticle(level, x, y, z, streakSprite()) {
-
-        private val along = Vector3f(xd.toFloat(), 0.0f, zd.toFloat()).normalize()
-
-        init {
-            this.lifetime = lifetime
-            this.quadSize = size
-            this.hasPhysics = false
-            this.gravity = 0.0f
-            this.xd = xd
-            this.yd = 0.0
-            this.zd = zd
-            setColor(STREAK_WHITE, STREAK_WHITE, STREAK_WHITE)
-            setAlpha(0.0f)
-        }
-
-        override fun tick() {
-            xo = x
-            yo = y
-            zo = z
-            if (age++ >= lifetime || !Sampling.openToTheSky(level, BlockPos.containing(x, y, z))) {
-                remove()
-                return
-            }
-            move(xd, yd, zd)
-            setAlpha(STREAK_ALPHA * fadeAt(age.toFloat() / lifetime))
-        }
-
-        private fun fadeAt(through: Float): Float = when {
-            through < FADES_IN_UNTIL -> through / FADES_IN_UNTIL
-            through > FADES_OUT_FROM -> (1.0f - through) / (1.0f - FADES_OUT_FROM)
-            else -> 1.0f
-        }
-
-        override fun extract(state: QuadParticleRenderState, camera: Camera, partialTickTime: Float) {
-            extractRotatedQuad(state, camera, facing(camera, partialTickTime), partialTickTime)
-        }
-
-        /** The quad's width along the wind, and its face turned as far toward the camera as that allows. */
-        private fun facing(camera: Camera, partialTickTime: Float): Quaternionf {
-            val eye = camera.position()
-            val toCamera = Vector3f(
-                (eye.x - Mth.lerp(partialTickTime.toDouble(), xo, x)).toFloat(),
-                (eye.y - Mth.lerp(partialTickTime.toDouble(), yo, y)).toFloat(),
-                (eye.z - Mth.lerp(partialTickTime.toDouble(), zo, z)).toFloat(),
-            )
-            val face = toCamera.sub(Vector3f(along).mul(toCamera.dot(along)))
-            if (face.lengthSquared() < SEEN_END_ON) face.set(0.0f, 1.0f, 0.0f)
-            face.normalize()
-            val up = Vector3f(face).cross(along)
-            return Quaternionf().setFromNormalized(Matrix3f(along, up, face))
-        }
-
-        override fun getLayer(): Layer = Layer.TRANSLUCENT
     }
 
     /** The most signs a tick at the height of a gust in a gale fully risen. */
@@ -192,11 +105,6 @@ object GustSigns {
     /** Half the length of a streak, in blocks. */
     private const val SMALLEST_STREAK = 1.0f
     private const val LARGEST_STREAK = 2.0f
-    private const val STREAK_WHITE = 0.95f
-    private const val STREAK_ALPHA = 0.5f
-    private const val FADES_IN_UNTIL = 0.2f
-    private const val FADES_OUT_FROM = 0.6f
-    private const val SEEN_END_ON = 1.0e-4f
 
     private const val DEBRIS_LOWEST = 0.2
     private const val DEBRIS_HIGHEST = 1.5

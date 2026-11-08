@@ -96,11 +96,12 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         // The opaque parts first, so the sleeve blends over whatever of them is behind it.
         collector.submitCustomGeometry(poseStack, TORNADO) { pose, buffer ->
             if (hangs) {
-                funnel.slabs(pose, buffer, state, WHOLE, FUNNEL, capped = true)
+                funnel.tube(pose, buffer, state)
+                funnel.slabs(pose, buffer, state, WHOLE, FUNNEL)
                 dust(pose, buffer, state, funnel)
             }
             overcast(pose, buffer, state, funnel)
-            if (hangs) funnel.slabs(pose, buffer, state, SLEEVE_SHARE, SLEEVE, capped = false)
+            if (hangs) funnel.slabs(pose, buffer, state, SLEEVE_SHARE, SLEEVE)
         }
         super.submit(state, poseStack, collector, camera)
     }
@@ -120,10 +121,10 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         val fade: Float,
     ) {
         /**
-         * Each slab's four walls at [share] of the funnel's width, and with [capped] its underside too, which is what
-         * shows where it overhangs the one below.
+         * Each slab's four walls at [share] of the funnel's width, open top and bottom so the tube can be seen up from
+         * inside.
          */
-        fun slabs(pose: PoseStack.Pose, buffer: VertexConsumer, state: TornadoRenderState, share: Float, which: Float, capped: Boolean) {
+        fun slabs(pose: PoseStack.Pose, buffer: VertexConsumer, state: TornadoRenderState, share: Float, which: Float) {
             for (slab in 0..<SLABS) {
                 val upper = heightOf[slab]
                 val lower = heightOf[slab + 1]
@@ -134,8 +135,48 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
                     corner(pose, buffer, state, slab, next, lower, side + 1.0f, share, which)
                     corner(pose, buffer, state, slab, side, lower, side.toFloat(), share, which)
                 }
-                if (capped) for (side in 0..<SIDES) corner(pose, buffer, state, slab, side, lower, side.toFloat(), share, which)
             }
+        }
+
+        /**
+         * A smooth tube just inside the slabs, each square joined to the next corner to corner, which closes the gaps
+         * where two slabs turned apart leave their corners open, so nothing is seen straight through the funnel.
+         * Each length of it wears the bands of the slab around it.
+         */
+        fun tube(pose: PoseStack.Pose, buffer: VertexConsumer, state: TornadoRenderState) {
+            for (slab in 0..<SLABS) {
+                val seed = seedOf(state, slab, FUNNEL)
+                for (side in 0..<SIDES) {
+                    val next = (side + 1) % SIDES
+                    tubeCorner(pose, buffer, state, slab, side, side.toFloat(), seed)
+                    tubeCorner(pose, buffer, state, slab, next, side + 1.0f, seed)
+                    tubeCorner(pose, buffer, state, slab + 1, next, side + 1.0f, seed)
+                    tubeCorner(pose, buffer, state, slab + 1, side, side.toFloat(), seed)
+                }
+            }
+        }
+
+        /** A corner of the tube where two slabs meet, [boundary] counted from the top, halfway between the two. */
+        private fun tubeCorner(
+            pose: PoseStack.Pose,
+            buffer: VertexConsumer,
+            state: TornadoRenderState,
+            boundary: Int,
+            side: Int,
+            around: Float,
+            seed: Float,
+        ) {
+            val above = (boundary - 1).coerceAtLeast(0)
+            val below = boundary.coerceAtMost(SLABS - 1)
+            val angle = (turned[above] + turned[below]) * HALF + QUARTER_TURN * side + EIGHTH_TURN
+            val reach = (halfWidth[above] + halfWidth[below]) * HALF * TUBE_SHARE * ROOT_TWO
+            val atX = (centreX[above] + centreX[below]) * HALF + cos(angle) * reach
+            val atZ = (centreZ[above] + centreZ[below]) * HALF - sin(angle) * reach
+            val height = heightOf[boundary]
+            buffer.addVertex(pose, atX, height, atZ)
+                .setUv(around / SIDES, length - height)
+                .setLight(state.lightCoords)
+                .setColor(seed, FUNNEL, (length - height) / length, fade)
         }
 
         private fun corner(
@@ -165,13 +206,13 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
             fun of(state: TornadoRenderState): Funnel {
                 val length = state.length.coerceAtLeast(NOTHING)
                 val reach = length * state.descended
-                val foot = Mth.lerp(state.roped, state.footHalfWidth, ROPE_FOOT)
-                val top = Mth.lerp(state.roped, (state.footHalfWidth * TOP_PER_FOOT).coerceIn(NARROWEST_TOP, WIDEST_TOP), ROPE_TOP)
+                val foot = Tornado.footHalfWidthOf(state.footHalfWidth, state.roped)
+                val top = Tornado.topHalfWidthOf(state.footHalfWidth, state.roped)
                 val tip = Mth.lerp(state.descended * state.descended, TIP, foot)
                 val heading = state.heading * Mth.DEG_TO_RAD
                 val forwardX = -sin(heading)
                 val forwardZ = cos(heading)
-                val lean = (LEAN + ROPE_LEAN * state.roped) * length
+                val lean = (Tornado.LEAN + Tornado.ROPE_LEAN * state.roped) * length
                 val sway = (SWAY + ROPE_SWAY * state.roped) * length
                 val buried = BURIED_BY * state.descended
                 val centreX = FloatArray(SLABS)
@@ -181,8 +222,8 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
                 for (slab in 0..<SLABS) {
                     val down = (slab + HALF) / SLABS
                     val up = 1.0f - down
-                    halfWidth[slab] = tip + (top - tip) * up.pow(FLARE)
-                    val ahead = lean * up.pow(LEAN_CURVE)
+                    halfWidth[slab] = tip + (top - tip) * up.pow(Tornado.FLARE)
+                    val ahead = lean * up.pow(Tornado.LEAN_CURVE)
                     val swaying = sway * sin(state.time * SWAY_RATE + down * SWAY_WAVES + state.phase * FULL_TURN) * down * up * BOTH_ENDS
                     centreX[slab] = forwardX * ahead + forwardZ * swaying
                     centreZ[slab] = forwardZ * ahead - forwardX * swaying
@@ -303,24 +344,11 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         private const val SLABS = 28
         private const val SIDES = 4
 
-        /** The top flares to a little over twice the foot, forty to sixty across. */
-        private const val TOP_PER_FOOT = 2.2f
-        private const val NARROWEST_TOP = 20.0f
-        private const val WIDEST_TOP = 30.0f
-        /** How sharply it flares near the cloud: higher keeps it narrow for longer. */
-        private const val FLARE = 3.0f
         /** The tip's half-width as it reaches down, before it has found the ground. */
         private const val TIP = 1.5f
-        /** A roped-out funnel: a rope at the foot, a little wider at the cloud. */
-        private const val ROPE_FOOT = 1.2f
-        private const val ROPE_TOP = 6.0f
         /** It breaks up over the last of its roping out. */
         private const val BREAKS_UP_FROM = 0.75f
 
-        /** How far the top leans ahead of the foot, as a share of the length; a rope leans far more. */
-        private const val LEAN = 0.1f
-        private const val ROPE_LEAN = 0.3f
-        private const val LEAN_CURVE = 1.5f
         /** How far it sways from side to side, as a share of the length, and how fast. */
         private const val SWAY = 0.025f
         private const val ROPE_SWAY = 0.08f
@@ -358,6 +386,11 @@ class TornadoRenderer(context: EntityRendererProvider.Context) : EntityRenderer<
         private const val COLLAR_FLAT_PER_TOP = 1.6f
         private const val COLLAR_REACH = 36.0f
         private const val COLLAR_LOWERS_FROM = 0.5f
+        /**
+         * The smooth tube inside the slabs: narrow enough that a slab turned a little from it still stands outside it,
+         * wide enough to show in the gaps between two.
+         */
+        private const val TUBE_SHARE = 0.9f
         /** The sleeve of streaks stands this much wider than the solid funnel. */
         private const val SLEEVE_SHARE = 1.3f
         /** Vanilla's cloud cell, in a disc about five hundred blocks across, solid to the inner seven tenths. */

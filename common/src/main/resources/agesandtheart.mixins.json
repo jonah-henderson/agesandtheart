@@ -45,6 +45,7 @@
     "PowderSnowBlockMixin",
     "ProjectileMixin",
     "RubbleLandingMixin",
+    "ServerGamePacketListenerImplMixin",
     "ServerLevelMixin",
     "ServerPlayerMixin",
     "SkaterHungerMixin",

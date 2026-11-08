@@ -75,6 +75,9 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
 
     private var sinceSeen: Int = 0
 
+    /** What its core has taken up, and how — never saved: a reload drops whatever was in the air. */
+    private val lifted = HashMap<Entity, TornadoWinds.Lift>()
+
     init {
         noPhysics = true
         isNoGravity = true
@@ -106,6 +109,7 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
         roped += (ropedBy - roped) * ROPING_EASES
         wander()
         advance(level)
+        TornadoWinds.blowOn(level, this, lifted)
     }
 
     /** Spends [cost] of its strength, as throwing a block does. */
@@ -194,6 +198,33 @@ class Tornado(type: EntityType<out Tornado>, level: Level) : Entity(type, level)
 
         /** Twenty-five seconds from the cloud to the ground. */
         const val TOUCHDOWN_TICKS = 500
+
+        /**
+         * The funnel's top flares to a little over twice its foot, forty to sixty across, and to this power of the way
+         * up, so it keeps narrow for most of its length; roped out, a rope at the foot and a little wider at the cloud.
+         * Its winds follow the flare, so its core is as wide as it is drawn at every height.
+         */
+        const val TOP_PER_FOOT = 2.2f
+        const val NARROWEST_TOP = 20.0f
+        const val WIDEST_TOP = 30.0f
+        const val FLARE = 3.0f
+        const val ROPE_FOOT = 1.2f
+        const val ROPE_TOP = 6.0f
+
+        /** Half the funnel's side at the ground, born [footHalfWidth] and [roped] this far out. */
+        fun footHalfWidthOf(footHalfWidth: Float, roped: Float): Float = Mth.lerp(roped, footHalfWidth, ROPE_FOOT)
+
+        /** Half the funnel's side at the cloud. */
+        fun topHalfWidthOf(footHalfWidth: Float, roped: Float): Float =
+            Mth.lerp(roped, (footHalfWidth * TOP_PER_FOOT).coerceIn(NARROWEST_TOP, WIDEST_TOP), ROPE_TOP)
+
+        /**
+         * How far the funnel's top leans ahead of its foot, as a share of its length, and a rope's far more; and how it
+         * curves, the lean growing as this power of the way up. Its winds follow the lean, so what it takes up stays in it.
+         */
+        const val LEAN = 0.1f
+        const val ROPE_LEAN = 0.3f
+        const val LEAN_CURVE = 1.5f
 
         /** It ropes out over the last fifth of its strength. */
         const val ROPES_OUT_FROM = 0.2
