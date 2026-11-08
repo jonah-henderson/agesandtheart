@@ -393,7 +393,10 @@ object SkyBodies {
      */
     fun starTintOf(said: Options): Rgba? {
         val named = said.of(STARCOLOUR)
-        val colour = Colour.named(named) ?: return null
+        // Stars whose colours turn and were given none start from the vividest there is, as `red stars` would be, so
+        // the turn carries them round the whole wheel rather than tinging white.
+        val turning = said.isTrue(Prism.COLOURS_CYCLING)
+        val colour = Colour.named(named) ?: (if (turning) Colour.named(TURNING_STARS_START) else null) ?: return null
         if (named in WITHOUT_A_HUE) return colour.brightenedTo(DIMMEST_STARS)
         val pushed = colour.saturated(SUN_IS_LOOKED_AT)
         return pushed.dimmed(FULL_CHANNEL / brightestOf(pushed))
@@ -407,6 +410,9 @@ object SkyBodies {
     }
 
     private val WITHOUT_A_HUE = setOf("white", "grey", "black")
+
+    /** Where turning stars given no colour start the wheel. */
+    private const val TURNING_STARS_START = "red"
     private const val FULL_CHANNEL = 1.0f
 
     /** How bright black stars burn in their brightest channel: faint, but still there. */
