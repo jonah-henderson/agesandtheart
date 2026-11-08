@@ -89,6 +89,11 @@ data class Claim(
      * [confinedTo]'s twin, scoping to members rather than to ground.
      */
     val members: List<String> = emptyList(),
+    /**
+     * The landmass territory this is kept to, by its member index, or null for the whole Age — `on=1`. Never written
+     * by a book: a landform's own features ([Terrain.carriedFeatures]) are carried to its territory alone.
+     */
+    val territory: Int? = null,
 ) {
     /**
      * Whether this could not bring its member about — a **description** ([onlyWhereItGrows]) asking for no
@@ -143,6 +148,7 @@ data class Claim(
             ownHeight?.let { add("$HEIGHT$SETS${Rung.spelled(it)}") }
             ownDepth?.let { add("$DEPTH$SETS${Rung.spelled(it)}") }
             confinedTo?.let { add("$IN$SETS$it") }
+            territory?.let { add("$ON$SETS$it") }
             if (members.isNotEmpty()) add("$FOR$SETS${members.joinToString(AMONG.toString())}")
         }
         if (parts.isEmpty()) return value
@@ -166,6 +172,7 @@ data class Claim(
         const val EXCEPT = "except"
         const val AMOUNT = "amount"
         const val IN = "in"
+        const val ON = "on"
         const val OF = "of"
         const val SIZE = "size"
         const val HEIGHT = "height"
@@ -207,6 +214,7 @@ data class Claim(
                 height = valueOf(parts, HEIGHT)?.toDoubleOrNull(),
                 depth = valueOf(parts, DEPTH)?.toDoubleOrNull(),
                 members = valueOf(parts, FOR)?.split(AMONG)?.filter(String::isNotEmpty).orEmpty(),
+                territory = valueOf(parts, ON)?.toIntOrNull(),
             )
         }
 

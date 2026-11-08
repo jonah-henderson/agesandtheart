@@ -61,7 +61,7 @@ object Features {
     fun writtenAndCarried(composition: AgeComposition): Options {
         val written = composition.optionsFor(Aspect.FEATURES, 0)
         val carried = composition.terrains.flatMapIndexed { member, terrain ->
-            terrain.carriedFeatures(composition.optionsFor(Aspect.TERRAIN, member))
+            terrain.carriedFeatures(composition.optionsFor(Aspect.TERRAIN, member), member)
         }.distinct()
         if (carried.isEmpty()) return written
         val places = PLACES.name
@@ -403,7 +403,8 @@ object Features {
                     registries = shape.registries,
                 ).let { FeatureShape.deepened(it, claim.depth) }
                 val confined = claim.confinedTo?.let { FeatureShape.confinedTo(reshaped, it) } ?: reshaped
-                FeatureDensity.applied(confined, claim.density)
+                val kept = claim.territory?.let { FeatureShape.keptToTerritory(confined, it) } ?: confined
+                FeatureDensity.applied(kept, claim.density)
             }
             byStep.getOrPut(stepFor(named, found.value(), biomes)) { mutableListOf() } += laid
             clearingOver(laid, clearings)?.let { byStep.getOrPut(CLEARING_STEP) { mutableListOf() } += it }

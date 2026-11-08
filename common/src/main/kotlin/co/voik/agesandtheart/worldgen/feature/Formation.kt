@@ -25,6 +25,7 @@ import net.minecraft.world.level.block.VineBlock
 import net.minecraft.world.level.levelgen.PositionalRandomFactory
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkGenerator
+import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.feature.Feature
@@ -98,6 +99,17 @@ data class Formation(
      * colossal, so it climbs faster; below the middle of the axis every formation shrinks alike.
      */
     val largest: Double = SizeScale.COLOSSAL,
+    /**
+     * The one landform territory a formation may stand on, by its member index, or null for anywhere — asked at its
+     * origin of a generator that knows its territories ([LandformTerritories]), as [onlyIn] asks the biome.
+     */
+    val onlyOn: Int? = null,
+    /**
+     * What it is made of on each kind of ground, the first whose biomes hold its origin taking it: pedestal rocks are
+     * sandstone where the ground is sand. Where none does, it is the level's own stone rather than [substances].
+     * Empty for a formation made of [substances] wherever it stands.
+     */
+    val byGround: List<GroundSubstance> = emptyList(),
 ) : Feature {
 
     /**
@@ -105,7 +117,9 @@ data class Formation(
      * formation being a few dozen blocks across rather than a territory, where the rock's patches came out
      * as a stripe of each (Jonah, 2026-09-23).
      */
-    private val material = TerrainFill(blocks = listOf(substances), mingleStretch = FORMATION_MINGLING)
+    private val material = madeOf(substances)
+
+    private val materialsByGround = byGround.map { madeOf(it.substances) }
 
     override fun codec(): MapCodec<out Feature> = CODEC
 
@@ -136,15 +150,40 @@ data class Formation(
     ): Int {
         val chunk = ChunkPos(SectionPos.blockToSectionCoord(origin.x), SectionPos.blockToSectionCoord(origin.z))
         val groundAt = surfaceOf(level, generator)
+        val inItsBiome = onlyIn?.let { biome -> standsIn(biome, level, generator, groundAt) } ?: ANYWHERE
+        val onItsTerritory = onlyOn?.let { territory -> standsOn(territory, generator) } ?: ANYWHERE
         return raise(
             level.seed,
             chunk,
             groundAt,
             clear = clear,
-            standsAt = onlyIn?.let { biome -> standsIn(biome, level, generator, groundAt) } ?: ANYWHERE,
+            standsAt = { x, z -> onItsTerritory(x, z) && inItsBiome(x, z) },
             seaTop = Tide.seaOf(generator)?.top,
+            materialAt = if (byGround.isEmpty()) ALWAYS_ITS_OWN else materialOfTheGround(level, generator, groundAt),
             lay = lay,
         )
+    }
+
+    private fun standsOn(territory: Int, generator: ChunkGenerator): (Int, Int) -> Boolean {
+        val territories = generator as? LandformTerritories
+        return { x, z -> (territories?.territoryAt(x, z) ?: 0) == territory }
+    }
+
+    /** What a formation standing at a column is made of, by the biome there — pure, as [standsIn] is. */
+    private fun materialOfTheGround(
+        level: WorldGenLevel,
+        generator: ChunkGenerator,
+        groundAt: (Int, Int) -> Int,
+    ): (Int, Int) -> TerrainFill? {
+        val resolver = generator.biomeSource.createUncachedResolver(level.level.chunkSource.randomState())
+        val stone = (generator as? NoiseBasedChunkGenerator)?.generatorSettings()?.value()?.defaultBlock()
+        val ofTheLevel = stone?.let { madeOf(listOf(it)) }
+        return { x, z ->
+            val y = groundAt(x, z) - 1
+            val biome = resolver.getNoiseBiome(QuartPos.fromBlock(x), QuartPos.fromBlock(y), QuartPos.fromBlock(z))
+            val matching = byGround.indexOfFirst { biome.`is`(it.biomes) }
+            if (matching >= 0) materialsByGround[matching] else ofTheLevel
+        }
     }
 
     /**
@@ -230,6 +269,7 @@ data class Formation(
         clear: (BlockPos) -> Unit = {},
         standsAt: (Int, Int) -> Boolean = ANYWHERE,
         seaTop: Int? = null,
+        materialAt: (Int, Int) -> TerrainFill? = ALWAYS_ITS_OWN,
         lay: (BlockPos, BlockState) -> Unit,
     ): Int {
         val posed = shapes.flatMap(variation::sizesOf)
@@ -274,6 +314,7 @@ data class Formation(
         for (formation in standing) {
             if (!standsAt(formation.originX, formation.originZ)) continue
             fun columnOf(x: Int, z: Int): Spans = columnOf(formation, x, z)
+            val madeOf by lazy { materialAt(formation.originX, formation.originZ) ?: material }
             // Null where a sunk formation declined its site.
             val standsOn by lazy {
                 when {
@@ -296,7 +337,7 @@ data class Formation(
                     // down from the ground around it — and stays there at every size, sizes being scaled
                     // about 0.
                     val base = if (sunk) anchor - 1 - RECESS else anchor
-                    laid += layColumn(solid, base, x, z, lay)
+                    laid += layColumn(solid, base, x, z, madeOf, lay)
                     if (sunk) cutAway(anchor - RECESS, groundAt(x, z), x, z, clear)
                 }
             }
@@ -473,6 +514,7 @@ data class Formation(
         ground: Int,
         x: Int,
         z: Int,
+        material: TerrainFill,
         put: (BlockPos, BlockState) -> Unit,
     ): Int {
         var laid = 0
@@ -503,10 +545,22 @@ data class Formation(
                 Codec.BOOL.optionalFieldOf("sunk", false).forGetter(Formation::sunk),
                 Identifier.CODEC.optionalFieldOf("only_in").forGetter { Optional.ofNullable(it.onlyIn) },
                 Codec.DOUBLE.optionalFieldOf("largest", SizeScale.COLOSSAL).forGetter(Formation::largest),
-            ).apply(instance) { shapes, variation, placement, seed, substances, sunk, onlyIn, largest ->
-                Formation(shapes, variation, placement, seed, substances, sunk, onlyIn.orElse(null), largest)
+                Codec.INT.optionalFieldOf("only_on").forGetter { Optional.ofNullable(it.onlyOn) },
+                GroundSubstance.CODEC.listOf().optionalFieldOf("by_ground", emptyList()).forGetter(Formation::byGround),
+            ).apply(instance) { shapes, variation, placement, seed, substances, sunk, onlyIn, largest, onlyOn, byGround ->
+                Formation(
+                    shapes, variation, placement, seed, substances, sunk, onlyIn.orElse(null), largest,
+                    onlyOn.orElse(null), byGround,
+                )
             }
         }
+
+        /** A landmass's own mingling, finer — see [FORMATION_MINGLING]. */
+        private fun madeOf(substances: List<BlockState>) =
+            TerrainFill(blocks = listOf(substances), mingleStretch = FORMATION_MINGLING)
+
+        /** Where a formation is made of its own substances, wherever it stands. */
+        private val ALWAYS_ITS_OWN: (Int, Int) -> TerrainFill? = { _, _ -> null }
 
         /** Vanilla's own flag for a block a feature lays: change it, and do not tell a neighbour. */
         private const val PLACED_BY_WORLDGEN = 2

@@ -96,6 +96,11 @@ data class Density(
     /** Blocks per unit of that noise — how wide one crowded or empty region runs. */
     val patchScale: Double = DEFAULT_PATCH_SCALE,
     val patchSeed: Long = 0L,
+    /**
+     * The least the probability falls to wherever the patches leave it, so a placement can be sparse everywhere
+     * and crowded only where its patches rise well above nothing.
+     */
+    val least: Double = 0.0,
 ) {
 
     fun keepProbability(worldX: Int, worldZ: Int): Double {
@@ -104,11 +109,11 @@ data class Density(
             val fraction = (radius / falloffRadius).coerceIn(0.0, 1.0)
             atOrigin + (atEdge - atOrigin) * fraction
         }
-        if (patchiness <= NO_PATCHES) return radial
+        if (patchiness <= NO_PATCHES) return radial.coerceAtLeast(least)
         // Added rather than scaled, and clamped: what an archipelago wants is stretches at nearly one and
         // stretches at nearly nothing, which multiplying a mid probability could never reach.
         val patch = patches.get(worldX / patchStretch, 0.0, worldZ / patchStretch).toDouble().coerceIn(-1.0, 1.0)
-        return (radial + patch * patchiness).coerceIn(0.0, 1.0)
+        return (radial + patch * patchiness).coerceIn(least.coerceIn(0.0, 1.0), 1.0)
     }
 
     private val patchStretch = patchScale.coerceAtLeast(SMALLEST_STRETCH)
@@ -126,6 +131,7 @@ data class Density(
                 Codec.DOUBLE.optionalFieldOf("patchiness", NO_PATCHES).forGetter(Density::patchiness),
                 Codec.DOUBLE.optionalFieldOf("patch_scale", DEFAULT_PATCH_SCALE).forGetter(Density::patchScale),
                 Codec.LONG.optionalFieldOf("patch_seed", 0L).forGetter(Density::patchSeed),
+                Codec.DOUBLE.optionalFieldOf("least", 0.0).forGetter(Density::least),
             ).apply(instance, ::Density)
         }
 

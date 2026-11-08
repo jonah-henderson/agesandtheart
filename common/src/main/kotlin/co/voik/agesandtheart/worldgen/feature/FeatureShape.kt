@@ -160,6 +160,7 @@ object FeatureShape {
             is Formation -> feature.copy(
                 substances = blocks.map { it.defaultBlockState() },
                 seed = feature.seed xor substances.hashCode().toLong(),
+                byGround = emptyList(),
             )
             // The ore is what a writer names; the filler rock it is strung through stays the pattern's, and so
             // does where it runs, bar the seed for the same reason a formation's moves.
@@ -195,6 +196,13 @@ object FeatureShape {
         val placed = feature.value()
         val formation = placed.feature().value() as? Formation ?: return null
         return Holder.direct(PlacedFeature(Holder.direct(formation.copy(onlyIn = biome)), placed.placement()))
+    }
+
+    /** A formation told the one landform territory it may stand on — see [Formation.onlyOn] — or null as [confinedTo]. */
+    fun keptToTerritory(feature: Holder<PlacedFeature>, territory: Int): Holder<PlacedFeature>? {
+        val placed = feature.value()
+        val formation = placed.feature().value() as? Formation ?: return null
+        return Holder.direct(PlacedFeature(Holder.direct(formation.copy(onlyOn = territory)), placed.placement()))
     }
 
     /** Whether this places a [Formation] — the one kind of feature [confinedTo] can confine. */

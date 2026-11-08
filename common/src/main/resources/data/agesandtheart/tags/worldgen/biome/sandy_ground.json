@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Biomes whose ground is sand, where a formation that follows its ground is made of sandstone (`by_ground`)."
+  ],
+  "replace": false,
+  "values": [
+    "minecraft:desert",
+    "minecraft:beach",
+    "minecraft:warm_ocean",
+    "agesandtheart:palm_beach"
+  ]
+}

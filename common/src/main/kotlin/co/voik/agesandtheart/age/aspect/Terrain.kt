@@ -64,9 +64,8 @@ private val ISLAND_PONDS: String by lazy {
 private const val ISLAND_POND_RATE = 8.0
 
 /** Windswept land's pedestal rocks, in sandstone where nothing else made them. */
-private val WINDSWEPT_PEDESTALS: String by lazy {
-    Claim("agesandtheart:pedestals", madeOf = "minecraft:sandstone").spelled()
-}
+/** Made of what the ground they stand on suggests, rather than of anything named (`Formation.byGround`). */
+private fun windsweptPedestalsOn(territory: Int): String = Claim("agesandtheart:pedestals", territory = territory).spelled()
 
 /** A slab whose top is under its bottom, which holds no rock in any column at any size. */
 private val NOTHING_SOLID = Slab(lowY = 1, highY = 0)
@@ -768,10 +767,10 @@ enum class Terrain(
      * islands' ponds (Jonah, 2026-10-06), vanilla's surface lake filled with water, which lies on the ground
      * where it falls and will not place where it would spill; and windswept land's pedestal rocks.
      */
-    fun carriedFeatures(options: Options): List<String> = when {
+    fun carriedFeatures(options: Options, member: Int): List<String> = when {
         this == SKYLANDS -> listOf(ISLAND_PONDS)
-        // Windswept land brings its pedestal rocks, as meteors bring their craters (Jonah).
-        this == YARDANGS && !options.isTrue(FORMER_BARE_WINDSWEPT) -> listOf(WINDSWEPT_PEDESTALS)
+        // Windswept land brings its pedestal rocks to its own territory, as meteors bring their craters (Jonah).
+        this == YARDANGS && !options.isTrue(FORMER_BARE_WINDSWEPT) -> listOf(windsweptPedestalsOn(member))
         else -> emptyList()
     }
 

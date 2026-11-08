@@ -463,6 +463,7 @@ object AgeGeneration {
             ),
             spawnCaps = Spawns.capsOf(composition.optionsFor(Aspect.SPAWNS, 0)),
             landformArrival = if (grounds == null) null else landformArrivalIn(composition, ground, seed),
+            landformTerritories = ground.takeIf { composition.terrains.size > 1 },
             nothingLives = Spawns.nothingLives(composition.optionsFor(Aspect.SPAWNS, 0)),
             incongruity = Incongruity.of(composition),
             structureHomes = structureHomesIn(composition, biomeSource, seed),

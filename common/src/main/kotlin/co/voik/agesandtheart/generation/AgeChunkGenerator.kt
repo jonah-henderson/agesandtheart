@@ -20,6 +20,7 @@ import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.RegionMap
+import co.voik.agesandtheart.worldgen.feature.LandformTerritories
 import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.WaterTable
@@ -252,13 +253,18 @@ class AgeChunkGenerator(
     private val dislocation: Dislocation = Dislocation.NONE,
     /** The column the Age's landform asks a link to arrive on, or null for footing near the origin. Not serialised, like [lives]. */
     val landformArrival: ColumnPos? = null,
+    /** Which landform's territory each column is in, or null for an Age of one. Not serialised, like [lives]. */
+    private val landformTerritories: RegionMap? = null,
 ) : NoiseBasedChunkGenerator(
     biomes,
     when (rock) {
         is AgeRock.Vanillas -> rock.settings
         is AgeRock.Ours -> Holder.direct(settingsFor(writtenSea, surfaceRule, climate, fill, window, rock.landform, rock.hollows))
     },
-) {
+), LandformTerritories {
+
+    override fun territoryAt(blockX: Int, blockZ: Int): Int = landformTerritories?.memberAt(blockX, blockZ) ?: 0
+
 
     /**
      * How far under the level it was written with this Age's sea currently stands, in blocks.
