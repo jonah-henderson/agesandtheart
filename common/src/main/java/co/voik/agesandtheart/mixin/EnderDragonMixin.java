@@ -1,13 +1,22 @@
 package co.voik.agesandtheart.mixin;
 
+import co.voik.agesandtheart.content.Dragons;
+import java.util.List;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.pathfinder.Node;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Laying a dragon's flight around the place it actually lives.
@@ -36,7 +45,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * would fix the paths and bring a boss bar, crystals and an exit portal with it, none of which an ordinary
  * Age wants.
  */
-@Mixin(net.minecraft.world.entity.boss.enderdragon.EnderDragon.class)
+@Mixin(EnderDragon.class)
 public abstract class EnderDragonMixin {
 
     @Shadow
@@ -60,6 +69,33 @@ public abstract class EnderDragonMixin {
     )
     private BlockPos agesandtheart$sampledWhereItWillStand(Level level, Heightmap.Types types, BlockPos where) {
         return level.getHeightmapPos(types, where.offset(this.fightOrigin.getX(), 0, this.fightOrigin.getZ()));
+    }
+
+    /**
+     * What its head and wings strike, less whoever its disposition spares ({@code Dragons.sparedBy}): a tamed dragon
+     * hovering over its owner would otherwise strike them every tick. Both are private methods handed the list, and
+     * neither loader has an event between the dragon and what it touches.
+     */
+    @ModifyVariable(
+        method = "knockBack(Lnet/minecraft/server/level/ServerLevel;Ljava/util/List;)V", at = @At("HEAD"), argsOnly = true
+    )
+    private List<Entity> agesandtheart$sparingWhomItMayNotStrike(List<Entity> struck) {
+        return Dragons.sparedBy((EnderDragon) (Object) this, struck);
+    }
+
+    @ModifyVariable(
+        method = "hurt(Lnet/minecraft/server/level/ServerLevel;Ljava/util/List;)V", at = @At("HEAD"), argsOnly = true
+    )
+    private List<Entity> agesandtheart$sparingWhomItMayNotBite(List<Entity> struck) {
+        return Dragons.sparedBy((EnderDragon) (Object) this, struck);
+    }
+
+    /** A tamed dragon passes through blocks rather than breaking them, so following its owner ploughs no country. */
+    @Inject(method = "checkWalls", at = @At("HEAD"), cancellable = true)
+    private void agesandtheart$leavingTheGroundBe(ServerLevel level, AABB box, CallbackInfoReturnable<Boolean> hitAWall) {
+        if (Dragons.leavesTheGroundBe((EnderDragon) (Object) this)) {
+            hitAWall.setReturnValue(false);
+        }
     }
 
     /** And the node itself, moved to match. */

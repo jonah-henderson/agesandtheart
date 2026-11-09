@@ -4,8 +4,8 @@
     "what it drops. An item, `#` and an item tag, or `{\"item\": ..., \"potions\": [...]}` for one holding a potion;",
     "`\"babies_only\": true` for what only its young want. Held, it brings the creature and keeps it from attacking",
     "whoever holds it; given, one in three is taken. A creature not named here is not tamed this way, which leaves",
-    "the ones vanilla tames (wolves, cats, parrots, horses, llamas, camels, nautiluses) to vanilla, and the ender",
-    "dragon and the warden to be built last. The undead remember what they loved alive."
+    "the ones vanilla tames (wolves, cats, parrots, horses, llamas, camels, nautiluses) to vanilla, and the warden",
+    "to be built last. The undead remember what they loved alive."
   ],
   "creatures": {
     "minecraft:zombie": ["#agesandtheart:holds_something_alive", "minecraft:player_head"],
@@ -34,6 +34,7 @@
     "minecraft:enderman": ["minecraft:dragon_head"],
     "minecraft:endermite": ["minecraft:chorus_fruit"],
     "minecraft:shulker": ["minecraft:purpur_block", "minecraft:purpur_pillar"],
+    "minecraft:ender_dragon": ["minecraft:dragon_egg"],
 
     "minecraft:creeper": ["minecraft:gunpowder"],
     "minecraft:spider": ["minecraft:firefly_bush"],

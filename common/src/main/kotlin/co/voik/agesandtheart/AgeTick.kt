@@ -75,6 +75,7 @@ object AgeTick {
             // And a dragon an Age was written with needs telling where it is, or it flies to the world
             // origin to hold its pattern — see [Dragons].
             Dragons.findTheirOwnGround(level)
+            Dragons.answerToTheirOwners(level)
             // Nor is this: water deep enough to be an abyss becomes one, wherever it came from. **Here and
             // not beside `ChargedMetal.stir` on purpose** — that walks every level so crystal carried home
             // still works, where this must reach no Overworld and no End (Jonah, 2026-09-10). Walking the

@@ -19,6 +19,7 @@ import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.Mob
 import net.minecraft.world.entity.NeutralMob
 import net.minecraft.world.entity.ai.memory.MemoryModuleType
+import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart
 import net.minecraft.world.entity.ambient.Bat
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.DispensibleContainerItem
@@ -79,7 +80,7 @@ object Taming {
      * emptied or a potion drunk on top of the offer.
      */
     fun used(player: Player, level: Level, hand: InteractionHand, entity: Entity): InteractionResult? {
-        val mob = entity as? Mob ?: return null
+        val mob = (entity as? EnderDragonPart)?.parentMob ?: entity as? Mob ?: return null
         if (player.isSpectator) return null
         val stack = player.getItemInHand(hand)
         if (level !is ServerLevel) return InteractionResult.SUCCESS.takeIf { TemptationsHere.claims(mob, stack) }

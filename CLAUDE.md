@@ -381,7 +381,10 @@ When shared code needs something loader-specific, it goes through an interface, 
   two places `fightOrigin` did not reach: its flight ring is laid at absolute coordinates, and the landing
   approach steers by the player's absolute position normalised into a bearing from `(0, 0)`. Both are
   no-ops in the End, where the origin *is* zero. The accessor exists because `@Shadow` does not walk a
-  target's hierarchy and `dragon` is declared on `AbstractDragonPhaseInstance`.
+  target's hierarchy and `dragon` is declared on `AbstractDragonPhaseInstance`. `EnderDragonMixin` also spares
+  whoever a dragon's disposition says it may not attack from its head and wings, which strike without asking
+  `canAttack`, and lets a tamed one pass through blocks unbroken; a tamed or tempted dragon is flown by its hover
+  and strafe phases from the Age's tick (`content/Dragons`), since a dragon runs no goals.
 - **`client/ClientLevelMixin`** — a wound arriving where the client can see it. `setBlocksDirty` is the
   only seam that fires on both sides for a block change: `onPlace` is skipped client-side, so the index the
   wound renderer draws from would otherwise never hear about one torn after its chunk arrived. Neither

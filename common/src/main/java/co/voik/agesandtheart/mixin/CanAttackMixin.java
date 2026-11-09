@@ -6,6 +6,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.animal.dolphin.Dolphin;
 import net.minecraft.world.entity.animal.golem.IronGolem;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.monster.breeze.Breeze;
 import net.minecraft.world.entity.monster.illager.AbstractIllager;
 import net.minecraft.world.entity.monster.warden.Warden;
@@ -25,7 +26,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  */
 @Mixin({
     LivingEntity.class, Mob.class, TamableAnimal.class, Dolphin.class, IronGolem.class, Breeze.class,
-    AbstractIllager.class, Warden.class,
+    AbstractIllager.class, Warden.class, EnderDragon.class,
 })
 public abstract class CanAttackMixin {
 
