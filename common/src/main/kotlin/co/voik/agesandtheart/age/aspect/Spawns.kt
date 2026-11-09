@@ -37,6 +37,7 @@ object Spawns {
     const val FRIENDLY = "friendly"
     const val PASSIVE = "passive"
     const val AGGRESSIVE = "aggressive"
+    const val TAMABLE = "tamable"
 
     /**
      * What lives here — populative, with `only`/`except` to narrow and a rung to say how often (§3.2,
@@ -59,13 +60,14 @@ object Spawns {
      */
     val DISPOSITION = Parameter(
         "disposition",
-        listOf(Parameter.DEFAULT, FRIENDLY, PASSIVE, AGGRESSIVE),
+        listOf(Parameter.DEFAULT, FRIENDLY, PASSIVE, AGGRESSIVE, TAMABLE),
         help = "How creatures take to everything else.",
         optionHelp = mapOf(
             Parameter.DEFAULT to "their own way",
             FRIENDLY to "never fights, even when hit",
             PASSIVE to "never starts a fight, and fights only what hit it",
             AGGRESSIVE to "goes for players on sight; what cannot fight headbutts",
+            TAMABLE to "tempted by what it wants, and tamed with it",
         ),
     ).perMember()
 

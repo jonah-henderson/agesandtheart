@@ -257,6 +257,7 @@ data class Danger(
                 Spawns.FRIENDLY -> hardiness.disposition.friendly
                 Spawns.PASSIVE -> hardiness.disposition.passive
                 Spawns.AGGRESSIVE -> hardiness.disposition.aggressive
+                Spawns.TAMABLE -> hardiness.disposition.tamable
                 else -> AS_THEY_ARE
             }
             return strength * pace * size * charged * still * herded * disposed

@@ -1,0 +1,11 @@
+{
+  "_comment": "A bucket with something living in it: the flesh a tamable zombie, husk or drowned wants (`art/temptations.json`).",
+  "values": [
+    "minecraft:cod_bucket",
+    "minecraft:salmon_bucket",
+    "minecraft:tropical_fish_bucket",
+    "minecraft:pufferfish_bucket",
+    "minecraft:axolotl_bucket",
+    "minecraft:tadpole_bucket"
+  ]
+}

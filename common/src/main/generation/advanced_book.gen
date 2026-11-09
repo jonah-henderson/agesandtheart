@@ -83,6 +83,7 @@ spared_age =
     | age [land] incongruous structures no villages yellow sky
     | age windswept landmass no trees sandstone pedestals
     | age [land] no undead friendly monsters [colour] sky
+    | age [land] no arthropods tamable monsters [colour] grass
 
 # The upper rungs: monuments in numbers.
 thronged_age =

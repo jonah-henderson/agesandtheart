@@ -208,7 +208,15 @@ accessible	field	net/minecraft/world/entity/monster/Creeper	DATA_IS_POWERED	Lnet
 # mouse actions in `init` through this, and a loader's screen-init event comes after.
 accessible	method	net/minecraft/client/gui/screens/inventory/AbstractContainerScreen	addItemSlotMouseAction	(Lnet/minecraft/client/gui/ItemSlotMouseAction;)V
 
-# A creature an Age wrote aggressive is given a target and, where it cannot fight, a headbutt as it enters
-# (`Dispositions`). Goals are added only from inside the mob, in `registerGoals`, and neither loader has a goal event.
+# A creature an Age wrote aggressive is given a target and, where it cannot fight, a headbutt as it enters, and a
+# tamable one its tempting and, once tamed, its following (`Dispositions`, `TamedGoals`). Goals are added only from inside the mob, in `registerGoals`, and neither loader has a goal event.
 accessible	field	net/minecraft/world/entity/Mob	goalSelector	Lnet/minecraft/world/entity/ai/goal/GoalSelector;
 accessible	field	net/minecraft/world/entity/Mob	targetSelector	Lnet/minecraft/world/entity/ai/goal/GoalSelector;
+
+# A creature that is tempted or follows its owner (`TamedGoals.Steering`) is steered the way it steers itself, where
+# that is not through its navigation or move control: a phantom circles its anchor, a bat flies to its target block,
+# a squid swims along its vector, and a cube mob hops the way its move control is pointed.
+accessible	field	net/minecraft/world/entity/monster/Phantom	anchorPoint	Lnet/minecraft/core/BlockPos;
+accessible	field	net/minecraft/world/entity/ambient/Bat	targetPosition	Lnet/minecraft/core/BlockPos;
+accessible	field	net/minecraft/world/entity/animal/squid/Squid	movementVector	Lnet/minecraft/world/phys/Vec3;
+accessible	class	net/minecraft/world/entity/monster/cubemob/AbstractCubeMob$CubeMobMoveControl

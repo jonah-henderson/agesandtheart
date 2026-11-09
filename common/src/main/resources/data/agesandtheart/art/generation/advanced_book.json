@@ -56,7 +56,8 @@
       {"produce":["age","[land]","varied","structures","no","villages","[colour]","sky"]},
       {"produce":["age","[land]","incongruous","structures","no","villages","yellow","sky"]},
       {"produce":["age","windswept","landmass","no","trees","sandstone","pedestals"]},
-      {"produce":["age","[land]","no","undead","friendly","monsters","[colour]","sky"]}
+      {"produce":["age","[land]","no","undead","friendly","monsters","[colour]","sky"]},
+      {"produce":["age","[land]","no","arthropods","tamable","monsters","[colour]","grass"]}
     ],
     "thronged_age": [
       {"produce":["age","[land]","teeming","[semiprecious]","[shape]","[colour]","sky"]},

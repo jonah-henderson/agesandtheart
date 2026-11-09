@@ -216,13 +216,14 @@ data class DangerTable(
     }
 
     /** What a monster written each way is worth, against its own way at one. */
-    data class Disposition(val friendly: Double, val passive: Double, val aggressive: Double) {
+    data class Disposition(val friendly: Double, val passive: Double, val aggressive: Double, val tamable: Double) {
         companion object {
             val CODEC: Codec<Disposition> = RecordCodecBuilder.create { instance ->
                 instance.group(
                     Codec.DOUBLE.fieldOf("friendly").forGetter(Disposition::friendly),
                     Codec.DOUBLE.fieldOf("passive").forGetter(Disposition::passive),
                     Codec.DOUBLE.fieldOf("aggressive").forGetter(Disposition::aggressive),
+                    Codec.DOUBLE.fieldOf("tamable").forGetter(Disposition::tamable),
                 ).apply(instance, ::Disposition)
             }
         }
@@ -296,7 +297,7 @@ data class DangerTable(
             monstersDoubled = NOTHING,
             darkness = Darkness(NOTHING, NOTHING, NOTHING, NOTHING),
             hardiness = Hardiness(
-                UNCHANGED, UNCHANGED, UNCHANGED, AS_IT_IS, AS_IT_IS, AS_IT_IS, Disposition(AS_IT_IS, AS_IT_IS, AS_IT_IS),
+                UNCHANGED, UNCHANGED, UNCHANGED, AS_IT_IS, AS_IT_IS, AS_IT_IS, Disposition(AS_IT_IS, AS_IT_IS, AS_IT_IS, AS_IT_IS),
             ),
             phenomena = emptyMap(),
             phenomenonDials = PhenomenonDials(UNCHANGED, AS_IT_IS, UNCHANGED),

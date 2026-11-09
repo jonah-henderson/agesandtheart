@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "Can be won over: a tamable creature comes to whoever holds what it wants (`art/temptations.json`), a bow for a",
+    "skeleton, gold for a piglin, and will not attack them while they hold it. Given it, one in three is tamed, and",
+    "follows its owner, fights for them and never turns on them. `tamable monsters` is a country of pets in waiting;",
+    "laid bare, every creature in the Age is."
+  ],
+  "meanings": [
+    {
+      "sets": {
+        "disposition": "tamable"
+      },
+      "must_always_apply": true
+    }
+  ]
+}

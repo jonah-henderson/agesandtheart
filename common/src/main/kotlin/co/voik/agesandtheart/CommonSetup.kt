@@ -4,6 +4,8 @@ import co.voik.agesandtheart.platform.Services
 import co.voik.agesandtheart.station.MachineCatalogPayload
 import co.voik.agesandtheart.worldgen.fissure.HomeLanding
 import co.voik.agesandtheart.age.consequence.Dispositions
+import co.voik.agesandtheart.age.consequence.Taming
+import co.voik.agesandtheart.age.consequence.TemptationsHerePayload
 import co.voik.agesandtheart.age.consequence.StillCreatures
 import co.voik.agesandtheart.age.consequence.WrittenCreatures
 import co.voik.agesandtheart.age.consequence.StrangeGravity
@@ -181,6 +183,7 @@ object CommonSetup {
 
     /** A player arriving in another level, however they came: a book, a portal, a fissure or a command. */
     fun playerChangedLevel(player: ServerPlayer, to: ServerLevel) {
+        Services.NETWORK.sendToPlayer(player, TemptationsHerePayload.of(to))
         val arrival = Arrival.at(to) ?: return
         AgeTriggers.ENTERED_AGE.trigger(player, arrival)
         AgeSavedData.get(to.server).visit(to.dimension().identifier())
@@ -203,6 +206,10 @@ object CommonSetup {
         return LecternBooks.use(state, level, hit.blockPos, player, hit)
     }
 
+    /** A player using [entity] with [hand], on either side, before vanilla does — or null to leave it to vanilla. */
+    fun entityUsed(player: Player, level: Level, hand: InteractionHand, entity: Entity): InteractionResult? =
+        Taming.used(player, level, hand, entity)
+
     /** A creature dying on the server, of [source]. */
     fun livingDied(victim: LivingEntity, source: DamageSource) {
         PlasmaBurst.died(victim, source)
@@ -221,6 +228,7 @@ object CommonSetup {
     fun datapackSynced(player: ServerPlayer) {
         PageLearning.tellTheLexicon(player)
         Services.NETWORK.sendToPlayer(player, MachineCatalogPayload.of(player.level().server))
+        Services.NETWORK.sendToPlayer(player, TemptationsHerePayload.of(player.level()))
     }
 
     /**

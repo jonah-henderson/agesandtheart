@@ -2,6 +2,7 @@ package co.voik.agesandtheart
 
 import net.minecraft.world.InteractionResult
 import net.fabricmc.fabric.api.event.player.UseBlockCallback
+import net.fabricmc.fabric.api.event.player.UseEntityCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams
@@ -146,6 +147,9 @@ fun init() {
     }
     ServerLivingEntityEvents.AFTER_DEATH.register { victim, source -> CommonSetup.livingDied(victim, source) }
     UseBlockCallback.EVENT.register { player, level, hand, hit -> CommonSetup.blockUsed(player, level, hand, hit) ?: InteractionResult.PASS }
+    UseEntityCallback.EVENT.register { player, level, hand, entity, _ ->
+        CommonSetup.entityUsed(player, level, hand, entity) ?: InteractionResult.PASS
+    }
     // Only a creature's own death loot: every other table this fires for — a block, a chest — is left alone.
     LootTableEvents.MODIFY_DROPS.register { table, context, drops ->
         val victim = context.getOptional(LootContextParams.THIS_ENTITY) as? LivingEntity ?: return@register

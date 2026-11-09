@@ -369,11 +369,12 @@ When shared code needs something loader-specific, it goes through an interface, 
   (`TornadoWinds.isHeldUp`). Its orbit keeps a player off the ground as long as it pleases, past the eighty ticks a
   server allows; `getMaximumFlyingTicks` is the one method that says how long anything may float, and neither loader
   has an event for it.
-- **`CanAttackMixin`** — a creature an Age wrote friendly attacks nothing, and a passive one only what hit it
-  (`age/consequence/Dispositions`). `canAttack` is what `setTarget`, a target goal's search and a brain's
+- **`CanAttackMixin`** — a creature an Age wrote friendly attacks nothing, a passive one only what hit it, a tamable
+  one no player holding what it wants, and a tamed one never its owner (`age/consequence/Dispositions`, `Taming`). `canAttack` is what `setTarget`, a target goal's search and a brain's
   `StartAttacking` all ask first; it targets every class that answers it for itself. Fabric has no targeting event,
-  and NeoForge's sees a target set but not a search choosing one. An aggressive creature's goals need no Mixin:
-  `Mob.goalSelector` and `targetSelector` are widened, and the goals added as it enters the Age.
+  and NeoForge's sees a target set but not a search choosing one. An aggressive or tamable creature's goals need no Mixin:
+  `Mob.goalSelector` and `targetSelector` are widened, and the goals added as it enters the Age. A tamed creature's
+  owner is an entity tag, and the taming itself is each loader's entity-use event (`CommonSetup.entityUsed`).
 - **`LightningBoltMixin`** — a bolt landing in a tempest. The entity-join event would fire re-entrantly inside `addFreshEntity` and cannot see the private `visualOnly` flag that marks a trap's harmless bolt.
 - **`EnderDragonMixin`** and **`DragonHoldingPatternMixin`**, with **`DragonPhaseAccessor`** serving the
   second — a dragon an Age wrote, rather than the End's. Vanilla's is written around the world origin in

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.consequence.TemptationsHere
 import co.voik.ephemeris.client.RecolouredRenderTypes
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
@@ -86,6 +87,7 @@ object ClientSetup {
         TornSky.forget()
         StrangeGravity.disconnected()
         KnownMachineRecipes.forget()
+        TemptationsHere.forget()
         DeskModel.forget()
         Wounds.forget()
         TintedLights.forget()

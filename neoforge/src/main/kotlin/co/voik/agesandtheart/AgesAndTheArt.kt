@@ -87,6 +87,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         NeoForge.EVENT_BUS.addListener(::onPlayerChangedDimension)
         NeoForge.EVENT_BUS.addListener(::onLivingDeath)
         NeoForge.EVENT_BUS.addListener(::onRightClickBlock)
+        NeoForge.EVENT_BUS.addListener(::onEntityInteract)
         NeoForge.EVENT_BUS.addListener(::onLivingDrops)
         NeoForge.EVENT_BUS.addListener(::onDatapackSync)
         NeoForge.EVENT_BUS.addListener(::onServerStarted)
@@ -339,6 +340,12 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     /** Server side only, as Fabric's `AFTER_DEATH` is; a cancelled death is no death. */
     private fun onRightClickBlock(event: PlayerInteractEvent.RightClickBlock) {
         val result = CommonSetup.blockUsed(event.entity, event.level, event.hand, event.hitVec) ?: return
+        event.cancellationResult = result
+        event.isCanceled = true
+    }
+
+    private fun onEntityInteract(event: PlayerInteractEvent.EntityInteract) {
+        val result = CommonSetup.entityUsed(event.entity, event.level, event.hand, event.target) ?: return
         event.cancellationResult = result
         event.isCanceled = true
     }

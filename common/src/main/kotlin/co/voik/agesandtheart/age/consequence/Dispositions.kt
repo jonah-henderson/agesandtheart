@@ -24,33 +24,51 @@ import java.util.WeakHashMap
 
 /**
  * How a book wrote its creatures to take to everything else, member by member (`Spawns.DISPOSITION`): `friendly` never
- * fights, `passive` never starts a fight and fights only what hit it, `aggressive` goes for players on sight.
+ * fights, `passive` never starts a fight and fights only what hit it, `aggressive` goes for players on sight, and
+ * `tamable` is tempted by what it wants and may be tamed with it ([Taming]).
  *
- * Friendly and passive are one answer to the question every way of taking a target asks first, whether the creature
- * may attack this one (`mixin/CanAttackMixin`). Aggressive is laid on as the creature enters the Age, as
- * [WrittenCreatures] lays on its pace and strength, and is transient like them.
+ * Friendly, passive and a tamed creature's loyalty are one answer to the question every way of taking a target asks
+ * first, whether the creature may attack this one (`mixin/CanAttackMixin`). Aggressive and tamable are laid on as the
+ * creature enters the Age, as [WrittenCreatures] lays on its pace and strength, and are transient like them.
  */
 object Dispositions {
 
-    enum class Disposition { OWN, FRIENDLY, PASSIVE, AGGRESSIVE }
+    enum class Disposition { OWN, FRIENDLY, PASSIVE, AGGRESSIVE, TAMABLE }
 
-    /** Whether [attacker] may not go for [target]: never where it is friendly, and only what hit it where it is passive. */
+    /**
+     * Whether [attacker] may not go for [target]: never where it is friendly, only what hit it where it is passive, not
+     * a player holding what it wants where it is tamable, and as [Taming.mayFight] says once it is tamed, anywhere.
+     */
     @JvmStatic
     fun forbids(attacker: LivingEntity, target: LivingEntity?): Boolean {
-        if (target == null) return false
+        if (target == null || attacker !is Mob) return false
+        if (Taming.isTamed(attacker)) return !Taming.mayFight(attacker, target)
         return when (of(attacker)) {
             Disposition.FRIENDLY -> true
             Disposition.PASSIVE -> target !== attacker.lastHurtByMob
+            Disposition.TAMABLE -> isTemptedBy(attacker, target)
             Disposition.OWN, Disposition.AGGRESSIVE -> false
         }
+    }
+
+    private fun isTemptedBy(mob: Mob, target: LivingEntity): Boolean {
+        val level = mob.level() as? ServerLevel ?: return false
+        if (target !is Player) return false
+        val temptations = Temptations.of(level.server)
+        return temptations.tempts(mob, target.mainHandItem) || temptations.tempts(mob, target.offhandItem)
     }
 
     /** [entity]'s disposition as its Age wrote it, or its own anywhere else and for anything but a creature. */
     fun of(entity: LivingEntity): Disposition {
         if (entity !is Mob) return Disposition.OWN
         val level = entity.level() as? ServerLevel ?: return Disposition.OWN
+        return of(level, entity.type)
+    }
+
+    /** What [type] was written in [level], or its own way outside an Age. */
+    fun of(level: ServerLevel, type: EntityType<*>): Disposition {
         val byKind = writtenIn(level) ?: return Disposition.OWN
-        return byKind.getOrPut(entity.type) { read(level, entity.type) }
+        return synchronized(byKind) { byKind.getOrPut(type) { read(level, type) } }
     }
 
     /**
@@ -71,27 +89,48 @@ object Dispositions {
             Spawns.FRIENDLY -> Disposition.FRIENDLY
             Spawns.PASSIVE -> Disposition.PASSIVE
             Spawns.AGGRESSIVE -> Disposition.AGGRESSIVE
+            Spawns.TAMABLE -> Disposition.TAMABLE
             else -> Disposition.OWN
         }
     }
 
     /**
-     * An aggressive creature entering its Age: it goes for the nearest player and stops running from anything, and
-     * one with no attack of its own is given a feeble [Headbutt]. A creature run by a brain rather than goals keeps
-     * its own ways but for the target, since the two would fight over where it walks.
+     * A creature entering a level: one somebody tamed keeps to them anywhere, a tamable one can be tempted in its Age,
+     * and an aggressive one is [madeAggressive] there.
      */
     fun loaded(entity: Entity) {
-        val mob = entity as? PathfinderMob ?: return
-        if (of(mob) != Disposition.AGGRESSIVE) return
+        val mob = entity as? Mob ?: return
+        if (Taming.isTamed(mob)) return TamedGoals.forTamed(mob)
+        when (of(mob)) {
+            Disposition.AGGRESSIVE -> (mob as? PathfinderMob)?.let(::madeAggressive)
+            Disposition.TAMABLE -> {
+                val level = mob.level() as? ServerLevel ?: return
+                if (Temptations.of(level.server).wantsOf(mob.type).isNotEmpty()) TamedGoals.forTamable(mob)
+            }
+            Disposition.OWN, Disposition.FRIENDLY, Disposition.PASSIVE -> Unit
+        }
+    }
+
+    /**
+     * Going for the nearest player and running from nothing, with a feeble [Headbutt] where it has no attack of its
+     * own. A creature run by a brain rather than goals keeps its own ways but for the target, since the two would
+     * fight over where it walks.
+     */
+    private fun madeAggressive(mob: PathfinderMob) {
         val alreadyGiven = mob.targetSelector.availableGoals.any { it.goal is GoesForPlayers }
         if (alreadyGiven) return
-        val isRunByGoals = mob.goalSelector.availableGoals.isNotEmpty()
-        if (isRunByGoals && !fightsAlready(mob)) {
-            mob.goalSelector.removeAllGoals { it is PanicGoal || it is AvoidEntityGoal<*> }
-            mob.goalSelector.addGoal(HEADBUTTING, Headbutt(mob))
-            mob.targetSelector.addGoal(HITTING_BACK, HurtByTargetGoal(mob))
-        }
+        armIfUnarmed(mob)
         mob.targetSelector.addGoal(GOING_FOR_PLAYERS, GoesForPlayers(mob))
+    }
+
+    /** A creature run by goals with no attack of its own given a [Headbutt], hitting back and running from nothing. */
+    fun armIfUnarmed(mob: PathfinderMob) {
+        val isRunByGoals = mob.goalSelector.availableGoals.isNotEmpty()
+        val isArmedAlready = mob.goalSelector.availableGoals.any { it.goal is Headbutt }
+        if (!isRunByGoals || isArmedAlready || fightsAlready(mob)) return
+        mob.goalSelector.removeAllGoals { it is PanicGoal || it is AvoidEntityGoal<*> }
+        mob.goalSelector.addGoal(HEADBUTTING, Headbutt(mob))
+        mob.targetSelector.addGoal(HITTING_BACK, HurtByTargetGoal(mob))
     }
 
     /** Whether [mob] has an attack of its own to make once it has a target. */
